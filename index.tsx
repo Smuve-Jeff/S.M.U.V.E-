@@ -2,7 +2,7 @@
 // to ensure it runs before any modules are imported and evaluated.
 
 import { bootstrapApplication } from '@angular/platform-browser';
-import { ɵprovideZonelessChangeDetection as provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { AppComponent } from './src/video-editor/app.component';
 import { provideAiService, API_KEY_TOKEN } from './src/services/ai.service';
 
