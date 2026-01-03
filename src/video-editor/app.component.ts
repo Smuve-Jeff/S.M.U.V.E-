@@ -116,7 +116,7 @@ export class AppComponent implements OnDestroy {
   private analyserMaster!: AnalyserNode;
   private gainNodeMaster!: GainNode;
   private destinationNode!: MediaStreamAudioDestinationNode;
-  private vuIntervalId?: number;
+  private vuAnalysisFrameId?: number;
   private aiService = inject(AiService);
   // FIX: userContext is now correctly typed as UserContextService, fixing the errors on property access.
   private userContext = inject(UserContextService);
@@ -149,7 +149,7 @@ export class AppComponent implements OnDestroy {
   ngOnDestroy(): void {
     this.stopAllAudio();
     this.audioContext?.close();
-    if (this.vuIntervalId) clearInterval(this.vuIntervalId);
+    if (this.vuAnalysisFrameId) cancelAnimationFrame(this.vuAnalysisFrameId);
   }
 
   private initAudioContext(): void {
@@ -168,15 +168,18 @@ export class AppComponent implements OnDestroy {
 
   private initVUAnalysis(): void {
     if (typeof window !== 'undefined') {
-      this.vuIntervalId = window.setInterval(() => {
-        if (this.analyserMaster) {
+      const analyze = () => {
+        // Only run analysis if the DJ deck is visible for performance
+        if (this.mainViewMode() === 'dj' && this.analyserMaster) {
           const bufferLength = this.analyserMaster.frequencyBinCount;
           const dataArray = new Uint8Array(bufferLength);
           this.analyserMaster.getByteFrequencyData(dataArray);
           const average = dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
           this.vuLevelMaster.set(Math.min(100, (average / 128) * 100));
         }
-      }, 100);
+        this.vuAnalysisFrameId = requestAnimationFrame(analyze);
+      };
+      analyze();
     }
   }
   

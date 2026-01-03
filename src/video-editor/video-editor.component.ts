@@ -103,7 +103,7 @@ export class VideoEditorComponent implements OnDestroy {
 
       const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
       if (downloadLink) {
-        this.generatedVideoUrl.set(`${downloadLink}&key=${this.aiService.getApiKey()}`);
+        this.generatedVideoUrl.set(this.aiService.signUrl(downloadLink));
         this.generationProgressMessage.set('Video generation complete!');
       } else { throw new Error('No download link in response.'); }
     } catch (err: any) {

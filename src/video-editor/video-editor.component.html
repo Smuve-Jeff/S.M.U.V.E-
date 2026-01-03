@@ -15,8 +15,8 @@
       <!-- Settings -->
       <div class="flex gap-2 items-center">
          <span class="text-sm">[ ASPECT ]</span>
-         <button (click)="aspectRatio.set('16:9')" class="p-1 px-3 border text-xs" [class.bg-white]="aspectRatio() === '16:9'" [class.text-black]="aspectRatio() === '16:9'">16:9</button>
-         <button (click)="aspectRatio.set('9:16')" class="p-1 px-3 border text-xs" [class.bg-white]="aspectRatio() === '9:16'" [class.text-black]="aspectRatio() === '9:16'">9:16</button>
+         <button (click)="aspectRatio.set('16:9')" class="p-1 px-3 border text-xs transition-colors duration-200" [class.bg-white]="aspectRatio() === '16:9'" [class.text-black]="aspectRatio() === '16:9'">16:9</button>
+         <button (click)="aspectRatio.set('9:16')" class="p-1 px-3 border text-xs transition-colors duration-200" [class.bg-white]="aspectRatio() === '9:16'" [class.text-black]="aspectRatio() === '9:16'">9:16</button>
       </div>
 
       <!-- Actions -->

@@ -139,8 +139,13 @@ export class AiService {
     return this._chatInstance();
   }
 
-  getApiKey(): string {
-    return this._apiKey;
+  isApiKeyValid(): boolean {
+    return this._apiKey && this._apiKey.length >= 30;
+  }
+
+  signUrl(url: string): string {
+    if (!this.isApiKeyValid()) return url;
+    return `${url}&key=${this._apiKey}`;
   }
 
   async transcribeAudio(base64Audio: string, mimeType: string): Promise<string> {
