@@ -50,7 +50,7 @@ export class AuthService {
   }
 
   // Simulates a registration API call
-  async register(email: string, password_redacted: string): Promise<User> {
+  async register(email: string, _password: string): Promise<User> {
     console.log(`AuthService: Simulating registration for ${email}`);
     return new Promise((resolve) => {
       setTimeout(() => {
