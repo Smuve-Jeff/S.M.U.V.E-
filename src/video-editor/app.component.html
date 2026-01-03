@@ -7,7 +7,7 @@
     <header class="flex justify-between items-center p-2 sm:p-4 border-b-2 border-inherit">
       <h1 class="text-xl sm:text-2xl" [class]="mainTextColorClass()">[ AURA ]</h1>
       <div class="flex items-center gap-2">
-        <button (click)="mainViewMode.set('profile')" class="p-2 border hover:text-black text-sm" [class]="mainBorderClass()" [class]="mainHoverBgClass()">[ PROFILE ]</button>
+        <button (click)="setViewMode('profile')" class="p-2 border hover:text-black text-sm" [class]="mainBorderClass()" [class]="mainHoverBgClass()">[ PROFILE ]</button>
         <button (click)="randomizeTheme()" class="p-2 border hover:text-black text-sm" [class]="mainBorderClass()" [class]="mainHoverBgClass()">[ RND THM ]</button>
         <button (click)="toggleMainViewMode()" class="p-2 border hover:text-black text-sm" [class]="mainBorderClass()" [class]="mainHoverBgClass()">
           @if (mainViewMode() === 'player') { <span>[ DJ ]</span> }
@@ -22,6 +22,10 @@
           @if (showChatbot()) { <span>[ CHAT OFF ]</span> } @else { <span>[ CHAT ON ]</span> }
         </button>
         <button (click)="mainViewMode.set('tha-spot')" class="p-2 border hover:text-black text-sm" [class]="mainBorderClass()" [class]="mainHoverBgClass()">[ THA SPOT ]</button>
+
+        @if (authService.isAuthenticated()) {
+          <button (click)="authService.logout()" class="p-2 border hover:text-black text-sm" [class]="mainBorderClass()" [class]="mainHoverBgClass()">[ LOGOUT ]</button>
+        }
       </div>
     </header>
 
@@ -31,6 +35,11 @@
       <input type="file" #fileInput (change)="handleFiles($event)" multiple accept="audio/*" class="hidden">
 
       @switch (mainViewMode()) {
+        @case ('login') {
+          <div class="flex justify-center items-center h-full">
+            <app-login></app-login>
+          </div>
+        }
         @case ('dj') {
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <!-- DECK A -->
