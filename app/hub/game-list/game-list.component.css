@@ -1,0 +1,10 @@
+.game-card {
+  border: 1px solid #4ade80; /* green-400 */
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.game-card:hover {
+  background-color: #22c55e; /* green-500 */
+  color: black;
+}

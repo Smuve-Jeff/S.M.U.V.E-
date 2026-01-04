@@ -1,6 +1,18 @@
 <div class="hub-container">
-  <h2 class="text-2xl text-center mb-4">[ THA SPOT ]</h2>
-  <div class="w-full h-[80vh] border-2 border-green-400/50">
-    <iframe src="https://babylonjs-archive.github.io/simple-3d-fps/" class="w-full h-full"></iframe>
-  </div>
+  @switch (viewMode()) {
+    @case ('list') {
+      <app-game-list (gameSelected)="onGameSelected($event)" (findMoreGames)="onFindMoreGames()"></app-game-list>
+    }
+    @case ('game') {
+      <div class="w-full h-[80vh] border-2 border-green-400/50">
+        @if (safeGameUrl) {
+          <iframe [src]="safeGameUrl" class="w-full h-full"></iframe>
+        }
+      </div>
+      <button (click)="onBackToList()" class="mt-4 p-2 border w-full">[ BACK TO GAME LIST ]</button>
+    }
+    @case ('search') {
+      <app-game-search (gameInstalled)="onGameInstalled()" (backToList)="onBackToList()"></app-game-search>
+    }
+  }
 </div>

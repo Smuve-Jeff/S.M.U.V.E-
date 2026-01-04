@@ -1,0 +1,10 @@
+<div class="game-search-container">
+  <h3 class="text-xl text-center mb-4">[ FIND & INSTALL A NEW GAME ]</h3>
+  <form (ngSubmit)="installGame()" class="flex flex-col gap-4">
+    <input type="text" [(ngModel)]="gameName" name="gameName" placeholder="Game Name" class="p-2 bg-black border border-green-400/50">
+    <input type="text" [(ngModel)]="gameUrl" name="gameUrl" placeholder="Game URL" class="p-2 bg-black border border-green-400/50">
+    <input type="text" [(ngModel)]="gameImage" name="gameImage" placeholder="Image URL (optional)" class="p-2 bg-black border border-green-400/50">
+    <button type="submit" class="p-2 border">[ INSTALL GAME ]</button>
+  </form>
+  <button (click)="onBackToList()" class="mt-4 p-2 border w-full">[ BACK TO GAME LIST ]</button>
+</div>

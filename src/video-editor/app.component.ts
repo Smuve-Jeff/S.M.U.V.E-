@@ -129,6 +129,13 @@ export class AppComponent implements OnDestroy {
   authService = inject(AuthService);
 
   constructor() {
+    // Set initial view mode based on authentication
+    if (!this.authService.isAuthenticated()) {
+      this.mainViewMode.set('login');
+    } else {
+      this.mainViewMode.set('player');
+    }
+
     this.initAudioContext();
     this.initVUAnalysis();
 
