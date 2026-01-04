@@ -2,6 +2,10 @@
 <main class="bg-black text-green-400 font-mono min-h-screen flex items-center justify-center p-2 sm:p-4 relative overflow-hidden">
   <app-matrix-background></app-matrix-background>
 
+  <!-- Persistent audio players for DJ decks -->
+  <audio #audioPlayerA (ended)="onDeckTrackEnded('A')"></audio>
+  <audio #audioPlayerB (ended)="onDeckTrackEnded('B')"></audio>
+
   <div class="w-full max-w-7xl border-2 bg-black/80 backdrop-blur-sm z-10 flex flex-col transition-colors duration-500" [class]="mainBorderClass()">
     <!-- Header -->
     <header class="flex justify-between items-center p-2 sm:p-4 border-b-2 border-inherit">
@@ -49,13 +53,14 @@
                 {{ deckA().track.name }}
               </div>
               <div class="w-full aspect-square bg-neutral-900 rounded-full flex items-center justify-center">
-                 <img [src]="deckA().track.albumArtUrl" class="w-48 h-48 rounded-full object-cover">
+                 <img [src]="deckA().track.albumArtUrl" class="w-48 h-48 rounded-full object-cover" [alt]="'Album art for ' + deckA().track.name">
               </div>
                <div class="flex justify-center gap-2">
-                 <button class="p-2 border text-xl" >
+                 <button class="p-2 border text-xl" (click)="toggleDeckPlay('A')">
                     @if (deckA().isPlaying) { <span>[ PAUSE ]</span> } @else { <span>[ PLAY ]</span> }
                   </button>
                   <button class="p-2 border">[ CUE ]</button>
+                  <button class="p-2 border" (click)="playNextOnDeck('A')">[ NEXT ]</button>
                </div>
             </div>
             <!-- DECK B -->
@@ -65,15 +70,20 @@
                 {{ deckB().track.name }}
               </div>
               <div class="w-full aspect-square bg-neutral-900 rounded-full flex items-center justify-center">
-                 <img [src]="deckB().track.albumArtUrl" class="w-48 h-48 rounded-full object-cover">
+                 <img [src]="deckB().track.albumArtUrl" class="w-48 h-48 rounded-full object-cover" [alt]="'Album art for ' + deckB().track.name">
               </div>
                <div class="flex justify-center gap-2">
-                 <button class="p-2 border text-xl">
+                 <button class="p-2 border text-xl" (click)="toggleDeckPlay('B')">
                     @if (deckB().isPlaying) { <span>[ PAUSE ]</span> } @else { <span>[ PLAY ]</span> }
                   </button>
                   <button class="p-2 border">[ CUE ]</button>
+                  <button class="p-2 border" (click)="playNextOnDeck('B')">[ NEXT ]</button>
                </div>
             </div>
+          </div>
+          <div class="flex justify-center gap-4 mt-4">
+            <button class="p-2 border" (click)="toggleRepeat()" [class.bg-green-700]="repeat()">[ REPEAT ]</button>
+            <button class="p-2 border" (click)="toggleShuffle()" [class.bg-green-700]="shuffle()">[ SHUFFLE ]</button>
           </div>
         }
         @case ('piano-roll') { <app-piano-roll [theme]="currentTheme()"></app-piano-roll> }
