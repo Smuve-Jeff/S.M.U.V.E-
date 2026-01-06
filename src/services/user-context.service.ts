@@ -4,7 +4,7 @@ import { Injectable, signal } from '@angular/core';
 export interface AppTheme { name: string; primary: string; accent: string; neutral: string; purple: string; red: string; blue: string; }
 
 // FIX: Added 'profile' and 'login' to the MainViewMode type to match its usage in app.component.ts
-export type MainViewMode = 'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'login';
+export type MainViewMode = 'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'user-profile-builder';
 
 // FIX: Moved shared interfaces here to break circular dependencies
 export interface Track { name: string; url: string; artist?: string; albumArtUrl?: string; videoSrc?: string; }

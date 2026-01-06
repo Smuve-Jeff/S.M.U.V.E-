@@ -14,7 +14,7 @@ import { ProfileEditorComponent } from '../components/profile-editor/profile-edi
 import { HubComponent } from '../../app/hub/hub';
 import { AiService } from '../services/ai.service';
 import { AuthService } from '../services/auth.service';
-import { LoginComponent } from '../components/login/login.component';
+import { UserProfileBuilderComponent } from '../components/user-profile-builder/user-profile-builder.component';
 // FIX: Import AppTheme and shared types from UserContextService to break circular dependency which caused injection errors.
 import { UserContextService, AppTheme, Track, EqBand, Enhancements, DeckState, initialDeckState } from '../services/user-context.service';
 import { UserProfileService } from '../services/user-profile.service';
@@ -23,7 +23,7 @@ declare global {
   interface HTMLAudioElement { __sourceNode?: MediaElementAudioSourceNode; }
 }
 
-type MainViewMode = 'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'login';
+type MainViewMode = 'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'user-profile-builder';
 type ScratchState = { active: boolean; lastAngle: number; platterElement: HTMLElement | null; };
 const THEMES: AppTheme[] = [
   { name: 'Green Vintage', primary: 'green', accent: 'amber', neutral: 'neutral', purple: 'purple', red: 'red', blue: 'blue' },
@@ -36,7 +36,7 @@ const THEMES: AppTheme[] = [
   standalone: true,
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, EqPanelComponent, MatrixBackgroundComponent, ChatbotComponent, ImageEditorComponent, VideoEditorComponent, AudioVisualizerComponent, PianoRollComponent, NetworkingComponent, ProfileEditorComponent, HubComponent, LoginComponent],
+  imports: [CommonModule, FormsModule, EqPanelComponent, MatrixBackgroundComponent, ChatbotComponent, ImageEditorComponent, VideoEditorComponent, AudioVisualizerComponent, PianoRollComponent, NetworkingComponent, ProfileEditorComponent, HubComponent, UserProfileBuilderComponent],
   host: {
     '(window:mousemove)': 'onScratch($event)', '(window:touchmove)': 'onScratch($event)',
     '(window:mouseup)': 'onScratchEnd()', '(window:touchend)': 'onScratchEnd()',
@@ -52,7 +52,7 @@ export class AppComponent implements OnDestroy {
   videoPlayerBRef = viewChild<ElementRef<HTMLVideoElement>>('videoPlayerB');
   fileInputRef = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
-  mainViewMode = signal<'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'login'>('login');
+  mainViewMode = signal<'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'user-profile-builder'>('user-profile-builder');
   showChatbot = signal(true);
 
   // --- Player State ---
@@ -129,22 +129,15 @@ export class AppComponent implements OnDestroy {
   authService = inject(AuthService);
 
   constructor() {
-    // Set initial view mode based on authentication
-    if (!this.authService.isAuthenticated()) {
-      this.mainViewMode.set('login');
-    } else {
-      this.mainViewMode.set('player');
-    }
+    // Set initial view mode to the user profile builder
+    this.mainViewMode.set('user-profile-builder');
 
     this.initAudioContext();
     this.initVUAnalysis();
 
-    // Redirect to login if not authenticated
+    // Effect to handle view mode changes after profile creation (or login)
     effect(() => {
-      if (!this.authService.isAuthenticated()) {
-        this.mainViewMode.set('login');
-      } else if (this.mainViewMode() === 'login') {
-        // If logged in and on login screen, go to player
+      if (this.mainViewMode() === 'user-profile-builder' && this.authService.isAuthenticated()) {
         this.mainViewMode.set('player');
       }
     }, { allowSignalWrites: true });
@@ -394,11 +387,12 @@ export class AppComponent implements OnDestroy {
   }
 
   // Method to handle view changes, including auth check for profile
-  setViewMode(mode: Exclude<MainViewMode, 'login'>): void {
-    if (mode === 'profile' && !this.authService.isAuthenticated()) {
-      this.mainViewMode.set('login');
-    } else {
-      this.mainViewMode.set(mode);
-    }
+  setViewMode(mode: Exclude<MainViewMode, 'user-profile-builder'>): void {
+    // This method will need to be updated to handle the new flow
+    this.mainViewMode.set(mode);
+  }
+
+  handleProfileSaved(): void {
+    this.mainViewMode.set('player');
   }
 }

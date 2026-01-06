@@ -297,6 +297,13 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   startVoiceInput(): void { if (this.speechRecognition) { this.isVoiceInputActive.set(true); this.speechRecognition.start(); } }
   stopVoiceInput(): void { if (this.speechRecognition) { this.isVoiceInputActive.set(false); this.speechRecognition.stop(); } }
 
+  speakLatestMessage(): void {
+    const lastMessage = this.messages()[this.messages().length - 1];
+    if (lastMessage && lastMessage.role === 'model') {
+      this.speakResponse(lastMessage.content);
+    }
+  }
+
   speakResponse(text: string): void {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis) return;
     this.stopSpeaking();

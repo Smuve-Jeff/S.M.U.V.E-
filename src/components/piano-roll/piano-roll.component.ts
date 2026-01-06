@@ -27,8 +27,9 @@ ALL_NOTES.reverse();
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PianoRollComponent implements OnDestroy {
-  theme = input.required<AppTheme>();
   allNotes = ALL_NOTES;
+  instruments = ['Guitar', 'Orchestra', 'Piano', '808s', 'Percussion', 'Snare', 'Synth', 'High Hats'];
+  selectedInstrument = signal('Piano');
   bpm = signal(120);
   isPlaying = signal(false);
   currentStep = signal(-1);
@@ -118,14 +119,60 @@ export class PianoRollComponent implements OnDestroy {
     const frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
-    oscillator.type = 'sine';
+
+    switch (this.selectedInstrument()) {
+      case 'Guitar':
+        oscillator.type = 'sawtooth';
+        gainNode.gain.setValueAtTime(0.3, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.8);
+        break;
+      case 'Orchestra':
+        oscillator.type = 'square';
+        gainNode.gain.setValueAtTime(0.2, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 1.2);
+        break;
+      case 'Piano':
+        oscillator.type = 'triangle';
+        gainNode.gain.setValueAtTime(0.4, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.5);
+        break;
+      case '808s':
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.5, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.3);
+        break;
+      case 'Percussion':
+        oscillator.type = 'triangle';
+        gainNode.gain.setValueAtTime(0.1, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.1);
+        break;
+      case 'Snare':
+        oscillator.type = 'square';
+        gainNode.gain.setValueAtTime(0.2, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.2);
+        break;
+      case 'Synth':
+        oscillator.type = 'sawtooth';
+        gainNode.gain.setValueAtTime(0.3, startTime);
+        gainNode.gain.linearRampToValueAtTime(0.1, startTime + 0.7);
+        break;
+      case 'High Hats':
+        oscillator.type = 'square';
+        gainNode.gain.setValueAtTime(0.05, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.05);
+        break;
+      default:
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.3, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.5);
+        break;
+    }
+
     oscillator.frequency.setValueAtTime(frequency, startTime);
-    gainNode.gain.setValueAtTime(0.3, startTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.5);
     oscillator.connect(gainNode);
     gainNode.connect(this.masterGainNode);
     oscillator.start(startTime);
-    oscillator.stop(startTime + 0.5);
+    oscillator.stop(startTime + 1.5);
   }
 
   toggleNote(midiNote: number, stepIndex: number): void {

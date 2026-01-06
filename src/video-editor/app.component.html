@@ -39,9 +39,9 @@
       <input type="file" #fileInput (change)="handleFiles($event)" multiple accept="audio/*" class="hidden">
 
       @switch (mainViewMode()) {
-        @case ('login') {
+        @case ('user-profile-builder') {
           <div class="flex justify-center items-center h-full">
-            <app-login [theme]="currentTheme()"></app-login>
+            <app-user-profile-builder (profileSaved)="handleProfileSaved()"></app-user-profile-builder>
           </div>
         }
         @case ('dj') {
@@ -86,7 +86,7 @@
             <button class="p-2 border" (click)="toggleShuffle()" [class.bg-green-700]="shuffle()">[ SHUFFLE ]</button>
           </div>
         }
-        @case ('piano-roll') { <app-piano-roll [theme]="currentTheme()"></app-piano-roll> }
+        @case ('piano-roll') { <app-piano-roll></app-piano-roll> }
         @case ('image-editor') { <app-image-editor [theme]="currentTheme()" [initialPrompt]="imageEditorInitialPrompt()" (imageSelected)="handleImageSelectedForAlbumArt($event)" (imageAnalysisRequest)="handleChatbotCommand({ action: 'ANALYZE_IMAGE', parameters: { imageUrl: $event }})" (imageGenerated)="handleImageGenerated($event)"></app-image-editor> }
         @case ('video-editor') { <app-video-editor [theme]="currentTheme()" [initialPrompt]="videoEditorInitialPrompt()" [imageForVideoGeneration]="lastImageEditorImageUrl()"></app-video-editor> }
         @case ('networking') { <app-networking [theme]="currentTheme()" [initialSearchQuery]="networkingLocationQuery()" (artistProfileSelected)="selectedArtistProfile.set($event)"></app-networking> }

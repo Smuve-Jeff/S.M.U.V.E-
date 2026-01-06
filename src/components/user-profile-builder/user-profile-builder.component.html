@@ -1,0 +1,19 @@
+<div class="container">
+  <h2>Create Your Artist Profile</h2>
+  <div class="form-group">
+    <label for="artistName">Artist Name</label>
+    <input type="text" id="artistName" [(ngModel)]="artistName" />
+  </div>
+  <div class="form-group">
+    <label for="bio">Bio</label>
+    <textarea id="bio" [(ngModel)]="bio"></textarea>
+  </div>
+  <div class="form-group">
+    <label for="profilePicture">Profile Picture</label>
+    <input type="file" id="profilePicture" (change)="onFileSelected($event)" />
+  </div>
+  <div *ngIf="profilePictureUrl()">
+    <img [src]="profilePictureUrl()" alt="Profile Picture" />
+  </div>
+  <button (click)="saveProfile()">Save Profile</button>
+</div>

@@ -34,7 +34,8 @@
   </div>
 
   <form (submit)="sendMessage()" class="flex gap-2">
-    <button type="button" (click)="toggleVoiceInput()" class="p-2 border" [disabled]="!isAiAvailable()">🎤</button>
+    <button type="button" (click)="startVoiceInput()" class="p-2 border" [disabled]="!isAiAvailable()">🎤</button>
+    <button type="button" (click)="speakLatestMessage()" class="p-2 border" [disabled]="!isAiAvailable()">🔊</button>
     <input type="text" [(ngModel)]="userMessage" name="userMessage" class="flex-grow bg-black border px-2 py-1 text-sm" [disabled]="!isAiAvailable()">
     <button type="submit" class="p-2 border" [disabled]="!isAiAvailable()">[SEND]</button>
   </form>
