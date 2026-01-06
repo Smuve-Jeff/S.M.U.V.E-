@@ -11,10 +11,10 @@ import { AudioVisualizerComponent } from '../components/audio-visualizer/audio-v
 import { PianoRollComponent } from '../components/piano-roll/piano-roll.component';
 import { NetworkingComponent, ArtistProfile, MOCK_ARTISTS } from '../components/networking/networking.component';
 import { ProfileEditorComponent } from '../components/profile-editor/profile-editor.component';
-import { HubComponent } from '../../app/hub/hub';
+import { HubComponent } from '../app/hub/hub';
 import { AiService } from '../services/ai.service';
 import { AuthService } from '../services/auth.service';
-import { LoginComponent } from '../components/login/login.component';
+import { UserProfileBuilderComponent } from '../components/user-profile-builder/user-profile-builder.component';
 // FIX: Import AppTheme and shared types from UserContextService to break circular dependency which caused injection errors.
 import { UserContextService, AppTheme, Track, EqBand, Enhancements, DeckState, initialDeckState } from '../services/user-context.service';
 import { UserProfileService } from '../services/user-profile.service';
@@ -23,7 +23,7 @@ declare global {
   interface HTMLAudioElement { __sourceNode?: MediaElementAudioSourceNode; }
 }
 
-type MainViewMode = 'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'login';
+type MainViewMode = 'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'user-profile-builder';
 type ScratchState = { active: boolean; lastAngle: number; platterElement: HTMLElement | null; };
 const THEMES: AppTheme[] = [
   { name: 'Green Vintage', primary: 'green', accent: 'amber', neutral: 'neutral', purple: 'purple', red: 'red', blue: 'blue' },
@@ -36,7 +36,7 @@ const THEMES: AppTheme[] = [
   standalone: true,
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, EqPanelComponent, MatrixBackgroundComponent, ChatbotComponent, ImageEditorComponent, VideoEditorComponent, AudioVisualizerComponent, PianoRollComponent, NetworkingComponent, ProfileEditorComponent, HubComponent, LoginComponent],
+  imports: [CommonModule, FormsModule, EqPanelComponent, MatrixBackgroundComponent, ChatbotComponent, ImageEditorComponent, VideoEditorComponent, AudioVisualizerComponent, PianoRollComponent, NetworkingComponent, ProfileEditorComponent, HubComponent, UserProfileBuilderComponent],
   host: {
     '(window:mousemove)': 'onScratch($event)', '(window:touchmove)': 'onScratch($event)',
     '(window:mouseup)': 'onScratchEnd()', '(window:touchend)': 'onScratchEnd()',
@@ -52,7 +52,7 @@ export class AppComponent implements OnDestroy {
   videoPlayerBRef = viewChild<ElementRef<HTMLVideoElement>>('videoPlayerB');
   fileInputRef = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
-  mainViewMode = signal<MainViewMode>('login');
+  mainViewMode = signal<MainViewMode>('user-profile-builder');
   showChatbot = signal(true);
 
   // --- Player State ---
@@ -71,6 +71,8 @@ export class AppComponent implements OnDestroy {
   deckA = signal<DeckState>({ ...initialDeckState });
   deckB = signal<DeckState>({ ...initialDeckState });
   crossfade = signal(0);
+  repeat = signal(false);
+  shuffle = signal(false);
   isScratchingA = signal(false);
   isScratchingB = signal(false);
   scratchRotationA = signal('');
@@ -127,15 +129,15 @@ export class AppComponent implements OnDestroy {
   authService = inject(AuthService);
 
   constructor() {
+    // Set initial view mode to the user profile builder
+    this.mainViewMode.set('user-profile-builder');
+
     this.initAudioContext();
     this.initVUAnalysis();
 
-    // Redirect to login if not authenticated
+    // Effect to handle view mode changes after profile creation (or login)
     effect(() => {
-      if (!this.authService.isAuthenticated()) {
-        this.mainViewMode.set('login');
-      } else if (this.mainViewMode() === 'login') {
-        // If logged in and on login screen, go to player
+      if (this.mainViewMode() === 'user-profile-builder' && this.authService.isAuthenticated()) {
         this.mainViewMode.set('player');
       }
     }, { allowSignalWrites: true });
@@ -207,7 +209,73 @@ export class AppComponent implements OnDestroy {
         url: URL.createObjectURL(file),
       }));
       this.playlist.set(newTracks);
-      if (newTracks.length > 0) this.currentTrackIndex.set(0);
+      if (newTracks.length > 0) {
+        this.currentTrackIndex.set(0);
+        // Pre-load tracks into decks
+        this.deckA.update(d => ({ ...d, track: newTracks[0] }));
+        if (newTracks.length > 1) {
+          this.deckB.update(d => ({ ...d, track: newTracks[1] }));
+        }
+      }
+    }
+  }
+
+  toggleDeckPlay(deck: 'A' | 'B'): void {
+    const deckState = deck === 'A' ? this.deckA : this.deckB;
+    const player = deck === 'A' ? this.audioPlayerARef()?.nativeElement : this.audioPlayerBRef()?.nativeElement;
+    if (!player) return;
+
+    if (player.src !== deckState().track.url) {
+      player.src = deckState().track.url;
+      player.load();
+    }
+
+    if (deckState().isPlaying) {
+      player.pause();
+    } else {
+      player.play();
+    }
+    deckState.update(d => ({ ...d, isPlaying: !d.isPlaying }));
+  }
+
+  playNextOnDeck(deck: 'A' | 'B'): void {
+    const deckState = deck === 'A' ? this.deckA : this.deckB;
+    const playlist = this.playlist();
+    if (playlist.length === 0) return;
+
+    let nextTrackIndex;
+    const currentTrackUrl = deckState().track.url;
+    const currentTrackIndex = playlist.findIndex(t => t.url === currentTrackUrl);
+
+    if (this.shuffle()) {
+      nextTrackIndex = Math.floor(Math.random() * playlist.length);
+    } else {
+      nextTrackIndex = (currentTrackIndex + 1) % playlist.length;
+    }
+
+    deckState.update(d => ({ ...d, track: playlist[nextTrackIndex], isPlaying: true }));
+    const player = deck === 'A' ? this.audioPlayerARef()?.nativeElement : this.audioPlayerBRef()?.nativeElement;
+    if (player) {
+      player.src = playlist[nextTrackIndex].url;
+      player.load();
+      player.play();
+    }
+  }
+
+  toggleRepeat(): void {
+    this.repeat.update(r => !r);
+  }
+
+  toggleShuffle(): void {
+    this.shuffle.update(s => !s);
+  }
+
+  onDeckTrackEnded(deck: 'A' | 'B'): void {
+    if (this.repeat()) {
+      this.playNextOnDeck(deck);
+    } else {
+      const deckState = deck === 'A' ? this.deckA : this.deckB;
+      deckState.update(d => ({ ...d, isPlaying: false }));
     }
   }
 
@@ -319,11 +387,12 @@ export class AppComponent implements OnDestroy {
   }
 
   // Method to handle view changes, including auth check for profile
-  setViewMode(mode: Exclude<MainViewMode, 'login'>): void {
-    if (mode === 'profile' && !this.authService.isAuthenticated()) {
-      this.mainViewMode.set('login');
-    } else {
-      this.mainViewMode.set(mode);
-    }
+  setViewMode(mode: Exclude<MainViewMode, 'user-profile-builder'>): void {
+    // This method will need to be updated to handle the new flow
+    this.mainViewMode.set(mode);
+  }
+
+  handleProfileSaved(): void {
+    this.mainViewMode.set('player');
   }
 }

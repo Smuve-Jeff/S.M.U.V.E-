@@ -18,14 +18,14 @@
     "moduleDetection": "force",
     "allowJs": true,
     "jsx": "react-jsx",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./*"
+        "src/*"
       ]
     }
   },
   "files": [
-    "./index.tsx",
     "./src/main.ts"
   ],
   "angularCompilerOptions": {

@@ -26,8 +26,8 @@ export class LoginComponent {
     try {
       await this.authService.login(this.email(), this.password());
       // On success, the main app component will react to the auth state change.
-    } catch (err: any) {
-      this.error.set(err.message);
+    } catch (err: unknown) {
+      this.error.set(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       this.isLoggingIn.set(false);
     }
