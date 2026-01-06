@@ -4,9 +4,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EqPanelComponent } from '../components/eq-panel/eq-panel.component';
 import { MatrixBackgroundComponent } from '../components/sample-library/matrix-background.component';
-import { ChatbotComponent } from '../chatbot/chatbot.component';
+// import { ChatbotComponent } from '../chatbot/chatbot.component';
 import { ImageEditorComponent } from '../components/image-editor/image-editor.component';
-import { VideoEditorComponent } from './video-editor.component';
+// import { VideoEditorComponent } from './video-editor.component';
 import { AudioVisualizerComponent } from '../components/audio-visualizer/audio-visualizer.component';
 import { PianoRollComponent } from '../components/piano-roll/piano-roll.component';
 import { NetworkingComponent, ArtistProfile, MOCK_ARTISTS } from '../components/networking/networking.component';
@@ -36,7 +36,7 @@ const THEMES: AppTheme[] = [
   standalone: true,
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, EqPanelComponent, MatrixBackgroundComponent, ChatbotComponent, ImageEditorComponent, VideoEditorComponent, AudioVisualizerComponent, PianoRollComponent, NetworkingComponent, ProfileEditorComponent, HubComponent, UserProfileBuilderComponent],
+  imports: [CommonModule, FormsModule, EqPanelComponent, MatrixBackgroundComponent, /* ChatbotComponent, */ ImageEditorComponent, /* VideoEditorComponent, */ AudioVisualizerComponent, PianoRollComponent, NetworkingComponent, ProfileEditorComponent, HubComponent, UserProfileBuilderComponent],
   host: {
     '(window:mousemove)': 'onScratch($event)', '(window:touchmove)': 'onScratch($event)',
     '(window:mouseup)': 'onScratchEnd()', '(window:touchend)': 'onScratchEnd()',
@@ -296,7 +296,7 @@ export class AppComponent implements OnDestroy {
   playPrevious(): void {
     const playlistSize = this.playlist().length;
     if (playlistSize === 0) return;
-    this.currentTrackIndex.update(i => (i - 1 + playlistSize) % playlistSize);
+    this.currentTrackIndex.update(i => (i - 1 + playlistSize) % playlist.length);
   }
 
   onTimeUpdate(): void { this.currentTime.set(this.mainAudioPlayerRef()?.nativeElement.currentTime || 0); }
