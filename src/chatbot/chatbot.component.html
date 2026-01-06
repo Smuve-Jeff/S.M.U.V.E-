@@ -1,10 +1,10 @@
 <h2>Chatbot</h2>
 <div class="chat-history">
-  <div *ngFor="let message of messages" class="message" [ngClass]="{'user-message': message.isUser, 'bot-message': !message.isUser}">
-    {{ message.text }}
+  <div *ngFor="let message of messages()" class="message" [ngClass]="{'user-message': message.role === 'user', 'bot-message': message.role !== 'user'}">
+    {{ message.content }}
   </div>
 </div>
 <div class="chat-input">
-  <input [(ngModel)]="newMessage" (keyup.enter)="sendMessage()" placeholder="Type your message...">
+  <input [(ngModel)]="userMessage" (keyup.enter)="sendMessage()" placeholder="Type your message...">
   <button class="button" (click)="sendMessage()">Send</button>
 </div>

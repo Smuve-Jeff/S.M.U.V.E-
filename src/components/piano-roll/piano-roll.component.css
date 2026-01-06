@@ -1,35 +1,35 @@
 .piano-roll-container {
-  background-color: #F3EAD3; /* Parchment */
+  background-color: var(--container-background);
   padding: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid #D1C4A7; /* Aged Paper */
-  color: #5A4C3D; /* Sepia */
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
 }
 
 .piano-roll-grid {
   grid-template-columns: 80px repeat(16, 1fr);
   grid-auto-rows: 24px;
   width: max-content;
-  background-color: #E2D6B5; /* Light Parchment */
+  background-color: var(--background-color);
 }
 
 .piano-key {
-  background-color: #D1C4A7; /* Aged Paper */
-  color: #000000; /* Black */
-  border: 1px solid #BCAE95; /* Darker Aged Paper */
+  background-color: var(--container-background);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
 }
 
 .note {
-  background-color: #8C7B6C; /* Faded Ink */
-  border: 1px solid #756555; /* Darker Faded Ink */
+  background-color: #4a4a70;
+  border: 1px solid #3e3a59;
 }
 
 .vintage-note-active {
-  background-color: #5A4C3D; /* Sepia */
+  background-color: var(--primary-color);
 }
 
 .vintage-note-playing {
-  background-color: #A0522D; /* Sienna */
+  background-color: #c3a6ff;
 }
 
 div::-webkit-scrollbar {
@@ -37,17 +37,17 @@ div::-webkit-scrollbar {
 }
 
 div::-webkit-scrollbar-track {
-  background: #E2D6B5; /* Light Parchment */
+  background: var(--background-color);
 }
 
 div::-webkit-scrollbar-thumb {
-  background: #8C7B6C; /* Faded Ink */
+  background: var(--primary-color);
   border-radius: 4px;
-  border: 1px solid #756555; /* Darker Faded Ink */
+  border: 1px solid var(--border-color);
 }
 
 select {
-  background-color: #D1C4A7; /* Aged Paper */
-  border: 1px solid #BCAE95; /* Darker Aged Paper */
-  color: #5A4C3D; /* Sepia */
+  background-color: var(--container-background);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
 }

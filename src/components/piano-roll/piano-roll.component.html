@@ -1,8 +1,8 @@
 <div class="piano-roll-container w-full p-4 flex flex-col gap-4">
-  <h2 class="text-center text-lg">[ AURA PIANO ROLL ]</h2>
+  <h2 class="text-center text-lg">[ S.M.U.V.E 2.0 PIANO ROLL ]</h2>
   <div class="flex justify-between items-center p-2">
-    <button (click)="togglePlay()">{{ isPlaying() ? '[ STOP ]' : '[ PLAY ]' }}</button>
-    <button (click)="resetSequence()">[ RESET ]</button>
+    <button class="button" (click)="togglePlay()">{{ isPlaying() ? '[ STOP ]' : '[ PLAY ]' }}</button>
+    <button class="button" (click)="resetSequence()">[ RESET ]</button>
     <div>
       <label>Instrument:</label>
       <select [value]="selectedInstrument()" (change)="selectedInstrument.set($event.target.value)">
