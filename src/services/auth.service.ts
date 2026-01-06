@@ -35,7 +35,7 @@ export class AuthService {
   }
 
   // Simulates a login API call
-  async login(email: string, password_redacted: string): Promise<User> {
+  async login(email: string, _password: string): Promise<User> {
     console.log(`AuthService: Simulating login for ${email}`);
     return new Promise((resolve, reject) => {
       setTimeout(() => {
