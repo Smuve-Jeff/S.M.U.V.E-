@@ -2,7 +2,7 @@
 <div [ngClass]="mainBorderClass()" class="bg-black/80 border-2 rounded-lg shadow-2xl shadow-purple-500/10 h-full flex flex-col overflow-hidden" [ngStyle]="{'border-color': currentTheme()?.primary + ' !important'}">
 
   <!-- Main Header -->
-  <header class="bg-black/50 border-b-2 p-2 flex items-center justify-between" [ngClass]="mainBorderClass()">
+  <header class="bg-black/50 border-b-2 p-2 flex items-center justify-between" [style.borderColor]="currentTheme()?.primary">
     <div class="flex items-center gap-4">
       <h1 class="text-2xl font-bold" [ngClass]="mainTextColorClass()">s.m.u.v.e. 2.0</h1>
       <button (click)="toggleMainViewMode()" [ngClass]="mainHoverBgClass()" class="p-1 rounded-md" title="Toggle Main View"><i class="fas fa-sync-alt"></i></button>
