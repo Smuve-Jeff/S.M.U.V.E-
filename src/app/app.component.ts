@@ -1,4 +1,4 @@
-import { Component, signal, computed, effect, inject, ChangeDetectorRef, ElementRef, viewChild, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, signal, computed, effect, inject, ChangeDetectorRef, ElementRef, viewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserContextService, AppTheme, MainViewMode } from '../services/user-context.service';
