@@ -1,7 +1,7 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideZoneChangeDetection } from '@angular/core';
-import { AppComponent } from './video-editor/app.component';
-import { provideAiService, API_KEY_TOKEN } from './services/ai.service';
+import { AppComponent } from './app/app.component';
+import { provideAiService, API_KEY_TOKEN } from './app/services/ai.service';
 
 bootstrapApplication(AppComponent, {
   providers: [
