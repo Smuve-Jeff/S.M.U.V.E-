@@ -10,32 +10,7 @@ import { GameService } from './game.service';
 })
 export class HubComponent implements OnInit {
   // Signals for state management
-  allGames = signal<Game[]>([]);
-  filteredGames = computed(() => {
-    const query = this.filterQuery().toLowerCase();
-    const genre = this.filterGenre();
-    const sort = this.filterSort();
-    
-    let games = this.allGames().filter(g => 
-      g.name.toLowerCase().includes(query) && 
-      (genre ? g.genre === genre : true)
-    );
-
-    switch (sort) {
-      case 'Popular':
-        games.sort((a, b) => (b.playersOnline || 0) - (a.playersOnline || 0));
-        break;
-      case 'Rating':
-        games.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        break;
-      case 'Newest':
-        games.sort((a, b) => b.id - a.id);
-        break;
-    }
-    
-    return games;
-  });
-
+  filteredGames = signal<Game[]>([]); // This now holds the games loaded from the service
   activityFeed = signal<string[]>([]);
   hoveredGame = signal<Game | null>(null);
   activeGame = signal<Game | null>(null);
@@ -52,18 +27,26 @@ export class HubComponent implements OnInit {
   constructor(private gameService: GameService, private sanitizer: DomSanitizer) {}
 
   ngOnInit() {
-    this.loadInitialData();
+    this.loadGames();
     this.setupActivityFeed();
   }
 
-  loadInitialData() {
-    this.gameService.listGames({}, 'Popular').subscribe(games => {
-      this.allGames.set(games);
+  // Fetches games from the service based on current filter & sort selections
+  loadGames() {
+    const filters = {
+      query: this.filterQuery() || undefined,
+      genre: this.filterGenre() || undefined,
+    };
+    const sort = this.filterSort();
+
+    this.gameService.listGames(filters, sort).subscribe(games => {
+      this.filteredGames.set(games);
     });
   }
   
+  // This is called by the template when a filter value changes
   applyFilters() {
-    // The computed signal `filteredGames` will automatically recalculate.
+    this.loadGames();
   }
 
   setupActivityFeed() {
