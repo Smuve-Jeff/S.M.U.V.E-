@@ -154,7 +154,7 @@
       <app-image-editor *ngIf="mainViewMode() === 'image-editor'" [initialPrompt]="imageEditorInitialPrompt()" (imageGenerated)="handleImageGenerated($event)" (imageSelectedForAlbumArt)="handleImageSelectedForAlbumArt($event)"></app-image-editor>
       <app-video-editor *ngIf="mainViewMode() === 'video-editor'" [initialPrompt]="videoEditorInitialPrompt()"></app-video-editor>
       <app-networking *ngIf="mainViewMode() === 'networking'" (artistProfileSelected)="selectedArtistProfile.set($event)"></app-networking>
-      <app-profile-editor *ngIf="mainViewMode() === 'profile'"></app-profile-editor>
+      <app-profile-editor *ngIf="mainViewMode() === 'profile'" [theme]="activeTheme()"></app-profile-editor>
       <app-hub *ngIf="mainViewMode() === 'tha-spot'"></app-hub>
       <app-studio-interface *ngIf="mainViewMode() === 'studio-interface'"></app-studio-interface>
 
