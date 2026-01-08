@@ -36,11 +36,37 @@
 </div>
 
 <app-modal title="Create a Duel" [(visible)]="isDuelModalVisible">
-  <p>Challenge another player to a 1v1 match.</p>
-  <!-- Add duel creation form here -->
+  <form>
+    <div class="form-group">
+      <label for="duel-game">Game</label>
+      <select id="duel-game" class="form-control">
+        <option *ngFor="let game of filteredGames()" [value]="game.id">{{ game.name }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="opponent-search">Opponent</label>
+      <input type="text" id="opponent-search" class="form-control" placeholder="Search for a player">
+    </div>
+    <button type="submit" class="action-button primary">Send Challenge</button>
+  </form>
 </app-modal>
 
 <app-modal title="Create a Team" [(visible)]="isTeamModalVisible">
-  <p>Form a team and compete together.</p>
-  <!-- Add team creation form here -->
+  <form>
+    <div class="form-group">
+      <label for="team-name">Team Name</label>
+      <input type="text" id="team-name" class="form-control" placeholder="Enter a team name">
+    </div>
+    <div class="form-group">
+      <label for="team-game">Game</label>
+      <select id="team-game" class="form-control">
+        <option *ngFor="let game of filteredGames()" [value]="game.id">{{ game.name }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="teammate-search">Teammates</label>
+      <input type="text" id="teammate-search" class="form-control" placeholder="Invite players">
+    </div>
+    <button type="submit" class="action-button secondary">Create Team</button>
+  </form>
 </app-modal>

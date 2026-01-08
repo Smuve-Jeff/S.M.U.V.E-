@@ -216,3 +216,29 @@ app-game-list {
     display: none; /* Hide sidebars on smaller screens for simplicity */
   }
 }
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-muted);
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: var(--text-color);
+  font-size: 1rem;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-accent);
+  box-shadow: 0 0 8px var(--glow-color);
+}

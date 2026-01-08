@@ -6,8 +6,8 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
   styleUrls: ['./modal.component.css']
 })
 export class ModalComponent {
-  @Input() title: string = '';
-  @Input() visible: boolean = false;
+  @Input() title = '';
+  @Input() visible = false;
   @Output() visibleChange = new EventEmitter<boolean>();
 
   close() {
