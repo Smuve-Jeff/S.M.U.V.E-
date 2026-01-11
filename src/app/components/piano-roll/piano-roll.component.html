@@ -41,9 +41,15 @@
         }
       </div>
     </div>
-    <div class="pr-velocity">
+    <div class="pr-velocity" (mousedown)="onVelocityMouseDown($event)">
       <div class="lane-title">Velocity</div>
-      <div class="lane"></div>
+      <div class="lane">
+        @for(i of stepsArray(); track i) {
+          <div class="velocity-bar"
+               [style.height.%]="velocityForStep(i) * 100"
+               [class.playing]="currentStep() === i"></div>
+        }
+      </div>
     </div>
   </div>
 </div>

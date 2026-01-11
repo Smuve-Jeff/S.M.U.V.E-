@@ -5,11 +5,12 @@
 @tailwind utilities;
 
 :root {
-  --primary-color: #9f78ff; /* A vibrant, futuristic purple */
-  --background-color: #120f1a; /* A deep, dark purple */
-  --text-color: #e0d8ff; /* A soft lavender for readability */
-  --container-background: #1d1a2f; /* A slightly lighter purple for containers */
-  --border-color: #3e3a59; /* A subtle border color */
+  --primary-color: #00bcd4; /* A bright, modern cyan */
+  --background-color: #1a1a1a; /* A very dark grey for a clean, modern look */
+  --text-color: #e0e0e0; /* A light grey for high contrast and readability */
+  --container-background: rgba(255, 255, 255, 0.05); /* A translucent white for the glassmorphism effect */
+  --border-color: rgba(255, 255, 255, 0.1); /* A subtle border to complement the glassmorphism */
+  --shadow-color: rgba(0, 0, 0, 0.2); /* A soft shadow to add depth */
 }
 
 body, html {
@@ -70,6 +71,8 @@ app-root, .app-shell {
   border-radius: 8px;
   padding: 20px;
   margin: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 20px var(--shadow-color);
 }
 
 .button {
@@ -83,5 +86,5 @@ app-root, .app-shell {
 }
 
 .button:hover {
-  background-color: #835de6; /* A slightly darker purple on hover */
+  background-color: #00acc1; /* A slightly darker cyan on hover */
 }

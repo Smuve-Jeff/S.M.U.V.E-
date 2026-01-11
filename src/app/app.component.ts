@@ -50,6 +50,11 @@ export class AppComponent implements AfterViewInit {
         'piano-roll': { name: 'Piano Teal', primary: '#00c2a8', accent: '#ffd166', neutral: '#0d1117', purple: '#6a5acd', red: '#ef476f', blue: '#118ab2' },
         studio: { name: 'Studio Purple', primary: '#a855f7', accent: '#c084fc', neutral: '#1a1a2e', purple: '#a855f7', red: '#f87171', blue: '#60a5fa' },
         projects: { name: 'Project Green', primary: '#22c55e', accent: '#86efac', neutral: '#1f2937', purple: '#a78bfa', red: '#fca5a5', blue: '#93c5fd' },
+        'image-editor': { name: 'Artistic Crimson', primary: '#dc2626', accent: '#fca5a5', neutral: '#1f2937', purple: '#a78bfa', red: '#fca5a5', blue: '#93c5fd' },
+        'video-editor': { name: 'Cinematic Gold', primary: '#f59e0b', accent: '#fde047', neutral: '#1f2937', purple: '#a78bfa', red: '#fca5a5', blue: '#93c5fd' },
+        networking: { name: 'Professional Blue', primary: '#3b82f6', accent: '#93c5fd', neutral: '#1f2937', purple: '#a78bfa', red: '#fca5a5', blue: '#93c5fd' },
+        profile: { name: 'Personal Indigo', primary: '#6366f1', accent: '#a5b4fc', neutral: '#1f2937', purple: '#a78bfa', red: '#fca5a5', blue: '#93c5fd' },
+        'tha-spot': { name: 'Vibrant Pink', primary: '#ec4899', accent: '#f9a8d4', neutral: '#1f2937', purple: '#a78bfa', red: '#fca5a5', blue: '#93c5fd' },
     };
 
     activeTheme = computed<AppTheme>(() => {

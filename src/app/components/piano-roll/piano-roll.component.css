@@ -8,6 +8,8 @@
   border: 1px solid var(--border-color);
   color: var(--text-color);
   overflow-x: auto;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 20px var(--shadow-color);
 }
 
 .pr-toolbar {
@@ -31,10 +33,11 @@
   padding: 0.5rem 1rem;
   border-radius: 0.25rem;
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 .btn:hover {
-  opacity: 0.9;
+  background-color: #00acc1; /* A slightly darker cyan on hover */
 }
 
 .lbl {
@@ -96,6 +99,7 @@ input[type="number"] {
   font-size: 0.8em;
   border-left: 1px solid var(--border-color);
   padding-bottom: 4px;
+  transition: background-color 0.3s ease;
 }
 
 .ruler-tick.playing {
@@ -112,7 +116,7 @@ input[type="number"] {
 .pr-grid {
   display: grid;
   width: max-content;
-  background-color: var(--background-color);
+  background-color: transparent;
   border-left: 1px solid var(--border-color);
 }
 
@@ -139,26 +143,28 @@ input[type="number"] {
 .pr-label:nth-child(12n+6),
 .pr-label:nth-child(12n+9),
 .pr-label:nth-child(12n+11) {
-    background: #282a36; /* Darker for black keys */
+    background: rgba(0, 0, 0, 0.2); /* Darker for black keys */
 }
 
 
 .pr-cell {
-  background-color: #4a4a7020;
-  border: 1px solid #3e3a5940;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  transition: background-color 0.3s ease;
 }
 
 .pr-cell:hover {
-  background-color: #ffffff10;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .pr-cell.active {
   background-color: var(--primary-color);
+  box-shadow: 0 0 10px var(--primary-color);
 }
 
 .pr-cell.playing {
-  background-color: #a381ff;
-  box-shadow: 0 0 8px 2px #c3a6ff80;
+  background-color: #00acc1;
+  box-shadow: 0 0 10px #00bcd4;
 }
 
 
@@ -182,8 +188,16 @@ input[type="number"] {
 }
 .lane {
   grid-column: 2 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
 }
 
+.velocity-bar {
+    background: linear-gradient(to top, var(--primary-color), #00acc1);
+    border-radius: 2px;
+    margin: 2px;
+    align-self: flex-end;
+}
 
 div::-webkit-scrollbar {
   height: 8px;

@@ -1,5 +1,6 @@
 import { Injectable, signal, effect, inject } from '@angular/core';
 import { AuthService } from './auth.service';
+import { DatabaseService } from './database.service';
 
 export interface ShowcaseItem {
   type: 'music' | 'image' | 'video';
@@ -221,21 +222,21 @@ export const initialProfile: UserProfile = {
   consistency: 'Inconsistent',
 };
 
-const USER_PROFILE_STORAGE_KEY = 'aura_user_profile';
-
 @Injectable({
   providedIn: 'root'
 })
 export class UserProfileService {
   private authService = inject(AuthService);
+  private databaseService = inject(DatabaseService);
   profile = signal<UserProfile>(initialProfile);
 
   constructor() {
-    // When the user logs in, fetch their profile.
+    // When the user logs in, fetch their profile from the database.
     effect(() => {
       if (this.authService.isAuthenticated()) {
         this.loadProfile();
       } else {
+        // If logged out, reset to the initial profile
         this.profile.set(initialProfile);
       }
     });
@@ -243,21 +244,25 @@ export class UserProfileService {
 
   private async loadProfile(): Promise<void> {
     try {
-      const userProfile = await this.authService.fetchUserProfile();
-      this.profile.set(userProfile);
+      const userProfile = await this.databaseService.loadUserProfile();
+      if (userProfile) {
+        this.profile.set(userProfile);
+      } else {
+        // If no profile exists in the DB (e.g., new user), create one.
+        this.profile.set(initialProfile);
+        await this.databaseService.saveUserProfile(initialProfile);
+      }
     } catch (error) {
       console.error('UserProfileService: Failed to load profile', error);
-      // Handle error, maybe show a notification to the user
     }
   }
 
   async updateProfile(newProfile: UserProfile): Promise<void> {
     try {
-      await this.authService.saveUserProfile(newProfile);
+      await this.databaseService.saveUserProfile(newProfile);
       this.profile.set(newProfile);
     } catch (error) {
       console.error('UserProfileService: Failed to save profile', error);
-      // Handle error, maybe show a notification to the user
     }
   }
 }

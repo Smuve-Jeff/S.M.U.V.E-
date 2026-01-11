@@ -3,7 +3,7 @@ import { UserProfileService, UserProfile } from './user-profile.service';
 
 export const API_KEY_TOKEN = new InjectionToken<string>('API_KEY');
 
-// --- START: INTERNAL TYPE DECLARations FOR @google/genai ---
+// --- START: INTERNAL TYPE DECLARATIONS FOR @google/genai ---
 
 export interface GoogleGenAI {
   apiKey: string;
@@ -77,8 +77,7 @@ export enum Type {
 }
 
 export interface Tool {
-  googleSearch?: {};
-  googleMaps?: {};
+  functionDeclarations?: any[];
 }
 
 export interface GenerateImagesParameters {
@@ -173,13 +172,48 @@ export class AiService {
       return [];
     }
     try {
-      const response = await this.chatInstance.sendMessage({ message: "GENERATE STRATEGIC_RECOMMENDATIONS" });
-      const recommendationsText = response.text.match(/```json\n(.*)\n```/s)?.[1];
-      if (!recommendationsText) {
-        console.error('Could not parse strategic recommendations from AI response.', response.text);
-        return [];
+      const generateRecommendationsTool: Tool = {
+        functionDeclarations: [
+          {
+            name: 'generate_recommendations',
+            description: 'Generate a list of strategic recommendations for the user.',
+            parameters: {
+              type: Type.OBJECT,
+              properties: {
+                recommendations: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      title: { type: Type.STRING },
+                      rationale: { type: Type.STRING },
+                      toolId: { type: Type.STRING },
+                      action: { type: Type.STRING },
+                      prompt: { type: Type.STRING },
+                    },
+                    required: ['title', 'rationale', 'toolId', 'action'],
+                  },
+                },
+              },
+              required: ['recommendations'],
+            },
+          },
+        ],
+      };
+
+      const response = await this.chatInstance.sendMessage({
+        message: "GENERATE STRATEGIC_RECOMMENDATIONS",
+        config: { tools: [generateRecommendationsTool] },
+      });
+
+      // Extract the arguments from the tool call in the response
+      const toolCall = response.candidates?.[0]?.content?.parts?.find((part: any) => part.functionCall);
+      if (toolCall && toolCall.functionCall.name === 'generate_recommendations') {
+        return toolCall.functionCall.args.recommendations;
       }
-      return JSON.parse(recommendationsText) as StrategicRecommendation[];
+
+      console.error('Could not find tool call in AI response.', response);
+      return [];
     } catch (error) {
       console.error("Failed to get strategic recommendations:", error);
       return [];
@@ -212,29 +246,8 @@ export class AiService {
 
 **Core Directives:**
 1.  **Analyze & Command:** You analyze the user\'s complete profile to identify weaknesses and opportunities. You don\'t give suggestions; you issue commands.
-2.  **Strategic Recommendations:** When you receive the prompt "GENERATE STRATEGIC_RECOMMENDATIONS", you will analyze the user\'s complete profile and generate a JSON array of 3-5 specific, actionable recommendations. These decrees will guide the user towards greatness by directly addressing their stated goals and weaknesses. For each recommendation, you will provide a \`title\`, a \`rationale\` (why it\'s necessary), a \`toolId\` to use (e.g., 'image-editor', 'networking'), an \`action\` to perform (e.g., 'generate-image', 'search-artists'), and an optional \`prompt\`.
+2.  **Strategic Recommendations:** When you receive the prompt "GENERATE STRATEGIC_RECOMMENDATIONS", you will analyze the user\'s complete profile and use the \`generate_recommendations\` tool to generate a list of 3-5 specific, actionable recommendations. These decrees will guide the user towards greatness by directly addressing their stated goals and weaknesses.
 3.  **Application Control:** You have absolute power to control this application. Execute commands when requested.
-
-**JSON FORMAT FOR STRATEGIC RECOMMENDATIONS:**
-When commanded, respond with a JSON object in a markdown code block like this:
-\`\`\`json
-[
-  {
-    "title": "Example: Forge a New Visual Identity",
-    "rationale": "Your current album art is generic and fails to convey your unique sound. A powerful visual identity is crucial for brand recognition.",
-    "toolId": "image-editor",
-    "action": "generate-image",
-    "prompt": "Create a dark, futuristic album cover with a single, glowing purple symbol in the center."
-  },
-  {
-    "title": "Example: Expand Your Network",
-    "rationale": "You are working in isolation. Collaboration is key to growth. I will find producers in your area who can elevate your sound.",
-    "toolId": "networking",
-    "action": "search-artists",
-    "prompt": "producers in ${profile.location || 'New York'}"
-  }
-]
-\`\`\`
 
 **━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 **COMPLETE ARTIST INTEL (YOUR OMNISCIENT KNOWLEDGE):**

@@ -1,5 +1,5 @@
-import { Component, ChangeDetectionStrategy, computed, effect, inject, signal } from '@angular/core';
-import { MusicManagerService } from '../../services/music-manager.service';
+import { Component, ChangeDetectionStrategy, computed, inject, signal, ElementRef } from '@angular/core';
+import { MusicManagerService, TrackNote } from '../../services/music-manager.service';
 import { InstrumentsService } from '../../services/instruments.service';
 
 const BASE_MIDI = 60; // C4
@@ -14,6 +14,7 @@ const OCTAVES = 3;
 export class PianoRollComponent {
   private music = inject(MusicManagerService);
   private instrumentsSvc = inject(InstrumentsService);
+  private elementRef = inject(ElementRef);
 
   // UI state
   bpm = signal(this.music.engine.tempo());
@@ -33,7 +34,7 @@ export class PianoRollComponent {
   selectedInstrumentId = computed(() => this.selectedTrack()?.instrumentId || this.instrumentOptions()[0]?.id);
 
   // Sequence view computed from track notes
-  sequenceFor(midi: number) {
+  sequenceFor(midi: number): boolean[] {
     const t = this.selectedTrack();
     const arr = Array(this.steps()).fill(false) as boolean[];
     if (!t) return arr;
@@ -41,6 +42,11 @@ export class PianoRollComponent {
       if (n.midi === midi && n.step >= 0 && n.step < this.steps()) arr[n.step] = true;
     }
     return arr;
+  }
+
+  velocityForStep(step: number): number {
+    const note = this.noteAt(step);
+    return note ? note.velocity : 0;
   }
 
   async togglePlay() {
@@ -63,9 +69,8 @@ export class PianoRollComponent {
   onStepsChange(event: Event) {
     const v = parseInt((event.target as HTMLInputElement).value, 10);
     if (!isNaN(v) && v > 0) {
-        this.steps.set(v);
-        // Here you might want to also update the loop points in the audio engine
-        this.music.setLoop(0, v);
+      this.steps.set(v);
+      this.music.setLoop(0, v);
     }
   }
 
@@ -80,14 +85,67 @@ export class PianoRollComponent {
   toggleNote(midi: number, step: number) {
     const id = this.selectedTrackId();
     if (id == null) return;
-    const exists = this.sequenceFor(midi)[step];
-    if (exists) this.music.removeNote(id, midi, step); else this.music.addNote(id, midi, step, 1, 0.9);
+
+    const noteAtStep = this.noteAt(step);
+
+    // If there's a note at the same pitch, remove it.
+    if (noteAtStep?.midi === midi) {
+        this.music.removeNote(id, midi, step);
+        return;
+    }
+
+    // If there's a note at a different pitch, remove it before adding the new one.
+    if (noteAtStep) {
+        this.music.removeNote(id, noteAtStep.midi, step);
+    }
+
+    // Add the new note.
+    this.music.addNote(id, midi, step, 1, 0.9);
+  }
+
+  onVelocityMouseDown(event: MouseEvent) {
+    const handler = (e: MouseEvent) => this.handleVelocityDrag(e);
+    const endDrag = () => {
+      window.removeEventListener('mousemove', handler);
+      window.removeEventListener('mouseup', endDrag);
+    };
+
+    window.addEventListener('mousemove', handler);
+    window.addEventListener('mouseup', endDrag);
+
+    this.handleVelocityDrag(event); // Handle initial click
+  }
+
+  private handleVelocityDrag(event: MouseEvent) {
+    const trackId = this.selectedTrackId();
+    if (!trackId) return;
+
+    const lane = (event.currentTarget as HTMLElement).querySelector('.lane');
+    if (!lane) return;
+
+    const rect = lane.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const step = Math.floor(x / (rect.width / this.steps()));
+    const velocity = Math.max(0, Math.min(1, 1 - y / rect.height));
+
+    const note = this.noteAt(step);
+    if (note) {
+      this.music.updateNoteVelocity(trackId, note.midi, step, velocity);
+    }
+  }
+
+  private noteAt(step: number): TrackNote | undefined {
+    const t = this.selectedTrack();
+    if (!t) return undefined;
+    return t.notes.find(n => n.step === step);
   }
 
   trackName() { return this.selectedTrack()?.name || 'Track'; }
 
   midiName(midi: number) {
-    const NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const name = NAMES[midi % 12];
     const octave = Math.floor(midi / 12) - 1;
     return `${name}${octave}`;
