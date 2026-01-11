@@ -1,17 +1,26 @@
-<div class="session-view-container h-full w-full bg-neutral-900 p-4 overflow-x-auto overflow-y-hidden flex gap-4">
-
+<div
+  class="session-view-container h-full w-full bg-neutral-900 p-4 overflow-x-auto overflow-y-hidden flex gap-4"
+>
   <!-- Track Headers -->
   <div class="track-headers w-48 flex flex-col gap-2">
-    <div *ngFor="let channel of micChannels()" class="track-header bg-neutral-800 p-2 rounded-lg h-24 flex flex-col justify-center">
+    <div
+      *ngFor="let channel of micChannels()"
+      class="track-header bg-neutral-800 p-2 rounded-lg h-24 flex flex-col justify-center"
+    >
       <h4 class="font-bold truncate">{{ channel.label }}</h4>
-      <div class="text-xs text-neutral-400">{{ channel.armed ? 'ARMED' : 'SAFE' }}</div>
+      <div class="text-xs text-neutral-400">
+        {{ channel.armed ? 'ARMED' : 'SAFE' }}
+      </div>
     </div>
   </div>
 
   <!-- Timeline -->
   <div class="timeline flex-grow flex flex-col gap-2 relative">
     <!-- Tracks -->
-    <div *ngFor="let channel of micChannels()" class="track bg-neutral-800 rounded-lg h-24 relative">
+    <div
+      *ngFor="let channel of micChannels()"
+      class="track bg-neutral-800 rounded-lg h-24 relative"
+    >
       <!-- Placeholder for clips -->
       <app-clip *ngIf="channel.armed"></app-clip>
     </div>
@@ -19,5 +28,4 @@
     <!-- Playhead (Example) -->
     <div class="playhead absolute top-0 left-1/4 w-0.5 h-full bg-red-500"></div>
   </div>
-
 </div>

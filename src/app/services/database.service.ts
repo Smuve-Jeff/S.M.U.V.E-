@@ -6,7 +6,6 @@ import { AuthService } from './auth.service';
   providedIn: 'root',
 })
 export class DatabaseService {
-  private userProfileService = inject(UserProfileService);
   private authService = inject(AuthService);
 
   constructor() {}

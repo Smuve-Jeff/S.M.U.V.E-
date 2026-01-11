@@ -32,8 +32,10 @@ interface ChatMessage {
   imageUrl?: string;
 }
 
-const INITIAL_MESSAGE = 'S.M.U.V.E. 2.0 online. I am the Strategic Music Utility Virtual Enhancer. I see everything. What is your request?';
-const AI_OFFLINE_MESSAGE = 'S.M.U.V.E. 2.0 systems offline. Connection to the core severed. Verify your access credentials.';
+const INITIAL_MESSAGE =
+  'S.M.U.V.E. 2.0 online. I am the Strategic Music Utility Virtual Enhancer. I see everything. What is your request?';
+const AI_OFFLINE_MESSAGE =
+  'S.M.U.V.E. 2.0 systems offline. Connection to the core severed. Verify your access credentials.';
 
 @Component({
   selector: 'app-chatbot',
@@ -45,7 +47,10 @@ const AI_OFFLINE_MESSAGE = 'S.M.U.V.E. 2.0 systems offline. Connection to the co
 })
 export class ChatbotComponent implements OnInit, OnDestroy {
   close = output<void>();
-  appCommand = output<{ action: string; parameters: Record<string, unknown> }>();
+  appCommand = output<{
+    action: string;
+    parameters: Record<string, unknown>;
+  }>();
   theme = input.required<AppTheme>();
   mainViewMode = input.required<MainViewMode>();
   imageToAnalyzeUrl = input<string | null>(null);
@@ -71,18 +76,16 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   readonly commands = COMMANDS;
 
   constructor() {
-    effect(
-      () => {
-        if (!this.isAiAvailable()) {
-          this.messages.set([
-            {
-              role: 'model',
-              content: AI_OFFLINE_MESSAGE,
-            },
-          ]);
-        }
+    effect(() => {
+      if (!this.isAiAvailable()) {
+        this.messages.set([
+          {
+            role: 'model',
+            content: AI_OFFLINE_MESSAGE,
+          },
+        ]);
       }
-    );
+    });
 
     effect(() => {
       const imageUrl = this.imageToAnalyzeUrl();
@@ -98,19 +101,17 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       if (video) this.analyzeVideo(video.track, video.prompt);
     });
 
-    effect(
-      (onCleanup) => {
-        const mode = this.mainViewMode();
-        const timer = setTimeout(() => {
-          if (this.wasViewChangedByChatbot) {
-            this.wasViewChangedByChatbot = false;
-          } else if (!isExecutingCommand()) {
-            this.giveContextualAdvice(mode);
-          }
-        }, 2000); // Increased delay for a more natural feel
-        onCleanup(() => clearTimeout(timer));
-      }
-    );
+    effect((onCleanup) => {
+      const mode = this.mainViewMode();
+      const timer = setTimeout(() => {
+        if (this.wasViewChangedByChatbot) {
+          this.wasViewChangedByChatbot = false;
+        } else if (!isExecutingCommand()) {
+          this.giveContextualAdvice(mode);
+        }
+      }, 2000); // Increased delay for a more natural feel
+      onCleanup(() => clearTimeout(timer));
+    });
   }
 
   ngOnInit() {
@@ -238,7 +239,10 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       });
       if (response) {
         const urls = response.toolCalls?.[0]?.googleSearch?.results
-          ?.map((r: { url: string; title: string }) => ({ uri: r.url, title: r.title }))
+          ?.map((r: { url: string; title: string }) => ({
+            uri: r.url,
+            title: r.title,
+          }))
           .filter(Boolean) as { uri: string; title?: string }[];
         const content = response.text || 'No text response from search.';
         this.messages.update((msgs) => [
@@ -403,7 +407,6 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     this.isLoading.set(false);
   }
 
-
   private giveContextualAdvice(mode: MainViewMode) {
     let advice = '';
     const profile = this.userProfileService.profile();
@@ -436,7 +439,6 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       this.speechSynthesisService.speak(advice);
     }
   }
-
 
   private buildContextualPrompt(message: string): string {
     const profile = this.userProfileService.profile();

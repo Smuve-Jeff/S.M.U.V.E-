@@ -170,7 +170,9 @@
         <option>±50%</option>
       </select>
     </div>
-    <button class="p-2 border text-xs" (click)="separateStems('A')">SEPARATE STEMS</button>
+    <button class="p-2 border text-xs" (click)="separateStems('A')">
+      SEPARATE STEMS
+    </button>
   </div>
 
   <!-- Deck B or Sample Library -->
@@ -188,7 +190,7 @@
         >
           DECK B
         </h3>
-        <div class="text-xs opacity-70 truncate max-w-[40%]" >
+        <div class="text-xs opacity-70 truncate max-w-[40%]">
           {{ deckService.deckB().track.name }}
         </div>
       </div>
@@ -217,7 +219,10 @@
       ></app-stem-controls>
       <div class="flex items-center justify-around gap-2 text-sm">
         <button class="p-2 border">CUE</button>
-        <button class="p-4 border text-2xl" (click)="deckService.togglePlay('B')">
+        <button
+          class="p-4 border text-2xl"
+          (click)="deckService.togglePlay('B')"
+        >
           {{ deckService.deckB().isPlaying ? 'PAUSE' : 'PLAY' }}
         </button>
         <button class="p-2 border">SYNC</button>
@@ -244,7 +249,9 @@
           <option>±50%</option>
         </select>
       </div>
-      <button class="p-2 border text-xs" (click)="separateStems('B')">SEPARATE STEMS</button>
+      <button class="p-2 border text-xs" (click)="separateStems('B')">
+        SEPARATE STEMS
+      </button>
     }
   </div>
 </div>

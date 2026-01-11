@@ -8,9 +8,7 @@ import { ImageEditorComponent } from '../image-editor/image-editor.component';
 import { LegalDocumentEditorComponent } from '../legal-document-editor/legal-document-editor.component';
 import { FormFieldComponent } from '../profile-editor/form-field.component';
 
-const routes: Routes = [
-  { path: '', component: ProfileEditorComponent }
-];
+const routes: Routes = [{ path: '', component: ProfileEditorComponent }];
 
 @NgModule({
   imports: [
@@ -21,7 +19,7 @@ const routes: Routes = [
     ImageEditorComponent,
     LegalDocumentEditorComponent,
     FormFieldComponent,
-    ChatbotComponent
-  ]
+    ChatbotComponent,
+  ],
 })
-export class UserDashboardModule { }
+export class UserDashboardModule {}

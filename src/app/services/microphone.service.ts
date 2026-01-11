@@ -1,8 +1,7 @@
-
 import { Injectable, signal } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class MicrophoneService {
   private audioContext: AudioContext | null = null;
@@ -12,18 +11,28 @@ export class MicrophoneService {
 
   isInitialized = signal(false);
 
-  constructor() { }
+  constructor() {}
 
   async initialize(): Promise<void> {
-    if (this.isInitialized() || typeof window === 'undefined' || !navigator.mediaDevices) {
+    if (
+      this.isInitialized() ||
+      typeof window === 'undefined' ||
+      !navigator.mediaDevices
+    ) {
       return;
     }
 
     try {
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+      this.audioContext = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )();
       this.analyserNode = this.audioContext.createAnalyser();
-      this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+      this.sourceNode = this.audioContext.createMediaStreamSource(
+        this.mediaStream
+      );
       this.sourceNode.connect(this.analyserNode);
       this.isInitialized.set(true);
       console.log('MicrophoneService initialized.');
@@ -35,14 +44,14 @@ export class MicrophoneService {
 
   getAnalyserNode(): AnalyserNode | undefined {
     if (!this.analyserNode) {
-        this.initialize();
+      this.initialize();
     }
     return this.analyserNode ?? undefined;
   }
 
   stop(): void {
     if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach(track => track.stop());
+      this.mediaStream.getTracks().forEach((track) => track.stop());
     }
     if (this.sourceNode) {
       this.sourceNode.disconnect();

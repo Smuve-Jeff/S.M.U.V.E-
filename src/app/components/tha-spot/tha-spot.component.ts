@@ -7,7 +7,7 @@ import { AiService } from '../../services/ai.service';
   standalone: true,
   imports: [VisualizerComponent],
   templateUrl: './tha-spot.component.html',
-  styleUrls: ['./tha-spot.component.css']
+  styleUrls: ['./tha-spot.component.css'],
 })
 export class ThaSpotComponent {
   isAIBassistEnabled = false;

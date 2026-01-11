@@ -1,9 +1,18 @@
 <div class="transport-bar">
   <button (click)="togglePlay()" [class.active]="isPlaying()">Play</button>
-  <button (click)="toggleRecord()" [class.active]="isRecording()">Record</button>
+  <button (click)="toggleRecord()" [class.active]="isRecording()">
+    Record
+  </button>
   <button (click)="stop()" [disabled]="isStopped()">Stop</button>
   <div class="master-volume">
     <label for="master-volume">Master Volume</label>
-    <input type="range" id="master-volume" min="0" max="100" [value]="masterVolume()" (input)="updateMasterVolume($event)">
+    <input
+      type="range"
+      id="master-volume"
+      min="0"
+      max="100"
+      [value]="masterVolume()"
+      (input)="updateMasterVolume($event)"
+    />
   </div>
 </div>

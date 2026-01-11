@@ -3,10 +3,8 @@ import { CommonModule } from '@angular/common';
 import { EqPanelComponent } from './eq-panel.component';
 
 @NgModule({
-  imports: [
-    CommonModule
-  ],
+  imports: [CommonModule],
   declarations: [EqPanelComponent],
-  exports: [EqPanelComponent]
+  exports: [EqPanelComponent],
 })
-export class EqPanelModule { }
+export class EqPanelModule {}

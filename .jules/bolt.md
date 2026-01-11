@@ -1,3 +1,4 @@
 ## 2024-07-25 - Avoid Unintended Lockfile Creation
+
 **Learning:** Running `pnpm install` can create a `pnpm-lock.yaml` file if one doesn't exist. This is a significant repository change that can obscure the intended changes in a pull request and falls outside the scope of a targeted optimization task.
 **Action:** Before running `pnpm install`, I must first check if a lockfile already exists. If not, I will ask for explicit permission before creating one. I must always ensure my pull requests contain only the changes required to complete the assigned task.

@@ -5,8 +5,6 @@ import { Component } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './performance-mode.component.html',
-  styleUrl: './performance-mode.component.css'
+  styleUrl: './performance-mode.component.css',
 })
-export class PerformanceModeComponent {
-
-}
+export class PerformanceModeComponent {}

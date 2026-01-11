@@ -72,6 +72,8 @@ const mockAudioContext = jest.fn(() => ({
 (global as any).AudioContext = mockAudioContext;
 (global as any).webkitAudioContext = mockAudioContext;
 
+import { RouterTestingModule } from '@angular/router/testing';
+
 describe('AppComponent', () => {
   let component: AppComponent;
   let fixture: ComponentFixture<AppComponent>;
@@ -79,7 +81,7 @@ describe('AppComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AppComponent, ChatbotComponent],
+      imports: [AppComponent, ChatbotComponent, RouterTestingModule],
       providers: [UIService],
     }).compileComponents();
 

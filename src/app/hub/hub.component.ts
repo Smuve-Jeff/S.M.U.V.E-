@@ -1,7 +1,14 @@
-import { Component, Input, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnInit,
+  OnDestroy,
+  signal,
+  computed,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Game, Challenge, CommunityPost, BattleConfig } from './hub.models';
-import { GameService } from '../services/game.service';
+import { GameService } from './game.service';
 import { UserProfileService } from '../services/user-profile.service';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -11,7 +18,7 @@ import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './hub.component.html',
-  styleUrls: ['./hub.component.css']
+  styleUrls: ['./hub.component.css'],
 })
 export class HubComponent implements OnInit, OnDestroy {
   // Signals for UI state

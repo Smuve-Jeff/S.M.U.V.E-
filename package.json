@@ -31,7 +31,7 @@
     "wow.js": "^1.1.2"
   },
   "devDependencies": {
-    "@angular/pwa": "~17.3.0",
+    "@angular/pwa": "~18.2.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.0",
     "@typescript-eslint/eslint-plugin": "^8.52.0",

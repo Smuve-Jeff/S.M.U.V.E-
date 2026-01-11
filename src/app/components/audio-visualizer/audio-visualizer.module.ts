@@ -3,10 +3,8 @@ import { CommonModule } from '@angular/common';
 import { AudioVisualizerComponent } from './audio-visualizer.component';
 
 @NgModule({
-  imports: [
-    CommonModule
-  ],
+  imports: [CommonModule],
   declarations: [AudioVisualizerComponent],
-  exports: [AudioVisualizerComponent]
+  exports: [AudioVisualizerComponent],
 })
-export class AudioVisualizerModule { }
+export class AudioVisualizerModule {}

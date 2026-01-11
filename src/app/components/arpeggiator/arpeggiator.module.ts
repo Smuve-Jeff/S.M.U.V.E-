@@ -3,16 +3,11 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { ArpeggiatorComponent } from './arpeggiator.component';
 
-const routes: Routes = [
-  { path: '', component: ArpeggiatorComponent }
-];
+const routes: Routes = [{ path: '', component: ArpeggiatorComponent }];
 
 @NgModule({
-  imports: [
-    CommonModule,
-    RouterModule.forChild(routes)
-  ],
+  imports: [CommonModule, RouterModule.forChild(routes)],
   declarations: [ArpeggiatorComponent],
-  exports: [ArpeggiatorComponent]
+  exports: [ArpeggiatorComponent],
 })
-export class ArpeggiatorModule { }
+export class ArpeggiatorModule {}

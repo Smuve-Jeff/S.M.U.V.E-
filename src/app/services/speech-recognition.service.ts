@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SpeechRecognitionService {
   isListening = signal(false);
@@ -13,7 +13,8 @@ export class SpeechRecognitionService {
 
   private initialize() {
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       this.speechRecognition = new SpeechRecognition();
       this.speechRecognition.continuous = false;

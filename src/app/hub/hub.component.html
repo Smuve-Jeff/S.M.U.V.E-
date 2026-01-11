@@ -3,7 +3,7 @@
   <section class="hub-section wow animate__animated animate__fadeInUp">
     <h2 class="hub-section-title">Featured Games & Challenges</h2>
     <div class="games-grid">
-      <div *ngFor="let game of games" class="game-card">
+      <div *ngFor="let game of games()" class="game-card">
         <i class="{{ game.icon }} game-icon"></i>
         <h3 class="game-title">{{ game.title }}</h3>
         <p class="game-description">{{ game.description }}</p>
@@ -12,7 +12,10 @@
   </section>
 
   <!-- Challenges Section -->
-  <section class="hub-section wow animate__animated animate__fadeInUp" data-wow-delay="0.2s">
+  <section
+    class="hub-section wow animate__animated animate__fadeInUp"
+    data-wow-delay="0.2s"
+  >
     <h2 class="hub-section-title">Active Challenges</h2>
     <div class="challenges-list">
       <div *ngFor="let challenge of challenges" class="challenge-item">
@@ -28,13 +31,18 @@
   </section>
 
   <!-- Community Feed Section -->
-  <section class="hub-section wow animate__animated animate__fadeInUp" data-wow-delay="0.4s">
+  <section
+    class="hub-section wow animate__animated animate__fadeInUp"
+    data-wow-delay="0.4s"
+  >
     <h2 class="hub-section-title">Community Buzz</h2>
     <div class="community-feed">
       <div *ngFor="let post of communityPosts" class="community-post">
         <div class="post-header">
           <span class="post-author">{{ post.author }}</span>
-          <span class="post-timestamp">{{ post.timestamp | date: 'short' }}</span>
+          <span class="post-timestamp">{{
+            post.timestamp | date: 'short'
+          }}</span>
         </div>
         <p class="post-content">{{ post.content }}</p>
       </div>
