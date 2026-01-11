@@ -53,6 +53,13 @@
             }
           },
           "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:playwright",
+          "options": {
+            "devServerTarget": "app:serve",
+            "config": "playwright.config.ts"
+          }
         }
       }
     }

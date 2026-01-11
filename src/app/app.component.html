@@ -51,7 +51,7 @@
     </div>
     <div class="flex items-center gap-4">
       <button
-        (click)="uiService.showChatbot.set(!uiService.showChatbot())"
+        (click)="toggleChatbot()"
         class="nav-button"
         title="Toggle Chatbot"
       >
@@ -92,6 +92,14 @@
     <div class="flex-grow relative overflow-y-auto">
       <router-outlet></router-outlet>
     </div>
+
+    <!-- Chatbot -->
+    <app-chatbot
+      *ngIf="uiService.isChatbotOpen()"
+      (close)="uiService.toggleChatbot()"
+      [theme]="activeTheme()"
+      [mainViewMode]="mainViewMode()"
+    ></app-chatbot>
   </main>
 
   <footer class="watermark-footer">©️Smuve Jeff Presents</footer>

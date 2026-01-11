@@ -1,15 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-
-// FIX: Moved AppTheme interface here from app.component.ts to break a circular dependency.
-export interface AppTheme {
-  name: string;
-  primary: string;
-  accent: string;
-  neutral: string;
-  purple: string;
-  red: string;
-  blue: string;
-}
+import { AppTheme } from './app-theme';
 
 // Reordered MainViewMode to place 'tha-spot' at the end and 'profile' at the beginning.
 export type MainViewMode =

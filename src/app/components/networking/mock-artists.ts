@@ -1,0 +1,43 @@
+import { ArtistProfile } from './networking.component';
+
+export const MOCK_ARTISTS: ArtistProfile[] = [
+  {
+    id: 'flex101',
+    name: 'BeatMaster Flex',
+    genre: 'Hip-Hop Producer',
+    location: 'Brooklyn, NY',
+    bio: 'Award-winning producer...',
+    contact: 'flex@email.com',
+    imageUrl: 'https://picsum.photos/seed/flex/150/150',
+    collaborationInterest: ['Vocalist', 'Rapper'],
+    genres: ['Hip-Hop', 'Trap'],
+    influences: ['J Dilla', 'Metro Boomin'],
+    links: [{ type: 'soundcloud', url: '#' }],
+  },
+  {
+    id: 'mae202',
+    name: 'Melody Mae',
+    genre: 'Indie Pop Vocalist',
+    location: 'Los Angeles, CA',
+    bio: 'Ethereal vocals with a dreamy vibe...',
+    contact: 'mae@email.com',
+    imageUrl: 'https://picsum.photos/seed/mae/150/150',
+    collaborationInterest: ['Producer', 'Guitarist'],
+    genres: ['Indie Pop', 'Dream Pop'],
+    influences: ['Lana Del Rey', 'SZA'],
+    links: [{ type: 'spotify', url: '#' }],
+  },
+  {
+    id: 'south808',
+    name: 'Southern Siren Sia',
+    genre: 'R&B / Trap Soul Vocalist',
+    location: 'Atlanta, GA',
+    bio: 'Sultry vocals blending R&B smoothness with trap grit...',
+    contact: 'sia@email.com',
+    imageUrl: 'https://picsum.photos/seed/sia/150/150',
+    collaborationInterest: ['Producer', 'Beatmaker'],
+    genres: ['R&B', 'Trap Soul'],
+    influences: ['Summer Walker', 'Future'],
+    links: [{ type: 'instagram', url: '#' }],
+  },
+];

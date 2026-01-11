@@ -8,12 +8,12 @@ import {
   effect,
   output,
 } from '@angular/core';
-// FIX: Update AppTheme import to break circular dependency
-import { AppTheme } from '../../services/user-context.service';
+import { AppTheme } from '../../services/app-theme';
 import {
   AiService,
   Type,
 } from '../../services/ai.service';
+import { MOCK_ARTISTS } from './mock-artists';
 
 export interface ArtistProfile {
   id: string;
@@ -28,48 +28,6 @@ export interface ArtistProfile {
   influences: string[];
   links: { type: string; url: string }[];
 }
-
-export const MOCK_ARTISTS: ArtistProfile[] = [
-  {
-    id: 'flex101',
-    name: 'BeatMaster Flex',
-    genre: 'Hip-Hop Producer',
-    location: 'Brooklyn, NY',
-    bio: 'Award-winning producer...',
-    contact: 'flex@email.com',
-    imageUrl: 'https://picsum.photos/seed/flex/150/150',
-    collaborationInterest: ['Vocalist', 'Rapper'],
-    genres: ['Hip-Hop', 'Trap'],
-    influences: ['J Dilla', 'Metro Boomin'],
-    links: [{ type: 'soundcloud', url: '#' }],
-  },
-  {
-    id: 'mae202',
-    name: 'Melody Mae',
-    genre: 'Indie Pop Vocalist',
-    location: 'Los Angeles, CA',
-    bio: 'Ethereal vocals with a dreamy vibe...',
-    contact: 'mae@email.com',
-    imageUrl: 'https://picsum.photos/seed/mae/150/150',
-    collaborationInterest: ['Producer', 'Guitarist'],
-    genres: ['Indie Pop', 'Dream Pop'],
-    influences: ['Lana Del Rey', 'SZA'],
-    links: [{ type: 'spotify', url: '#' }],
-  },
-  {
-    id: 'south808',
-    name: 'Southern Siren Sia',
-    genre: 'R&B / Trap Soul Vocalist',
-    location: 'Atlanta, GA',
-    bio: 'Sultry vocals blending R&B smoothness with trap grit...',
-    contact: 'sia@email.com',
-    imageUrl: 'https://picsum.photos/seed/sia/150/150',
-    collaborationInterest: ['Producer', 'Beatmaker'],
-    genres: ['R&B', 'Trap Soul'],
-    influences: ['Summer Walker', 'Future'],
-    links: [{ type: 'instagram', url: '#' }],
-  },
-];
 
 @Component({
   selector: 'app-networking',
@@ -89,7 +47,6 @@ export class NetworkingComponent {
   errorMessage = signal<string | null>(null);
 
   private aiService = inject(AiService);
-  // FIX: A computed signal's value must be read by calling it as a function.
   isAiAvailable = computed(() => this.aiService.isAiAvailable());
 
   constructor() {

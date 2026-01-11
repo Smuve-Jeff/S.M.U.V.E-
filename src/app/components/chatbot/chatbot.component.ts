@@ -21,29 +21,8 @@ import {
 } from '../../services/user-context.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { COMMANDS, isExecutingCommand } from './chatbot.commands';
-
-// Type declarations for browser APIs
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
-  }
-}
-
-interface SpeechRecognitionResultList {
-  [index: number]: { [index: number]: { transcript: string } };
-  length: number;
-}
-
-interface SpeechRecognition {
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: (event: { results: SpeechRecognitionResultList }) => void;
-  onend: () => void;
-  onerror: (event: { error: string }) => void;
-  start(): void;
-  stop(): void;
-}
+import { SpeechRecognitionService } from '../../services/speech-recognition.service';
+import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -51,6 +30,9 @@ interface ChatMessage {
   urls?: { uri: string; title?: string }[];
   imageUrl?: string;
 }
+
+const INITIAL_MESSAGE = 'S.M.U.V.E. 2.0 online. I am the Strategic Music Utility Virtual Enhancer. I see everything. What is your request?';
+const AI_OFFLINE_MESSAGE = 'S.M.U.V.E. 2.0 systems offline. Connection to the core severed. Verify your access credentials.';
 
 @Component({
   selector: 'app-chatbot',
@@ -71,33 +53,28 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   messages = signal<ChatMessage[]>([]);
   userMessage = signal('');
   isLoading = signal(false);
-  isVoiceInputActive = signal(false);
-  isSpeaking = signal(false);
-  isTranscribing = signal(false);
 
   private aiService = inject(AiService);
   private userContext = inject(UserContextService);
   private userProfileService = inject(UserProfileService);
+  speechRecognitionService = inject(SpeechRecognitionService);
+  speechSynthesisService = inject(SpeechSynthesisService);
   isAiAvailable = computed(() => this.aiService.isAiAvailable());
   chatHistoryRef = viewChild<ElementRef<HTMLDivElement>>('chatHistory');
 
-  private speechRecognition: SpeechRecognition;
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
-  private utterance: SpeechSynthesisUtterance | null = null;
   private wasViewChangedByChatbot = false;
   readonly commands = COMMANDS;
 
   constructor() {
-    this.initializeSpeechRecognition();
     effect(
       () => {
         if (!this.isAiAvailable()) {
           this.messages.set([
             {
               role: 'model',
-              content:
-                'S.M.U.V.E. 2.0 systems offline. Connection to the core severed. Verify your access credentials.',
+              content: AI_OFFLINE_MESSAGE,
             },
           ]);
         }
@@ -139,36 +116,14 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     this.messages.set([
       {
         role: 'model',
-        content:
-          'S.M.U.V.E. 2.0 online. I am the Strategic Music Utility Virtual Enhancer. I see everything. What is your request?',
+        content: INITIAL_MESSAGE,
       },
     ]);
   }
 
   ngOnDestroy() {
-    this.stopSpeaking();
-    this.stopVoiceInput();
-  }
-
-  private initializeSpeechRecognition() {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      this.speechRecognition = new SpeechRecognition();
-      this.speechRecognition.continuous = false;
-      this.speechRecognition.interimResults = false;
-      this.speechRecognition.onresult = (event: {
-        results: SpeechRecognitionResultList;
-      }) => {
-        const transcript =
-          event.results[event.results.length - 1][0].transcript.trim();
-        this.userMessage.set(transcript);
-        this.sendMessage();
-      };
-      this.speechRecognition.onend = () => this.isVoiceInputActive.set(false);
-      this.speechRecognition.onerror = (event: { error: string }) =>
-        console.error('Speech recognition error', event);
-    }
+    this.speechSynthesisService.cancel();
+    this.speechRecognitionService.stopListening();
   }
 
   async sendMessage(): Promise<void> {
@@ -192,6 +147,17 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     }
 
     this.isLoading.set(false);
+  }
+
+  toggleVoiceInput(): void {
+    if (this.speechRecognitionService.isListening()) {
+      this.speechRecognitionService.stopListening();
+    } else {
+      this.speechRecognitionService.startListening((transcript) => {
+        this.userMessage.set(transcript);
+        this.sendMessage();
+      });
+    }
   }
 
   private parseCommand(message: string): {
@@ -256,7 +222,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
           ...msgs,
           { role: 'model', content: response.text },
         ]);
-        this.speakResponse(response.text);
+        this.speechSynthesisService.speak(response.text);
       }
     } catch (e) {
       this.handleError(e, 'message');
@@ -279,7 +245,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
           ...msgs,
           { role: 'model', content, urls },
         ]);
-        this.speakResponse(content);
+        this.speechSynthesisService.speak(content);
       }
     } catch (e) {
       this.handleError(e, 'search');
@@ -308,7 +274,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
           ...msgs,
           { role: 'model', content: response.text },
         ]);
-        this.speakResponse(response.text);
+        this.speechSynthesisService.speak(response.text);
       } else {
         this.mapLocationResult.emit(
           `Could not find information for "${query}".`
@@ -331,7 +297,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
           ...msgs,
           { role: 'model', content: `[DEEP QUERY]: ${response.text}` },
         ]);
-        this.speakResponse(response.text);
+        this.speechSynthesisService.speak(response.text);
       }
     } catch (e) {
       this.handleError(e, 'deep query');
@@ -366,7 +332,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
           ...msgs,
           { role: 'model', content: `[VIDEO ANALYSIS]: ${response.text}` },
         ]);
-        this.speakResponse(response.text);
+        this.speechSynthesisService.speak(response.text);
       }
     } catch (e) {
       this.handleError(e, 'video analysis');
@@ -374,7 +340,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   }
 
   async startAudioTranscription(): Promise<void> {
-    if (this.isTranscribing()) {
+    if (this.isLoading()) {
       this.mediaRecorder?.stop();
       this.isLoading.set(false);
       return;
@@ -386,7 +352,6 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       this.mediaRecorder.ondataavailable = (event) =>
         this.audioChunks.push(event.data);
       this.mediaRecorder.onstop = async () => {
-        this.isTranscribing.set(false);
         stream.getTracks().forEach((track) => track.stop());
         const audioBlob = new Blob(this.audioChunks);
         const reader = new FileReader();
@@ -397,7 +362,6 @@ export class ChatbotComponent implements OnInit, OnDestroy {
         reader.readAsDataURL(audioBlob);
       };
       this.mediaRecorder.start();
-      this.isTranscribing.set(true);
       this.isLoading.set(true); // Indicate that we are waiting for transcription to finish
     } catch (e) {
       this.handleError(e, 'microphone access');
@@ -415,67 +379,15 @@ export class ChatbotComponent implements OnInit, OnDestroy {
         ...msgs,
         { role: 'model', content: `[TRANSCRIPTION]: ${transcription}` },
       ]);
-      this.speakResponse(transcription);
+      this.speechSynthesisService.speak(transcription);
     } catch (e) {
       this.handleError(e, 'audio transcription');
     }
     this.isLoading.set(false);
   }
 
-  toggleVoiceInput(): void {
-    if (this.isVoiceInputActive()) this.stopVoiceInput();
-    else this.startVoiceInput();
-  }
-  startVoiceInput(): void {
-    if (this.speechRecognition) {
-      try {
-        this.isVoiceInputActive.set(true);
-        this.speechRecognition.start();
-      } catch (e) {
-        console.error('Could not start speech recognition', e);
-        this.isVoiceInputActive.set(false);
-      }
-    }
-  }
-  stopVoiceInput(): void {
-    if (this.speechRecognition) {
-      try {
-        this.isVoiceInputActive.set(false);
-        this.speechRecognition.stop();
-      } catch (e) {
-        console.error('Could not stop speech recognition', e);
-      }
-    }
-  }
-
-  speakResponse(text: string): void {
-    if (!text || typeof window === 'undefined' || !window.speechSynthesis)
-      return;
-    this.stopSpeaking();
-    this.utterance = new SpeechSynthesisUtterance(text);
-    this.utterance.onstart = () => this.isSpeaking.set(true);
-    this.utterance.onend = () => this.isSpeaking.set(false);
-    this.utterance.onerror = (event) => {
-      console.error('Speech synthesis error', event);
-      this.isSpeaking.set(false);
-    };
-    try {
-      window.speechSynthesis.speak(this.utterance);
-    } catch (e) {
-      console.error('Error speaking response:', e);
-      this.isSpeaking.set(false);
-    }
-  }
-
-  stopSpeaking(): void {
-    if (window.speechSynthesis?.speaking) {
-      window.speechSynthesis.cancel();
-      this.isSpeaking.set(false);
-    }
-  }
-
   onClose(): void {
-    this.stopSpeaking();
+    this.speechSynthesisService.cancel();
     this.close.emit();
   }
 
@@ -521,7 +433,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
         ...msgs,
         { role: 'model', content: advice },
       ]);
-      this.speakResponse(advice);
+      this.speechSynthesisService.speak(advice);
     }
   }
 

@@ -16,6 +16,7 @@ export class UIService {
   activeTheme = signal<AppTheme>(THEMES[0]);
   showEqPanel = signal(false);
   showChatbot = signal(false);
+  isChatbotOpen = signal(false);
 
   private viewModes: MainViewMode[] = ['studio', 'player', 'dj', 'piano-roll', 'image-editor', 'video-editor', 'networking', 'profile', 'projects', 'remix-arena'];
   private currentViewIndex = 0;
@@ -25,6 +26,10 @@ export class UIService {
   toggleMainViewMode() {
     this.currentViewIndex = (this.currentViewIndex + 1) % this.viewModes.length;
     this.mainViewMode.set(this.viewModes[this.currentViewIndex]);
+  }
+
+  toggleChatbot() {
+    this.isChatbotOpen.update(isOpen => !isOpen);
   }
 
   randomizeTheme() {
