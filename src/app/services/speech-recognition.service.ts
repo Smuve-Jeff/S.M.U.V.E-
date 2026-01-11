@@ -13,7 +13,7 @@ export class SpeechRecognitionService {
 
   private initialize() {
     const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       this.speechRecognition = new SpeechRecognition();
       this.speechRecognition.continuous = false;

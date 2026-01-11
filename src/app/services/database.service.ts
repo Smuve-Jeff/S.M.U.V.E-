@@ -30,7 +30,7 @@ export class DatabaseService {
       // if (doc.exists) {
       //   return doc.data() as UserProfile;
       // }
-      console.log('User profile loaded for user:', user.uid);
+      console.log('User profile loaded for user:', user.id);
     }
     return null;
   }

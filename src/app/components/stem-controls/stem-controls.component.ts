@@ -1,9 +1,12 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-stem-controls',
   templateUrl: './stem-controls.component.html',
   styleUrls: ['./stem-controls.component.scss'],
+  standalone: true,
+  imports: [CommonModule],
 })
 export class StemControlsComponent {
   @Input() deckId!: 'A' | 'B';

@@ -4,9 +4,8 @@ import { ChatbotComponent } from './chatbot.component';
 
 @NgModule({
   imports: [
-    CommonModule
+    CommonModule,
+    ChatbotComponent
   ],
-  declarations: [ChatbotComponent],
-  exports: [ChatbotComponent]
 })
 export class ChatbotModule { }

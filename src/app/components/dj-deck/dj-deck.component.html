@@ -55,7 +55,8 @@
           min="-1"
           max="1"
           step="0.001"
-          [(ngModel)]="crossfade"
+          [ngModel]="deckService.crossfade()"
+          (ngModelChange)="deckService.crossfade.set($event)"
         />
       </div>
       <div class="flex items-center justify-between text-[10px] opacity-70">
@@ -114,7 +115,7 @@
         DECK A
       </h3>
       <div class="text-xs opacity-70 truncate max-w-[40%]">
-        {{ deckA().track.name }}
+        {{ deckService.deckA().track.name }}
       </div>
     </div>
     <div
@@ -132,18 +133,18 @@
         [class]="'border-' + theme().accent + '-700/30'"
       ></div>
       <img
-        [src]="deckA().track.albumArtUrl"
+        [src]="deckService.deckA().track.albumArtUrl"
         class="w-40 h-40 rounded-full object-cover shadow-[0_0_40px_rgba(0,255,255,0.2)]"
       />
     </div>
     <app-stem-controls
       [deckId]="'A'"
-      (gainChange)="onStemGainChange('A', $event)"
+      (gainChange)="deckService.onStemGainChange('A', $event)"
     ></app-stem-controls>
     <div class="flex items-center justify-around gap-2 text-sm">
       <button class="p-2 border">CUE</button>
-      <button class="p-4 border text-2xl" (click)="togglePlay('A')">
-        {{ deckA().isPlaying ? 'PAUSE' : 'PLAY' }}
+      <button class="p-4 border text-2xl" (click)="deckService.togglePlay('A')">
+        {{ deckService.deckA().isPlaying ? 'PAUSE' : 'PLAY' }}
       </button>
       <button class="p-2 border">SYNC</button>
     </div>
@@ -161,7 +162,7 @@
         min="0.5"
         max="1.5"
         step="0.0005"
-        [(ngModel)]="deckA().playbackRate"
+        [(ngModel)]="deckService.deckA().playbackRate"
       />
       <select class="bg-black/40 border rounded px-1 py-0.5 text-[10px] w-20">
         <option>±8%</option>
@@ -187,7 +188,7 @@
           DECK B
         </h3>
         <div class="text-xs opacity-70 truncate max-w-[40%]">
-          {{ deckB().track.name }}
+          {{ deckService.deckB().track.name }}
         </div>
       </div>
       <div
@@ -205,18 +206,18 @@
           [class]="'border-' + theme().accent + '-700/30'"
         ></div>
         <img
-          [src]="deckB().track.albumArtUrl"
+          [src]="deckService.deckB().track.albumArtUrl"
           class="w-40 h-40 rounded-full object-cover shadow-[0_0_40px_rgba(255,0,255,0.2)]"
         />
       </div>
       <app-stem-controls
         [deckId]="'B'"
-        (gainChange)="onStemGainChange('B', $event)"
+        (gainChange)="deckService.onStemGainChange('B', $event)"
       ></app-stem-controls>
       <div class="flex items-center justify-around gap-2 text-sm">
         <button class="p-2 border">CUE</button>
-        <button class="p-4 border text-2xl" (click)="togglePlay('B')">
-          {{ deckB().isPlaying ? 'PAUSE' : 'PLAY' }}
+        <button class="p-4 border text-2xl" (click)="deckService.togglePlay('B')">
+          {{ deckService.deckB().isPlaying ? 'PAUSE' : 'PLAY' }}
         </button>
         <button class="p-2 border">SYNC</button>
       </div>
@@ -234,7 +235,7 @@
           min="0.5"
           max="1.5"
           step="0.0005"
-          [(ngModel)]="deckB().playbackRate"
+          [(ngModel)]="deckService.deckB().playbackRate"
         />
         <select class="bg-black/40 border rounded px-1 py-0.5 text-[10px] w-20">
           <option>±8%</option>

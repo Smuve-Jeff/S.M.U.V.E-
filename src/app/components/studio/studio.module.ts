@@ -4,9 +4,8 @@ import { StudioComponent } from './studio.component';
 
 @NgModule({
   imports: [
-    CommonModule
+    CommonModule,
+    StudioComponent
   ],
-  declarations: [StudioComponent],
-  exports: [StudioComponent]
 })
 export class StudioModule { }

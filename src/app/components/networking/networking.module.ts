@@ -4,9 +4,8 @@ import { NetworkingComponent } from './networking.component';
 
 @NgModule({
   imports: [
-    CommonModule
+    CommonModule,
+    NetworkingComponent
   ],
-  declarations: [NetworkingComponent],
-  exports: [NetworkingComponent]
 })
 export class NetworkingModule { }

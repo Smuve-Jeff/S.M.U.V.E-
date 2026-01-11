@@ -1,5 +1,6 @@
 import { Injectable, signal, effect } from '@angular/core';
-import { AudioEngineService, Stems } from './audio-engine.service';
+import { AudioEngineService } from './audio-engine.service';
+import { Stems } from './stem-separation.service';
 import { DeckState, initialDeckState } from './user-context.service';
 
 @Injectable({

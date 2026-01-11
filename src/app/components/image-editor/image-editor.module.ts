@@ -4,9 +4,8 @@ import { ImageEditorComponent } from './image-editor.component';
 
 @NgModule({
   imports: [
-    CommonModule
+    CommonModule,
+    ImageEditorComponent
   ],
-  declarations: [ImageEditorComponent],
-  exports: [ImageEditorComponent]
 })
 export class ImageEditorModule { }

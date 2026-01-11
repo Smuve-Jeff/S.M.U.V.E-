@@ -8,8 +8,9 @@ import { HubRoutes } from './hub.routes';
 @NgModule({
   imports: [
     CommonModule,
-    RouterModule.forChild(HubRoutes)
+    RouterModule.forChild(HubRoutes),
+    HubComponent
   ],
-  declarations: [HubComponent, LobbyComponent],
+  declarations: [LobbyComponent],
 })
 export class HubModule { }

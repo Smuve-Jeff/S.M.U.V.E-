@@ -237,7 +237,6 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       const response = await this.aiService.generateContent({
         model: 'gemini-1.5-pro',
         contents: [{ role: 'user', parts: [{ text: query }] }],
-        tools: [{ googleSearch: {} }] as any,
       });
       if (response) {
         const urls = response.toolCalls?.[0]?.googleSearch?.results
@@ -269,7 +268,6 @@ export class ChatbotComponent implements OnInit, OnDestroy {
             ],
           },
         ],
-        tools: [{ googleMaps: {} }] as any,
       });
       if (response && response.text) {
         this.mapLocationResult.emit(response.text);
