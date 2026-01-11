@@ -6,25 +6,28 @@
   "scripts": {
     "dev": "ng serve",
     "build": "ng build",
-    "preview": "ng serve --configuration=production"
+    "preview": "ng serve --configuration=production",
+    "test": "npx playwright test"
   },
   "dependencies": {
     "@angular-devkit/build-angular": "~17.3.0",
+    "@angular/animations": "~17.3.0",
     "@angular/cli": "~17.3.0",
     "@angular/common": "~17.3.0",
     "@angular/compiler": "~17.3.0",
     "@angular/compiler-cli": "~17.3.0",
     "@angular/core": "~17.3.0",
-    "@angular/forms": "~17.3.0",
+    "@angular/forms": "~1.0.0",
     "@angular/platform-browser": "~17.3.0",
     "@angular/platform-browser-dynamic": "~17.3.0",
     "@angular/router": "~17.3.0",
-    "@angular/animations": "~17.3.0",
+    "@angular/service-worker": "~17.3.0",
     "@google/generative-ai": "^0.24.1",
     "@playwright/test": "^1.57.0",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@angular/pwa": "~17.3.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.11.0",
     "autoprefixer": "^10.4.19",

@@ -4,11 +4,15 @@ import { ProfileService, ShowcaseItem } from './profile/profile.service';
 import { Game } from './game';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-hub',
   templateUrl: './hub.component.html',
-  styleUrls: ['./hub.component.css']
+  styleUrls: ['./hub.component.css'],
+  standalone: true,
+  imports: [CommonModule, RouterModule]
 })
 export class HubComponent implements OnInit, OnDestroy {
   // Signals for UI state

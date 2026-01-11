@@ -420,15 +420,14 @@ export class StudioInterfaceComponent implements OnDestroy {
 
   private patchPlugin(id: PluginId, patch: Partial<PluginModule>): void {
     this.pluginRack.update(modules =>
-      modules.map(module =>
-        module.id === id
-          ? {
-              ...module,
-              ...patch,
-              values: patch.values ? { ...module.values, ...patch.values } : module.values,
+        modules.map(module => {
+            if (module.id !== id) {
+                return module;
             }
-          : module
-      )
+
+            const newValues = patch.values ? { ...module.values, ...patch.values } : module.values;
+            return { ...module, ...patch, values: newValues };
+        })
     );
   }
 }
