@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -14,14 +14,28 @@ export interface LegalDocument {
   imports: [CommonModule, FormsModule],
   template: `
     <div class="modal-content">
-      <h3 class="text-xl font-bold mb-4 text-white">{{ documentId ? 'Edit' : 'Create' }} Legal Document</h3>
+      <h3 class="text-xl font-bold mb-4 text-white">
+        {{ documentId ? 'Edit' : 'Create' }} Legal Document
+      </h3>
       <div class="form-group">
         <label for="docTitle">Title</label>
-        <input id="docTitle" type="text" [(ngModel)]="title" class="form-input" placeholder="e.g., Performance Agreement">
+        <input
+          id="docTitle"
+          type="text"
+          [(ngModel)]="title"
+          class="form-input"
+          placeholder="e.g., Performance Agreement"
+        />
       </div>
       <div class="form-group">
         <label for="docContent">Content</label>
-        <textarea id="docContent" [(ngModel)]="content" class="form-textarea" rows="10" placeholder="Enter contract terms, clauses, etc."></textarea>
+        <textarea
+          id="docContent"
+          [(ngModel)]="content"
+          class="form-textarea"
+          rows="10"
+          placeholder="Enter contract terms, clauses, etc."
+        ></textarea>
       </div>
       <div class="flex justify-end gap-4 mt-6">
         <button (click)="cancel.emit()" class="cancel-button">Cancel</button>
@@ -29,7 +43,7 @@ export interface LegalDocument {
       </div>
     </div>
   `,
-  styleUrls: ['./profile-editor.component.css']
+  styleUrls: ['./profile-editor.component.css'],
 })
 export class LegalDocumentEditorComponent {
   @Input() document?: LegalDocument;

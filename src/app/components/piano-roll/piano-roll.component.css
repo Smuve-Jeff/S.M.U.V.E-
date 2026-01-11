@@ -20,7 +20,8 @@
   gap: 1rem;
 }
 
-.pr-toolbar .left, .pr-toolbar .right {
+.pr-toolbar .left,
+.pr-toolbar .right {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -49,7 +50,7 @@
   min-width: 2rem;
 }
 
-input[type="range"] {
+input[type='range'] {
   -webkit-appearance: none;
   width: 100px;
   height: 5px;
@@ -58,7 +59,7 @@ input[type="range"] {
   outline: none;
 }
 
-input[type="range"]::-webkit-slider-thumb {
+input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 15px;
@@ -68,7 +69,7 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer;
 }
 
-input[type="number"] {
+input[type='number'] {
   width: 50px;
   background-color: var(--background-color);
   color: var(--text-color);
@@ -80,8 +81,9 @@ input[type="number"] {
 .pr-main {
   position: relative;
   display: grid;
-  grid-template-areas: "labels grid"
-                       ".      velocity";
+  grid-template-areas:
+    'labels grid'
+    '.      velocity';
   grid-template-columns: 80px 1fr;
   grid-template-rows: 1fr auto;
   min-width: 900px;
@@ -103,8 +105,8 @@ input[type="number"] {
 }
 
 .ruler-tick.playing {
-    background-color: var(--primary-color);
-    color: var(--background-color);
+  background-color: var(--primary-color);
+  color: var(--background-color);
 }
 
 .pr-grid-wrapper {
@@ -138,14 +140,13 @@ input[type="number"] {
   justify-content: center;
 }
 
-.pr-label:nth-child(12n+2),
-.pr-label:nth-child(12n+4),
-.pr-label:nth-child(12n+6),
-.pr-label:nth-child(12n+9),
-.pr-label:nth-child(12n+11) {
-    background: rgba(0, 0, 0, 0.2); /* Darker for black keys */
+.pr-label:nth-child(12n + 2),
+.pr-label:nth-child(12n + 4),
+.pr-label:nth-child(12n + 6),
+.pr-label:nth-child(12n + 9),
+.pr-label:nth-child(12n + 11) {
+  background: rgba(0, 0, 0, 0.2); /* Darker for black keys */
 }
-
 
 .pr-cell {
   background-color: rgba(255, 255, 255, 0.05);
@@ -166,7 +167,6 @@ input[type="number"] {
   background-color: #00acc1;
   box-shadow: 0 0 10px #00bcd4;
 }
-
 
 .pr-velocity {
   grid-area: velocity;
@@ -193,10 +193,10 @@ input[type="number"] {
 }
 
 .velocity-bar {
-    background: linear-gradient(to top, var(--primary-color), #00acc1);
-    border-radius: 2px;
-    margin: 2px;
-    align-self: flex-end;
+  background: linear-gradient(to top, var(--primary-color), #00acc1);
+  border-radius: 2px;
+  margin: 2px;
+  align-self: flex-end;
 }
 
 div::-webkit-scrollbar {

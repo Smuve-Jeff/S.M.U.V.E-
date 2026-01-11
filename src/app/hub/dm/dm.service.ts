@@ -14,7 +14,7 @@ export interface Conversation {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class DmService {
   conversations = signal<Conversation[]>([]);
@@ -25,20 +25,32 @@ export class DmService {
       {
         userId: '2',
         messages: [
-          { userId: '1', handle: 'Me', avatarUrl: 'https://picsum.photos/seed/me/100/100', timestamp: new Date(), message: 'Hey there!' },
-          { userId: '2', handle: 'PlayerOne', avatarUrl: 'https://picsum.photos/seed/playerone/100/100', timestamp: new Date(), message: 'Hi! How are you?' },
-        ]
-      }
+          {
+            userId: '1',
+            handle: 'Me',
+            avatarUrl: 'https://picsum.photos/seed/me/100/100',
+            timestamp: new Date(),
+            message: 'Hey there!',
+          },
+          {
+            userId: '2',
+            handle: 'PlayerOne',
+            avatarUrl: 'https://picsum.photos/seed/playerone/100/100',
+            timestamp: new Date(),
+            message: 'Hi! How are you?',
+          },
+        ],
+      },
     ]);
   }
 
   getConversation(userId: string) {
-    return this.conversations().find(c => c.userId === userId);
+    return this.conversations().find((c) => c.userId === userId);
   }
 
   sendMessage(userId: string, message: Message) {
-    this.conversations.update(convos => {
-      const convo = convos.find(c => c.userId === userId);
+    this.conversations.update((convos) => {
+      const convo = convos.find((c) => c.userId === userId);
       if (convo) {
         convo.messages.push(message);
       }

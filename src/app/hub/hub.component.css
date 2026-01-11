@@ -7,7 +7,8 @@
   color: #fff;
 }
 
-.left-sidebar, .right-sidebar {
+.left-sidebar,
+.right-sidebar {
   background-color: #1f1f1f;
   padding: 20px;
   overflow-y: auto;
@@ -53,7 +54,8 @@
   border-radius: 8px;
 }
 
-.genre-filters, .sort-options {
+.genre-filters,
+.sort-options {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -61,7 +63,7 @@
 }
 
 .genre-filters {
-    margin-bottom: 10px;
+  margin-bottom: 10px;
 }
 
 .sort-options span {
@@ -70,7 +72,8 @@
   font-weight: bold;
 }
 
-.genre-filters button, .sort-options button {
+.genre-filters button,
+.sort-options button {
   background: #333;
   color: #ddd;
   border: 1px solid #555;
@@ -80,7 +83,8 @@
   transition: all 0.2s;
 }
 
-.genre-filters button.active, .sort-options button.active {
+.genre-filters button.active,
+.sort-options button.active {
   background-color: #007bff;
   color: #fff;
   border-color: #007bff;
@@ -134,8 +138,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .battlefield-lobby h2 {

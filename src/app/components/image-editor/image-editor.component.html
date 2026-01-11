@@ -1,57 +1,126 @@
-<div class="w-full p-4 flex flex-col gap-4 relative" [class]="'text-' + theme().neutral + '-200'" [class]="'border border-' + theme().purple + '-500/30'">
-  <h2 class="text-center text-lg" [class]="'text-' + theme().purple + '-400'">[ S.M.U.V.E 2.0 IMAGE LAB ]</h2>
+<div
+  class="w-full p-4 flex flex-col gap-4 relative"
+  [class]="'text-' + theme().neutral + '-200'"
+  [class]="'border border-' + theme().purple + '-500/30'"
+>
+  <h2 class="text-center text-lg" [class]="'text-' + theme().purple + '-400'">
+    [ S.M.U.V.E 2.0 IMAGE LAB ]
+  </h2>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
     <!-- Left Panel: Upload & Prompt -->
-    <div class="flex flex-col gap-4 p-4 border" [class]="'border-' + theme().purple + '-500/20'">
-      <div class="flex-grow flex items-center justify-center border-2 border-dashed p-2 min-h-[200px]" [class]="'border-' + theme().purple + '-700/50'">
+    <div
+      class="flex flex-col gap-4 p-4 border"
+      [class]="'border-' + theme().purple + '-500/20'"
+    >
+      <div
+        class="flex-grow flex items-center justify-center border-2 border-dashed p-2 min-h-[200px]"
+        [class]="'border-' + theme().purple + '-700/50'"
+      >
         @if (originalImageUrl()) {
-          <img [src]="originalImageUrl()" class="max-w-full max-h-full object-contain">
+          <img
+            [src]="originalImageUrl()"
+            class="max-w-full max-h-full object-contain"
+          />
         } @else {
           <span>[ Upload an image to edit or generate new ]</span>
         }
       </div>
-      <input type="file" #fileInput (change)="handleImageUpload($event)" accept="image/*" class="hidden">
-      <button (click)="fileInput.click()" class="p-2 border" [class]="'border-' + theme().purple + '-500/50'">[ UPLOAD ]</button>
-      
-      <textarea [(ngModel)]="editPrompt" rows="4" class="w-full p-2 bg-black border" [class]="'border-' + theme().purple + '-500/50'" placeholder="Enter prompt to generate or edit..."></textarea>
-      
+      <input
+        type="file"
+        #fileInput
+        (change)="handleImageUpload($event)"
+        accept="image/*"
+        class="hidden"
+      />
+      <button
+        (click)="fileInput.click()"
+        class="p-2 border"
+        [class]="'border-' + theme().purple + '-500/50'"
+      >
+        [ UPLOAD ]
+      </button>
+
+      <textarea
+        [(ngModel)]="editPrompt"
+        rows="4"
+        class="w-full p-2 bg-black border"
+        [class]="'border-' + theme().purple + '-500/50'"
+        placeholder="Enter prompt to generate or edit..."
+      ></textarea>
+
       <div class="flex flex-wrap gap-2 text-xs">
-        @for (ratio of ['1:1', '3:4', '4:3', '2:3', '3:2', '9:16', '16:9', '21:9']; track ratio) {
-          <button (click)="aspectRatio.set(ratio)" class="p-1 border" [class.bg-purple-500]="aspectRatio() === ratio">{{ ratio }}</button>
+        @for (
+          ratio of ['1:1', '3:4', '4:3', '2:3', '3:2', '9:16', '16:9', '21:9'];
+          track ratio
+        ) {
+          <button
+            (click)="aspectRatio.set(ratio)"
+            class="p-1 border"
+            [class.bg-purple-500]="aspectRatio() === ratio"
+          >
+            {{ ratio }}
+          </button>
         }
       </div>
-      
+
       <div class="flex gap-2">
-        <button (click)="generateImage()" [disabled]="!isAiAvailable() || isLoading() || !editPrompt()" class="flex-grow p-2 border disabled:opacity-50">
+        <button
+          (click)="generateImage()"
+          [disabled]="!isAiAvailable() || isLoading() || !editPrompt()"
+          class="flex-grow p-2 border disabled:opacity-50"
+        >
           {{ isLoading() ? 'GENERATING...' : '[ GENERATE ]' }}
         </button>
-        <button (click)="editImage()" [disabled]="!isAiAvailable() || isLoading() || !originalImageUrl() || !editPrompt()" class="flex-grow p-2 border disabled:opacity-50">
+        <button
+          (click)="editImage()"
+          [disabled]="
+            !isAiAvailable() ||
+            isLoading() ||
+            !originalImageUrl() ||
+            !editPrompt()
+          "
+          class="flex-grow p-2 border disabled:opacity-50"
+        >
           {{ isLoading() ? 'EDITING...' : '[ EDIT ]' }}
         </button>
         <button (click)="clearImage()" class="p-2 border">[ CLEAR ]</button>
       </div>
-
     </div>
 
     <!-- Right Panel: Generated Image -->
-    <div class="flex flex-col gap-4 p-4 border" [class]="'border-' + theme().purple + '-500/20'">
-      <div class="flex-grow flex items-center justify-center border-2 border-dashed p-2 min-h-[200px]" [class]="'border-' + theme().purple + '-700/50'">
+    <div
+      class="flex flex-col gap-4 p-4 border"
+      [class]="'border-' + theme().purple + '-500/20'"
+    >
+      <div
+        class="flex-grow flex items-center justify-center border-2 border-dashed p-2 min-h-[200px]"
+        [class]="'border-' + theme().purple + '-700/50'"
+      >
         @if (isLoading()) {
           <span>{{ 'Processing...' }}</span>
         } @else if (generatedImageUrls().length > 0) {
-          <img [src]="generatedImageUrls()[0]" class="max-w-full max-h-full object-contain">
+          <img
+            [src]="generatedImageUrls()[0]"
+            class="max-w-full max-h-full object-contain"
+          />
         } @else {
           <span>[ Generated image will appear here ]</span>
         }
       </div>
       @if (generatedImageUrls().length > 0 && !isLoading()) {
         <div class="flex gap-2">
-          <button (click)="useAsAlbumArt()" class="flex-grow p-2 border">[ USE AS ALBUM ART ]</button>
-          <button (click)="requestImageAnalysis()" class="flex-grow p-2 border">[ ANALYZE IMAGE ]</button>
+          <button (click)="useAsAlbumArt()" class="flex-grow p-2 border">
+            [ USE AS ALBUM ART ]
+          </button>
+          <button (click)="requestImageAnalysis()" class="flex-grow p-2 border">
+            [ ANALYZE IMAGE ]
+          </button>
         </div>
       }
     </div>
   </div>
-  @if (errorMessage()) { <p class="text-red-500 absolute bottom-2 left-6">{{ errorMessage() }}</p> }
+  @if (errorMessage()) {
+    <p class="text-red-500 absolute bottom-2 left-6">{{ errorMessage() }}</p>
+  }
 </div>

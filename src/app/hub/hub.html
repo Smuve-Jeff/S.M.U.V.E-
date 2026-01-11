@@ -14,8 +14,12 @@
   <div class="hub-body">
     <aside class="left-sidebar">
       <div class="actions-box">
-        <button class="action-button primary" (click)="openDuelModal()">Create Duel</button>
-        <button class="action-button secondary" (click)="openTeamModal()">Create Team</button>
+        <button class="action-button primary" (click)="openDuelModal()">
+          Create Duel
+        </button>
+        <button class="action-button secondary" (click)="openTeamModal()">
+          Create Team
+        </button>
       </div>
       <div class="matchmaking-status" *ngIf="matchmakingStatus()">
         <p>{{ matchmakingStatus() }}</p>
@@ -31,7 +35,10 @@
       <div class="activity-feed">
         <h4>Live Activity</h4>
         <ul>
-          <li *ngFor="let activity of activityFeed()" [innerHTML]="activity"></li>
+          <li
+            *ngFor="let activity of activityFeed()"
+            [innerHTML]="activity"
+          ></li>
         </ul>
       </div>
     </aside>
@@ -43,12 +50,19 @@
     <div class="form-group">
       <label for="duel-game">Game</label>
       <select id="duel-game" class="form-control">
-        <option *ngFor="let game of filteredGames()" [value]="game.id">{{ game.name }}</option>
+        <option *ngFor="let game of filteredGames()" [value]="game.id">
+          {{ game.name }}
+        </option>
       </select>
     </div>
     <div class="form-group">
       <label for="opponent-search">Opponent</label>
-      <input type="text" id="opponent-search" class="form-control" placeholder="Search for a player">
+      <input
+        type="text"
+        id="opponent-search"
+        class="form-control"
+        placeholder="Search for a player"
+      />
     </div>
     <button type="submit" class="action-button primary">Send Challenge</button>
   </form>
@@ -58,17 +72,29 @@
   <form (ngSubmit)="createTeam()">
     <div class="form-group">
       <label for="team-name">Team Name</label>
-      <input type="text" id="team-name" class.form-control placeholder="Enter a team name">
+      <input
+        type="text"
+        id="team-name"
+        class.form-control
+        placeholder="Enter a team name"
+      />
     </div>
     <div class="form-group">
       <label for="team-game">Game</label>
       <select id="team-game" class="form-control">
-        <option *ngFor="let game of filteredGames()" [value]="game.id">{{ game.name }}</option>
+        <option *ngFor="let game of filteredGames()" [value]="game.id">
+          {{ game.name }}
+        </option>
       </select>
     </div>
     <div class="form-group">
       <label for="teammate-search">Teammates</label>
-      <input type="text" id="teammate-search" class="form-control" placeholder="Invite players">
+      <input
+        type="text"
+        id="teammate-search"
+        class="form-control"
+        placeholder="Invite players"
+      />
     </div>
     <button type="submit" class="action-button secondary">Create Team</button>
   </form>

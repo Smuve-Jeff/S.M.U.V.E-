@@ -1,5 +1,15 @@
-import { Component, ChangeDetectionStrategy, computed, inject, signal, ElementRef } from '@angular/core';
-import { MusicManagerService, TrackNote } from '../../services/music-manager.service';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  computed,
+  inject,
+  signal,
+  ElementRef,
+} from '@angular/core';
+import {
+  MusicManagerService,
+  TrackNote,
+} from '../../services/music-manager.service';
 import { InstrumentsService } from '../../services/instruments.service';
 
 const BASE_MIDI = 60; // C4
@@ -22,16 +32,29 @@ export class PianoRollComponent {
   currentStep = computed(() => this.music.currentStep());
   zoomX = signal(1);
   steps = signal(16); // Dynamic steps
-  stepsArray = computed(() => Array.from({ length: this.steps() }, (_, i) => i));
+  stepsArray = computed(() =>
+    Array.from({ length: this.steps() }, (_, i) => i)
+  );
 
   // Notes grid
-  midiRows = Array.from({ length: OCTAVES * 12 }, (_, i) => BASE_MIDI + (OCTAVES * 12 - 1 - i));
+  midiRows = Array.from(
+    { length: OCTAVES * 12 },
+    (_, i) => BASE_MIDI + (OCTAVES * 12 - 1 - i)
+  );
 
   // Instruments list
-  instrumentOptions = computed(() => this.instrumentsSvc.getPresets().map(p => ({ id: p.id, name: p.name })));
+  instrumentOptions = computed(() =>
+    this.instrumentsSvc.getPresets().map((p) => ({ id: p.id, name: p.name }))
+  );
   selectedTrackId = computed(() => this.music.selectedTrackId());
-  selectedTrack = computed(() => this.music.tracks().find(t => t.id === this.selectedTrackId()) || this.music.tracks()[0]);
-  selectedInstrumentId = computed(() => this.selectedTrack()?.instrumentId || this.instrumentOptions()[0]?.id);
+  selectedTrack = computed(
+    () =>
+      this.music.tracks().find((t) => t.id === this.selectedTrackId()) ||
+      this.music.tracks()[0]
+  );
+  selectedInstrumentId = computed(
+    () => this.selectedTrack()?.instrumentId || this.instrumentOptions()[0]?.id
+  );
 
   // Sequence view computed from track notes
   sequenceFor(midi: number): boolean[] {
@@ -39,7 +62,8 @@ export class PianoRollComponent {
     const arr = Array(this.steps()).fill(false) as boolean[];
     if (!t) return arr;
     for (const n of t.notes) {
-      if (n.midi === midi && n.step >= 0 && n.step < this.steps()) arr[n.step] = true;
+      if (n.midi === midi && n.step >= 0 && n.step < this.steps())
+        arr[n.step] = true;
     }
     return arr;
   }
@@ -50,7 +74,8 @@ export class PianoRollComponent {
   }
 
   async togglePlay() {
-    if (this.isPlaying()) this.music.stop(); else this.music.play();
+    if (this.isPlaying()) this.music.stop();
+    else this.music.play();
   }
 
   resetSequence() {
@@ -90,13 +115,13 @@ export class PianoRollComponent {
 
     // If there's a note at the same pitch, remove it.
     if (noteAtStep?.midi === midi) {
-        this.music.removeNote(id, midi, step);
-        return;
+      this.music.removeNote(id, midi, step);
+      return;
     }
 
     // If there's a note at a different pitch, remove it before adding the new one.
     if (noteAtStep) {
-        this.music.removeNote(id, noteAtStep.midi, step);
+      this.music.removeNote(id, noteAtStep.midi, step);
     }
 
     // Add the new note.
@@ -139,13 +164,28 @@ export class PianoRollComponent {
   private noteAt(step: number): TrackNote | undefined {
     const t = this.selectedTrack();
     if (!t) return undefined;
-    return t.notes.find(n => n.step === step);
+    return t.notes.find((n) => n.step === step);
   }
 
-  trackName() { return this.selectedTrack()?.name || 'Track'; }
+  trackName() {
+    return this.selectedTrack()?.name || 'Track';
+  }
 
   midiName(midi: number) {
-    const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const NAMES = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
+    ];
     const name = NAMES[midi % 12];
     const octave = Math.floor(midi / 12) - 1;
     return `${name}${octave}`;

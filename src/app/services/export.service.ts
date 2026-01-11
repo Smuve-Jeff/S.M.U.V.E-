@@ -11,7 +11,9 @@ export class ExportService {
     const recorder = new MediaRecorder(dest.stream, { mimeType });
     const chunks: Blob[] = [];
 
-    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
 
     const promise = new Promise<Blob>((resolve) => {
       recorder.onstop = () => {
@@ -27,7 +29,11 @@ export class ExportService {
   async renderOfflineToWav(durationSec: number): Promise<Blob> {
     const ctx = this.engine.getContext();
     const sampleRate = ctx.sampleRate;
-    const offline = new OfflineAudioContext(2, Math.ceil(durationSec * sampleRate), sampleRate);
+    const offline = new OfflineAudioContext(
+      2,
+      Math.ceil(durationSec * sampleRate),
+      sampleRate
+    );
 
     // Simple usage: render silence placeholder; app can wire a custom graph later
     const silence = offline.createBufferSource();
@@ -47,23 +53,37 @@ export class ExportService {
     const view = new DataView(bufferOut);
 
     function writeString(view: DataView, offset: number, str: string) {
-      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      for (let i = 0; i < str.length; i++)
+        view.setUint8(offset + i, str.charCodeAt(i));
     }
 
     let offset = 0;
-    writeString(view, offset, 'RIFF'); offset += 4;
-    view.setUint32(offset, 36 + buffer.length * numOfChan * 2, true); offset += 4;
-    writeString(view, offset, 'WAVE'); offset += 4;
-    writeString(view, offset, 'fmt '); offset += 4;
-    view.setUint32(offset, 16, true); offset += 4;
-    view.setUint16(offset, 1, true); offset += 2;
-    view.setUint16(offset, numOfChan, true); offset += 2;
-    view.setUint32(offset, sampleRate, true); offset += 4;
-    view.setUint32(offset, sampleRate * numOfChan * 2, true); offset += 4;
-    view.setUint16(offset, numOfChan * 2, true); offset += 2;
-    view.setUint16(offset, 16, true); offset += 2;
-    writeString(view, offset, 'data'); offset += 4;
-    view.setUint32(offset, buffer.length * numOfChan * 2, true); offset += 4;
+    writeString(view, offset, 'RIFF');
+    offset += 4;
+    view.setUint32(offset, 36 + buffer.length * numOfChan * 2, true);
+    offset += 4;
+    writeString(view, offset, 'WAVE');
+    offset += 4;
+    writeString(view, offset, 'fmt ');
+    offset += 4;
+    view.setUint32(offset, 16, true);
+    offset += 4;
+    view.setUint16(offset, 1, true);
+    offset += 2;
+    view.setUint16(offset, numOfChan, true);
+    offset += 2;
+    view.setUint32(offset, sampleRate, true);
+    offset += 4;
+    view.setUint32(offset, sampleRate * numOfChan * 2, true);
+    offset += 4;
+    view.setUint16(offset, numOfChan * 2, true);
+    offset += 2;
+    view.setUint16(offset, 16, true);
+    offset += 2;
+    writeString(view, offset, 'data');
+    offset += 4;
+    view.setUint32(offset, buffer.length * numOfChan * 2, true);
+    offset += 4;
 
     // Interleave channels
     const channels: Float32Array[] = [];
@@ -73,7 +93,11 @@ export class ExportService {
       for (let c = 0; c < numOfChan; c++) {
         let sample = channels[c][sampleIndex];
         sample = Math.max(-1, Math.min(1, sample));
-        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+        view.setInt16(
+          offset,
+          sample < 0 ? sample * 0x8000 : sample * 0x7fff,
+          true
+        );
         offset += 2;
       }
       sampleIndex++;

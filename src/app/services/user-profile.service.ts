@@ -1,6 +1,7 @@
 import { Injectable, signal, effect, inject } from '@angular/core';
 import { AuthService } from './auth.service';
 import { DatabaseService } from './database.service';
+import { LegalDocument } from '../components/legal-document-editor/legal-document-editor.component';
 
 export interface ShowcaseItem {
   type: 'music' | 'image' | 'video';
@@ -18,7 +19,7 @@ export interface UserProfile {
   location?: string;
   bio: string;
   profilePictureUrl?: string;
-  
+
   // === MUSICAL IDENTITY ===
   primaryGenre: string;
   secondaryGenres: string[];
@@ -26,15 +27,16 @@ export interface UserProfile {
   musicalInfluences: string;
   artistsYouSoundLike: string[];
   uniqueSound: string; // What makes your sound unique
-  
+
   // === EXPERIENCE & EXPERTISE ===
   yearsActive: number;
   experienceLevel: 'Beginner' | 'Intermediate' | 'Advanced' | 'Professional';
   formalTraining: string; // Music school, self-taught, etc.
   skills: string[]; // Vocalist, Producer, Songwriter, DJ, etc.
-  
+
   // Expertise levels (1-10 scale)
   expertiseLevels: {
+    [key: string]: number;
     songwriting: number;
     production: number;
     mixing: number;
@@ -46,76 +48,105 @@ export interface UserProfile {
     lyricsWriting: number;
     melodyCreation: number;
   };
-  
+
   // === CAREER STAGE & GOALS ===
-  careerStage: 'Just Starting' | 'Building Fanbase' | 'Established Local' | 'Regional Success' | 'National/International';
+  careerStage:
+    | 'Just Starting'
+    | 'Building Fanbase'
+    | 'Established Local'
+    | 'Regional Success'
+    | 'National/International';
   careerGoals: string[]; // Get Signed, Grow Fanbase, Tour, etc.
   shortTermGoals: string[]; // Next 3-6 months
   longTermGoals: string[]; // 1-5 years
   currentFocus: string;
   biggestChallenge: string;
-  
+
   // === AUDIENCE & MARKET ===
   targetAudience: string; // Demographics, psychographics
   currentFanbase: 'None' | '<100' | '100-1K' | '1K-10K' | '10K-100K' | '100K+';
   geographicFocus: string[]; // Local, Regional, National, International
-  
+
   // === CONTENT & OUTPUT ===
   releaseFrequency: 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly' | 'Sporadic';
   contentTypes: string[]; // Singles, EPs, Albums, Freestyles, Covers, etc.
   releasedTracks: number;
   upcomingProjects: string;
   showcases: ShowcaseItem[];
-  
+
   // === MARKETING & PROMOTION ===
   marketingExperience: 'None' | 'Basic' | 'Intermediate' | 'Advanced';
   promotionChannels: string[]; // Social media, Radio, Blogs, Playlists, etc.
-  marketingBudget: 'No Budget' | '<$500/mo' | '$500-2K/mo' | '$2K-5K/mo' | '$5K+/mo';
+  marketingBudget:
+    | 'No Budget'
+    | '<$500/mo'
+    | '$500-2K/mo'
+    | '$2K-5K/mo'
+    | '$5K+/mo';
   contentStrategy: string;
-  
+
   // === BUSINESS & REVENUE ===
   revenueStreams: string[]; // Streaming, Shows, Merch, Sync, Teaching, etc.
   isMonetizing: boolean;
-  businessStructure: 'Individual' | 'LLC' | 'Partnership' | 'Corporation' | 'Not Set Up';
+  businessStructure:
+    | 'Individual'
+    | 'LLC'
+    | 'Partnership'
+    | 'Corporation'
+    | 'Not Set Up';
   hasManager: boolean;
   hasBookingAgent: boolean;
   hasPublisher: boolean;
   hasLabel: boolean;
   labelType?: 'Independent' | 'Major' | 'Distribution Only';
-  
+  legalDocuments?: LegalDocument[];
+
   // === EQUIPMENT & SOFTWARE ===
   daw: string[]; // FL Studio, Ableton, Logic, etc.
   equipment: string[]; // Microphone, Audio Interface, Monitors, etc.
   vst_plugins: string[];
-  recordingSetup: 'Home Studio' | 'Project Studio' | 'Professional Studio' | 'Mobile Setup';
-  
+  recordingSetup:
+    | 'Home Studio'
+    | 'Project Studio'
+    | 'Professional Studio'
+    | 'Mobile Setup';
+
   // === COLLABORATION & NETWORKING ===
   openToCollaboration: boolean;
   collaborationTypes: string[]; // Features, Production, Co-writing, etc.
   networkingGoals: string;
   lookingFor: string[]; // Producers, Vocalists, Managers, etc.
-  
+
   // === PERFORMANCE & LIVE SHOWS ===
   performancesPerYear: 'None' | '1-5' | '6-20' | '20-50' | '50+';
   venueTypes: string[]; // Clubs, Festivals, Arenas, Online, etc.
   comfortableWithLive: boolean;
-  
+
   // === SOCIAL MEDIA & ONLINE PRESENCE ===
   links: { [key: string]: string };
   mostActiveOn: string[]; // Which platforms
   postingFrequency: string;
   engagementLevel: 'Low' | 'Medium' | 'High';
-  
+
   // === LEARNING & DEVELOPMENT ===
   areasToImprove: string[];
-  learningStyle: 'Video Tutorials' | 'Written Guides' | 'Hands-on Practice' | 'Mentorship' | 'Courses';
+  learningStyle:
+    | 'Video Tutorials'
+    | 'Written Guides'
+    | 'Hands-on Practice'
+    | 'Mentorship'
+    | 'Courses';
   investingInEducation: boolean;
-  
+
   // === MENTAL GAME & MINDSET ===
   confidenceLevel: number; // 1-10
   dealingWithCriticism: 'Poorly' | 'Okay' | 'Well' | 'Excellently';
   motivationLevel: number; // 1-10
-  consistency: 'Struggle' | 'Inconsistent' | 'Fairly Consistent' | 'Very Consistent';
+  consistency:
+    | 'Struggle'
+    | 'Inconsistent'
+    | 'Fairly Consistent'
+    | 'Very Consistent';
 }
 
 export const initialProfile: UserProfile = {
@@ -125,7 +156,7 @@ export const initialProfile: UserProfile = {
   location: '',
   bio: 'Describe your musical journey...',
   profilePictureUrl: '',
-  
+
   // Musical Identity
   primaryGenre: '',
   secondaryGenres: [],
@@ -133,7 +164,7 @@ export const initialProfile: UserProfile = {
   musicalInfluences: '',
   artistsYouSoundLike: [],
   uniqueSound: '',
-  
+
   // Experience & Expertise
   yearsActive: 0,
   experienceLevel: 'Beginner',
@@ -151,7 +182,7 @@ export const initialProfile: UserProfile = {
     lyricsWriting: 5,
     melodyCreation: 5,
   },
-  
+
   // Career Stage & Goals
   careerStage: 'Just Starting',
   careerGoals: [],
@@ -159,25 +190,25 @@ export const initialProfile: UserProfile = {
   longTermGoals: [],
   currentFocus: '',
   biggestChallenge: '',
-  
+
   // Audience & Market
   targetAudience: '',
   currentFanbase: 'None',
   geographicFocus: [],
-  
+
   // Content & Output
   releaseFrequency: 'Sporadic',
   contentTypes: [],
   releasedTracks: 0,
   upcomingProjects: '',
   showcases: [],
-  
+
   // Marketing & Promotion
   marketingExperience: 'None',
   promotionChannels: [],
   marketingBudget: 'No Budget',
   contentStrategy: '',
-  
+
   // Business & Revenue
   revenueStreams: [],
   isMonetizing: false,
@@ -186,35 +217,36 @@ export const initialProfile: UserProfile = {
   hasBookingAgent: false,
   hasPublisher: false,
   hasLabel: false,
-  
+  legalDocuments: [],
+
   // Equipment & Software
   daw: [],
   equipment: [],
   vst_plugins: [],
   recordingSetup: 'Home Studio',
-  
+
   // Collaboration & Networking
   openToCollaboration: true,
   collaborationTypes: [],
   networkingGoals: '',
   lookingFor: [],
-  
+
   // Performance & Live Shows
   performancesPerYear: 'None',
   venueTypes: [],
   comfortableWithLive: false,
-  
+
   // Social Media & Online Presence
   links: {},
   mostActiveOn: [],
   postingFrequency: '',
   engagementLevel: 'Low',
-  
+
   // Learning & Development
   areasToImprove: [],
   learningStyle: 'Video Tutorials',
   investingInEducation: false,
-  
+
   // Mental Game & Mindset
   confidenceLevel: 5,
   dealingWithCriticism: 'Okay',
@@ -223,7 +255,7 @@ export const initialProfile: UserProfile = {
 };
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserProfileService {
   private authService = inject(AuthService);

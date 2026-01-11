@@ -1,4 +1,3 @@
-
 import { test, expect } from '@playwright/test';
 
 test('Final verification of UI changes and functionality', async ({ page }) => {
@@ -23,7 +22,10 @@ test('Final verification of UI changes and functionality', async ({ page }) => {
   // Verify the vintage theme of the piano roll
   const pianoRollContainer = page.locator('.piano-roll-container');
   await expect(pianoRollContainer).toBeVisible();
-  await expect(pianoRollContainer).toHaveCSS('background-color', 'rgb(243, 234, 211)');
+  await expect(pianoRollContainer).toHaveCSS(
+    'background-color',
+    'rgb(243, 234, 211)'
+  );
 
   // Select the "808s" instrument from the dropdown
   await page.selectOption('select', '808s');

@@ -5,27 +5,83 @@
 </div>
 
 <div class="glass-container wow animate__animated animate__fadeIn">
-
   <!-- Main Header -->
   <header class="main-header">
     <div class="flex items-center gap-4">
-      <h1 class="text-3xl font-bold tracking-wider text-white">S.M.U.V.E. 2.0</h1>
+      <h1 class="text-3xl font-bold tracking-wider text-white">
+        S.M.U.V.E. 2.0
+      </h1>
       <div class="nav-buttons">
-        <button (click)="uiService.toggleMainViewMode()" class="nav-button" title="Toggle Main View"><i class="fas fa-sync-alt"></i></button>
-        <button (click)="uiService.mainViewMode.set('projects')" class="nav-button" title="Projects"><i class="fas fa-tasks"></i></button>
-        <button (click)="uiService.mainViewMode.set('remix-arena')" class="nav-button" title="Remix Arena"><i class="fas fa-gamepad"></i></button>
-        <button (click)="uiService.randomizeTheme()" class="nav-button" title="Randomize Theme"><i class="fas fa-palette"></i></button>
-        <button (click)="uiService.showEqPanel.set(!uiService.showEqPanel())" class="nav-button" title="Toggle EQ Panel"><i class="fas fa-sliders-h"></i></button>
+        <button
+          (click)="uiService.toggleMainViewMode()"
+          class="nav-button"
+          title="Toggle Main View"
+        >
+          <i class="fas fa-sync-alt"></i>
+        </button>
+        <button
+          (click)="uiService.mainViewMode.set('projects')"
+          class="nav-button"
+          title="Projects"
+        >
+          <i class="fas fa-tasks"></i>
+        </button>
+        <button
+          (click)="uiService.mainViewMode.set('remix-arena')"
+          class="nav-button"
+          title="Remix Arena"
+        >
+          <i class="fas fa-gamepad"></i>
+        </button>
+        <button
+          (click)="uiService.randomizeTheme()"
+          class="nav-button"
+          title="Randomize Theme"
+        >
+          <i class="fas fa-palette"></i>
+        </button>
+        <button
+          (click)="uiService.showEqPanel.set(!uiService.showEqPanel())"
+          class="nav-button"
+          title="Toggle EQ Panel"
+        >
+          <i class="fas fa-sliders-h"></i>
+        </button>
       </div>
     </div>
     <div class="flex items-center gap-4">
-      <button (click)="uiService.showChatbot.set(!uiService.showChatbot())" class="nav-button" title="Toggle Chatbot"><i class="fas fa-robot"></i></button>
+      <button
+        (click)="uiService.showChatbot.set(!uiService.showChatbot())"
+        class="nav-button"
+        title="Toggle Chatbot"
+      >
+        <i class="fas fa-robot"></i>
+      </button>
       <span class="text-sm text-neutral-400">|</span>
-      <button *ngIf="!authService.isAuthenticated()" (click)="uiService.mainViewMode.set('profile')" class="auth-button">Login / Register</button>
-      <div *ngIf="authService.isAuthenticated()" class="flex items-center gap-2">
-        <span class="text-sm text-white">Welcome, {{ authService.currentUser()?.artistName }}</span>
-        <button (click)="uiService.mainViewMode.set('profile')" class="nav-button" title="View Profile"><i class="fas fa-user-circle"></i></button>
-        <button (click)="authService.logout()" class="auth-button">Logout</button>
+      <button
+        *ngIf="!authService.isAuthenticated()"
+        (click)="uiService.mainViewMode.set('profile')"
+        class="auth-button"
+      >
+        Login / Register
+      </button>
+      <div
+        *ngIf="authService.isAuthenticated()"
+        class="flex items-center gap-2"
+      >
+        <span class="text-sm text-white"
+          >Welcome, {{ authService.currentUser()?.artistName }}</span
+        >
+        <button
+          (click)="uiService.mainViewMode.set('profile')"
+          class="nav-button"
+          title="View Profile"
+        >
+          <i class="fas fa-user-circle"></i>
+        </button>
+        <button (click)="authService.logout()" class="auth-button">
+          Logout
+        </button>
       </div>
     </div>
   </header>
@@ -34,14 +90,9 @@
   <main class="flex-grow flex overflow-hidden">
     <!-- Main View -->
     <div class="flex-grow relative overflow-y-auto">
-
       <router-outlet></router-outlet>
-
     </div>
-
   </main>
 
-  <footer class="watermark-footer">
-    ©️Smuve Jeff Presents
-  </footer>
+  <footer class="watermark-footer">©️Smuve Jeff Presents</footer>
 </div>

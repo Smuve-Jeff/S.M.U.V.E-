@@ -1,4 +1,11 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, effect } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  computed,
+  inject,
+  effect,
+} from '@angular/core';
 import { NgFor } from '@angular/common';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { RecommendationsComponent } from '../recommendations/recommendations.component';
@@ -9,10 +16,10 @@ import { AuthService } from '../../services/auth.service';
 export interface MicChannel {
   id: string;
   label: string;
-  level: number;      // Volume level (0-100)
+  level: number; // Volume level (0-100)
   muted: boolean;
-  pan: number;        // Panning (-100 to 100)
-  armed: boolean;     // Armed for recording
+  pan: number; // Panning (-100 to 100)
+  armed: boolean; // Armed for recording
 }
 
 @Component({
@@ -32,7 +39,14 @@ export class StudioComponent {
   masterVolume = signal(80); // Master output volume (0-100)
   isRecording = signal(false);
   micChannels = signal<MicChannel[]>([
-    { id: 'mic-1', label: 'Vocal Mic', level: 70, muted: false, pan: 0, armed: true },
+    {
+      id: 'mic-1',
+      label: 'Vocal Mic',
+      level: 70,
+      muted: false,
+      pan: 0,
+      armed: true,
+    },
   ]);
 
   // --- Collaboration State ---
@@ -41,8 +55,14 @@ export class StudioComponent {
   sessionIdInput = signal('');
 
   // --- Computed State for UI ---
-  recordingStatus = computed(() => (this.isRecording() ? 'RECORDING' : 'STANDBY'));
-  armedChannels = computed(() => this.micChannels().filter(ch => ch.armed).map(ch => ch.label));
+  recordingStatus = computed(() =>
+    this.isRecording() ? 'RECORDING' : 'STANDBY'
+  );
+  armedChannels = computed(() =>
+    this.micChannels()
+      .filter((ch) => ch.armed)
+      .map((ch) => ch.label)
+  );
 
   constructor() {
     effect(() => {
@@ -56,7 +76,7 @@ export class StudioComponent {
 
   // --- Actions ---
   toggleRecording(): void {
-    this.isRecording.update(rec => !rec);
+    this.isRecording.update((rec) => !rec);
   }
 
   updateMasterVolume(newVolume: number): void {
@@ -64,8 +84,8 @@ export class StudioComponent {
   }
 
   updateChannelLevel(id: string, newLevel: number): void {
-    this.micChannels.update(channels => 
-      channels.map(ch => ch.id === id ? { ...ch, level: newLevel } : ch)
+    this.micChannels.update((channels) =>
+      channels.map((ch) => (ch.id === id ? { ...ch, level: newLevel } : ch))
     );
   }
 
@@ -73,7 +93,10 @@ export class StudioComponent {
   startCollaboration() {
     const user = this.currentUser();
     if (user) {
-      const projectState = { masterVolume: this.masterVolume(), channels: this.micChannels() };
+      const projectState = {
+        masterVolume: this.masterVolume(),
+        channels: this.micChannels(),
+      };
       this.collaborationService.startSession(user, projectState);
     }
   }

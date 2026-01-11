@@ -1,18 +1,35 @@
 <div class="pr-container">
   <div class="pr-toolbar">
     <div class="left">
-      <button (click)="togglePlay()" class="btn">{{ isPlaying() ? 'Stop' : 'Play' }}</button>
+      <button (click)="togglePlay()" class="btn">
+        {{ isPlaying() ? 'Stop' : 'Play' }}
+      </button>
       <button (click)="resetSequence()" class="btn">Reset</button>
       <label class="lbl">BPM</label>
-      <input type="range" min="60" max="240" [value]="bpm()" (input)="onBpmChange($event)">
+      <input
+        type="range"
+        min="60"
+        max="240"
+        [value]="bpm()"
+        (input)="onBpmChange($event)"
+      />
       <span class="val">{{ bpm() }}</span>
       <label class="lbl">Steps</label>
-      <input type="number" min="1" max="64" [value]="steps()" (input)="onStepsChange($event)">
+      <input
+        type="number"
+        min="1"
+        max="64"
+        [value]="steps()"
+        (input)="onStepsChange($event)"
+      />
     </div>
     <div class="right">
       <label class="lbl">Instrument</label>
-      <select [value]="selectedInstrumentId()" (change)="onInstrumentChange($event)">
-        @for(opt of instrumentOptions(); track opt.id) {
+      <select
+        [value]="selectedInstrumentId()"
+        (change)="onInstrumentChange($event)"
+      >
+        @for (opt of instrumentOptions(); track opt.id) {
           <option [value]="opt.id">{{ opt.name }}</option>
         }
       </select>
@@ -23,20 +40,28 @@
   <div class="pr-main">
     <div class="pr-ruler">
       <div></div>
-      @for(i of stepsArray(); track i) {
-        <div class="ruler-tick" [class.playing]="currentStep() === i">{{ i + 1 }}</div>
+      @for (i of stepsArray(); track i) {
+        <div class="ruler-tick" [class.playing]="currentStep() === i">
+          {{ i + 1 }}
+        </div>
       }
     </div>
     <div class="pr-grid-wrapper">
-      <div class="pr-grid" [style.grid-template-columns]="'80px repeat(' + steps() + ', 1fr)'"
-           [style.grid-auto-rows]="'24px'">
+      <div
+        class="pr-grid"
+        [style.grid-template-columns]="'80px repeat(' + steps() + ', 1fr)'"
+        [style.grid-auto-rows]="'24px'"
+      >
         <div class="pr-label-col"></div>
-        @for(midi of midiRows; track midi) {
+        @for (midi of midiRows; track midi) {
           <div class="pr-label">{{ midiName(midi) }}</div>
-          @for(i of stepsArray(); track i) {
-            <div class="pr-cell" (click)="toggleNote(midi, i)"
-                 [class.active]="sequenceFor(midi)[i]"
-                 [class.playing]="currentStep() === i"></div>
+          @for (i of stepsArray(); track i) {
+            <div
+              class="pr-cell"
+              (click)="toggleNote(midi, i)"
+              [class.active]="sequenceFor(midi)[i]"
+              [class.playing]="currentStep() === i"
+            ></div>
           }
         }
       </div>
@@ -44,10 +69,12 @@
     <div class="pr-velocity" (mousedown)="onVelocityMouseDown($event)">
       <div class="lane-title">Velocity</div>
       <div class="lane">
-        @for(i of stepsArray(); track i) {
-          <div class="velocity-bar"
-               [style.height.%]="velocityForStep(i) * 100"
-               [class.playing]="currentStep() === i"></div>
+        @for (i of stepsArray(); track i) {
+          <div
+            class="velocity-bar"
+            [style.height.%]="velocityForStep(i) * 100"
+            [class.playing]="currentStep() === i"
+          ></div>
         }
       </div>
     </div>

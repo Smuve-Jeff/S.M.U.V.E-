@@ -1,12 +1,18 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { Game } from '../game';
 
 @Component({
   selector: 'app-game-card',
   templateUrl: './game-card.component.html',
-  styleUrls: ['./game-card.component.css'], 
+  styleUrls: ['./game-card.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true
+  standalone: true,
 })
 export class GameCardComponent {
   @Input() game: Game | undefined;
@@ -17,11 +23,11 @@ export class GameCardComponent {
   }
 
   playPreview(event: MouseEvent, play: boolean) {
-    const card = (event.currentTarget as HTMLElement);
+    const card = event.currentTarget as HTMLElement;
     const video = card.querySelector('.preview-video') as HTMLVideoElement;
     if (video) {
       if (play) {
-        video.play().catch(e => console.error("Video autoplay failed", e));
+        video.play().catch((e) => console.error('Video autoplay failed', e));
       } else {
         video.pause();
         video.currentTime = 0;

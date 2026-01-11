@@ -1,4 +1,10 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { Game } from '../game';
 
 @Component({
@@ -17,11 +23,11 @@ export class GameListComponent {
   }
 
   playPreview(event: MouseEvent, play: boolean) {
-    const card = (event.currentTarget as HTMLElement);
+    const card = event.currentTarget as HTMLElement;
     const video = card.querySelector('.preview-video') as HTMLVideoElement;
     if (video) {
       if (play) {
-        video.play().catch(e => console.error("Video autoplay failed", e));
+        video.play().catch((e) => console.error('Video autoplay failed', e));
       } else {
         video.pause();
         video.currentTime = 0;

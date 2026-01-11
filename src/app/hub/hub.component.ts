@@ -1,6 +1,16 @@
-import { Component, signal, computed, effect, OnDestroy, OnInit } from '@angular/core';
+import {
+  Component,
+  signal,
+  computed,
+  effect,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import { GameService } from './game.service';
-import { UserProfileService, ShowcaseItem } from '../services/user-profile.service';
+import {
+  UserProfileService,
+  ShowcaseItem,
+} from '../services/user-profile.service';
 import { Game } from './game';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -11,12 +21,28 @@ import { GameCardComponent } from './game-card/game-card.component';
 import { GameSearchComponent } from './game-search/game-search.component';
 import { ModalComponent } from './modal.component';
 
+// Defines the configuration for a "Tha Battlefield" match
+interface BattleConfig {
+  track: ShowcaseItem | null;
+  mode: 'duel' | 'team';
+  roundLength: 30 | 60 | 90;
+  rounds: 1 | 2 | 3;
+  matchType: 'public' | 'private';
+}
+
 @Component({
   selector: 'app-hub',
   templateUrl: './hub.component.html',
   styleUrls: ['./hub.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterModule, GameListComponent, GameCardComponent, GameSearchComponent, ModalComponent]
+  imports: [
+    CommonModule,
+    RouterModule,
+    GameListComponent,
+    GameCardComponent,
+    GameSearchComponent,
+    ModalComponent,
+  ],
 })
 export class HubComponent implements OnInit, OnDestroy {
   // Signals for UI state
@@ -28,64 +54,82 @@ export class HubComponent implements OnInit, OnDestroy {
 
   // Game list and filtering
   games = signal<Game[]>([]);
-  genres = ['Shooter', 'Arcade', 'Puzzle', 'Arena', 'Runner', 'Rhythm', 'Music Battle'];
-  sortModes: ('Popular' | 'Rating' | 'Newest')[] = ['Popular', 'Rating', 'Newest'];
-  activeFilters = signal<{ genre?: string; tag?: string; query?: string; }>({});
+  genres = [
+    'Shooter',
+    'Arcade',
+    'Puzzle',
+    'Arena',
+    'Runner',
+    'Rhythm',
+    'Music Battle',
+  ];
+  sortModes: ('Popular' | 'Rating' | 'Newest')[] = [
+    'Popular',
+    'Rating',
+    'Newest',
+  ];
+  activeFilters = signal<{ genre?: string; tag?: string; query?: string }>({});
   sortMode = signal<'Popular' | 'Rating' | 'Newest'>('Popular');
-  
+
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
 
   // "Tha Battlefield" lobby state
-  musicShowcases = computed(() => 
-    this.profileService.profile()?.showcases.filter(s => s.type === 'music' && s.visibility === 'public') || []
+  musicShowcases = computed(
+    () =>
+      this.profileService
+        .profile()
+        ?.showcases.filter(
+          (s) => s.type === 'music' && s.visibility === 'public'
+        ) || []
   );
-  battleConfig = signal({
-    track: null as ShowcaseItem | null,
-    mode: 'duel' as 'duel' | 'team',
-    roundLength: 60 as 30 | 60 | 90,
-    rounds: 1 as 1 | 2 | 3,
-    matchType: 'public' as 'public' | 'private',
+
+  battleConfig = signal<BattleConfig>({
+    track: null,
+    mode: 'duel',
+    roundLength: 60,
+    rounds: 1,
+    matchType: 'public',
   });
 
   constructor(
-    private gameService: GameService, 
+    private gameService: GameService,
     public profileService: UserProfileService
   ) {
     // Effect to refetch games when filters or sort change
     effect(() => {
-      this.gameService.listGames(this.activeFilters(), this.sortMode())
-        .subscribe(games => this.games.set(games));
+      this.gameService
+        .listGames(this.activeFilters(), this.sortMode())
+        .subscribe((games) => this.games.set(games));
     });
   }
 
   ngOnInit() {
-    this.searchSubject.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(query => {
-      this.activeFilters.update(filters => ({ ...filters, query }));
-    });
+    this.searchSubject
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((query) => {
+        this.activeFilters.update((filters) => ({ ...filters, query }));
+      });
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
   }
-  
+
   // Method to handle game selection
   selectGame(game: Game) {
-    if (game.id === '14') { // 'Tha Battlefield'
+    if (game.id === '14') {
+      // 'Tha Battlefield'
       this.showBattlefieldLobby.set(true);
       this.selectedGame.set(game);
     } else {
       this.selectedGame.set(game);
     }
   }
-  
+
   deselectGame() {
-      this.selectedGame.set(undefined);
+    this.selectedGame.set(undefined);
   }
 
   // Filter and sort methods
@@ -95,7 +139,10 @@ export class HubComponent implements OnInit, OnDestroy {
   }
 
   setGenre(genre?: string) {
-    this.activeFilters.update(filters => ({ ...filters, genre: this.activeFilters().genre === genre ? undefined : genre }));
+    this.activeFilters.update((filters) => ({
+      ...filters,
+      genre: this.activeFilters().genre === genre ? undefined : genre,
+    }));
   }
 
   setSort(mode: 'Popular' | 'Rating' | 'Newest') {
@@ -103,12 +150,21 @@ export class HubComponent implements OnInit, OnDestroy {
   }
 
   // "Tha Battlefield" lobby methods
-  updateBattleConfig<K extends keyof typeof this.battleConfig.prototype>(field: K, value: any) {
+  updateBattleConfig<K extends keyof BattleConfig>(
+    field: K,
+    value: BattleConfig[K] | string
+  ) {
     if (field === 'track' && typeof value === 'string') {
-        const track = this.musicShowcases().find(t => t.url === value);
-        this.battleConfig.update(config => ({ ...config, track: track || null }));
+      const track = this.musicShowcases().find((t) => t.url === value);
+      this.battleConfig.update((config) => ({
+        ...config,
+        track: track || null,
+      }));
     } else {
-        this.battleConfig.update(config => ({ ...config, [field]: value }));
+      this.battleConfig.update((config) => ({
+        ...config,
+        [field]: value as BattleConfig[K],
+      }));
     }
   }
 

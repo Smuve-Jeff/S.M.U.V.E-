@@ -51,18 +51,18 @@ interface DeckChannel {
     bass: GainNode;
     melody: GainNode;
   };
-  pre: GainNode;            // point after EQ/filter for sends
-  gain: GainNode;           // deck output gain
-  pan: StereoPannerNode;    // deck pan
+  pre: GainNode; // point after EQ/filter for sends
+  gain: GainNode; // deck output gain
+  pan: StereoPannerNode; // deck pan
   filter: BiquadFilterNode; // LP/HP filter
-  eqLow: BiquadFilterNode;  // lowshelf
-  eqMid: BiquadFilterNode;  // peaking
+  eqLow: BiquadFilterNode; // lowshelf
+  eqMid: BiquadFilterNode; // peaking
   eqHigh: BiquadFilterNode; // highshelf
-  sendA: GainNode;          // reverb send
-  sendB: GainNode;          // delay send
-  startTime: number;        // when playback started in ctx time
-  pauseOffset: number;      // seconds offset into buffer when paused
-  rate: number;             // playbackRate
+  sendA: GainNode; // reverb send
+  sendB: GainNode; // delay send
+  startTime: number; // when playback started in ctx time
+  pauseOffset: number; // seconds offset into buffer when paused
+  rate: number; // playbackRate
   isPlaying: boolean;
   loopEnabled: boolean;
   loopStartSec: number;
@@ -115,7 +115,9 @@ export class AudioEngineService {
   private crossfaderHamster = false;
 
   constructor() {
-    this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    this.ctx = new (
+      window.AudioContext || (window as any).webkitAudioContext
+    )();
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = 0.9;
     this.compressor = this.ctx.createDynamicsCompressor();
@@ -188,8 +190,12 @@ export class AudioEngineService {
     this.applyCrossfader();
   }
 
-  getAnalyser(): AnalyserNode { return this.analyser; }
-  getContext(): AudioContext { return this.ctx; }
+  getAnalyser(): AnalyserNode {
+    return this.analyser;
+  }
+  getContext(): AudioContext {
+    return this.ctx;
+  }
 
   private initDeck(id: DeckId) {
     const pre = this.ctx.createGain();
@@ -228,10 +234,10 @@ export class AudioEngineService {
     stemGains.drums.connect(eqLow);
     stemGains.bass.connect(eqLow);
     stemGains.melody.connect(eqLow);
-    
+
     // Route: eqLow -> eqMid -> eqHigh -> filter -> pre
     eqLow.connect(eqMid).connect(eqHigh).connect(filter).connect(pre);
-    
+
     // pre -> gain -> pan -> master
     pre.connect(gain).connect(pan).connect(this.masterGain);
     // pre -> sendA -> reverbConvolver
@@ -240,23 +246,42 @@ export class AudioEngineService {
     pre.connect(sendB).connect(this.delay);
 
     const deck: DeckChannel = {
-      pre, gain, pan, filter, eqLow, eqMid, eqHigh, sendA, sendB,
-      buffer: undefined, 
+      pre,
+      gain,
+      pan,
+      filter,
+      eqLow,
+      eqMid,
+      eqHigh,
+      sendA,
+      sendB,
+      buffer: undefined,
       stems: undefined,
       sources: { vocals: null, drums: null, bass: null, melody: null },
       gains: stemGains,
-      startTime: 0, pauseOffset: 0,
-      rate: 1, isPlaying: false,
-      loopEnabled: false, loopStartSec: 0, loopEndSec: 0,
+      startTime: 0,
+      pauseOffset: 0,
+      rate: 1,
+      isPlaying: false,
+      loopEnabled: false,
+      loopStartSec: 0,
+      loopEndSec: 0,
     };
 
-    if (id === 'A') this.deckA = deck; else this.deckB = deck;
+    if (id === 'A') this.deckA = deck;
+    else this.deckB = deck;
   }
 
-  private getDeck(id: DeckId): DeckChannel { return id === 'A' ? this.deckA : this.deckB; }
+  private getDeck(id: DeckId): DeckChannel {
+    return id === 'A' ? this.deckA : this.deckB;
+  }
 
   // Crossfader control
-  setCrossfader(value: number, curve: 'linear' | 'power' | 'exp' | 'cut' = this.crossfaderCurve, hamster = this.crossfaderHamster) {
+  setCrossfader(
+    value: number,
+    curve: 'linear' | 'power' | 'exp' | 'cut' = this.crossfaderCurve,
+    hamster = this.crossfaderHamster
+  ) {
     this.crossfader = Math.max(-1, Math.min(1, value));
     this.crossfaderCurve = curve;
     this.crossfaderHamster = hamster;
@@ -271,8 +296,8 @@ export class AudioEngineService {
     switch (this.crossfaderCurve) {
       case 'power':
         // equal power
-        gA = Math.cos(t * Math.PI / 2);
-        gB = Math.sin(t * Math.PI / 2);
+        gA = Math.cos((t * Math.PI) / 2);
+        gB = Math.sin((t * Math.PI) / 2);
         break;
       case 'exp':
         const k = 2.2;
@@ -281,12 +306,13 @@ export class AudioEngineService {
         break;
       case 'cut':
         const thr = 0.05;
-        gA = t < (0.5 - thr) ? 1 : t > 0.5 ? 0 : 0.5;
-        gB = t > (0.5 + thr) ? 1 : t < 0.5 ? 0 : 0.5;
+        gA = t < 0.5 - thr ? 1 : t > 0.5 ? 0 : 0.5;
+        gB = t > 0.5 + thr ? 1 : t < 0.5 ? 0 : 0.5;
         break;
       default:
         // linear
-        gA = 1 - t; gB = t;
+        gA = 1 - t;
+        gB = t;
     }
     this.deckA.gain.gain.setTargetAtTime(gA, this.ctx.currentTime, 0.005);
     this.deckB.gain.gain.setTargetAtTime(gB, this.ctx.currentTime, 0.005);
@@ -322,16 +348,26 @@ export class AudioEngineService {
   setDeckRate(id: DeckId, rate: number) {
     const deck = this.getDeck(id);
     deck.rate = Math.max(0.5, Math.min(1.5, rate));
-    Object.values(deck.sources).forEach(source => {
+    Object.values(deck.sources).forEach((source) => {
       if (source) {
-        try { source.playbackRate.setTargetAtTime(deck.rate, this.ctx.currentTime, 0.01); } catch {}
+        try {
+          source.playbackRate.setTargetAtTime(
+            deck.rate,
+            this.ctx.currentTime,
+            0.01
+          );
+        } catch {}
       }
     });
   }
-  
+
   setStemGain(id: DeckId, stem: keyof Stems, gain: number) {
     const deck = this.getDeck(id);
-    deck.gains[stem].gain.setTargetAtTime(Math.max(0, Math.min(1, gain)), this.ctx.currentTime, 0.01);
+    deck.gains[stem].gain.setTargetAtTime(
+      Math.max(0, Math.min(1, gain)),
+      this.ctx.currentTime,
+      0.01
+    );
   }
 
   setDeckEq(id: DeckId, highs: number, mids: number, lows: number) {
@@ -344,24 +380,40 @@ export class AudioEngineService {
 
   setDeckFilterFreq(id: DeckId, freq: number) {
     const deck = this.getDeck(id);
-    deck.filter.frequency.setTargetAtTime(Math.max(20, Math.min(20000, freq)), this.ctx.currentTime, 0.02);
+    deck.filter.frequency.setTargetAtTime(
+      Math.max(20, Math.min(20000, freq)),
+      this.ctx.currentTime,
+      0.02
+    );
   }
 
   setDeckGain(id: DeckId, gain: number) {
     const deck = this.getDeck(id);
-    deck.gain.gain.setTargetAtTime(Math.max(0, Math.min(1, gain)), this.ctx.currentTime, 0.01);
+    deck.gain.gain.setTargetAtTime(
+      Math.max(0, Math.min(1, gain)),
+      this.ctx.currentTime,
+      0.01
+    );
   }
 
   setDeckSends(id: DeckId, sendA: number, sendB: number) {
     const deck = this.getDeck(id);
-    deck.sendA.gain.setTargetAtTime(Math.max(0, Math.min(1, sendA)), this.ctx.currentTime, 0.01);
-    deck.sendB.gain.setTargetAtTime(Math.max(0, Math.min(1, sendB)), this.ctx.currentTime, 0.01);
+    deck.sendA.gain.setTargetAtTime(
+      Math.max(0, Math.min(1, sendA)),
+      this.ctx.currentTime,
+      0.01
+    );
+    deck.sendB.gain.setTargetAtTime(
+      Math.max(0, Math.min(1, sendB)),
+      this.ctx.currentTime,
+      0.01
+    );
   }
 
   private startDeckSource(deck: DeckChannel, offset: number) {
     if (!deck.stems) return;
 
-    Object.keys(deck.stems).forEach(key => {
+    Object.keys(deck.stems).forEach((key) => {
       const stemName = key as keyof Stems;
       const source = this.ctx.createBufferSource();
       source.buffer = deck.stems![stemName];
@@ -369,10 +421,11 @@ export class AudioEngineService {
       source.loop = deck.loopEnabled;
       if (deck.loopEnabled) {
         source.loopStart = deck.loopStartSec;
-        source.loopEnd = deck.loopEndSec > 0 ? deck.loopEndSec : (deck.buffer?.duration || 0);
+        source.loopEnd =
+          deck.loopEndSec > 0 ? deck.loopEndSec : deck.buffer?.duration || 0;
       }
       source.connect(deck.gains[stemName]);
-      
+
       const when = this.ctx.currentTime + 0.005;
       source.start(when, offset);
       deck.sources[stemName] = source;
@@ -381,21 +434,24 @@ export class AudioEngineService {
         if (deck.sources[stemName] === source) {
           deck.isPlaying = false;
           deck.sources[stemName] = null;
-          if (stemName === 'vocals') { // only reset pause offset once
+          if (stemName === 'vocals') {
+            // only reset pause offset once
             deck.pauseOffset = 0;
           }
         }
       };
     });
-    
+
     deck.startTime = this.ctx.currentTime + 0.005;
     deck.isPlaying = true;
   }
 
   private stopDeckSource(deck: DeckChannel) {
-    Object.values(deck.sources).forEach(source => {
+    Object.values(deck.sources).forEach((source) => {
       if (source) {
-        try { source.stop(); } catch {}
+        try {
+          source.stop();
+        } catch {}
         source.disconnect();
       }
     });
@@ -427,7 +483,11 @@ export class AudioEngineService {
     }
   }
 
-  getDeckProgress(id: DeckId): { position: number; duration: number; isPlaying: boolean } {
+  getDeckProgress(id: DeckId): {
+    position: number;
+    duration: number;
+    isPlaying: boolean;
+  } {
     const deck = this.getDeck(id);
     const dur = deck.buffer?.duration || 0;
     if (!deck.buffer) return { position: 0, duration: 0, isPlaying: false };
@@ -465,7 +525,7 @@ export class AudioEngineService {
   // Scheduling
   private scheduleTick() {
     const spb = 60 / this.tempo();
-    const stepDur = spb / (this.stepsPerBeat());
+    const stepDur = spb / this.stepsPerBeat();
 
     while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
       const stepIndex = this.currentBeat();
@@ -487,17 +547,31 @@ export class AudioEngineService {
     if (this.isPlaying()) return;
     this.isPlaying.set(true);
     this.nextNoteTime = this.ctx.currentTime + 0.05;
-    this.timerId = window.setInterval(() => this.scheduleTick(), this.lookahead * 1000);
+    this.timerId = window.setInterval(
+      () => this.scheduleTick(),
+      this.lookahead * 1000
+    );
   }
 
   stop() {
     if (!this.isPlaying()) return;
     this.isPlaying.set(false);
-    if (this.timerId) { clearInterval(this.timerId); this.timerId = null; }
+    if (this.timerId) {
+      clearInterval(this.timerId);
+      this.timerId = null;
+    }
   }
 
   // Playback primitives
-  playSample(buffer: AudioBuffer, when: number, velocity = 1, pan = 0, outGain = 1, sendA = 0, sendB = 0) {
+  playSample(
+    buffer: AudioBuffer,
+    when: number,
+    velocity = 1,
+    pan = 0,
+    outGain = 1,
+    sendA = 0,
+    sendB = 0
+  ) {
     const src = this.ctx.createBufferSource();
     src.buffer = buffer;
     const vca = this.ctx.createGain();
@@ -512,7 +586,25 @@ export class AudioEngineService {
     src.start(when);
   }
 
-  playSynth(when: number, freq: number, duration: number, velocity = 1, pan = 0, outGain = 0.6, sendA = 0.1, sendB = 0.05, params?: { type?: OscillatorType; attack?: number; decay?: number; sustain?: number; release?: number; cutoff?: number; q?: number; }) {
+  playSynth(
+    when: number,
+    freq: number,
+    duration: number,
+    velocity = 1,
+    pan = 0,
+    outGain = 0.6,
+    sendA = 0.1,
+    sendB = 0.05,
+    params?: {
+      type?: OscillatorType;
+      attack?: number;
+      decay?: number;
+      sustain?: number;
+      release?: number;
+      cutoff?: number;
+      q?: number;
+    }
+  ) {
     const osc = this.ctx.createOscillator();
     osc.type = params?.type || 'sawtooth';
     const vca = this.ctx.createGain();
@@ -544,7 +636,9 @@ export class AudioEngineService {
     osc.stop(now + duration + 2.0);
   }
 
-  midiToFreq(midi: number) { return 440 * Math.pow(2, (midi - 69) / 12); }
+  midiToFreq(midi: number) {
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
 
   setMasterOutputLevel(normalized: number) {
     const value = Math.min(Math.max(normalized, 0), 1);
@@ -563,60 +657,121 @@ export class AudioEngineService {
     }
   }
 
-  configureCompressor(params: { threshold?: number; ratio?: number; attack?: number; release?: number; enabled?: boolean }) {
+  configureCompressor(params: {
+    threshold?: number;
+    ratio?: number;
+    attack?: number;
+    release?: number;
+    enabled?: boolean;
+  }) {
     const { threshold, ratio, attack, release, enabled } = params;
     const active = enabled !== false;
     if (threshold !== undefined) {
-      this.compressor.threshold.setTargetAtTime(threshold, this.ctx.currentTime, 0.01);
+      this.compressor.threshold.setTargetAtTime(
+        threshold,
+        this.ctx.currentTime,
+        0.01
+      );
     }
     if (ratio !== undefined) {
-      this.compressor.ratio.setTargetAtTime(active ? ratio : 1, this.ctx.currentTime, 0.01);
+      this.compressor.ratio.setTargetAtTime(
+        active ? ratio : 1,
+        this.ctx.currentTime,
+        0.01
+      );
     } else if (!active) {
       this.compressor.ratio.setTargetAtTime(1, this.ctx.currentTime, 0.01);
     }
     if (attack !== undefined) {
-      this.compressor.attack.setTargetAtTime(Math.max(attack, 0.0001), this.ctx.currentTime, 0.01);
+      this.compressor.attack.setTargetAtTime(
+        Math.max(attack, 0.0001),
+        this.ctx.currentTime,
+        0.01
+      );
     }
     if (release !== undefined) {
-      this.compressor.release.setTargetAtTime(Math.max(release, 0.0001), this.ctx.currentTime, 0.01);
+      this.compressor.release.setTargetAtTime(
+        Math.max(release, 0.0001),
+        this.ctx.currentTime,
+        0.01
+      );
     }
   }
 
-  configureLimiter(params: { ceiling?: number; lookahead?: number; release?: number; enabled?: boolean }) {
+  configureLimiter(params: {
+    ceiling?: number;
+    lookahead?: number;
+    release?: number;
+    enabled?: boolean;
+  }) {
     const { ceiling, lookahead, release, enabled } = params;
     const active = enabled !== false;
     if (ceiling !== undefined) {
-      this.limiter.threshold.setTargetAtTime(active ? ceiling : 0, this.ctx.currentTime, 0.01);
+      this.limiter.threshold.setTargetAtTime(
+        active ? ceiling : 0,
+        this.ctx.currentTime,
+        0.01
+      );
     } else if (!active) {
       this.limiter.threshold.setTargetAtTime(0, this.ctx.currentTime, 0.01);
     }
     if (release !== undefined) {
-      this.limiter.release.setTargetAtTime(Math.max(release, 0.0001), this.ctx.currentTime, 0.01);
+      this.limiter.release.setTargetAtTime(
+        Math.max(release, 0.0001),
+        this.ctx.currentTime,
+        0.01
+      );
     }
     if (lookahead !== undefined) {
-      this.limiterLookahead.delayTime.setTargetAtTime(Math.min(Math.max(lookahead, 0), 0.01), this.ctx.currentTime, 0.01);
+      this.limiterLookahead.delayTime.setTargetAtTime(
+        Math.min(Math.max(lookahead, 0), 0.01),
+        this.ctx.currentTime,
+        0.01
+      );
     }
   }
 
-  configureAutoTune(params: { mix?: number; retune?: number; humanize?: number; formant?: number; enabled?: boolean }) {
+  configureAutoTune(params: {
+    mix?: number;
+    retune?: number;
+    humanize?: number;
+    formant?: number;
+    enabled?: boolean;
+  }) {
     const { mix, retune, humanize, formant, enabled } = params;
     const active = enabled !== false;
     if (mix !== undefined) {
-      this.autoTuneWet.gain.setTargetAtTime(active ? mix : 0, this.ctx.currentTime, 0.01);
+      this.autoTuneWet.gain.setTargetAtTime(
+        active ? mix : 0,
+        this.ctx.currentTime,
+        0.01
+      );
     } else if (!active) {
       this.autoTuneWet.gain.setTargetAtTime(0, this.ctx.currentTime, 0.01);
     }
     if (retune !== undefined) {
       const delay = Math.max(0.001, (100 - retune) / 5000);
-      this.autoTuneDelay.delayTime.setTargetAtTime(delay, this.ctx.currentTime, 0.01);
+      this.autoTuneDelay.delayTime.setTargetAtTime(
+        delay,
+        this.ctx.currentTime,
+        0.01
+      );
     }
     if (humanize !== undefined) {
       const gain = Math.max(0, Math.min(1, humanize / 100));
-      this.autoTuneWet.gain.setTargetAtTime(active ? gain : 0, this.ctx.currentTime, 0.01);
+      this.autoTuneWet.gain.setTargetAtTime(
+        active ? gain : 0,
+        this.ctx.currentTime,
+        0.01
+      );
     }
     if (formant !== undefined) {
       const centerFreq = 440 * Math.pow(2, formant / 12);
-      this.autoTuneFilter.frequency.setTargetAtTime(centerFreq, this.ctx.currentTime, 0.01);
+      this.autoTuneFilter.frequency.setTargetAtTime(
+        centerFreq,
+        this.ctx.currentTime,
+        0.01
+      );
     }
   }
 

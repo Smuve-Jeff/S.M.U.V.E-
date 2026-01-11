@@ -1,28 +1,28 @@
-:host { 
-  display: contents; 
+:host {
+  display: contents;
 }
 
-input[type="checkbox"] {
+input[type='checkbox'] {
   accent-color: currentColor;
   width: 1rem;
   height: 1rem;
   cursor: pointer;
 }
 
-input[type="range"] {
+input[type='range'] {
   accent-color: var(--primary-color);
   cursor: pointer;
 }
 
-input[type="text"],
-input[type="number"],
+input[type='text'],
+input[type='number'],
 textarea,
 select {
   transition: all 0.2s ease;
 }
 
-input[type="text"]:focus,
-input[type="number"]:focus,
+input[type='text']:focus,
+input[type='number']:focus,
 textarea:focus,
 select:focus {
   box-shadow: 0 0 0 3px rgba(159, 120, 255, 0.2);

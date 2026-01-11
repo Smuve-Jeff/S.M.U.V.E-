@@ -1,5 +1,16 @@
-import { Component, ChangeDetectionStrategy, signal, ElementRef, viewChild, output, input, effect, inject, computed } from '@angular/core';
-import { AiService, GenerateImagesResponse } from '../../services/ai.service';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  ElementRef,
+  viewChild,
+  output,
+  input,
+  effect,
+  inject,
+  computed,
+} from '@angular/core';
+import { AiService } from '../../services/ai.service';
 // FIX: Update AppTheme import to break circular dependency
 import { AppTheme } from '../../services/user-context.service';
 
@@ -18,8 +29,10 @@ export class ImageEditorComponent {
   generatedImageUrls = signal<string[]>([]);
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
-  aspectRatio = signal<'1:1' | '3:4' | '4:3' | '9:16' | '16:9' | '2:3' | '3:2' | '21:9'>('1:1');
-  
+  aspectRatio = signal<
+    '1:1' | '3:4' | '4:3' | '9:16' | '16:9' | '2:3' | '3:2' | '21:9'
+  >('1:1');
+
   private aiService = inject(AiService);
   // FIX: A computed signal's value must be read by calling it as a function.
   isAiAvailable = computed(() => this.aiService.isAiAvailable());
@@ -39,7 +52,8 @@ export class ImageEditorComponent {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => this.originalImageUrl.set(e.target?.result as string);
+      reader.onload = (e) =>
+        this.originalImageUrl.set(e.target?.result as string);
       reader.readAsDataURL(file);
     }
   }
@@ -75,24 +89,27 @@ export class ImageEditorComponent {
       } else {
         this.errorMessage.set('No image generated.');
       }
-    } catch (error: any) {
-      this.errorMessage.set(`Image generation failed: ${error.message}`);
+    } catch (error: unknown) {
+      this.errorMessage.set(`Image generation failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       this.isLoading.set(false);
     }
   }
-  
+
   async editImage(): Promise<void> {
     if (!this.isAiAvailable() || !this.aiService.genAI) {
-      this.errorMessage.set('AI features are unavailable.'); return;
+      this.errorMessage.set('AI features are unavailable.');
+      return;
     }
     const originalImage = this.originalImageUrl();
     if (!originalImage) {
-      this.errorMessage.set('Please upload an image to edit.'); return;
+      this.errorMessage.set('Please upload an image to edit.');
+      return;
     }
     const prompt = this.editPrompt().trim();
     if (!prompt) {
-      this.errorMessage.set('Please enter an edit prompt.'); return;
+      this.errorMessage.set('Please enter an edit prompt.');
+      return;
     }
 
     this.isLoading.set(true);
@@ -102,11 +119,13 @@ export class ImageEditorComponent {
       const mimeType = originalImage.split(';')[0].split(':')[1];
       const imageData = originalImage.split(',')[1];
       const imagePart = { inlineData: { mimeType, data: imageData } };
-      const textPart = { text: `Based on the attached image, create a new, highly detailed and descriptive image generation prompt that incorporates the following user request: "${prompt}". The new prompt should vividly describe the entire desired scene from scratch as if for a text-to-image AI, not just the changes.` };
-      
+      const textPart = {
+        text: `Based on the attached image, create a new, highly detailed and descriptive image generation prompt that incorporates the following user request: "${prompt}". The new prompt should vividly describe the entire desired scene from scratch as if for a text-to-image AI, not just the changes.`,
+      };
+
       const promptResponse = await this.aiService.genAI.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: { parts: [imagePart, textPart] }
+        model: 'gemini-2.5-flash',
+        contents: { parts: [imagePart, textPart] },
       });
       const newPrompt = promptResponse.text;
 
@@ -120,8 +139,9 @@ export class ImageEditorComponent {
           aspectRatio: this.aspectRatio(),
         },
       });
-      
-      const base64ImageBytes = imageResponse.generatedImages[0]?.image?.imageBytes;
+
+      const base64ImageBytes =
+        imageResponse.generatedImages[0]?.image?.imageBytes;
       if (base64ImageBytes) {
         const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
         this.generatedImageUrls.set([imageUrl]);
@@ -129,9 +149,8 @@ export class ImageEditorComponent {
       } else {
         this.errorMessage.set('Image editing failed to produce an image.');
       }
-
-    } catch (error: any) {
-      this.errorMessage.set(`Image editing failed: ${error.message}`);
+    } catch (error: unknown) {
+      this.errorMessage.set(`Image editing failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       this.isLoading.set(false);
     }
@@ -151,7 +170,8 @@ export class ImageEditorComponent {
   }
 
   requestImageAnalysis(): void {
-    const urlToAnalyze = this.generatedImageUrls()[0] || this.originalImageUrl();
+    const urlToAnalyze =
+      this.generatedImageUrls()[0] || this.originalImageUrl();
     if (urlToAnalyze) this.imageAnalysisRequest.emit(urlToAnalyze);
   }
 }

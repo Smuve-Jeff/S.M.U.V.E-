@@ -32,7 +32,7 @@
   left: 20px;
   font-size: 32px;
   font-weight: bold;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .game-details {
@@ -117,7 +117,7 @@
 }
 
 .play-button:hover {
-    transform: scale(1.05);
+  transform: scale(1.05);
 }
 
 .secondary-button {
@@ -129,11 +129,11 @@
   cursor: pointer;
   font-size: 14px;
   text-align: center;
-   transition: background-color 0.2s;
+  transition: background-color 0.2s;
 }
 
 .secondary-button:hover {
-    background-color: #444;
+  background-color: #444;
 }
 
 .no-game-selected {

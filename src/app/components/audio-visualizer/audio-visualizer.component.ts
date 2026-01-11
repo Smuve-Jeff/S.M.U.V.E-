@@ -1,4 +1,13 @@
-import { Component, ChangeDetectionStrategy, input, ElementRef, viewChild, AfterViewInit, OnDestroy, effect } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  input,
+  ElementRef,
+  viewChild,
+  AfterViewInit,
+  OnDestroy,
+  effect,
+} from '@angular/core';
 // FIX: Update AppTheme import to break circular dependency
 import { AppTheme } from '../../services/user-context.service';
 
@@ -10,7 +19,8 @@ import { AppTheme } from '../../services/user-context.service';
 })
 export class AudioVisualizerComponent implements AfterViewInit, OnDestroy {
   analyserNode = input<AnalyserNode | undefined>(undefined);
-  canvasRef = viewChild.required<ElementRef<HTMLCanvasElement>>('visualizerCanvas');
+  canvasRef =
+    viewChild.required<ElementRef<HTMLCanvasElement>>('visualizerCanvas');
   theme = input.required<AppTheme>();
 
   private ctx!: CanvasRenderingContext2D;
@@ -57,9 +67,12 @@ export class AudioVisualizerComponent implements AfterViewInit, OnDestroy {
 
   private draw(): void {
     const analyser = this.analyserNode();
-    if (!analyser || !this.ctx) { this.stopVisualizer(); return; }
+    if (!analyser || !this.ctx) {
+      this.stopVisualizer();
+      return;
+    }
 
-    analyser.getByteFrequencyData(this.dataArray as any);
+    analyser.getByteFrequencyData(this.dataArray);
     const canvas = this.canvasRef().nativeElement;
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
     const barCount = analyser.frequencyBinCount;

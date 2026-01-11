@@ -1,4 +1,10 @@
-import { Component, ChangeDetectionStrategy, signal, input, computed } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  input,
+  computed,
+} from '@angular/core';
 import { AppTheme } from '../../services/user-context.service';
 import { SampleLibraryComponent } from '../sample-library/sample-library.component';
 import { FileLoaderService } from '../../services/file-loader.service';
@@ -14,7 +20,7 @@ import { AudioEngineService } from '../../services/audio-engine.service';
   templateUrl: './dj-deck.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [SampleLibraryComponent, FormsModule, StemControlsComponent]
+  imports: [SampleLibraryComponent, FormsModule, StemControlsComponent],
 })
 export class DjDeckComponent {
   theme = input.required<AppTheme>();
@@ -27,8 +33,12 @@ export class DjDeckComponent {
   recording = signal(false);
   keylock = signal(true);
 
-  pitchAPercentage = computed(() => `${(this.deckService.deckA().playbackRate * 100).toFixed(1)}%`);
-  pitchBPercentage = computed(() => `${(this.deckService.deckB().playbackRate * 100).toFixed(1)}%`);
+  pitchAPercentage = computed(
+    () => `${(this.deckService.deckA().playbackRate * 100).toFixed(1)}%`
+  );
+  pitchBPercentage = computed(
+    () => `${(this.deckService.deckB().playbackRate * 100).toFixed(1)}%`
+  );
 
   constructor(
     private fileLoader: FileLoaderService,
@@ -38,11 +48,14 @@ export class DjDeckComponent {
     private engine: AudioEngineService
   ) {}
 
-  async loadTrackFor(deck: 'A'|'B') {
+  async loadTrackFor(deck: 'A' | 'B') {
     const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
     if (!files?.length) return;
     const file = files[0];
-    const buffer = await this.fileLoader.decodeToAudioBuffer(this.engine.getContext(), file);
+    const buffer = await this.fileLoader.decodeToAudioBuffer(
+      this.engine.getContext(),
+      file
+    );
     this.deckService.loadDeckBuffer(deck, buffer, file.name);
   }
 
@@ -56,10 +69,12 @@ export class DjDeckComponent {
     const { recorder, result } = this.exportService.startLiveRecording();
     this.recorder = recorder;
     this.recording.set(true);
-    result.then(blob => {
+    result.then((blob) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `mix-${Date.now()}.webm`; a.click();
+      a.href = url;
+      a.download = `mix-${Date.now()}.webm`;
+      a.click();
     });
   }
 }

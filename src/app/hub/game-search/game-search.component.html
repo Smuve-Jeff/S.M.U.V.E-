@@ -1,6 +1,11 @@
 <div class="search-container">
-  <input type="text" placeholder="Search games..." #searchInput (input)="onSearchChange()">
-  
+  <input
+    type="text"
+    placeholder="Search games..."
+    #searchInput
+    (input)="onSearchChange()"
+  />
+
   <div class="filters">
     <h5>Genre</h5>
     <select #genreSelect (change)="onSearchChange()">
@@ -19,5 +24,4 @@
       <option value="Newest">Newest</option>
     </select>
   </div>
-
 </div>

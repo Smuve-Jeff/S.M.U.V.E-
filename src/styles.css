@@ -8,43 +8,62 @@
   --primary-color: #00bcd4; /* A bright, modern cyan */
   --background-color: #1a1a1a; /* A very dark grey for a clean, modern look */
   --text-color: #e0e0e0; /* A light grey for high contrast and readability */
-  --container-background: rgba(255, 255, 255, 0.05); /* A translucent white for the glassmorphism effect */
-  --border-color: rgba(255, 255, 255, 0.1); /* A subtle border to complement the glassmorphism */
+  --container-background: rgba(
+    255,
+    255,
+    255,
+    0.05
+  ); /* A translucent white for the glassmorphism effect */
+  --border-color: rgba(
+    255,
+    255,
+    255,
+    0.1
+  ); /* A subtle border to complement the glassmorphism */
   --shadow-color: rgba(0, 0, 0, 0.2); /* A soft shadow to add depth */
 }
 
-body, html {
+body,
+html {
   height: 100%;
   margin: 0;
   font-family: 'Roboto', sans-serif;
   background-color: var(--background-color);
   color: var(--text-color);
-  background-image: linear-gradient(var(--border-color) 1px, transparent 1px), linear-gradient(to right, var(--border-color) 1px, transparent 1px);
+  background-image:
+    linear-gradient(var(--border-color) 1px, transparent 1px),
+    linear-gradient(to right, var(--border-color) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
 /* Layout helpers to keep footer at bottom */
-app-root, .app-shell {
+app-root,
+.app-shell {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
-.app-main { flex: 1 1 auto; }
+.app-main {
+  flex: 1 1 auto;
+}
 
 /* Watermark footer styling */
 .watermark-footer {
   font-size: 11px;
   line-height: 1.6;
   letter-spacing: 0.03em;
-  color: rgba(255,255,255,0.4);
-  border-top: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255, 255, 255, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 6px 10px;
   text-align: center;
   backdrop-filter: blur(2px);
 }
 
 @media (prefers-color-scheme: light) {
-  .watermark-footer { color: rgba(0,0,0,0.5); border-top-color: rgba(0,0,0,0.08); }
+  .watermark-footer {
+    color: rgba(0, 0, 0, 0.5);
+    border-top-color: rgba(0, 0, 0, 0.08);
+  }
 }
 
 ::-webkit-scrollbar {

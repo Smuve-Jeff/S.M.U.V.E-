@@ -31,9 +31,9 @@ import { DjDeckComponent } from './components/dj-deck/dj-deck.component';
     HubComponent,
     StudioComponent,
     ProjectsComponent,
-    DjDeckComponent
+    DjDeckComponent,
   ],
   providers: [],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}

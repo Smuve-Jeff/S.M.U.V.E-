@@ -18,7 +18,10 @@ export class FileLoaderService {
     });
   }
 
-  async decodeToAudioBuffer(ctx: AudioContext, fileOrArrayBuffer: File | ArrayBuffer): Promise<AudioBuffer> {
+  async decodeToAudioBuffer(
+    ctx: AudioContext,
+    fileOrArrayBuffer: File | ArrayBuffer
+  ): Promise<AudioBuffer> {
     let arrayBuffer: ArrayBuffer;
     if (fileOrArrayBuffer instanceof File) {
       arrayBuffer = await fileOrArrayBuffer.arrayBuffer();
@@ -28,7 +31,10 @@ export class FileLoaderService {
     return await ctx.decodeAudioData(arrayBuffer.slice(0));
   }
 
-  async fetchArrayBuffer(url: string, signal?: AbortSignal): Promise<ArrayBuffer> {
+  async fetchArrayBuffer(
+    url: string,
+    signal?: AbortSignal
+  ): Promise<ArrayBuffer> {
     const res = await fetch(url, { signal });
     if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
     return await res.arrayBuffer();

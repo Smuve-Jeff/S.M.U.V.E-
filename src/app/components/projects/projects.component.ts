@@ -1,4 +1,3 @@
-
 import { Component, signal } from '@angular/core';
 
 interface Task {
@@ -21,7 +20,7 @@ interface Project {
   standalone: true,
   imports: [],
   templateUrl: './projects.component.html',
-  styleUrl: './projects.component.css'
+  styleUrl: './projects.component.css',
 })
 export class ProjectsComponent {
   projects = signal<Project[]>([]);
@@ -40,8 +39,8 @@ export class ProjectsComponent {
           { id: 2, description: 'Master "Midday"', completed: false },
           { id: 3, description: 'Shoot cover art', completed: false },
         ],
-        deadline: new Date('2024-09-15')
-      }
+        deadline: new Date('2024-09-15'),
+      },
     ]);
     this.selectedProject.set(this.projects()[0]);
   }
@@ -59,7 +58,7 @@ export class ProjectsComponent {
     if (!project || !project.tasks || project.tasks.length === 0) {
       return 0;
     }
-    const completedTasks = project.tasks.filter(t => t.completed).length;
+    const completedTasks = project.tasks.filter((t) => t.completed).length;
     return (completedTasks / project.tasks.length) * 100;
   }
 }

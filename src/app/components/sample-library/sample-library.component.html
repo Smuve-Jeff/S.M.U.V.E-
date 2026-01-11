@@ -1,14 +1,30 @@
-<div class="p-4 rounded h-full overflow-y-auto" [class]="'bg-' + theme().neutral + '-800'">
-  <h3 class="text-lg font-bold mb-4" [class]="'text-' + theme().accent + '-400'">[ SAMPLE LIBRARY ]</h3>
+<div
+  class="p-4 rounded h-full overflow-y-auto"
+  [class]="'bg-' + theme().neutral + '-800'"
+>
+  <h3
+    class="text-lg font-bold mb-4"
+    [class]="'text-' + theme().accent + '-400'"
+  >
+    [ SAMPLE LIBRARY ]
+  </h3>
 
   <div class="space-y-4">
     @for (pack of samplePacks(); track pack.name) {
       <div>
-        <h4 class="text-md font-bold" [class]="'text-' + theme().primary + '-400'">{{ pack.name }}</h4>
+        <h4
+          class="text-md font-bold"
+          [class]="'text-' + theme().primary + '-400'"
+        >
+          {{ pack.name }}
+        </h4>
         <p class="text-sm opacity-70 mb-2">{{ pack.genre }}</p>
         <div class="space-y-2">
           @for (sample of pack.samples; track sample.name) {
-            <div class="flex items-center justify-between p-2 rounded" [class]="'bg-' + theme().neutral + '-700'">
+            <div
+              class="flex items-center justify-between p-2 rounded"
+              [class]="'bg-' + theme().neutral + '-700'"
+            >
               <span class="text-sm">{{ sample.name }}</span>
               <button class="p-1 border text-xs">[ PREVIEW ]</button>
             </div>

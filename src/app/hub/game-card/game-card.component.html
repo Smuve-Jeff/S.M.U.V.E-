@@ -1,19 +1,26 @@
-<div class="game-card" (mouseenter)="playPreview($event, true)" (mouseleave)="playPreview($event, false)" (click)="selectGame(game.id)">
-    <img [src]="game.image" [alt]="game.name" class="cover-art">
-    <video [src]="game.previewVideo" class="preview-video" muted loop></video>
-    <div class="game-card-content">
-      <h5>{{ game.name }}</h5>
-      <div class="game-card-tags">
-        <span *ngFor="let tag of game.tags?.slice(0, 3)">{{ tag }}</span>
-      </div>
-      <div class="game-stats">
-        <span>{{ game.rating }}/5</span>
-        <span>{{ game.playersOnline }} online</span>
-      </div>
-      <div class="game-card-actions">
-        <div class="play-button">Play</div>
-        <button class="icon-button">C</button> <!-- Challenge -->
-        <button class="icon-button">S</button> <!-- Spectate -->
-      </div>
+<div
+  class="game-card"
+  (mouseenter)="playPreview($event, true)"
+  (mouseleave)="playPreview($event, false)"
+  (click)="selectGame(game.id)"
+>
+  <img [src]="game.image" [alt]="game.name" class="cover-art" />
+  <video [src]="game.previewVideo" class="preview-video" muted loop></video>
+  <div class="game-card-content">
+    <h5>{{ game.name }}</h5>
+    <div class="game-card-tags">
+      <span *ngFor="let tag of game.tags?.slice(0, 3)">{{ tag }}</span>
+    </div>
+    <div class="game-stats">
+      <span>{{ game.rating }}/5</span>
+      <span>{{ game.playersOnline }} online</span>
+    </div>
+    <div class="game-card-actions">
+      <div class="play-button">Play</div>
+      <button class="icon-button">C</button>
+      <!-- Challenge -->
+      <button class="icon-button">S</button>
+      <!-- Spectate -->
     </div>
   </div>
+</div>

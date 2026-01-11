@@ -54,16 +54,16 @@ export class LibraryService {
 
   addOrUpdate(item: LibraryItem) {
     const arr = this.items();
-    const idx = arr.findIndex(i => i.id === item.id);
+    const idx = arr.findIndex((i) => i.id === item.id);
     if (idx >= 0) arr[idx] = { ...arr[idx], ...item };
     else arr.push(item);
     this.items.set([...arr]);
   }
 
   remove(id: string) {
-    const arr = this.items().filter(i => i.id !== id);
+    const arr = this.items().filter((i) => i.id !== id);
     this.items.set(arr);
-    this.getDB().then(db => {
+    this.getDB().then((db) => {
       const tx = db.transaction('tracks', 'readwrite');
       tx.objectStore('tracks').delete(id);
     });

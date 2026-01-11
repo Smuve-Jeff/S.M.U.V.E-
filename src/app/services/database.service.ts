@@ -3,13 +3,13 @@ import { UserProfile, UserProfileService } from './user-profile.service';
 import { AuthService } from './auth.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class DatabaseService {
   private userProfileService = inject(UserProfileService);
   private authService = inject(AuthService);
 
-  constructor() { }
+  constructor() {}
 
   async saveUserProfile(profile: UserProfile): Promise<void> {
     const user = this.authService.currentUser();

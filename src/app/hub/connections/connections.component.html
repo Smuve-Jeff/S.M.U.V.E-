@@ -1,10 +1,12 @@
 <div class="connections-container">
   <h2>Connections</h2>
   <div *ngFor="let connection of connections()" class="connection">
-    <img [src]="connection.avatarUrl" alt="Avatar" class="avatar-image">
+    <img [src]="connection.avatarUrl" alt="Avatar" class="avatar-image" />
     <div class="connection-info">
       <span class="handle">{{ connection.handle }}</span>
-      <span class="status {{ connection.status }}">{{ connection.status }}</span>
+      <span class="status {{ connection.status }}">{{
+        connection.status
+      }}</span>
     </div>
   </div>
 </div>

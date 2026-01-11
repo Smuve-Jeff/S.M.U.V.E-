@@ -1,6 +1,15 @@
-import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  input,
+  output,
+} from '@angular/core';
 // FIX: Update AppTheme import to break circular dependency
-import { AppTheme, EqBand, Enhancements } from '../../services/user-context.service';
+import {
+  AppTheme,
+  EqBand,
+  Enhancements,
+} from '../../services/user-context.service';
 
 @Component({
   selector: 'app-eq-panel',
@@ -26,7 +35,10 @@ export class EqPanelComponent {
   }
 
   onEnhancementToggle(key: keyof Enhancements): void {
-    this.enhancementsChange.emit({ ...this.enhancements(), [key]: !this.enhancements()[key] });
+    this.enhancementsChange.emit({
+      ...this.enhancements(),
+      [key]: !this.enhancements()[key],
+    });
   }
 
   onClose(): void {

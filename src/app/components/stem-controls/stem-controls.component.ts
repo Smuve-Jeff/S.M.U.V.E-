@@ -3,23 +3,22 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 @Component({
   selector: 'app-stem-controls',
   templateUrl: './stem-controls.component.html',
-  styleUrls: ['./stem-controls.component.scss']
+  styleUrls: ['./stem-controls.component.scss'],
 })
 export class StemControlsComponent {
   @Input() deckId!: 'A' | 'B';
-  @Output() gainChange = new EventEmitter<{ stem: string, gain: number }>();
+  @Output() gainChange = new EventEmitter<{ stem: string; gain: number }>();
 
   stems = ['vocals', 'drums', 'bass', 'melody'];
-  gainValues = {
+  gainValues: { [key: string]: number } = {
     vocals: 1,
     drums: 1,
     bass: 1,
-    melody: 1
+    melody: 1,
   };
 
-  onGainChange(stem: string, event: any) {
-    const gain = parseFloat(event.target.value);
-    // @ts-ignore
+  onGainChange(stem: string, event: Event) {
+    const gain = parseFloat((event.target as HTMLInputElement).value);
     this.gainValues[stem] = gain;
     this.gainChange.emit({ stem, gain });
   }

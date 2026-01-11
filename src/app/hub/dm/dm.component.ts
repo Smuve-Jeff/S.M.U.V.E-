@@ -4,14 +4,14 @@ import { DmService, Conversation, Message } from './dm.service';
 @Component({
   selector: 'app-dm',
   templateUrl: './dm.component.html',
-  styleUrls: ['./dm.component.css']
+  styleUrls: ['./dm.component.css'],
 })
 export class DmComponent implements OnInit {
   @Input() userId: string = '';
   conversation = signal<Conversation | undefined>(undefined);
   newMessage = signal('');
 
-  constructor(private dmService: DmService) { }
+  constructor(private dmService: DmService) {}
 
   ngOnInit(): void {
     if (this.userId) {

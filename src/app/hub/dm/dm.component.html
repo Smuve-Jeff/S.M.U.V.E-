@@ -1,15 +1,19 @@
 <div class="dm-container">
   <div *ngIf="conversation() as convo">
     <div *ngFor="let message of convo.messages" class="message">
-      <img [src]="message.avatarUrl" alt="Avatar" class="avatar-image">
+      <img [src]="message.avatarUrl" alt="Avatar" class="avatar-image" />
       <div class="message-content">
         <span class="handle">{{ message.handle }}</span>
-        <span class="timestamp">{{ message.timestamp | date:'short' }}</span>
+        <span class="timestamp">{{ message.timestamp | date: 'short' }}</span>
         <p>{{ message.message }}</p>
       </div>
     </div>
     <div class="message-input">
-      <input [(ngModel)]="newMessage" (keyup.enter)="sendMessage()" placeholder="Type a message...">
+      <input
+        [(ngModel)]="newMessage"
+        (keyup.enter)="sendMessage()"
+        placeholder="Type a message..."
+      />
       <button (click)="sendMessage()">Send</button>
     </div>
   </div>

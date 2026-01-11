@@ -1,6 +1,12 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  signal,
+  OnInit,
+} from '@angular/core';
 import { AiService, StrategicRecommendation } from '../../services/ai.service';
-import { UserContextService } from '../../services/user-context.service';
+import { UserContextService, ViewMode } from '../../services/user-context.service';
 
 @Component({
   selector: 'app-recommendations',
@@ -29,7 +35,7 @@ export class RecommendationsComponent implements OnInit {
   }
 
   executeRecommendation(rec: StrategicRecommendation) {
-    this.userContext.setMainViewMode(rec.toolId as any);
+    this.userContext.setMainViewMode(rec.toolId as ViewMode);
     // TODO: Implement more complex action handling (e.g., passing prompts)
   }
 }

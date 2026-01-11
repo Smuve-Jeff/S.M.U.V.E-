@@ -1,26 +1,81 @@
 import { Injectable, signal } from '@angular/core';
 
 // FIX: Moved AppTheme interface here from app.component.ts to break a circular dependency.
-export interface AppTheme { name: string; primary: string; accent: string; neutral: string; purple: string; red: string; blue: string; }
+export interface AppTheme {
+  name: string;
+  primary: string;
+  accent: string;
+  neutral: string;
+  purple: string;
+  red: string;
+  blue: string;
+}
 
 // Reordered MainViewMode to place 'tha-spot' at the end and 'profile' at the beginning.
-export type MainViewMode = 'studio' | 'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'login' | 'projects' | 'remix-arena';
+export type MainViewMode =
+  | 'studio'
+  | 'player'
+  | 'dj'
+  | 'piano-roll'
+  | 'image-editor'
+  | 'video-editor'
+  | 'networking'
+  | 'profile'
+  | 'tha-spot'
+  | 'login'
+  | 'projects'
+  | 'remix-arena';
 
 // FIX: Moved shared interfaces here to break circular dependencies
-export interface Track { name: string; url: string; artist?: string; albumArtUrl?: string; videoSrc?: string; }
-export interface EqBand { label: string; value: number; }
-export interface Enhancements { bassBoost: boolean; surroundSound: boolean; }
+export interface Track {
+  name: string;
+  url: string;
+  artist?: string;
+  albumArtUrl?: string;
+  videoSrc?: string;
+}
+export interface EqBand {
+  label: string;
+  value: number;
+}
+export interface Enhancements {
+  bassBoost: boolean;
+  surroundSound: boolean;
+}
 
 export interface DeckState {
-  track: Track; isPlaying: boolean; progress: number; duration: number;
-  playbackRate: number; filterFreq: number; loop: boolean; gain: number;
-  eqHigh: number; eqMid: number; eqLow: number; wasPlayingBeforeScratch?: boolean;
+  track: Track;
+  isPlaying: boolean;
+  progress: number;
+  duration: number;
+  playbackRate: number;
+  filterFreq: number;
+  loop: boolean;
+  gain: number;
+  eqHigh: number;
+  eqMid: number;
+  eqLow: number;
+  wasPlayingBeforeScratch?: boolean;
 }
 
 export const initialDeckState: DeckState = {
-  track: { name: 'NO SIGNAL', url: '', artist: 'Load a track into deck', albumArtUrl: 'https://picsum.photos/seed/placeholder/500/500' },
-  isPlaying: false, progress: 0, duration: 0, playbackRate: 1, filterFreq: 20000,
-  loop: false, gain: 50, eqHigh: 50, eqMid: 50, eqLow: 50, wasPlayingBeforeScratch: false,
+  track: {
+    name: 'NO SIGNAL',
+    url: '',
+    artist: 'Load a track into deck',
+    albumArtUrl: 'https://picsum.photos/seed/placeholder/500/500',
+  },
+  isPlaying: false,
+  progress: 0,
+  duration: 0,
+  playbackRate: 1,
+  filterFreq: 20000,
+  loop: false,
+  gain: 50,
+  eqHigh: 50,
+  eqMid: 50,
+  eqLow: 50,
+  wasPlayingBeforeScratch: false,
 };
 
 /**
@@ -29,7 +84,7 @@ export const initialDeckState: DeckState = {
  * like theme changes or image generations.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserContextService {
   mainViewMode = signal<MainViewMode>('studio');
