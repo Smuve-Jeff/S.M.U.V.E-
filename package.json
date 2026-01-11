@@ -7,7 +7,7 @@
     "dev": "ng serve",
     "build": "ng build",
     "preview": "ng serve --configuration=production",
-    "test": "npx playwright test",
+    "test": "jest",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write ."
   },
@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "@angular/pwa": "~17.3.0",
-    "@types/jest": "^30.0.0",
+    "@types/jest": "^29.5.12",
     "@types/node": "^20.11.0",
     "@typescript-eslint/eslint-plugin": "^8.52.0",
     "@typescript-eslint/parser": "^8.52.0",
@@ -40,6 +40,8 @@
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
+    "jest": "^29.7.0",
+    "jest-preset-angular": "^14.1.0",
     "postcss": "^8.4.38",
     "prettier": "^3.7.4",
     "tailwindcss": "^3.4.3",

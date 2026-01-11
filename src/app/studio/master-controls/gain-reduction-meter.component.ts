@@ -53,9 +53,7 @@ export class GainReductionMeterComponent implements AfterViewInit, OnDestroy {
         const reduction = this.compressor.reduction;
         // Ensure reduction is a finite number before updating
         if (isFinite(reduction)) {
-          // Convert linear reduction to dB and ensure it's a positive value
-          const reductionDb = 20 * Math.log10(Math.max(0, Math.min(1, 1-reduction)));
-          this.reductionDb = Math.abs(reductionDb);
+          this.reductionDb = Math.abs(reduction);
           this.cdr.detectChanges();
         }
       }

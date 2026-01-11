@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { AudioSessionService } from '../audio-session.service';
+import { InstrumentService } from '../instrument.service';
 import { GainReductionMeterComponent } from './gain-reduction-meter.component';
 
 @Component({
@@ -10,16 +10,16 @@ import { GainReductionMeterComponent } from './gain-reduction-meter.component';
   styleUrls: ['./master-controls.component.css']
 })
 export class MasterControlsComponent {
-  private readonly audioSession = inject(AudioSessionService);
-  readonly compressor = this.audioSession.compressor;
+  private readonly instrumentService = inject(InstrumentService);
+  readonly compressor = this.instrumentService.getCompressor();
 
   updateMasterVolume(event: Event): void {
     const volume = (event.target as HTMLInputElement).valueAsNumber;
-    this.audioSession.updateMasterVolume(volume);
+    this.instrumentService.setMasterVolume(volume);
   }
 
   updateReverb(event: Event): void {
     const mix = (event.target as HTMLInputElement).valueAsNumber;
-    this.audioSession.setReverbMix(mix);
+    this.instrumentService.setReverbMix(mix);
   }
 }

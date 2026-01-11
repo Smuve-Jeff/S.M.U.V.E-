@@ -1,8 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { InstrumentService } from './instrument.service';
 import { PlaybackState } from './playback-state';
-import { Compressor } from './compressor';
-import { Reverb } from './reverb';
 
 export interface MicChannel {
   id: string;
@@ -18,8 +16,6 @@ export interface MicChannel {
 })
 export class AudioSessionService {
   private readonly instrumentService = inject(InstrumentService);
-  readonly compressor: Compressor;
-  private readonly reverb: Reverb;
 
   readonly playbackState = signal<PlaybackState>('stopped');
   readonly isPlaying = computed(() => this.playbackState() === 'playing');
@@ -35,15 +31,7 @@ export class AudioSessionService {
 
   constructor() {
     const audioContext = this.instrumentService.getAudioContext();
-    this.compressor = new Compressor(audioContext);
-    this.reverb = new Reverb(audioContext);
-    this.instrumentService.connect(this.compressor.input);
-    this.compressor.connect(this.reverb.input);
-    this.reverb.connect(audioContext.destination);
-  }
-
-  setReverbMix(mix: number): void {
-    this.reverb.setMix(mix);
+    this.instrumentService.connect(audioContext.destination);
   }
 
   togglePlay(): void {
