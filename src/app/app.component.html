@@ -11,123 +11,31 @@
     <div class="flex items-center gap-4">
       <h1 class="text-3xl font-bold tracking-wider text-white">S.M.U.V.E. 2.0</h1>
       <div class="nav-buttons">
-        <button (click)="toggleMainViewMode()" class="nav-button" title="Toggle Main View"><i class="fas fa-sync-alt"></i></button>
-        <button (click)="mainViewMode.set('projects')" class="nav-button" title="Projects"><i class="fas fa-tasks"></i></button>
-        <button (click)="mainViewMode.set('remix-arena')" class="nav-button" title="Remix Arena"><i class="fas fa-gamepad"></i></button>
-        <button (click)="randomizeTheme()" class="nav-button" title="Randomize Theme"><i class="fas fa-palette"></i></button>
-        <button (click)="toggleEqPanel()" class="nav-button" title="Toggle EQ Panel"><i class="fas fa-sliders-h"></i></button>
+        <button (click)="uiService.toggleMainViewMode()" class="nav-button" title="Toggle Main View"><i class="fas fa-sync-alt"></i></button>
+        <button (click)="uiService.mainViewMode.set('projects')" class="nav-button" title="Projects"><i class="fas fa-tasks"></i></button>
+        <button (click)="uiService.mainViewMode.set('remix-arena')" class="nav-button" title="Remix Arena"><i class="fas fa-gamepad"></i></button>
+        <button (click)="uiService.randomizeTheme()" class="nav-button" title="Randomize Theme"><i class="fas fa-palette"></i></button>
+        <button (click)="uiService.showEqPanel.set(!uiService.showEqPanel())" class="nav-button" title="Toggle EQ Panel"><i class="fas fa-sliders-h"></i></button>
       </div>
     </div>
     <div class="flex items-center gap-4">
-      <button (click)="toggleChatbot()" class="nav-button" title="Toggle Chatbot"><i class="fas fa-robot"></i></button>
+      <button (click)="uiService.showChatbot.set(!uiService.showChatbot())" class="nav-button" title="Toggle Chatbot"><i class="fas fa-robot"></i></button>
       <span class="text-sm text-neutral-400">|</span>
-      <button *ngIf="!authService.isAuthenticated()" (click)="mainViewMode.set('profile')" class="auth-button">Login / Register</button>
+      <button *ngIf="!authService.isAuthenticated()" (click)="uiService.mainViewMode.set('profile')" class="auth-button">Login / Register</button>
       <div *ngIf="authService.isAuthenticated()" class="flex items-center gap-2">
         <span class="text-sm text-white">Welcome, {{ authService.currentUser()?.artistName }}</span>
-        <button (click)="mainViewMode.set('profile')" class="nav-button" title="View Profile"><i class="fas fa-user-circle"></i></button>
+        <button (click)="uiService.mainViewMode.set('profile')" class="nav-button" title="View Profile"><i class="fas fa-user-circle"></i></button>
         <button (click)="authService.logout()" class="auth-button">Logout</button>
       </div>
     </div>
   </header>
-
-  <!-- Hidden File Input -->
-  <input type="file" #fileInput multiple (change)="handleFiles($event)" class="hidden">
 
   <!-- Main Content -->
   <main class="flex-grow flex overflow-hidden">
     <!-- Main View -->
     <div class="flex-grow relative overflow-y-auto">
 
-      <div [ngSwitch]="mainViewMode()">
-
-        <!-- Player View -->
-        <div *ngSwitchCase="'player'" class="p-4 flex flex-col gap-4 h-full">
-          </div>
-
-        <!-- DJ Turntables View -->
-        <div *ngSwitchCase="'dj'" class="p-4 h-full flex flex-col gap-4">
-            <div class="dj-controls-header wow animate__animated animate__fadeInUp">
-                <button (click)="fileInput.click()" class="action-button">
-                  Load Tracks
-                </button>
-                <div class="flex items-center gap-3">
-                    <button (click)="toggleRepeat()" [class.text-fuchsia-500]="repeat()" class="nav-button" title="Repeat"><i class="fas fa-redo"></i></button>
-                    <button (click)="toggleShuffle()" [class.text-fuchsia-500]="shuffle()" class="nav-button" title="Shuffle"><i class="fas fa-random"></i></button>
-                </div>
-            </div>
-            <!-- Decks & Mixer -->
-            <div class="flex-grow grid grid-cols-5 gap-4">
-                <!-- Deck A -->
-                <div class="deck-container wow animate__animated animate__fadeInLeft col-span-2">
-                  <h3 class="deck-title">Deck A</h3>
-                  <div class="turntable">
-                    <div #platterA class="platter" [style.transform]="scratchRotationA()">
-                         <div class="spindle"></div>
-                    </div>
-                  </div>
-                  <div class="deck-info">
-                    <p class="truncate">{{ deckA().track?.name || 'No Track' }}</p>
-                    <div class="deck-controls">
-                      <button (click)="toggleDeckPlay('A')" class="control-button text-3xl"><i [ngClass]="deckA().isPlaying ? 'fa-pause' : 'fa-play'" class="fas"></i></button>
-                      <button (click)="playNextOnDeck('A')" class="control-button text-xl"><i class="fas fa-step-forward"></i></button>
-                    </div>
-                  </div>
-                  <audio #audioPlayerA (ended)="onDeckTrackEnded('A')"></audio>
-                </div>
-
-                <!-- Center Mixer / Mic Channel -->
-                <div class="deck-container wow animate__animated animate__fadeInUp col-span-1 flex flex-col items-center justify-between p-4">
-                    <h3 class="deck-title text-center">MIC</h3>
-                    <div class="flex flex-col items-center gap-2 w-full">
-                        <button (click)="toggleMic()" class="control-button text-4xl" [class.text-green-500]="micEnabled()">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                        <span class="text-xs">{{ micEnabled() ? 'ON' : 'OFF' }}</span>
-                    </div>
-                    <div class="w-full h-16">
-                        <app-microphone-visualizer *ngIf="micEnabled()" [analyserNode]="getMicAnalyser()" [color]="activeTheme().primary"></app-microphone-visualizer>
-                    </div>
-                    <!-- Mic Volume -->
-                    <div class="flex flex-col items-center w-full gap-1">
-                        <label for="micVol" class="text-xs">VOL</label>
-                        <input id="micVol" type="range" min="0" max="100" [value]="micVolume()" (input)="onMicVolumeChange($event)" class="w-full">
-                    </div>
-                    <!-- Mic Reverb -->
-                    <div class="flex flex-col items-center w-full gap-1">
-                        <label for="micReverb" class="text-xs">REVERB</label>
-                        <input id="micReverb" type="range" min="0" max="1" step="0.01" [value]="micReverb()" (input)="onMicReverbChange($event)" [class.disabled]="!micEnabled()" [disabled]="!micEnabled()" class="w-full">
-                    </div>
-                    <!-- Mic Delay -->
-                    <div class="flex flex-col items-center w-full gap-1">
-                        <label for="micDelay" class="text-xs">DELAY</label>
-                        <input id="micDelay" type="range" min="0" max="1" step="0.01" [value]="micDelay()" (input)="onMicDelayChange($event)" [class.disabled]="!micEnabled()" [disabled]="!micEnabled()" class="w-full">
-                    </div>
-                </div>
-
-                <!-- Deck B -->
-                <div class="deck-container wow animate__animated animate__fadeInRight col-span-2">
-                  <h3 class="deck-title">Deck B</h3>
-                  <div class="turntable">
-                    <div #platterB class="platter" [style.transform]="scratchRotationB()">
-                        <div class="spindle"></div>
-                    </div>
-                  </div>
-                  <div class="deck-info">
-                    <p class="truncate">{{ deckB().track?.name || 'No Track' }}</p>
-                    <div class="deck-controls">
-                      <button (click)="toggleDeckPlay('B')" class="control-button text-3xl"><i [ngClass]="deckB().isPlaying ? 'fa-pause' : 'fa-play'" class="fas"></i></button>
-                      <button (click)="playNextOnDeck('B')" class="control-button text-xl"><i class="fas fa-step-forward"></i></button>
-                    </div>
-                  </div>
-                   <audio #audioPlayerB (ended)="onDeckTrackEnded('B')"></audio>
-                </div>
-            </div>
-            <!-- Crossfader & VU Meters -->
-            <div class="crossfader-container wow animate__animated animate__fadeInUp">
-                <input type="range" min="-1" max="1" step="0.01" [value]="crossfade()" (input)="onCrossfadeChange($event)" class="crossfader">
-            </div>
-        </div>
-      </div>
+      <router-outlet></router-outlet>
 
     </div>
 

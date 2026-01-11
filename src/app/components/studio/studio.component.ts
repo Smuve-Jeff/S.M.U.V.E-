@@ -2,6 +2,8 @@ import { Component, ChangeDetectionStrategy, signal, computed, inject, effect } 
 import { NgFor } from '@angular/common';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { RecommendationsComponent } from '../recommendations/recommendations.component';
+import { CollaborationService } from '../../services/collaboration.service';
+import { AuthService } from '../../services/auth.service';
 
 // Basic data structures for the new Studio Core
 export interface MicChannel {
@@ -23,57 +25,72 @@ export interface MicChannel {
 })
 export class StudioComponent {
   private readonly audioEngine = inject(AudioEngineService);
+  private readonly collaborationService = inject(CollaborationService);
+  private readonly authService = inject(AuthService);
 
   // --- Core Studio State ---
   masterVolume = signal(80); // Master output volume (0-100)
   isRecording = signal(false);
-
-  // Initial channel strip configuration
   micChannels = signal<MicChannel[]>([
     { id: 'mic-1', label: 'Vocal Mic', level: 70, muted: false, pan: 0, armed: true },
-    { id: 'mic-2', label: 'Guitar Cab', level: 65, muted: false, pan: 20, armed: false },
-    { id: 'mic-3', label: 'Drum Overhead', level: 60, muted: true, pan: -20, armed: false },
   ]);
+
+  // --- Collaboration State ---
+  session = this.collaborationService.currentSession;
+  currentUser = this.authService.currentUser;
+  sessionIdInput = signal('');
 
   // --- Computed State for UI ---
   recordingStatus = computed(() => (this.isRecording() ? 'RECORDING' : 'STANDBY'));
   armedChannels = computed(() => this.micChannels().filter(ch => ch.armed).map(ch => ch.label));
 
   constructor() {
-    // Effect to link the masterVolume signal to the audio engine
     effect(() => {
       this.audioEngine.setMasterOutputLevel(this.masterVolume() / 100);
+    });
+
+    effect(() => {
+      console.log('Session changed:', this.session());
     });
   }
 
   // --- Actions ---
   toggleRecording(): void {
     this.isRecording.update(rec => !rec);
-    // TODO: Integrate with actual recording service
   }
 
   updateMasterVolume(newVolume: number): void {
     this.masterVolume.set(newVolume);
   }
 
-  // --- Channel Actions (placeholders for now) ---
   updateChannelLevel(id: string, newLevel: number): void {
     this.micChannels.update(channels => 
       channels.map(ch => ch.id === id ? { ...ch, level: newLevel } : ch)
     );
-    // TODO: Link to audio engine
   }
 
-  toggleMute(id: string): void {
-    this.micChannels.update(channels =>
-      channels.map(ch => ch.id === id ? { ...ch, muted: !ch.muted } : ch)
-    );
-    // TODO: Link to audio engine
+  // --- Collaboration Actions ---
+  startCollaboration() {
+    const user = this.currentUser();
+    if (user) {
+      const projectState = { masterVolume: this.masterVolume(), channels: this.micChannels() };
+      this.collaborationService.startSession(user, projectState);
+    }
   }
 
-  toggleArm(id: string): void {
-    this.micChannels.update(channels =>
-      channels.map(ch => ch.id === id ? { ...ch, armed: !ch.armed } : ch)
-    );
+  joinCollaboration() {
+    const user = this.currentUser();
+    const sessionId = this.sessionIdInput();
+    if (user && sessionId) {
+      this.collaborationService.joinSession(sessionId, user);
+    }
+  }
+
+  leaveCollaboration() {
+    const session = this.session();
+    const user = this.currentUser();
+    if (session && user) {
+      this.collaborationService.leaveSession(session.sessionId, user.id);
+    }
   }
 }
