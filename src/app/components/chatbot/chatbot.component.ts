@@ -81,8 +81,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
             },
           ]);
         }
-      },
-      { allowSignalWrites: true }
+      }
     );
 
     effect(() => {
@@ -110,8 +109,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
           }
         }, 2000); // Increased delay for a more natural feel
         onCleanup(() => clearTimeout(timer));
-      },
-      { allowSignalWrites: true }
+      }
     );
   }
 
@@ -322,7 +320,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   }
 
   async analyzeVideo(track: Track, prompt: string): Promise<void> {
-    const context = `Analyze this video based on its title "${track.name}" and artist "${track.artist}". The user wants to know the following: "${prompt}". Provide a concise analysis based on this metadata.`;
+    const context = `Analyze this video based on its title \"${track.name}\" and artist \"${track.artist}\". The user wants to know the following: \"${prompt}\". Provide a concise analysis based on this metadata.`;
     try {
       const response = await this.aiService.generateContent({
         model: 'gemini-1.5-pro',
@@ -405,6 +403,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     this.isLoading.set(false);
   }
 
+
   private giveContextualAdvice(mode: MainViewMode) {
     let advice = '';
     const profile = this.userProfileService.profile();
@@ -421,10 +420,10 @@ export class ChatbotComponent implements OnInit, OnDestroy {
           advice = `Since your current focus is '${profile.currentFocus}', let's compose a melody that reflects that. What kind of mood are you going for?`;
           break;
         case 'networking':
-          advice = `Based on your goal to '${profile.careerGoals.join(', ')}', I can help find collaborators. Try the command: FIND_ARTISTS query=${profile.primaryGenre} producers`;
+          advice = `Based on your goal to '${profile.careerGoals?.join(', ')}', I can help find collaborators. Try the command: FIND_ARTISTS query=${profile.primaryGenre} producers`;
           break;
         case 'studio':
-          advice = `The studio is armed and ready. Your primary skill is '${profile.skills[0]}'. Let's make sure your vocal chain is optimized for that.`;
+          advice = `The studio is armed and ready. Your primary skill is '${profile.skills?.[0]}'. Let's make sure your vocal chain is optimized for that.`;
           break;
       }
     }
@@ -438,6 +437,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     }
   }
 
+
   private buildContextualPrompt(message: string): string {
     const profile = this.userProfileService.profile();
     const context = `
@@ -446,8 +446,8 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       User Profile:
       - Artist Name: ${profile.artistName}
       - Primary Genre: ${profile.primaryGenre}
-      - Skills: ${profile.skills.join(', ')}
-      - Career Goals: ${profile.careerGoals.join(', ')}
+      - Skills: ${profile.skills?.join(', ')}
+      - Career Goals: ${profile.careerGoals?.join(', ')}
       - Current Focus: ${profile.currentFocus}
       - Linked Accounts: ${
         Object.entries(profile.links || {})
