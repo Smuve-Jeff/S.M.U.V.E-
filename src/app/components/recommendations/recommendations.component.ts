@@ -1,1 +1,35 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from \'@angular/core\';\nimport { AiService, StrategicRecommendation } from \'../../services/ai.service\';\nimport { UserContextService } from \'../../services/user-context.service\';\n\n@Component({\n  selector: \'app-recommendations\',\n  standalone: true,\n  imports: [],\n  templateUrl: \'./recommendations.component.html\',\n  styleUrls: [\'./recommendations.component.css\'],\n  changeDetection: ChangeDetectionStrategy.OnPush,\n})\nexport class RecommendationsComponent implements OnInit {\n  private readonly aiService = inject(AiService);\n  private readonly userContext = inject(UserContextService);\n\n  recommendations = signal<StrategicRecommendation[]>([]);\n  isLoading = signal(true);\n\n  async ngOnInit() {\n    this.loadRecommendations();\n  }\n\n  async loadRecommendations() {\n    this.isLoading.set(true);\n    const recs = await this.aiService.getStrategicRecommendations();\n    this.recommendations.set(recs);\n    this.isLoading.set(false);\n  }\n\n  executeRecommendation(rec: StrategicRecommendation) {\n    this.userContext.setMainViewMode(rec.toolId as any);\n    // TODO: Implement more complex action handling (e.g., passing prompts)\n  }\n}\n
+import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
+import { AiService, StrategicRecommendation } from '../../services/ai.service';
+import { UserContextService } from '../../services/user-context.service';
+
+@Component({
+  selector: 'app-recommendations',
+  standalone: true,
+  imports: [],
+  templateUrl: './recommendations.component.html',
+  styleUrls: ['./recommendations.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class RecommendationsComponent implements OnInit {
+  private readonly aiService = inject(AiService);
+  private readonly userContext = inject(UserContextService);
+
+  recommendations = signal<StrategicRecommendation[]>([]);
+  isLoading = signal(true);
+
+  async ngOnInit() {
+    this.loadRecommendations();
+  }
+
+  async loadRecommendations() {
+    this.isLoading.set(true);
+    const recs = await this.aiService.getStrategicRecommendations();
+    this.recommendations.set(recs);
+    this.isLoading.set(false);
+  }
+
+  executeRecommendation(rec: StrategicRecommendation) {
+    this.userContext.setMainViewMode(rec.toolId as any);
+    // TODO: Implement more complex action handling (e.g., passing prompts)
+  }
+}

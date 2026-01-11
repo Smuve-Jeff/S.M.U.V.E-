@@ -1,18 +1,22 @@
 import { Component, signal, computed, effect, OnDestroy, OnInit } from '@angular/core';
 import { GameService } from './game.service';
-import { ProfileService, ShowcaseItem } from './profile/profile.service';
+import { UserProfileService, ShowcaseItem } from '../services/user-profile.service';
 import { Game } from './game';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { GameListComponent } from './game-list/game-list.component';
+import { GameCardComponent } from './game-card/game-card.component';
+import { GameSearchComponent } from './game-search/game-search.component';
+import { ModalComponent } from './modal.component';
 
 @Component({
   selector: 'app-hub',
   templateUrl: './hub.component.html',
   styleUrls: ['./hub.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterModule]
+  imports: [CommonModule, RouterModule, GameListComponent, GameCardComponent, GameSearchComponent, ModalComponent]
 })
 export class HubComponent implements OnInit, OnDestroy {
   // Signals for UI state
@@ -34,7 +38,7 @@ export class HubComponent implements OnInit, OnDestroy {
 
   // "Tha Battlefield" lobby state
   musicShowcases = computed(() => 
-    this.profileService.myProfile()?.showcases.filter(s => s.type === 'music' && s.visibility === 'public') || []
+    this.profileService.profile()?.showcases.filter(s => s.type === 'music' && s.visibility === 'public') || []
   );
   battleConfig = signal({
     track: null as ShowcaseItem | null,
@@ -46,7 +50,7 @@ export class HubComponent implements OnInit, OnDestroy {
 
   constructor(
     private gameService: GameService, 
-    public profileService: ProfileService
+    public profileService: UserProfileService
   ) {
     // Effect to refetch games when filters or sort change
     effect(() => {

@@ -5,7 +5,8 @@ import { Game } from '../game';
   selector: 'app-game-card',
   templateUrl: './game-card.component.html',
   styleUrls: ['./game-card.component.css'], 
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true
 })
 export class GameCardComponent {
   @Input() game: Game | undefined;

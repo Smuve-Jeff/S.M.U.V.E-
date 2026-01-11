@@ -1,6 +1,15 @@
 import { Injectable, signal, effect, inject } from '@angular/core';
 import { AuthService } from './auth.service';
 
+export interface ShowcaseItem {
+  type: 'music' | 'image' | 'video';
+  url: string;
+  title: string;
+  artist: string;
+  visibility: 'public' | 'private' | 'unlisted';
+  featured: boolean;
+}
+
 export interface UserProfile {
   // === BASIC INFO ===
   artistName: string;
@@ -55,6 +64,7 @@ export interface UserProfile {
   contentTypes: string[]; // Singles, EPs, Albums, Freestyles, Covers, etc.
   releasedTracks: number;
   upcomingProjects: string;
+  showcases: ShowcaseItem[];
   
   // === MARKETING & PROMOTION ===
   marketingExperience: 'None' | 'Basic' | 'Intermediate' | 'Advanced';
@@ -159,6 +169,7 @@ export const initialProfile: UserProfile = {
   contentTypes: [],
   releasedTracks: 0,
   upcomingProjects: '',
+  showcases: [],
   
   // Marketing & Promotion
   marketingExperience: 'None',

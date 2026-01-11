@@ -356,7 +356,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
             case 'networking':
                 advice = `Based on your goal to '${profile.careerGoals.join(', ')}', I can help find collaborators. Try the command: FIND_ARTISTS query=${profile.primaryGenre} producers`;
                 break;
-            case 'studio-interface':
+            case 'studio':
                 advice = `The studio is armed and ready. Your primary skill is '${profile.skills[0]}'. Let's make sure your vocal chain is optimized for that.`;
                  break;
         }

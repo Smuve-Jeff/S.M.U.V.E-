@@ -5,11 +5,14 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { FileLoaderService } from '../../services/file-loader.service';
 import { ExportService } from '../../services/export.service';
 import { LibraryService } from '../../services/library.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-dj-deck',
   templateUrl: './dj-deck.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [SampleLibraryComponent, FormsModule]
 })
 export class DjDeckComponent {
   theme = input.required<AppTheme>();

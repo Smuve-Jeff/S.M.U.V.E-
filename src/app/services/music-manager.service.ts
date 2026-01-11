@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, effect } from '@angular/core';
 import { AudioEngineService, NoteEvent } from './audio-engine.service';
 import { InstrumentsService, InstrumentPreset } from './instruments.service';
 
@@ -18,11 +18,13 @@ export interface TrackModel {
 export class MusicManagerService {
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
+  currentStep = signal(-1);
 
   constructor(public engine: AudioEngineService, public instruments: InstrumentsService) {
     this.ensureTrack('Piano');
     // Bridge engine scheduler to request notes
     engine.onScheduleStep = (stepIndex, when, stepDur) => {
+      this.currentStep.set(stepIndex);
       const spb = 60 / engine.tempo();
       const dur = stepDur * 0.95;
       for (const t of this.tracks()) {
@@ -41,6 +43,12 @@ export class MusicManagerService {
         }
       }
     };
+
+    effect(() => {
+      if (!this.engine.isPlaying()) {
+          this.currentStep.set(-1);
+      }
+  });
   }
 
   midiToFreq(m: number) { return 440 * Math.pow(2, (m - 69) / 12); }
@@ -75,6 +83,12 @@ export class MusicManagerService {
 
   setTempo(bpm: number) { this.engine.tempo.set(bpm); }
   play() { this.engine.start(); }
-  stop() { this.engine.stop(); }
-  setLoop(start: number, end: number) { this.engine.loopStart.set(start); this.engine.loopEnd.set(end); }
+  stop() { 
+    this.engine.stop(); 
+    this.currentStep.set(-1);
+  }
+  setLoop(start: number, end: number) { 
+    this.engine.loopStart.set(start); 
+    this.engine.loopEnd.set(end); 
+  }
 }

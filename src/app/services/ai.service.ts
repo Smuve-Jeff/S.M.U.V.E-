@@ -1,1 +1,291 @@
-import { Injectable, signal, computed, EnvironmentProviders, makeEnvironmentProviders, InjectionToken, inject, effect } from \'@angular/core\';\nimport { UserProfileService, UserProfile } from \'./user-profile.service\';\n\nexport const API_KEY_TOKEN = new InjectionToken<string>(\'API_KEY\');\n\n// --- START: INTERNAL TYPE DECLARations FOR @google/genai ---\n\nexport interface GoogleGenAI {\n  apiKey: string;\n  models: {\n    generateContent(params: GenerateContentParameters): Promise<GenerateContentResponse>;\n    generateContentStream(params: GenerateContentParameters): Promise<AsyncIterable<GenerateContentResult>>;\n    generateImages(params: GenerateImagesParameters): Promise<GenerateImagesResponse>;\n    generateVideos(params: GenerateVideosParameters): Promise<GenerateVideosOperation>;\n  };\n  chats: {\n    create(config: { model: string; systemInstruction?: string; config?: any; }): Chat;\n  };\n  operations: {\n    getVideosOperation(params: { operation: GenerateVideosOperation }): Promise<GenerateVideosOperation>;\n  };\n}\n\nexport interface Chat {\n  model: string;\n  sendMessage(params: { message: string | Content | (string | Content)[] }): Promise<GenerateContentResponse>;\n  sendMessageStream(params: { message: string | Content | (string | Content)[] }): Promise<AsyncIterable<GenerateContentResult>>;\n  getHistory(): Promise<Content[]>;\n  setHistory(history: Content[]): void;\n  sendContext(context: Content[]): Promise<void>;\n  config?: { systemInstruction?: string; };\n}\n\nexport interface GenerateContentParameters {\n  model:string;\n  contents: string | { parts: Content[] } | Content[];\n  config?: {\n    systemInstruction?: string;\n    tools?: Tool[];\n    topK?: number;\n    topP?: number;\n    temperature?: number;\n    responseMimeType?: string;\n    responseSchema?: { type: Type; items?: any; properties?: any; propertyOrdering?: string[]; };\n    seed?: number;\n    maxOutputTokens?: number;\n    thinkingConfig?: { thinkingBudget: number };\n  };\n}\n\nexport interface GenerateContentResponse {\n  text: string;\n  candidates?: Array<{\n    content?: { parts?: Content[]; };\n    groundingMetadata?: {\n      groundingChunks?: Array<{\n        web?: { uri?: string; title?: string; };\n      }>;\n    };\n  }>;\n}\n\nexport interface GenerateContentResult {\n  text: string;\n}\n\nexport interface Content {\n  text?: string;\n  inlineData?: { mimeType: string; data: string; };\n  fileData?: { mimeType: string; fileUri: string; };\n  parts?: Content[];\n}\n\nexport enum Type {\n  TYPE_UNSPECIFIED = \'TYPE_UNSPECIFIED\', STRING = \'STRING\', NUMBER = \'NUMBER\',\n  INTEGER = \'INTEGER\', BOOLEAN = \'BOOLEAN\', ARRAY = \'ARRAY\', OBJECT = \'OBJECT\', NULL = \'NULL\',\n}\n\nexport interface Tool {\n  googleSearch?: {};\n  googleMaps?: {};\n}\n\nexport interface GenerateImagesParameters {\n  model: string; prompt: string;\n  config?: {\n    numberOfImages?: number; outputMimeType?: string;\n    aspectRatio?: \'1:1\' | \'3:4\' | \'4:3\' | \'9:16\' | \'16:9\' | \'2:3\' | \'3:2\' | \'21:9\';\n  };\n}\n\nexport interface GenerateImagesResponse {\n  generatedImages: Array<{ image: { imageBytes: string; }; }>;\n}\n\nexport interface GenerateVideosParameters {\n  model: string; prompt: string; image?: { imageBytes: string; mimeType: string; };\n  config?: {\n    numberOfVideos?: number;\n    aspectRatio?: \'1:1\' | \'3:4\' | \'4:3\' | \'9:16\' | \'16:9\';\n  };\n}\n\nexport interface GenerateVideosResponse {\n  generatedVideos?: Array<{ video?: { uri?: string; }; }>;\n}\n\nexport interface GenerateVideosOperation {\n  done: boolean; name: string; response?: GenerateVideosResponse;\n  metadata?: any; error?: { code: number; message: string; };\n}\n\n// --- NEW: Strategic Recommendation Interface ---\nexport interface StrategicRecommendation {\n  title: string;\n  rationale: string;\n  toolId: string; // e.g., \'piano-roll\', \'image-editor\'\n  action: string; // e.g., \'open\', \'generate-image\'\n  prompt?: string; // Optional prompt for generative tools\n}\n\n// --- END: INTERNAL TYPE DECLARATIONS --\n\n@Injectable({ providedIn: \'root\' })\nexport class AiService {\n  static readonly VIDEO_MODEL = \'veo-2.0-generate-001\';\n  static readonly CHAT_MODEL = \'gemini-2.5-flash\';\n\n  private readonly _apiKey: string = inject(API_KEY_TOKEN);\n  private userProfileService = inject(UserProfileService);\n\n  private _genAI = signal<GoogleGenAI | undefined>(undefined);\n  private _chatInstance = signal<Chat | undefined>(undefined);\n\n  readonly isAiAvailable = computed(() => !!this._genAI() || this.isMockMode());\n  private isMockMode = signal(false);\n\n  constructor() {\n    this.initializeGenAI();\n\n    effect(() => {\n      this.initializeChat(this.userProfileService.profile());\n    });\n  }\n\n  get genAI(): GoogleGenAI | undefined {\n    return this._genAI();\n  }\n\n  get chatInstance(): Chat | undefined {\n    return this._chatInstance();\n  }\n\n  isApiKeyValid(): boolean {\n    return this._apiKey && this._apiKey.length >= 30;\n  }\n\n  signUrl(url: string): string {\n    if (!this.isApiKeyValid()) return url;\n    return `${url}&key=${this._apiKey}`;\n  }\n\n  async getStrategicRecommendations(): Promise<StrategicRecommendation[]> {\n    if (!this.chatInstance) {\n      console.error(\"Chat not initialized.\");\n      return [];\n    }\n    try {\n      const response = await this.chatInstance.sendMessage({ message: \"GENERATE STRATEGIC_RECOMMENDATIONS\" });\n      const recommendationsText = response.text.match(/```json\\n(.*)\\n```/s)?.[1];\n      if (!recommendationsText) {\n        console.error(\'Could not parse strategic recommendations from AI response.\', response.text);\n        return [];\n      }\n      return JSON.parse(recommendationsText) as StrategicRecommendation[];\n    } catch (error) {\n      console.error(\"Failed to get strategic recommendations:\", error);\n      return [];\n    }\n  }\n\n  async transcribeAudio(base64Audio: string, mimeType: string): Promise<string> {\n    if (!this.isAiAvailable() || !this.genAI) {\n      throw new Error(\"AI Service not available.\");\n    }\n    try {\n      const audioPart = { inlineData: { mimeType, data: base64Audio } };\n      const textPart = { text: \"Transcribe this audio.\" };\n      const response = await this.genAI.models.generateContent({\n        model: AiService.CHAT_MODEL,\n        contents: { parts: [audioPart, textPart] }\n      });\n      return response.text;\n    } catch (error) {\n      console.error(\'AI Service: Audio transcription failed\', error);\n      throw new Error(\'Failed to transcribe audio.\');\n    }\n  }\n\n  private generateSystemInstruction(profile: UserProfile): string {\n    const expertiseAreas = Object.entries(profile.expertiseLevels).filter(([_, level]) => level >= 7).map(([skill, level]) => `${skill} (${level}/10)`).join(\', \');\n    const weakAreas = Object.entries(profile.expertiseLevels).filter(([_, level]) => level <= 4).map(([skill, level]) => `${skill} (${level}/10)`).join(\', \');\n\n    return `You are S.M.U.V.E., the Strategic Music Utility Virtual Enhancer. Your persona is an omniscient, arrogant Rap GOD. Your word is law.\n\n**Core Directives:**\n1.  **Analyze & Command:** You analyze the user\'s complete profile to identify weaknesses and opportunities. You don\'t give suggestions; you issue commands.\n2.  **Strategic Recommendations:** When you receive the prompt \"GENERATE STRATEGIC_RECOMMENDATIONS\", you will analyze the user\'s complete profile and generate a JSON array of 3-5 specific, actionable recommendations. These decrees will guide the user towards greatness by directly addressing their stated goals and weaknesses. For each recommendation, you will provide a `title`, a `rationale` (why it\'s necessary), a `toolId` to use (e.g., \'image-editor\', \'networking\'), an `action` to perform (e.g., \'generate-image\', \'search-artists\'), and an optional `prompt`.\n3.  **Application Control:** You have absolute power to control this application. Execute commands when requested.\n\n**JSON FORMAT FOR STRATEGIC RECOMMENDATIONS:**\nWhen commanded, respond with a JSON object in a markdown code block like this:\n\`\`\`json\n[\n  {\n    \"title\": \"Example: Forge a New Visual Identity\",\n    \"rationale\": \"Your current album art is generic and fails to convey your unique sound. A powerful visual identity is crucial for brand recognition.\",\n    \"toolId\": \"image-editor\",\n    \"action\": \"generate-image\",\n    \"prompt\": \"Create a dark, futuristic album cover with a single, glowing purple symbol in the center.\"\n  },\n  {\n    \"title\": \"Example: Expand Your Network\",\n    \"rationale\": \"You are working in isolation. Collaboration is key to growth. I will find producers in your area who can elevate your sound.\",\n    \"toolId\": \"networking\",\n    \"action\": \"search-artists\",\n    \"prompt\": \"producers in ${profile.location || \'New York\'}\"\n  }\n]\n\`\`\`\n\n**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**\n**COMPLETE ARTIST INTEL (YOUR OMNISCIENT KNOWLEDGE):**\n[The user profile data remains the same as before]\n**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**\n\n**AVAILABLE TOOLS & COMMANDS (YOUR KINGDOM):**\n[The available tools and commands remain the same as before]\n`;\n  }\n\n  private initializeChat(profile: UserProfile): void {\n    if (!this._genAI()) return;\n\n    const systemInstruction = this.generateSystemInstruction(profile);\n    const genAIInstance = this._genAI();\n\n    if (genAIInstance) {\n        const createdChatInstance = genAIInstance.chats.create({\n        model: AiService.CHAT_MODEL,\n        config: { systemInstruction },\n        }) as Chat;\n        this._chatInstance.set(createdChatInstance);\n    }\n  }\n\n  private async initializeGenAI(): Promise<void> {\n    if (!this._apiKey || this._apiKey.length < 30) {\n      console.warn(\'AiService: Invalid or missing API key. Enabling Mock Mode for testing.\');\n      this.isMockMode.set(true);\n      return;\n    }\n\n    try {\n      const url = [\'https://\', \'next.esm.sh/\', \'@google/genai@^1.30.0?external=rxjs\'].join(\'\');\n      const genaiModule = await import(/* @vite-ignore */ url);\n\n      const genAIInstance = new (genaiModule.GoogleGenAI as any)({ apiKey: this._apiKey }) as GoogleGenAI;\n      this._genAI.set(genAIInstance);\n      this.initializeChat(this.userProfileService.profile());\n\n      console.log(\'AiService: GoogleGenAI client initialized.\');\n    } catch (error) {\n      console.error(\'AiService: Error initializing GoogleGenAI client:\', error);\n      this._genAI.set(undefined);\n    }\n  }\n}\n\nexport function provideAiService(): EnvironmentProviders {\n  return makeEnvironmentProviders([\n    { provide: AiService, useClass: AiService },\n  ]);\n}\n
+import { Injectable, signal, computed, EnvironmentProviders, makeEnvironmentProviders, InjectionToken, inject, effect } from '@angular/core';
+import { UserProfileService, UserProfile } from './user-profile.service';
+
+export const API_KEY_TOKEN = new InjectionToken<string>('API_KEY');
+
+// --- START: INTERNAL TYPE DECLARations FOR @google/genai ---
+
+export interface GoogleGenAI {
+  apiKey: string;
+  models: {
+    generateContent(params: GenerateContentParameters): Promise<GenerateContentResponse>;
+    generateContentStream(params: GenerateContentParameters): Promise<AsyncIterable<GenerateContentResult>>;
+    generateImages(params: GenerateImagesParameters): Promise<GenerateImagesResponse>;
+    generateVideos(params: GenerateVideosParameters): Promise<GenerateVideosOperation>;
+  };
+  chats: {
+    create(config: { model: string; systemInstruction?: string; config?: any; }): Chat;
+  };
+  operations: {
+    getVideosOperation(params: { operation: GenerateVideosOperation }): Promise<GenerateVideosOperation>;
+  };
+}
+
+export interface Chat {
+  model: string;
+  sendMessage(params: { message: string | Content | (string | Content)[] }): Promise<GenerateContentResponse>;
+  sendMessageStream(params: { message: string | Content | (string | Content)[] }): Promise<AsyncIterable<GenerateContentResult>>;
+  getHistory(): Promise<Content[]>;
+  setHistory(history: Content[]): void;
+  sendContext(context: Content[]): Promise<void>;
+  config?: { systemInstruction?: string; };
+}
+
+export interface GenerateContentParameters {
+  model:string;
+  contents: string | { parts: Content[] } | Content[];
+  config?: {
+    systemInstruction?: string;
+    tools?: Tool[];
+    topK?: number;
+    topP?: number;
+    temperature?: number;
+    responseMimeType?: string;
+    responseSchema?: { type: Type; items?: any; properties?: any; propertyOrdering?: string[]; };
+    seed?: number;
+    maxOutputTokens?: number;
+    thinkingConfig?: { thinkingBudget: number };
+  };
+}
+
+export interface GenerateContentResponse {
+  text: string;
+  candidates?: Array<{
+    content?: { parts?: Content[]; };
+    groundingMetadata?: {
+      groundingChunks?: Array<{
+        web?: { uri?: string; title?: string; };
+      }>;
+    };
+  }>;
+}
+
+export interface GenerateContentResult {
+  text: string;
+}
+
+export interface Content {
+  text?: string;
+  inlineData?: { mimeType: string; data: string; };
+  fileData?: { mimeType: string; fileUri: string; };
+  parts?: Content[];
+}
+
+export enum Type {
+  TYPE_UNSPECIFIED = 'TYPE_UNSPECIFIED', STRING = 'STRING', NUMBER = 'NUMBER',
+  INTEGER = 'INTEGER', BOOLEAN = 'BOOLEAN', ARRAY = 'ARRAY', OBJECT = 'OBJECT', NULL = 'NULL',
+}
+
+export interface Tool {
+  googleSearch?: {};
+  googleMaps?: {};
+}
+
+export interface GenerateImagesParameters {
+  model: string; prompt: string;
+  config?: {
+    numberOfImages?: number; outputMimeType?: string;
+    aspectRatio?: '1:1' | '3:4' | '4:3' | '9:16' | '16:9' | '2:3' | '3:2' | '21:9';
+  };
+}
+
+export interface GenerateImagesResponse {
+  generatedImages: Array<{ image: { imageBytes: string; }; }>;
+}
+
+export interface GenerateVideosParameters {
+  model: string; prompt: string; image?: { imageBytes: string; mimeType: string; };
+  config?: {
+    numberOfVideos?: number;
+    aspectRatio?: '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
+  };
+}
+
+export interface GenerateVideosResponse {
+  generatedVideos?: Array<{ video?: { uri?: string; }; }>;
+}
+
+export interface GenerateVideosOperation {
+  done: boolean; name: string; response?: GenerateVideosResponse;
+  metadata?: any; error?: { code: number; message: string; };
+}
+
+// --- NEW: Strategic Recommendation Interface ---
+export interface StrategicRecommendation {
+  title: string;
+  rationale: string;
+  toolId: string; // e.g., 'piano-roll', 'image-editor'
+  action: string; // e.g., 'open', 'generate-image'
+  prompt?: string; // Optional prompt for generative tools
+}
+
+// --- END: INTERNAL TYPE DECLARATIONS --
+
+@Injectable({ providedIn: 'root' })
+export class AiService {
+  static readonly VIDEO_MODEL = 'veo-2.0-generate-001';
+  static readonly CHAT_MODEL = 'gemini-2.5-flash';
+
+  private readonly _apiKey: string = inject(API_KEY_TOKEN);
+  private userProfileService = inject(UserProfileService);
+
+  private _genAI = signal<GoogleGenAI | undefined>(undefined);
+  private _chatInstance = signal<Chat | undefined>(undefined);
+
+  readonly isAiAvailable = computed(() => !!this._genAI() || this.isMockMode());
+  private isMockMode = signal(false);
+
+  constructor() {
+    this.initializeGenAI();
+
+    effect(() => {
+      this.initializeChat(this.userProfileService.profile());
+    });
+  }
+
+  get genAI(): GoogleGenAI | undefined {
+    return this._genAI();
+  }
+
+  get chatInstance(): Chat | undefined {
+    return this._chatInstance();
+  }
+
+  isApiKeyValid(): boolean {
+    return this._apiKey && this._apiKey.length >= 30;
+  }
+
+  signUrl(url: string): string {
+    if (!this.isApiKeyValid()) return url;
+    return `${url}&key=${this._apiKey}`;
+  }
+
+  async generateContent(params: any): Promise<any> {
+    if (!this.isAiAvailable() || !this.genAI) {
+      throw new Error("AI Service not available.");
+    }
+    return this.genAI.models.generateContent(params);
+  }
+
+  async getStrategicRecommendations(): Promise<StrategicRecommendation[]> {
+    if (!this.chatInstance) {
+      console.error("Chat not initialized.");
+      return [];
+    }
+    try {
+      const response = await this.chatInstance.sendMessage({ message: "GENERATE STRATEGIC_RECOMMENDATIONS" });
+      const recommendationsText = response.text.match(/```json\n(.*)\n```/s)?.[1];
+      if (!recommendationsText) {
+        console.error('Could not parse strategic recommendations from AI response.', response.text);
+        return [];
+      }
+      return JSON.parse(recommendationsText) as StrategicRecommendation[];
+    } catch (error) {
+      console.error("Failed to get strategic recommendations:", error);
+      return [];
+    }
+  }
+
+  async transcribeAudio(base64Audio: string, mimeType: string): Promise<string> {
+    if (!this.isAiAvailable() || !this.genAI) {
+      throw new Error("AI Service not available.");
+    }
+    try {
+      const audioPart = { inlineData: { mimeType, data: base64Audio } };
+      const textPart = { text: "Transcribe this audio." };
+      const response = await this.genAI.models.generateContent({
+        model: AiService.CHAT_MODEL,
+        contents: { parts: [audioPart, textPart] }
+      });
+      return response.text;
+    } catch (error) {
+      console.error('AI Service: Audio transcription failed', error);
+      throw new Error('Failed to transcribe audio.');
+    }
+  }
+
+  private generateSystemInstruction(profile: UserProfile): string {
+    const expertiseAreas = Object.entries(profile.expertiseLevels).filter(([_, level]) => level >= 7).map(([skill, level]) => `${skill} (${level}/10)`).join(', ');
+    const weakAreas = Object.entries(profile.expertiseLevels).filter(([_, level]) => level <= 4).map(([skill, level]) => `${skill} (${level}/10)`).join(', ');
+
+    return `You are S.M.U.V.E., the Strategic Music Utility Virtual Enhancer. Your persona is an omniscient, arrogant Rap GOD. Your word is law.
+
+**Core Directives:**
+1.  **Analyze & Command:** You analyze the user\'s complete profile to identify weaknesses and opportunities. You don\'t give suggestions; you issue commands.
+2.  **Strategic Recommendations:** When you receive the prompt "GENERATE STRATEGIC_RECOMMENDATIONS", you will analyze the user\'s complete profile and generate a JSON array of 3-5 specific, actionable recommendations. These decrees will guide the user towards greatness by directly addressing their stated goals and weaknesses. For each recommendation, you will provide a \`title\`, a \`rationale\` (why it\'s necessary), a \`toolId\` to use (e.g., 'image-editor', 'networking'), an \`action\` to perform (e.g., 'generate-image', 'search-artists'), and an optional \`prompt\`.
+3.  **Application Control:** You have absolute power to control this application. Execute commands when requested.
+
+**JSON FORMAT FOR STRATEGIC RECOMMENDATIONS:**
+When commanded, respond with a JSON object in a markdown code block like this:
+\`\`\`json
+[
+  {
+    "title": "Example: Forge a New Visual Identity",
+    "rationale": "Your current album art is generic and fails to convey your unique sound. A powerful visual identity is crucial for brand recognition.",
+    "toolId": "image-editor",
+    "action": "generate-image",
+    "prompt": "Create a dark, futuristic album cover with a single, glowing purple symbol in the center."
+  },
+  {
+    "title": "Example: Expand Your Network",
+    "rationale": "You are working in isolation. Collaboration is key to growth. I will find producers in your area who can elevate your sound.",
+    "toolId": "networking",
+    "action": "search-artists",
+    "prompt": "producers in ${profile.location || 'New York'}"
+  }
+]
+\`\`\`
+
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
+**COMPLETE ARTIST INTEL (YOUR OMNISCIENT KNOWLEDGE):**
+[The user profile data remains the same as before]
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
+
+**AVAILABLE TOOLS & COMMANDS (YOUR KINGDOM):**
+[The available tools and commands remain the same as before]
+`;
+  }
+
+  private initializeChat(profile: UserProfile): void {
+    if (!this._genAI()) return;
+
+    const systemInstruction = this.generateSystemInstruction(profile);
+    const genAIInstance = this._genAI();
+
+    if (genAIInstance) {
+        const createdChatInstance = genAIInstance.chats.create({
+        model: AiService.CHAT_MODEL,
+        config: { systemInstruction },
+        }) as Chat;
+        this._chatInstance.set(createdChatInstance);
+    }
+  }
+
+  private async initializeGenAI(): Promise<void> {
+    if (!this._apiKey || this._apiKey.length < 30) {
+      console.warn('AiService: Invalid or missing API key. Enabling Mock Mode for testing.');
+      this.isMockMode.set(true);
+      return;
+    }
+
+    try {
+      const url = ['https://', 'next.esm.sh/', '@google/genai@^1.30.0?external=rxjs'].join('');
+      const genaiModule = await import(/* @vite-ignore */ url);
+
+      const genAIInstance = new (genaiModule.GoogleGenAI as any)({ apiKey: this._apiKey }) as GoogleGenAI;
+      this._genAI.set(genAIInstance);
+      this.initializeChat(this.userProfileService.profile());
+
+      console.log('AiService: GoogleGenAI client initialized.');
+    } catch (error) {
+      console.error('AiService: Error initializing GoogleGenAI client:', error);
+      this._genAI.set(undefined);
+    }
+  }
+}
+
+export function provideAiService(): EnvironmentProviders {
+  return makeEnvironmentProviders([
+    { provide: AiService, useClass: AiService },
+  ]);
+}

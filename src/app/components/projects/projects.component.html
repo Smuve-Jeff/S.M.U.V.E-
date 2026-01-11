@@ -10,7 +10,7 @@
         <h3 class="font-bold">{{ project.name }}</h3>
         <p class="text-sm text-neutral-400">{{ project.description }}</p>
         <div class="w-full bg-neutral-700 rounded-full h-2.5 mt-2">
-          <div class="bg-purple-500 h-2.5 rounded-full" [style.width.%]="(project.tasks.filter(t => t.completed).length / project.tasks.length) * 100"></div>
+          <div class="bg-purple-500 h-2.5 rounded-full" [style.width.%]="getProjectProgress(project)"></div>
         </div>
       </div>
     </div>

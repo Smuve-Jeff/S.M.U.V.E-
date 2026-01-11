@@ -54,5 +54,12 @@ export class ProjectsComponent {
     task.completed = !task.completed;
     // Potentially update project status if all tasks are completed
   }
-}
 
+  getProjectProgress(project: Project): number {
+    if (!project || !project.tasks || project.tasks.length === 0) {
+      return 0;
+    }
+    const completedTasks = project.tasks.filter(t => t.completed).length;
+    return (completedTasks / project.tasks.length) * 100;
+  }
+}

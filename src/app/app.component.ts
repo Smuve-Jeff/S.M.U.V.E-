@@ -1,23 +1,10 @@
 import { Component, signal, computed, effect, inject, ChangeDetectorRef, ElementRef, viewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Import CommonModule
 import { RouterOutlet } from '@angular/router'; // Import RouterOutlet
-import { FormsModule } from '@angular/forms'; // Import FormsModule
 
 import { UserContextService, AppTheme, MainViewMode } from './services/user-context.service';
 import { AiService } from './services/ai.service';
 import { AuthService } from './services/auth.service';
-
-// Import all components directly
-import { EqPanelComponent } from './components/eq-panel/eq-panel.component';
-import { ChatbotComponent } from './components/chatbot/chatbot.component';
-import { ImageEditorComponent } from './components/image-editor/image-editor.component';
-import { AudioVisualizerComponent } from './components/audio-visualizer/audio-visualizer.component';
-import { PianoRollComponent } from './components/piano-roll/piano-roll.component';
-import { NetworkingComponent } from './components/networking/networking.component';
-import { ProfileEditorComponent } from './components/profile-editor/profile-editor.component';
-import { HubComponent } from './hub/hub.component';
-import { StudioComponent } from './components/studio/studio.component';
-import { ProjectsComponent } from './components/projects/projects.component'; // Import the new component
 
 
 interface Track {
@@ -37,18 +24,7 @@ interface DeckState {
   standalone: true,
   imports: [
     CommonModule, 
-    RouterOutlet, 
-    FormsModule, // Add FormsModule here
-    EqPanelComponent,
-    ChatbotComponent,
-    ImageEditorComponent,
-    AudioVisualizerComponent,
-    PianoRollComponent,
-    NetworkingComponent,
-    ProfileEditorComponent,
-    HubComponent,
-    StudioComponent,
-    ProjectsComponent // Add the new component here
+    RouterOutlet
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],

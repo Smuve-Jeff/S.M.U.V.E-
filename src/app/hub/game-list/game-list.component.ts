@@ -5,7 +5,8 @@ import { Game } from '../game';
   selector: 'app-game-list',
   templateUrl: './game-list.component.html',
   styleUrls: ['../hub.css'], // Reusing hub styles for cards
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
 })
 export class GameListComponent {
   @Input() games: Game[] = [];

@@ -3,7 +3,8 @@ import { Component, Output, EventEmitter, ViewChild, ElementRef } from '@angular
 @Component({
   selector: 'app-game-search',
   templateUrl: './game-search.component.html',
-  styleUrls: ['../hub.css'] // Reusing hub styles
+  styleUrls: ['../hub.css'], // Reusing hub styles
+  standalone: true
 })
 export class GameSearchComponent {
   @Output() searchChange = new EventEmitter<{ query: string; filters: any; }>();
