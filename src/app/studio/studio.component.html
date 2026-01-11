@@ -1,0 +1,21 @@
+<div class="studio-container grid grid-rows-[auto_1fr] h-screen w-screen bg-neutral-900 text-white">
+
+  <!-- Top Bar -->
+  <app-transport-bar class="col-span-2"></app-transport-bar>
+
+  <!-- Main Content -->
+  <div class="grid grid-cols-[1fr_4fr] gap-4 p-4 overflow-hidden">
+
+    <!-- Left Panel (Mixer) -->
+    <div class="mixer-panel bg-neutral-800 rounded-lg p-4 overflow-y-auto">
+      <app-mixer></app-mixer>
+    </div>
+
+    <!-- Right Panel (Session View) -->
+    <div class="session-panel bg-neutral-800 rounded-lg overflow-hidden">
+      <app-session-view></app-session-view>
+    </div>
+
+  </div>
+
+</div>
