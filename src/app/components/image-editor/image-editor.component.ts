@@ -10,6 +10,7 @@ import {
   inject,
   computed,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
 // FIX: Update AppTheme import to break circular dependency
 import { AppTheme } from '../../services/user-context.service';
@@ -19,6 +20,8 @@ import { AppTheme } from '../../services/user-context.service';
   templateUrl: './image-editor.component.html',
   styleUrls: ['./image-editor.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [FormsModule],
 })
 export class ImageEditorComponent {
   initialPrompt = input<string | null>(null);
@@ -125,7 +128,7 @@ export class ImageEditorComponent {
 
       const promptResponse = await this.aiService.genAI.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: { parts: [imagePart, textPart] },
+        contents: [{ parts: [imagePart, textPart] }] as any,
       });
       const newPrompt = promptResponse.text;
 

@@ -1,6 +1,8 @@
 import { Injectable, signal } from '@angular/core';
 import { AppTheme } from './app-theme';
 
+export type { AppTheme };
+
 // Reordered MainViewMode to place 'tha-spot' at the end and 'profile' at the beginning.
 export type MainViewMode =
   | 'studio'
@@ -15,6 +17,8 @@ export type MainViewMode =
   | 'login'
   | 'projects'
   | 'remix-arena';
+
+export type { MainViewMode as ViewMode };
 
 // FIX: Moved shared interfaces here to break circular dependencies
 export interface Track {

@@ -147,6 +147,26 @@ export class MusicManagerService {
     );
   }
 
+  updateNoteVelocity(
+    trackId: number,
+    midi: number,
+    step: number,
+    velocity: number
+  ) {
+    this.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === trackId
+          ? {
+              ...t,
+              notes: t.notes.map((n) =>
+                n.midi === midi && n.step === step ? { ...n, velocity } : n
+              ),
+            }
+          : t
+      )
+    );
+  }
+
   removeNote(trackId: number, midi: number, step: number) {
     this.tracks.update((ts) =>
       ts.map((t) =>

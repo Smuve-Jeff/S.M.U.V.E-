@@ -7,6 +7,7 @@ import {
   effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AppTheme } from '../../services/user-context.service';
 import {
   UserProfileService,
@@ -25,7 +26,12 @@ import {
   styleUrls: ['./profile-editor.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, FormFieldComponent, LegalDocumentEditorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    FormFieldComponent,
+    LegalDocumentEditorComponent,
+  ],
 })
 export class ProfileEditorComponent {
   theme = input.required<AppTheme>();
@@ -45,6 +51,7 @@ export class ProfileEditorComponent {
   // Profile editing
   editableProfile = signal<UserProfile>({
     ...this.userProfileService.profile(),
+    careerGoals: this.userProfileService.profile().careerGoals || [],
   });
   saveStatus = signal<'idle' | 'saving' | 'saved'>('idle');
   activeSection = signal<string>('basic');
@@ -52,7 +59,10 @@ export class ProfileEditorComponent {
   constructor() {
     effect(() => {
       if (this.isAuthenticated()) {
-        this.editableProfile.set({ ...this.userProfileService.profile() });
+        this.editableProfile.set({
+          ...this.userProfileService.profile(),
+          careerGoals: this.userProfileService.profile().careerGoals || [],
+        });
       }
     });
   }
@@ -120,7 +130,7 @@ export class ProfileEditorComponent {
 
   removeLink(type: 'socialMedia' | 'musicPlatforms', platform: string) {
     this.editableProfile.update((p) => {
-      const updatedLinks = { ...p[type] };
+      const updatedLinks = { ...(p[type] as any) };
       delete updatedLinks[platform];
       return {
         ...p,

@@ -8,6 +8,7 @@ import {
   effect,
   output,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { AppTheme } from '../../services/app-theme';
 import {
   AiService,
@@ -34,6 +35,8 @@ export interface ArtistProfile {
   templateUrl: './networking.component.html',
   styleUrls: ['./networking.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [FormsModule],
 })
 export class NetworkingComponent {
   theme = input.required<AppTheme>();
@@ -74,7 +77,7 @@ export class NetworkingComponent {
       const prompt = `Given artists: ${JSON.stringify(MOCK_ARTISTS)}. Find artists matching location "${locationQuery}" and collaboration interest "${filter}". Return IDs as JSON: {"matchingArtistIds": ["id1"]}.`;
       const response = await this.aiService.genAI!.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: prompt,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           responseMimeType: 'application/json',
           responseSchema: {

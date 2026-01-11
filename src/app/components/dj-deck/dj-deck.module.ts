@@ -4,9 +4,9 @@ import { DjDeckComponent } from './dj-deck.component';
 
 @NgModule({
   imports: [
-    CommonModule
+    CommonModule,
+    DjDeckComponent
   ],
-  declarations: [DjDeckComponent],
   exports: [DjDeckComponent]
 })
 export class DjDeckModule { }

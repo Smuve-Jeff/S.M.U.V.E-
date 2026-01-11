@@ -12,6 +12,7 @@ import {
   OnDestroy,
   OnInit,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
 import {
   AppTheme,
@@ -39,6 +40,8 @@ const AI_OFFLINE_MESSAGE = 'S.M.U.V.E. 2.0 systems offline. Connection to the co
   templateUrl: './chatbot.component.html',
   styleUrls: ['./chatbot.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [FormsModule],
 })
 export class ChatbotComponent implements OnInit, OnDestroy {
   close = output<void>();
@@ -201,7 +204,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     isExecutingCommand.set(true);
     this.wasViewChangedByChatbot = true; // Assume command will change the view
     try {
-      await command.execute(params, this);
+      await command.execute(params, this as any);
     } catch (e) {
       this.handleError(e, `command: ${command.name}`);
     } finally {
@@ -234,7 +237,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       const response = await this.aiService.generateContent({
         model: 'gemini-1.5-pro',
         contents: [{ role: 'user', parts: [{ text: query }] }],
-        tools: [{ googleSearch: {} }],
+        tools: [{ googleSearch: {} }] as any,
       });
       if (response) {
         const urls = response.toolCalls?.[0]?.googleSearch?.results
@@ -266,7 +269,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
             ],
           },
         ],
-        tools: [{ googleMaps: {} }],
+        tools: [{ googleMaps: {} }] as any,
       });
       if (response && response.text) {
         this.mapLocationResult.emit(response.text);
@@ -311,7 +314,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       const imagePart = { inlineData: { mimeType, data } };
       const response = await this.aiService.generateContent({
         model: 'gemini-1.5-pro',
-        contents: { parts: [imagePart, { text: prompt }] },
+        contents: [{ parts: [imagePart, { text: prompt }] }] as any,
       });
       if (response && response.text)
         this.imageAnalysisResult.emit(response.text);

@@ -43,7 +43,7 @@ export interface LegalDocument {
       </div>
     </div>
   `,
-  styleUrls: ['./profile-editor.component.css'],
+  styleUrls: ['./legal-document-editor.component.css'],
 })
 export class LegalDocumentEditorComponent {
   @Input() document?: LegalDocument;
