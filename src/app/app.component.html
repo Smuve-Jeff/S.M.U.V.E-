@@ -29,133 +29,140 @@
     <!-- Main View -->
     <div class="flex-grow relative overflow-y-auto">
 
-      <!-- Player View -->
-      <div *ngIf="mainViewMode() === 'player'" class="p-4 flex flex-col gap-4 h-full">
-        <div class="flex items-center gap-2">
-          <button (click)="fileInput.click()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded">
-            Load Tracks
-          </button>
-          <span class="text-neutral-400 text-sm">{{ playlist().length }} tracks loaded</span>
-        </div>
+      <!-- Use ngSwitch for cleaner view management -->
+      <div [ngSwitch]="mainViewMode()">
 
-        <!-- Current Track Info -->
-        <div *ngIf="currentPlayerTrack() as track" class="bg-neutral-800/50 rounded-lg p-4 flex gap-4 items-center">
-          <img [src]="track.albumArtUrl || 'https://picsum.photos/100'" alt="Album Art" class="w-24 h-24 rounded-md object-cover">
-          <div class="flex-grow">
-            <h2 class="text-xl font-bold">{{ track.name }}</h2>
-            <div class="flex items-center gap-4 mt-2">
-              <button (click)="togglePlay()" class="text-3xl"><i [ngClass]="isPlaying() ? 'fa-pause-circle' : 'fa-play-circle'" class="fas"></i></button>
-              <button (click)="playPrevious()" class="text-xl"><i class="fas fa-step-backward"></i></button>
-              <button (click)="playNext()" class="text-xl"><i class="fas fa-step-forward"></i></button>
-              <div class="flex-grow flex items-center gap-2">
-                <span class="text-sm">{{ formattedCurrentTime() }}</span>
-                <input type="range" [value]="currentTime()" [max]="duration()" (input)="seek($event)" class="w-full">
-                <span class="text-sm">{{ formattedDuration() }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <i class="fas fa-volume-down"></i>
-                <input type="range" min="0" max="1" step="0.01" [value]="volume()" (input)="onVolumeChange($event)">
+        <!-- Studio View -->
+        <app-studio *ngSwitchCase="'studio'"></app-studio>
+
+        <!-- Player View -->
+        <div *ngSwitchCase="'player'" class="p-4 flex flex-col gap-4 h-full">
+          <div class="flex items-center gap-2">
+            <button (click)="fileInput.click()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded">
+              Load Tracks
+            </button>
+            <span class="text-neutral-400 text-sm">{{ playlist().length }} tracks loaded</span>
+          </div>
+
+          <!-- Current Track Info -->
+          <div *ngIf="currentPlayerTrack() as track" class="bg-neutral-800/50 rounded-lg p-4 flex gap-4 items-center">
+            <img [src]="track.albumArtUrl || 'https://picsum.photos/100'" alt="Album Art" class="w-24 h-24 rounded-md object-cover">
+            <div class="flex-grow">
+              <h2 class="text-xl font-bold">{{ track.name }}</h2>
+              <div class="flex items-center gap-4 mt-2">
+                <button (click)="togglePlay()" class="text-3xl"><i [ngClass]="isPlaying() ? 'fa-pause-circle' : 'fa-play-circle'" class="fas"></i></button>
+                <button (click)="playPrevious()" class="text-xl"><i class="fas fa-step-backward"></i></button>
+                <button (click)="playNext()" class="text-xl"><i class="fas fa-step-forward"></i></button>
+                <div class="flex-grow flex items-center gap-2">
+                  <span class="text-sm">{{ formattedCurrentTime() }}</span>
+                  <input type="range" [value]="currentTime()" [max]="duration()" (input)="seek($event)" class="w-full">
+                  <span class="text-sm">{{ formattedDuration() }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-volume-down"></i>
+                  <input type="range" min="0" max="1" step="0.01" [value]="volume()" (input)="onVolumeChange($event)">
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div *ngIf="!currentPlayerTrack()">
-            <p class="text-center text-neutral-400">No track selected. Load tracks to begin.</p>
+          <div *ngIf="!currentPlayerTrack()">
+              <p class="text-center text-neutral-400">No track selected. Load tracks to begin.</p>
+          </div>
+
+          <!-- Playlist -->
+          <div class="flex-grow overflow-y-auto">
+              <div *ngFor="let track of playlist(); let i = index" 
+                   (click)="currentTrackIndex.set(i)"
+                   [ngClass]="{'bg-purple-600/30': i === currentTrackIndex()}"
+                   class="p-2 rounded-md hover:bg-neutral-700 cursor-pointer flex justify-between items-center">
+                  <span>{{ track.name }}</span>
+                  <button (click)="imageToAnalyzeUrl.set(track.url); $event.stopPropagation()" class="text-xs text-neutral-400 hover:text-white">Analyze</button>
+              </div>
+          </div>
+          <audio #mainAudioPlayer 
+                 (timeupdate)="onTimeUpdate()" 
+                 (loadedmetadata)="onLoadedMetadata()"
+                 (ended)="onTrackEnded()">
+          </audio>
         </div>
 
-        <!-- Playlist -->
-        <div class="flex-grow overflow-y-auto">
-            <div *ngFor="let track of playlist(); let i = index" 
-                 (click)="currentTrackIndex.set(i)"
-                 [ngClass]="{'bg-purple-600/30': i === currentTrackIndex()}"
-                 class="p-2 rounded-md hover:bg-neutral-700 cursor-pointer flex justify-between items-center">
-                <span>{{ track.name }}</span>
-                <button (click)="imageToAnalyzeUrl.set(track.url); $event.stopPropagation()" class="text-xs text-neutral-400 hover:text-white">Analyze</button>
+        <!-- DJ Turntables View -->
+        <div *ngSwitchCase="'dj'" class="p-4 h-full flex flex-col gap-4">
+            <!-- Controls Header -->
+            <div class="flex justify-between items-center bg-neutral-900/50 p-2 rounded-md" [ngClass]="djBorderClass()">
+                <button (click)="fileInput.click()" class="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold py-1 px-3 rounded text-sm">
+                  Load Tracks
+                </button>
+                <div class="flex items-center gap-3">
+                    <button (click)="toggleRepeat()" [ngClass]="{'text-fuchsia-500': repeat()}" title="Repeat"><i class="fas fa-redo"></i></button>
+                    <button (click)="toggleShuffle()" [ngClass]="{'text-fuchsia-500': shuffle()}" title="Shuffle"><i class="fas fa-random"></i></button>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm">Mic</span>
+                  <input type="range" min="0" max="100" [(ngModel)]="micVolume" class="w-20">
+                </div>
+            </div>
+            <!-- Decks -->
+            <div class="flex-grow grid grid-cols-2 gap-4">
+                <!-- Deck A -->
+                <div class="bg-neutral-800/50 rounded-lg p-4 flex flex-col" [ngClass]="djBorderClass()">
+                    <h3 [ngClass]="djTextColorClass()">Deck A</h3>
+                    <div class="flex-grow flex items-center justify-center">
+                      <div class="w-48 h-48 bg-neutral-900 rounded-full flex items-center justify-center relative">
+                          <div #platterA class="w-44 h-44 bg-neutral-700 rounded-full border-4 border-neutral-600 cursor-grab active:cursor-grabbing" 
+                               [style.transform]="scratchRotationA()"
+                               (mousedown)="onScratchStart($event, 'A')" (touchstart)="onScratchStart($event, 'A')">
+                               <div class="w-2 h-2 bg-red-500 rounded-full absolute top-2 left-1/2 -ml-1"></div>
+                          </div>
+                      </div>
+                    </div>
+                    <div class="mt-4">
+                      <p class="text-sm truncate">{{ deckA().track?.name || 'No Track' }}</p>
+                      <div class="flex items-center justify-center gap-4 mt-2">
+                        <button (click)="toggleDeckPlay('A')" class="text-2xl"><i [ngClass]="deckA().isPlaying ? 'fa-pause' : 'fa-play'" class="fas"></i></button>
+                        <button (click)="playNextOnDeck('A')" class="text-lg"><i class="fas fa-step-forward"></i></button>
+                      </div>
+                    </div>
+                    <audio #audioPlayerA (ended)="onDeckTrackEnded('A')"></audio>
+                </div>
+                <!-- Deck B -->
+                <div class="bg-neutral-800/50 rounded-lg p-4 flex flex-col" [ngClass]="djBorderClass()">
+                    <h3 [ngClass]="djTextColorClass()">Deck B</h3>
+                    <div class="flex-grow flex items-center justify-center">
+                      <div class="w-48 h-48 bg-neutral-900 rounded-full flex items-center justify-center relative">
+                          <div #platterB class="w-44 h-44 bg-neutral-700 rounded-full border-4 border-neutral-600 cursor-grab active:cursor-grabbing" 
+                               [style.transform]="scratchRotationB()"
+                               (mousedown)="onScratchStart($event, 'B')" (touchstart)="onScratchStart($event, 'B')">
+                              <div class="w-2 h-2 bg-blue-500 rounded-full absolute top-2 left-1/2 -ml-1"></div>
+                          </div>
+                      </div>
+                    </div>
+                    <div class="mt-4">
+                      <p class="text-sm truncate">{{ deckB().track?.name || 'No Track' }}</p>
+                      <div class="flex items-center justify-center gap-4 mt-2">
+                        <button (click)="toggleDeckPlay('B')" class="text-2xl"><i [ngClass]="deckB().isPlaying ? 'fa-pause' : 'fa-play'" class="fas"></i></button>
+                        <button (click)="playNextOnDeck('B')" class="text-lg"><i class="fas fa-step-forward"></i></button>
+                      </div>
+                    </div>
+                     <audio #audioPlayerB (ended)="onDeckTrackEnded('B')"></audio>
+                </div>
+            </div>
+            <!-- Crossfader & VU Meters -->
+            <div class="bg-neutral-900/50 p-2 rounded-md flex items-center gap-4" [ngClass]="djBorderClass()">
+                <app-audio-visualizer [analyserNode]="getMasterAnalyser()"></app-audio-visualizer>
+                <input type="range" min="-1" max="1" step="0.01" [(ngModel)]="crossfade" class="w-1/3">
+                <app-audio-visualizer [analyserNode]="getMasterAnalyser()"></app-audio-visualizer>
             </div>
         </div>
-        <audio #mainAudioPlayer 
-               (timeupdate)="onTimeUpdate()" 
-               (loadedmetadata)="onLoadedMetadata()"
-               (ended)="onTrackEnded()">
-        </audio>
+        
+        <!-- Other Views -->
+        <app-piano-roll *ngSwitchCase="'piano-roll'"></app-piano-roll>
+        <app-image-editor *ngSwitchCase="'image-editor'" [initialPrompt]="imageEditorInitialPrompt()" (imageGenerated)="handleImageGenerated($event)" (imageSelectedForAlbumArt)="handleImageSelectedForAlbumArt($event)"></app-image-editor>
+        <app-video-editor *ngSwitchCase="'video-editor'" [initialPrompt]="videoEditorInitialPrompt()"></app-video-editor>
+        <app-networking *ngSwitchCase="'networking'" (artistProfileSelected)="selectedArtistProfile.set($event)"></app-networking>
+        <app-profile-editor *ngSwitchCase="'profile'" [theme]="activeTheme()"></app-profile-editor>
+        <app-hub *ngSwitchCase="'tha-spot'"></app-hub>
       </div>
-
-      <!-- DJ Turntables View -->
-      <div *ngIf="mainViewMode() === 'dj'" class="p-4 h-full flex flex-col gap-4">
-          <!-- Controls Header -->
-          <div class="flex justify-between items-center bg-neutral-900/50 p-2 rounded-md" [ngClass]="djBorderClass()">
-              <button (click)="fileInput.click()" class="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold py-1 px-3 rounded text-sm">
-                Load Tracks
-              </button>
-              <div class="flex items-center gap-3">
-                  <button (click)="toggleRepeat()" [ngClass]="{'text-fuchsia-500': repeat()}" title="Repeat"><i class="fas fa-redo"></i></button>
-                  <button (click)="toggleShuffle()" [ngClass]="{'text-fuchsia-500': shuffle()}" title="Shuffle"><i class="fas fa-random"></i></button>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-sm">Mic</span>
-                <input type="range" min="0" max="100" [(ngModel)]="micVolume" class="w-20">
-              </div>
-          </div>
-          <!-- Decks -->
-          <div class="flex-grow grid grid-cols-2 gap-4">
-              <!-- Deck A -->
-              <div class="bg-neutral-800/50 rounded-lg p-4 flex flex-col" [ngClass]="djBorderClass()">
-                  <h3 [ngClass]="djTextColorClass()">Deck A</h3>
-                  <div class="flex-grow flex items-center justify-center">
-                    <div class="w-48 h-48 bg-neutral-900 rounded-full flex items-center justify-center relative">
-                        <div #platterA class="w-44 h-44 bg-neutral-700 rounded-full border-4 border-neutral-600 cursor-grab active:cursor-grabbing" 
-                             [style.transform]="scratchRotationA()"
-                             (mousedown)="onScratchStart($event, 'A')" (touchstart)="onScratchStart($event, 'A')">
-                             <div class="w-2 h-2 bg-red-500 rounded-full absolute top-2 left-1/2 -ml-1"></div>
-                        </div>
-                    </div>
-                  </div>
-                  <div class="mt-4">
-                    <p class="text-sm truncate">{{ deckA().track?.name || 'No Track' }}</p>
-                    <div class="flex items-center justify-center gap-4 mt-2">
-                      <button (click)="toggleDeckPlay('A')" class="text-2xl"><i [ngClass]="deckA().isPlaying ? 'fa-pause' : 'fa-play'" class="fas"></i></button>
-                      <button (click)="playNextOnDeck('A')" class="text-lg"><i class="fas fa-step-forward"></i></button>
-                    </div>
-                  </div>
-                  <audio #audioPlayerA (ended)="onDeckTrackEnded('A')"></audio>
-              </div>
-              <!-- Deck B -->
-              <div class="bg-neutral-800/50 rounded-lg p-4 flex flex-col" [ngClass]="djBorderClass()">
-                  <h3 [ngClass]="djTextColorClass()">Deck B</h3>
-                  <div class="flex-grow flex items-center justify-center">
-                    <div class="w-48 h-48 bg-neutral-900 rounded-full flex items-center justify-center relative">
-                        <div #platterB class="w-44 h-44 bg-neutral-700 rounded-full border-4 border-neutral-600 cursor-grab active:cursor-grabbing" 
-                             [style.transform]="scratchRotationB()"
-                             (mousedown)="onScratchStart($event, 'B')" (touchstart)="onScratchStart($event, 'B')">
-                            <div class="w-2 h-2 bg-blue-500 rounded-full absolute top-2 left-1/2 -ml-1"></div>
-                        </div>
-                    </div>
-                  </div>
-                  <div class="mt-4">
-                    <p class="text-sm truncate">{{ deckB().track?.name || 'No Track' }}</p>
-                    <div class="flex items-center justify-center gap-4 mt-2">
-                      <button (click)="toggleDeckPlay('B')" class="text-2xl"><i [ngClass]="deckB().isPlaying ? 'fa-pause' : 'fa-play'" class="fas"></i></button>
-                      <button (click)="playNextOnDeck('B')" class="text-lg"><i class="fas fa-step-forward"></i></button>
-                    </div>
-                  </div>
-                   <audio #audioPlayerB (ended)="onDeckTrackEnded('B')"></audio>
-              </div>
-          </div>
-          <!-- Crossfader & VU Meters -->
-          <div class="bg-neutral-900/50 p-2 rounded-md flex items-center gap-4" [ngClass]="djBorderClass()">
-              <app-audio-visualizer [analyserNode]="getMasterAnalyser()"></app-audio-visualizer>
-              <input type="range" min="-1" max="1" step="0.01" [(ngModel)]="crossfade" class="w-1/3">
-              <app-audio-visualizer [analyserNode]="getMasterAnalyser()"></app-audio-visualizer>
-          </div>
-      </div>
-      
-      <!-- Other Views -->
-      <app-piano-roll *ngIf="mainViewMode() === 'piano-roll'"></app-piano-roll>
-      <app-image-editor *ngIf="mainViewMode() === 'image-editor'" [initialPrompt]="imageEditorInitialPrompt()" (imageGenerated)="handleImageGenerated($event)" (imageSelectedForAlbumArt)="handleImageSelectedForAlbumArt($event)"></app-image-editor>
-      <app-video-editor *ngIf="mainViewMode() === 'video-editor'" [initialPrompt]="videoEditorInitialPrompt()"></app-video-editor>
-      <app-networking *ngIf="mainViewMode() === 'networking'" (artistProfileSelected)="selectedArtistProfile.set($event)"></app-networking>
-      <app-profile-editor *ngIf="mainViewMode() === 'profile'" [theme]="activeTheme()"></app-profile-editor>
-      <app-hub *ngIf="mainViewMode() === 'tha-spot'"></app-hub>
 
     </div>
 

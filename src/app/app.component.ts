@@ -11,6 +11,7 @@ import { NetworkingComponent } from './components/networking/networking.componen
 import { ProfileEditorComponent } from './components/profile-editor/profile-editor.component';
 import { HubComponent } from './hub/hub.component';
 import { AuthService } from './services/auth.service';
+import { StudioComponent } from './components/studio/studio.component';
 
 interface Track {
   name: string;
@@ -48,6 +49,7 @@ export class AppComponent implements AfterViewInit {
     private VIEW_THEMES: Record<string, AppTheme> = {
         dj: { name: 'DJ Neon', primary: '#00e5ff', accent: '#ff3ec8', neutral: '#0b0e14', purple: '#7a5cff', red: '#ff4d4d', blue: '#00e5ff' },
         'piano-roll': { name: 'Piano Teal', primary: '#00c2a8', accent: '#ffd166', neutral: '#0d1117', purple: '#6a5acd', red: '#ef476f', blue: '#118ab2' },
+        studio: { name: 'Studio Purple', primary: '#a855f7', accent: '#c084fc', neutral: '#1a1a2e', purple: '#a855f7', red: '#f87171', blue: '#60a5fa' },
     };
 
     activeTheme = computed<AppTheme>(() => {
@@ -330,7 +332,7 @@ export class AppComponent implements AfterViewInit {
 
     // --- UI Toggles & View Changers ---
     toggleMainViewMode(): void {
-        const modes: MainViewMode[] = ['player', 'dj', 'piano-roll', 'image-editor', 'video-editor', 'networking', 'profile', 'tha-spot'];
+        const modes: MainViewMode[] = ['studio', 'player', 'dj', 'piano-roll', 'image-editor', 'video-editor', 'networking', 'profile', 'tha-spot'];
         const currentIndex = modes.indexOf(this.mainViewMode());
         const nextIndex = (currentIndex + 1) % modes.length;
         this.userContextService.setMainViewMode(modes[nextIndex]);

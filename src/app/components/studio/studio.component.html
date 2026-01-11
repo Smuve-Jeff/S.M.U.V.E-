@@ -1,0 +1,67 @@
+<div class="studio-container bg-neutral-900 text-neutral-200 h-full flex flex-col">
+  <!-- Studio Header -->
+  <header class="studio-header p-4 border-b-2 border-neutral-800 flex justify-between items-center">
+    <div>
+      <h1 class="text-3xl font-bold text-purple-400">The Pantheon of Sound</h1>
+      <p class="text-sm text-neutral-400">Armed for Recording: <span class="font-bold text-red-400">{{ armedChannels().join(', ') || 'None' }}</span></p>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="text-center">
+        <div class="text-2xl font-bold" [class.text-red-500]="isRecording()">{{ recordingStatus() }}</div>
+        <div class="text-xs text-neutral-500">00:00:00</div>
+      </div>
+      <button (click)="toggleRecording()" class="w-20 h-20 rounded-full flex items-center justify-center" [class.bg-red-700]="isRecording()" [class.bg-neutral-700]="!isRecording()">
+        <i class="fas fa-microphone-alt text-4xl"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Mixer Area -->
+  <main class="studio-main-content flex-grow p-4 flex flex-col gap-4 overflow-y-auto">
+    <div class="mixer-area flex gap-4 overflow-x-auto pb-4">
+      <!-- Channel Strips -->
+      <div *ngFor="let channel of micChannels()" class="channel-strip bg-neutral-800 p-4 rounded-lg flex flex-col items-center gap-4 w-48 flex-shrink-0">
+        <h2 class="font-bold text-lg">{{ channel.label }}</h2>
+        
+        <!-- Fader -->
+        <div class="fader-track h-64 w-8 bg-neutral-900 rounded-full flex justify-center py-2">
+          <input type="range" orient="vertical" min="0" max="100" [value]="channel.level" (input)="updateChannelLevel(channel.id, +$event.target.value)" class="w-2 h-full appearance-none bg-transparent [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-black/25 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-10 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500">
+        </div>
+        <div class="text-sm font-mono">{{ channel.level }}</div>
+
+        <!-- Pan Knob (Placeholder) -->
+        <div class="pan-knob w-16 h-16 rounded-full bg-neutral-700 border-2 border-neutral-600 flex items-center justify-center">
+          <div class="w-2 h-6 bg-purple-400 rounded-full" [style.transform]="'rotate(' + channel.pan + 'deg)'"></div>
+        </div>
+        <span class="text-xs">Pan: {{ channel.pan }}</span>
+
+        <!-- Mute/Arm Buttons -->
+        <div class="flex gap-2">
+          <button (click)="toggleMute(channel.id)" class="w-12 h-12 rounded-md font-bold" [class.bg-yellow-600]="channel.muted" [class.bg-neutral-700]="!channel.muted">MUTE</button>
+          <button (click)="toggleArm(channel.id)" class="w-12 h-12 rounded-md font-bold" [class.bg-red-600]="channel.armed" [class.bg-neutral-700]="!channel.armed">ARM</button>
+        </div>
+      </div>
+
+      <!-- Master Fader -->
+      <div class="master-strip bg-neutral-800 p-4 rounded-lg flex flex-col items-center gap-4 w-48 flex-shrink-0 border-2 border-purple-500">
+        <h2 class="font-bold text-lg text-purple-400">MASTER</h2>
+        
+        <!-- Fader -->
+        <div class="fader-track h-64 w-8 bg-neutral-900 rounded-full flex justify-center py-2">
+          <input type="range" orient="vertical" min="0" max="100" [value]="masterVolume()" (input)="updateMasterVolume(+$event.target.value)" class="w-2 h-full appearance-none bg-transparent [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-black/25 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-10 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-400">
+        </div>
+        <div class="text-sm font-mono">{{ masterVolume() }}</div>
+
+      </div>
+    </div>
+
+    <!-- Strategic Recommendations -->
+    <app-recommendations></app-recommendations>
+
+  </main>
+
+  <!-- Studio Footer -->
+  <footer class="studio-footer p-2 border-t-2 border-neutral-800 text-center text-xs text-neutral-600 mt-auto">
+    <p>S.M.U.V.E. 2.0 - The Sound of Inevitability</p>
+  </footer>
+</div>
