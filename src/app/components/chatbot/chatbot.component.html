@@ -1,4 +1,4 @@
-<h2>Chatbot</h2>
+<h2>S.M.U.V.E. 2.0</h2>
 <div class="chat-history">
   <div *ngFor="let message of messages()" class="message" [ngClass]="{'user-message': message.role === 'user', 'bot-message': message.role !== 'user'}">
     {{ message.content }}

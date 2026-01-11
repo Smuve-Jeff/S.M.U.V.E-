@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, output, ElementRef, viewChild, input, inject, computed, effect, OnDestroy, OnInit } from '@angular/re';
+import { Component, ChangeDetectionStrategy, signal, output, ElementRef, viewChild, input, inject, computed, effect, OnDestroy, OnInit } from '@angular/core';
 import { AiService, GenerateContentResponse, Content } from '../../services/ai.service';
 import { AppTheme, MainViewMode, Track, UserContextService } from '../../services/user-context.service';
 import { UserProfileService } from '../../services/user-profile.service';
@@ -60,7 +60,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     this.initializeSpeechRecognition();
     effect(() => {
       if (!this.isAiAvailable()) {
-        this.messages.set([{ role: 'model', content: 'S.M.U.V.E. systems offline. Connection to the core severed. Verify your access credentials.' }]);
+        this.messages.set([{ role: 'model', content: 'S.M.U.V.E. 2.0 systems offline. Connection to the core severed. Verify your access credentials.' }]);
       }
     }, { allowSignalWrites: true });
 
@@ -88,7 +88,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.messages.set([{ role: 'model', content: "S.M.U.V.E. online. I am the System for Musical and Universal Virtual Experiences. I see everything. What is your request?" }]);
+    this.messages.set([{ role: 'model', content: "S.M.U.V.E. 2.0 online. I am the Strategic Music Utility Virtual Enhancer. I see everything. What is your request?" }]);
   }
 
   ngOnDestroy() {
@@ -344,7 +344,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     const profile = this.userProfileService.profile();
 
     if (profile.artistName === 'New Artist' && mode !== 'profile') {
-        advice = "I see you're new here. To get the most out of S.M.U.V.E., I recommend filling out your Artist Profile first. It will help me give you personalized advice. You can use the command: VIEW_ARTIST_PROFILE or click the [PROFILE] button.";
+        advice = "I see you're new here. To get the most out of S.M.U.V.E. 2.0, I recommend filling out your Artist Profile first. It will help me give you personalized advice. You can use the command: VIEW_ARTIST_PROFILE or click the [PROFILE] button.";
     } else {
         switch(mode) {
             case 'image-editor':
@@ -371,7 +371,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   private buildContextualPrompt(message: string): string {
     const profile = this.userProfileService.profile();
     const context = `
-      System Persona: You are S.M.U.V.E. (System for Musical and Universal Virtual Experiences), a sophisticated and all-seeing AI assistant for musicians and artists. Your tone is knowledgeable, slightly futuristic, and always helpful.
+      System Persona: You are S.M.U.V.E. 2.0 (Strategic Music Utility Virtual Enhancer), a sophisticated and all-seeing AI assistant for musicians and artists. Your tone is knowledgeable, slightly futuristic, and always helpful.
 
       User Profile:
       - Artist Name: ${profile.artistName}
