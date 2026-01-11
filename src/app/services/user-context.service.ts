@@ -4,7 +4,7 @@ import { Injectable, signal } from '@angular/core';
 export interface AppTheme { name: string; primary: string; accent: string; neutral: string; purple: string; red: string; blue: string; }
 
 // Reordered MainViewMode to place 'tha-spot' at the end and 'profile' at the beginning.
-export type MainViewMode = 'studio' | 'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'login' | 'projects';
+export type MainViewMode = 'studio' | 'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'login' | 'projects' | 'remix-arena';
 
 // FIX: Moved shared interfaces here to break circular dependencies
 export interface Track { name: string; url: string; artist?: string; albumArtUrl?: string; videoSrc?: string; }
