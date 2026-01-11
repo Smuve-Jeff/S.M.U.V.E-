@@ -17,7 +17,7 @@ export class UIService {
   showChatbot = signal(false);
   isChatbotOpen = signal(false);
 
-  private viewModes: MainViewMode[] = ['hub', 'studio', 'player', 'dj', 'piano-roll', 'image-editor', 'video-editor', 'networking', 'profile', 'projects', 'remix-arena', 'tha-spot'];
+  private viewModes: MainViewMode[] = ['hub', 'studio', 'player', 'dj', 'piano-roll', 'image-editor', 'video-editor', 'networking', 'profile', 'projects', 'remix-arena', 'tha-spot', 'image-video-lab'];
   private currentViewIndex = 0;
 
   constructor() { }

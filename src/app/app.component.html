@@ -13,25 +13,32 @@
       </h1>
       <div class="nav-buttons">
         <button
-          (click)="uiService.toggleMainViewMode()"
+          routerLink="/hub"
           class="nav-button"
-          title="Toggle Main View"
+          title="Hub"
         >
-          <i class="fas fa-sync-alt"></i>
+          <i class="fas fa-home"></i>
         </button>
         <button
-          (click)="uiService.mainViewMode.set('projects')"
+          routerLink="/projects"
           class="nav-button"
           title="Projects"
         >
           <i class="fas fa-tasks"></i>
         </button>
         <button
-          (click)="uiService.mainViewMode.set('remix-arena')"
+          routerLink="/remix-arena"
           class="nav-button"
           title="Remix Arena"
         >
           <i class="fas fa-gamepad"></i>
+        </button>
+        <button
+          routerLink="/image-video-lab"
+          class="nav-button"
+          title="Image & Video Lab"
+        >
+          <i class="fas fa-flask"></i>
         </button>
         <button
           (click)="uiService.randomizeTheme()"
@@ -60,7 +67,7 @@
       <span class="text-sm text-neutral-400">|</span>
       <button
         *ngIf="!authService.isAuthenticated()"
-        (click)="uiService.mainViewMode.set('profile')"
+        routerLink="/profile"
         class="auth-button"
       >
         Login / Register
@@ -73,7 +80,7 @@
           >Welcome, {{ authService.currentUser()?.artistName }}</span
         >
         <button
-          (click)="uiService.mainViewMode.set('profile')"
+          routerLink="/profile"
           class="nav-button"
           title="View Profile"
         >
@@ -88,13 +95,9 @@
 
   <!-- Main Content -->
   <main class="flex-grow flex overflow-hidden">
-    <div *ngIf="uiService.mainViewMode() !== 'hub'" class="flex-grow relative overflow-y-auto">
+    <div class="flex-grow relative overflow-y-auto">
       <router-outlet></router-outlet>
     </div>
-
-    <ng-container *ngIf="uiService.mainViewMode() === 'hub'">
-      <app-hub [games]="games" [challenges]="challenges" [community]="communityPosts"></app-hub>
-    </ng-container>
 
     <!-- Chatbot Sidebar -->
     <div *ngIf="uiService.isChatbotOpen()"

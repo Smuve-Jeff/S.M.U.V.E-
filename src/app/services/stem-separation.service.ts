@@ -1,4 +1,6 @@
+
 import { Injectable } from '@angular/core';
+import { Observable, of } from 'rxjs';
 
 export interface Stems {
   vocals: AudioBuffer;
@@ -8,28 +10,26 @@ export interface Stems {
 }
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class StemSeparationService {
-  constructor() {}
 
-  async separateStems(buffer: AudioBuffer): Promise<Stems> {
-    // MOCK IMPLEMENTATION
-    // In a real scenario, this would use an AI model (e.g., a TensorFlow.js model)
-    // to split the audio buffer into its component stems. For now, we'll just
-    // return the original buffer for each stem to allow for pipeline development.
-    console.warn(
-      'StemSeparationService: Using mock stem separation. All stems will be the full mix.'
-    );
+  constructor() { }
 
-    return new Promise((resolve) => {
-      const stems: Stems = {
-        vocals: buffer,
-        drums: buffer,
-        bass: buffer,
-        melody: buffer,
-      };
-      resolve(stems);
-    });
+  separate(audioBuffer: AudioBuffer): Observable<Stems> {
+    // This is a placeholder for the actual stem separation logic.
+    // In a real implementation, this would use a model like Spleeter or Demucs.
+    console.log('StemSeparationService: Separating stems (mock implementation)');
+    
+    // For now, we'll return a mock object with empty audio buffers.
+    const emptyBuffer = new AudioContext().createBuffer(1, 1, 44100);
+    const stems: Stems = {
+      vocals: emptyBuffer,
+      drums: emptyBuffer,
+      bass: emptyBuffer,
+      melody: emptyBuffer
+    };
+    
+    return of(stems);
   }
 }

@@ -14,6 +14,7 @@ import { FormsModule } from '@angular/forms';
 import { StemControlsComponent } from '../stem-controls/stem-controls.component';
 import { DeckService } from '../../services/deck.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { StemSeparationService, Stems } from '../../services/stem-separation.service';
 
 @Component({
   selector: 'app-dj-deck',
@@ -33,6 +34,9 @@ export class DjDeckComponent {
   recording = signal(false);
   keylock = signal(true);
 
+  stemsA = signal<Stems | null>(null);
+  stemsB = signal<Stems | null>(null);
+
   pitchAPercentage = computed(
     () => `${(this.deckService.deckA().playbackRate * 100).toFixed(1)}%`
   );
@@ -45,7 +49,8 @@ export class DjDeckComponent {
     private exportService: ExportService,
     public library: LibraryService,
     public deckService: DeckService,
-    private engine: AudioEngineService
+    private engine: AudioEngineService,
+    private stemSeparationService: StemSeparationService
   ) {}
 
   async loadTrackFor(deck: 'A' | 'B') {
@@ -57,6 +62,19 @@ export class DjDeckComponent {
       file
     );
     this.deckService.loadDeckBuffer(deck, buffer, file.name);
+  }
+
+  async separateStems(deck: 'A' | 'B') {
+    const currentDeck = deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+    if (currentDeck.buffer) {
+      this.stemSeparationService.separate(currentDeck.buffer).subscribe(stems => {
+        if (deck === 'A') {
+          this.stemsA.set(stems);
+        } else {
+          this.stemsB.set(stems);
+        }
+      });
+    }
   }
 
   startStopRecording() {

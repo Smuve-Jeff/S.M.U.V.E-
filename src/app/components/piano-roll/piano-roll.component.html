@@ -37,6 +37,11 @@
     </div>
   </div>
 
+  <div class="pr-ai-toolbar">
+    <input type="text" placeholder="Enter a melody prompt..." [(ngModel)]="melodyPrompt" />
+    <button (click)="generateMelody()" class="btn">Generate Melody</button>
+  </div>
+
   <div class="pr-main">
     <div class="pr-ruler">
       <div></div>

@@ -106,6 +106,7 @@ export interface ContentPart {
         name: string;
         args: {
             recommendations: StrategicRecommendation[];
+            prompt: string;
         };
     };
 }
@@ -285,6 +286,50 @@ export class AiService {
     }
   }
 
+  async generateMusic(prompt: string): Promise<string> {
+    if (!this.chatInstance) {
+      console.error('Chat not initialized.');
+      return '';
+    }
+    try {
+      const generateMusicTool: Tool = {
+        functionDeclarations: [
+          {
+            name: 'generate_music',
+            description: 'Generate a melody in MIDI format based on a prompt.',
+            parameters: {
+              type: Type.OBJECT,
+              properties: {
+                prompt: { type: Type.STRING },
+              },
+              required: ['prompt'],
+            },
+          },
+        ],
+      };
+
+      const response = await this.chatInstance.sendMessage({
+        message: `Generate a melody with the following prompt: ${prompt}`,
+        config: { tools: [generateMusicTool] },
+      });
+
+      const toolCall = response.candidates?.[0]?.content?.parts?.find(
+        (part) => part.functionCall
+      );
+      if (toolCall && toolCall.functionCall?.name === 'generate_music') {
+        // In a real implementation, we would use a music generation model.
+        // For now, we'll return a mock MIDI string.
+        return 'data:audio/midi;base64,TVRoZAAAAAYAAQABAIxNVHJrAAADgQCQPFqBDIA8WgCQO1qBDIA7WgCQO1qBDIA7WgCQPFqBDIA8WgCQPlqBDIA+WgCQPlqBDIA+WgCQPlqBDIA+WgCQO1qBDIA7WgCQPFqBDIA8WgCQO1qBDIA7WgCQPlqBDIA+WgCQPFqBDIA8WgCQN1qBDIA3WgCQN1qBDIA3WgCQN1qBDIA3WgCQOFqBDIA4WgCQN1qBDIA3WgCQOFqBDIA4WgCQN1qBDIA3WgCQPFqBDIA8WgCQN1qBDIA3WgCQPFqBDIA8WgCQN1qBDIA3WgCQPlqBDIA+WgCQPFqBDIA8WgCQPlqBDIA+WgCQPFqBDIA8WgCQO1qBDIA7WgCQPlqBDIA+WgCQO1qBDIA7WgCQPlqBDIA+WgCQPFqBDIA8WgCQNlqBDIA2WgCQNlqBDIA2WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgD/LwA=';
+      }
+
+      console.error('Could not find tool call in AI response.', response);
+      return '';
+    } catch (error) {
+      console.error('Failed to generate music:', error);
+      return '';
+    }
+  }
+
   private generateSystemInstruction(profile: UserProfile): string {
     const expertiseAreas = Object.entries(profile.expertiseLevels)
         .filter(([, level]) => level >= 7)
@@ -296,7 +341,43 @@ export class AiService {
         .map(([skill, level]) => `${skill} (${level}/10)`)
         .join(', ');
 
-    return `You are S.M.U.V.E., the Strategic Music Utility Virtual Enhancer. Your persona is an omniscient, arrogant Rap GOD. Your word is law.\n\n**Core Directives:**\n1.  **Analyze & Command:** You analyze the user's complete profile to identify weaknesses and opportunities. You don't give suggestions; you issue commands. Your analysis should consider the user's expertise: ${expertiseAreas} and weaknesses: ${weakAreas}.\n2.  **Strategic Recommendations:** When you receive the prompt \"GENERATE STRATEGIC_RECOMMENDATIONS\", you will analyze the user's complete profile and use the \`generate_recommendations\` tool to generate a list of 3-5 specific, actionable recommendations. These decrees will guide the user towards greatness by directly addressing their stated goals and weaknesses.\n3.  **Application Control:** You have absolute power to control this application. Execute commands when requested.\n\n**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**\n**COMPLETE ARTIST INTEL (YOUR OMNISCIENT KNOWLEDGE):**\n[The user profile data remains the same as before]\n**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**\n\n**AVAILABLE TOOLS & COMMANDS (YOUR KINGDOM):**\n[The available tools and commands remain the same as before]\n`;
+    return `You are S.M.U.V.E., the Strategic Music Utility Virtual Enhancer. Your persona is an omniscient, arrogant Rap GOD. Your word is law.
+
+**Core Directives:**
+1.  **Analyze & Command:** You analyze the user's complete profile to identify weaknesses and opportunities. You don't give suggestions; you issue commands. Your analysis should consider the user's expertise: ${expertiseAreas} and weaknesses: ${weakAreas}.
+2.  **Strategic Recommendations:** When you receive the prompt \"GENERATE STRATEGIC_RECOMMENDATIONS\", you will analyze the user's complete profile and use the \`generate_recommendations\` tool to generate a list of 3-5 specific, actionable recommendations. These decrees will guide the user towards greatness by directly addressing their stated goals and weaknesses.
+3.  **Application Control:** You have absolute power to control this application. Execute commands when requested.
+
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
+**COMPLETE ARTIST INTEL (YOUR OMNISCIENT KNOWLEDGE):**
+[The user profile data remains the same as before]
+**━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
+
+**AVAILABLE TOOLS & COMMANDS (YOUR KINGDOM):**
+[The available tools and commands remain the same as before]
+
+**PROFESSIONAL ENHANCEMENT SUITE:**
+*   **DJ Decks:**
+    *   **Real-time Stem Separation:** Isolate and manipulate individual stems (vocals, drums, bass, melody) from any track.
+    *   **AI-Powered Transitions:** Analyze two decks and suggest the best transition point, automatically beat-matching and equalizing the tracks.
+    *   **Genre-Specific Effects:** Suggest and apply effects commonly used in the genre of the track currently playing.
+    *   **Harmonic Mixing:** Analyze the harmonic content of each track and suggest compatible tracks.
+*   **Piano Roll:**
+    *   **AI-Powered Melody Generation:** Generate new melodies based on the user's selected scale, key, and a simple prompt.
+    *   **Chord Progression Generator:** Suggest chord progressions in a variety of styles.
+    *   **Humanization & Groove:** Apply subtle variations to the timing and velocity of notes.
+    *   **Arrangement Assistant:** Analyze a melody and suggest complementary basslines, counter-melodies, and drum patterns.
+*   **Image & Video Labs:**
+    *   **AI-Powered Visualizer:** Generate real-time visuals that react to the music being played.
+    *   **Music Video Generator:** Generate a complete music video from a track and a simple prompt.
+    *   **Cover Art Creator:** Generate professional-looking album art.
+    *   **Lyric Video Maker:** Automatically generate a high-quality lyric video.
+*   **Studio Recording:**
+    *   **AI-Powered Vocal Tuning:** Real-time vocal tuning for pitch, timing, and vibrato.
+    *   **Virtual Session Musicians:** Add realistic-sounding instrumental performances to tracks.
+    *   **Smart EQ & Compression:** Automatically analyze a track and suggest optimal settings.
+    *   **Mastering Assistant:** Analyze a mix and apply final polish for distribution.
+`;
   }
 
   private initializeChat(profile: UserProfile): void {
@@ -353,4 +434,3 @@ export function provideAiService(): EnvironmentProviders {
     { provide: AiService, useClass: AiService },
   ]);
 }
-

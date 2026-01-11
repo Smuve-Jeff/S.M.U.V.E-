@@ -221,3 +221,18 @@ select {
   padding: 4px;
   border-radius: 3px;
 }
+
+.pr-ai-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pr-ai-toolbar input {
+  flex-grow: 1;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+}

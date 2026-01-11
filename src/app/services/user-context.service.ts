@@ -16,7 +16,8 @@ export type MainViewMode =
   | 'tha-spot'
   | 'login'
   | 'projects'
-  | 'remix-arena';
+  | 'remix-arena'
+  | 'image-video-lab';
 
 export type { MainViewMode as ViewMode };
 

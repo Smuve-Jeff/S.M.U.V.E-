@@ -170,6 +170,7 @@
         <option>±50%</option>
       </select>
     </div>
+    <button class="p-2 border text-xs" (click)="separateStems('A')">SEPARATE STEMS</button>
   </div>
 
   <!-- Deck B or Sample Library -->
@@ -187,7 +188,7 @@
         >
           DECK B
         </h3>
-        <div class="text-xs opacity-70 truncate max-w-[40%]">
+        <div class="text-xs opacity-70 truncate max-w-[40%]" >
           {{ deckService.deckB().track.name }}
         </div>
       </div>
@@ -243,6 +244,7 @@
           <option>±50%</option>
         </select>
       </div>
+      <button class="p-2 border text-xs" (click)="separateStems('B')">SEPARATE STEMS</button>
     }
   </div>
 </div>

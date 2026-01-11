@@ -11,6 +11,8 @@ import {
   TrackNote,
 } from '../../services/music-manager.service';
 import { InstrumentsService } from '../../services/instruments.service';
+import { AiService } from '../../services/ai.service';
+import { FormsModule } from '@angular/forms';
 
 const BASE_MIDI = 60; // C4
 const OCTAVES = 3;
@@ -20,11 +22,14 @@ const OCTAVES = 3;
   templateUrl: './piano-roll.component.html',
   styleUrls: ['./piano-roll.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormsModule],
+  standalone: true,
 })
 export class PianoRollComponent {
   private music = inject(MusicManagerService);
   private instrumentsSvc = inject(InstrumentsService);
   private elementRef = inject(ElementRef);
+  private aiService = inject(AiService);
 
   // UI state
   bpm = signal(this.music.engine.tempo());
@@ -35,6 +40,7 @@ export class PianoRollComponent {
   stepsArray = computed(() =>
     Array.from({ length: this.steps() }, (_, i) => i)
   );
+  melodyPrompt = signal('');
 
   // Notes grid
   midiRows = Array.from(
@@ -81,6 +87,18 @@ export class PianoRollComponent {
   resetSequence() {
     const id = this.selectedTrackId();
     if (id != null) this.music.clearTrack(id);
+  }
+
+  async generateMelody() {
+    const prompt = this.melodyPrompt();
+    if (!prompt) return;
+
+    const midiData = await this.aiService.generateMusic(prompt);
+    if (midiData) {
+      // The music manager service needs a method to load MIDI data
+      // For now, we'll log the data to the console
+      console.log('Generated MIDI data:', midiData);
+    }
   }
 
   onBpmChange(event: Event) {
