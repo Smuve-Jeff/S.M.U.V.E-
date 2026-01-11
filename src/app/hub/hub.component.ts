@@ -72,7 +72,6 @@ export class HubComponent implements OnInit, OnDestroy {
   sortMode = signal<'Popular' | 'Rating' | 'Newest'>('Popular');
 
   private searchSubject = new Subject<string>();
-  private filterOrSortSubject = new Subject<void>();
   private destroy$ = new Subject<void>();
 
   // "Tha Battlefield" lobby state
@@ -96,34 +95,26 @@ export class HubComponent implements OnInit, OnDestroy {
   constructor(
     private gameService: GameService,
     public profileService: UserProfileService
-  ) {}
+  ) {
+    // Effect to refetch games when filters or sort change
+    effect(() => {
+      this.gameService
+        .listGames(this.activeFilters(), this.sortMode())
+        .subscribe((games) => this.games.set(games));
+    });
+  }
 
   ngOnInit() {
-    this.fetchGames();
-
     this.searchSubject
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((query) => {
         this.activeFilters.update((filters) => ({ ...filters, query }));
-        this.fetchGames();
-      });
-
-    this.filterOrSortSubject
-      .pipe(debounceTime(300), takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.fetchGames();
       });
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  private fetchGames() {
-    this.gameService
-      .listGames(this.activeFilters(), this.sortMode())
-      .subscribe((games) => this.games.set(games));
   }
 
   // Method to handle game selection
@@ -152,12 +143,10 @@ export class HubComponent implements OnInit, OnDestroy {
       ...filters,
       genre: this.activeFilters().genre === genre ? undefined : genre,
     }));
-    this.filterOrSortSubject.next();
   }
 
   setSort(mode: 'Popular' | 'Rating' | 'Newest') {
     this.sortMode.set(mode);
-    this.filterOrSortSubject.next();
   }
 
   // "Tha Battlefield" lobby methods

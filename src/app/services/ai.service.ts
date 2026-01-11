@@ -10,30 +10,10 @@ import {
   effect,
 } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
+import { GoogleGenerativeAI } from '@google/genai';
 
 export const API_KEY_TOKEN = new InjectionToken<string>('API_KEY');
 
-// --- START: INTERNAL TYPE DECLARATIONS FOR @google/genai ---
-
-export interface GoogleGenAI {
-  apiKey: string;
-  models: {
-    generateContent(
-      params: GenerateContentParameters
-    ): Promise<GenerateContentResponse>;
-    generateContentStream(
-      params: GenerateContentParameters
-    ): Promise<AsyncIterable<GenerateContentResult>>;
-    generateImages(params: GenerateImagesParameters): Promise<GenerateImagesResponse>;
-  };
-  chats: {
-    create(config: {
-      model: string;
-      systemInstruction?: string;
-      config?: ChatConfig;
-    }): Chat;
-  };
-}
 
 export interface ChatConfig {
     systemInstruction?: string;
@@ -167,7 +147,7 @@ export class AiService {
   private readonly _apiKey: string = inject(API_KEY_TOKEN);
   private userProfileService = inject(UserProfileService);
 
-  private _genAI = signal<GoogleGenAI | undefined>(undefined);
+  private _genAI = signal<GoogleGenerativeAI | undefined>(undefined);
   private _chatInstance = signal<Chat | undefined>(undefined);
 
   readonly isAiAvailable = computed(() => !!this._genAI() || this.isMockMode());
@@ -184,7 +164,7 @@ export class AiService {
     });
   }
 
-  get genAI(): GoogleGenAI | undefined {
+  get genAI(): GoogleGenerativeAI | undefined {
     return this._genAI();
   }
 
@@ -314,7 +294,7 @@ export class AiService {
     }
   }
 
-  private async initializeGenAI(): Promise<void> {
+  private initializeGenAI(): void {
     if (!this._apiKey || this._apiKey.length < 30) {
       console.warn(
         'AiService: Invalid or missing API key. Enabling Mock Mode for testing.'
@@ -324,20 +304,11 @@ export class AiService {
     }
 
     try {
-      const url = [
-        'https://',
-        'next.esm.sh/',
-        '@google/genai@^1.30.0?external=rxjs',
-      ].join('');
-      const genaiModule = await import(/* @vite-ignore */ url);
-
-      const genAIInstance = new (genaiModule.GoogleGenAI)(
-        this._apiKey,
-      ) as GoogleGenAI;
+      const genAIInstance = new GoogleGenerativeAI(this._apiKey);
       this._genAI.set(genAIInstance);
       const userProfile = this.userProfileService.profile();
       if (userProfile) {
-          this.initializeChat(userProfile);
+        this.initializeChat(userProfile);
       }
 
       console.log('AiService: GoogleGenAI client initialized.');

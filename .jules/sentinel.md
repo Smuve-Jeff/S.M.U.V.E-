@@ -1,0 +1,4 @@
+## 2024-07-25 - Mitigate Supply Chain Attacks from Dynamic CDN Imports
+**Vulnerability:** The application was dynamically importing the `@google/genai` library from a third-party CDN (`next.esm.sh`) at runtime.
+**Learning:** This practice introduces a significant supply chain risk. If the CDN is compromised, an attacker could inject malicious code into the application, leading to data breaches, session hijacking, or other exploits.
+**Prevention:** Always favor installing dependencies from a trusted package registry (e.g., npm) using a package manager like `pnpm`. This ensures that the code is fetched from a secure source and that its integrity is verified. Furthermore, using a lockfile (`pnpm-lock.yaml`) is critical to ensure that builds are reproducible and that dependencies are not unexpectedly updated. Static imports should be used to ensure that the code is validated at build time.
