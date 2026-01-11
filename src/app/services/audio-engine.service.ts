@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { StemSeparationService, Stems } from './stem-separation.service';
 
 // High-precision WebAudio scheduler with lookahead and sample/synth playback
 // Phase A foundation: transport, tempo, scheduler, sample player, basic synth, mixer buses
@@ -33,9 +34,23 @@ export interface TrackState {
 }
 
 type DeckId = 'A' | 'B';
+
+// Updated DeckChannel to support stems
 interface DeckChannel {
   buffer?: AudioBuffer;
-  source?: AudioBufferSourceNode | null;
+  stems?: Stems;
+  sources: {
+    vocals: AudioBufferSourceNode | null;
+    drums: AudioBufferSourceNode | null;
+    bass: AudioBufferSourceNode | null;
+    melody: AudioBufferSourceNode | null;
+  };
+  gains: {
+    vocals: GainNode;
+    drums: GainNode;
+    bass: GainNode;
+    melody: GainNode;
+  };
   pre: GainNode;            // point after EQ/filter for sends
   gain: GainNode;           // deck output gain
   pan: StereoPannerNode;    // deck pan
@@ -56,6 +71,7 @@ interface DeckChannel {
 
 @Injectable({ providedIn: 'root' })
 export class AudioEngineService {
+  private stemSeparationService = inject(StemSeparationService);
   private ctx: AudioContext;
   private masterGain: GainNode;
   private analyser: AnalyserNode;
@@ -199,23 +215,40 @@ export class AudioEngineService {
     const sendB = this.ctx.createGain();
     sendB.gain.value = 0;
 
-    // Route: src -> eqLow -> eqMid -> eqHigh -> filter -> pre
+    // Create gain nodes for each stem
+    const stemGains = {
+      vocals: this.ctx.createGain(),
+      drums: this.ctx.createGain(),
+      bass: this.ctx.createGain(),
+      melody: this.ctx.createGain(),
+    };
+
+    // Route stems to EQ chain
+    stemGains.vocals.connect(eqLow);
+    stemGains.drums.connect(eqLow);
+    stemGains.bass.connect(eqLow);
+    stemGains.melody.connect(eqLow);
+    
+    // Route: eqLow -> eqMid -> eqHigh -> filter -> pre
+    eqLow.connect(eqMid).connect(eqHigh).connect(filter).connect(pre);
+    
     // pre -> gain -> pan -> master
-    // pre -> sendA -> reverbConvolver
-    // pre -> sendB -> delay
     pre.connect(gain).connect(pan).connect(this.masterGain);
+    // pre -> sendA -> reverbConvolver
     pre.connect(sendA).connect(this.reverbConvolver);
+    // pre -> sendB -> delay
     pre.connect(sendB).connect(this.delay);
 
     const deck: DeckChannel = {
       pre, gain, pan, filter, eqLow, eqMid, eqHigh, sendA, sendB,
-      buffer: undefined, source: null, startTime: 0, pauseOffset: 0,
+      buffer: undefined, 
+      stems: undefined,
+      sources: { vocals: null, drums: null, bass: null, melody: null },
+      gains: stemGains,
+      startTime: 0, pauseOffset: 0,
       rate: 1, isPlaying: false,
       loopEnabled: false, loopStartSec: 0, loopEndSec: 0,
     };
-
-    // chain EQ and filter into pre
-    eqLow.connect(eqMid).connect(eqHigh).connect(filter).connect(pre);
 
     if (id === 'A') this.deckA = deck; else this.deckB = deck;
   }
@@ -260,9 +293,10 @@ export class AudioEngineService {
   }
 
   // Deck operations
-  loadDeckBuffer(id: DeckId, buffer: AudioBuffer) {
+  async loadDeckBuffer(id: DeckId, buffer: AudioBuffer) {
     const deck = this.getDeck(id);
     deck.buffer = buffer;
+    deck.stems = await this.stemSeparationService.separateStems(buffer);
     deck.pauseOffset = 0;
     if (deck.isPlaying) {
       this.stopDeckSource(deck);
@@ -272,7 +306,7 @@ export class AudioEngineService {
 
   playDeck(id: DeckId) {
     const deck = this.getDeck(id);
-    if (!deck.buffer) return;
+    if (!deck.buffer || !deck.stems) return;
     if (deck.isPlaying) return;
     this.startDeckSource(deck, deck.pauseOffset);
   }
@@ -288,9 +322,16 @@ export class AudioEngineService {
   setDeckRate(id: DeckId, rate: number) {
     const deck = this.getDeck(id);
     deck.rate = Math.max(0.5, Math.min(1.5, rate));
-    if (deck.source) {
-      try { deck.source.playbackRate.setTargetAtTime(deck.rate, this.ctx.currentTime, 0.01); } catch {}
-    }
+    Object.values(deck.sources).forEach(source => {
+      if (source) {
+        try { source.playbackRate.setTargetAtTime(deck.rate, this.ctx.currentTime, 0.01); } catch {}
+      }
+    });
+  }
+  
+  setStemGain(id: DeckId, stem: keyof Stems, gain: number) {
+    const deck = this.getDeck(id);
+    deck.gains[stem].gain.setTargetAtTime(Math.max(0, Math.min(1, gain)), this.ctx.currentTime, 0.01);
   }
 
   setDeckEq(id: DeckId, highs: number, mids: number, lows: number) {
@@ -318,42 +359,47 @@ export class AudioEngineService {
   }
 
   private startDeckSource(deck: DeckChannel, offset: number) {
-    if (!deck.buffer) return;
-    const src = this.ctx.createBufferSource();
-    src.buffer = deck.buffer;
-    src.playbackRate.value = deck.rate;
-    // loop settings
-    src.loop = deck.loopEnabled;
-    if (deck.loopEnabled) {
-      src.loopStart = deck.loopStartSec;
-      src.loopEnd = deck.loopEndSec > 0 ? deck.loopEndSec : (deck.buffer?.duration || 0);
-    }
-    // Rebuild the source connection into the deck chain
-    src.connect(deck.eqLow);
+    if (!deck.stems) return;
 
-    const duration = deck.buffer.duration;
-    const when = this.ctx.currentTime + 0.005;
-    src.start(when, offset);
-    deck.startTime = when;
-    deck.source = src;
-    deck.isPlaying = true;
-
-    src.onended = () => {
-      // handle natural end
-      if (deck.source === src) {
-        deck.isPlaying = false;
-        deck.source = null;
-        deck.pauseOffset = 0;
+    Object.keys(deck.stems).forEach(key => {
+      const stemName = key as keyof Stems;
+      const source = this.ctx.createBufferSource();
+      source.buffer = deck.stems![stemName];
+      source.playbackRate.value = deck.rate;
+      source.loop = deck.loopEnabled;
+      if (deck.loopEnabled) {
+        source.loopStart = deck.loopStartSec;
+        source.loopEnd = deck.loopEndSec > 0 ? deck.loopEndSec : (deck.buffer?.duration || 0);
       }
-    };
+      source.connect(deck.gains[stemName]);
+      
+      const when = this.ctx.currentTime + 0.005;
+      source.start(when, offset);
+      deck.sources[stemName] = source;
+
+      source.onended = () => {
+        if (deck.sources[stemName] === source) {
+          deck.isPlaying = false;
+          deck.sources[stemName] = null;
+          if (stemName === 'vocals') { // only reset pause offset once
+            deck.pauseOffset = 0;
+          }
+        }
+      };
+    });
+    
+    deck.startTime = this.ctx.currentTime + 0.005;
+    deck.isPlaying = true;
   }
 
   private stopDeckSource(deck: DeckChannel) {
-    if (deck.source) {
-      try { deck.source.stop(); } catch {}
-      deck.source.disconnect();
-      deck.source = null;
-    }
+    Object.values(deck.sources).forEach(source => {
+      if (source) {
+        try { source.stop(); } catch {}
+        source.disconnect();
+      }
+    });
+    deck.sources = { vocals: null, drums: null, bass: null, melody: null };
     deck.isPlaying = false;
   }
 

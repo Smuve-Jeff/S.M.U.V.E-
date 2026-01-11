@@ -64,6 +64,7 @@
       <div class="absolute inset-0 rounded-full border" [class]="'border-' + theme().accent + '-700/30'"></div>
       <img [src]="deckA().track.albumArtUrl" class="w-40 h-40 rounded-full object-cover shadow-[0_0_40px_rgba(0,255,255,0.2)]">
     </div>
+    <app-stem-controls [deckId]="'A'" (gainChange)="onStemGainChange('A', $event)"></app-stem-controls>
     <div class="flex items-center justify-around gap-2 text-sm">
       <button class="p-2 border">CUE</button>
       <button class="p-4 border text-2xl" (click)="togglePlay('A')">{{ deckA().isPlaying ? 'PAUSE' : 'PLAY' }}</button>
@@ -81,7 +82,7 @@
       <select class="bg-black/40 border rounded px-1 py-0.5 text-[10px] w-20">
         <option>±8%</option>
         <option selected>±16%</option>
-        <option>��50%</option>
+        <option>±50%</option>
       </select>
     </div>
   </div>
@@ -100,6 +101,7 @@
         <div class="absolute inset-0 rounded-full border" [class]="'border-' + theme().accent + '-700/30'"></div>
         <img [src]="deckB().track.albumArtUrl" class="w-40 h-40 rounded-full object-cover shadow-[0_0_40px_rgba(255,0,255,0.2)]">
       </div>
+      <app-stem-controls [deckId]="'B'" (gainChange)="onStemGainChange('B', $event)"></app-stem-controls>
       <div class="flex items-center justify-around gap-2 text-sm">
         <button class="p-2 border">CUE</button>
         <button class="p-4 border text-2xl" (click)="togglePlay('B')">{{ deckB().isPlaying ? 'PAUSE' : 'PLAY' }}</button>

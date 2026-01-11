@@ -1,18 +1,19 @@
 import { Component, ChangeDetectionStrategy, signal, input, computed, effect } from '@angular/core';
 import { AppTheme, DeckState, initialDeckState } from '../../services/user-context.service';
 import { SampleLibraryComponent } from '../sample-library/sample-library.component';
-import { AudioEngineService } from '../../services/audio-engine.service';
+import { AudioEngineService, Stems } from '../../services/audio-engine.service';
 import { FileLoaderService } from '../../services/file-loader.service';
 import { ExportService } from '../../services/export.service';
 import { LibraryService } from '../../services/library.service';
 import { FormsModule } from '@angular/forms';
+import { StemControlsComponent } from '../stem-controls/stem-controls.component';
 
 @Component({
   selector: 'app-dj-deck',
   templateUrl: './dj-deck.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [SampleLibraryComponent, FormsModule]
+  imports: [SampleLibraryComponent, FormsModule, StemControlsComponent]
 })
 export class DjDeckComponent {
   theme = input.required<AppTheme>();
@@ -73,6 +74,10 @@ export class DjDeckComponent {
     }
     if (deck === 'A') this.deckA.update(d => ({ ...d, isPlaying: !state.isPlaying }));
     else this.deckB.update(d => ({ ...d, isPlaying: !state.isPlaying }));
+  }
+
+  onStemGainChange(deck: 'A' | 'B', event: { stem: string, gain: number }) {
+    this.engine.setStemGain(deck, event.stem as keyof Stems, event.gain);
   }
 
   startStopRecording() {
