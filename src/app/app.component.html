@@ -156,7 +156,6 @@
       <app-networking *ngIf="mainViewMode() === 'networking'" (artistProfileSelected)="selectedArtistProfile.set($event)"></app-networking>
       <app-profile-editor *ngIf="mainViewMode() === 'profile'" [theme]="activeTheme()"></app-profile-editor>
       <app-hub *ngIf="mainViewMode() === 'tha-spot'"></app-hub>
-      <app-studio-interface *ngIf="mainViewMode() === 'studio-interface'"></app-studio-interface>
 
     </div>
 

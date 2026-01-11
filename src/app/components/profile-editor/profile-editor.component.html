@@ -1,439 +1,247 @@
-<div class="w-full h-full flex flex-col bg-gradient-to-br from-black via-purple-950/20 to-black" [style.color]="'var(--text-color)'">
-  
-  <!-- ========================================== -->
-  <!-- LOGIN / REGISTER SCREEN (When NOT Authenticated) -->
-  <!-- ========================================== -->
-  <div *ngIf="!isAuthenticated()" class="flex-grow flex items-center justify-center p-6">
-    <div class="w-full max-w-md">
-      
-      <!-- Header -->
-      <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold mb-2" [style.color]="theme().accent">S.M.U.V.E. 2.0</h1>
-        <p class="text-sm opacity-70">Strategic Music Utility Virtual Enhancer</p>
-        <div class="mt-4 p-4 border rounded-lg" [style.border-color]="theme().accent + '40'" [style.background]="theme().accent + '10'">
-          <p class="text-xs leading-relaxed">
-            The more you tell S.M.U.V.E. about your journey, the more powerful and personalized your AI music manager becomes. 
-            Unlock unmatched strategies, production tips, and career guidance tailored specifically to YOU.
-          </p>
-        </div>
-      </div>
+<div class="p-6 h-full overflow-y-auto bg-neutral-900 text-white" [ngStyle]="{'border-color': theme().primary, 'color': theme().primary}">
 
-      <!-- Tab Switcher -->
-      <div class="flex border-b-2 mb-6" [style.border-color]="theme().accent + '30'">
-        <button (click)="authMode.set('login')" 
-                class="flex-1 py-3 font-bold transition-all"
-                [class.border-b-4]="authMode() === 'login'"
-                [style.border-color]="authMode() === 'login' ? theme().accent : 'transparent'"
-                [style.color]="authMode() === 'login' ? theme().accent : 'inherit'">
-          LOGIN
-        </button>
-        <button (click)="authMode.set('register')" 
-                class="flex-1 py-3 font-bold transition-all"
-                [class.border-b-4]="authMode() === 'register'"
-                [style.border-color]="authMode() === 'register' ? theme().accent : 'transparent'"
-                [style.color]="authMode() === 'register' ? theme().accent : 'inherit'">
-          REGISTER
-        </button>
-      </div>
-
-      <!-- Error/Success Messages -->
-      <div *ngIf="authError()" class="mb-4 p-3 border-2 border-red-500 bg-red-500/10 rounded-lg">
-        <p class="text-sm text-red-400">{{ authError() }}</p>
-      </div>
-      <div *ngIf="authSuccess()" class="mb-4 p-3 border-2 border-green-500 bg-green-500/10 rounded-lg">
-        <p class="text-sm text-green-400">{{ authSuccess() }}</p>
-      </div>
-
-      <!-- LOGIN FORM -->
-      <div *ngIf="authMode() === 'login'" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium mb-2">Email</label>
-          <input type="email" 
-                 [value]="loginEmail()" 
-                 (input)="loginEmail.set($any($event.target).value)"
-                 [disabled]="authLoading()"
-                 class="w-full p-3 bg-black/50 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all" 
-                 [style.border-color]="theme().accent + '50'"
-                 placeholder="your.email@example.com">
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium mb-2">Password</label>
-          <input type="password" 
-                 [value]="loginPassword()" 
-                 (input)="loginPassword.set($any($event.target).value)"
-                 [disabled]="authLoading()"
-                 (keyup.enter)="handleLogin()"
-                 class="w-full p-3 bg-black/50 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all" 
-                 [style.border-color]="theme().accent + '50'"
-                 placeholder="••••••••">
-        </div>
-
-        <button (click)="handleLogin()" 
-                [disabled]="authLoading()"
-                class="w-full p-4 border-2 rounded-lg font-bold text-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                [style.border-color]="theme().accent"
-                [style.background]="theme().accent + '20'"
-                [class.hover:bg-purple-600]="!authLoading()">
-          <span *ngIf="!authLoading()">ENTER S.M.U.V.E.</span>
-          <span *ngIf="authLoading()" class="flex items-center justify-center gap-2">
-            <i class="fas fa-spinner fa-spin"></i> AUTHENTICATING...
-          </span>
-        </button>
-      </div>
-
-      <!-- REGISTER FORM -->
-      <div *ngIf="authMode() === 'register'" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium mb-2">Artist Name *</label>
-          <input type="text" 
-                 [value]="registerArtistName()" 
-                 (input)="registerArtistName.set($any($event.target).value)"
-                 [disabled]="authLoading()"
-                 class="w-full p-3 bg-black/50 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all" 
-                 [style.border-color]="theme().accent + '50'"
-                 placeholder="Your artist/stage name">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-2">Email *</label>
-          <input type="email" 
-                 [value]="registerEmail()" 
-                 (input)="registerEmail.set($any($event.target).value)"
-                 [disabled]="authLoading()"
-                 class="w-full p-3 bg-black/50 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all" 
-                 [style.border-color]="theme().accent + '50'"
-                 placeholder="your.email@example.com">
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium mb-2">Password * (min 6 characters)</label>
-          <input type="password" 
-                 [value]="registerPassword()" 
-                 (input)="registerPassword.set($any($event.target).value)"
-                 [disabled]="authLoading()"
-                 class="w-full p-3 bg-black/50 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all" 
-                 [style.border-color]="theme().accent + '50'"
-                 placeholder="••••••••">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-2">Confirm Password *</label>
-          <input type="password" 
-                 [value]="registerConfirmPassword()" 
-                 (input)="registerConfirmPassword.set($any($event.target).value)"
-                 [disabled]="authLoading()"
-                 (keyup.enter)="handleRegister()"
-                 class="w-full p-3 bg-black/50 border-2 rounded-lg focus:outline-none focus:ring-2 transition-all" 
-                 [style.border-color]="theme().accent + '50'"
-                 placeholder="••••••••">
-        </div>
-
-        <button (click)="handleRegister()" 
-                [disabled]="authLoading()"
-                class="w-full p-4 border-2 rounded-lg font-bold text-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                [style.border-color]="theme().accent"
-                [style.background]="theme().accent + '20'"
-                [class.hover:bg-purple-600]="!authLoading()">
-          <span *ngIf="!authLoading()">BEGIN YOUR JOURNEY</span>
-          <span *ngIf="authLoading()" class="flex items-center justify-center gap-2">
-            <i class="fas fa-spinner fa-spin"></i> CREATING ACCOUNT...
-          </span>
-        </button>
-
-        <p class="text-xs text-center opacity-60 mt-4">
-          By registering, you agree to let S.M.U.V.E. guide your musical destiny.
-        </p>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ========================================== -->
-  <!-- PROFILE EDITOR (When Authenticated) -->
-  <!-- ========================================== -->
-  <div *ngIf="isAuthenticated()" class="flex-grow flex flex-col">
+  <!-- Not Authenticated View -->
+  <div *ngIf="!isAuthenticated()" class="max-w-md mx-auto bg-neutral-800 p-8 rounded-lg shadow-lg">
+    <h2 class="text-3xl font-bold text-center mb-2" [style.color]="theme().primary">{{ authMode() === 'login' ? 'Login to S.M.U.V.E.' : 'Register for S.M.U.V.E.' }}</h2>
+    <p class="text-center text-neutral-400 mb-6">Access your personalized studio.</p>
     
-    <!-- Header -->
-    <div class="border-b-2 p-4 bg-black/50" [style.border-color]="theme().accent">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-2xl font-bold tracking-wider" [style.color]="theme().accent">
-            S.M.U.V.E. ARTIST PROFILE
-          </h2>
-          <p class="text-sm mt-1 opacity-70">
-            Logged in as: {{ currentUser()?.artistName }} ({{ currentUser()?.email }})
-          </p>
-        </div>
-        <div class="text-right">
-          <div class="flex items-center gap-3 mb-2">
-            <span class="text-sm">Profile Completeness:</span>
-            <div class="w-32 h-2 bg-black/50 rounded-full overflow-hidden border" [style.border-color]="theme().accent + '40'">
-              <div class="h-full transition-all duration-500" 
-                   [style.width.%]="profileCompleteness()"
-                   [style.background]="theme().accent"></div>
-            </div>
-            <span class="font-bold" [style.color]="theme().accent">{{ profileCompleteness() }}%</span>
-          </div>
-          <button (click)="handleLogout()" 
-                  class="text-sm px-3 py-1 border rounded hover:bg-white/10 transition-all"
-                  [style.border-color]="theme().accent + '50'">
-            <i class="fas fa-sign-out-alt mr-1"></i> Logout
-          </button>
-        </div>
+    <!-- Auth Forms -->
+    <form *ngIf="authMode() === 'login'" (ngSubmit)="handleLogin()">
+      <div class="mb-4">
+        <label for="login-email" class="block mb-2 text-sm font-medium text-neutral-300">Email</label>
+        <input id="login-email" type="email" [value]="loginEmail()" (input)="loginEmail.set($event.target.value)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary">
       </div>
-      <p class="text-center text-xs mt-3 opacity-70">
-        The more details you provide, the better S.M.U.V.E. can tailor its advice, recommendations, and strategies to your unique journey.
-      </p>
-    </div>
-
-    <!-- Navigation Tabs -->
-    <div class="flex overflow-x-auto border-b-2 bg-black/30 scrollbar-thin" [style.border-color]="theme().accent + '40'">
-      <button *ngFor="let section of sections" 
-              (click)="activeSection.set(section.id)"
-              [class.border-b-4]="activeSection() === section.id"
-              [style.border-color]="activeSection() === section.id ? theme().accent : 'transparent'"
-              [style.background]="activeSection() === section.id ? theme().accent + '20' : 'transparent'"
-              class="px-4 py-3 text-sm whitespace-nowrap hover:bg-white/5 transition-all flex items-center gap-2">
-        <i class="fas" [ngClass]="section.icon"></i>
-        <span>{{ section.label }}</span>
+      <div class="mb-6">
+        <label for="login-password" class="block mb-2 text-sm font-medium text-neutral-300">Password</label>
+        <input id="login-password" type="password" [value]="loginPassword()" (input)="loginPassword.set($event.target.value)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary">
+      </div>
+      <button type="submit" class="w-full py-2 px-4 font-bold rounded-md text-white transition-colors" [style.background-color]="theme().primary" [disabled]="authLoading()">
+        {{ authLoading() ? 'Logging in...' : 'Login' }}
       </button>
+    </form>
+
+    <form *ngIf="authMode() === 'register'" (ngSubmit)="handleRegister()">
+        <div class="mb-4">
+          <label for="register-artist-name" class="block mb-2 text-sm font-medium text-neutral-300">Artist Name</label>
+          <input id="register-artist-name" type="text" [value]="registerArtistName()" (input)="registerArtistName.set($event.target.value)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary">
+        </div>
+        <div class="mb-4">
+            <label for="register-email" class="block mb-2 text-sm font-medium text-neutral-300">Email</label>
+            <input id="register-email" type="email" [value]="registerEmail()" (input)="registerEmail.set($event.target.value)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary">
+        </div>
+        <div class="mb-4">
+            <label for="register-password" class="block mb-2 text-sm font-medium text-neutral-300">Password</label>
+            <input id="register-password" type="password" [value]="registerPassword()" (input)="registerPassword.set($event.target.value)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary">
+        </div>
+        <div class="mb-6">
+            <label for="register-confirm-password" class="block mb-2 text-sm font-medium text-neutral-300">Confirm Password</label>
+            <input id="register-confirm-password" type="password" [value]="registerConfirmPassword()" (input)="registerConfirmPassword.set($event.target.value)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary">
+        </div>
+        <button type="submit" class="w-full py-2 px-4 font-bold rounded-md text-white transition-colors" [style.background-color]="theme().primary" [disabled]="authLoading()">
+            {{ authLoading() ? 'Registering...' : 'Register' }}
+        </button>
+    </form>
+
+    <!-- Auth Messages -->
+    <div *ngIf="authError()" class="mt-4 p-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-md">
+      {{ authError() }}
+    </div>
+    <div *ngIf="authSuccess()" class="mt-4 p-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-md">
+      {{ authSuccess() }}
     </div>
 
-    <!-- Voice Input Indicator (Global) -->
-    <div *ngIf="isRecording()" class="bg-red-600 text-white p-2 text-center animate-pulse">
-      <i class="fas fa-microphone mr-2"></i>
-      Recording for: {{ recordingField() }} - Speak now...
-      <button (click)="stopVoiceInput()" class="ml-4 px-3 py-1 bg-black/30 rounded hover:bg-black/50">
-        Stop
-      </button>
-    </div>
-
-    <!-- Content Area -->
-    <div class="flex-grow overflow-y-auto p-6 space-y-8">
-      
-      <!-- BASIC INFO SECTION -->
-      <div *ngIf="activeSection() === 'basic'" class="space-y-6 animate-fadeIn">
-        <h3 class="text-xl font-bold mb-4 flex items-center gap-2" [style.color]="theme().accent">
-          <i class="fas fa-user"></i> Basic Information
-        </h3>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="form-group">
-            <label class="block text-sm font-medium mb-2 flex items-center justify-between">
-              <span>Artist/Real Name *</span>
-              <button *ngIf="voiceSupported()" 
-                      (click)="startVoiceInput('artistName')"
-                      [disabled]="isRecording()"
-                      class="text-xs px-2 py-1 border rounded hover:bg-white/10"
-                      [style.border-color]="theme().accent"
-                      title="Use voice input">
-                <i class="fas fa-microphone"></i>
-              </button>
-            </label>
-            <input type="text" [value]="editableProfile().artistName" (input)="updateField('artistName', $event)" 
-                   class="w-full p-3 bg-black/50 border rounded-md focus:outline-none focus:ring-2 transition-all" 
-                   [style.border-color]="theme().accent + '50'"
-                   placeholder="Your legal or artist name">
-          </div>
-          
-          <div class="form-group">
-            <label class="block text-sm font-medium mb-2 flex items-center justify-between">
-              <span>Stage Name (if different)</span>
-              <button *ngIf="voiceSupported()" 
-                      (click)="startVoiceInput('stageName')"
-                      [disabled]="isRecording()"
-                      class="text-xs px-2 py-1 border rounded hover:bg-white/10"
-                      [style.border-color]="theme().accent"
-                      title="Use voice input">
-                <i class="fas fa-microphone"></i>
-              </button>
-            </label>
-            <input type="text" [value]="editableProfile().stageName" (input)="updateField('stageName', $event)" 
-                   class="w-full p-3 bg-black/50 border rounded-md focus:outline-none focus:ring-2 transition-all" 
-                   [style.border-color]="theme().accent + '50'"
-                   placeholder="Your performance name">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="block text-sm font-medium mb-2 flex items-center justify-between">
-            <span>Location</span>
-            <button *ngIf="voiceSupported()" 
-                    (click)="startVoiceInput('location')"
-                    [disabled]="isRecording()"
-                    class="text-xs px-2 py-1 border rounded hover:bg-white/10"
-                    [style.border-color]="theme().accent"
-                    title="Use voice input">
-              <i class="fas fa-microphone"></i>
-            </button>
-          </label>
-          <input type="text" [value]="editableProfile().location" (input)="updateField('location', $event)" 
-                 class="w-full p-3 bg-black/50 border rounded-md focus:outline-none focus:ring-2 transition-all" 
-                 [style.border-color]="theme().accent + '50'"
-                 placeholder="City, State, Country">
-        </div>
-
-        <div class="form-group">
-          <label class="block text-sm font-medium mb-2 flex items-center justify-between">
-            <span>Your Musical Journey / Bio</span>
-            <button *ngIf="voiceSupported()" 
-                    (click)="startVoiceInput('bio')"
-                    [disabled]="isRecording()"
-                    class="text-xs px-2 py-1 border rounded hover:bg-white/10"
-                    [style.border-color]="theme().accent"
-                    title="Use voice input">
-              <i class="fas fa-microphone"></i> Voice Input
-            </button>
-          </label>
-          <textarea [value]="editableProfile().bio" (input)="updateField('bio', $event)" 
-                    rows="5" 
-                    class="w-full p-3 bg-black/50 border rounded-md focus:outline-none focus:ring-2 transition-all" 
-                    [style.border-color]="theme().accent + '50'"
-                    placeholder="Tell S.M.U.V.E. about your story, how you got started, what drives you..."></textarea>
-          <p class="text-xs opacity-60 mt-1">
-            <i class="fas fa-info-circle"></i> This helps S.M.U.V.E. understand your unique background and motivations. Use voice input for faster entry!
-          </p>
-        </div>
-      </div>
-
-      <!-- Note: Other sections remain the same from previous implementation, just add voice buttons where appropriate -->
-      <!-- I'll show voice buttons for a couple more key fields as examples -->
-
-      <!-- MUSICAL IDENTITY SECTION -->
-      <div *ngIf="activeSection() === 'musical'" class="space-y-6 animate-fadeIn">
-        <h3 class="text-xl font-bold mb-4 flex items-center gap-2" [style.color]="theme().accent">
-          <i class="fas fa-music"></i> Musical Identity
-        </h3>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="form-group">
-            <label class="block text-sm font-medium mb-2 flex items-center justify-between">
-              <span>Primary Genre *</span>
-              <button *ngIf="voiceSupported()" 
-                      (click)="startVoiceInput('primaryGenre')"
-                      [disabled]="isRecording()"
-                      class="text-xs px-2 py-1 border rounded hover:bg-white/10"
-                      [style.border-color]="theme().accent">
-                <i class="fas fa-microphone"></i>
-              </button>
-            </label>
-            <select [value]="editableProfile().primaryGenre" (change)="updateField('primaryGenre', $event)"
-                    class="w-full p-3 bg-black/50 border rounded-md focus:outline-none focus:ring-2 transition-all"
-                    [style.border-color]="theme().accent + '50'">
-              <option value="">Select your main genre</option>
-              <option *ngFor="let genre of ALL_GENRES" [value]="genre">{{ genre }}</option>
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label class="block text-sm font-medium mb-2 flex items-center justify-between">
-              <span>What Makes Your Sound Unique?</span>
-              <button *ngIf="voiceSupported()" 
-                      (click)="startVoiceInput('uniqueSound')"
-                      [disabled]="isRecording()"
-                      class="text-xs px-2 py-1 border rounded hover:bg-white/10"
-                      [style.border-color]="theme().accent">
-                <i class="fas fa-microphone"></i>
-              </button>
-            </label>
-            <input type="text" [value]="editableProfile().uniqueSound" (input)="updateField('uniqueSound', $event)" 
-                   class="w-full p-3 bg-black/50 border rounded-md focus:outline-none focus:ring-2 transition-all" 
-                   [style.border-color]="theme().accent + '50'"
-                   placeholder="e.g., Melodic trap with jazzy undertones">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="block text-sm font-medium mb-2">Secondary Genres (Select all that apply)</label>
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-4 border rounded-md" [style.border-color]="theme().accent + '30'">
-            <label *ngFor="let genre of ALL_GENRES" class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-2 rounded">
-              <input type="checkbox" [checked]="isArrayFieldChecked('secondaryGenres', genre)" 
-                     (change)="updateArrayField('secondaryGenres', genre, $event)"
-                     class="accent-purple-500">
-              <span class="text-sm">{{ genre }}</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="block text-sm font-medium mb-2 flex items-center justify-between">
-            <span>Musical Influences / Inspirations</span>
-            <button *ngIf="voiceSupported()" 
-                    (click)="startVoiceInput('musicalInfluences')"
-                    [disabled]="isRecording()"
-                    class="text-xs px-2 py-1 border rounded hover:bg-white/10"
-                    [style.border-color]="theme().accent">
-              <i class="fas fa-microphone"></i> Voice Input
-            </button>
-          </label>
-          <textarea [value]="editableProfile().musicalInfluences" (input)="updateField('musicalInfluences', $event)" 
-                    rows="3" 
-                    class="w-full p-3 bg-black/50 border rounded-md focus:outline-none focus:ring-2 transition-all" 
-                    [style.border-color]="theme().accent + '50'"
-                    placeholder="List artists, producers, or movements that inspire your music"></textarea>
-        </div>
-      </div>
-
-      <!-- Rest of sections follow same pattern from previous implementation -->
-      <!-- For brevity, keeping just the structure indicators -->
-      <div *ngIf="activeSection() === 'expertise'" class="space-y-6 animate-fadeIn">
-        <p class="text-center opacity-60">Experience & Skills section - (same as previous implementation)</p>
-      </div>
-      <div *ngIf="activeSection() === 'career'" class="space-y-6 animate-fadeIn">
-        <p class="text-center opacity-60">Career & Goals section - (same as previous implementation)</p>
-      </div>
-      <!-- Add all other sections here -->
-
-    </div>
-
-    <!-- Save Button (Fixed at bottom) -->
-    <div class="p-4 border-t-2 bg-black/50" [style.border-color]="theme().accent">
-      <button (click)="saveProfile()" 
-              class="w-full p-4 border-2 text-lg font-bold hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98]" 
-              [style.border-color]="theme().accent" 
-              [style.background]="saveStatus() !== 'idle' ? theme().accent + '40' : 'transparent'"
-              [style.color]="saveStatus() === 'saved' ? theme().accent : 'inherit'"
-              [class.hover:bg-purple-600]="saveStatus() === 'idle'"
-              [disabled]="saveStatus() !== 'idle'">
-        <span *ngIf="saveStatus() === 'idle'" class="flex items-center justify-center gap-2">
-          <i class="fas fa-save"></i> SAVE PROFILE & SYNC WITH S.M.U.V.E.
-        </span>
-        <span *ngIf="saveStatus() === 'saving'" class="flex items-center justify-center gap-2">
-          <i class="fas fa-spinner fa-spin"></i> SYNCING PROFILE...
-        </span>
-        <span *ngIf="saveStatus() === 'saved'" class="flex items-center justify-center gap-2">
-          <i class="fas fa-check-circle"></i> PROFILE SAVED! S.M.U.V.E. IS NOW PERSONALIZED FOR YOU
-        </span>
-      </button>
-      <p class="text-center text-xs mt-2 opacity-60">
-        <i class="fas fa-shield-alt"></i> Your data is securely stored. Profile completeness: {{ profileCompleteness() }}%
-      </p>
+    <!-- Toggle Auth Mode -->
+    <div class="mt-6 text-center">
+        <button (click)="authMode.set(authMode() === 'login' ? 'register' : 'login')" class="text-sm hover:underline" [style.color]="theme().accent">
+            {{ authMode() === 'login' ? 'Need an account? Register' : 'Already have an account? Login' }}
+        </button>
     </div>
   </div>
 
-</div>
+  <!-- Authenticated View -->
+  <div *ngIf="isAuthenticated() && currentUser() as user">
+    <!-- First Time User Intro -->
+    <div *ngIf="profileCompleteness() < 100" class="bg-neutral-800 p-6 rounded-lg shadow-lg mb-8 border" [style.border-color]="theme().primary">
+      <h2 class="text-3xl font-bold mb-2" [style.color]="theme().primary">Welcome to S.M.U.V.E. 2.0, {{ user.artistName }}!</h2>
+      <p class="text-neutral-300 mb-4">Let's build your artist profile. The more S.M.U.V.E. knows about you, the better it can assist your creative journey. Fill out the sections below to unlock the full power of your AI partner.</p>
+      <div class="w-full bg-neutral-700 rounded-full h-4">
+        <div class="h-4 rounded-full transition-all duration-500" [style.width.%]="profileCompleteness()" [style.background-color]="theme().primary"></div>
+      </div>
+      <p class="text-right text-sm mt-1" [style.color]="theme().accent">{{ profileCompleteness() | number:'1.0-0' }}% Complete</p>
+    </div>
 
-<style>
-  .animate-fadeIn {
-    animation: fadeIn 0.3s ease-in;
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  .scrollbar-thin::-webkit-scrollbar {
-    height: 4px;
-  }
-  
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
-  }
-  
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: var(--primary-color);
-    border-radius: 2px;
-  }
-</style>
+    <!-- Main Profile View -->
+    <div class="flex gap-8">
+      <!-- Sidebar Menu -->
+      <div class="w-1/4 sticky top-0 self-start">
+        <div class="bg-neutral-800 p-4 rounded-lg shadow-lg">
+            <div class="text-center mb-4">
+              <div class="relative inline-block">
+                <img [src]="editableProfile().profilePictureUrl || 'https://picsum.photos/seed/default-avatar/200'" alt="Artist Avatar" class="w-32 h-32 rounded-full mx-auto border-4" [style.border-color]="theme().primary">
+                <label for="avatar-upload" class="absolute bottom-0 right-0 bg-neutral-600 rounded-full p-2 cursor-pointer hover:bg-neutral-500">
+                  <i class="fas fa-camera"></i>
+                  <input id="avatar-upload" type="file" class="hidden" accept="image/*" (change)="onFileSelected($event)">
+                </label>
+              </div>
+              <h3 class="text-2xl font-bold mt-3">{{ editableProfile().artistName }}</h3>
+              <p class="text-sm text-neutral-400">{{ editableProfile().primaryGenre }}</p>
+            </div>
+          <nav class="flex flex-col gap-2">
+            <button *ngFor="let section of sections" 
+                    (click)="activeSection.set(section.id)" 
+                    [class.active-section]="activeSection() === section.id" 
+                    class="text-left p-3 rounded-md transition-colors text-neutral-300 hover:bg-neutral-700/50 flex items-center gap-3" 
+                    [style.background-color]="activeSection() === section.id ? theme().primary + '30' : 'transparent'"
+                    [style.border-left]="activeSection() === section.id ? '4px solid ' + theme().primary : '4px solid transparent'">
+              <i class="fas text-lg w-6 text-center" [ngClass]="section.icon" [style.color]="theme().accent"></i>
+              <span>{{ section.label }}</span>
+            </button>
+          </nav>
+          <div class="mt-6">
+            <button (click)="saveProfile()" class="w-full py-2 px-4 font-bold rounded-md text-white transition-colors flex items-center justify-center gap-2" [style.background-color]="theme().primary" [disabled]="saveStatus() === 'saving'">
+              <i *ngIf="saveStatus() === 'idle'" class="fas fa-save"></i>
+              <i *ngIf="saveStatus() === 'saving'" class="fas fa-spinner fa-spin"></i>
+              <i *ngIf="saveStatus() === 'saved'" class="fas fa-check"></i>
+              <span>{{ saveStatus() === 'idle' ? 'Save Profile' : (saveStatus() === 'saving' ? 'Saving...' : 'Saved!') }}</span>
+            </button>
+            <button (click)="handleLogout()" class="w-full mt-2 py-2 text-neutral-400 text-sm hover:underline">Logout</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="w-3/4">
+        <div class="bg-neutral-800 p-8 rounded-lg shadow-lg">
+          <ng-container *ngFor="let section of sections">
+            <div *ngIf="activeSection() === section.id" class="animate-fade-in">
+              <h3 class="text-2xl font-bold mb-6 flex items-center gap-3" [style.color]="theme().primary">
+                <i class="fas" [ngClass]="section.icon"></i>
+                {{ section.label }}
+              </h3>
+
+              <!-- Basic Info Section -->
+              <div *ngIf="section.id === 'basic'" class="space-y-6">
+                <app-form-field label="Artist Name" description="Your primary artist or band name.">
+                  <input type="text" [value]="editableProfile().artistName" (input)="updateField('artistName', $event)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary">
+                </app-form-field>
+                <app-form-field label="Stage Name (optional)" description="An alternate name you perform under.">
+                  <input type="text" [value]="editableProfile().stageName" (input)="updateField('stageName', $event)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary">
+                </app-form-field>
+                <app-form-field label="Location" description="City, State, Country. Helps with networking.">
+                  <input type="text" [value]="editableProfile().location" (input)="updateField('location', $event)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary">
+                </app-form-field>
+                <app-form-field label="Your Story / Bio" description="Tell S.M.U.V.E. about your journey, what drives you, your mission. Use your voice to dictate!">
+                  <div class="relative">
+                    <textarea rows="8" [value]="editableProfile().bio" (input)="updateField('bio', $event)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary" placeholder="Describe your musical journey..."></textarea>
+                    <button (click)="isRecording() && recordingField() === 'bio' ? stopVoiceInput() : startVoiceInput('bio')" class="absolute bottom-2 right-2 p-2 rounded-full transition-colors" [ngClass]="isRecording() && recordingField() === 'bio' ? 'bg-red-500 text-white' : 'bg-neutral-600 hover:bg-neutral-500'" [title]="isRecording() && recordingField() === 'bio' ? 'Stop Recording' : 'Start Voice Input'">
+                      <i class="fas fa-microphone"></i>
+                    </button>
+                  </div>
+                </app-form-field>
+              </div>
+
+              <!-- Musical Identity Section -->
+              <div *ngIf="section.id === 'musical'" class="space-y-6">
+                <app-form-field label="Primary Genre" description="Select the genre that best represents your core sound.">
+                  <select [value]="editableProfile().primaryGenre" (change)="updateField('primaryGenre', $event)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary">
+                    <option *ngFor="let genre of ALL_GENRES" [value]="genre">{{ genre }}</option>
+                  </select>
+                </app-form-field>
+                <app-form-field label="Secondary Genres" description="Other genres you frequently explore.">
+                    <div class="grid grid-cols-3 gap-2">
+                        <label *ngFor="let genre of ALL_GENRES" class="flex items-center gap-2 p-2 bg-neutral-700/50 rounded-md">
+                            <input type="checkbox" [checked]="isArrayFieldChecked('secondaryGenres', genre)" (change)="updateArrayField('secondaryGenres', genre, $event)" class="accent-purple-500">
+                            <span>{{ genre }}</span>
+                        </label>
+                    </div>
+                </app-form-field>
+                <app-form-field label="Describe Your Unique Sound" description="What makes your music stand out? What's your sonic signature? Dictate with your voice.">
+                  <div class="relative">
+                    <textarea rows="5" [value]="editableProfile().uniqueSound" (input)="updateField('uniqueSound', $event)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary"></textarea>
+                    <button (click)="isRecording() && recordingField() === 'uniqueSound' ? stopVoiceInput() : startVoiceInput('uniqueSound')" class="absolute bottom-2 right-2 p-2 rounded-full transition-colors" [ngClass]="isRecording() && recordingField() === 'uniqueSound' ? 'bg-red-500 text-white' : 'bg-neutral-600 hover:bg-neutral-500'">
+                      <i class="fas fa-microphone"></i>
+                    </button>
+                  </div>
+                </app-form-field>
+                <app-form-field label="Musical Influences & Heroes" description="List artists, producers, movements, etc. that inspire you.">
+                  <div class="relative">
+                    <textarea rows="5" [value]="editableProfile().musicalInfluences" (input)="updateField('musicalInfluences', $event)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary"></textarea>
+                     <button (click)="isRecording() && recordingField() === 'musicalInfluences' ? stopVoiceInput() : startVoiceInput('musicalInfluences')" class="absolute bottom-2 right-2 p-2 rounded-full transition-colors" [ngClass]="isRecording() && recordingField() === 'musicalInfluences' ? 'bg-red-500 text-white' : 'bg-neutral-600 hover:bg-neutral-500'">
+                      <i class="fas fa-microphone"></i>
+                    </button>
+                  </div>
+                </app-form-field>
+              </div>
+
+              <!-- Experience & Skills Section -->
+              <div *ngIf="section.id === 'expertise'" class="space-y-6">
+                <app-form-field label="Your Skills" description="Select all skills you possess.">
+                    <div class="grid grid-cols-3 gap-2">
+                        <label *ngFor="let skill of ALL_SKILLS" class="flex items-center gap-2 p-2 bg-neutral-700/50 rounded-md">
+                            <input type="checkbox" [checked]="isArrayFieldChecked('skills', skill)" (change)="updateArrayField('skills', skill, $event)" class="accent-purple-500">
+                            <span>{{ skill }}</span>
+                        </label>
+                    </div>
+                </app-form-field>
+                <app-form-field label="Skill Levels" description="Rate your proficiency in your selected skills (1=Beginner, 10=Expert).">
+                  <div class="space-y-4">
+                    <div *ngFor="let skill of editableProfile().skills">
+                      <label class="block mb-1">{{ skill }}</label>
+                      <div class="flex items-center gap-4">
+                        <input type="range" min="1" max="10" [value]="editableProfile().expertiseLevels?.[skill] || 5" (input)="updateExpertiseLevel(skill, $event)" class="w-full">
+                        <span class="font-bold w-8 text-center" [style.color]="theme().accent">{{ editableProfile().expertiseLevels?.[skill] || 5 }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </app-form-field>
+                 <app-form-field label="Years of Experience" description="How long have you been actively making music?">
+                    <input type="number" [value]="editableProfile().yearsExperience" (input)="updateField('yearsExperience', $event)" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2" [style.--tw-ring-color]="theme().primary">
+                </app-form-field>
+                <app-form-field label="Formal Training" description="Any music school, certifications, or mentorships?">
+                  <div class="relative">
+                    <textarea [value]="editableProfile().formalTraining" (input)="updateField('formalTraining', $event)" rows="3" class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded-md"></textarea>
+                     <button (click)="isRecording() && recordingField() === 'formalTraining' ? stopVoiceInput() : startVoiceInput('formalTraining')" class="absolute bottom-2 right-2 p-2 rounded-full" [ngClass]="isRecording() && recordingField() === 'formalTraining' ? 'bg-red-500' : 'bg-neutral-600'"><i class="fas fa-microphone"></i></button>
+                  </div>
+                </app-form-field>
+              </div>
+              
+              <!-- Social & Links Section -->
+              <div *ngIf="section.id === 'social'" class="space-y-4">
+                <p class="text-neutral-400">Link your online presence so S.M.U.V.E. can analyze your brand and reach.</p>
+                <h4 class="font-bold text-lg mt-6 mb-2">Social Media</h4>
+                <div class="grid grid-cols-2 gap-4">
+                  <div *ngFor="let platform of socialPlatforms" class="flex items-center gap-2">
+                    <label class="w-24">{{ platform }}</label>
+                    <input type="text" [value]="editableProfile().links?.[platform] || ''" (input)="updateLinkField(platform, $event)" class="flex-grow p-2 bg-neutral-700 border-neutral-600 rounded-md">
+                  </div>
+                </div>
+                <h4 class="font-bold text-lg mt-6 mb-2">Music Platforms</h4>
+                <div class="grid grid-cols-2 gap-4">
+                  <div *ngFor="let platform of musicPlatforms" class="flex items-center gap-2">
+                    <label class="w-24">{{ platform }}</label>
+                    <input type="text" [value]="editableProfile().links?.[platform] || ''" (input)="updateLinkField(platform, $event)" class="flex-grow p-2 bg-neutral-700 border-neutral-600 rounded-md">
+                  </div>
+                </div>
+                 <h4 class="font-bold text-lg mt-6 mb-2">PROs & Distribution</h4>
+                <div class="grid grid-cols-2 gap-4">
+                  <div *ngFor="let platform of proPlatforms" class="flex items-center gap-2">
+                    <label class="w-24">{{ platform }}</label>
+                    <input type="text" [value]="editableProfile().links?.[platform] || ''" (input)="updateLinkField(platform, $event)" class="flex-grow p-2 bg-neutral-700 border-neutral-600 rounded-md">
+                  </div>
+                </div>
+              </div>
+
+              <!-- All other sections can be added here following the same pattern -->
+              <!-- This is a simplified example. A full implementation would have forms for all sections. -->
+               <div *ngIf="section.id !== 'basic' && section.id !== 'musical' && section.id !== 'expertise' && section.id !== 'social'" class="text-neutral-500">
+                  <p>Section coming soon...</p>
+                  <p>Imagine detailed forms here for {{ section.label }} to give S.M.U.V.E. even more context about your artistry.</p>
+              </div>
+
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

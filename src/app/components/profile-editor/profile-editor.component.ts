@@ -1,13 +1,17 @@
 import { Component, ChangeDetectionStrategy, inject, signal, input, effect } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { AppTheme } from '../../services/user-context.service';
 import { UserProfileService, UserProfile } from '../../services/user-profile.service';
 import { AuthService, AuthCredentials } from '../../services/auth.service';
+import { FormFieldComponent } from './form-field.component';
 
 @Component({
   selector: 'app-profile-editor',
   templateUrl: './profile-editor.component.html',
   styleUrls: ['./profile-editor.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
+  imports: [CommonModule, FormFieldComponent]
 })
 export class ProfileEditorComponent {
   theme = input.required<AppTheme>();
@@ -176,6 +180,15 @@ export class ProfileEditorComponent {
     { id: 'mindset', label: 'Mindset & Mental', icon: 'fa-brain' },
   ];
 
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (e) => this.editableProfile.update(p => ({ ...p, profilePictureUrl: e.target?.result as string }));
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
   saveProfile(): void {
     this.saveStatus.set('saving');
     this.userProfileService.updateProfile(this.editableProfile());
@@ -332,17 +345,17 @@ export class ProfileEditorComponent {
     if (!fieldName) return;
     
     const currentProfile = this.editableProfile();
+
+    const textFields = ['bio', 'uniqueSound', 'musicalInfluences', 'currentFocus', 'biggestChallenge', 'targetAudience', 'upcomingProjects', 'contentStrategy', 'networkingGoals', 'formalTraining'];
+    const singleValueFields = ['artistName', 'stageName', 'location', 'primaryGenre'];
     
-    if (fieldName === 'bio' || fieldName === 'uniqueSound' || fieldName === 'musicalInfluences' || 
-        fieldName === 'currentFocus' || fieldName === 'biggestChallenge' || fieldName === 'targetAudience' ||
-        fieldName === 'upcomingProjects' || fieldName === 'contentStrategy' || fieldName === 'networkingGoals') {
+    if (textFields.includes(fieldName)) {
       const currentValue = currentProfile[fieldName as keyof UserProfile] as string;
       const newValue = currentValue && currentValue !== 'Describe your musical journey...' 
         ? currentValue + ' ' + transcript 
         : transcript;
       this.editableProfile.update(p => ({ ...p, [fieldName]: newValue }));
-    } else if (fieldName === 'artistName' || fieldName === 'stageName' || fieldName === 'location' ||
-               fieldName === 'primaryGenre' || fieldName === 'formalTraining') {
+    } else if (singleValueFields.includes(fieldName)) {
       this.editableProfile.update(p => ({ ...p, [fieldName]: transcript }));
     }
     

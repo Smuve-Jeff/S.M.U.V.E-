@@ -22,7 +22,6 @@ import { AiService, API_KEY_TOKEN } from './services/ai.service';
 import { DjDeckComponent } from './components/dj-deck/dj-deck.component';
 import { LoginComponent } from './components/login/login.component';
 import { SampleLibraryComponent } from './components/sample-library/sample-library.component';
-import { UserProfileBuilderComponent } from './components/user-profile-builder/user-profile-builder.component';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { routes } from './app.routes';
 import { RouterModule } from '@angular/router';
@@ -41,8 +40,7 @@ import { RouterModule } from '@angular/router';
     StudioInterfaceComponent,
     DjDeckComponent,
     LoginComponent,
-    SampleLibraryComponent,
-    UserProfileBuilderComponent
+    SampleLibraryComponent
   ],
   imports: [
     BrowserModule,

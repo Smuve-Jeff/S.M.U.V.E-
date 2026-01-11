@@ -7,6 +7,7 @@ export interface UserProfile {
   stageName?: string;
   location?: string;
   bio: string;
+  profilePictureUrl?: string;
   
   // === MUSICAL IDENTITY ===
   primaryGenre: string;
@@ -112,6 +113,7 @@ export const initialProfile: UserProfile = {
   stageName: '',
   location: '',
   bio: 'Describe your musical journey...',
+  profilePictureUrl: '',
   
   // Musical Identity
   primaryGenre: '',
