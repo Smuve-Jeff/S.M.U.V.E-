@@ -1,4 +1,8 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { InstrumentService } from './instrument.service';
+import { PlaybackState } from './playback-state';
+import { Compressor } from './compressor';
+import { Reverb } from './reverb';
 
 export interface MicChannel {
   id: string;
@@ -13,15 +17,46 @@ export interface MicChannel {
   providedIn: 'root'
 })
 export class AudioSessionService {
+  private readonly instrumentService = inject(InstrumentService);
+  readonly compressor: Compressor;
+  private readonly reverb: Reverb;
+
+  readonly playbackState = signal<PlaybackState>('stopped');
+  readonly isPlaying = computed(() => this.playbackState() === 'playing');
+  readonly isRecording = computed(() => this.playbackState() === 'recording');
+  readonly isStopped = computed(() => this.playbackState() === 'stopped');
+
   masterVolume = signal(80);
-  isRecording = signal(false);
   micChannels = signal<MicChannel[]>([
     { id: 'mic-1', label: 'Vocal Mic', level: 70, muted: false, pan: 0, armed: true },
     { id: 'guitar-1', label: 'Guitar Amp', level: 60, muted: false, pan: 20, armed: false },
     { id: 'drums-1', label: 'Overheads', level: 50, muted: false, pan: -10, armed: false },
   ]);
 
-  constructor() { }
+  constructor() {
+    const audioContext = this.instrumentService.getAudioContext();
+    this.compressor = new Compressor(audioContext);
+    this.reverb = new Reverb(audioContext);
+    this.instrumentService.connect(this.compressor.input);
+    this.compressor.connect(this.reverb.input);
+    this.reverb.connect(audioContext.destination);
+  }
+
+  setReverbMix(mix: number): void {
+    this.reverb.setMix(mix);
+  }
+
+  togglePlay(): void {
+    this.playbackState.update(state => state === 'playing' ? 'stopped' : 'playing');
+  }
+
+  toggleRecord(): void {
+    this.playbackState.update(state => state === 'recording' ? 'stopped' : 'recording');
+  }
+
+  stop(): void {
+    this.playbackState.set('stopped');
+  }
 
   updateMasterVolume(newVolume: number): void {
     this.masterVolume.set(newVolume);

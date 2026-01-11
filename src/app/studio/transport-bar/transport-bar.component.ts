@@ -14,6 +14,7 @@ export class TransportBarComponent {
 
   isPlaying = this.audioSession.isPlaying;
   isRecording = this.audioSession.isRecording;
+  isStopped = this.audioSession.isStopped;
   masterVolume = this.audioSession.masterVolume;
 
   togglePlay(): void {
@@ -24,7 +25,12 @@ export class TransportBarComponent {
     this.audioSession.toggleRecord();
   }
 
-  updateMasterVolume(newVolume: number): void {
+  stop(): void {
+    this.audioSession.stop();
+  }
+
+  updateMasterVolume(event: Event): void {
+    const newVolume = (event.target as HTMLInputElement).valueAsNumber;
     this.audioSession.updateMasterVolume(newVolume);
   }
 }

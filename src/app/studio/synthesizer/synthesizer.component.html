@@ -1,1 +1,26 @@
-<p>synthesizer works!</p>
+<div class="synthesizer">
+  <div class="keyboard">
+    <div class="key" (mousedown)="playNote(60)" (mouseup)="stopNote(60)">C4</div>
+    <div class="key" (mousedown)="playNote(62)" (mouseup)="stopNote(62)">D4</div>
+    <div class="key" (mousedown)="playNote(64)" (mouseup)="stopNote(64)">E4</div>
+    <div class="key" (mousedown)="playNote(65)" (mouseup)="stopNote(65)">F4</div>
+    <div class="key" (mousedown)="playNote(67)" (mouseup)="stopNote(67)">G4</div>
+    <div class="key" (mousedown)="playNote(69)" (mouseup)="stopNote(69)">A4</div>
+    <div class="key" (mousedown)="playNote(71)" (mouseup)="stopNote(71)">B4</div>
+  </div>
+  <div class="controls">
+    <div class="control-group">
+      <label for="filter-cutoff">Filter Cutoff</label>
+      <input type="range" id="filter-cutoff" min="20" max="20000" value="20000" (input)="updateFilterCutoff($event)">
+    </div>
+    <div class="control-group">
+      <label for="oscillator-type">Oscillator Type</label>
+      <select id="oscillator-type" (change)="updateOscillatorType($event)">
+        <option value="sawtooth">Sawtooth</option>
+        <option value="sine">Sine</option>
+        <option value="square">Square</option>
+        <option value="triangle">Triangle</option>
+      </select>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,13 @@
+<div class="master-controls-container">
+  <div class="control-group">
+    <label for="master-volume-knob">Master Volume</label>
+    <input id="master-volume-knob" type="range" min="0" max="100" (input)="updateMasterVolume($event)">
+  </div>
+  <div class="control-group">
+    <label for="reverb-knob">Reverb</label>
+    <input id="reverb-knob" type="range" min="0" max="1" step="0.01" (input)="updateReverb($event)">
+  </div>
+  <div class="control-group">
+    <app-gain-reduction-meter [compressor]="compressor"></app-gain-reduction-meter>
+  </div>
+</div>

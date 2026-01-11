@@ -1,20 +1,9 @@
-<div class="transport-bar-container bg-neutral-800 p-3 flex justify-between items-center">
-
-  <!-- Transport Controls -->
-  <div class="transport-controls flex gap-2">
-    <button (click)="togglePlay()" class="w-12 h-12 rounded-lg flex items-center justify-center" [ngClass]="isPlaying() ? 'bg-green-600' : 'bg-neutral-700'">
-      <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4h2v12H4V4zm4 0h2v12H8V4zm4 0h2v12h-2V4zm4 0h2v12h-2V4z"/></svg>
-    </button>
-    <button (click)="toggleRecord()" class="w-12 h-12 rounded-lg flex items-center justify-center" [ngClass]="isRecording() ? 'bg-red-800' : 'bg-neutral-700'">
-      <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6"/></svg>
-    </button>
+<div class="transport-bar">
+  <button (click)="togglePlay()" [class.active]="isPlaying()">Play</button>
+  <button (click)="toggleRecord()" [class.active]="isRecording()">Record</button>
+  <button (click)="stop()" [disabled]="isStopped()">Stop</button>
+  <div class="master-volume">
+    <label for="master-volume">Master Volume</label>
+    <input type="range" id="master-volume" min="0" max="100" [value]="masterVolume()" (input)="updateMasterVolume($event)">
   </div>
-
-  <!-- Master Volume -->
-  <div class="master-volume-control flex items-center gap-3">
-    <span class="text-sm font-bold">MASTER</span>
-    <input type="range" min="0" max="100" [value]="masterVolume()" (input)="updateMasterVolume(+$event.target.value)" class="w-48 h-2" />
-    <span class="text-sm font-mono">{{ masterVolume() }}</span>
-  </div>
-
 </div>
