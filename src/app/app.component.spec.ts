@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
 import { UIService } from './services/ui.service';
-import { ChatbotModule } from './components/chatbot/chatbot.module';
+import { ChatbotComponent } from './components/chatbot/chatbot.component';
 
 // Mock AudioContext
 const mockAudioContext = jest.fn(() => ({
@@ -79,7 +79,7 @@ describe('AppComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AppComponent, ChatbotModule],
+      imports: [AppComponent, ChatbotComponent],
       providers: [UIService],
     }).compileComponents();
 

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -44,6 +44,7 @@ export interface LegalDocument {
     </div>
   `,
   styleUrls: ['./legal-document-editor.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LegalDocumentEditorComponent {
   @Input() document?: LegalDocument;

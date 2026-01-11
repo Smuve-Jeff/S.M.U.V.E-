@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { RouterModule, Routes, PreloadAllModules } from '@angular/router';
 
 const routes: Routes = [
   { path: '', redirectTo: '/hub', pathMatch: 'full' },
@@ -12,12 +12,8 @@ const routes: Routes = [
     loadChildren: () => import('./components/arpeggiator/arpeggiator.module').then(m => m.ArpeggiatorModule)
   },
   {
-    path: 'chatbot',
-    loadChildren: () => import('./components/chatbot/chatbot.module').then(m => m.ChatbotModule)
-  },
-  {
-    path: 'image-editor',
-    loadChildren: () => import('./components/image-editor/image-editor.module').then(m => m.ImageEditorModule)
+    path: 'user-dashboard',
+    loadChildren: () => import('./components/user-dashboard/user-dashboard.module').then(m => m.UserDashboardModule)
   },
   {
     path: 'audio-visualizer',
@@ -42,7 +38,7 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
+  imports: [RouterModule.forRoot(routes, { preloadingStrategy: PreloadAllModules })],
   exports: [RouterModule],
 })
 export class AppRoutingModule {}

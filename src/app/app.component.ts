@@ -6,12 +6,12 @@ import { MicrophoneService } from './services/microphone.service';
 import { DeckService } from './services/deck.service';
 import { UIService } from './services/ui.service';
 import { MicrophoneVisualizerComponent } from './components/microphone-visualizer/microphone-visualizer.component';
-import { ChatbotModule } from './components/chatbot/chatbot.module';
+import { ChatbotComponent } from './components/chatbot/chatbot.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, MicrophoneVisualizerComponent, ChatbotModule],
+  imports: [CommonModule, RouterOutlet, MicrophoneVisualizerComponent, ChatbotComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
 })
@@ -31,10 +31,7 @@ export class AppComponent {
     return this.microphoneService.getAnalyserNode();
   }
 
-  async toggleChatbot() {
-    if (!this.uiService.isChatbotOpen()) {
-      await import('./components/chatbot/chatbot.module');
-    }
+  toggleChatbot() {
     this.uiService.toggleChatbot();
   }
 }
