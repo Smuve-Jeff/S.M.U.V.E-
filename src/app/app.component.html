@@ -9,7 +9,7 @@
   <header class="main-header">
     <div class="flex items-center gap-4">
       <h1 class="text-3xl font-bold tracking-wider text-white">
-        S.M.U.V.E. 2.0
+        S.M.U.V.E. 2.2
       </h1>
       <div class="nav-buttons">
         <button
@@ -88,19 +88,27 @@
 
   <!-- Main Content -->
   <main class="flex-grow flex overflow-hidden">
-    <!-- Main View -->
-    <div class="flex-grow relative overflow-y-auto">
+    <div *ngIf="uiService.mainViewMode() !== 'hub'" class="flex-grow relative overflow-y-auto">
       <router-outlet></router-outlet>
     </div>
 
-    <!-- Chatbot -->
-    <app-chatbot
-      *ngIf="uiService.isChatbotOpen()"
-      (close)="uiService.toggleChatbot()"
-      [theme]="activeTheme()"
-      [mainViewMode]="mainViewMode()"
-    ></app-chatbot>
+    <ng-container *ngIf="uiService.mainViewMode() === 'hub'">
+      <app-hub [games]="games" [challenges]="challenges" [community]="communityPosts"></app-hub>
+    </ng-container>
+
+    <!-- Chatbot Sidebar -->
+    <div *ngIf="uiService.isChatbotOpen()"
+      class="chatbot-sidebar flex flex-col h-full animate__animated animate__slideInRight"
+    >
+      <app-chatbot
+        (close)="uiService.toggleChatbot()"
+        [theme]="uiService.activeTheme()"
+        [mainViewMode]="uiService.mainViewMode()"
+      ></app-chatbot>
+    </div>
   </main>
 
-  <footer class="watermark-footer">©️Smuve Jeff Presents</footer>
+  <footer class="watermark-footer text-xs">
+      ©️ Smuve Jeff Presents
+  </footer>
 </div>

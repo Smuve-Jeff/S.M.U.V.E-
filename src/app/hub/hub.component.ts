@@ -1,48 +1,17 @@
-import {
-  Component,
-  signal,
-  computed,
-  effect,
-  OnDestroy,
-  OnInit,
-} from '@angular/core';
-import { GameService } from './game.service';
-import {
-  UserProfileService,
-  ShowcaseItem,
-} from '../services/user-profile.service';
-import { Game } from './game';
+import { Component, Input, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Game, Challenge, CommunityPost, BattleConfig } from './hub.models';
+import { GameService } from '../services/game.service';
+import { UserProfileService } from '../services/user-profile.service';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
-import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { GameListComponent } from './game-list/game-list.component';
-import { GameCardComponent } from './game-card/game-card.component';
-import { GameSearchComponent } from './game-search/game-search.component';
-import { ModalComponent } from './modal.component';
-
-// Defines the configuration for a "Tha Battlefield" match
-interface BattleConfig {
-  track: ShowcaseItem | null;
-  mode: 'duel' | 'team';
-  roundLength: 30 | 60 | 90;
-  rounds: 1 | 2 | 3;
-  matchType: 'public' | 'private';
-}
 
 @Component({
   selector: 'app-hub',
-  templateUrl: './hub.component.html',
-  styleUrls: ['./hub.component.css'],
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    GameListComponent,
-    GameCardComponent,
-    GameSearchComponent,
-    ModalComponent,
-  ],
+  imports: [CommonModule],
+  templateUrl: './hub.component.html',
+  styleUrls: ['./hub.component.css']
 })
 export class HubComponent implements OnInit, OnDestroy {
   // Signals for UI state

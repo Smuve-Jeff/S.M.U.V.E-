@@ -92,9 +92,9 @@ describe('AppComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should toggle the chatbot', async () => {
+  it('should toggle the chatbot', () => {
     jest.spyOn(uiService, 'toggleChatbot').mockImplementation();
-    await component.toggleChatbot();
+    component.toggleChatbot();
     expect(uiService.toggleChatbot).toHaveBeenCalled();
   });
 });

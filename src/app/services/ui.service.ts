@@ -1,4 +1,3 @@
-
 import { Injectable, signal } from '@angular/core';
 import { MainViewMode, AppTheme } from './user-context.service';
 
@@ -12,13 +11,13 @@ const THEMES: AppTheme[] = [
   providedIn: 'root'
 })
 export class UIService {
-  mainViewMode = signal<MainViewMode>('studio');
+  mainViewMode = signal<MainViewMode>('tha-spot');
   activeTheme = signal<AppTheme>(THEMES[0]);
   showEqPanel = signal(false);
   showChatbot = signal(false);
   isChatbotOpen = signal(false);
 
-  private viewModes: MainViewMode[] = ['studio', 'player', 'dj', 'piano-roll', 'image-editor', 'video-editor', 'networking', 'profile', 'projects', 'remix-arena'];
+  private viewModes: MainViewMode[] = ['hub', 'studio', 'player', 'dj', 'piano-roll', 'image-editor', 'video-editor', 'networking', 'profile', 'projects', 'remix-arena', 'tha-spot'];
   private currentViewIndex = 0;
 
   constructor() { }

@@ -3,8 +3,8 @@ import { AppTheme } from './app-theme';
 
 export type { AppTheme };
 
-// Reordered MainViewMode to place 'tha-spot' at the end and 'profile' at the beginning.
 export type MainViewMode =
+  | 'hub'
   | 'studio'
   | 'player'
   | 'dj'
@@ -81,7 +81,7 @@ export const initialDeckState: DeckState = {
   providedIn: 'root',
 })
 export class UserContextService {
-  mainViewMode = signal<MainViewMode>('studio');
+  mainViewMode = signal<MainViewMode>('tha-spot');
   lastUsedTheme = signal<AppTheme | null>(null);
   lastGeneratedImageUrl = signal<string | null>(null);
 

@@ -1,230 +1,131 @@
-/* Hub Layout */
-.hub-layout {
-  display: grid;
-  grid-template-columns: 280px 1fr 320px;
-  height: 100vh;
-  background-color: #1a1a1a;
-  color: #fff;
-}
-
-.left-sidebar,
-.right-sidebar {
-  background-color: #1f1f1f;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.main-content {
-  padding: 20px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.main-header {
-  margin-bottom: 20px;
-}
-
-/* Search and Filters */
-.search-bar {
-  position: relative;
-  margin-bottom: 20px;
-}
-
-.search-bar input {
-  width: 100%;
-  padding: 12px 12px 12px 40px;
-  border-radius: 8px;
-  border: 1px solid #444;
-  background-color: #2a2a2a;
-  color: #fff;
-}
-
-.search-bar .fa-search {
-  position: absolute;
-  top: 50%;
-  left: 15px;
-  transform: translateY(-50%);
-  color: #888;
-}
-
-.filter-sort-controls {
-  background-color: #2a2a2a;
-  padding: 10px;
-  border-radius: 8px;
-}
-
-.genre-filters,
-.sort-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-}
-
-.genre-filters {
-  margin-bottom: 10px;
-}
-
-.sort-options span {
-  margin-right: 10px;
-  font-size: 14px;
-  font-weight: bold;
-}
-
-.genre-filters button,
-.sort-options button {
-  background: #333;
-  color: #ddd;
-  border: 1px solid #555;
-  padding: 8px 12px;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.genre-filters button.active,
-.sort-options button.active {
-  background-color: #007bff;
-  color: #fff;
-  border-color: #007bff;
-}
-
-/* Game Grid */
-.game-grid-container {
-  flex-grow: 1;
-}
-
-.game-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-/* Right Sidebar */
-.right-sidebar .sidebar-btn {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  background-color: #2a2a2a;
-  border: 1px solid #444;
-  color: #fff;
-  border-radius: 5px;
-  text-align: left;
-}
-
-/* Battlefield Lobby Overlay */
-.overlay-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
+/* General Styles */
+.hub-container {
+  padding: 2rem;
   height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.battlefield-lobby {
-  background: #1f1f1f;
-  border: 1px solid #444;
-  padding: 30px;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 600px;
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.battlefield-lobby h2 {
-  text-align: center;
-  font-size: 28px;
-  margin-bottom: 10px;
-}
-
-.battlefield-lobby p {
-  text-align: center;
-  color: #aaa;
-  margin-bottom: 30px;
-}
-
-.lobby-config {
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 2rem;
 }
 
-.config-group label {
-  display: block;
-  margin-bottom: 10px;
-  font-weight: bold;
+.hub-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hub-section-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Games Section */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.game-card {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.game-card:hover {
+  transform: translateY(-5px);
+  background: rgba(0, 0, 0, 0.5);
+  border-color: var(--highlight-color, #00bfff);
+}
+
+.game-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--highlight-color, #00bfff);
+}
+
+.game-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.game-description {
+  font-size: 0.9rem;
   color: #ccc;
 }
 
-.config-group select {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #444;
-  background-color: #2a2a2a;
-  color: #fff;
-  font-size: 16px;
-}
-
-.radio-group {
+/* Challenges Section */
+.challenges-list {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.radio-group button {
-  flex-grow: 1;
-  padding: 12px;
-  border: 1px solid #555;
-  background: #333;
+.challenge-item {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.3s ease;
+}
+
+.challenge-item:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.challenge-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.challenge-prize {
+  font-size: 0.9rem;
+  color: var(--accent-color, #ffeb3b);
+  font-weight: 600;
+}
+
+/* Community Section */
+.community-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.community-post {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  border-left: 3px solid var(--primary-color, #7e57c2);
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.post-author {
+  font-weight: 600;
+  color: var(--primary-color, #7e57c2);
+}
+
+.post-timestamp {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.post-content {
+  font-size: 0.95rem;
   color: #ddd;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.radio-group button.active {
-  background-color: #007bff;
-  color: #fff;
-  border-color: #007bff;
-}
-
-.lobby-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 40px;
-}
-
-.lobby-actions button {
-  padding: 12px 25px;
-  border-radius: 8px;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.primary-btn {
-  background-color: #4caf50;
-  color: white;
-}
-
-.secondary-btn {
-  background-color: #555;
-  color: white;
 }
