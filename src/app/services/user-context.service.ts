@@ -3,8 +3,8 @@ import { Injectable, signal } from '@angular/core';
 // FIX: Moved AppTheme interface here from app.component.ts to break a circular dependency.
 export interface AppTheme { name: string; primary: string; accent: string; neutral: string; purple: string; red: string; blue: string; }
 
-// FIX: Added 'studio', 'profile' and 'login' to the MainViewMode type to match its usage in app.component.ts
-export type MainViewMode = 'studio' | 'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'profile' | 'tha-spot' | 'login';
+// Reordered MainViewMode to place 'tha-spot' at the end and 'profile' at the beginning.
+export type MainViewMode = 'profile' | 'login' | 'studio' | 'player' | 'dj' | 'piano-roll' | 'image-editor' | 'video-editor' | 'networking' | 'tha-spot';
 
 // FIX: Moved shared interfaces here to break circular dependencies
 export interface Track { name: string; url: string; artist?: string; albumArtUrl?: string; videoSrc?: string; }
@@ -32,7 +32,7 @@ export const initialDeckState: DeckState = {
   providedIn: 'root'
 })
 export class UserContextService {
-  mainViewMode = signal<MainViewMode>('studio');
+  mainViewMode = signal<MainViewMode>('profile');
   lastUsedTheme = signal<AppTheme | null>(null);
   lastGeneratedImageUrl = signal<string | null>(null);
 
