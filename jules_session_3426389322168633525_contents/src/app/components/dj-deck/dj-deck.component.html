@@ -1,0 +1,249 @@
+<div
+  class="grid grid-cols-12 gap-3 p-3 rounded h-[80vh] select-none"
+  [class]="'bg-' + theme().neutral + '-950'"
+>
+  <!-- Mixer Section -->
+  <div
+    class="col-span-2 flex flex-col items-center p-3 rounded gap-4"
+    [class]="'bg-' + theme().neutral + '-900'"
+  >
+    <h3
+      class="text-lg font-bold tracking-widest"
+      [class]="'text-' + theme().accent + '-400'"
+    >
+      MASTER
+    </h3>
+
+    <div class="w-full grid grid-cols-3 gap-2 text-center text-[10px]">
+      <div>
+        <div class="opacity-60 mb-1">A</div>
+        <div
+          class="w-4 h-32 mx-auto bg-black border rounded"
+          [class]="'border-' + theme().accent + '-700/50'"
+        ></div>
+      </div>
+      <div>
+        <div class="opacity-60 mb-1">MSTR</div>
+        <div
+          class="w-4 h-32 mx-auto bg-black border rounded"
+          [class]="'border-' + theme().accent + '-700/50'"
+        ></div>
+      </div>
+      <div>
+        <div class="opacity-60 mb-1">B</div>
+        <div
+          class="w-4 h-32 mx-auto bg-black border rounded"
+          [class]="'border-' + theme().accent + '-700/50'"
+        ></div>
+      </div>
+    </div>
+
+    <div class="w-full space-y-1">
+      <div class="flex items-center justify-between text-[10px] opacity-70">
+        <span>XF CURVE</span>
+        <select class="bg-black/40 border rounded px-1 py-0.5 text-[10px] w-24">
+          <option value="linear">Linear</option>
+          <option value="power">Power</option>
+          <option value="exp">Exponential</option>
+          <option value="cut">Cut</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <input
+          type="range"
+          class="w-full"
+          min="-1"
+          max="1"
+          step="0.001"
+          [ngModel]="deckService.crossfade()"
+          (ngModelChange)="deckService.crossfade.set($event)"
+        />
+      </div>
+      <div class="flex items-center justify-between text-[10px] opacity-70">
+        <label class="flex items-center gap-1">
+          <input type="checkbox" /> Hamster
+        </label>
+        <label class="flex items-center gap-1">
+          <input type="checkbox" /> Keylock
+        </label>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2 w-full">
+      <button
+        class="p-2 border text-xs"
+        [class.bg-red-500]="phantomPowerEnabled()"
+        (click)="phantomPowerEnabled.set(!phantomPowerEnabled())"
+      >
+        48V
+      </button>
+      <button
+        class="p-2 border text-xs"
+        [class.bg-blue-500]="midiEnabled()"
+        (click)="midiEnabled.set(!midiEnabled())"
+      >
+        MIDI
+      </button>
+      <button
+        class="p-2 border text-xs"
+        (click)="showSampleLibrary.set(!showSampleLibrary())"
+      >
+        SAMPLES
+      </button>
+    </div>
+
+    <div class="flex flex-col gap-2 w-full mt-auto">
+      <button class="p-2 border text-xs" (click)="loadTrackFor('A')">
+        LOAD A
+      </button>
+      <button class="p-2 border text-xs" (click)="loadTrackFor('B')">
+        LOAD B
+      </button>
+    </div>
+  </div>
+
+  <!-- Deck A -->
+  <div
+    class="col-span-5 flex flex-col gap-3 p-3 rounded"
+    [class]="'bg-' + theme().neutral + '-900'"
+  >
+    <div class="flex justify-between items-center">
+      <h3
+        class="text-lg tracking-widest"
+        [class]="'text-' + theme().accent + '-400'"
+      >
+        DECK A
+      </h3>
+      <div class="text-xs opacity-70 truncate max-w-[40%]">
+        {{ deckService.deckA().track.name }}
+      </div>
+    </div>
+    <div
+      class="w-full aspect-[4/1] rounded bg-black/50 border"
+      [class]="'border-' + theme().accent + '-700/30'"
+    ></div>
+    <div
+      class="w-full aspect-square rounded-full flex items-center justify-center relative bg-gradient-to-br"
+      [class]="
+        'from-' + theme().neutral + '-950 to-' + theme().neutral + '-900'
+      "
+    >
+      <div
+        class="absolute inset-0 rounded-full border"
+        [class]="'border-' + theme().accent + '-700/30'"
+      ></div>
+      <img
+        [src]="deckService.deckA().track.albumArtUrl"
+        class="w-40 h-40 rounded-full object-cover shadow-[0_0_40px_rgba(0,255,255,0.2)]"
+      />
+    </div>
+    <app-stem-controls
+      [deckId]="'A'"
+      (gainChange)="deckService.onStemGainChange('A', $event)"
+    ></app-stem-controls>
+    <div class="flex items-center justify-around gap-2 text-sm">
+      <button class="p-2 border">CUE</button>
+      <button class="p-4 border text-2xl" (click)="deckService.togglePlay('A')">
+        {{ deckService.deckA().isPlaying ? 'PAUSE' : 'PLAY' }}
+      </button>
+      <button class="p-2 border">SYNC</button>
+    </div>
+    <div class="grid grid-cols-4 gap-2 text-[10px]">
+      <button class="border py-1">HOT1</button>
+      <button class="border py-1">HOT2</button>
+      <button class="border py-1">HOT3</button>
+      <button class="border py-1">HOT4</button>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-sm">PITCH {{ pitchAPercentage() }}</span>
+      <input
+        type="range"
+        class="w-full"
+        min="0.5"
+        max="1.5"
+        step="0.0005"
+        [(ngModel)]="deckService.deckA().playbackRate"
+      />
+      <select class="bg-black/40 border rounded px-1 py-0.5 text-[10px] w-20">
+        <option>±8%</option>
+        <option selected>±16%</option>
+        <option>±50%</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Deck B or Sample Library -->
+  <div
+    class="col-span-5 flex flex-col gap-3 p-3 rounded"
+    [class]="'bg-' + theme().neutral + '-900'"
+  >
+    @if (showSampleLibrary()) {
+      <app-sample-library [theme]="theme()"></app-sample-library>
+    } @else {
+      <div class="flex justify-between items-center">
+        <h3
+          class="text-lg tracking-widest"
+          [class]="'text-' + theme().accent + '-400'"
+        >
+          DECK B
+        </h3>
+        <div class="text-xs opacity-70 truncate max-w-[40%]" >
+          {{ deckService.deckB().track.name }}
+        </div>
+      </div>
+      <div
+        class="w-full aspect-[4/1] rounded bg-black/50 border"
+        [class]="'border-' + theme().accent + '-700/30'"
+      ></div>
+      <div
+        class="w-full aspect-square rounded-full flex items-center justify-center relative bg-gradient-to-br"
+        [class]="
+          'from-' + theme().neutral + '-950 to-' + theme().neutral + '-900'
+        "
+      >
+        <div
+          class="absolute inset-0 rounded-full border"
+          [class]="'border-' + theme().accent + '-700/30'"
+        ></div>
+        <img
+          [src]="deckService.deckB().track.albumArtUrl"
+          class="w-40 h-40 rounded-full object-cover shadow-[0_0_40px_rgba(255,0,255,0.2)]"
+        />
+      </div>
+      <app-stem-controls
+        [deckId]="'B'"
+        (gainChange)="deckService.onStemGainChange('B', $event)"
+      ></app-stem-controls>
+      <div class="flex items-center justify-around gap-2 text-sm">
+        <button class="p-2 border">CUE</button>
+        <button class="p-4 border text-2xl" (click)="deckService.togglePlay('B')">
+          {{ deckService.deckB().isPlaying ? 'PAUSE' : 'PLAY' }}
+        </button>
+        <button class="p-2 border">SYNC</button>
+      </div>
+      <div class="grid grid-cols-4 gap-2 text-[10px]">
+        <button class="border py-1">HOT1</button>
+        <button class="border py-1">HOT2</button>
+        <button class="border py-1">HOT3</button>
+        <button class="border py-1">HOT4</button>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm">PITCH {{ pitchBPercentage() }}</span>
+        <input
+          type="range"
+          class="w-full"
+          min="0.5"
+          max="1.5"
+          step="0.0005"
+          [(ngModel)]="deckService.deckB().playbackRate"
+        />
+        <select class="bg-black/40 border rounded px-1 py-0.5 text-[10px] w-20">
+          <option>±8%</option>
+          <option selected>±16%</option>
+          <option>±50%</option>
+        </select>
+      </div>
+      <button class="p-2 border text-xs" (click)="separateStems('B')">SEPARATE STEMS</button>
+    }
+  </div>
+</div>

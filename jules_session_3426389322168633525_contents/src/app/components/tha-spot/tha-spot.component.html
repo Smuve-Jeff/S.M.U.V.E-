@@ -1,0 +1,37 @@
+<div class="tha-spot-container">
+  <header class="tha-spot-header">
+    <h1>Tha Spot</h1>
+    <p>Your Ultimate Gaming Destination</p>
+  </header>
+
+  <main class="tha-spot-main">
+    <div class="featured-game-container" *ngIf="featuredGame">
+      <h2>Featured Game</h2>
+      <div class="featured-game-card">
+        <img [src]="featuredGame.imageUrl" alt="{{ featuredGame.title }}">
+        <div class="featured-game-info">
+          <h3>{{ featuredGame.title }}</h3>
+          <p>{{ featuredGame.description }}</p>
+          <button (click)="selectGame(featuredGame)">Play Now</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-viewer-container" *ngIf="selectedGame">
+      <button class="close-viewer-btn" (click)="closeGame()">Close</button>
+      <iframe [src]="getSafeGameUrl()" frameborder="0" allowfullscreen></iframe>
+    </div>
+
+    <div class="game-library-container" *ngIf="!selectedGame">
+      <h2>Game Library</h2>
+      <div class="game-grid">
+        <div class="game-card" *ngFor="let game of games" (click)="selectGame(game)">
+          <img [src]="game.imageUrl" alt="{{ game.title }}">
+          <div class="game-card-info">
+            <h3>{{ game.title }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
