@@ -11,12 +11,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideAnimations(),
     provideAiService(),
-    {
-      provide: API_KEY_TOKEN,
-      useFactory: () =>
-        (globalThis as any).__env?.aiApiKey ??
-        (globalThis as any).process?.env?.NG_APP_AI_API_KEY ??
-        ''
-    }
+    { provide: API_KEY_TOKEN, useValue: 'YOUR_MOCK_API_KEY_HERE_FOR_TESTING' }
   ]
 };
