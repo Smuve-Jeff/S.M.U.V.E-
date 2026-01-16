@@ -28,8 +28,8 @@ export class HubComponent implements OnInit, OnDestroy {
     { id: '2', title: 'Top Producer', description: 'Most liked beat this month', prize: 'Pro Membership' }
   ]);
   communityPosts = signal<CommunityPost[]>([
-    { id: '1', author: 'Dr. Dre', content: 'New studio session starts now!', timestamp: new Date() },
-    { id: '2', author: 'Kanye', content: 'Vultures 2 out now.', timestamp: new Date() }
+    { id: '1', author: 'Dr. Dre', content: 'New studio session starts now!', timestamp: new Date('2024-07-26T10:00:00Z') },
+    { id: '2', author: 'Kanye', content: 'Vultures 2 out now.', timestamp: new Date('2024-07-25T18:30:00Z') }
   ]);
 
   genres = [
