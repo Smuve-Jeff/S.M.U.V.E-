@@ -51,6 +51,7 @@ export interface DeckState {
   eqMid: number;
   eqLow: number;
   wasPlayingBeforeScratch?: boolean;
+  buffer?: AudioBuffer;
 }
 
 export const initialDeckState: DeckState = {
