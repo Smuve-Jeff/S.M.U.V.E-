@@ -1,12 +1,11 @@
 import { Injectable, inject } from '@angular/core';
-import { UserProfile, UserProfileService } from './user-profile.service';
+import { UserProfile } from './user-profile.service';
 import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DatabaseService {
-  private userProfileService = inject(UserProfileService);
   private authService = inject(AuthService);
 
   constructor() {}

@@ -264,14 +264,17 @@ export class UserProfileService {
 
   constructor() {
     // When the user logs in, fetch their profile from the database.
-    effect(() => {
-      if (this.authService.isAuthenticated()) {
-        this.loadProfile();
-      } else {
-        // If logged out, reset to the initial profile
-        this.profile.set(initialProfile);
-      }
-    });
+    effect(
+      () => {
+        if (this.authService.isAuthenticated()) {
+          this.loadProfile();
+        } else {
+          // If logged out, reset to the initial profile
+          this.profile.set(initialProfile);
+        }
+      },
+      { allowSignalWrites: true }
+    );
   }
 
   private async loadProfile(): Promise<void> {

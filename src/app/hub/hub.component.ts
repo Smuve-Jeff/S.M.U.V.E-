@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Game, Challenge, CommunityPost, BattleConfig } from './hub.models';
-import { GameService } from '../services/game.service';
+import { GameService } from './game.service';
 import { UserProfileService } from '../services/user-profile.service';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -23,6 +23,15 @@ export class HubComponent implements OnInit, OnDestroy {
 
   // Game list and filtering
   games = signal<Game[]>([]);
+  challenges = signal<Challenge[]>([
+    { id: '1', title: 'Remix Master', description: 'Create the best remix of "Aurora"', prize: '$100' },
+    { id: '2', title: 'Top Producer', description: 'Most liked beat this month', prize: 'Pro Membership' }
+  ]);
+  communityPosts = signal<CommunityPost[]>([
+    { id: '1', author: 'Dr. Dre', content: 'New studio session starts now!', timestamp: new Date() },
+    { id: '2', author: 'Kanye', content: 'Vultures 2 out now.', timestamp: new Date() }
+  ]);
+
   genres = [
     'Shooter',
     'Arcade',
