@@ -1,6 +1,7 @@
 import { Component, Input, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Game, Challenge, CommunityPost, BattleConfig } from './hub.models';
+import { Game } from './game';
+import { Challenge, CommunityPost, BattleConfig } from './hub.models';
 import { GameService } from './game.service';
 import { UserProfileService } from '../services/user-profile.service';
 import { Subject } from 'rxjs';
