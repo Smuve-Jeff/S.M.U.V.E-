@@ -1,4 +1,5 @@
 import { Injectable, signal, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { StemSeparationService, Stems } from './stem-separation.service';
 
 // High-precision WebAudio scheduler with lookahead and sample/synth playback
@@ -322,9 +323,7 @@ export class AudioEngineService {
   async loadDeckBuffer(id: DeckId, buffer: AudioBuffer) {
     const deck = this.getDeck(id);
     deck.buffer = buffer;
-    this.stemSeparationService.separate(buffer).subscribe(stems => {
-      deck.stems = stems;
-    });
+    deck.stems = await firstValueFrom(this.stemSeparationService.separate(buffer));
     deck.pauseOffset = 0;
     if (deck.isPlaying) {
       this.stopDeckSource(deck);
