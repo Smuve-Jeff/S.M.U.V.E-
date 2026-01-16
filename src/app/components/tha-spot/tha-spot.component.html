@@ -1,8 +1,102 @@
 <div class="tha-spot-container">
-  <app-visualizer></app-visualizer>
-  <div class="jam-controls">
-    <button (click)="toggleAIBassist()">Toggle AI Bassist</button>
-    <button (click)="toggleAIDrummer()">Toggle AI Drummer</button>
-    <button (click)="toggleAIKeyboardist()">Toggle AI Keyboardist</button>
-  </div>
+  <header class="spot-header">
+    <h1 class="text-4xl font-bold text-white mb-2">Tha Spot</h1>
+    <p class="text-neutral-400">The Ultimate Interactive Gaming & Jam Hub</p>
+  </header>
+
+  <!-- Gaming Hub Section -->
+  <section class="gaming-hub-section wow animate__animated animate__fadeIn">
+    <div class="hub-controls mb-6">
+      <div class="search-bar">
+        <i class="fas fa-search"></i>
+        <input
+          type="text"
+          placeholder="Search games..."
+          (input)="onSearch($event)"
+          class="bg-neutral-800 text-white p-2 rounded w-full"
+        >
+      </div>
+      <div class="genre-filters flex gap-2 mt-4 overflow-x-auto pb-2">
+        <button
+          *ngFor="let genre of genres"
+          (click)="setGenre(genre)"
+          [class.active]="activeFilters().genre === genre"
+          class="filter-btn px-4 py-1 rounded-full border border-neutral-700 text-sm whitespace-nowrap"
+        >
+          {{ genre }}
+        </button>
+      </div>
+    </div>
+
+    <div class="games-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div
+        *ngFor="let game of games()"
+        class="game-card bg-neutral-900 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+        (click)="selectGame(game)"
+      >
+        <div class="game-image-container relative h-40">
+          <img [src]="game.image" [alt]="game.name" class="w-full h-full object-cover">
+          <div class="players-badge absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white">
+            <i class="fas fa-users"></i> {{ game.playersOnline || 0 }}
+          </div>
+        </div>
+        <div class="game-info p-4">
+          <h3 class="text-xl font-semibold text-white">{{ game.name }}</h3>
+          <p class="text-sm text-neutral-400 mb-2">{{ game.genre }}</p>
+          <div class="flex justify-between items-center">
+            <div class="rating text-yellow-500 text-sm">
+              <i class="fas fa-star"></i> {{ game.rating }}
+            </div>
+            <button class="play-btn bg-indigo-600 text-white px-4 py-1 rounded-full text-sm">Play Now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Visualizer & AI Jam Section -->
+  <section class="jam-section mt-12 p-8 bg-black/40 rounded-3xl backdrop-blur-md border border-white/10">
+    <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+      <i class="fas fa-microchip text-indigo-500"></i> AI Jam Session
+    </h2>
+
+    <div class="visualizer-wrapper h-64 mb-8 rounded-2xl overflow-hidden border border-white/5">
+      <app-visualizer></app-visualizer>
+    </div>
+
+    <div class="jam-controls flex flex-wrap justify-center gap-6">
+      <button
+        (click)="toggleAIBassist()"
+        [class.active]="isAIBassistEnabled"
+        class="jam-btn group"
+      >
+        <div class="icon-circle mb-2 group-hover:scale-110 transition-transform">
+          <i class="fas fa-guitar"></i>
+        </div>
+        <span>AI Bassist</span>
+      </button>
+
+      <button
+        (click)="toggleAIDrummer()"
+        [class.active]="isAIDrummerEnabled"
+        class="jam-btn group"
+      >
+        <div class="icon-circle mb-2 group-hover:scale-110 transition-transform">
+          <i class="fas fa-drum"></i>
+        </div>
+        <span>AI Drummer</span>
+      </button>
+
+      <button
+        (click)="toggleAIKeyboardist()"
+        [class.active]="isAIKeyboardistEnabled"
+        class="jam-btn group"
+      >
+        <div class="icon-circle mb-2 group-hover:scale-110 transition-transform">
+          <i class="fas fa-keyboard"></i>
+        </div>
+        <span>AI Keyboardist</span>
+      </button>
+    </div>
+  </section>
 </div>

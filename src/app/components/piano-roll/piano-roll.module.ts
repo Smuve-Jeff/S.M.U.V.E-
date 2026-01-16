@@ -4,9 +4,9 @@ import { PianoRollComponent } from './piano-roll.component';
 
 @NgModule({
   imports: [
-    CommonModule
+    CommonModule,
+    PianoRollComponent
   ],
-  declarations: [PianoRollComponent],
   exports: [PianoRollComponent]
 })
 export class PianoRollModule { }

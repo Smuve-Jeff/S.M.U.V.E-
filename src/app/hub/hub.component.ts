@@ -1,7 +1,6 @@
 import { Component, Input, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Game } from './game';
-import { Challenge, CommunityPost, BattleConfig } from './hub.models';
+import { Game, Challenge, CommunityPost, BattleConfig } from './hub.models';
 import { GameService } from './game.service';
 import { UserProfileService } from '../services/user-profile.service';
 import { Subject } from 'rxjs';
@@ -29,8 +28,8 @@ export class HubComponent implements OnInit, OnDestroy {
     { id: '2', title: 'Top Producer', description: 'Most liked beat this month', prize: 'Pro Membership' }
   ]);
   communityPosts = signal<CommunityPost[]>([
-    { id: '1', author: 'Dr. Dre', content: 'New studio session starts now!', timestamp: new Date('2024-07-26T10:00:00Z') },
-    { id: '2', author: 'Kanye', content: 'Vultures 2 out now.', timestamp: new Date('2024-07-25T18:30:00Z') }
+    { id: '1', author: 'Dr. Dre', content: 'New studio session starts now!', timestamp: new Date() },
+    { id: '2', author: 'Kanye', content: 'Vultures 2 out now.', timestamp: new Date() }
   ]);
 
   genres = [
