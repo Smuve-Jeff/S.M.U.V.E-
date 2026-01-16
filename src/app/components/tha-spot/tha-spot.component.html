@@ -13,7 +13,6 @@
           type="text"
           placeholder="Search games..."
           (input)="onSearch($event)"
-          aria-label="Search games"
           class="bg-neutral-800 text-white p-2 rounded w-full"
         >
       </div>
@@ -34,10 +33,6 @@
         *ngFor="let game of games()"
         class="game-card bg-neutral-900 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform"
         (click)="selectGame(game)"
-        role="button"
-        tabindex="0"
-        (keydown.enter)="selectGame(game)"
-        (keydown.space)="selectGame(game)"
       >
         <div class="game-image-container relative h-40">
           <img [src]="game.image" [alt]="game.name" class="w-full h-full object-cover">
