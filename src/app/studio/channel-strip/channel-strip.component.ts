@@ -12,6 +12,7 @@ import { AudioSessionService, MicChannel } from '../audio-session.service';
 export class ChannelStripComponent {
   @Input({ required: true }) channel!: MicChannel;
   private readonly audioSession = inject(AudioSessionService);
+  protected readonly Math = Math;
 
   updateLevel(newLevel: number): void {
     this.audioSession.updateChannelLevel(this.channel.id, newLevel);
