@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, Input, OnInit, inject, OnChanges, SimpleChanges, output } from '@angular/core';
 import { CommonModule, DomSanitizer, SafeResourceUrl } from '@angular/common';
 import { Game } from '../game';
 import { GameService } from '../game.service';
@@ -11,8 +11,9 @@ import { ReputationService } from '../../services/reputation.service';
   templateUrl: './game-player.component.html',
   styleUrls: ['./game-player.component.css']
 })
-export class GamePlayerComponent implements OnInit {
+export class GamePlayerComponent implements OnInit, OnChanges {
   @Input() gameId!: string;
+  close = output<void>();
   game: Game | undefined;
   safeUrl: SafeResourceUrl | undefined;
 
@@ -22,11 +23,25 @@ export class GamePlayerComponent implements OnInit {
 
   ngOnInit(): void {
     this.reputationService.addXp(50); // XP for starting a game
+    this.loadGame();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['gameId'] && !changes['gameId'].firstChange) {
+      this.loadGame();
+    }
+  }
+
+  private loadGame() {
     this.gameService.getGame(this.gameId).subscribe(game => {
       this.game = game;
       if (game?.url) {
         this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(game.url);
       }
     });
+  }
+
+  onExit() {
+    this.close.emit();
   }
 }

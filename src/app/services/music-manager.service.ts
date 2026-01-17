@@ -26,6 +26,7 @@ export class MusicManagerService {
   selectedTrackId = signal<number | null>(null);
   currentStep = signal(-1);
   automationData = signal<Record<string, number[]>>({});
+  private reputationService = inject(ReputationService);
 
   constructor(
     public engine: AudioEngineService,
@@ -204,8 +205,7 @@ export class MusicManagerService {
   }
 
   finishTrack() {
-    const reputationService = inject(ReputationService);
-    reputationService.addXp(200); // XP for finishing/exporting track
+    this.reputationService.addXp(200); // XP for finishing/exporting track
   }
   play() {
     this.engine.start();

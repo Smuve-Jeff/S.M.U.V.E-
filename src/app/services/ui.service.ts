@@ -29,8 +29,13 @@ export class UIService {
 
   private startVisualizerLoop() {
     const update = () => {
-      const intensity = this.engine.getVisualIntensity();
-      this.visualIntensity.set(intensity);
+      // Safely poll the engine's visual intensity
+      try {
+        const intensity = this.engine.getVisualIntensity();
+        this.visualIntensity.set(intensity);
+      } catch (e) {
+        // Audio Engine might not be ready yet
+      }
       requestAnimationFrame(update);
     };
     requestAnimationFrame(update);

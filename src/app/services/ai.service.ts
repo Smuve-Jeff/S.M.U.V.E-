@@ -168,6 +168,7 @@ export class AiService {
 
   private readonly _apiKey: string = inject(API_KEY_TOKEN);
   private userProfileService = inject(UserProfileService);
+  private reputationService = inject(ReputationService);
 
   private _genAI = signal<GoogleGenAI | undefined>(undefined);
   private _chatInstance = signal<Chat | undefined>(undefined);
@@ -288,8 +289,7 @@ export class AiService {
   }
 
   async generateMusic(prompt: string): Promise<TrackNote[]> {
-    const reputationService = inject(ReputationService);
-    reputationService.addXp(100); // XP for AI Melody generation
+    this.reputationService.addXp(100); // XP for AI Melody generation
 
     if (!this.chatInstance) {
       console.error('Chat not initialized.');

@@ -34,6 +34,7 @@ export class MasterControlsComponent {
   updateMasterVolume(event: Event): void {
     const volume = (event.target as HTMLInputElement).valueAsNumber;
     this.instrumentService.setMasterVolume(volume);
+     this.engine.recordAutomation('master-volume', volume / 100);
   }
 
   updateReverb(event: Event): void {

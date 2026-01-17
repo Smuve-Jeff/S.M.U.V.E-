@@ -1,7 +1,7 @@
 <div class="game-player-wrapper" *ngIf="game">
   <div class="game-header">
     <h3>{{ game.name }}</h3>
-    <button class="close-btn" (click)="game = undefined">Exit Game</button>
+    <button class="close-btn" (click)="onExit()">Exit Game</button>
   </div>
 
   <div class="iframe-container">

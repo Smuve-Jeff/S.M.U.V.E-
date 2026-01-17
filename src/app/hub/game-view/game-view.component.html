@@ -40,4 +40,8 @@
   <p>Select a game from the list to see its details.</p>
 </div>
 
-<app-game-player *ngIf="isPlaying && gameId" [gameId]="gameId"></app-game-player>
+<app-game-player
+  *ngIf="isPlaying && gameId"
+  [gameId]="gameId"
+  (close)="isPlaying = false">
+</app-game-player>
