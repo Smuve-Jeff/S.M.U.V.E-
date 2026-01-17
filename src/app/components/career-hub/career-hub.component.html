@@ -1,0 +1,75 @@
+<div class="p-8 bg-neutral-900 text-white min-h-full">
+  <header class="mb-10 flex justify-between items-end border-b border-white/10 pb-6">
+    <div>
+      <h1 class="text-4xl font-black tracking-tighter text-cyber-cyan uppercase italic">Career Hub</h1>
+      <p class="text-neutral-400 mt-2">Professional Advancement & Industry Deployment</p>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Label Submissions -->
+    <section class="bg-neutral-800/50 p-6 rounded-xl border border-white/5">
+      <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+        <i class="fas fa-record-vinyl text-cyber-magenta"></i>
+        Record Label Submissions
+      </h2>
+
+      <div class="space-y-6">
+        <div class="p-4 bg-neutral-900 rounded border border-white/10 space-y-4">
+          <h3 class="text-xs uppercase tracking-widest text-neutral-500 font-bold">New Submission</h3>
+          <input [ngModel]="newLabel()" (ngModelChange)="newLabel.set($event)" placeholder="Label Name" class="w-full p-2 bg-neutral-800 rounded outline-none focus:border-cyber-magenta transition-colors" />
+          <input [ngModel]="newDemo()" (ngModelChange)="newDemo.set($event)" placeholder="Demo Link (SoundCloud/Dropbox)" class="w-full p-2 bg-neutral-800 rounded outline-none focus:border-cyber-magenta transition-colors" />
+          <button (click)="submitToLabel()" class="w-full py-2 bg-cyber-magenta text-black font-bold uppercase text-sm">Submit Demo</button>
+        </div>
+
+        <div class="space-y-2">
+          <div *ngFor="let s of submissions()" class="flex justify-between items-center p-3 bg-neutral-900/40 rounded border border-white/5">
+            <div>
+              <div class="font-bold">{{ s.labelName }}</div>
+              <div class="text-[10px] text-neutral-500">{{ s.date }}</div>
+            </div>
+            <div class="text-xs px-2 py-1 rounded"
+                 [class.bg-yellow-500/20]="s.status === 'Pending'" [class.text-yellow-500]="s.status === 'Pending'"
+                 [class.bg-blue-500/20]="s.status === 'Reviewing'" [class.text-blue-500]="s.status === 'Reviewing'">
+              {{ s.status }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Venue Booking -->
+    <section class="bg-neutral-800/50 p-6 rounded-xl border border-white/5">
+      <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+        <i class="fas fa-building text-cyber-cyan"></i>
+        Concert Venue Tracker
+      </h2>
+
+      <div class="space-y-4">
+        <div *ngFor="let v of venues()" class="p-4 bg-neutral-900/50 rounded border border-white/5 group hover:border-cyber-cyan/30 transition-colors">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h3 class="font-bold text-white">{{ v.name }}</h3>
+              <div class="text-xs text-neutral-500">{{ v.location }}</div>
+            </div>
+            <div class="text-[10px] bg-cyber-cyan/10 text-cyber-cyan px-2 py-1 rounded border border-cyber-cyan/20">
+              {{ v.bookingStatus }}
+            </div>
+          </div>
+          <div class="flex gap-4 mt-4">
+            <div class="text-[10px] uppercase tracking-widest text-neutral-600">Capacity: {{ v.capacity }}</div>
+            <div class="text-[10px] uppercase tracking-widest text-cyber-cyan cursor-pointer hover:underline">View Stage Plot</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 p-4 bg-gradient-to-r from-cyber-cyan/10 to-transparent rounded border border-cyber-cyan/20">
+        <h4 class="text-sm font-bold mb-2">Technical Rider Status</h4>
+        <div class="w-full h-1.5 bg-neutral-900 rounded-full overflow-hidden">
+          <div class="h-full bg-cyber-cyan" style="width: 75%"></div>
+        </div>
+        <div class="mt-2 text-[9px] text-neutral-500">75% Complete - Missing Lighting Plot</div>
+      </div>
+    </section>
+  </div>
+</div>
