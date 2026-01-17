@@ -11,7 +11,7 @@ A full-featured Digital Audio Workstation (DAW) in your browser:
 - **Custom Synthesizer:** Built-in subtractive synth for creating unique leads and pads.
 - **Mastering Suite:** Master bus dynamics including high-precision Compression and Limiting.
 
-### 🤖 S.M.U.V.E. AI (The "Rap GOD")
+### 🤖 S.M.U.V.E AI (The "Rap GOD")
 An omniscient AI persona that acts as your strategic commander:
 - **Strategic Recommendations:** Issues "decrees" based on your artist profile to optimize your career path.
 - **Stem Separation:** Isolate vocals, drums, bass, and melody from any track in real-time.
@@ -56,4 +56,4 @@ npm run dev
 Navigate to `http://localhost:4200/`.
 
 ## 📜 License
-© Smuve Jeff Presents. All rights reserved.
+©️ Smuve Jeff Presents. All rights reserved.
