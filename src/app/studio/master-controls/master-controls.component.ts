@@ -20,8 +20,21 @@ export class MasterControlsComponent {
   isLimiterActive = false;
   isSoftClipActive = false;
 
+  private prevThreshold = DEFAULT_THRESHOLD;
+  private prevRatio = 12;
+
   toggleLimiter(): void {
     this.isLimiterActive = !this.isLimiterActive;
+    if (this.isLimiterActive) {
+      this.prevThreshold = this.compressor.threshold.value;
+      this.prevRatio = this.compressor.ratio.value;
+      this.compressor.threshold.value = LIMITER_THRESHOLD;
+      this.compressor.ratio.value = 20;
+    } else {
+      this.compressor.threshold.value = this.prevThreshold;
+      this.compressor.ratio.value = this.prevRatio;
+    }
+
     this.engine.configureLimiter({
       enabled: this.isLimiterActive,
       ceiling: LIMITER_THRESHOLD,

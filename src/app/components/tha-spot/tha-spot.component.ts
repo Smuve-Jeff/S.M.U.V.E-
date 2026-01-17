@@ -8,11 +8,12 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { Game } from '../../hub/hub.models';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { GameViewComponent } from '../../hub/game-view/game-view.component';
 
 @Component({
   selector: 'app-tha-spot',
   standalone: true,
-  imports: [CommonModule, FormsModule, VisualizerComponent],
+  imports: [CommonModule, FormsModule, VisualizerComponent, GameViewComponent],
   templateUrl: './tha-spot.component.html',
   styleUrls: ['./tha-spot.component.css']
 })

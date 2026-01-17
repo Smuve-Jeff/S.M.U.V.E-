@@ -54,6 +54,8 @@
     </div>
   </section>
 
+  <app-game-view *ngIf="selectedGame()" [gameId]="selectedGame()?.id"></app-game-view>
+
   <!-- Visualizer & AI Jam Section -->
   <section class="jam-section mt-12 p-8 bg-black/40 rounded-3xl backdrop-blur-md border border-white/10">
     <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
