@@ -95,9 +95,9 @@ export class StrategyHubComponent {
     ));
   }
 
-  get progress() {
+  progress = computed(() => {
     const total = this.checklists().length;
     const completed = this.checklists().filter(i => i.completed).length;
     return Math.round((completed / total) * 100);
-  }
+  });
 }
