@@ -43,7 +43,7 @@ export class CareerHubComponent {
 
   auditScore = signal<number | null>(null);
   auditFeedback = signal<string[]>([]);
-  splitSheets = signal<any[]>([]);
+  splitSheets = signal<SplitSheet[]>([]);
 
   runPitchAudit() {
     this.auditScore.set(85);
