@@ -128,6 +128,18 @@ export interface UserProfile {
   postingFrequency: string;
   engagementLevel: 'Low' | 'Medium' | 'High';
 
+  // === PROFESSIONAL IDENTITY & COMPLIANCE ===
+  proName?: string; // e.g., ASCAP, BMI, SESAC
+  proIpi?: string;
+  soundExchangeId?: string;
+  mlcId?: string;
+  isni?: string;
+  isOfficialProfile: boolean;
+
+  // === DISTRIBUTION ===
+  preferredDistributor?: string;
+  distributionStatus?: 'Not Started' | 'In Progress' | 'Distributed';
+
   // === LEARNING & DEVELOPMENT ===
   areasToImprove: string[];
   learningStyle:
@@ -241,6 +253,18 @@ export const initialProfile: UserProfile = {
   mostActiveOn: [],
   postingFrequency: '',
   engagementLevel: 'Low',
+
+  // Professional Identity & Compliance
+  proName: '',
+  proIpi: '',
+  soundExchangeId: '',
+  mlcId: '',
+  isni: '',
+  isOfficialProfile: false,
+
+  // Distribution
+  preferredDistributor: '',
+  distributionStatus: 'Not Started',
 
   // Learning & Development
   areasToImprove: [],

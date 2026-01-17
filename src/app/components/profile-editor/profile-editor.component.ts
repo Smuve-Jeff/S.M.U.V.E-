@@ -99,6 +99,7 @@ export class ProfileEditorComponent {
   sections = [
     { id: 'basic', label: 'Basic Info', icon: 'fa-user' },
     { id: 'social', label: 'Social & Links', icon: 'fa-link' },
+    { id: 'professional', label: 'Professional ID', icon: 'fa-id-card' },
     { id: 'legal', label: 'Legal Docs', icon: 'fa-file-contract' },
   ];
 

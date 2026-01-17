@@ -201,4 +201,22 @@ export const COMMANDS: Command[] = [
       });
     },
   },
+  {
+    name: 'VIEW_STRATEGY',
+    description: 'Opens the Strategy Hub for rollout plans and marketing tools.',
+    execute: async (params, component) => {
+      component.appCommand.emit({ action: 'VIEW_STRATEGY', parameters: {} });
+    },
+  },
+  {
+    name: 'SET_DISTRIBUTION',
+    description: 'Updates distribution status.',
+    params: [{ name: 'status', description: 'The new status.' }],
+    execute: async (params, component) => {
+      component.appCommand.emit({
+        action: 'SET_DISTRIBUTION',
+        parameters: { status: params.status },
+      });
+    },
+  },
 ];
