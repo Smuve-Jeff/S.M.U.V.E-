@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('S.M.U.V.E 2.0 Branding and Navigation Check', async ({ page }) => {
-  await page.goto('http://localhost:4200/hub');
+  await page.goto('/hub');
 
   // Verify Title
   const title = await page.textContent('h1');
