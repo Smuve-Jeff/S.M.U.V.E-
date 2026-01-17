@@ -2,6 +2,7 @@ import { Injectable, signal, effect, inject } from '@angular/core';
 import { AuthService } from './auth.service';
 import { DatabaseService } from './database.service';
 import { LegalDocument } from '../components/legal-document-editor/legal-document-editor.component';
+import { ArtistKnowledgeBase } from '../types/ai.types';
 
 export interface ShowcaseItem {
   type: 'music' | 'image' | 'video';
@@ -174,6 +175,9 @@ export interface UserProfile {
     | 'Courses';
   investingInEducation: boolean;
 
+  // === AI KNOWLEDGE BASE ===
+  knowledgeBase: ArtistKnowledgeBase;
+
   // === MENTAL GAME & MINDSET ===
   confidenceLevel: number; // 1-10
   dealingWithCriticism: 'Poorly' | 'Okay' | 'Well' | 'Excellently';
@@ -311,6 +315,13 @@ export const initialProfile: UserProfile = {
   areasToImprove: [],
   learningStyle: 'Video Tutorials',
   investingInEducation: false,
+
+  // AI Knowledge Base
+  knowledgeBase: {
+    learnedStyles: [],
+    productionSecrets: [],
+    coreTrends: [],
+  },
 
   // Mental Game & Mindset
   confidenceLevel: 5,

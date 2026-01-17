@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { AiService } from './ai.service';
 
 export interface LibraryItem {
   id: string;
@@ -12,6 +13,7 @@ export interface LibraryItem {
 
 @Injectable({ providedIn: 'root' })
 export class LibraryService {
+  private aiService = inject(AiService);
   items = signal<LibraryItem[]>([]);
 
   private dbPromise: Promise<IDBDatabase> | null = null;
@@ -40,6 +42,19 @@ export class LibraryService {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
+
+    // Auto-trigger AI Study
+    try {
+        const buffer = await blob.arrayBuffer();
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const audioBuffer = await audioContext.decodeAudioData(buffer);
+        const item = this.items().find(i => i.id === id);
+        if (item) {
+            this.aiService.studyTrack(audioBuffer, item.name);
+        }
+    } catch (error) {
+        console.warn('LibraryService: Failed to trigger AI study', error);
+    }
   }
 
   async getOffline(id: string): Promise<Blob | undefined> {

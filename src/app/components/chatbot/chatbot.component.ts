@@ -21,6 +21,7 @@ import {
   UserContextService,
 } from '../../services/user-context.service';
 import { UserProfileService } from '../../services/user-profile.service';
+import { LibraryService } from '../../services/library.service';
 import { COMMANDS, isExecutingCommand } from './chatbot.commands';
 import { SpeechRecognitionService } from '../../services/speech-recognition.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
@@ -60,6 +61,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   private aiService = inject(AiService);
   private userContext = inject(UserContextService);
   private userProfileService = inject(UserProfileService);
+  private libraryService = inject(LibraryService);
   speechRecognitionService = inject(SpeechRecognitionService);
   speechSynthesisService = inject(SpeechSynthesisService);
   isAiAvailable = computed(() => this.aiService.isAiAvailable());
@@ -381,6 +383,88 @@ export class ChatbotComponent implements OnInit, OnDestroy {
       this.speechSynthesisService.speak(transcription);
     } catch (e) {
       this.handleError(e, 'audio transcription');
+    }
+    this.isLoading.set(false);
+  }
+
+  async studyTrack(trackId: string): Promise<void> {
+    this.isLoading.set(true);
+    try {
+      const track = this.libraryService.items().find(i => i.id === trackId);
+      if (!track) {
+          throw new Error('Track not found in library.');
+      }
+      const blob = await this.libraryService.getOffline(trackId);
+      if (!blob) {
+          throw new Error('Audio data not available offline.');
+      }
+      const buffer = await blob.arrayBuffer();
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioBuffer = await audioContext.decodeAudioData(buffer);
+
+      await this.aiService.studyTrack(audioBuffer, track.name);
+
+      const content = `Study complete for "${track.name}". I have added its signature characteristics to my Knowledge Base. I am ready to MIMIC this style whenever you command it.`;
+      this.messages.update(m => [...m, { role: 'model', content }]);
+      this.speechSynthesisService.speak(content);
+    } catch (e) {
+      this.handleError(e, 'track study');
+    }
+    this.isLoading.set(false);
+  }
+
+  async researchArtist(artistName: string): Promise<void> {
+    this.isLoading.set(true);
+    try {
+      await this.aiService.researchArtist(artistName);
+      const content = `Research complete for "${artistName}". My core knowledge has been updated with their production secrets. I have also adjusted current industry trends based on this analysis.`;
+      this.messages.update(m => [...m, { role: 'model', content }]);
+      this.speechSynthesisService.speak(content);
+    } catch (e) {
+      this.handleError(e, 'artist research');
+    }
+    this.isLoading.set(false);
+  }
+
+  async mimicStyle(styleId: string): Promise<void> {
+    this.isLoading.set(true);
+    try {
+      await this.aiService.mimicStyle(styleId);
+      const content = `Persona shift complete. I am now mimicking "${styleId}". Studio settings have been optimized for this aesthetic. What is our next objective?`;
+      this.messages.update(m => [...m, { role: 'model', content }]);
+      this.speechSynthesisService.speak(content);
+    } catch (e) {
+      this.handleError(e, 'mimicry');
+    }
+    this.isLoading.set(false);
+  }
+
+  viewKnowledgeBase(): void {
+    const kb = this.userProfileService.profile().knowledgeBase;
+    const learnedCount = kb.learnedStyles.length;
+    const secretsCount = kb.productionSecrets.length;
+    const trendsCount = kb.coreTrends.length;
+
+    const content = `[ARTIST KNOWLEDGE BASE]:
+- Learned Styles: ${learnedCount}
+- Production Secrets: ${secretsCount}
+- Core Trends: ${trendsCount}
+
+Would you like me to breakdown a specific section or MIMIC a learned style?`;
+
+    this.messages.update(m => [...m, { role: 'model', content }]);
+    this.speechSynthesisService.speak(content);
+  }
+
+  async updateCoreTrends(): Promise<void> {
+    this.isLoading.set(true);
+    try {
+        await this.aiService.updateCoreTrends();
+        const content = "Industry intelligence updated. Core trends have been refreshed and strategic recommendations are now live. Stay ahead of the curve.";
+        this.messages.update(m => [...m, { role: 'model', content }]);
+        this.speechSynthesisService.speak(content);
+    } catch (e) {
+        this.handleError(e, 'trend update');
     }
     this.isLoading.set(false);
   }
