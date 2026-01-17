@@ -1,6 +1,7 @@
 import { Component, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { UserProfileService } from '../../services/user-profile.service';
 
 interface ChecklistItem {
@@ -13,7 +14,7 @@ interface ChecklistItem {
 @Component({
   selector: 'app-strategy-hub',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './strategy-hub.component.html',
   styleUrls: ['./strategy-hub.component.css']
 })
