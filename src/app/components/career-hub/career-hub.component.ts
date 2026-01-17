@@ -57,7 +57,7 @@ export class CareerHubComponent {
 
   generateSplitSheet() {
     const sheet = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36).slice(2, 11),
       track: 'New Track Prototype',
       splits: [
         { name: this.profile().artistName, role: 'Writer/Producer', share: 50 },
