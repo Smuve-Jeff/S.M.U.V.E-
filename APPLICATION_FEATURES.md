@@ -1,11 +1,11 @@
-# S.M.U.V.E. 2.0: Application Capabilities & Feature Breakdown
+# S.M.U.V.E 2.0: Application Capabilities & Feature Breakdown
 
-**S.M.U.V.E. 2.0 (Strategic Music Utility Virtual Enhancer)** is a cutting-edge, AI-integrated digital ecosystem designed for the modern independent artist. It combines professional-grade production tools with strategic career management and interactive entertainment.
+**S.M.U.V.E 2.0 (Strategic Music Utility Virtual Enhancer)** is a cutting-edge, AI-integrated digital ecosystem designed for the modern independent artist. It combines professional-grade production tools with strategic career management and interactive entertainment.
 
 ---
 
 ## 💎 Branding & User Identity
-- **Consolidated Identity**: The application is branded as **S.M.U.V.E. 2.0**, presented by **Smuve Jeff**, ensuring a unified and professional aesthetic across all views.
+- **Consolidated Identity**: The application is branded as **S.M.U.V.E 2.0**, presented by **Smuve Jeff**, ensuring a unified and professional aesthetic across all views.
 - **Onboarding & Guest Experience**: New users are welcomed with an interactive **Guest View** on the Profile page, showcasing the platform's core value propositions (Studio, AI, Gaming) before they even log in.
 - **Artist Profile**: A central hub for managing artist data, including career goals, bio, and expertise levels (vocal, production, marketing, etc.). This data directly feeds into the AI's strategic logic.
 

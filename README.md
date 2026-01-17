@@ -1,6 +1,6 @@
 # Smuve Jeff Presents S.M.U.V.E 2.0 (Strategic Music Utility Virtual Enhancer)
 
-S.M.U.V.E. 2.0 is an AI-powered, high-precision music studio and strategic management platform designed for independent artists. Built on Angular 18 and utilizing Google's Gemini AI, it serves as a digital twin and a "Rap GOD" strategic partner to guide your musical journey.
+S.M.U.V.E 2.0 is an AI-powered, high-precision music studio and strategic management platform designed for independent artists. Built on Angular 18 and utilizing Google's Gemini AI, it serves as a digital twin and a "Rap GOD" strategic partner to guide your musical journey.
 
 ## 🚀 Key Features
 

@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-test('S.M.U.V.E. 2.0 Branding and Navigation Check', async ({ page }) => {
+test('S.M.U.V.E 2.0 Branding and Navigation Check', async ({ page }) => {
   await page.goto('http://localhost:4200/hub');
 
   // Verify Title
   const title = await page.textContent('h1');
-  expect(title).toContain('S.M.U.V.E. 2.0');
+  expect(title).toContain('S.M.U.V.E 2.0');
 
   // Verify Navigation buttons exist
   const navButtons = page.locator('.nav-button');
