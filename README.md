@@ -56,4 +56,4 @@ npm run dev
 Navigate to `http://localhost:4200/`.
 
 ## 📜 License
-©️ Smuve Jeff Presents. All rights reserved.
+© Smuve Jeff Presents. All rights reserved.
