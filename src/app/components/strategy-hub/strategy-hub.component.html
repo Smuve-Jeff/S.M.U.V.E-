@@ -7,6 +7,7 @@
     <div class="text-right">
       <div class="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-1">Readiness Level</div>
       <div class="text-2xl font-mono text-cyber-magenta">{{ progress() }}%</div>
+      <div class="text-2xl font-mono text-cyber-magenta">{{ progress }}%</div>
     </div>
   </header>
 
@@ -32,6 +33,11 @@
                       class="w-full text-left flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border border-transparent hover:bg-white/5 hover:border-white/10"
                       [class.opacity-40]="item.completed"
                       [attr.aria-pressed]="item.completed">
+              <div *ngFor="let item of checklists()"
+                   [hidden]="item.category !== cat"
+                   (click)="toggleItem(item.id)"
+                   class="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border border-transparent hover:bg-white/5 hover:border-white/10"
+                   [class.opacity-40]="item.completed">
                 <div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors"
                      [class.bg-cyber-cyan]="item.completed"
                      [class.border-cyber-cyan]="item.completed"

@@ -1,5 +1,6 @@
 import { Component, Input, OnInit, inject } from '@angular/core';
-import { CommonModule, DomSanitizer, SafeResourceUrl } from '@angular/common';
+import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Game } from '../game';
 import { GameService } from '../game.service';
 

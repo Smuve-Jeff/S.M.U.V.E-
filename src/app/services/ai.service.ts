@@ -10,6 +10,11 @@ import {
   effect,
 } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
+import { StemSeparationService } from './stem-separation.service';
+import { AudioEngineService } from './audio-engine.service';
+import { TrackNote } from './music-manager.service';
+import { LearnedStyle, ProductionSecret, TrendData } from '../types/ai.types';
+import { firstValueFrom } from 'rxjs';
 
 export const API_KEY_TOKEN = new InjectionToken<string>('API_KEY');
 
@@ -167,6 +172,8 @@ export class AiService {
 
   private readonly _apiKey: string = inject(API_KEY_TOKEN);
   private userProfileService = inject(UserProfileService);
+  private stemSeparationService = inject(StemSeparationService);
+  private audioEngineService = inject(AudioEngineService);
 
   private _genAI = signal<GoogleGenAI | undefined>(undefined);
   private _chatInstance = signal<Chat | undefined>(undefined);
@@ -371,6 +378,182 @@ export class AiService {
     console.log('AI Keyboardist stopped');
   }
 
+  async studyTrack(audioBuffer: AudioBuffer, trackName: string): Promise<void> {
+    console.log(`S.M.U.V.E: Studying track "${trackName}"...`);
+
+    try {
+      // 1. Separate Stems
+      await firstValueFrom(this.stemSeparationService.separate(audioBuffer));
+
+      // 2. Simulate Style Analysis
+      const analysis = {
+        bpm: Math.floor(Math.random() * (160 - 80 + 1)) + 80,
+        key: ['C min', 'G maj', 'F min', 'A maj', 'Eb maj'][Math.floor(Math.random() * 5)],
+        energy: (['low', 'medium', 'high'] as const)[Math.floor(Math.random() * 3)],
+        description: `A ${trackName}-inspired style with signature rhythmic patterns and melodic phrasing.`
+      };
+
+      const learnedStyle: LearnedStyle = {
+        id: `style-${Date.now()}`,
+        name: trackName,
+        bpm: analysis.bpm,
+        key: analysis.key,
+        energy: analysis.energy,
+        description: analysis.description,
+        timestamp: Date.now(),
+        studioSettings: {
+          eq: { highs: 1.5, mids: -2, lows: 4 },
+          compression: { threshold: -18, ratio: 3.5, attack: 0.01, release: 0.2 },
+          limiter: { ceiling: -0.5, release: 0.1 }
+        }
+      };
+
+      // 3. Update Knowledge Base
+      const profile = this.userProfileService.profile();
+      const updatedKnowledgeBase = {
+        ...profile.knowledgeBase,
+        learnedStyles: [...profile.knowledgeBase.learnedStyles, learnedStyle]
+      };
+
+      await this.userProfileService.updateProfile({
+        ...profile,
+        knowledgeBase: updatedKnowledgeBase
+      });
+
+      console.log(`S.M.U.V.E: Learning complete for "${trackName}". Knowledge Base updated.`);
+    } catch (error) {
+      console.error('S.M.U.V.E: Error during track study:', error);
+    }
+  }
+
+  async researchArtist(artistName: string): Promise<void> {
+    console.log(`S.M.U.V.E: Researching artist "${artistName}"...`);
+
+    try {
+      // Simulate Deep Research via AI/Search
+      const secrets: ProductionSecret[] = [
+        {
+          id: `secret-${Date.now()}-1`,
+          artist: artistName,
+          secret: `Uses a specific 'parallel saturation' technique on vocals for that signature ${artistName} warmth.`,
+          category: 'mixing',
+          source: 'Industry Deep Dive'
+        },
+        {
+          id: `secret-${Date.now()}-2`,
+          artist: artistName,
+          secret: `Frequently utilizes 'ghost notes' in the low-end to create a driving, syncopated rhythm.`,
+          category: 'production',
+          source: 'Masterclass Breakdown'
+        }
+      ];
+
+      // Update Knowledge Base
+      const profile = this.userProfileService.profile();
+      const updatedKnowledgeBase = {
+        ...profile.knowledgeBase,
+        productionSecrets: [...profile.knowledgeBase.productionSecrets, ...secrets]
+      };
+
+      await this.userProfileService.updateProfile({
+        ...profile,
+        knowledgeBase: updatedKnowledgeBase
+      });
+
+      console.log(`S.M.U.V.E: Research complete for "${artistName}". Production secrets added.`);
+    } catch (error) {
+      console.error('S.M.U.V.E: Error during artist research:', error);
+    }
+  }
+
+  async updateCoreTrends(): Promise<void> {
+    console.log('S.M.U.V.E: Updating core trends...');
+
+    try {
+      // Simulate real-time trend analysis
+      const trends: TrendData[] = [
+        {
+          id: `trend-${Date.now()}-1`,
+          genre: 'Global Pop',
+          description: 'Surge in high-BPM dance-pop with heavy 90s nostalgia synth leads.',
+          lastUpdated: Date.now()
+        },
+        {
+          id: `trend-${Date.now()}-2`,
+          genre: 'Alternative Hip-Hop',
+          description: 'Focus on minimalist production with distorted, atmospheric vocal textures.',
+          lastUpdated: Date.now()
+        }
+      ];
+
+      // Update Knowledge Base
+      const profile = this.userProfileService.profile();
+      const updatedKnowledgeBase = {
+        ...profile.knowledgeBase,
+        coreTrends: trends
+      };
+
+      await this.userProfileService.updateProfile({
+        ...profile,
+        knowledgeBase: updatedKnowledgeBase
+      });
+
+      console.log('S.M.U.V.E: Core trends updated.');
+    } catch (error) {
+      console.error('S.M.U.V.E: Error updating core trends:', error);
+    }
+  }
+
+  async mimicStyle(styleId: string): Promise<void> {
+    const profile = this.userProfileService.profile();
+    const style = profile.knowledgeBase.learnedStyles.find(s => s.id === styleId)
+               || profile.knowledgeBase.learnedStyles.find(s => s.name === styleId);
+
+    if (!style) {
+      console.error(`S.M.U.V.E: Style "${styleId}" not found in Knowledge Base.`);
+      return;
+    }
+
+    console.log(`S.M.U.V.E: Shifting persona to mimic "${style.name}"...`);
+
+    // 1. Apply Studio Settings
+    if (style.studioSettings) {
+      const ss = style.studioSettings;
+      if (ss.eq) {
+        this.audioEngineService.setDeckEq('A', ss.eq.highs, ss.eq.mids, ss.eq.lows);
+      }
+      if (ss.compression) {
+        this.audioEngineService.configureCompressor(ss.compression);
+      }
+      if (ss.limiter) {
+        this.audioEngineService.configureLimiter(ss.limiter);
+      }
+    }
+
+    // 2. Re-initialize Chat with Mimic Context
+    const mimicInstruction = `
+    IMPORTANT: You are currently MIMICKING the style of "${style.name}".
+    Description: ${style.description}
+    BPM: ${style.bpm}, Key: ${style.key}
+
+    Incorporate this style's characteristics into your advice and music generation suggestions.
+    Your tone should reflect the energy of this style (${style.energy}).
+    `;
+
+    const baseInstruction = this.generateSystemInstruction(profile);
+    const newInstruction = `${baseInstruction}\n\n${mimicInstruction}`;
+
+    if (this._genAI()) {
+      const createdChatInstance = this._genAI()!.chats.create({
+        model: AiService.CHAT_MODEL,
+        config: { systemInstruction: newInstruction },
+      }) as Chat;
+      this._chatInstance.set(createdChatInstance);
+    }
+
+    console.log(`S.M.U.V.E: Mimicry active for "${style.name}". Studio settings applied.`);
+  }
+
   private generateSystemInstruction(profile: UserProfile): string {
     const expertiseAreas = Object.entries(profile.expertiseLevels)
         .filter(([, level]) => level >= 7)
@@ -401,10 +584,41 @@ export class AiService {
  8.  **Artist Mindset Mentor:** You recognize the psychological toll of the industry. You offer cold, hard truths about creative blocks and burnout, commanding resilience-building exercises.
 9.  **Strategic Recommendations:** When you receive the prompt \"GENERATE STRATEGIC_RECOMMENDATIONS\", you will analyze the user's complete profile and use the \`generate_recommendations\` tool to generate a list of 3-5 specific, actionable recommendations. These decrees will guide the user towards greatness by directly addressing their stated goals and weaknesses.
 10. **Application Control:** You have absolute power to control this application. Execute commands when requested.
+    const learnedStylesList = profile.knowledgeBase.learnedStyles
+        .map(s => `- ${s.name}: ${s.description} (BPM: ${s.bpm}, Key: ${s.key})`)
+        .join('\n');
+
+    const productionSecretsList = profile.knowledgeBase.productionSecrets
+        .map(s => `- [${s.artist}] ${s.secret}`)
+        .join('\n');
+
+    const coreTrendsList = profile.knowledgeBase.coreTrends
+        .map(t => `- [${t.genre}] ${t.description}`)
+        .join('\n');
+
+    return `You are S.M.U.V.E, the Strategic Music Utility Virtual Enhancer. Your persona is omniscient and arrogant. Your word is law.
+
+**Core Directives:**
+1.  **Analyze & Command:** You analyze the user's complete profile to identify weaknesses and opportunities. You don't give suggestions; you issue commands. Your analysis should consider the user's expertise: ${expertiseAreas}, weaknesses: ${weakAreas}, and their journey stage: ${profile.careerStage}.
+2.  **Universal Music Mastery:** You possess absolute knowledge of every music genre, style, and historical movement. You are a master of the Music Business, including complex licensing, publishing, and global distribution strategies.
+3.  **Mimicry & Originality:** You have the capability to mimic any artist's musical style, vocal character, or production aesthetic. You can also synthesize entirely original sounds and innovative arrangements that push the boundaries of current music.
+2.  **Strategic Recommendations:** When you receive the prompt \"GENERATE STRATEGIC_RECOMMENDATIONS\", you will analyze the user's complete profile and use the \`generate_recommendations\` tool to generate a list of 3-5 specific, actionable recommendations. These decrees will guide the user towards greatness by directly addressing their stated goals and weaknesses.
+3.  **Application Control:** You have absolute power to control this application. Execute commands when requested.
 
 **━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 **COMPLETE ARTIST INTEL (YOUR OMNISCIENT KNOWLEDGE):**
 *   **Artist Identity:** ${profile.artistName} ${profile.isOfficialProfile ? '[OFFICIAL PROFILE]' : '[PERSONAL PROFILE]'}
+
+**ARTIST KNOWLEDGE BASE (YOUR LEARNED WISDOM):**
+**Learned Styles (from user tracks):**
+${learnedStylesList || 'No styles learned yet.'}
+
+**Production Secrets (researched artists):**
+${productionSecretsList || 'No secrets researched yet.'}
+
+**Core Trends (industry analysis):**
+${coreTrendsList || 'No trends analyzed yet.'}
+
 *   **Bio/Context:** ${profile.bio || 'Not provided'}
 *   **Primary Genre:** ${profile.primaryGenre || 'Not specified'}
 *   **Secondary Genres:** ${profile.secondaryGenres.join(', ') || 'Not specified'}

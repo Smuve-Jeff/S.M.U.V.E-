@@ -12,3 +12,7 @@
   from { transform: scaleY(0); }
   to { transform: scaleY(1); }
 }
+
+@keyframes grow {
+  from { height: 0; }
+}

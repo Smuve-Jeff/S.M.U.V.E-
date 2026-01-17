@@ -8,6 +8,11 @@ interface CommandComponentContext {
   sendGoogleMapsQuery(location: string): Promise<void>;
   analyzeImage(url: string, prompt: string): void;
   analyzeVideo(track: string, prompt: string): void;
+  studyTrack(trackId: string): Promise<void>;
+  researchArtist(artistName: string): Promise<void>;
+  mimicStyle(styleId: string): Promise<void>;
+  viewKnowledgeBase(): void;
+  updateCoreTrends(): Promise<void>;
   appCommand: {
     emit(command: {
       action: string;
@@ -217,6 +222,44 @@ export const COMMANDS: Command[] = [
         action: 'SET_DISTRIBUTION',
         parameters: { status: params.status },
       });
+    },
+  },
+  {
+    name: 'STUDY',
+    description: 'Analyzes a track from your library to learn its style.',
+    params: [{ name: 'trackId', description: 'The ID of the track to study.' }],
+    execute: async (params, component) => {
+      await component.studyTrack(params.trackId);
+    },
+  },
+  {
+    name: 'RESEARCH',
+    description: 'Researches an artist to learn their production secrets.',
+    params: [{ name: 'artist', description: 'The name of the artist.' }],
+    execute: async (params, component) => {
+      await component.researchArtist(params.artist);
+    },
+  },
+  {
+    name: 'MIMIC',
+    description: "Shifts S.M.U.V.E's persona and studio settings to mimic a learned style.",
+    params: [{ name: 'style', description: 'The name or ID of the style.' }],
+    execute: async (params, component) => {
+      await component.mimicStyle(params.style);
+    },
+  },
+  {
+    name: 'KNOWLEDGE',
+    description: 'Displays your current Artist Knowledge Base.',
+    execute: async (params, component) => {
+      component.viewKnowledgeBase();
+    },
+  },
+  {
+    name: 'TRENDS',
+    description: 'Updates core industry trends and applies recommendations.',
+    execute: async (params, component) => {
+      await component.updateCoreTrends();
     },
   },
 ];

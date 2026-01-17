@@ -15,6 +15,7 @@
   <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
     <!-- Metric Cards -->
     <div *ngFor="let metric of metrics()"
+    <div *ngFor="let metric of [analytics.streams(), analytics.followers(), analytics.engagement()]"
          class="bg-neutral-800/50 p-6 rounded-xl border border-white/5 hover:border-cyber-cyan/30 transition-colors">
       <div class="flex justify-between items-start mb-4">
         <span class="text-xs uppercase tracking-widest text-neutral-500 font-bold">{{ metric.label }}</span>
@@ -62,6 +63,7 @@
       </div>
     </section>
 
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     <!-- Genre Impact -->
     <section class="bg-neutral-800/50 p-8 rounded-xl border border-white/5">
       <h2 class="text-xl font-bold mb-8 flex items-center gap-2">
