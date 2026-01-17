@@ -23,13 +23,21 @@ export class PracticeSpaceComponent {
   lyrics = signal<string>('');
   memorizeMode = signal(false);
 
-  processedLyrics = computed(() => {
-    if (!this.memorizeMode()) return this.lyrics();
-    return this.lyrics().split(' ').map(word => {
-      // Logic for memorization: hide words with more than 3 chars randomly
-      return (word.length > 3 && Math.random() > 0.7) ? '_____' : word;
-    }).join(' ');
-  });
+  processedLyrics = signal<string>('');
+
+  private updateProcessedLyrics() {
+    if (!this.memorizeMode()) {
+      this.processedLyrics.set(this.lyrics());
+      return;
+    }
+
+    const processed = this.lyrics()
+      .split(' ')
+      .map(word => (word.length > 3 && Math.random() > 0.7 ? '_____' : word))
+      .join(' ');
+
+    this.processedLyrics.set(processed);
+  }
 
   warmups: VocalWarmup[] = [
     { id: '1', name: 'Lip Trills', duration: '2 min', description: 'Gently blow air through relaxed lips to vibrate them.' },
