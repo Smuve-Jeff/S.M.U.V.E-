@@ -14,7 +14,7 @@
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
     <!-- Metric Cards -->
-    <div *ngFor="let metric of [analytics.streams(), analytics.followers(), analytics.engagement()]"
+    <div *ngFor="let metric of metrics()"
          class="bg-neutral-800/50 p-6 rounded-xl border border-white/5 hover:border-cyber-cyan/30 transition-colors">
       <div class="flex justify-between items-start mb-4">
         <span class="text-xs uppercase tracking-widest text-neutral-500 font-bold">{{ metric.label }}</span>
