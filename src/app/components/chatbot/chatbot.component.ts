@@ -417,13 +417,16 @@ export class ChatbotComponent implements OnInit, OnDestroy {
           advice = `As a ${profile.primaryGenre} artist, what kind of visuals represent your sound? Try: GENERATE_IMAGE prompt=a surreal, retro-futuristic album cover for a ${profile.primaryGenre} track`;
           break;
         case 'piano-roll':
-          advice = `Since your current focus is '${profile.currentFocus}', let's compose a melody that reflects that. What kind of mood are you going for?`;
+          advice = `Since your current focus is '${profile.currentFocus}', I can generate a melody for you. Try: GENERATE_MELODY prompt=a dark trap melody in C minor`;
           break;
         case 'networking':
           advice = `Based on your goal to '${profile.careerGoals?.join(', ')}', I can help find collaborators. Try the command: FIND_ARTISTS query=${profile.primaryGenre} producers`;
           break;
         case 'studio':
-          advice = `The studio is armed and ready. Your primary skill is '${profile.skills?.[0]}'. Let's make sure your vocal chain is optimized for that.`;
+          advice = `The studio is armed and ready. I've enabled the new mastering tools—try the 'Limiter' and 'Soft Clip' on the master bus for that radio-ready sound.`;
+          break;
+        case 'tha-spot':
+          advice = `Welcome to Tha Spot! You can now play Hextris or Pacman directly here. Your activities will earn you Smuve Cred and level up your status.`;
           break;
       }
     }

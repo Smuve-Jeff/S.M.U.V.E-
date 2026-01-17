@@ -24,6 +24,7 @@ export class MusicManagerService {
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
   currentStep = signal(-1);
+  automationData = signal<Record<string, number[]>>({});
 
   constructor(
     public engine: AudioEngineService,

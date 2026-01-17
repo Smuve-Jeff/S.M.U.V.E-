@@ -68,6 +68,7 @@ interface DeckChannel {
   loopEnabled: boolean;
   loopStartSec: number;
   loopEndSec: number;
+  hotCues: number[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -79,6 +80,8 @@ export class AudioEngineService {
   private compressor: DynamicsCompressorNode;
   private limiter: DynamicsCompressorNode;
   private limiterLookahead: DelayNode;
+  private saturation: WaveShaperNode;
+  private stereoWidener: StereoPannerNode;
   private autoTuneDelay: DelayNode;
   private autoTuneFilter: BiquadFilterNode;
   private autoTuneWet: GainNode;
@@ -148,6 +151,12 @@ export class AudioEngineService {
 
     this.analyser = this.ctx.createAnalyser();
 
+    this.saturation = this.ctx.createWaveShaper();
+    this.saturation.curve = this.makeSaturationCurve(400);
+
+    this.stereoWidener = this.ctx.createStereoPanner();
+    this.stereoWidener.pan.value = 0;
+
     // FX setup
     this.reverbConvolver = this.ctx.createConvolver();
     this.reverbWet = this.ctx.createGain();
@@ -171,7 +180,9 @@ export class AudioEngineService {
     this.masterGain.connect(this.compressor);
 
     // master dynamics chain
-    this.compressor.connect(this.limiterLookahead);
+    this.compressor.connect(this.saturation);
+    this.saturation.connect(this.stereoWidener);
+    this.stereoWidener.connect(this.limiterLookahead);
     this.limiterLookahead.connect(this.limiter);
     this.limiter.connect(this.analyser);
     this.analyser.connect(this.ctx.destination);
@@ -267,6 +278,7 @@ export class AudioEngineService {
       loopEnabled: false,
       loopStartSec: 0,
       loopEndSec: 0,
+      hotCues: [],
     };
 
     if (id === 'A') this.deckA = deck;
@@ -474,6 +486,19 @@ export class AudioEngineService {
     if (wasPlaying) this.startDeckSource(deck, deck.pauseOffset);
   }
 
+  setHotCue(id: DeckId, index: number, seconds: number) {
+    const deck = this.getDeck(id);
+    deck.hotCues[index] = seconds;
+  }
+
+  jumpToHotCue(id: DeckId, index: number) {
+    const deck = this.getDeck(id);
+    const cue = deck.hotCues[index];
+    if (cue !== undefined) {
+      this.seekDeck(id, cue);
+    }
+  }
+
   setDeckLoop(id: DeckId, enabled: boolean, startSec: number, endSec: number) {
     const deck = this.getDeck(id);
     deck.loopEnabled = enabled;
@@ -607,10 +632,34 @@ export class AudioEngineService {
       release?: number;
       cutoff?: number;
       q?: number;
+      detune?: number;
+      lfoFreq?: number;
+      lfoAmount?: number;
     }
   ) {
-    const osc = this.ctx.createOscillator();
-    osc.type = params?.type || 'sawtooth';
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const sub = this.ctx.createOscillator();
+
+    osc1.type = params?.type || 'sawtooth';
+    osc2.type = params?.type || 'sawtooth';
+    sub.type = 'sine';
+
+    osc1.frequency.setValueAtTime(freq, when);
+    osc2.frequency.setValueAtTime(freq, when);
+    sub.frequency.setValueAtTime(freq / 2, when);
+
+    osc2.detune.setValueAtTime(params?.detune ?? 12, when);
+
+    // LFO for Vibrato/Filter Mod
+    const lfo = this.ctx.createOscillator();
+    const lfoGain = this.ctx.createGain();
+    lfo.frequency.setValueAtTime(params?.lfoFreq ?? 5, when);
+    lfoGain.gain.setValueAtTime(params?.lfoAmount ?? 10, when);
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc1.frequency);
+    lfoGain.connect(osc2.frequency);
+
     const vca = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
@@ -631,13 +680,25 @@ export class AudioEngineService {
     vca.gain.linearRampToValueAtTime(velocity * outGain * s, now + a + d);
     vca.gain.setTargetAtTime(0, now + duration, r);
 
-    osc.frequency.value = freq;
-    osc.connect(filter).connect(vca).connect(p).connect(this.masterGain);
+    osc1.connect(filter);
+    osc2.connect(filter);
+    sub.connect(filter);
+
+    filter.connect(vca).connect(p).connect(this.masterGain);
+
     if (sendA > 0) vca.connect(this.reverbConvolver).connect(this.reverbWet);
     if (sendB > 0) vca.connect(this.delay).connect(this.delayWet);
 
-    osc.start(now);
-    osc.stop(now + duration + 2.0);
+    osc1.start(now);
+    osc2.start(now);
+    sub.start(now);
+    lfo.start(now);
+
+    const stopTime = now + duration + 2.0;
+    osc1.stop(stopTime);
+    osc2.stop(stopTime);
+    sub.stop(stopTime);
+    lfo.stop(stopTime);
   }
 
   midiToFreq(midi: number) {
@@ -777,6 +838,30 @@ export class AudioEngineService {
         0.01
       );
     }
+  }
+
+  private makeSaturationCurve(amount: number) {
+    const k = typeof amount === 'number' ? amount : 50;
+    const n_samples = 44100;
+    const curve = new Float32Array(n_samples);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < n_samples; ++i) {
+      const x = (i * 2) / n_samples - 1;
+      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+    }
+    return curve;
+  }
+
+  setSaturation(amount: number) {
+    this.saturation.curve = this.makeSaturationCurve(amount);
+  }
+
+  setStereoWidth(width: number) {
+    this.stereoWidener.pan.setTargetAtTime(
+      Math.max(-1, Math.min(1, width)),
+      this.ctx.currentTime,
+      0.01
+    );
   }
 
   getMasterStream(): MediaStreamAudioDestinationNode {

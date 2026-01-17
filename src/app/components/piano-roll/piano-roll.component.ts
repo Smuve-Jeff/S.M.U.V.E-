@@ -41,6 +41,7 @@ export class PianoRollComponent {
     Array.from({ length: this.steps() }, (_, i) => i)
   );
   melodyPrompt = signal('');
+  selectedNotes = signal<{ midi: number; step: number }[]>([]);
 
   // Notes grid
   midiRows = Array.from(
@@ -93,11 +94,19 @@ export class PianoRollComponent {
     const prompt = this.melodyPrompt();
     if (!prompt) return;
 
-    const midiData = await this.aiService.generateMusic(prompt);
-    if (midiData) {
-      // The music manager service needs a method to load MIDI data
-      // For now, we'll log the data to the console
-      console.log('Generated MIDI data:', midiData);
+    const notes = await this.aiService.generateMusic(prompt);
+    const trackId = this.selectedTrackId();
+    if (notes && trackId != null) {
+      this.music.clearTrack(trackId);
+      for (const note of notes) {
+        this.music.addNote(
+          trackId,
+          note.midi,
+          note.step,
+          note.length,
+          note.velocity
+        );
+      }
     }
   }
 
@@ -183,6 +192,26 @@ export class PianoRollComponent {
     const t = this.selectedTrack();
     if (!t) return undefined;
     return t.notes.find((n) => n.step === step);
+  }
+
+  quantize() {
+    const trackId = this.selectedTrackId();
+    if (trackId == null) return;
+    const track = this.selectedTrack();
+    if (!track) return;
+
+    // Simple quantization to nearest step
+    const quantizedNotes = track.notes.map(n => ({
+      ...n,
+      step: Math.round(n.step)
+    }));
+
+    this.music.clearTrack(trackId);
+    quantizedNotes.forEach(n => this.music.addNote(trackId, n.midi, n.step, n.length, n.velocity));
+  }
+
+  isNoteSelected(midi: number, step: number): boolean {
+    return this.selectedNotes().some(n => n.midi === midi && n.step === step);
   }
 
   trackName() {

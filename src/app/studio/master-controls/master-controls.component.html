@@ -10,4 +10,8 @@
   <div class="control-group">
     <app-gain-reduction-meter [compressor]="compressor"></app-gain-reduction-meter>
   </div>
+  <div class="control-group buttons">
+    <button (click)="toggleLimiter()" [class.active]="isLimiterActive">Limiter</button>
+    <button (click)="toggleSoftClip()" [class.active]="isSoftClipActive">Soft Clip</button>
+  </div>
 </div>

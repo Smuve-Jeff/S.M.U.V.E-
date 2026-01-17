@@ -45,6 +45,15 @@ export class DeckService {
     this.engine.setStemGain(deck, event.stem as keyof Stems, event.gain);
   }
 
+  setHotCue(deck: 'A' | 'B', index: number) {
+    const progress = this.engine.getDeckProgress(deck);
+    this.engine.setHotCue(deck, index, progress.position);
+  }
+
+  jumpToHotCue(deck: 'A' | 'B', index: number) {
+    this.engine.jumpToHotCue(deck, index);
+  }
+
   loadDeckBuffer(deck: 'A' | 'B', buffer: AudioBuffer, fileName: string) {
     this.engine.loadDeckBuffer(deck, buffer);
     if (deck === 'A') {

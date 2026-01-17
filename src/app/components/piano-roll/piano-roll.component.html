@@ -5,6 +5,7 @@
         {{ isPlaying() ? 'Stop' : 'Play' }}
       </button>
       <button (click)="resetSequence()" class="btn">Reset</button>
+      <button (click)="quantize()" class="btn">Quantize</button>
       <label class="lbl">BPM</label>
       <input
         type="range"
@@ -65,6 +66,7 @@
               class="pr-cell"
               (click)="toggleNote(midi, i)"
               [class.active]="sequenceFor(midi)[i]"
+              [class.selected]="isNoteSelected(midi, i)"
               [class.playing]="currentStep() === i"
             ></div>
           }

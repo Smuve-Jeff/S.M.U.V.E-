@@ -10,6 +10,7 @@ import { GameService } from '../game.service';
 export class GameViewComponent implements OnChanges {
   @Input() gameId: string | undefined;
   game: Game | undefined;
+  isPlaying = false;
 
   constructor(private gameService: GameService) {}
 
