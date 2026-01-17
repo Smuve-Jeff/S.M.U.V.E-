@@ -9,7 +9,7 @@
   <header class="main-header">
     <div class="flex items-center gap-4">
       <h1 class="text-3xl font-bold tracking-wider text-white">
-        S.M.U.V.E. 2.2
+        S.M.U.V.E. 2.0
       </h1>
       <div class="nav-buttons">
         <button
@@ -46,6 +46,13 @@
           title="Tha Spot"
         >
           <i class="fas fa-music"></i>
+        </button>
+        <button
+          routerLink="/studio"
+          class="nav-button"
+          title="The Studio"
+        >
+          <i class="fas fa-microphone-alt"></i>
         </button>
         <button
           (click)="uiService.randomizeTheme()"
