@@ -93,11 +93,19 @@ export class PianoRollComponent {
     const prompt = this.melodyPrompt();
     if (!prompt) return;
 
-    const midiData = await this.aiService.generateMusic(prompt);
-    if (midiData) {
-      // The music manager service needs a method to load MIDI data
-      // For now, we'll log the data to the console
-      console.log('Generated MIDI data:', midiData);
+    const notes = await this.aiService.generateMusic(prompt);
+    const trackId = this.selectedTrackId();
+    if (notes && trackId != null) {
+      this.music.clearTrack(trackId);
+      for (const note of notes) {
+        this.music.addNote(
+          trackId,
+          note.midi,
+          note.step,
+          note.length,
+          note.velocity
+        );
+      }
     }
   }
 

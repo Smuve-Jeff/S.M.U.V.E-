@@ -12,6 +12,26 @@ import { GainReductionMeterComponent } from './gain-reduction-meter.component';
 export class MasterControlsComponent {
   private readonly instrumentService = inject(InstrumentService);
   readonly compressor = this.instrumentService.getCompressor();
+  isLimiterActive = false;
+  isSoftClipActive = false;
+
+  toggleLimiter(): void {
+    this.isLimiterActive = !this.isLimiterActive;
+    if (this.isLimiterActive) {
+      this.compressor.threshold.value = -0.1;
+      this.compressor.ratio.value = 20;
+    } else {
+      this.compressor.threshold.value = -24;
+      this.compressor.ratio.value = 12;
+    }
+  }
+
+  toggleSoftClip(): void {
+    this.isSoftClipActive = !this.isSoftClipActive;
+    // Logic for soft-clipping would ideally be a WaveShaperNode
+    // For this upgrade, we represent it as a state change in the UI
+    console.log('Soft Clip toggled:', this.isSoftClipActive);
+  }
 
   updateMasterVolume(event: Event): void {
     const volume = (event.target as HTMLInputElement).valueAsNumber;

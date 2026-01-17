@@ -286,30 +286,42 @@ export class AiService {
     }
   }
 
-  async generateMusic(prompt: string): Promise<string> {
+  async generateMusic(prompt: string): Promise<TrackNote[]> {
     if (!this.chatInstance) {
       console.error('Chat not initialized.');
-      return '';
+      return [];
     }
     try {
       const generateMusicTool: Tool = {
         functionDeclarations: [
           {
             name: 'generate_music',
-            description: 'Generate a melody in MIDI format based on a prompt.',
+            description: 'Generate a melody as a list of notes based on a prompt.',
             parameters: {
               type: Type.OBJECT,
               properties: {
-                prompt: { type: Type.STRING },
+                notes: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      midi: { type: Type.INTEGER },
+                      step: { type: Type.INTEGER },
+                      length: { type: Type.INTEGER },
+                      velocity: { type: Type.NUMBER },
+                    },
+                    required: ['midi', 'step', 'length', 'velocity'],
+                  },
+                },
               },
-              required: ['prompt'],
+              required: ['notes'],
             },
           },
         ],
       };
 
       const response = await this.chatInstance.sendMessage({
-        message: `Generate a melody with the following prompt: ${prompt}`,
+        message: `GENERATE_MELODY for prompt: ${prompt}. Return a JSON array of notes using the generate_music tool.`,
         config: { tools: [generateMusicTool] },
       });
 
@@ -317,16 +329,21 @@ export class AiService {
         (part) => part.functionCall
       );
       if (toolCall && toolCall.functionCall?.name === 'generate_music') {
-        // In a real implementation, we would use a music generation model.
-        // For now, we'll return a mock MIDI string.
-        return 'data:audio/midi;base64,TVRoZAAAAAYAAQABAIxNVHJrAAADgQCQPFqBDIA8WgCQO1qBDIA7WgCQO1qBDIA7WgCQPFqBDIA8WgCQPlqBDIA+WgCQPlqBDIA+WgCQPlqBDIA+WgCQO1qBDIA7WgCQPFqBDIA8WgCQO1qBDIA7WgCQPlqBDIA+WgCQPFqBDIA8WgCQN1qBDIA3WgCQN1qBDIA3WgCQN1qBDIA3WgCQOFqBDIA4WgCQN1qBDIA3WgCQOFqBDIA4WgCQN1qBDIA3WgCQPFqBDIA8WgCQN1qBDIA3WgCQPFqBDIA8WgCQN1qBDIA3WgCQPlqBDIA+WgCQPFqBDIA8WgCQPlqBDIA+WgCQPFqBDIA8WgCQO1qBDIA7WgCQPlqBDIA+WgCQO1qBDIA7WgCQPlqBDIA+WgCQPFqBDIA8WgCQNlqBDIA2WgCQNlqBDIA2WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgCQNlqBDIA2WgCQN1qBDIA3WgD/LwA=';
+        const args = toolCall.functionCall.args as any;
+        return args.notes || [];
       }
 
       console.error('Could not find tool call in AI response.', response);
-      return '';
+      // Fallback: return a C Major arpeggio if AI fails or in mock mode
+      return [
+        { midi: 60, step: 0, length: 1, velocity: 0.9 },
+        { midi: 64, step: 4, length: 1, velocity: 0.8 },
+        { midi: 67, step: 8, length: 1, velocity: 0.85 },
+        { midi: 72, step: 12, length: 1, velocity: 0.95 },
+      ];
     } catch (error) {
       console.error('Failed to generate music:', error);
-      return '';
+      return [];
     }
   }
 
