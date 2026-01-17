@@ -1,6 +1,6 @@
 <div
-  class="p-6 h-full overflow-y-auto bg-neutral-900 text-white"
-  [ngStyle]="{ 'border-color': theme().primary, color: theme().primary }"
+  class="p-6 h-full overflow-y-auto bg-obsidian text-white"
+  [ngStyle]="{ 'border-color': theme().primary }"
 >
   <!-- Authenticated View -->
   <div *ngIf="isAuthenticated() && currentUser() as user; else guestView">
@@ -8,20 +8,20 @@
     <div class="flex gap-8">
       <!-- Sidebar Menu -->
       <div class="w-1/4 sticky top-0 self-start">
-        <div class="bg-neutral-800 p-4 rounded-lg shadow-lg">
+        <div class="bg-obsidian-light p-4 rounded-lg shadow-2xl border border-white/5">
           <nav class="flex flex-col gap-2">
             <button
               *ngFor="let section of sections"
               (click)="activeSection.set(section.id)"
               [class.active-section]="activeSection() === section.id"
-              class="text-left p-3 rounded-md transition-colors text-neutral-300 hover:bg-neutral-700/50 flex items-center gap-3"
+              class="text-left p-3 rounded-md transition-all text-neutral-400 hover:bg-white/5 hover:text-white flex items-center gap-3 group"
             >
               <i
-                class="fas text-lg w-6 text-center"
+                class="fas text-lg w-6 text-center transition-transform group-hover:scale-110"
                 [ngClass]="section.icon"
                 [style.color]="theme().accent"
               ></i>
-              <span>{{ section.label }}</span>
+              <span class="font-display tracking-wide">{{ section.label }}</span>
             </button>
           </nav>
         </div>
@@ -29,7 +29,7 @@
 
       <!-- Content -->
       <div class="w-3/4">
-        <div class="bg-neutral-800 p-8 rounded-lg shadow-lg">
+        <div class="bg-obsidian-light p-8 rounded-lg shadow-2xl border border-white/5">
           <ng-container *ngFor="let section of sections">
             <div *ngIf="activeSection() === section.id" class="animate-fade-in">
               <h3
@@ -65,7 +65,8 @@
                       />
                       <button
                         (click)="removeLink('socialMedia', platform)"
-                        class="px-2 py-1 text-red-500"
+                        class="px-2 py-1 text-red-500 hover:text-red-400 transition-colors"
+                        [attr.aria-label]="'Remove ' + platform + ' link'"
                       >
                         <i class="fas fa-trash"></i>
                       </button>
@@ -117,7 +118,8 @@
                       />
                       <button
                         (click)="removeLink('musicPlatforms', platform)"
-                        class="px-2 py-1 text-red-500"
+                        class="px-2 py-1 text-red-500 hover:text-red-400 transition-colors"
+                        [attr.aria-label]="'Remove ' + platform + ' music platform link'"
                       >
                         <i class="fas fa-trash"></i>
                       </button>

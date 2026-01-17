@@ -7,21 +7,22 @@
   <!-- Gaming Hub Section -->
   <section class="gaming-hub-section wow animate__animated animate__fadeIn">
     <div class="hub-controls mb-6">
-      <div class="search-bar">
-        <i class="fas fa-search"></i>
+      <div class="search-bar relative">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500"></i>
         <input
           type="text"
           placeholder="Search games..."
+          aria-label="Search available games"
           (input)="onSearch($event)"
-          class="bg-neutral-800 text-white p-2 rounded w-full"
+          class="bg-white/5 border border-white/10 text-white p-3 pl-10 rounded-lg w-full focus:border-cyber-cyan focus:ring-1 focus:ring-cyber-cyan outline-none transition-all"
         />
       </div>
-      <div class="genre-filters flex gap-2 mt-4 overflow-x-auto pb-2">
+      <div class="genre-filters flex gap-2 mt-4 overflow-x-auto pb-2 custom-scrollbar">
         <button
           *ngFor="let genre of genres"
           (click)="setGenre(genre)"
           [class.active]="activeFilters().genre === genre"
-          class="filter-btn px-4 py-1 rounded-full border border-neutral-700 text-sm whitespace-nowrap"
+          class="filter-btn px-4 py-1.5 rounded-full border border-white/10 text-neutral-400 hover:text-white hover:border-white/20 text-sm whitespace-nowrap transition-all font-display tracking-wide uppercase"
         >
           {{ genre }}
         </button>
@@ -33,7 +34,7 @@
     >
       <div
         *ngFor="let game of games()"
-        class="game-card bg-neutral-900 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+        class="game-card bg-obsidian-light border border-white/5 rounded-xl overflow-hidden cursor-pointer hover:border-cyber-cyan/30 transition-all group"
         (click)="selectGame(game)"
       >
         <div class="game-image-container relative h-40">

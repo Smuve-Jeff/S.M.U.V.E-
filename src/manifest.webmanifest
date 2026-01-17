@@ -1,8 +1,9 @@
 {
-  "name": "app",
-  "short_name": "app",
-  "theme_color": "#1976d2",
-  "background_color": "#fafafa",
+  "name": "S.M.U.V.E 2.0",
+  "short_name": "SMUVE",
+  "description": "Strategic Music Utility Virtual Enhancer",
+  "theme_color": "#020205",
+  "background_color": "#020205",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
