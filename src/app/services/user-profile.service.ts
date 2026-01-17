@@ -12,6 +12,13 @@ export interface ShowcaseItem {
   featured: boolean;
 }
 
+export interface ArtistPlatform {
+  url: string;
+  verified: boolean;
+  status: 'unverified' | 'verified' | 'syncing';
+  lastSynced?: string;
+}
+
 export interface UserProfile {
   // === BASIC INFO ===
   artistName: string;
@@ -124,9 +131,38 @@ export interface UserProfile {
 
   // === SOCIAL MEDIA & ONLINE PRESENCE ===
   links: { [key: string]: string };
+  officialMusicProfiles: {
+    apple: ArtistPlatform;
+    spotify: ArtistPlatform;
+    tidal: ArtistPlatform;
+    iheart: ArtistPlatform;
+    amazon: ArtistPlatform;
+    youtube: ArtistPlatform;
+    pandora: ArtistPlatform;
+    soundcloud: ArtistPlatform;
+  };
+  personalSocialProfiles: {
+    facebook: ArtistPlatform;
+    instagram: ArtistPlatform;
+    tiktok: ArtistPlatform;
+    youtube: ArtistPlatform;
+    x: ArtistPlatform;
+  };
   mostActiveOn: string[]; // Which platforms
   postingFrequency: string;
   engagementLevel: 'Low' | 'Medium' | 'High';
+
+  // === PROFESSIONAL IDENTITY & COMPLIANCE ===
+  proName?: string; // e.g., ASCAP, BMI, SESAC
+  proIpi?: string;
+  soundExchangeId?: string;
+  mlcId?: string;
+  isni?: string;
+  isOfficialProfile: boolean;
+
+  // === DISTRIBUTION ===
+  preferredDistributor?: string;
+  distributionStatus?: 'Not Started' | 'In Progress' | 'Distributed';
 
   // === LEARNING & DEVELOPMENT ===
   areasToImprove: string[];
@@ -238,9 +274,38 @@ export const initialProfile: UserProfile = {
 
   // Social Media & Online Presence
   links: {},
+  officialMusicProfiles: {
+    apple: { url: '', verified: false, status: 'unverified' },
+    spotify: { url: '', verified: false, status: 'unverified' },
+    tidal: { url: '', verified: false, status: 'unverified' },
+    iheart: { url: '', verified: false, status: 'unverified' },
+    amazon: { url: '', verified: false, status: 'unverified' },
+    youtube: { url: '', verified: false, status: 'unverified' },
+    pandora: { url: '', verified: false, status: 'unverified' },
+    soundcloud: { url: '', verified: false, status: 'unverified' },
+  },
+  personalSocialProfiles: {
+    facebook: { url: '', verified: false, status: 'unverified' },
+    instagram: { url: '', verified: false, status: 'unverified' },
+    tiktok: { url: '', verified: false, status: 'unverified' },
+    youtube: { url: '', verified: false, status: 'unverified' },
+    x: { url: '', verified: false, status: 'unverified' },
+  },
   mostActiveOn: [],
   postingFrequency: '',
   engagementLevel: 'Low',
+
+  // Professional Identity & Compliance
+  proName: '',
+  proIpi: '',
+  soundExchangeId: '',
+  mlcId: '',
+  isni: '',
+  isOfficialProfile: false,
+
+  // Distribution
+  preferredDistributor: '',
+  distributionStatus: 'Not Started',
 
   // Learning & Development
   areasToImprove: [],

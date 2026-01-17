@@ -428,6 +428,17 @@ export class ChatbotComponent implements OnInit, OnDestroy {
         case 'tha-spot':
           advice = `Welcome to Tha Spot! You can now play Hextris or Pacman directly here. Your activities will earn you Smuve Cred and level up your status.`;
           break;
+        case 'strategy':
+          advice = `This is where your rollout takes shape. Check your compliance, use the calculators, and study the intel. A professional artist is an organized artist.`;
+          break;
+      }
+
+      // Proactive Compliance Check
+      if (!profile.proName || !profile.mlcId || !profile.soundExchangeId) {
+        const complianceAdvice = "I see your Professional Identity is incomplete. Without your PRO, MLC, and SoundExchange IDs, you are leaving money on the table. Use the VIEW_STRATEGY command and get compliant immediately.";
+        if (this.messages().slice(-1)[0]?.content !== complianceAdvice) {
+            advice = complianceAdvice;
+        }
       }
     }
 

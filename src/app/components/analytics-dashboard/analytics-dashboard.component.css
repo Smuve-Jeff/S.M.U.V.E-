@@ -1,0 +1,12 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.animate-grow {
+  animation: grow 1s ease-out;
+}
+
+@keyframes grow {
+  from { height: 0; }
+}
