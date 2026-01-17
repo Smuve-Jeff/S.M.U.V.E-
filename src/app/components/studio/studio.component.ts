@@ -24,6 +24,6 @@ export class StudioComponent {
   );
 
   toggleRecording(): void {
-    this.isRecording.update((rec) => !rec);
+    this.audioSession.toggleRecord();
   }
 }
