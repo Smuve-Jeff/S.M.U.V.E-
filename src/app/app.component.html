@@ -145,6 +145,16 @@
             authService.currentUser()?.artistName
           }}</span>
         </div>
+        <div class="relative group">
+          <img
+            src="assets/avatar.jpg"
+            alt="User Avatar"
+            class="w-10 h-10 rounded-full border-2 border-cyber-cyan/30 group-hover:border-cyber-cyan transition-all duration-300 object-cover"
+          />
+          <div
+            class="absolute inset-0 rounded-full bg-cyber-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          ></div>
+        </div>
         <button
           (click)="authService.logout()"
           class="nav-button text-red-500/80 hover:text-red-500"
