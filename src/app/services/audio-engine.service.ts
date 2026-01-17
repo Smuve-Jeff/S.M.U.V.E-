@@ -324,6 +324,9 @@ export class AudioEngineService {
     const deck = this.getDeck(id);
     deck.buffer = buffer;
     deck.stems = await firstValueFrom(this.stemSeparationService.separate(buffer));
+    this.stemSeparationService.separate(buffer).subscribe(stems => {
+      deck.stems = stems;
+    });
     deck.pauseOffset = 0;
     if (deck.isPlaying) {
       this.stopDeckSource(deck);
