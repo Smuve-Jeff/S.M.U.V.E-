@@ -14,6 +14,6 @@ test('S.M.U.V.E 2.0 Branding and Navigation Check', async ({ page }) => {
   await expect(page.locator('.nav-button[title="The Studio"]')).toBeVisible();
 
   // Check footer watermark
-  const footer = await page.locator('footer');
-  expect(await footer.innerText()).toContain('Smuve Jeff Presents');
+  const footer = page.locator('.watermark-footer');
+  await expect(footer).toContainText('Smuve Jeff Presents');
 });
