@@ -42,7 +42,11 @@ export class InstrumentService implements OnDestroy {
   }
 
   setMasterVolume(volume: number): void {
-    this.masterVCA.gain.setTargetAtTime(volume / 100, this.audioContext.currentTime, 0.01);
+    this.masterVCA.gain.setTargetAtTime(
+      volume / 100,
+      this.audioContext.currentTime,
+      0.01
+    );
   }
 
   connect(destination: AudioNode) {

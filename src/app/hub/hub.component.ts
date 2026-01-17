@@ -11,7 +11,7 @@ import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './hub.component.html',
-  styleUrls: ['./hub.component.css']
+  styleUrls: ['./hub.component.css'],
 })
 export class HubComponent implements OnInit, OnDestroy {
   // Signals for UI state
@@ -24,12 +24,32 @@ export class HubComponent implements OnInit, OnDestroy {
   // Game list and filtering
   games = signal<Game[]>([]);
   challenges = signal<Challenge[]>([
-    { id: '1', title: 'Remix Master', description: 'Create the best remix of "Aurora"', prize: '$100' },
-    { id: '2', title: 'Top Producer', description: 'Most liked beat this month', prize: 'Pro Membership' }
+    {
+      id: '1',
+      title: 'Remix Master',
+      description: 'Create the best remix of "Aurora"',
+      prize: '$100',
+    },
+    {
+      id: '2',
+      title: 'Top Producer',
+      description: 'Most liked beat this month',
+      prize: 'Pro Membership',
+    },
   ]);
   communityPosts = signal<CommunityPost[]>([
-    { id: '1', author: 'Dr. Dre', content: 'New studio session starts now!', timestamp: new Date() },
-    { id: '2', author: 'Kanye', content: 'Vultures 2 out now.', timestamp: new Date() }
+    {
+      id: '1',
+      author: 'Dr. Dre',
+      content: 'New studio session starts now!',
+      timestamp: new Date(),
+    },
+    {
+      id: '2',
+      author: 'Kanye',
+      content: 'Vultures 2 out now.',
+      timestamp: new Date(),
+    },
   ]);
 
   genres = [

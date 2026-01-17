@@ -5,8 +5,6 @@ import { Component } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './image-video-lab.component.html',
-  styleUrls: ['./image-video-lab.component.css']
+  styleUrls: ['./image-video-lab.component.css'],
 })
-export class ImageVideoLabComponent {
-
-}
+export class ImageVideoLabComponent {}

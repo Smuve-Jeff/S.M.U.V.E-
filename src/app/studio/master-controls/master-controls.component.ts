@@ -7,7 +7,7 @@ import { GainReductionMeterComponent } from './gain-reduction-meter.component';
   standalone: true,
   imports: [GainReductionMeterComponent],
   templateUrl: './master-controls.component.html',
-  styleUrls: ['./master-controls.component.css']
+  styleUrls: ['./master-controls.component.css'],
 })
 export class MasterControlsComponent {
   private readonly instrumentService = inject(InstrumentService);

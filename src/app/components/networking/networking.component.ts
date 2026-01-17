@@ -10,10 +10,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AppTheme } from '../../services/app-theme';
-import {
-  AiService,
-  Type,
-} from '../../services/ai.service';
+import { AiService, Type } from '../../services/ai.service';
 import { MOCK_ARTISTS } from './mock-artists';
 
 export interface ArtistProfile {

@@ -1,24 +1,63 @@
-<div class="channel-strip-container bg-neutral-800 p-3 rounded-lg flex flex-col items-center gap-3 w-40">
-
+<div
+  class="channel-strip-container bg-neutral-800 p-3 rounded-lg flex flex-col items-center gap-3 w-40"
+>
   <!-- Channel Label -->
-  <h3 class="font-bold text-md truncate w-full text-center">{{ channel.label }}</h3>
+  <h3 class="font-bold text-md truncate w-full text-center">
+    {{ channel.label }}
+  </h3>
 
   <!-- Fader -->
-  <div class="fader-track h-40 w-6 bg-neutral-900 rounded-full flex justify-center py-1">
-    <input type="range" orient="vertical" min="0" max="100" [value]="channel.level" (input)="updateLevel(+$event.target.value)" class="w-2 h-full" />
+  <div
+    class="fader-track h-40 w-6 bg-neutral-900 rounded-full flex justify-center py-1"
+  >
+    <input
+      type="range"
+      orient="vertical"
+      min="0"
+      max="100"
+      [value]="channel.level"
+      (input)="updateLevel(+$event.target.value)"
+      class="w-2 h-full"
+    />
   </div>
   <div class="text-xs font-mono">{{ channel.level }}</div>
 
   <!-- Pan Control -->
   <div class="pan-control w-full">
-      <input type="range" min="-100" max="100" [value]="channel.pan" (input)="updatePan(+$event.target.value)" class="w-full h-1" />
-      <div class="text-xs text-center">{{ channel.pan === 0 ? 'C' : (channel.pan < 0 ? 'L' + Math.abs(channel.pan) : 'R' + channel.pan) }}</div>
+    <input
+      type="range"
+      min="-100"
+      max="100"
+      [value]="channel.pan"
+      (input)="updatePan(+$event.target.value)"
+      class="w-full h-1"
+    />
+    <div class="text-xs text-center">
+      {{
+        channel.pan === 0
+          ? 'C'
+          : channel.pan < 0
+            ? 'L' + Math.abs(channel.pan)
+            : 'R' + channel.pan
+      }}
+    </div>
   </div>
 
   <!-- Mute and Arm Buttons -->
   <div class="flex justify-around w-full mt-2">
-    <button (click)="toggleMute()" class="w-10 h-10 rounded-md font-bold text-xs" [ngClass]="channel.muted ? 'bg-yellow-600' : 'bg-neutral-700'">MUTE</button>
-    <button (click)="toggleArm()" class="w-10 h-10 rounded-md font-bold text-xs" [ngClass]="channel.armed ? 'bg-red-700' : 'bg-neutral-700'">ARM</button>
+    <button
+      (click)="toggleMute()"
+      class="w-10 h-10 rounded-md font-bold text-xs"
+      [ngClass]="channel.muted ? 'bg-yellow-600' : 'bg-neutral-700'"
+    >
+      MUTE
+    </button>
+    <button
+      (click)="toggleArm()"
+      class="w-10 h-10 rounded-md font-bold text-xs"
+      [ngClass]="channel.armed ? 'bg-red-700' : 'bg-neutral-700'"
+    >
+      ARM
+    </button>
   </div>
-
 </div>

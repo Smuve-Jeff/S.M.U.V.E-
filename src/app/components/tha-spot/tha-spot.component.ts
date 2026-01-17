@@ -14,7 +14,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
   standalone: true,
   imports: [CommonModule, FormsModule, VisualizerComponent],
   templateUrl: './tha-spot.component.html',
-  styleUrls: ['./tha-spot.component.css']
+  styleUrls: ['./tha-spot.component.css'],
 })
 export class ThaSpotComponent implements OnInit {
   private aiService = inject(AiService);

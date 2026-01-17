@@ -1,4 +1,10 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  computed,
+  inject,
+} from '@angular/core';
 import { NgFor } from '@angular/common';
 import { SessionViewComponent } from '../../studio/session-view/session-view.component';
 import { MixerComponent } from '../../studio/mixer/mixer.component';
@@ -9,7 +15,13 @@ import { AudioSessionService } from '../../studio/audio-session.service';
 @Component({
   selector: 'app-studio',
   standalone: true,
-  imports: [NgFor, SessionViewComponent, MixerComponent, SynthesizerComponent, PerformanceModeComponent],
+  imports: [
+    NgFor,
+    SessionViewComponent,
+    MixerComponent,
+    SynthesizerComponent,
+    PerformanceModeComponent,
+  ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -6,7 +6,10 @@ import {
   OnInit,
 } from '@angular/core';
 import { AiService, StrategicRecommendation } from '../../services/ai.service';
-import { UserContextService, ViewMode } from '../../services/user-context.service';
+import {
+  UserContextService,
+  ViewMode,
+} from '../../services/user-context.service';
 
 @Component({
   selector: 'app-recommendations',

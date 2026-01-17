@@ -1,3 +1,7 @@
+<!-- Futuristic Background Elements -->
+<div class="bg-grid"></div>
+<div class="scanline"></div>
+
 <div class="aurora-background">
   <div class="aurora-layer"></div>
   <div class="aurora-layer"></div>
@@ -7,68 +11,81 @@
 <div class="glass-container wow animate__animated animate__fadeIn">
   <!-- Main Header -->
   <header class="main-header">
-    <div class="flex items-center gap-4">
-            <div class="nav-buttons">
+    <div class="flex items-center gap-6">
+      <div class="nav-buttons">
         <button
           routerLink="/profile"
+          routerLinkActive="active"
           class="nav-button"
           title="Artist Profile"
         >
           <i class="fas fa-user-circle"></i>
+          <span class="sr-only">Artist Profile</span>
         </button>
         <button
           routerLink="/hub"
+          routerLinkActive="active"
           class="nav-button"
           title="Hub"
         >
-          <i class="fas fa-home"></i>
+          <i class="fas fa-th-large"></i>
+          <span class="sr-only">Hub</span>
         </button>
         <button
           routerLink="/projects"
+          routerLinkActive="active"
           class="nav-button"
           title="Projects"
         >
-          <i class="fas fa-tasks"></i>
+          <i class="fas fa-folder-open"></i>
+          <span class="sr-only">Projects</span>
         </button>
         <button
           routerLink="/studio"
+          routerLinkActive="active"
           class="nav-button"
           title="The Studio"
         >
           <i class="fas fa-microphone-alt"></i>
+          <span class="sr-only">The Studio</span>
         </button>
         <button
           routerLink="/remix-arena"
+          routerLinkActive="active"
           class="nav-button"
           title="Remix Arena"
         >
           <i class="fas fa-gamepad"></i>
+          <span class="sr-only">Remix Arena</span>
         </button>
         <button
           routerLink="/image-video-lab"
+          routerLinkActive="active"
           class="nav-button"
           title="Image & Video Lab"
         >
-          <i class="fas fa-flask"></i>
+          <i class="fas fa-photo-video"></i>
+          <span class="sr-only">Image & Video Lab</span>
         </button>
         <button
           routerLink="/tha-spot"
+          routerLinkActive="active"
           class="nav-button"
           title="Tha Spot"
         >
-          <i class="fas fa-music"></i>
+          <i class="fas fa-bolt"></i>
+          <span class="sr-only">Tha Spot</span>
         </button>
-        <button
-          routerLink="/studio"
-          class="nav-button"
-          title="The Studio"
-        >
-          <i class="fas fa-microphone-alt"></i>
-        </button>
+      </div>
+
+      <div class="h-8 w-px bg-white/5 mx-2"></div>
+
+      <div class="flex items-center gap-3">
         <button
           (click)="uiService.randomizeTheme()"
           class="nav-button"
           title="Randomize Theme"
+          aria-label="Randomize application theme"
         >
           <i class="fas fa-palette"></i>
         </button>
@@ -76,50 +93,65 @@
           (click)="uiService.showEqPanel.set(!uiService.showEqPanel())"
           class="nav-button"
           title="Toggle EQ Panel"
+          aria-label="Toggle equalizer panel"
+          [class.active]="uiService.showEqPanel()"
         >
           <i class="fas fa-sliders-h"></i>
         </button>
-        <button
-          routerLink="/tha-spot"
-          class="nav-button"
-          title="Tha Spot"
-        >
-          <i class="fas fa-music"></i>
-        </button>
       </div>
     </div>
-    <div class="flex items-center gap-4">
+
+    <div class="flex items-center gap-8">
+      <div
+        class="flex items-center gap-3 px-4 py-1.5 rounded bg-white/5 border border-white/10"
+      >
+        <div class="w-2 h-2 rounded-full bg-cyber-cyan animate-pulse"></div>
+        <span
+          class="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase"
+          >System Active</span
+        >
+      </div>
+
       <button
         (click)="toggleChatbot()"
         class="nav-button"
         title="Toggle Chatbot"
+        aria-label="Toggle AI chatbot"
+        [class.active]="uiService.isChatbotOpen()"
       >
-        <i class="fas fa-robot"></i>
+        <i class="fas fa-terminal"></i>
       </button>
-      <span class="text-sm text-neutral-400">|</span>
+
+      <div class="h-6 w-px bg-white/10"></div>
+
       <button
         *ngIf="!authService.isAuthenticated()"
         routerLink="/profile"
         class="auth-button"
       >
-        Login / Register
+        REQUEST ACCESS
       </button>
+
       <div
         *ngIf="authService.isAuthenticated()"
-        class="flex items-center gap-2"
+        class="flex items-center gap-5"
       >
-        <span class="text-sm text-white"
-          >Welcome, {{ authService.currentUser()?.artistName }}</span
-        >
+        <div class="flex flex-col items-end">
+          <span
+            class="text-[10px] text-cyber-cyan/60 uppercase tracking-widest font-bold"
+            >Verified User</span
+          >
+          <span class="text-sm text-white font-bold tracking-wide">{{
+            authService.currentUser()?.artistName
+          }}</span>
+        </div>
         <button
-          routerLink="/profile"
-          class="nav-button"
-          title="View Profile"
+          (click)="authService.logout()"
+          class="nav-button text-red-500/80 hover:text-red-500"
+          title="Terminate Session"
+          aria-label="Terminate session and logout"
         >
-          <i class="fas fa-user-circle"></i>
-        </button>
-        <button (click)="authService.logout()" class="auth-button">
-          Logout
+          <i class="fas fa-power-off"></i>
         </button>
       </div>
     </div>
@@ -127,12 +159,13 @@
 
   <!-- Main Content -->
   <main class="flex-grow flex overflow-hidden">
-    <div class="flex-grow relative overflow-y-auto">
+    <div class="flex-grow relative overflow-y-auto custom-scrollbar">
       <router-outlet></router-outlet>
     </div>
 
     <!-- Chatbot Sidebar -->
-    <div *ngIf="uiService.isChatbotOpen()"
+    <div
+      *ngIf="uiService.isChatbotOpen()"
       class="chatbot-sidebar flex flex-col h-full animate__animated animate__slideInRight"
     >
       <app-chatbot
@@ -143,7 +176,13 @@
     </div>
   </main>
 
-  <footer class="watermark-footer text-xs">
-      ©️ Smuve Jeff Presents
+  <footer class="watermark-footer">
+    <div class="flex items-center justify-center gap-4 py-2 opacity-40">
+      <span class="text-[9px] tracking-[0.3em]">S.M.U.V.E 2.0</span>
+      <div class="w-1 h-1 rounded-full bg-white/30"></div>
+      <span class="text-[9px] tracking-[0.3em]">NEURAL INTERFACE</span>
+      <div class="w-1 h-1 rounded-full bg-white/30"></div>
+      <span class="text-[9px] tracking-[0.3em] font-bold">V-CORE 01</span>
+    </div>
   </footer>
 </div>

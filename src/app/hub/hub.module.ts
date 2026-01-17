@@ -6,10 +6,6 @@ import { LobbyComponent } from './lobby/lobby.component';
 import { HubRoutes } from './hub.routes';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    RouterModule.forChild(HubRoutes),
-    HubComponent
-  ]
+  imports: [CommonModule, RouterModule.forChild(HubRoutes), HubComponent],
 })
-export class HubModule { }
+export class HubModule {}

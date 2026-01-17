@@ -12,7 +12,7 @@ export interface MicChannel {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AudioSessionService {
   private readonly instrumentService = inject(InstrumentService);
@@ -24,9 +24,30 @@ export class AudioSessionService {
 
   masterVolume = signal(80);
   micChannels = signal<MicChannel[]>([
-    { id: 'mic-1', label: 'Vocal Mic', level: 70, muted: false, pan: 0, armed: true },
-    { id: 'guitar-1', label: 'Guitar Amp', level: 60, muted: false, pan: 20, armed: false },
-    { id: 'drums-1', label: 'Overheads', level: 50, muted: false, pan: -10, armed: false },
+    {
+      id: 'mic-1',
+      label: 'Vocal Mic',
+      level: 70,
+      muted: false,
+      pan: 0,
+      armed: true,
+    },
+    {
+      id: 'guitar-1',
+      label: 'Guitar Amp',
+      level: 60,
+      muted: false,
+      pan: 20,
+      armed: false,
+    },
+    {
+      id: 'drums-1',
+      label: 'Overheads',
+      level: 50,
+      muted: false,
+      pan: -10,
+      armed: false,
+    },
   ]);
 
   constructor() {
@@ -35,11 +56,15 @@ export class AudioSessionService {
   }
 
   togglePlay(): void {
-    this.playbackState.update(state => state === 'playing' ? 'stopped' : 'playing');
+    this.playbackState.update((state) =>
+      state === 'playing' ? 'stopped' : 'playing'
+    );
   }
 
   toggleRecord(): void {
-    this.playbackState.update(state => state === 'recording' ? 'stopped' : 'recording');
+    this.playbackState.update((state) =>
+      state === 'recording' ? 'stopped' : 'recording'
+    );
   }
 
   stop(): void {
@@ -51,26 +76,26 @@ export class AudioSessionService {
   }
 
   updateChannelLevel(id: string, newLevel: number): void {
-    this.micChannels.update(channels =>
-      channels.map(ch => (ch.id === id ? { ...ch, level: newLevel } : ch))
+    this.micChannels.update((channels) =>
+      channels.map((ch) => (ch.id === id ? { ...ch, level: newLevel } : ch))
     );
   }
 
   toggleChannelMute(id: string): void {
-    this.micChannels.update(channels =>
-        channels.map(ch => (ch.id === id ? { ...ch, muted: !ch.muted } : ch))
-      );
+    this.micChannels.update((channels) =>
+      channels.map((ch) => (ch.id === id ? { ...ch, muted: !ch.muted } : ch))
+    );
   }
 
   updateChannelPan(id: string, newPan: number): void {
-      this.micChannels.update(channels =>
-          channels.map(ch => (ch.id === id ? { ...ch, pan: newPan } : ch))
-        );
+    this.micChannels.update((channels) =>
+      channels.map((ch) => (ch.id === id ? { ...ch, pan: newPan } : ch))
+    );
   }
 
   toggleChannelArm(id: string): void {
-    this.micChannels.update(channels =>
-        channels.map(ch => (ch.id === id ? { ...ch, armed: !ch.armed } : ch))
-      );
+    this.micChannels.update((channels) =>
+      channels.map((ch) => (ch.id === id ? { ...ch, armed: !ch.armed } : ch))
+    );
   }
 }

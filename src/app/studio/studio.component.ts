@@ -11,9 +11,9 @@ import { MasterControlsComponent } from './master-controls/master-controls.compo
     MixerComponent,
     SessionViewComponent,
     TransportBarComponent,
-    MasterControlsComponent
+    MasterControlsComponent,
   ],
   templateUrl: './studio.component.html',
-  styleUrls: ['./studio.component.css']
+  styleUrls: ['./studio.component.css'],
 })
-export class StudioComponent { }
+export class StudioComponent {}

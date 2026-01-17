@@ -7,7 +7,7 @@ import { OscillatorType } from '../subtractive-synth';
   standalone: true,
   imports: [],
   templateUrl: './synthesizer.component.html',
-  styleUrls: ['./synthesizer.component.css']
+  styleUrls: ['./synthesizer.component.css'],
 })
 export class SynthesizerComponent {
   private readonly instrumentService = inject(InstrumentService);

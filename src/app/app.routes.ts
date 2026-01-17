@@ -16,7 +16,6 @@ export const routes: Routes = [
   { path: 'remix-arena', component: RemixArenaComponent },
   { path: 'image-video-lab', component: ImageVideoLabComponent },
   { path: 'tha-spot', component: ThaSpotComponent },
-  { path: 'studio', component: StudioComponent },
   { path: 'login', component: LoginComponent },
   { path: '', redirectTo: 'profile', pathMatch: 'full' },
   { path: '**', redirectTo: 'profile' },

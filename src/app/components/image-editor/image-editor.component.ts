@@ -93,7 +93,9 @@ export class ImageEditorComponent {
         this.errorMessage.set('No image generated.');
       }
     } catch (error: unknown) {
-      this.errorMessage.set(`Image generation failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.errorMessage.set(
+        `Image generation failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     } finally {
       this.isLoading.set(false);
     }
@@ -153,7 +155,9 @@ export class ImageEditorComponent {
         this.errorMessage.set('Image editing failed to produce an image.');
       }
     } catch (error: unknown) {
-      this.errorMessage.set(`Image editing failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.errorMessage.set(
+        `Image editing failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     } finally {
       this.isLoading.set(false);
     }

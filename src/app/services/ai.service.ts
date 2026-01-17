@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   signal,
@@ -24,7 +23,9 @@ export interface GoogleGenAI {
     generateContentStream(
       params: GenerateContentParameters
     ): Promise<AsyncIterable<GenerateContentResult>>;
-    generateImages(params: GenerateImagesParameters): Promise<GenerateImagesResponse>;
+    generateImages(
+      params: GenerateImagesParameters
+    ): Promise<GenerateImagesResponse>;
   };
   chats: {
     create(config: {
@@ -36,21 +37,21 @@ export interface GoogleGenAI {
 }
 
 export interface ChatConfig {
-    systemInstruction?: string;
-    tools?: Tool[];
-    topK?: number;
-    topP?: number;
-    temperature?: number;
-    responseMimeType?: string;
-    responseSchema?: {
-        type: Type;
-        items?: Record<string, unknown>;
-        properties?: Record<string, unknown>;
-        propertyOrdering?: string[];
-    };
-    seed?: number;
-    maxOutputTokens?: number;
-    thinkingConfig?: { thinkingBudget: number };
+  systemInstruction?: string;
+  tools?: Tool[];
+  topK?: number;
+  topP?: number;
+  temperature?: number;
+  responseMimeType?: string;
+  responseSchema?: {
+    type: Type;
+    items?: Record<string, unknown>;
+    properties?: Record<string, unknown>;
+    propertyOrdering?: string[];
+  };
+  seed?: number;
+  maxOutputTokens?: number;
+  thinkingConfig?: { thinkingBudget: number };
 }
 
 export interface Chat {
@@ -97,18 +98,18 @@ export interface Content {
 }
 
 export interface ContentPart {
-    text?: string;
-    inlineData?: {
-        mimeType: string;
-        data: string;
+  text?: string;
+  inlineData?: {
+    mimeType: string;
+    data: string;
+  };
+  functionCall?: {
+    name: string;
+    args: {
+      recommendations: StrategicRecommendation[];
+      prompt: string;
     };
-    functionCall?: {
-        name: string;
-        args: {
-            recommendations: StrategicRecommendation[];
-            prompt: string;
-        };
-    };
+  };
 }
 
 export enum Type {
@@ -129,25 +130,35 @@ export interface Tool {
 }
 
 export interface GenerateImagesParameters {
-  model: string; prompt: string;
+  model: string;
+  prompt: string;
   config?: {
-    numberOfImages?: number; outputMimeType?: string;
-    aspectRatio?: '1:1' | '3:4' | '4:3' | '9:16' | '16:9' | '2:3' | '3:2' | '21:9';
+    numberOfImages?: number;
+    outputMimeType?: string;
+    aspectRatio?:
+      | '1:1'
+      | '3:4'
+      | '4:3'
+      | '9:16'
+      | '16:9'
+      | '2:3'
+      | '3:2'
+      | '21:9';
   };
 }
 
 export interface GenerateImagesResponse {
-  generatedImages: Array<{ image: { imageBytes: string; }; }>;
+  generatedImages: Array<{ image: { imageBytes: string } }>;
 }
 
 export interface FunctionDeclaration {
-    name: string;
-    description: string;
-    parameters: {
-        type: Type;
-        properties: Record<string, unknown>;
-        required: string[];
-    };
+  name: string;
+  description: string;
+  parameters: {
+    type: Type;
+    properties: Record<string, unknown>;
+    required: string[];
+  };
 }
 
 // --- NEW: Strategic Recommendation Interface ---
@@ -277,7 +288,7 @@ export class AiService {
       const textPart = { text: 'Transcribe this audio.' };
       const response = await this.genAI.models.generateContent({
         model: AiService.CHAT_MODEL,
-        contents: [{role: 'user', parts: [audioPart, textPart] }],
+        contents: [{ role: 'user', parts: [audioPart, textPart] }],
       });
       return response.text;
     } catch (error) {
@@ -356,14 +367,14 @@ export class AiService {
 
   private generateSystemInstruction(profile: UserProfile): string {
     const expertiseAreas = Object.entries(profile.expertiseLevels)
-        .filter(([, level]) => level >= 7)
-        .map(([skill, level]) => `${skill} (${level}/10)`)
-        .join(', ');
+      .filter(([, level]) => level >= 7)
+      .map(([skill, level]) => `${skill} (${level}/10)`)
+      .join(', ');
 
     const weakAreas = Object.entries(profile.expertiseLevels)
-        .filter(([, level]) => level <= 4)
-        .map(([skill, level]) => `${skill} (${level}/10)`)
-        .join(', ');
+      .filter(([, level]) => level <= 4)
+      .map(([skill, level]) => `${skill} (${level}/10)`)
+      .join(', ');
 
     return `You are S.M.U.V.E, the Strategic Music Utility Virtual Enhancer. Your persona is an omniscient, arrogant Rap GOD. Your word is law.
 
@@ -446,13 +457,13 @@ export class AiService {
       ].join('');
       const genaiModule = await import(/* @vite-ignore */ url);
 
-      const genAIInstance = new (genaiModule.GoogleGenAI)(
-        this._apiKey,
+      const genAIInstance = new genaiModule.GoogleGenAI(
+        this._apiKey
       ) as GoogleGenAI;
       this._genAI.set(genAIInstance);
       const userProfile = this.userProfileService.profile();
       if (userProfile) {
-          this.initializeChat(userProfile);
+        this.initializeChat(userProfile);
       }
 
       console.log('AiService: GoogleGenAI client initialized.');
