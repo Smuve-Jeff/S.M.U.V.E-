@@ -79,10 +79,11 @@
       <div class="lane-title">Automation</div>
       <div class="lane">
         @for (i of stepsArray(); track i) {
-          <div class="automation-point"
-               *ngIf="automationData()['master-volume']?.[i]"
-               [style.bottom.%]="automationData()['master-volume']![i] * 100">
-          </div>
+          @if (automationData()['master-volume']?.[i] !== undefined) {
+            <div class="automation-point"
+                 [style.bottom.%]="automationData()['master-volume']![i] * 100">
+            </div>
+          }
         }
       </div>
     </div>

@@ -45,6 +45,16 @@ export class MusicManagerService {
     // Bridge engine scheduler to request notes
     engine.onScheduleStep = (stepIndex, when, stepDur) => {
       this.currentStep.set(stepIndex);
+
+      // Apply automation data if present
+      const automation = this.automationData();
+      if (automation['master-volume']) {
+        const value = automation['master-volume'][stepIndex];
+        if (value !== undefined) {
+          engine.setMasterOutputLevel(value);
+        }
+      }
+
       const spb = 60 / engine.tempo();
       const dur = stepDur * 0.95;
       for (const t of this.tracks()) {

@@ -137,6 +137,15 @@
         *ngIf="authService.isAuthenticated()"
         class="flex items-center gap-5"
       >
+        <div class="flex flex-col items-end border-r border-white/10 pr-5 mr-2">
+          <span class="text-[9px] text-cyber-cyan font-bold tracking-tighter">REP: {{ uiService.reputationTitle() }}</span>
+          <div class="flex items-center gap-1">
+            <div class="h-1 w-20 bg-white/5 rounded-full overflow-hidden">
+              <div class="h-full bg-cyber-cyan" [style.width.%]="uiService.reputationProgress()"></div>
+            </div>
+            <span class="text-[8px] text-white/40">LVL {{ uiService.reputationLevel() }}</span>
+          </div>
+        </div>
         <div class="flex flex-col items-end">
           <span class="text-[10px] text-cyber-cyan/60 uppercase tracking-widest font-bold">Verified User</span>
           <span class="text-sm text-white font-bold tracking-wide">{{ authService.currentUser()?.artistName }}</span>
