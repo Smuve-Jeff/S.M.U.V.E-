@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
 import { ReputationService } from './reputation.service';
+import { TrackNote } from './music-manager.service';
 
 export const API_KEY_TOKEN = new InjectionToken<string>('API_KEY');
 
