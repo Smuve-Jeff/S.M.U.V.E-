@@ -20,6 +20,7 @@
           title="Artist Profile"
         >
           <i class="fas fa-user-circle"></i>
+          <span class="sr-only">Artist Profile</span>
         </button>
         <button
           routerLink="/hub"
@@ -28,6 +29,7 @@
           title="Hub"
         >
           <i class="fas fa-th-large"></i>
+          <span class="sr-only">Hub</span>
         </button>
         <button
           routerLink="/projects"
@@ -36,6 +38,7 @@
           title="Projects"
         >
           <i class="fas fa-folder-open"></i>
+          <span class="sr-only">Projects</span>
         </button>
         <button
           routerLink="/studio"
@@ -44,6 +47,7 @@
           title="The Studio"
         >
           <i class="fas fa-microphone-alt"></i>
+          <span class="sr-only">The Studio</span>
         </button>
         <button
           routerLink="/remix-arena"
@@ -52,6 +56,7 @@
           title="Remix Arena"
         >
           <i class="fas fa-gamepad"></i>
+          <span class="sr-only">Remix Arena</span>
         </button>
         <button
           routerLink="/image-video-lab"
@@ -60,6 +65,7 @@
           title="Image & Video Lab"
         >
           <i class="fas fa-photo-video"></i>
+          <span class="sr-only">Image & Video Lab</span>
         </button>
         <button
           routerLink="/tha-spot"
@@ -68,10 +74,13 @@
           title="Tha Spot"
         >
           <i class="fas fa-bolt"></i>
+          <span class="sr-only">Tha Spot</span>
         </button>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="h-8 w-px bg-white/5 mx-2"></div>
+
+      <div class="flex items-center gap-3">
         <button
           (click)="uiService.randomizeTheme()"
           class="nav-button"
@@ -90,7 +99,12 @@
       </div>
     </div>
 
-    <div class="flex items-center gap-6">
+    <div class="flex items-center gap-8">
+      <div class="flex items-center gap-3 px-4 py-1.5 rounded bg-white/5 border border-white/10">
+        <div class="w-2 h-2 rounded-full bg-cyber-cyan animate-pulse"></div>
+        <span class="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase">System Active</span>
+      </div>
+
       <button
         (click)="toggleChatbot()"
         class="nav-button"
@@ -107,25 +121,18 @@
         routerLink="/profile"
         class="auth-button"
       >
-        LOGIN
+        REQUEST ACCESS
       </button>
 
       <div
         *ngIf="authService.isAuthenticated()"
-        class="flex items-center gap-4"
+        class="flex items-center gap-5"
       >
         <div class="flex flex-col items-end">
-          <span class="text-[10px] text-white/40 uppercase tracking-widest font-bold">Artist</span>
-          <span class="text-sm text-white font-medium">{{ authService.currentUser()?.artistName }}</span>
+          <span class="text-[10px] text-cyber-cyan/60 uppercase tracking-widest font-bold">Verified User</span>
+          <span class="text-sm text-white font-bold tracking-wide">{{ authService.currentUser()?.artistName }}</span>
         </div>
-        <button
-          routerLink="/profile"
-          class="nav-button"
-          title="View Profile"
-        >
-          <i class="fas fa-id-card"></i>
-        </button>
-        <button (click)="authService.logout()" class="nav-button" title="Logout">
+        <button (click)="authService.logout()" class="nav-button text-red-500/80 hover:text-red-500" title="Terminate Session">
           <i class="fas fa-power-off"></i>
         </button>
       </div>
@@ -134,7 +141,7 @@
 
   <!-- Main Content -->
   <main class="flex-grow flex overflow-hidden">
-    <div class="flex-grow relative overflow-y-auto">
+    <div class="flex-grow relative overflow-y-auto custom-scrollbar">
       <router-outlet></router-outlet>
     </div>
 
@@ -151,6 +158,12 @@
   </main>
 
   <footer class="watermark-footer">
-      S.M.U.V.E 2.0 &bull; STRATEGIC MUSIC UTILITY VIRTUAL ENHANCER
+    <div class="flex items-center justify-center gap-4 py-2 opacity-40">
+      <span class="text-[9px] tracking-[0.3em]">S.M.U.V.E 2.0</span>
+      <div class="w-1 h-1 rounded-full bg-white/30"></div>
+      <span class="text-[9px] tracking-[0.3em]">NEURAL INTERFACE</span>
+      <div class="w-1 h-1 rounded-full bg-white/30"></div>
+      <span class="text-[9px] tracking-[0.3em] font-bold">V-CORE 01</span>
+    </div>
   </footer>
 </div>
