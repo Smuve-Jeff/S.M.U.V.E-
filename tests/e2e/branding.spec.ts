@@ -13,6 +13,6 @@ test('S.M.U.V.E 2.0 Branding and Navigation Check', async ({ page }) => {
   expect(count).toBeGreaterThan(5);
 
   // Check footer watermark
-  const footer = await page.locator('footer');
-  expect(await footer.innerText()).toContain('Smuve Jeff Presents');
+  const footer = page.locator('.watermark-footer');
+  await expect(footer).toContainText('Smuve Jeff Presents');
 });
