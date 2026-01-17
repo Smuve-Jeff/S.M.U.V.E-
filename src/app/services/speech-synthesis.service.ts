@@ -5,7 +5,7 @@ import { Injectable, signal } from '@angular/core';
 })
 export class SpeechSynthesisService {
   isSpeaking = signal(false);
-  private utterance: SpeechSynthesisUtterance | null = null;
+  private queue: SpeechSynthesisUtterance[] = [];
 
   speak(text: string): void {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis) {
@@ -13,21 +13,45 @@ export class SpeechSynthesisService {
     }
 
     this.cancel();
+    this.glitchSpeak(text);
+  }
 
-    this.utterance = new SpeechSynthesisUtterance(text);
-    this.utterance.onstart = () => this.isSpeaking.set(true);
-    this.utterance.onend = () => this.isSpeaking.set(false);
-    this.utterance.onerror = (event) => {
-      console.error('Speech synthesis error', event);
-      this.isSpeaking.set(false);
-    };
+  private glitchSpeak(text: string): void {
+    const words = text.split(' ');
+    const chunks: string[] = [];
 
-    try {
-      window.speechSynthesis.speak(this.utterance);
-    } catch (error) {
-      console.error('Error speaking response:', error);
-      this.isSpeaking.set(false);
+    // Group words into chunks of 1-3
+    for (let i = 0; i < words.length; i += Math.floor(Math.random() * 3) + 1) {
+      chunks.push(words.slice(i, i + 3).join(' '));
     }
+
+    this.queue = chunks.map((chunk, index) => {
+      const utterance = new SpeechSynthesisUtterance(chunk);
+
+      // Randomly change pitch drastically mid-sentence
+      // High pitch (1.5 - 2.0) or Low pitch (0.1 - 0.5)
+      utterance.pitch = Math.random() > 0.5
+        ? 1.5 + Math.random() * 0.5
+        : 0.1 + Math.random() * 0.4;
+
+      // Randomize rate slightly for more "glitch" feel
+      utterance.rate = 0.8 + Math.random() * 0.4;
+
+      if (index === 0) {
+        utterance.onstart = () => this.isSpeaking.set(true);
+      }
+
+      if (index === chunks.length - 1) {
+        utterance.onend = () => {
+          this.isSpeaking.set(false);
+          this.queue = [];
+        };
+      }
+
+      return utterance;
+    });
+
+    this.queue.forEach(u => window.speechSynthesis.speak(u));
   }
 
   cancel(): void {

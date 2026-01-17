@@ -31,6 +31,24 @@
           <i class="fas fa-th-large"></i>
           <span class="sr-only">Hub</span>
         </button>
+        <ng-container
+          *ngFor="let item of [
+            { route: '/strategy', title: 'Strategy Hub', icon: 'fas fa-chess-knight' },
+            { route: '/analytics', title: 'Analytics', icon: 'fas fa-chart-line' },
+            { route: '/practice', title: 'Practice Space', icon: 'fas fa-microphone-alt' },
+            { route: '/career', title: 'Career Hub', icon: 'fas fa-briefcase' }
+          ]"
+        >
+          <button
+            [routerLink]="item.route"
+            routerLinkActive="active"
+            class="nav-button"
+            [title]="item.title"
+          >
+            <i [class]="item.icon" aria-hidden="true"></i>
+            <span class="sr-only">{{ item.title }}</span>
+          </button>
+        </ng-container>
         <button
           routerLink="/strategy"
           routerLinkActive="active"

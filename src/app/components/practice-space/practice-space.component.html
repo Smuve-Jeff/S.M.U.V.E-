@@ -1,0 +1,80 @@
+<div class="p-8 bg-neutral-900 text-white min-h-full">
+  <header class="mb-10 flex justify-between items-end border-b border-white/10 pb-6">
+    <div>
+      <h1 class="text-4xl font-black tracking-tighter text-cyber-cyan uppercase italic">Practice Space</h1>
+      <p class="text-neutral-400 mt-2">Elite Rehearsal & Vocal Development Terminal</p>
+    </div>
+    <div class="flex gap-4">
+      <button (click)="critiqueRehearsal()" class="px-6 py-2 bg-cyber-magenta text-black font-black uppercase tracking-tighter italic hover:scale-105 transition-transform">
+        S.M.U.V.E CRITIQUE
+      </button>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Vocal Warmups -->
+    <section class="bg-neutral-800/50 p-6 rounded-xl border border-white/5">
+      <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+        <i class="fas fa-microphone-alt text-cyber-cyan"></i>
+        Vocal Warmup routines
+      </h2>
+      <div class="space-y-4">
+        <div *ngFor="let warmup of warmups" class="p-4 bg-neutral-900/50 rounded-lg border border-white/5 group hover:border-cyber-cyan/30 transition-colors">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="font-bold text-cyber-cyan">{{ warmup.name }}</h3>
+            <span class="text-[10px] text-neutral-500 uppercase font-mono">{{ warmup.duration }}</span>
+          </div>
+          <p class="text-sm text-neutral-400 leading-relaxed">{{ warmup.description }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lyrics Memorizer -->
+    <section class="bg-neutral-800/50 p-6 rounded-xl border border-white/5">
+      <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+        <i class="fas fa-brain text-cyber-magenta"></i>
+        Lyrics Memorizing Terminal
+      </h2>
+      <div class="space-y-4">
+        <textarea [ngModel]="lyrics()"
+                  (ngModelChange)="lyrics.set($event)"
+                  [hidden]="memorizeMode()"
+                  placeholder="Paste your lyrics here to begin memorizing..."
+                  class="w-full h-64 p-4 bg-neutral-900 rounded border border-white/10 outline-none focus:border-cyber-magenta transition-colors text-sm leading-loose"></textarea>
+
+        <div *ngIf="memorizeMode()" class="w-full h-64 p-4 bg-neutral-900 rounded border border-cyber-magenta/30 overflow-y-auto text-sm leading-loose whitespace-pre-wrap">
+          {{ processedLyrics() }}
+        </div>
+
+        <button (click)="toggleMemorize()"
+                class="w-full py-3 border border-cyber-magenta text-cyber-magenta font-bold uppercase tracking-widest hover:bg-cyber-magenta hover:text-black transition-colors">
+          {{ memorizeMode() ? 'EXIT MEMORIZE MODE' : 'START MEMORIZING' }}
+        </button>
+      </div>
+    </section>
+
+    <!-- Mindset & Resilience -->
+    <section class="bg-neutral-800/50 p-6 rounded-xl border border-white/5 lg:col-span-2">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <i class="fas fa-shield-alt text-green-500"></i>
+          Artist Mindset & Resilience Suite
+        </h2>
+        <div class="px-4 py-1 bg-green-500/10 text-green-500 rounded text-[10px] font-bold uppercase">S.M.U.V.E Wellness Active</div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div *ngFor="let tool of resilienceTools" class="p-4 bg-neutral-900 rounded border border-white/5 hover:border-green-500/30 transition-all group">
+           <i class="fas {{ tool.icon }} text-2xl text-neutral-600 mb-4 group-hover:text-green-500 transition-colors"></i>
+           <h3 class="font-bold mb-1">{{ tool.name }}</h3>
+           <button class="text-[9px] uppercase tracking-widest font-black text-neutral-500 group-hover:text-white">{{ tool.action }}</button>
+        </div>
+      </div>
+
+      <div class="p-4 bg-gradient-to-r from-green-500/10 to-transparent rounded border border-green-500/20">
+         <h3 class="text-xs uppercase font-bold text-green-400 mb-2 italic">Daily Mindset Anchor</h3>
+         <p class="text-sm text-neutral-300 leading-relaxed italic">"{{ mindsetTip() }}"</p>
+      </div>
+    </section>
+  </div>
+</div>

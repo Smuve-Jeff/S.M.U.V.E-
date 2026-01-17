@@ -6,6 +6,8 @@ import { RemixArenaComponent } from './components/remix-arena/remix-arena.compon
 import { HubComponent } from './hub/hub.component';
 import { StrategyHubComponent } from './components/strategy-hub/strategy-hub.component';
 import { AnalyticsDashboardComponent } from './components/analytics-dashboard/analytics-dashboard.component';
+import { PracticeSpaceComponent } from './components/practice-space/practice-space.component';
+import { CareerHubComponent } from './components/career-hub/career-hub.component';
 import { ImageVideoLabComponent } from './components/image-video-lab/image-video-lab.component';
 import { ThaSpotComponent } from './components/tha-spot/tha-spot.component';
 import { StudioComponent } from './studio/studio.component';
@@ -15,6 +17,8 @@ export const routes: Routes = [
   { path: 'hub', component: HubComponent },
   { path: 'strategy', component: StrategyHubComponent },
   { path: 'analytics', component: AnalyticsDashboardComponent },
+  { path: 'practice', component: PracticeSpaceComponent },
+  { path: 'career', component: CareerHubComponent },
   { path: 'projects', component: ProjectsComponent },
   { path: 'studio', component: StudioComponent },
   { path: 'remix-arena', component: RemixArenaComponent },

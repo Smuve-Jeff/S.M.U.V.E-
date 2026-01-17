@@ -1,6 +1,7 @@
 import { Component, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { UserProfileService } from '../../services/user-profile.service';
 
 interface ChecklistItem {
@@ -13,6 +14,7 @@ interface ChecklistItem {
 @Component({
   selector: 'app-strategy-hub',
   standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule],
   imports: [CommonModule, FormsModule],
   templateUrl: './strategy-hub.component.html',
   styleUrls: ['./strategy-hub.component.css']
@@ -25,6 +27,13 @@ export class StrategyHubComponent {
   adSpend = signal(100);
   estimatedReach = computed(() => this.adSpend() * 15);
   estimatedConversions = computed(() => Math.floor(this.adSpend() * 0.2));
+
+  trendHooks = signal<string[]>([
+    "Start with a question that your genre's audience always asks.",
+    "The 'POV: You just found your new favorite artist' transition.",
+    "Show the 'Struggle vs Success' timeline of your latest track.",
+    "Vibe check: Use high-contrast lighting with your deep bass tracks."
+  ]);
 
   checklists = signal<ChecklistItem[]>([
     { id: '1', label: 'Register with PRO (ASCAP/BMI)', completed: false, category: 'pre' },
@@ -87,6 +96,11 @@ export class StrategyHubComponent {
     ));
   }
 
+  progress = computed(() => {
+    const total = this.checklists().length;
+    const completed = this.checklists().filter(i => i.completed).length;
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
+  });
   get progress() {
     const total = this.checklists().length;
     const completed = this.checklists().filter(i => i.completed).length;
