@@ -163,6 +163,13 @@ export interface StrategicRecommendation {
 
 // --- END: INTERNAL TYPE DECLARATIONS ---
 
+const FALLBACK_C_MAJOR_ARPEGGIO: TrackNote[] = [
+  { midi: 60, step: 0, length: 1, velocity: 0.9 },
+  { midi: 64, step: 4, length: 1, velocity: 0.8 },
+  { midi: 67, step: 8, length: 1, velocity: 0.85 },
+  { midi: 72, step: 12, length: 1, velocity: 0.95 },
+];
+
 @Injectable({ providedIn: 'root' })
 export class AiService {
   static readonly CHAT_MODEL = 'gemini-1.5-flash';
@@ -340,12 +347,7 @@ export class AiService {
 
       console.error('Could not find tool call in AI response.', response);
       // Fallback: return a C Major arpeggio if AI fails or in mock mode
-      return [
-        { midi: 60, step: 0, length: 1, velocity: 0.9 },
-        { midi: 64, step: 4, length: 1, velocity: 0.8 },
-        { midi: 67, step: 8, length: 1, velocity: 0.85 },
-        { midi: 72, step: 12, length: 1, velocity: 0.95 },
-      ];
+      return FALLBACK_C_MAJOR_ARPEGGIO;
     } catch (error) {
       console.error('Failed to generate music:', error);
       return [];

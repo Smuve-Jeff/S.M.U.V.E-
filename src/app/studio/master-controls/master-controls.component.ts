@@ -3,6 +3,9 @@ import { InstrumentService } from '../instrument.service';
 import { GainReductionMeterComponent } from './gain-reduction-meter.component';
 import { AudioEngineService } from '../../services/audio-engine.service';
 
+const LIMITER_THRESHOLD = -0.1;
+const DEFAULT_THRESHOLD = -24;
+
 @Component({
   selector: 'app-master-controls',
   standalone: true,
@@ -21,7 +24,7 @@ export class MasterControlsComponent {
     this.isLimiterActive = !this.isLimiterActive;
     this.engine.configureLimiter({
       enabled: this.isLimiterActive,
-      ceiling: -0.1,
+      ceiling: LIMITER_THRESHOLD,
       release: 0.1
     });
   }
