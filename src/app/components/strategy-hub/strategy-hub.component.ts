@@ -98,6 +98,6 @@ export class StrategyHubComponent {
   progress = computed(() => {
     const total = this.checklists().length;
     const completed = this.checklists().filter(i => i.completed).length;
-    return Math.round((completed / total) * 100);
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
   });
 }
