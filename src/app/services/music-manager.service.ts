@@ -32,6 +32,15 @@ export class MusicManagerService {
     public instruments: InstrumentsService
   ) {
     this.ensureTrack('Piano');
+
+    engine.automationEvents$.subscribe(event => {
+      this.automationData.update(data => {
+        const existing = data[event.paramId] || [];
+        const newData = [...existing];
+        newData[event.step] = event.value;
+        return { ...data, [event.paramId]: newData };
+      });
+    });
     // Bridge engine scheduler to request notes
     engine.onScheduleStep = (stepIndex, when, stepDur) => {
       this.currentStep.set(stepIndex);

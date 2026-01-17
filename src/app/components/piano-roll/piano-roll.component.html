@@ -73,6 +73,19 @@
         }
       </div>
     </div>
+
+    <!-- Automation Lane -->
+    <div class="pr-automation">
+      <div class="lane-title">Automation</div>
+      <div class="lane">
+        @for (i of stepsArray(); track i) {
+          <div class="automation-point"
+               *ngIf="automationData()['master-volume']?.[i]"
+               [style.bottom.%]="automationData()['master-volume']![i] * 100">
+          </div>
+        }
+      </div>
+    </div>
     <div class="pr-velocity" (mousedown)="onVelocityMouseDown($event)">
       <div class="lane-title">Velocity</div>
       <div class="lane">

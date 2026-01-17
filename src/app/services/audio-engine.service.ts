@@ -1,7 +1,6 @@
 import { Injectable, signal, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subject } from 'rxjs';
 import { StemSeparationService, Stems } from './stem-separation.service';
-import { MusicManagerService } from './music-manager.service';
 
 // High-precision WebAudio scheduler with lookahead and sample/synth playback
 // Phase A foundation: transport, tempo, scheduler, sample player, basic synth, mixer buses
@@ -387,14 +386,13 @@ export class AudioEngineService {
     );
   }
 
+  automationEvents$ = new Subject<{ paramId: string, value: number, step: number }>();
+
   recordAutomation(paramId: string, value: number) {
-    const musicManager = inject(MusicManagerService);
-    musicManager.automationData.update(data => {
-      const existing = data[paramId] || [];
-      const step = this.currentBeat();
-      const newData = [...existing];
-      newData[step] = value;
-      return { ...data, [paramId]: newData };
+    this.automationEvents$.next({
+      paramId,
+      value,
+      step: this.currentBeat()
     });
   }
 

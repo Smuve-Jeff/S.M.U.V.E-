@@ -42,6 +42,7 @@ export class PianoRollComponent {
   );
   melodyPrompt = signal('');
   selectedNotes = signal<{ midi: number; step: number }[]>([]);
+  automationData = computed(() => this.music.automationData());
 
   // Notes grid
   midiRows = Array.from(
