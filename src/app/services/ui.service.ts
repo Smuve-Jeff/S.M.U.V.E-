@@ -16,6 +16,7 @@ export class UIService {
   showEqPanel = signal(false);
   showChatbot = signal(false);
   isChatbotOpen = signal(false);
+  visualIntensity = signal(0);
 
   private viewModes: MainViewMode[] = ['hub', 'studio', 'player', 'dj', 'piano-roll', 'image-editor', 'video-editor', 'networking', 'profile', 'projects', 'remix-arena', 'tha-spot', 'image-video-lab'];
   private currentViewIndex = 0;

@@ -28,7 +28,7 @@
         </div>
       </div>
       <div class="game-actions">
-        <button class="play-button">Play Now</button>
+        <button class="play-button" (click)="isPlaying = true">Play Now</button>
         <button class="secondary-button">Create Lobby</button>
         <button class="secondary-button">Spectate</button>
       </div>
@@ -39,3 +39,5 @@
 <div *ngIf="!game" class="no-game-selected">
   <p>Select a game from the list to see its details.</p>
 </div>
+
+<app-game-player *ngIf="isPlaying && gameId" [gameId]="gameId"></app-game-player>

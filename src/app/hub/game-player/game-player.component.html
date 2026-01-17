@@ -1,0 +1,20 @@
+<div class="game-player-wrapper" *ngIf="game">
+  <div class="game-header">
+    <h3>{{ game.name }}</h3>
+    <button class="close-btn" (click)="game = undefined">Exit Game</button>
+  </div>
+
+  <div class="iframe-container">
+    <iframe *ngIf="safeUrl" [src]="safeUrl" allow="autoplay; encrypted-media; fullscreen"></iframe>
+
+    <!-- Cyber Enhancement Overlays -->
+    <div class="cyber-overlay scanlines"></div>
+    <div class="cyber-overlay vignette"></div>
+    <div class="cyber-overlay glitch-jitter"></div>
+  </div>
+
+  <div class="game-footer">
+    <span class="genre">{{ game.genre }}</span>
+    <span class="rating">⭐ {{ game.rating }}</span>
+  </div>
+</div>
