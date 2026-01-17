@@ -44,6 +44,13 @@ export class CollaborationService {
   }
 
   private generateSessionId(): string {
-    return Math.random().toString(36).substring(2, 15);
+    // Use a cryptographically secure random source to generate a session ID.
+    const bytes = new Uint8Array(16); // 128 bits of entropy
+    crypto.getRandomValues(bytes);
+
+    // Convert bytes to a hex string (URL-safe, similar length, high entropy)
+    return Array.from(bytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 }
