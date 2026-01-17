@@ -17,6 +17,6 @@ export const routes: Routes = [
   { path: 'tha-spot', component: ThaSpotComponent },
   { path: 'studio', component: StudioComponent },
   { path: 'login', component: LoginComponent },
-  { path: '', redirectTo: 'hub', pathMatch: 'full' },
-  { path: '**', redirectTo: 'hub' },
+  { path: '', redirectTo: 'profile', pathMatch: 'full' },
+  { path: '**', redirectTo: 'profile' },
 ];

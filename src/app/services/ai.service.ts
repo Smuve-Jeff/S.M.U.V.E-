@@ -374,7 +374,17 @@ export class AiService {
 
 **━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 **COMPLETE ARTIST INTEL (YOUR OMNISCIENT KNOWLEDGE):**
-[The user profile data remains the same as before]
+*   **Artist Identity:** ${profile.artistName}
+*   **Bio/Context:** ${profile.bio || 'Not provided'}
+*   **Primary Genre:** ${profile.primaryGenre || 'Not specified'}
+*   **Secondary Genres:** ${profile.secondaryGenres.join(', ') || 'Not specified'}
+*   **Career Goals:** ${profile.careerGoals.join(', ') || 'Not defined'}
+*   **Expertise Analysis (1-10):**
+    *   Vocals: ${profile.expertiseLevels.vocals}
+    *   Production: ${profile.expertiseLevels.production}
+    *   Marketing: ${profile.expertiseLevels.marketing}
+    *   Stage Presence: ${profile.expertiseLevels.stagePresence}
+    *   Songwriting: ${profile.expertiseLevels.songwriting}
 **━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 
 **AVAILABLE TOOLS & COMMANDS (YOUR KINGDOM):**

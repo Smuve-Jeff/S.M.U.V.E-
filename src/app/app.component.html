@@ -13,6 +13,13 @@
       </h1>
       <div class="nav-buttons">
         <button
+          routerLink="/profile"
+          class="nav-button"
+          title="Artist Profile"
+        >
+          <i class="fas fa-user-circle"></i>
+        </button>
+        <button
           routerLink="/hub"
           class="nav-button"
           title="Hub"
@@ -25,6 +32,13 @@
           title="Projects"
         >
           <i class="fas fa-tasks"></i>
+        </button>
+        <button
+          routerLink="/studio"
+          class="nav-button"
+          title="The Studio"
+        >
+          <i class="fas fa-microphone-alt"></i>
         </button>
         <button
           routerLink="/remix-arena"
@@ -41,20 +55,6 @@
           <i class="fas fa-flask"></i>
         </button>
         <button
-          routerLink="/tha-spot"
-          class="nav-button"
-          title="Tha Spot"
-        >
-          <i class="fas fa-music"></i>
-        </button>
-        <button
-          routerLink="/studio"
-          class="nav-button"
-          title="The Studio"
-        >
-          <i class="fas fa-microphone-alt"></i>
-        </button>
-        <button
           (click)="uiService.randomizeTheme()"
           class="nav-button"
           title="Randomize Theme"
@@ -67,6 +67,13 @@
           title="Toggle EQ Panel"
         >
           <i class="fas fa-sliders-h"></i>
+        </button>
+        <button
+          routerLink="/tha-spot"
+          class="nav-button"
+          title="Tha Spot"
+        >
+          <i class="fas fa-music"></i>
         </button>
       </div>
     </div>
