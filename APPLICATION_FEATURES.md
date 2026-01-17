@@ -16,7 +16,7 @@ A high-precision, web-based production environment featuring:
 - **Session View & Timeline**: Manage clips, arrange sequences, and handle transport controls (Play, Record, Loop) with low-latency precision.
 - **Mastering Suite**: Dedicated master bus controls including high-precision compression and limiting for a professional "radio-ready" sound.
 
-## 🤖 S.M.U.V.E. AI (The "Rap GOD" Persona)
+## 🤖 S.M.U.V.E AI (The "Rap GOD" Persona)
 The heart of the application is a Gemini-powered strategic partner:
 - **Omniscient Strategy**: The AI analyzes the artist's profile and issues "Strategic Decrees"—actionable recommendations to overcome weaknesses and capitalize on strengths.
 - **Professional Enhancement Suite**:
