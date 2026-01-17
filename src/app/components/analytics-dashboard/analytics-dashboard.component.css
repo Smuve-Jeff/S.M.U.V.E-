@@ -5,8 +5,10 @@
 
 .animate-grow {
   animation: grow 1s ease-out;
+  transform-origin: bottom;
 }
 
-@keyframes grow {
-  from { height: 0; }
+`@keyframes` grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
 }
