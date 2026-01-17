@@ -6,6 +6,7 @@ import { RemixArenaComponent } from './components/remix-arena/remix-arena.compon
 import { HubComponent } from './hub/hub.component';
 import { ImageVideoLabComponent } from './components/image-video-lab/image-video-lab.component';
 import { ThaSpotComponent } from './components/tha-spot/tha-spot.component';
+import { StudioComponent } from './studio/studio.component';
 
 export const routes: Routes = [
   { path: 'projects', component: ProjectsComponent },
@@ -14,6 +15,7 @@ export const routes: Routes = [
   { path: 'hub', component: HubComponent },
   { path: 'image-video-lab', component: ImageVideoLabComponent },
   { path: 'tha-spot', component: ThaSpotComponent },
+  { path: 'studio', component: StudioComponent },
   { path: 'login', component: LoginComponent },
   { path: '', redirectTo: 'hub', pathMatch: 'full' },
   { path: '**', redirectTo: 'hub' },
