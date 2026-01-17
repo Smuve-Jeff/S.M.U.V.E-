@@ -1,5 +1,20 @@
 <div class="p-8 text-white">
-  <h2 class="text-4xl font-bold mb-8">Image & Video Lab</h2>
+  <header class="mb-10 flex justify-between items-end border-b border-white/10 pb-6">
+    <div>
+      <h1 class="text-4xl font-black tracking-tighter text-cyber-cyan uppercase italic">Image & Video Lab</h1>
+      <p class="text-neutral-400 mt-2">Professional Content Creation & Visual Engineering</p>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-xs uppercase tracking-widest text-neutral-500 font-bold">High-Quality Enhancer</span>
+      <button (click)="toggleEnhancer()"
+              class="w-12 h-6 rounded-full transition-colors relative"
+              [class.bg-cyber-cyan]="hqEnhancer()"
+              [class.bg-neutral-800]="!hqEnhancer()">
+        <div class="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform"
+             [class.translate-x-6]="hqEnhancer()"></div>
+      </button>
+    </div>
+  </header>
 
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
     <!-- AI Image Generator -->
@@ -12,11 +27,21 @@
     </div>
 
     <!-- AI Video Generator -->
-    <div class="bg-neutral-800/50 rounded-lg p-6 wow animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
-      <h3 class="text-2xl font-bold mb-4">AI Video Generator</h3>
-      <p class="text-neutral-400 mb-4">Bring your sounds to life with AI-powered videos.</p>
-      <button class="bg-primary-500 hover:bg-primary-600 text-white font-bold py-2 px-4 rounded">
-        Launch Generator
+    <div class="bg-neutral-800/50 rounded-lg p-6 wow animate__animated animate__fadeInUp border border-white/5 hover:border-cyber-cyan/30 transition-all" style="animation-delay: 0.1s;">
+      <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">
+        <i class="fas fa-video text-cyber-cyan"></i>
+        Professional Video Lab
+      </h3>
+      <p class="text-neutral-400 mb-6 text-sm">Develop custom, studio-quality music videos with dynamic camera movements and lighting.</p>
+      <div class="space-y-3 mb-6">
+        <select class="w-full bg-neutral-900 p-2 rounded border border-white/10 text-xs">
+          <option>Cinematic Narrative</option>
+          <option>Abstract Visualizer</option>
+          <option>Studio Performance</option>
+        </select>
+      </div>
+      <button class="w-full py-3 bg-cyber-cyan text-black font-black uppercase tracking-tighter italic hover:scale-105 transition-transform">
+        GENERATE PRO VIDEO
       </button>
     </div>
 
@@ -30,18 +55,38 @@
     </div>
   </div>
 
-  <div class="mt-12">
-    <h3 class="text-2xl font-bold mb-4">Featured Tools</h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="bg-neutral-800/50 rounded-lg p-6">
-            <h4 class="text-xl font-bold">Album Art Creator</h4>
-            <p class="text-neutral-400 mt-2">Generate professional album art in minutes.</p>
+  <div class="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <section>
+      <h3 class="text-2xl font-bold mb-6">Visual Production Suite</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-neutral-800/50 rounded-lg p-6 border border-white/5">
+              <h4 class="text-lg font-bold text-cyber-magenta">Album Art Pro</h4>
+              <p class="text-neutral-500 mt-2 text-xs">High-fidelity cover art with professional typography and texture mapping.</p>
+          </div>
+          <div class="bg-neutral-800/50 rounded-lg p-6 border border-white/5">
+              <h4 class="text-lg font-bold text-yellow-500">Streaming Hub</h4>
+              <p class="text-neutral-500 mt-2 text-xs">Configure OBS overlays, alerts, and real-time visual reaction quality.</p>
+          </div>
+      </div>
+    </section>
+
+    <section class="bg-gradient-to-br from-cyber-magenta/10 to-transparent p-8 rounded-xl border border-cyber-magenta/20">
+      <h3 class="text-2xl font-bold mb-4 italic">Broadcast Quality Settings</h3>
+      <div class="space-y-4">
+        <div class="flex justify-between items-center bg-neutral-900/50 p-3 rounded">
+          <span class="text-xs uppercase tracking-widest text-neutral-400">Rendering Engine</span>
+          <span class="text-cyber-cyan font-mono text-xs">V-CORE HYPERION</span>
         </div>
-        <div class="bg-neutral-800/50 rounded-lg p-6">
-            <h4 class="text-xl font-bold">Lyric Video Maker</h4>
-            <p class="text-neutral-400 mt-2">Create engaging lyric videos for your songs.</p>
+        <div class="flex justify-between items-center bg-neutral-900/50 p-3 rounded">
+          <span class="text-xs uppercase tracking-widest text-neutral-400">Output Resolution</span>
+          <span class="text-white font-mono text-xs">8K ULTRA-HD</span>
         </div>
-    </div>
+        <div class="flex justify-between items-center bg-neutral-900/50 p-3 rounded">
+          <span class="text-xs uppercase tracking-widest text-neutral-400">Frame Stability</span>
+          <span class="text-green-400 font-mono text-xs">OPTIMIZED</span>
+        </div>
+      </div>
+    </section>
   </div>
 
 </div>

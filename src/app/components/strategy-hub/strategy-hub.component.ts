@@ -66,6 +66,18 @@ export class StrategyHubComponent {
     {
       title: 'YouTube for Artists',
       content: 'Consolidate your channel, VEVO, and personal accounts into one Official Artist Channel (OAC) for better SEO.'
+     },
+     {
+       title: 'Sync Licensing Mastery',
+       content: 'Pitch your music to music supervisors for TV, films, and games. Ensure your metadata is clean and you have high-quality instrumentals ready.'
+     },
+     {
+       title: 'Publishing & Admin',
+       content: 'Collect your songwriter and publisher royalties globally. Register with a Publishing Administrator (like Songtrust) to capture mechanicals.'
+     },
+     {
+       title: 'International Royalties',
+       content: 'Your music travels. Ensure your PRO is part of the CISAC network to collect performance royalties from every territory automatically.'
     }
   ];
 
