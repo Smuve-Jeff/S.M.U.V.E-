@@ -26,6 +26,9 @@ export class AnalyticsDashboardComponent {
   ];
 
   getMathMax(arr: number[]): number {
-    return Math.max(...arr);
+    if (!arr.length) return 1;
+    const max = Math.max(...arr);
+    return max > 0 ? max : 1;
+  }
   }
 }
