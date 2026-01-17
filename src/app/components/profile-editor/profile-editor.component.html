@@ -3,7 +3,7 @@
   [ngStyle]="{ 'border-color': theme().primary, color: theme().primary }"
 >
   <!-- Authenticated View -->
-  <div *ngIf="isAuthenticated() && currentUser() as user">
+  <div *ngIf="isAuthenticated() && currentUser() as user; else guestView">
     <!-- Main Profile View -->
     <div class="flex gap-8">
       <!-- Sidebar Menu -->
@@ -202,4 +202,36 @@
     >
     </app-legal-document-editor>
   </div>
+  <!-- Guest View -->
+  <ng-template #guestView>
+    <div class="guest-container wow animate__animated animate__fadeIn">
+      <div class="guest-welcome">
+        <h2>Welcome to S.M.U.V.E 2.0</h2>
+        <p>The Ultimate Strategic Music Utility Virtual Enhancer. Your journey to the top starts here.</p>
+
+        <div class="guest-features">
+          <div class="feature-card">
+            <i class="fas fa-microphone-alt"></i>
+            <h3>The Studio</h3>
+            <p>Professional DAW with high-precision mixer, synth, and mastering suite.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-robot"></i>
+            <h3>AI Strategic Partner</h3>
+            <p>Get actionable "Strategic Decrees" from our omniscient Rap GOD AI.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-gamepad"></i>
+            <h3>Tha Spot</h3>
+            <p>Interactive gaming hub and AI-powered live jam sessions.</p>
+          </div>
+        </div>
+
+        <div class="guest-actions">
+          <button routerLink="/login" class="cta-button primary">Get Started</button>
+          <button class="cta-button secondary" (click)="activeSection.set('about')">Learn More</button>
+        </div>
+      </div>
+    </div>
+  </ng-template>
 </div>

@@ -34,7 +34,15 @@ import {
   ],
 })
 export class ProfileEditorComponent {
-  theme = input.required<AppTheme>();
+  theme = input<AppTheme | any>({
+    name: 'default',
+    primary: '#8b5cf6',
+    accent: '#d946ef',
+    neutral: '#1e293b',
+    purple: '#a855f7',
+    red: '#ef4444',
+    blue: '#3b82f6',
+  });
   private userProfileService = inject(UserProfileService);
   private authService = inject(AuthService);
 

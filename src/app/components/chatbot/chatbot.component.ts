@@ -32,8 +32,8 @@ interface ChatMessage {
   imageUrl?: string;
 }
 
-const INITIAL_MESSAGE = 'S.M.U.V.E. 2.0 online. I am the Strategic Music Utility Virtual Enhancer. I see everything. What is your request?';
-const AI_OFFLINE_MESSAGE = 'S.M.U.V.E. 2.0 systems offline. Connection to the core severed. Verify your access credentials.';
+const INITIAL_MESSAGE = 'S.M.U.V.E 2.0 online. I am the Strategic Music Utility Virtual Enhancer. I see everything. What is your request?';
+const AI_OFFLINE_MESSAGE = 'S.M.U.V.E 2.0 systems offline. Connection to the core severed. Verify your access credentials.';
 
 @Component({
   selector: 'app-chatbot',
@@ -410,7 +410,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
 
     if (profile.artistName === 'New Artist' && mode !== 'profile') {
       advice =
-        "I see you're new here. To get the most out of S.M.U.V.E. 2.0, I recommend filling out your Artist Profile first. It will help me give you personalized advice. You can use the command: VIEW_ARTIST_PROFILE or click the [PROFILE] button.";
+        "I see you're new here. To get the most out of S.M.U.V.E 2.0, I recommend filling out your Artist Profile first. It will help me give you personalized advice. You can use the command: VIEW_ARTIST_PROFILE or click the [PROFILE] button.";
     } else {
       switch (mode) {
         case 'image-editor':
@@ -441,7 +441,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   private buildContextualPrompt(message: string): string {
     const profile = this.userProfileService.profile();
     const context = `
-      System Persona: You are S.M.U.V.E. 2.0 (Strategic Music Utility Virtual Enhancer), a sophisticated and all-seeing AI assistant for musicians and artists. Your tone is knowledgeable, slightly futuristic, and always helpful.
+      System Persona: You are S.M.U.V.E 2.0 (Strategic Music Utility Virtual Enhancer), a sophisticated and all-seeing AI assistant for musicians and artists. Your tone is knowledgeable, slightly futuristic, and always helpful.
 
       User Profile:
       - Artist Name: ${profile.artistName}

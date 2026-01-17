@@ -5,6 +5,7 @@ module.exports = {
     '<rootDir>/node_modules/',
     '<rootDir>/dist/',
     '<rootDir>/src/test.ts',
+    '<rootDir>/tests/',
   ],
   globals: {
     'ts-jest': {

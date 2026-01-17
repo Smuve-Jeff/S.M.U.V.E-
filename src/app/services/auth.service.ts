@@ -136,7 +136,7 @@ export class AuthService {
         return {
           success: false,
           message:
-            'An artist with this email already exists in the S.M.U.V.E. system.',
+            'An artist with this email already exists in the S.M.U.V.E system.',
         };
       }
 
@@ -173,7 +173,7 @@ export class AuthService {
 
       return {
         success: true,
-        message: 'Welcome to S.M.U.V.E. Your journey to greatness begins now.',
+        message: 'Welcome to S.M.U.V.E Your journey to greatness begins now.',
       };
     } catch (error) {
       return {
@@ -230,7 +230,7 @@ export class AuthService {
 
       return {
         success: true,
-        message: `Welcome back, ${user.artistName}. S.M.U.V.E. has been waiting.`,
+        message: `Welcome back, ${user.artistName}. S.M.U.V.E has been waiting.`,
       };
     } catch (error) {
       return {
