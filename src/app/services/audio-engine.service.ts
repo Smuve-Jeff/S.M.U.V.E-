@@ -1,6 +1,7 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { StemSeparationService, Stems } from './stem-separation.service';
+import { MusicManagerService } from './music-manager.service';
 
 // High-precision WebAudio scheduler with lookahead and sample/synth playback
 // Phase A foundation: transport, tempo, scheduler, sample player, basic synth, mixer buses
@@ -384,6 +385,17 @@ export class AudioEngineService {
       this.ctx.currentTime,
       0.01
     );
+  }
+
+  recordAutomation(paramId: string, value: number) {
+    const musicManager = inject(MusicManagerService);
+    musicManager.automationData.update(data => {
+      const existing = data[paramId] || [];
+      const step = this.currentBeat();
+      const newData = [...existing];
+      newData[step] = value;
+      return { ...data, [paramId]: newData };
+    });
   }
 
   setDeckEq(id: DeckId, highs: number, mids: number, lows: number) {
@@ -862,6 +874,16 @@ export class AudioEngineService {
       this.ctx.currentTime,
       0.01
     );
+  }
+
+  getVisualIntensity(): number {
+    const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+    this.analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+      sum += dataArray[i];
+    }
+    return sum / dataArray.length / 255; // Normalize to 0-1
   }
 
   getMasterStream(): MediaStreamAudioDestinationNode {

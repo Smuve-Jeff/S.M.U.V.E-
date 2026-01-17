@@ -26,7 +26,7 @@
               [class]="'bg-' + theme().neutral + '-700'"
             >
               <span class="text-sm">{{ sample.name }}</span>
-              <button class="p-1 border text-xs">[ PREVIEW ]</button>
+              <button class="p-1 border text-xs" (click)="previewSample(sample.url)">[ PREVIEW ]</button>
             </div>
           }
         </div>

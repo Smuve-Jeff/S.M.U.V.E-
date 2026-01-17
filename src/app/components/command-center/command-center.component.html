@@ -1,0 +1,41 @@
+<div class="command-center-container">
+  <div class="terminal-overlay"></div>
+
+  <header class="terminal-header">
+    <h1 class="glow-text">STRATEGIC COMMAND CENTER</h1>
+    <div class="status-bar">
+      <span>REPUTATION: {{ reputationService.state().title }}</span>
+      <span>LEVEL: {{ reputationService.state().level }}</span>
+      <span>XP: {{ reputationService.state().xp }}/1000</span>
+    </div>
+  </header>
+
+  <main class="terminal-grid">
+    <section class="terminal-output">
+      <div class="output-scroll">
+        @for (line of terminalLines(); track $index) {
+          <div class="line">{{ line }}</div>
+        }
+        @if (isLoading()) {
+          <div class="line pulse">_</div>
+        }
+      </div>
+    </section>
+
+    <section class="decrees-panel">
+      <h2 class="sub-glow">STRATEGIC DECREES</h2>
+      <div class="decree-list">
+        @for (decree of decrees(); track decree.title) {
+          <div class="decree-card">
+            <h3>{{ decree.title }}</h3>
+            <p>{{ decree.rationale }}</p>
+            <div class="action-tag">COMMAND: {{ decree.action }} ({{ decree.toolId }})</div>
+          </div>
+        }
+      </div>
+      <button class="terminal-btn" (click)="refreshDecrees()" [disabled]="isLoading()">
+        RE-ANALYZE STRATEGY
+      </button>
+    </section>
+  </main>
+</div>

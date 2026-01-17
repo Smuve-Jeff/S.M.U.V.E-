@@ -1,6 +1,7 @@
 import { Injectable, signal, effect } from '@angular/core';
 import { AudioEngineService, NoteEvent } from './audio-engine.service';
 import { InstrumentsService, InstrumentPreset } from './instruments.service';
+import { ReputationService } from './reputation.service';
 
 export type TrackNote = {
   midi: number;
@@ -191,6 +192,11 @@ export class MusicManagerService {
 
   setTempo(bpm: number) {
     this.engine.tempo.set(bpm);
+  }
+
+  finishTrack() {
+    const reputationService = inject(ReputationService);
+    reputationService.addXp(200); // XP for finishing/exporting track
   }
   play() {
     this.engine.start();

@@ -1,5 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { MainViewMode, AppTheme } from './user-context.service';
+import { AudioEngineService } from './audio-engine.service';
 
 const THEMES: AppTheme[] = [
   { name: 'Cyberpunk', primary: 'cyan', accent: 'pink', neutral: 'gray', purple: 'purple', red: 'red', blue: 'blue' },
@@ -20,8 +21,20 @@ export class UIService {
 
   private viewModes: MainViewMode[] = ['hub', 'studio', 'player', 'dj', 'piano-roll', 'image-editor', 'video-editor', 'networking', 'profile', 'projects', 'remix-arena', 'tha-spot', 'image-video-lab'];
   private currentViewIndex = 0;
+  private engine = inject(AudioEngineService);
 
-  constructor() { }
+  constructor() {
+    this.startVisualizerLoop();
+  }
+
+  private startVisualizerLoop() {
+    const update = () => {
+      const intensity = this.engine.getVisualIntensity();
+      this.visualIntensity.set(intensity);
+      requestAnimationFrame(update);
+    };
+    requestAnimationFrame(update);
+  }
 
   toggleMainViewMode() {
     this.currentViewIndex = (this.currentViewIndex + 1) % this.viewModes.length;

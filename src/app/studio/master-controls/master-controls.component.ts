@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { InstrumentService } from '../instrument.service';
 import { GainReductionMeterComponent } from './gain-reduction-meter.component';
+import { AudioEngineService } from '../../services/audio-engine.service';
 
 @Component({
   selector: 'app-master-controls',
@@ -11,26 +12,23 @@ import { GainReductionMeterComponent } from './gain-reduction-meter.component';
 })
 export class MasterControlsComponent {
   private readonly instrumentService = inject(InstrumentService);
+  private readonly engine = inject(AudioEngineService);
   readonly compressor = this.instrumentService.getCompressor();
   isLimiterActive = false;
   isSoftClipActive = false;
 
   toggleLimiter(): void {
     this.isLimiterActive = !this.isLimiterActive;
-    if (this.isLimiterActive) {
-      this.compressor.threshold.value = -0.1;
-      this.compressor.ratio.value = 20;
-    } else {
-      this.compressor.threshold.value = -24;
-      this.compressor.ratio.value = 12;
-    }
+    this.engine.configureLimiter({
+      enabled: this.isLimiterActive,
+      ceiling: -0.1,
+      release: 0.1
+    });
   }
 
   toggleSoftClip(): void {
     this.isSoftClipActive = !this.isSoftClipActive;
-    // Logic for soft-clipping would ideally be a WaveShaperNode
-    // For this upgrade, we represent it as a state change in the UI
-    console.log('Soft Clip toggled:', this.isSoftClipActive);
+    this.engine.setSaturation(this.isSoftClipActive ? 400 : 0);
   }
 
   updateMasterVolume(event: Event): void {

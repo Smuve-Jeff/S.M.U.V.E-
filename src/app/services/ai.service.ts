@@ -10,6 +10,7 @@ import {
   effect,
 } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
+import { ReputationService } from './reputation.service';
 
 export const API_KEY_TOKEN = new InjectionToken<string>('API_KEY');
 
@@ -287,6 +288,9 @@ export class AiService {
   }
 
   async generateMusic(prompt: string): Promise<TrackNote[]> {
+    const reputationService = inject(ReputationService);
+    reputationService.addXp(100); // XP for AI Melody generation
+
     if (!this.chatInstance) {
       console.error('Chat not initialized.');
       return [];
