@@ -53,7 +53,10 @@
           <div class="space-y-4">
             <div>
               <label class="block text-xs text-neutral-400 mb-2 uppercase">Monthly Budget ($)</label>
-              <input type="number" [(ngModel)]="adSpend" class="w-full p-3 bg-neutral-900 rounded border border-white/10 focus:border-cyber-cyan outline-none transition-colors" />
+              <input type="number"
+                     [ngModel]="adSpend()"
+                     (ngModelChange)="adSpend.set($event)"
+                     class="w-full p-3 bg-neutral-900 rounded border border-white/10 focus:border-cyber-cyan outline-none transition-colors" />
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div class="bg-neutral-900/50 p-4 rounded border border-white/5">

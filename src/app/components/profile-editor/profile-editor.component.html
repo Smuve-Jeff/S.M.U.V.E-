@@ -41,136 +41,118 @@
               </h3>
 
               <!-- Social & Links Section -->
-              <div *ngIf="section.id === 'social'" class="space-y-6">
-                <!-- Social Media -->
-                <app-form-field
-                  label="Social Media"
-                  description="Your official social media profiles."
-                >
-                  <div class="space-y-3">
-                    <div
-                      *ngFor="
-                        let platform of objectKeys(
-                          editableProfile().socialMedia
-                        )
-                      "
-                      class="flex items-center gap-2"
-                    >
-                      <label class="w-24 capitalize">{{ platform }}</label>
-                      <input
-                        type="text"
-                        [value]="editableProfile().socialMedia[platform]"
-                        (input)="updateLink('socialMedia', platform, $event)"
-                        class="flex-grow p-2 bg-neutral-700 rounded-md"
-                      />
-                      <button
-                        (click)="removeLink('socialMedia', platform)"
-                        class="px-2 py-1 text-red-500"
-                      >
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <select
-                        #newSocialPlatform
-                        class="p-2 bg-neutral-700 rounded-md"
-                      >
-                        <option
-                          *ngFor="let platform of socialPlatforms"
-                          [value]="platform"
-                        >
-                          {{ platform }}
-                        </option>
-                      </select>
-                      <button
-                        (click)="
-                          addLink('socialMedia', newSocialPlatform.value)
-                        "
-                        class="px-3 py-2 bg-blue-600 rounded-md"
-                      >
-                        Add
-                      </button>
+              <div *ngIf="section.id === 'social'" class="space-y-10">
+                <!-- Official Music Portals -->
+                <div class="space-y-4">
+                  <h4 class="text-xl font-bold text-cyber-cyan flex items-center gap-2">
+                    <i class="fas fa-check-circle"></i>
+                    Official Music Portals
+                  </h4>
+                  <div class="grid grid-cols-1 gap-4">
+                    <div *ngFor="let p of objectKeys(editableProfile().officialMusicProfiles)"
+                         class="bg-neutral-900/40 p-4 rounded-lg border border-white/5 flex flex-col gap-3">
+                      <div class="flex justify-between items-center">
+                        <label class="capitalize font-bold text-sm tracking-widest text-neutral-400">{{ p }} For Artists</label>
+                        <div class="flex items-center gap-2">
+                          <span *ngIf="editableProfile().officialMusicProfiles[p].status === 'verified'"
+                                class="text-[10px] bg-green-500/20 text-green-500 px-2 py-0.5 rounded uppercase font-bold">
+                            Verified
+                          </span>
+                          <span *ngIf="editableProfile().officialMusicProfiles[p].status === 'syncing'"
+                                class="text-[10px] bg-cyber-cyan/20 text-cyber-cyan px-2 py-0.5 rounded uppercase font-bold animate-pulse">
+                            Syncing...
+                          </span>
+                        </div>
+                      </div>
+                      <div class="flex gap-2">
+                        <input type="text"
+                               [value]="editableProfile().officialMusicProfiles[p].url"
+                               (input)="updatePlatformUrl('officialMusicProfiles', p, $event)"
+                               placeholder="Enter dashboard URL"
+                               class="flex-grow p-2 bg-neutral-800 rounded border border-white/10 outline-none focus:border-cyber-cyan transition-colors" />
+                        <button (click)="verifyPlatform('officialMusicProfiles', p)"
+                                [disabled]="!editableProfile().officialMusicProfiles[p].url || editableProfile().officialMusicProfiles[p].status === 'syncing'"
+                                class="px-4 py-2 bg-cyber-cyan text-black font-bold rounded hover:scale-105 transition-transform disabled:opacity-50">
+                          {{ editableProfile().officialMusicProfiles[p].verified ? 'Re-Sync' : 'Verify' }}
+                        </button>
+                      </div>
+                      <div *ngIf="editableProfile().officialMusicProfiles[p].lastSynced" class="text-[9px] text-neutral-600 italic">
+                        Last synced: {{ editableProfile().officialMusicProfiles[p].lastSynced | date:'short' }}
+                      </div>
                     </div>
                   </div>
-                </app-form-field>
+                </div>
 
-                <!-- Music Platforms -->
-                <app-form-field
-                  label="Music Platforms"
-                  description="Links to your music on streaming services."
-                >
-                  <div class="space-y-3">
-                    <div
-                      *ngFor="
-                        let platform of objectKeys(
-                          editableProfile().musicPlatforms
-                        )
-                      "
-                      class="flex items-center gap-2"
-                    >
-                      <label class="w-24 capitalize">{{ platform }}</label>
-                      <input
-                        type="text"
-                        [value]="editableProfile().musicPlatforms[platform]"
-                        (input)="updateLink('musicPlatforms', platform, $event)"
-                        class="flex-grow p-2 bg-neutral-700 rounded-md"
-                      />
-                      <button
-                        (click)="removeLink('musicPlatforms', platform)"
-                        class="px-2 py-1 text-red-500"
-                      >
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <select
-                        #newMusicPlatform
-                        class="p-2 bg-neutral-700 rounded-md"
-                      >
-                        <option
-                          *ngFor="let platform of musicPlatforms"
-                          [value]="platform"
-                        >
-                          {{ platform }}
-                        </option>
-                      </select>
-                      <button
-                        (click)="
-                          addLink('musicPlatforms', newMusicPlatform.value)
-                        "
-                        class="px-3 py-2 bg-blue-600 rounded-md"
-                      >
-                        Add
-                      </button>
+                <!-- Personal Social Presence -->
+                <div class="space-y-4 pt-6 border-t border-white/5">
+                  <h4 class="text-xl font-bold text-cyber-magenta flex items-center gap-2">
+                    <i class="fas fa-share-alt"></i>
+                    Personal Social Presence
+                  </h4>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div *ngFor="let p of objectKeys(editableProfile().personalSocialProfiles)"
+                         class="bg-neutral-900/40 p-4 rounded-lg border border-white/5 flex flex-col gap-3">
+                      <label class="capitalize font-bold text-sm tracking-widest text-neutral-400">{{ p === 'x' ? 'X (Twitter)' : p }}</label>
+                      <div class="flex gap-2">
+                        <input type="text"
+                               [value]="editableProfile().personalSocialProfiles[p].url"
+                               (input)="updatePlatformUrl('personalSocialProfiles', p, $event)"
+                               placeholder="Profile URL"
+                               class="flex-grow p-2 bg-neutral-800 rounded border border-white/10 outline-none focus:border-cyber-magenta transition-colors" />
+                        <button (click)="verifyPlatform('personalSocialProfiles', p)"
+                                [disabled]="!editableProfile().personalSocialProfiles[p].url"
+                                class="p-2 bg-neutral-800 rounded hover:text-cyber-magenta transition-colors">
+                          <i class="fas" [class.fa-link]="!editableProfile().personalSocialProfiles[p].verified"
+                                         [class.fa-check]="editableProfile().personalSocialProfiles[p].verified"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </app-form-field>
+                </div>
               </div>
 
               <!-- Professional ID Section -->
               <div *ngIf="section.id === 'professional'" class="space-y-6">
                 <app-form-field label="Official Artist Profile" description="Mark this as an official artist profile.">
                   <div class="flex items-center gap-3">
-                    <input type="checkbox" [(ngModel)]="editableProfile().isOfficialProfile" class="w-6 h-6 bg-neutral-700 rounded-md accent-blue-600" />
+                    <input type="checkbox"
+                           [ngModel]="editableProfile().isOfficialProfile"
+                           (ngModelChange)="updateProfileField('isOfficialProfile', $event)"
+                           class="w-6 h-6 bg-neutral-700 rounded-md accent-blue-600" />
                     <span class="text-neutral-300">Official Profile</span>
                   </div>
                 </app-form-field>
 
                 <div class="grid grid-cols-2 gap-4">
                   <app-form-field label="PRO Name" description="ASCAP, BMI, SESAC, etc.">
-                    <input type="text" [(ngModel)]="editableProfile().proName" class="w-full p-2 bg-neutral-700 rounded-md" />
+                    <input type="text"
+                           [ngModel]="editableProfile().proName"
+                           (ngModelChange)="updateProfileField('proName', $event)"
+                           class="w-full p-2 bg-neutral-800 rounded-md" />
                   </app-form-field>
                   <app-form-field label="PRO IPI" description="Your Interested Party Information number.">
-                    <input type="text" [(ngModel)]="editableProfile().proIpi" class="w-full p-2 bg-neutral-700 rounded-md" />
+                    <input type="text"
+                           [ngModel]="editableProfile().proIpi"
+                           (ngModelChange)="updateProfileField('proIpi', $event)"
+                           class="w-full p-2 bg-neutral-800 rounded-md" />
                   </app-form-field>
                   <app-form-field label="SoundExchange ID" description="Your SoundExchange ID.">
-                    <input type="text" [(ngModel)]="editableProfile().soundExchangeId" class="w-full p-2 bg-neutral-700 rounded-md" />
+                    <input type="text"
+                           [ngModel]="editableProfile().soundExchangeId"
+                           (ngModelChange)="updateProfileField('soundExchangeId', $event)"
+                           class="w-full p-2 bg-neutral-800 rounded-md" />
                   </app-form-field>
                   <app-form-field label="The MLC ID" description="Your Mechanical Licensing Collective ID.">
-                    <input type="text" [(ngModel)]="editableProfile().mlcId" class="w-full p-2 bg-neutral-700 rounded-md" />
+                    <input type="text"
+                           [ngModel]="editableProfile().mlcId"
+                           (ngModelChange)="updateProfileField('mlcId', $event)"
+                           class="w-full p-2 bg-neutral-800 rounded-md" />
                   </app-form-field>
                   <app-form-field label="ISNI" description="International Standard Name Identifier.">
-                    <input type="text" [(ngModel)]="editableProfile().isni" class="w-full p-2 bg-neutral-700 rounded-md" />
+                    <input type="text"
+                           [ngModel]="editableProfile().isni"
+                           (ngModelChange)="updateProfileField('isni', $event)"
+                           class="w-full p-2 bg-neutral-800 rounded-md" />
                   </app-form-field>
                 </div>
 
@@ -178,10 +160,15 @@
                   <h4 class="text-xl font-bold mb-4">Distribution Settings</h4>
                   <div class="grid grid-cols-2 gap-4">
                     <app-form-field label="Preferred Distributor" description="DistroKid, TuneCore, etc.">
-                      <input type="text" [(ngModel)]="editableProfile().preferredDistributor" class="w-full p-2 bg-neutral-700 rounded-md" />
+                      <input type="text"
+                             [ngModel]="editableProfile().preferredDistributor"
+                             (ngModelChange)="updateProfileField('preferredDistributor', $event)"
+                             class="w-full p-2 bg-neutral-800 rounded-md" />
                     </app-form-field>
                     <app-form-field label="Distribution Status" description="Current status of your latest release.">
-                      <select [(ngModel)]="editableProfile().distributionStatus" class="w-full p-2 bg-neutral-700 rounded-md">
+                      <select [ngModel]="editableProfile().distributionStatus"
+                              (ngModelChange)="updateProfileField('distributionStatus', $event)"
+                              class="w-full p-2 bg-neutral-800 rounded-md">
                         <option value="Not Started">Not Started</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Distributed">Distributed</option>

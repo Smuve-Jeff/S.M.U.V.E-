@@ -54,6 +54,18 @@ export class StrategyHubComponent {
     {
       title: 'Marketing Strategy 101',
       content: 'Focus on 80% content creation and 20% direct promotion. Build a community, not just a following.'
+    },
+    {
+      title: 'Apple Music for Artists',
+      content: 'Gain deep insights into your listeners demographics and which playlists are driving your streams.'
+    },
+    {
+      title: 'Spotify for Artists',
+      content: 'The gold standard for direct-to-fan communication and playlist pitching. Verify early to unlock the "Marquee" tool.'
+    },
+    {
+      title: 'YouTube for Artists',
+      content: 'Consolidate your channel, VEVO, and personal accounts into one Official Artist Channel (OAC) for better SEO.'
     }
   ];
 
