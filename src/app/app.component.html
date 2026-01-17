@@ -1,3 +1,7 @@
+<!-- Futuristic Background Elements -->
+<div class="bg-grid"></div>
+<div class="scanline"></div>
+
 <div class="aurora-background">
   <div class="aurora-layer"></div>
   <div class="aurora-layer"></div>
@@ -7,10 +11,11 @@
 <div class="glass-container wow animate__animated animate__fadeIn">
   <!-- Main Header -->
   <header class="main-header">
-    <div class="flex items-center gap-4">
-            <div class="nav-buttons">
+    <div class="flex items-center gap-6">
+      <div class="nav-buttons">
         <button
           routerLink="/profile"
+          routerLinkActive="active"
           class="nav-button"
           title="Artist Profile"
         >
@@ -18,20 +23,23 @@
         </button>
         <button
           routerLink="/hub"
+          routerLinkActive="active"
           class="nav-button"
           title="Hub"
         >
-          <i class="fas fa-home"></i>
+          <i class="fas fa-th-large"></i>
         </button>
         <button
           routerLink="/projects"
+          routerLinkActive="active"
           class="nav-button"
           title="Projects"
         >
-          <i class="fas fa-tasks"></i>
+          <i class="fas fa-folder-open"></i>
         </button>
         <button
           routerLink="/studio"
+          routerLinkActive="active"
           class="nav-button"
           title="The Studio"
         >
@@ -39,6 +47,7 @@
         </button>
         <button
           routerLink="/remix-arena"
+          routerLinkActive="active"
           class="nav-button"
           title="Remix Arena"
         >
@@ -46,25 +55,23 @@
         </button>
         <button
           routerLink="/image-video-lab"
+          routerLinkActive="active"
           class="nav-button"
           title="Image & Video Lab"
         >
-          <i class="fas fa-flask"></i>
+          <i class="fas fa-photo-video"></i>
         </button>
         <button
           routerLink="/tha-spot"
+          routerLinkActive="active"
           class="nav-button"
           title="Tha Spot"
         >
-          <i class="fas fa-music"></i>
+          <i class="fas fa-bolt"></i>
         </button>
-        <button
-          routerLink="/studio"
-          class="nav-button"
-          title="The Studio"
-        >
-          <i class="fas fa-microphone-alt"></i>
-        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
         <button
           (click)="uiService.randomizeTheme()"
           class="nav-button"
@@ -76,50 +83,50 @@
           (click)="uiService.showEqPanel.set(!uiService.showEqPanel())"
           class="nav-button"
           title="Toggle EQ Panel"
+          [class.active]="uiService.showEqPanel()"
         >
           <i class="fas fa-sliders-h"></i>
         </button>
-        <button
-          routerLink="/tha-spot"
-          class="nav-button"
-          title="Tha Spot"
-        >
-          <i class="fas fa-music"></i>
-        </button>
       </div>
     </div>
-    <div class="flex items-center gap-4">
+
+    <div class="flex items-center gap-6">
       <button
         (click)="toggleChatbot()"
         class="nav-button"
         title="Toggle Chatbot"
+        [class.active]="uiService.isChatbotOpen()"
       >
-        <i class="fas fa-robot"></i>
+        <i class="fas fa-terminal"></i>
       </button>
-      <span class="text-sm text-neutral-400">|</span>
+
+      <div class="h-6 w-px bg-white/10"></div>
+
       <button
         *ngIf="!authService.isAuthenticated()"
         routerLink="/profile"
         class="auth-button"
       >
-        Login / Register
+        LOGIN
       </button>
+
       <div
         *ngIf="authService.isAuthenticated()"
-        class="flex items-center gap-2"
+        class="flex items-center gap-4"
       >
-        <span class="text-sm text-white"
-          >Welcome, {{ authService.currentUser()?.artistName }}</span
-        >
+        <div class="flex flex-col items-end">
+          <span class="text-[10px] text-white/40 uppercase tracking-widest font-bold">Artist</span>
+          <span class="text-sm text-white font-medium">{{ authService.currentUser()?.artistName }}</span>
+        </div>
         <button
           routerLink="/profile"
           class="nav-button"
           title="View Profile"
         >
-          <i class="fas fa-user-circle"></i>
+          <i class="fas fa-id-card"></i>
         </button>
-        <button (click)="authService.logout()" class="auth-button">
-          Logout
+        <button (click)="authService.logout()" class="nav-button" title="Logout">
+          <i class="fas fa-power-off"></i>
         </button>
       </div>
     </div>
@@ -143,7 +150,7 @@
     </div>
   </main>
 
-  <footer class="watermark-footer text-xs">
-      ©️ Smuve Jeff Presents
+  <footer class="watermark-footer">
+      S.M.U.V.E 2.0 &bull; STRATEGIC MUSIC UTILITY VIRTUAL ENHANCER
   </footer>
 </div>
