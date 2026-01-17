@@ -20,13 +20,13 @@
           <h3 class="text-sm font-bold text-cyber-cyan uppercase">S.M.U.V.E Pitch-Perfect Audit</h3>
           <button (click)="runPitchAudit()" class="text-[10px] px-3 py-1 bg-cyber-cyan text-black font-bold rounded">RUN AUDIT</button>
         </div>
-        <div *ngIf="auditScore()" class="animate-fade-in">
+        <div *ngIf="auditScore() !== null" class="animate-fade-in">
            <div class="text-3xl font-black italic mb-2 text-white">{{ auditScore() }}% READY</div>
            <ul class="text-[10px] space-y-1 text-neutral-400">
              <li *ngFor="let f of auditFeedback()">• {{ f }}</li>
            </ul>
         </div>
-        <div *ngIf="!auditScore()" class="text-[10px] text-neutral-600 italic">Audit your demo/EPK before submitting to increase success rate.</div>
+        <div *ngIf="auditScore() === null" class="text-[10px] text-neutral-600 italic">Audit your demo/EPK before submitting to increase success rate.</div>
       </div>
 
       <div class="space-y-6">
