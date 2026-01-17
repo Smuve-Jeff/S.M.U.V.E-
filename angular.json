@@ -17,7 +17,6 @@
             "tsConfig": "tsconfig.json",
             "assets": [
               "src/assets",
-              "src/manifest.webmanifest",
               "src/manifest.webmanifest"
             ],
             "styles": [
@@ -30,7 +29,8 @@
           "configurations": {
             "production": {
               "outputHashing": "all",
-              "serviceWorker": "ngsw-config.json",
+              "serviceWorker": true,
+              "ngswConfigPath": "ngsw-config.json",
               "optimization": true
             },
             "development": {
@@ -44,7 +44,8 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "port": 4200
+            "port": 4200,
+            "host": "0.0.0.0"
           },
           "configurations": {
             "production": {
@@ -55,13 +56,6 @@
             }
           },
           "defaultConfiguration": "development"
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:playwright",
-          "options": {
-            "devServerTarget": "app:serve",
-            "config": "playwright.config.ts"
-          }
         }
       }
     }

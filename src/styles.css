@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300..800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,26 +9,27 @@
   --primary-color: #00bcd4; /* A bright, modern cyan */
   --background-color: #1a1a1a; /* A very dark grey for a clean, modern look */
   --text-color: #e0e0e0; /* A light grey for high contrast and readability */
-  --container-background: rgba(
-    255,
-    255,
-    255,
-    0.05
-  ); /* A translucent white for the glassmorphism effect */
-  --border-color: rgba(
-    255,
-    255,
-    255,
-    0.1
-  ); /* A subtle border to complement the glassmorphism */
-  --shadow-color: rgba(0, 0, 0, 0.2); /* A soft shadow to add depth */
+  --container-background: rgba(255, 255, 255, 0.05); /* Glassmorphism */
+  --border-color: rgba(255, 255, 255, 0.1); /* Subtle border */
+  --shadow-color: rgba(0, 0, 0, 0.2); /* Soft depth */
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  --font-body: 'Roboto', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+
+  --h1-size: clamp(2rem, 1.2rem + 2.5vw, 3.25rem);
+  --h2-size: clamp(1.5rem, 1rem + 1.8vw, 2.25rem);
+  --h3-size: clamp(1.25rem, 0.9rem + 1.2vw, 1.75rem);
+  --heading-weight: 700;
+  --heading-letter-spacing: -0.01em;
+  --heading-color: #f0f3f7;
 }
 
 body,
 html {
   height: 100%;
   margin: 0;
-  font-family: 'Roboto', sans-serif;
+  font-family: var(--font-body);
   background-color: var(--background-color);
   color: var(--text-color);
   background-image:
@@ -107,3 +109,45 @@ app-root,
 .button:hover {
   background-color: #00acc1; /* A slightly darker cyan on hover */
 }
+
+/* Professional title typography */
+.h1, h1, .title-1 {
+  font-family: var(--font-sans);
+  font-weight: var(--heading-weight);
+  letter-spacing: var(--heading-letter-spacing);
+  font-size: var(--h1-size);
+  line-height: 1.15;
+  margin: 0 0 0.6em;
+  color: var(--heading-color);
+}
+
+.h2, h2, .title-2 {
+  font-family: var(--font-sans);
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  font-size: var(--h2-size);
+  line-height: 1.2;
+  margin: 0 0 0.5em;
+  color: var(--heading-color);
+}
+
+.h3, h3, .title-3 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: 0;
+  font-size: var(--h3-size);
+  line-height: 1.25;
+  margin: 0 0 0.5em;
+  color: var(--heading-color);
+}
+
+/* Optional subtitle styling */
+.subtitle {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: clamp(1rem, 0.9rem + 0.6vw, 1.25rem);
+  color: rgba(255, 255, 255, 0.7);
+  margin: -0.25em 0 1em;
+}
+
+/*
