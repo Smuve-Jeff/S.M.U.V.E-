@@ -13,7 +13,7 @@ import { AnalyticsService } from '../../services/analytics.service';
 export class AnalyticsDashboardComponent {
   analytics = inject(AnalyticsService);
 
-  superfans = signal<any[]>([
+  superfans = signal<Superfan[]>([
     { name: 'Alex M.', streams: 450, location: 'London', status: 'Active' },
     { name: 'Sarah J.', streams: 380, location: 'New York', status: 'Rising' },
     { name: 'Dmitri K.', streams: 295, location: 'Berlin', status: 'Active' }
