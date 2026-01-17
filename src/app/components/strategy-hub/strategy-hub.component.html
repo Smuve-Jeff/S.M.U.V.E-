@@ -73,6 +73,21 @@
 
         <div class="bg-neutral-800/50 p-6 rounded-xl border border-white/5">
           <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+            <i class="fas fa-bolt text-yellow-400"></i>
+            Trend-Pulse Hooks
+          </h2>
+          <div class="space-y-3">
+             <div *ngFor="let hook of trendHooks()" class="p-3 bg-neutral-900 rounded border border-white/5 text-[11px] leading-relaxed">
+               {{ hook }}
+             </div>
+             <button class="w-full mt-2 py-2 bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 rounded text-[10px] uppercase font-bold border border-yellow-400/20">
+               Generate New Hooks
+             </button>
+          </div>
+        </div>
+
+        <div class="bg-neutral-800/50 p-6 rounded-xl border border-white/5">
+          <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
             <i class="fas fa-id-badge text-cyber-cyan"></i>
             EPK Preview
           </h2>

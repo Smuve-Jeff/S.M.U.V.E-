@@ -41,6 +41,33 @@ export class CareerHubComponent {
   newLabel = signal('');
   newDemo = signal('');
 
+  auditScore = signal<number | null>(null);
+  auditFeedback = signal<string[]>([]);
+  splitSheets = signal<any[]>([]);
+
+  runPitchAudit() {
+    this.auditScore.set(85);
+    this.auditFeedback.set([
+      "Metadata: Professional and complete.",
+      "EPK Visuals: High quality, but missing a recent press photo.",
+      "Demo Quality: Mastered to -14 LUFS, perfect for DSPs.",
+      "Social Proof: Engagement rate is above average, but follower count is low for this label."
+    ]);
+  }
+
+  generateSplitSheet() {
+    const sheet = {
+      id: Math.random().toString(36).substr(2, 9),
+      track: 'New Track Prototype',
+      splits: [
+        { name: this.profile().artistName, role: 'Writer/Producer', share: 50 },
+        { name: 'Collaborator A', role: 'Writer', share: 50 }
+      ],
+      status: 'Draft'
+    };
+    this.splitSheets.update(s => [...s, sheet]);
+  }
+
   submitToLabel() {
     if (!this.newLabel() || !this.newDemo()) return;
     this.submissions.update(s => [

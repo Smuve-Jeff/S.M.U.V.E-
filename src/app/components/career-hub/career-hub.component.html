@@ -14,6 +14,21 @@
         Record Label Submissions
       </h2>
 
+      <!-- Pitch Audit -->
+      <div class="mb-8 p-4 bg-neutral-900 rounded-lg border border-cyber-cyan/30">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-sm font-bold text-cyber-cyan uppercase">S.M.U.V.E Pitch-Perfect Audit</h3>
+          <button (click)="runPitchAudit()" class="text-[10px] px-3 py-1 bg-cyber-cyan text-black font-bold rounded">RUN AUDIT</button>
+        </div>
+        <div *ngIf="auditScore()" class="animate-fade-in">
+           <div class="text-3xl font-black italic mb-2 text-white">{{ auditScore() }}% READY</div>
+           <ul class="text-[10px] space-y-1 text-neutral-400">
+             <li *ngFor="let f of auditFeedback()">• {{ f }}</li>
+           </ul>
+        </div>
+        <div *ngIf="!auditScore()" class="text-[10px] text-neutral-600 italic">Audit your demo/EPK before submitting to increase success rate.</div>
+      </div>
+
       <div class="space-y-6">
         <div class="p-4 bg-neutral-900 rounded border border-white/10 space-y-4">
           <h3 class="text-xs uppercase tracking-widest text-neutral-500 font-bold">New Submission</h3>
@@ -69,6 +84,36 @@
           <div class="h-full bg-cyber-cyan" style="width: 75%"></div>
         </div>
         <div class="mt-2 text-[9px] text-neutral-500">75% Complete - Missing Lighting Plot</div>
+      </div>
+    </section>
+
+    <!-- Legal Split Sheets -->
+    <section class="bg-neutral-800/50 p-6 rounded-xl border border-white/5 lg:col-span-2">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <i class="fas fa-file-signature text-yellow-500"></i>
+          AI Smart-Split Sheets
+        </h2>
+        <button (click)="generateSplitSheet()" class="px-4 py-1.5 bg-yellow-500 text-black font-bold rounded text-xs uppercase tracking-tighter italic">Generate New Split</button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div *ngFor="let sheet of splitSheets()" class="p-4 bg-neutral-900 rounded border border-white/5">
+           <div class="flex justify-between items-center mb-3">
+             <span class="font-bold text-sm">{{ sheet.track }}</span>
+             <span class="text-[9px] px-2 py-0.5 bg-white/10 rounded">{{ sheet.status }}</span>
+           </div>
+           <div class="space-y-1 mb-4">
+              <div *ngFor="let s of sheet.splits" class="flex justify-between text-[10px]">
+                <span class="text-neutral-400">{{ s.name }} ({{ s.role }})</span>
+                <span class="text-cyber-cyan font-bold">{{ s.share }}%</span>
+              </div>
+           </div>
+           <button class="w-full py-1.5 bg-white/5 hover:bg-white/10 text-[10px] uppercase font-bold border border-white/5 rounded">Download PDF</button>
+        </div>
+        <div *ngIf="!splitSheets().length" class="lg:col-span-3 text-center py-10 text-neutral-600 italic text-sm">
+          No split sheets generated yet. Protect your rights by creating agreements for every track.
+        </div>
       </div>
     </section>
   </div>

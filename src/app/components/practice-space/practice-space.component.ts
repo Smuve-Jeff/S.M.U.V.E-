@@ -1,6 +1,7 @@
 import { Component, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { UserProfileService } from '../../services/user-profile.service';
 
 interface VocalWarmup {
   id: string;
@@ -36,6 +37,14 @@ export class PracticeSpaceComponent {
     { id: '3', name: 'Tongue Twisters', duration: '5 min', description: 'Articulate complex phrases clearly at increasing speeds.' },
     { id: '4', name: 'Humming Resonators', duration: '2 min', description: 'Hum at different pitches focusing on the vibration in your mask area.' }
   ];
+
+  resilienceTools = [
+    { name: 'Creative Block Breaker', icon: 'fa-hammer', action: 'RUN AI DRILL' },
+    { name: 'Burnout Diagnostic', icon: 'fa-heartbeat', action: 'START ASSESSMENT' },
+    { name: 'Stage Presence Coach', icon: 'fa-walking', action: 'LAUNCH AR SIM' }
+  ];
+
+  mindsetTip = signal("Industry rejection is just redirection. Keep your output consistent.");
 
   toggleMemorize() {
     this.memorizeMode.update(v => !v);
