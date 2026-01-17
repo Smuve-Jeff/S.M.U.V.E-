@@ -10,7 +10,6 @@ import { HubRoutes } from './hub.routes';
     CommonModule,
     RouterModule.forChild(HubRoutes),
     HubComponent
-  ],
-  declarations: [LobbyComponent],
+  ]
 })
 export class HubModule { }

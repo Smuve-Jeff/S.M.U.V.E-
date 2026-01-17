@@ -4,9 +4,8 @@ import { EqPanelComponent } from './eq-panel.component';
 
 @NgModule({
   imports: [
-    CommonModule
-  ],
-  declarations: [EqPanelComponent],
-  exports: [EqPanelComponent]
+    CommonModule,
+    EqPanelComponent
+  ]
 })
 export class EqPanelModule { }

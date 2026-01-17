@@ -4,9 +4,8 @@ import { AudioVisualizerComponent } from './audio-visualizer.component';
 
 @NgModule({
   imports: [
-    CommonModule
-  ],
-  declarations: [AudioVisualizerComponent],
-  exports: [AudioVisualizerComponent]
+    CommonModule,
+    AudioVisualizerComponent
+  ]
 })
 export class AudioVisualizerModule { }

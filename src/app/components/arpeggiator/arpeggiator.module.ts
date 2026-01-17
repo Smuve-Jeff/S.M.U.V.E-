@@ -10,9 +10,8 @@ const routes: Routes = [
 @NgModule({
   imports: [
     CommonModule,
-    RouterModule.forChild(routes)
-  ],
-  declarations: [ArpeggiatorComponent],
-  exports: [ArpeggiatorComponent]
+    RouterModule.forChild(routes),
+    ArpeggiatorComponent
+  ]
 })
 export class ArpeggiatorModule { }
