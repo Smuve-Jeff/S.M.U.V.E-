@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { GamificationService, UserProgress } from '../services/gamification.service';
+import { GamificationService, UserProgress } from '../../services/gamification.service';
 
 @Component({
   selector: 'app-user-progress',

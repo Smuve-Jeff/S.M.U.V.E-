@@ -13,7 +13,7 @@
     <div class="participants-section">
       <h2>Participants</h2>
       <ul class="participants-list">
-        <li *ngFor="let user of collaborationService.users$ | async">{{ user }}</li>
+        <li>Coming soon</li>
       </ul>
     </div>
   </div>
@@ -27,12 +27,12 @@
     <div class="chat-section">
       <h2>Chat</h2>
       <div class="chat-messages">
-        <div *ngFor="let message of collaborationService.messages$ | async" class="chat-message">
-          <span class="username">{{ message.user }}:</span>
-          <span class="message">{{ message.text }}</span>
+        <div class="chat-message">
+          <span class="username">System:</span>
+          <span class="message">Chat coming soon.</span>
         </div>
       </div>
-      <input type="text" placeholder="Type your message..." (keydown.enter)="collaborationService.sendMessage($event)" class="chat-input">
+      <input type="text" placeholder="Type your message..." disabled class="chat-input">
     </div>
   </div>
 

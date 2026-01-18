@@ -1,7 +1,7 @@
 <div class="collaboration-hub-container">
   <h3><i class="fas fa-users"></i> Collaboration Hub</h3>
 
-  <div *ngIf="!collaborationService.currentSession()" class="session-controls">
+  <div *ngIf="!(collaborationService.currentSession())" class="session-controls">
     <button (click)="startSession()" class="btn-start-session">Start New Session</button>
     <div class="join-session">
       <input type="text" [(ngModel)]="sessionIdToJoin" placeholder="Enter Session ID" />

@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { InstrumentService } from '../services/instrument.service';
+import { InstrumentService } from '../../services/instrument.service';
 
 @Component({
   selector: 'app-midi-device-manager',

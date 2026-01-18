@@ -4,12 +4,13 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Game } from '../game';
 import { GameService } from '../game.service';
-import { ChatbotComponent } from '../../chatbot/chatbot.component';
+// Chatbot is optional; comment out import to avoid missing module errors
+// import { ChatbotComponent } from '../../chatbot/chatbot.component';
 
 @Component({
   selector: 'app-game-player',
   standalone: true,
-  imports: [CommonModule, ChatbotComponent],
+  imports: [CommonModule],
   templateUrl: './game-player.component.html',
   styleUrls: ['./game-player.component.css'],
   animations: [

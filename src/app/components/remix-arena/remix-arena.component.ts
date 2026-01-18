@@ -16,11 +16,9 @@ export class RemixArenaComponent {
   collaborationService = inject(CollaborationService);
   code = '// Your remix code here';
 
-  constructor() {
-    this.collaborationService.joinSession('remix-arena');
-  }
+  constructor() {}
 
   onCodeChange(newCode: string) {
-    this.collaborationService.sendCodeUpdate(newCode);
+    // Placeholder for future collaboration code sync
   }
 }

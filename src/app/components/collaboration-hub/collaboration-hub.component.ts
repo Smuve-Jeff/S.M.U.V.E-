@@ -1,9 +1,9 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CollaborationService, SessionEvent } from '../services/collaboration.service';
-import { UserProfileService } from '../services/user-profile.service';
-import { AuthUser } from '../services/auth.service';
+import { CollaborationService, SessionEvent } from '../../services/collaboration.service';
+import { UserProfileService } from '../../services/user-profile.service';
+import { AuthUser } from '../../services/auth.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -49,7 +49,11 @@ export class CollaborationHubComponent implements OnInit, OnDestroy {
   }
 
   leaveSession(): void {
-    this.collaborationService.leaveSession();
+    if (this.currentUser && this.collaborationService.currentSession()) {
+      this.collaborationService.leaveSession(this.collaborationService.currentSession()!.sessionId, this.currentUser.id);
+    } else {
+      this.collaborationService.leaveSession('', '');
+    }
   }
   
   // Helper to get a user-friendly name for the event type
