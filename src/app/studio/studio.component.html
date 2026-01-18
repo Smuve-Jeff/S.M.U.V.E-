@@ -1,24 +1,15 @@
-<div
-  class="studio-container grid grid-rows-[auto_1fr] h-screen w-screen bg-neutral-900 text-white"
->
-  <!-- Top Bar -->
-  <app-transport-bar class="col-span-3"></app-transport-bar>
+<div class="studio-container">
+  <header class="studio-header">
+    <h1>Studio</h1>
+    <button (click)="togglePerformanceMode()">{{ isPerformanceMode ? 'Exit Performance Mode' : 'Enter Performance Mode' }}</button>
+  </header>
 
-  <!-- Main Content -->
-  <div class="grid grid-cols-[1fr_4fr_auto] gap-4 p-4 overflow-hidden">
-    <!-- Left Panel (Mixer) -->
-    <div class="mixer-panel bg-neutral-800 rounded-lg p-4 overflow-y-auto">
-      <app-mixer></app-mixer>
-    </div>
-
-    <!-- Right Panel (Session View) -->
-    <div class="session-panel bg-neutral-800 rounded-lg overflow-hidden">
-      <app-session-view></app-session-view>
-    </div>
-
-    <!-- Master Controls -->
-    <div class="master-controls-panel bg-neutral-800 rounded-lg p-4">
-      <app-master-controls></app-master-controls>
-    </div>
+  <div class="main-view" [class.hidden]="isPerformanceMode">
+    <app-transport-bar></app-transport-bar>
+    <app-session-view></app-session-view>
+    <app-mixer></app-mixer>
+    <app-master-controls></app-master-controls>
   </div>
+
+  <app-performance-mode *ngIf="isPerformanceMode" [notes]="notes" (noteClicked)="audioSession.onNoteClicked($event)"></app-performance-mode>
 </div>

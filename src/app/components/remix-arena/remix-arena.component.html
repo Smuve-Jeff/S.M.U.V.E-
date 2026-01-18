@@ -1,20 +1,41 @@
-<div class="p-4">
-  <h1 class="text-2xl font-bold mb-4">Remix Arena</h1>
+<div class="remix-arena-container">
+  <header class="arena-header">
+    <h1>Remix Arena</h1>
+    <p>Collaborate on remixes in real-time.</p>
+  </header>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <!-- Weekly Challenge -->
-    <div class="md:col-span-2 bg-gray-800 p-4 rounded">
-      <h2 class="text-xl font-bold mb-2">Weekly Challenge</h2>
-      <p class="text-gray-400 mb-4">
-        This week's challenge: Remix the stems from 'Artist Name - Song Title'
-      </p>
-      <!-- Add remixing interface here -->
+  <div class="collaboration-section">
+    <div class="session-management">
+      <button class="share-button">Share Session</button>
+      <p>Share this session to invite others to join.</p>
     </div>
 
-    <!-- Leaderboard -->
-    <div class="bg-gray-800 p-4 rounded">
-      <h2 class="text-xl font-bold mb-2">Leaderboard</h2>
-      <!-- Add leaderboard content here -->
+    <div class="participants-section">
+      <h2>Participants</h2>
+      <ul class="participants-list">
+        <li *ngFor="let user of collaborationService.users$ | async">{{ user }}</li>
+      </ul>
     </div>
   </div>
+
+  <div class="main-content">
+    <div class="code-editor-section">
+      <h2>Remix Code</h2>
+      <textarea [(ngModel)]="code" (ngModelChange)="onCodeChange($event)" class="code-editor"></textarea>
+    </div>
+
+    <div class="chat-section">
+      <h2>Chat</h2>
+      <div class="chat-messages">
+        <div *ngFor="let message of collaborationService.messages$ | async" class="chat-message">
+          <span class="username">{{ message.user }}:</span>
+          <span class="message">{{ message.text }}</span>
+        </div>
+      </div>
+      <input type="text" placeholder="Type your message..." (keydown.enter)="collaborationService.sendMessage($event)" class="chat-input">
+    </div>
+  </div>
+
+  <app-stem-controls></app-stem-controls>
+  <app-sample-library></app-sample-library>
 </div>

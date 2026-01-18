@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from './components/login/login.component';
 import { ProfileEditorComponent } from './components/profile-editor/profile-editor.component';
 import { ProjectsComponent } from './components/projects/projects.component';
 import { RemixArenaComponent } from './components/remix-arena/remix-arena.component';
@@ -24,7 +23,13 @@ export const routes: Routes = [
   { path: 'remix-arena', component: RemixArenaComponent },
   { path: 'image-video-lab', component: ImageVideoLabComponent },
   { path: 'tha-spot', component: ThaSpotComponent },
-  { path: 'login', component: LoginComponent },
+  {
+    path: 'login',
+    loadComponent: () =>
+      import('./components/login/login.component').then(
+        (m) => m.LoginComponent
+      ),
+  },
   { path: '', redirectTo: 'hub', pathMatch: 'full' },
   { path: '**', redirectTo: 'hub' },
 ];
