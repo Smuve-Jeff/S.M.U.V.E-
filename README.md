@@ -1,6 +1,6 @@
 # Smuve Jeff Presents S.M.U.V.E 2.0 (Strategic Music Utility Virtual Enhancer)
 
-S.M.U.V.E 2.0 is an AI-powered, high-precision music studio and strategic management platform designed for independent artists. Built on Angular 18 and utilizing Google's Gemini AI, it serves as a digital twin and a "Rap GOD" strategic partner to guide your musical journey.
+S.M.U.V.E. 2.0 is a self-hosted, open-source, AI-powered music studio and strategic management platform designed for the modern independent artist. It offers complete data control and a transparent, extensible foundation. Built on Angular 18 and utilizing Google's Gemini AI, it serves as a digital twin and a "Rap GOD" strategic partner to guide your musical journey.
 
 ## 🚀 Key Features
 
@@ -21,13 +21,15 @@ An omniscient AI persona that acts as your strategic commander:
 - **Stem Separation:** Isolate vocals, drums, bass, and melody from any track in real-time.
 - **Creative Enhancements:** Automated vocal tuning and smart arrangement assistants.
 
-### 🎮 Tha Spot & Social Hub
+### 🎮 Tha Spot: Interactive Online Gaming & Social Hub
 
-A centralized interactive space for gaming and collaboration:
+A dynamic online hub where artists can connect, compete, collaborate, and share their work.
 
-- **Gaming Library:** Play music-themed games like _Remix Arena_ and _Tha Battlefield_.
-- **AI Jam Session:** Play along with AI-powered session musicians (Bassist, Drummer, Keyboardist).
-- **Community Challenges:** Participate in weekly remix contests and climb the leaderboards.
+- **Expansive Gaming Catalog**: Dive into a huge selection of games from the HTMLGames library, alongside competitive experiences like _Tha Battlefield_ and cooperative modes like _Remix Arena_.
+- **Networking & Collaboration Hub**: Connect with other musicians, producers, and artists on the platform. Discover new talent, start collaborations, and build your professional network.
+- **Project Showcase**: A dedicated space to feature your finished tracks, visualizers, and other projects created within S.M.U.V.E. 2.0. Get feedback, gain fans, and see what other artists are creating.
+- **AI Jam Session**: An innovative feature allowing artists to play along with AI-powered session musicians (Bassist, Drummer, Keyboardist).
+
 
 ### 🎨 Creative Labs & Management
 
@@ -35,11 +37,16 @@ A centralized interactive space for gaming and collaboration:
 - **Project Manager:** Track release deadlines (EPs/LPs), manage creative tasks, and monitor progress.
 - **Digital Twin Sync:** Predictive analytics for breaking creative blocks and syncing your sound with current trends.
 
+## 🌐 Open & Self-Hosted
+
+- **Full Data Control**: As a self-hosted application, you have complete ownership of your project files, user data, and creative assets. No cloud subscriptions, no data mining.
+- **Open Source & Extensible**: The entire platform is open-source, allowing for community contributions, custom modifications, and full transparency.
+
 ## 🛠️ Technical Stack
 
 - **Framework:** Angular 18 (Signals-based reactivity)
 - **AI Engine:** Google Gemini AI (Vertex AI integration)
-- **Audio Engine:** Custom Web Audio API implementation with looyprkahead scheduling
+- **Audio Engine:** Custom Web Audio API implementation with lookahead scheduling
 - **Styling:** Tailwind CSS & Animate.css
 
 ## 💻 Getting Started

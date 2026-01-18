@@ -5,7 +5,6 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { NgFor } from '@angular/common';
 import { SessionViewComponent } from '../../studio/session-view/session-view.component';
 import { MixerComponent } from '../../studio/mixer/mixer.component';
 import { SynthesizerComponent } from '../../studio/synthesizer/synthesizer.component';
@@ -16,7 +15,6 @@ import { AudioSessionService } from '../../studio/audio-session.service';
   selector: 'app-studio',
   standalone: true,
   imports: [
-    NgFor,
     SessionViewComponent,
     MixerComponent,
     SynthesizerComponent,
