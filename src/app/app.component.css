@@ -1,3 +1,4 @@
+
 :host {
   display: block;
   height: 100vh;
@@ -16,6 +17,7 @@
   overflow: hidden;
   z-index: -1;
   background: radial-gradient(circle at 50% 50%, #050510 0%, #020205 100%);
+  pointer-events: none;
 }
 
 .aurora-layer {

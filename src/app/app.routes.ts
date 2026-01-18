@@ -25,6 +25,6 @@ export const routes: Routes = [
   { path: 'image-video-lab', component: ImageVideoLabComponent },
   { path: 'tha-spot', component: ThaSpotComponent },
   { path: 'login', component: LoginComponent },
-  { path: '', redirectTo: 'profile', pathMatch: 'full' },
-  { path: '**', redirectTo: 'profile' },
+  { path: '', redirectTo: 'hub', pathMatch: 'full' },
+  { path: '**', redirectTo: 'hub' },
 ];
