@@ -9,7 +9,13 @@ interface Voice {
 export type OscillatorType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
 export class SubtractiveSynth extends Instrument {
-  private readonly envelope = new ADSREnvelope(this.audioContext, 0.01, 0.2, 0.8, 0.5);
+  private readonly envelope = new ADSREnvelope(
+    this.audioContext,
+    0.01,
+    0.2,
+    0.8,
+    0.5
+  );
   private voices: Map<number, Voice> = new Map();
   private filter: BiquadFilterNode;
   private oscillatorType: OscillatorType = 'sawtooth';

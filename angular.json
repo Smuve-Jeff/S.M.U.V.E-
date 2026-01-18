@@ -15,10 +15,7 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.json",
-            "assets": [
-              "src/assets",
-              "src/manifest.webmanifest"
-            ],
+            "assets": ["src/assets", "src/manifest.webmanifest"],
             "styles": [
               "src/styles.css",
               "node_modules/animate.css/animate.min.css"

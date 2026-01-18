@@ -31,26 +31,44 @@
 }
 
 .aurora-layer:nth-child(1) {
-  background: radial-gradient(circle at 50% 50%, var(--color-primary) 0%, transparent 60%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    var(--color-primary) 0%,
+    transparent 60%
+  );
 }
 
 .aurora-layer:nth-child(2) {
-  background: radial-gradient(circle at 50% 50%, var(--color-vibrant) 0%, transparent 60%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    var(--color-vibrant) 0%,
+    transparent 60%
+  );
   animation-duration: 50s;
   animation-direction: reverse;
   opacity: 0.1;
 }
 
 .aurora-layer:nth-child(3) {
-  background: radial-gradient(circle at 50% 50%, var(--color-accent) 0%, transparent 60%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    var(--color-accent) 0%,
+    transparent 60%
+  );
   animation-duration: 60s;
   opacity: 0.1;
 }
 
 @keyframes aurora-flow {
-  0% { transform: rotate(0deg) scale(1); }
-  50% { transform: rotate(180deg) scale(1.1); }
-  100% { transform: rotate(360deg) scale(1); }
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
 }
 
 /* --- Main Application Container --- */
@@ -113,6 +131,17 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.nav-button:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 0 4px var(--color-primary);
+}
+
+.nav-button:active {
+  transform: scale(0.95);
+}
+
 .nav-button.active {
   background: var(--color-primary);
   color: #000;
@@ -134,6 +163,17 @@
   background: white;
   color: black;
   border-color: white;
+}
+
+.auth-button:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 0 4px white;
+}
+
+.auth-button:active {
+  transform: scale(0.98);
 }
 
 /* --- Sidebar & Content Area --- */
@@ -174,7 +214,13 @@ main::-webkit-scrollbar-thumb {
 }
 
 @keyframes pulse-border {
-  0% { border-color: var(--color-border); }
-  50% { border-color: var(--color-primary); }
-  100% { border-color: var(--color-border); }
+  0% {
+    border-color: var(--color-border);
+  }
+  50% {
+    border-color: var(--color-primary);
+  }
+  100% {
+    border-color: var(--color-border);
+  }
 }

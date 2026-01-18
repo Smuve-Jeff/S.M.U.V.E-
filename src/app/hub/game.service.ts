@@ -44,13 +44,13 @@ interface InviteMessage {
   userId: string;
 }
 
-type WebSocketMessage = 
-  | PresenceUpdateMessage 
-  | LobbyJoinedMessage 
+type WebSocketMessage =
+  | PresenceUpdateMessage
+  | LobbyJoinedMessage
   | LobbyCreatedMessage
-  | JoinLobbyMessage 
-  | LeaveLobbyMessage 
-  | ChatMessage 
+  | JoinLobbyMessage
+  | LeaveLobbyMessage
+  | ChatMessage
   | InviteMessage;
 
 // --- Lobby Settings Interface ---

@@ -1,29 +1,42 @@
-import { Component, Input, ChangeDetectionStrategy, ElementRef, OnDestroy, ChangeDetectorRef, NgZone, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  Input,
+  ChangeDetectionStrategy,
+  ElementRef,
+  OnDestroy,
+  ChangeDetectorRef,
+  NgZone,
+  AfterViewInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-gain-reduction-meter',
   standalone: true,
   imports: [CommonModule],
-  template: `<div class="meter-container"><div class="meter-bar" [style.height.%]="reductionDb"></div></div>`,
-  styles: [`
-    .meter-container { 
-      width: 20px; 
-      height: 100px; 
-      background-color: #333; 
-      border: 1px solid #555;
-      position: relative;
-      overflow: hidden;
-    }
-    .meter-bar { 
-      background-color: #ff4500; 
-      width: 100%; 
-      position: absolute;
-      bottom: 0;
-      transition: height 0.1s ease-out;
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  template: `<div class="meter-container">
+    <div class="meter-bar" [style.height.%]="reductionDb"></div>
+  </div>`,
+  styles: [
+    `
+      .meter-container {
+        width: 20px;
+        height: 100px;
+        background-color: #333;
+        border: 1px solid #555;
+        position: relative;
+        overflow: hidden;
+      }
+      .meter-bar {
+        background-color: #ff4500;
+        width: 100%;
+        position: absolute;
+        bottom: 0;
+        transition: height 0.1s ease-out;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GainReductionMeterComponent implements AfterViewInit, OnDestroy {
   @Input() compressor?: DynamicsCompressorNode;
@@ -34,7 +47,7 @@ export class GainReductionMeterComponent implements AfterViewInit, OnDestroy {
   constructor(
     private readonly el: ElementRef,
     private readonly cdr: ChangeDetectorRef,
-    private readonly zone: NgZone,
+    private readonly zone: NgZone
   ) {}
 
   ngAfterViewInit(): void {

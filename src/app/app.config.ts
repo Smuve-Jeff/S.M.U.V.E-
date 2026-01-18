@@ -1,4 +1,8 @@
-import { ApplicationConfig, provideZoneChangeDetection, isDevMode } from '@angular/core';
+import {
+  ApplicationConfig,
+  provideZoneChangeDetection,
+  isDevMode,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideAiService, API_KEY_TOKEN } from './services/ai.service';
@@ -13,9 +17,9 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
-      registrationStrategy: 'registerWhenStable:30000'
+      registrationStrategy: 'registerWhenStable:30000',
     }),
     provideAiService(),
-    { provide: API_KEY_TOKEN, useValue: 'YOUR_MOCK_API_KEY_HERE_FOR_TESTING' }
-  ]
+    { provide: API_KEY_TOKEN, useValue: 'YOUR_MOCK_API_KEY_HERE_FOR_TESTING' },
+  ],
 };

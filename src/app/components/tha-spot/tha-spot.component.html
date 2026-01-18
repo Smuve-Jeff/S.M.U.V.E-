@@ -14,7 +14,7 @@
           placeholder="Search games..."
           (input)="onSearch($event)"
           class="bg-neutral-800 text-white p-2 rounded w-full"
-        >
+        />
       </div>
       <div class="genre-filters flex gap-2 mt-4 overflow-x-auto pb-2">
         <button
@@ -28,15 +28,23 @@
       </div>
     </div>
 
-    <div class="games-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div
+      class="games-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+    >
       <div
         *ngFor="let game of games()"
         class="game-card bg-neutral-900 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform"
         (click)="selectGame(game)"
       >
         <div class="game-image-container relative h-40">
-          <img [src]="game.image" [alt]="game.name" class="w-full h-full object-cover">
-          <div class="players-badge absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white">
+          <img
+            [src]="game.image"
+            [alt]="game.name"
+            class="w-full h-full object-cover"
+          />
+          <div
+            class="players-badge absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white"
+          >
             <i class="fas fa-users"></i> {{ game.playersOnline || 0 }}
           </div>
         </div>
@@ -47,7 +55,11 @@
             <div class="rating text-yellow-500 text-sm">
               <i class="fas fa-star"></i> {{ game.rating }}
             </div>
-            <button class="play-btn bg-indigo-600 text-white px-4 py-1 rounded-full text-sm">Play Now</button>
+            <button
+              class="play-btn bg-indigo-600 text-white px-4 py-1 rounded-full text-sm"
+            >
+              Play Now
+            </button>
           </div>
         </div>
       </div>
@@ -55,12 +67,16 @@
   </section>
 
   <!-- Visualizer & AI Jam Section -->
-  <section class="jam-section mt-12 p-8 bg-black/40 rounded-3xl backdrop-blur-md border border-white/10">
+  <section
+    class="jam-section mt-12 p-8 bg-black/40 rounded-3xl backdrop-blur-md border border-white/10"
+  >
     <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
       <i class="fas fa-microchip text-indigo-500"></i> AI Jam Session
     </h2>
 
-    <div class="visualizer-wrapper h-64 mb-8 rounded-2xl overflow-hidden border border-white/5">
+    <div
+      class="visualizer-wrapper h-64 mb-8 rounded-2xl overflow-hidden border border-white/5"
+    >
       <app-visualizer></app-visualizer>
     </div>
 
@@ -70,7 +86,9 @@
         [class.active]="isAIBassistEnabled"
         class="jam-btn group"
       >
-        <div class="icon-circle mb-2 group-hover:scale-110 transition-transform">
+        <div
+          class="icon-circle mb-2 group-hover:scale-110 transition-transform"
+        >
           <i class="fas fa-guitar"></i>
         </div>
         <span>AI Bassist</span>
@@ -81,7 +99,9 @@
         [class.active]="isAIDrummerEnabled"
         class="jam-btn group"
       >
-        <div class="icon-circle mb-2 group-hover:scale-110 transition-transform">
+        <div
+          class="icon-circle mb-2 group-hover:scale-110 transition-transform"
+        >
           <i class="fas fa-drum"></i>
         </div>
         <span>AI Drummer</span>
@@ -92,7 +112,9 @@
         [class.active]="isAIKeyboardistEnabled"
         class="jam-btn group"
       >
-        <div class="icon-circle mb-2 group-hover:scale-110 transition-transform">
+        <div
+          class="icon-circle mb-2 group-hover:scale-110 transition-transform"
+        >
           <i class="fas fa-keyboard"></i>
         </div>
         <span>AI Keyboardist</span>

@@ -1,5 +1,11 @@
-
-import { Component, Input, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  Input,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  OnDestroy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -15,7 +21,7 @@ export class MicrophoneVisualizerComponent implements AfterViewInit, OnDestroy {
   private animationFrameId: number | null = null;
   private dataArray: Uint8Array | null = null;
 
-  constructor() { }
+  constructor() {}
 
   ngAfterViewInit() {
     if (this.analyserNode) {

@@ -8,41 +8,46 @@
    ====================================================== */
 :root {
   /* Typography */
-  --font-sans: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
-  --font-display: "Rajdhani", var(--font-sans);
-  --font-accent: "Orbitron", var(--font-display);
-  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Monaco, Consolas, monospace;
+  --font-sans:
+    'Inter', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Rajdhani', var(--font-sans);
+  --font-accent: 'Orbitron', var(--font-display);
+  --font-mono:
+    'Fira Code', ui-monospace, SFMono-Regular, Monaco, Consolas, monospace;
 
   /* Quantum Obsidian Palette */
-  --color-bg: #020205;           /* Obsidian Deep */
-  --color-bg-2: #05050d;         /* Midnight Layer */
-  --color-surface: #0a0a14;      /* Deep Surface */
-  --color-surface-2: #101020;    /* Raised Surface */
-  --color-surface-3: #181830;    /* Highlight Surface */
+  --color-bg: #020205; /* Obsidian Deep */
+  --color-bg-2: #05050d; /* Midnight Layer */
+  --color-surface: #0a0a14; /* Deep Surface */
+  --color-surface-2: #101020; /* Raised Surface */
+  --color-surface-3: #181830; /* Highlight Surface */
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-bright: rgba(255, 255, 255, 0.15);
   --color-text: #f0f2f5;
   --color-text-dim: #94a3b8;
 
   /* Neon Accents */
-  --color-primary: #00f2ff;       /* Cyber Cyan */
+  --color-primary: #00f2ff; /* Cyber Cyan */
   --color-primary-600: #00d8e6;
   --color-primary-700: #00b9c5;
-  --color-accent: #ff00ea;        /* Plasma Pink */
+  --color-accent: #ff00ea; /* Plasma Pink */
   --color-accent-600: #d600c4;
-  --color-vibrant: #7000ff;       /* Electric Indigo */
+  --color-vibrant: #7000ff; /* Electric Indigo */
 
   --color-success: #00ffa3;
   --color-warning: #ffe600;
-  --color-danger:  #ff003c;
+  --color-danger: #ff003c;
 
   /* Effects & Shadows */
   --ring: 0 0 0 2px color-mix(in oklab, var(--color-primary) 40%, transparent);
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5);
-  --shadow-1: 0 4px 20px rgba(0,0,0,0.6);
-  --shadow-2: 0 10px 40px rgba(0,0,0,0.8);
-  --glow-primary: 0 0 20px color-mix(in oklab, var(--color-primary) 30%, transparent);
-  --glow-accent: 0 0 20px color-mix(in oklab, var(--color-accent) 30%, transparent);
+  --shadow-1: 0 4px 20px rgba(0, 0, 0, 0.6);
+  --shadow-2: 0 10px 40px rgba(0, 0, 0, 0.8);
+  --glow-primary: 0 0 20px
+    color-mix(in oklab, var(--color-primary) 30%, transparent);
+  --glow-accent: 0 0 20px
+    color-mix(in oklab, var(--color-accent) 30%, transparent);
   --glass-bg: rgba(10, 10, 20, 0.4);
   --glass-border: rgba(255, 255, 255, 0.08);
 
@@ -75,12 +80,12 @@
 }
 
 /* Theme Variants (Dynamic Injection) */
-html[data-theme="quantum-gold"] {
+html[data-theme='quantum-gold'] {
   --color-primary: #ffcc00;
   --color-accent: #ff4d00;
   --color-vibrant: #ffaa00;
 }
-html[data-theme="plasma-void"] {
+html[data-theme='plasma-void'] {
   --color-primary: #9d00ff;
   --color-accent: #00ffcc;
   --color-vibrant: #ff00aa;
@@ -92,7 +97,8 @@ html[data-theme="plasma-void"] {
   -webkit-tap-highlight-color: transparent;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow-x: hidden;
   background-color: var(--color-bg);
@@ -114,8 +120,8 @@ body {
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
   pointer-events: none;
   z-index: -1;
@@ -156,7 +162,8 @@ body {
 }
 
 /* Typography Refinement */
-h1, .h1 {
+h1,
+.h1 {
   font-family: var(--font-accent);
   font-weight: 800;
   font-size: var(--h1-size);
@@ -167,7 +174,8 @@ h1, .h1 {
   line-height: 1.1;
 }
 
-h2, .h2 {
+h2,
+.h2 {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--h2-size);
@@ -178,7 +186,8 @@ h2, .h2 {
   line-height: 1.2;
 }
 
-h3, .h3 {
+h3,
+.h3 {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--h3-size);
@@ -197,7 +206,12 @@ h3, .h3 {
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-accent), var(--color-vibrant));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-accent),
+    var(--color-vibrant)
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -225,13 +239,19 @@ h3, .h3 {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-vibrant));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-vibrant)
+  );
   color: #000;
-  box-shadow: 0 0 20px color-mix(in oklab, var(--color-primary) 30%, transparent);
+  box-shadow: 0 0 20px
+    color-mix(in oklab, var(--color-primary) 30%, transparent);
 }
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 30px color-mix(in oklab, var(--color-primary) 50%, transparent);
+  box-shadow: 0 0 30px
+    color-mix(in oklab, var(--color-primary) 50%, transparent);
   filter: brightness(1.1);
 }
 
@@ -264,26 +284,54 @@ h3, .h3 {
 
 /* --- Animations --- */
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 @keyframes glitch-flicker {
-  0% { opacity: 1; }
-  10% { opacity: 0.95; }
-  20% { opacity: 1; }
-  30% { opacity: 0.9; }
-  40% { opacity: 1; }
-  50% { opacity: 0.95; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+  10% {
+    opacity: 0.95;
+  }
+  20% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  40% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
-.animate-float { animation: float 6s ease-in-out infinite; }
-.animate-flicker { animation: glitch-flicker 5s infinite; }
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-flicker {
+  animation: glitch-flicker 5s infinite;
+}
 
 /* --- Utilities --- */
-.neon-glow { text-shadow: 0 0 10px var(--color-primary); }
-.neon-border { border: 1px solid var(--color-primary); box-shadow: 0 0 15px rgba(0, 242, 255, 0.3); }
+.neon-glow {
+  text-shadow: 0 0 10px var(--color-primary);
+}
+.neon-border {
+  border: 1px solid var(--color-primary);
+  box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+}
 
 /* Legacy Support */
 :root {

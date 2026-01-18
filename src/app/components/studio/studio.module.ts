@@ -3,9 +3,6 @@ import { CommonModule } from '@angular/common';
 import { StudioComponent } from './studio.component';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    StudioComponent
-  ],
+  imports: [CommonModule, StudioComponent],
 })
-export class StudioModule { }
+export class StudioModule {}
