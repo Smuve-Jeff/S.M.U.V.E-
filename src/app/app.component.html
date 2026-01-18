@@ -161,6 +161,10 @@
           title="Terminate Session"
           aria-label="Terminate session and logout"
           <img
+            [src]="authService.currentUser()?.avatarUrl || 'assets/avatar.jpg'"
+            alt="User Avatar"
+            class="w-10 h-10 rounded-full border-2 border-cyber-cyan/30 group-hover:border-cyber-cyan transition-all duration-300 object-cover"
+          />
             src="assets/avatar.jpg"
             alt="User Avatar"
             class="w-10 h-10 rounded-full border-2 border-[#00f2ff]/30 group-hover:border-[#00f2ff] transition-all duration-300 object-cover"
