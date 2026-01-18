@@ -10,7 +10,7 @@
     "test": "jest",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write .",
-    "deploy": "ng build --configuration=production && npx angular-cli-ghpages --dir=dist/s.m.u.v.e-2.0"
+    "deploy": "ng build --configuration=ghpages && cp dist/app/browser/index.html dist/app/browser/404.html && npx angular-cli-ghpages --dir=dist/app/browser"
   },
   "dependencies": {
     "@angular/animations": "21.1.0",

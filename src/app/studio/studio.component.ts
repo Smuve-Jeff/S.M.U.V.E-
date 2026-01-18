@@ -22,7 +22,6 @@ import { AudioSessionService } from './audio-session.service';
 export class StudioComponent {
   audioSession = inject(AudioSessionService);
   isPerformanceMode = false;
-  notes = this.audioSession.notes;
 
   togglePerformanceMode() {
     this.isPerformanceMode = !this.isPerformanceMode;

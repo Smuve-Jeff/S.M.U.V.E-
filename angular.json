@@ -27,6 +27,12 @@
               "outputHashing": "all",
               "optimization": true
             },
+            "ghpages": {
+              "outputHashing": "all",
+              "optimization": true,
+              "baseHref": "./",
+              "assets": ["src/assets"]
+            },
             "development": {
               "optimization": false,
               "extractLicenses": false,
