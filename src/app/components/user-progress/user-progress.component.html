@@ -1,0 +1,19 @@
+<div class="user-progress-container">
+  <div class="level-display">
+    <span class="level-label">LVL</span>
+    <span class="level-number">{{ progress().level }}</span>
+  </div>
+  <div class="xp-bar-container">
+    <div class="xp-bar" [style.width.%]="(progress().xp / progress().nextLevelXp) * 100"></div>
+    <span class="xp-text">{{ progress().xp }} / {{ progress().nextLevelXp }} XP</span>
+  </div>
+  <div class="achievements-container">
+    <h4>Achievements</h4>
+    <ul>
+      <li *ngFor="let achievement of progress().achievements" [class.unlocked]="achievement.unlocked">
+        <span class="achievement-icon"></span>
+        <span class="achievement-name">{{ achievement.name }}</span>
+      </li>
+    </ul>
+  </div>
+</div>

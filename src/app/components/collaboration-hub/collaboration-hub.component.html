@@ -1,0 +1,44 @@
+<div class="collaboration-hub-container">
+  <h3><i class="fas fa-users"></i> Collaboration Hub</h3>
+
+  <div *ngIf="!collaborationService.currentSession()" class="session-controls">
+    <button (click)="startSession()" class="btn-start-session">Start New Session</button>
+    <div class="join-session">
+      <input type="text" [(ngModel)]="sessionIdToJoin" placeholder="Enter Session ID" />
+      <button (click)="joinSession()" [disabled]="!sessionIdToJoin">Join Session</button>
+    </div>
+  </div>
+
+  <div *ngIf="collaborationService.currentSession() as session" class="session-active">
+    <div class="session-header">
+      <h4>Session Active</h4>
+      <p>ID: <strong>{{ session.sessionId }}</strong></p>
+      <button (click)="leaveSession()" class="btn-leave-session">Leave Session</button>
+    </div>
+
+    <div class="session-details">
+      <div class="participants-list">
+        <h5>Participants ({{ session.participants.length }})</h5>
+        <ul>
+          <li *ngFor="let participant of session.participants">
+            <img [src]="participant.photoURL || 'assets/default-avatar.png'" alt="Avatar" class="avatar">
+            {{ participant.displayName || 'Anonymous' }}
+            <span *ngIf="session.host.uid === participant.uid" class="host-badge">Host</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="activity-feed">
+        <h5>Activity Feed</h5>
+        <ul>
+          <li *ngFor="let event of collaborationService.sessionActivity()">
+            <span class="event-icon">{{ getEventIcon(event.type) }}</span>
+            <span class="event-user">{{ event.user.displayName || 'A user' }}</span>
+            <span class="event-details">{{ event.details }}</span>
+            <span class="event-time">{{ event.timestamp | date:'shortTime' }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
