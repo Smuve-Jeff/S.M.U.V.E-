@@ -15,7 +15,6 @@ interface ChecklistItem {
   selector: 'app-strategy-hub',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
-  imports: [CommonModule, FormsModule],
   templateUrl: './strategy-hub.component.html',
   styleUrls: ['./strategy-hub.component.css']
 })
@@ -101,9 +100,4 @@ export class StrategyHubComponent {
     const completed = this.checklists().filter(i => i.completed).length;
     return total > 0 ? Math.round((completed / total) * 100) : 0;
   });
-  get progress() {
-    const total = this.checklists().length;
-    const completed = this.checklists().filter(i => i.completed).length;
-    return Math.round((completed / total) * 100);
-  }
 }

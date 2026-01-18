@@ -17,6 +17,13 @@ interface Venue {
   bookingStatus: string;
 }
 
+interface SplitSheet {
+  id: string;
+  track: string;
+  splits: { name: string; role: string; share: number }[];
+  status: 'Draft' | 'Finalized' | 'Submitted';
+}
+
 @Component({
   selector: 'app-career-hub',
   standalone: true,
@@ -43,6 +50,7 @@ export class CareerHubComponent {
 
   auditScore = signal<number | null>(null);
   auditFeedback = signal<string[]>([]);
+
   splitSheets = signal<SplitSheet[]>([]);
 
   runPitchAudit() {
@@ -56,7 +64,7 @@ export class CareerHubComponent {
   }
 
   generateSplitSheet() {
-    const sheet = {
+    const sheet: SplitSheet = {
       id: Math.random().toString(36).slice(2, 11),
       track: 'New Track Prototype',
       splits: [

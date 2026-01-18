@@ -19,13 +19,13 @@ export class MicrophoneVisualizerComponent implements AfterViewInit, OnDestroy {
   @ViewChild('canvasRef') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private animationFrameId: number | null = null;
-  private dataArray: Uint8Array | null = null;
+  private dataArray: Uint8Array = new Uint8Array(0);
 
   constructor() {}
 
   ngAfterViewInit() {
     if (this.analyserNode) {
-      this.dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
+      this.dataArray = new Uint8Array(Number(this.analyserNode.frequencyBinCount));
       this.draw();
     }
   }
@@ -37,13 +37,17 @@ export class MicrophoneVisualizerComponent implements AfterViewInit, OnDestroy {
   }
 
   private draw() {
-    if (!this.analyserNode || !this.dataArray || !this.canvasRef) {
+    if (!this.analyserNode || !this.canvasRef) {
       return;
+    }
+
+    if (!this.dataArray || this.dataArray.length !== this.analyserNode.frequencyBinCount) {
+      this.dataArray = new Uint8Array(Number(this.analyserNode.frequencyBinCount));
     }
 
     this.animationFrameId = requestAnimationFrame(() => this.draw());
 
-    this.analyserNode.getByteFrequencyData(this.dataArray);
+    this.analyserNode.getByteFrequencyData(this.dataArray as any);
     const canvas = this.canvasRef.nativeElement;
     const context = canvas.getContext('2d');
     if (!context) return;

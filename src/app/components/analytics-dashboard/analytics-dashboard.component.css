@@ -8,11 +8,12 @@
   transform-origin: bottom;
 }
 
-`@keyframes` grow {
+@keyframes grow {
   from { transform: scaleY(0); }
   to { transform: scaleY(1); }
 }
 
 @keyframes grow {
   from { height: 0; }
+  to { height: 100%; }
 }

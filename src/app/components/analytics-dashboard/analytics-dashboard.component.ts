@@ -1,15 +1,19 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { AnalyticsService } from '../../services/analytics.service';
+
+interface Superfan {
+  name: string;
+  streams: number;
+  location: string;
+  status: string;
+}
 
 @Component({
   selector: 'app-analytics-dashboard',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  imports: [CommonModule],
   templateUrl: './analytics-dashboard.component.html',
   styleUrls: ['./analytics-dashboard.component.css']
 })
@@ -32,8 +36,5 @@ export class AnalyticsDashboardComponent {
     if (!arr.length) return 1;
     const max = Math.max(...arr);
     return max > 0 ? max : 1;
-  }
-  getMathMax(arr: number[]): number {
-    return Math.max(...arr);
   }
 }

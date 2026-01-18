@@ -24,7 +24,7 @@ export class AudioVisualizerComponent implements AfterViewInit, OnDestroy {
   theme = input.required<AppTheme>();
 
   private ctx!: CanvasRenderingContext2D;
-  private dataArray!: Uint8Array;
+  private dataArray: Uint8Array = new Uint8Array(0);
   private animationFrameId?: number;
 
   constructor() {
@@ -32,7 +32,7 @@ export class AudioVisualizerComponent implements AfterViewInit, OnDestroy {
       const analyser = this.analyserNode();
       if (analyser) {
         analyser.fftSize = 256;
-        this.dataArray = new Uint8Array(analyser.frequencyBinCount);
+        this.dataArray = new Uint8Array(Number(analyser.frequencyBinCount));
         if (this.ctx) this.startVisualizer();
       } else {
         this.stopVisualizer();
@@ -72,7 +72,10 @@ export class AudioVisualizerComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    analyser.getByteFrequencyData(this.dataArray);
+    if (!this.dataArray || this.dataArray.length !== analyser.frequencyBinCount) {
+      this.dataArray = new Uint8Array(Number(analyser.frequencyBinCount));
+    }
+    analyser.getByteFrequencyData(this.dataArray as any);
     const canvas = this.canvasRef().nativeElement;
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
     const barCount = analyser.frequencyBinCount;
