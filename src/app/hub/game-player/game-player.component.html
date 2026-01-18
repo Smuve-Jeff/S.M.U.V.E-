@@ -1,20 +1,15 @@
-<div class="game-player-wrapper" *ngIf="game">
-  <div class="game-header">
-    <h3>{{ game.name }}</h3>
-    <button class="close-btn" (click)="game = undefined">Exit Game</button>
-  </div>
-
-  <div class="iframe-container">
-    <iframe *ngIf="safeUrl" [src]="safeUrl" allow="autoplay; encrypted-media; fullscreen"></iframe>
-
-    <!-- Cyber Enhancement Overlays -->
-    <div class="cyber-overlay scanlines"></div>
-    <div class="cyber-overlay vignette"></div>
-    <div class="cyber-overlay glitch-jitter"></div>
-  </div>
-
-  <div class="game-footer">
-    <span class="genre">{{ game.genre }}</span>
-    <span class="rating">⭐ {{ game.rating }}</span>
+<div class="game-player-container">
+  <button class="close-button" (click)="onClose()">
+    <i class="fas fa-times"></i>
+  </button>
+  <iframe
+    *ngIf="safeUrl"
+    [src]="safeUrl"
+    frameborder="0"
+    allowfullscreen
+    scrolling="no"
+  ></iframe>
+  <div *ngIf="!safeUrl" class="loading-indicator">
+    <p>Loading Game...</p>
   </div>
 </div>

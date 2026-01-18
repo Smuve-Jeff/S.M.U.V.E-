@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Game } from '../game';
@@ -13,6 +13,8 @@ import { GameService } from '../game.service';
 })
 export class GamePlayerComponent implements OnInit {
   @Input() gameId!: string;
+  @Output() close = new EventEmitter<void>();
+
   game: Game | undefined;
   safeUrl: SafeResourceUrl | undefined;
 
@@ -26,5 +28,9 @@ export class GamePlayerComponent implements OnInit {
         this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(game.url);
       }
     });
+  }
+
+  onClose(): void {
+    this.close.emit();
   }
 }
