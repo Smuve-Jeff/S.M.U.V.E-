@@ -39,7 +39,7 @@ A centralized interactive space for gaming and collaboration:
 
 - **Framework:** Angular 18 (Signals-based reactivity)
 - **AI Engine:** Google Gemini AI (Vertex AI integration)
-- **Audio Engine:** Custom Web Audio API implementation with lookahead scheduling
+- **Audio Engine:** Custom Web Audio API implementation with looyprkahead scheduling
 - **Styling:** Tailwind CSS & Animate.css
 
 ## 💻 Getting Started

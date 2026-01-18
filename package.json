@@ -13,12 +13,9 @@
     "deploy": "ng build --configuration=production && npx angular-cli-ghpages --dir=dist/s.m.u.v.e-2.0"
   },
   "dependencies": {
-    "@angular-devkit/build-angular": "21.1.0",
     "@angular/animations": "21.1.0",
-    "@angular/cli": "21.1.0",
     "@angular/common": "21.1.0",
     "@angular/compiler": "21.1.0",
-    "@angular/compiler-cli": "21.1.0",
     "@angular/core": "21.1.0",
     "@angular/forms": "21.1.0",
     "@angular/platform-browser": "21.1.0",
@@ -33,7 +30,10 @@
     "zone.js": "~0.16.0"
   },
   "devDependencies": {
-    "@angular/pwa": "~17.3.0",
+    "@angular-devkit/build-angular": "21.1.0",
+    "@angular/cli": "21.1.0",
+    "@angular/compiler-cli": "21.1.0",
+    "@angular/pwa": "~21.1.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.0",
     "@typescript-eslint/eslint-plugin": "^8.52.0",
@@ -52,18 +52,9 @@
     "typescript-eslint": "^8.52.0",
     "jest-environment-jsdom": "^30.2.0"
   },
-  "overrides": {
-    "@angular-devkit/build-angular": "21.1.0",
-    "@angular/animations": "21.1.0",
-    "@angular/cli": "21.1.0",
-    "@angular/common": "21.1.0",
-    "@angular/compiler": "21.1.0",
-    "@angular/compiler-cli": "21.1.0",
-    "@angular/core": "21.1.0",
-    "@angular/forms": "21.1.0",
-    "@angular/platform-browser": "21.1.0",
-    "@angular/platform-browser-dynamic": "21.1.0",
-    "@angular/router": "21.1.0",
-    "@angular/service-worker": "21.1.0"
-  }
+  "engines": {
+    "node": "22.12.0",
+    "npm": ">=10.0.0"
+  },
+  "packageManager": "npm@10"
 }
