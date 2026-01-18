@@ -27,3 +27,7 @@ test-results/
 
 # Patch rejects
 *.rej
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
