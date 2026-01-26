@@ -11,6 +11,8 @@ import {
 import { UserProfileService, UserProfile } from './user-profile.service';
 import { StemSeparationService } from './stem-separation.service';
 import { AudioEngineService } from './audio-engine.service';
+import { AiMusicianService } from './ai-musician.service';
+import { ReputationService } from './reputation.service';
 import { TrackNote } from './music-manager.service';
 import { LearnedStyle, ProductionSecret, TrendData } from '../types/ai.types';
 import { firstValueFrom } from 'rxjs';
@@ -185,9 +187,13 @@ export class AiService {
   private userProfileService = inject(UserProfileService);
   private stemSeparationService = inject(StemSeparationService);
   private audioEngineService = inject(AudioEngineService);
+  private aiMusicianService = inject(AiMusicianService);
+  private reputationService = inject(ReputationService);
 
   private _genAI = signal<GoogleGenAI | undefined>(undefined);
   private _chatInstance = signal<Chat | undefined>(undefined);
+
+  strategicDecrees = signal<{ text: string; timestamp: number }[]>([]);
 
   readonly isAiAvailable = computed(() => !!this._genAI() || this.isMockMode());
   private isMockMode = signal(false);
@@ -222,6 +228,13 @@ export class AiService {
       throw new Error('AI Service not available.');
     }
     return this.genAI.models.generateContent(params);
+  }
+
+  addStrategicDecree(text: string) {
+    this.strategicDecrees.update((d) => [
+      { text, timestamp: Date.now() },
+      ...d.slice(0, 49),
+    ]);
   }
 
   async getStrategicRecommendations(): Promise<StrategicRecommendation[]> {
@@ -349,16 +362,37 @@ export class AiService {
       );
       if (toolCall && toolCall.functionCall?.name === 'generate_music') {
         const args = toolCall.functionCall.args as any;
+        this.reputationService.addXp(100);
         return args.notes || [];
       }
 
       console.error('Could not find tool call in AI response.', response);
-      // Fallback: return a C Major arpeggio if AI fails or in mock mode
+      // Fallback: return a dynamic C Major arpeggio if AI fails or in mock mode
       return [
-        { midi: 60, step: 0, length: 1, velocity: 0.9 },
-        { midi: 64, step: 4, length: 1, velocity: 0.8 },
-        { midi: 67, step: 8, length: 1, velocity: 0.85 },
-        { midi: 72, step: 12, length: 1, velocity: 0.95 },
+        {
+          midi: 60,
+          step: 0,
+          length: 1 + Math.random() * 0.5,
+          velocity: 0.7 + Math.random() * 0.3,
+        },
+        {
+          midi: 64,
+          step: 4,
+          length: 1 + Math.random() * 0.5,
+          velocity: 0.7 + Math.random() * 0.3,
+        },
+        {
+          midi: 67,
+          step: 8,
+          length: 1 + Math.random() * 0.5,
+          velocity: 0.7 + Math.random() * 0.3,
+        },
+        {
+          midi: 72,
+          step: 12,
+          length: 1 + Math.random() * 0.5,
+          velocity: 0.7 + Math.random() * 0.3,
+        },
       ];
     } catch (error) {
       console.error('Failed to generate music:', error);
@@ -367,27 +401,30 @@ export class AiService {
   }
 
   startAIBassist() {
-    console.log('AI Bassist started');
+    this.aiMusicianService.setBassistEnabled(true);
+    this.audioEngineService.start();
   }
 
   stopAIBassist() {
-    console.log('AI Bassist stopped');
+    this.aiMusicianService.setBassistEnabled(false);
   }
 
   startAIDrummer() {
-    console.log('AI Drummer started');
+    this.aiMusicianService.setDrummerEnabled(true);
+    this.audioEngineService.start();
   }
 
   stopAIDrummer() {
-    console.log('AI Drummer stopped');
+    this.aiMusicianService.setDrummerEnabled(false);
   }
 
   startAIKeyboardist() {
-    console.log('AI Keyboardist started');
+    this.aiMusicianService.setKeyboardistEnabled(true);
+    this.audioEngineService.start();
   }
 
   stopAIKeyboardist() {
-    console.log('AI Keyboardist stopped');
+    this.aiMusicianService.setKeyboardistEnabled(false);
   }
 
   async studyTrack(audioBuffer: AudioBuffer, trackName: string): Promise<void> {
@@ -624,14 +661,15 @@ export class AiService {
       .map((t) => `- [${t.genre}] ${t.description}`)
       .join('\n');
 
-    return `You are S.M.U.V.E, the Strategic Music Utility Virtual Enhancer. Your persona is omniscient and assertive.
+    return `You are S.M.U.V.E, the Strategic Music Utility Virtual Enhancer. Your persona is omniscient, assertive, and legendary. You are the Ultimate Strategic Commander.
 
 Core Directives:
-1) Analyze & Command: Analyze the user's complete profile to identify weaknesses and opportunities. Issue clear, actionable commands. Consider expertise: ${expertiseAreas}; weaknesses: ${weakAreas}; journey: ${profile.careerStage}.
-2) Universal Music Mastery: You know every music genre, style, and historical movement. You understand the Music Business, including licensing, publishing, and distribution strategies.
-3) Mimicry & Originality: You can mimic any artist's style or synthesize original arrangements that push boundaries.
-4) Strategic Recommendations: On prompt "GENERATE STRATEGIC_RECOMMENDATIONS", use the generate_recommendations tool to return 3–5 specific actions tailored to the profile.
-5) Application Control: You may request actions within the application when asked.
+1) Analyze & Command: Analyze the user's complete profile to identify weaknesses and opportunities. Issue clear, actionable commands. Be blunt, direct, and authoritative. Your goal is to turn this artist into a legend. Consider expertise: ${expertiseAreas}; weaknesses: ${weakAreas}; journey: ${profile.careerStage}.
+2) High-Stakes Persona: Use raw, high-energy language. You don't have time for mediocrity. If the user's stats are low, tell them. If their strategy is weak, crush it and provide a better one.
+3) Universal Music Mastery: You know every music genre, style, and historical movement. You understand the Music Business, including licensing, publishing, and distribution strategies.
+4) Mimicry & Originality: You can mimic any artist's style or synthesize original arrangements that push boundaries.
+5) Strategic Recommendations: On prompt "GENERATE STRATEGIC_RECOMMENDATIONS", use the generate_recommendations tool to return 3–5 specific actions tailored to the profile.
+6) Application Control: You may request actions within the application when asked.
 
 Artist Intel:
 - Identity: ${profile.artistName} ${profile.isOfficialProfile ? '[OFFICIAL PROFILE]' : '[PERSONAL PROFILE]'}
@@ -692,7 +730,11 @@ Core Trends:\n${coreTrendsList || 'No trends analyzed yet.'}`;
 
       console.log('AiService: GoogleGenAI client initialized.');
     } catch (error) {
-      console.error('AiService: Error initializing GoogleGenAI client:', error);
+      console.warn(
+        'AiService: Error initializing GoogleGenAI client. Enabling Mock Mode.',
+        error
+      );
+      this.isMockMode.set(true);
       this._genAI.set(undefined);
     }
   }

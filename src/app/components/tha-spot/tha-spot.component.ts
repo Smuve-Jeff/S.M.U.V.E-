@@ -5,6 +5,7 @@ import { VisualizerComponent } from '../visualizer/visualizer.component';
 import { AiService } from '../../services/ai.service';
 import { GameService } from '../../hub/game.service';
 import { UserProfileService } from '../../services/user-profile.service';
+import { ReputationService } from '../../services/reputation.service';
 import { Game } from '../../hub/hub.models';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -20,6 +21,7 @@ export class ThaSpotComponent implements OnInit {
   private aiService = inject(AiService);
   private gameService = inject(GameService);
   public profileService = inject(UserProfileService);
+  private reputationService = inject(ReputationService);
 
   // AI Jam State
   isAIBassistEnabled = false;
@@ -63,6 +65,7 @@ export class ThaSpotComponent implements OnInit {
 
   selectGame(game: Game) {
     this.selectedGame.set(game);
+    this.reputationService.addXp(50);
   }
 
   onSearch(event: Event) {

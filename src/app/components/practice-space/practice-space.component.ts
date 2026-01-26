@@ -2,6 +2,8 @@ import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserProfileService } from '../../services/user-profile.service';
+import { AiService } from '../../services/ai.service';
+import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 
 interface VocalWarmup {
   id: string;
@@ -19,6 +21,8 @@ interface VocalWarmup {
 })
 export class PracticeSpaceComponent {
   private profileService = inject(UserProfileService);
+  private aiService = inject(AiService);
+  private speechService = inject(SpeechSynthesisService);
 
   lyrics = signal<string>('');
   memorizeMode = signal(false);
@@ -94,9 +98,39 @@ export class PracticeSpaceComponent {
     this.memorizeMode.update((v) => !v);
   }
 
-  critiqueRehearsal() {
-    alert(
-      'S.M.U.V.E Analysis: Your pitch stability is at 88%. I recommend focusing on breath support during the bridge. Your emotional delivery is peak, but watch your tempo in the second verse.'
+  async critiqueRehearsal() {
+    this.mindsetTip.set(
+      'S.M.U.V.E is analyzing your rehearsal performance data...'
     );
+
+    try {
+      const profile = this.profileService.profile();
+      const prompt = `Provide a "Legendary Strategic Commander" critique for a rehearsal by the artist: ${profile.artistName}.
+      Genre: ${profile.primaryGenre}
+      Focus: Live Performance and Rehearsal Critique.
+
+      Give exactly 3 blunt, assertive, and highly technical tips. One must be about breath/vocal technique, one about stage presence, and one about mindset.
+      Be authoritative.`;
+
+      const response = await this.aiService.generateContent({
+        model: AiService.CHAT_MODEL,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      });
+
+      const feedback = response.text;
+      this.mindsetTip.set(feedback);
+
+      // Use the service's built-in glitch speak for that "AI Commander" feel
+      this.speechService.speak(feedback);
+
+      this.aiService.addStrategicDecree(
+        `Rehearsal Critique issued for ${profile.artistName}. Technical correction active.`
+      );
+    } catch (error) {
+      console.error('Critique failed:', error);
+      this.mindsetTip.set(
+        'S.M.U.V.E: Intelligence link disrupted. Standard Protocol: Do not settle for mediocrity.'
+      );
+    }
   }
 }

@@ -2,6 +2,7 @@ import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserProfileService } from '../../services/user-profile.service';
+import { AiService } from '../../services/ai.service';
 
 interface Submission {
   labelName: string;
@@ -33,6 +34,7 @@ interface SplitSheet {
 })
 export class CareerHubComponent {
   private profileService = inject(UserProfileService);
+  private aiService = inject(AiService);
   profile = this.profileService.profile;
 
   submissions = signal<Submission[]>([
@@ -73,14 +75,72 @@ export class CareerHubComponent {
 
   splitSheets = signal<SplitSheet[]>([]);
 
-  runPitchAudit() {
-    this.auditScore.set(85);
+  async runPitchAudit() {
+    this.auditScore.set(null); // Show loading
     this.auditFeedback.set([
-      'Metadata: Professional and complete.',
-      'EPK Visuals: High quality, but missing a recent press photo.',
-      'Demo Quality: Mastered to -14 LUFS, perfect for DSPs.',
-      'Social Proof: Engagement rate is above average, but follower count is low for this label.',
+      'S.M.U.V.E is analyzing your professional profile...',
+      'Auditing industry compliance...',
+      'Checking marketability...',
     ]);
+
+    try {
+      const profile = this.profile();
+      const prompt = `Perform an "AI Pitch-Perfect Audit" for the artist: ${
+        profile.artistName
+      }.
+      Current Career Stage: ${profile.careerStage}
+      Genre: ${profile.primaryGenre}
+      Expertise Levels: ${JSON.stringify(profile.expertiseLevels)}
+      Goals: ${profile.careerGoals.join(', ')}
+
+      Analyze their marketability for a major record label. Return your analysis in two parts:
+      1. A numeric score from 0-100.
+      2. Exactly 4 specific, blunt, and strategic feedback points.
+
+      Format the response EXACTLY like this:
+      SCORE: [number]
+      FEEDBACK:
+      - [point 1]
+      - [point 2]
+      - [point 3]
+      - [point 4]`;
+
+      const response = await this.aiService.generateContent({
+        model: AiService.CHAT_MODEL,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      });
+
+      const text = response.text;
+      const scoreMatch = text.match(/SCORE:\s*(\d+)/i);
+      const score = scoreMatch ? parseInt(scoreMatch[1]) : 75;
+
+      const feedbackMatch = text.match(/FEEDBACK:([\s\S]*)/i);
+      let feedback = feedbackMatch
+        ? feedbackMatch[1]
+            .trim()
+            .split('\n')
+            .map((l) => l.replace(/^-\s*/, '').trim())
+            .filter((l) => l)
+        : [];
+
+      if (feedback.length === 0) {
+        feedback = ['Audit complete. Your baseline compliance is established.'];
+      }
+
+      this.auditScore.set(score);
+      this.auditFeedback.set(feedback);
+      this.aiService.addStrategicDecree(
+        `Career Audit Completed for ${profile.artistName}. Score: ${score}. Marketability: ${
+          score > 80 ? 'HIGH' : 'EVALUATING'
+        }.`
+      );
+    } catch (error) {
+      console.error('Audit failed:', error);
+      this.auditScore.set(50);
+      this.auditFeedback.set([
+        'S.M.U.V.E: Intelligence link disrupted. Preliminary audit suggests caution.',
+      ]);
+    }
   }
 
   generateSplitSheet() {

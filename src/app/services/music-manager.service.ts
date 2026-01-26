@@ -1,6 +1,7 @@
-import { Injectable, signal, effect } from '@angular/core';
+import { Injectable, signal, effect, inject } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { InstrumentsService } from './instruments.service';
+import { ReputationService } from './reputation.service';
 
 export type TrackNote = {
   midi: number;
@@ -26,13 +27,15 @@ export class MusicManagerService {
   currentStep = signal(-1);
   automationData = signal<Record<string, number[]>>({});
 
+  private reputationService = inject(ReputationService);
+
   constructor(
     public engine: AudioEngineService,
     public instruments: InstrumentsService
   ) {
     this.ensureTrack('Piano');
     // Bridge engine scheduler to request notes
-    engine.onScheduleStep = (stepIndex, when, stepDur) => {
+    engine.addScheduleListener((stepIndex, when, stepDur) => {
       this.currentStep.set(stepIndex);
       const _spb = 60 / engine.tempo();
       const dur = stepDur * 0.95;
@@ -81,7 +84,7 @@ export class MusicManagerService {
           }
         }
       }
-    };
+    });
 
     effect(() => {
       if (!this.engine.isPlaying()) {
@@ -194,6 +197,8 @@ export class MusicManagerService {
   }
   play() {
     this.engine.start();
+    // Award XP for starting playback (as "starting a game/session")
+    this.reputationService.addXp(50);
   }
   stop() {
     this.engine.stop();
@@ -202,5 +207,10 @@ export class MusicManagerService {
   setLoop(start: number, end: number) {
     this.engine.loopStart.set(start);
     this.engine.loopEnd.set(end);
+  }
+
+  finishTrack() {
+    console.log('S.M.U.V.E: Track finished. Calculating reputation gains...');
+    this.reputationService.addXp(200);
   }
 }

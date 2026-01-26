@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { InstrumentService } from '../instrument.service';
+import { MusicManagerService } from '../../services/music-manager.service';
 import { GainReductionMeterComponent } from './gain-reduction-meter.component';
 
 @Component({
@@ -11,6 +12,7 @@ import { GainReductionMeterComponent } from './gain-reduction-meter.component';
 })
 export class MasterControlsComponent {
   private readonly instrumentService = inject(InstrumentService);
+  private readonly musicManager = inject(MusicManagerService);
   readonly compressor = this.instrumentService.getCompressor();
   isLimiterActive = false;
   isSoftClipActive = false;
@@ -41,5 +43,9 @@ export class MasterControlsComponent {
   updateReverb(event: Event): void {
     const mix = (event.target as HTMLInputElement).valueAsNumber;
     this.instrumentService.setReverbMix(mix);
+  }
+
+  finishTrack(): void {
+    this.musicManager.finishTrack();
   }
 }

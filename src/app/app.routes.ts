@@ -10,6 +10,7 @@ import { CareerHubComponent } from './components/career-hub/career-hub.component
 import { ImageVideoLabComponent } from './components/image-video-lab/image-video-lab.component';
 import { ThaSpotComponent } from './components/tha-spot/tha-spot.component';
 import { StudioComponent } from './studio/studio.component';
+import { CommandCenterComponent } from './components/command-center/command-center.component';
 
 export const routes: Routes = [
   { path: 'profile', component: ProfileEditorComponent },
@@ -23,6 +24,7 @@ export const routes: Routes = [
   { path: 'remix-arena', component: RemixArenaComponent },
   { path: 'image-video-lab', component: ImageVideoLabComponent },
   { path: 'tha-spot', component: ThaSpotComponent },
+  { path: 'command-center', component: CommandCenterComponent },
   {
     path: 'login',
     loadComponent: () =>

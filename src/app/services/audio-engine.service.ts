@@ -540,7 +540,9 @@ export class AudioEngineService {
     while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
       const stepIndex = this.currentBeat();
       // Emit hook or call registered callbacks per track to request notes for this step
-      this.onScheduleStep?.(stepIndex, this.nextNoteTime, stepDur);
+      this.scheduleListeners.forEach((fn) =>
+        fn(stepIndex, this.nextNoteTime, stepDur)
+      );
       // advance
       const next = (stepIndex + 1) % this.loopEnd();
       this.currentBeat.set(next);
@@ -551,7 +553,21 @@ export class AudioEngineService {
     }
   }
 
-  onScheduleStep?: (stepIndex: number, when: number, stepDur: number) => void;
+  private scheduleListeners = new Set<
+    (stepIndex: number, when: number, stepDur: number) => void
+  >();
+
+  addScheduleListener(
+    fn: (stepIndex: number, when: number, stepDur: number) => void
+  ) {
+    this.scheduleListeners.add(fn);
+  }
+
+  removeScheduleListener(
+    fn: (stepIndex: number, when: number, stepDur: number) => void
+  ) {
+    this.scheduleListeners.delete(fn);
+  }
 
   start() {
     if (this.isPlaying()) return;

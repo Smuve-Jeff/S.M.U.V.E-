@@ -1,0 +1,50 @@
+.command-center-container {
+  background: radial-gradient(
+      circle at top right,
+      rgba(0, 243, 255, 0.05),
+      transparent
+    ),
+    radial-gradient(
+      circle at bottom left,
+      rgba(168, 85, 247, 0.05),
+      transparent
+    );
+}
+
+.card {
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #00f3ff;
+  border-radius: 2px;
+}
+
+.terminal-output {
+  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+}
+
+@keyframes pulse-cyber {
+  0% {
+    box-shadow: 0 0 5px #00f3ff;
+  }
+  50% {
+    box-shadow: 0 0 15px #00f3ff;
+  }
+  100% {
+    box-shadow: 0 0 5px #00f3ff;
+  }
+}
