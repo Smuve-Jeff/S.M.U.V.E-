@@ -5,7 +5,6 @@ import { Injectable, signal } from '@angular/core';
 })
 export class SpeechSynthesisService {
   isSpeaking = signal(false);
-  private queue: SpeechSynthesisUtterance[] = [];
 
   speak(text: string): void {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis) {
@@ -13,50 +12,43 @@ export class SpeechSynthesisService {
     }
 
     this.cancel();
-    this.glitchSpeak(text);
-  }
 
-  private glitchSpeak(text: string): void {
-    const words = text.split(' ');
-    const chunks: string[] = [];
+    // Ensure 'S.M.U.V.E' is pronounced as 'Smooth'
+    let processedText = text.replace(/S\.M\.U\.V\.E/gi, 'Smooth');
+    processedText = processedText.replace(/SMUVE/gi, 'Smooth');
 
-    // Group words into chunks of 1-3
-    for (let i = 0; i < words.length; i += Math.floor(Math.random() * 3) + 1) {
-      chunks.push(words.slice(i, i + 3).join(' '));
+    const utterance = new SpeechSynthesisUtterance(processedText);
+
+    // Attempt to find a natural-sounding voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(
+      (v) =>
+        (v.name.includes('Google') || v.name.includes('Natural')) &&
+        v.lang.startsWith('en')
+    ) || voices.find((v) => v.lang.startsWith('en'));
+
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
     }
 
-    this.queue = chunks.map((chunk, index) => {
-      const utterance = new SpeechSynthesisUtterance(chunk);
+    // Set standard human-like parameters
+    utterance.pitch = 1.0;
+    utterance.rate = 1.0;
+    utterance.volume = 1.0;
 
-      // Randomly change pitch drastically mid-sentence
-      // High pitch (1.5 - 2.0) or Low pitch (0.1 - 0.5)
-      utterance.pitch =
-        Math.random() > 0.5
-          ? 1.5 + Math.random() * 0.5
-          : 0.1 + Math.random() * 0.4;
+    utterance.onstart = () => this.isSpeaking.set(true);
+    utterance.onend = () => {
+      this.isSpeaking.set(false);
+    };
+    utterance.onerror = () => {
+      this.isSpeaking.set(false);
+    };
 
-      // Randomize rate slightly for more "glitch" feel
-      utterance.rate = 0.8 + Math.random() * 0.4;
-
-      if (index === 0) {
-        utterance.onstart = () => this.isSpeaking.set(true);
-      }
-
-      if (index === chunks.length - 1) {
-        utterance.onend = () => {
-          this.isSpeaking.set(false);
-          this.queue = [];
-        };
-      }
-
-      return utterance;
-    });
-
-    this.queue.forEach((u) => window.speechSynthesis.speak(u));
+    window.speechSynthesis.speak(utterance);
   }
 
   cancel(): void {
-    if (window.speechSynthesis?.speaking) {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
       this.isSpeaking.set(false);
     }
