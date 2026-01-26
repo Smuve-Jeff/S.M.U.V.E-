@@ -2,6 +2,7 @@ import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserProfileService } from '../../services/user-profile.service';
+import { AiService } from '../../services/ai.service';
 
 interface Submission {
   labelName: string;
@@ -33,6 +34,7 @@ interface SplitSheet {
 })
 export class CareerHubComponent {
   private profileService = inject(UserProfileService);
+  private aiService = inject(AiService);
   profile = this.profileService.profile;
 
   submissions = signal<Submission[]>([
@@ -73,14 +75,33 @@ export class CareerHubComponent {
 
   splitSheets = signal<SplitSheet[]>([]);
 
-  runPitchAudit() {
-    this.auditScore.set(85);
-    this.auditFeedback.set([
-      'Metadata: Professional and complete.',
-      'EPK Visuals: High quality, but missing a recent press photo.',
-      'Demo Quality: Mastered to -14 LUFS, perfect for DSPs.',
-      'Social Proof: Engagement rate is above average, but follower count is low for this label.',
-    ]);
+  async runPitchAudit() {
+    this.auditScore.set(null);
+    this.auditFeedback.set(['Initiating AI Pitch-Perfect Audit...', 'Scanning artist profile...', 'Evaluating marketability...']);
+
+    try {
+      const response = await this.aiService.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: [{
+          role: 'user',
+          parts: [{ text: 'Perform a comprehensive PITCH-PERFECT AUDIT for my music career based on my profile. Evaluate metadata, EPK readiness, and social proof. Return a JSON object with "score" (number 0-100) and "feedback" (array of strings).' }]
+        }],
+        config: { responseMimeType: 'application/json' }
+      });
+
+      const data = JSON.parse(response.text);
+      this.auditScore.set(data.score || 85);
+      this.auditFeedback.set(data.feedback || ['Profile analysis complete.']);
+    } catch (error) {
+      console.error('Pitch Audit failed:', error);
+      this.auditScore.set(75);
+      this.auditFeedback.set([
+        'AI Strategic engine temporarily offline.',
+        'Baseline: Metadata is professional.',
+        'Recommendation: Focus on playlist pitching.',
+        'Reminder: Ensure all split sheets are finalized before release.'
+      ]);
+    }
   }
 
   generateSplitSheet() {

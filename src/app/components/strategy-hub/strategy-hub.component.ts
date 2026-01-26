@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { UserProfileService } from '../../services/user-profile.service';
+import { AiService } from '../../services/ai.service';
 
 interface ChecklistItem {
   id: string;
@@ -20,6 +21,7 @@ interface ChecklistItem {
 })
 export class StrategyHubComponent {
   private profileService = inject(UserProfileService);
+  private aiService = inject(AiService);
   profile = this.profileService.profile;
 
   // Marketing Tools logic
@@ -132,4 +134,30 @@ export class StrategyHubComponent {
     const completed = this.checklists().filter((i) => i.completed).length;
     return total > 0 ? Math.round((completed / total) * 100) : 0;
   });
+
+  async generateTrendHooks() {
+    try {
+      const response = await this.aiService.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: [{
+          role: 'user',
+          parts: [{ text: 'Generate 4 viral social media hook ideas (TikTok/Reels) for an independent artist based on their profile. Return a JSON object with a "hooks" array of strings.' }]
+        }],
+        config: { responseMimeType: 'application/json' }
+      });
+
+      const data = JSON.parse(response.text);
+      if (data.hooks && Array.isArray(data.hooks)) {
+        this.trendHooks.set(data.hooks);
+      }
+    } catch (error) {
+      console.error('Trend hook generation failed:', error);
+      this.trendHooks.set([
+        "POV: You just found the missing piece of your playlist.",
+        "The track you didn't know you needed today.",
+        "Behind the scenes: How I built the atmosphere for my latest release.",
+        "Industry secret: Why independent artists are winning in 2024."
+      ]);
+    }
+  }
 }
