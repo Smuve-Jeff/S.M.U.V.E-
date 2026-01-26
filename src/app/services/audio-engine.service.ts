@@ -116,8 +116,9 @@ export class AudioEngineService {
   private crossfaderHamster = false;
 
   constructor() {
-    this.ctx = new (window.AudioContext ||
-      (window as any).webkitAudioContext)();
+    this.ctx = new (
+      window.AudioContext || (window as any).webkitAudioContext
+    )();
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = 0.9;
     this.compressor = this.ctx.createDynamicsCompressor();
@@ -361,7 +362,9 @@ export class AudioEngineService {
             this.ctx.currentTime,
             0.01
           );
-        } catch {}
+        } catch {
+          /* ignored */
+        }
       }
     });
   }
@@ -456,7 +459,9 @@ export class AudioEngineService {
       if (source) {
         try {
           source.stop();
-        } catch {}
+        } catch {
+          /* ignored */
+        }
         source.disconnect();
       }
     });

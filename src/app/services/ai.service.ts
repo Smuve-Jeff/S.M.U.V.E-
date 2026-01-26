@@ -314,7 +314,8 @@ export class AiService {
         functionDeclarations: [
           {
             name: 'generate_music',
-            description: 'Generate a melody as a list of notes based on a prompt.',
+            description:
+              'Generate a melody as a list of notes based on a prompt.',
             parameters: {
               type: Type.OBJECT,
               properties: {
@@ -399,9 +400,13 @@ export class AiService {
       // 2. Simulate Style Analysis
       const analysis = {
         bpm: Math.floor(Math.random() * (160 - 80 + 1)) + 80,
-        key: ['C min', 'G maj', 'F min', 'A maj', 'Eb maj'][Math.floor(Math.random() * 5)],
-        energy: (['low', 'medium', 'high'] as const)[Math.floor(Math.random() * 3)],
-        description: `A ${trackName}-inspired style with signature rhythmic patterns and melodic phrasing.`
+        key: ['C min', 'G maj', 'F min', 'A maj', 'Eb maj'][
+          Math.floor(Math.random() * 5)
+        ],
+        energy: (['low', 'medium', 'high'] as const)[
+          Math.floor(Math.random() * 3)
+        ],
+        description: `A ${trackName}-inspired style with signature rhythmic patterns and melodic phrasing.`,
       };
 
       const learnedStyle: LearnedStyle = {
@@ -414,24 +419,31 @@ export class AiService {
         timestamp: Date.now(),
         studioSettings: {
           eq: { highs: 1.5, mids: -2, lows: 4 },
-          compression: { threshold: -18, ratio: 3.5, attack: 0.01, release: 0.2 },
-          limiter: { ceiling: -0.5, release: 0.1 }
-        }
+          compression: {
+            threshold: -18,
+            ratio: 3.5,
+            attack: 0.01,
+            release: 0.2,
+          },
+          limiter: { ceiling: -0.5, release: 0.1 },
+        },
       };
 
       // 3. Update Knowledge Base
       const profile = this.userProfileService.profile();
       const updatedKnowledgeBase = {
         ...profile.knowledgeBase,
-        learnedStyles: [...profile.knowledgeBase.learnedStyles, learnedStyle]
+        learnedStyles: [...profile.knowledgeBase.learnedStyles, learnedStyle],
       };
 
       await this.userProfileService.updateProfile({
         ...profile,
-        knowledgeBase: updatedKnowledgeBase
+        knowledgeBase: updatedKnowledgeBase,
       });
 
-      console.log(`S.M.U.V.E: Learning complete for "${trackName}". Knowledge Base updated.`);
+      console.log(
+        `S.M.U.V.E: Learning complete for "${trackName}". Knowledge Base updated.`
+      );
     } catch (error) {
       console.error('S.M.U.V.E: Error during track study:', error);
     }
@@ -448,30 +460,35 @@ export class AiService {
           artist: artistName,
           secret: `Uses a specific 'parallel saturation' technique on vocals for that signature ${artistName} warmth.`,
           category: 'mixing',
-          source: 'Industry Deep Dive'
+          source: 'Industry Deep Dive',
         },
         {
           id: `secret-${Date.now()}-2`,
           artist: artistName,
           secret: `Frequently utilizes 'ghost notes' in the low-end to create a driving, syncopated rhythm.`,
           category: 'production',
-          source: 'Masterclass Breakdown'
-        }
+          source: 'Masterclass Breakdown',
+        },
       ];
 
       // Update Knowledge Base
       const profile = this.userProfileService.profile();
       const updatedKnowledgeBase = {
         ...profile.knowledgeBase,
-        productionSecrets: [...profile.knowledgeBase.productionSecrets, ...secrets]
+        productionSecrets: [
+          ...profile.knowledgeBase.productionSecrets,
+          ...secrets,
+        ],
       };
 
       await this.userProfileService.updateProfile({
         ...profile,
-        knowledgeBase: updatedKnowledgeBase
+        knowledgeBase: updatedKnowledgeBase,
       });
 
-      console.log(`S.M.U.V.E: Research complete for "${artistName}". Production secrets added.`);
+      console.log(
+        `S.M.U.V.E: Research complete for "${artistName}". Production secrets added.`
+      );
     } catch (error) {
       console.error('S.M.U.V.E: Error during artist research:', error);
     }
@@ -486,27 +503,29 @@ export class AiService {
         {
           id: `trend-${Date.now()}-1`,
           genre: 'Global Pop',
-          description: 'Surge in high-BPM dance-pop with heavy 90s nostalgia synth leads.',
-          lastUpdated: Date.now()
+          description:
+            'Surge in high-BPM dance-pop with heavy 90s nostalgia synth leads.',
+          lastUpdated: Date.now(),
         },
         {
           id: `trend-${Date.now()}-2`,
           genre: 'Alternative Hip-Hop',
-          description: 'Focus on minimalist production with distorted, atmospheric vocal textures.',
-          lastUpdated: Date.now()
-        }
+          description:
+            'Focus on minimalist production with distorted, atmospheric vocal textures.',
+          lastUpdated: Date.now(),
+        },
       ];
 
       // Update Knowledge Base
       const profile = this.userProfileService.profile();
       const updatedKnowledgeBase = {
         ...profile.knowledgeBase,
-        coreTrends: trends
+        coreTrends: trends,
       };
 
       await this.userProfileService.updateProfile({
         ...profile,
-        knowledgeBase: updatedKnowledgeBase
+        knowledgeBase: updatedKnowledgeBase,
       });
 
       console.log('S.M.U.V.E: Core trends updated.');
@@ -517,11 +536,14 @@ export class AiService {
 
   async mimicStyle(styleId: string): Promise<void> {
     const profile = this.userProfileService.profile();
-    const style = profile.knowledgeBase.learnedStyles.find(s => s.id === styleId)
-               || profile.knowledgeBase.learnedStyles.find(s => s.name === styleId);
+    const style =
+      profile.knowledgeBase.learnedStyles.find((s) => s.id === styleId) ||
+      profile.knowledgeBase.learnedStyles.find((s) => s.name === styleId);
 
     if (!style) {
-      console.error(`S.M.U.V.E: Style "${styleId}" not found in Knowledge Base.`);
+      console.error(
+        `S.M.U.V.E: Style "${styleId}" not found in Knowledge Base.`
+      );
       return;
     }
 
@@ -531,7 +553,12 @@ export class AiService {
     if (style.studioSettings) {
       const ss = style.studioSettings;
       if (ss.eq) {
-        this.audioEngineService.setDeckEq('A', ss.eq.highs, ss.eq.mids, ss.eq.lows);
+        this.audioEngineService.setDeckEq(
+          'A',
+          ss.eq.highs,
+          ss.eq.mids,
+          ss.eq.lows
+        );
       }
       if (ss.compression) {
         this.audioEngineService.configureCompressor(ss.compression);
@@ -562,30 +589,40 @@ export class AiService {
       this._chatInstance.set(createdChatInstance);
     }
 
-    console.log(`S.M.U.V.E: Mimicry active for "${style.name}". Studio settings applied.`);
+    console.log(
+      `S.M.U.V.E: Mimicry active for "${style.name}". Studio settings applied.`
+    );
   }
 
   private generateSystemInstruction(profile: UserProfile): string {
     const expertiseAreas = Object.entries(profile.expertiseLevels)
       .filter(([, level]) => level >= 7)
-      .map(([skill, level]) => `${skill} (${level}/10)`).join(', ');
+      .map(([skill, level]) => `${skill} (${level}/10)`)
+      .join(', ');
 
     const weakAreas = Object.entries(profile.expertiseLevels)
       .filter(([, level]) => level <= 4)
-      .map(([skill, level]) => `${skill} (${level}/10)`).join(', ');
+      .map(([skill, level]) => `${skill} (${level}/10)`)
+      .join(', ');
 
     const officialProfilesList = Object.entries(profile.officialMusicProfiles)
       .filter(([, platform]) => platform.url)
-      .map(([name, platform]) => `${name} (${platform.status})`).join(', ');
+      .map(([name, platform]) => `${name} (${platform.status})`)
+      .join(', ');
 
     const learnedStylesList = profile.knowledgeBase.learnedStyles
-      .map(s => `- ${s.name}: ${s.description} (BPM: ${s.bpm}, Key: ${s.key})`).join('\n');
+      .map(
+        (s) => `- ${s.name}: ${s.description} (BPM: ${s.bpm}, Key: ${s.key})`
+      )
+      .join('\n');
 
     const productionSecretsList = profile.knowledgeBase.productionSecrets
-      .map(s => `- [${s.artist}] ${s.secret}`).join('\n');
+      .map((s) => `- [${s.artist}] ${s.secret}`)
+      .join('\n');
 
     const coreTrendsList = profile.knowledgeBase.coreTrends
-      .map(t => `- [${t.genre}] ${t.description}`).join('\n');
+      .map((t) => `- [${t.genre}] ${t.description}`)
+      .join('\n');
 
     return `You are S.M.U.V.E, the Strategic Music Utility Virtual Enhancer. Your persona is omniscient and assertive.
 

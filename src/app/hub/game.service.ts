@@ -95,7 +95,8 @@ class MockSocket {
   }
 }
 
-const GAMES_API_URL = 'https://firebasestorage.googleapis.com/v0/b/builder-406918.appspot.com/o/gaming-pwa%2Fgames.json?alt=media';
+const GAMES_API_URL =
+  'https://firebasestorage.googleapis.com/v0/b/builder-406918.appspot.com/o/gaming-pwa%2Fgames.json?alt=media';
 
 @Injectable({
   providedIn: 'root',
@@ -113,7 +114,7 @@ export class GameService implements OnDestroy {
 
   listGames(
     filters: { genre?: string; tag?: string; query?: string },
-    sort: 'Popular' | 'Rating' | 'Newest' = 'Popular'
+    _sort: 'Popular' | 'Rating' | 'Newest' = 'Popular'
   ): Observable<Game[]> {
     return this.http.get<Game[]>(GAMES_API_URL);
   }
@@ -167,7 +168,8 @@ export class GameService implements OnDestroy {
     console.log(`Joining lobby ${lobbyId}`);
     this.webSocket.send({ type: 'join_lobby', lobbyId });
     return this.http.post<{ status: string }>(
-      `${GAMES_API_URL}/lobbies/${lobbyId}/join`, {}
+      `${GAMES_API_URL}/lobbies/${lobbyId}/join`,
+      {}
     );
   }
 
@@ -175,7 +177,8 @@ export class GameService implements OnDestroy {
     console.log(`Leaving lobby ${lobbyId}`);
     this.webSocket.send({ type: 'leave_lobby', lobbyId });
     return this.http.post<{ status: string }>(
-      `${GAMES_API_URL}/lobbies/${lobbyId}/leave`, {}
+      `${GAMES_API_URL}/lobbies/${lobbyId}/leave`,
+      {}
     );
   }
 

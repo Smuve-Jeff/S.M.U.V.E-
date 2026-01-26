@@ -1,6 +1,6 @@
 # Smuve Jeff Presents S.M.U.V.E 2.0 (Strategic Music Utility Virtual Enhancer)
 
-S.M.U.V.E. 2.0 is a self-hosted, open-source, AI-powered music studio and strategic management platform designed for the modern independent artist. It offers complete data control and a transparent, extensible foundation. Built on Angular 18 and utilizing Google's Gemini AI, it serves as a digital twin and a "Rap GOD" strategic partner to guide your musical journey.
+S.M.U.V.E 2.0 is a self-hosted, open-source, AI-powered music studio and strategic management platform designed for the modern independent artist. It offers complete data control and a transparent, extensible foundation. Built on Angular 18 and utilizing Google's Gemini AI, it serves as a digital twin and a "Strategic Commander" strategic partner to guide your musical journey.
 
 ## 🚀 Key Features
 
@@ -13,7 +13,7 @@ A full-featured Digital Audio Workstation (DAW) in your browser:
 - **Custom Synthesizer:** Built-in subtractive synth for creating unique leads and pads.
 - **Mastering Suite:** Master bus dynamics including high-precision Compression and Limiting.
 
-### 🤖 S.M.U.V.E AI (The "Rap GOD")
+### 🤖 S.M.U.V.E AI (The "Strategic Commander")
 
 An omniscient AI persona that acts as your strategic commander:
 
@@ -27,7 +27,7 @@ A dynamic online hub where artists can connect, compete, collaborate, and share 
 
 - **Expansive Gaming Catalog**: Dive into a huge selection of games from the HTMLGames library, alongside competitive experiences like _Tha Battlefield_ and cooperative modes like _Remix Arena_.
 - **Networking & Collaboration Hub**: Connect with other musicians, producers, and artists on the platform. Discover new talent, start collaborations, and build your professional network.
-- **Project Showcase**: A dedicated space to feature your finished tracks, visualizers, and other projects created within S.M.U.V.E. 2.0. Get feedback, gain fans, and see what other artists are creating.
+- **Project Showcase**: A dedicated space to feature your finished tracks, visualizers, and other projects created within S.M.U.V.E 2.0. Get feedback, gain fans, and see what other artists are creating.
 - **AI Jam Session**: An innovative feature allowing artists to play along with AI-powered session musicians (Bassist, Drummer, Keyboardist).
 
 

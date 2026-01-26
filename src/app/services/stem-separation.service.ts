@@ -14,7 +14,7 @@ export interface Stems {
 export class StemSeparationService {
   constructor() {}
 
-  separate(audioBuffer: AudioBuffer): Observable<Stems> {
+  separate(_audioBuffer: AudioBuffer): Observable<Stems> {
     // This is a placeholder for the actual stem separation logic.
     // In a real implementation, this would use a model like Spleeter or Demucs.
     console.log(

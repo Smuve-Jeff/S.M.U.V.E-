@@ -340,17 +340,14 @@ export class UserProfileService {
 
   constructor() {
     // When the user logs in, fetch their profile from the database.
-    effect(
-      () => {
-        if (this.authService.isAuthenticated()) {
-          this.loadProfile();
-        } else {
-          // If logged out, reset to the initial profile
-          this.profile.set(initialProfile);
-        }
-      },
-      { allowSignalWrites: true }
-    );
+    effect(() => {
+      if (this.authService.isAuthenticated()) {
+        this.loadProfile();
+      } else {
+        // If logged out, reset to the initial profile
+        this.profile.set(initialProfile);
+      }
+    });
   }
 
   private async loadProfile(): Promise<void> {

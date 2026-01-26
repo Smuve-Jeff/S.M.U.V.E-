@@ -24,7 +24,7 @@ export class ReputationService {
     this.state.update((s) => {
       let newXp = s.xp + amount;
       let newLevel = s.level;
-      let newTotalXp = s.totalXp + amount;
+      const newTotalXp = s.totalXp + amount;
 
       while (newXp >= this.XP_PER_LEVEL) {
         newXp -= this.XP_PER_LEVEL;
@@ -42,7 +42,7 @@ export class ReputationService {
   }
 
   private calculateTitle(level: number): string {
-    if (level >= 50) return 'Legendary Rap GOD';
+    if (level >= 50) return 'Legendary Strategic Commander';
     if (level >= 30) return 'Platinum Architect';
     if (level >= 20) return 'Studio Maestro';
     if (level >= 10) return 'Rising Talent';

@@ -208,7 +208,8 @@ export const COMMANDS: Command[] = [
   },
   {
     name: 'VIEW_STRATEGY',
-    description: 'Opens the Strategy Hub for rollout plans and marketing tools.',
+    description:
+      'Opens the Strategy Hub for rollout plans and marketing tools.',
     execute: async (params, component) => {
       component.appCommand.emit({ action: 'VIEW_STRATEGY', parameters: {} });
     },
@@ -242,7 +243,8 @@ export const COMMANDS: Command[] = [
   },
   {
     name: 'MIMIC',
-    description: "Shifts S.M.U.V.E's persona and studio settings to mimic a learned style.",
+    description:
+      "Shifts S.M.U.V.E's persona and studio settings to mimic a learned style.",
     params: [{ name: 'style', description: 'The name or ID of the style.' }],
     execute: async (params, component) => {
       await component.mimicStyle(params.style);

@@ -19,8 +19,14 @@ export class AppComponent {
   constructor() {
     effect(() => {
       const intensity = this.uiService.visualIntensity();
-      document.documentElement.style.setProperty('--cyber-glow-intensity', `${intensity}`);
-      document.documentElement.style.setProperty('--cyber-bg-shift', `${intensity * 5}px`);
+      document.documentElement.style.setProperty(
+        '--cyber-glow-intensity',
+        `${intensity}`
+      );
+      document.documentElement.style.setProperty(
+        '--cyber-bg-shift',
+        `${intensity * 5}px`
+      );
     });
   }
 

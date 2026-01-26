@@ -7,7 +7,7 @@ import { InstrumentService } from '../../services/instrument.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './midi-device-manager.component.html',
-  styleUrls: ['./midi-device-manager.component.css']
+  styleUrls: ['./midi-device-manager.component.css'],
 })
 export class MidiDeviceManagerComponent {
   readonly instrumentService = inject(InstrumentService);

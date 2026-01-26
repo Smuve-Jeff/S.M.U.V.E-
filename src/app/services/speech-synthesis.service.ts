@@ -30,9 +30,10 @@ export class SpeechSynthesisService {
 
       // Randomly change pitch drastically mid-sentence
       // High pitch (1.5 - 2.0) or Low pitch (0.1 - 0.5)
-      utterance.pitch = Math.random() > 0.5
-        ? 1.5 + Math.random() * 0.5
-        : 0.1 + Math.random() * 0.4;
+      utterance.pitch =
+        Math.random() > 0.5
+          ? 1.5 + Math.random() * 0.5
+          : 0.1 + Math.random() * 0.4;
 
       // Randomize rate slightly for more "glitch" feel
       utterance.rate = 0.8 + Math.random() * 0.4;
@@ -51,7 +52,7 @@ export class SpeechSynthesisService {
       return utterance;
     });
 
-    this.queue.forEach(u => window.speechSynthesis.speak(u));
+    this.queue.forEach((u) => window.speechSynthesis.speak(u));
   }
 
   cancel(): void {

@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import * as Tone from 'tone';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class InstrumentService {
   private synth: Tone.PolySynth;
@@ -26,7 +26,6 @@ export class InstrumentService {
           this.midiInputs.set(updatedInputs);
           console.log('MIDI state changed:', event);
         };
-
       } catch (error) {
         console.error('Could not access MIDI devices.', error);
       }
@@ -36,7 +35,7 @@ export class InstrumentService {
   }
 
   connectToMidiDevice(inputId: string) {
-    const input = this.midiInputs().find(i => i.id === inputId);
+    const input = this.midiInputs().find((i) => i.id === inputId);
     if (input) {
       // Disconnect from any previously connected device
       if (this.activeMidiInput) {
@@ -61,10 +60,17 @@ export class InstrumentService {
     }
   }
 
-  playNote(note: Tone.Unit.Frequency, duration?: Tone.Unit.Time, velocity?: number) {
+  playNote(
+    note: Tone.Unit.Frequency,
+    duration?: Tone.Unit.Time,
+    velocity?: number
+  ) {
     this.synth.triggerAttack(note, Tone.now(), velocity);
     if (duration) {
-      this.synth.triggerRelease(note, Tone.now() + Tone.Time(duration).toSeconds());
+      this.synth.triggerRelease(
+        note,
+        Tone.now() + Tone.Time(duration).toSeconds()
+      );
     }
   }
 
