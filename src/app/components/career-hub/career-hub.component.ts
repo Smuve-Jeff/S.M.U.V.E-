@@ -29,20 +29,40 @@ interface SplitSheet {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './career-hub.component.html',
-  styleUrls: ['./career-hub.component.css']
+  styleUrls: ['./career-hub.component.css'],
 })
 export class CareerHubComponent {
   private profileService = inject(UserProfileService);
   profile = this.profileService.profile;
 
   submissions = signal<Submission[]>([
-    { labelName: 'Universal Music Group', demoUrl: 'https://smuve.ai/demo/aurora', status: 'Reviewing', date: '2024-05-15' },
-    { labelName: 'Atlantic Records', demoUrl: 'https://smuve.ai/demo/neon-lights', status: 'Pending', date: '2024-05-20' }
+    {
+      labelName: 'Universal Music Group',
+      demoUrl: 'https://smuve.ai/demo/aurora',
+      status: 'Reviewing',
+      date: '2024-05-15',
+    },
+    {
+      labelName: 'Atlantic Records',
+      demoUrl: 'https://smuve.ai/demo/neon-lights',
+      status: 'Pending',
+      date: '2024-05-20',
+    },
   ]);
 
   venues = signal<Venue[]>([
-    { name: 'The Echo', location: 'Los Angeles, CA', capacity: '350', bookingStatus: 'Confirmed' },
-    { name: 'Bowery Ballroom', location: 'New York, NY', capacity: '575', bookingStatus: 'In Discussion' }
+    {
+      name: 'The Echo',
+      location: 'Los Angeles, CA',
+      capacity: '350',
+      bookingStatus: 'Confirmed',
+    },
+    {
+      name: 'Bowery Ballroom',
+      location: 'New York, NY',
+      capacity: '575',
+      bookingStatus: 'In Discussion',
+    },
   ]);
 
   newLabel = signal('');
@@ -56,10 +76,10 @@ export class CareerHubComponent {
   runPitchAudit() {
     this.auditScore.set(85);
     this.auditFeedback.set([
-      "Metadata: Professional and complete.",
-      "EPK Visuals: High quality, but missing a recent press photo.",
-      "Demo Quality: Mastered to -14 LUFS, perfect for DSPs.",
-      "Social Proof: Engagement rate is above average, but follower count is low for this label."
+      'Metadata: Professional and complete.',
+      'EPK Visuals: High quality, but missing a recent press photo.',
+      'Demo Quality: Mastered to -14 LUFS, perfect for DSPs.',
+      'Social Proof: Engagement rate is above average, but follower count is low for this label.',
     ]);
   }
 
@@ -69,18 +89,23 @@ export class CareerHubComponent {
       track: 'New Track Prototype',
       splits: [
         { name: this.profile().artistName, role: 'Writer/Producer', share: 50 },
-        { name: 'Collaborator A', role: 'Writer', share: 50 }
+        { name: 'Collaborator A', role: 'Writer', share: 50 },
       ],
-      status: 'Draft'
+      status: 'Draft',
     };
-    this.splitSheets.update(s => [...s, sheet]);
+    this.splitSheets.update((s) => [...s, sheet]);
   }
 
   submitToLabel() {
     if (!this.newLabel() || !this.newDemo()) return;
-    this.submissions.update(s => [
+    this.submissions.update((s) => [
       ...s,
-      { labelName: this.newLabel(), demoUrl: this.newDemo(), status: 'Pending', date: new Date().toISOString().split('T')[0] }
+      {
+        labelName: this.newLabel(),
+        demoUrl: this.newDemo(),
+        status: 'Pending',
+        date: new Date().toISOString().split('T')[0],
+      },
     ]);
     this.newLabel.set('');
     this.newDemo.set('');

@@ -72,7 +72,10 @@ export class AudioVisualizerComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    if (!this.dataArray || this.dataArray.length !== analyser.frequencyBinCount) {
+    if (
+      !this.dataArray ||
+      this.dataArray.length !== analyser.frequencyBinCount
+    ) {
       this.dataArray = new Uint8Array(Number(analyser.frequencyBinCount));
     }
     analyser.getByteFrequencyData(this.dataArray as any);

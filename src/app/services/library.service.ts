@@ -45,15 +45,17 @@ export class LibraryService {
 
     // Auto-trigger AI Study
     try {
-        const buffer = await blob.arrayBuffer();
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const audioBuffer = await audioContext.decodeAudioData(buffer);
-        const item = this.items().find(i => i.id === id);
-        if (item) {
-            this.aiService.studyTrack(audioBuffer, item.name);
-        }
+      const buffer = await blob.arrayBuffer();
+      const audioContext = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )();
+      const audioBuffer = await audioContext.decodeAudioData(buffer);
+      const item = this.items().find((i) => i.id === id);
+      if (item) {
+        this.aiService.studyTrack(audioBuffer, item.name);
+      }
     } catch (error) {
-        console.warn('LibraryService: Failed to trigger AI study', error);
+      console.warn('LibraryService: Failed to trigger AI study', error);
     }
   }
 

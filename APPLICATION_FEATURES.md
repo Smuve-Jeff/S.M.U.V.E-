@@ -6,7 +6,7 @@
 
 ## 💎 Branding & User Identity
 
-- **Consolidated Identity**: The application is branded as **S.M.U.V.E. 2.0**, presented by **Smuve Jeff**, ensuring a unified and professional aesthetic across all views.
+- **Consolidated Identity**: The application is branded as **S.M.U.V.E 2.0**, presented by **Smuve Jeff**, ensuring a unified and professional aesthetic across all views.
 - **Onboarding & Guest Experience**: New users are welcomed with an interactive **Guest View** on the Profile page, showcasing the platform\'s core value propositions (Studio, AI, Gaming) before they even log in.
 - **Artist Profile**: A central hub for managing artist data, including career goals, bio, and expertise levels (vocal, production, marketing, etc.). This data directly feeds into the AI\'s strategic logic.
 
@@ -36,7 +36,7 @@ A dynamic online hub where artists can connect, compete, collaborate, and share 
 
 - **Expansive Gaming Catalog**: Dive into a huge selection of games from the HTMLGames library and other curated sources. Battle against other artists in competitive games like _Tha Battlefield_ or team up in cooperative experiences like _Remix Arena_.
 - **Networking & Collaboration Hub**: Connect with other musicians, producers, and artists on the platform. Discover new talent, start collaborations, and build your professional network.
-- **Project Showcase**: A dedicated space to feature your finished tracks, visualizers, and other projects created within S.M.U.V.E. 2.0. Get feedback, gain fans, and see what other artists are creating.
+- **Project Showcase**: A dedicated space to feature your finished tracks, visualizers, and other projects created within S.M.U.V.E 2.0. Get feedback, gain fans, and see what other artists are creating.
 - **AI Jam Session**: An innovative feature allowing artists to play along with AI-powered session musicians (Bassist, Drummer, Keyboardist).
 - **Interactive Visualizers**: Reactive visual environments that sync with the music in real-time.
 

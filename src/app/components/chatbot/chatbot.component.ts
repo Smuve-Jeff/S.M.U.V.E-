@@ -394,22 +394,24 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   async studyTrack(trackId: string): Promise<void> {
     this.isLoading.set(true);
     try {
-      const track = this.libraryService.items().find(i => i.id === trackId);
+      const track = this.libraryService.items().find((i) => i.id === trackId);
       if (!track) {
-          throw new Error('Track not found in library.');
+        throw new Error('Track not found in library.');
       }
       const blob = await this.libraryService.getOffline(trackId);
       if (!blob) {
-          throw new Error('Audio data not available offline.');
+        throw new Error('Audio data not available offline.');
       }
       const buffer = await blob.arrayBuffer();
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )();
       const audioBuffer = await audioContext.decodeAudioData(buffer);
 
       await this.aiService.studyTrack(audioBuffer, track.name);
 
       const content = `Study complete for "${track.name}". I have added its signature characteristics to my Knowledge Base. I am ready to MIMIC this style whenever you command it.`;
-      this.messages.update(m => [...m, { role: 'model', content }]);
+      this.messages.update((m) => [...m, { role: 'model', content }]);
       this.speechSynthesisService.speak(content);
     } catch (e) {
       this.handleError(e, 'track study');
@@ -422,7 +424,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     try {
       await this.aiService.researchArtist(artistName);
       const content = `Research complete for "${artistName}". My core knowledge has been updated with their production secrets. I have also adjusted current industry trends based on this analysis.`;
-      this.messages.update(m => [...m, { role: 'model', content }]);
+      this.messages.update((m) => [...m, { role: 'model', content }]);
       this.speechSynthesisService.speak(content);
     } catch (e) {
       this.handleError(e, 'artist research');
@@ -435,7 +437,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
     try {
       await this.aiService.mimicStyle(styleId);
       const content = `Persona shift complete. I am now mimicking "${styleId}". Studio settings have been optimized for this aesthetic. What is our next objective?`;
-      this.messages.update(m => [...m, { role: 'model', content }]);
+      this.messages.update((m) => [...m, { role: 'model', content }]);
       this.speechSynthesisService.speak(content);
     } catch (e) {
       this.handleError(e, 'mimicry');
@@ -456,19 +458,20 @@ export class ChatbotComponent implements OnInit, OnDestroy {
 
 Would you like me to breakdown a specific section or MIMIC a learned style?`;
 
-    this.messages.update(m => [...m, { role: 'model', content }]);
+    this.messages.update((m) => [...m, { role: 'model', content }]);
     this.speechSynthesisService.speak(content);
   }
 
   async updateCoreTrends(): Promise<void> {
     this.isLoading.set(true);
     try {
-        await this.aiService.updateCoreTrends();
-        const content = "Industry intelligence updated. Core trends have been refreshed and strategic recommendations are now live. Stay ahead of the curve.";
-        this.messages.update(m => [...m, { role: 'model', content }]);
-        this.speechSynthesisService.speak(content);
+      await this.aiService.updateCoreTrends();
+      const content =
+        'Industry intelligence updated. Core trends have been refreshed and strategic recommendations are now live. Stay ahead of the curve.';
+      this.messages.update((m) => [...m, { role: 'model', content }]);
+      this.speechSynthesisService.speak(content);
     } catch (e) {
-        this.handleError(e, 'trend update');
+      this.handleError(e, 'trend update');
     }
     this.isLoading.set(false);
   }
@@ -522,9 +525,10 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
 
       // Proactive Compliance Check
       if (!profile.proName || !profile.mlcId || !profile.soundExchangeId) {
-        const complianceAdvice = "I see your Professional Identity is incomplete. Without your PRO, MLC, and SoundExchange IDs, you are leaving money on the table. Use the VIEW_STRATEGY command and get compliant immediately.";
+        const complianceAdvice =
+          'I see your Professional Identity is incomplete. Without your PRO, MLC, and SoundExchange IDs, you are leaving money on the table. Use the VIEW_STRATEGY command and get compliant immediately.';
         if (this.messages().slice(-1)[0]?.content !== complianceAdvice) {
-            advice = complianceAdvice;
+          advice = complianceAdvice;
         }
       }
     }

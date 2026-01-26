@@ -1,7 +1,20 @@
-import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { trigger, state, style, transition, animate } from '@angular/animations';
+import {
+  trigger,
+  state,
+  style,
+  transition,
+  animate,
+} from '@angular/animations';
 import { Game } from '../game';
 import { GameService } from '../game.service';
 // Chatbot is optional; comment out import to avoid missing module errors
@@ -17,9 +30,12 @@ import { GameService } from '../game.service';
     trigger('slideIn', [
       state('void', style({ transform: 'translateX(100%)' })),
       state('*', style({ transform: 'translateX(0)' })),
-      transition('void <=> *', animate('0.5s cubic-bezier(0.25, 0.8, 0.25, 1)'))
-    ])
-  ]
+      transition(
+        'void <=> *',
+        animate('0.5s cubic-bezier(0.25, 0.8, 0.25, 1)')
+      ),
+    ]),
+  ],
 })
 export class GamePlayerComponent implements OnInit {
   @Input() gameId!: string;
@@ -36,7 +52,7 @@ export class GamePlayerComponent implements OnInit {
   private gameService = inject(GameService);
 
   ngOnInit(): void {
-    this.gameService.getGame(this.gameId).subscribe(game => {
+    this.gameService.getGame(this.gameId).subscribe((game) => {
       this.game = game;
       if (game?.url) {
         this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(game.url);

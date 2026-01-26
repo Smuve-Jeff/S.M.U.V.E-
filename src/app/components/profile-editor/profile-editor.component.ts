@@ -181,41 +181,53 @@ export class ProfileEditorComponent {
     }));
   }
 
-   verifyPlatform(type: 'officialMusicProfiles' | 'personalSocialProfiles', platform: string) {
-     this.editableProfile.update(p => {
-       const updated = { ...p };
-       const category = { ...(updated[type] as any) };
-       category[platform] = { ...category[platform], status: 'syncing' };
-       return { ...updated, [type]: category };
-     });
+  verifyPlatform(
+    type: 'officialMusicProfiles' | 'personalSocialProfiles',
+    platform: string
+  ) {
+    this.editableProfile.update((p) => {
+      const updated = { ...p };
+      const category = { ...(updated[type] as any) };
+      category[platform] = { ...category[platform], status: 'syncing' };
+      return { ...updated, [type]: category };
+    });
 
-     // Simulate verification process
-     setTimeout(() => {
-       this.editableProfile.update(p => {
-         const updated = { ...p };
-         const category = { ...(updated[type] as any) };
-         category[platform] = { ...category[platform], status: 'verified', verified: true, lastSynced: new Date().toISOString() };
-         return { ...updated, [type]: category };
-       });
-       this.userProfileService.updateProfile(this.editableProfile());
-     }, 2000);
-   }
+    // Simulate verification process
+    setTimeout(() => {
+      this.editableProfile.update((p) => {
+        const updated = { ...p };
+        const category = { ...(updated[type] as any) };
+        category[platform] = {
+          ...category[platform],
+          status: 'verified',
+          verified: true,
+          lastSynced: new Date().toISOString(),
+        };
+        return { ...updated, [type]: category };
+      });
+      this.userProfileService.updateProfile(this.editableProfile());
+    }, 2000);
+  }
 
-   updatePlatformUrl(type: 'officialMusicProfiles' | 'personalSocialProfiles', platform: string, event: Event) {
-     const value = (event.target as HTMLInputElement).value;
-     this.editableProfile.update(p => {
-       const updated = { ...p };
-       const category = { ...(updated[type] as any) };
-       category[platform] = { ...category[platform], url: value };
-       return { ...updated, [type]: category };
-     });
-   }
+  updatePlatformUrl(
+    type: 'officialMusicProfiles' | 'personalSocialProfiles',
+    platform: string,
+    event: Event
+  ) {
+    const value = (event.target as HTMLInputElement).value;
+    this.editableProfile.update((p) => {
+      const updated = { ...p };
+      const category = { ...(updated[type] as any) };
+      category[platform] = { ...category[platform], url: value };
+      return { ...updated, [type]: category };
+    });
+  }
 
-   objectKeys(obj: any): string[] {
-     return obj ? Object.keys(obj) : [];
-   }
+  objectKeys(obj: any): string[] {
+    return obj ? Object.keys(obj) : [];
+  }
 
-   updateProfileField(field: keyof UserProfile, value: any) {
-     this.editableProfile.update(p => ({ ...p, [field]: value }));
-   }
+  updateProfileField(field: keyof UserProfile, value: any) {
+    this.editableProfile.update((p) => ({ ...p, [field]: value }));
+  }
 }
