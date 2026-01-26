@@ -16,19 +16,7 @@ export class AppComponent {
   authService = inject(AuthService);
   uiService = inject(UIService);
 
-  constructor() {
-    effect(() => {
-      const intensity = this.uiService.visualIntensity();
-      document.documentElement.style.setProperty(
-        '--cyber-glow-intensity',
-        `${intensity}`
-      );
-      document.documentElement.style.setProperty(
-        '--cyber-bg-shift',
-        `${intensity * 5}px`
-      );
-    });
-  }
+  constructor() {}
 
   toggleChatbot() {
     this.uiService.toggleChatbot();
