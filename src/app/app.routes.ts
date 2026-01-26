@@ -30,6 +30,6 @@ export const routes: Routes = [
         (m) => m.LoginComponent
       ),
   },
-  { path: '', redirectTo: 'hub', pathMatch: 'full' },
-  { path: '**', redirectTo: 'hub' },
+  { path: '', redirectTo: 'profile', pathMatch: 'full' },
+  { path: '**', redirectTo: 'profile' },
 ];

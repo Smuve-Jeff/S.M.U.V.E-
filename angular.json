@@ -15,6 +15,7 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.json",
+            "polyfills": ["zone.js"],
             "assets": ["src/assets", "src/manifest.webmanifest"],
             "styles": [
               "src/styles.css",
