@@ -5,6 +5,15 @@ import { Injectable, signal } from '@angular/core';
 })
 export class SpeechSynthesisService {
   isSpeaking = signal(false);
+  private maleIframe: HTMLIFrameElement | null = null;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.maleIframe = document.createElement('iframe');
+      this.maleIframe.style.display = 'none';
+      document.body.appendChild(this.maleIframe);
+    }
+  }
 
   speak(text: string): void {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis) {
@@ -17,39 +26,63 @@ export class SpeechSynthesisService {
     let processedText = text.replace(/S\.M\.U\.V\.E/gi, 'Smooth');
     processedText = processedText.replace(/SMUVE/gi, 'Smooth');
 
-    const utterance = new SpeechSynthesisUtterance(processedText);
-
-    // Attempt to find a natural-sounding voice
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(
-      (v) =>
-        (v.name.includes('Google') || v.name.includes('Natural')) &&
-        v.lang.startsWith('en')
-    ) || voices.find((v) => v.lang.startsWith('en'));
 
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
+    // Select a professional female voice for main window
+    const femaleVoice = voices.find(v =>
+      v.lang.startsWith('en') &&
+      (v.name.includes('Female') || v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Zira'))
+    );
+
+    // Select a professional male voice for iframe
+    const maleVoice = voices.find(v =>
+      v.lang.startsWith('en') &&
+      (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Alex') || v.name.includes('Google UK English Male'))
+    ) || voices.find(v => v.lang.startsWith('en') && v !== femaleVoice);
+
+    const femaleUtterance = new SpeechSynthesisUtterance(processedText);
+    if (femaleVoice) femaleUtterance.voice = femaleVoice;
+    femaleUtterance.pitch = 1.1;
+    femaleUtterance.rate = 0.9;
+    femaleUtterance.volume = 0.8;
+
+    let voicesFinished = 0;
+    const onEnd = () => {
+      voicesFinished++;
+      if (voicesFinished >= 2) {
+        this.isSpeaking.set(false);
+      }
+    };
+
+    femaleUtterance.onstart = () => this.isSpeaking.set(true);
+    femaleUtterance.onend = onEnd;
+    femaleUtterance.onerror = onEnd;
+
+    // Trigger female voice in main window
+    window.speechSynthesis.speak(femaleUtterance);
+
+    // Trigger male voice in iframe to achieve simultaneity
+    if (this.maleIframe?.contentWindow) {
+      const maleUtterance = new (this.maleIframe.contentWindow as any).SpeechSynthesisUtterance(processedText);
+      if (maleVoice) maleUtterance.voice = maleVoice;
+      maleUtterance.pitch = 0.7; // Lower for male
+      maleUtterance.rate = 0.9;
+      maleUtterance.volume = 0.8;
+      maleUtterance.onend = onEnd;
+      maleUtterance.onerror = onEnd;
+      (this.maleIframe.contentWindow as any).speechSynthesis.speak(maleUtterance);
+    } else {
+      // Fallback if iframe fails
+      onEnd();
     }
-
-    // Set standard human-like parameters
-    utterance.pitch = 1.0;
-    utterance.rate = 1.0;
-    utterance.volume = 1.0;
-
-    utterance.onstart = () => this.isSpeaking.set(true);
-    utterance.onend = () => {
-      this.isSpeaking.set(false);
-    };
-    utterance.onerror = () => {
-      this.isSpeaking.set(false);
-    };
-
-    window.speechSynthesis.speak(utterance);
   }
 
   cancel(): void {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
+    if (typeof window !== 'undefined') {
+      window.speechSynthesis?.cancel();
+      if (this.maleIframe?.contentWindow) {
+        (this.maleIframe.contentWindow as any).speechSynthesis?.cancel();
+      }
       this.isSpeaking.set(false);
     }
   }

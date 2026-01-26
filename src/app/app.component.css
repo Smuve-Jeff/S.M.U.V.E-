@@ -148,7 +148,7 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  object-cover: cover;
+  object-fit: cover;
 }
 
 .logout-button {
