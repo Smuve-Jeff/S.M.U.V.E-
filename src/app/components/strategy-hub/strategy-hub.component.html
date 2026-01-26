@@ -79,10 +79,10 @@
             Trend-Pulse Hooks
           </h2>
           <div class="space-y-3">
-             <div *ngFor="let hook of trendHooks()" class="p-3 bg-neutral-900 rounded border border-white/5 text-[11px] leading-relaxed">
+             <div *ngFor="let hook of trendHooks()" class="p-3 bg-neutral-900 rounded border border-white/5 text-[11px] leading-relaxed animate-fade-in">
                {{ hook }}
              </div>
-             <button class="w-full mt-2 py-2 bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 rounded text-[10px] uppercase font-bold border border-yellow-400/20">
+             <button (click)="generateTrendHooks()" class="w-full mt-2 py-2 bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 rounded text-[10px] uppercase font-bold border border-yellow-400/20 transition-all hover:scale-[1.02]">
                Generate New Hooks
              </button>
           </div>

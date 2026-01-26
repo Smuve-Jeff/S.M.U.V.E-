@@ -2,6 +2,8 @@ import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserProfileService } from '../../services/user-profile.service';
+import { AiService } from '../../services/ai.service';
+import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 
 interface VocalWarmup {
   id: string;
@@ -19,6 +21,8 @@ interface VocalWarmup {
 })
 export class PracticeSpaceComponent {
   private profileService = inject(UserProfileService);
+  private aiService = inject(AiService);
+  private speechService = inject(SpeechSynthesisService);
 
   lyrics = signal<string>('');
   memorizeMode = signal(false);
@@ -94,9 +98,26 @@ export class PracticeSpaceComponent {
     this.memorizeMode.update((v) => !v);
   }
 
-  critiqueRehearsal() {
-    alert(
-      'S.M.U.V.E Analysis: Your pitch stability is at 88%. I recommend focusing on breath support during the bridge. Your emotional delivery is peak, but watch your tempo in the second verse.'
-    );
+  async critiqueRehearsal() {
+    this.mindsetTip.set('S.M.U.V.E is analyzing your performance session...');
+
+    try {
+      const response = await this.aiService.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: [{
+          role: 'user',
+          parts: [{ text: 'Generate a brief, constructive, and assertive rehearsal critique for a musician based on their profile. Focus on technical aspects like pitch, breath, and presence, as well as mindset. Use the S.M.U.V.E persona (omniscient and direct). Keep it under 60 words.' }]
+        }]
+      });
+
+      const critique = response.text || 'Keep pushing. Your dedication will pay off.';
+      this.mindsetTip.set(critique);
+      this.speechService.speak(critique);
+    } catch (error) {
+      console.error('Critique failed:', error);
+      const fallback = 'S.M.U.V.E Analysis: Your dedication is evident. Focus on your core technique and maintain your consistency.';
+      this.mindsetTip.set(fallback);
+      this.speechService.speak(fallback);
+    }
   }
 }
