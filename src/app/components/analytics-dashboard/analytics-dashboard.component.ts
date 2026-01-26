@@ -15,7 +15,7 @@ interface Superfan {
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './analytics-dashboard.component.html',
-  styleUrls: ['./analytics-dashboard.component.css']
+  styleUrls: ['./analytics-dashboard.component.css'],
 })
 export class AnalyticsDashboardComponent {
   analytics = inject(AnalyticsService);
@@ -23,13 +23,13 @@ export class AnalyticsDashboardComponent {
   superfans = signal<Superfan[]>([
     { name: 'Alex M.', streams: 450, location: 'London', status: 'Active' },
     { name: 'Sarah J.', streams: 380, location: 'New York', status: 'Rising' },
-    { name: 'Dmitri K.', streams: 295, location: 'Berlin', status: 'Active' }
+    { name: 'Dmitri K.', streams: 295, location: 'Berlin', status: 'Active' },
   ]);
 
   engagementTactics = [
     "Run a 'Behind the Scenes' stream for your top 50 listeners.",
     "Send a personalized thank you video to this month's top streamer.",
-    "Discord Exclusive: Early listen for the next single."
+    'Discord Exclusive: Early listen for the next single.',
   ];
 
   getMathMax(arr: number[]): number {

@@ -26,8 +26,9 @@ export class MicrophoneService {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
-      this.audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+      this.audioContext = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )();
       this.analyserNode = this.audioContext.createAnalyser();
       this.sourceNode = this.audioContext.createMediaStreamSource(
         this.mediaStream

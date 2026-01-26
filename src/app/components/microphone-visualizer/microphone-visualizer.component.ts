@@ -25,7 +25,9 @@ export class MicrophoneVisualizerComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     if (this.analyserNode) {
-      this.dataArray = new Uint8Array(Number(this.analyserNode.frequencyBinCount));
+      this.dataArray = new Uint8Array(
+        Number(this.analyserNode.frequencyBinCount)
+      );
       this.draw();
     }
   }
@@ -41,8 +43,13 @@ export class MicrophoneVisualizerComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    if (!this.dataArray || this.dataArray.length !== this.analyserNode.frequencyBinCount) {
-      this.dataArray = new Uint8Array(Number(this.analyserNode.frequencyBinCount));
+    if (
+      !this.dataArray ||
+      this.dataArray.length !== this.analyserNode.frequencyBinCount
+    ) {
+      this.dataArray = new Uint8Array(
+        Number(this.analyserNode.frequencyBinCount)
+      );
     }
 
     this.animationFrameId = requestAnimationFrame(() => this.draw());

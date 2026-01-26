@@ -24,7 +24,7 @@ export class ReputationService {
     this.state.update((s) => {
       let newXp = s.xp + amount;
       let newLevel = s.level;
-      let newTotalXp = s.totalXp + amount;
+      const newTotalXp = s.totalXp + amount;
 
       while (newXp >= this.XP_PER_LEVEL) {
         newXp -= this.XP_PER_LEVEL;

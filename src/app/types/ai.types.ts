@@ -1,4 +1,3 @@
-
 export interface StudioSettings {
   compression?: {
     threshold?: number;

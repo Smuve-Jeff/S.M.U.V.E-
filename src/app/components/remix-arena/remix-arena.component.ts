@@ -8,7 +8,12 @@ import { SampleLibraryComponent } from '../sample-library/sample-library.compone
 @Component({
   selector: 'app-remix-arena',
   standalone: true,
-  imports: [CommonModule, FormsModule, StemControlsComponent, SampleLibraryComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    StemControlsComponent,
+    SampleLibraryComponent,
+  ],
   templateUrl: './remix-arena.component.html',
   styleUrls: ['./remix-arena.component.scss'],
 })

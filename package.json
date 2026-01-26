@@ -8,7 +8,7 @@
     "build": "ng build",
     "preview": "ng serve --configuration=production",
     "test": "jest",
-    "lint": "eslint . --ext .ts",
+    "lint": "eslint .",
     "format": "prettier --write .",
     "deploy": "ng build --configuration=ghpages && cp dist/app/browser/index.html dist/app/browser/404.html && npx angular-cli-ghpages --dir=dist/app/browser"
   },

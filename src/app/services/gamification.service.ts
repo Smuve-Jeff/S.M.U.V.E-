@@ -16,19 +16,19 @@ export interface UserProgress {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class GamificationService {
   private _progress = signal<UserProgress>({
     xp: 0,
     level: 1,
     nextLevelXp: 100,
-    achievements: this.getInitialAchievements()
+    achievements: this.getInitialAchievements(),
   });
 
   readonly progress = this._progress.asReadonly();
 
-  constructor() { }
+  constructor() {}
 
   addXp(amount: number): void {
     const currentProgress = this._progress();
@@ -45,13 +45,15 @@ export class GamificationService {
       ...currentProgress,
       xp: newXp,
       level: newLevel,
-      nextLevelXp
+      nextLevelXp,
     });
   }
 
   unlockAchievement(achievementId: string): void {
     const currentProgress = this._progress();
-    const achievement = currentProgress.achievements.find(a => a.id === achievementId);
+    const achievement = currentProgress.achievements.find(
+      (a) => a.id === achievementId
+    );
 
     if (achievement && !achievement.unlocked) {
       achievement.unlocked = true;
@@ -63,12 +65,42 @@ export class GamificationService {
 
   private getInitialAchievements(): Achievement[] {
     return [
-      { id: 'first-track', name: 'First Track', description: 'Create your first track.', unlocked: false },
-      { id: 'first-collaboration', name: 'First Collaboration', description: 'Collaborate with another artist.', unlocked: false },
-      { id: 'first-mastering', name: 'First Mastering', description: 'Master your first track.', unlocked: false },
-      { id: 'first-distribution', name: 'First Distribution', description: 'Distribute your first track.', unlocked: false },
-      { id: 'level-5', name: 'Level 5', description: 'Reach level 5.', unlocked: false },
-      { id: 'level-10', name: 'Level 10', description: 'Reach level 10.', unlocked: false },
+      {
+        id: 'first-track',
+        name: 'First Track',
+        description: 'Create your first track.',
+        unlocked: false,
+      },
+      {
+        id: 'first-collaboration',
+        name: 'First Collaboration',
+        description: 'Collaborate with another artist.',
+        unlocked: false,
+      },
+      {
+        id: 'first-mastering',
+        name: 'First Mastering',
+        description: 'Master your first track.',
+        unlocked: false,
+      },
+      {
+        id: 'first-distribution',
+        name: 'First Distribution',
+        description: 'Distribute your first track.',
+        unlocked: false,
+      },
+      {
+        id: 'level-5',
+        name: 'Level 5',
+        description: 'Reach level 5.',
+        unlocked: false,
+      },
+      {
+        id: 'level-10',
+        name: 'Level 10',
+        description: 'Reach level 10.',
+        unlocked: false,
+      },
     ];
   }
 }
