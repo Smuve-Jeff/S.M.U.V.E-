@@ -175,7 +175,7 @@ export class AuthService {
         success: true,
         message: 'Welcome to S.M.U.V.E Your journey to greatness begins now.',
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         message: 'Registration failed. The system encountered an error.',
@@ -232,7 +232,7 @@ export class AuthService {
         success: true,
         message: `Welcome back, ${user.artistName}. S.M.U.V.E has been waiting.`,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         message: 'Login failed. The system encountered an error.',

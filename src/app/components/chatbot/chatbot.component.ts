@@ -326,7 +326,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   }
 
   async analyzeVideo(track: Track, prompt: string): Promise<void> {
-    const context = `Analyze this video based on its title \"${track.name}\" and artist \"${track.artist}\". The user wants to know the following: \"${prompt}\". Provide a concise analysis based on this metadata.`;
+    const context = `Analyze this video based on its title "${track.name}" and artist "${track.artist}". The user wants to know the following: "${prompt}". Provide a concise analysis based on this metadata.`;
     try {
       const response = await this.aiService.generateContent({
         model: 'gemini-1.5-pro',

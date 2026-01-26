@@ -362,7 +362,9 @@ export class AudioEngineService {
             this.ctx.currentTime,
             0.01
           );
-        } catch {}
+        } catch {
+          /* ignored */
+        }
       }
     });
   }
@@ -457,7 +459,9 @@ export class AudioEngineService {
       if (source) {
         try {
           source.stop();
-        } catch {}
+        } catch {
+          /* ignored */
+        }
         source.disconnect();
       }
     });

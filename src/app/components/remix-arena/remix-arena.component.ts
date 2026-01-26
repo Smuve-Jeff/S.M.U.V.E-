@@ -23,7 +23,7 @@ export class RemixArenaComponent {
 
   constructor() {}
 
-  onCodeChange(newCode: string) {
+  onCodeChange(_newCode: string) {
     // Placeholder for future collaboration code sync
   }
 }

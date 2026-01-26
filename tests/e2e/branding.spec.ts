@@ -8,7 +8,6 @@ test('S.M.U.V.E 2.0 Branding and Navigation Check', async ({ page }) => {
   expect(title).toContain('S.M.U.V.E 2.0');
 
   // Verify Navigation buttons exist
-  const navButtons = page.locator('.nav-button');
   await expect(
     page.locator('.nav-button[title="Artist Profile"]')
   ).toBeVisible();

@@ -1,6 +1,6 @@
 import { Injectable, signal, effect } from '@angular/core';
-import { AudioEngineService, NoteEvent } from './audio-engine.service';
-import { InstrumentsService, InstrumentPreset } from './instruments.service';
+import { AudioEngineService } from './audio-engine.service';
+import { InstrumentsService } from './instruments.service';
 
 export type TrackNote = {
   midi: number;
@@ -34,7 +34,7 @@ export class MusicManagerService {
     // Bridge engine scheduler to request notes
     engine.onScheduleStep = (stepIndex, when, stepDur) => {
       this.currentStep.set(stepIndex);
-      const spb = 60 / engine.tempo();
+      const _spb = 60 / engine.tempo();
       const dur = stepDur * 0.95;
       for (const t of this.tracks()) {
         const inst = instruments

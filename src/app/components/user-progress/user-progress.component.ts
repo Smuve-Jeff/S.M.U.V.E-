@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { GamificationService } from '../../services/gamification.service';
 import {
   GamificationService,
   UserProgress,
