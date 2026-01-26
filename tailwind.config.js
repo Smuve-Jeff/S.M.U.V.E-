@@ -4,18 +4,29 @@ export default {
   theme: {
     extend: {
       colors: {
+        brand: {
+          dark: '#020617', // Slate 950
+          surface: '#0f172a', // Slate 900
+          'surface-light': '#1e293b', // Slate 800
+          primary: '#10b981', // Emerald 500
+          secondary: '#38bdf8', // Sky 400
+          accent: '#8b5cf6', // Violet 500
+          danger: '#ef4444', // Red 500
+          warning: '#f59e0b', // Amber 500
+          success: '#22c55e', // Green 500
+        },
         obsidian: {
-          DEFAULT: '#020205',
-          light: '#05050d',
-          deep: '#010103',
+          DEFAULT: '#020617',
+          light: '#0f172a',
+          deep: '#010413',
         },
         cyber: {
-          cyan: '#00f2ff',
-          pink: '#ff00ea',
-          indigo: '#7000ff',
-          green: '#00ffa3',
-          yellow: '#ffe600',
-          red: '#ff003c',
+          cyan: '#10b981', // Map old cyber colors to new brand colors for compatibility
+          pink: '#8b5cf6',
+          indigo: '#6366f1',
+          green: '#22c55e',
+          yellow: '#f59e0b',
+          red: '#ef4444',
         },
       },
       animation: {

@@ -34,7 +34,7 @@ interface ChatMessage {
 }
 
 const INITIAL_MESSAGE =
-  'S.M.U.V.E 2.0 online. I am the Strategic Music Utility Virtual Enhancer. I see everything. What is your request?';
+  'Hello. S.M.U.V.E 2.0 is online. I am the Strategic Music Utility Virtual Enhancer. I see everything in this industry. What is your request?';
 const AI_OFFLINE_MESSAGE =
   'S.M.U.V.E 2.0 systems offline. Connection to the core severed. Verify your access credentials.';
 
