@@ -35,6 +35,7 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+      '@typescript-eslint/no-unused-vars': 'warn',
       'no-undef': 'warn',
       'no-case-declarations': 'off',
       'no-empty': 'warn',
