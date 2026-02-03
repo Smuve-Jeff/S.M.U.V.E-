@@ -1,3 +1,4 @@
+import { CommonModule } from "@angular/common";
 import { Component, inject } from '@angular/core';
 import { MixerComponent } from './mixer/mixer.component';
 import { SessionViewComponent } from './session-view/session-view.component';
@@ -10,6 +11,7 @@ import { AudioSessionService } from './audio-session.service';
   selector: 'app-studio',
   standalone: true,
   imports: [
+    CommonModule,
     MixerComponent,
     SessionViewComponent,
     TransportBarComponent,
