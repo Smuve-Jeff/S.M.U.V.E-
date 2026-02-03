@@ -79,9 +79,9 @@ export class AudioEngineService {
   private compressor: DynamicsCompressorNode;
   private limiter: DynamicsCompressorNode;
   private limiterLookahead: DelayNode;
-  private autoTuneDelay: DelayNode;
-  private autoTuneFilter: BiquadFilterNode;
-  private autoTuneWet: GainNode;
+  private autoTuneDelay!: DelayNode;
+  private autoTuneFilter!: BiquadFilterNode;
+  private autoTuneWet!: GainNode;
   private recordingDestination: MediaStreamAudioDestinationNode | null = null;
 
   // FX buses
@@ -786,10 +786,10 @@ export class AudioEngineService {
   }
 
   getMasterStream(): MediaStreamAudioDestinationNode {
-    if (!this.recordingDestination) {
-      this.recordingDestination = this.ctx.createMediaStreamDestination();
-      this.limiter.connect(this.recordingDestination);
+    if (!this.recordingDestination!) {
+      this.recordingDestination! = this.ctx.createMediaStreamDestination();
+      this.limiter.connect(this.recordingDestination!);
     }
-    return this.recordingDestination;
+    return this.recordingDestination!;
   }
 }
