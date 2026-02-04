@@ -45,7 +45,7 @@
             [disabled]="isGenerating() || !imagePrompt()"
             class="w-full py-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-700 text-black font-black uppercase tracking-tighter italic text-xl transition-all flex items-center justify-center gap-3"
           >
-            <i class="fas" [class.fa-bolt]="!isGenerating()" [class.fa-spinner]="isGenerating()" [class.fa-spin]="isGenerating()"></i>
+            <i class="fas" [ngClass]="{'fa-bolt': !isGenerating(), 'fa-spinner fa-spin': isGenerating()}"></i>
             {{ isGenerating() ? 'GENERATING VISUALS...' : 'GENERATE IMAGE' }}
           </button>
         </div>
