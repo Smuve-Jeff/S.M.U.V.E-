@@ -14,9 +14,7 @@ A full-featured Digital Audio Workstation (DAW) in your browser:
 - **Custom Synthesizer:** Built-in subtractive synth for creating unique leads and pads.
 - **Mastering Suite:** Master bus dynamics including high-precision Compression and Limiting.
 
-### 🤖 S.M.U.V.E 2.0 (The "Strategic Commander")
-
-An omniscient AI persona that acts as your strategic commander:
+### 🤖 S.M.U.V.E 2.0 Your "Strategic Music Utility Virtual Enhancer"
 
 - **Strategic Recommendations:** Issues "decrees" based on your artist profile to optimize your career path.
 - **Stem Separation:** Isolate vocals, drums, bass, and melody from any track in real-time.
