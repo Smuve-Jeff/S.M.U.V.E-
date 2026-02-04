@@ -366,27 +366,37 @@ export class AiService {
     }
   }
 
+  isAIBassistActive = signal(false);
+  isAIDrummerActive = signal(false);
+  isAIKeyboardistActive = signal(false);
+
   startAIBassist() {
+    this.isAIBassistActive.set(true);
     console.log('AI Bassist started');
   }
 
   stopAIBassist() {
+    this.isAIBassistActive.set(false);
     console.log('AI Bassist stopped');
   }
 
   startAIDrummer() {
+    this.isAIDrummerActive.set(true);
     console.log('AI Drummer started');
   }
 
   stopAIDrummer() {
+    this.isAIDrummerActive.set(false);
     console.log('AI Drummer stopped');
   }
 
   startAIKeyboardist() {
+    this.isAIKeyboardistActive.set(true);
     console.log('AI Keyboardist started');
   }
 
   stopAIKeyboardist() {
+    this.isAIKeyboardistActive.set(false);
     console.log('AI Keyboardist stopped');
   }
 

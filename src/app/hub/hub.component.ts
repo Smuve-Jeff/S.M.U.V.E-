@@ -1,198 +1,106 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Game, Challenge, CommunityPost, BattleConfig } from './hub.models';
-import { GameService } from './game.service';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import { UserProfileService } from '../services/user-profile.service';
-import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+import { DeckService } from '../services/deck.service';
+import { UIService } from '../services/ui.service';
+import { AiService } from '../services/ai.service';
 
 @Component({
   selector: 'app-hub',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './hub.component.html',
   styleUrls: ['./hub.component.css'],
 })
 export class HubComponent implements OnInit, OnDestroy {
-  // Signals for UI state
-  showChat = signal(false);
-  showProfile = signal(false);
-  showBattlefieldLobby = signal(false);
-  selectedGame = signal<Game | undefined>(undefined);
-  selectedUserId = signal<string | undefined>(undefined);
+  private router = inject(Router);
+  public uiService = inject(UIService);
+  public deckService = inject(DeckService);
+  public profileService = inject(UserProfileService);
+  public aiService = inject(AiService);
 
-  // Game list and filtering
-  games = signal<Game[]>([]);
-  challenges = signal<Challenge[]>([
-    {
-      id: '1',
-      title: 'Remix Master',
-      description: 'Create the best remix of "Aurora"',
-      prize: '$100',
-    },
-    {
-      id: '2',
-      title: 'Top Producer',
-      description: 'Most liked beat this month',
-      prize: 'Pro Membership',
-    },
-  ]);
-  communityPosts = signal<CommunityPost[]>([
-    {
-      id: '1',
-      author: 'Dr. Dre',
-      content: 'New studio session starts now!',
-      timestamp: new Date(),
-    },
-    {
-      id: '2',
-      author: 'Kanye',
-      content: 'Vultures 2 out now.',
-      timestamp: new Date(),
-    },
-  ]);
-
-  genres = [
-    'Shooter',
-    'Arcade',
-    'Puzzle',
-    'Arena',
-    'Runner',
-    'Rhythm',
-    'Music Battle',
-  ];
-  sortModes: ('Popular' | 'Rating' | 'Newest')[] = [
-    'Popular',
-    'Rating',
-    'Newest',
-  ];
-  activeFilters = signal<{ genre?: string; tag?: string; query?: string }>({});
-  sortMode = signal<'Popular' | 'Rating' | 'Newest'>('Popular');
-
-  private searchSubject = new Subject<string>();
-  private filterOrSortSubject = new Subject<void>();
-  private destroy$ = new Subject<void>();
-
-  // "Tha Battlefield" lobby state
-  musicShowcases = computed(
-    () =>
-      this.profileService
-        .profile()
-        ?.showcases.filter(
-          (s) => s.type === 'music' && s.visibility === 'public'
-        ) || []
-  );
-
-  battleConfig = signal<BattleConfig>({
-    track: null,
-    mode: 'duel',
-    roundLength: 60,
-    rounds: 1,
-    matchType: 'public',
+  // Quick Start Form
+  quickProfile = signal({
+    artistName: '',
+    primaryGenre: 'Hip Hop'
   });
 
-  constructor(
-    private gameService: GameService,
-    public profileService: UserProfileService
-  ) {}
+  // Radio State
+  isRadioPlaying = computed(() => this.deckService.deckA().isPlaying);
+  radioTrackName = computed(() => this.deckService.deckA().track?.name || 'S.M.U.V.E Radio');
 
-  ngOnInit() {
-    this.fetchGames();
+  genres = [
+    'Hip Hop',
+    'R&B',
+    'Pop',
+    'Electronic',
+    'Rock',
+    'Jazz',
+    'Classical'
+  ];
 
-    this.searchSubject
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
-      .subscribe((query) => {
-        this.activeFilters.update((filters) => ({ ...filters, query }));
-        this.fetchGames();
-      });
+  constructor() {}
 
-    this.filterOrSortSubject
-      .pipe(debounceTime(300), takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.fetchGames();
-      });
-  }
+  ngOnInit() {}
 
-  ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
+  ngOnDestroy() {}
 
-  private fetchGames() {
-    this.gameService
-      .listGames(this.activeFilters(), this.sortMode())
-      .subscribe((games) => this.games.set(games));
-  }
-
-  // Method to handle game selection
-  selectGame(game: Game) {
-    if (game.id === '14') {
-      // 'Tha Battlefield'
-      this.showBattlefieldLobby.set(true);
-      this.selectedGame.set(game);
-    } else {
-      this.selectedGame.set(game);
-    }
-  }
-
-  deselectGame() {
-    this.selectedGame.set(undefined);
-  }
-
-  // Filter and sort methods
-  onSearch(event: Event) {
-    const query = (event.target as HTMLInputElement).value;
-    this.searchSubject.next(query);
-  }
-
-  setGenre(genre?: string) {
-    this.activeFilters.update((filters) => ({
-      ...filters,
-      genre: this.activeFilters().genre === genre ? undefined : genre,
-    }));
-    this.filterOrSortSubject.next();
-  }
-
-  setSort(mode: 'Popular' | 'Rating' | 'Newest') {
-    this.sortMode.set(mode);
-    this.filterOrSortSubject.next();
-  }
-
-  // "Tha Battlefield" lobby methods
-  updateBattleConfig<K extends keyof BattleConfig>(
-    field: K,
-    value: BattleConfig[K] | string
-  ) {
-    if (field === 'track' && typeof value === 'string') {
-      const track = this.musicShowcases().find((t) => t.url === value);
-      this.battleConfig.update((config) => ({
-        ...config,
-        track: track || null,
-      }));
-    } else {
-      this.battleConfig.update((config) => ({
-        ...config,
-        [field]: value as BattleConfig[K],
-      }));
-    }
-  }
-
-  startBattle() {
-    if (!this.battleConfig().track) {
-      alert('Please select a track to battle with!');
+  // Quick Start Actions
+  onQuickStart() {
+    if (!this.quickProfile().artistName) {
+      alert('Please enter your Artist Name to begin!');
       return;
     }
-    console.log('Starting battle with config:', this.battleConfig());
-    // Future: Call a service to start the match
-    this.showBattlefieldLobby.set(false);
+
+    const current = this.profileService.profile();
+    this.profileService.updateProfile({
+      ...current,
+      artistName: this.quickProfile().artistName,
+      primaryGenre: this.quickProfile().primaryGenre
+    });
+
+    // Smooth transition to full profile
+    this.router.navigate(['/profile']);
   }
 
-  // General UI toggles
-  toggleChat(visible: boolean) {
-    this.showChat.set(visible);
+  // Radio Actions
+  toggleRadio() {
+    this.deckService.togglePlay('A');
   }
 
-  toggleProfile(visible: boolean) {
-    this.showProfile.set(visible);
+  // AI Jam Actions
+  toggleAIBassist() {
+    if (this.aiService.isAIBassistActive()) {
+      this.aiService.stopAIBassist();
+    } else {
+      this.aiService.startAIBassist();
+    }
+  }
+
+  toggleAIDrummer() {
+    if (this.aiService.isAIDrummerActive()) {
+      this.aiService.stopAIDrummer();
+    } else {
+      this.aiService.startAIDrummer();
+    }
+  }
+
+  toggleAIKeyboardist() {
+    if (this.aiService.isAIKeyboardistActive()) {
+      this.aiService.stopAIKeyboardist();
+    } else {
+      this.aiService.startAIKeyboardist();
+    }
+  }
+
+  // Navigation Helpers
+  goToStudio() {
+    this.router.navigate(['/studio']);
+  }
+
+  goToThaSpot() {
+    this.router.navigate(['/tha-spot']);
   }
 }

@@ -83,7 +83,7 @@
     <div class="jam-controls flex flex-wrap justify-center gap-6">
       <button
         (click)="toggleAIBassist()"
-        [class.active]="isAIBassistEnabled"
+        [class.active]="aiService.isAIBassistActive()"
         class="jam-btn group"
       >
         <div
@@ -96,7 +96,7 @@
 
       <button
         (click)="toggleAIDrummer()"
-        [class.active]="isAIDrummerEnabled"
+        [class.active]="aiService.isAIDrummerActive()"
         class="jam-btn group"
       >
         <div
@@ -109,7 +109,7 @@
 
       <button
         (click)="toggleAIKeyboardist()"
-        [class.active]="isAIKeyboardistEnabled"
+        [class.active]="aiService.isAIKeyboardistActive()"
         class="jam-btn group"
       >
         <div

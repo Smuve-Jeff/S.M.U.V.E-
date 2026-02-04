@@ -17,14 +17,9 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
   styleUrls: ['./tha-spot.component.css'],
 })
 export class ThaSpotComponent implements OnInit {
-  private aiService = inject(AiService);
+  public aiService = inject(AiService);
   private gameService = inject(GameService);
   public profileService = inject(UserProfileService);
-
-  // AI Jam State
-  isAIBassistEnabled = false;
-  isAIDrummerEnabled = false;
-  isAIKeyboardistEnabled = false;
 
   // Gaming Hub State
   games = signal<Game[]>([]);
@@ -79,29 +74,26 @@ export class ThaSpotComponent implements OnInit {
   }
 
   toggleAIBassist() {
-    this.isAIBassistEnabled = !this.isAIBassistEnabled;
-    if (this.isAIBassistEnabled) {
-      this.aiService.startAIBassist();
-    } else {
+    if (this.aiService.isAIBassistActive()) {
       this.aiService.stopAIBassist();
+    } else {
+      this.aiService.startAIBassist();
     }
   }
 
   toggleAIDrummer() {
-    this.isAIDrummerEnabled = !this.isAIDrummerEnabled;
-    if (this.isAIDrummerEnabled) {
-      this.aiService.startAIDrummer();
-    } else {
+    if (this.aiService.isAIDrummerActive()) {
       this.aiService.stopAIDrummer();
+    } else {
+      this.aiService.startAIDrummer();
     }
   }
 
   toggleAIKeyboardist() {
-    this.isAIKeyboardistEnabled = !this.isAIKeyboardistEnabled;
-    if (this.isAIKeyboardistEnabled) {
-      this.aiService.startAIKeyboardist();
-    } else {
+    if (this.aiService.isAIKeyboardistActive()) {
       this.aiService.stopAIKeyboardist();
+    } else {
+      this.aiService.startAIKeyboardist();
     }
   }
 }

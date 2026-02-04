@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "ng serve",
     "build": "ng build",
+    "start": "serve -s dist/app/browser",
     "preview": "ng serve --configuration=production",
     "test": "jest",
     "lint": "eslint .",
@@ -13,9 +14,12 @@
     "deploy": "ng build --configuration=ghpages && cp dist/app/browser/index.html dist/app/browser/404.html && npx angular-cli-ghpages --dir=dist/app/browser"
   },
   "dependencies": {
+    "@angular-devkit/build-angular": "21.1.0",
     "@angular/animations": "21.1.0",
+    "@angular/cli": "21.1.0",
     "@angular/common": "21.1.0",
     "@angular/compiler": "21.1.0",
+    "@angular/compiler-cli": "21.1.0",
     "@angular/core": "21.1.0",
     "@angular/forms": "21.1.0",
     "@angular/platform-browser": "21.1.0",
@@ -33,9 +37,6 @@
     "zone.js": "~0.16.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "21.1.0",
-    "@angular/cli": "21.1.0",
-    "@angular/compiler-cli": "21.1.0",
     "@angular/pwa": "~21.1.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.0",
