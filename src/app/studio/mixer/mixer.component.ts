@@ -19,4 +19,9 @@ export class MixerComponent {
   updateMasterVolume(newVolume: number): void {
     this.audioSession.updateMasterVolume(newVolume);
   }
+
+  onVolumeChange(event: Event) {
+    const val = (event.target as HTMLInputElement).value;
+    this.updateMasterVolume(parseInt(val, 10));
+  }
 }

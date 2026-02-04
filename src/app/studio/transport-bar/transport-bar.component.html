@@ -1,18 +1,53 @@
-<div class="transport-bar">
-  <button (click)="togglePlay()" [class.active]="isPlaying()">Play</button>
-  <button (click)="toggleRecord()" [class.active]="isRecording()">
-    Record
-  </button>
-  <button (click)="stop()" [disabled]="isStopped()">Stop</button>
-  <div class="master-volume">
-    <label for="master-volume">Master Volume</label>
-    <input
-      type="range"
-      id="master-volume"
-      min="0"
-      max="100"
-      [value]="masterVolume()"
-      (input)="updateMasterVolume($event)"
-    />
+<div class="transport-bar-container glass-morphism flex items-center justify-between p-4 bg-slate-900/80 border border-white/5 rounded-xl shadow-2xl">
+  <div class="flex items-center gap-4">
+    <button
+      (click)="togglePlay()"
+      [class.playing]="isPlaying()"
+      class="transport-btn play-btn"
+      [title]="isPlaying() ? 'Pause' : 'Play'"
+      aria-label="Play/Pause"
+    >
+      <i class="fas" [class.fa-play]="!isPlaying()" [class.fa-pause]="isPlaying()"></i>
+    </button>
+
+    <button
+      (click)="toggleRecord()"
+      [class.recording]="isRecording()"
+      class="transport-btn record-btn"
+      title="Record"
+      aria-label="Record"
+    >
+      <i class="fas fa-circle"></i>
+    </button>
+
+    <button
+      (click)="stop()"
+      [disabled]="isStopped()"
+      class="transport-btn stop-btn"
+      title="Stop"
+      aria-label="Stop"
+    >
+      <i class="fas fa-stop"></i>
+    </button>
+  </div>
+
+  <div class="flex items-center gap-6">
+    <div class="time-display font-mono text-xl font-black text-emerald-400 tracking-tighter">
+      001 . 01 . 000
+    </div>
+
+    <div class="master-volume-control flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-full border border-white/5">
+      <i class="fas fa-volume-up text-slate-500 text-xs"></i>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        [value]="masterVolume()"
+        (input)="updateMasterVolume($event)"
+        class="w-32 h-1 bg-slate-800 appearance-none rounded-full cursor-pointer accent-emerald-500"
+        aria-label="Master Volume"
+      />
+      <span class="text-[10px] font-mono font-bold text-slate-400 w-8 text-right">{{ masterVolume() }}%</span>
+    </div>
   </div>
 </div>

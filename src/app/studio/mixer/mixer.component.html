@@ -1,11 +1,21 @@
-<div class="mixer-container flex flex-col gap-4">
+<div class="mixer-container flex gap-6 p-6 bg-slate-900/50 rounded-2xl border border-white/5 overflow-x-auto">
+  <!-- Channel Strips -->
+  <div class="channels-container flex gap-4">
+    <app-channel-strip
+      *ngFor="let channel of micChannels()"
+      [channel]="channel"
+    ></app-channel-strip>
+  </div>
+
+  <div class="w-px bg-white/10 self-stretch my-4"></div>
+
   <!-- Master Fader -->
   <div
-    class="master-strip bg-neutral-700 p-4 rounded-lg flex flex-col items-center gap-2 border-2 border-purple-500"
+    class="master-strip bg-slate-800 p-4 rounded-xl flex flex-col items-center gap-3 border-2 border-emerald-500 shadow-lg shadow-emerald-500/10 min-w-[120px]"
   >
-    <h2 class="font-bold text-lg text-purple-400">MASTER</h2>
+    <h2 class="font-black text-xs tracking-widest text-emerald-400 uppercase">MASTER</h2>
     <div
-      class="fader-track h-48 w-6 bg-neutral-800 rounded-full flex justify-center py-1"
+      class="fader-track h-48 w-8 bg-slate-950 rounded-full flex justify-center py-2 relative border border-white/5"
     >
       <input
         type="range"
@@ -13,18 +23,11 @@
         min="0"
         max="100"
         [value]="masterVolume()"
-        (input)="updateMasterVolume(+$event.target.value)"
-        class="w-2 h-full"
+        (input)="onVolumeChange($event)"
+        class="w-4 h-full cursor-pointer accent-emerald-500"
+        aria-label="Master Volume"
       />
     </div>
-    <div class="text-sm font-mono">{{ masterVolume() }}</div>
-  </div>
-
-  <!-- Channel Strips -->
-  <div class="channels-container flex flex-col gap-4">
-    <app-channel-strip
-      *ngFor="let channel of micChannels()"
-      [channel]="channel"
-    ></app-channel-strip>
+    <div class="text-xs font-mono font-bold text-slate-300">{{ masterVolume() }}%</div>
   </div>
 </div>

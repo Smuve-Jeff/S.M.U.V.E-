@@ -1,14 +1,14 @@
 <div
-  class="channel-strip-container bg-neutral-800 p-3 rounded-lg flex flex-col items-center gap-3 w-40"
+  class="channel-strip-container bg-slate-800 p-4 rounded-xl flex flex-col items-center gap-4 w-36 border border-white/5 hover:border-emerald-500/30 transition-all"
 >
   <!-- Channel Label -->
-  <h3 class="font-bold text-md truncate w-full text-center">
+  <h3 class="font-black text-[10px] uppercase tracking-widest truncate w-full text-center text-slate-400">
     {{ channel.label }}
   </h3>
 
   <!-- Fader -->
   <div
-    class="fader-track h-40 w-6 bg-neutral-900 rounded-full flex justify-center py-1"
+    class="fader-track h-40 w-6 bg-slate-950 rounded-full flex justify-center py-2 border border-white/5"
   >
     <input
       type="range"
@@ -16,26 +16,28 @@
       min="0"
       max="100"
       [value]="channel.level"
-      (input)="updateLevel(+$event.target.value)"
-      class="w-2 h-full"
+      (input)="onLevelChange($event)"
+      class="w-3 h-full cursor-pointer accent-emerald-500"
+      aria-label="Channel Volume"
     />
   </div>
-  <div class="text-xs font-mono">{{ channel.level }}</div>
+  <div class="text-[10px] font-mono font-bold text-slate-500">{{ channel.level }}</div>
 
   <!-- Pan Control -->
-  <div class="pan-control w-full">
+  <div class="pan-control w-full space-y-2">
     <input
       type="range"
       min="-100"
       max="100"
       [value]="channel.pan"
-      (input)="updatePan(+$event.target.value)"
-      class="w-full h-1"
+      (input)="onPanChange($event)"
+      class="w-full h-1 bg-slate-950 appearance-none rounded-full cursor-pointer accent-sky-400"
+      aria-label="Channel Pan"
     />
-    <div class="text-xs text-center">
+    <div class="text-[9px] font-black text-center text-sky-400 tracking-tighter">
       {{
         channel.pan === 0
-          ? 'C'
+          ? 'CENTER'
           : channel.pan < 0
             ? 'L' + Math.abs(channel.pan)
             : 'R' + channel.pan
@@ -44,18 +46,24 @@
   </div>
 
   <!-- Mute and Arm Buttons -->
-  <div class="flex justify-around w-full mt-2">
+  <div class="flex gap-2 w-full">
     <button
       (click)="toggleMute()"
-      class="w-10 h-10 rounded-md font-bold text-xs"
-      [ngClass]="channel.muted ? 'bg-yellow-600' : 'bg-neutral-700'"
+      [class.bg-yellow-500]="channel.muted"
+      [class.text-black]="channel.muted"
+      [class.bg-slate-700]="!channel.muted"
+      class="flex-1 py-2 rounded-md font-black text-[9px] uppercase tracking-tighter transition-all"
+      title="Mute Channel"
     >
       MUTE
     </button>
     <button
       (click)="toggleArm()"
-      class="w-10 h-10 rounded-md font-bold text-xs"
-      [ngClass]="channel.armed ? 'bg-red-700' : 'bg-neutral-700'"
+      [class.bg-red-600]="channel.armed"
+      [class.animate-pulse]="channel.armed"
+      [class.bg-slate-700]="!channel.armed"
+      class="flex-1 py-2 rounded-md font-black text-[9px] uppercase tracking-tighter transition-all"
+      title="Arm for Recording"
     >
       ARM
     </button>

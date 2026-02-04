@@ -18,12 +18,22 @@ export class ChannelStripComponent {
     this.audioSession.updateChannelLevel(this.channel.id, newLevel);
   }
 
+  onLevelChange(event: Event) {
+    const val = (event.target as HTMLInputElement).value;
+    this.updateLevel(parseInt(val, 10));
+  }
+
   toggleMute(): void {
     this.audioSession.toggleChannelMute(this.channel.id);
   }
 
   updatePan(newPan: number): void {
     this.audioSession.updateChannelPan(this.channel.id, newPan);
+  }
+
+  onPanChange(event: Event) {
+    const val = (event.target as HTMLInputElement).value;
+    this.updatePan(parseInt(val, 10));
   }
 
   toggleArm(): void {

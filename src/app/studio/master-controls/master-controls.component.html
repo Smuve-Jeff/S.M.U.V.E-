@@ -1,32 +1,46 @@
-<div class="master-controls-container">
-  <div class="control-group">
-    <label for="master-volume-knob">Master Volume</label>
-    <input
-      id="master-volume-knob"
-      type="range"
-      min="0"
-      max="100"
-      (input)="updateMasterVolume($event)"
-    />
+<div class="master-controls-panel glass-morphism">
+  <div class="section-header">
+    <h3 class="text-xs font-black uppercase tracking-widest text-emerald-500">Master Bus DSP</h3>
   </div>
-  <div class="control-group">
-    <label for="reverb-knob">Reverb</label>
-    <input
-      id="reverb-knob"
-      type="range"
-      min="0"
-      max="1"
-      step="0.01"
-      (input)="updateReverb($event)"
-    />
-  </div>
-  <div class="control-group">
-    <app-gain-reduction-meter
-      [compressor]="compressor"
-    ></app-gain-reduction-meter>
-  </div>
-  <div class="control-group buttons">
-    <button (click)="toggleLimiter()" [class.active]="isLimiterActive">Limiter</button>
-    <button (click)="toggleSoftClip()" [class.active]="isSoftClipActive">Soft Clip</button>
+
+  <div class="controls-grid">
+    <!-- Volume -->
+    <div class="control-group">
+      <label>MASTER VOLUME</label>
+      <input type="range" min="0" max="1" step="0.01" value="0.8" (input)="updateMasterVolume($event)">
+    </div>
+
+    <!-- Ambience -->
+    <div class="control-group">
+      <label>GLOBAL AMBIENCE</label>
+      <input type="range" min="0" max="1" step="0.01" value="0.1" (input)="updateReverb($event)">
+    </div>
+
+    <!-- Processor Toggles -->
+    <div class="toggle-group">
+      <button (click)="toggleLimiter()" [class.active]="isLimiterActive()" class="dsp-btn" title="Toggle Limiter" aria-label="Toggle Limiter">
+        <i class="fas fa-microchip mr-2"></i> LIMITER
+      </button>
+      <button (click)="toggleSoftClip()" [class.active]="isSoftClipActive()" class="dsp-btn" title="Toggle Soft Clip" aria-label="Toggle Soft Clip">
+        <i class="fas fa-wave-square mr-2"></i> SOFT CLIP
+      </button>
+    </div>
+
+    <div class="meter-section">
+      <app-gain-reduction-meter [compressor]="compressor"></app-gain-reduction-meter>
+    </div>
+
+    <!-- FINISH TRACK -->
+    <div class="finish-section">
+      <button
+        (click)="finishTrack()"
+        [disabled]="isFinishing()"
+        class="finish-btn"
+        title="Finalize and export track" aria-label="Finalize and export track"
+      >
+        <i class="fas" [class.fa-check-circle]="!isFinishing()" [class.fa-spinner]="isFinishing()" [class.fa-spin]="isFinishing()"></i>
+        {{ isFinishing() ? 'FINALIZING...' : 'FINISH TRACK' }}
+      </button>
+    </div>
   </div>
 </div>

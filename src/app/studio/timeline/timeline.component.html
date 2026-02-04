@@ -1,1 +1,40 @@
-<p>timeline works!</p>
+<div class="timeline-container bg-slate-950 border border-white/5 rounded-xl overflow-hidden shadow-2xl">
+  <div class="timeline-header flex border-b border-white/5 bg-slate-900/50">
+    <div class="track-info-header w-48 p-4 font-black text-[10px] uppercase tracking-widest text-slate-500">Track List</div>
+    <div class="steps-ruler flex-grow flex">
+      <div *ngFor="let step of steps"
+           class="step-header flex-1 text-center py-2 text-[9px] font-mono border-l border-white/5"
+           [class.bg-emerald-500/10]="step % 4 === 0"
+           [class.text-emerald-400]="step % 4 === 0">
+        {{ step + 1 }}
+      </div>
+    </div>
+  </div>
+
+  <div class="tracks-grid custom-scrollbar max-h-[400px] overflow-y-auto">
+    <div *ngFor="let track of tracks()" class="track-row flex border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+      <div class="track-label w-48 p-4 flex flex-col justify-center">
+        <span class="font-bold text-xs text-slate-200 truncate">{{ track.name }}</span>
+        <span class="text-[9px] text-slate-500 uppercase tracking-tighter">{{ track.instrumentId }}</span>
+      </div>
+
+      <div class="steps-row flex-grow flex relative">
+        <!-- Playhead -->
+        <div *ngIf="currentStep() >= 0"
+             class="playhead absolute top-0 bottom-0 w-px bg-emerald-400 z-10 shadow-[0_0_10px_#10b981]"
+             [style.left.%]="(currentStep() / steps.length) * 100">
+        </div>
+
+        <div *ngFor="let step of steps"
+             (click)="toggleNote(track.id, step)"
+             class="step-cell flex-1 border-l border-white/5 cursor-pointer relative transition-all"
+             [class.bg-emerald-500/5]="step % 4 === 0">
+
+          <div *ngIf="hasNote(track.id, step)"
+               class="note-block w-4/5 h-3/4 rounded-sm bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-lg shadow-emerald-500/20 m-auto absolute inset-0">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

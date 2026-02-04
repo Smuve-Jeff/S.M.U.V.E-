@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { MixerComponent } from './mixer/mixer.component';
+import { TimelineComponent } from './timeline/timeline.component';
 import { SessionViewComponent } from './session-view/session-view.component';
 import { TransportBarComponent } from './transport-bar/transport-bar.component';
 import { MasterControlsComponent } from './master-controls/master-controls.component';
@@ -13,6 +14,7 @@ import { AudioSessionService } from './audio-session.service';
   imports: [
     CommonModule,
     MixerComponent,
+    TimelineComponent,
     SessionViewComponent,
     TransportBarComponent,
     MasterControlsComponent,
@@ -23,6 +25,11 @@ import { AudioSessionService } from './audio-session.service';
 })
 export class StudioComponent {
   audioSession = inject(AudioSessionService);
+  notes: any[] = [];
+
+  onNoteClicked(note: any) {
+    this.audioSession.onNoteClicked(note);
+  }
   isPerformanceMode = false;
 
   togglePerformanceMode() {

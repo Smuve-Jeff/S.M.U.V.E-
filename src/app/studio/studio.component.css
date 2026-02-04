@@ -1,0 +1,81 @@
+.studio-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #020617;
+  color: white;
+  overflow: hidden;
+}
+
+.studio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #0f172a;
+  border-bottom: 1px solid #1e293b;
+}
+
+.studio-header h1 {
+  font-size: 1.5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  font-style: italic;
+  color: #10b981;
+}
+
+.main-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.main-view.hidden {
+  display: none;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.studio-header button {
+  background-color: #10b981;
+  color: black;
+  border: none;
+}
+
+.studio-header button:hover {
+  background-color: #059669;
+  transform: scale(1.05);
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 1024px) {
+  .main-view {
+    padding: 1rem;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .studio-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .studio-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .studio-header button {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}

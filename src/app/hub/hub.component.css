@@ -414,3 +414,74 @@
   padding-top: 2rem;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 768px) {
+  .landing-page-container {
+    padding: 2rem 1rem;
+    gap: 4rem;
+  }
+
+  .glitch-text {
+    font-size: 2.5rem;
+  }
+
+  .section-title-aggressive {
+    font-size: 2rem;
+  }
+
+  .section-title-aggressive.large {
+    font-size: 3rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+  }
+
+  .quickstart-card {
+    padding: 1.5rem;
+  }
+
+  .radio-module {
+    padding: 1.5rem;
+  }
+
+  .track-title {
+    font-size: 1.1rem;
+  }
+
+  .radio-play-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.1rem;
+  }
+
+  .hero-split {
+    gap: 2rem;
+  }
+
+  .tha-spot-preview {
+    padding: 2rem 1rem;
+  }
+
+  .spot-features {
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .spot-feature i {
+    font-size: 2rem;
+  }
+
+  .spot-enter-btn {
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    width: 100%;
+  }
+
+  .jam-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.7rem;
+  }
+}

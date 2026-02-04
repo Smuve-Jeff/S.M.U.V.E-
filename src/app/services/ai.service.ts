@@ -9,6 +9,7 @@ import {
   effect,
 } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
+import { ReputationService } from './reputation.service';
 import { StemSeparationService } from './stem-separation.service';
 import { AudioEngineService } from './audio-engine.service';
 import { TrackNote } from './music-manager.service';
@@ -185,6 +186,7 @@ export class AiService {
   private userProfileService = inject(UserProfileService);
   private stemSeparationService = inject(StemSeparationService);
   private audioEngineService = inject(AudioEngineService);
+  private reputationService = inject(ReputationService);
 
   private _genAI = signal<GoogleGenAI | undefined>(undefined);
   private _chatInstance = signal<Chat | undefined>(undefined);
@@ -335,7 +337,15 @@ export class AiService {
     }
   }
 
+  async generateImage(prompt: string): Promise<string> {
+    console.log(`S.M.U.V.E: Generating image for prompt: "${prompt}"... `);
+    // Simulate AI generation delay
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    return `https://picsum.photos/seed/${encodeURIComponent(prompt)}/1024/1024`;
+  }
+
   async generateMusic(prompt: string): Promise<TrackNote[]> {
+    this.reputationService.addXp(100);
     // Keep the feature usable even when chat/tools aren’t available.
     if (!this.chatInstance) {
       return [

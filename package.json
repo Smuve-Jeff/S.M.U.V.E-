@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "ng serve",
-    "build": "ng build",
+    "build": "ng build && rm -rf Build && cp -r dist/app/browser Build",
     "start": "serve -s dist/app/browser",
     "preview": "ng serve --configuration=production",
     "test": "jest",

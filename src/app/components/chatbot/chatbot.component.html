@@ -21,7 +21,7 @@
   <input
     [(ngModel)]="userMessage"
     (keyup.enter)="sendMessage()"
-    placeholder="Type your message..."
+    placeholder="Type your message..." aria-label="Chat message input"
   />
-  <button class="button" (click)="sendMessage()">Send</button>
+  <button class="button" (click)="sendMessage()" aria-label="Send message">Send</button>
 </div>
