@@ -1,19 +1,47 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import { Game, Challenge, CommunityPost, BattleConfig } from './hub.models';
 import { GameService } from './game.service';
-import { UserProfileService } from '../services/user-profile.service';
+import { UserProfileService, UserProfile } from '../services/user-profile.service';
+import { DeckService } from '../services/deck.service';
+import { AudioEngineService } from '../services/audio-engine.service';
+import { UIService } from '../services/ui.service';
+import { AiService } from '../services/ai.service';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-hub',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './hub.component.html',
   styleUrls: ['./hub.component.css'],
 })
 export class HubComponent implements OnInit, OnDestroy {
+  private router = inject(Router);
+  public uiService = inject(UIService);
+  public deckService = inject(DeckService);
+  public profileService = inject(UserProfileService);
+  public gameService = inject(GameService);
+  private aiService = inject(AiService);
+
+  // Quick Start Form
+  quickProfile = signal({
+    artistName: '',
+    primaryGenre: 'Hip Hop'
+  });
+
+  // Radio State
+  isRadioPlaying = computed(() => this.deckService.deckA().isPlaying);
+  radioTrackName = computed(() => this.deckService.deckA().track?.name || 'S.M.U.V.E Radio');
+
+  // AI Jam State (Shared with Tha Spot)
+  isAIBassistEnabled = false;
+  isAIDrummerEnabled = false;
+  isAIKeyboardistEnabled = false;
+
   // Signals for UI state
   showChat = signal(false);
   showProfile = signal(false);
@@ -53,6 +81,16 @@ export class HubComponent implements OnInit, OnDestroy {
   ]);
 
   genres = [
+    'Hip Hop',
+    'R&B',
+    'Pop',
+    'Electronic',
+    'Rock',
+    'Jazz',
+    'Classical'
+  ];
+
+  gameGenres = [
     'Shooter',
     'Arcade',
     'Puzzle',
@@ -61,6 +99,7 @@ export class HubComponent implements OnInit, OnDestroy {
     'Rhythm',
     'Music Battle',
   ];
+
   sortModes: ('Popular' | 'Rating' | 'Newest')[] = [
     'Popular',
     'Rating',
@@ -91,10 +130,7 @@ export class HubComponent implements OnInit, OnDestroy {
     matchType: 'public',
   });
 
-  constructor(
-    private gameService: GameService,
-    public profileService: UserProfileService
-  ) {}
+  constructor() {}
 
   ngOnInit() {
     this.fetchGames();
@@ -185,6 +221,66 @@ export class HubComponent implements OnInit, OnDestroy {
     console.log('Starting battle with config:', this.battleConfig());
     // Future: Call a service to start the match
     this.showBattlefieldLobby.set(false);
+  }
+
+  // Quick Start Actions
+  onQuickStart() {
+    if (!this.quickProfile().artistName) {
+      alert('Please enter your Artist Name to begin!');
+      return;
+    }
+
+    const current = this.profileService.profile();
+    this.profileService.updateProfile({
+      ...current,
+      artistName: this.quickProfile().artistName,
+      primaryGenre: this.quickProfile().primaryGenre
+    });
+
+    // Smooth transition to full profile
+    this.router.navigate(['/profile']);
+  }
+
+  // Radio Actions
+  toggleRadio() {
+    this.deckService.togglePlay('A');
+  }
+
+  // AI Jam Actions
+  toggleAIBassist() {
+    this.isAIBassistEnabled = !this.isAIBassistEnabled;
+    if (this.isAIBassistEnabled) {
+      this.aiService.startAIBassist();
+    } else {
+      this.aiService.stopAIBassist();
+    }
+  }
+
+  toggleAIDrummer() {
+    this.isAIDrummerEnabled = !this.isAIDrummerEnabled;
+    if (this.isAIDrummerEnabled) {
+      this.aiService.startAIDrummer();
+    } else {
+      this.aiService.stopAIDrummer();
+    }
+  }
+
+  toggleAIKeyboardist() {
+    this.isAIKeyboardistEnabled = !this.isAIKeyboardistEnabled;
+    if (this.isAIKeyboardistEnabled) {
+      this.aiService.startAIKeyboardist();
+    } else {
+      this.aiService.stopAIKeyboardist();
+    }
+  }
+
+  // Navigation Helpers
+  goToStudio() {
+    this.router.navigate(['/studio']);
+  }
+
+  goToThaSpot() {
+    this.router.navigate(['/tha-spot']);
   }
 
   // General UI toggles
