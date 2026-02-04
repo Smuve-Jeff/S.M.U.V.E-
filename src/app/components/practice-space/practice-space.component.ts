@@ -102,12 +102,16 @@ export class PracticeSpaceComponent {
   async critiqueRehearsal() {
     this.isAnalyzing.set(true);
 
-    // Simulate AI thinking
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Simulate AI thinking
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const critique = `S.M.U.V.E Rehearsal Audit: Your vocal delivery is technically proficient, but you're playing it too safe. For a ${this.profileService.profile().primaryGenre} track, I need more grit in the bridge. Your pitch stability is solid at 92%, but your timing on the second verse is slightly rushed. Breathe, focus, and attack the next take with more aggression.`;
+      const critique = `S.M.U.V.E Rehearsal Audit: Your vocal delivery is technically proficient, but you're playing it too safe. For a ${this.profileService.profile().primaryGenre} track, I need more grit in the bridge. Your pitch stability is solid at 92%, but your timing on the second verse is slightly rushed. Breathe, focus, and attack the next take with more aggression.`;
 
-    this.speechSynthesisService.speak(critique);
-    this.isAnalyzing.set(false);
+      this.speechSynthesisService.speak(critique);
+    } finally {
+      this.isAnalyzing.set(false);
+    }
+  }
   }
 }
