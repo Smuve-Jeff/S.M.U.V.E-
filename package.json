@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "ng serve",
-    "build": "ng build && rm -rf Build && cp -r dist/app/browser Build",
-    "start": "serve -s dist/app/browser",
+    "build": "ng build",
+    "start": "serve -s Build",
     "preview": "ng serve --configuration=production",
     "test": "jest",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "deploy": "ng build --configuration=ghpages && cp dist/app/browser/index.html dist/app/browser/404.html && npx angular-cli-ghpages --dir=dist/app/browser"
+    "deploy": "ng build --configuration=ghpages && cp Build/index.html Build/404.html && npx angular-cli-ghpages --dir=Build"
   },
   "dependencies": {
     "@angular/animations": "21.1.0",
