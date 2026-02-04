@@ -113,5 +113,4 @@ export class PracticeSpaceComponent {
       this.isAnalyzing.set(false);
     }
   }
-  }
 }

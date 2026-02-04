@@ -1,0 +1,26 @@
+.sound-pad {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background-color: var(--tertiary-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  user-select: none;
+}
+
+.sound-pad:hover {
+  background-color: #4a4a4a;
+}
+
+.sound-pad:active {
+  transform: scale(0.95);
+}
+
+.sound-pad.active {
+  background-color: var(--accent-color);
+  color: white;
+  box-shadow: 0 0 10px var(--accent-color);
+}

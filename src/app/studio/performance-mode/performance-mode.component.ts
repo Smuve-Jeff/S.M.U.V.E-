@@ -1,6 +1,13 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+export interface PerformancePad {
+  id: number;
+  name: string;
+  type: 'loop' | 'one-shot';
+  isPlaying: boolean;
+}
+
 @Component({
   selector: 'app-performance-mode',
   standalone: true,
@@ -9,6 +16,6 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./performance-mode.component.css'],
 })
 export class PerformanceModeComponent {
-  @Input() notes: any[] = [];
-  @Output() noteClicked = new EventEmitter<any>();
+  @Input() pads: PerformancePad[] = [];
+  @Output() padClicked = new EventEmitter<PerformancePad>();
 }

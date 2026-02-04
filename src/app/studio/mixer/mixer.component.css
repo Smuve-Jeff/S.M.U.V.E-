@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  padding: 15px;
+  background-color: var(--secondary-bg);
+  border-left: 2px solid var(--border-color);
+  min-width: 300px;
+}
+
+h2 {
+  margin-top: 0;
+  color: var(--accent-color);
+  text-align: center;
+}
+
+.channels {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.master-controls {
+  display: flex;
+  flex-direction: column;
+}
+
+.master-controls label {
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: var(--tertiary-bg);
+  border-radius: 5px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--accent-color);
+  cursor: pointer;
+  border-radius: 50%;
+}
