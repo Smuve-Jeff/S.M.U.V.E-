@@ -2,15 +2,13 @@ import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { Game, Challenge, CommunityPost, BattleConfig } from './hub.models';
-import { GameService } from './game.service';
-import { UserProfileService, UserProfile } from '../services/user-profile.service';
+import { UserProfileService } from '../services/user-profile.service';
 import { DeckService } from '../services/deck.service';
-import { AudioEngineService } from '../services/audio-engine.service';
 import { UIService } from '../services/ui.service';
 import { AiService } from '../services/ai.service';
-import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+import { FileLoaderService } from '../services/file-loader.service';
+import { ExportService } from '../services/export.service';
+import { AudioEngineService } from '../services/audio-engine.service';
 
 @Component({
   selector: 'app-hub',
@@ -24,8 +22,10 @@ export class HubComponent implements OnInit, OnDestroy {
   public uiService = inject(UIService);
   public deckService = inject(DeckService);
   public profileService = inject(UserProfileService);
-  public gameService = inject(GameService);
-  private aiService = inject(AiService);
+  public aiService = inject(AiService);
+  private fileLoader = inject(FileLoaderService);
+  private exportService = inject(ExportService);
+  private audioEngine = inject(AudioEngineService);
 
   // Quick Start Form
   quickProfile = signal({
@@ -37,49 +37,6 @@ export class HubComponent implements OnInit, OnDestroy {
   isRadioPlaying = computed(() => this.deckService.deckA().isPlaying);
   radioTrackName = computed(() => this.deckService.deckA().track?.name || 'S.M.U.V.E Radio');
 
-  // AI Jam State (Shared with Tha Spot)
-  isAIBassistEnabled = false;
-  isAIDrummerEnabled = false;
-  isAIKeyboardistEnabled = false;
-
-  // Signals for UI state
-  showChat = signal(false);
-  showProfile = signal(false);
-  showBattlefieldLobby = signal(false);
-  selectedGame = signal<Game | undefined>(undefined);
-  selectedUserId = signal<string | undefined>(undefined);
-
-  // Game list and filtering
-  games = signal<Game[]>([]);
-  challenges = signal<Challenge[]>([
-    {
-      id: '1',
-      title: 'Remix Master',
-      description: 'Create the best remix of "Aurora"',
-      prize: '$100',
-    },
-    {
-      id: '2',
-      title: 'Top Producer',
-      description: 'Most liked beat this month',
-      prize: 'Pro Membership',
-    },
-  ]);
-  communityPosts = signal<CommunityPost[]>([
-    {
-      id: '1',
-      author: 'Dr. Dre',
-      content: 'New studio session starts now!',
-      timestamp: new Date(),
-    },
-    {
-      id: '2',
-      author: 'Kanye',
-      content: 'Vultures 2 out now.',
-      timestamp: new Date(),
-    },
-  ]);
-
   genres = [
     'Hip Hop',
     'R&B',
@@ -90,138 +47,11 @@ export class HubComponent implements OnInit, OnDestroy {
     'Classical'
   ];
 
-  gameGenres = [
-    'Shooter',
-    'Arcade',
-    'Puzzle',
-    'Arena',
-    'Runner',
-    'Rhythm',
-    'Music Battle',
-  ];
-
-  sortModes: ('Popular' | 'Rating' | 'Newest')[] = [
-    'Popular',
-    'Rating',
-    'Newest',
-  ];
-  activeFilters = signal<{ genre?: string; tag?: string; query?: string }>({});
-  sortMode = signal<'Popular' | 'Rating' | 'Newest'>('Popular');
-
-  private searchSubject = new Subject<string>();
-  private filterOrSortSubject = new Subject<void>();
-  private destroy$ = new Subject<void>();
-
-  // "Tha Battlefield" lobby state
-  musicShowcases = computed(
-    () =>
-      this.profileService
-        .profile()
-        ?.showcases.filter(
-          (s) => s.type === 'music' && s.visibility === 'public'
-        ) || []
-  );
-
-  battleConfig = signal<BattleConfig>({
-    track: null,
-    mode: 'duel',
-    roundLength: 60,
-    rounds: 1,
-    matchType: 'public',
-  });
-
   constructor() {}
 
-  ngOnInit() {
-    this.fetchGames();
+  ngOnInit() {}
 
-    this.searchSubject
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
-      .subscribe((query) => {
-        this.activeFilters.update((filters) => ({ ...filters, query }));
-        this.fetchGames();
-      });
-
-    this.filterOrSortSubject
-      .pipe(debounceTime(300), takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.fetchGames();
-      });
-  }
-
-  ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  private fetchGames() {
-    this.gameService
-      .listGames(this.activeFilters(), this.sortMode())
-      .subscribe((games) => this.games.set(games));
-  }
-
-  // Method to handle game selection
-  selectGame(game: Game) {
-    if (game.id === '14') {
-      // 'Tha Battlefield'
-      this.showBattlefieldLobby.set(true);
-      this.selectedGame.set(game);
-    } else {
-      this.selectedGame.set(game);
-    }
-  }
-
-  deselectGame() {
-    this.selectedGame.set(undefined);
-  }
-
-  // Filter and sort methods
-  onSearch(event: Event) {
-    const query = (event.target as HTMLInputElement).value;
-    this.searchSubject.next(query);
-  }
-
-  setGenre(genre?: string) {
-    this.activeFilters.update((filters) => ({
-      ...filters,
-      genre: this.activeFilters().genre === genre ? undefined : genre,
-    }));
-    this.filterOrSortSubject.next();
-  }
-
-  setSort(mode: 'Popular' | 'Rating' | 'Newest') {
-    this.sortMode.set(mode);
-    this.filterOrSortSubject.next();
-  }
-
-  // "Tha Battlefield" lobby methods
-  updateBattleConfig<K extends keyof BattleConfig>(
-    field: K,
-    value: BattleConfig[K] | string
-  ) {
-    if (field === 'track' && typeof value === 'string') {
-      const track = this.musicShowcases().find((t) => t.url === value);
-      this.battleConfig.update((config) => ({
-        ...config,
-        track: track || null,
-      }));
-    } else {
-      this.battleConfig.update((config) => ({
-        ...config,
-        [field]: value as BattleConfig[K],
-      }));
-    }
-  }
-
-  startBattle() {
-    if (!this.battleConfig().track) {
-      alert('Please select a track to battle with!');
-      return;
-    }
-    console.log('Starting battle with config:', this.battleConfig());
-    // Future: Call a service to start the match
-    this.showBattlefieldLobby.set(false);
-  }
+  ngOnDestroy() {}
 
   // Quick Start Actions
   onQuickStart() {
@@ -246,31 +76,68 @@ export class HubComponent implements OnInit, OnDestroy {
     this.deckService.togglePlay('A');
   }
 
+  async onUpload() {
+    try {
+      const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
+      if (files.length > 0) {
+        const file = files[0];
+        const buffer = await this.fileLoader.decodeToAudioBuffer(this.audioEngine.getContext(), file);
+        this.deckService.loadDeckBuffer('A', buffer, file.name);
+        if (!this.isRadioPlaying()) {
+          this.toggleRadio();
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to load audio file.');
+    }
+  }
+
+  async onDownload() {
+    try {
+      const buffer = this.audioEngine.getDeck('A').buffer;
+      if (!buffer) {
+        alert('No track loaded to download!');
+        return;
+      }
+
+      // Use any to access private-ish method for buffer to wav conversion
+      const wavBuffer = this.exportService.audioBufferToWav(buffer);
+      const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+      const url = URL.createObjectURL(wavBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = this.radioTrackName() + '.wav';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Failed to download audio file.');
+    }
+  }
+
   // AI Jam Actions
   toggleAIBassist() {
-    this.isAIBassistEnabled = !this.isAIBassistEnabled;
-    if (this.isAIBassistEnabled) {
-      this.aiService.startAIBassist();
-    } else {
+    if (this.aiService.isAIBassistActive()) {
       this.aiService.stopAIBassist();
+    } else {
+      this.aiService.startAIBassist();
     }
   }
 
   toggleAIDrummer() {
-    this.isAIDrummerEnabled = !this.isAIDrummerEnabled;
-    if (this.isAIDrummerEnabled) {
-      this.aiService.startAIDrummer();
-    } else {
+    if (this.aiService.isAIDrummerActive()) {
       this.aiService.stopAIDrummer();
+    } else {
+      this.aiService.startAIDrummer();
     }
   }
 
   toggleAIKeyboardist() {
-    this.isAIKeyboardistEnabled = !this.isAIKeyboardistEnabled;
-    if (this.isAIKeyboardistEnabled) {
-      this.aiService.startAIKeyboardist();
-    } else {
+    if (this.aiService.isAIKeyboardistActive()) {
       this.aiService.stopAIKeyboardist();
+    } else {
+      this.aiService.startAIKeyboardist();
     }
   }
 
@@ -281,14 +148,5 @@ export class HubComponent implements OnInit, OnDestroy {
 
   goToThaSpot() {
     this.router.navigate(['/tha-spot']);
-  }
-
-  // General UI toggles
-  toggleChat(visible: boolean) {
-    this.showChat.set(visible);
-  }
-
-  toggleProfile(visible: boolean) {
-    this.showProfile.set(visible);
   }
 }

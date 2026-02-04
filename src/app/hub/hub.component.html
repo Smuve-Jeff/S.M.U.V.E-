@@ -38,7 +38,7 @@
     <div class="radio-module glass">
       <div class="radio-visualizer">
         <div class="visualizer-bars">
-          <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]" class="bar"></div>
+          <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]" class="bar"></div>
         </div>
       </div>
 
@@ -48,9 +48,19 @@
           <h3 class="track-title">{{radioTrackName()}}</h3>
         </div>
 
-        <button (click)="toggleRadio()" class="radio-play-btn" [class.playing]="isRadioPlaying()">
-          <i class="fas" [ngClass]="isRadioPlaying() ? 'fa-pause' : 'fa-play'"></i>
-        </button>
+        <div class="flex items-center gap-4">
+          <button (click)="onUpload()" class="radio-util-btn" title="Upload MP3/WAV">
+            <i class="fas fa-upload"></i>
+          </button>
+
+          <button (click)="toggleRadio()" class="radio-play-btn" [class.playing]="isRadioPlaying()">
+            <i class="fas" [ngClass]="isRadioPlaying() ? 'fa-pause' : 'fa-play'"></i>
+          </button>
+
+          <button (click)="onDownload()" class="radio-util-btn" title="Download WAV">
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -116,13 +126,13 @@
       <div class="jam-controls-container">
         <h4 class="text-xs font-bold text-emerald-400 mb-4 tracking-widest uppercase">Quick AI Jam</h4>
         <div class="flex justify-center gap-4 mb-8">
-          <button (click)="toggleAIBassist()" [class.active]="isAIBassistEnabled" class="jam-btn">
+          <button (click)="toggleAIBassist()" [class.active]="aiService.isAIBassistActive()" class="jam-btn">
             <i class="fas fa-guitar mr-2"></i> BASSIST
           </button>
-          <button (click)="toggleAIDrummer()" [class.active]="isAIDrummerEnabled" class="jam-btn">
+          <button (click)="toggleAIDrummer()" [class.active]="aiService.isAIDrummerActive()" class="jam-btn">
             <i class="fas fa-drum mr-2"></i> DRUMMER
           </button>
-          <button (click)="toggleAIKeyboardist()" [class.active]="isAIKeyboardistEnabled" class="jam-btn">
+          <button (click)="toggleAIKeyboardist()" [class.active]="aiService.isAIKeyboardistActive()" class="jam-btn">
             <i class="fas fa-keyboard mr-2"></i> KEYBOARDIST
           </button>
         </div>
