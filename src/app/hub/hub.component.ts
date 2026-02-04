@@ -6,6 +6,9 @@ import { UserProfileService } from '../services/user-profile.service';
 import { DeckService } from '../services/deck.service';
 import { UIService } from '../services/ui.service';
 import { AiService } from '../services/ai.service';
+import { FileLoaderService } from '../services/file-loader.service';
+import { ExportService } from '../services/export.service';
+import { AudioEngineService } from '../services/audio-engine.service';
 
 @Component({
   selector: 'app-hub',
@@ -20,6 +23,9 @@ export class HubComponent implements OnInit, OnDestroy {
   public deckService = inject(DeckService);
   public profileService = inject(UserProfileService);
   public aiService = inject(AiService);
+  private fileLoader = inject(FileLoaderService);
+  private exportService = inject(ExportService);
+  private audioEngine = inject(AudioEngineService);
 
   // Quick Start Form
   quickProfile = signal({
@@ -68,6 +74,46 @@ export class HubComponent implements OnInit, OnDestroy {
   // Radio Actions
   toggleRadio() {
     this.deckService.togglePlay('A');
+  }
+
+  async onUpload() {
+    try {
+      const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
+      if (files.length > 0) {
+        const file = files[0];
+        const buffer = await this.fileLoader.decodeToAudioBuffer(this.audioEngine.getContext(), file);
+        this.deckService.loadDeckBuffer('A', buffer, file.name);
+        if (!this.isRadioPlaying()) {
+          this.toggleRadio();
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to load audio file.');
+    }
+  }
+
+  async onDownload() {
+    try {
+      const buffer = this.audioEngine.getDeck('A').buffer;
+      if (!buffer) {
+        alert('No track loaded to download!');
+        return;
+      }
+
+      // Use any to access private-ish method for buffer to wav conversion
+      const wavBuffer = this.exportService.audioBufferToWav(buffer);
+      const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+      const url = URL.createObjectURL(wavBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = this.radioTrackName() + '.wav';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Failed to download audio file.');
+    }
   }
 
   // AI Jam Actions

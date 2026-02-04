@@ -45,7 +45,7 @@ export class ExportService {
     return new Blob([wav], { type: 'audio/wav' });
   }
 
-  private audioBufferToWav(buffer: AudioBuffer): ArrayBuffer {
+  public audioBufferToWav(buffer: AudioBuffer): ArrayBuffer {
     const numOfChan = buffer.numberOfChannels;
     const sampleRate = buffer.sampleRate;
     const length = buffer.length * numOfChan * 2 + 44;
