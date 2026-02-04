@@ -23,6 +23,11 @@ import { AudioSessionService } from './audio-session.service';
 })
 export class StudioComponent {
   audioSession = inject(AudioSessionService);
+  notes: any[] = [];
+
+  onNoteClicked(note: any) {
+    this.audioSession.onNoteClicked(note);
+  }
   isPerformanceMode = false;
 
   togglePerformanceMode() {

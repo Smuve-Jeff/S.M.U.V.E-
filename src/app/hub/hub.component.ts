@@ -48,6 +48,10 @@ export class HubComponent implements OnInit, OnDestroy {
 
   genres = ['Hip Hop', 'R&B', 'Pop', 'Electronic', 'Rock', 'Jazz', 'Classical'];
 
+  updateQuickProfile(field: string, value: string) {
+    this.quickProfile.update(p => ({ ...p, [field]: value }));
+  }
+
   constructor() {}
 
   ngOnInit() {}

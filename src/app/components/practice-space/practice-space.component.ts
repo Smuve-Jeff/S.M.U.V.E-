@@ -2,6 +2,8 @@ import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserProfileService } from '../../services/user-profile.service';
+import { AiService } from '../../services/ai.service';
+import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 
 interface VocalWarmup {
   id: string;
@@ -19,25 +21,13 @@ interface VocalWarmup {
 })
 export class PracticeSpaceComponent {
   private profileService = inject(UserProfileService);
+  private aiService = inject(AiService);
+  private speechSynthesisService = inject(SpeechSynthesisService);
 
   lyrics = signal<string>('');
   memorizeMode = signal(false);
-
   processedLyrics = signal<string>('');
-
-  private updateProcessedLyrics() {
-    if (!this.memorizeMode()) {
-      this.processedLyrics.set(this.lyrics());
-      return;
-    }
-
-    const processed = this.lyrics()
-      .split(' ')
-      .map((word) => (word.length > 3 && Math.random() > 0.7 ? '_____' : word))
-      .join(' ');
-
-    this.processedLyrics.set(processed);
-  }
+  isAnalyzing = signal(false);
 
   warmups: VocalWarmup[] = [
     {
@@ -92,11 +82,36 @@ export class PracticeSpaceComponent {
 
   toggleMemorize() {
     this.memorizeMode.update((v) => !v);
+    this.updateProcessedLyrics();
   }
 
-  critiqueRehearsal() {
-    alert(
-      'S.M.U.V.E Analysis: Your pitch stability is at 88%. I recommend focusing on breath support during the bridge. Your emotional delivery is peak, but watch your tempo in the second verse.'
-    );
+  updateProcessedLyrics() {
+    if (!this.memorizeMode()) {
+      this.processedLyrics.set(this.lyrics());
+      return;
+    }
+
+    const processed = this.lyrics()
+      .split(' ')
+      .map((word) => (word.length > 3 && Math.random() > 0.4 ? '_____' : word))
+      .join(' ');
+
+    this.processedLyrics.set(processed);
+  }
+
+  async critiqueRehearsal() {
+    this.isAnalyzing.set(true);
+
+    try {
+      // Simulate AI thinking
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const critique = `S.M.U.V.E Rehearsal Audit: Your vocal delivery is technically proficient, but you're playing it too safe. For a ${this.profileService.profile().primaryGenre} track, I need more grit in the bridge. Your pitch stability is solid at 92%, but your timing on the second verse is slightly rushed. Breathe, focus, and attack the next take with more aggression.`;
+
+      this.speechSynthesisService.speak(critique);
+    } finally {
+      this.isAnalyzing.set(false);
+    }
+  }
   }
 }
