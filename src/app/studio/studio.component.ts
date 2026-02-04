@@ -1,4 +1,4 @@
-import { CommonModule } from "@angular/common";
+import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { MixerComponent } from './mixer/mixer.component';
 import { SessionViewComponent } from './session-view/session-view.component';

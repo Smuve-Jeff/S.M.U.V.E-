@@ -1,4 +1,11 @@
-import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  signal,
+  computed,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -30,22 +37,16 @@ export class HubComponent implements OnInit, OnDestroy {
   // Quick Start Form
   quickProfile = signal({
     artistName: '',
-    primaryGenre: 'Hip Hop'
+    primaryGenre: 'Hip Hop',
   });
 
   // Radio State
   isRadioPlaying = computed(() => this.deckService.deckA().isPlaying);
-  radioTrackName = computed(() => this.deckService.deckA().track?.name || 'S.M.U.V.E Radio');
+  radioTrackName = computed(
+    () => this.deckService.deckA().track?.name || 'S.M.U.V.E Radio'
+  );
 
-  genres = [
-    'Hip Hop',
-    'R&B',
-    'Pop',
-    'Electronic',
-    'Rock',
-    'Jazz',
-    'Classical'
-  ];
+  genres = ['Hip Hop', 'R&B', 'Pop', 'Electronic', 'Rock', 'Jazz', 'Classical'];
 
   constructor() {}
 
@@ -64,7 +65,7 @@ export class HubComponent implements OnInit, OnDestroy {
     this.profileService.updateProfile({
       ...current,
       artistName: this.quickProfile().artistName,
-      primaryGenre: this.quickProfile().primaryGenre
+      primaryGenre: this.quickProfile().primaryGenre,
     });
 
     // Smooth transition to full profile
@@ -81,7 +82,10 @@ export class HubComponent implements OnInit, OnDestroy {
       const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
       if (files.length > 0) {
         const file = files[0];
-        const buffer = await this.fileLoader.decodeToAudioBuffer(this.audioEngine.getContext(), file);
+        const buffer = await this.fileLoader.decodeToAudioBuffer(
+          this.audioEngine.getContext(),
+          file
+        );
         this.deckService.loadDeckBuffer('A', buffer, file.name);
         if (!this.isRadioPlaying()) {
           this.toggleRadio();

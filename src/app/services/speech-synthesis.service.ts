@@ -17,11 +17,12 @@ export class SpeechSynthesisService {
 
     // Attempt to find a natural-sounding voice
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(
-      (v) =>
-        (v.name.includes('Google') || v.name.includes('Natural')) &&
-        v.lang.startsWith('en')
-    ) || voices.find((v) => v.lang.startsWith('en'));
+    const preferredVoice =
+      voices.find(
+        (v) =>
+          (v.name.includes('Google') || v.name.includes('Natural')) &&
+          v.lang.startsWith('en')
+      ) || voices.find((v) => v.lang.startsWith('en'));
 
     if (preferredVoice) {
       utterance.voice = preferredVoice;
