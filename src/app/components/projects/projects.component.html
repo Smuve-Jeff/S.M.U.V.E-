@@ -41,7 +41,7 @@
         >
           <input
             type="checkbox"
-            [checked]="task.completed"
+            [checked]="task.completed" aria-label="Toggle task status"
             (change)="toggleTask(task)"
             class="w-5 h-5 text-purple-600 bg-neutral-700 border-neutral-600 rounded focus:ring-purple-500"
           />

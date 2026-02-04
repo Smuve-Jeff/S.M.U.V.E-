@@ -10,11 +10,11 @@
         <div class="flex flex-col md:flex-row gap-4">
           <input
             type="text"
-            [(ngModel)]="quickProfile().artistName"
+            [ngModel]="quickProfile().artistName" (ngModelChange)="updateQuickProfile('artistName', $event)"
             placeholder="ENTER ARTIST NAME"
             class="hero-input"
           >
-          <select [(ngModel)]="quickProfile().primaryGenre" class="hero-select">
+          <select [ngModel]="quickProfile().primaryGenre" (ngModelChange)="updateQuickProfile('primaryGenre', $event)" class="hero-select">
             <option *ngFor="let genre of genres" [value]="genre">{{genre}}</option>
           </select>
           <button (click)="onQuickStart()" class="hero-cta-button">

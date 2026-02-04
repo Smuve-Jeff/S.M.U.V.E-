@@ -98,4 +98,9 @@ export class AudioSessionService {
       channels.map((ch) => (ch.id === id ? { ...ch, armed: !ch.armed } : ch))
     );
   }
+
+  onNoteClicked(note: any): void {
+    console.log('AudioSession: Note clicked:', note);
+    this.instrumentService.play(0, note.midi || 60, note.velocity || 0.8);
+  }
 }

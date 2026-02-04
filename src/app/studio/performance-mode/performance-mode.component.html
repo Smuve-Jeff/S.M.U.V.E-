@@ -1,1 +1,10 @@
-<p>performance-mode works!</p>
+<div class="performance-grid">
+  <div *ngFor="let note of notes"
+       class="performance-pad"
+       (click)="noteClicked.emit(note)">
+    {{ note.name || 'PAD' }}
+  </div>
+  <div *ngIf="notes.length === 0" class="empty-state">
+    <p>No performance pads mapped. Load an instrument to begin.</p>
+  </div>
+</div>

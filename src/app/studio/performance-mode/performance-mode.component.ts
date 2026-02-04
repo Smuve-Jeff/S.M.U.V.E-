@@ -1,10 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-performance-mode',
   standalone: true,
-  imports: [],
+  imports: [CommonModule],
   templateUrl: './performance-mode.component.html',
-  styleUrl: './performance-mode.component.css',
+  styleUrls: ['./performance-mode.component.css'],
 })
-export class PerformanceModeComponent {}
+export class PerformanceModeComponent {
+  @Input() notes: any[] = [];
+  @Output() noteClicked = new EventEmitter<any>();
+}
