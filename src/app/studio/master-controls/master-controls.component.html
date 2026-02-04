@@ -38,7 +38,7 @@
         class="finish-btn"
         title="Finalize and export track"
       >
-        <i class="fas" [class.fa-check-circle]="!isFinishing()" [class.fa-spinner]="isFinishing()" [class.fa-spin]="isFinishing()"></i>
+        <i class="fas" [ngClass]="{'fa-check-circle': !isFinishing(), 'fa-spinner fa-spin': isFinishing()}"></i>
         {{ isFinishing() ? 'FINALIZING...' : 'FINISH TRACK' }}
       </button>
     </div>
