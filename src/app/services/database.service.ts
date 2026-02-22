@@ -13,23 +13,19 @@ export class DatabaseService {
   async saveUserProfile(profile: UserProfile): Promise<void> {
     const user = this.authService.currentUser();
     if (user) {
-      // Here you would implement the logic to save the user profile to your database.
-      // For example, using Firestore:
-      // await this.firestore.collection('users').doc(user.uid).set(profile);
-      console.log('User profile saved:', profile);
+      localStorage.setItem('smuve_user_profile', JSON.stringify(profile));
+      console.log('User profile saved to localStorage:', profile);
     }
   }
 
   async loadUserProfile(): Promise<UserProfile | null> {
     const user = this.authService.currentUser();
     if (user) {
-      // Here you would implement the logic to load the user profile from your database.
-      // For example, using Firestore:
-      // const doc = await this.firestore.collection('users').doc(user.uid).get();
-      // if (doc.exists) {
-      //   return doc.data() as UserProfile;
-      // }
-      console.log('User profile loaded for user:', user.id);
+      const profileData = localStorage.getItem('smuve_user_profile');
+      if (profileData) {
+        console.log('User profile loaded from localStorage for user:', user.id);
+        return JSON.parse(profileData);
+      }
     }
     return null;
   }
