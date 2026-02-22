@@ -210,7 +210,7 @@ export class GameService implements OnDestroy {
         break;
       case 'Newest':
         // For mock, just use ID descending as proxy for newness
-        filtered.sort((a, b) => b.id.localeCompare(a.id));
+        filtered.sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10));
         break;
     }
 
