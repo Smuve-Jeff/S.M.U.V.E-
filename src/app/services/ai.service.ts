@@ -748,10 +748,6 @@ Core Trends:\n${coreTrendsList || 'No trends analyzed yet.'}`;
       ) as unknown as GoogleGenAI;
 
       this._genAI.set(genAIInstance);
-      const userProfile = this.userProfileService.profile();
-      if (userProfile) {
-        this.initializeChat(userProfile);
-      }
 
       console.log('AiService: GoogleGenerativeAI client initialized.');
     } catch (error) {

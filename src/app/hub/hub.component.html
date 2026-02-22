@@ -1,66 +1,13 @@
-<div class="landing-page-container">
-  <!-- SECTION 1: ARTIST PROFILE QUICK START -->
-  <section class="hero-section profile-quickstart wow animate__animated animate__fadeIn">
-    <div class="hero-content">
-      <h1 class="glitch-text" data-text="IGNITE YOUR CAREER">IGNITE YOUR CAREER</h1>
-      <p class="hero-subtitle">The ultimate AI-powered studio for the next generation of legends.</p>
+<div class="hub-container">
+  <h1 class="hub-section-title">S.M.U.V.E 2.0 Hub</h1>
 
-      <div class="quickstart-card glass-morphism">
-        <h3 class="text-emerald-400 font-bold mb-4 uppercase tracking-widest">Quick Start Profile</h3>
-        <div class="flex flex-col md:flex-row gap-4">
-          <input
-            type="text"
-            [ngModel]="quickProfile().artistName" (ngModelChange)="updateQuickProfile('artistName', $event)"
-            placeholder="ENTER ARTIST NAME"
-            class="hero-input"
-          >
-          <select [ngModel]="quickProfile().primaryGenre" (ngModelChange)="updateQuickProfile('primaryGenre', $event)" class="hero-select">
-            <option *ngFor="let genre of genres" [value]="genre">{{genre}}</option>
-          </select>
-          <button (click)="onQuickStart()" class="hero-cta-button">
-            LAUNCH <i class="fas fa-rocket ml-2"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Animated background element -->
-    <div class="hero-visual-accent"></div>
-  </section>
-
-  <!-- SECTION 2: GLOBAL RADIO PLAYER -->
-  <section class="hub-section radio-section wow animate__animated animate__fadeInUp">
-    <div class="section-header">
-      <h2 class="section-title-aggressive">Global Radio</h2>
-      <span class="live-indicator">LIVE</span>
-    </div>
-
-    <div class="radio-module glass">
-      <div class="radio-visualizer">
-        <div class="visualizer-bars">
-          <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]" class="bar"></div>
-        </div>
-      </div>
-
-      <div class="radio-controls">
-        <div class="track-info">
-          <span class="now-playing-label">NOW PLAYING</span>
-          <h3 class="track-title">{{radioTrackName()}}</h3>
-        </div>
-
-        <div class="flex items-center gap-4">
-          <button (click)="onUpload()" class="radio-util-btn" title="Upload MP3/WAV">
-            <i class="fas fa-upload"></i>
-          </button>
-
-          <button (click)="toggleRadio()" class="radio-play-btn" [class.playing]="isRadioPlaying()">
-            <i class="fas" [ngClass]="isRadioPlaying() ? 'fa-pause' : 'fa-play'"></i>
-          </button>
-
-          <button (click)="onDownload()" class="radio-util-btn" title="Download WAV">
-            <i class="fas fa-download"></i>
-          </button>
-        </div>
+  <!-- Games Section -->
+  <section class="hub-section wow animate__animated animate__fadeInUp">
+    <h2 class="hub-section-title">Featured Games & Challenges</h2>
+    <div class="games-grid">
+      <div *ngFor="let game of games()" class="game-card">
+        <h3 class="game-title">{{ game.name }}</h3>
+        <p class="game-description">{{ game.description }}</p>
       </div>
     </div>
   </section>
