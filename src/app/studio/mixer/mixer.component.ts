@@ -1,7 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioSessionService } from '../audio-session.service';
 import { ChannelStripComponent } from '../channel-strip/channel-strip.component';
+import { Clip } from '../instrument.service';
 
 @Component({
   selector: 'app-mixer',
@@ -13,6 +14,7 @@ import { ChannelStripComponent } from '../channel-strip/channel-strip.component'
 export class MixerComponent {
   private readonly audioSession = inject(AudioSessionService);
 
+  @Input() activeClip: Clip | null = null;
   micChannels = this.audioSession.micChannels;
   masterVolume = this.audioSession.masterVolume;
 

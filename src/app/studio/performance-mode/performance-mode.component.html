@@ -1,1 +1,16 @@
-<p>performance-mode works!</p>
+<div class="performance-grid">
+  <div *ngFor="let pad of pads" 
+       class="performance-pad" 
+       [ngClass]="{
+         'loop': pad.type === 'loop',
+         'one-shot': pad.type === 'one-shot',
+         'active': pad.isPlaying
+       }"
+       (click)="padClicked.emit(pad)">
+    <div class="pad-name">{{ pad.name || 'PAD' }}</div>
+    <div class="pad-status-indicator"></div>
+  </div>
+  <div *ngIf="pads.length === 0" class="empty-state">
+    <p>No performance pads mapped. Load an instrument or clips to begin.</p>
+  </div>
+</div>

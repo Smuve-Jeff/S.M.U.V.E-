@@ -44,8 +44,10 @@
               <div class="text-[10px] text-neutral-500">{{ s.date }}</div>
             </div>
             <div class="text-xs px-2 py-1 rounded"
-                 [class.bg-yellow-500/20]="s.status === 'Pending'" [class.text-yellow-500]="s.status === 'Pending'"
-                 [class.bg-blue-500/20]="s.status === 'Reviewing'" [class.text-blue-500]="s.status === 'Reviewing'">
+                 [ngClass]="{
+                   'bg-yellow-500/20 text-yellow-500': s.status === 'Pending',
+                   'bg-blue-500/20 text-blue-500': s.status === 'Reviewing'
+                 }">
               {{ s.status }}
             </div>
           </div>

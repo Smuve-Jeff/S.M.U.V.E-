@@ -12,41 +12,82 @@
     </div>
   </section>
 
-  <!-- Challenges Section -->
-  <section
-    class="hub-section wow animate__animated animate__fadeInUp"
-    data-wow-delay="0.2s"
-  >
-    <h2 class="hub-section-title">Active Challenges</h2>
-    <div class="challenges-list">
-      <div *ngFor="let challenge of challenges()" class="challenge-item">
-        <div>
-          <h3 class="challenge-title">{{ challenge.title }}</h3>
-          <p class="game-description">{{ challenge.description }}</p>
-        </div>
-        <div class="challenge-prize">
-          <i class="fas fa-trophy"></i> {{ challenge.prize }}
+  <!-- SECTION 3: DJ TURNTABLES HERO -->
+  <section class="hub-section dj-hero wow animate__animated animate__fadeInUp" data-wow-delay="0.1s">
+    <div class="hero-split">
+      <div class="hero-text-content">
+        <h2 class="section-title-aggressive">PRO DJ DECKS</h2>
+        <p>Master the mix with our high-fidelity turntables and real-time stem separation.</p>
+        <button routerLink="/studio" class="btn-outline-emerald mt-4">ENTER THE BOOTH</button>
+      </div>
+      <div class="hero-image-container">
+        <div class="deck-preview-graphic">
+          <div class="platter-ring"></div>
+          <div class="fader-track"></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Community Feed Section -->
-  <section
-    class="hub-section wow animate__animated animate__fadeInUp"
-    data-wow-delay="0.4s"
-  >
-    <h2 class="hub-section-title">Community Buzz</h2>
-    <div class="community-feed">
-      <div *ngFor="let post of communityPosts()" class="community-post">
-        <div class="post-header">
-          <span class="post-author">{{ post.author }}</span>
-          <span class="post-timestamp">{{
-            post.timestamp | date: 'short'
-          }}</span>
+  <!-- SECTION 4: DAW INTERFACE HERO -->
+  <section class="hub-section daw-hero wow animate__animated animate__fadeInUp" data-wow-delay="0.2s">
+    <div class="hero-split reverse">
+      <div class="hero-image-container">
+        <div class="daw-preview-graphic">
+          <div class="piano-keys-teaser"></div>
+          <div class="automation-lines"></div>
         </div>
-        <p class="post-content">{{ post.content }}</p>
       </div>
+      <div class="hero-text-content">
+        <h2 class="section-title-aggressive">THE STUDIO</h2>
+        <p>A full-featured DAW with AI-assisted composition and professional mastering.</p>
+        <button routerLink="/studio" class="btn-primary-emerald mt-4">START PRODUCING</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: THA SPOT -->
+  <section class="hub-section tha-spot-section wow animate__animated animate__fadeInUp" data-wow-delay="0.3s">
+    <div class="section-header center">
+      <h2 class="section-title-aggressive large">THA SPOT</h2>
+      <p class="text-center text-emerald-400/80 uppercase tracking-tighter">The Ultimate Interaction Hub</p>
+    </div>
+
+    <div class="tha-spot-preview glass">
+      <div class="spot-features">
+        <div class="spot-feature">
+          <i class="fas fa-gamepad"></i>
+          <span>PRO GAMING</span>
+        </div>
+        <div class="spot-feature">
+          <i class="fas fa-users"></i>
+          <span>AI JAM SESSIONS</span>
+        </div>
+        <div class="spot-feature">
+          <i class="fas fa-trophy"></i>
+          <span>BATTLE ARENA</span>
+        </div>
+      </div>
+
+      <!-- Quick AI Jam Controls -->
+      <div class="jam-controls-container">
+        <h4 class="text-xs font-bold text-emerald-400 mb-4 tracking-widest uppercase">Quick AI Jam</h4>
+        <div class="flex justify-center gap-4 mb-8">
+          <button (click)="toggleAIBassist()" [class.active]="aiService.isAIBassistActive()" class="jam-btn">
+            <i class="fas fa-guitar mr-2"></i> BASSIST
+          </button>
+          <button (click)="toggleAIDrummer()" [class.active]="aiService.isAIDrummerActive()" class="jam-btn">
+            <i class="fas fa-drum mr-2"></i> DRUMMER
+          </button>
+          <button (click)="toggleAIKeyboardist()" [class.active]="aiService.isAIKeyboardistActive()" class="jam-btn">
+            <i class="fas fa-keyboard mr-2"></i> KEYBOARDIST
+          </button>
+        </div>
+      </div>
+
+      <button (click)="goToThaSpot()" class="spot-enter-btn">
+        ENTER THA SPOT <i class="fas fa-bolt ml-2"></i>
+      </button>
     </div>
   </section>
 </div>

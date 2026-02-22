@@ -6,6 +6,7 @@ import { ArpeggiatorComponent } from './arpeggiator.component';
 const routes: Routes = [{ path: '', component: ArpeggiatorComponent }];
 
 @NgModule({
-  imports: [CommonModule, RouterModule.forChild(routes), ArpeggiatorComponent],
+  declarations: [ArpeggiatorComponent],
+  imports: [CommonModule, RouterModule.forChild(routes)],
 })
 export class ArpeggiatorModule {}

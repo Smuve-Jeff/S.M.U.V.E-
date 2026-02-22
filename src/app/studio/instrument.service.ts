@@ -1,85 +1,81 @@
-import { Injectable, OnDestroy } from '@angular/core';
-import { Instrument } from './instrument';
-import { SubtractiveSynth, OscillatorType } from './subtractive-synth';
-import { Compressor } from './compressor';
-import { Reverb } from './reverb';
+import { Injectable } from '@angular/core';
+
+export interface Clip {
+  id: number;
+  name: string;
+  instrument: 'synth' | 'sampler';
+  synthParams?: {
+    oscillator: string;
+    attack: number;
+    decay: number;
+    sustain: number;
+    release: number;
+  };
+  // Add other clip-related properties here
+}
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
-export class InstrumentService implements OnDestroy {
-  private readonly audioContext = new AudioContext();
-  private readonly instruments: Instrument[] = [];
-  private readonly masterVCA: GainNode;
-  private readonly compressor: Compressor;
-  private readonly reverb: Reverb;
+export class InstrumentService {
+  private audioContext: AudioContext;
+  private masterGain: GainNode;
+  private reverb: ConvolverNode;
+  private compressor: DynamicsCompressorNode;
+  private reverbMix: GainNode;
 
   constructor() {
-    this.masterVCA = this.audioContext.createGain();
-    this.compressor = new Compressor(this.audioContext);
-    this.reverb = new Reverb(this.audioContext);
+    this.audioContext = new AudioContext();
+    this.masterGain = this.audioContext.createGain();
+    this.masterGain.gain.value = 0.8; // Default volume
 
-    // For now, we'll create a single instance of the SubtractiveSynth
-    const synth = new SubtractiveSynth(this.audioContext);
-    this.instruments.push(synth);
+    this.compressor = this.audioContext.createDynamicsCompressor();
+    this.compressor.connect(this.masterGain);
 
-    // Connect the synth to the effects chain
-    synth.connect(this.compressor.input);
-    this.compressor.connect(this.reverb.input);
-    this.reverb.connect(this.masterVCA);
+    this.reverb = this.audioContext.createConvolver();
+    // TODO: Load an impulse response for the reverb
+    this.reverbMix = this.audioContext.createGain();
+    this.reverbMix.gain.value = 0; // Default dry
+    this.reverb.connect(this.reverbMix);
+    this.reverbMix.connect(this.compressor);
   }
 
   getAudioContext(): AudioContext {
     return this.audioContext;
   }
 
-  getCompressor(): DynamicsCompressorNode {
-    return this.compressor.compressor;
-  }
-
-  setReverbMix(mix: number): void {
-    this.reverb.setMix(mix);
-  }
-
-  setMasterVolume(volume: number): void {
-    this.masterVCA.gain.setTargetAtTime(
-      volume / 100,
-      this.audioContext.currentTime,
-      0.01
-    );
-  }
-
   connect(destination: AudioNode) {
-    this.masterVCA.connect(destination);
+    this.masterGain.connect(destination);
   }
 
-  play(instrumentIndex: number, note: number, velocity: number): void {
-    if (this.instruments[instrumentIndex]) {
-      this.instruments[instrumentIndex].play(note, velocity);
-    }
+  getCompressor(): DynamicsCompressorNode {
+      return this.compressor;
   }
 
-  stop(instrumentIndex: number, note: number): void {
-    if (this.instruments[instrumentIndex]) {
-      this.instruments[instrumentIndex].stop(note);
-    }
+  setMasterVolume(volume: number) {
+    this.masterGain.gain.setValueAtTime(volume / 100, this.audioContext.currentTime);
   }
 
-  setFilterCutoff(instrumentIndex: number, cutoff: number): void {
-    const instrument = this.instruments[instrumentIndex];
-    if (instrument instanceof SubtractiveSynth) {
-      instrument.setFilterCutoff(cutoff);
-    }
+  setReverbMix(mix: number) {
+    this.reverbMix.gain.setValueAtTime(mix, this.audioContext.currentTime);
   }
 
-  setOscillatorType(instrumentIndex: number, type: OscillatorType): void {
-    const instrument = this.instruments[instrumentIndex];
-    if (instrument instanceof SubtractiveSynth) {
-      instrument.setOscillatorType(type);
-    }
-  }
+  play(time: number, midi: number, velocity: number) {
+    // A simple synth for demonstration
+    const osc = this.audioContext.createOscillator();
+    const gain = this.audioContext.createGain();
 
-  ngOnDestroy(): void {
-    this.audioContext.close();
+    osc.type = 'sine';
+    osc.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+    gain.gain.setValueAtTime(velocity, this.audioContext.currentTime + time);
+    gain.gain.exponentialRampToValueAtTime(0.0001, this.audioContext.currentTime + time + 0.5);
+
+
+    osc.connect(gain);
+    gain.connect(this.compressor); // Connect to compressor for dry signal
+    gain.connect(this.reverb); // Connect to reverb for wet signal
+
+    osc.start(this.audioContext.currentTime + time);
+    osc.stop(this.audioContext.currentTime + time + 0.5);
   }
 }

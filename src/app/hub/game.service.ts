@@ -4,100 +4,15 @@ import { Game } from './game';
 import { Observable, BehaviorSubject, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
-// --- WebSocket Message Interfaces ---
+const MOCK_GAMES: Game[] = [
+  { id: '1', name: 'Tha Battlefield', genre: 'Arena', rating: 4.8, playersOnline: 15400, image: 'https://picsum.photos/seed/battle/300/200', description: 'Competitive music battle arena.', url: '/tha-spot' },
+  { id: '2', name: 'Remix Arena', genre: 'Music Battle', rating: 4.9, playersOnline: 22000, image: 'https://picsum.photos/seed/remix/300/200', description: 'Collaborative remix competition.', url: '/remix-arena' },
+  { id: '3', name: 'Hextris', genre: 'Puzzle', rating: 4.5, playersOnline: 12000, image: 'https://picsum.photos/seed/hextris/300/200', description: 'Fast-paced hexagonal puzzle game.', url: '/tha-spot' },
+  { id: '4', name: 'Pacman', genre: 'Arcade', rating: 4.7, playersOnline: 45000, image: 'https://picsum.photos/seed/pacman/300/200', description: 'Classic arcade action.', url: '/tha-spot' },
+  { id: '5', name: 'Rhythm Rebel', genre: 'Rhythm', rating: 4.6, playersOnline: 8000, image: 'https://picsum.photos/seed/rhythm/300/200', description: 'Match the beat to stay alive.', url: '/tha-spot' }
+];
 
-interface PresenceUpdateMessage {
-  type: 'presence_update';
-  userId: number;
-  status: 'online' | 'offline' | 'in-game';
-}
-
-interface LobbyJoinedMessage {
-  type: 'lobby_joined';
-  lobbyId: string;
-}
-
-interface LobbyCreatedMessage {
-  type: 'create_lobby';
-  lobbyId: string;
-  settings: LobbySettings;
-}
-
-interface JoinLobbyMessage {
-  type: 'join_lobby';
-  lobbyId: string;
-}
-
-interface LeaveLobbyMessage {
-  type: 'leave_lobby';
-  lobbyId: string;
-}
-
-interface ChatMessage {
-  type: 'chat_message';
-  lobbyId: string;
-  message: string;
-}
-
-interface InviteMessage {
-  type: 'invite';
-  lobbyId: string;
-  userId: string;
-}
-
-type WebSocketMessage =
-  | PresenceUpdateMessage
-  | LobbyJoinedMessage
-  | LobbyCreatedMessage
-  | JoinLobbyMessage
-  | LeaveLobbyMessage
-  | ChatMessage
-  | InviteMessage;
-
-// --- Lobby Settings Interface ---
-
-interface LobbySettings {
-  maxPlayers: number;
-  mode: string;
-  isPrivate: boolean;
-}
-
-// Mock WebSocket for simulating real-time events
-class MockSocket {
-  private subject = new BehaviorSubject<WebSocketMessage | null>(null);
-  public messages = this.subject.asObservable();
-  private intervalId: number;
-
-  constructor() {
-    this.intervalId = setInterval(() => {
-      const message: PresenceUpdateMessage = {
-        type: 'presence_update',
-        userId: Math.floor(Math.random() * 100),
-        status: 'online',
-      };
-      this.subject.next(message);
-    }, 5000) as unknown as number; // Using `as unknown as number` for Node.js compatibility
-  }
-
-  send(message: WebSocketMessage) {
-    console.log('MockSocket sent:', message);
-    if (message.type === 'join_lobby') {
-      setTimeout(
-        () =>
-          this.subject.next({ type: 'lobby_joined', lobbyId: message.lobbyId }),
-        500
-      );
-    }
-  }
-
-  close() {
-    clearInterval(this.intervalId);
-    this.subject.complete();
-  }
-}
-
-const GAMES_API_URL =
-  'https://firebasestorage.googleapis.com/v0/b/builder-406918.appspot.com/o/gaming-pwa%2Fgames.json?alt=media';
+const GAMES_API_URL = 'https://firebasestorage.googleapis.com/v0/b/builder-406918.appspot.com/o/gaming-pwa%2Fgames.json?alt=media';
 
 const MOCK_GAMES: Game[] = [
   {
@@ -143,17 +58,10 @@ const MOCK_GAMES: Game[] = [
 })
 export class GameService implements OnDestroy {
   private http = inject(HttpClient);
-  public webSocket: MockSocket;
-
-  constructor() {
-    this.webSocket = new MockSocket();
-    this.webSocket.messages.subscribe((msg) => this.handleSocketMessage(msg));
-  }
-
-  // --- Catalog Methods ---
 
   listGames(
     filters: { genre?: string; tag?: string; query?: string },
+    filters: { genre?: string; query?: string },
     sort: 'Popular' | 'Rating' | 'Newest' = 'Popular'
   ): Observable<Game[]> {
     return this.http.get<Game[]>(GAMES_API_URL).pipe(
@@ -268,35 +176,5 @@ export class GameService implements OnDestroy {
     );
   }
 
-  sendLobbyMessage(lobbyId: string, message: string): void {
-    console.log(`Sending message to lobby ${lobbyId}: ${message}`);
-    this.webSocket.send({ type: 'chat_message', lobbyId, message });
-  }
-
-  inviteToLobby(
-    lobbyId: string,
-    userId: string
-  ): Observable<{ status: string }> {
-    console.log(`Inviting user ${userId} to lobby ${lobbyId}`);
-    this.webSocket.send({ type: 'invite', lobbyId, userId });
-    return this.http.post<{ status: string }>(
-      `${GAMES_API_URL}/lobbies/${lobbyId}/invite`,
-      { userId }
-    );
-  }
-
-  // --- WebSocket Handling ---
-
-  private handleSocketMessage(message: WebSocketMessage | null): void {
-    if (!message) return;
-    console.log('Received socket message:', message);
-    // Here you would handle incoming messages like presence updates,
-    // matchmaking status changes, lobby invites etc.
-  }
-
-  // --- Lifecycle ---
-
-  ngOnDestroy() {
-    this.webSocket.close();
-  }
+  ngOnDestroy() {}
 }

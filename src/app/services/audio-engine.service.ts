@@ -273,7 +273,7 @@ export class AudioEngineService {
     else this.deckB = deck;
   }
 
-  private getDeck(id: DeckId): DeckChannel {
+  public getDeck(id: DeckId): DeckChannel {
     return id === 'A' ? this.deckA : this.deckB;
   }
 

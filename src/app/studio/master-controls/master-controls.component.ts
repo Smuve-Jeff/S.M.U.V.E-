@@ -1,23 +1,28 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { InstrumentService } from '../instrument.service';
+import { ReputationService } from '../../services/reputation.service';
 import { GainReductionMeterComponent } from './gain-reduction-meter.component';
 
 @Component({
   selector: 'app-master-controls',
   standalone: true,
-  imports: [GainReductionMeterComponent],
+  imports: [CommonModule, GainReductionMeterComponent],
   templateUrl: './master-controls.component.html',
   styleUrls: ['./master-controls.component.css'],
 })
 export class MasterControlsComponent {
   private readonly instrumentService = inject(InstrumentService);
+  private readonly reputationService = inject(ReputationService);
+
   readonly compressor = this.instrumentService.getCompressor();
-  isLimiterActive = false;
-  isSoftClipActive = false;
+  isLimiterActive = signal(false);
+  isSoftClipActive = signal(false);
+  isFinishing = signal(false);
 
   toggleLimiter(): void {
-    this.isLimiterActive = !this.isLimiterActive;
-    if (this.isLimiterActive) {
+    this.isLimiterActive.update(v => !v);
+    if (this.isLimiterActive()) {
       this.compressor.threshold.value = -0.1;
       this.compressor.ratio.value = 20;
     } else {
@@ -27,10 +32,8 @@ export class MasterControlsComponent {
   }
 
   toggleSoftClip(): void {
-    this.isSoftClipActive = !this.isSoftClipActive;
-    // Logic for soft-clipping would ideally be a WaveShaperNode
-    // For this upgrade, we represent it as a state change in the UI
-    console.log('Soft Clip toggled:', this.isSoftClipActive);
+    this.isSoftClipActive.update(v => !v);
+    console.log('Soft Clip toggled:', this.isSoftClipActive());
   }
 
   updateMasterVolume(event: Event): void {
@@ -41,5 +44,14 @@ export class MasterControlsComponent {
   updateReverb(event: Event): void {
     const mix = (event.target as HTMLInputElement).valueAsNumber;
     this.instrumentService.setReverbMix(mix);
+  }
+
+  finishTrack() {
+    this.isFinishing.set(true);
+    setTimeout(() => {
+      this.reputationService.addXp(200);
+      this.isFinishing.set(false);
+      alert('Congratulations! Track Finished. +200 XP Awarded.');
+    }, 3000);
   }
 }

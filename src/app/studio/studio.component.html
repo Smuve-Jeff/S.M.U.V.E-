@@ -1,15 +1,33 @@
 <div class="studio-container">
   <header class="studio-header">
-    <h1>Studio</h1>
-    <button (click)="togglePerformanceMode()">{{ isPerformanceMode ? 'Exit Performance Mode' : 'Enter Performance Mode' }}</button>
+    <h1>S.M.U.V.E Studio</h1>
+    <app-transport-bar></app-transport-bar>
+    <button (click)="togglePerformanceMode()" class="performance-mode-toggle">
+      <i class="fas" [ngClass]="isPerformanceMode ? 'fa-sign-out-alt' : 'fa-bolt'"></i>
+      <span>{{ isPerformanceMode ? 'DAW View' : 'Performance Mode' }}</span>
+    </button>
   </header>
 
-  <div class="main-view" [class.hidden]="isPerformanceMode">
-    <app-transport-bar></app-transport-bar>
-    <app-session-view></app-session-view>
-    <app-mixer></app-mixer>
-    <app-master-controls></app-master-controls>
+  <div class="main-view" [class.performance-mode-active]="isPerformanceMode">
+    <div class="daw-view" [class.hidden]="isPerformanceMode">
+      <app-session-view (clipSelected)="selectedClip = $event"></app-session-view>
+      <div class="bottom-panel">
+        <app-mixer [activeClip]="selectedClip"></app-mixer>
+        <app-synthesizer *ngIf="selectedClip?.instrument === 'synth'" [clip]="selectedClip"></app-synthesizer>
+      </div>
+    </div>
+
+    <div class="performance-view" *ngIf="isPerformanceMode">
+      <app-performance-mode [pads]="performancePads" (padClicked)="onPadClicked($event)"></app-performance-mode>
+      <div class="sound-pad-grid">
+        <app-sound-pad *ngFor="let pad of soundPads" 
+                       [name]="pad.name" 
+                       [active]="pad.isPlaying" 
+                       (padTriggered)="onSoundPadTriggered(pad)">
+        </app-sound-pad>
+      </div>
+    </div>
   </div>
 
-  <app-performance-mode *ngIf="isPerformanceMode" [notes]="notes" (noteClicked)="audioSession.onNoteClicked($event)"></app-performance-mode>
+  <app-master-controls></app-master-controls>
 </div>
