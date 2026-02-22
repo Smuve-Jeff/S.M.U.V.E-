@@ -121,8 +121,14 @@ export class GameService implements OnDestroy {
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case 'Newest':
-        // For mock, just use ID descending as proxy for newness
-        filtered.sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10));
+        // TODO: Replace with a `createdAt` timestamp field on Game for reliable ordering.
+        // Falls back to original order when IDs are non-numeric (e.g. UUIDs).
+        filtered.sort((a, b) => {
+          const idA = parseInt(a.id, 10);
+          const idB = parseInt(b.id, 10);
+          if (isNaN(idA) || isNaN(idB)) return 0;
+          return idB - idA;
+        });
         break;
     }
 
