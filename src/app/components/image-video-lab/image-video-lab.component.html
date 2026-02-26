@@ -1,4 +1,4 @@
-<div class="p-8 text-white bg-slate-950 min-h-full">
+<div class="p-8 text-white bg-brand-dark min-h-full">
   <header class="mb-12">
     <h1 class="text-5xl font-black italic tracking-tighter text-emerald-500 uppercase">Image & Video Lab</h1>
     <p class="text-slate-400 mt-2">Visual Branding & AI-Powered Multimedia Studio</p>
@@ -7,7 +7,7 @@
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
     <!-- Image Generation Console -->
     <div class="lg:col-span-2 space-y-8">
-      <section class="bg-slate-900 border border-emerald-500/20 p-8 rounded-2xl shadow-2xl">
+      <section class="bg-brand-surface border border-emerald-500/20 p-8 rounded-2xl shadow-2xl">
         <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
           <i class="fas fa-magic text-emerald-400"></i>
           AI Image Generator
@@ -19,14 +19,14 @@
               [ngModel]="imagePrompt()"
               (ngModelChange)="imagePrompt.set($event)"
               placeholder="Describe your visual masterpiece..."
-              class="w-full h-32 p-4 bg-slate-800 border border-slate-700 rounded-xl focus:border-emerald-500 outline-none transition-all resize-none text-lg"
+              class="w-full h-32 p-4 bg-brand-dark border border-slate-700 rounded-xl focus:border-emerald-500 outline-none transition-all resize-none text-lg"
               aria-label="Image prompt input"
             ></textarea>
 
             <div class="absolute bottom-4 right-4 flex items-center gap-4">
               <label class="flex items-center gap-2 cursor-pointer group">
                 <span class="text-xs font-bold uppercase tracking-widest text-slate-500 group-hover:text-emerald-400 transition-colors">HQ Enhancer</span>
-                <input type="checkbox" [(ngModel)]="highQualityEnhancer" class="w-5 h-5 accent-emerald-500">
+                <input type="checkbox" [ngModel]="highQualityEnhancer()" (ngModelChange)="highQualityEnhancer.set($event)" class="w-5 h-5 accent-emerald-500">
               </label>
             </div>
           </div>
@@ -35,7 +35,7 @@
             <button
               *ngFor="let template of templates"
               (click)="applyTemplate(template.prompt)"
-              class="px-4 py-2 bg-slate-800 hover:bg-emerald-500/10 border border-slate-700 hover:border-emerald-500/50 rounded-full text-xs font-bold uppercase tracking-widest transition-all"
+              class="px-4 py-2 bg-brand-dark hover:bg-emerald-500/10 border border-slate-700 hover:border-emerald-500/50 rounded-full text-xs font-bold uppercase tracking-widest transition-all"
             >
               {{ template.name }}
             </button>
@@ -53,9 +53,9 @@
 
         <!-- Result Preview -->
         <div *ngIf="generatedImageUrl() || isGenerating()" class="mt-8 border-t border-slate-800 pt-8">
-          <div class="relative aspect-video rounded-xl overflow-hidden bg-slate-800 border border-slate-700">
+          <div class="relative aspect-video rounded-xl overflow-hidden bg-brand-dark border border-slate-700">
             <img *ngIf="generatedImageUrl()" [src]="generatedImageUrl()" alt="Generated visual" class="w-full h-full object-cover">
-            <div *ngIf="isGenerating()" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+            <div *ngIf="isGenerating()" class="absolute inset-0 flex flex-col items-center justify-center bg-brand-dark/80 backdrop-blur-sm">
               <div class="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
               <p class="text-emerald-400 font-bold animate-pulse">S.M.U.V.E is visualizing...</p>
             </div>
@@ -69,7 +69,7 @@
 
       <!-- Video Narratives Section -->
       <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="bg-slate-900 border border-sky-500/20 p-6 rounded-2xl">
+        <div class="bg-brand-surface border border-sky-500/20 p-6 rounded-2xl">
           <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
             <i class="fas fa-film text-sky-400"></i>
             Cinematic Narratives
@@ -80,9 +80,9 @@
           </button>
         </div>
 
-        <div class="bg-slate-900 border border-purple-500/20 p-6 rounded-2xl">
+        <div class="bg-brand-surface border border-violet-500/20 p-6 rounded-2xl">
           <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
-            <i class="fas fa-broadcast-tower text-purple-400"></i>
+            <i class="fas fa-broadcast-tower text-violet-400"></i>
             Streaming Hub
           </h3>
           <div class="space-y-3 mb-6">
@@ -95,7 +95,7 @@
               <span class="font-bold">{{ streamingSettings().resolution }}</span>
             </div>
           </div>
-          <button (click)="toggleLive()" class="w-full py-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 rounded-lg text-xs font-black uppercase tracking-widest transition-all">
+          <button (click)="toggleLive()" class="w-full py-2 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-violet-400 rounded-lg text-xs font-black uppercase tracking-widest transition-all">
             {{ streamingSettings().isLive ? 'STOP BROADCAST' : 'GO LIVE' }}
           </button>
         </div>
@@ -104,13 +104,13 @@
 
     <!-- Sidebar: Asset Gallery -->
     <div class="space-y-8">
-      <section class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+      <section class="bg-brand-surface border border-slate-800 p-6 rounded-2xl">
         <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
           <i class="fas fa-images text-slate-400"></i>
           Visual Vault
         </h2>
         <div class="grid grid-cols-2 gap-3">
-          <div *ngFor="let i of [1,2,3,4]" class="aspect-square bg-slate-800 rounded-lg border border-slate-700 hover:border-emerald-500/50 cursor-pointer transition-all"></div>
+          <div *ngFor="let i of [1,2,3,4]" class="aspect-square bg-brand-dark rounded-lg border border-slate-700 hover:border-emerald-500/50 cursor-pointer transition-all"></div>
         </div>
         <button class="w-full mt-6 py-2 text-slate-500 hover:text-white text-xs font-bold uppercase tracking-widest transition-all">
           View All Assets

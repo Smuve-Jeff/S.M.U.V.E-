@@ -7,7 +7,7 @@ import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
       <label class="block text-sm font-medium text-neutral-300">{{
         label
       }}</label>
-      <p class="text-xs text-neutral-500 mb-2">{{ description }}</p>
+      <p class="text-xs text-slate-500 mb-2">{{ description }}</p>
       <ng-content></ng-content>
     </div>
   `,

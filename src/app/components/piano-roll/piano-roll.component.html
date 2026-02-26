@@ -1,67 +1,86 @@
 <div class="pr-container">
   <div class="pr-toolbar">
-    <div class="left">
-      <button (click)="togglePlay()" class="btn">
-        {{ isPlaying() ? 'Stop' : 'Play' }}
+    <div class="flex items-center">
+      <button (click)="togglePlay()" class="btn flex items-center gap-2" aria-label="Toggle Playback">
+        <i class="fas" [class.fa-play]="!isPlaying()" [class.fa-stop]="isPlaying()"></i>
+        {{ isPlaying() ? 'STOP' : 'PLAY' }}
       </button>
-      <button (click)="resetSequence()" class="btn">Reset</button>
-      <label class="lbl">BPM</label>
+      <button (click)="resetSequence()" class="ml-2 text-[10px] font-black uppercase text-slate-500 hover:text-white transition-colors" aria-label="Reset Sequence">Reset</button>
+
+      <div class="h-6 w-[1px] bg-white/5 mx-6"></div>
+
+      <label class="lbl" for="bpm-range">BPM</label>
       <input
+        id="bpm-range"
         type="range"
         min="60"
         max="240"
         [value]="bpm()"
         (input)="onBpmChange($event)"
+        class="w-24 accent-emerald-500"
+        aria-label="Adjust BPM"
       />
-      <span class="val">{{ bpm() }}</span>
-      <label class="lbl">Steps</label>
+      <span class="text-xs font-mono text-emerald-500 ml-2">{{ bpm() }}</span>
+
+      <label class="lbl ml-6" for="steps-input">Steps</label>
       <input
+        id="steps-input"
         type="number"
         min="1"
         max="64"
         [value]="steps()"
         (input)="onStepsChange($event)"
+        class="bg-transparent border border-white/10 w-12 text-center text-xs text-white rounded"
+        aria-label="Adjust total steps"
       />
     </div>
-    <div class="right">
-      <label class="lbl">Instrument</label>
+
+    <div class="flex items-center gap-4">
+      <div class="text-right">
+        <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Track</div>
+        <div class="text-xs font-bold text-white">{{ trackName() }}</div>
+      </div>
       <select
         [value]="selectedInstrumentId()"
         (change)="onInstrumentChange($event)"
+        aria-label="Select Instrument"
       >
         @for (opt of instrumentOptions(); track opt.id) {
           <option [value]="opt.id">{{ opt.name }}</option>
         }
       </select>
-      <span class="lbl">Track: {{ trackName() }}</span>
     </div>
   </div>
 
   <div class="pr-ai-toolbar">
+    <div class="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+      <i class="fas fa-magic"></i>
+    </div>
     <input
       type="text"
-      placeholder="Enter a melody prompt..."
-      [(ngModel)]="melodyPrompt"
+      placeholder="S.M.U.V.E Neural Melody Prompt (e.g., 'Dark cinematic bassline in A minor')..."
+      [ngModel]="melodyPrompt()"
+      (ngModelChange)="melodyPrompt.set($event)"
+      aria-label="AI Melody Prompt"
     />
-    <button (click)="generateMelody()" class="btn">Generate Melody</button>
+    <button (click)="generateMelody()" class="btn" aria-label="Generate Melody with AI">GENERATE MELODY</button>
   </div>
 
-  <div class="pr-main">
+  <div class="pr-main" [style.--steps]="steps()">
     <div class="pr-ruler">
-      <div></div>
+      <div class="bg-slate-900/50 border-r border-white/5"></div>
       @for (i of stepsArray(); track i) {
         <div class="ruler-tick" [class.playing]="currentStep() === i">
           {{ i + 1 }}
         </div>
       }
     </div>
-    <div class="pr-grid-wrapper">
+    <div class="pr-grid-wrapper custom-scrollbar">
       <div
         class="pr-grid"
         [style.grid-template-columns]="'80px repeat(' + steps() + ', 1fr)'"
         [style.grid-auto-rows]="'24px'"
       >
-        <div class="pr-label-col"></div>
         @for (midi of midiRows; track midi) {
           <div class="pr-label">{{ midiName(midi) }}</div>
           @for (i of stepsArray(); track i) {
@@ -70,12 +89,13 @@
               (click)="toggleNote(midi, i)"
               [class.active]="sequenceFor(midi)[i]"
               [class.playing]="currentStep() === i"
+              [attr.aria-label]="'Note ' + midiName(midi) + ' step ' + (i + 1)"
             ></div>
           }
         }
       </div>
     </div>
-    <div class="pr-velocity" (mousedown)="onVelocityMouseDown($event)">
+    <div class="pr-velocity" (mousedown)="onVelocityMouseDown($event)" aria-label="Velocity Lane">
       <div class="lane-title">Velocity</div>
       <div class="lane">
         @for (i of stepsArray(); track i) {

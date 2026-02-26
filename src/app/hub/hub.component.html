@@ -1,13 +1,56 @@
-<div class="hub-container">
-  <h1 class="hub-section-title">S.M.U.V.E 2.0 Hub</h1>
+<div class="landing-page-container">
+  <!-- SECTION 1: ARTIST PROFILE BUILD (QUICK START) -->
+  <section class="hero-section wow animate__animated animate__fadeIn">
+    <div class="glitch-wrapper mb-8">
+      <h1 class="glitch-text" data-text="S.M.U.V.E 2.0">S.M.U.V.E 2.0</h1>
+    </div>
+    <p class="hero-subtitle">The Strategic Music Utility Virtual Enhancer for Independent Artists.</p>
 
-  <!-- Games Section -->
-  <section class="hub-section wow animate__animated animate__fadeInUp">
-    <h2 class="hub-section-title">Featured Games & Challenges</h2>
-    <div class="games-grid">
-      <div *ngFor="let game of games()" class="game-card">
-        <h3 class="game-title">{{ game.name }}</h3>
-        <p class="game-description">{{ game.description }}</p>
+    <div class="quickstart-card glass">
+      <div class="flex flex-col md:flex-row gap-4">
+        <input
+          type="text"
+          [ngModel]="quickProfile().artistName"
+          (ngModelChange)="updateQuickProfile('artistName', $event)"
+          placeholder="ENTER ARTIST NAME..."
+          class="hero-input"
+        >
+        <select
+          [ngModel]="quickProfile().primaryGenre"
+          (ngModelChange)="updateQuickProfile('primaryGenre', $event)"
+          class="hero-select"
+        >
+          <option *ngFor="let genre of genres" [value]="genre">{{ genre }}</option>
+        </select>
+        <button (click)="onQuickStart()" class="hero-cta-button">START YOUR JOURNEY</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: GLOBAL RADIO AUDIO PLAYER -->
+  <section class="hub-section radio-hero wow animate__animated animate__fadeInUp">
+    <div class="radio-module">
+      <div class="radio-visualizer">
+        <div class="visualizer-bars">
+          <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]" class="bar"></div>
+        </div>
+      </div>
+      <div class="radio-controls">
+        <div class="track-info">
+          <span class="now-playing-label"><span class="live-indicator mr-2">LIVE</span> NOW PLAYING</span>
+          <h3 class="track-title">{{ radioTrackName() }}</h3>
+        </div>
+        <div class="flex items-center gap-4">
+          <button (click)="onUpload()" class="radio-util-btn" title="Upload Track">
+            <i class="fas fa-upload"></i>
+          </button>
+          <button (click)="toggleRadio()" [class.playing]="isRadioPlaying()" class="radio-play-btn">
+            <i class="fas" [class.fa-play]="!isRadioPlaying()" [class.fa-pause]="isRadioPlaying()"></i>
+          </button>
+          <button (click)="onDownload()" class="radio-util-btn" title="Download Track">
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -88,6 +131,27 @@
       <button (click)="goToThaSpot()" class="spot-enter-btn">
         ENTER THA SPOT <i class="fas fa-bolt ml-2"></i>
       </button>
+    </div>
+  </section>
+
+  <!-- Games Section -->
+  <section class="hub-section wow animate__animated animate__fadeInUp">
+    <h2 class="section-title-aggressive">Featured Games & Challenges</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div *ngFor="let game of games()" class="bg-brand-surface p-6 rounded-xl border border-white/10 hover:border-emerald-500/30 transition-all cursor-pointer group">
+        <div class="relative h-40 mb-4 overflow-hidden rounded-lg">
+          <img [src]="game.image" [alt]="game.name" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+          <div class="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white">
+            <i class="fas fa-users mr-1"></i> {{ game.playersOnline }}
+          </div>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">{{ game.name }}</h3>
+        <p class="text-sm text-slate-400 mb-4 line-clamp-2">{{ game.description }}</p>
+        <div class="flex justify-between items-center">
+           <span class="text-emerald-400 font-bold text-sm">{{ game.genre }}</span>
+           <button class="px-4 py-1 bg-emerald-500 text-black text-xs font-black rounded uppercase">PLAY</button>
+        </div>
+      </div>
     </div>
   </section>
 </div>

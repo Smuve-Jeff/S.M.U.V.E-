@@ -1,34 +1,54 @@
-<div class="synthesizer-container">
-  <h3>Synthesizer - {{ clip?.name }}</h3>
-  <div class="synth-controls">
-    <div class="control-group">
-      <label for="oscillator">Oscillator</label>
-      <select id="oscillator" [(ngModel)]="synthParams.oscillator" (ngModelChange)="updateSynthParam('oscillator', $event)">
-        <option value="sine">Sine</option>
-        <option value="square">Square</option>
-        <option value="sawtooth">Sawtooth</option>
-        <option value="triangle">Triangle</option>
-      </select>
+<div class="synth-panel glass-morphism">
+  <div class="synth-header flex justify-between items-center mb-6">
+    <h3 class="text-xs font-black uppercase tracking-widest text-emerald-500">
+      <i class="fas fa-wave-square mr-2"></i> Subtractive Engine: {{ clip?.name }}
+    </h3>
+    <div class="waveform-selector flex gap-2">
+      <button
+        *ngFor="let type of ['sine', 'square', 'sawtooth', 'triangle']"
+        (click)="updateSynthParam('oscillator', type)"
+        [class.active]="synthParams.oscillator === type"
+        class="wave-btn"
+        [title]="type"
+      >
+        <i class="fas" [ngClass]="{
+          'fa-circle': type === 'sine',
+          'fa-square': type === 'square',
+          'fa-mountain': type === 'sawtooth',
+          'fa-caret-up': type === 'triangle'
+        }"></i>
+      </button>
     </div>
-    <div class="control-group">
-      <label for="attack">Attack</label>
-      <input type="range" id="attack" min="0.01" max="2" step="0.01" [(ngModel)]="synthParams.attack" (ngModelChange)="updateSynthParam('attack', $event)">
-      <span>{{ synthParams.attack }}s</span>
+  </div>
+
+  <div class="controls-layout">
+    <div class="envelope-section">
+      <h4 class="control-label">ADSR ENVELOPE</h4>
+      <div class="knobs-grid">
+        <div class="knob-group">
+          <input type="range" min="0.01" max="2" step="0.01" [(ngModel)]="synthParams.attack" (ngModelChange)="updateSynthParam('attack', $event)">
+          <label>ATTACK</label>
+        </div>
+        <div class="knob-group">
+          <input type="range" min="0.01" max="2" step="0.01" [(ngModel)]="synthParams.decay" (ngModelChange)="updateSynthParam('decay', $event)">
+          <label>DECAY</label>
+        </div>
+        <div class="knob-group">
+          <input type="range" min="0" max="1" step="0.01" [(ngModel)]="synthParams.sustain" (ngModelChange)="updateSynthParam('sustain', $event)">
+          <label>SUSTAIN</label>
+        </div>
+        <div class="knob-group">
+          <input type="range" min="0.01" max="5" step="0.01" [(ngModel)]="synthParams.release" (ngModelChange)="updateSynthParam('release', $event)">
+          <label>RELEASE</label>
+        </div>
+      </div>
     </div>
-    <div class="control-group">
-      <label for="decay">Decay</label>
-      <input type="range" id="decay" min="0.01" max="2" step="0.01" [(ngModel)]="synthParams.decay" (ngModelChange)="updateSynthParam('decay', $event)">
-      <span>{{ synthParams.decay }}s</span>
-    </div>
-    <div class="control-group">
-      <label for="sustain">Sustain</label>
-      <input type="range" id="sustain" min="0" max="1" step="0.01" [(ngModel)]="synthParams.sustain" (ngModelChange)="updateSynthParam('sustain', $event)">
-      <span>{{ synthParams.sustain }}</span>
-    </div>
-    <div class="control-group">
-      <label for="release">Release</label>
-      <input type="range" id="release" min="0.01" max="5" step="0.01" [(ngModel)]="synthParams.release" (ngModelChange)="updateSynthParam('release', $event)">
-      <span>{{ synthParams.release }}s</span>
+
+    <div class="visualizer-section">
+      <!-- Waveform visualizer could go here -->
+      <div class="wave-preview">
+        <div class="synth-glow"></div>
+      </div>
     </div>
   </div>
 </div>

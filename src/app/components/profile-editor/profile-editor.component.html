@@ -1,5 +1,5 @@
 <div
-  class="p-6 h-full overflow-y-auto bg-neutral-900 text-white"
+  class="p-6 h-full overflow-y-auto bg-brand-dark text-white"
   [ngStyle]="{ 'border-color': theme().primary, color: theme().primary }"
 >
   <!-- Authenticated View -->
@@ -8,7 +8,7 @@
     <div class="flex gap-8">
       <!-- Sidebar Menu -->
       <div class="w-1/4 sticky top-0 self-start">
-        <div class="bg-neutral-800 p-4 rounded-lg shadow-lg">
+        <div class="bg-brand-surface p-4 rounded-lg shadow-lg">
           <nav class="flex flex-col gap-2">
             <button
               *ngFor="let section of sections"
@@ -29,7 +29,7 @@
 
       <!-- Content -->
       <div class="w-3/4">
-        <div class="bg-neutral-800 p-8 rounded-lg shadow-lg">
+        <div class="bg-brand-surface p-8 rounded-lg shadow-lg">
           <ng-container *ngFor="let section of sections">
             <div *ngIf="activeSection() === section.id" class="animate-fade-in">
               <h3
@@ -44,22 +44,22 @@
               <div *ngIf="section.id === 'social'" class="space-y-10">
                 <!-- Official Music Portals -->
                 <div class="space-y-4">
-                  <h4 class="text-xl font-bold text-cyber-cyan flex items-center gap-2">
+                  <h4 class="text-xl font-bold text-emerald-500 flex items-center gap-2">
                     <i class="fas fa-check-circle"></i>
                     Official Music Portals
                   </h4>
                   <div class="grid grid-cols-1 gap-4">
                     <div *ngFor="let p of objectKeys(editableProfile().officialMusicProfiles)"
-                         class="bg-neutral-900/40 p-4 rounded-lg border border-white/5 flex flex-col gap-3">
+                         class="bg-brand-dark/40 p-4 rounded-lg border border-white/10 flex flex-col gap-3">
                       <div class="flex justify-between items-center">
-                        <label class="capitalize font-bold text-sm tracking-widest text-neutral-400">{{ p }} For Artists</label>
+                        <label class="capitalize font-bold text-sm tracking-widest text-slate-400">{{ p }} For Artists</label>
                         <div class="flex items-center gap-2">
                           <span *ngIf="editableProfile().officialMusicProfiles[p].status === 'verified'"
                                 class="text-[10px] bg-green-500/20 text-green-500 px-2 py-0.5 rounded uppercase font-bold">
                             Verified
                           </span>
                           <span *ngIf="editableProfile().officialMusicProfiles[p].status === 'syncing'"
-                                class="text-[10px] bg-cyber-cyan/20 text-cyber-cyan px-2 py-0.5 rounded uppercase font-bold animate-pulse">
+                                class="text-[10px] bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded uppercase font-bold animate-pulse">
                             Syncing...
                           </span>
                         </div>
@@ -69,10 +69,10 @@
                                [value]="editableProfile().officialMusicProfiles[p].url"
                                (input)="updatePlatformUrl('officialMusicProfiles', p, $event)"
                                placeholder="Enter dashboard URL"
-                               class="flex-grow p-2 bg-neutral-800 rounded border border-white/10 outline-none focus:border-cyber-cyan transition-colors" />
+                               class="flex-grow p-2 bg-brand-surface rounded border border-white/10 outline-none focus:border-emerald-500 transition-colors" />
                         <button (click)="verifyPlatform('officialMusicProfiles', p)"
                                 [disabled]="!editableProfile().officialMusicProfiles[p].url || editableProfile().officialMusicProfiles[p].status === 'syncing'"
-                                class="px-4 py-2 bg-cyber-cyan text-black font-bold rounded hover:scale-105 transition-transform disabled:opacity-50">
+                                class="px-4 py-2 bg-emerald-500 text-black font-bold rounded hover:scale-105 transition-transform disabled:opacity-50">
                           {{ editableProfile().officialMusicProfiles[p].verified ? 'Re-Sync' : 'Verify' }}
                         </button>
                       </div>
@@ -84,24 +84,24 @@
                 </div>
 
                 <!-- Personal Social Presence -->
-                <div class="space-y-4 pt-6 border-t border-white/5">
-                  <h4 class="text-xl font-bold text-cyber-magenta flex items-center gap-2">
+                <div class="space-y-4 pt-6 border-t border-white/10">
+                  <h4 class="text-xl font-bold text-violet-500 flex items-center gap-2">
                     <i class="fas fa-share-alt"></i>
                     Personal Social Presence
                   </h4>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div *ngFor="let p of objectKeys(editableProfile().personalSocialProfiles)"
-                         class="bg-neutral-900/40 p-4 rounded-lg border border-white/5 flex flex-col gap-3">
-                      <label class="capitalize font-bold text-sm tracking-widest text-neutral-400">{{ p === 'x' ? 'X (Twitter)' : p }}</label>
+                         class="bg-brand-dark/40 p-4 rounded-lg border border-white/10 flex flex-col gap-3">
+                      <label class="capitalize font-bold text-sm tracking-widest text-slate-400">{{ p === 'x' ? 'X (Twitter)' : p }}</label>
                       <div class="flex gap-2">
                         <input type="text"
                                [value]="editableProfile().personalSocialProfiles[p].url"
                                (input)="updatePlatformUrl('personalSocialProfiles', p, $event)"
                                placeholder="Profile URL"
-                               class="flex-grow p-2 bg-neutral-800 rounded border border-white/10 outline-none focus:border-cyber-magenta transition-colors" />
+                               class="flex-grow p-2 bg-brand-surface rounded border border-white/10 outline-none focus:border-violet-500 transition-colors" />
                         <button (click)="verifyPlatform('personalSocialProfiles', p)"
                                 [disabled]="!editableProfile().personalSocialProfiles[p].url"
-                                class="p-2 bg-neutral-800 rounded hover:text-cyber-magenta transition-colors">
+                                class="p-2 bg-brand-surface rounded hover:text-violet-500 transition-colors">
                           <i class="fas" [class.fa-link]="!editableProfile().personalSocialProfiles[p].verified"
                                          [class.fa-check]="editableProfile().personalSocialProfiles[p].verified"></i>
                         </button>
@@ -118,7 +118,7 @@
                     <input type="checkbox"
                            [ngModel]="editableProfile().isOfficialProfile"
                            (ngModelChange)="updateProfileField('isOfficialProfile', $event)"
-                           class="w-6 h-6 bg-neutral-700 rounded-md accent-blue-600" />
+                           class="w-6 h-6 bg-neutral-700 rounded-md accent-emerald-500" />
                     <span class="text-neutral-300">Official Profile</span>
                   </div>
                 </app-form-field>
@@ -128,31 +128,31 @@
                     <input type="text"
                            [ngModel]="editableProfile().proName"
                            (ngModelChange)="updateProfileField('proName', $event)"
-                           class="w-full p-2 bg-neutral-800 rounded-md" />
+                           class="w-full p-2 bg-brand-surface rounded-md" />
                   </app-form-field>
                   <app-form-field label="PRO IPI" description="Your Interested Party Information number.">
                     <input type="text"
                            [ngModel]="editableProfile().proIpi"
                            (ngModelChange)="updateProfileField('proIpi', $event)"
-                           class="w-full p-2 bg-neutral-800 rounded-md" />
+                           class="w-full p-2 bg-brand-surface rounded-md" />
                   </app-form-field>
                   <app-form-field label="SoundExchange ID" description="Your SoundExchange ID.">
                     <input type="text"
                            [ngModel]="editableProfile().soundExchangeId"
                            (ngModelChange)="updateProfileField('soundExchangeId', $event)"
-                           class="w-full p-2 bg-neutral-800 rounded-md" />
+                           class="w-full p-2 bg-brand-surface rounded-md" />
                   </app-form-field>
                   <app-form-field label="The MLC ID" description="Your Mechanical Licensing Collective ID.">
                     <input type="text"
                            [ngModel]="editableProfile().mlcId"
                            (ngModelChange)="updateProfileField('mlcId', $event)"
-                           class="w-full p-2 bg-neutral-800 rounded-md" />
+                           class="w-full p-2 bg-brand-surface rounded-md" />
                   </app-form-field>
                   <app-form-field label="ISNI" description="International Standard Name Identifier.">
                     <input type="text"
                            [ngModel]="editableProfile().isni"
                            (ngModelChange)="updateProfileField('isni', $event)"
-                           class="w-full p-2 bg-neutral-800 rounded-md" />
+                           class="w-full p-2 bg-brand-surface rounded-md" />
                   </app-form-field>
                 </div>
 
@@ -163,12 +163,12 @@
                       <input type="text"
                              [ngModel]="editableProfile().preferredDistributor"
                              (ngModelChange)="updateProfileField('preferredDistributor', $event)"
-                             class="w-full p-2 bg-neutral-800 rounded-md" />
+                             class="w-full p-2 bg-brand-surface rounded-md" />
                     </app-form-field>
                     <app-form-field label="Distribution Status" description="Current status of your latest release.">
                       <select [ngModel]="editableProfile().distributionStatus"
                               (ngModelChange)="updateProfileField('distributionStatus', $event)"
-                              class="w-full p-2 bg-neutral-800 rounded-md">
+                              class="w-full p-2 bg-brand-surface rounded-md">
                         <option value="Not Started">Not Started</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Distributed">Distributed</option>
@@ -178,7 +178,7 @@
                 </div>
 
                 <div class="flex justify-end pt-4">
-                   <button (click)="saveProfile()" class="px-6 py-2 bg-blue-600 rounded-md font-bold hover:bg-blue-700 transition-colors">
+                   <button (click)="saveProfile()" class="px-6 py-2 bg-emerald-600 rounded-md font-bold hover:bg-emerald-700 transition-colors">
                      SAVE PROFESSIONAL IDENTITY
                    </button>
                 </div>
@@ -187,7 +187,7 @@
               <!-- Legal Docs Section -->
               <div *ngIf="section.id === 'legal'" class="space-y-6">
                 <div class="flex justify-between items-center">
-                  <p class="text-neutral-400">
+                  <p class="text-slate-400">
                     Create and manage your legal document templates.
                   </p>
                   <button (click)="openNewDocument()" class="action-button">
@@ -203,7 +203,7 @@
                     <div class="flex gap-2">
                       <button
                         (click)="openEditDocument(doc)"
-                        class="px-3 py-1 bg-blue-600 rounded-md"
+                        class="px-3 py-1 bg-emerald-600 rounded-md"
                       >
                         Edit
                       </button>
@@ -217,7 +217,7 @@
                   </div>
                   <p
                     *ngIf="!editableProfile().legalDocuments?.length"
-                    class="text-center text-neutral-500"
+                    class="text-center text-slate-500"
                   >
                     No legal documents yet.
                   </p>

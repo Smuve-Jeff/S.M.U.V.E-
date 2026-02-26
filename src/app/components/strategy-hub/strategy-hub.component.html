@@ -1,27 +1,27 @@
-<div class="p-8 bg-neutral-900 text-white min-h-full">
+<div class="p-8 bg-brand-dark text-white min-h-full">
   <header class="mb-10 flex justify-between items-end border-b border-white/10 pb-6">
     <div>
-      <h1 class="text-4xl font-black tracking-tighter text-cyber-cyan uppercase italic">Strategy Hub</h1>
-      <p class="text-neutral-400 mt-2">Strategic Deployment & Artist Growth Command Center</p>
+      <h1 class="text-4xl font-black tracking-tighter text-emerald-500 uppercase italic">Strategy Hub</h1>
+      <p class="text-slate-400 mt-2">Strategic Deployment & Artist Growth Command Center</p>
     </div>
     <div class="text-right">
-      <div class="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-1">Readiness Level</div>
-      <div class="text-2xl font-mono text-cyber-magenta">{{ progress() }}%</div>
+      <div class="text-xs uppercase tracking-[0.3em] text-slate-500 mb-1">Readiness Level</div>
+      <div class="text-2xl font-mono text-violet-500">{{ progress() }}%</div>
     </div>
   </header>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- Left Column: Checklists -->
     <div class="lg:col-span-2 space-y-8">
-      <section class="bg-neutral-800/50 p-6 rounded-xl border border-white/5">
+      <section class="bg-brand-surface/50 p-6 rounded-xl border border-white/10">
         <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-          <i class="fas fa-tasks text-cyber-cyan"></i>
+          <i class="fas fa-tasks text-emerald-500"></i>
           Rollout Management
         </h2>
 
         <div class="space-y-6">
           <div *ngFor="let cat of ['pre', 'day', 'post']">
-            <h3 class="text-xs uppercase tracking-widest text-neutral-500 mb-3 font-bold border-l-2 border-cyber-cyan pl-3">
+            <h3 class="text-xs uppercase tracking-widest text-slate-500 mb-3 font-bold border-l-2 border-emerald-500 pl-3">
               {{ cat === 'pre' ? 'Pre-Release Phase' : cat === 'day' ? 'Release Day' : 'Post-Release Optimization' }}
             </h3>
             <div class="space-y-2">
@@ -33,8 +33,8 @@
                       [class.opacity-40]="item.completed"
                       [attr.aria-pressed]="item.completed">
                 <div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors"
-                     [class.bg-cyber-cyan]="item.completed"
-                     [class.border-cyber-cyan]="item.completed"
+                     [class.bg-emerald-500]="item.completed"
+                     [class.border-emerald-500]="item.completed"
                      [class.border-neutral-600]="!item.completed">
                   <i *ngIf="item.completed" class="fas fa-check text-[10px] text-black"></i>
                 </div>
@@ -47,39 +47,39 @@
 
       <!-- Marketing Tools -->
       <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="bg-neutral-800/50 p-6 rounded-xl border border-white/5">
+        <div class="bg-brand-surface/50 p-6 rounded-xl border border-white/10">
           <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-            <i class="fas fa-calculator text-cyber-magenta"></i>
+            <i class="fas fa-calculator text-violet-500"></i>
             Ad Spend Calculator
           </h2>
           <div class="space-y-4">
             <div>
-              <label class="block text-xs text-neutral-400 mb-2 uppercase">Monthly Budget ($)</label>
+              <label class="block text-xs text-slate-400 mb-2 uppercase">Monthly Budget ($)</label>
               <input type="number"
                      [ngModel]="adSpend()"
                      (ngModelChange)="adSpend.set($event)"
-                     class="w-full p-3 bg-neutral-900 rounded border border-white/10 focus:border-cyber-cyan outline-none transition-colors" />
+                     class="w-full p-3 bg-brand-dark rounded border border-white/10 focus:border-emerald-500 outline-none transition-colors" />
             </div>
             <div class="grid grid-cols-2 gap-4">
-              <div class="bg-neutral-900/50 p-4 rounded border border-white/5">
-                <div class="text-[10px] text-neutral-500 uppercase mb-1">Est. Reach</div>
-                <div class="text-xl font-bold text-cyber-cyan">{{ estimatedReach() | number }}</div>
+              <div class="bg-brand-dark/50 p-4 rounded border border-white/10">
+                <div class="text-[10px] text-slate-500 uppercase mb-1">Est. Reach</div>
+                <div class="text-xl font-bold text-emerald-500">{{ estimatedReach() | number }}</div>
               </div>
-              <div class="bg-neutral-900/50 p-4 rounded border border-white/5">
-                <div class="text-[10px] text-neutral-500 uppercase mb-1">Est. Conversions</div>
-                <div class="text-xl font-bold text-cyber-magenta">{{ estimatedConversions() | number }}</div>
+              <div class="bg-brand-dark/50 p-4 rounded border border-white/10">
+                <div class="text-[10px] text-slate-500 uppercase mb-1">Est. Conversions</div>
+                <div class="text-xl font-bold text-violet-500">{{ estimatedConversions() | number }}</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="bg-neutral-800/50 p-6 rounded-xl border border-white/5">
+        <div class="bg-brand-surface/50 p-6 rounded-xl border border-white/10">
           <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
             <i class="fas fa-bolt text-yellow-400"></i>
             Trend-Pulse Hooks
           </h2>
           <div class="space-y-3">
-             <div *ngFor="let hook of trendHooks()" class="p-3 bg-neutral-900 rounded border border-white/5 text-[11px] leading-relaxed">
+             <div *ngFor="let hook of trendHooks()" class="p-3 bg-brand-dark rounded border border-white/10 text-[11px] leading-relaxed">
                {{ hook }}
              </div>
              <button class="w-full mt-2 py-2 bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 rounded text-[10px] uppercase font-bold border border-yellow-400/20">
@@ -88,22 +88,22 @@
           </div>
         </div>
 
-        <div class="bg-neutral-800/50 p-6 rounded-xl border border-white/5">
+        <div class="bg-brand-surface/50 p-6 rounded-xl border border-white/10">
           <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-            <i class="fas fa-id-badge text-cyber-cyan"></i>
+            <i class="fas fa-id-badge text-emerald-500"></i>
             EPK Preview
           </h2>
           <div class="space-y-3">
-             <div class="flex justify-between items-center border-b border-white/5 pb-2">
-               <span class="text-neutral-500 text-xs uppercase">Artist</span>
+             <div class="flex justify-between items-center border-b border-white/10 pb-2">
+               <span class="text-slate-500 text-xs uppercase">Artist</span>
                <span class="font-bold">{{ profile().artistName }}</span>
              </div>
-             <div class="flex justify-between items-center border-b border-white/5 pb-2">
-               <span class="text-neutral-500 text-xs uppercase">Genre</span>
+             <div class="flex justify-between items-center border-b border-white/10 pb-2">
+               <span class="text-slate-500 text-xs uppercase">Genre</span>
                <span class="font-bold">{{ profile().primaryGenre }}</span>
              </div>
-             <div class="flex justify-between items-center border-b border-white/5 pb-2">
-               <span class="text-neutral-500 text-xs uppercase">PRO</span>
+             <div class="flex justify-between items-center border-b border-white/10 pb-2">
+               <span class="text-slate-500 text-xs uppercase">PRO</span>
                <span class="font-bold">{{ profile().proName || 'Unregistered' }}</span>
              </div>
              <button class="w-full mt-2 py-2 bg-white/5 hover:bg-white/10 rounded text-xs uppercase tracking-widest transition-colors font-bold border border-white/10">
@@ -116,37 +116,37 @@
 
     <!-- Right Column: Education -->
     <div class="space-y-8">
-      <section class="bg-neutral-800/50 p-6 rounded-xl border border-white/5">
+      <section class="bg-brand-surface/50 p-6 rounded-xl border border-white/10">
         <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
           <i class="fas fa-graduation-cap text-yellow-500"></i>
           Strategic Intel
         </h2>
         <div class="space-y-6">
           <div *ngFor="let guide of educationalGuides" class="group">
-            <h3 class="text-cyber-cyan font-bold mb-2 group-hover:text-white transition-colors">{{ guide.title }}</h3>
-            <p class="text-sm text-neutral-400 leading-relaxed">{{ guide.content }}</p>
+            <h3 class="text-emerald-500 font-bold mb-2 group-hover:text-white transition-colors">{{ guide.title }}</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">{{ guide.content }}</p>
           </div>
         </div>
       </section>
 
       <!-- Identity Status -->
-      <section class="bg-gradient-to-br from-cyber-cyan/10 to-transparent p-6 rounded-xl border border-cyber-cyan/20">
+      <section class="bg-gradient-to-br from-emerald-500/10 to-transparent p-6 rounded-xl border border-emerald-500/20">
         <h2 class="text-lg font-bold mb-4">Official Verification</h2>
         <div class="flex items-center gap-4 mb-4">
-          <div class="w-12 h-12 rounded-full border-2 border-cyber-cyan flex items-center justify-center text-cyber-cyan">
+          <div class="w-12 h-12 rounded-full border-2 border-emerald-500 flex items-center justify-center text-emerald-500">
              <i class="fas fa-check-double"></i>
           </div>
           <div>
             <div class="text-sm font-bold uppercase tracking-widest">
               {{ profile().isOfficialProfile ? 'Verified Artist' : 'Standard Profile' }}
             </div>
-            <div class="text-[10px] text-neutral-500">S.M.U.V.E Blockchain Identity</div>
+            <div class="text-[10px] text-slate-500">S.M.U.V.E Blockchain Identity</div>
           </div>
         </div>
-        <p class="text-xs text-neutral-400 mb-4">
+        <p class="text-xs text-slate-400 mb-4">
           Official status enables advanced distribution features and direct-to-PRO data reporting.
         </p>
-        <button class="w-full py-3 bg-cyber-cyan text-black font-black uppercase tracking-tighter italic hover:scale-105 transition-transform" routerLink="/profile">
+        <button class="w-full py-3 bg-emerald-500 text-black font-black uppercase tracking-tighter italic hover:scale-105 transition-transform" routerLink="/profile">
           Update Credentials
         </button>
       </section>

@@ -3,6 +3,15 @@ import { MainViewMode, AppTheme } from './user-context.service';
 
 const THEMES: AppTheme[] = [
   {
+    name: 'Modern Professional',
+    primary: 'emerald',
+    accent: 'violet',
+    neutral: 'slate',
+    purple: 'purple',
+    red: 'red',
+    blue: 'blue',
+  },
+  {
     name: 'Cyberpunk',
     primary: 'cyan',
     accent: 'pink',
@@ -16,15 +25,6 @@ const THEMES: AppTheme[] = [
     primary: 'orange',
     accent: 'teal',
     neutral: 'stone',
-    purple: 'purple',
-    red: 'red',
-    blue: 'blue',
-  },
-  {
-    name: '8-Bit',
-    primary: 'lime',
-    accent: 'yellow',
-    neutral: 'slate',
     purple: 'purple',
     red: 'red',
     blue: 'blue',

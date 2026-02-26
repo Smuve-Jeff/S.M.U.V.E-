@@ -1,10 +1,27 @@
-<div class="mixer-container">
-  <h2>Mixer</h2>
-  <div class="channels">
-    <app-channel-strip *ngFor="let channel of micChannels()" [channel]="channel"></app-channel-strip>
+<div class="mixer-container glass-morphism">
+  <div class="mixer-header">
+    <h2 class="text-xs font-black uppercase tracking-widest text-emerald-500">Professional Console Mixer</h2>
   </div>
-  <div class="master-controls">
-    <label>Master Volume</label>
-    <input type="range" min="0" max="1" step="0.01" [value]="masterVolume()" (input)="updateMasterVolume($event.target.value)">
+
+  <div class="mixer-main">
+    <div class="channels-grid">
+      <app-channel-strip *ngFor="let channel of micChannels()" [channel]="channel"></app-channel-strip>
+    </div>
+
+    <div class="master-fader-section">
+      <div class="fader-track">
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          orient="vertical"
+          [value]="masterVolume()"
+          (input)="updateMasterVolume($event.target.value)"
+          class="master-fader"
+        >
+      </div>
+      <div class="fader-label">MASTER</div>
+    </div>
   </div>
 </div>

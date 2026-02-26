@@ -83,6 +83,8 @@ export class DjDeckComponent {
     }
   }
 
+  setPlaybackRate(deck: "A" | "B", rate: string) { const r = parseFloat(rate); if (deck === "A") this.deckService.deckA.update(d => ({ ...d, playbackRate: r })); else this.deckService.deckB.update(d => ({ ...d, playbackRate: r })); }
+
   startStopRecording() {
     if (this.recording()) {
       this.recorder?.stop();

@@ -1,22 +1,27 @@
-<div class="p-4 h-full flex gap-4">
+<div class="p-8 h-full flex gap-8 bg-brand-dark">
   <!-- Project List -->
-  <div class="w-1/3 bg-neutral-800/50 rounded-lg p-4">
-    <h2 class="text-xl font-bold mb-4">Projects</h2>
-    <div class="space-y-2">
+  <div class="w-1/3 bg-brand-surface/30 rounded-2xl p-6 border border-white/5">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-black uppercase tracking-widest text-emerald-500 italic">Projects</h2>
+      <button class="w-8 h-8 rounded-full bg-emerald-500 text-black flex items-center justify-center text-xs">
+        <i class="fas fa-plus"></i>
+      </button>
+    </div>
+    <div class="space-y-4">
       <div
         *ngFor="let project of projects()"
         (click)="selectProject(project)"
-        class="p-3 rounded-md cursor-pointer"
+        class="p-4 rounded-xl cursor-pointer transition-all border border-transparent"
         [ngClass]="{
-          'bg-purple-600/30': selectedProject()?.id === project.id,
-          'hover:bg-neutral-700': selectedProject()?.id !== project.id,
+          'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]': selectedProject()?.id === project.id,
+          'hover:bg-white/5': selectedProject()?.id !== project.id
         }"
       >
-        <h3 class="font-bold">{{ project.name }}</h3>
-        <p class="text-sm text-neutral-400">{{ project.description }}</p>
-        <div class="w-full bg-neutral-700 rounded-full h-2.5 mt-2">
+        <h3 class="font-bold text-white uppercase tracking-tight">{{ project.name }}</h3>
+        <p class="text-xs text-slate-500 mt-1 line-clamp-1">{{ project.description }}</p>
+        <div class="w-full bg-brand-dark rounded-full h-1 mt-4">
           <div
-            class="bg-purple-500 h-2.5 rounded-full"
+            class="bg-emerald-500 h-1 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
             [style.width.%]="getProjectProgress(project)"
           ></div>
         </div>
@@ -25,43 +30,59 @@
   </div>
 
   <!-- Selected Project Details -->
-  <div class="w-2/3 bg-neutral-800/50 rounded-lg p-4">
-    <div *ngIf="selectedProject() as project; else noProjectSelected">
-      <h2 class="text-2xl font-bold">{{ project.name }}</h2>
-      <p class="text-neutral-300 mb-4">Status: {{ project.status }}</p>
-      <p class="text-neutral-400 mb-6">
-        Deadline: {{ project.deadline | date: 'longDate' }}
-      </p>
+  <div class="w-2/3 bg-brand-surface/30 rounded-2xl p-8 border border-white/5 relative overflow-hidden">
+    <div *ngIf="selectedProject() as project; else noProjectSelected" class="relative z-10">
+      <div class="flex justify-between items-start mb-8">
+        <div>
+          <h2 class="text-3xl font-black text-white uppercase italic tracking-tighter">{{ project.name }}</h2>
+          <div class="flex gap-4 mt-2">
+            <span class="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">{{ project.status }}</span>
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Deadline: {{ project.deadline | date: 'MMM d, yyyy' }}</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-1">Progress</div>
+          <div class="text-3xl font-black italic text-white">{{ getProjectProgress(project) }}%</div>
+        </div>
+      </div>
 
-      <h3 class="text-lg font-bold mb-2">Checklist</h3>
+      <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 border-b border-white/5 pb-2">Deployment Checklist</h3>
       <div class="space-y-3">
         <div
           *ngFor="let task of project.tasks"
-          class="flex items-center gap-3 bg-neutral-900/50 p-3 rounded-lg"
+          class="flex items-center gap-4 bg-brand-dark/40 p-4 rounded-xl border border-white/5 hover:border-emerald-500/20 transition-all group"
+          [class.opacity-50]="task.completed"
         >
-          <input
-            type="checkbox"
-            [checked]="task.completed" aria-label="Toggle task status"
-            (change)="toggleTask(task)"
-            class="w-5 h-5 text-purple-600 bg-neutral-700 border-neutral-600 rounded focus:ring-purple-500"
-          />
+          <div
+            (click)="toggleTask(task)"
+            class="w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all"
+            [ngClass]="task.completed ? 'bg-emerald-500 border-emerald-500' : 'border-slate-700 group-hover:border-emerald-500/50'"
+          >
+            <i *ngIf="task.completed" class="fas fa-check text-black text-xs"></i>
+          </div>
           <label
-            [ngClass]="{ 'line-through text-neutral-500': task.completed }"
-            class="flex-grow"
+            [ngClass]="{ 'line-through text-slate-500': task.completed }"
+            class="flex-grow text-sm font-bold tracking-tight text-white cursor-pointer"
+            (click)="toggleTask(task)"
             >{{ task.description }}</label
           >
         </div>
       </div>
 
-      <button
-        class="mt-6 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded"
-      >
-        Mark Project as Complete
-      </button>
+      <div class="mt-12 pt-8 border-t border-white/5 flex justify-end">
+        <button
+          class="bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-tighter italic text-sm py-3 px-8 rounded-xl transition-all hover:scale-105 shadow-[0_0_30px_rgba(16,185,129,0.2)]"
+        >
+          Finalize Release Cycle
+        </button>
+      </div>
     </div>
+
     <ng-template #noProjectSelected>
-      <div class="flex items-center justify-center h-full">
-        <p class="text-neutral-400">Select a project to view its details.</p>
+      <div class="flex flex-col items-center justify-center h-full text-center">
+        <i class="fas fa-folder-open text-6xl text-slate-800 mb-6"></i>
+        <h2 class="text-xl font-bold text-slate-500 uppercase tracking-widest">No Project Selected</h2>
+        <p class="text-slate-600 mt-2 text-sm">Select a release cycle from the list to manage tasks.</p>
       </div>
     </ng-template>
   </div>

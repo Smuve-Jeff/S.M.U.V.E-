@@ -16,6 +16,9 @@ import { AiService } from '../services/ai.service';
 import { FileLoaderService } from '../services/file-loader.service';
 import { ExportService } from '../services/export.service';
 import { AudioEngineService } from '../services/audio-engine.service';
+import { GameService } from './game.service';
+import { Game } from './game';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-hub',
@@ -33,6 +36,10 @@ export class HubComponent implements OnInit, OnDestroy {
   private fileLoader = inject(FileLoaderService);
   private exportService = inject(ExportService);
   private audioEngine = inject(AudioEngineService);
+  private gameService = inject(GameService);
+
+  // Games Data
+  public games = toSignal(this.gameService.listGames(), { initialValue: [] as Game[] });
 
   // Quick Start Form
   quickProfile = signal({
@@ -109,7 +116,6 @@ export class HubComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // Use any to access private-ish method for buffer to wav conversion
       const wavBuffer = this.exportService.audioBufferToWav(buffer);
       const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
       const url = URL.createObjectURL(wavBlob);
