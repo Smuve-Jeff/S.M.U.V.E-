@@ -1,7 +1,7 @@
 <div class="transport-bar">
   <div class="flex items-center gap-2">
     <button (click)="togglePlay()" [class.active]="isPlaying()" class="transport-btn" title="Play/Pause">
-      <i class="fas" [class.fa-play]="!isPlaying()" [class.fa-pause]="isPlaying()"></i>
+      <i class="fas" [ngClass]="{'fa-play': !isPlaying(), 'fa-pause': isPlaying()}"></i>
     </button>
     <button (click)="stop()" class="transport-btn" title="Stop">
       <i class="fas fa-stop"></i>
