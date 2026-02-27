@@ -1,38 +1,57 @@
 <div
-  class="channel-strip-container bg-brand-surface p-3 rounded-lg flex flex-col items-center gap-3 w-40"
+  class="channel-strip-container bg-slate-900/40 p-4 rounded-2xl flex flex-col items-center gap-4 w-32 border border-white/5 shadow-xl hover:bg-slate-900/60 transition-all group"
 >
-  <!-- Channel Label -->
-  <h3 class="font-bold text-md truncate w-full text-center">
-    {{ channel.label }}
-  </h3>
-
-  <!-- Fader -->
-  <div
-    class="fader-track h-40 w-6 bg-brand-dark rounded-full flex justify-center py-1"
-  >
-    <input
-      type="range"
-      orient="vertical"
-      min="0"
-      max="100"
-      [value]="channel.level"
-      (input)="updateLevel(+$event.target.value)"
-      class="w-2 h-full"
-    />
+  <!-- Channel Header -->
+  <div class="w-full">
+    <div class="flex items-center justify-between mb-1">
+      <div class="w-2 h-2 rounded-full" [class.bg-emerald-500]="channel.armed" [class.bg-slate-700]="!channel.armed"></div>
+      <div class="text-[8px] font-mono text-slate-500">CH-{{ channel.id }}</div>
+    </div>
+    <h3 class="font-black text-[10px] uppercase tracking-widest truncate w-full text-center text-slate-300 group-hover:text-emerald-500 transition-colors">
+      {{ channel.label }}
+    </h3>
   </div>
-  <div class="text-xs font-mono">{{ channel.level }}</div>
+
+  <!-- Fader Section -->
+  <div class="flex-grow flex justify-center w-full py-2 relative">
+     <!-- Markers -->
+     <div class="absolute left-2 top-2 bottom-2 w-px bg-white/5"></div>
+
+     <div class="fader-track h-48 w-8 bg-black/60 rounded-full flex justify-center py-2 border border-white/5 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+        <!-- Level Metering -->
+        <div class="absolute bottom-2 left-1 right-1 bg-gradient-to-t from-emerald-600 via-emerald-400 to-yellow-400 rounded-full opacity-30 blur-[2px]" [style.height.%]="channel.level"></div>
+
+        <input
+          type="range"
+          orient="vertical"
+          min="0"
+          max="100"
+          [value]="channel.level"
+          (input)="updateLevel(+$event.target.value)"
+          class="w-full h-full appearance-none bg-transparent cursor-pointer z-10 channel-fader"
+        />
+     </div>
+  </div>
 
   <!-- Pan Control -->
-  <div class="pan-control w-full">
-    <input
-      type="range"
-      min="-100"
-      max="100"
-      [value]="channel.pan"
-      (input)="updatePan(+$event.target.value)"
-      class="w-full h-1"
-    />
-    <div class="text-xs text-center">
+  <div class="pan-control w-full px-2">
+    <div class="flex justify-between text-[8px] font-bold text-slate-600 mb-1">
+      <span>L</span>
+      <span>CENTER</span>
+      <span>R</span>
+    </div>
+    <div class="relative h-4 flex items-center">
+      <div class="absolute inset-x-0 h-1 bg-slate-800 rounded-full border border-white/5"></div>
+      <input
+        type="range"
+        min="-100"
+        max="100"
+        [value]="channel.pan"
+        (input)="updatePan(+$event.target.value)"
+        class="w-full h-1 appearance-none bg-transparent accent-emerald-500 cursor-pointer relative z-10"
+      />
+    </div>
+    <div class="text-[9px] font-mono text-center mt-1 text-emerald-500/80">
       {{
         channel.pan === 0
           ? 'C'
@@ -43,21 +62,21 @@
     </div>
   </div>
 
-  <!-- Mute and Arm Buttons -->
-  <div class="flex justify-around w-full mt-2">
+  <!-- Action Buttons -->
+  <div class="grid grid-cols-2 gap-2 w-full mt-2">
     <button
       (click)="toggleMute()"
-      class="w-10 h-10 rounded-md font-bold text-xs"
-      [ngClass]="channel.muted ? 'bg-yellow-600' : 'bg-neutral-700'"
+      class="h-10 rounded-xl font-black text-[10px] uppercase tracking-tighter border transition-all active:scale-90"
+      [ngClass]="channel.muted ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'bg-slate-800 text-slate-500 border-white/5 hover:border-white/20'"
     >
       MUTE
     </button>
     <button
       (click)="toggleArm()"
-      class="w-10 h-10 rounded-md font-bold text-xs"
-      [ngClass]="channel.armed ? 'bg-red-700' : 'bg-neutral-700'"
+      class="h-10 rounded-xl font-black text-[10px] uppercase tracking-tighter border transition-all active:scale-90"
+      [ngClass]="channel.armed ? 'bg-red-500/20 text-red-500 border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : 'bg-slate-800 text-slate-500 border-white/5 hover:border-white/20'"
     >
-      ARM
+      REC
     </button>
   </div>
 </div>

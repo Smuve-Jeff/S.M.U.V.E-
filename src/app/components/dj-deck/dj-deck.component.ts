@@ -4,7 +4,9 @@ import {
   signal,
   input,
   computed,
+  inject
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { AppTheme } from '../../services/user-context.service';
 import { SampleLibraryComponent } from '../sample-library/sample-library.component';
 import { FileLoaderService } from '../../services/file-loader.service';
@@ -14,6 +16,7 @@ import { FormsModule } from '@angular/forms';
 import { StemControlsComponent } from '../stem-controls/stem-controls.component';
 import { DeckService } from '../../services/deck.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { UIService } from '../../services/ui.service';
 import {
   StemSeparationService,
   Stems,
@@ -24,10 +27,10 @@ import {
   templateUrl: './dj-deck.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [SampleLibraryComponent, FormsModule, StemControlsComponent],
+  imports: [CommonModule, SampleLibraryComponent, FormsModule, StemControlsComponent],
 })
 export class DjDeckComponent {
-  theme = input.required<AppTheme>();
+  theme = input<AppTheme>(inject(UIService).activeTheme());
 
   midiEnabled = signal(false);
   phantomPowerEnabled = signal(false);
@@ -83,7 +86,7 @@ export class DjDeckComponent {
     }
   }
 
-  setPlaybackRate(deck: "A" | "B", rate: string) { const r = parseFloat(rate); if (deck === "A") this.deckService.deckA.update(d => ({ ...d, playbackRate: r })); else this.deckService.deckB.update(d => ({ ...d, playbackRate: r })); }
+  setPlaybackRate(deck: "A" | "B", rate: any) { const r = parseFloat(rate); if (deck === "A") this.deckService.deckA.update(d => ({ ...d, playbackRate: r })); else this.deckService.deckB.update(d => ({ ...d, playbackRate: r })); }
 
   startStopRecording() {
     if (this.recording()) {

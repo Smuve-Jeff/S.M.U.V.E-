@@ -1,17 +1,25 @@
-<div class="synth-panel glass-morphism">
-  <div class="synth-header flex justify-between items-center mb-6">
-    <h3 class="text-xs font-black uppercase tracking-widest text-emerald-500">
-      <i class="fas fa-wave-square mr-2"></i> Subtractive Engine: {{ clip?.name }}
-    </h3>
-    <div class="waveform-selector flex gap-2">
+<div class="synth-panel bg-slate-950/60 backdrop-blur-3xl h-full flex flex-col p-6 border-l border-white/5 relative overflow-hidden group">
+  <!-- Decorative background elements -->
+  <div class="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/5 blur-[100px] pointer-events-none"></div>
+
+  <div class="synth-header flex justify-between items-start mb-8 relative z-10">
+    <div>
+      <h3 class="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 flex items-center gap-2">
+        <i class="fas fa-wave-square animate-pulse"></i>
+        Subtractive Synthesis Engine
+      </h3>
+      <div class="text-[9px] font-mono text-slate-500 mt-1 uppercase tracking-tighter">Target: {{ clip?.name || 'MASTER OSC' }}</div>
+    </div>
+
+    <div class="waveform-selector flex gap-1.5 p-1 bg-black/40 rounded-xl border border-white/5">
       <button
         *ngFor="let type of ['sine', 'square', 'sawtooth', 'triangle']"
         (click)="updateSynthParam('oscillator', type)"
         [class.active]="synthParams.oscillator === type"
-        class="wave-btn"
-        [title]="type"
+        class="wave-btn w-9 h-9 rounded-lg flex items-center justify-center transition-all group/wave"
+        [title]="type | uppercase"
       >
-        <i class="fas" [ngClass]="{
+        <i class="fas text-sm" [ngClass]="{
           'fa-circle': type === 'sine',
           'fa-square': type === 'square',
           'fa-mountain': type === 'sawtooth',
@@ -21,34 +29,91 @@
     </div>
   </div>
 
-  <div class="controls-layout">
-    <div class="envelope-section">
-      <h4 class="control-label">ADSR ENVELOPE</h4>
-      <div class="knobs-grid">
-        <div class="knob-group">
-          <input type="range" min="0.01" max="2" step="0.01" [(ngModel)]="synthParams.attack" (ngModelChange)="updateSynthParam('attack', $event)">
-          <label>ATTACK</label>
+  <div class="controls-layout grid grid-cols-1 gap-8 relative z-10 flex-grow">
+    <!-- ADSR Section -->
+    <div class="envelope-section bg-black/20 p-5 rounded-2xl border border-white/5 shadow-2xl">
+      <div class="flex items-center justify-between mb-6">
+        <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Main Envelope <span class="text-emerald-500/50">(ADSR)</span></h4>
+        <div class="flex gap-1">
+          <div class="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]"></div>
+          <div class="w-1 h-1 rounded-full bg-emerald-500/20"></div>
+          <div class="w-1 h-1 rounded-full bg-emerald-500/20"></div>
         </div>
-        <div class="knob-group">
-          <input type="range" min="0.01" max="2" step="0.01" [(ngModel)]="synthParams.decay" (ngModelChange)="updateSynthParam('decay', $event)">
-          <label>DECAY</label>
+      </div>
+
+      <div class="knobs-grid grid grid-cols-4 gap-4">
+        <div class="knob-group flex flex-col items-center gap-4">
+          <div class="fader-well h-32 w-1.5 bg-slate-800 rounded-full relative">
+             <div class="absolute bottom-0 inset-x-0 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]" [style.height.%]="(synthParams.attack / 2) * 100"></div>
+             <input type="range" min="0.01" max="2" step="0.01" [(ngModel)]="synthParams.attack" (ngModelChange)="updateSynthParam('attack', $event)" class="synth-slider">
+          </div>
+          <div class="text-center">
+            <label class="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1">Attack</label>
+            <span class="text-[9px] font-mono text-emerald-400/80">{{ synthParams.attack.toFixed(2) }}s</span>
+          </div>
         </div>
-        <div class="knob-group">
-          <input type="range" min="0" max="1" step="0.01" [(ngModel)]="synthParams.sustain" (ngModelChange)="updateSynthParam('sustain', $event)">
-          <label>SUSTAIN</label>
+
+        <div class="knob-group flex flex-col items-center gap-4">
+          <div class="fader-well h-32 w-1.5 bg-slate-800 rounded-full relative">
+             <div class="absolute bottom-0 inset-x-0 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]" [style.height.%]="(synthParams.decay / 2) * 100"></div>
+             <input type="range" min="0.01" max="2" step="0.01" [(ngModel)]="synthParams.decay" (ngModelChange)="updateSynthParam('decay', $event)" class="synth-slider">
+          </div>
+          <div class="text-center">
+            <label class="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1">Decay</label>
+            <span class="text-[9px] font-mono text-emerald-400/80">{{ synthParams.decay.toFixed(2) }}s</span>
+          </div>
         </div>
-        <div class="knob-group">
-          <input type="range" min="0.01" max="5" step="0.01" [(ngModel)]="synthParams.release" (ngModelChange)="updateSynthParam('release', $event)">
-          <label>RELEASE</label>
+
+        <div class="knob-group flex flex-col items-center gap-4">
+          <div class="fader-well h-32 w-1.5 bg-slate-800 rounded-full relative">
+             <div class="absolute bottom-0 inset-x-0 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]" [style.height.%]="synthParams.sustain * 100"></div>
+             <input type="range" min="0" max="1" step="0.01" [(ngModel)]="synthParams.sustain" (ngModelChange)="updateSynthParam('sustain', $event)" class="synth-slider">
+          </div>
+          <div class="text-center">
+            <label class="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1">Sustain</label>
+            <span class="text-[9px] font-mono text-emerald-400/80">{{ (synthParams.sustain * 100).toFixed(0) }}%</span>
+          </div>
+        </div>
+
+        <div class="knob-group flex flex-col items-center gap-4">
+          <div class="fader-well h-32 w-1.5 bg-slate-800 rounded-full relative">
+             <div class="absolute bottom-0 inset-x-0 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]" [style.height.%]="(synthParams.release / 5) * 100"></div>
+             <input type="range" min="0.01" max="5" step="0.01" [(ngModel)]="synthParams.release" (ngModelChange)="updateSynthParam('release', $event)" class="synth-slider">
+          </div>
+          <div class="text-center">
+            <label class="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1">Release</label>
+            <span class="text-[9px] font-mono text-emerald-400/80">{{ synthParams.release.toFixed(2) }}s</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="visualizer-section">
-      <!-- Waveform visualizer could go here -->
-      <div class="wave-preview">
-        <div class="synth-glow"></div>
+    <!-- Engine Visualizer -->
+    <div class="visualizer-section h-24 bg-black/40 rounded-2xl border border-white/5 relative overflow-hidden flex items-center justify-center">
+      <div class="absolute inset-0 bg-gradient-to-t from-emerald-500/5 to-transparent"></div>
+      <!-- Simulated waveform -->
+      <svg class="w-full h-12 opacity-50" viewBox="0 0 400 100">
+        <path d="M 0 50 Q 50 0 100 50 T 200 50 T 300 50 T 400 50" fill="none" stroke="#10b981" stroke-width="2" class="animate-pulse">
+           <animate attributeName="d" dur="2s" repeatCount="indefinite"
+             values="M 0 50 Q 50 10 100 50 T 200 50 T 300 50 T 400 50;
+                     M 0 50 Q 50 90 100 50 T 200 50 T 300 50 T 400 50;
+                     M 0 50 Q 50 10 100 50 T 200 50 T 300 50 T 400 50" />
+        </path>
+      </svg>
+      <div class="absolute inset-0 flex items-center justify-center">
+         <div class="text-[9px] font-mono text-emerald-500/30 uppercase tracking-[0.5em]">Engine Oscillating</div>
       </div>
     </div>
+  </div>
+
+  <div class="mt-auto pt-6 flex items-center justify-between border-t border-white/5 relative z-10">
+     <button class="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-[10px] font-black rounded-lg uppercase tracking-widest hover:bg-emerald-500 hover:text-black transition-all active:scale-95">
+       Save Preset
+     </button>
+     <div class="flex gap-2">
+       <div class="w-1.5 h-1.5 rounded-full bg-slate-800"></div>
+       <div class="w-1.5 h-1.5 rounded-full bg-slate-800"></div>
+       <div class="w-1.5 h-1.5 rounded-full bg-slate-800"></div>
+     </div>
   </div>
 </div>

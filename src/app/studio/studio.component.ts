@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TransportBarComponent } from './transport-bar/transport-bar.component';
 import { SessionViewComponent } from './session-view/session-view.component';
@@ -8,6 +8,7 @@ import { PerformanceModeComponent } from './performance-mode/performance-mode.co
 import { Clip } from './instrument.service';
 import { SynthesizerComponent } from './synthesizer/synthesizer.component';
 import { SoundPadComponent } from './sound-pad/sound-pad.component';
+import { DjDeckComponent } from '../components/dj-deck/dj-deck.component';
 
 @Component({
   selector: 'app-studio',
@@ -20,13 +21,15 @@ import { SoundPadComponent } from './sound-pad/sound-pad.component';
     MasterControlsComponent,
     PerformanceModeComponent,
     SynthesizerComponent,
-    SoundPadComponent
+    SoundPadComponent,
+    DjDeckComponent
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css']
 })
 export class StudioComponent {
   isPerformanceMode = false;
+  activeView = signal<'daw' | 'dj'>('daw');
   selectedClip: Clip | null = null;
   performancePads = [
     { name: 'Pad 1', isPlaying: false },
