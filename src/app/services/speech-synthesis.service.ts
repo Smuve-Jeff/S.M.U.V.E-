@@ -5,19 +5,8 @@ import { Injectable, signal } from '@angular/core';
 })
 export class SpeechSynthesisService {
   isSpeaking = signal(false);
-  private iframe: HTMLIFrameElement | null = null;
 
-  constructor() {
-    this.initIframe();
-  }
-
-  private initIframe() {
-    if (typeof document !== 'undefined') {
-      this.iframe = document.createElement('iframe');
-      this.iframe.style.display = 'none';
-      document.body.appendChild(this.iframe);
-    }
-  }
+  constructor() {}
 
   speak(text: string): void {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis) {
@@ -29,29 +18,16 @@ export class SpeechSynthesisService {
 
     this.cancel();
 
-    // Dual voice synthesis: Ominous, harmonized tone
-    // Primary Voice (Female) - Higher Pitch
-    const femaleUtterance = new SpeechSynthesisUtterance(processedText);
-    this.configureUtterance(femaleUtterance, 1.1, 0.9);
+    // Normal voice synthesis: Single clear voice
+    const utterance = new SpeechSynthesisUtterance(processedText);
+    this.configureUtterance(utterance, 1.0, 1.0);
 
-    // Secondary Voice (Male) - Lower Pitch, via Iframe to bypass queue
-    const maleUtterance = new SpeechSynthesisUtterance(processedText);
-    this.configureUtterance(maleUtterance, 0.7, 0.85);
-
-    femaleUtterance.onstart = () => this.isSpeaking.set(true);
-    femaleUtterance.onend = () => this.isSpeaking.set(false);
-    femaleUtterance.onerror = () => this.isSpeaking.set(false);
+    utterance.onstart = () => this.isSpeaking.set(true);
+    utterance.onend = () => this.isSpeaking.set(false);
+    utterance.onerror = () => this.isSpeaking.set(false);
 
     // Speak primary
-    window.speechSynthesis.speak(femaleUtterance);
-
-    // Speak secondary via iframe's synthesis if available, otherwise just use main
-    if (this.iframe && this.iframe.contentWindow && (this.iframe.contentWindow as any).speechSynthesis) {
-        (this.iframe.contentWindow as any).speechSynthesis.speak(maleUtterance);
-    } else {
-        // Fallback or skip secondary if iframe not ready
-        console.warn('SpeechSynthesis: Secondary voice (iframe) not available.');
-    }
+    window.speechSynthesis.speak(utterance);
   }
 
   private configureUtterance(utterance: SpeechSynthesisUtterance, pitch: number, rate: number) {
@@ -71,9 +47,6 @@ export class SpeechSynthesisService {
   cancel(): void {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
-      if (this.iframe && this.iframe.contentWindow && (this.iframe.contentWindow as any).speechSynthesis) {
-        (this.iframe.contentWindow as any).speechSynthesis.cancel();
-      }
       this.isSpeaking.set(false);
     }
   }
