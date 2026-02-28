@@ -49,3 +49,15 @@ export interface ArtistKnowledgeBase {
   productionSecrets: ProductionSecret[];
   coreTrends: TrendData[];
 }
+
+export interface UpgradeRecommendation {
+  id: string;
+  title: string;
+  description: string;
+  type: 'Gear' | 'Service' | 'Software';
+  cost: string;
+  minLevel: number;
+  genres?: string[];
+  url?: string;
+  impact: 'High' | 'Medium' | 'Low';
+}

@@ -1,0 +1,13 @@
+.command-center-container {
+  background: #020617;
+}
+.terminal-module {
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+.typing-text {
+  animation: typing 0.5s steps(40, end);
+}
+@keyframes typing {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
