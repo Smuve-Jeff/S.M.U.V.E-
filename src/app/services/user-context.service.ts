@@ -53,6 +53,9 @@ export interface DeckState {
   eqLow: number;
   wasPlayingBeforeScratch?: boolean;
   buffer?: AudioBuffer;
+  hotCues: (number | null)[];
+  keyLock: boolean;
+  loopLength: number;
 }
 
 export const initialDeckState: DeckState = {
@@ -68,11 +71,14 @@ export const initialDeckState: DeckState = {
   playbackRate: 1,
   filterFreq: 20000,
   loop: false,
-  gain: 50,
-  eqHigh: 50,
-  eqMid: 50,
-  eqLow: 50,
+  gain: 1.0,
+  eqHigh: 0,
+  eqMid: 0,
+  eqLow: 0,
   wasPlayingBeforeScratch: false,
+  hotCues: new Array(8).fill(null),
+  keyLock: true,
+  loopLength: 4,
 };
 
 /**

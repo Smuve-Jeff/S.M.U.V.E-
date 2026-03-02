@@ -24,6 +24,10 @@
                  [class.bg-emerald-500]="activeView() === 'mixer'"
                  [class.text-black]="activeView() === 'mixer'"
                  class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">Mixer</button>
+         <button (click)="activeView.set('dj')"
+                 [class.bg-emerald-500]="activeView() === 'dj'"
+                 [class.text-black]="activeView() === 'dj'"
+                 class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">DJ Booth</button>
       </div>
 
       <div class="flex items-center gap-3">
@@ -57,6 +61,11 @@
        <div class="w-full h-full max-w-6xl pointer-events-auto shadow-[0_50px_100px_rgba(0,0,0,0.9)] rounded-3xl">
          <app-piano-roll></app-piano-roll>
        </div>
+    </div>
+
+    <!-- DJ BOOTH VIEW -->
+    <div class="dj-view h-full overflow-y-auto" [class.hidden]="activeView() !== 'dj'">
+       <app-dj-deck></app-dj-deck>
     </div>
 
     <!-- RECORDING MONITOR -->

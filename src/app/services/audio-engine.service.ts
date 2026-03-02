@@ -38,6 +38,7 @@ type DeckId = 'A' | 'B';
 
 // Updated DeckChannel to support stems
 interface DeckChannel {
+  analyser: AnalyserNode;
   buffer?: AudioBuffer;
   stems?: Stems;
   sources: {
@@ -68,6 +69,8 @@ interface DeckChannel {
   loopEnabled: boolean;
   loopStartSec: number;
   loopEndSec: number;
+  hotCues: (number | null)[];
+  keyLock: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -246,6 +249,10 @@ export class AudioEngineService {
     // pre -> sendB -> delay
     pre.connect(sendB).connect(this.delay);
 
+    const analyser = this.ctx.createAnalyser();
+    analyser.fftSize = 256;
+    pre.connect(analyser);
+
     const deck: DeckChannel = {
       pre,
       gain,
@@ -256,6 +263,7 @@ export class AudioEngineService {
       eqHigh,
       sendA,
       sendB,
+      analyser,
       buffer: undefined,
       stems: undefined,
       sources: { vocals: null, drums: null, bass: null, melody: null },
@@ -267,6 +275,8 @@ export class AudioEngineService {
       loopEnabled: false,
       loopStartSec: 0,
       loopEndSec: 0,
+      hotCues: new Array(8).fill(null),
+      keyLock: true,
     };
 
     if (id === 'A') this.deckA = deck;
@@ -791,5 +801,48 @@ export class AudioEngineService {
       this.limiter.connect(this.recordingDestination);
     }
     return this.recordingDestination;
+  }
+
+  setHotCue(id: DeckId, slot: number) {
+    const deck = this.getDeck(id);
+    const pos = this.getDeckProgress(id).position;
+    deck.hotCues[slot] = pos;
+  }
+
+  jumpToHotCue(id: DeckId, slot: number) {
+    const deck = this.getDeck(id);
+    const pos = deck.hotCues[slot];
+    if (pos !== null) {
+      this.seekDeck(id, pos);
+    }
+  }
+
+  clearHotCue(id: DeckId, slot: number) {
+    const deck = this.getDeck(id);
+    deck.hotCues[slot] = null;
+  }
+
+  getDeckLevel(id: DeckId): number {
+    const deck = this.getDeck(id);
+    const data = new Uint8Array(deck.analyser.frequencyBinCount);
+    deck.analyser.getByteFrequencyData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) sum += data[i];
+    return sum / data.length / 255;
+  }
+
+  getDeckWaveformData(id: DeckId): Float32Array {
+    const deck = this.getDeck(id);
+    if (!deck.buffer) return new Float32Array(0);
+    return deck.buffer.getChannelData(0);
+  }
+
+  setKeyLock(id: DeckId, enabled: boolean) {
+    const deck = this.getDeck(id);
+    deck.keyLock = enabled;
+    // Note: Web Audio API standard AudioBufferSourceNode doesn't natively support
+    // high-quality pitch shifting without changing speed (keylock)
+    // but we'll store the state for future integration with a library or
+    // keep it as a UI indicator for now.
   }
 }

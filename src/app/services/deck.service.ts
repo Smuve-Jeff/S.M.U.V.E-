@@ -52,13 +52,64 @@ export class DeckService {
         ...d,
         track: { ...d.track, name: fileName, url: '' },
         duration: buffer.duration,
+        hotCues: new Array(8).fill(null),
+        progress: 0
       }));
     } else {
       this.deckB.update((d) => ({
         ...d,
         track: { ...d.track, name: fileName, url: '' },
         duration: buffer.duration,
+        hotCues: new Array(8).fill(null),
+        progress: 0
       }));
     }
+  }
+
+  setHotCue(deck: 'A' | 'B', slot: number) {
+    this.engine.setHotCue(deck, slot);
+    const pos = this.engine.getDeckProgress(deck).position;
+    if (deck === 'A') {
+      this.deckA.update(d => {
+        const cues = [...d.hotCues];
+        cues[slot] = pos;
+        return { ...d, hotCues: cues };
+      });
+    } else {
+      this.deckB.update(d => {
+        const cues = [...d.hotCues];
+        cues[slot] = pos;
+        return { ...d, hotCues: cues };
+      });
+    }
+  }
+
+  jumpToHotCue(deck: 'A' | 'B', slot: number) {
+    this.engine.jumpToHotCue(deck, slot);
+  }
+
+  setDeckEq(deck: 'A' | 'B', high: number, mid: number, low: number) {
+    this.engine.setDeckEq(deck, high, mid, low);
+    if (deck === 'A') this.deckA.update(d => ({ ...d, eqHigh: high, eqMid: mid, eqLow: low }));
+    else this.deckB.update(d => ({ ...d, eqHigh: high, eqMid: mid, eqLow: low }));
+  }
+
+  setDeckFilter(deck: 'A' | 'B', freq: number) {
+    this.engine.setDeckFilterFreq(deck, freq);
+    if (deck === 'A') this.deckA.update(d => ({ ...d, filterFreq: freq }));
+    else this.deckB.update(d => ({ ...d, filterFreq: freq }));
+  }
+
+  setDeckGain(deck: 'A' | 'B', gain: number) {
+    this.engine.setDeckGain(deck, gain);
+    if (deck === 'A') this.deckA.update(d => ({ ...d, gain }));
+    else this.deckB.update(d => ({ ...d, gain }));
+  }
+
+  syncProgress() {
+    const progA = this.engine.getDeckProgress('A');
+    const progB = this.engine.getDeckProgress('B');
+    this.deckA.update(d => ({ ...d, progress: progA.position, isPlaying: progA.isPlaying }));
+    this.deckB.update(d => ({ ...d, progress: progB.position, isPlaying: progB.isPlaying }));
   }
 }

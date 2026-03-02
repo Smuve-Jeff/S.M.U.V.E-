@@ -1,4 +1,8 @@
-import {
+import sys
+
+file_path = 'src/app/components/dj-deck/dj-deck.component.ts'
+
+content = """import {
   Component,
   ChangeDetectionStrategy,
   signal,
@@ -54,14 +58,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private animFrame: number | null = null;
   private syncInterval: any = null;
-
-
-  pitchAPercentage = computed(
-    () => `${(this.deckService.deckA().playbackRate * 100).toFixed(1)}%`
-  );
-  pitchBPercentage = computed(
-    () => `${(this.deckService.deckB().playbackRate * 100).toFixed(1)}%`
-  );
 
   constructor(
     private fileLoader: FileLoaderService,
@@ -230,3 +226,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 }
+"""
+
+with open(file_path, 'w') as f:
+    f.write(content)
