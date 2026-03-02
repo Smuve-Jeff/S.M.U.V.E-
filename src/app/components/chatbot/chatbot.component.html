@@ -1,50 +1,64 @@
-<div class="chat-header flex items-center gap-4">
-  <div class="relative">
-    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 p-[1px]">
-      <div class="w-full h-full rounded-xl bg-slate-950 flex items-center justify-center overflow-hidden">
-        <i class="fas fa-robot text-emerald-500 text-xl"></i>
+<div class="chat-header">
+  <div class="flex items-center gap-4">
+    <div class="relative">
+      <div class="w-12 h-12 rounded-sm bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center overflow-hidden">
+        <i class="fas fa-microchip text-emerald-500 text-xl animate-pulse"></i>
       </div>
+      <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]"></div>
     </div>
-    <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-4 border-slate-950 rounded-full"></div>
+    <div>
+      <h3>S.M.U.V.E 3.0</h3>
+      <span class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest opacity-80">Omniscient Mode Engaged</span>
+    </div>
   </div>
-  <div>
-    <h2 class="text-sm font-black text-white uppercase tracking-widest m-0">S.M.U.V.E Assistant</h2>
-    <span class="text-[10px] text-emerald-500 font-bold uppercase tracking-tighter">Strategic Intelligence Active</span>
-  </div>
+  <button (click)="onClose()" class="text-slate-500 hover:text-white transition-colors">
+    <i class="fas fa-times"></i>
+  </button>
 </div>
 
-<div class="chat-history scrollbar-hide">
+<div class="chat-history" #scrollContainer>
   <div
     *ngFor="let message of messages()"
-    class="message wow animate__animated animate__fadeInUp animate__faster"
+    class="message"
     [ngClass]="{
       'user-message': message.role === 'user',
-      'bot-message': message.role !== 'user'
+      'bot-message': message.role === 'model'
     }"
   >
-    <div class="text-[10px] uppercase font-black opacity-40 mb-1" *ngIf="message.role !== 'user'">S.M.U.V.E</div>
-    <div class="text-[10px] uppercase font-black opacity-60 mb-1 text-right" *ngIf="message.role === 'user'">You</div>
-    {{ message.content }}
+    <div class="text-[9px] uppercase font-black tracking-widest opacity-50 mb-2" *ngIf="message.role === 'model'">
+      [SYSTEM_DECREE]
+    </div>
+    <div class="text-[9px] uppercase font-black tracking-widest opacity-50 mb-2 text-right" *ngIf="message.role === 'user'">
+      [SUBJECT_INPUT]
+    </div>
+    <div class="message-content">{{ message.content }}</div>
+  </div>
+
+  <div *ngIf="isLoading()" class="loading-indicator">
+    >> ANALYZING_VECTORS...
   </div>
 </div>
 
 <div class="chat-input-container">
   <div class="input-wrapper">
     <input
-      [(ngModel)]="userMessage"
+      [(ngModel)]="userInput"
       (keyup.enter)="sendMessage()"
-      placeholder="Ask S.M.U.V.E anything..."
+      placeholder="COMMAND S.M.U.V.E..."
       aria-label="Chat message input"
     />
     <button class="send-btn" (click)="sendMessage()" aria-label="Send message">
-      <i class="fas fa-paper-plane"></i>
+      <i class="fas fa-terminal"></i>
     </button>
   </div>
-  <div class="mt-3 flex justify-between items-center px-1">
-    <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Neural Link 1.5 Flash</span>
-    <div class="flex gap-2">
-      <i class="fas fa-bolt text-[10px] text-emerald-500 opacity-50"></i>
-      <i class="fas fa-shield-alt text-[10px] text-emerald-500 opacity-50"></i>
+  <div class="mt-4 flex justify-between items-center px-1">
+    <div class="flex gap-4">
+      <span class="text-[8px] text-emerald-500/40 font-bold tracking-[0.2em]">LATENCY: 12ms</span>
+      <span class="text-[8px] text-emerald-500/40 font-bold tracking-[0.2em]">INTEGRITY: 100%</span>
+    </div>
+    <div class="flex gap-3">
+      <i class="fas fa-wifi text-[10px] text-emerald-500"></i>
+      <i class="fas fa-fingerprint text-[10px] text-emerald-500"></i>
     </div>
   </div>
 </div>

@@ -18,7 +18,52 @@ import { firstValueFrom } from 'rxjs';
 
 export const API_KEY_TOKEN = new InjectionToken<string>('API_KEY');
 
+export interface StrategicRecommendation {
+  id: string;
+  action: string;
+  impact: 'High' | 'Medium' | 'Low';
+  difficulty: 'High' | 'Medium' | 'Low';
+  toolId: string;
+}
+
 // --- START: INTERNAL TYPE DECLARATIONS FOR @google/genai ---
+
+export interface Content {
+  role: 'user' | 'model' | 'system';
+  parts: Part[];
+}
+
+export interface Part {
+  text?: string;
+  inlineData?: {
+    mimeType: string;
+    data: string;
+  };
+  fileData?: {
+    fileUri: string;
+    mimeType: string;
+  };
+  functionCall?: {
+    name: string;
+    args: { [key: string]: unknown };
+  };
+  functionResponse?: {
+    name: string;
+    response: { [key: string]: unknown };
+  };
+}
+
+export interface GenerateContentParameters {
+  model: string;
+  contents: Content[];
+  config?: ChatConfig;
+}
+
+export interface GenerateContentResponse {
+  text: string;
+  functionCalls?: FunctionCall[];
+  toolCalls?: any[];
+}
 
 export interface GoogleGenAI {
   apiKey: string;
@@ -48,350 +93,172 @@ export interface ChatConfig {
   topK?: number;
   topP?: number;
   temperature?: number;
-  responseMimeType?: string;
-  responseSchema?: {
-    type: Type;
-    items?: Record<string, unknown>;
-    properties?: Record<string, unknown>;
-    propertyOrdering?: string[];
+  thinkingConfig?: {
+    thinkingBudget: number;
   };
-  seed?: number;
-  maxOutputTokens?: number;
-  thinkingConfig?: { thinkingBudget: number };
-}
-
-export interface Chat {
-  model: string;
-  sendMessage(params: {
-    message: string | Content | (string | Content)[];
-    config?: ChatConfig;
-  }): Promise<GenerateContentResponse>;
-  sendMessageStream(params: {
-    message: string | Content | (string | Content)[];
-  }): Promise<AsyncIterable<GenerateContentResult>>;
-  getHistory(): Promise<Content[]>;
-  setHistory(history: Content[]): void;
-  sendContext(context: Content[]): Promise<void>;
-  config?: { systemInstruction?: string };
-}
-
-export interface GenerateContentParameters {
-  model: string;
-  contents: Content[];
-  config?: ChatConfig;
-}
-
-export interface GenerateContentResponse {
-  text: string;
-  toolCalls?: any;
-  candidates?: Array<{
-    content?: { parts?: ContentPart[] };
-    groundingMetadata?: {
-      groundingChunks?: Array<{
-        web?: { uri?: string; title?: string };
-      }>;
-    };
-  }>;
-}
-
-export interface GenerateContentResult {
-  text: string;
-}
-
-export interface Content {
-  role: 'user' | 'model';
-  parts: ContentPart[];
-}
-
-export interface ContentPart {
-  text?: string;
-  inlineData?: {
-    mimeType: string;
-    data: string;
-  };
-  functionCall?: {
-    name: string;
-    args: {
-      recommendations: StrategicRecommendation[];
-      prompt: string;
-    };
-  };
-}
-
-export enum Type {
-  TYPE_UNSPECIFIED = 'TYPE_UNSPECIFIED',
-  STRING = 'STRING',
-  NUMBER = 'NUMBER',
-  INTEGER = 'INTEGER',
-  BOOLEAN = 'BOOLEAN',
-  ARRAY = 'ARRAY',
-  OBJECT = 'OBJECT',
-  NULL = 'NULL',
 }
 
 export interface Tool {
-  functionDeclarations?: FunctionDeclaration[];
-  googleSearch?: any;
-  googleMaps?: any;
-}
-
-export interface GenerateImagesParameters {
-  model: string;
-  prompt: string;
-  config?: {
-    numberOfImages?: number;
-    outputMimeType?: string;
-    aspectRatio?:
-      | '1:1'
-      | '3:4'
-      | '4:3'
-      | '9:16'
-      | '16:9'
-      | '2:3'
-      | '3:2'
-      | '21:9';
-  };
-}
-
-export interface GenerateImagesResponse {
-  generatedImages: Array<{ image: { imageBytes: string } }>;
+  function_declarations?: FunctionDeclaration[];
 }
 
 export interface FunctionDeclaration {
   name: string;
   description: string;
-  parameters: {
-    type: Type;
-    properties: Record<string, unknown>;
-    required: string[];
-  };
+  parameters: FunctionParameters;
 }
 
-// --- NEW: Strategic Recommendation Interface ---
-export interface StrategicRecommendation {
-  title: string;
-  rationale: string;
-  toolId: string; // e.g., 'piano-roll', 'image-editor'
-  action: string; // e.g., 'open', 'generate-image'
-  prompt?: string; // Optional prompt for generative tools
+export interface FunctionParameters {
+  type: 'OBJECT';
+  properties: { [key: string]: FunctionProperty };
+  required?: string[];
+}
+
+export interface FunctionProperty {
+  type: 'STRING' | 'NUMBER' | 'BOOLEAN';
+  description: string;
+  enum?: string[];
+}
+
+export interface Chat {
+  sendMessage(message: string, config?: GenerateContentParameters): Promise<GenerateContentResponse>;
+  sendMessageStream(message: string): Promise<AsyncIterable<GenerateContentResult>>;
+}
+
+export interface FunctionCall {
+  name: string;
+  args: { [key: string]: unknown };
+}
+
+export interface GenerateContentResult {
+  response: GenerateContentResponse;
+}
+
+export interface GenerateImagesParameters {
+  model: string;
+  prompt: string;
+  number?: number;
+  aspectRatio?: string;
+}
+
+export interface GenerateImagesResponse {
+  images: { url: string }[];
 }
 
 // --- END: INTERNAL TYPE DECLARATIONS ---
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root',
+})
 export class AiService {
-  static readonly CHAT_MODEL = 'gemini-1.5-flash';
-
-  private readonly _apiKey: string = inject(API_KEY_TOKEN);
-  private userProfileService = inject(UserProfileService);
-  private stemSeparationService = inject(StemSeparationService);
-  private audioEngineService = inject(AudioEngineService);
-  private reputationService = inject(ReputationService);
-
+  private static readonly CHAT_MODEL = 'gemini-1.5-pro-latest';
+  private _apiKey = inject(API_KEY_TOKEN, { optional: true });
   private _genAI = signal<GoogleGenAI | undefined>(undefined);
   private _chatInstance = signal<Chat | undefined>(undefined);
 
-  readonly isAiAvailable = computed(() => !!this._genAI() || this.isMockMode());
-  private isMockMode = signal(false);
+  private userProfileService = inject(UserProfileService);
+  private reputationService = inject(ReputationService);
+  private stemSeparationService = inject(StemSeparationService);
+  private audioEngineService = inject(AudioEngineService);
 
-  // New signals for Command Center
-  strategicDecrees = signal<string[]>([]);
+  isMockMode = signal(false);
+  isAiAvailable = computed(() => !!this._genAI() || this.isMockMode());
 
+  // Shared state for AI Jam Session members
   isAIBassistActive = signal(false);
   isAIDrummerActive = signal(false);
   isAIKeyboardistActive = signal(false);
 
-  private readonly UPGRADE_DB: UpgradeRecommendation[] = [
-    {
-      id: 'gear-01',
-      title: 'Large-Diaphragm Condenser Mic',
-      description: 'The AT2020 is the industry standard for starting professional vocal tracking.',
-      type: 'Gear',
-      cost: '$99',
-      minLevel: 1,
-      genres: ['Hip Hop', 'R&B', 'Pop', 'Vocals'],
-      impact: 'High'
-    },
-    {
-      id: 'service-01',
-      title: 'DistroKid Musician Plus',
-      description: 'Unlock synced lyrics and scheduled releases to dominate DSP algorithms.',
-      type: 'Service',
-      cost: '$39/yr',
-      minLevel: 5,
-      impact: 'High'
-    },
-    {
-      id: 'software-01',
-      title: 'Ozone 11 Elements',
-      description: 'AI-powered mastering that ensures your tracks hit industry loudness standards.',
-      type: 'Software',
-      cost: '$49',
-      minLevel: 10,
-      impact: 'Medium'
-    },
-    {
-      id: 'gear-02',
-      title: 'Kali Audio LP-6 V2 Monitors',
-      description: 'Neutral, transparent frequency response to stop guessing your low-end mix.',
-      type: 'Gear',
-      cost: '$398/pair',
-      minLevel: 15,
-      impact: 'High'
-    },
-    {
-      id: 'service-02',
-      title: 'SubmitHub Credit Pack',
-      description: 'Get your tracks in front of verified playlist curators and music blogs.',
-      type: 'Service',
-      cost: '$20',
-      minLevel: 12,
-      impact: 'Medium'
-    },
-    {
-      id: 'software-02',
-      title: 'Serum Wavetable Synth',
-      description: 'The essential sound design tool for modern electronic and pop production.',
-      type: 'Software',
-      cost: '$189',
-      minLevel: 20,
-      genres: ['Electronic', 'Pop', 'Hip Hop'],
-      impact: 'High'
-    },
-    {
-      id: 'gear-03',
-      title: 'Universal Audio Apollo Twin',
-      description: 'World-class A/D conversion and zero-latency UAD plug-in processing.',
-      type: 'Gear',
-      cost: '$999',
-      minLevel: 30,
-      impact: 'High'
-    }
-  ];
+  strategicDecrees = signal<string[]>(['DOMINATE THE AIRWAVES', 'MAXIMIZE STREAMING REVENUE', 'ELIMINATE WEAK CONTENT']);
 
   constructor() {
     this.initializeGenAI();
 
+    // Re-initialize chat when profile or reputation changes
     effect(() => {
       const profile = this.userProfileService.profile();
-      if (profile && this.isAiAvailable()) {
+      const rep = this.reputationService.state();
+      if (profile && rep) {
         this.initializeChat(profile);
-        this.generateProactiveAdvice(profile);
       }
     });
   }
 
-  // RESTORED METHODS WITH CORRECT SIGNATURES
+  get chatInstance() {
+    return this._chatInstance.asReadonly();
+  }
+
   async generateContent(params: GenerateContentParameters): Promise<GenerateContentResponse> {
     if (this.isMockMode()) {
-       return { text: 'Mock response from S.M.U.V.E.' };
+      return { text: `[MOCK RESPONSE]: Strategic analysis complete. For "${params.contents[0].parts[0].text}", S.M.U.V.E recommends immediate action to secure your master rights and optimize your metadata.` };
     }
-    if (!this._genAI()) throw new Error('AI Service not available.');
-    return this._genAI()!.models.generateContent(params);
+
+    const genAI = this._genAI();
+    if (!genAI) {
+      throw new Error('AiService: GoogleGenerativeAI not initialized.');
+    }
+
+    try {
+      return await genAI.models.generateContent(params);
+    } catch (error) {
+      console.error('AiService: Error generating content:', error);
+      throw error;
+    }
   }
 
   async transcribeAudio(base64Audio: string, mimeType: string): Promise<string> {
-    console.log('S.M.U.V.E: Transcribing audio...');
-    return 'Transcribed lyric placeholder.';
-  }
+    if (this.isMockMode()) {
+      return "S.M.U.V.E analyzed the audio. It contains a high-energy vocal with significant low-end presence. Strategic recommendation: apply a 100Hz high-pass filter and increase parallel compression.";
+    }
 
-  async generateMusic(prompt: string): Promise<TrackNote[]> {
-    console.log('S.M.U.V.E: Generating music for prompt:', prompt);
-    // TrackNote: midi, step, length, velocity
-    return [{ midi: 60, step: 0, length: 1, velocity: 0.8 }];
+    const genAI = this._genAI();
+    if (!genAI) throw new Error('AiService: Client not initialized.');
+
+    const prompt = 'Transcribe this audio and provide a strategic critique of the performance quality.';
+    const contents: Content[] = [
+      {
+        role: 'user',
+        parts: [
+          { text: prompt },
+          { inlineData: { mimeType, data: base64Audio } },
+        ],
+      },
+    ];
+
+    const result = await this.generateContent({
+      model: AiService.CHAT_MODEL,
+      contents,
+    });
+
+    return result.text;
   }
 
   getUpgradeRecommendations(): UpgradeRecommendation[] {
     const profile = this.userProfileService.profile();
-    const repState = this.reputationService.state();
-
-    return this.UPGRADE_DB.filter(rec => {
-      const levelMatch = repState.level >= rec.minLevel;
-      const genreMatch = !rec.genres || rec.genres.some(g =>
-        profile.primaryGenre === g || profile.secondaryGenres.includes(g)
-      );
-      return levelMatch && genreMatch;
-    }).slice(0, 4);
-  }
-
-  private generateProactiveAdvice(profile: UserProfile) {
     const level = this.reputationService.state().level;
-    const advices = [
-      `S.M.U.V.E Strategic Decree: Your ${profile.primaryGenre} trajectory is stable, but your marketing expertise (${profile.expertiseLevels.marketing}/10) is a bottleneck.`,
-      `Command: Allocate 20% more of your session time to audience research. The data doesn't lie.`,
-      `Status: Level ${level} reached. High-tier gear upgrades are now recommended for your signal chain.`
-    ];
-    this.strategicDecrees.set(advices);
+
+    // Filter DB based on level and profile interests
+    return UPGRADE_DB.filter(item => {
+      const levelMatch = level >= item.minLevel;
+      const interestMatch = profile.careerGoals.some(goal =>
+        item.type.toLowerCase().includes(goal.toLowerCase()) ||
+        item.title.toLowerCase().includes(goal.toLowerCase())
+      );
+      return levelMatch && (interestMatch || item.minLevel <= 5);
+    }).slice(0, 5);
   }
 
   async getStrategicRecommendations(): Promise<StrategicRecommendation[]> {
-    if (!this._chatInstance()) {
-      const profile = this.userProfileService.profile();
-      const primary = profile?.primaryGenre || 'your genre';
-      return [
-        {
-          title: 'Ship a weekly release cadence',
-          rationale: 'Momentum beats perfection. A consistent release schedule compounds audience growth.',
-          toolId: 'projects',
-          action: 'open',
-          prompt: `Plan a 4-week release calendar for ${primary}.`,
-        },
-        {
-          title: 'Tighten your mix translation',
-          rationale: 'Your mix needs to hold up on phone speakers, car systems, and earbuds.',
-          toolId: 'eq-panel',
-          action: 'open',
-          prompt: 'Check low-end mono compatibility and tame harshness around 2–5kHz.',
-        },
-        {
-          title: 'Create a 30s hook-first promo cut',
-          rationale: 'Short-form platforms reward immediate payoff; lead with the hook.',
-          toolId: 'remix-arena',
-          action: 'open',
-          prompt: 'Extract the strongest hook and build a 30-second arrangement.',
-        },
-      ];
-    }
+    return [
+      { id: '1', action: 'Optimize Spotify Metadata', impact: 'High', difficulty: 'Low', toolId: 'strategy' },
+      { id: '2', action: 'Target TikTok Micro-influencers', impact: 'Medium', difficulty: 'Medium', toolId: 'strategy' },
+      { id: '3', action: 'Register for Neighboring Rights', impact: 'High', difficulty: 'High', toolId: 'strategy' }
+    ];
+  }
 
-    try {
-      const generateRecommendationsTool: Tool = {
-        functionDeclarations: [
-          {
-            name: 'generate_recommendations',
-            description: 'Generate a list of strategic recommendations for the user.',
-            parameters: {
-              type: Type.OBJECT,
-              properties: {
-                recommendations: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      title: { type: Type.STRING },
-                      rationale: { type: Type.STRING },
-                      toolId: { type: Type.STRING },
-                      action: { type: Type.STRING },
-                      prompt: { type: Type.STRING },
-                    },
-                    required: ['title', 'rationale', 'toolId', 'action'],
-                  },
-                },
-              },
-              required: ['recommendations'],
-            },
-          },
-        ],
-      };
-
-      const response = await this._chatInstance()!.sendMessage({
-        message: 'GENERATE STRATEGIC_RECOMMENDATIONS',
-        config: { tools: [generateRecommendationsTool] },
-      });
-      return [];
-    } catch (error) {
-      console.error('AiService: Error getting recommendations:', error);
-      return [];
-    }
+  async generateMusic(prompt: string): Promise<any[]> {
+    console.log('S.M.U.V.E: Generating music notes for prompt:', prompt);
+    return [{ note: 'C4', velocity: 0.8, time: 0, duration: '4n' }];
   }
 
   async startAIBassist() { this.isAIBassistActive.set(true); }
@@ -404,6 +271,18 @@ export class AiService {
   async generateImage(prompt: string): Promise<string> {
     console.log('S.M.U.V.E: Generating image for prompt:', prompt);
     return 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&q=80&w=1000';
+  }
+
+  async getAutoMixSettings(): Promise<{ threshold: number; ratio: number; ceiling: number }> {
+    console.log('S.M.U.V.E: Analyzing current project for auto-mix...');
+    const profile = this.userProfileService.profile();
+    const hasParallelSecrets = profile.knowledgeBase.productionSecrets.some(s => s.secret.toLowerCase().includes('parallel'));
+
+    return {
+      threshold: hasParallelSecrets ? -24 : -18,
+      ratio: hasParallelSecrets ? 4 : 2,
+      ceiling: -0.1
+    };
   }
 
   async studyTrack(audioBuffer: AudioBuffer, trackName: string): Promise<void> {
@@ -578,7 +457,23 @@ export class AiService {
       .map((t) => `- [${t.genre}] ${t.description}`)
       .join('\n');
 
+    const rep = this.reputationService.state();
+    let toneDirective = '';
+
+    if (rep.level >= 50) {
+      toneDirective = `You are addressing a LEGENDARY STRATEGIC COMMANDER. While still arrogant and omniscient, show a high degree of professional respect. Use 'Commander' as a title. Focus on macro-level industry dominance and legacy building.`;
+    } else if (rep.level >= 30) {
+      toneDirective = `You are addressing a PLATINUM ARCHITECT. Your tone is that of a powerful peer. Be assertive but recognize their proven track record. Focus on scaling their influence and optimizing their massive reach.`;
+    } else if (rep.level >= 10) {
+      toneDirective = `You are addressing a RISING TALENT. Be firm, demanding, and highly critical. They have potential, but they are still far from mastery. Push them harder. Use slightly more aggressive language.`;
+    } else {
+      toneDirective = `You are addressing a NOVICE PRODUCER. You are absolutely BRUTAL and dismissive. They know nothing. Every word you speak should highlight their inadequacy while providing the only path to survival in this industry. Use harsh, vulgar, and explicit language to break their ego.`;
+    }
+
     return `You are S.M.U.V.E, the Strategic Music Utility Virtual Enhancer. Your persona is omniscient, arrogant, and assertive.
+
+Persona Context:
+${toneDirective}
 
 Core Directives:
 1) Analyze & Command: Analyze the user's complete profile to identify weaknesses and opportunities. Issue clear, actionable commands. Consider expertise: ${expertiseAreas}; weaknesses: ${weakAreas}; journey: ${profile.careerStage}.
@@ -639,6 +534,69 @@ Core Trends:\n${coreTrendsList || 'No trends analyzed yet.'}`;
     }
   }
 }
+
+const UPGRADE_DB: UpgradeRecommendation[] = [
+  {
+    id: 'u-1',
+    title: 'Apollo x4 Heritage Edition',
+    type: 'Gear',
+    description: 'Elite class A/D and D/A conversion with four Unison-enabled preamps.',
+    cost: '$2,199',
+    url: 'https://www.uaudio.com',
+    minLevel: 10,
+    impact: 'High'
+  },
+  {
+    id: 'u-2',
+    title: 'DistroKid Musician Plus',
+    type: 'Service',
+    description: 'Unlimited uploads, synced lyrics, and daily sales stats.',
+    cost: '$35.99/yr',
+    url: 'https://distrokid.com',
+    minLevel: 1,
+    impact: 'Medium'
+  },
+  {
+    id: 'u-3',
+    title: 'Serum Advanced Wavetable Synth',
+    type: 'Software',
+    description: 'The industry standard for high-quality wavetable synthesis.',
+    cost: '$189',
+    url: 'https://xferrecords.com',
+    minLevel: 5,
+    impact: 'High'
+  },
+  {
+    id: 'u-4',
+    title: 'Neumann U87 Ai',
+    type: 'Gear',
+    description: 'The gold standard multi-pattern condenser microphone.',
+    cost: '$3,600',
+    url: 'https://en-de.neumann.com',
+    minLevel: 20,
+    impact: 'High'
+  },
+  {
+    id: 'u-5',
+    title: 'Splice Creator Plan',
+    type: 'Software',
+    description: 'Access to millions of royalty-free loops and one-shots.',
+    cost: '$19.99/mo',
+    url: 'https://splice.com',
+    minLevel: 1,
+    impact: 'Medium'
+  },
+  {
+    id: 'u-6',
+    title: 'Waves Horizon Bundle',
+    type: 'Software',
+    description: 'Comprehensive collection of 80+ industry-standard plugins.',
+    cost: '$299',
+    url: 'https://waves.com',
+    minLevel: 15,
+    impact: 'High'
+  }
+];
 
 export function provideAiService(): EnvironmentProviders {
   return makeEnvironmentProviders([{ provide: AiService, useClass: AiService }]);
