@@ -6,7 +6,7 @@ S.M.U.V.E 3.0 is a professional-grade, AI-powered music studio and strategic man
 
 ### 🎙️ The Studio (v3.0)
 
-An FL Studio-inspired Digital Audio Workstation (DAW) in your browser:
+A Digital Audio Workstation (DAW) in your browser:
 
 - **16-Step Channel Rack:** Rapidly sequence drums and melodies with a professional workflow.
 - **88-Key Piano Roll:** High-power, precision editing for complex compositions.
