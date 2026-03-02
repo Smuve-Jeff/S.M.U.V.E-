@@ -1,68 +1,76 @@
-# Smuve Jeff Presents S.M.U.V.E 2.0 (Strategic Music Utility Virtual Enhancer)
+# Smuve Jeff Presents S.M.U.V.E 3.0 (Strategic Music Utility Virtual Enhancer)
 
-S.M.U.V.E 2.0 AI-powered music studio and strategic management platform designed for the modern independent artist. It offers complete data control and a transparent, extensible foundation. Built on Angular 18 and utilizing Google's Gemini AI, it serves as a digital twin and a "Strategic Commander" strategic partner to guide your musical journey.
-S.M.U.V.E 2.0 is a self-hosted, open-source, AI-powered music studio and strategic management platform designed for the modern independent artist. It offers complete data control and a transparent, extensible foundation. Built on Angular 18 and utilizing Google's Gemini AI, it serves as a digital twin and a "Rap GOD" strategic partner to guide your musical journey.
+S.M.U.V.E 3.0 is a professional-grade, AI-powered music studio and strategic management platform for the modern independent artist. Built on Angular 21 and utilizing Google's Gemini AI, it serves as an omniscient, arrogant, and assertive "Strategic Commander" to guide and dominate your musical journey.
 
 ## 🚀 Key Features
 
-### 🎙️ The Studio
+### 🎙️ The Studio (v3.0)
 
-A full-featured Digital Audio Workstation (DAW) in your browser:
+An FL Studio-inspired Digital Audio Workstation (DAW) in your browser:
 
-- **Professional Mixer:** Control gain, pan, and high-quality FX sends (Reverb, Delay).
-- **Session View:** Manage clips and arrangement for live performance or composition.
-- **Custom Synthesizer:** Built-in subtractive synth for creating unique leads and pads.
-- **Mastering Suite:** Master bus dynamics including high-precision Compression and Limiting.
+- **16-Step Channel Rack:** Rapidly sequence drums and melodies with a professional workflow.
+- **88-Key Piano Roll:** High-power, precision editing for complex compositions.
+- **Professional Mixer:** 8-slot FX chains per channel (Reverb, Delay, EQ, Compression) with real-time VU metering.
+- **Mastering Suite:** Professional mastering tools including a Limiter, Soft-clip toggle, and Global Ambience.
+- **Multi-track Recording:** Capture live audio with real-time spectral waveforms and professional monitoring.
 
-### 🤖 S.M.U.V.E 2.0 Your "Strategic Music Utility Virtual Enhancer"
+### 🤖 S.M.U.V.E 3.0 AI Assistant
 
-- **Strategic Recommendations:** Issues "decrees" based on your artist profile to optimize your career path.
-- **Stem Separation:** Isolate vocals, drums, bass, and melody from any track in real-time.
-- **Creative Enhancements:** Automated vocal tuning and smart arrangement assistants.
+Your "Strategic Music Utility Virtual Enhancer" persona: an omniscient, arrogant commander who scales their arrogance based on your reputation level.
 
-### 🎮 Tha Spot: Interactive Online Gaming & Social Hub
+- **Strategic Commands:**
+  - `AUTO_MIX`: S.M.U.V.E analyzes your track and applies professional production secrets to your compressor and limiter.
+  - `LEAD_BAND`: Coordinate your AI session musicians (Bassist, Drummer, Keyboardist) with specific stylistic cues.
+  - `CRITIQUE_VISUALS`: Receive brutal, brand-aligned feedback on your generated artwork and video concepts.
+  - `NEGOTIATE_CONTRACT`: S.M.U.V.E autonomously handles mock industry negotiations to prepare you for the big leagues.
+- **Style Mimicry:** Shifting persona and studio settings to mimic the production secrets of legendary artists.
+- **Strategic Recommendations:** Issues tailored "decrees" for career optimization based on your Artist Profile and Knowledge Base.
 
-A dynamic online hub where artists can connect, compete, collaborate, and share their work.
+### 🎮 Tha Spot & High-Energy Hub
 
-- **Expansive Gaming Catalog**: Dive into a huge selection of games from the HTMLGames library, alongside competitive experiences like _Tha Battlefield_ and cooperative modes like _Remix Arena_.
-- **Networking & Collaboration Hub**: Connect with other musicians, producers, and artists on the platform. Discover new talent, start collaborations, and build your professional network.
-- **Project Showcase**: A dedicated space to feature your finished tracks, visualizers, and other projects created within S.M.U.V.E 2.0. Get feedback, gain fans, and see what other artists are creating.
-- **AI Jam Session**: An innovative feature allowing artists to play along with AI-powered session musicians (Bassist, Drummer, Keyboardist).
+A high-energy dashboard with an aggressive design system (glitch effects, skewed containers) for total industry immersion.
 
+- **AI Jam Session:** Play along with autonomous AI session musicians in real-time.
+- **Battle Arena & Remix Arena:** Compete and collaborate with other artists in high-stakes creative challenges.
+- **Expansive Gaming Catalog:** Access a full library of arcade and strategy games directly within the hub.
+- **Project Showcase:** A dedicated space to feature your finished tracks and visualizers for the community.
 
-### 🎨 Creative Labs & Management
+### 🎨 Creative Labs
 
-- **Image & Video Lab:** Generate cover art, visualizers, and music video concepts.
-- **Project Manager:** Track release deadlines (EPs/LPs), manage creative tasks, and monitor progress.
-- **Digital Twin Sync:** Predictive analytics for breaking creative blocks and syncing your sound with current trends.
+- **Image & Video Lab:** Generate cinematic cover art, visualizers, and music video concepts with narrative templates.
+- **Streaming Hub:** Professional broadcast settings and visualizer management for live performances.
 
-## 🌐 Open & Self-Hosted
+## 🎨 Design System
 
-- **Full Data Control**: As a self-hosted application, you have complete ownership of your project files, user data, and creative assets. No cloud subscriptions, no data mining.
-- **Open Source & Extensible**: The entire platform is open-source, allowing for community contributions, custom modifications, and full transparency.
+S.M.U.V.E 3.0 utilizes a **Modern Professional** aesthetic:
+
+- **Background:** Slate (#020617)
+- **Accents:** Emerald Neon (#10b981)
+- **Aesthetic:** High-energy terminal UI with scanlines, glitch animations, and aggressive pulse effects.
 
 ## 🛠️ Technical Stack
 
-- **Framework:** Angular 18 (Signals-based reactivity)
+- **Framework:** Angular 21 (Signals-based reactivity)
 - **AI Engine:** Google Gemini AI (Vertex AI integration)
-- **Audio Engine:** Custom Web Audio API implementation with lookahead scheduling
-- **Styling:** Tailwind CSS & Animate.css
+- **Audio Engine:** Tone.js & Custom Web Audio API implementation
+- **Testing:** Playwright (E2E), Jest (Unit Testing)
+- **Styling:** Tailwind CSS, Animate.css, and custom glitch shaders
 
 ## 💻 Getting Started
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- npm
+- Node.js (v22 or higher)
+- npm (v10 or higher)
 
 ### Installation
 
 1. Clone the repository
 2. Install dependencies:
    ```bash
-   npm install
+   npm install --legacy-peer-deps
    ```
-3. Add your Gemini API Key in the appropriate service configuration.
+3. Add your Gemini API Key in the service configuration.
 
 ### Development Server
 
