@@ -1,11 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-export interface RackChannel {
-  id: string;
-  name: string;
-  steps: boolean[];
-}
+import { SequencerService, SequencerTrack } from '../sequencer.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
+import { InstrumentsService } from '../../services/instruments.service';
 
 @Component({
   selector: 'app-channel-rack',
@@ -15,17 +12,42 @@ export interface RackChannel {
   styleUrls: ['./channel-rack.component.css']
 })
 export class ChannelRackComponent {
-  steps = new Array(16).fill(false);
+  public sequencer = inject(SequencerService);
+  private engine = inject(AudioEngineService);
+  private instruments = inject(InstrumentsService);
 
-  channels = signal<RackChannel[]>([
-    { id: '1', name: 'Kick', steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false] },
-    { id: '2', name: 'Snare', steps: [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false] },
-    { id: '3', name: 'Hi-Hat', steps: [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true] },
-    { id: '4', name: 'Bass', steps: [true, false, true, false, false, false, false, false, true, false, true, false, false, false, false, false] },
-    { id: '5', name: 'Lead Synth', steps: [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false] }
-  ]);
+  activePattern = this.sequencer.activePattern;
+  currentStep = this.engine.currentBeat;
+  availablePresets = this.instruments.getPresets();
 
-  toggleStep(channel: RackChannel, index: number) {
-    channel.steps[index] = !channel.steps[index];
+  steps = new Array(16).fill(0);
+
+  toggleStep(track: SequencerTrack, index: number) {
+    this.sequencer.toggleStep(track.id, index);
+  }
+
+  selectTrack(track: SequencerTrack) {
+    console.log('ChannelRack: Selecting track:', track.name, track.id);
+    this.sequencer.selectTrack(track.id);
+  }
+
+  addTrack() {
+    this.sequencer.addTrack('New Track', 'synth-lead');
+  }
+
+  removeTrack(id: string) {
+    this.sequencer.removeTrack(id);
+  }
+
+  updateVolume(track: SequencerTrack, event: any) {
+    track.volume = +event.target.value;
+  }
+
+  updatePan(track: SequencerTrack, event: any) {
+    track.pan = +event.target.value;
+  }
+
+  toggleMute(track: SequencerTrack) {
+    track.mute = !track.mute;
   }
 }

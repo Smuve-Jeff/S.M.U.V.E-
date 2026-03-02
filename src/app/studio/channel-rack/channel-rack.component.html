@@ -2,42 +2,55 @@
   <div class="rack-header bg-slate-900 px-4 py-2 flex items-center justify-between border-b border-white/5">
     <div class="flex items-center gap-2">
       <i class="fas fa-th-large text-emerald-500 text-xs"></i>
-      <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-300 italic">Channel Rack</h3>
+      <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-300 italic">Channel Rack - {{ activePattern()?.name }}</h3>
     </div>
     <div class="flex gap-2">
-      <button class="w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center hover:bg-emerald-500 hover:text-black transition-all">
+      <button (click)="addTrack()" class="w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center hover:bg-emerald-500 hover:text-black transition-all">
         <i class="fas fa-plus text-[8px]"></i>
       </button>
     </div>
   </div>
 
   <div class="rack-content flex-grow overflow-y-auto custom-scrollbar p-2">
-    <div *ngFor="let channel of channels()" class="channel-item flex items-center gap-2 mb-1 p-1 bg-black/20 rounded-lg hover:bg-white/5 transition-colors group">
-      <div class="routing-number w-6 text-center text-[9px] font-mono text-emerald-500/50 group-hover:text-emerald-500">
-        {{ channel.id.slice(0, 2).toUpperCase() }}
+    <div *ngFor="let track of activePattern()?.tracks"
+         (click)="selectTrack(track)"
+         [class.bg-white/5]="sequencer.selectedTrackId() === track.id"
+         class="channel-item flex items-center gap-2 mb-1 p-1 bg-black/20 rounded-lg hover:bg-white/5 transition-colors group relative">
+
+      <div class="flex flex-col gap-1 px-1">
+        <button (click)="toggleMute(track); $event.stopPropagation()"
+                [class.text-emerald-500]="!track.mute"
+                [class.text-slate-600]="track.mute"
+                class="text-[8px] font-black uppercase tracking-tighter">M</button>
       </div>
 
-      <div class="channel-name flex-grow bg-slate-800/50 px-3 py-1.5 rounded border border-white/5 text-[10px] font-black uppercase tracking-wider text-slate-300">
-        {{ channel.name }}
+      <div class="channel-name w-32 bg-slate-800/50 px-3 py-1.5 rounded border border-white/5 text-[10px] font-black uppercase tracking-wider text-slate-300 truncate">
+        {{ track.name }}
+      </div>
+
+      <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <input type="range" (input)="updateVolume(track, $event); $event.stopPropagation()" [value]="track.volume" min="0" max="100" class="w-12 h-1 accent-emerald-500">
+        <input type="range" (input)="updatePan(track, $event); $event.stopPropagation()" [value]="track.pan" min="-100" max="100" class="w-12 h-1 accent-blue-500">
       </div>
 
       <div class="step-sequencer flex gap-1 px-2">
         <button *ngFor="let step of steps; let i = index"
-                (click)="toggleStep(channel, i)"
-                [class.active]="channel.steps[i]"
-                class="step-pad w-5 h-7 rounded border transition-all"
+                (click)="toggleStep(track, i); $event.stopPropagation()"
+                [class.active]="track.steps[i]"
+                class="step-pad w-5 h-7 rounded border transition-all relative"
                 [class.bg-slate-700]="i % 8 < 4"
                 [class.bg-slate-800]="i % 8 >= 4"
-                [class.border-white/5]="!channel.steps[i]"
-                [class.bg-emerald-500]="channel.steps[i]"
-                [class.border-emerald-400]="channel.steps[i]"
-                [class.shadow-[0_0_8px_#10b981]]="channel.steps[i]">
+                [class.border-white/5]="!track.steps[i]"
+                [class.bg-emerald-500]="track.steps[i]"
+                [class.border-emerald-400]="track.steps[i]"
+                [class.shadow-[0_0_8px_#10b981]]="track.steps[i]">
+          <div *ngIf="currentStep() === i" class="absolute inset-0 bg-white/20 animate-pulse pointer-events-none"></div>
         </button>
       </div>
 
-      <div class="channel-controls flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-         <button class="w-6 h-6 rounded bg-black/40 border border-white/5 flex items-center justify-center hover:border-emerald-500">
-           <i class="fas fa-sliders-h text-[8px] text-slate-500"></i>
+      <div class="channel-actions flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+         <button (click)="removeTrack(track.id); $event.stopPropagation()" class="w-6 h-6 rounded bg-red-500/20 border border-red-500/30 flex items-center justify-center hover:bg-red-500 hover:text-white">
+           <i class="fas fa-trash text-[8px]"></i>
          </button>
       </div>
     </div>

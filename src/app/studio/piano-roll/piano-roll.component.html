@@ -6,57 +6,49 @@
       </div>
       <div>
         <h3 class="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 italic">Precision MIDI Editor</h3>
-        <div class="text-[9px] font-mono text-slate-500 mt-1 uppercase tracking-tighter">Target: SYNC-CORE 01 | Pattern: 1.1.1</div>
+        <div class="text-[9px] font-mono text-slate-500 mt-1 uppercase tracking-tighter">Target: {{ selectedTrack()?.name }}</div>
       </div>
     </div>
     <div class="flex items-center gap-3">
-       <button class="px-4 py-2 bg-slate-800/80 rounded-xl border border-white/5 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all">SNAP: 1/16</button>
-       <button class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center hover:bg-emerald-500 hover:text-black transition-all">
+       <button (click)="sequencer.selectedTrackId.set(null)" class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center hover:bg-emerald-500 hover:text-black transition-all">
          <i class="fas fa-times text-xs"></i>
        </button>
     </div>
   </div>
 
   <div class="piano-roll-content flex flex-grow overflow-hidden relative">
-    <!-- Piano Keys -->
-    <div class="piano-keys w-24 bg-slate-900 border-r border-white/5 overflow-y-auto custom-scrollbar-hide h-full flex flex-col-reverse">
+    <div class="piano-keys w-24 bg-slate-900 border-r border-white/5 overflow-y-auto custom-scrollbar-hide h-full flex flex-col">
        <div *ngFor="let key of keys"
             [class.black-key]="isBlackKey(key)"
-            class="key h-8 w-full border-b border-white/5 flex items-center justify-end px-3 transition-colors hover:bg-emerald-500/10"
+            class="key h-8 w-full border-b border-white/5 flex items-center justify-end px-3"
             [class.bg-slate-800]="!isBlackKey(key)"
             [class.bg-black]="isBlackKey(key)">
           <span class="text-[8px] font-mono" [class.text-slate-400]="!isBlackKey(key)" [class.text-emerald-500/60]="isBlackKey(key)">{{ getKeyName(key) }}</span>
        </div>
     </div>
 
-    <!-- MIDI Grid -->
     <div class="midi-grid-container flex-grow overflow-auto custom-scrollbar relative">
-       <div class="midi-grid flex flex-col-reverse relative" [style.width.px]="gridWidth">
-          <div *ngFor="let row of keys" class="grid-row h-8 border-b border-white/5 flex">
+       <div class="midi-grid flex flex-col relative" [style.width.px]="gridWidth" (mousedown)="onGridClick($event)">
+          <div *ngFor="let row of keys" class="grid-row h-8 border-b border-white/5 flex pointer-events-none">
              <div *ngFor="let cell of cells"
                   class="grid-cell border-r border-white/5 flex-shrink-0"
                   [style.width.px]="cellWidth"
                   [class.bg-emerald-500/5]="isStrongBeat(cell)">
              </div>
           </div>
-
-          <!-- Placed MIDI Notes -->
-          <div *ngFor="let note of notes"
-               class="midi-note absolute h-6 rounded-md bg-emerald-500 border border-emerald-400 shadow-[0_0_15px_#10b981] flex items-center px-2 cursor-move"
+          <div *ngFor="let note of selectedTrack()?.notes"
+               (mousedown)="onNoteMouseDown($event, note)"
+               (contextmenu)="deleteNote($event, note.id); false"
+               class="midi-note absolute h-6 rounded-md bg-emerald-500 border border-emerald-400 shadow-[0_0_15px_#10b981] flex items-center px-2 cursor-move group"
                [style.left.px]="note.startTime * cellWidth"
-               [style.bottom.px]="(note.pitch - 24) * 32 + 4"
+               [style.top.px]="(108 - note.pitch) * rowHeight + 4"
                [style.width.px]="note.duration * cellWidth">
-               <span class="text-[8px] font-black text-black uppercase opacity-70 truncate">{{ getKeyName(note.pitch) }}</span>
+               <span class="text-[8px] font-black text-black uppercase opacity-70 truncate pointer-events-none">{{ getKeyName(note.pitch) }}</span>
+               <div class="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize"></div>
           </div>
+          <div class="playhead absolute top-0 bottom-0 w-px bg-white z-10 pointer-events-none"
+               [style.left.px]="currentStep() * cellWidth"></div>
        </div>
-    </div>
-  </div>
-
-  <!-- Velocity Editor -->
-  <div class="velocity-editor h-24 bg-slate-900 border-t border-white/10 flex items-end px-2 gap-[1px]">
-    <div *ngFor="let cell of cells"
-         class="velocity-bar flex-grow bg-emerald-500/20 rounded-t-sm hover:bg-emerald-500 transition-colors"
-         [style.height.%]="getVelocityAt(cell)">
     </div>
   </div>
 </div>

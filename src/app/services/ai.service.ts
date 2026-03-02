@@ -270,11 +270,11 @@ export class AiService {
     return [{ note: 'C4', velocity: 0.8, time: 0, duration: '4n' }];
   }
 
-  async startAIBassist() { this.audioEngine.resume(); this.isAIBassistActive.set(true); }
+  async startAIBassist() { this.audioEngineService.resume(); this.isAIBassistActive.set(true); }
   async stopAIBassist() { this.isAIBassistActive.set(false); }
-  async startAIDrummer() { this.audioEngine.resume(); this.isAIDrummerActive.set(true); }
+  async startAIDrummer() { this.audioEngineService.resume(); this.isAIDrummerActive.set(true); }
   async stopAIDrummer() { this.isAIDrummerActive.set(false); }
-  async startAIKeyboardist() { this.audioEngine.resume(); this.isAIKeyboardistActive.set(true); }
+  async startAIKeyboardist() { this.audioEngineService.resume(); this.isAIKeyboardistActive.set(true); }
   async stopAIKeyboardist() { this.isAIKeyboardistActive.set(false); }
 
   async generateImage(prompt: string): Promise<string> {
