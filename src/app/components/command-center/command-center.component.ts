@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AiService } from '../../services/ai.service';
+import { AiService, StrategicRecommendation } from '../../services/ai.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { ReputationService } from '../../services/reputation.service';
 import { UpgradeRecommendation } from '../../types/ai.types';
@@ -18,6 +18,7 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   public reputationService = inject(ReputationService);
 
   recommendations = computed(() => this.aiService.getUpgradeRecommendations());
+  strategicRecs = signal<StrategicRecommendation[]>([]);
 
   // Terminal state
   terminalLines = signal<string[]>([]);
@@ -25,6 +26,12 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.startTerminalSimulation();
+    this.loadStrategicRecommendations();
+  }
+
+  async loadStrategicRecommendations() {
+    const recs = await this.aiService.getStrategicRecommendations();
+    this.strategicRecs.set(recs);
   }
 
   ngOnDestroy() {

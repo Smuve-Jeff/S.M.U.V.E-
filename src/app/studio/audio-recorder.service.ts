@@ -1,37 +1,51 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { AudioEngineService } from '../services/audio-engine.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AudioRecorderService {
+  private engine = inject(AudioEngineService);
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
-  private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
-  private source: MediaStreamAudioSourceNode | null = null;
 
   recordingState = signal<'idle' | 'recording' | 'paused'>('idle');
   waveform = signal<number[]>([]);
 
   constructor() { }
 
-  async startRecording(stream: MediaStream) {
-    this.audioContext = new AudioContext();
-    this.analyser = this.audioContext.createAnalyser();
-    this.source = this.audioContext.createMediaStreamSource(stream);
-    this.source.connect(this.analyser);
+  async startRecording(stream?: MediaStream) {
+    this.engine.resume();
 
-    this.mediaRecorder = new MediaRecorder(stream);
+    // If no stream provided, use the master stream from engine
+    const sourceStream = stream || this.engine.getMasterStream().stream;
+
+    const ctx = this.engine.getContext();
+    this.analyser = ctx.createAnalyser();
+    const source = ctx.createMediaStreamSource(sourceStream);
+    source.connect(this.analyser);
+
+    this.mediaRecorder = new MediaRecorder(sourceStream);
     this.audioChunks = [];
 
     this.mediaRecorder.ondataavailable = (event) => {
-      this.audioChunks.push(event.data);
+      if (event.data.size > 0) {
+        this.audioChunks.push(event.data);
+      }
     };
 
     this.mediaRecorder.onstop = () => {
-      const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+      const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm;codecs=opus' });
       const audioUrl = URL.createObjectURL(audioBlob);
       console.log('Recording stopped. Audio URL:', audioUrl);
+
+      // Auto-download for the user to verify
+      const link = document.createElement('a');
+      link.href = audioUrl;
+      link.download = `smuve_recording_${Date.now()}.webm`;
+      link.click();
+
       this.recordingState.set('idle');
     };
 
@@ -55,9 +69,6 @@ export class AudioRecorderService {
   stopRecording() {
     if (this.mediaRecorder && this.recordingState() === 'recording') {
       this.mediaRecorder.stop();
-      if (this.audioContext) {
-        this.audioContext.close();
-      }
     }
   }
 }

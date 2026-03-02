@@ -1,6 +1,7 @@
-import { Injectable, signal, effect } from '@angular/core';
+import { Injectable, signal, effect, inject } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { InstrumentsService } from './instruments.service';
+import { UserProfileService } from './user-profile.service';
 
 export type TrackNote = {
   midi: number;
@@ -21,23 +22,29 @@ export interface TrackModel {
 
 @Injectable({ providedIn: 'root' })
 export class MusicManagerService {
+  public engine = inject(AudioEngineService);
+  private instruments = inject(InstrumentsService);
+  private profileService = inject(UserProfileService);
+
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
   currentStep = signal(-1);
   automationData = signal<Record<string, number[]>>({});
 
-  constructor(
-    public engine: AudioEngineService,
-    public instruments: InstrumentsService
-  ) {
-    this.ensureTrack('Piano');
+  constructor() {
+    // Initial setup if no tracks exist
+    setTimeout(() => {
+        if (this.tracks().length === 0) {
+            this.loadLastSession();
+        }
+    }, 500);
+
     // Bridge engine scheduler to request notes
-    engine.onScheduleStep = (stepIndex, when, stepDur) => {
+    this.engine.onScheduleStep = (stepIndex, when, stepDur) => {
       this.currentStep.set(stepIndex);
-      const _spb = 60 / engine.tempo();
       const dur = stepDur * 0.95;
       for (const t of this.tracks()) {
-        const inst = instruments
+        const inst = this.instruments
           .getPresets()
           .find((p) => p.id === t.instrumentId);
         if (!inst) continue;
@@ -45,7 +52,7 @@ export class MusicManagerService {
           if (n.step === stepIndex) {
             const freq = this.midiToFreq(n.midi);
             if (inst.type === 'synth') {
-              engine.playSynth(
+              this.engine.playSynth(
                 when,
                 freq,
                 dur,
@@ -57,8 +64,8 @@ export class MusicManagerService {
                 inst.synth as any
               );
             } else {
-              // sample fallback: synth tone placeholder until samples are plugged in
-              engine.playSynth(
+              // sample fallback
+              this.engine.playSynth(
                 when,
                 freq,
                 dur,
@@ -88,6 +95,37 @@ export class MusicManagerService {
         this.currentStep.set(-1);
       }
     });
+  }
+
+  private loadLastSession() {
+    const profile = this.profileService.profile();
+    const lastSession = (profile.knowledgeBase as any).lastDawSession;
+
+    if (lastSession && lastSession.tracks && lastSession.tracks.length > 0) {
+      console.log('MusicManager: Restoring last session...');
+      this.tracks.set(lastSession.tracks);
+      this.engine.tempo.set(lastSession.tempo || 120);
+      this.engine.loopStart.set(lastSession.loopStart || 0);
+      this.engine.loopEnd.set(lastSession.loopEnd || 16);
+
+      // Register tracks with engine
+      for (const t of lastSession.tracks) {
+          this.engine.ensureTrack({
+              id: t.id,
+              name: t.name,
+              instrumentId: t.instrumentId,
+              gain: t.gain,
+              pan: t.pan,
+              sendA: t.sendA,
+              sendB: t.sendB
+          });
+      }
+      if (lastSession.tracks.length > 0) {
+          this.selectedTrackId.set(lastSession.tracks[0].id);
+      }
+    } else {
+      this.ensureTrack('Piano');
+    }
   }
 
   midiToFreq(m: number) {

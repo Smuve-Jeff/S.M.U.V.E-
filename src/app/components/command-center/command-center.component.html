@@ -15,7 +15,7 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- PROACTIVE ADVICE TERMINAL -->
     <div class="terminal-module bg-black/80 border border-emerald-500/30 rounded p-4 font-mono text-[11px] leading-relaxed relative min-h-[250px] flex flex-col">
       <div class="absolute top-2 right-2 flex gap-1">
@@ -63,9 +63,37 @@
         </div>
       </div>
     </div>
+
+    <!-- STRATEGIC ACTIONS TERMINAL -->
+    <div class="strategic-module bg-brand-dark/40 border border-violet-500/30 rounded p-4 font-mono text-[11px] leading-relaxed relative min-h-[250px] flex flex-col">
+      <div class="text-violet-400 mb-2 border-b border-violet-500/20 pb-1 flex items-center gap-2 uppercase tracking-widest font-bold">
+        <i class="fas fa-crosshairs"></i> Strategic_Operations.db
+      </div>
+      <div class="space-y-4 overflow-y-auto flex-grow scrollbar-hide p-2">
+        <div *ngFor="let srec of strategicRecs()" class="group/srec border-l-2 border-violet-500/20 pl-3 py-1 hover:border-violet-500 transition-colors">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-violet-300 font-bold uppercase tracking-tighter">{{ srec.action }}</span>
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20"
+                  [ngClass]="getImpactColor(srec.impact)">
+              {{ srec.impact }} IMPACT
+            </span>
+          </div>
+          <div class="flex gap-4 text-[9px] text-slate-500 uppercase">
+             <span>Diff: {{ srec.difficulty }}</span>
+             <span>Tag: {{ srec.toolId }}</span>
+          </div>
+          <button class="mt-2 text-[9px] font-black uppercase text-violet-400 hover:text-white transition-colors flex items-center gap-1">
+            <i class="fas fa-play-circle"></i> Initialize Operation
+          </button>
+        </div>
+        <div *ngIf="strategicRecs().length === 0" class="text-slate-600 italic">
+          Fetching tactical intelligence...
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- DECORATIVE ELEMENTS -->
+      <!-- DECORATIVE ELEMENTS -->
   <div class="absolute bottom-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -mr-16 -mb-16"></div>
   <div class="absolute top-0 left-0 w-24 h-24 bg-violet-500/5 blur-3xl rounded-full -ml-12 -mt-12"></div>
 </div>

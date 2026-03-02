@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { UserProfileService } from '../../services/user-profile.service';
+import { AiService } from '../../services/ai.service';
 import { CommandCenterComponent } from '../command-center/command-center.component';
 
 interface ChecklistItem {
@@ -21,7 +22,9 @@ interface ChecklistItem {
 })
 export class StrategyHubComponent {
   private profileService = inject(UserProfileService);
+  private aiService = inject(AiService);
   profile = this.profileService.profile;
+  aiRecommendations = computed(() => this.aiService.getUpgradeRecommendations());
 
   // Marketing Tools logic
   adSpend = signal(100);

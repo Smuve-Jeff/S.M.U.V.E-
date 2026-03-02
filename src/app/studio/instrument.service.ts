@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { AudioEngineService } from '../services/audio-engine.service';
 
 export interface Clip {
   id: number;
@@ -11,71 +12,47 @@ export interface Clip {
     sustain: number;
     release: number;
   };
-  // Add other clip-related properties here
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class InstrumentService {
-  private audioContext: AudioContext;
-  private masterGain: GainNode;
-  private reverb: ConvolverNode;
-  private compressor: DynamicsCompressorNode;
-  private reverbMix: GainNode;
+  private engine = inject(AudioEngineService);
 
-  constructor() {
-    this.audioContext = new AudioContext();
-    this.masterGain = this.audioContext.createGain();
-    this.masterGain.gain.value = 0.8; // Default volume
-
-    this.compressor = this.audioContext.createDynamicsCompressor();
-    this.compressor.connect(this.masterGain);
-
-    this.reverb = this.audioContext.createConvolver();
-    // TODO: Load an impulse response for the reverb
-    this.reverbMix = this.audioContext.createGain();
-    this.reverbMix.gain.value = 0; // Default dry
-    this.reverb.connect(this.reverbMix);
-    this.reverbMix.connect(this.compressor);
-  }
+  constructor() {}
 
   getAudioContext(): AudioContext {
-    return this.audioContext;
-  }
-
-  connect(destination: AudioNode) {
-    this.masterGain.connect(destination);
+    return this.engine.getContext();
   }
 
   getCompressor(): DynamicsCompressorNode {
-      return this.compressor;
+      return this.engine.compressor;
   }
 
   setMasterVolume(volume: number) {
-    this.masterGain.gain.setValueAtTime(volume / 100, this.audioContext.currentTime);
+    this.engine.setMasterOutputLevel(volume / 100);
   }
 
   setReverbMix(mix: number) {
-    this.reverbMix.gain.setValueAtTime(mix, this.audioContext.currentTime);
+    const reverbWet = this.engine.reverbWet;
+    if (reverbWet) {
+        reverbWet.gain.setTargetAtTime(mix, this.engine.getContext().currentTime, 0.01);
+    }
   }
 
   play(time: number, midi: number, velocity: number) {
-    // A simple synth for demonstration
-    const osc = this.audioContext.createOscillator();
-    const gain = this.audioContext.createGain();
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    this.engine.playSynth(
+        this.engine.getContext().currentTime + time,
+        freq,
+        0.5,
+        velocity
+    );
+  }
 
-    osc.type = 'sine';
-    osc.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
-    gain.gain.setValueAtTime(velocity, this.audioContext.currentTime + time);
-    gain.gain.exponentialRampToValueAtTime(0.0001, this.audioContext.currentTime + time + 0.5);
-
-
-    osc.connect(gain);
-    gain.connect(this.compressor); // Connect to compressor for dry signal
-    gain.connect(this.reverb); // Connect to reverb for wet signal
-
-    osc.start(this.audioContext.currentTime + time);
-    osc.stop(this.audioContext.currentTime + time + 0.5);
+  connect(destination: AudioNode) {
+    // Compatibility method
+    console.log('InstrumentService: connect requested');
   }
 }

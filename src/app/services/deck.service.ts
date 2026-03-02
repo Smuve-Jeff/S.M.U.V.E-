@@ -1,5 +1,5 @@
 import { Injectable, signal, effect } from '@angular/core';
-import { AudioEngineService } from './audio-engine.service';
+import { AudioEngineService, DeckId } from './audio-engine.service';
 import { Stems } from './stem-separation.service';
 import { DeckState, initialDeckState } from './user-context.service';
 
@@ -29,24 +29,21 @@ export class DeckService {
     });
   }
 
-  togglePlay(deck: 'A' | 'B') {
+  togglePlay(deck: DeckId) {
     const state = deck === 'A' ? this.deckA() : this.deckB();
     if (state.isPlaying) {
       this.engine.pauseDeck(deck);
     } else {
       this.engine.playDeck(deck);
     }
-    if (deck === 'A')
-      this.deckA.update((d) => ({ ...d, isPlaying: !state.isPlaying }));
-    else this.deckB.update((d) => ({ ...d, isPlaying: !state.isPlaying }));
   }
 
-  onStemGainChange(deck: 'A' | 'B', event: { stem: string; gain: number }) {
-    this.engine.setStemGain(deck, event.stem as keyof Stems, event.gain);
+  onStemGainChange(deck: DeckId, event: { stem: string; gain: number }) {
+    this.engine.setDeckStemGain(deck, event.stem as keyof Stems, event.gain);
   }
 
-  loadDeckBuffer(deck: 'A' | 'B', buffer: AudioBuffer, fileName: string) {
-    this.engine.loadDeckBuffer(deck, buffer);
+  loadDeckBuffer(deck: DeckId, buffer: AudioBuffer, fileName: string) {
+    this.engine.loadDeck(deck, buffer);
     if (deck === 'A') {
       this.deckA.update((d) => ({
         ...d,
@@ -66,7 +63,7 @@ export class DeckService {
     }
   }
 
-  setHotCue(deck: 'A' | 'B', slot: number) {
+  setHotCue(deck: DeckId, slot: number) {
     this.engine.setHotCue(deck, slot);
     const pos = this.engine.getDeckProgress(deck).position;
     if (deck === 'A') {
@@ -84,23 +81,23 @@ export class DeckService {
     }
   }
 
-  jumpToHotCue(deck: 'A' | 'B', slot: number) {
+  jumpToHotCue(deck: DeckId, slot: number) {
     this.engine.jumpToHotCue(deck, slot);
   }
 
-  setDeckEq(deck: 'A' | 'B', high: number, mid: number, low: number) {
+  setDeckEq(deck: DeckId, high: number, mid: number, low: number) {
     this.engine.setDeckEq(deck, high, mid, low);
     if (deck === 'A') this.deckA.update(d => ({ ...d, eqHigh: high, eqMid: mid, eqLow: low }));
     else this.deckB.update(d => ({ ...d, eqHigh: high, eqMid: mid, eqLow: low }));
   }
 
-  setDeckFilter(deck: 'A' | 'B', freq: number) {
-    this.engine.setDeckFilterFreq(deck, freq);
+  setDeckFilter(deck: DeckId, freq: number) {
+    this.engine.setDeckFilter(deck, freq);
     if (deck === 'A') this.deckA.update(d => ({ ...d, filterFreq: freq }));
     else this.deckB.update(d => ({ ...d, filterFreq: freq }));
   }
 
-  setDeckGain(deck: 'A' | 'B', gain: number) {
+  setDeckGain(deck: DeckId, gain: number) {
     this.engine.setDeckGain(deck, gain);
     if (deck === 'A') this.deckA.update(d => ({ ...d, gain }));
     else this.deckB.update(d => ({ ...d, gain }));
