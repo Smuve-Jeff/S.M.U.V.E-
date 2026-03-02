@@ -250,9 +250,18 @@ export class AiService {
 
   async getStrategicRecommendations(): Promise<StrategicRecommendation[]> {
     return [
-      { id: '1', action: 'Optimize Spotify Metadata', impact: 'High', difficulty: 'Low', toolId: 'strategy' },
-      { id: '2', action: 'Target TikTok Micro-influencers', impact: 'Medium', difficulty: 'Medium', toolId: 'strategy' },
-      { id: '3', action: 'Register for Neighboring Rights', impact: 'High', difficulty: 'High', toolId: 'strategy' }
+      { id: 'sr-1', action: 'Optimize Spotify Metadata', impact: 'High', difficulty: 'Low', toolId: 'strategy' },
+      { id: 'sr-2', action: 'Target TikTok Micro-influencers', impact: 'Medium', difficulty: 'Medium', toolId: 'marketing' },
+      { id: 'sr-3', action: 'Register for Neighboring Rights', impact: 'High', difficulty: 'High', toolId: 'finance' },
+      { id: 'sr-4', action: 'Pitch to Editorial Playlists', impact: 'High', difficulty: 'Medium', toolId: 'promotion' },
+      { id: 'sr-5', action: 'Launch Direct-to-Fan Vinyl Campaign', impact: 'Medium', difficulty: 'High', toolId: 'merch' },
+      { id: 'sr-6', action: 'Collaborate with Cross-Genre Producer', impact: 'High', difficulty: 'Medium', toolId: 'collaboration' },
+      { id: 'sr-7', action: 'Set up Artist-Owned Label', impact: 'High', difficulty: 'High', toolId: 'business' },
+      { id: 'sr-8', action: 'Execute 48-Hour Remix Challenge', impact: 'Medium', difficulty: 'Low', toolId: 'engagement' },
+      { id: 'sr-9', action: 'Optimize YouTube SEO for Music Videos', impact: 'High', difficulty: 'Low', toolId: 'visibility' },
+      { id: 'sr-10', action: 'Implement Tiered Fan Membership', impact: 'Medium', difficulty: 'Medium', toolId: 'monetization' },
+      { id: 'sr-11', action: 'Secure Sync Placement in Indie Games', impact: 'High', difficulty: 'High', toolId: 'licensing' },
+      { id: 'sr-12', action: 'Release Monthly Acoustic Stems', impact: 'Low', difficulty: 'Low', toolId: 'content' }
     ];
   }
 
@@ -547,7 +556,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Apollo x4 Heritage Edition',
     type: 'Gear',
     description: 'Elite class A/D and D/A conversion with four Unison-enabled preamps.',
-    cost: '$2,199',
+    cost: ',199',
     url: 'https://www.uaudio.com',
     minLevel: 10,
     impact: 'High'
@@ -567,7 +576,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Serum Advanced Wavetable Synth',
     type: 'Software',
     description: 'The industry standard for high-quality wavetable synthesis.',
-    cost: '$189',
+    cost: '89',
     url: 'https://xferrecords.com',
     minLevel: 5,
     impact: 'High'
@@ -577,7 +586,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Neumann U87 Ai',
     type: 'Gear',
     description: 'The gold standard multi-pattern condenser microphone.',
-    cost: '$3,600',
+    cost: ',600',
     url: 'https://en-de.neumann.com',
     minLevel: 20,
     impact: 'High'
@@ -597,9 +606,99 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Waves Horizon Bundle',
     type: 'Software',
     description: 'Comprehensive collection of 80+ industry-standard plugins.',
-    cost: '$299',
+    cost: '99',
     url: 'https://waves.com',
     minLevel: 15,
+    impact: 'High'
+  },
+  {
+    id: 'u-7',
+    title: 'Focal Shape 65 Studio Monitors',
+    type: 'Gear',
+    description: 'Exceptional transparency and precise stereo imaging for critical mixing.',
+    cost: ',800/pair',
+    url: 'https://www.focal.com',
+    minLevel: 12,
+    impact: 'High'
+  },
+  {
+    id: 'u-8',
+    title: 'Native Instruments Komplete 14',
+    type: 'Software',
+    description: 'The ultimate production suite with 145+ instruments and effects.',
+    cost: ',599',
+    url: 'https://www.native-instruments.com',
+    minLevel: 25,
+    impact: 'High'
+  },
+  {
+    id: 'u-9',
+    title: 'Songtrust Publishing Administration',
+    type: 'Service',
+    description: 'Collect your global mechanical and performance royalties.',
+    cost: '00 one-time',
+    url: 'https://www.songtrust.com',
+    minLevel: 3,
+    impact: 'High'
+  },
+  {
+    id: 'u-10',
+    title: 'SoundBetter Premium',
+    type: 'Service',
+    description: 'Connect with world-class mixing engineers and session musicians.',
+    cost: '0/mo',
+    url: 'https://soundbetter.com',
+    minLevel: 8,
+    impact: 'Medium'
+  },
+  {
+    id: 'u-11',
+    title: 'iZotope Music Production Suite 6',
+    type: 'Software',
+    description: 'AI-powered tools for mixing, mastering, and vocal processing.',
+    cost: '99',
+    url: 'https://www.izotope.com',
+    minLevel: 10,
+    impact: 'High'
+  },
+  {
+    id: 'u-12',
+    title: 'Moog Matriarch Semi-Modular Synth',
+    type: 'Gear',
+    description: 'Patchable 4-note paraphonic analog synthesizer with built-in Stereo Delay.',
+    cost: ',299',
+    url: 'https://www.moogmusic.com',
+    minLevel: 30,
+    impact: 'High'
+  },
+  {
+    id: 'u-13',
+    title: 'Chartmetric Premium',
+    type: 'Service',
+    description: 'Comprehensive data analytics for artists and music professionals.',
+    cost: '40/mo',
+    url: 'https://chartmetric.com',
+    minLevel: 15,
+    impact: 'High'
+  },
+  {
+    id: 'u-14',
+    title: 'FabFilter Total Bundle',
+    type: 'Software',
+    description: 'Industry-leading EQ, reverb, compressor, and creative effect plugins.',
+    cost: '99',
+    url: 'https://www.fabfilter.com',
+    minLevel: 18,
+    impact: 'High'
+  },
+  {
+    id: 'u-15',
+    title: 'Ableton Live 12 Suite',
+    type: 'Software',
+    description: 'Fast, fluid and flexible software for music creation and performance.',
+    cost: '49',
+    url: 'https://www.ableton.com',
+    minLevel: 1,
     impact: 'High'
   }
 ];

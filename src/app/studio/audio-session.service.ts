@@ -1,5 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { InstrumentService } from './instrument.service';
+import { AudioEngineService } from '../services/audio-engine.service';
 import { PlaybackState } from './playback-state';
 
 export interface MicChannel {
@@ -16,6 +17,7 @@ export interface MicChannel {
 })
 export class AudioSessionService {
   private readonly instrumentService = inject(InstrumentService);
+  private readonly engine = inject(AudioEngineService);
 
   readonly playbackState = signal<PlaybackState>('stopped');
   readonly isPlaying = computed(() => this.playbackState() === 'playing');
@@ -51,28 +53,37 @@ export class AudioSessionService {
   ]);
 
   constructor() {
-    const audioContext = this.instrumentService.getAudioContext();
-    this.instrumentService.connect(audioContext.destination);
+    this.instrumentService.connect(this.engine.getContext().destination);
   }
 
   togglePlay(): void {
-    this.playbackState.update((state) =>
-      state === 'playing' ? 'stopped' : 'playing'
-    );
+    if (this.engine.isPlaying()) {
+        this.engine.stop();
+        this.playbackState.set('stopped');
+    } else {
+        this.engine.start();
+        this.playbackState.set('playing');
+    }
   }
 
   toggleRecord(): void {
-    this.playbackState.update((state) =>
-      state === 'recording' ? 'stopped' : 'recording'
-    );
+    if (this.isRecording()) {
+        this.engine.stop();
+        this.playbackState.set('stopped');
+    } else {
+        this.engine.start();
+        this.playbackState.set('recording');
+    }
   }
 
   stop(): void {
+    this.engine.stop();
     this.playbackState.set('stopped');
   }
 
   updateMasterVolume(newVolume: number): void {
     this.masterVolume.set(newVolume);
+    this.engine.setMasterOutputLevel(newVolume / 100);
   }
 
   updateChannelLevel(id: string, newLevel: number): void {
