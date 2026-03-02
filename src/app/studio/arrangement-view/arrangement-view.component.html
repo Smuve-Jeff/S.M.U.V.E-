@@ -1,0 +1,76 @@
+<div class="arrangement-container bg-slate-950/40 border border-white/5 rounded-3xl overflow-hidden flex flex-col h-full shadow-inner">
+  <div class="arrangement-header bg-slate-900/80 px-6 py-3 flex items-center justify-between border-b border-white/5">
+    <div class="flex items-center gap-4">
+      <i class="fas fa-stream text-emerald-500 text-xs"></i>
+      <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Song Arrangement</h3>
+    </div>
+    <div class="flex items-center gap-4 text-[9px] font-mono text-slate-500">
+      <div class="flex items-center gap-2">
+         <span class="w-2 h-2 rounded-full bg-emerald-500/40"></span>
+         1.1.1
+      </div>
+      <div class="h-4 w-px bg-white/10"></div>
+      <div class="flex items-center gap-2">
+         <i class="fas fa-clock"></i>
+         00:00:00
+      </div>
+    </div>
+  </div>
+
+  <div class="arrangement-content flex-grow flex overflow-hidden">
+    <!-- Track Headers -->
+    <div class="track-headers-column w-48 border-r border-white/10 flex flex-col overflow-y-auto custom-scrollbar-hide bg-slate-950/20">
+      <div *ngFor="let track of tracks" class="track-header h-24 border-b border-white/5 p-4 flex flex-col justify-between hover:bg-white/5 transition-all">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-black uppercase tracking-wider text-slate-300 truncate w-24">{{ track.name }}</span>
+          <div class="flex gap-1">
+            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500/20"></div>
+            <div class="w-1.5 h-1.5 rounded-full bg-red-500/20"></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="w-5 h-5 rounded bg-black/40 border border-white/5 flex items-center justify-center">
+            <i class="fas fa-volume-mute text-[8px] text-slate-500"></i>
+          </button>
+          <button class="w-5 h-5 rounded bg-black/40 border border-white/5 flex items-center justify-center">
+            <i class="fas fa-microphone text-[8px] text-slate-500"></i>
+          </button>
+          <div class="flex-grow h-1 bg-slate-800 rounded-full overflow-hidden">
+            <div class="h-full bg-emerald-500/40 w-2/3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline Grid -->
+    <div class="timeline-viewport flex-grow overflow-auto custom-scrollbar relative">
+      <div class="timeline-grid relative h-full" [style.width.px]="gridWidth">
+        <!-- Vertical Bar Lines -->
+        <div *ngFor="let bar of bars" class="absolute top-0 bottom-0 border-l border-white/5" [style.left.px]="bar * barWidth" [class.border-white/20]="bar % 4 === 0">
+           <span class="text-[8px] font-mono text-slate-600 ml-2" *ngIf="bar % 4 === 0">{{ bar / 4 + 1 }}</span>
+        </div>
+
+        <!-- Tracks Content -->
+        <div *ngFor="let track of tracks" class="track-lane h-24 border-b border-white/5 relative">
+          <!-- Audio/MIDI Clips -->
+          <div *ngFor="let clip of track.clips"
+               class="clip-item absolute h-16 top-4 rounded-xl border flex flex-col p-3 cursor-move shadow-xl"
+               [style.left.px]="clip.start * barWidth"
+               [style.width.px]="clip.length * barWidth"
+               [style.background-color]="clip.color + '22'"
+               [style.border-color]="clip.color">
+               <span class="text-[9px] font-black uppercase tracking-widest text-slate-200 mb-1">{{ clip.name }}</span>
+               <div class="clip-waveform flex-grow flex items-center gap-0.5 opacity-40">
+                  <div *ngFor="let i of [1,2,3,4,5,6,7,8]" class="w-0.5 bg-white/50" [style.height.%]="20 + 60 * (i % 3)"></div>
+               </div>
+          </div>
+        </div>
+
+        <!-- Playhead -->
+        <div class="playhead absolute top-0 bottom-0 w-px bg-red-500 z-50 shadow-[0_0_10px_#ef4444]" [style.left.px]="playheadPos">
+           <div class="absolute -top-1 -left-1 w-2 h-2 bg-red-500 rotate-45"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

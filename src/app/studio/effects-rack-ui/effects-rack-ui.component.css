@@ -1,0 +1,11 @@
+.effects-rack-container {
+  height: 100%;
+}
+
+.slot-item {
+    transition: transform 0.2s;
+}
+
+.slot-item:active {
+    transform: scale(0.98);
+}

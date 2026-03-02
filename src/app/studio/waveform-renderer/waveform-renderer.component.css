@@ -1,0 +1,7 @@
+.waveform-container {
+  height: 100%;
+}
+
+.waveform-bar {
+    min-width: 1px;
+}

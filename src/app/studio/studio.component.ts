@@ -9,6 +9,11 @@ import { Clip } from './instrument.service';
 import { SynthesizerComponent } from './synthesizer/synthesizer.component';
 import { SoundPadComponent } from './sound-pad/sound-pad.component';
 import { DjDeckComponent } from '../components/dj-deck/dj-deck.component';
+import { ChannelRackComponent } from './channel-rack/channel-rack.component';
+import { ArrangementViewComponent } from './arrangement-view/arrangement-view.component';
+import { PianoRollComponent } from './piano-roll/piano-roll.component';
+import { WaveformRendererComponent } from './waveform-renderer/waveform-renderer.component';
+import { AudioSessionService } from './audio-session.service';
 
 @Component({
   selector: 'app-studio',
@@ -22,15 +27,24 @@ import { DjDeckComponent } from '../components/dj-deck/dj-deck.component';
     PerformanceModeComponent,
     SynthesizerComponent,
     SoundPadComponent,
-    DjDeckComponent
+    DjDeckComponent,
+    ChannelRackComponent,
+    ArrangementViewComponent,
+    PianoRollComponent,
+    WaveformRendererComponent
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css']
 })
 export class StudioComponent {
+  private readonly audioSession = inject(AudioSessionService);
+
   isPerformanceMode = false;
-  activeView = signal<'daw' | 'dj'>('daw');
+  activeView = signal<'daw' | 'rack' | 'mixer' | 'dj'>('daw');
+  showPianoRoll = signal(false);
+  isRecording = this.audioSession.isRecording;
   selectedClip: Clip | null = null;
+
   performancePads = [
     { name: 'Pad 1', isPlaying: false },
     { name: 'Pad 2', isPlaying: true },
@@ -60,12 +74,10 @@ export class StudioComponent {
 
   onPadClicked(pad: any) {
     console.log('Pad clicked:', pad);
-    // Add logic to handle pad clicks in performance mode
   }
 
   onSoundPadTriggered(pad: any) {
     console.log('Sound pad triggered:', pad);
     pad.isPlaying = !pad.isPlaying;
-    // Here you would typically trigger the sound associated with the pad
   }
 }
