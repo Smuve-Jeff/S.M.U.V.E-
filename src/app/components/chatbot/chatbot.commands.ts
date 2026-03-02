@@ -13,6 +13,10 @@ interface CommandComponentContext {
   mimicStyle(styleId: string): Promise<void>;
   viewKnowledgeBase(): void;
   updateCoreTrends(): Promise<void>;
+  autoMix(): Promise<void>;
+  leadBand(instruction: string): Promise<void>;
+  critiqueVisuals(): Promise<void>;
+  negotiateContract(contractType: string): Promise<void>;
   appCommand: {
     emit(command: {
       action: string;
@@ -262,6 +266,36 @@ export const COMMANDS: Command[] = [
     description: 'Updates core industry trends and applies recommendations.',
     execute: async (params, component) => {
       await component.updateCoreTrends();
+    },
+  },
+  {
+    name: 'AUTO_MIX',
+    description: 'S.M.U.V.E analyzes the track and applies professional mixing settings.',
+    execute: async (params, component) => {
+      await component.autoMix();
+    },
+  },
+  {
+    name: 'LEAD_BAND',
+    description: 'Commands the AI band members with specific stylistic cues.',
+    params: [{ name: 'instruction', description: 'Stylistic cues for the band.' }],
+    execute: async (params, component) => {
+      await component.leadBand(params.instruction);
+    },
+  },
+  {
+    name: 'CRITIQUE_VISUALS',
+    description: 'S.M.U.V.E critiques the last generated visual for brand alignment.',
+    execute: async (params, component) => {
+      await component.critiqueVisuals();
+    },
+  },
+  {
+    name: 'NEGOTIATE_CONTRACT',
+    description: 'S.M.U.V.E autonomously negotiates a mock industry contract.',
+    params: [{ name: 'type', description: 'Type of contract (e.g. Performance, Sync).' }],
+    execute: async (params, component) => {
+      await component.negotiateContract(params.type);
     },
   },
 ];

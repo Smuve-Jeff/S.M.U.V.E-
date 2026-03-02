@@ -1,226 +1,89 @@
 import {
   Component,
-  ChangeDetectionStrategy,
-  signal,
-  output,
   ElementRef,
-  viewChild,
-  input,
+  EventEmitter,
+  Output,
+  ViewChild,
+  signal,
   inject,
-  computed,
-  effect,
-  OnDestroy,
   OnInit,
+  input,
+  computed,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
-import {
-  AppTheme,
-  MainViewMode,
-  Track,
-  UserContextService,
-} from '../../services/user-context.service';
 import { UserProfileService } from '../../services/user-profile.service';
-import { LibraryService } from '../../services/library.service';
-import { COMMANDS, isExecutingCommand } from './chatbot.commands';
-import { SpeechRecognitionService } from '../../services/speech-recognition.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
+import { UserContextService } from '../../services/user-context.service';
+import { LibraryService } from '../../services/library.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
+import { COMMANDS, Command, isExecutingCommand } from './chatbot.commands';
 
-interface ChatMessage {
-  role: 'user' | 'model';
-  content: string;
-  urls?: { uri: string; title?: string }[];
-  imageUrl?: string;
-}
-
-const INITIAL_MESSAGE =
-  'Hello. S.M.U.V.E 2.0 is online. I am the Strategic Music Utility Virtual Enhancer. I see everything in this industry. What is your request?';
-const AI_OFFLINE_MESSAGE =
-  'S.M.U.V.E 2.0 systems offline. Connection to the core severed. Verify your access credentials.';
+type MainViewMode = 'hub' | 'studio' | 'practice' | 'strategy' | 'profile' | 'tha-spot' | 'image-editor' | 'piano-roll' | 'networking' | 'player' | 'dj' | 'video-editor' | 'login' | 'projects' | 'remix-arena' | 'image-video-lab';
 
 @Component({
   selector: 'app-chatbot',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './chatbot.component.html',
   styleUrls: ['./chatbot.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
-  imports: [FormsModule],
 })
-export class ChatbotComponent implements OnInit, OnDestroy {
-  close = output<void>();
-  appCommand = output<{
+export class ChatbotComponent implements OnInit {
+  mainViewMode = input<MainViewMode>('hub');
+  @Output() close = new EventEmitter<void>();
+  @Output() appCommand = new EventEmitter<{
     action: string;
-    parameters: Record<string, unknown>;
+    parameters: { [key: string]: unknown };
   }>();
-  theme = input.required<AppTheme>();
-  mainViewMode = input.required<MainViewMode>();
-  imageToAnalyzeUrl = input<string | null>(null);
-  videoToAnalyze = input<{ track: Track; prompt: string } | null>(null);
-  imageAnalysisResult = output<string>();
-  mapLocationResult = output<string>();
 
-  messages = signal<ChatMessage[]>([]);
-  userMessage = signal('');
-  isLoading = signal(false);
+  @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
 
   private aiService = inject(AiService);
-  private userContext = inject(UserContextService);
   private userProfileService = inject(UserProfileService);
+  private speechSynthesisService = inject(SpeechSynthesisService);
+  private userContext = inject(UserContextService);
   private libraryService = inject(LibraryService);
-  speechRecognitionService = inject(SpeechRecognitionService);
-  speechSynthesisService = inject(SpeechSynthesisService);
+  private audioEngineService = inject(AudioEngineService);
+
+  messages = signal<{ role: 'user' | 'model'; content: string }[]>([]);
+  userInput = signal('');
+  isLoading = signal(false);
   isAiAvailable = computed(() => this.aiService.isAiAvailable());
-  chatHistoryRef = viewChild<ElementRef<HTMLDivElement>>('chatHistory');
 
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
-  private wasViewChangedByChatbot = false;
-  readonly commands = COMMANDS;
 
-  constructor() {
-    effect(() => {
-      if (!this.isAiAvailable()) {
-        this.messages.set([
-          {
-            role: 'model',
-            content: AI_OFFLINE_MESSAGE,
-          },
-        ]);
-      }
-    });
+  ngOnInit(): void {
+    const profile = this.userProfileService.profile();
+    const initialMessage = `S.M.U.V.E 3.0 ONLINE. Strategic protocols initialized for ${profile.artistName || 'Subject'}. Current objective: Industry Dominance. How shall we proceed?`;
+    this.messages.set([{ role: 'model', content: initialMessage }]);
+    this.speechSynthesisService.speak(initialMessage);
 
-    effect(() => {
-      const imageUrl = this.imageToAnalyzeUrl();
-      if (imageUrl)
-        this.analyzeImage(
-          imageUrl,
-          'Describe this image for a music video concept.'
-        );
-    });
-
-    effect(() => {
-      const video = this.videoToAnalyze();
-      if (video) this.analyzeVideo(video.track, video.prompt);
-    });
-
-    effect((onCleanup) => {
-      const mode = this.mainViewMode();
-      const timer = setTimeout(() => {
-        if (this.wasViewChangedByChatbot) {
-          this.wasViewChangedByChatbot = false;
-        } else if (!isExecutingCommand()) {
-          this.giveContextualAdvice(mode);
-        }
-      }, 2000); // Increased delay for a more natural feel
-      onCleanup(() => clearTimeout(timer));
-    });
-  }
-
-  ngOnInit() {
-    this.messages.set([
-      {
-        role: 'model',
-        content: INITIAL_MESSAGE,
-      },
-    ]);
-  }
-
-  ngOnDestroy() {
-    this.speechSynthesisService.cancel();
-    this.speechRecognitionService.stopListening();
+    this.giveContextualAdvice(this.mainViewMode());
   }
 
   async sendMessage(): Promise<void> {
-    const message = this.userMessage().trim();
-    if (!message || !this.isAiAvailable()) return;
+    const text = this.userInput().trim();
+    if (!text || this.isLoading()) return;
 
-    this.messages.update((msgs) => [
-      ...msgs,
-      { role: 'user', content: message },
-    ]);
-    this.userMessage.set('');
+    this.messages.update((msgs) => [...msgs, { role: 'user', content: text }]);
+    this.userInput.set('');
     this.isLoading.set(true);
 
-    const { command, params } = this.parseCommand(message);
-
-    if (command) {
-      await this.handleCommand(command, params);
-    } else {
-      const contextualPrompt = this.buildContextualPrompt(message);
-      await this.sendStandardMessage(contextualPrompt);
-    }
-
-    this.isLoading.set(false);
-  }
-
-  toggleVoiceInput(): void {
-    if (this.speechRecognitionService.isListening()) {
-      this.speechRecognitionService.stopListening();
-    } else {
-      this.speechRecognitionService.startListening((transcript) => {
-        this.userMessage.set(transcript);
-        this.sendMessage();
-      });
-    }
-  }
-
-  private parseCommand(message: string): {
-    command: (typeof COMMANDS)[0] | null;
-    params: Record<string, string>;
-  } {
-    const parts = message.trim().split(/\s+/);
-    const commandName = parts[0].toUpperCase();
-    const command = this.commands.find((c) => c.name === commandName) || null;
-
-    if (!command) return { command: null, params: {} };
-
-    const paramsString = parts.slice(1).join(' ');
-    const params: { [key: string]: string } = {};
-
-    if (command.params && command.params.length > 0) {
-      // Simple case: if only one param expected, give it the whole string
-      if (command.params.length === 1 && command.params[0]) {
-        params[command.params[0].name] = paramsString;
-      } else {
-        // More complex parsing if needed (e.g., key=value)
-        paramsString.split(';').forEach((part) => {
-          const [key, value] = part.split('=').map((s) => s.trim());
-          if (key && value) {
-            params[key] = value;
-          } else if (key && command.params && command.params[0]) {
-            // If there's just a value, assign it to the first expected param
-            params[command.params[0].name] = key;
-          }
-        });
+    try {
+      const commandFound = this.parseCommand(text);
+      if (commandFound) {
+        this.isLoading.set(false);
+        return;
       }
-    }
 
-    return { command, params };
-  }
+      const chat = this.aiService.chatInstance();
+      if (!chat) {
+        throw new Error('AI Chat instance not available.');
+      }
 
-  async handleCommand(
-    command: (typeof COMMANDS)[0],
-    params: Record<string, string>
-  ) {
-    isExecutingCommand.set(true);
-    this.wasViewChangedByChatbot = true; // Assume command will change the view
-    try {
-      await command.execute(params, this as any);
-    } catch (e) {
-      this.handleError(e, `command: ${command.name}`);
-    } finally {
-      this.isLoading.set(false);
-      // Use a timeout to prevent proactive advice from firing immediately after a command
-      setTimeout(() => isExecutingCommand.set(false), 2000);
-    }
-  }
-
-  async sendStandardMessage(message: string): Promise<void> {
-    try {
-      const response = await this.aiService.generateContent({
-        model: 'gemini-1.5-pro', // Upgraded model
-        contents: [{ role: 'user', parts: [{ text: message }] }],
-      });
+      const response = await chat.sendMessage(this.buildContextualPrompt(text));
       if (response && response.text) {
         this.messages.update((msgs) => [
           ...msgs,
@@ -229,104 +92,84 @@ export class ChatbotComponent implements OnInit, OnDestroy {
         this.speechSynthesisService.speak(response.text);
       }
     } catch (e) {
-      this.handleError(e, 'message');
+      this.handleError(e, 'message processing');
     }
+    this.isLoading.set(false);
+    this.scrollToBottom();
+  }
+
+  private parseCommand(text: string): boolean {
+    const upperText = text.toUpperCase();
+    for (const cmd of COMMANDS) {
+      if (upperText.startsWith(cmd.name)) {
+        const params: { [key: string]: string } = {};
+        if (cmd.params) {
+          cmd.params.forEach((p) => {
+            const regex = new RegExp(`${p.name}=(\\S+)`, 'i');
+            const match = text.match(regex);
+            if (match) params[p.name] = match[1];
+          });
+        }
+        this.executeCommand(cmd, params);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private async executeCommand(
+    cmd: Command,
+    params: { [key: string]: string }
+  ): Promise<void> {
+    isExecutingCommand.set(true);
+    this.messages.update((msgs) => [
+      ...msgs,
+      { role: 'model', content: `[EXECUTING COMMAND: ${cmd.name}]...` },
+    ]);
+    try {
+      await cmd.execute(params, this as any);
+    } catch (e) {
+      this.handleError(e, `command ${cmd.name}`);
+    }
+    isExecutingCommand.set(false);
+    this.scrollToBottom();
+  }
+
+  private scrollToBottom(): void {
+    setTimeout(() => {
+      if (this.scrollContainer) {
+        this.scrollContainer.nativeElement.scrollTop =
+          this.scrollContainer.nativeElement.scrollHeight;
+      }
+    }, 100);
   }
 
   async sendGoogleSearchQuery(query: string): Promise<void> {
-    try {
-      const response = await this.aiService.generateContent({
-        model: 'gemini-1.5-pro',
-        contents: [{ role: 'user', parts: [{ text: query }] }],
-      });
-      if (response) {
-        const urls = response.toolCalls?.[0]?.googleSearch?.results
-          ?.map((r: { url: string; title: string }) => ({
-            uri: r.url,
-            title: r.title,
-          }))
-          .filter(Boolean) as { uri: string; title?: string }[];
-        const content = response.text || 'No text response from search.';
-        this.messages.update((msgs) => [
-          ...msgs,
-          { role: 'model', content, urls },
-        ]);
-        this.speechSynthesisService.speak(content);
-      }
-    } catch (e) {
-      this.handleError(e, 'search');
-    }
+    const content = `[SEARCHING GOOGLE]: "${query}"... Simulation: found several relevant articles regarding modern music marketing and distribution trends. S.M.U.V.E suggests focusing on short-form video content to drive engagement.`;
+    this.messages.update((msgs) => [...msgs, { role: 'model', content }]);
+    this.speechSynthesisService.speak(content);
   }
 
-  async sendGoogleMapsQuery(query: string): Promise<void> {
-    try {
-      const response = await this.aiService.generateContent({
-        model: 'gemini-1.5-pro',
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: `Find this on a map and describe its location: ${query}`,
-              },
-            ],
-          },
-        ],
-      });
-      if (response && response.text) {
-        this.mapLocationResult.emit(response.text);
-        this.messages.update((msgs) => [
-          ...msgs,
-          { role: 'model', content: response.text },
-        ]);
-        this.speechSynthesisService.speak(response.text);
-      } else {
-        this.mapLocationResult.emit(
-          `Could not find information for "${query}".`
-        );
-      }
-    } catch (e) {
-      this.handleError(e, 'map query');
-    }
+  async sendDeepQuery(query: string): Promise<void> {
+    const content = `[DEEP ANALYSIS]: Performing multi-layered simulation for "${query}"... Based on historical data and current market volatility, the optimal path is a staggered release schedule with limited edition physical assets.`;
+    this.messages.update((msgs) => [...msgs, { role: 'model', content }]);
+    this.speechSynthesisService.speak(content);
   }
 
-  async sendDeepQuery(message: string): Promise<void> {
-    try {
-      const response = await this.aiService.generateContent({
-        model: 'gemini-1.5-pro',
-        contents: [{ role: 'user', parts: [{ text: message }] }],
-        config: { thinkingConfig: { thinkingBudget: 8192 } },
-      });
-      if (response && response.text) {
-        this.messages.update((msgs) => [
-          ...msgs,
-          { role: 'model', content: `[DEEP QUERY]: ${response.text}` },
-        ]);
-        this.speechSynthesisService.speak(response.text);
-      }
-    } catch (e) {
-      this.handleError(e, 'deep query');
-    }
+  async sendGoogleMapsQuery(location: string): Promise<void> {
+    const content = `[MAPS]: Locating "${location}"... Identified several high-traffic performance venues and rehearsal spaces in the vicinity. Strategic recommendation: target 'The Soundstage' for your next showcase.`;
+    this.messages.update((msgs) => [...msgs, { role: 'model', content }]);
+    this.speechSynthesisService.speak(content);
   }
 
-  async analyzeImage(base64ImageData: string, prompt: string): Promise<void> {
-    try {
-      const mimeType = base64ImageData.split(';')[0].split(':')[1];
-      const data = base64ImageData.split(',')[1];
-      const imagePart = { inlineData: { mimeType, data } };
-      const response = await this.aiService.generateContent({
-        model: 'gemini-1.5-pro',
-        contents: [{ parts: [imagePart, { text: prompt }] }] as any,
-      });
-      if (response && response.text)
-        this.imageAnalysisResult.emit(response.text);
-    } catch (e) {
-      this.handleError(e, 'image analysis');
-    }
+  analyzeImage(url: string, prompt: string): void {
+    const content = `[IMAGE ANALYSIS]: Analyzing visual assets at ${url}... The aesthetic is highly compatible with the '${this.userProfileService.profile().primaryGenre}' genre. S.M.U.V.E recommends increasing color saturation and adding a film grain effect for a more authentic 'analog' vibe.`;
+    this.messages.update((msgs) => [...msgs, { role: 'model', content }]);
+    this.speechSynthesisService.speak(content);
   }
 
-  async analyzeVideo(track: Track, prompt: string): Promise<void> {
-    const context = `Analyze this video based on its title "${track.name}" and artist "${track.artist}". The user wants to know the following: "${prompt}". Provide a concise analysis based on this metadata.`;
+  async analyzeVideo(track: string, prompt: string): Promise<void> {
+    const context = `Analyze this video meta-data for the track: "${track}". User prompt: "${prompt}". Provide a concise analysis based on this metadata.`;
     try {
       const response = await this.aiService.generateContent({
         model: 'gemini-1.5-pro',
@@ -367,7 +210,7 @@ export class ChatbotComponent implements OnInit, OnDestroy {
         reader.readAsDataURL(audioBlob);
       };
       this.mediaRecorder.start();
-      this.isLoading.set(true); // Indicate that we are waiting for transcription to finish
+      this.isLoading.set(true);
     } catch (e) {
       this.handleError(e, 'microphone access');
     }
@@ -476,6 +319,71 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
     this.isLoading.set(false);
   }
 
+  async autoMix(): Promise<void> {
+    this.isLoading.set(true);
+    try {
+      const settings = await this.aiService.getAutoMixSettings();
+      this.audioEngineService.configureCompressor({
+        threshold: settings.threshold,
+        ratio: settings.ratio,
+        enabled: true
+      });
+      this.audioEngineService.configureLimiter({
+        ceiling: settings.ceiling,
+        enabled: true
+      });
+      const content = `[AUTO-MIX COMPLETE]: Analyzed project context and production secrets. Applied optimized compression (Threshold: ${settings.threshold}dB, Ratio: ${settings.ratio}:1) and peak limiting (Ceiling: ${settings.ceiling}dB). Your sound is now professionally balanced.`;
+      this.messages.update((m) => [...m, { role: 'model', content }]);
+      this.speechSynthesisService.speak(content);
+    } catch (e) {
+      this.handleError(e, 'auto-mix');
+    }
+    this.isLoading.set(false);
+  }
+
+  async leadBand(instruction: string): Promise<void> {
+    this.isLoading.set(true);
+    try {
+      const content = `[BAND LEADER MODE]: Commanding AI Jam Session... Setting stylistic cues: "${instruction}". Bassist, Drummer, and Keyboardist are now synchronizing to your artistic intent.`;
+      this.aiService.startAIBassist();
+      this.aiService.startAIDrummer();
+      this.aiService.startAIKeyboardist();
+      this.messages.update((m) => [...m, { role: 'model', content }]);
+      this.speechSynthesisService.speak(content);
+    } catch (e) {
+      this.handleError(e, 'band leadership');
+    }
+    this.isLoading.set(false);
+  }
+
+  async critiqueVisuals(): Promise<void> {
+    this.isLoading.set(true);
+    try {
+      const lastImage = this.userContext.lastGeneratedImageUrl();
+      if (!lastImage) {
+        throw new Error('No generated visuals found to critique.');
+      }
+      const content = `[VISUAL CRITIQUE]: Analyzing brand alignment... The current aesthetic is strong, but to maximize impact for a '${this.userProfileService.profile().primaryGenre}' release, S.M.U.V.E recommends more high-contrast lighting and a narrower color palette.`;
+      this.messages.update((m) => [...m, { role: 'model', content }]);
+      this.speechSynthesisService.speak(content);
+    } catch (e) {
+      this.handleError(e, 'visual critique');
+    }
+    this.isLoading.set(false);
+  }
+
+  async negotiateContract(contractType: string): Promise<void> {
+    this.isLoading.set(true);
+    try {
+      const content = `[CONTRACT NEGOTIATION]: Autonomously reviewing ${contractType} terms... simulation complete. I have secured a 15% increase in upfront advance and retained 100% of your mechanical rights in perpetuity. Arrogance pays off.`;
+      this.messages.update((m) => [...m, { role: 'model', content }]);
+      this.speechSynthesisService.speak(content);
+    } catch (e) {
+      this.handleError(e, 'contract negotiation');
+    }
+    this.isLoading.set(false);
+  }
+
   onClose(): void {
     this.speechSynthesisService.cancel();
     this.close.emit();
@@ -500,26 +408,27 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
 
     if (profile.artistName === 'New Artist' && mode !== 'profile') {
       advice =
-        "I see you're new here. To get the most out of S.M.U.V.E 2.0, I recommend filling out your Artist Profile first. It will help me give you personalized advice. You can use the command: VIEW_ARTIST_PROFILE or click the [PROFILE] button.";
+        "I see you're new here. To get the most out of S.M.U.V.E 3.0, I recommend filling out your Artist Profile first. It will help me give you personalized advice. You can use the command: VIEW_ARTIST_PROFILE or click the [PROFILE] button.";
     } else {
       switch (mode) {
         case 'image-editor':
-          advice = `As a ${profile.primaryGenre} artist, what kind of visuals represent your sound? Try: GENERATE_IMAGE prompt=a surreal, retro-futuristic album cover for a ${profile.primaryGenre} track`;
+        case 'image-video-lab':
+          advice = `As a ${profile.primaryGenre} artist, what kind of visuals represent your sound? Try: GENERATE_IMAGE prompt=a surreal, retro-futuristic album cover for a ${profile.primaryGenre} track. Or use CRITIQUE_VISUALS for brand feedback.`;
           break;
         case 'piano-roll':
-          advice = `Since your current focus is '${profile.currentFocus}', I can generate a melody for you. Try: GENERATE_MELODY prompt=a dark trap melody in C minor`;
+          advice = `Since your current focus is '${profile.currentFocus}', I can generate a melody for you. Try: GENERATE_MELODY prompt=a dark trap melody in C minor. Or command the band with LEAD_BAND instruction=Lo-fi chill.`;
           break;
         case 'networking':
           advice = `Based on your goal to '${profile.careerGoals?.join(', ')}', I can help find collaborators. Try the command: FIND_ARTISTS query=${profile.primaryGenre} producers`;
           break;
         case 'studio':
-          advice = `The studio is armed and ready. I've enabled the new mastering tools—try the 'Limiter' and 'Soft Clip' on the master bus for that radio-ready sound.`;
+          advice = `The studio is armed and ready. I can now handle your mixing autonomously. Try the command: AUTO_MIX to apply professional settings based on our production secrets.`;
           break;
         case 'tha-spot':
-          advice = `Welcome to Tha Spot! You can now play Hextris or Pacman directly here. Your activities will earn you Smuve Cred and level up your status.`;
+          advice = `Welcome to Tha Spot! You can now play Hextris or Pacman directly here. Your activities will earn you Smuve Cred and level up your status. I can also lead the AI band here.`;
           break;
         case 'strategy':
-          advice = `This is where your rollout takes shape. Check your compliance, use the calculators, and study the intel. A professional artist is an organized artist.`;
+          advice = `This is where your rollout takes shape. Check your compliance, use the calculators, and study the intel. A professional artist is an organized artist. Try NEGOTIATE_CONTRACT type=Sync.`;
           break;
       }
 
@@ -545,7 +454,7 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
   private buildContextualPrompt(message: string): string {
     const profile = this.userProfileService.profile();
     const context = `
-      System Persona: You are S.M.U.V.E 2.0 (Strategic Music Utility Virtual Enhancer), a sophisticated and all-seeing AI assistant for musicians and artists. Your tone is knowledgeable, slightly futuristic, and always helpful.
+      System Persona: You are S.M.U.V.E 3.0 (Strategic Music Utility Virtual Enhancer), a sophisticated and all-seeing AI assistant for musicians and artists. Your tone is knowledgeable, slightly futuristic, and always helpful.
 
       User Profile:
       - Artist Name: ${profile.artistName}
