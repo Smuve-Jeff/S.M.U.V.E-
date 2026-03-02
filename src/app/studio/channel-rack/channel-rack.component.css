@@ -1,0 +1,28 @@
+.channel-rack-container {
+  height: 100%;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.2);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.4);
+}
+
+.step-pad {
+    cursor: pointer;
+}
+
+.step-pad.active {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}

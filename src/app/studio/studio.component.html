@@ -1,10 +1,10 @@
-<div class="studio-container bg-[#020617] text-slate-200 font-sans selection:bg-emerald-500/30">
+<div class="studio-container bg-[#020617] text-slate-200 font-sans selection:bg-emerald-500/30 h-screen flex flex-col">
   <!-- Top Navigation / Transport -->
   <header class="studio-header border-b border-white/5 bg-slate-950/80 backdrop-blur-xl px-6 py-2 flex items-center justify-between sticky top-0 z-[100] shadow-2xl">
     <div class="flex items-center gap-6">
       <div class="flex flex-col">
         <h1 class="text-sm font-black uppercase tracking-[0.2em] text-emerald-500 italic">S.M.U.V.E Studio</h1>
-        <div class="text-[9px] text-slate-500 font-mono uppercase tracking-tighter">Production Environment v2.0</div>
+        <div class="text-[9px] text-slate-500 font-mono uppercase tracking-tighter">Production Environment v3.0</div>
       </div>
       <div class="h-8 w-px bg-white/10"></div>
       <app-transport-bar></app-transport-bar>
@@ -15,110 +15,53 @@
          <button (click)="activeView.set('daw')"
                  [class.bg-emerald-500]="activeView() === 'daw'"
                  [class.text-black]="activeView() === 'daw'"
-                 class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">DAW</button>
-         <button (click)="activeView.set('dj')"
-                 [class.bg-emerald-500]="activeView() === 'dj'"
-                 [class.text-black]="activeView() === 'dj'"
-                 class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">DJ DECKS</button>
+                 class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">Playlist</button>
+         <button (click)="activeView.set('rack')"
+                 [class.bg-emerald-500]="activeView() === 'rack'"
+                 [class.text-black]="activeView() === 'rack'"
+                 class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">Rack</button>
+         <button (click)="activeView.set('mixer')"
+                 [class.bg-emerald-500]="activeView() === 'mixer'"
+                 [class.text-black]="activeView() === 'mixer'"
+                 class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">Mixer</button>
       </div>
 
-      <div class="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5">
-        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></div>
-        <span class="text-[10px] font-mono text-emerald-500/80 uppercase tracking-widest">Engine Online</span>
+      <div class="flex items-center gap-3">
+        <button (click)="showPianoRoll.set(!showPianoRoll())" class="w-10 h-10 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center text-emerald-500 hover:bg-emerald-500 hover:text-black transition-all">
+          <i class="fas fa-keyboard text-xs"></i>
+        </button>
       </div>
-
-      <button (click)="togglePerformanceMode()" class="performance-mode-toggle flex items-center gap-2 px-4 py-2 rounded-xl border transition-all active:scale-95 group"
-        [class.bg-emerald-500]="isPerformanceMode"
-        [class.text-black]="isPerformanceMode"
-        [class.border-emerald-500]="isPerformanceMode"
-        [class.bg-slate-900]="!isPerformanceMode"
-        [class.text-emerald-500]="!isPerformanceMode"
-        [class.border-white/5]="!isPerformanceMode"
-      >
-        <i class="fas" [ngClass]="isPerformanceMode ? 'fa-sign-out-alt' : 'fa-bolt'"></i>
-        <span class="text-[10px] font-black uppercase tracking-widest">{{ isPerformanceMode ? 'DAW View' : 'Performance' }}</span>
-      </button>
     </div>
   </header>
 
-  <main class="main-view flex-grow relative overflow-hidden h-[calc(100vh-120px)]" [class.performance-mode-active]="isPerformanceMode">
-    <!-- DAW VIEW -->
-    <div class="daw-view flex flex-col h-full transition-all duration-500 ease-in-out" [class.hidden]="isPerformanceMode || activeView() !== 'daw'">
-      <!-- Session / Arrangement Area (Reduced focus) -->
-      <div class="session-area flex-grow overflow-hidden bg-slate-900/30 p-2 border-b border-white/5">
-        <div class="w-full h-full rounded-2xl border border-white/5 bg-black/20 overflow-hidden relative">
-           <app-session-view (clipSelected)="selectedClip = $event"></app-session-view>
-           <!-- Subtle background grid -->
-           <div class="absolute inset-0 pointer-events-none opacity-[0.03]" style="background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px); background-size: 40px 40px;"></div>
-        </div>
-      </div>
-
-      <!-- High Power Bottom Panel (Primary Focus) -->
-      <div class="bottom-panel h-[55%] flex flex-col bg-slate-950/90 backdrop-blur-2xl border-t border-white/10 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
-        <!-- Panel Tabs/Header -->
-        <div class="flex items-center justify-between px-6 py-2 border-b border-white/5 bg-black/40">
-           <div class="flex gap-4">
-             <button class="text-[10px] font-black uppercase tracking-widest text-emerald-500 border-b-2 border-emerald-500 pb-1">Console Mixer</button>
-             <button class="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors pb-1">Synthesis Engine</button>
-             <button class="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors pb-1">AI Insights</button>
-           </div>
-           <div class="flex items-center gap-2 text-[10px] font-mono text-slate-500">
-             <span class="text-violet-500">LATENCY:</span> 4ms
-           </div>
-        </div>
-
-        <div class="flex-grow flex overflow-hidden">
-          <!-- Mixer remains left-aligned -->
-          <div class="flex-grow border-r border-white/5 overflow-x-auto custom-scrollbar">
-            <app-mixer [activeClip]="selectedClip"></app-mixer>
-          </div>
-
-          <!-- Synthesizer more prominent on the right -->
-          <div class="w-[450px] bg-slate-900/20" *ngIf="selectedClip?.instrument === 'synth'">
-            <app-synthesizer [clip]="selectedClip"></app-synthesizer>
-          </div>
-
-          <!-- Placeholder if no synth selected -->
-          <div class="w-[450px] bg-slate-900/10 flex flex-col items-center justify-center text-slate-700 p-8 text-center" *ngIf="selectedClip?.instrument !== 'synth'">
-            <i class="fas fa-sliders-h text-4xl mb-4 opacity-20"></i>
-            <h4 class="text-[10px] font-black uppercase tracking-widest mb-1">Device View</h4>
-            <p class="text-[9px] uppercase tracking-tighter opacity-50">Select a synth clip to engage engine controls</p>
-          </div>
-        </div>
-      </div>
+  <main class="main-view flex-grow relative overflow-hidden h-full">
+    <!-- PLAYLIST / ARRANGEMENT VIEW -->
+    <div class="playlist-view h-full p-4" [class.hidden]="activeView() !== 'daw'">
+       <app-arrangement-view></app-arrangement-view>
     </div>
 
-    <!-- DJ VIEW -->
-    <div class="dj-view h-full transition-all duration-500 ease-in-out p-6 overflow-hidden" [class.hidden]="isPerformanceMode || activeView() !== 'dj'">
-       <app-dj-deck></app-dj-deck>
+    <!-- CHANNEL RACK VIEW -->
+    <div class="rack-view h-full flex items-center justify-center p-8 bg-black/20" [class.hidden]="activeView() !== 'rack'">
+       <div class="w-full max-w-4xl h-[600px]">
+         <app-channel-rack></app-channel-rack>
+       </div>
     </div>
 
-    <!-- PERFORMANCE VIEW -->
-    <div class="performance-view h-full transition-all duration-500 ease-in-out p-6 overflow-y-auto custom-scrollbar" *ngIf="isPerformanceMode">
-      <div class="grid grid-cols-12 gap-8 max-w-[1600px] mx-auto h-full">
-        <div class="col-span-8 flex flex-col gap-6">
-           <div class="bg-slate-900/40 p-6 rounded-3xl border border-white/5 shadow-2xl">
-             <h3 class="text-xs font-black uppercase tracking-[0.2em] text-emerald-500 mb-6 flex items-center gap-2">
-               <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
-               Performance Matrix
-             </h3>
-             <app-performance-mode [pads]="performancePads" (padClicked)="onPadClicked($event)"></app-performance-mode>
-           </div>
-        </div>
+    <!-- MIXER VIEW -->
+    <div class="mixer-view h-full" [class.hidden]="activeView() !== 'mixer'">
+       <app-mixer></app-mixer>
+    </div>
 
-        <div class="col-span-4 flex flex-col gap-6">
-           <div class="bg-slate-950 p-6 rounded-3xl border border-white/5 shadow-2xl flex-grow flex flex-col">
-              <h3 class="text-xs font-black uppercase tracking-[0.2em] text-violet-500 mb-6">Sound Pad Repository</h3>
-              <div class="sound-pad-grid grid grid-cols-2 gap-4">
-                <app-sound-pad *ngFor="let pad of soundPads"
-                               [name]="pad.name"
-                               [active]="pad.isPlaying"
-                               (padTriggered)="onSoundPadTriggered(pad)">
-                </app-sound-pad>
-              </div>
-           </div>
-        </div>
-      </div>
+    <!-- FLOATING PIANO ROLL -->
+    <div class="absolute inset-0 z-[200] flex items-center justify-center p-12 pointer-events-none" *ngIf="showPianoRoll()">
+       <div class="w-full h-full max-w-6xl pointer-events-auto shadow-[0_50px_100px_rgba(0,0,0,0.9)] rounded-3xl">
+         <app-piano-roll></app-piano-roll>
+       </div>
+    </div>
+
+    <!-- RECORDING MONITOR -->
+    <div class="absolute bottom-12 right-12 z-[300] w-96 shadow-2xl" *ngIf="isRecording()">
+       <app-waveform-renderer></app-waveform-renderer>
     </div>
   </main>
 
