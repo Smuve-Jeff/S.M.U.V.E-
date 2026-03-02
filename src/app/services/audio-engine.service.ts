@@ -216,6 +216,7 @@ export class AudioEngineService {
     const stems = ['vocals', 'drums', 'bass', 'melody'] as const;
     stems.forEach((s) => deck.gains[s].connect(deck.pre));
 
+    deck.pre.connect(deck.analyser);
     deck.pre
       .connect(deck.eqLow)
       .connect(deck.eqMid)

@@ -14,22 +14,15 @@ export interface Stems {
 export class StemSeparationService {
   constructor() {}
 
-  separate(_audioBuffer: AudioBuffer): Observable<Stems> {
+  separate(_audioBuffer: AudioBuffer): Observable<Stems | null> {
     // This is a placeholder for the actual stem separation logic.
     // In a real implementation, this would use a model like Spleeter or Demucs.
     console.log(
-      'StemSeparationService: Separating stems (mock implementation)'
+      'StemSeparationService: Separating stems (mock implementation returning null for fallback)'
     );
 
-    // For now, we'll return a mock object with empty audio buffers.
-    const emptyBuffer = new AudioContext().createBuffer(1, 1, 44100);
-    const stems: Stems = {
-      vocals: emptyBuffer,
-      drums: emptyBuffer,
-      bass: emptyBuffer,
-      melody: emptyBuffer,
-    };
-
-    return of(stems);
+    // Returning null indicates that separation is not available or is a placeholder.
+    // This allows the AudioEngineService to fall back to the original audio buffer.
+    return of(null);
   }
 }

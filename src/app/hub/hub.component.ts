@@ -19,6 +19,7 @@ import { AudioEngineService } from '../services/audio-engine.service';
 import { GameService } from './game.service';
 import { Game } from './game';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { AfterViewInit } from '@angular/core';
 import { NotificationService } from '../services/notification.service';
 
 @Component({
@@ -28,7 +29,7 @@ import { NotificationService } from '../services/notification.service';
   templateUrl: './hub.component.html',
   styleUrls: ['./hub.component.css'],
 })
-export class HubComponent implements OnInit, OnDestroy {
+export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   private router = inject(Router);
   public uiService = inject(UIService);
   public deckService = inject(DeckService);
@@ -63,9 +64,49 @@ export class HubComponent implements OnInit, OnDestroy {
 
   constructor() {}
 
+  private animFrame: number | null = null;
+  visualizerData = signal<number[]>(new Array(24).fill(20));
+
   ngOnInit() {}
 
-  ngOnDestroy() {}
+  ngAfterViewInit() {
+    this.startVisualizer();
+  }
+
+  private startVisualizer() {
+    const analyser = this.audioEngine.getAnalyser();
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const update = () => {
+      if (this.isRadioPlaying()) {
+        analyser.getByteFrequencyData(dataArray);
+
+        // Map the frequency data to our 24 bars
+        const newData = [];
+        const step = Math.floor(bufferLength / 24);
+        for (let i = 0; i < 24; i++) {
+          let sum = 0;
+          for (let j = 0; j < step; j++) {
+            sum += dataArray[i * step + j];
+          }
+          const average = sum / step;
+          // Normalize to 20-100 range for CSS height
+          newData.push(Math.max(20, (average / 255) * 100));
+        }
+        this.visualizerData.set(newData);
+      } else {
+        // Idling animation if not playing
+        this.visualizerData.set(new Array(24).fill(20));
+      }
+      this.animFrame = requestAnimationFrame(update);
+    };
+    update();
+  }
+
+  ngOnDestroy() {
+    if (this.animFrame) cancelAnimationFrame(this.animFrame);
+  }
 
   // Quick Start Actions
   onQuickStart() {
