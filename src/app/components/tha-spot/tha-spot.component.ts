@@ -13,7 +13,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-tha-spot',
   standalone: true,
-  imports: [CommonModule, FormsModule, VisualizerComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './tha-spot.component.html',
   styleUrls: ['./tha-spot.component.css'],
 })

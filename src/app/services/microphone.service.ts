@@ -1,5 +1,10 @@
 import { Injectable, signal } from '@angular/core';
 
+export interface AudioInputDevice {
+  deviceId: string;
+  label: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -10,32 +15,53 @@ export class MicrophoneService {
   private sourceNode: MediaStreamAudioSourceNode | null = null;
 
   isInitialized = signal(false);
+  availableDevices = signal<AudioInputDevice[]>([]);
+  selectedDeviceId = signal<string | null>(null);
 
-  constructor() {}
+  constructor() {
+    this.updateAvailableDevices();
+  }
 
-  async initialize(): Promise<void> {
-    if (
-      this.isInitialized() ||
-      typeof window === 'undefined' ||
-      !navigator.mediaDevices
-    ) {
-      return;
-    }
+  async updateAvailableDevices(): Promise<void> {
+    if (typeof window === 'undefined' || !navigator.mediaDevices) return;
 
     try {
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-      this.audioContext = new (
-        window.AudioContext || (window as any).webkitAudioContext
-      )();
+      // First, request permissions to get labels
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices
+        .filter(device => device.kind === 'audioinput')
+        .map(device => ({
+          deviceId: device.deviceId,
+          label: device.label || `Microphone ${device.deviceId.slice(0, 5)}`
+        }));
+      this.availableDevices.set(audioInputs);
+      if (audioInputs.length > 0 && !this.selectedDeviceId()) {
+        this.selectedDeviceId.set(audioInputs[0].deviceId);
+      }
+    } catch (error) {
+      console.error('Error enumerating audio devices:', error);
+    }
+  }
+
+  async initialize(deviceId?: string): Promise<void> {
+    if (typeof window === 'undefined' || !navigator.mediaDevices) return;
+
+    this.stop();
+
+    try {
+      const constraints: MediaStreamConstraints = {
+        audio: deviceId ? { deviceId: { exact: deviceId } } : true,
+      };
+
+      this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       this.analyserNode = this.audioContext.createAnalyser();
-      this.sourceNode = this.audioContext.createMediaStreamSource(
-        this.mediaStream
-      );
+      this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
       this.sourceNode.connect(this.analyserNode);
       this.isInitialized.set(true);
-      console.log('MicrophoneService initialized.');
+      if (deviceId) this.selectedDeviceId.set(deviceId);
+      console.log('MicrophoneService initialized with device:', deviceId || 'default');
     } catch (error) {
       console.error('Error initializing microphone service:', error);
       this.isInitialized.set(false);
@@ -43,9 +69,6 @@ export class MicrophoneService {
   }
 
   getAnalyserNode(): AnalyserNode | undefined {
-    if (!this.analyserNode) {
-      this.initialize();
-    }
     return this.analyserNode ?? undefined;
   }
 

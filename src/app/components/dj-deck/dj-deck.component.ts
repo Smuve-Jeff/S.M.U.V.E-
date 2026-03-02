@@ -32,7 +32,7 @@ import {
   templateUrl: './dj-deck.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, SampleLibraryComponent, FormsModule, StemControlsComponent],
+  imports: [CommonModule, FormsModule],
 })
 export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('waveformA') waveformA!: ElementRef<HTMLCanvasElement>;

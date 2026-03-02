@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioSessionService, MicChannel } from '../audio-session.service';
 
@@ -11,8 +11,10 @@ import { AudioSessionService, MicChannel } from '../audio-session.service';
 })
 export class ChannelStripComponent {
   @Input({ required: true }) channel!: MicChannel;
-  private readonly audioSession = inject(AudioSessionService);
+  public readonly audioSession = inject(AudioSessionService);
   protected readonly Math = Math;
+
+  showSettings = signal(false);
 
   updateLevel(newLevel: number): void {
     this.audioSession.updateChannelLevel(this.channel.id, newLevel);
@@ -28,5 +30,13 @@ export class ChannelStripComponent {
 
   toggleArm(): void {
     this.audioSession.toggleChannelArm(this.channel.id);
+  }
+
+  toggleSettings(): void {
+    this.showSettings.update(v => !v);
+  }
+
+  updateDevice(event: any): void {
+    this.audioSession.initializeMic(this.channel.id, event.target.value);
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { InstrumentService } from './instrument.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { PlaybackState } from './playback-state';
+import { MicrophoneService, AudioInputDevice } from '../services/microphone.service';
 
 export interface MicChannel {
   id: string;
@@ -10,6 +11,7 @@ export interface MicChannel {
   muted: boolean;
   pan: number; // Panning (-100 to 100)
   armed: boolean; // Armed for recording
+  deviceId?: string; // Specific input device ID
 }
 
 @Injectable({
@@ -18,6 +20,7 @@ export interface MicChannel {
 export class AudioSessionService {
   private readonly instrumentService = inject(InstrumentService);
   private readonly engine = inject(AudioEngineService);
+  private readonly micService = inject(MicrophoneService);
 
   readonly playbackState = signal<PlaybackState>('stopped');
   readonly isPlaying = computed(() => this.playbackState() === 'playing');
@@ -28,7 +31,7 @@ export class AudioSessionService {
   micChannels = signal<MicChannel[]>([
     {
       id: 'mic-1',
-      label: 'Vocal Mic',
+      label: 'Lead Vocals',
       level: 70,
       muted: false,
       pan: 0,
@@ -36,24 +39,33 @@ export class AudioSessionService {
     },
     {
       id: 'guitar-1',
-      label: 'Guitar Amp',
+      label: 'Secondary In',
       level: 60,
       muted: false,
       pan: 20,
       armed: false,
     },
-    {
-      id: 'drums-1',
-      label: 'Overheads',
-      level: 50,
-      muted: false,
-      pan: -10,
-      armed: false,
-    },
   ]);
+
+  availableDevices = this.micService.availableDevices;
 
   constructor() {
     this.instrumentService.connect(this.engine.getContext().destination);
+    // Initialize first armed channel with default device if possible
+    const armed = this.micChannels().find(ch => ch.armed);
+    if (armed) {
+        this.initializeMic(armed.id);
+    }
+  }
+
+  async initializeMic(channelId: string, deviceId?: string): Promise<void> {
+    const channel = this.micChannels().find(ch => ch.id === channelId);
+    if (channel) {
+        await this.micService.initialize(deviceId || channel.deviceId);
+        if (deviceId) {
+            this.updateChannelDevice(channelId, deviceId);
+        }
+    }
   }
 
   togglePlay(): void {
@@ -107,6 +119,16 @@ export class AudioSessionService {
   toggleChannelArm(id: string): void {
     this.micChannels.update((channels) =>
       channels.map((ch) => (ch.id === id ? { ...ch, armed: !ch.armed } : ch))
+    );
+    const channel = this.micChannels().find(ch => ch.id === id);
+    if (channel?.armed && !this.micService.isInitialized()) {
+        this.initializeMic(id);
+    }
+  }
+
+  updateChannelDevice(id: string, deviceId: string): void {
+    this.micChannels.update((channels) =>
+      channels.map((ch) => (ch.id === id ? { ...ch, deviceId } : ch))
     );
   }
 

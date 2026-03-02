@@ -1,4 +1,4 @@
-import { Injectable, signal, HostListener } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { MainViewMode, AppTheme } from './user-context.service';
 
 const THEMES: AppTheme[] = [
@@ -35,14 +35,14 @@ const THEMES: AppTheme[] = [
   providedIn: 'root',
 })
 export class UIService {
-  mainViewMode = signal<MainViewMode>('tha-spot');
+  mainViewMode = signal<MainViewMode>('hub');
   activeTheme = signal<AppTheme>(THEMES[0]);
   showEqPanel = signal(false);
   showChatbot = signal(false);
   isChatbotOpen = signal(false);
   visualIntensity = signal(0);
 
-  isOnline = signal(navigator.onLine);
+  isOnline = signal(true);
 
   private viewModes: MainViewMode[] = [
     'hub',
@@ -62,8 +62,11 @@ export class UIService {
   private currentViewIndex = 0;
 
   constructor() {
-    window.addEventListener('online', () => this.updateOnlineStatus(true));
-    window.addEventListener('offline', () => this.updateOnlineStatus(false));
+    if (typeof window !== 'undefined') {
+      this.isOnline.set(navigator.onLine);
+      window.addEventListener('online', () => this.updateOnlineStatus(true));
+      window.addEventListener('offline', () => this.updateOnlineStatus(false));
+    }
   }
 
   private updateOnlineStatus(status: boolean) {
