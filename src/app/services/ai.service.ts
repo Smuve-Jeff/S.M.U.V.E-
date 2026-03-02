@@ -462,6 +462,10 @@ export class AiService {
       .map((s) => `- [${s.artist}] ${s.secret}`)
       .join('\n');
 
+    const campaignsList = (profile.marketingCampaigns || [])
+      .map((c) => `- [${c.name}] Status: ${c.status}, Budget: $${c.budget}, Platforms: ${c.platforms.join(', ')}`)
+      .join('\n');
+
     const coreTrendsList = profile.knowledgeBase.coreTrends
       .map((t) => `- [${t.genre}] ${t.description}`)
       .join('\n');
@@ -500,6 +504,8 @@ Artist Intel:
 - Secondary Genres: ${profile.secondaryGenres.join(', ') || 'Not specified'}
 - Career Goals: ${profile.careerGoals.join(', ') || 'Not defined'}
 - Distribution: ${profile.preferredDistributor || 'Not set'} (${profile.distributionStatus})
+- Marketing Campaigns:
+${campaignsList || 'No active campaigns.'}
 - Expertise (1–10): Vocals ${profile.expertiseLevels.vocals}, Production ${profile.expertiseLevels.production}, Marketing ${profile.expertiseLevels.marketing}, Stage ${profile.expertiseLevels.stagePresence}, Songwriting ${profile.expertiseLevels.songwriting}
 
 Knowledge Base:

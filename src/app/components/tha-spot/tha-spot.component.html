@@ -68,6 +68,9 @@
             class="game-card group"
             (click)="selectGame(game)"
           >
+            <!-- Make the whole card a link for accessibility and UX -->
+            <a [href]="game.url" target="_blank" class="absolute inset-0 z-10" [attr.aria-label]="'Play ' + game.name"></a>
+
             <div class="relative h-44 mb-4 overflow-hidden rounded-xl border border-white/5">
               <img [src]="game.image" [alt]="game.name" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
               <div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-black text-white flex items-center gap-1">
@@ -76,7 +79,7 @@
             </div>
             <h3 class="text-lg font-black text-white uppercase tracking-tight">{{ game.name }}</h3>
             <p class="text-xs text-slate-500 mb-4 line-clamp-2">{{ game.description }}</p>
-            <button class="play-btn">PLAY NOW</button>
+            <button class="play-btn relative z-20">PLAY NOW</button>
           </div>
         </div>
       </div>

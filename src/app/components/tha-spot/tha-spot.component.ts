@@ -34,6 +34,10 @@ export class ThaSpotComponent implements OnInit {
 
   genres = [
     'Shooter',
+    'Adventure',
+    'Sports',
+    'RPG',
+    'Classic',
     'Arcade',
     'Puzzle',
     'Arena',
