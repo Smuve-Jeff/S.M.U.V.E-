@@ -1,3 +1,4 @@
+import { MarketingCampaign } from '../types/marketing.types';
 import { Injectable, signal, effect, inject } from '@angular/core';
 import { AuthService } from './auth.service';
 import { DatabaseService } from './database.service';
@@ -21,6 +22,7 @@ export interface ArtistPlatform {
 }
 
 export interface UserProfile {
+  marketingCampaigns: MarketingCampaign[];
   // === BASIC INFO ===
   artistName: string;
   stageName?: string;
@@ -190,6 +192,7 @@ export interface UserProfile {
 }
 
 export const initialProfile: UserProfile = {
+  marketingCampaigns: [],
   // Basic Info
   artistName: 'New Artist',
   stageName: '',
