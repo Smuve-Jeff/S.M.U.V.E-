@@ -1,14 +1,85 @@
 .tha-spot-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.02) 0%, transparent 30%),
+              #020617;
 }
 
-.jam-controls {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 10px;
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.5);
+}
+
+/* Tabs */
+.tab-btn {
+  @apply px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-500 border border-transparent transition-all rounded-xl;
+}
+.tab-btn:hover {
+  @apply text-emerald-400 border-emerald-500/20 bg-emerald-500/5;
+}
+.tab-btn.active {
+  @apply text-black bg-emerald-500 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.3)];
+}
+
+/* Game Cards */
+.game-card {
+  @apply bg-slate-900/50 p-5 rounded-3xl border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer;
+}
+.play-btn {
+  @apply w-full py-3 bg-slate-800 text-slate-400 font-black uppercase tracking-widest text-[10px] rounded-xl transition-all group-hover:bg-emerald-500 group-hover:text-black;
+}
+
+/* Showcase Cards */
+.project-card {
+  @apply bg-slate-900/30 p-4 rounded-[2.5rem] border border-white/5 hover:border-emerald-500/20 transition-all cursor-pointer;
+}
+
+/* Collab Cards */
+.collab-card {
+  @apply bg-slate-900/40 p-6 rounded-3xl border border-white/5 hover:border-emerald-500/20 transition-all;
+}
+
+/* Jam Slots */
+.jam-slot {
+  @apply flex flex-col items-center gap-4;
+}
+.slot-btn {
+  @apply w-24 h-24 rounded-full flex items-center justify-center text-3xl transition-all border-2 bg-slate-900 border-slate-800 text-slate-500;
+}
+.slot-btn.active {
+  @apply bg-emerald-500 border-emerald-400 text-black shadow-[0_0_40px_rgba(16,185,129,0.4)];
+}
+.jam-slot.human .slot-btn {
+  @apply bg-white border-white text-black shadow-[0_0_40px_rgba(255,255,255,0.2)];
+}
+.slot-info {
+  @apply flex flex-col items-center gap-2;
+}
+.slot-info .name {
+  @apply text-[10px] font-black uppercase tracking-[0.2em] text-slate-500;
+}
+.jam-slot.human .slot-info .name {
+  @apply text-emerald-400;
+}
+.join-btn {
+  @apply px-3 py-1 bg-slate-800 text-[8px] font-black uppercase text-slate-500 rounded-md opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:text-black;
+}
+
+/* Chat */
+.chat-msg {
+  @apply leading-relaxed border-l-2 border-emerald-500/20 pl-2 py-1 hover:bg-white/5 transition-colors;
+}
+
+/* Animation Utilities */
+.wow {
+  visibility: visible !important;
 }

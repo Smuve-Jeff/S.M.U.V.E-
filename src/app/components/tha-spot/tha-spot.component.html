@@ -1,130 +1,286 @@
-<div class="tha-spot-container p-8">
-  <header class="spot-header mb-12">
-    <h1 class="text-5xl font-black italic tracking-tighter text-emerald-500 uppercase">Tha Spot</h1>
-    <p class="text-slate-400 mt-2">The Ultimate Interactive Gaming & Jam Hub</p>
+<div class="tha-spot-container p-8 flex flex-col h-screen overflow-hidden">
+  <!-- Top Navigation & Header -->
+  <header class="spot-header mb-8 flex items-end justify-between border-b border-emerald-500/20 pb-6">
+    <div (click)="goToMyProfile()" class="cursor-pointer group">
+      <h1 class="text-6xl font-black italic tracking-tighter text-emerald-500 uppercase leading-none group-hover:text-white transition-colors">Tha Spot</h1>
+      <p class="text-slate-500 mt-2 font-mono text-xs uppercase tracking-[0.3em]">Online Multiplayer Hub // v3.0 // Active</p>
+    </div>
+
+    <nav class="flex gap-4">
+      <button
+        (click)="setActiveTab('arcade')"
+        [class.active]="activeTab() === 'arcade'"
+        class="tab-btn"
+      >
+        <i class="fas fa-gamepad mr-2"></i> Arcade
+      </button>
+      <button
+        (click)="setActiveTab('showcase')"
+        [class.active]="activeTab() === 'showcase'"
+        class="tab-btn"
+      >
+        <i class="fas fa-layer-group mr-2"></i> Showcase
+      </button>
+      <button
+        (click)="setActiveTab('networking')"
+        [class.active]="activeTab() === 'networking'"
+        class="tab-btn"
+      >
+        <i class="fas fa-network-wired mr-2"></i> Networking
+      </button>
+    </nav>
   </header>
 
-  <!-- Gaming Hub Section -->
-  <section class="gaming-hub-section wow animate__animated animate__fadeIn">
-    <div class="hub-controls mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div class="search-bar relative flex-1 max-w-md">
-        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-        <input
-          type="text"
-          placeholder="Search games..."
-          (input)="onSearch($event)"
-          class="bg-slate-900/50 border border-slate-800 text-white pl-12 pr-4 py-3 rounded-xl w-full focus:border-emerald-500 outline-none transition-all"
-          aria-label="Search games"
-        />
+  <div class="flex-1 flex gap-8 overflow-hidden">
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+
+      <!-- ARCADE TAB -->
+      <div *ngIf="activeTab() === 'arcade'" class="wow animate__animated animate__fadeIn">
+        <div class="hub-controls mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="search-bar relative flex-1 max-w-md">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+            <input
+              type="text"
+              placeholder="Search games..."
+              (input)="onSearch($event)"
+              class="bg-slate-900/50 border border-slate-800 text-white pl-12 pr-4 py-3 rounded-xl w-full focus:border-emerald-500 outline-none transition-all"
+              aria-label="Search games"
+            />
+          </div>
+          <div class="genre-filters flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <button
+              *ngFor="let genre of genres"
+              (click)="setGenre(genre)"
+              [class.active]="activeFilters().genre === genre"
+              class="px-4 py-2 rounded-full border border-slate-800 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all hover:border-emerald-500/50"
+              [ngClass]="activeFilters().genre === genre ? 'bg-emerald-500 text-black border-emerald-500' : 'text-slate-400'"
+              [attr.aria-label]="'Filter by ' + genre"
+            >
+              {{ genre }}
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div
+            *ngFor="let game of games()"
+            class="game-card group"
+            (click)="selectGame(game)"
+          >
+            <div class="relative h-44 mb-4 overflow-hidden rounded-xl border border-white/5">
+              <img [src]="game.image" [alt]="game.name" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              <div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-black text-white flex items-center gap-1">
+                <i class="fas fa-users text-emerald-400"></i> {{ game.playersOnline || 0 }}
+              </div>
+            </div>
+            <h3 class="text-lg font-black text-white uppercase tracking-tight">{{ game.name }}</h3>
+            <p class="text-xs text-slate-500 mb-4 line-clamp-2">{{ game.description }}</p>
+            <button class="play-btn">PLAY NOW</button>
+          </div>
+        </div>
       </div>
-      <div class="genre-filters flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        <button
-          *ngFor="let genre of genres"
-          (click)="setGenre(genre)"
-          [class.active]="activeFilters().genre === genre"
-          class="px-4 py-2 rounded-full border border-slate-800 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all hover:border-emerald-500/50"
-          [ngClass]="activeFilters().genre === genre ? 'bg-emerald-500 text-black border-emerald-500' : 'text-slate-400'"
-          [attr.aria-label]="'Filter by ' + genre"
-        >
-          {{ genre }}
+
+      <!-- SHOWCASE TAB -->
+      <div *ngIf="activeTab() === 'showcase'" class="wow animate__animated animate__fadeIn">
+        <h2 class="text-3xl font-black text-white mb-8 uppercase italic tracking-tighter">Community Showcase</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div *ngFor="let project of showcaseProjects()" class="project-card group" (click)="viewProfile(project.creator)">
+            <div class="relative h-56 mb-4 overflow-hidden rounded-2xl border border-white/5">
+              <img [src]="project.thumbnail" [alt]="project.title" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-700" />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-6">
+                <div class="flex gap-2">
+                  <span *ngFor="let tag of project.tags" class="text-[9px] font-bold px-2 py-1 bg-emerald-500 text-black rounded uppercase">{{tag}}</span>
+                </div>
+              </div>
+              <div class="absolute top-4 left-4">
+                <span class="px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest border border-emerald-500/30">
+                  {{ project.type }}
+                </span>
+              </div>
+            </div>
+            <div class="flex justify-between items-start">
+              <div>
+                <h4 class="text-xl font-black text-white uppercase">{{ project.title }}</h4>
+                <p class="text-xs text-emerald-500 font-bold uppercase tracking-widest">by {{ project.creator }}</p>
+              </div>
+              <div class="flex flex-col items-end text-[10px] font-black text-slate-500">
+                <span><i class="fas fa-heart text-rose-500 mr-1"></i> {{ project.likes }}</span>
+                <span><i class="fas fa-play text-emerald-500 mr-1"></i> {{ project.plays }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NETWORKING TAB -->
+      <div *ngIf="activeTab() === 'networking'" class="wow animate__animated animate__fadeIn">
+        <div class="flex justify-between items-center mb-8">
+          <h2 class="text-3xl font-black text-white uppercase italic tracking-tighter">Collab Board</h2>
+          <button class="px-6 py-2 bg-emerald-500 text-black font-black uppercase text-xs rounded-full hover:bg-white transition-colors">Post Request</button>
+        </div>
+
+        <div class="space-y-4">
+          <div *ngFor="let req of collabRequests()" class="collab-card">
+            <div class="flex gap-6 items-center">
+              <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-emerald-500/20 flex items-center justify-center text-2xl text-emerald-500 cursor-pointer" (click)="viewProfile(req.user)">
+                <i class="fas" [ngClass]="req.role === 'Vocalist' ? 'fa-microphone' : 'fa-drum'"></i>
+              </div>
+              <div class="flex-1">
+                <div class="flex justify-between">
+                  <h4 class="text-lg font-black text-white uppercase tracking-tight cursor-pointer hover:text-emerald-400 transition-colors" (click)="viewProfile(req.user)">
+                    {{ req.user }} <span class="text-emerald-500 mx-2">//</span> {{ req.role }}
+                  </h4>
+                  <span class="text-[10px] font-mono text-slate-500">{{ req.timestamp | date:'shortTime' }}</span>
+                </div>
+                <p class="text-sm text-slate-400 mt-1">{{ req.projectGoal }}</p>
+                <div class="flex gap-2 mt-3">
+                  <span *ngFor="let genre of req.genres" class="text-[9px] font-bold text-slate-500 border border-slate-800 px-2 py-0.5 rounded uppercase">{{genre}}</span>
+                </div>
+              </div>
+              <button class="px-6 py-3 border border-emerald-500/30 text-emerald-500 font-black uppercase text-[10px] rounded-xl hover:bg-emerald-500 hover:text-black transition-all">Connect</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI JAM SECTION -->
+      <section class="jam-section mt-12 p-10 bg-slate-900/30 rounded-[3rem] border border-white/5 relative overflow-hidden">
+        <h2 class="text-2xl font-black text-white mb-8 flex items-center gap-4 uppercase italic tracking-tighter">
+          <span class="w-12 h-1 border-b-4 border-emerald-500"></span>
+          Live Jam Session
+        </h2>
+
+        <div class="jam-controls flex flex-wrap justify-center gap-12">
+          <div class="jam-slot group" [class.human]="!aiService.isAIBassistActive()">
+            <button (click)="toggleAIBassist()" class="slot-btn" [class.active]="aiService.isAIBassistActive()">
+              <i class="fas fa-guitar"></i>
+            </button>
+            <div class="slot-info">
+              <span class="name">{{ aiService.isAIBassistActive() ? 'AI Bassist' : 'Human Player' }}</span>
+              <button *ngIf="aiService.isAIBassistActive()" (click)="joinJamAs('Bassist')" class="join-btn">Take Over</button>
+            </div>
+          </div>
+
+          <div class="jam-slot group" [class.human]="!aiService.isAIDrummerActive()">
+            <button (click)="toggleAIDrummer()" class="slot-btn" [class.active]="aiService.isAIDrummerActive()">
+              <i class="fas fa-drum"></i>
+            </button>
+            <div class="slot-info">
+              <span class="name">{{ aiService.isAIDrummerActive() ? 'AI Drummer' : 'Human Player' }}</span>
+              <button *ngIf="aiService.isAIDrummerActive()" (click)="joinJamAs('Drummer')" class="join-btn">Take Over</button>
+            </div>
+          </div>
+
+          <div class="jam-slot group" [class.human]="!aiService.isAIKeyboardistActive()">
+            <button (click)="toggleAIKeyboardist()" class="slot-btn" [class.active]="aiService.isAIKeyboardistActive()">
+              <i class="fas fa-keyboard"></i>
+            </button>
+            <div class="slot-info">
+              <span class="name">{{ aiService.isAIKeyboardistActive() ? 'AI Keyboard' : 'Human Player' }}</span>
+              <button *ngIf="aiService.isAIKeyboardistActive()" (click)="joinJamAs('Keyboardist')" class="join-btn">Take Over</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Sidebar: Terminal / Chat / Users -->
+    <aside class="w-80 flex flex-col gap-6">
+      <!-- Active Users -->
+      <div class="bg-slate-900/50 rounded-3xl border border-white/5 p-6 flex-1 flex flex-col overflow-hidden">
+        <h3 class="text-xs font-black text-emerald-500 uppercase tracking-[0.2em] mb-4 flex items-center">
+          <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse mr-2"></span>
+          Live Lobbies
+        </h3>
+        <div class="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-2">
+          <div *ngFor="let user of onlineUsers()" class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all cursor-pointer" (click)="viewProfile(user.name)">
+            <div class="relative w-10 h-10 rounded-full overflow-hidden border border-emerald-500/30">
+              <img [src]="user.avatar" class="w-full h-full object-cover">
+              <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-900"></div>
+            </div>
+            <div>
+              <p class="text-xs font-black text-white uppercase">{{ user.name }}</p>
+              <p class="text-[10px] text-slate-500 font-mono">{{ user.status }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Global Chat -->
+      <div class="bg-black/40 rounded-3xl border border-emerald-500/20 p-6 h-[400px] flex flex-col">
+        <div class="flex-1 overflow-y-auto space-y-3 font-mono text-[10px] mb-4 custom-scrollbar pr-2">
+          <div *ngFor="let msg of chatMessages()" class="chat-msg">
+            <span *ngIf="!msg.isSystem" class="text-emerald-500 font-bold cursor-pointer hover:underline" (click)="viewProfile(msg.user)">[{{ msg.user }}]: </span>
+            <span *ngIf="msg.isSystem" class="text-slate-500 italic">>>> </span>
+            <span [class.text-slate-300]="!msg.isSystem" [class.text-emerald-400]="msg.isSystem">{{ msg.text }}</span>
+          </div>
+        </div>
+        <div class="relative">
+          <input
+            type="text"
+            [(ngModel)]="newChatMessage"
+            (keyup.enter)="sendChatMessage()"
+            placeholder="SYSTEM_COMMAND_INPUT..."
+            class="w-full bg-slate-900 border border-emerald-500/30 rounded-lg py-3 px-4 text-[10px] font-mono text-emerald-500 outline-none focus:border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+          >
+          <button (click)="sendChatMessage()" class="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 hover:text-white transition-colors">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Profile View Modal (Overlay) -->
+  <div *ngIf="viewingProfile()" class="fixed inset-0 z-50 flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl wow animate__animated animate__fadeIn">
+    <div class="bg-slate-950 border-2 border-emerald-500/50 rounded-[3rem] w-full max-w-2xl overflow-hidden shadow-[0_0_100px_rgba(16,185,129,0.2)]">
+      <div class="relative h-40 bg-gradient-to-r from-emerald-900/50 to-slate-900">
+        <button (click)="closeProfile()" class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors text-2xl">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="absolute -bottom-16 left-12 w-32 h-32 rounded-3xl bg-slate-900 border-4 border-emerald-500 overflow-hidden">
+          <img [src]="'https://api.dicebear.com/7.x/avataaars/svg?seed=' + viewingProfile()?.artistName" class="w-full h-full object-cover">
+        </div>
+      </div>
+
+      <div class="pt-20 p-12">
+        <div class="flex justify-between items-start mb-6">
+          <div>
+            <h2 class="text-4xl font-black text-white uppercase italic tracking-tighter">{{ viewingProfile()?.artistName }}</h2>
+            <p class="text-emerald-500 font-bold uppercase text-xs tracking-widest mt-1">{{ viewingProfile()?.primaryGenre }} // {{ viewingProfile()?.careerStage }}</p>
+          </div>
+          <button class="px-8 py-3 bg-emerald-500 text-black font-black uppercase text-xs rounded-xl hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all">Follow Artist</button>
+        </div>
+
+        <p class="text-slate-400 leading-relaxed mb-8">{{ viewingProfile()?.bio }}</p>
+
+        <div class="grid grid-cols-2 gap-8 mb-8">
+          <div>
+            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Skills</h4>
+            <div class="flex flex-wrap gap-2">
+              <span *ngFor="let skill of viewingProfile()?.skills" class="px-3 py-1 bg-white/5 border border-white/10 rounded-md text-[10px] font-bold text-white uppercase">{{skill}}</span>
+            </div>
+          </div>
+          <div>
+            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Recent Stats</h4>
+            <div class="flex gap-4 text-white font-black">
+              <div>
+                <span class="block text-[8px] text-slate-500 uppercase">Followers</span>
+                1.2K
+              </div>
+              <div>
+                <span class="block text-[8px] text-slate-500 uppercase">Projects</span>
+                14
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="w-full py-4 border-2 border-emerald-500/30 text-emerald-500 font-black uppercase tracking-[0.2em] text-xs rounded-2xl hover:bg-emerald-500 hover:text-black transition-all">
+          View Full Studio Portfolio
         </button>
       </div>
     </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <div
-        *ngFor="let game of games()"
-        class="bg-slate-900/50 p-4 rounded-2xl border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer group"
-        (click)="selectGame(game)"
-      >
-        <div class="relative h-44 mb-4 overflow-hidden rounded-xl">
-          <img
-            [src]="game.image"
-            [alt]="game.name"
-            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          />
-          <div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-black text-white flex items-center gap-1">
-            <i class="fas fa-users text-emerald-400"></i> {{ game.playersOnline || 0 }}
-          </div>
-          <div class="absolute bottom-3 left-3">
-             <span class="bg-emerald-500 text-black px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-tighter">{{ game.genre }}</span>
-          </div>
-        </div>
-
-        <div class="flex justify-between items-start mb-2">
-          <h3 class="text-lg font-black text-white uppercase tracking-tight">{{ game.name }}</h3>
-          <div class="flex items-center gap-1 text-yellow-500 text-xs font-bold">
-            <i class="fas fa-star"></i> {{ game.rating }}
-          </div>
-        </div>
-
-        <p class="text-xs text-slate-400 mb-6 line-clamp-2 leading-relaxed">{{ game.description }}</p>
-
-        <button class="w-full py-3 bg-slate-800 group-hover:bg-emerald-500 text-slate-300 group-hover:text-black font-black uppercase tracking-widest text-[10px] rounded-xl transition-all" [attr.aria-label]="'Play ' + game.name">
-          PLAY NOW
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Visualizer & AI Jam Section -->
-  <section class="jam-section mt-20 p-12 bg-slate-900/30 rounded-[3rem] border border-white/5 relative overflow-hidden">
-    <div class="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 blur-[120px] rounded-full -mr-48 -mt-48"></div>
-
-    <div class="relative z-10">
-      <h2 class="text-3xl font-black text-white mb-10 flex items-center gap-4 uppercase italic tracking-tighter">
-        <span class="w-12 h-1 border-b-4 border-emerald-500"></span>
-        AI Jam Session
-      </h2>
-
-      <div class="visualizer-wrapper h-80 mb-12 rounded-3xl overflow-hidden border border-white/5 bg-black/40 relative">
-        <app-visualizer></app-visualizer>
-        <div class="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/60 to-transparent"></div>
-      </div>
-
-      <div class="jam-controls flex flex-wrap justify-center gap-10">
-        <div class="flex flex-col items-center group">
-          <button
-            (click)="toggleAIBassist()"
-            [class.active]="aiService.isAIBassistActive()"
-            class="w-20 h-20 rounded-full flex items-center justify-center text-2xl transition-all border-2"
-            [ngClass]="aiService.isAIBassistActive() ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_30px_rgba(16,185,129,0.4)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-emerald-500/50'"
-            aria-label="Toggle AI Bassist"
-            title="Toggle AI Bassist"
-          >
-            <i class="fas fa-guitar"></i>
-          </button>
-          <span class="mt-4 text-[10px] font-black uppercase tracking-widest" [ngClass]="aiService.isAIBassistActive() ? 'text-emerald-400' : 'text-slate-500'">Bassist</span>
-        </div>
-
-        <div class="flex flex-col items-center group">
-          <button
-            (click)="toggleAIDrummer()"
-            [class.active]="aiService.isAIDrummerActive()"
-            class="w-20 h-20 rounded-full flex items-center justify-center text-2xl transition-all border-2"
-            [ngClass]="aiService.isAIDrummerActive() ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_30px_rgba(16,185,129,0.4)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-emerald-500/50'"
-            aria-label="Toggle AI Drummer"
-            title="Toggle AI Drummer"
-          >
-            <i class="fas fa-drum"></i>
-          </button>
-          <span class="mt-4 text-[10px] font-black uppercase tracking-widest" [ngClass]="aiService.isAIDrummerActive() ? 'text-emerald-400' : 'text-slate-500'">Drummer</span>
-        </div>
-
-        <div class="flex flex-col items-center group">
-          <button
-            (click)="toggleAIKeyboardist()"
-            [class.active]="aiService.isAIKeyboardistActive()"
-            class="w-20 h-20 rounded-full flex items-center justify-center text-2xl transition-all border-2"
-            [ngClass]="aiService.isAIKeyboardistActive() ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_30px_rgba(16,185,129,0.4)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-emerald-500/50'"
-            aria-label="Toggle AI Keyboardist"
-            title="Toggle AI Keyboardist"
-          >
-            <i class="fas fa-keyboard"></i>
-          </button>
-          <span class="mt-4 text-[10px] font-black uppercase tracking-widest" [ngClass]="aiService.isAIKeyboardistActive() ? 'text-emerald-400' : 'text-slate-500'">Keyboardist</span>
-        </div>
-      </div>
-    </div>
-  </section>
+  </div>
 </div>
