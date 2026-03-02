@@ -1,0 +1,138 @@
+.journey-container {
+  height: 100%;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+  color: #f8fafc;
+  font-family: 'Inter', sans-serif;
+}
+
+.background-blobs {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.blob {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.2;
+}
+
+.blob-1 { top: -200px; left: -200px; background: #6366f1; }
+.blob-2 { bottom: -200px; right: -200px; background: #c084fc; }
+
+.journey-card {
+  width: 100%;
+  max-width: 700px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 40px;
+  padding: 4rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.5);
+}
+
+.journey-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.step-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.step-dot.active { background: #6366f1; transform: scale(1.5); box-shadow: 0 0 15px #6366f1; }
+.step-dot.completed { background: #c084fc; }
+
+.journey-title { font-size: 2.5rem; font-weight: 200; letter-spacing: -1px; margin-bottom: 0.5rem; }
+.journey-subtitle { font-size: 0.9rem; color: #94a3b8; font-weight: 500; }
+
+.journey-content { flex: 1; margin-bottom: 4rem; }
+
+.input-group { margin-bottom: 2.5rem; }
+.input-group label { display: block; font-size: 0.7rem; font-weight: 900; color: #6366f1; margin-bottom: 1rem; letter-spacing: 2px; }
+
+input, textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 1rem 0;
+  font-size: 1.2rem;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.3s;
+}
+
+textarea { height: 120px; font-size: 1rem; line-height: 1.6; }
+
+input:focus, textarea:focus { border-color: #6366f1; }
+
+.btn-finalize {
+  width: 100%;
+  background: linear-gradient(to right, #6366f1, #c084fc);
+  color: #fff;
+  border: none;
+  padding: 1.5rem;
+  border-radius: 20px;
+  font-weight: 900;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.journey-footer {
+  display: flex;
+  justify-content: space-between;
+}
+
+.btn-nav {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 1rem 2rem;
+  transition: all 0.2s;
+}
+
+.btn-nav.primary { color: #fff; background: rgba(255, 255, 255, 0.05); border-radius: 50px; }
+.btn-nav.primary:hover { background: rgba(255, 255, 255, 0.1); }
+.btn-nav:disabled { opacity: 0.2; cursor: not-allowed; }
+
+.summary-box {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2rem;
+  border-radius: 24px;
+  margin-bottom: 2rem;
+}
+
+.summary-box h3 { font-size: 0.8rem; font-weight: 900; color: #c084fc; margin-bottom: 1.5rem; }
+.summary-box p { margin-bottom: 0.5rem; font-size: 0.9rem; }
+.it-bio { font-style: italic; color: #94a3b8; margin-top: 1.5rem !important; }
+/* --- Additional Journey styles --- */
+.vision-board { display: grid; gap: 2rem; }
+.board-item label { display: block; font-size: 0.7rem; color: #c084fc; margin-bottom: 0.5rem; }

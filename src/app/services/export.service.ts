@@ -11,7 +11,21 @@ export class ExportService {
   startLiveRecording(mimeType: string = 'audio/webm;codecs=opus') {
     this.engine.resume();
     const dest = this.engine.getMasterStream();
-    const recorder = new MediaRecorder(dest.stream, { mimeType });
+
+    // Check supported types
+    const types = [
+      'audio/webm;codecs=opus',
+      'audio/ogg;codecs=opus',
+      'audio/webm',
+      'audio/wav'
+    ];
+    const supportedType = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+
+    const recorder = new MediaRecorder(dest.stream, {
+      mimeType: supportedType,
+      audioBitsPerSecond: 256000 // High quality
+    });
+
     const chunks: Blob[] = [];
 
     recorder.ondataavailable = (e) => {
@@ -20,7 +34,7 @@ export class ExportService {
 
     const promise = new Promise<Blob>((resolve) => {
       recorder.onstop = () => {
-        resolve(new Blob(chunks, { type: mimeType }));
+        resolve(new Blob(chunks, { type: supportedType }));
       };
     });
 
@@ -28,11 +42,19 @@ export class ExportService {
     return { recorder, result: promise };
   }
 
+  async downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   /**
    * Offline render to WAV using OfflineAudioContext.
-   * Note: This is a complex operation that requires recreating the audio graph
-   * on an OfflineAudioContext. For now, we provide a robust skeleton that
-   * captures the current master output.
    */
   async renderOfflineToWav(durationSec: number): Promise<Blob> {
     const originalCtx = this.engine.getContext();
@@ -43,9 +65,8 @@ export class ExportService {
       sampleRate
     );
 
-    // In a real DAW, you'd recreate your tracks and patterns here on the offlineCtx.
-    // For this implementation, we simulate a render of the master signal.
-
+    // Implementation would involve recreating the audio graph on offlineCtx.
+    // For now, return a placeholder or simulate.
     const rendered = await offlineCtx.startRendering();
     const wav = this.audioBufferToWav(rendered);
     return new Blob([wav], { type: 'audio/wav' });
@@ -54,7 +75,7 @@ export class ExportService {
   public audioBufferToWav(buffer: AudioBuffer): ArrayBuffer {
     const numOfChan = buffer.numberOfChannels;
     const sampleRate = buffer.sampleRate;
-    const length = buffer.length * numOfChan * 2 + 44;
+    const length = buffer.length * numOfChan * 4 + 44; // 32-bit float
     const bufferOut = new ArrayBuffer(length);
     const view = new DataView(bufferOut);
 
@@ -66,7 +87,7 @@ export class ExportService {
     let offset = 0;
     writeString(view, offset, 'RIFF');
     offset += 4;
-    view.setUint32(offset, 36 + buffer.length * numOfChan * 2, true);
+    view.setUint32(offset, 36 + buffer.length * numOfChan * 4, true);
     offset += 4;
     writeString(view, offset, 'WAVE');
     offset += 4;
@@ -74,39 +95,29 @@ export class ExportService {
     offset += 4;
     view.setUint32(offset, 16, true);
     offset += 4;
-    view.setUint16(offset, 1, true); // PCM
+    view.setUint16(offset, 3, true); // IEEE Float
     offset += 2;
     view.setUint16(offset, numOfChan, true);
     offset += 2;
     view.setUint32(offset, sampleRate, true);
     offset += 4;
-    view.setUint32(offset, sampleRate * numOfChan * 2, true);
+    view.setUint32(offset, sampleRate * numOfChan * 4, true);
     offset += 4;
-    view.setUint16(offset, numOfChan * 2, true);
+    view.setUint16(offset, numOfChan * 4, true);
     offset += 2;
-    view.setUint16(offset, 16, true); // 16-bit
+    view.setUint16(offset, 32, true); // 32-bit
     offset += 2;
     writeString(view, offset, 'data');
     offset += 4;
-    view.setUint32(offset, buffer.length * numOfChan * 2, true);
+    view.setUint32(offset, buffer.length * numOfChan * 4, true);
     offset += 4;
 
-    // Interleave channels and convert to 16-bit PCM
-    const channels: Float32Array[] = [];
-    for (let i = 0; i < numOfChan; i++) channels.push(buffer.getChannelData(i));
-
-    let sampleIndex = 0;
-    while (sampleIndex < buffer.length) {
-      for (let c = 0; c < numOfChan; c++) {
-        let sample = channels[c][sampleIndex];
-        // Hard clipping
-        sample = Math.max(-1, Math.min(1, sample));
-        // Convert to 16-bit sign integer
-        const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-        view.setInt16(offset, intSample, true);
-        offset += 2;
+    for (let i = 0; i < buffer.length; i++) {
+      for (let channel = 0; channel < numOfChan; channel++) {
+        let sample = buffer.getChannelData(channel)[i];
+        view.setFloat32(offset, sample, true);
+        offset += 4;
       }
-      sampleIndex++;
     }
 
     return bufferOut;

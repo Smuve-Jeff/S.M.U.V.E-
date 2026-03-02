@@ -1,122 +1,88 @@
-<div class="p-8 bg-brand-dark text-white min-h-full">
-  <header class="mb-10 flex justify-between items-end border-b border-white/10 pb-6">
-    <div>
-      <h1 class="text-4xl font-black tracking-tighter text-emerald-500 uppercase italic">Career Hub</h1>
-      <p class="text-slate-400 mt-2">Professional Advancement & Industry Deployment</p>
+<div class="career-page">
+  <div class="glass-container">
+    <header class="page-header">
+      <div class="title-group">
+        <h1 class="gradient-text">CAREER COMMAND</h1>
+        <p class="subtitle">Manage your path to the main stage.</p>
+      </div>
+      <div class="profile-summary">
+        <span class="rank">LEVEL 42</span>
+        <span class="xp">XP: 12,400</span>
+      </div>
+    </header>
+
+    <div class="bento-grid">
+      <!-- LABEL SUBMISSIONS -->
+      <section class="grid-item submissions">
+        <h3 class="item-title"><i class="fas fa-paper-plane"></i> LABEL RADAR</h3>
+        <div class="submission-list">
+          <div *ngFor="let sub of submissions()" class="submission-card">
+            <div class="card-main">
+              <span class="label-name">{{ sub.labelName }}</span>
+              <span class="status-pill" [attr.data-status]="sub.status">{{ sub.status }}</span>
+            </div>
+            <div class="card-footer">
+              <span class="date">{{ sub.date }}</span>
+              <a [href]="sub.demoUrl" target="_blank" class="demo-link">VIEW DEMO</a>
+            </div>
+          </div>
+        </div>
+        <div class="add-submission">
+          <input [(ngModel)]="newLabel" placeholder="Label Name..." class="form-input">
+          <input [(ngModel)]="newDemo" placeholder="Demo URL..." class="form-input">
+          <button (click)="submitToLabel()" class="btn-submit">SUBMIT PITCH</button>
+        </div>
+      </section>
+
+      <!-- PITCH AUDIT -->
+      <section class="grid-item audit">
+        <h3 class="item-title"><i class="fas fa-stethoscope"></i> AI PITCH AUDIT</h3>
+        <div *ngIf="!auditScore()" class="audit-empty">
+          <p>Run S.M.U.V.E analysis on your current EPK and pitch materials.</p>
+          <button (click)="runPitchAudit()" class="btn-audit">RUN AUDIT</button>
+        </div>
+        <div *ngIf="auditScore()" class="audit-results animate__animated animate__fadeIn">
+          <div class="score-circle">
+            <span class="score-val">{{ auditScore() }}</span>
+            <span class="score-label">SCORE</span>
+          </div>
+          <ul class="feedback-list">
+            <li *ngFor="let item of auditFeedback()"><i class="fas fa-check-circle"></i> {{ item }}</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- BOOKING ENGINE -->
+      <section class="grid-item booking">
+        <h3 class="item-title"><i class="fas fa-calendar-check"></i> LIVE BOOKING</h3>
+        <div class="venue-list">
+          <div *ngFor="let venue of venues()" class="venue-card">
+            <div class="venue-info">
+              <span class="venue-name">{{ venue.name }}</span>
+              <span class="venue-loc">{{ venue.location }}</span>
+            </div>
+            <div class="venue-status">
+              <span class="capacity">{{ venue.capacity }} CAP</span>
+              <span class="booking-status">{{ venue.bookingStatus }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LEGAL & SPLITS -->
+      <section class="grid-item legal">
+        <h3 class="item-title"><i class="fas fa-file-contract"></i> RIGHTS & SPLITS</h3>
+        <button (click)="generateSplitSheet()" class="btn-split">CREATE NEW SPLIT SHEET</button>
+        <div class="split-list">
+          <div *ngFor="let sheet of splitSheets()" class="split-card">
+            <div class="split-info">
+               <span class="track-name">{{ sheet.track }}</span>
+               <span class="split-status">{{ sheet.status }}</span>
+            </div>
+            <div class="split-id">#{{ sheet.id }}</div>
+          </div>
+        </div>
+      </section>
     </div>
-  </header>
-
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-    <!-- Label Submissions -->
-    <section class="bg-brand-surface/50 p-6 rounded-xl border border-white/10">
-      <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-        <i class="fas fa-record-vinyl text-violet-500"></i>
-        Record Label Submissions
-      </h2>
-
-      <!-- Pitch Audit -->
-      <div class="mb-8 p-4 bg-brand-dark rounded-lg border border-emerald-500/30">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-sm font-bold text-emerald-500 uppercase">S.M.U.V.E Pitch-Perfect Audit</h3>
-          <button (click)="runPitchAudit()" class="text-[10px] px-3 py-1 bg-emerald-500 text-black font-bold rounded">RUN AUDIT</button>
-        </div>
-        <div *ngIf="auditScore() !== null" class="animate-fade-in">
-           <div class="text-3xl font-black italic mb-2 text-white">{{ auditScore() }}% READY</div>
-           <ul class="text-[10px] space-y-1 text-slate-400">
-             <li *ngFor="let f of auditFeedback()">• {{ f }}</li>
-           </ul>
-        </div>
-        <div *ngIf="auditScore() === null" class="text-[10px] text-neutral-600 italic">Audit your demo/EPK before submitting to increase success rate.</div>
-      </div>
-
-      <div class="space-y-6">
-        <div class="p-4 bg-brand-dark rounded border border-white/10 space-y-4">
-          <h3 class="text-xs uppercase tracking-widest text-slate-500 font-bold">New Submission</h3>
-          <input [ngModel]="newLabel()" (ngModelChange)="newLabel.set($event)" placeholder="Label Name" class="w-full p-2 bg-brand-surface rounded outline-none focus:border-violet-500 transition-colors" />
-          <input [ngModel]="newDemo()" (ngModelChange)="newDemo.set($event)" placeholder="Demo Link (SoundCloud/Dropbox)" class="w-full p-2 bg-brand-surface rounded outline-none focus:border-violet-500 transition-colors" />
-          <button (click)="submitToLabel()" class="w-full py-2 bg-violet-500 text-black font-bold uppercase text-sm">Submit Demo</button>
-        </div>
-
-        <div class="space-y-2">
-          <div *ngFor="let s of submissions()" class="flex justify-between items-center p-3 bg-brand-dark/40 rounded border border-white/10">
-            <div>
-              <div class="font-bold">{{ s.labelName }}</div>
-              <div class="text-[10px] text-slate-500">{{ s.date }}</div>
-            </div>
-            <div class="text-xs px-2 py-1 rounded"
-                 [ngClass]="{
-                   'bg-yellow-500/20 text-yellow-500': s.status === 'Pending',
-                   'bg-blue-500/20 text-blue-500': s.status === 'Reviewing'
-                 }">
-              {{ s.status }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Venue Booking -->
-    <section class="bg-brand-surface/50 p-6 rounded-xl border border-white/10">
-      <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-        <i class="fas fa-building text-emerald-500"></i>
-        Concert Venue Tracker
-      </h2>
-
-      <div class="space-y-4">
-        <div *ngFor="let v of venues()" class="p-4 bg-brand-dark/50 rounded border border-white/10 group hover:border-emerald-500/30 transition-colors">
-          <div class="flex justify-between items-start mb-2">
-            <div>
-              <h3 class="font-bold text-white">{{ v.name }}</h3>
-              <div class="text-xs text-slate-500">{{ v.location }}</div>
-            </div>
-            <div class="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded border border-emerald-500/20">
-              {{ v.bookingStatus }}
-            </div>
-          </div>
-          <div class="flex gap-4 mt-4">
-            <div class="text-[10px] uppercase tracking-widest text-neutral-600">Capacity: {{ v.capacity }}</div>
-            <div class="text-[10px] uppercase tracking-widest text-emerald-500 cursor-pointer hover:underline">View Stage Plot</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-8 p-4 bg-gradient-to-r from-emerald-500/10 to-transparent rounded border border-emerald-500/20">
-        <h4 class="text-sm font-bold mb-2">Technical Rider Status</h4>
-        <div class="w-full h-1.5 bg-brand-dark rounded-full overflow-hidden">
-          <div class="h-full bg-emerald-500" style="width: 75%"></div>
-        </div>
-        <div class="mt-2 text-[9px] text-slate-500">75% Complete - Missing Lighting Plot</div>
-      </div>
-    </section>
-
-    <!-- Legal Split Sheets -->
-    <section class="bg-brand-surface/50 p-6 rounded-xl border border-white/10 lg:col-span-2">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold flex items-center gap-2">
-          <i class="fas fa-file-signature text-yellow-500"></i>
-          AI Smart-Split Sheets
-        </h2>
-        <button (click)="generateSplitSheet()" class="px-4 py-1.5 bg-yellow-500 text-black font-bold rounded text-xs uppercase tracking-tighter italic">Generate New Split</button>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div *ngFor="let sheet of splitSheets()" class="p-4 bg-brand-dark rounded border border-white/10">
-           <div class="flex justify-between items-center mb-3">
-             <span class="font-bold text-sm">{{ sheet.track }}</span>
-             <span class="text-[9px] px-2 py-0.5 bg-white/10 rounded">{{ sheet.status }}</span>
-           </div>
-           <div class="space-y-1 mb-4">
-              <div *ngFor="let s of sheet.splits" class="flex justify-between text-[10px]">
-                <span class="text-slate-400">{{ s.name }} ({{ s.role }})</span>
-                <span class="text-emerald-500 font-bold">{{ s.share }}%</span>
-              </div>
-           </div>
-           <button class="w-full py-1.5 bg-white/5 hover:bg-white/10 text-[10px] uppercase font-bold border border-white/10 rounded">Download PDF</button>
-        </div>
-        <div *ngIf="!splitSheets().length" class="lg:col-span-3 text-center py-10 text-neutral-600 italic text-sm">
-          No split sheets generated yet. Protect your rights by creating agreements for every track.
-        </div>
-      </div>
-    </section>
   </div>
 </div>

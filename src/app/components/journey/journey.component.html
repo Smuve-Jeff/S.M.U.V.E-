@@ -1,0 +1,78 @@
+<div class="journey-container">
+  <div class="background-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <main class="journey-card glass">
+    <header class="journey-header">
+      <div class="step-indicator">
+        <div *ngFor="let s of steps; let i = index"
+             class="step-dot"
+             [class.active]="i === activeStep()"
+             [class.completed]="i < activeStep()">
+        </div>
+      </div>
+      <h1 class="journey-title">{{ steps[activeStep()].title }}</h1>
+      <p class="journey-subtitle">{{ steps[activeStep()].subtitle }}</p>
+    </header>
+
+    <div class="journey-content" [ngSwitch]="activeStep()">
+      <!-- STEP 0: ORIGIN -->
+      <div *ngSwitchCase="0" class="step-view animate__animated animate__fadeIn">
+        <div class="input-group">
+          <label>WHAT IS YOUR ARTIST NAME?</label>
+          <input type="text" [(ngModel)]="profile().artistName" placeholder="Name the entity...">
+        </div>
+        <div class="input-group">
+          <label>WHERE DID YOUR JOURNEY START?</label>
+          <textarea [(ngModel)]="profile().bio" placeholder="Describe the spark, the first note, the realization..."></textarea>
+        </div>
+      </div>
+
+      <!-- STEP 1: SOUND -->
+      <div *ngSwitchCase="1" class="step-view animate__animated animate__fadeIn">
+        <div class="input-group">
+          <label>YOUR PRIMARY FREQUENCY (GENRE)</label>
+          <input type="text" [(ngModel)]="profile().primaryGenre" placeholder="Hip Hop, Techno, Indie...">
+        </div>
+        <div class="input-group">
+          <label>THE UNIQUE VIBRATION</label>
+          <textarea [(ngModel)]="profile().uniqueSound" placeholder="What makes your sound impossible to replicate?"></textarea>
+        </div>
+      </div>
+
+      <!-- STEP 2: VISION -->
+      <div *ngSwitchCase="2" class="step-view animate__animated animate__fadeIn">
+         <div class="vision-board">
+            <div class="board-item">
+               <label>SHORT TERM FOCUS</label>
+               <input type="text" [(ngModel)]="profile().currentFocus" placeholder="The immediate target...">
+            </div>
+            <div class="board-item">
+               <label>THE BIGGEST CHALLENGE</label>
+               <input type="text" [(ngModel)]="profile().biggestChallenge" placeholder="What stands in the way?">
+            </div>
+         </div>
+      </div>
+
+      <!-- STEP 3: LEGACY -->
+      <div *ngSwitchCase="3" class="step-view animate__animated animate__fadeIn">
+        <div class="summary-box">
+          <h3>IDENTITY SYNOPSIS</h3>
+          <p><strong>Artist:</strong> {{ profile().artistName }}</p>
+          <p><strong>Genre:</strong> {{ profile().primaryGenre }}</p>
+          <p class="it-bio">"{{ profile().bio }}"</p>
+        </div>
+        <button (click)="updateProfile()" class="btn-finalize">FINALIZE DOSSIER</button>
+      </div>
+    </div>
+
+    <footer class="journey-footer">
+      <button (click)="prev()" [disabled]="activeStep() === 0" class="btn-nav">PREVIOUS</button>
+      <button (click)="next()" [disabled]="activeStep() === steps.length - 1" class="btn-nav primary">
+        {{ activeStep() === steps.length - 1 ? 'COMPLETE' : 'CONTINUE' }}
+      </button>
+    </footer>
+  </main>
+</div>

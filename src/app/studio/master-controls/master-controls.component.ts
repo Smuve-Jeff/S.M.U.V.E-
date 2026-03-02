@@ -2,7 +2,9 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { InstrumentService } from '../instrument.service';
 import { ReputationService } from '../../services/reputation.service';
+import { ExportService } from '../../services/export.service';
 import { GainReductionMeterComponent } from './gain-reduction-meter.component';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-master-controls',
@@ -14,11 +16,16 @@ import { GainReductionMeterComponent } from './gain-reduction-meter.component';
 export class MasterControlsComponent {
   private readonly instrumentService = inject(InstrumentService);
   private readonly reputationService = inject(ReputationService);
+  private readonly exportService = inject(ExportService);
+  private readonly notificationService = inject(NotificationService);
 
   readonly compressor = this.instrumentService.getCompressor();
   isLimiterActive = signal(false);
   isSoftClipActive = signal(false);
   isFinishing = signal(false);
+  isRecording = signal(false);
+
+  private activeRecorder: any = null;
 
   toggleLimiter(): void {
     this.isLimiterActive.update(v => !v);
@@ -33,12 +40,11 @@ export class MasterControlsComponent {
 
   toggleSoftClip(): void {
     this.isSoftClipActive.update(v => !v);
-    console.log('Soft Clip toggled:', this.isSoftClipActive());
   }
 
   updateMasterVolume(event: Event): void {
     const volume = (event.target as HTMLInputElement).valueAsNumber;
-    this.instrumentService.setMasterVolume(volume);
+    this.instrumentService.setMasterVolume(volume * 100);
   }
 
   updateReverb(event: Event): void {
@@ -46,12 +52,40 @@ export class MasterControlsComponent {
     this.instrumentService.setReverbMix(mix);
   }
 
+  toggleRecording() {
+    if (this.isRecording()) {
+      this.stopRecording();
+    } else {
+      this.startRecording();
+    }
+  }
+
+  private startRecording() {
+    const { recorder, result } = this.exportService.startLiveRecording();
+    this.activeRecorder = recorder;
+    this.isRecording.set(true);
+    this.notificationService.show('Recording Started...', 'success');
+
+    result.then(blob => {
+      this.exportService.downloadBlob(blob, `SMUVE_Session_${Date.now()}.webm`);
+      this.notificationService.show('Recording Saved to Device', 'success');
+    });
+  }
+
+  private stopRecording() {
+    if (this.activeRecorder) {
+      this.activeRecorder.stop();
+      this.activeRecorder = null;
+      this.isRecording.set(false);
+    }
+  }
+
   finishTrack() {
     this.isFinishing.set(true);
     setTimeout(() => {
       this.reputationService.addXp(200);
       this.isFinishing.set(false);
-      alert('Congratulations! Track Finished. +200 XP Awarded.');
+      this.notificationService.show('Track Exported & XP Awarded!', 'success');
     }, 3000);
   }
 }

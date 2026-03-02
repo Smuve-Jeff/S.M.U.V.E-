@@ -1,105 +1,50 @@
-<div class="p-8 bg-brand-dark text-white min-h-full">
-  <header class="mb-10 flex justify-between items-end border-b border-white/10 pb-6">
-    <div>
-      <h1 class="text-4xl font-black tracking-tighter text-emerald-500 uppercase italic">Artist Analytics</h1>
-      <p class="text-slate-400 mt-2">Comprehensive Growth Tracking & Market Penetration</p>
-    </div>
-    <div class="text-right">
-      <div class="text-xs uppercase tracking-[0.3em] text-slate-500 mb-1">Growth Index</div>
-      <div
-        class="text-2xl font-mono"
-        [ngClass]="{
-          'text-green-400': analytics.overallGrowth() > 0,
-          'text-red-400': analytics.overallGrowth() < 0
-        }"
-      >
-        {{ analytics.overallGrowth() | number:'1.1-1' }}%
-      </div>
-    </div>
+<div class="analytics-container">
+  <header class="analytics-header">
+    <h1 class="title">DATA PULSE</h1>
+    <div class="time-range">LAST 30 DAYS</div>
   </header>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-    <!-- Metric Cards -->
-    <div *ngFor="let metric of [analytics.streams(), analytics.followers(), analytics.engagement()]"
-         class="bg-brand-surface/50 p-6 rounded-xl border border-white/10 hover:border-emerald-500/30 transition-colors">
-      <div class="flex justify-between items-start mb-4">
-        <span class="text-xs uppercase tracking-widest text-slate-500 font-bold">{{ metric.label }}</span>
-        <span class="text-xs font-mono" [class.text-green-400]="metric.trend > 0" [class.text-red-400]="metric.trend < 0">
-          {{ metric.trend > 0 ? '+' : '' }}{{ metric.trend }}%
-        </span>
-      </div>
-      <div class="text-3xl font-black italic tracking-tighter mb-6">{{ metric.value | number }}</div>
-
-      <!-- Mini Chart -->
-      <div class="h-16 flex items-end gap-1">
-        <div *ngFor="let h of metric.history"
-             class="flex-grow bg-emerald-500/20 border-t border-emerald-500/50 hover:bg-emerald-500/40 transition-colors"
-             [style.height.%]="(h / getMathMax(metric.history)) * 100">
-        </div>
-      </div>
+  <div class="stats-grid">
+    <div class="stat-card streams">
+      <div class="label">TOTAL STREAMS</div>
+      <div class="value">{{ analytics.totalStreams() }}</div>
+      <div class="trend positive">+12.4%</div>
+    </div>
+    <div class="stat-card revenue">
+      <div class="label">EST. REVENUE</div>
+      <div class="value">$4,120</div>
+      <div class="trend positive">+8.2%</div>
+    </div>
+    <div class="stat-card listeners">
+      <div class="label">MONTHLY LISTENERS</div>
+      <div class="value">12.5K</div>
+      <div class="trend negative">-2.1%</div>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-    <!-- Fan-Connect CRM -->
-    <section class="bg-brand-surface/50 p-8 rounded-xl border border-white/10">
-      <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-        <i class="fas fa-users text-emerald-500"></i>
-        Fan-Connect Community CRM
-      </h2>
-      <div class="space-y-4 mb-8">
-         <h3 class="text-xs uppercase tracking-widest text-slate-500 font-bold mb-4">Top Superfans</h3>
-         <div *ngFor="let fan of superfans()" class="flex justify-between items-center p-3 bg-brand-dark rounded border border-white/10">
-            <div>
-              <div class="text-sm font-bold">{{ fan.name }}</div>
-              <div class="text-[10px] text-slate-500">{{ fan.location }}</div>
-            </div>
-            <div class="text-right">
-              <div class="text-xs font-mono text-emerald-500">{{ fan.streams }} Streams</div>
-              <div class="text-[9px] text-green-400">{{ fan.status }}</div>
-            </div>
-         </div>
-      </div>
-      <div class="p-4 bg-emerald-500/5 rounded border border-emerald-500/20">
-         <h3 class="text-xs uppercase font-bold text-emerald-500 mb-3 italic">AI Engagement Tactics</h3>
-         <ul class="space-y-2">
-           <li *ngFor="let t of engagementTactics" class="text-[11px] text-slate-400">• {{ t }}</li>
-         </ul>
-      </div>
-    </section>
-
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-    <!-- Genre Impact -->
-    <section class="bg-brand-surface/50 p-8 rounded-xl border border-white/10">
-      <h2 class="text-xl font-bold mb-8 flex items-center gap-2">
-        <i class="fas fa-chart-pie text-violet-500"></i>
-        Genre Market Share
-      </h2>
-      <div class="space-y-6">
-        <div *ngFor="let g of analytics.getGenreBreakdown()" class="space-y-2">
-          <div class="flex justify-between text-xs uppercase tracking-widest font-bold">
-            <span>{{ g.name }}</span>
-            <span class="text-slate-500">{{ g.percentage }}%</span>
+  <div class="main-grid">
+    <section class="superfans-section">
+      <h2 class="section-title">TOP SUPERFANS</h2>
+      <div class="superfan-list">
+        <div *ngFor="let fan of superfans()" class="fan-item">
+          <div class="fan-info">
+            <div class="fan-name">{{ fan.name }}</div>
+            <div class="fan-meta">{{ fan.location }}</div>
           </div>
-          <div class="h-2 bg-brand-dark rounded-full overflow-hidden">
-            <div class="h-full bg-violet-500" [style.width.%]="g.percentage"></div>
-          </div>
+          <div class="fan-streams">{{ fan.streams }} STREAMS</div>
         </div>
       </div>
     </section>
 
-    <!-- Strategy Intelligence -->
-    <section class="bg-gradient-to-br from-emerald-500/10 to-transparent p-8 rounded-xl border border-emerald-500/20">
-      <h2 class="text-xl font-bold mb-4 italic">S.M.U.V.E Insights</h2>
-      <p class="text-sm text-slate-400 mb-6 leading-relaxed">
-        Your streams are trending <span class="text-emerald-500 font-bold">UPWARD</span> in the Hip Hop sector.
-        Recommendations: Leverage your high engagement rate to drive official profile verification.
-        Market penetration in "Electronic" remains a weakness.
-      </p>
-      <button class="w-full py-4 bg-emerald-500 text-black font-black uppercase tracking-tighter italic hover:scale-105 transition-transform" routerLink="/strategy" title="View detailed growth strategy" aria-label="View detailed growth strategy">
-        View Growth Strategy
-      </button>
+    <section class="insights-section">
+      <h2 class="section-title">SMART TACTICS</h2>
+      <div class="tactic-cards">
+        <div *ngFor="let tactic of engagementTactics" class="tactic-card">
+          <i class="fas fa-lightbulb"></i>
+          <p>{{ tactic }}</p>
+        </div>
+      </div>
+      <button class="action-button" routerLink="/strategy">EXECUTE STRATEGY</button>
     </section>
   </div>
 </div>

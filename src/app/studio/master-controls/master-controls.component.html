@@ -24,6 +24,10 @@
       <button (click)="toggleSoftClip()" [class.active]="isSoftClipActive()" class="dsp-btn" title="Toggle Soft Clip">
         <i class="fas fa-wave-square mr-2"></i> SOFT CLIP
       </button>
+      <button (click)="toggleRecording()" [class.recording]="isRecording()" class="dsp-btn" title="Record Master Output">
+        <i class="fas" [class.fa-circle]="!isRecording()" [class.fa-stop]="isRecording()"></i>
+        {{ isRecording() ? 'STOP REC' : 'REC' }}
+      </button>
     </div>
 
     <div class="meter-section">

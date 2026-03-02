@@ -1,6 +1,6 @@
-import { Component, inject, effect } from '@angular/core';
+import { Component, inject, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { AuthService } from './services/auth.service';
 import { UIService } from './services/ui.service';
 import { ChatbotComponent } from './components/chatbot/chatbot.component';
@@ -10,7 +10,7 @@ import { NotificationService } from './services/notification.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, ChatbotComponent, NotificationToastComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ChatbotComponent, NotificationToastComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
 })
@@ -18,6 +18,9 @@ export class AppComponent {
   authService = inject(AuthService);
   uiService = inject(UIService);
   notificationService = inject(NotificationService);
+
+  isSidebarOpen = signal(true);
+  isToolsDropdownOpen = signal(false);
 
   constructor() {
     effect(() => {
@@ -28,6 +31,14 @@ export class AppComponent {
         this.notificationService.show('System Offline: Some features restricted', 'warning', 0);
       }
     });
+  }
+
+  toggleSidebar() {
+    this.isSidebarOpen.update(v => !v);
+  }
+
+  toggleToolsDropdown() {
+    this.isToolsDropdownOpen.update(v => !v);
   }
 
   toggleChatbot() {

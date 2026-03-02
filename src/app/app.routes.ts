@@ -5,8 +5,8 @@ export const routes: Routes = [
     path: 'profile',
     canActivate: [() => import('./services/auth.guard').then(m => m.authGuard)],
     loadComponent: () =>
-      import('./components/profile-editor/profile-editor.component').then(
-        (m) => m.ProfileEditorComponent
+      import('./components/journey/journey.component').then(
+        (m) => m.JourneyComponent
       ),
   },
   {

@@ -17,7 +17,7 @@
 
   <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-10">
     <!-- Code Editor -->
-    <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+    <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
       <div class="bg-slate-800 px-4 py-2 flex justify-between items-center border-b border-slate-700">
         <span class="text-xs font-mono text-slate-400">remix_logic.js</span>
         <div class="flex gap-2">
@@ -33,6 +33,31 @@
         spellcheck="false"
         aria-label="Code editor"
       ></textarea>
+    </div>
+
+    <!-- Application Tracks -->
+    <div class="flex flex-col h-[450px] bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div class="bg-slate-800 px-4 py-3 border-b border-slate-700">
+        <h2 class="text-xs font-bold uppercase tracking-widest">Available Tracks</h2>
+      </div>
+      <div class="flex-grow p-4 overflow-y-auto space-y-3 custom-scrollbar">
+        <div *ngFor="let track of musicManager.tracks()"
+             class="p-3 bg-slate-800/50 border border-slate-700 rounded-lg hover:border-emerald-500/50 transition-all group">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-sm font-bold text-white">{{ track.name }}</h3>
+              <p class="text-[10px] text-slate-500 uppercase">{{ track.instrumentId }}</p>
+            </div>
+            <button (click)="remixTrack(track)"
+                    class="text-[10px] font-black bg-emerald-500 text-black px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+              REMIX
+            </button>
+          </div>
+        </div>
+        <div *ngIf="musicManager.tracks().length === 0" class="text-center py-10 opacity-30 italic text-xs">
+          No tracks created yet. Go to Studio!
+        </div>
+      </div>
     </div>
 
     <!-- Chat & Activity -->
@@ -52,7 +77,8 @@
          <div class="relative">
            <input
             type="text"
-            [(ngModel)]="newMessage"
+            [ngModel]="newMessage()"
+            (ngModelChange)="newMessage.set($event)"
             (keyup.enter)="sendMessage()"
             placeholder="Send message..."
             class="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-xs outline-none focus:border-emerald-500 transition-all"

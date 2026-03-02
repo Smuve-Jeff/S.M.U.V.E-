@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { CollaborationService } from '../../services/collaboration.service';
 import { StemControlsComponent } from '../stem-controls/stem-controls.component';
 import { SampleLibraryComponent } from '../sample-library/sample-library.component';
+import { MusicManagerService } from '../../services/music-manager.service';
+import { LibraryService } from '../../services/library.service';
 
 @Component({
   selector: 'app-remix-arena',
@@ -19,6 +21,9 @@ import { SampleLibraryComponent } from '../sample-library/sample-library.compone
 })
 export class RemixArenaComponent {
   collaborationService = inject(CollaborationService);
+  musicManager = inject(MusicManagerService);
+  libraryService = inject(LibraryService);
+
   code = signal('// S.M.U.V.E REMIX ENGINE\n// Start writing your logic here...\n\nfunction onBeat(step) {\n  if (step % 4 === 0) {\n    playKick();\n  }\n}');
 
   messages = signal([
@@ -30,12 +35,17 @@ export class RemixArenaComponent {
 
   onCodeChange(newCode: string) {
     this.code.set(newCode);
-    // Sync logic would go here
   }
 
   sendMessage() {
     if (!this.newMessage()) return;
     this.messages.update(m => [...m, { user: 'Me', text: this.newMessage() }]);
     this.newMessage.set('');
+  }
+
+  remixTrack(track: any) {
+    // Logic to "remix" - maybe just select it in MusicManager
+    this.musicManager.selectedTrackId.set(track.id);
+    this.messages.update(m => [...m, { user: 'System', text: 'Remixing ' + track.name + '...' }]);
   }
 }
