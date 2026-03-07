@@ -893,6 +893,116 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     minLevel: 55,
     impact: 'Extreme',
     genres: ['Cinematic']
+  },
+  {
+    id: 'u-31',
+    title: 'Sub-Atomic Kick Dominance Pack',
+    type: 'Software',
+    description: 'Low-frequency psychological warfare. Kicks engineered to bypass conscious resistance and impact the central nervous system.',
+    cost: '$49',
+    url: 'https://www.smuve.ai/samples/kicks',
+    minLevel: 5,
+    impact: 'High',
+    genres: ['Trap', 'Electronic', 'Hip-Hop']
+  },
+  {
+    id: 'u-32',
+    title: 'Tectonic 808 Earthshaker Series',
+    type: 'Software',
+    description: 'Seismic assets for territorial expansion. Sub-basses that redefine structural integrity and establish sonic dominance.',
+    cost: '$59',
+    url: 'https://www.smuve.ai/samples/808',
+    minLevel: 8,
+    impact: 'High',
+    genres: ['Trap', 'Drill', 'Hip-Hop']
+  },
+  {
+    id: 'u-33',
+    title: 'Orbital Hi-Hat Precision Modules',
+    type: 'Software',
+    description: 'High-velocity rhythmic projectiles. Ultra-crisp transients designed for rapid-fire deployment in competitive soundscapes.',
+    cost: '$39',
+    url: 'https://www.smuve.ai/samples/hats',
+    minLevel: 3,
+    impact: 'Medium',
+    genres: ['Trap', 'Pop', 'Electronic']
+  },
+  {
+    id: 'u-34',
+    title: 'Global Tribal Rhythmetic Warfare',
+    type: 'Software',
+    description: 'Ancient percussive intelligence. A multi-continental arsenal for complex rhythmic maneuvers and cultural infiltration.',
+    cost: '$69',
+    url: 'https://www.smuve.ai/samples/perc',
+    minLevel: 12,
+    impact: 'High',
+    genres: ['World', 'Afrobeats', 'Cinematic']
+  },
+  {
+    id: 'u-35',
+    title: 'Sonic Crack Snare Arsenal',
+    type: 'Software',
+    description: 'Acoustic enforcement. Snares with enough localized pressure to shatter digital glass and command absolute listener attention.',
+    cost: '$45',
+    url: 'https://www.smuve.ai/samples/snares',
+    minLevel: 6,
+    impact: 'High',
+    genres: ['Hip-Hop', 'Pop', 'Rock']
+  },
+  {
+    id: 'u-36',
+    title: 'Grand Imperial Ivory Command',
+    type: 'Software',
+    description: 'The definitive piano protocol. Multi-sampled grandeur for those who demand total melodic authority and emotional leverage.',
+    cost: '$499',
+    url: 'https://www.smuve.ai/samples/piano',
+    minLevel: 20,
+    impact: 'Extreme',
+    genres: ['Classical', 'Pop', 'Jazz', 'Cinematic']
+  },
+  {
+    id: 'u-37',
+    title: 'Electric Shred Strategic Overdrive',
+    type: 'Software',
+    description: 'Harmonic saturation for aggressive maneuvers. High-gain guitar assets designed to cut through any defensive mix.',
+    cost: '$199',
+    url: 'https://www.smuve.ai/samples/guitar',
+    minLevel: 15,
+    impact: 'High',
+    genres: ['Rock', 'Metal', 'Pop']
+  },
+  {
+    id: 'u-38',
+    title: 'Cinematic Sovereign Orchestral Suite',
+    type: 'Software',
+    description: 'Total atmospheric control. An elite symphony at your command for creating narratives of unstoppable scale.',
+    cost: '$899',
+    url: 'https://www.smuve.ai/samples/orchestra',
+    minLevel: 40,
+    impact: 'Extreme',
+    genres: ['Cinematic', 'Classical', 'Trailer']
+  },
+  {
+    id: 'u-39',
+    title: 'Quantum Glitch & Transition Tactics',
+    type: 'Software',
+    description: 'Temporal distortion assets. FX and transitions that disrupt the listener\'s perception of time and space.',
+    cost: '$79',
+    url: 'https://www.smuve.ai/samples/fx',
+    minLevel: 10,
+    impact: 'High',
+    genres: ['Electronic', 'Experimental', 'Pop']
+  },
+  {
+    id: 'u-40',
+    title: 'Ethereal Vocal Soul Extraction',
+    type: 'Software',
+    description: 'Human essence as a strategic resource. Multi-sampled vocal layers for adding haunting biological depth to your digital constructs.',
+    cost: '$129',
+    url: 'https://www.smuve.ai/samples/vocals',
+    minLevel: 18,
+    impact: 'High',
+    genres: ['R&B', 'Pop', 'Electronic']
   }
 ];
 
