@@ -1,9 +1,23 @@
-.master-bus-dsp {
+.master-bus-controls-wrapper {
   background: transparent;
 }
 
+.dsp-trigger-btn {
+  @apply shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)];
+}
+
+.dsp-trigger-btn.active {
+  @apply border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.1)];
+}
+
+.dsp-dropdown-panel {
+  background: rgba(8, 12, 24, 0.98); /* More solid background for readability */
+  backdrop-filter: blur(30px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+}
+
 .dsp-toggle-btn {
-  @apply relative w-14 h-14 rounded-xl bg-slate-900 border border-white/5 flex flex-col items-center justify-center transition-all duration-300;
+  @apply relative rounded-2xl bg-slate-900 border border-white/5 flex flex-col items-center justify-center transition-all duration-300;
   @apply hover:border-emerald-500/30 hover:bg-slate-800 hover:shadow-[0_0_15px_rgba(16,185,129,0.1)];
   color: #64748b;
 }
@@ -14,19 +28,19 @@
 }
 
 .status-dot {
-  @apply absolute top-1 right-1 w-1 h-1 rounded-full bg-slate-800 transition-all duration-300;
+  @apply absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-slate-800 transition-all duration-300;
 }
 
 .status-dot.on {
-  @apply bg-emerald-500 shadow-[0_0_5px_#10b981];
+  @apply bg-emerald-500 shadow-[0_0_8px_#10b981];
 }
 
 .fader-track {
-  @apply shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)];
+  @apply shadow-[inset_0_1px_4px_rgba(0,0,0,0.8)] bg-black/60;
 }
 
 .fader-fill {
-  @apply transition-all duration-100 ease-out shadow-[0_0_10px_rgba(16,185,129,0.3)];
+  @apply transition-all duration-100 ease-out shadow-[0_0_12px_rgba(16,185,129,0.4)];
 }
 
 .rec-btn {
@@ -49,28 +63,19 @@
   @apply -translate-y-0.5 shadow-[0_6px_20px_rgba(16,185,129,0.3)];
 }
 
-.finish-btn:active:not(:disabled) {
-  @apply translate-y-0;
-}
-
-/* Tooltip style improvements */
-[title] {
-  position: relative;
-}
-
-/* Custom range input styling for the invisible overlay */
+/* Custom range input styling */
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  height: 16px;
-  width: 16px;
+  height: 20px;
+  width: 20px;
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
 }
 
 input[type=range]::-moz-range-thumb {
-  height: 16px;
-  width: 16px;
+  height: 20px;
+  width: 20px;
   border-radius: 50%;
   background: transparent;
   cursor: pointer;

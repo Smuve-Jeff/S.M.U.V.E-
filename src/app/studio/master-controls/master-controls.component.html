@@ -1,81 +1,111 @@
-<div class="master-bus-dsp h-full flex items-center justify-between px-4 gap-8">
-  <!-- Section 1: Label & Branding -->
-  <div class="flex flex-col min-w-[120px]">
-    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 italic">Master Bus DSP</h3>
-    <div class="text-[8px] text-slate-500 font-mono uppercase tracking-tighter">Signal Processor v3.0</div>
-  </div>
+<div class="master-bus-controls-wrapper h-full flex items-center justify-between px-4 gap-8 relative">
 
-  <div class="h-8 w-px bg-white/5"></div>
-
-  <!-- Section 2: Global Gain Controls -->
-  <div class="flex items-center gap-10">
-    <div class="control-group flex flex-col gap-1">
-      <div class="flex justify-between items-center mb-1">
-        <label class="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Master Volume</label>
-        <span class="text-[8px] font-mono text-emerald-500/80">{{ masterVolumePercent() }}%</span>
-      </div>
-      <div class="fader-track w-32 h-1 bg-slate-900 rounded-full relative overflow-hidden">
-        <input type="range" min="0" max="1" step="0.01" [value]="masterVolume()"
-               (input)="updateMasterVolume($event)"
-               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-        <div class="fader-fill h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" [style.width.%]="masterVolumePercent()"></div>
-      </div>
+  <!-- Left: Branding & DSP Toggle -->
+  <div class="flex items-center gap-6">
+    <div class="flex flex-col min-w-[120px]">
+      <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 italic">S.M.U.V.E Studio</h3>
+      <div class="text-[8px] text-slate-500 font-mono uppercase tracking-tighter">Production Environment v3.0</div>
     </div>
 
-    <div class="control-group flex flex-col gap-1">
-       <div class="flex justify-between items-center mb-1">
-        <label class="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Global Ambience</label>
-        <span class="text-[8px] font-mono text-emerald-500/80">{{ reverbMixPercent() }}%</span>
-      </div>
-      <div class="fader-track w-32 h-1 bg-slate-900 rounded-full relative overflow-hidden">
-        <input type="range" min="0" max="1" step="0.01" [value]="reverbMix()"
-               (input)="updateReverb($event)"
-               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-        <div class="fader-fill h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" [style.width.%]="reverbMixPercent()"></div>
-      </div>
-    </div>
-  </div>
+    <div class="h-8 w-px bg-white/5"></div>
 
-  <div class="h-8 w-px bg-white/5"></div>
-
-  <!-- Section 3: DSP Processors -->
-  <div class="flex items-center gap-3">
-    <button (click)="toggleLimiter()"
-            [class.active]="isLimiterActive()"
-            class="dsp-toggle-btn group"
-            title="Toggle Precision Limiter">
-      <div class="flex flex-col items-center gap-1">
-        <i class="fas fa-microchip text-[10px]"></i>
-        <span class="text-[7px] font-black uppercase tracking-tighter">Limiter</span>
+    <!-- DSP DROPDOWN TRIGGER -->
+    <button (click)="toggleDropdown()"
+            [class.active]="isDropdownOpen()"
+            class="dsp-trigger-btn group flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-900 border border-white/5 hover:border-emerald-500/30 transition-all">
+      <div class="flex flex-col items-start">
+        <span class="text-[10px] font-black uppercase tracking-widest text-emerald-500 group-hover:text-emerald-400">Master DSP</span>
+        <span class="text-[7px] text-slate-500 font-mono uppercase">Control Panel</span>
       </div>
-      <div class="status-dot" [class.on]="isLimiterActive()"></div>
-    </button>
-
-    <button (click)="toggleSoftClip()"
-            [class.active]="isSoftClipActive()"
-            class="dsp-toggle-btn group"
-            title="Toggle Soft Clipping">
-      <div class="flex flex-col items-center gap-1">
-        <i class="fas fa-wave-square text-[10px]"></i>
-        <span class="text-[7px] font-black uppercase tracking-tighter">Soft Clip</span>
-      </div>
-      <div class="status-dot" [class.on]="isSoftClipActive()"></div>
+      <i class="fas fa-chevron-up text-[10px] transition-transform duration-300" [class.rotate-180]="isDropdownOpen()"></i>
     </button>
   </div>
 
-  <div class="h-8 w-px bg-white/5"></div>
+  <!-- THE DRODOWN PANEL (POPOVER) -->
+  <div *ngIf="isDropdownOpen()"
+       class="absolute bottom-full left-44 mb-4 z-[500] animate__animated animate__fadeInUp animate__faster">
+    <div class="dsp-dropdown-panel glass-morphism p-6 rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col gap-6 min-w-[450px]">
 
-  <!-- Section 4: Monitoring -->
-  <div class="flex items-center gap-4">
-    <div class="flex flex-col items-center">
-      <span class="text-[7px] font-bold text-slate-600 uppercase mb-2 tracking-widest">Gain Reduction</span>
-      <app-gain-reduction-meter [compressor]="compressor"></app-gain-reduction-meter>
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex flex-col">
+          <span class="text-[10px] font-black uppercase tracking-widest text-emerald-500">Master Bus DSP</span>
+          <span class="text-[8px] text-slate-500 font-mono">Precision Signal Processing Chain</span>
+        </div>
+        <button (click)="isDropdownOpen.set(false)" class="text-slate-500 hover:text-white transition-all"><i class="fas fa-times text-xs"></i></button>
+      </div>
+
+      <div class="h-px w-full bg-white/5"></div>
+
+      <!-- Section 2: Global Gain Controls -->
+      <div class="flex flex-col gap-6">
+        <div class="control-group flex flex-col gap-2">
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Master Output Gain</label>
+            <span class="text-[9px] font-mono text-emerald-500">{{ masterVolumePercent() }}%</span>
+          </div>
+          <div class="fader-track w-full h-1.5 bg-black rounded-full relative overflow-hidden">
+            <input type="range" min="0" max="1" step="0.01" [value]="masterVolume()"
+                   (input)="updateMasterVolume($event)"
+                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+            <div class="fader-fill h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" [style.width.%]="masterVolumePercent()"></div>
+          </div>
+        </div>
+
+        <div class="control-group flex flex-col gap-2">
+           <div class="flex justify-between items-center mb-1">
+            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Global Ambience Mix</label>
+            <span class="text-[9px] font-mono text-emerald-500">{{ reverbMixPercent() }}%</span>
+          </div>
+          <div class="fader-track w-full h-1.5 bg-black rounded-full relative overflow-hidden">
+            <input type="range" min="0" max="1" step="0.01" [value]="reverbMix()"
+                   (input)="updateReverb($event)"
+                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+            <div class="fader-fill h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" [style.width.%]="reverbMixPercent()"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <!-- Section 3: DSP Processors -->
+        <div class="flex flex-col gap-3">
+          <span class="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">Processors</span>
+          <div class="flex gap-3">
+            <button (click)="toggleLimiter()"
+                    [class.active]="isLimiterActive()"
+                    class="dsp-toggle-btn group w-full h-16"
+                    title="Toggle Precision Limiter">
+              <div class="flex flex-col items-center gap-1">
+                <i class="fas fa-microchip text-xs"></i>
+                <span class="text-[8px] font-black uppercase tracking-tighter">Limiter</span>
+              </div>
+              <div class="status-dot" [class.on]="isLimiterActive()"></div>
+            </button>
+
+            <button (click)="toggleSoftClip()"
+                    [class.active]="isSoftClipActive()"
+                    class="dsp-toggle-btn group w-full h-16"
+                    title="Toggle Soft Clipping">
+              <div class="flex flex-col items-center gap-1">
+                <i class="fas fa-wave-square text-xs"></i>
+                <span class="text-[8px] font-black uppercase tracking-tighter">Soft Clip</span>
+              </div>
+              <div class="status-dot" [class.on]="isSoftClipActive()"></div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 4: Monitoring -->
+        <div class="flex flex-col gap-3">
+          <span class="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">Signal Monitor</span>
+          <div class="bg-black/40 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center flex-grow">
+            <app-gain-reduction-meter [compressor]="compressor"></app-gain-reduction-meter>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="h-8 w-px bg-white/5"></div>
-
-  <!-- Section 5: Session & Export -->
+  <!-- Right: Recording & Export (Always Visible) -->
   <div class="flex items-center gap-4 ml-auto">
     <button (click)="toggleRecording()"
             [class.recording]="isRecording()"
