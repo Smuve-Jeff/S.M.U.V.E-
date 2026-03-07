@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { InstrumentService } from '../instrument.service';
 import { ReputationService } from '../../services/reputation.service';
@@ -18,14 +18,33 @@ export class MasterControlsComponent {
   private readonly reputationService = inject(ReputationService);
   private readonly exportService = inject(ExportService);
   private readonly notificationService = inject(NotificationService);
+  private readonly elementRef = inject(ElementRef);
 
   readonly compressor = this.instrumentService.getCompressor();
   isLimiterActive = signal(false);
   isSoftClipActive = signal(false);
   isFinishing = signal(false);
   isRecording = signal(false);
+  isDropdownOpen = signal(false);
+
+  masterVolume = signal(0.8);
+  reverbMix = signal(0.1);
+
+  masterVolumePercent = computed(() => Math.round(this.masterVolume() * 100));
+  reverbMixPercent = computed(() => Math.round(this.reverbMix() * 100));
 
   private activeRecorder: any = null;
+
+  @HostListener('document:click', [''])
+  onDocumentClick(event: MouseEvent) {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.isDropdownOpen.set(false);
+    }
+  }
+
+  toggleDropdown(): void {
+    this.isDropdownOpen.update(v => !v);
+  }
 
   toggleLimiter(): void {
     this.isLimiterActive.update(v => !v);
@@ -44,11 +63,13 @@ export class MasterControlsComponent {
 
   updateMasterVolume(event: Event): void {
     const volume = (event.target as HTMLInputElement).valueAsNumber;
+    this.masterVolume.set(volume);
     this.instrumentService.setMasterVolume(volume * 100);
   }
 
   updateReverb(event: Event): void {
     const mix = (event.target as HTMLInputElement).valueAsNumber;
+    this.reverbMix.set(mix);
     this.instrumentService.setReverbMix(mix);
   }
 
