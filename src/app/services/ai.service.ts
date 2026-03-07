@@ -247,19 +247,19 @@ export class AiService {
       // 2. Genre Affinity (Soft Filter)
       const hasGenreAffinity = !item.genres || item.genres.some(g =>
         g.toLowerCase() === profile.primaryGenre?.toLowerCase() ||
-        profile.secondaryGenres.some(sg => sg.toLowerCase() === g.toLowerCase())
+        (profile.secondaryGenres || []).some(sg => sg.toLowerCase() === g.toLowerCase())
       );
 
       // 3. Goal/Interest Match (Soft Filter)
-      const hasInterestMatch = profile.careerGoals.some(goal =>
+      const hasInterestMatch = (profile.careerGoals || []).some(goal =>
         item.type.toLowerCase().includes(goal.toLowerCase()) ||
         item.title.toLowerCase().includes(goal.toLowerCase()) ||
         item.description.toLowerCase().includes(goal.toLowerCase())
       );
 
       // 4. DAW/Equipment Check (Negative Filter - don't recommend what they have)
-      const alreadyHasInDaw = profile.daw?.some(d => item.title.toLowerCase().includes(d.toLowerCase()));
-      const alreadyHasInEquip = profile.equipment?.some(e => item.title.toLowerCase().includes(e.toLowerCase()));
+      const alreadyHasInDaw = (profile.daw || []).some(d => d && item.title && item.title.toLowerCase().includes(d.toLowerCase()));
+      const alreadyHasInEquip = (profile.equipment || []).some(e => e && item.title && item.title.toLowerCase().includes(e.toLowerCase()));
 
       if (alreadyHasInDaw || alreadyHasInEquip) return false;
 
@@ -1003,6 +1003,78 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     minLevel: 18,
     impact: 'High',
     genres: ['R&B', 'Pop', 'Electronic']
+  },
+  {
+    id: 'u-41',
+    title: 'Portable Vocal Shield',
+    type: 'Gear',
+    description: 'Isolation for the nomadic artist. Eliminate room reflections and capture studio-quality vocals in any environment.',
+    cost: '9',
+    url: 'https://www.seelectronics.com',
+    minLevel: 0,
+    impact: 'High',
+    genres: ['Vocal', 'Pop', 'Hip-Hop', 'R&B']
+  },
+  {
+    id: 'u-42',
+    title: 'DIY Acoustic Treatment Kit',
+    type: 'Gear',
+    description: 'Strategic sound absorption. A curated set of high-density foam panels to neutralize standing waves in your practice space.',
+    cost: '49',
+    url: 'https://www.gikacoustics.com',
+    minLevel: 5,
+    impact: 'Medium'
+  },
+  {
+    id: 'u-43',
+    title: 'Professional In-Ear Monitors',
+    type: 'Gear',
+    description: 'Critical hearing protection and clarity. Hear every detail of your performance without the stage noise.',
+    cost: '99',
+    url: 'https://www.shure.com',
+    minLevel: 10,
+    impact: 'High'
+  },
+  {
+    id: 'u-44',
+    title: 'Soundproof Rehearsal Space Credit',
+    type: 'Service',
+    description: 'Tactical retreats. Access to elite, soundproof rehearsal environments for high-intensity performance training.',
+    cost: '50/mo',
+    url: 'https://www.pirate.com',
+    minLevel: 0,
+    impact: 'Medium'
+  },
+  {
+    id: 'u-45',
+    title: 'High-Performance Visual Metronome',
+    type: 'Gear',
+    description: 'Internalize the pulse. A haptic and visual timing device for developing rock-solid rhythmic discipline.',
+    cost: '5',
+    url: 'https://www.soundbrenner.com',
+    minLevel: 0,
+    impact: 'Medium'
+  },
+  {
+    id: 'u-46',
+    title: 'Mobile Rehearsal Interface',
+    type: 'Gear',
+    description: 'Battle-ready connectivity. A rugged, high-fidelity interface for recording and analyzing rehearsals on the go.',
+    cost: '99',
+    url: 'https://www.focusrite.com',
+    minLevel: 0,
+    impact: 'High'
+  },
+  {
+    id: 'u-47',
+    title: 'Professional Vocal Steam Inhaler',
+    type: 'Gear',
+    description: 'Biological maintenance. Essential hydration for the vocal folds to ensure peak performance stamina.',
+    cost: '5',
+    url: 'https://www.vicks.com',
+    minLevel: 0,
+    impact: 'Medium',
+    genres: ['Vocal']
   }
 ];
 
