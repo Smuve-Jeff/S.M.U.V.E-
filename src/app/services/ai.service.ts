@@ -838,6 +838,61 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     url: 'https://www.audeze.com',
     minLevel: 18,
     impact: 'High'
+  },
+  {
+    id: 'u-26',
+    title: 'RED V-RAPTOR XL 8K VV',
+    type: 'Gear',
+    description: 'Cinematic powerhouse. Multi-format 8K sensor for elite music video production and feature films.',
+    cost: '$39,500',
+    url: 'https://www.red.com',
+    minLevel: 50,
+    impact: 'Extreme',
+    genres: ['Cinematic', 'Pop', 'Hip-Hop']
+  },
+  {
+    id: 'u-27',
+    title: 'Blackmagic Design DaVinci Resolve Studio',
+    type: 'Software',
+    description: 'The world’s only solution that combines editing, color correction, visual effects, motion graphics and audio post production in one software tool.',
+    cost: '$295',
+    url: 'https://www.blackmagicdesign.com',
+    minLevel: 15,
+    impact: 'High',
+    genres: ['Cinematic', 'Pop', 'Rock']
+  },
+  {
+    id: 'u-28',
+    title: 'Arri Alexa 35',
+    type: 'Gear',
+    description: 'The industry standard for image quality. 4K Super 35 sensor with 17 stops of dynamic range.',
+    cost: '$75,000',
+    url: 'https://www.arri.com',
+    minLevel: 60,
+    impact: 'Extreme',
+    genres: ['Cinematic', 'Classical']
+  },
+  {
+    id: 'u-29',
+    title: 'Teradek Bolt 6 XT 750',
+    type: 'Gear',
+    description: 'Zero-delay wireless video transmission for real-time monitoring on set.',
+    cost: '$2,990',
+    url: 'https://teradek.com',
+    minLevel: 25,
+    impact: 'Medium',
+    genres: ['Cinematic']
+  },
+  {
+    id: 'u-30',
+    title: 'Zeiss Supreme Prime Lens Set',
+    type: 'Gear',
+    description: 'Large-format cinematic lenses with a unique look and versatile consistency.',
+    cost: '$100,000+',
+    url: 'https://www.zeiss.com',
+    minLevel: 55,
+    impact: 'Extreme',
+    genres: ['Cinematic']
   }
 ];
 
