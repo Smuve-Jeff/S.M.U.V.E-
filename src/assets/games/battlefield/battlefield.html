@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tha Battlefield - High-Stakes PvP Rap Battle</title>
+    <style>
+        :root {
+            --emerald: #10b981;
+            --emerald-glow: rgba(16, 185, 129, 0.4);
+            --slate: #020617;
+            --rose: #f43f5e;
+            --rose-glow: rgba(244, 63, 94, 0.4);
+        }
+
+        body {
+            background: var(--slate);
+            color: #fff;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 0 0 1rem;
+            background: linear-gradient(to right, #fff, var(--emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px var(--emerald-glow);
+        }
+
+        .battle-arena {
+            position: relative;
+            height: 300px;
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid var(--emerald-glow);
+            border-radius: 12px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            padding: 40px;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .player {
+            position: relative;
+            width: 60px;
+            height: 120px;
+            background: var(--emerald);
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 0 20px var(--emerald-glow);
+            transition: transform 0.1s ease;
+        }
+
+        .player.opponent {
+            background: var(--rose);
+            box-shadow: 0 0 20px var(--rose-glow);
+        }
+
+        .lyric-bubble {
+            position: absolute;
+            top: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            color: var(--slate);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .lyric-bubble.active {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        .mic {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 30px;
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .mic::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -4px;
+            width: 20px;
+            height: 20px;
+            background: #475569;
+            border-radius: 50%;
+        }
+
+        .controls {
+            margin-top: 2rem;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--emerald);
+            color: var(--emerald);
+            padding: 1rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: var(--emerald);
+            color: var(--slate);
+            box-shadow: 0 0 15px var(--emerald-glow);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .status {
+            margin-top: 1.5rem;
+            color: var(--emerald);
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .crowd {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            padding: 0 20px;
+        }
+
+        .crowd-bar {
+            width: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px 2px 0 0;
+            transition: height 0.2s ease;
+        }
+
+        .pulse {
+            animation: pulse-anim 0.5s ease;
+        }
+
+        @keyframes pulse-anim {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tha Battlefield</h1>
+        <div class="battle-arena">
+            <div id="player-local" class="player">
+                <div class="mic"></div>
+                <div id="bubble-local" class="lyric-bubble">FLOWING...</div>
+            </div>
+            <div id="player-opponent" class="player opponent">
+                <div class="mic"></div>
+                <div id="bubble-opponent" class="lyric-bubble">BRING IT...</div>
+            </div>
+            <div id="crowd" class="crowd"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="spitBars('TECHNICAL')">TECHNICAL FLOW</button>
+            <button onclick="spitBars('AGGRESSIVE')">AGGRESSIVE BARS</button>
+            <button onclick="spitBars('LYRICAL')">LYRICAL MIRACLE</button>
+            <button onclick="spitBars('FREESTYLE')">FREESTYLE HEAT</button>
+        </div>
+
+        <div class="status" id="status">WAITING FOR YOUR MOVE...</div>
+    </div>
+
+    <script>
+        let score = 0;
+        let multiplier = 1.0;
+        let health = 100;
+        let combo = 0;
+
+        // Initialize crowd
+        const crowd = document.getElementById('crowd');
+        for(let i=0; i<40; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'crowd-bar';
+            bar.style.height = (Math.random() * 15 + 5) + 'px';
+            crowd.appendChild(bar);
+        }
+
+        function updateCrowd() {
+            const bars = document.querySelectorAll('.crowd-bar');
+            bars.forEach(bar => {
+                const height = parseFloat(bar.style.height);
+                const noise = (Math.random() - 0.5) * 4;
+                bar.style.height = Math.max(5, Math.min(20, height + noise)) + 'px';
+                if (health > 80) bar.style.backgroundColor = '#10b981';
+                else if (health < 40) bar.style.backgroundColor = '#f43f5e';
+                else bar.style.backgroundColor = 'rgba(255,255,255,0.2)';
+            });
+        }
+
+        setInterval(updateCrowd, 200);
+
+        const lyrics = {
+            'TECHNICAL': ['SYSTEM OVERLOAD', 'SYNTACTIC PRECISION', 'STRATEGIC STRIKE'],
+            'AGGRESSIVE': ['MIC DROP', 'SYSTEM SHOCK', 'ABSOLUTE DOMINANCE'],
+            'LYRICAL': ['METAPHORIC MAYHEM', 'POETIC JUSTICE', 'VERSE COMMANDER'],
+            'FREESTYLE': ['OFF THE DOME', 'PURE ENERGY', 'UNSCRIPTED FURY']
+        };
+
+        function spitBars(type) {
+            const bubble = document.getElementById('bubble-local');
+            const player = document.getElementById('player-local');
+            const lines = lyrics[type];
+            const line = lines[Math.floor(Math.random() * lines.length)];
+
+            bubble.innerText = line;
+            bubble.classList.add('active');
+            player.classList.add('pulse');
+
+            // Gameplay Logic
+            score += Math.floor(10 * multiplier);
+            combo++;
+            if (combo % 5 === 0) multiplier += 0.2;
+            health = Math.min(100, health + 2);
+
+            document.getElementById('status').innerText = `SUCCESSFUL ${type} COMBO! x${multiplier.toFixed(1)}`;
+
+            // Communicate with Parent S.M.U.V.E. UI
+            window.parent.postMessage({
+                type: 'GAME_UPDATE',
+                data: {
+                    score: score,
+                    multiplier: multiplier,
+                    health: health,
+                    combo: combo,
+                    lastAction: type,
+                    lastLine: line
+                }
+            }, '*');
+
+            setTimeout(() => {
+                bubble.classList.remove('active');
+                player.classList.remove('pulse');
+            }, 1000);
+
+            // Simulate Opponent Counter
+            if (Math.random() > 0.6) {
+                setTimeout(opponentCounter, 1500);
+            }
+        }
+
+        function opponentCounter() {
+            const bubble = document.getElementById('bubble-opponent');
+            const opponent = document.getElementById('player-opponent');
+            const opponentLines = ['WATCH THE THRONE', 'OUTSMARTED', 'REBOOTING...'];
+
+            bubble.innerText = opponentLines[Math.floor(Math.random() * opponentLines.length)];
+            bubble.classList.add('active');
+            opponent.classList.add('pulse');
+
+            health = Math.max(0, health - 5);
+            combo = 0;
+            multiplier = 1.0;
+
+            window.parent.postMessage({
+                type: 'GAME_UPDATE',
+                data: {
+                    score: score,
+                    multiplier: multiplier,
+                    health: health,
+                    opponentAction: 'COUNTER_STRIKE'
+                }
+            }, '*');
+
+            setTimeout(() => {
+                bubble.classList.remove('active');
+                opponent.classList.remove('pulse');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

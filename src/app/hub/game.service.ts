@@ -9,7 +9,7 @@ const MOCK_GAMES: Game[] = [
   {
     id: '1',
     name: 'Tha Battlefield',
-    url: '/assets/games/battlefield/',
+    url: '/assets/games/battlefield/battlefield.html',
     description: 'High-stakes tactical rap battle arena. Dominate the mic in real-time PvP.',
     genre: 'Music Battle',
     rating: 4.9,
@@ -19,7 +19,7 @@ const MOCK_GAMES: Game[] = [
   {
     id: '2',
     name: 'Remix Arena',
-    url: '/assets/games/remix-arena/',
+    url: '/assets/games/remix-arena/remixarena.html',
     description: 'Collaborative real-time remixing challenge. Out-sequence your rivals.',
     genre: 'Rhythm',
     rating: 4.7,

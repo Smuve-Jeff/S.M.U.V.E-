@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, signal, inject, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -51,7 +51,7 @@ export class ThaSpotComponent implements OnInit {
   isGameOverlayActive = signal<boolean>(false);
   safeGameUrl = signal<SafeResourceUrl | null>(null);
 
-  // Live Game Stats (Simulated)
+  // Live Game Stats
   gameScore = signal<number>(0);
   gameMultiplier = signal<number>(1.0);
   opponentHealth = signal<number>(100);
@@ -88,6 +88,26 @@ export class ThaSpotComponent implements OnInit {
 
   private searchSubject = new Subject<string>();
 
+  @HostListener('window:message', [''])
+  onMessage(event: MessageEvent) {
+    if (event.data && event.data.type === 'GAME_UPDATE') {
+      const data = event.data.data;
+      if (data.score !== undefined) this.gameScore.set(data.score);
+      if (data.multiplier !== undefined) this.gameMultiplier.set(data.multiplier);
+      if (data.health !== undefined) this.opponentHealth.set(data.health);
+
+      // Update crowd hype based on activity
+      if (data.lastAction || data.event) {
+          this.crowdHype.update(h => h.map(val => Math.min(100, Math.max(20, val + (Math.random() * 20 - 5)))));
+      }
+
+      // If health reaches 0, trigger win
+      if (data.health <= 0 && this.isGameOverlayActive()) {
+          this.handleGameWin();
+      }
+    }
+  }
+
   ngOnInit() {
     this.fetchGames();
     this.initializeMockData();
@@ -103,13 +123,6 @@ export class ThaSpotComponent implements OnInit {
     timer(0, 8000).subscribe(() => {
         if (this.isGameOverlayActive()) {
             this.generateAiCommentary();
-        }
-    });
-
-    // Simulate Game Loop
-    interval(1000).subscribe(() => {
-        if (this.isGameOverlayActive()) {
-            this.updateSimulatedGameStats();
         }
     });
   }
@@ -187,7 +200,7 @@ export class ThaSpotComponent implements OnInit {
     this.safeGameUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(game.url));
     this.aiCommentary.set(`S.M.U.V.E 3.0: INITIALIZING ${game.name.toUpperCase()}. TARGET ACQUIRED.`);
 
-    // Reset simulated stats
+    // Reset stats
     this.gameScore.set(0);
     this.gameMultiplier.set(1.0);
     this.opponentHealth.set(100);
@@ -220,17 +233,6 @@ export class ThaSpotComponent implements OnInit {
       }
   }
 
-  updateSimulatedGameStats() {
-      this.gameScore.update(s => s + Math.floor(Math.random() * 50) * this.gameMultiplier());
-      if (Math.random() > 0.8) this.gameMultiplier.update(m => Math.min(8, m + 0.1));
-      if (Math.random() > 0.7) this.opponentHealth.update(h => Math.max(0, h - (Math.random() * 5)));
-      this.crowdHype.update(h => h.map(val => Math.max(20, Math.min(100, val + (Math.random() * 20 - 10)))));
-
-      if (this.opponentHealth() <= 0 && this.isGameOverlayActive()) {
-          this.handleGameWin();
-      }
-  }
-
   handleGameWin() {
       const msg: ChatMessage = {
           id: Date.now().toString(),
@@ -248,7 +250,7 @@ export class ThaSpotComponent implements OnInit {
   generateAiCommentary() {
       const quotes = [
           "S.M.U.V.E 3.0: ANALYZING PERFORMANCE... INEFFICIENT BUT PROMISING.",
-          "S.M.U.V.E 3.0: YOU ARE PLAYING LIKE a NOVICE. FOCUS.",
+          "S.M.U.V.E 3.0: YOU ARE PLAYING LIKE A NOVICE. FOCUS.",
           "S.M.U.V.E 3.0: STRATEGIC ADVANTAGE DETECTED. PRESS THE ATTACK.",
           "S.M.U.V.E 3.0: REAL-TIME MULTIPLAYER SYNC... STABLE.",
           "S.M.U.V.E 3.0: THE CROWD IS UNIMPRESSED. EXECUTE A COMBO.",
