@@ -84,6 +84,42 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'networking',
+    canActivate: [() => import('./services/auth.guard').then(m => m.authGuard)],
+    loadComponent: () => import('./hub/hub.component').then((m) => m.HubComponent),
+  },
+  {
+    path: 'player',
+    canActivate: [() => import('./services/auth.guard').then(m => m.authGuard)],
+    loadComponent: () => import('./hub/hub.component').then((m) => m.HubComponent),
+  },
+  {
+    path: 'dj',
+    canActivate: [() => import('./services/auth.guard').then(m => m.authGuard)],
+    loadComponent: () => import('./studio/studio.component').then((m) => m.StudioComponent),
+  },
+  {
+    path: 'piano-roll',
+    canActivate: [() => import('./services/auth.guard').then(m => m.authGuard)],
+    loadComponent: () => import('./studio/studio.component').then((m) => m.StudioComponent),
+  },
+  {
+    path: 'image-editor',
+    canActivate: [() => import('./services/auth.guard').then(m => m.authGuard)],
+    loadComponent: () =>
+      import('./components/image-video-lab/image-video-lab.component').then(
+        (m) => m.ImageVideoLabComponent
+      ),
+  },
+  {
+    path: 'video-editor',
+    canActivate: [() => import('./services/auth.guard').then(m => m.authGuard)],
+    loadComponent: () =>
+      import('./components/image-video-lab/image-video-lab.component').then(
+        (m) => m.ImageVideoLabComponent
+      ),
+  },
+  {
     path: 'login',
     loadComponent: () =>
       import('./components/login/login.component').then((m) => m.LoginComponent),

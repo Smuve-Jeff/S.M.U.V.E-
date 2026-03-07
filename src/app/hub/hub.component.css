@@ -1,16 +1,23 @@
 .landing-page-container {
-  padding: 4rem 2rem;
+  padding: 2rem 1rem;
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 8rem;
+  gap: 4rem;
+}
+
+@media (min-width: 768px) {
+  .landing-page-container {
+    padding: 4rem 2rem;
+    gap: 8rem;
+  }
 }
 
 /* Aggressive Typography */
 .section-title-aggressive {
   font-family: var(--font-display);
-  font-size: 3rem;
+  font-size: 2rem;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: -0.05em;
@@ -20,22 +27,41 @@
   background-clip: text;
   color: transparent;
   margin-bottom: 1rem;
-  transform: skewX(-10deg);
+  transform: skewX(-5deg);
+}
+
+@media (min-width: 768px) {
+  .section-title-aggressive {
+    font-size: 3rem;
+    transform: skewX(-10deg);
+  }
 }
 
 .section-title-aggressive.large {
-  font-size: 5rem;
+  font-size: 3rem;
   text-align: center;
+}
+
+@media (min-width: 768px) {
+  .section-title-aggressive.large {
+    font-size: 5rem;
+  }
 }
 
 /* Glitch Effect */
 .glitch-text {
   position: relative;
-  font-size: 5rem;
+  font-size: 3rem;
   font-weight: 900;
   text-transform: uppercase;
   color: #fff;
   letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+  .glitch-text {
+    font-size: 5rem;
+  }
 }
 
 .glitch-text::before,
@@ -83,21 +109,34 @@
 /* Hero Section */
 .hero-section {
   position: relative;
-  padding: 6rem 0;
+  padding: 3rem 0;
   text-align: center;
 }
 
+@media (min-width: 768px) {
+  .hero-section {
+    padding: 6rem 0;
+  }
+}
+
 .hero-subtitle {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   color: var(--color-text-dim);
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
 }
 
+@media (min-width: 768px) {
+  .hero-subtitle {
+    font-size: 1.5rem;
+    margin-bottom: 3rem;
+  }
+}
+
 .quickstart-card {
-  padding: 2.5rem;
+  padding: 1.5rem;
   border-radius: var(--radius-lg);
   max-width: 800px;
   margin: 0 auto;
@@ -105,14 +144,26 @@
   box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
 }
 
+@media (min-width: 768px) {
+  .quickstart-card {
+    padding: 2.5rem;
+  }
+}
+
 .hero-input, .hero-select {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
   color: #fff !important;
   border-radius: var(--radius-sm);
   font-weight: 600;
   flex: 1;
+}
+
+@media (min-width: 768px) {
+  .hero-input, .hero-select {
+    padding: 1rem 1.5rem;
+  }
 }
 
 .hero-cta-button {
@@ -120,9 +171,15 @@
   color: #000;
   font-weight: 800;
   text-transform: uppercase;
-  padding: 1rem 2.5rem;
+  padding: 0.75rem 1.5rem;
   border-radius: var(--radius-sm);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@media (min-width: 768px) {
+  .hero-cta-button {
+    padding: 1rem 2.5rem;
+  }
 }
 
 .hero-cta-button:hover {
@@ -135,11 +192,17 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding: 2.5rem;
+  padding: 1.5rem;
   border-radius: var(--radius-lg);
   background: rgba(16, 185, 129, 0.03);
   border: 1px solid rgba(16, 185, 129, 0.1);
   backdrop-filter: blur(10px);
+}
+
+@media (min-width: 768px) {
+  .radio-module {
+    padding: 2.5rem;
+  }
 }
 
 .radio-visualizer {
@@ -165,14 +228,29 @@
 
 .radio-controls {
   display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: 1.5rem;
   justify-content: space-between;
   width: 100%;
+}
+
+@media (min-width: 640px) {
+  .radio-controls {
+    flex-direction: row;
+  }
 }
 
 .track-info {
   display: flex;
   flex-direction: column;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .track-info {
+    text-align: left;
+  }
 }
 
 .now-playing-label {
@@ -185,23 +263,37 @@
 }
 
 .track-title {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 900;
   color: #fff;
   letter-spacing: -0.02em;
 }
 
+@media (min-width: 768px) {
+  .track-title {
+    font-size: 1.5rem;
+  }
+}
+
 .radio-play-btn {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: var(--color-primary);
   color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@media (min-width: 768px) {
+  .radio-play-btn {
+    width: 64px;
+    height: 64px;
+    font-size: 1.5rem;
+  }
 }
 
 .radio-play-btn:hover {
@@ -220,8 +312,8 @@
 }
 
 .radio-util-btn {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -230,6 +322,13 @@
   align-items: center;
   justify-content: center;
   transition: all 0.3s;
+}
+
+@media (min-width: 768px) {
+  .radio-util-btn {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 .radio-util-btn:hover {
@@ -241,13 +340,26 @@
 /* Hero Split Sections */
 .hero-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
+  grid-template-columns: 1fr;
+  gap: 2rem;
   align-items: center;
 }
 
+@media (min-width: 1024px) {
+  .hero-split {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+  }
+}
+
 .hero-split.reverse {
-  direction: rtl;
+  direction: ltr;
+}
+
+@media (min-width: 1024px) {
+  .hero-split.reverse {
+    direction: rtl;
+  }
 }
 
 .hero-split.reverse .hero-text-content {
@@ -256,12 +368,18 @@
 
 .hero-text-content p {
   color: var(--color-text-dim);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+}
+
+@media (min-width: 768px) {
+  .hero-text-content p {
+    font-size: 1.2rem;
+  }
 }
 
 /* Visual Graphics */
 .deck-preview-graphic, .daw-preview-graphic {
-  height: 300px;
+  height: 200px;
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   position: relative;
@@ -269,9 +387,15 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+@media (min-width: 768px) {
+  .deck-preview-graphic, .daw-preview-graphic {
+    height: 300px;
+  }
+}
+
 .platter-ring {
-  width: 200px;
-  height: 200px;
+  width: 150px;
+  height: 150px;
   border: 4px dashed var(--color-primary);
   border-radius: 50%;
   position: absolute;
@@ -281,6 +405,13 @@
   animation: rotate 10s infinite linear;
 }
 
+@media (min-width: 768px) {
+  .platter-ring {
+    width: 200px;
+    height: 200px;
+  }
+}
+
 @keyframes rotate {
   from { transform: translate(-50%, -50%) rotate(0deg); }
   to { transform: translate(-50%, -50%) rotate(360deg); }
@@ -288,17 +419,32 @@
 
 /* Tha Spot Finale */
 .tha-spot-preview {
-  padding: 4rem;
+  padding: 2rem;
   text-align: center;
   border: 1px solid var(--color-primary);
   background: radial-gradient(circle at center, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
 }
 
+@media (min-width: 768px) {
+  .tha-spot-preview {
+    padding: 4rem;
+  }
+}
+
 .spot-features {
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  gap: 4rem;
-  margin-bottom: 3rem;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 640px) {
+  .spot-features {
+    flex-direction: row;
+    gap: 4rem;
+    margin-bottom: 3rem;
+  }
 }
 
 .spot-feature {
@@ -309,24 +455,46 @@
 }
 
 .spot-feature i {
-  font-size: 3rem;
+  font-size: 2rem;
   color: var(--color-primary);
+}
+
+@media (min-width: 768px) {
+  .spot-feature i {
+    font-size: 3rem;
+  }
 }
 
 .spot-feature span {
   font-weight: 800;
   letter-spacing: 0.1em;
+  font-size: 0.8rem;
+}
+
+@media (min-width: 768px) {
+  .spot-feature span {
+    font-size: 1rem;
+  }
 }
 
 .spot-enter-btn {
   background: #fff;
   color: #000;
   font-weight: 900;
-  font-size: 1.5rem;
-  padding: 1.5rem 4rem;
+  font-size: 1.1rem;
+  padding: 1rem 2rem;
   text-transform: uppercase;
   border-radius: var(--radius-sm);
   transition: all 0.3s;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .spot-enter-btn {
+    width: auto;
+    font-size: 1.5rem;
+    padding: 1.5rem 4rem;
+  }
 }
 
 .spot-enter-btn:hover {
@@ -366,28 +534,26 @@
   50% { opacity: 0; }
 }
 
-@media (max-width: 768px) {
-  .hero-split {
-    grid-template-columns: 1fr;
-  }
-  .glitch-text {
-    font-size: 3rem;
-  }
-}
-
 /* Jam Buttons */
 .jam-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(16, 185, 129, 0.3);
   color: #fff;
-  padding: 0.75rem 1.5rem;
+  padding: 0.6rem 1rem;
   border-radius: var(--radius-sm);
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   letter-spacing: 0.1em;
   transition: all 0.3s;
   display: flex;
   align-items: center;
+}
+
+@media (min-width: 768px) {
+  .jam-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.8rem;
+  }
 }
 
 .jam-btn:hover {
@@ -402,7 +568,14 @@
 }
 
 .jam-controls-container {
-  margin: 2rem 0;
-  padding-top: 2rem;
+  margin: 1.5rem 0;
+  padding-top: 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@media (min-width: 768px) {
+  .jam-controls-container {
+    margin: 2rem 0;
+    padding-top: 2rem;
+  }
 }
