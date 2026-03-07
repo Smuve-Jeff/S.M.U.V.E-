@@ -3,6 +3,8 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background-color: #020617;
+  color: #e2e8f0;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -28,23 +30,7 @@
 }
 
 .bottom-panel {
-  transition: height 0.3s ease-in-out;
-}
-
-.sound-pad-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-
-.performance-view {
-  background:
-    radial-gradient(circle at top right, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
-}
-
-.hidden {
-  display: none;
+  transition: height 0.4s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 /* Glass morphism and neon effects */
@@ -62,4 +48,35 @@
 .neon-text-emerald {
   color: #10b981;
   text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.hidden {
+  display: none;
+}
+
+/* Hardware style buttons */
+.btn-hardware {
+  @apply bg-slate-900 border border-white/10 rounded-xl flex items-center justify-center transition-all hover:bg-emerald-500 hover:text-black hover:shadow-[0_0_15px_#10b981];
+}
+
+/* Pro sliders */
+input[type=range].channel-fader {
+  @apply appearance-none bg-transparent cursor-pointer;
+}
+
+input[type=range].channel-fader::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  @apply w-6 h-10 bg-slate-300 border-2 border-slate-500 rounded-lg cursor-pointer shadow-lg;
+  background-image: linear-gradient(to bottom, #f1f5f9 0%, #cbd5e1 50%, #94a3b8 100%);
+}
+
+/* Animation for the mastering suite */
+@keyframes spectralPulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+
+.spectral-bar {
+  animation: spectralPulse 1s infinite ease-in-out;
 }

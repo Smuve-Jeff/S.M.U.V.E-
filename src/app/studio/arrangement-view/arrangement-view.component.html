@@ -1,8 +1,9 @@
 <div class="arrangement-container bg-slate-950/40 border border-white/5 rounded-3xl overflow-hidden flex flex-col h-full shadow-inner">
+  <!-- Header with Transport Mini-Display -->
   <div class="arrangement-header bg-slate-900/80 px-6 py-3 flex items-center justify-between border-b border-white/5">
     <div class="flex items-center gap-4">
       <i class="fas fa-stream text-emerald-500 text-xs"></i>
-      <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Song Arrangement</h3>
+      <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Project Timeline</h3>
     </div>
     <div class="flex items-center gap-4 text-[9px] font-mono text-slate-500">
       <div class="flex items-center gap-2">
@@ -18,57 +19,93 @@
   </div>
 
   <div class="arrangement-content flex-grow flex overflow-hidden">
-    <!-- Track Headers -->
-    <div class="track-headers-column w-48 border-r border-white/10 flex flex-col overflow-y-auto custom-scrollbar-hide bg-slate-950/20">
+    <!-- Track Headers (Advanced Controls) -->
+    <div class="track-headers-column w-64 border-r border-white/10 flex flex-col overflow-y-auto custom-scrollbar-hide bg-slate-950/20">
       <div *ngFor="let track of tracks" class="track-header h-24 border-b border-white/5 p-4 flex flex-col justify-between hover:bg-white/5 transition-all">
-        <div class="flex items-center justify-between">
-          <span class="text-[10px] font-black uppercase tracking-wider text-slate-300 truncate w-24">{{ track.name }}</span>
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-1.5 h-6 rounded-full" [style.background-color]="track.clips[0]?.color"></div>
+            <span class="text-[10px] font-black uppercase tracking-wider text-slate-300 truncate w-32">{{ track.name }}</span>
+          </div>
           <div class="flex gap-1">
-            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500/20"></div>
-            <div class="w-1.5 h-1.5 rounded-full bg-red-500/20"></div>
+            <button class="w-4 h-4 rounded-full bg-slate-800 border border-white/5 flex items-center justify-center text-[8px] text-slate-500 hover:text-emerald-500">S</button>
+            <button class="w-4 h-4 rounded-full bg-slate-800 border border-white/5 flex items-center justify-center text-[8px] text-slate-500 hover:text-red-500">M</button>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <button class="w-5 h-5 rounded bg-black/40 border border-white/5 flex items-center justify-center">
-            <i class="fas fa-volume-mute text-[8px] text-slate-500"></i>
+
+        <!-- Track Automation Mini-Lane Toggle -->
+        <div class="flex items-center gap-3">
+          <button class="text-[8px] font-bold text-slate-600 uppercase tracking-tighter hover:text-emerald-500 transition-all">
+            <i class="fas fa-bezier-curve mr-1"></i> Auto
           </button>
-          <button class="w-5 h-5 rounded bg-black/40 border border-white/5 flex items-center justify-center">
-            <i class="fas fa-microphone text-[8px] text-slate-500"></i>
-          </button>
-          <div class="flex-grow h-1 bg-slate-800 rounded-full overflow-hidden">
-            <div class="h-full bg-emerald-500/40 w-2/3"></div>
+          <div class="flex-grow h-1.5 bg-black/40 rounded-full border border-white/5 overflow-hidden">
+             <div class="h-full bg-emerald-500/30 w-3/4"></div>
           </div>
+          <span class="text-[8px] font-mono text-slate-500">-3.2dB</span>
         </div>
       </div>
     </div>
 
-    <!-- Timeline Grid -->
+    <!-- Timeline Grid with Advanced Clip Manipulation -->
     <div class="timeline-viewport flex-grow overflow-auto custom-scrollbar relative">
       <div class="timeline-grid relative h-full" [style.width.px]="gridWidth">
-        <!-- Vertical Bar Lines -->
-        <div *ngFor="let bar of bars" class="absolute top-0 bottom-0 border-l border-white/5" [style.left.px]="bar * barWidth" [class.border-white/20]="bar % 4 === 0">
-           <span class="text-[8px] font-mono text-slate-600 ml-2" *ngIf="bar % 4 === 0">{{ bar / 4 + 1 }}</span>
+        <!-- Rulers -->
+        <div class="absolute top-0 left-0 right-0 h-6 bg-slate-900/60 border-b border-white/5 z-40 flex items-center">
+           <ng-container *ngFor="let bar of bars">
+             <div class="absolute h-full border-l border-white/10 flex items-center px-2" [style.left.px]="bar * barWidth" *ngIf="bar % 4 === 0">
+                <span class="text-[8px] font-mono text-slate-500">{{ bar / 4 + 1 }}</span>
+             </div>
+           </ng-container>
         </div>
 
+        <!-- Vertical Bar Lines -->
+        <div *ngFor="let bar of bars" class="absolute top-6 bottom-0 border-l border-white/5 pointer-events-none" [style.left.px]="bar * barWidth" [class.border-white/20]="bar % 4 === 0"></div>
+
         <!-- Tracks Content -->
-        <div *ngFor="let track of tracks" class="track-lane h-24 border-b border-white/5 relative">
+        <div *ngFor="let track of tracks" class="track-lane h-24 border-b border-white/5 relative group mt-6">
           <!-- Audio/MIDI Clips -->
           <div *ngFor="let clip of track.clips"
-               class="clip-item absolute h-16 top-4 rounded-xl border flex flex-col p-3 cursor-move shadow-xl"
+               class="clip-item absolute h-20 top-2 rounded-xl border flex flex-col overflow-hidden cursor-move shadow-2xl group/clip"
                [style.left.px]="clip.start * barWidth"
                [style.width.px]="clip.length * barWidth"
-               [style.background-color]="clip.color + '22'"
+               [style.background-color]="clip.color + '33'"
                [style.border-color]="clip.color">
-               <span class="text-[9px] font-black uppercase tracking-widest text-slate-200 mb-1">{{ clip.name }}</span>
-               <div class="clip-waveform flex-grow flex items-center gap-0.5 opacity-40">
-                  <div *ngFor="let i of [1,2,3,4,5,6,7,8]" class="w-0.5 bg-white/50" [style.height.%]="20 + 60 * (i % 3)"></div>
+
+               <!-- Clip Header -->
+               <div class="px-3 py-1 bg-black/20 flex justify-between items-center">
+                  <span class="text-[8px] font-black uppercase tracking-[0.2em] text-white/80">{{ clip.name }}</span>
+                  <div class="flex gap-1 opacity-0 group-hover/clip:opacity-100 transition-opacity">
+                     <i class="fas fa-scissors text-[7px] text-white/40"></i>
+                     <i class="fas fa-sync text-[7px] text-white/40"></i>
+                  </div>
                </div>
+
+               <!-- Multi-Waveform Analysis Rendering -->
+               <div class="clip-waveform flex-grow flex items-end gap-[1px] px-3 pb-2 opacity-60">
+                  <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]"
+                       class="flex-grow bg-white/40 rounded-t-[1px]"
+                       [style.height.%]="20 + 70 * (i % 5 === 0 ? 0.9 : (i % 2 === 0 ? 0.4 : 0.6))"></div>
+               </div>
+
+               <!-- Fade Handles (Simulated) -->
+               <div class="absolute top-0 left-0 w-4 h-4 bg-white/20 rounded-br-full cursor-nw-resize opacity-0 group-hover/clip:opacity-100"></div>
+               <div class="absolute top-0 right-0 w-4 h-4 bg-white/20 rounded-bl-full cursor-ne-resize opacity-0 group-hover/clip:opacity-100"></div>
+          </div>
+
+          <!-- Track Automation Lane (Simulated) -->
+          <div class="absolute bottom-1 left-0 right-0 h-4 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+             <svg width="100%" height="100%" class="overflow-visible">
+                <path d="M 0 10 L 200 10 L 400 5 L 600 15 L 800 10" stroke="rgba(16, 185, 129, 0.4)" stroke-width="1" fill="none" />
+                <circle cx="200" cy="10" r="2" fill="#10b981" />
+                <circle cx="400" cy="5" r="2" fill="#10b981" />
+                <circle cx="600" cy="15" r="2" fill="#10b981" />
+             </svg>
           </div>
         </div>
 
         <!-- Playhead -->
-        <div class="playhead absolute top-0 bottom-0 w-px bg-red-500 z-50 shadow-[0_0_10px_#ef4444]" [style.left.px]="playheadPos">
-           <div class="absolute -top-1 -left-1 w-2 h-2 bg-red-500 rotate-45"></div>
+        <div class="playhead absolute top-0 bottom-0 w-[2px] bg-red-500 z-50 shadow-[0_0_20px_rgba(239,68,68,0.8)] pointer-events-none" [style.left.px]="playheadPos">
+           <div class="absolute -top-1 -left-[3px] w-2 h-2 bg-red-500 rotate-45 border border-white/20"></div>
         </div>
       </div>
     </div>
