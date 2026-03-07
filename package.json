@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ng serve",
     "build": "ng build",
-    "start": "serve -s Build",
+    "start": "serve -s Build/browser",
     "preview": "ng serve --configuration=production",
     "test": "jest",
     "lint": "eslint .",

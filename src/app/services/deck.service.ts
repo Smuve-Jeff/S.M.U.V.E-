@@ -87,6 +87,7 @@ export class DeckService {
 
   setDeckEq(deck: DeckId, high: number, mid: number, low: number) {
     this.engine.setDeckEq(deck, high, mid, low);
+    this.engine.setDeckEq(deck, high, mid, low);
     if (deck === 'A') this.deckA.update(d => ({ ...d, eqHigh: high, eqMid: mid, eqLow: low }));
     else this.deckB.update(d => ({ ...d, eqHigh: high, eqMid: mid, eqLow: low }));
   }
@@ -97,13 +98,40 @@ export class DeckService {
     else this.deckB.update(d => ({ ...d, filterFreq: freq }));
   }
 
+  setDeckSend(deck: DeckId, send: "A" | "B", gain: number) {
+    this.engine.setDeckSend(deck, send, gain);
+    if (deck === "A") this.deckA.update(d => ({ ...d, [send === "A" ? "sendA" : "sendB"]: gain }));
+    else this.deckB.update(d => ({ ...d, [send === "A" ? "sendA" : "sendB"]: gain }));
+  }
+
+  setBpm(deck: DeckId, bpm: number) {
+    if (deck === "A") this.deckA.update(d => ({ ...d, bpm }));
+    else this.deckB.update(d => ({ ...d, bpm }));
+  }
+
+  setBeatGridOffset(deck: DeckId, offset: number) {
+    if (deck === "A") this.deckA.update(d => ({ ...d, beatGridOffset: offset }));
+    else this.deckB.update(d => ({ ...d, beatGridOffset: offset }));
+  }
+
   setDeckGain(deck: DeckId, gain: number) {
     this.engine.setDeckGain(deck, gain);
     if (deck === 'A') this.deckA.update(d => ({ ...d, gain }));
     else this.deckB.update(d => ({ ...d, gain }));
   }
 
+  sync(id: DeckId) {
+    const target = id === 'A' ? this.deckB() : this.deckA();
+    if (id === 'A') {
+      this.deckA.update(d => ({ ...d, bpm: target.bpm }));
+    } else {
+      this.deckB.update(d => ({ ...d, bpm: target.bpm }));
+    }
+  }
+
   syncProgress() {
+    // In a real app we would use an analyzer for BPM detection
+    // for now we just sync the positions and playing state
     const progA = this.engine.getDeckProgress('A');
     const progB = this.engine.getDeckProgress('B');
     this.deckA.update(d => ({ ...d, progress: progA.position, isPlaying: progA.isPlaying }));

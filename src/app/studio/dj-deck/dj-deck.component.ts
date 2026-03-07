@@ -11,28 +11,22 @@ import {
   ElementRef,
   AfterViewInit
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, TitleCasePipe, DecimalPipe } from '@angular/common';
 import { AppTheme } from '../../services/user-context.service';
-import { SampleLibraryComponent } from '../sample-library/sample-library.component';
 import { FileLoaderService } from '../../services/file-loader.service';
 import { ExportService } from '../../services/export.service';
 import { LibraryService } from '../../services/library.service';
 import { FormsModule } from '@angular/forms';
-import { StemControlsComponent } from '../stem-controls/stem-controls.component';
 import { DeckService } from '../../services/deck.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { UIService } from '../../services/ui.service';
-import {
-  StemSeparationService,
-  Stems,
-} from '../../services/stem-separation.service';
 
 @Component({
   selector: 'app-dj-deck',
   templateUrl: './dj-deck.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TitleCasePipe, DecimalPipe],
 })
 export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('waveformA') waveformA!: ElementRef<HTMLCanvasElement>;
@@ -49,12 +43,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private recorder: MediaRecorder | null = null;
   recording = signal(false);
 
-  stemsA = signal<Stems | null>(null);
-  stemsB = signal<Stems | null>(null);
-
   private animFrame: number | null = null;
   private syncInterval: any = null;
-
+  performanceMode = signal<"cue" | "roll" | "sampler">("cue");
+  private tapTimes: { [key: string]: number[] } = { A: [], B: [] };
 
   pitchAPercentage = computed(
     () => `${(this.deckService.deckA().playbackRate * 100).toFixed(1)}%`
@@ -68,8 +60,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     private exportService: ExportService,
     public library: LibraryService,
     public deckService: DeckService,
-    private engine: AudioEngineService,
-    private stemSeparationService: StemSeparationService
+    private engine: AudioEngineService
   ) {}
 
   ngOnInit() {
@@ -119,37 +110,36 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    const step = Math.ceil(data.length / canvas.width);
+    // Pro Scrolling Waveform Logic
+    const sampleRate = this.engine.getContext().sampleRate || 44100;
+    const windowSize = 4; // 4 seconds visible
+    const samplesInWindow = windowSize * sampleRate;
+    const step = samplesInWindow / canvas.width;
+    const currentSample = deck.progress * sampleRate;
+    const startSample = Math.floor(currentSample - (samplesInWindow / 2));
     const amp = canvas.height / 2;
 
-    ctx.strokeStyle = '#10b981';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = id === 'A' ? '#10b981' : '#f59e0b';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-
     for (let i = 0; i < canvas.width; i++) {
-      let min = 1.0;
-      let max = -1.0;
-      for (let j = 0; j < step; j++) {
-        const datum = data[i * step + j];
-        if (datum < min) min = datum;
-        if (datum > max) max = datum;
-      }
-      ctx.moveTo(i, (1 + min) * amp);
-      ctx.lineTo(i, (1 + max) * amp);
+        const idx = Math.floor(startSample + i * step);
+        if (idx >= 0 && idx < data.length) {
+            const val = data[idx];
+            ctx.moveTo(i, amp - val * amp);
+            ctx.lineTo(i, amp + val * amp);
+        }
     }
     ctx.stroke();
 
-    // Playhead
-    const progress = deck.progress / (deck.duration || 1);
-    const x = progress * canvas.width;
+    // Playhead fixed in center
     ctx.strokeStyle = '#f43f5e';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
+    ctx.moveTo(canvas.width / 2, 0);
+    ctx.lineTo(canvas.width / 2, canvas.height);
     ctx.stroke();
   }
-
   private drawMeters() {
     this.drawMeter('A', this.meterA?.nativeElement);
     this.drawMeter('B', this.meterB?.nativeElement);
@@ -168,7 +158,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     gradient.addColorStop(0.7, '#fbbf24');
     gradient.addColorStop(1, '#ef4444');
 
-    ctx.fillStyle = '#1e293b';
+    ctx.fillStyle = '#020617';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = gradient;
@@ -185,6 +175,36 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       file
     );
     this.deckService.loadDeckBuffer(deck, buffer, file.name);
+  }
+
+  tapBpm(deck: 'A' | 'B') {
+    const now = Date.now();
+    if (!this.tapTimes[deck]) this.tapTimes[deck] = [];
+    this.tapTimes[deck].push(now);
+    if (this.tapTimes[deck].length > 4) this.tapTimes[deck].shift();
+    if (this.tapTimes[deck].length > 1) {
+      const diffs = [];
+      for (let i = 1; i < this.tapTimes[deck].length; i++) {
+        diffs.push(this.tapTimes[deck][i] - this.tapTimes[deck][i - 1]);
+      }
+      const avg = diffs.reduce((a, b) => a + b) / diffs.length;
+      const bpm = Math.round(60000 / avg);
+      this.deckService.setBpm(deck, bpm);
+    }
+  }
+
+  handlePadPress(deck: 'A' | 'B', index: number) {
+    const mode = this.performanceMode();
+    if (mode === 'cue') {
+      const d = deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+      if (d.hotCues[index] === null) this.deckService.setHotCue(deck, index);
+      else this.deckService.jumpToHotCue(deck, index);
+    } else if (mode === 'roll') {
+      const rollLengths = [0.0625, 0.125, 0.25, 0.5, 1, 2, 4, 8];
+      console.log(`Roll active: ${rollLengths[index]} beats on Deck ${deck}`);
+    } else if (mode === 'sampler') {
+      console.log(`Trigger Sample ${index + 1} on Deck ${deck}`);
+    }
   }
 
   setPlaybackRate(deck: 'A' | 'B', rate: any) {
@@ -228,5 +248,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       a.download = `mix-${Date.now()}.webm`;
       a.click();
     });
+  }
+
+  sync(deck: 'A' | 'B') {
+    this.deckService.sync(deck);
   }
 }

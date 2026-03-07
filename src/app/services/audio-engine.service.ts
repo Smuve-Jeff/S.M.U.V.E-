@@ -227,6 +227,12 @@ export class AudioEngineService {
     });
   }
 
+  setDeckSend(id: DeckId, send: "A" | "B", gain: number) {
+    const deck = this.getDeck(id);
+    const node = send === "A" ? deck.sendA : deck.sendB;
+    node.gain.setTargetAtTime(gain, this.ctx.currentTime, 0.01);
+  }
+
   setDeckGain(id: DeckId, gain: number) {
     this.getDeck(id).gain.gain.setTargetAtTime(gain, this.ctx.currentTime, 0.01);
   }
