@@ -1,49 +1,73 @@
-<div class="tha-spot-container p-8 flex flex-col h-screen overflow-hidden">
-  <!-- Top Navigation & Header -->
-  <header class="spot-header mb-8 flex items-end justify-between border-b border-emerald-500/20 pb-6">
-    <div (click)="goToMyProfile()" class="cursor-pointer group">
-      <h1 class="text-6xl font-black italic tracking-tighter text-emerald-500 uppercase leading-none group-hover:text-white transition-colors">Tha Spot</h1>
-      <p class="text-slate-500 mt-2 font-mono text-xs uppercase tracking-[0.3em]">Online Multiplayer Hub // v3.0 // Active</p>
+<div class="tha-spot-container min-h-screen text-white font-sans selection:bg-emerald-500/30">
+  <!-- NAV BAR -->
+  <nav class="flex items-center justify-between px-12 py-8 border-b border-white/5 bg-slate-950/50 backdrop-blur-xl sticky top-0 z-40">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+        <i class="fas fa-bolt text-black text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-black italic tracking-tighter uppercase leading-none">Tha Spot</h1>
+        <p class="text-[10px] font-bold text-emerald-500 tracking-[0.3em] uppercase">Global Interaction Hub</p>
+      </div>
     </div>
 
-    <nav class="flex gap-4">
-      <button
-        (click)="setActiveTab('arcade')"
-        [class.active]="activeTab() === 'arcade'"
-        class="tab-btn"
-      >
-        <i class="fas fa-gamepad mr-2"></i> Arcade
+    <div class="flex items-center gap-8">
+      <div class="flex gap-4">
+        <button (click)="setActiveTab('arcade')" [class.active]="activeTab() === 'arcade'" class="tab-btn">Arcade</button>
+        <button (click)="setActiveTab('showcase')" [class.active]="activeTab() === 'showcase'" class="tab-btn">Showcase</button>
+        <button (click)="setActiveTab('networking')" [class.active]="activeTab() === 'networking'" class="tab-btn">Networking</button>
+      </div>
+      <div class="h-8 w-px bg-white/10"></div>
+      <button (click)="goToMyProfile()" class="flex items-center gap-3 group">
+        <div class="text-right">
+          <p class="text-xs font-black uppercase group-hover:text-emerald-400 transition-colors">{{ profileService.profile().artistName || 'Artist' }}</p>
+          <p class="text-[8px] font-mono text-slate-500 uppercase">Level {{ (reputationService.state().level || 1) }}</p>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-slate-900 border border-emerald-500/30 overflow-hidden">
+          <img [src]="'https://api.dicebear.com/7.x/avataaars/svg?seed=' + profileService.profile().artistName" class="w-full h-full object-cover">
+        </div>
       </button>
-      <button
-        (click)="setActiveTab('showcase')"
-        [class.active]="activeTab() === 'showcase'"
-        class="tab-btn"
-      >
-        <i class="fas fa-layer-group mr-2"></i> Showcase
-      </button>
-      <button
-        (click)="setActiveTab('networking')"
-        [class.active]="activeTab() === 'networking'"
-        class="tab-btn"
-      >
-        <i class="fas fa-network-wired mr-2"></i> Networking
-      </button>
-    </nav>
-  </header>
+    </div>
+  </nav>
 
-  <div class="flex-1 flex gap-8 overflow-hidden">
+  <div class="flex gap-8 p-12 h-[calc(100vh-110px)] overflow-hidden">
     <!-- Main Content Area -->
     <main class="flex-1 overflow-y-auto pr-4 custom-scrollbar">
 
       <!-- ARCADE TAB -->
       <div *ngIf="activeTab() === 'arcade'" class="wow animate__animated animate__fadeIn">
+        <!-- LIVE ROOMS SECTION -->
+        <div class="mb-12">
+            <h2 class="text-xs font-black text-emerald-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-4">
+                <span class="w-8 h-px bg-emerald-500/30"></span>
+                Live PvP Rooms
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div *ngFor="let room of gameRooms()" class="bg-slate-900/60 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between hover:bg-slate-900 transition-all">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                            <i class="fas fa-broadcast-tower"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-black text-white uppercase tracking-tight">{{ room.roomName }}</h4>
+                            <p class="text-[10px] text-slate-500 uppercase font-mono">Host: {{ room.host }} // {{ room.players }}/{{ room.maxPlayers }} PLAYERS</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span [class]="room.status === 'Waiting' ? 'text-emerald-500' : 'text-amber-500'" class="text-[9px] font-bold uppercase tracking-widest">{{ room.status }}</span>
+                        <button (click)="joinRoom(room)" class="px-4 py-2 bg-emerald-500 text-black text-[10px] font-black rounded-lg uppercase hover:bg-white transition-all">Join</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="hub-controls mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div class="search-bar relative flex-1 max-w-md">
             <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
             <input
               type="text"
               placeholder="Search games..."
-              (input)="onSearch($event)"
+              (input)="onSearch()"
               class="bg-slate-900/50 border border-slate-800 text-white pl-12 pr-4 py-3 rounded-xl w-full focus:border-emerald-500 outline-none transition-all"
               aria-label="Search games"
             />
@@ -55,7 +79,6 @@
               [class.active]="activeFilters().genre === genre"
               class="px-4 py-2 rounded-full border border-slate-800 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all hover:border-emerald-500/50"
               [ngClass]="activeFilters().genre === genre ? 'bg-emerald-500 text-black border-emerald-500' : 'text-slate-400'"
-              [attr.aria-label]="'Filter by ' + genre"
             >
               {{ genre }}
             </button>
@@ -68,18 +91,19 @@
             class="game-card group"
             (click)="selectGame(game)"
           >
-            <!-- Make the whole card a link for accessibility and UX -->
-            <a [href]="game.url" target="_blank" class="absolute inset-0 z-10" [attr.aria-label]="'Play ' + game.name"></a>
-
             <div class="relative h-44 mb-4 overflow-hidden rounded-xl border border-white/5">
               <img [src]="game.image" [alt]="game.name" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
               <div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-black text-white flex items-center gap-1">
                 <i class="fas fa-users text-emerald-400"></i> {{ game.playersOnline || 0 }}
               </div>
+              <!-- PvP Badge -->
+              <div class="absolute bottom-3 left-3 bg-emerald-500 text-black px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(16,185,129,0.5)]">
+                PvP Enabled
+              </div>
             </div>
             <h3 class="text-lg font-black text-white uppercase tracking-tight">{{ game.name }}</h3>
             <p class="text-xs text-slate-500 mb-4 line-clamp-2">{{ game.description }}</p>
-            <button class="play-btn relative z-20">PLAY NOW</button>
+            <button class="play-btn">PLAY NOW</button>
           </div>
         </div>
       </div>
@@ -96,20 +120,11 @@
                   <span *ngFor="let tag of project.tags" class="text-[9px] font-bold px-2 py-1 bg-emerald-500 text-black rounded uppercase">{{tag}}</span>
                 </div>
               </div>
-              <div class="absolute top-4 left-4">
-                <span class="px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest border border-emerald-500/30">
-                  {{ project.type }}
-                </span>
-              </div>
             </div>
             <div class="flex justify-between items-start">
               <div>
                 <h4 class="text-xl font-black text-white uppercase">{{ project.title }}</h4>
                 <p class="text-xs text-emerald-500 font-bold uppercase tracking-widest">by {{ project.creator }}</p>
-              </div>
-              <div class="flex flex-col items-end text-[10px] font-black text-slate-500">
-                <span><i class="fas fa-heart text-rose-500 mr-1"></i> {{ project.likes }}</span>
-                <span><i class="fas fa-play text-emerald-500 mr-1"></i> {{ project.plays }}</span>
               </div>
             </div>
           </div>
@@ -137,55 +152,12 @@
                   <span class="text-[10px] font-mono text-slate-500">{{ req.timestamp | date:'shortTime' }}</span>
                 </div>
                 <p class="text-sm text-slate-400 mt-1">{{ req.projectGoal }}</p>
-                <div class="flex gap-2 mt-3">
-                  <span *ngFor="let genre of req.genres" class="text-[9px] font-bold text-slate-500 border border-slate-800 px-2 py-0.5 rounded uppercase">{{genre}}</span>
-                </div>
               </div>
               <button class="px-6 py-3 border border-emerald-500/30 text-emerald-500 font-black uppercase text-[10px] rounded-xl hover:bg-emerald-500 hover:text-black transition-all">Connect</button>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- AI JAM SECTION -->
-      <section class="jam-section mt-12 p-10 bg-slate-900/30 rounded-[3rem] border border-white/5 relative overflow-hidden">
-        <h2 class="text-2xl font-black text-white mb-8 flex items-center gap-4 uppercase italic tracking-tighter">
-          <span class="w-12 h-1 border-b-4 border-emerald-500"></span>
-          Live Jam Session
-        </h2>
-
-        <div class="jam-controls flex flex-wrap justify-center gap-12">
-          <div class="jam-slot group" [class.human]="!aiService.isAIBassistActive()">
-            <button (click)="toggleAIBassist()" class="slot-btn" [class.active]="aiService.isAIBassistActive()">
-              <i class="fas fa-guitar"></i>
-            </button>
-            <div class="slot-info">
-              <span class="name">{{ aiService.isAIBassistActive() ? 'AI Bassist' : 'Human Player' }}</span>
-              <button *ngIf="aiService.isAIBassistActive()" (click)="joinJamAs('Bassist')" class="join-btn">Take Over</button>
-            </div>
-          </div>
-
-          <div class="jam-slot group" [class.human]="!aiService.isAIDrummerActive()">
-            <button (click)="toggleAIDrummer()" class="slot-btn" [class.active]="aiService.isAIDrummerActive()">
-              <i class="fas fa-drum"></i>
-            </button>
-            <div class="slot-info">
-              <span class="name">{{ aiService.isAIDrummerActive() ? 'AI Drummer' : 'Human Player' }}</span>
-              <button *ngIf="aiService.isAIDrummerActive()" (click)="joinJamAs('Drummer')" class="join-btn">Take Over</button>
-            </div>
-          </div>
-
-          <div class="jam-slot group" [class.human]="!aiService.isAIKeyboardistActive()">
-            <button (click)="toggleAIKeyboardist()" class="slot-btn" [class.active]="aiService.isAIKeyboardistActive()">
-              <i class="fas fa-keyboard"></i>
-            </button>
-            <div class="slot-info">
-              <span class="name">{{ aiService.isAIKeyboardistActive() ? 'AI Keyboard' : 'Human Player' }}</span>
-              <button *ngIf="aiService.isAIKeyboardistActive()" (click)="joinJamAs('Keyboardist')" class="join-btn">Take Over</button>
-            </div>
-          </div>
-        </div>
-      </section>
     </main>
 
     <!-- Sidebar: Terminal / Chat / Users -->
@@ -197,15 +169,18 @@
           Live Lobbies
         </h3>
         <div class="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-2">
-          <div *ngFor="let user of onlineUsers()" class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all cursor-pointer" (click)="viewProfile(user.name)">
+          <div *ngFor="let user of onlineUsers()" class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all cursor-pointer group">
             <div class="relative w-10 h-10 rounded-full overflow-hidden border border-emerald-500/30">
               <img [src]="user.avatar" class="w-full h-full object-cover">
               <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-900"></div>
             </div>
-            <div>
+            <div class="flex-1">
               <p class="text-xs font-black text-white uppercase">{{ user.name }}</p>
               <p class="text-[10px] text-slate-500 font-mono">{{ user.status }}</p>
             </div>
+            <button (click)="challengeUser(user); $event.stopPropagation()" class="opacity-0 group-hover:opacity-100 px-2 py-1 bg-emerald-500 text-black text-[8px] font-black rounded uppercase transition-all">
+                DUEL
+            </button>
           </div>
         </div>
       </div>
@@ -225,7 +200,7 @@
             [(ngModel)]="newChatMessage"
             (keyup.enter)="sendChatMessage()"
             placeholder="SYSTEM_COMMAND_INPUT..."
-            class="w-full bg-slate-900 border border-emerald-500/30 rounded-lg py-3 px-4 text-[10px] font-mono text-emerald-500 outline-none focus:border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+            class="w-full bg-slate-900 border border-emerald-500/30 rounded-lg py-3 px-4 text-[10px] font-mono text-emerald-500 outline-none focus:border-emerald-500"
           >
           <button (click)="sendChatMessage()" class="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 hover:text-white transition-colors">
             <i class="fas fa-paper-plane"></i>
@@ -235,8 +210,106 @@
     </aside>
   </div>
 
-  <!-- Profile View Modal (Overlay) -->
-  <div *ngIf="viewingProfile()" class="fixed inset-0 z-50 flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl wow animate__animated animate__fadeIn">
+  <!-- GAME OVERLAY (MODAL) -->
+  <div *ngIf="isGameOverlayActive()" class="fixed inset-0 z-[100] bg-black flex flex-col animate__animated animate__fadeIn">
+    <!-- Overlay Header -->
+    <div class="bg-slate-950 border-b border-emerald-500/30 px-8 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-6">
+            <button (click)="closeGame()" class="text-slate-500 hover:text-white text-xl">
+                <i class="fas fa-times"></i>
+            </button>
+            <div>
+                <h2 class="text-xl font-black text-white uppercase italic tracking-tighter">{{ selectedGame()?.name }}</h2>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
+                    <span class="text-[10px] font-mono text-emerald-500 uppercase">PvP SESSION ACTIVE // LOBBY_ID: 0x{{ selectedGame()?.id }}FF</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Commentary Ticker -->
+        <div class="flex-1 max-w-2xl mx-12 bg-slate-900/50 border border-emerald-500/10 py-2 px-6 rounded-lg overflow-hidden relative">
+            <p class="text-[11px] font-mono text-emerald-400 whitespace-nowrap animate-pulse">{{ aiCommentary() }}</p>
+            <div class="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-900/50 to-transparent"></div>
+            <div class="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-900/50 to-transparent"></div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div class="text-right">
+                <p class="text-[10px] font-black text-white uppercase">Opponent: AI_DRONE_7</p>
+                <div class="w-32 h-1 bg-slate-800 rounded-full mt-1 overflow-hidden">
+                    <div class="h-full bg-rose-500" [style.width.%]="opponentHealth()"></div>
+                </div>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-500">
+                <i class="fas fa-skull"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- The Game Content -->
+    <div class="flex-1 relative bg-black flex flex-col">
+        <!-- HUD Overlay (Left) -->
+        <div class="absolute top-8 left-8 z-10 space-y-4">
+
+            <div class="bg-black/60 backdrop-blur-md border-l-4 border-emerald-500 p-4 rounded-r-xl">
+                <p class="text-[10px] text-slate-400 uppercase font-black mb-1">Score</p>
+                <p class="text-2xl font-black text-white">{{ gameScore() | number:'1.0-0' }}</p>
+            </div>
+            <!-- S.M.U.V.E. Strategic Buff -->
+            <button (click)="requestAiBuff()" class="w-full bg-emerald-500/10 border border-emerald-500/50 p-4 rounded-xl flex items-center justify-between group hover:bg-emerald-500 hover:text-black transition-all">
+                <div class="text-left">
+                    <p class="text-[8px] font-black uppercase opacity-60">S.M.U.V.E. Buff</p>
+                    <p class="text-[10px] font-black uppercase">Request Overdrive</p>
+                </div>
+                <i class="fas fa-bolt group-hover:animate-bounce"></i>
+            </button>
+            <div class="bg-black/60 backdrop-blur-md border-l-4 border-amber-500 p-4 rounded-r-xl">
+                <p class="text-[10px] text-slate-400 uppercase font-black mb-1">Multiplier</p>
+                <p class="text-2xl font-black text-amber-500">x{{ gameMultiplier() | number:'1.1-1' }}</p>
+            </div>
+        </div>
+
+        <!-- HUD Overlay (Right) -->
+        <div class="absolute top-8 right-8 z-10 text-right space-y-4">
+            <div class="bg-black/60 backdrop-blur-md border-r-4 border-emerald-500 p-4 rounded-l-xl">
+                <p class="text-[10px] text-slate-400 uppercase font-black mb-1">Status</p>
+                <p class="text-xs font-black text-emerald-500 uppercase tracking-widest">
+                    {{ opponentHealth() > 50 ? 'DOMINATING' : 'FINISH THEM' }}
+                </p>
+            </div>
+            <div class="bg-black/60 backdrop-blur-md p-4 rounded-xl border border-white/5">
+                <p class="text-[8px] text-slate-500 uppercase font-black mb-2">Crowd Hype</p>
+                <div class="flex gap-1 h-8 items-end">
+                    <div *ngFor="let h of crowdHype()" class="w-1 bg-emerald-500" [style.height.%]="h"></div>
+                </div>
+            </div>
+        </div>
+
+        <iframe
+            *ngIf="safeGameUrl()"
+            [src]="safeGameUrl()"
+            class="w-full h-full border-none shadow-[inset_0_0_100px_rgba(0,0,0,1)]"
+            title="S.M.U.V.E Game Session"
+        ></iframe>
+    </div>
+
+    <!-- Overlay Footer -->
+    <div class="bg-slate-950 border-t border-emerald-500/20 px-12 py-3 flex justify-between items-center text-[10px] font-mono text-slate-500 uppercase">
+        <div class="flex gap-8">
+            <span>PING: 24ms</span>
+            <span>PACKET_LOSS: 0%</span>
+            <span>SERVER: US-EAST-1</span>
+        </div>
+        <div class="flex gap-4">
+            <button class="hover:text-emerald-500 transition-colors"><i class="fas fa-cog mr-2"></i>SETTINGS</button>
+            <button class="hover:text-emerald-500 transition-colors"><i class="fas fa-expand mr-2"></i>FULLSCREEN</button>
+        </div>
+    </div>
+  </div>
+
+  <!-- Profile View Modal -->
+  <div *ngIf="viewingProfile()" class="fixed inset-0 z-[150] flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl">
     <div class="bg-slate-950 border-2 border-emerald-500/50 rounded-[3rem] w-full max-w-2xl overflow-hidden shadow-[0_0_100px_rgba(16,185,129,0.2)]">
       <div class="relative h-40 bg-gradient-to-r from-emerald-900/50 to-slate-900">
         <button (click)="closeProfile()" class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors text-2xl">
@@ -255,33 +328,9 @@
           </div>
           <button class="px-8 py-3 bg-emerald-500 text-black font-black uppercase text-xs rounded-xl hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all">Follow Artist</button>
         </div>
-
         <p class="text-slate-400 leading-relaxed mb-8">{{ viewingProfile()?.bio }}</p>
-
-        <div class="grid grid-cols-2 gap-8 mb-8">
-          <div>
-            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Skills</h4>
-            <div class="flex flex-wrap gap-2">
-              <span *ngFor="let skill of viewingProfile()?.skills" class="px-3 py-1 bg-white/5 border border-white/10 rounded-md text-[10px] font-bold text-white uppercase">{{skill}}</span>
-            </div>
-          </div>
-          <div>
-            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Recent Stats</h4>
-            <div class="flex gap-4 text-white font-black">
-              <div>
-                <span class="block text-[8px] text-slate-500 uppercase">Followers</span>
-                1.2K
-              </div>
-              <div>
-                <span class="block text-[8px] text-slate-500 uppercase">Projects</span>
-                14
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <button class="w-full py-4 border-2 border-emerald-500/30 text-emerald-500 font-black uppercase tracking-[0.2em] text-xs rounded-2xl hover:bg-emerald-500 hover:text-black transition-all">
-          View Full Studio Portfolio
+        <button (click)="closeProfile()" class="w-full py-4 border-2 border-emerald-500/30 text-emerald-500 font-black uppercase tracking-[0.2em] text-xs rounded-2xl hover:bg-emerald-500 hover:text-black transition-all">
+          Close Profile
         </button>
       </div>
     </div>

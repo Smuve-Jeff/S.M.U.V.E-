@@ -9,8 +9,8 @@ const MOCK_GAMES: Game[] = [
   {
     id: '1',
     name: 'Tha Battlefield',
-    url: '/assets/games/battlefield/index.html',
-    description: 'High-stakes tactical rap battle arena. Dominate the mic.',
+    url: '/assets/games/battlefield/battlefield.html',
+    description: 'High-stakes tactical rap battle arena. Dominate the mic in real-time PvP.',
     genre: 'Music Battle',
     rating: 4.9,
     playersOnline: 1250,
@@ -19,8 +19,8 @@ const MOCK_GAMES: Game[] = [
   {
     id: '2',
     name: 'Remix Arena',
-    url: '/assets/games/remix-arena/index.html',
-    description: 'Collaborative real-time remixing challenge.',
+    url: '/assets/games/remix-arena/remixarena.html',
+    description: 'Collaborative real-time remixing challenge. Out-sequence your rivals.',
     genre: 'Rhythm',
     rating: 4.7,
     playersOnline: 850,
@@ -30,7 +30,7 @@ const MOCK_GAMES: Game[] = [
     id: '3',
     name: 'Beat Runner',
     url: 'https://htmlgames.com/game/Beat+Runner',
-    description: 'Sprint through neon landscapes synced to the beat.',
+    description: 'Sprint through neon landscapes synced to the beat. PvP Ranking enabled.',
     genre: 'Runner',
     rating: 4.5,
     playersOnline: 2100,
@@ -100,80 +100,6 @@ const MOCK_GAMES: Game[] = [
     playersOnline: 1800,
     image: 'https://picsum.photos/seed/explorer/300/200'
   },
-  {
-    id: '20',
-    name: 'Cyber Quest',
-    url: 'https://html5.gamedistribution.com/a6f67568f07040409549f78f90c4d293/',
-    description: 'A digital odyssey into the heart of the mainframe.',
-    genre: 'Adventure',
-    rating: 4.6,
-    playersOnline: 1200,
-    image: 'https://picsum.photos/seed/cyberquest/300/200'
-  },
-
-  // SPORTS
-  {
-    id: '21',
-    name: 'Urban Basketball',
-    url: 'https://html5.gamedistribution.com/6c6c64923834311895a9d4530869d854/',
-    description: 'Master the streets with your basketball skills.',
-    genre: 'Sports',
-    rating: 4.5,
-    playersOnline: 2500,
-    image: 'https://picsum.photos/seed/urbanbb/300/200'
-  },
-  {
-    id: '22',
-    name: 'Turbo Racing',
-    url: 'https://html5.gamedistribution.com/d9c4909a34d0b0b8c28373b694921971/',
-    description: "High-speed racing action on the world's most challenging tracks.",
-    genre: 'Sports',
-    rating: 4.7,
-    playersOnline: 4100,
-    image: 'https://picsum.photos/seed/turbo/300/200'
-  },
-  {
-    id: '23',
-    name: 'Extreme Soccer',
-    url: 'https://html5.gamedistribution.com/79a547789178f9f8c148c90339a676b7/',
-    description: 'Soccer taken to the extreme. Precision and power.',
-    genre: 'Sports',
-    rating: 4.4,
-    playersOnline: 3800,
-    image: 'https://picsum.photos/seed/exsoccer/300/200'
-  },
-
-  // RPG
-  {
-    id: '24',
-    name: 'Arcane Legends',
-    url: 'https://html5.gamedistribution.com/f07040409549f78f90c4d293a6f67568/',
-    description: 'Step into the shoes of a legendary hero.',
-    genre: 'RPG',
-    rating: 4.9,
-    playersOnline: 5600,
-    image: 'https://picsum.photos/seed/arcane/300/200'
-  },
-  {
-    id: '25',
-    name: 'Shadow Blades',
-    url: 'https://html5.gamedistribution.com/79814234850754876b5b91b5e37d5440/',
-    description: 'Master the art of the shadow in this tactical RPG.',
-    genre: 'RPG',
-    rating: 4.8,
-    playersOnline: 2900,
-    image: 'https://picsum.photos/seed/shadowblades/300/200'
-  },
-  {
-    id: '26',
-    name: 'Tactical Commander',
-    url: 'https://html5.gamedistribution.com/869d8540c6c64923834311895a9d4530/',
-    description: 'Lead your army to victory in this deep strategy RPG.',
-    genre: 'RPG',
-    rating: 4.7,
-    playersOnline: 3100,
-    image: 'https://picsum.photos/seed/commander/300/200'
-  },
 
   // CLASSIC
   {
@@ -195,47 +121,7 @@ const MOCK_GAMES: Game[] = [
     rating: 5.0,
     playersOnline: 15000,
     image: 'https://picsum.photos/seed/pacman/300/200'
-  },
-  {
-    id: '12',
-    name: 'Tetris Arcade',
-    url: 'https://tetris.com/play-tetris',
-    description: "The world's most famous puzzle game in its purest form.",
-    genre: 'Classic',
-    rating: 4.9,
-    playersOnline: 8900,
-    image: 'https://picsum.photos/seed/tetris/300/200'
-  },
-  {
-    id: '27',
-    name: 'Galaga Retro',
-    url: 'https://freegalaga.com/',
-    description: 'The classic space shooter, perfectly preserved.',
-    genre: 'Classic',
-    rating: 4.9,
-    playersOnline: 12000,
-    image: 'https://picsum.photos/seed/galaga/300/200'
-  },
-  {
-    id: '28',
-    name: 'Space Invaders',
-    url: 'https://freeinvaders.org/',
-    description: 'Defend Earth from wave after wave of alien invaders.',
-    genre: 'Classic',
-    rating: 4.8,
-    playersOnline: 8500,
-    image: 'https://picsum.photos/seed/invaders/300/200'
-  },
-  {
-    id: '29',
-    name: 'Snake Neon',
-    url: 'https://playsnake.org/',
-    description: 'The timeless classic with a vibrant neon twist.',
-    genre: 'Classic',
-    rating: 4.6,
-    playersOnline: 15000,
-    image: 'https://picsum.photos/seed/snakeneon/300/200'
-  },
+  }
 ];
 
 const GAMES_API_URL = 'https://firebasestorage.googleapis.com/v0/b/builder-406918.appspot.com/o/gaming-pwa%2Fgames.json?alt=media';
