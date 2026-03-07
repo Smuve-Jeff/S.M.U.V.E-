@@ -1,230 +1,145 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { StemSeparationService, Stems } from './stem-separation.service';
-
-export type NoteEvent = {
-  time: number;
-  duration: number;
-  midi: number;
-  velocity: number;
-  channel?: number;
-};
-
-export type InstrumentType = 'sample' | 'synth';
-
-export interface InstrumentDefinition {
-  id: string;
-  name: string;
-  type: InstrumentType;
-  sampleMapUrl?: string;
-  params?: Record<string, number | string>;
-}
-
-export interface TrackState {
-  id: number;
-  name: string;
-  instrumentId: string;
-  gain: number;
-  pan: number;
-  sendA: number;
-  sendB: number;
-}
+import { StemSeparationService } from './stem-separation.service';
 
 export type DeckId = 'A' | 'B';
+export type Stems = { vocals: AudioBuffer; drums: AudioBuffer; bass: AudioBuffer; melody: AudioBuffer };
 
 interface DeckChannel {
-  analyser: AnalyserNode;
-  buffer?: AudioBuffer;
-  stems?: Stems;
-  sources: {
-    vocals: AudioBufferSourceNode | null;
-    drums: AudioBufferSourceNode | null;
-    bass: AudioBufferSourceNode | null;
-    melody: AudioBufferSourceNode | null;
-  };
-  gains: {
-    vocals: GainNode;
-    drums: GainNode;
-    bass: GainNode;
-    melody: GainNode;
-  };
-  pre: GainNode;
-  gain: GainNode;
-  pan: StereoPannerNode;
-  filter: BiquadFilterNode;
+  id: DeckId;
+  buffer: AudioBuffer | null;
+  sources: { [K in keyof Stems]: AudioBufferSourceNode | null };
+  gains: { [K in keyof Stems]: GainNode };
   eqLow: BiquadFilterNode;
   eqMid: BiquadFilterNode;
   eqHigh: BiquadFilterNode;
-  sendA: GainNode;
-  sendB: GainNode;
+  filter: BiquadFilterNode;
+  pan: StereoPannerNode;
+  gain: GainNode;
+  analyser: AnalyserNode;
+  isPlaying: boolean;
   startTime: number;
   pauseOffset: number;
   rate: number;
-  isPlaying: boolean;
+  stems: Stems | null;
   loopEnabled: boolean;
-  loopStartSec: number;
-  loopEndSec: number;
   hotCues: (number | null)[];
-  keyLock: boolean;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class AudioEngineService {
   private stemSeparationService = inject(StemSeparationService);
   private ctx: AudioContext;
   private masterGain: GainNode;
-  private analyser: AnalyserNode;
   public compressor: DynamicsCompressorNode;
-  public limiter: DynamicsCompressorNode;
-  private limiterLookahead: DelayNode;
-  private autoTuneDelay: DelayNode;
-  private autoTuneFilter: BiquadFilterNode;
-  private autoTuneWet: GainNode;
-  private recordingDestination: MediaStreamAudioDestinationNode | null = null;
-
+  private limiter: DynamicsCompressorNode;
   private reverbConvolver: ConvolverNode;
-  private delay: DelayNode;
-  private delayFeedback: GainNode;
-  private delayWet: GainNode;
   public reverbWet: GainNode;
-
-  private lookahead = 0.1;
-  private scheduleAheadTime = 0.2;
-  private timerId: any = null;
-  private nextNoteTime = 0;
-
-  tempo = signal(120);
-  isPlaying = signal(false);
-  currentBeat = signal(0);
-  loopStart = signal(0);
-  loopEnd = signal(16);
-  stepsPerBeat = signal(4);
-
-  private tracks = new Map<number, TrackState>();
+  private recordingDestination: MediaStreamAudioDestinationNode | null = null;
+  private masterAnalyser: AnalyserNode;
 
   private deckA!: DeckChannel;
   private deckB!: DeckChannel;
+
+  public isPlaying = signal(false);
+  public tempo = signal(124);
+  public currentBeat = signal(0);
+  public stepsPerBeat = signal(4);
+  public loopEnd = signal(64);
+  public loopStart = signal(0);
+
+  private timerId: any = null;
+  private nextNoteTime = 0;
+  private lookahead = 0.1;
+  private scheduleAheadTime = 0.2;
+
   private crossfaderValue = 0;
   private crossfaderCurve: 'linear' | 'power' | 'exp' | 'cut' = 'linear';
   private crossfaderHamster = false;
 
+  private tracks = new Map<number, any>();
+
   constructor() {
-    this.ctx = new (
-      (window as any).AudioContext || (window as any).webkitAudioContext
-    )();
+    this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.value = 0.9;
-
     this.compressor = this.ctx.createDynamicsCompressor();
-    this.compressor.threshold.value = -18;
-    this.compressor.ratio.value = 3;
-    this.compressor.attack.value = 0.003;
-    this.compressor.release.value = 0.2;
-
     this.limiter = this.ctx.createDynamicsCompressor();
-    this.limiter.threshold.value = -1;
-    this.limiter.knee.value = 0;
-    this.limiter.ratio.value = 20;
-    this.limiter.attack.value = 0.001;
-    this.limiter.release.value = 0.08;
-
-    this.limiterLookahead = this.ctx.createDelay(0.01);
-    this.limiterLookahead.delayTime.value = 0.004;
-
-    this.autoTuneDelay = this.ctx.createDelay(0.1);
-    this.autoTuneFilter = this.ctx.createBiquadFilter();
-    this.autoTuneWet = this.ctx.createGain();
-    this.autoTuneWet.gain.value = 0;
-
-    this.analyser = this.ctx.createAnalyser();
-
     this.reverbConvolver = this.ctx.createConvolver();
     this.reverbWet = this.ctx.createGain();
-    this.reverbWet.gain.value = 0.15;
-    this.delay = this.ctx.createDelay(5.0);
-    this.delayFeedback = this.ctx.createGain();
-    this.delayWet = this.ctx.createGain();
+    this.masterAnalyser = this.ctx.createAnalyser();
 
-    this.delay.connect(this.delayFeedback);
-    this.delayFeedback.connect(this.delay);
-    this.delay.connect(this.delayWet);
-    this.reverbConvolver.connect(this.reverbWet);
-
-    this.reverbWet.connect(this.compressor);
-    this.delayWet.connect(this.compressor);
+    // Signal chain: ... -> masterGain -> compressor -> limiter -> masterAnalyser -> destination
     this.masterGain.connect(this.compressor);
+    this.compressor.connect(this.limiter);
+    this.limiter.connect(this.masterAnalyser);
+    this.masterAnalyser.connect(this.ctx.destination);
 
-    this.compressor.connect(this.limiterLookahead);
-    this.limiterLookahead.connect(this.limiter);
-    this.limiter.connect(this.analyser);
-    this.analyser.connect(this.ctx.destination);
+    // Default FX setup
+    this.compressor.threshold.value = -24;
+    this.compressor.ratio.value = 4;
+    this.limiter.threshold.value = -0.5;
+    this.limiter.ratio.value = 20;
 
-    this.loadDefaultImpulse();
     this.initDeck('A');
     this.initDeck('B');
-    this.applyCrossfader();
+    this.loadDefaultImpulse();
   }
 
-  getAnalyser(): AnalyserNode { return this.analyser; }
-  getContext(): AudioContext { return this.ctx; }
+  getContext() { return this.ctx; }
+  get compressorNode() { return this.compressor; }
+  get limiterNode() { return this.limiter; }
+  getAnalyser() { return this.masterAnalyser; }
 
-  resume() {
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-  }
+  resume() { if (this.ctx.state === 'suspended') this.ctx.resume(); }
 
   private initDeck(id: DeckId) {
     const deck: DeckChannel = {
-      analyser: this.ctx.createAnalyser(),
+      id,
+      buffer: null,
       sources: { vocals: null, drums: null, bass: null, melody: null },
       gains: {
         vocals: this.ctx.createGain(),
         drums: this.ctx.createGain(),
         bass: this.ctx.createGain(),
-        melody: this.ctx.createGain(),
+        melody: this.ctx.createGain()
       },
-      pre: this.ctx.createGain(),
-      gain: this.ctx.createGain(),
-      pan: this.ctx.createStereoPanner(),
-      filter: this.ctx.createBiquadFilter(),
       eqLow: this.ctx.createBiquadFilter(),
       eqMid: this.ctx.createBiquadFilter(),
       eqHigh: this.ctx.createBiquadFilter(),
-      sendA: this.ctx.createGain(),
-      sendB: this.ctx.createGain(),
+      filter: this.ctx.createBiquadFilter(),
+      pan: this.ctx.createStereoPanner(),
+      gain: this.ctx.createGain(),
+      analyser: this.ctx.createAnalyser(),
+      isPlaying: false,
       startTime: 0,
       pauseOffset: 0,
       rate: 1.0,
-      isPlaying: false,
+      stems: null,
       loopEnabled: false,
-      loopStartSec: 0,
-      loopEndSec: 0,
-      hotCues: new Array(8).fill(null),
-      keyLock: false,
+      hotCues: new Array(8).fill(null)
     };
 
-    deck.filter.type = 'lowpass';
-    deck.filter.frequency.value = 20000;
     deck.eqLow.type = 'lowshelf';
-    deck.eqLow.frequency.value = 200;
+    deck.eqLow.frequency.value = 250;
     deck.eqMid.type = 'peaking';
     deck.eqMid.frequency.value = 1000;
+    deck.eqMid.Q.value = 1;
     deck.eqHigh.type = 'highshelf';
-    deck.eqHigh.frequency.value = 5000;
+    deck.eqHigh.frequency.value = 4000;
 
-    const stems = ['vocals', 'drums', 'bass', 'melody'] as const;
-    stems.forEach((s) => deck.gains[s].connect(deck.pre));
+    deck.analyser.fftSize = 1024;
 
-    deck.pre.connect(deck.analyser);
-    deck.pre
-      .connect(deck.eqLow)
-      .connect(deck.eqMid)
-      .connect(deck.eqHigh)
-      .connect(deck.filter)
-      .connect(deck.pan)
-      .connect(deck.gain)
-      .connect(this.masterGain);
+    // Routing: Stems -> EQ -> Filter -> Pan -> Gain -> Analyser -> Master
+    Object.values(deck.gains).forEach(g => g.connect(deck.eqLow));
+    deck.eqLow.connect(deck.eqMid);
+    deck.eqMid.connect(deck.eqHigh);
+    deck.eqHigh.connect(deck.filter);
+    deck.filter.connect(deck.pan);
+    deck.pan.connect(deck.gain);
+    deck.gain.connect(deck.analyser);
+    deck.analyser.connect(this.masterGain);
 
     if (id === 'A') this.deckA = deck;
     else this.deckB = deck;
@@ -277,7 +192,7 @@ export class AudioEngineService {
         src.buffer = (deck.stems as any)[k];
         src.playbackRate.value = deck.rate;
         src.loop = deck.loopEnabled;
-        src.connect(deck.gains[k]);
+        src.connect(deck.gains[k as keyof Stems]);
         src.start(0, offset % dur);
         (deck.sources as any)[k] = src;
       });
@@ -295,7 +210,7 @@ export class AudioEngineService {
   private stopDeckSource(deck: DeckChannel) {
     ['vocals', 'drums', 'bass', 'melody'].forEach((k: any) => {
       if ((deck.sources as any)[k]) {
-        try { (deck.sources as any)[k].stop(); } catch (e) {}
+        try { (deck.sources as any)[k]!.stop(); } catch (e) {}
         (deck.sources as any)[k] = null;
       }
     });
@@ -307,7 +222,7 @@ export class AudioEngineService {
     deck.rate = rate;
     ['vocals', 'drums', 'bass', 'melody'].forEach((k: any) => {
       if ((deck.sources as any)[k]) {
-        (deck.sources as any)[k].playbackRate.setTargetAtTime(rate, this.ctx.currentTime, 0.05);
+        (deck.sources as any)[k]!.playbackRate.setTargetAtTime(rate, this.ctx.currentTime, 0.05);
       }
     });
   }

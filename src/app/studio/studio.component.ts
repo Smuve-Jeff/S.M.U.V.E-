@@ -32,20 +32,23 @@ export class StudioComponent {
   private readonly audioSession = inject(AudioSessionService);
   public readonly sequencer = inject(SequencerService);
 
-  isPerformanceMode = false;
-  activeView = signal<'daw' | 'rack' | 'mixer' | 'dj'>('daw');
+  activeView = signal<'daw' | 'dj' | 'mastering'>('daw');
+  showMixer = signal(true);
+  showRack = signal(true);
   showPianoRoll = signal(false);
+
   isRecording = this.audioSession.isRecording;
 
   constructor() {
     effect(() => {
       const selectedId = this.sequencer.selectedTrackId();
-      console.log('StudioComponent: selectedTrackId changed:', selectedId);
-      this.showPianoRoll.set(!!selectedId);
+      if (selectedId) {
+        this.showPianoRoll.set(true);
+      }
     });
   }
 
-  togglePerformanceMode() {
-    this.isPerformanceMode = !this.isPerformanceMode;
+  toggleView(view: 'daw' | 'dj' | 'mastering') {
+    this.activeView.set(view);
   }
 }

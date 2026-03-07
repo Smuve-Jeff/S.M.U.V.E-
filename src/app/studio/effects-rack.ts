@@ -1,8 +1,15 @@
+import { Equalizer } from './equalizer';
+import { Delay } from './delay';
+import { Saturation } from './saturation';
+import { SidechainCompressor } from './sidechain-compressor';
+import { Reverb } from './reverb';
+import { Compressor } from './compressor';
+
 export interface EffectNode {
+  id: string;
   name: string;
-  type: 'eq' | 'delay' | 'reverb' | 'distortion';
-  node: AudioNode;
-  params: any;
+  type: 'eq' | 'delay' | 'reverb' | 'distortion' | 'compressor' | 'sidechain';
+  instance: any; // The class instance (Equalizer, Delay, etc.)
   enabled: boolean;
 }
 
@@ -25,35 +32,45 @@ export class EffectsRack {
     return this.output;
   }
 
-  addEffect(type: 'eq' | 'delay' | 'reverb' | 'distortion', name: string) {
-    let node: AudioNode;
+  addEffect(type: EffectNode['type'], name: string) {
+    let instance: any;
     switch (type) {
       case 'eq':
-        const eq = this.audioContext.createBiquadFilter();
-        eq.type = 'peaking';
-        eq.frequency.value = 1000;
-        eq.gain.value = 0;
-        node = eq;
+        instance = new Equalizer(this.audioContext);
         break;
       case 'delay':
-        const delay = this.audioContext.createDelay();
-        delay.delayTime.value = 0.5;
-        node = delay;
+        instance = new Delay(this.audioContext);
         break;
       case 'reverb':
-        const reverb = this.audioContext.createConvolver();
-        node = reverb;
+        instance = new Reverb(this.audioContext);
         break;
       case 'distortion':
-        const distortion = this.audioContext.createWaveShaper();
-        node = distortion;
+        instance = new Saturation(this.audioContext);
+        break;
+      case 'compressor':
+        instance = new Compressor(this.audioContext);
+        break;
+      case 'sidechain':
+        instance = new SidechainCompressor(this.audioContext);
         break;
       default:
-        throw new Error('Unknown effect type');
+        throw new Error(`Unknown effect type: ${type}`);
     }
 
-    const effect: EffectNode = { name, type, node, params: {}, enabled: true };
+    const effect: EffectNode = {
+      id: Math.random().toString(36).substring(7),
+      name,
+      type,
+      instance,
+      enabled: true
+    };
     this.effects.push(effect);
+    this.rebuildChain();
+    return effect;
+  }
+
+  removeEffect(id: string) {
+    this.effects = this.effects.filter(e => e.id !== id);
     this.rebuildChain();
   }
 
@@ -63,16 +80,17 @@ export class EffectsRack {
 
     for (const effect of this.effects) {
       if (effect.enabled) {
-        current.connect(effect.node);
-        current = effect.node;
+        current.connect(effect.instance.input);
+        current = effect.instance.output;
       }
     }
     current.connect(this.output);
   }
 
-  toggleEffect(index: number) {
-    if (this.effects[index]) {
-      this.effects[index].enabled = !this.effects[index].enabled;
+  toggleEffect(id: string) {
+    const effect = this.effects.find(e => e.id === id);
+    if (effect) {
+      effect.enabled = !effect.enabled;
       this.rebuildChain();
     }
   }
