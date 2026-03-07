@@ -3,7 +3,7 @@
   <div class="flex justify-between items-start mb-8">
     <div>
       <h2 class="text-2xl font-black text-emerald-500 uppercase tracking-tighter italic animate-pulse">
-        S.M.U.V.E 2.0 Command Center
+        S.M.U.V.E 3.0 Strategic Command
       </h2>
       <div class="text-[10px] font-mono text-emerald-500/50 uppercase tracking-[0.3em]">
         Neural Link Stable // Proactive Strategic Audit
@@ -53,7 +53,7 @@
                <div class="w-2 h-2 rounded-full" [ngClass]="rec.impact === 'High' ? 'bg-emerald-500' : 'bg-yellow-500'"></div>
                <span class="text-[9px] uppercase font-bold" [ngClass]="getImpactColor(rec.impact)">{{ rec.impact }} Impact</span>
             </div>
-            <button class="text-[9px] uppercase font-black text-white bg-emerald-500/10 px-3 py-1.5 rounded border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-black transition-all">
+            <button (click)="acquireUpgrade(rec)" class="text-[9px] uppercase font-black text-white bg-emerald-500/10 px-3 py-1.5 rounded border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-black transition-all">
               Acquire
             </button>
           </div>

@@ -57,8 +57,15 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
     }, 500);
   }
 
+    acquireUpgrade(rec: UpgradeRecommendation) {
+    if (rec.url) {
+      window.open(rec.url, '_blank');
+    }
+  }
+
   getImpactColor(impact: string): string {
     switch (impact) {
+      case 'Extreme': return 'text-violet-400 animate-pulse font-black';
       case 'High': return 'text-emerald-400';
       case 'Medium': return 'text-yellow-400';
       case 'Low': return 'text-slate-400';

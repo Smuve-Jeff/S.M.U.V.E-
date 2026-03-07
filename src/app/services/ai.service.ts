@@ -237,15 +237,41 @@ export class AiService {
     const profile = this.userProfileService.profile();
     const level = this.reputationService.state().level;
 
-    // Filter DB based on level and profile interests
+    const impactScoreMap: Record<string, number> = { 'Extreme': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
+
+    // Filter DB based on level and profile context
     return UPGRADE_DB.filter(item => {
-      const levelMatch = level >= item.minLevel;
-      const interestMatch = profile.careerGoals.some(goal =>
-        item.type.toLowerCase().includes(goal.toLowerCase()) ||
-        item.title.toLowerCase().includes(goal.toLowerCase())
+      // 1. Level Check (Hard Gate)
+      if (level < item.minLevel) return false;
+
+      // 2. Genre Affinity (Soft Filter)
+      const hasGenreAffinity = !item.genres || item.genres.some(g =>
+        g.toLowerCase() === profile.primaryGenre?.toLowerCase() ||
+        profile.secondaryGenres.some(sg => sg.toLowerCase() === g.toLowerCase())
       );
-      return levelMatch && (interestMatch || item.minLevel <= 5);
-    }).slice(0, 5);
+
+      // 3. Goal/Interest Match (Soft Filter)
+      const hasInterestMatch = profile.careerGoals.some(goal =>
+        item.type.toLowerCase().includes(goal.toLowerCase()) ||
+        item.title.toLowerCase().includes(goal.toLowerCase()) ||
+        item.description.toLowerCase().includes(goal.toLowerCase())
+      );
+
+      // 4. DAW/Equipment Check (Negative Filter - don't recommend what they have)
+      const alreadyHasInDaw = profile.daw?.some(d => item.title.toLowerCase().includes(d.toLowerCase()));
+      const alreadyHasInEquip = profile.equipment?.some(e => item.title.toLowerCase().includes(e.toLowerCase()));
+
+      if (alreadyHasInDaw || alreadyHasInEquip) return false;
+
+      // Logic: Must be level-appropriate AND (Match genre OR Match Interest OR be low level/universal)
+      return hasGenreAffinity || hasInterestMatch || item.minLevel <= 5;
+    })
+    .sort((a, b) => {
+      // Prioritize by level (highest appropriate level first) and then by impact
+      if (b.minLevel !== a.minLevel) return b.minLevel - a.minLevel;
+      return impactScoreMap[b.impact] - impactScoreMap[a.impact];
+    })
+    .slice(0, 5);
   }
 
   async getStrategicRecommendations(): Promise<StrategicRecommendation[]> {
@@ -555,19 +581,20 @@ Core Trends:\n${coreTrendsList || 'No trends analyzed yet.'}`;
 const UPGRADE_DB: UpgradeRecommendation[] = [
   {
     id: 'u-1',
-    title: 'Apollo x4 Heritage Edition',
+    title: 'Universal Audio Apollo x16 Heritage Edition',
     type: 'Gear',
-    description: 'Elite class A/D and D/A conversion with four Unison-enabled preamps.',
-    cost: ',199',
+    description: 'The definitive interface for professional studios. 18 x 20 Thunderbolt 3 audio interface with HEXA Core Processing.',
+    cost: ',999',
     url: 'https://www.uaudio.com',
-    minLevel: 10,
-    impact: 'High'
+    minLevel: 25,
+    impact: 'Extreme',
+    genres: ['Electronic', 'Pop', 'Hip-Hop', 'Rock']
   },
   {
     id: 'u-2',
     title: 'DistroKid Musician Plus',
     type: 'Service',
-    description: 'Unlimited uploads, synced lyrics, and daily sales stats.',
+    description: 'Essential infrastructure. Unlimited uploads, synced lyrics, and daily sales stats for the serious architect.',
     cost: '$35.99/yr',
     url: 'https://distrokid.com',
     minLevel: 1,
@@ -577,27 +604,29 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     id: 'u-3',
     title: 'Serum Advanced Wavetable Synth',
     type: 'Software',
-    description: 'The industry standard for high-quality wavetable synthesis.',
-    cost: '89',
+    description: 'The sonic foundation of modern electronic music. Precise wavetable manipulation for elite sound design.',
+    cost: '$189',
     url: 'https://xferrecords.com',
     minLevel: 5,
-    impact: 'High'
+    impact: 'High',
+    genres: ['Electronic', 'Pop', 'Trap']
   },
   {
     id: 'u-4',
     title: 'Neumann U87 Ai',
     type: 'Gear',
-    description: 'The gold standard multi-pattern condenser microphone.',
-    cost: ',600',
+    description: 'The undisputed gold standard multi-pattern condenser microphone. Necessary for radio-ready vocal clarity.',
+    cost: '$3,600',
     url: 'https://en-de.neumann.com',
     minLevel: 20,
-    impact: 'High'
+    impact: 'High',
+    genres: ['Pop', 'R&B', 'Hip-Hop', 'Jazz']
   },
   {
     id: 'u-5',
     title: 'Splice Creator Plan',
     type: 'Software',
-    description: 'Access to millions of royalty-free loops and one-shots.',
+    description: 'Rapid prototyping assets. Access to millions of royalty-free loops and one-shots for efficient workflow.',
     cost: '$19.99/mo',
     url: 'https://splice.com',
     minLevel: 1,
@@ -607,8 +636,8 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     id: 'u-6',
     title: 'Waves Horizon Bundle',
     type: 'Software',
-    description: 'Comprehensive collection of 80+ industry-standard plugins.',
-    cost: '99',
+    description: 'Strategic arsenal. 80+ industry-standard plugins for every stage of the production lifecycle.',
+    cost: '$299',
     url: 'https://waves.com',
     minLevel: 15,
     impact: 'High'
@@ -617,28 +646,29 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     id: 'u-7',
     title: 'Focal Shape 65 Studio Monitors',
     type: 'Gear',
-    description: 'Exceptional transparency and precise stereo imaging for critical mixing.',
-    cost: ',800/pair',
+    description: 'Tactical transparency. Precise stereo imaging for critical decision-making in the mix phase.',
+    cost: '$1,800/pair',
     url: 'https://www.focal.com',
     minLevel: 12,
     impact: 'High'
   },
   {
     id: 'u-8',
-    title: 'Native Instruments Komplete 14',
+    title: 'Native Instruments Komplete 14 Ultimate',
     type: 'Software',
-    description: 'The ultimate production suite with 145+ instruments and effects.',
-    cost: ',599',
+    description: 'The total production ecosystem. 140,000+ sounds to ensure you never hit a creative bottleneck.',
+    cost: '$1,199',
     url: 'https://www.native-instruments.com',
-    minLevel: 25,
-    impact: 'High'
+    minLevel: 30,
+    impact: 'Extreme',
+    genres: ['Cinematic', 'Electronic', 'Pop']
   },
   {
     id: 'u-9',
     title: 'Songtrust Publishing Administration',
     type: 'Service',
-    description: 'Collect your global mechanical and performance royalties.',
-    cost: '00 one-time',
+    description: 'Asset protection. Autonomous collection of global mechanical and performance royalties.',
+    cost: '$100 one-time',
     url: 'https://www.songtrust.com',
     minLevel: 3,
     impact: 'High'
@@ -647,8 +677,8 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     id: 'u-10',
     title: 'SoundBetter Premium',
     type: 'Service',
-    description: 'Connect with world-class mixing engineers and session musicians.',
-    cost: '0/mo',
+    description: 'Network expansion. Connect with world-class engineers to delegate high-precision tasks.',
+    cost: '$20/mo',
     url: 'https://soundbetter.com',
     minLevel: 8,
     impact: 'Medium'
@@ -657,8 +687,8 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     id: 'u-11',
     title: 'iZotope Music Production Suite 6',
     type: 'Software',
-    description: 'AI-powered tools for mixing, mastering, and vocal processing.',
-    cost: '99',
+    description: 'AI-assisted dominance. Intelligent tools for mixing and mastering that adapt to your profile.',
+    cost: '$599',
     url: 'https://www.izotope.com',
     minLevel: 10,
     impact: 'High'
@@ -667,91 +697,147 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     id: 'u-12',
     title: 'Moog Matriarch Semi-Modular Synth',
     type: 'Gear',
-    description: 'Patchable 4-note paraphonic analog synthesizer with built-in Stereo Delay.',
-    cost: ',299',
+    description: 'Analog purity. A 4-note paraphonic synthesizer for creating unique sonic signatures.',
+    cost: '$2,299',
     url: 'https://www.moogmusic.com',
-    minLevel: 30,
-    impact: 'High'
+    minLevel: 35,
+    impact: 'High',
+    genres: ['Electronic', 'Ambient', 'Synthwave']
   },
   {
     id: 'u-13',
     title: 'Chartmetric Premium',
     type: 'Service',
-    description: 'Comprehensive data analytics for artists and music professionals.',
-    cost: '40/mo',
+    description: 'Data intelligence. Comprehensive analytics to track your global market penetration.',
+    cost: '$140/mo',
     url: 'https://chartmetric.com',
-    minLevel: 15,
+    minLevel: 18,
     impact: 'High'
   },
   {
     id: 'u-14',
     title: 'FabFilter Total Bundle',
     type: 'Software',
-    description: 'Industry-leading EQ, reverb, compressor, and creative effect plugins.',
-    cost: '99',
+    description: 'Precision engineering. The industry\'s most intuitive and powerful tools for signal processing.',
+    cost: '$899',
     url: 'https://www.fabfilter.com',
-    minLevel: 18,
+    minLevel: 20,
     impact: 'High'
   },
   {
     id: 'u-15',
     title: 'Ableton Live 12 Suite',
     type: 'Software',
-    description: 'Fast, fluid and flexible software for music creation and performance.',
-    cost: '49',
+    description: 'Operational headquarters. The most flexible environment for creation and live execution.',
+    cost: '$749',
     url: 'https://www.ableton.com',
     minLevel: 1,
-    impact: 'High'
+    impact: 'High',
+    genres: ['Electronic', 'Hip-Hop', 'Pop']
   },
   {
     id: 'u-16',
     title: 'Solid State Logic Duality Fuse',
     type: 'Gear',
-    description: 'The ultimate analog console with SuperAnalogue circuitry and total DAW integration.',
-    cost: ',000',
+    description: 'The pinnacle of analog command. SuperAnalogue circuitry with seamless DAW integration.',
+    cost: '$285,000',
     url: 'https://www.solidstatelogic.com',
-    minLevel: 50,
+    minLevel: 55,
     impact: 'Extreme'
   },
   {
     id: 'u-17',
     title: 'Wanda Film Studio Scoring Stage Residency',
     type: 'Service',
-    description: 'Exclusive access to world-class scoring stages and a full orchestral ensemble.',
-    cost: '0,000/session',
+    description: 'Orchestral supremacy. Unlimited access to elite scoring stages and a full symphony ensemble.',
+    cost: '$50,000/session',
     url: 'https://www.wandafilm.com',
-    minLevel: 45,
-    impact: 'Extreme'
+    minLevel: 50,
+    impact: 'Extreme',
+    genres: ['Cinematic', 'Classical', 'Orchestral']
   },
   {
     id: 'u-18',
     title: 'Master Catalog Buyback Strategy',
     type: 'Service',
-    description: 'Autonomous legal and financial roadmap to reclaim 100% of your master recording ownership.',
+    description: 'Autonomous sovereignty. A roadmap to reclaiming 100% of your intellectual property ownership.',
     cost: 'Variable',
     url: 'https://www.smuve.ai/legal',
-    minLevel: 40,
+    minLevel: 45,
     impact: 'Extreme'
   },
   {
     id: 'u-19',
     title: 'Global Stadium World Tour Logistics',
     type: 'Service',
-    description: 'Complete end-to-end management for international stadium tours, including custom stage design.',
-    cost: '5M+',
+    description: 'Total market saturation. End-to-end management for international stadium-level campaigns.',
+    cost: '$5M+',
     url: 'https://www.live-nation.com',
-    minLevel: 50,
+    minLevel: 60,
     impact: 'Extreme'
   },
   {
     id: 'u-20',
     title: 'Neural Audio Interface V1 (Prototype)',
     type: 'Gear',
-    description: 'Direct-to-DAW neural link for near-zero latency thought-to-sound translation.',
+    description: 'Direct thought-to-sound translation. Zero-latency neural link for pure creative manifestation.',
     cost: 'Priceless',
     url: 'https://www.neuralink.com',
-    minLevel: 60,
+    minLevel: 70,
     impact: 'Extreme'
+  },
+  {
+    id: 'u-21',
+    title: 'Korg Kronos 2 88-Key Workstation',
+    type: 'Gear',
+    description: 'The ultimate performance engine for keyboard specialists. Nine synthesis engines in one.',
+    cost: '$3,899',
+    url: 'https://www.korg.com',
+    minLevel: 15,
+    impact: 'High',
+    genres: ['Jazz', 'Pop', 'Prog Rock', 'R&B']
+  },
+  {
+    id: 'u-22',
+    title: 'UAD Capitol Chambers Reverb',
+    type: 'Software',
+    description: 'Historical depth. Authentically captured reverb from the legendary Capitol Studios chambers.',
+    cost: '$349',
+    url: 'https://www.uaudio.com',
+    minLevel: 12,
+    impact: 'Medium',
+    genres: ['Pop', 'Vocal', 'Jazz']
+  },
+  {
+    id: 'u-23',
+    title: 'Genelec 8361A Smart Active Monitors',
+    type: 'Gear',
+    description: 'Precision acoustics. The point-source monitor that adapts to any environment via GLM calibration.',
+    cost: '$10,000/pair',
+    url: 'https://www.genelec.com',
+    minLevel: 40,
+    impact: 'Extreme'
+  },
+  {
+    id: 'u-24',
+    title: 'Output Arcade 2.0 Subscription',
+    type: 'Software',
+    description: 'Inspiration as a service. A playable loop synthesizer with daily content updates.',
+    cost: '$10/mo',
+    url: 'https://output.com',
+    minLevel: 1,
+    impact: 'Medium',
+    genres: ['Pop', 'Hip-Hop', 'Electronic']
+  },
+  {
+    id: 'u-25',
+    title: 'Audeze LCD-MX4 Professional Headphones',
+    type: 'Gear',
+    description: 'Critical monitoring anywhere. Planar magnetic technology for mastering-grade accuracy.',
+    cost: '$2,995',
+    url: 'https://www.audeze.com',
+    minLevel: 18,
+    impact: 'High'
   }
 ];
 
