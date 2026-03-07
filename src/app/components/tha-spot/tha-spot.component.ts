@@ -127,6 +127,63 @@ export class ThaSpotComponent implements OnInit {
     });
   }
 
+  requestAiBuff() {
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({
+        type: 'AI_INTERVENTION',
+        payload: 'STRATEGIC_OVERDRIVE_ACTIVATED'
+      }, '*');
+      this.aiCommentary.set('S.M.U.V.E 3.0: STRATEGIC OVERDRIVE INITIATED. MULTIPLIER BOOSTED.');
+      this.reputationService.addXp(50);
+    }
+  }
+
+  processSmuveCommand(command: string) {
+    const cmd = command.toLowerCase();
+    let response = '';
+
+    if (cmd.includes('status')) {
+      response = 'S.M.U.V.E 3.0: SYSTEM OPTIMAL. REPUTATION LVL: ' + this.reputationService.state().level + '. XP: ' + this.reputationService.state().xp;
+    } else if (cmd.includes('analyze')) {
+      response = 'S.M.U.V.E 3.0: ANALYZING THA SPOT... HIGH CONCENTRATION OF STRATEGIC POTENTIAL DETECTED.';
+    } else if (cmd.includes('target')) {
+      const users = this.onlineUsers();
+      const target = users[Math.floor(Math.random() * users.length)].name;
+      response = 'S.M.U.V.E 3.0: OPTIMAL TARGET ACQUIRED: ' + target.toUpperCase() + '. PROCEED WITH CHALLENGE.';
+    } else {
+      response = 'S.M.U.V.E 3.0: COMMAND RECEIVED. EXECUTING STRATEGIC MANEUVER...';
+    }
+
+    this.aiCommentary.set(response);
+
+    const msg: ChatMessage = {
+      id: Date.now().toString(),
+      user: 'S.M.U.V.E',
+      text: response,
+      timestamp: new Date(),
+      isSystem: true
+    };
+    this.chatMessages.update(msgs => [...msgs, msg]);
+  }
+
+  updateTabInsights() {
+    const tab = this.activeTab();
+    let insight = '';
+    switch(tab) {
+      case 'arcade':
+        insight = 'S.M.U.V.E 3.0: ARCADE STATS SHOW 85% PvP EFFICIENCY IN THA BATTLEFIELD.';
+        break;
+      case 'showcase':
+        insight = 'S.M.U.V.E 3.0: MARKET TRENDS INDICATE SURGE IN SYNTH-INDUSTRIAL HYBRIDS.';
+        break;
+      case 'networking':
+        insight = 'S.M.U.V.E 3.0: 4 STRATEGIC ALLIANCES IDENTIFIED. BROADCASTING COLLAB REQUESTS.';
+        break;
+    }
+    this.aiCommentary.set(insight);
+  }
+
   initializeMockData() {
     this.showcaseProjects.set([
       {
@@ -274,28 +331,35 @@ export class ThaSpotComponent implements OnInit {
 
   setActiveTab(tab: 'arcade' | 'showcase' | 'networking') {
     this.activeTab.set(tab);
+    this.updateTabInsights();
   }
 
-  sendChatMessage() {
+    sendChatMessage() {
     if (!this.newChatMessage().trim()) return;
     const text = this.newChatMessage().trim();
+    let handledAsCommand = false;
 
-    if (text.startsWith('/challenge')) {
+    if (text.startsWith('/smuve')) {
+        this.processSmuveCommand(text.replace('/smuve', '').trim());
+        handledAsCommand = true;
+    } else if (text.startsWith('/challenge')) {
         const parts = text.split(' ');
         if (parts.length > 1) {
             const target = parts[1].replace('@', '');
-            this.aiCommentary.set(`S.M.U.V.E 3.0: SEARCHING FOR ${target.toUpperCase()}... CHALLENGE BROADCASTED.`);
+            this.aiCommentary.set("S.M.U.V.E 3.0: SEARCHING FOR " + target.toUpperCase() + "... CHALLENGE BROADCASTED.");
         }
+        // Don't mark as handled because we want the challenge text to appear in chat
     }
 
-    const msg: ChatMessage = {
-      id: Date.now().toString(),
-      user: this.profileService.profile().artistName || 'Anonymous',
-      text: text,
-      timestamp: new Date()
-    };
-
-    this.chatMessages.update(msgs => [...msgs, msg]);
+    if (!handledAsCommand) {
+        const msg: ChatMessage = {
+          id: Date.now().toString(),
+          user: this.profileService.profile().artistName || 'Anonymous',
+          text: text,
+          timestamp: new Date()
+        };
+        this.chatMessages.update(msgs => [...msgs, msg]);
+    }
     this.newChatMessage.set('');
   }
 
