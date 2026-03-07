@@ -3,84 +3,96 @@
   [attr.data-theme]="uiService.activeTheme().name"
   [ngClass]="'theme-' + uiService.activeTheme().primary"
   [class.sidebar-closed]="!isSidebarOpen()"
+  [class.is-mobile]="isMobile()"
 >
   <div class="main-background"></div>
 
   <app-notification-toast></app-notification-toast>
 
+  <!-- Sidebar Overlay for Mobile -->
+  <div
+    *ngIf="isMobile() && isSidebarOpen()"
+    class="sidebar-overlay"
+    (click)="toggleSidebar()"
+  ></div>
+
   <!-- Sidebar Navigation -->
   <aside class="app-sidebar" [class.open]="isSidebarOpen()">
-    <div class="sidebar-header" routerLink="/hub">
+    <div class="sidebar-header" (click)="navigateToView('hub')">
       <div class="logo-icon">
         <i class="fas fa-microchip"></i>
       </div>
-      <div class="logo-text" *ngIf="isSidebarOpen()">
+      <div class="logo-text" *ngIf="isSidebarOpen() || isMobile()">
         <span class="brand">S.M.U.V.E</span>
         <span class="version">3.0</span>
       </div>
+      <button *ngIf="isMobile()" class="ml-auto text-slate-400" (click)="toggleSidebar()">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
 
-    <nav class="sidebar-nav">
-      <a routerLink="/hub" routerLinkActive="active" class="nav-item" title="Hub">
-        <i class="fas fa-th-large"></i>
-        <span *ngIf="isSidebarOpen()">Hub</span>
-      </a>
-      <a routerLink="/profile" routerLinkActive="active" class="nav-item" title="Artist Profile">
-        <i class="fas fa-user-circle"></i>
-        <span *ngIf="isSidebarOpen()">Artist Profile</span>
-      </a>
-      <a routerLink="/studio" routerLinkActive="active" class="nav-item" title="Studio">
-        <i class="fas fa-music"></i>
-        <span *ngIf="isSidebarOpen()">Studio</span>
-      </a>
-      <a routerLink="/practice" routerLinkActive="active" class="nav-item" title="Practice">
-        <i class="fas fa-microphone-alt"></i>
-        <span *ngIf="isSidebarOpen()">Practice</span>
-      </a>
-      <a routerLink="/tha-spot" routerLinkActive="active" class="nav-item" title="Tha Spot">
-        <i class="fas fa-bolt"></i>
-        <span *ngIf="isSidebarOpen()">Tha Spot</span>
+    <nav class="sidebar-nav custom-scrollbar">
+      <!-- Core Views -->
+      <div class="nav-section-label" *ngIf="isSidebarOpen() || isMobile()">Main System</div>
+      <a *ngFor="let view of getViewsByCategory('CORE')"
+         [routerLink]="'/' + view.mode"
+         routerLinkActive="active"
+         class="nav-item"
+         [title]="view.label">
+        <i class="fas {{ view.icon }}"></i>
+        <span *ngIf="isSidebarOpen() || isMobile()">{{ view.label }}</span>
       </a>
 
       <div class="nav-divider"></div>
 
-      <!-- Dropdown for Additional Tools -->
-      <div class="nav-dropdown" [class.open]="isToolsDropdownOpen()">
-        <button (click)="toggleToolsDropdown()" class="nav-item dropdown-toggle" title="More Tools">
-          <i class="fas fa-plus-square"></i>
-          <span *ngIf="isSidebarOpen()">More Tools</span>
-          <i class="fas fa-chevron-down dropdown-arrow" *ngIf="isSidebarOpen()"></i>
-        </button>
-        <div class="dropdown-content" *ngIf="isToolsDropdownOpen() || !isSidebarOpen()">
-          <a routerLink="/career" routerLinkActive="active" class="dropdown-item">
-            <i class="fas fa-briefcase"></i>
-            <span *ngIf="isSidebarOpen()">Career Hub</span>
-          </a>
-          <a routerLink="/analytics" routerLinkActive="active" class="dropdown-item">
-            <i class="fas fa-chart-line"></i>
-            <span *ngIf="isSidebarOpen()">Analytics</span>
-          </a>
-          <a routerLink="/strategy" routerLinkActive="active" class="dropdown-item">
-            <i class="fas fa-chess"></i>
-            <span *ngIf="isSidebarOpen()">Strategy Hub</span>
-          </a>
-          <a routerLink="/projects" routerLinkActive="active" class="dropdown-item">
-            <i class="fas fa-project-diagram"></i>
-            <span *ngIf="isSidebarOpen()">Projects</span>
-          </a>
-          <a routerLink="/remix-arena" routerLinkActive="active" class="dropdown-item">
-            <i class="fas fa-compact-disc"></i>
-            <span *ngIf="isSidebarOpen()">Remix Arena</span>
-          </a>
-          <a routerLink="/image-video-lab" routerLinkActive="active" class="dropdown-item">
-            <i class="fas fa-video"></i>
-            <span *ngIf="isSidebarOpen()">Media Lab</span>
-          </a>
-        </div>
-      </div>
+      <!-- Strategy & Growth -->
+      <div class="nav-section-label" *ngIf="isSidebarOpen() || isMobile()">Intelligence</div>
+      <a *ngFor="let view of getViewsByCategory('STRATEGY')"
+         [routerLink]="'/' + view.mode"
+         routerLinkActive="active"
+         class="nav-item"
+         [title]="view.label">
+        <i class="fas {{ view.icon }}"></i>
+        <span *ngIf="isSidebarOpen() || isMobile()">{{ view.label }}</span>
+      </a>
+
+      <div class="nav-divider"></div>
+
+      <!-- Creative & Community -->
+      <div class="nav-section-label" *ngIf="isSidebarOpen() || isMobile()">Creative Hub</div>
+      <a *ngFor="let view of getViewsByCategory('CREATIVE')"
+         [routerLink]="'/' + view.mode"
+         routerLinkActive="active"
+         class="nav-item"
+         [title]="view.label">
+        <i class="fas {{ view.icon }}"></i>
+        <span *ngIf="isSidebarOpen() || isMobile()">{{ view.label }}</span>
+      </a>
+
+      <a *ngFor="let view of getViewsByCategory('COMMUNITY')"
+         [routerLink]="'/' + view.mode"
+         routerLinkActive="active"
+         class="nav-item"
+         [title]="view.label">
+        <i class="fas {{ view.icon }}"></i>
+        <span *ngIf="isSidebarOpen() || isMobile()">{{ view.label }}</span>
+      </a>
+
+      <div class="nav-divider"></div>
+
+      <!-- Utility -->
+      <div class="nav-section-label" *ngIf="isSidebarOpen() || isMobile()">Utilities</div>
+      <a *ngFor="let view of getViewsByCategory('UTILITY')"
+         [routerLink]="'/' + view.mode"
+         routerLinkActive="active"
+         class="nav-item"
+         [title]="view.label">
+        <i class="fas {{ view.icon }}"></i>
+        <span *ngIf="isSidebarOpen() || isMobile()">{{ view.label }}</span>
+      </a>
     </nav>
 
-    <div class="sidebar-footer">
+    <div class="sidebar-footer" *ngIf="!isMobile()">
       <button (click)="toggleSidebar()" class="collapse-btn" [title]="isSidebarOpen() ? 'Collapse Sidebar' : 'Expand Sidebar'">
         <i class="fas" [ngClass]="isSidebarOpen() ? 'fa-angle-double-left' : 'fa-angle-double-right'"></i>
       </button>
@@ -90,24 +102,48 @@
   <!-- Top Bar -->
   <header class="app-top-bar">
     <div class="header-left">
+      <button *ngIf="isMobile()" (click)="toggleSidebar()" class="mobile-menu-btn mr-4">
+        <i class="fas fa-bars"></i>
+      </button>
       <h2 class="current-view-title">{{ uiService.mainViewMode() | uppercase }}</h2>
     </div>
 
     <div class="header-center">
-      <div class="view-mode-selector">
+      <div class="view-mode-selector relative">
         <button
-          (click)="uiService.toggleMainViewMode()"
+          (click)="toggleViewSelector()"
           class="mode-button"
-          title="Switch View"
+          title="Open Command Navigator"
         >
           <span class="mode-text">{{ uiService.mainViewMode() }}</span>
-          <i class="fas fa-sync-alt"></i>
+          <i class="fas fa-terminal ml-2 text-[10px] text-emerald-500/60" [class.animate-pulse]="isViewSelectorOpen()"></i>
         </button>
+
+        <div *ngIf="isViewSelectorOpen()" class="view-dropdown-menu custom-scrollbar">
+           <div class="px-4 py-2 border-b border-white/5 mb-2 flex items-center justify-between">
+              <span class="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-500/60">System Navigator</span>
+              <input type="text"
+                     placeholder="SEARCH..."
+                     class="bg-transparent border-none outline-none text-[10px] text-emerald-500 font-mono w-24 text-right"
+                     (click)="$event.stopPropagation()"
+                     (input)="filterViews($any($event.target).value)">
+           </div>
+           <div *ngFor="let config of filteredViews()"
+                (click)="navigateToView(config.mode)"
+                class="view-dropdown-item flex items-center justify-between"
+                [class.active]="uiService.mainViewMode() === config.mode">
+              <div class="flex items-center gap-3">
+                 <i class="fas {{ config.icon }} w-4 text-center opacity-60"></i>
+                 <span>{{ config.label }}</span>
+              </div>
+              <span class="text-[6px] font-mono opacity-30">{{ config.category }}</span>
+           </div>
+        </div>
       </div>
 
-      <div class="top-divider"></div>
+      <div class="top-divider hidden md:block"></div>
 
-      <div class="flex items-center gap-2">
+      <div class="hidden md:flex items-center gap-2">
         <button
           (click)="uiService.randomizeTheme()"
           class="utility-button"
@@ -129,7 +165,7 @@
     </div>
 
     <div class="header-right">
-      <div class="status-indicator" [class.offline]="!uiService.isOnline()">
+      <div class="status-indicator hidden sm:flex" [class.offline]="!uiService.isOnline()">
         <div class="status-dot"></div>
         <span class="status-text" *ngIf="uiService.isOnline()">Online</span>
         <span class="status-text" *ngIf="!uiService.isOnline()">Offline</span>
@@ -145,13 +181,13 @@
         <i class="fas fa-comment-alt"></i>
       </button>
 
-      <div class="top-divider"></div>
+      <div class="top-divider hidden sm:block"></div>
 
       <div
         *ngIf="authService.isAuthenticated()"
         class="user-profile-widget"
       >
-        <div class="user-info">
+        <div class="user-info hidden lg:flex">
           <span class="user-name">{{ authService.currentUser()?.artistName }}</span>
           <span class="user-rank">PRO</span>
         </div>
@@ -183,6 +219,7 @@
     <aside
       *ngIf="uiService.isChatbotOpen()"
       class="ai-drawer animate__animated animate__slideInRight"
+      [class.mobile-full]="isMobile()"
     >
       <app-chatbot
         (close)="uiService.toggleChatbot()"
@@ -196,8 +233,8 @@
     <div class="footer-meta">
       <span>S.M.U.V.E 3.0</span>
       <span class="meta-dot"></span>
-      <span>Engine: V3-PRO</span>
-      <span class="meta-dot"></span>
+      <span class="hidden sm:inline">Engine: V3-PRO</span>
+      <span class="meta-dot hidden sm:inline"></span>
       <span>Session: {{ authService.isAuthenticated() ? 'Active' : 'Guest' }}</span>
     </div>
   </footer>
