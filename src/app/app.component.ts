@@ -1,11 +1,13 @@
-import { Component, inject, effect, signal } from '@angular/core';
+import { Component, inject, effect, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
+import { RouterLink, RouterOutlet, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { AuthService } from './services/auth.service';
 import { UIService } from './services/ui.service';
 import { ChatbotComponent } from './components/chatbot/chatbot.component';
 import { NotificationToastComponent } from './components/notification-toast/notification-toast.component';
 import { NotificationService } from './services/notification.service';
+import { MainViewMode } from './services/user-context.service';
 
 @Component({
   selector: 'app-root',
@@ -18,11 +20,16 @@ export class AppComponent {
   authService = inject(AuthService);
   uiService = inject(UIService);
   notificationService = inject(NotificationService);
+  router = inject(Router);
 
   isSidebarOpen = signal(true);
   isToolsDropdownOpen = signal(false);
+  isViewSelectorOpen = signal(false);
+  isMobile = signal(false);
 
   constructor() {
+    this.checkMobile();
+
     effect(() => {
       const isOnline = this.uiService.isOnline();
       if (isOnline) {
@@ -31,6 +38,38 @@ export class AppComponent {
         this.notificationService.show('System Offline: Some features restricted', 'warning', 0);
       }
     });
+
+    // Update mainViewMode based on current route
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: any) => {
+      const path = event.urlAfterRedirects.split('/')[1] as MainViewMode;
+      if (path && this.uiService.getViewModes().includes(path)) {
+        this.uiService.mainViewMode.set(path);
+      }
+
+      // Auto-close sidebar on mobile after navigation
+      if (this.isMobile()) {
+        this.isSidebarOpen.set(false);
+      }
+    });
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.checkMobile();
+  }
+
+  private checkMobile() {
+    const wasMobile = this.isMobile();
+    this.isMobile.set(window.innerWidth <= 1024);
+
+    // If we just switched to mobile, close sidebar. If we switched to desktop, open it.
+    if (!wasMobile && this.isMobile()) {
+      this.isSidebarOpen.set(false);
+    } else if (wasMobile && !this.isMobile()) {
+      this.isSidebarOpen.set(true);
+    }
   }
 
   toggleSidebar() {
@@ -43,5 +82,22 @@ export class AppComponent {
 
   toggleChatbot() {
     this.uiService.toggleChatbot();
+  }
+
+  toggleViewSelector() {
+    this.isViewSelectorOpen.update(v => !v);
+  }
+
+  navigateToView(mode: MainViewMode) {
+    this.uiService.navigateToView(mode);
+    this.isViewSelectorOpen.set(false);
+  }
+
+  @HostListener('document:click', [''])
+  onClickOutside(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.view-mode-selector')) {
+      this.isViewSelectorOpen.set(false);
+    }
   }
 }

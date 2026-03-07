@@ -31,6 +31,7 @@
 
 .bottom-panel {
   transition: height 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  min-height: 0;
 }
 
 /* Glass morphism and neon effects */
@@ -79,4 +80,27 @@ input[type=range].channel-fader::-webkit-slider-thumb {
 
 .spectral-bar {
   animation: spectralPulse 1s infinite ease-in-out;
+}
+
+@media (max-width: 1024px) {
+  .rack-panel {
+    width: 250px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .rack-panel {
+    width: 100% !important;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .bottom-panel > .flex {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .main-bottom-area {
+    min-height: 300px;
+  }
 }

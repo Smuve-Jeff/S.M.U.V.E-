@@ -18,7 +18,10 @@ export type MainViewMode =
   | 'projects'
   | 'remix-arena'
   | 'image-video-lab'
-  | 'strategy';
+  | 'strategy'
+  | 'analytics'
+  | 'practice'
+  | 'career';
 
 export type { MainViewMode as ViewMode };
 
