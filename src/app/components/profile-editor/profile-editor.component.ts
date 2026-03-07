@@ -19,6 +19,7 @@ import {
   LegalDocumentEditorComponent,
   LegalDocument,
 } from '../legal-document-editor/legal-document-editor.component';
+import { CatalogManagerComponent } from '../catalog-manager/catalog-manager.component';
 
 @Component({
   selector: 'app-profile-editor',
@@ -31,6 +32,7 @@ import {
     FormsModule,
     FormFieldComponent,
     LegalDocumentEditorComponent,
+    CatalogManagerComponent,
   ],
 })
 export class ProfileEditorComponent {
@@ -98,6 +100,7 @@ export class ProfileEditorComponent {
 
   sections = [
     { id: 'basic', label: 'Basic Info', icon: 'fa-user' },
+    { id: 'catalog', label: 'Catalog & Assets', icon: 'fa-folder-open' },
     { id: 'social', label: 'Social & Links', icon: 'fa-link' },
     { id: 'professional', label: 'Professional ID', icon: 'fa-id-card' },
     { id: 'legal', label: 'Legal Docs', icon: 'fa-file-contract' },
@@ -225,6 +228,13 @@ export class ProfileEditorComponent {
 
   objectKeys(obj: any): string[] {
     return obj ? Object.keys(obj) : [];
+  }
+
+  removeTask(id: string) {
+    this.editableProfile.update(p => ({
+      ...p,
+      tasks: (p.tasks || []).filter(t => t.id !== id)
+    }));
   }
 
   updateProfileField(field: keyof UserProfile, value: any) {

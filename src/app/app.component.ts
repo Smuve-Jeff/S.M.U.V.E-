@@ -6,13 +6,14 @@ import { AuthService } from './services/auth.service';
 import { UIService } from './services/ui.service';
 import { ChatbotComponent } from './components/chatbot/chatbot.component';
 import { NotificationToastComponent } from './components/notification-toast/notification-toast.component';
+import { SmuveAdvisorComponent } from './components/smuve-advisor/smuve-advisor.component';
 import { NotificationService } from './services/notification.service';
 import { MainViewMode } from './services/user-context.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ChatbotComponent, NotificationToastComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ChatbotComponent, NotificationToastComponent, SmuveAdvisorComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
 })
