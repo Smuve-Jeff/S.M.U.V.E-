@@ -62,3 +62,43 @@
 .collab-card {
   @apply p-6 bg-slate-900/40 border border-white/5 rounded-[2rem] hover:border-emerald-500/20 transition-all;
 }
+
+/* PvP Room & Overlay Styles */
+.game-overlay-active {
+    overflow: hidden;
+}
+
+iframe {
+    background: #000;
+}
+
+@keyframes ticker {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+/* Animations for HUD */
+.animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.tab-btn {
+    @apply relative overflow-hidden;
+}
+
+.tab-btn.active::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500 shadow-[0_0_10px_#10b981];
+}
+
+.game-card {
+    @apply transition-transform duration-300;
+}
+
+.game-card:hover {
+    @apply -translate-y-2;
+}
+
+.play-btn {
+    @apply border border-emerald-500/20;
+}
