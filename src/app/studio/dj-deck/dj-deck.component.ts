@@ -9,7 +9,8 @@ import {
   OnDestroy,
   ViewChild,
   ElementRef,
-  AfterViewInit
+  AfterViewInit,
+  HostListener
 } from '@angular/core';
 import { CommonModule, TitleCasePipe, DecimalPipe } from '@angular/common';
 import { AppTheme } from '../../services/user-context.service';
@@ -39,6 +40,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   midiEnabled = signal(false);
   phantomPowerEnabled = signal(false);
   showSampleLibrary = signal(false);
+  isMobile = signal(false);
 
   private recorder: MediaRecorder | null = null;
   recording = signal(false);
@@ -76,6 +78,17 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy() {
     if (this.animFrame) cancelAnimationFrame(this.animFrame);
     if (this.syncInterval) clearInterval(this.syncInterval);
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.checkMobile();
+  }
+
+  private checkMobile() {
+    if (typeof window !== 'undefined') {
+      this.isMobile.set(window.innerWidth < 1024);
+    }
   }
 
   private startAnimationLoop() {

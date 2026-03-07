@@ -9,7 +9,7 @@ import { ArrangementViewComponent } from './arrangement-view/arrangement-view.co
 import { PianoRollComponent } from './piano-roll/piano-roll.component';
 import { WaveformRendererComponent } from './waveform-renderer/waveform-renderer.component';
 import { AudioSessionService } from './audio-session.service';
-import { SequencerService } from './sequencer.service';
+import { MusicManagerService } from '../services/music-manager.service';
 
 @Component({
   selector: 'app-studio',
@@ -30,7 +30,7 @@ import { SequencerService } from './sequencer.service';
 })
 export class StudioComponent {
   private readonly audioSession = inject(AudioSessionService);
-  public readonly sequencer = inject(SequencerService);
+  public readonly musicManager = inject(MusicManagerService);
 
   activeView = signal<'daw' | 'dj' | 'mastering'>('daw');
   showMixer = signal(true);
@@ -41,7 +41,7 @@ export class StudioComponent {
 
   constructor() {
     effect(() => {
-      const selectedId = this.sequencer.selectedTrackId();
+      const selectedId = this.musicManager.selectedTrackId();
       if (selectedId) {
         this.showPianoRoll.set(true);
       }

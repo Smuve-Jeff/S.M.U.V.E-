@@ -83,11 +83,11 @@
                   </div>
                 </div>
 
-                <!-- Personal Social Presence -->
+                <!-- Behind-The-Scenes / Personal Profiles -->
                 <div class="space-y-4 pt-6 border-t border-white/10">
                   <h4 class="text-xl font-bold text-violet-500 flex items-center gap-2">
                     <i class="fas fa-share-alt"></i>
-                    Personal Social Presence
+                    Behind-The-Scenes / Personal Profiles
                   </h4>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div *ngFor="let p of objectKeys(editableProfile().personalSocialProfiles)"
@@ -109,6 +109,16 @@
                     </div>
                   </div>
                 </div>
+              </div>
+
+
+              <!-- Catalog & Assets Section -->
+              <div *ngIf="section.id === 'catalog'" class="space-y-6">
+                <div class="border-b border-white/10 pb-4 mb-6">
+                  <h3 class="text-2xl font-black text-white uppercase tracking-tighter">Artist Catalog</h3>
+                  <p class="text-slate-400 text-sm">Manage your masters, demos, stems, and creative assets with full metadata tracking.</p>
+                </div>
+                <app-catalog-manager></app-catalog-manager>
               </div>
 
               <!-- Professional ID Section -->
@@ -175,6 +185,33 @@
                       </select>
                     </app-form-field>
                   </div>
+                </div>
+
+
+                <div class="border-t border-white/10 pt-8 mt-8">
+                   <h4 class="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2">
+                     <i class="fas fa-tasks"></i>
+                     Strategic Action Tasks
+                   </h4>
+                   <div class="space-y-3">
+                      <div *ngFor="let task of editableProfile().tasks"
+                           class="flex items-center justify-between p-4 bg-slate-900/50 border border-white/5 rounded-xl">
+                         <div class="flex items-center gap-4">
+                            <div class="w-2 h-2 rounded-full" [ngClass]="task.priority === 'high' ? 'bg-red-500' : 'bg-emerald-500'"></div>
+                            <div>
+                               <div class="font-bold text-sm text-slate-100">{{ task.title }}</div>
+                               <div class="text-[10px] text-slate-500 uppercase">{{ task.category }} • {{ task.status }}</div>
+                            </div>
+                         </div>
+                         <div class="flex items-center gap-2">
+                            <button *ngIf="task.aiSuggested" class="text-[8px] font-bold bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded-full uppercase">AI Suggested</button>
+                            <button (click)="removeTask(task.id)" class="text-slate-600 hover:text-red-400 p-2"><i class="fas fa-trash"></i></button>
+                         </div>
+                      </div>
+                      <div *ngIf="!editableProfile().tasks?.length" class="text-center py-6 border border-dashed border-white/5 rounded-xl text-slate-600 text-xs italic">
+                        No active tasks. AI will suggest actions as you work.
+                      </div>
+                   </div>
                 </div>
 
                 <div class="flex justify-end pt-4">

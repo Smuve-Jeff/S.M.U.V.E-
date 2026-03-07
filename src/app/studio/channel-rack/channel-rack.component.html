@@ -1,4 +1,4 @@
-<div class="channel-rack-container bg-slate-950 border border-white/5 rounded-2xl overflow-hidden shadow-2xl h-full flex flex-col">
+<div class="channel-rack-container bg-slate-950 border border-white/5 rounded-2xl overflow-hidden shadow-2xl h-full flex flex-col font-sans">
   <!-- Dynamic Rack Header -->
   <div class="rack-header bg-slate-900 px-4 py-2 flex items-center justify-between border-b border-white/5">
     <div class="flex items-center gap-2">
@@ -7,8 +7,8 @@
     </div>
     <div class="flex items-center gap-4">
        <div class="flex items-center bg-black/40 rounded-lg px-2 py-0.5 border border-white/5">
-          <span class="text-[8px] font-mono text-emerald-500/60 uppercase mr-2">Pattern</span>
-          <span class="text-[9px] font-mono text-emerald-500">{{ activePattern()?.name }}</span>
+          <span class="text-[8px] font-mono text-emerald-500/60 uppercase mr-2">Session</span>
+          <span class="text-[9px] font-mono text-emerald-500">Live</span>
        </div>
        <button (click)="addTrack()" class="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center hover:bg-emerald-500 hover:text-black transition-all">
          <i class="fas fa-plus text-[8px]"></i>
@@ -17,15 +17,15 @@
   </div>
 
   <div class="rack-content flex-grow overflow-y-auto custom-scrollbar p-3">
-    <div *ngFor="let track of activePattern()?.tracks"
+    <div *ngFor="let track of musicManager.tracks()"
          (click)="selectTrack(track)"
-         [class.border-emerald-500/40]="sequencer.selectedTrackId() === track.id"
-         [class.bg-white/[0.03]]="sequencer.selectedTrackId() === track.id"
+         [class.border-emerald-500/40]="musicManager.selectedTrackId() === track.id"
+         [class.bg-white/[0.03]]="musicManager.selectedTrackId() === track.id"
          class="channel-item flex items-center gap-3 mb-2 p-2 bg-black/20 rounded-xl border border-white/5 hover:bg-white/[0.05] transition-all group relative">
 
       <!-- Mute/Solo Cluster -->
       <div class="flex flex-col gap-1">
-        <button (click)="toggleMute(track); $event.stopPropagation()"
+        <button (click)="musicManager.toggleMute(track.id)"
                 [class.bg-yellow-500/20]="track.mute"
                 [class.text-yellow-500]="track.mute"
                 [class.border-yellow-500/40]="track.mute"
@@ -42,16 +42,12 @@
       <!-- High-Precision Step Sequencer (16-Step Mini-View) -->
       <div class="step-sequencer flex gap-[2px] px-2 flex-grow justify-center">
         <button *ngFor="let step of steps; let i = index"
-                (click)="toggleStep(track, i); $event.stopPropagation()"
-                [class.active]="track.steps[i]"
-                class="step-pad w-5 h-8 rounded-sm transition-all relative overflow-hidden"
+                (click)="musicManager.toggleStep(track.id, i)"
                 [class.bg-slate-800]="i % 8 < 4"
                 [class.bg-slate-900]="i % 8 >= 4"
-                [class.bg-gradient-to-t]="track.steps[i]"
-                [class.from-emerald-600]="track.steps[i]"
-                [class.to-emerald-400]="track.steps[i]"
-                [class.shadow-[0_0_12px_rgba(16,185,129,0.3)]]="track.steps[i]">
-          <div *ngIf="currentStep() === i" class="absolute inset-0 bg-white/30 animate-pulse pointer-events-none"></div>
+                [class.shadow-[0_0_12px_rgba(16,185,129,0.3)]]="false"
+                class="step-pad w-5 h-8 rounded-sm transition-all relative overflow-hidden">
+          <div *ngIf="musicManager.currentStep() === i" class="absolute inset-0 bg-white/30 animate-pulse pointer-events-none"></div>
           <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-white/10"></div>
         </button>
       </div>
@@ -59,10 +55,10 @@
       <!-- Quick Mix Controls (Visible on Hover) -->
       <div class="channel-actions flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
          <div class="flex flex-col gap-1">
-            <input type="range" (input)="updateVolume(track, $event); $event.stopPropagation()" [value]="track.volume" min="0" max="100" class="w-16 h-0.5 accent-emerald-500">
-            <input type="range" (input)="updatePan(track, $event); $event.stopPropagation()" [value]="track.pan" min="-100" max="100" class="w-16 h-0.5 accent-blue-500">
+            <input type="range" (input)="updateVolume(track, $event)" [value]="track.gain * 100" min="0" max="100" class="w-16 h-0.5 accent-emerald-500">
+            <input type="range" (input)="updatePan(track, $event)" [value]="track.pan * 100" min="-100" max="100" class="w-16 h-0.5 accent-blue-500">
          </div>
-         <button (click)="removeTrack(track.id); $event.stopPropagation()" class="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+         <button (click)="removeTrack(track.id)" class="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
            <i class="fas fa-trash text-[9px]"></i>
          </button>
       </div>

@@ -21,7 +21,49 @@ export interface ArtistPlatform {
   lastSynced?: string;
 }
 
+
+export interface CatalogItem {
+  id: string;
+  title: string;
+  version?: string;
+  status: 'demo' | 'completed' | 'released';
+  category: 'track' | 'stem' | 'vocal' | 'instrumental' | 'artwork' | 'document' | 'other';
+  url: string;
+  metadata: {
+    isrc?: string;
+    upc?: string;
+    bpm?: number;
+    key?: string;
+    genre?: string;
+    mood?: string;
+    credits: string[];
+    releaseDate?: string;
+    label?: string;
+    distributor?: string;
+  };
+  socialLinks?: {
+    platform: string;
+    url: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ArtistTask {
+  id: string;
+  title: string;
+  description?: string;
+  category: 'production' | 'marketing' | 'legal' | 'distribution' | 'other';
+  status: 'pending' | 'in-progress' | 'completed';
+  priority: 'low' | 'medium' | 'high';
+  dueDate?: string;
+  aiSuggested: boolean;
+  actionUrl?: string;
+}
+
 export interface UserProfile {
+  catalog: CatalogItem[];
+  tasks: ArtistTask[];
   marketingCampaigns: MarketingCampaign[];
   // === BASIC INFO ===
   artistName: string;
@@ -192,6 +234,8 @@ export interface UserProfile {
 }
 
 export const initialProfile: UserProfile = {
+  catalog: [],
+  tasks: [],
   marketingCampaigns: [],
   // Basic Info
   artistName: 'New Artist',

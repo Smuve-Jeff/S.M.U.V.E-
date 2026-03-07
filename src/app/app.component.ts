@@ -1,18 +1,20 @@
+import { Component, inject, effect, signal, HostListener, computed } from '@angular/core';
 import { Component, inject, effect, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterOutlet, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from './services/auth.service';
-import { UIService } from './services/ui.service';
+import { UIService, ViewConfig } from './services/ui.service';
 import { ChatbotComponent } from './components/chatbot/chatbot.component';
 import { NotificationToastComponent } from './components/notification-toast/notification-toast.component';
+import { SmuveAdvisorComponent } from './components/smuve-advisor/smuve-advisor.component';
 import { NotificationService } from './services/notification.service';
 import { MainViewMode } from './services/user-context.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ChatbotComponent, NotificationToastComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ChatbotComponent, NotificationToastComponent, SmuveAdvisorComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
 })
@@ -86,6 +88,13 @@ export class AppComponent {
 
   toggleViewSelector() {
     this.isViewSelectorOpen.update(v => !v);
+    if (this.isViewSelectorOpen()) {
+      this.viewSearchQuery.set('');
+    }
+  }
+
+  filterViews(query: string) {
+    this.viewSearchQuery.set(query);
   }
 
   navigateToView(mode: MainViewMode) {
@@ -93,6 +102,11 @@ export class AppComponent {
     this.isViewSelectorOpen.set(false);
   }
 
+  getViewsByCategory(category: string): ViewConfig[] {
+    return this.uiService.getViewConfigs().filter(v => v.category === category);
+  }
+
+  @HostListener('document:click', ['$event'])
   @HostListener('document:click', [''])
   onClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;

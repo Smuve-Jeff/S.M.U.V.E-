@@ -1,4 +1,13 @@
-.arrangement-container {
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background-color: #020617;
+  overflow: hidden;
+  position: relative;
+}
+
+.timeline-container {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -14,44 +23,125 @@
   min-width: 0;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.track-headers {
+  width: 200px;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.4);
+.time-ruler {
+  flex: 1;
+  display: flex;
+  position: relative;
+  min-width: 2000px; /* Base width for horizontal scrolling */
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.2);
-  border-radius: 10px;
+.ruler-mark {
+  width: 120px;
+  height: 100%;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 4px 8px;
+  font-size: 10px;
+  font-family: monospace;
+  color: #475569;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.4);
+.ruler-mark.bar {
+  color: #94a3b8;
+  border-right-color: rgba(255, 255, 255, 0.15);
 }
 
-.clip-item {
-  transition: transform 0.1s ease-out, shadow 0.2s ease-in-out;
-  backdrop-filter: blur(4px);
+.timeline-body {
+  flex: 1;
+  display: flex;
+  overflow-y: auto;
 }
 
-.clip-item:hover {
-  filter: brightness(1.2);
-  transform: translateY(-1px);
+.tracks-column {
+  width: 200px;
+  flex-shrink: 0;
+  background: rgba(2, 6, 23, 0.5);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
 }
 
-.track-header {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+.grid-column {
+  flex: 1;
+  min-width: 2000px; /* Same as time-ruler */
+  position: relative;
+  background-image:
+    linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size: 120px 60px;
 }
 
-.track-header:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+.track-row {
+  height: 60px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  gap: 1rem;
+  transition: background 0.2s;
+}
+
+.track-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.track-row.selected {
+  background: rgba(16, 185, 129, 0.05);
+  border-left: 2px solid #10b981;
+}
+
+.track-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+}
+
+.track-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.track-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.track-instrument {
+  font-size: 0.6rem;
+  color: #64748b;
+  text-transform: uppercase;
 }
 
 .playhead {
-  transition: left 0.05s linear;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #f43f5e;
+  box-shadow: 0 0 10px #f43f5e;
+  z-index: 30;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .track-headers, .tracks-column {
+    width: 60px;
+  }
+  .track-info, .track-instrument {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {

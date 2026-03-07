@@ -8,6 +8,14 @@
   <div class="main-background"></div>
 
   <app-notification-toast></app-notification-toast>
+  <app-smuve-advisor></app-smuve-advisor>
+
+  <!-- Sidebar Overlay for Mobile -->
+  <div
+    *ngIf="isMobile() && isSidebarOpen()"
+    class="sidebar-overlay"
+    (click)="toggleSidebar()"
+  ></div>
 
   <!-- Sidebar Overlay for Mobile -->
   <div
@@ -31,6 +39,51 @@
       </button>
     </div>
 
+    <nav class="sidebar-nav custom-scrollbar">
+      <!-- Core Views -->
+      <div class="nav-section-label" *ngIf="isSidebarOpen() || isMobile()">Main System</div>
+      <a *ngFor="let view of getViewsByCategory('CORE')"
+         [routerLink]="'/' + view.mode"
+         routerLinkActive="active"
+         class="nav-item"
+         [title]="view.label">
+        <i class="fas {{ view.icon }}"></i>
+        <span *ngIf="isSidebarOpen() || isMobile()">{{ view.label }}</span>
+      </a>
+
+      <div class="nav-divider"></div>
+
+      <!-- Strategy & Growth -->
+      <div class="nav-section-label" *ngIf="isSidebarOpen() || isMobile()">Intelligence</div>
+      <a *ngFor="let view of getViewsByCategory('STRATEGY')"
+         [routerLink]="'/' + view.mode"
+         routerLinkActive="active"
+         class="nav-item"
+         [title]="view.label">
+        <i class="fas {{ view.icon }}"></i>
+        <span *ngIf="isSidebarOpen() || isMobile()">{{ view.label }}</span>
+      </a>
+
+      <div class="nav-divider"></div>
+
+      <!-- Creative & Community -->
+      <div class="nav-section-label" *ngIf="isSidebarOpen() || isMobile()">Creative Hub</div>
+      <a *ngFor="let view of getViewsByCategory('CREATIVE')"
+         [routerLink]="'/' + view.mode"
+         routerLinkActive="active"
+         class="nav-item"
+         [title]="view.label">
+        <i class="fas {{ view.icon }}"></i>
+        <span *ngIf="isSidebarOpen() || isMobile()">{{ view.label }}</span>
+      </a>
+
+      <a *ngFor="let view of getViewsByCategory('COMMUNITY')"
+         [routerLink]="'/' + view.mode"
+         routerLinkActive="active"
+         class="nav-item"
+         [title]="view.label">
+        <i class="fas {{ view.icon }}"></i>
+        <span *ngIf="isSidebarOpen() || isMobile()">{{ view.label }}</span>
     <nav class="sidebar-nav">
       <a routerLink="/hub" routerLinkActive="active" class="nav-item" title="Hub">
         <i class="fas fa-th-large"></i>
@@ -55,6 +108,16 @@
 
       <div class="nav-divider"></div>
 
+      <!-- Utility -->
+      <div class="nav-section-label" *ngIf="isSidebarOpen() || isMobile()">Utilities</div>
+      <a *ngFor="let view of getViewsByCategory('UTILITY')"
+         [routerLink]="'/' + view.mode"
+         routerLinkActive="active"
+         class="nav-item"
+         [title]="view.label">
+        <i class="fas {{ view.icon }}"></i>
+        <span *ngIf="isSidebarOpen() || isMobile()">{{ view.label }}</span>
+      </a>
       <!-- Dropdown for Additional Tools -->
       <div class="nav-dropdown" [class.open]="isToolsDropdownOpen()">
         <button (click)="toggleToolsDropdown()" class="nav-item dropdown-toggle" title="More Tools">
@@ -119,6 +182,15 @@
         </button>
 
         <div *ngIf="isViewSelectorOpen()" class="view-dropdown-menu custom-scrollbar">
+           <div class="px-4 py-2 border-b border-white/5 mb-2 flex items-center justify-between">
+              <span class="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-500/60">System Navigator</span>
+              <input type="text"
+                     placeholder="SEARCH..."
+                     class="bg-transparent border-none outline-none text-[10px] text-emerald-500 font-mono w-24 text-right"
+                     (click)="$event.stopPropagation()"
+                     (input)="filterViews($any($event.target).value)">
+           </div>
+           <div *ngFor="let config of filteredViews()"
            <div class="px-4 py-2 border-b border-white/5 mb-2">
               <span class="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-500/60">System Navigator</span>
            </div>

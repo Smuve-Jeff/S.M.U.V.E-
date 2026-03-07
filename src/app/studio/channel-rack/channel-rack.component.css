@@ -1,28 +1,96 @@
-.channel-rack-container {
+:host {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(20px);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+.rack-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+.track-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
+.rack-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(2, 6, 23, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.rack-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.rack-item.selected {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: #10b981;
+  box-shadow: inset 0 0 15px rgba(16, 185, 129, 0.05);
+}
+
+.step-sequencer {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.step {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.step.active {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.rack-footer {
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.add-track-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px dashed rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  color: #10b981;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: all 0.2s;
+}
+
+.add-track-btn:hover {
   background: rgba(16, 185, 129, 0.2);
-  border-radius: 10px;
+  border-color: #10b981;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.4);
-}
-
-.step-pad {
-    cursor: pointer;
-}
-
-.step-pad.active {
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+@media (max-width: 1024px) {
+  .step-sequencer {
+    display: none;
+  }
 }
