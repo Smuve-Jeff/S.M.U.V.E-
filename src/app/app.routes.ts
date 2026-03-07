@@ -85,6 +85,29 @@ export const routes: Routes = [
   },
   {
     path: 'networking',
+    canActivate: [() => import('./services/auth.guard').then((m) => m.authGuard)],
+    loadComponent: () => import('./hub/hub.component').then((m) => m.HubComponent),
+    data: { viewMode: 'networking' },
+  },
+  {
+    path: 'player',
+    canActivate: [() => import('./services/auth.guard').then((m) => m.authGuard)],
+    loadComponent: () => import('./hub/hub.component').then((m) => m.HubComponent),
+    data: { viewMode: 'player' },
+  },
+  {
+    path: 'dj',
+    canActivate: [() => import('./services/auth.guard').then((m) => m.authGuard)],
+    loadComponent: () =>
+      import('./studio/studio.component').then((m) => m.StudioComponent),
+    data: { viewMode: 'dj' },
+  },
+  {
+    path: 'piano-roll',
+    canActivate: [() => import('./services/auth.guard').then((m) => m.authGuard)],
+    loadComponent: () =>
+      import('./studio/studio.component').then((m) => m.StudioComponent),
+    data: { viewMode: 'piano-roll' },
     canActivate: [() => import('./services/auth.guard').then(m => m.authGuard)],
     loadComponent: () => import('./hub/hub.component').then((m) => m.HubComponent),
   },

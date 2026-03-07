@@ -125,6 +125,19 @@ input[type=range].channel-fader::-webkit-slider-thumb {
   .main-bottom-area {
     min-height: 300px;
   }
+
+  .studio-header {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem !important;
+    height: auto !important;
+    align-items: flex-start !important;
+  }
+
+  .studio-header > .flex:last-child {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 @media (max-width: 640px) {

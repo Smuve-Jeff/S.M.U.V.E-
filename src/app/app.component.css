@@ -109,6 +109,15 @@
   overflow-y: auto;
 }
 
+.nav-section-label {
+  padding: 1rem 1rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
 .nav-item {
   display: flex;
   align-items: center;
@@ -118,7 +127,7 @@
   border-radius: 8px;
   transition: all 0.2s ease;
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -126,7 +135,7 @@
 .nav-item i {
   width: 20px;
   text-align: center;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .nav-item:hover {
@@ -144,59 +153,6 @@
   height: 1px;
   background: rgba(255, 255, 255, 0.05);
   margin: 1rem 0;
-}
-
-.nav-dropdown {
-  display: flex;
-  flex-direction: column;
-}
-
-.dropdown-toggle {
-  width: 100%;
-  border: none;
-  background: none;
-  cursor: pointer;
-  justify-content: flex-start;
-}
-
-.dropdown-arrow {
-  margin-left: auto;
-  font-size: 0.7rem !important;
-  transition: transform 0.3s ease;
-}
-
-.nav-dropdown.open .dropdown-arrow {
-  transform: rotate(180deg);
-}
-
-.dropdown-content {
-  padding-left: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  margin-top: 0.25rem;
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 1rem;
-  color: #64748b;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  font-size: 0.85rem;
-}
-
-.dropdown-item:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.dropdown-item.active {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.05);
 }
 
 .sidebar-footer {
@@ -503,6 +459,31 @@
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 1024px) {
+  .app-container {
+    grid-template-columns: 0px 1fr;
+@media (max-width: 640px) {
+  .header-center {
+    gap: 0.5rem;
+  }
+  .mode-text {
+    display: none;
+  }
+  .view-mode-selector .mode-button {
+    padding: 0.4rem;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    justify-content: center;
+  }
+  .view-mode-selector .mode-button i {
+    margin: 0;
+  }
+  .view-dropdown-menu {
+    width: 90vw;
+  }
 }
 
 @media (max-width: 640px) {
