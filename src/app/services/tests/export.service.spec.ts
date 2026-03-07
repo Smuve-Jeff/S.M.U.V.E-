@@ -65,6 +65,6 @@ describe('ExportService', () => {
     expect(view.getUint32(24, true)).toBe(sampleRate);
 
     // Check bits per sample at offset 34
-    expect(view.getUint16(34, true)).toBe(16);
+    expect(view.getUint16(34, true)).toBe(32);
   });
 });

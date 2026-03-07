@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SequencerService, SequencerTrack } from '../sequencer.service';
+import { MusicManagerService, TrackModel } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { InstrumentsService } from '../../services/instruments.service';
 
@@ -12,42 +12,42 @@ import { InstrumentsService } from '../../services/instruments.service';
   styleUrls: ['./channel-rack.component.css']
 })
 export class ChannelRackComponent {
-  public sequencer = inject(SequencerService);
+  public musicManager = inject(MusicManagerService);
   private engine = inject(AudioEngineService);
   private instruments = inject(InstrumentsService);
 
-  activePattern = this.sequencer.activePattern;
+  tracks = this.musicManager.tracks;
   currentStep = this.engine.currentBeat;
   availablePresets = this.instruments.getPresets();
 
   steps = new Array(16).fill(0);
 
-  toggleStep(track: SequencerTrack, index: number) {
-    this.sequencer.toggleStep(track.id, index);
+  toggleStep(track: TrackModel, index: number) {
+    this.musicManager.toggleStep(track.id, index);
   }
 
-  selectTrack(track: SequencerTrack) {
+  selectTrack(track: TrackModel) {
     console.log('ChannelRack: Selecting track:', track.name, track.id);
-    this.sequencer.selectTrack(track.id);
+    this.musicManager.selectedTrackId.set(track.id);
   }
 
   addTrack() {
-    this.sequencer.addTrack('New Track', 'synth-lead');
+    this.musicManager.ensureTrack('synth-lead');
   }
 
-  removeTrack(id: string) {
-    this.sequencer.removeTrack(id);
+  removeTrack(id: number) {
+    this.musicManager.removeTrack(id);
   }
 
-  updateVolume(track: SequencerTrack, event: any) {
-    track.volume = +event.target.value;
+  updateVolume(track: TrackModel, event: any) {
+    this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? { ...t, gain: +event.target.value / 100 } : t));
   }
 
-  updatePan(track: SequencerTrack, event: any) {
-    track.pan = +event.target.value;
+  updatePan(track: TrackModel, event: any) {
+    this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? { ...t, pan: +event.target.value / 100 } : t));
   }
 
-  toggleMute(track: SequencerTrack) {
-    track.mute = !track.mute;
+  toggleMute(track: TrackModel) {
+    this.musicManager.toggleMute(track.id);
   }
 }

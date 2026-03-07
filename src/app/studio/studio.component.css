@@ -27,11 +27,13 @@
 
 .main-view {
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
 
 .bottom-panel {
   transition: height 0.4s cubic-bezier(0.19, 1, 0.22, 1);
   min-height: 0;
+  will-change: height;
 }
 
 /* Glass morphism and neon effects */
@@ -55,19 +57,39 @@
   display: none;
 }
 
-/* Hardware style buttons */
+/* Hardware style buttons - using plain CSS instead of @apply to avoid build issues */
 .btn-hardware {
-  @apply bg-slate-900 border border-white/10 rounded-xl flex items-center justify-center transition-all hover:bg-emerald-500 hover:text-black hover:shadow-[0_0_15px_#10b981];
+  background-color: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-hardware:hover {
+  background-color: #10b981;
+  color: black;
+  box-shadow: 0 0 15px #10b981;
 }
 
 /* Pro sliders */
 input[type=range].channel-fader {
-  @apply appearance-none bg-transparent cursor-pointer;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
 }
 
 input[type=range].channel-fader::-webkit-slider-thumb {
   -webkit-appearance: none;
-  @apply w-6 h-10 bg-slate-300 border-2 border-slate-500 rounded-lg cursor-pointer shadow-lg;
+  width: 1.5rem;
+  height: 2.5rem;
+  background-color: #cbd5e1;
+  border: 2px solid #64748b;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   background-image: linear-gradient(to bottom, #f1f5f9 0%, #cbd5e1 50%, #94a3b8 100%);
 }
 
@@ -102,5 +124,35 @@ input[type=range].channel-fader::-webkit-slider-thumb {
 
   .main-bottom-area {
     min-height: 300px;
+  }
+}
+
+@media (max-width: 640px) {
+  .studio-header {
+    padding: 0.5rem 1rem;
+    flex-wrap: wrap;
+    height: auto;
+    gap: 0.5rem;
+  }
+
+  .studio-header .flex.items-center.gap-6 {
+    gap: 0.5rem;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .studio-header .flex.items-center.gap-4 {
+    width: 100%;
+    justify-content: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 0.5rem;
+  }
+
+  .studio-container {
+    height: 100dvh;
+  }
+
+  .bottom-panel {
+    height: 60% !important;
   }
 }

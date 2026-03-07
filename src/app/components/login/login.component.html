@@ -1,0 +1,73 @@
+<div class="min-h-screen flex items-center justify-center bg-slate-950 p-4 font-mono">
+  <div class="w-full max-w-md bg-slate-900 border-2 border-emerald-500/30 p-8 rounded-lg shadow-[0_0_30px_rgba(16,185,129,0.1)] relative overflow-hidden">
+    <!-- Glitch Scanline Effect -->
+    <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]"></div>
+
+    <div class="relative z-20">
+      <div class="mb-8 text-center">
+        <h1 class="text-3xl font-black text-emerald-500 uppercase tracking-tighter animate-pulse">
+          S.M.U.V.E 3.0
+        </h1>
+        <p class="text-emerald-500/60 text-xs mt-2 uppercase tracking-widest">Strategic Music Utility Virtual Enhancer</p>
+      </div>
+
+      <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="space-y-6">
+        <div *ngIf="isRegistering()" class="space-y-1">
+          <label class="block text-emerald-500 text-xs uppercase font-bold tracking-widest">Artist Designation</label>
+          <input
+            type="text"
+            [(ngModel)]="artistName"
+            name="artistName"
+            required
+            placeholder="ENTER STAGE NAME"
+            class="w-full bg-slate-950 border border-emerald-500/50 text-emerald-400 p-3 outline-none focus:border-emerald-400 focus:shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all uppercase placeholder:text-emerald-900"
+          >
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-emerald-500 text-xs uppercase font-bold tracking-widest">Secure Email</label>
+          <input
+            type="email"
+            [(ngModel)]="credentials.email"
+            name="email"
+            required
+            placeholder="COMM_CHANNEL@SECURE.NET"
+            class="w-full bg-slate-950 border border-emerald-500/50 text-emerald-400 p-3 outline-none focus:border-emerald-400 focus:shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all uppercase placeholder:text-emerald-900"
+          >
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-emerald-500 text-xs uppercase font-bold tracking-widest">Encrypted Password</label>
+          <input
+            type="password"
+            [(ngModel)]="credentials.password"
+            name="password"
+            required
+            placeholder="********"
+            class="w-full bg-slate-950 border border-emerald-500/50 text-emerald-400 p-3 outline-none focus:border-emerald-400 focus:shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all placeholder:text-emerald-900"
+          >
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="isLoading() || !loginForm.form.valid"
+          class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900 disabled:text-emerald-950 text-slate-950 font-black py-4 uppercase tracking-[0.2em] transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+        >
+          <span *ngIf="!isLoading()">{{ isRegistering() ? 'Initialize Genesis' : 'Authorize Access' }}</span>
+          <span *ngIf="isLoading()" class="animate-ping">...PROCESSING...</span>
+        </button>
+      </form>
+
+      <div *ngIf="message()"
+           [class]="isError() ? 'mt-6 p-4 border border-red-500/50 bg-red-950/20 text-red-400 text-xs uppercase' : 'mt-6 p-4 border border-emerald-500/50 bg-emerald-950/20 text-emerald-400 text-xs uppercase'">
+        {{ message() }}
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-emerald-500/20 text-center">
+        <button (click)="toggleMode()" class="text-emerald-500/40 hover:text-emerald-400 text-xs uppercase tracking-widest transition-colors">
+          {{ isRegistering() ? 'Already an Elite Member? Login' : 'New Strategic Candidate? Register' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

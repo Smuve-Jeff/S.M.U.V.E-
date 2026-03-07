@@ -14,7 +14,7 @@
        </div>
     </div>
     <div class="flex items-center gap-3">
-       <button (click)="sequencer.selectedTrackId.set(null)" class="text-slate-500 hover:text-white transition-all"><i class="fas fa-times text-xs"></i></button>
+       <button (click)="musicManager.selectedTrackId.set(null)" class="text-slate-500 hover:text-white transition-all"><i class="fas fa-times text-xs"></i></button>
     </div>
   </div>
 
@@ -48,11 +48,11 @@
                (mousedown)="onNoteMouseDown($event, note)"
                (contextmenu)="deleteNote($event, note.id); false"
                class="midi-note absolute h-6 rounded-sm bg-gradient-to-r from-emerald-500 to-emerald-400 border border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.4)] flex items-center px-2 cursor-move group overflow-hidden"
-               [style.left.px]="note.startTime * cellWidth"
-               [style.top.px]="(108 - note.pitch) * rowHeight + 4"
-               [style.width.px]="note.duration * cellWidth">
+               [style.left.px]="note.step * cellWidth"
+               [style.top.px]="(108 - note.midi) * rowHeight + 4"
+               [style.width.px]="note.length * cellWidth">
                <div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-               <span class="text-[7px] font-black text-black uppercase opacity-60 truncate pointer-events-none">{{ getKeyName(note.pitch) }}</span>
+               <span class="text-[7px] font-black text-black uppercase opacity-60 truncate pointer-events-none">{{ getKeyName(note.midi) }}</span>
                <div class="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20"></div>
           </div>
 
