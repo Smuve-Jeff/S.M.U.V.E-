@@ -4,21 +4,21 @@
   <!-- Channel Header -->
   <div class="w-full relative">
     <div class="flex items-center justify-between mb-1">
-      <div class="w-2 h-2 rounded-full" [class.bg-red-500]="channel.armed" [class.bg-slate-700]="!channel.armed" [class.animate-pulse]="channel.armed"></div>
+      <div class="w-2 h-2 rounded-full" [class.bg-red-500]="channel?.armed" [class.bg-slate-700]="!channel?.armed" [class.animate-pulse]="channel?.armed"></div>
       <button (click)="toggleSettings()" class="text-[10px] text-slate-500 hover:text-emerald-500 transition-colors">
         <i class="fas fa-cog"></i>
       </button>
     </div>
     <h3 class="font-black text-[10px] uppercase tracking-widest truncate w-full text-center text-slate-300 group-hover:text-emerald-500 transition-colors">
-      {{ channel.label }}
+      {{ channel?.label }}
     </h3>
   </div>
 
   <!-- Spectrum Mini-View -->
   <div class="w-full h-12 bg-black/40 rounded-lg border border-white/5 overflow-hidden flex items-end gap-[1px] px-1 pb-1">
-     <div *ngFor="let bar of [1,2,3,4,5,6,7,8,9,10,11,12]"
+     <div *ngFor="let height of barHeights()"
           class="flex-grow bg-emerald-500/30 rounded-t-[1px]"
-          [style.height.%]="5 + 80 * Math.random()"></div>
+          [style.height.%]="height"></div>
   </div>
 
   <!-- Fader Section -->
@@ -28,15 +28,15 @@
 
      <div class="fader-track h-40 w-8 bg-black/60 rounded-full flex justify-center py-2 border border-white/5 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
         <!-- Level Metering -->
-        <div class="absolute bottom-2 left-1 right-1 bg-gradient-to-t from-emerald-600 via-emerald-400 to-yellow-400 rounded-full opacity-30 blur-[2px]" [style.height.%]="channel.level"></div>
+        <div class="absolute bottom-2 left-1 right-1 bg-gradient-to-t from-emerald-600 via-emerald-400 to-yellow-400 rounded-full opacity-30 blur-[2px]" [style.height.%]="channel?.level"></div>
 
         <input
           type="range"
           orient="vertical"
           min="0"
           max="100"
-          [value]="channel.level"
-          (input)="updateLevel(+$event.target.value)"
+          [value]="channel?.level"
+          (input)="updateLevel(+($event.target).value)"
           class="w-full h-full appearance-none bg-transparent cursor-pointer z-10 channel-fader"
         />
      </div>
@@ -55,8 +55,8 @@
         type="range"
         min="-100"
         max="100"
-        [value]="channel.pan"
-        (input)="updatePan(+$event.target.value)"
+        [value]="channel?.pan"
+        (input)="updatePan(+($event.target).value)"
         class="w-full h-1 appearance-none bg-transparent accent-emerald-500 cursor-pointer relative z-10"
       />
     </div>
@@ -75,14 +75,14 @@
     <button
       (click)="toggleMute()"
       class="h-8 rounded-lg font-black text-[9px] uppercase tracking-tighter border transition-all active:scale-90"
-      [ngClass]="channel.muted ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50' : 'bg-slate-800 text-slate-500 border-white/5'"
+      [ngClass]="channel?.muted ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50' : 'bg-slate-800 text-slate-500 border-white/5'"
     >
       M
     </button>
     <button
       (click)="toggleArm()"
       class="h-8 rounded-lg font-black text-[9px] uppercase tracking-tighter border transition-all active:scale-90"
-      [ngClass]="channel.armed ? 'bg-red-500/20 text-red-500 border-red-500/50' : 'bg-slate-800 text-slate-500 border-white/5'"
+      [ngClass]="channel?.armed ? 'bg-red-500/20 text-red-500 border-red-500/50' : 'bg-slate-800 text-slate-500 border-white/5'"
     >
       R
     </button>

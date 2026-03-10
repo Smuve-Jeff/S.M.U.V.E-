@@ -5,6 +5,61 @@
   overflow: hidden;
   background-color: #020617;
   color: #e2e8f0;
+  position: relative;
+}
+
+/* --- Strategic Commander Aesthetic Overlays --- */
+.scanlines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.1) 50%
+  );
+  background-size: 100% 4px;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0.15;
+}
+
+.crt-flicker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 998;
+  pointer-events: none;
+  animation: flicker 0.15s infinite;
+  background: rgba(16, 185, 129, 0.005);
+}
+
+@keyframes flicker {
+  0% { opacity: 0.27861; }
+  5% { opacity: 0.34769; }
+  10% { opacity: 0.23604; }
+  15% { opacity: 0.90626; }
+  20% { opacity: 0.18128; }
+  25% { opacity: 0.83891; }
+  30% { opacity: 0.65583; }
+  35% { opacity: 0.57807; }
+  40% { opacity: 0.26559; }
+  45% { opacity: 0.84693; }
+  50% { opacity: 0.96019; }
+  55% { opacity: 0.08523; }
+  60% { opacity: 0.71313; }
+  65% { opacity: 0.33441; }
+  70% { opacity: 0.77942; }
+  75% { opacity: 0.20713; }
+  80% { opacity: 0.43035; }
+  85% { opacity: 0.62124; }
+  90% { opacity: 0.27361; }
+  95% { opacity: 0.29422; }
+  100% { opacity: 0.80301; }
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -36,72 +91,92 @@
   will-change: height;
 }
 
-/* Glass morphism and neon effects */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+/* --- Strategic Commander Panels --- */
+.commander-panel {
+  background: rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(16, 185, 129, 0.02);
+  position: relative;
+  overflow: hidden;
+}
+
+.commander-panel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #10b981, transparent);
+  animation: scanlineMove 4s linear infinite;
+  opacity: 0.3;
+}
+
+@keyframes scanlineMove {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
 }
 
 .neon-border-emerald {
-  border-color: rgba(16, 185, 129, 0.3);
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
 }
 
 .neon-text-emerald {
   color: #10b981;
-  text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
 }
 
 .hidden {
   display: none;
 }
 
-/* Hardware style buttons - using plain CSS instead of @apply to avoid build issues */
-.btn-hardware {
-  background-color: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
+/* Strategic Buttons */
+.btn-commander {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #94a3b8;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
 }
 
-.btn-hardware:hover {
-  background-color: #10b981;
-  color: black;
-  box-shadow: 0 0 15px #10b981;
+.btn-commander:hover, .btn-commander.active {
+  background: #10b981;
+  color: #020617;
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
 }
 
-/* Pro sliders */
-input[type=range].channel-fader {
+.btn-commander.active::before {
+  content: '>';
+  margin-right: 4px;
+}
+
+/* Faders & Knobs */
+input[type=range].commander-fader {
   appearance: none;
-  background: transparent;
+  background: rgba(0,0,0,0.5);
+  height: 4px;
+  border-radius: 2px;
+}
+
+input[type=range].commander-fader::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 24px;
+  background: #10b981;
+  border: none;
+  border-radius: 2px;
   cursor: pointer;
-}
-
-input[type=range].channel-fader::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 1.5rem;
-  height: 2.5rem;
-  background-color: #cbd5e1;
-  border: 2px solid #64748b;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  background-image: linear-gradient(to bottom, #f1f5f9 0%, #cbd5e1 50%, #94a3b8 100%);
-}
-
-/* Animation for the mastering suite */
-@keyframes spectralPulse {
-  0% { opacity: 0.4; }
-  50% { opacity: 0.8; }
-  100% { opacity: 0.4; }
-}
-
-.spectral-bar {
-  animation: spectralPulse 1s infinite ease-in-out;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
 }
 
 @media (max-width: 1024px) {
@@ -132,40 +207,5 @@ input[type=range].channel-fader::-webkit-slider-thumb {
     padding: 1rem !important;
     height: auto !important;
     align-items: flex-start !important;
-  }
-
-  .studio-header > .flex:last-child {
-    width: 100%;
-    justify-content: space-between;
-  }
-}
-
-@media (max-width: 640px) {
-  .studio-header {
-    padding: 0.5rem 1rem;
-    flex-wrap: wrap;
-    height: auto;
-    gap: 0.5rem;
-  }
-
-  .studio-header .flex.items-center.gap-6 {
-    gap: 0.5rem;
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .studio-header .flex.items-center.gap-4 {
-    width: 100%;
-    justify-content: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding-top: 0.5rem;
-  }
-
-  .studio-container {
-    height: 100dvh;
-  }
-
-  .bottom-panel {
-    height: 60% !important;
   }
 }

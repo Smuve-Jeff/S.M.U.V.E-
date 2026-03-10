@@ -1,4 +1,4 @@
-import { Component, Input, inject, signal } from '@angular/core';
+import { Component, Input, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioSessionService, MicChannel } from '../audio-session.service';
 
@@ -9,12 +9,18 @@ import { AudioSessionService, MicChannel } from '../audio-session.service';
   templateUrl: './channel-strip.component.html',
   styleUrls: ['./channel-strip.component.css'],
 })
-export class ChannelStripComponent {
+export class ChannelStripComponent implements OnInit {
   @Input({ required: true }) channel!: MicChannel;
   public readonly audioSession = inject(AudioSessionService);
   protected readonly Math = Math;
 
   showSettings = signal(false);
+  barHeights = signal<number[]>([]);
+
+  ngOnInit() {
+    // Initialize stable bar heights to avoid ExpressionChangedAfterItHasBeenCheckedError
+    this.barHeights.set(Array.from({ length: 12 }, () => 5 + Math.random() * 80));
+  }
 
   updateLevel(newLevel: number): void {
     this.audioSession.updateChannelLevel(this.channel.id, newLevel);
@@ -37,6 +43,6 @@ export class ChannelStripComponent {
   }
 
   updateDevice(event: any): void {
-    this.audioSession.initializeMic(this.channel.id, event.target.value);
+    this.audioSession.initializeMic(this.channel.id, (event.target as HTMLSelectElement).value);
   }
 }
