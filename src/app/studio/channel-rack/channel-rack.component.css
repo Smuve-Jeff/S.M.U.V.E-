@@ -94,3 +94,25 @@
     display: none;
   }
 }
+
+@media (max-width: 768px) {
+  .channel-item {
+    flex-wrap: wrap;
+    padding: 1rem;
+  }
+
+  .step-sequencer {
+     display: flex !important;
+     width: 100%;
+     margin-top: 0.5rem;
+     justify-content: space-between;
+  }
+
+  .channel-actions {
+     opacity: 1 !important;
+     width: 100%;
+     margin-top: 0.5rem;
+     border-top: 1px solid rgba(255,255,255,0.05);
+     padding-top: 0.5rem;
+  }
+}
