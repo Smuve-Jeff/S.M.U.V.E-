@@ -2,6 +2,8 @@ import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserProfileService } from '../../services/user-profile.service';
+import { AiService } from '../../services/ai.service';
+import { ProfileAuditResult } from '../../types/ai.types';
 
 interface Submission {
   labelName: string;
@@ -33,7 +35,11 @@ interface SplitSheet {
 })
 export class CareerHubComponent {
   private profileService = inject(UserProfileService);
+  private aiService = inject(AiService);
+
   profile = this.profileService.profile;
+  isAuditing = signal(false);
+  auditResult = this.aiService.activeAudit;
 
   submissions = signal<Submission[]>([
     {
@@ -68,19 +74,15 @@ export class CareerHubComponent {
   newLabel = signal('');
   newDemo = signal('');
 
-  auditScore = signal<number | null>(null);
-  auditFeedback = signal<string[]>([]);
-
   splitSheets = signal<SplitSheet[]>([]);
 
-  runPitchAudit() {
-    this.auditScore.set(85);
-    this.auditFeedback.set([
-      'Metadata: Professional and complete.',
-      'EPK Visuals: High quality, but missing a recent press photo.',
-      'Demo Quality: Mastered to -14 LUFS, perfect for DSPs.',
-      'Social Proof: Engagement rate is above average, but follower count is low for this label.',
-    ]);
+  async runPitchAudit() {
+    this.isAuditing.set(true);
+    try {
+      await this.aiService.runProfileAudit();
+    } finally {
+      this.isAuditing.set(false);
+    }
   }
 
   generateSplitSheet() {

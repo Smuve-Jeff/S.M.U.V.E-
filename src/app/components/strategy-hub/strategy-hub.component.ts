@@ -1,20 +1,15 @@
-import { Component, signal, inject, computed } from '@angular/core';
+import { Component, signal, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { UserProfileService } from '../../services/user-profile.service';
 import { MarketingService } from '../../services/marketing.service';
+import { AiService } from '../../services/ai.service';
 import { CommandCenterComponent } from '../command-center/command-center.component';
 import { MarketingCampaign } from '../../types/marketing.types';
+import { StrategicTask } from '../../types/ai.types';
 
 type StrategyTab = 'overview' | 'campaigns' | 'analytics' | 'outreach' | 'social';
-
-interface ChecklistItem {
-  id: string;
-  label: string;
-  completed: boolean;
-  category: 'pre' | 'day' | 'post';
-}
 
 @Component({
   selector: 'app-strategy-hub',
@@ -23,9 +18,10 @@ interface ChecklistItem {
   templateUrl: './strategy-hub.component.html',
   styleUrls: ['./strategy-hub.component.css'],
 })
-export class StrategyHubComponent {
+export class StrategyHubComponent implements OnInit {
   private profileService = inject(UserProfileService);
   private marketingService = inject(MarketingService);
+  private aiService = inject(AiService);
 
   profile = this.profileService.profile;
   activeTab = signal<StrategyTab>('overview');
@@ -44,29 +40,22 @@ export class StrategyHubComponent {
     strategyLevel: 'Modern Professional'
   });
 
-  // Overview Data (existing logic)
+  // Overview Data (dynamic via AI)
   adSpend = signal(100);
   estimatedReach = computed(() => this.marketingService.getProjections(this.adSpend(), 'Instagram').reach);
   estimatedConversions = computed(() => this.marketingService.getProjections(this.adSpend(), 'Instagram').conversions);
 
-  trendHooks = signal<string[]>([
-    "Start with a question that your genre's audience always asks.",
-    "The 'POV: You just found your new favorite artist' transition.",
-    "Show the 'Struggle vs Success' timeline of your latest track.",
-    'Vibe check: Use high-contrast lighting with your deep bass tracks.',
-  ]);
+  trendHooks = signal<string[]>([]);
+  checklists = signal<StrategicTask[]>([]);
 
-  checklists = signal<ChecklistItem[]>([
-    { id: '1', label: 'Register with PRO (ASCAP/BMI)', completed: false, category: 'pre' },
-    { id: '2', label: 'Submit to The MLC', completed: false, category: 'pre' },
-    { id: '3', label: 'Register with SoundExchange', completed: false, category: 'pre' },
-    { id: '4', label: 'Create EPK', completed: false, category: 'pre' },
-    { id: '5', label: 'Pitch to Playlists (3 weeks out)', completed: false, category: 'pre' },
-    { id: '6', label: 'Social Media Blast', completed: false, category: 'day' },
-    { id: '7', label: 'Email Newsletter', completed: false, category: 'day' },
-    { id: '8', label: 'Monitor Analytics', completed: false, category: 'post' },
-    { id: '9', label: 'Submit for Sync Licensing', completed: false, category: 'post' },
-  ]);
+  ngOnInit() {
+    this.refreshStrategicIntelligence();
+  }
+
+  refreshStrategicIntelligence() {
+    this.trendHooks.set(this.aiService.getViralHooks());
+    this.checklists.set(this.aiService.getDynamicChecklist());
+  }
 
   educationalGuides = [
     {
