@@ -66,22 +66,24 @@ export class PlayerService {
     this.deckService.togglePlay('A');
   }
 
-  next() {
-    if (this.isRepeat()) {
-      // If repeat is on, just restart current (effectively next doesn't change index but we might want to skip anyway)
-      // Usually next skips even if repeat is on.
-    }
+  const playlist = this.playlist();
+  if (playlist.length === 0) return;
 
-    let nextIndex = this.currentIndex() + 1;
-    if (this.isShuffle()) {
-      nextIndex = Math.floor(Math.random() * this.playlist().length);
-    } else if (nextIndex >= this.playlist().length) {
-      nextIndex = 0;
-    }
-
-    this.currentIndex.set(nextIndex);
+  // Repeat current track: reload/restart without changing the index.
+  if (this.isRepeat()) {
     this.autoLoadCurrent();
+    return;
   }
+
+  let nextIndex = this.currentIndex() + 1;
+  if (this.isShuffle()) {
+    nextIndex = Math.floor(Math.random() * playlist.length);
+  } else if (nextIndex >= playlist.length) {
+    nextIndex = 0;
+  }
+
+  this.currentIndex.set(nextIndex);
+  this.autoLoadCurrent();
 
   previous() {
     let prevIndex = this.currentIndex() - 1;
