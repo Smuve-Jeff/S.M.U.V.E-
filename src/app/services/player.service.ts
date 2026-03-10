@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
 import { DeckService } from './deck.service';
 import { AudioEngineService } from './audio-engine.service';
 import { FileLoaderService } from './file-loader.service';
@@ -15,7 +15,7 @@ export interface GlobalTrack {
 @Injectable({
   providedIn: 'root'
 })
-export class PlayerService {
+export class PlayerService implements OnDestroy {
   private deckService = inject(DeckService);
   private audioEngine = inject(AudioEngineService);
   private fileLoader = inject(FileLoaderService);
@@ -49,11 +49,29 @@ export class PlayerService {
     if (typeof globalThis !== 'undefined' && typeof globalThis.setInterval === 'function') {
       const sync = () => (this.deckService as any).syncProgress?.();
       this._progressSyncIntervalId = globalThis.setInterval(sync, 100);
+  private readonly _progressSyncIntervalId: any = (() => {
+    const sync = () => {
+      if ('syncProgress' in this.deckService) {
+        (this.deckService as any).syncProgress();
+      }
+    };
+    if (typeof window !== 'undefined') {
+      return window.setInterval(sync, 100);
+    }
+    return null;
+  })();
+
+  ngOnDestroy() {
+    if (this._progressSyncIntervalId) {
+      clearInterval(this._progressSyncIntervalId);
     }
   }
 
   togglePlay() {
     (this.deckService as any).syncProgress?.();
+    if ('syncProgress' in this.deckService) {
+      (this.deckService as any).syncProgress();
+    }
     this.deckService.togglePlay('A');
   }
 
@@ -78,9 +96,12 @@ export class PlayerService {
   }
 
   previous() {
+    const playlist = this.playlist();
+    if (playlist.length === 0) return;
+
     let prevIndex = this.currentIndex() - 1;
     if (prevIndex < 0) {
-      prevIndex = this.playlist().length - 1;
+      prevIndex = playlist.length - 1;
     }
     this.currentIndex.set(prevIndex);
     this.autoLoadCurrent();
@@ -88,6 +109,9 @@ export class PlayerService {
 
   private autoLoadCurrent() {
     const track = this.currentTrack();
+    const targetIndex = this.currentIndex();
+    const track = this.playlist()[targetIndex];
+
     if (!track) return;
 
     if (track.buffer) {
@@ -106,6 +130,20 @@ export class PlayerService {
 
           this.deckService.loadDeckBuffer('A', buffer, track.title);
           if (!this.isPlaying()) this.togglePlay();
+          if (!res.ok) throw new Error(`Failed to fetch track: ${res.status}`);
+          const arrayBuffer = await res.arrayBuffer();
+          const buffer = await this.audioEngine.getContext().decodeAudioData(arrayBuffer);
+
+          // Use the captured targetIndex to ensure we update the correct track entry
+          this.playlist.update((p) =>
+            p.map((t, i) => (i === targetIndex ? { ...t, buffer } : t))
+          );
+
+          // Only load and play if the user hasn't already switched to another track
+          if (this.currentIndex() === targetIndex) {
+            this.deckService.loadDeckBuffer('A', buffer, track.title);
+            if (!this.isPlaying()) this.togglePlay();
+          }
         } catch (err) {
           console.warn('PlayerService: Failed to load track audio from URL', err);
         }
@@ -124,12 +162,19 @@ export class PlayerService {
       const file = files[0];
       try {
         const buffer = await this.fileLoader.decodeToAudioBuffer(this.audioEngine.getContext(), file);
+    try {
+      const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
+      if (files && files.length > 0) {
+        const file = files[0];
+        const buffer = await this.fileLoader.decodeToAudioBuffer(this.audioEngine.getContext(), file);
+
         const newTrack: GlobalTrack = {
           id: Date.now().toString(),
           title: file.name.replace(/\.[^/.]+$/, ""),
           artist: 'Local Import',
           buffer: buffer
         };
+
         this.playlist.update(p => [newTrack, ...p]);
         this.currentIndex.set(0);
         this.deckService.loadDeckBuffer('A', buffer, file.name);
@@ -137,10 +182,15 @@ export class PlayerService {
       } catch (err) {
         console.error('PlayerService: Failed to load external track', err);
       }
+      }
+    } catch (err) {
+      console.error('PlayerService: Failed to load external track', err);
     }
   }
 
   exportCurrent() {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
     const buffer = this.audioEngine.getDeck('A').buffer;
     if (!buffer) return;
     const wavBuffer = this.exportService.audioBufferToWav(buffer);
