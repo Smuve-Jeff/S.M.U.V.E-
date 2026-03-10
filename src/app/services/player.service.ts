@@ -42,7 +42,7 @@ export class PlayerService implements OnDestroy {
   isShuffle = signal(false);
   isRepeat = signal(false);
 
-  private readonly _progressSyncIntervalId: ReturnType<typeof setInterval> | null = (() => {
+  private readonly _progressSyncIntervalId: any = (() => {
     const sync = () => {
       if ('syncProgress' in this.deckService) {
         (this.deckService as any).syncProgress();
