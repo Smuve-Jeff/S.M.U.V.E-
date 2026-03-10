@@ -43,6 +43,7 @@ export class AudioEngineService {
   public delayWet: GainNode;
   private recordingDestination: MediaStreamAudioDestinationNode | null = null;
   private masterAnalyser: AnalyserNode;
+  public getMasterAnalyser() { return this.masterAnalyser; }
 
   private deckA!: DeckChannel;
   private deckB!: DeckChannel;
