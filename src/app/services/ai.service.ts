@@ -389,10 +389,46 @@ export class AiService {
       });
     }
 
+    // Movie Strategic Recommendations
+    if (profile.expertiseLevels.production > 5) {
+      recommendations.push({
+        id: 'strat-movie-1',
+        action: 'Perform Neural Scene Audit',
+        impact: 'Extreme',
+        difficulty: 'High',
+        toolId: 'image-video-lab'
+      });
+      recommendations.push({
+        id: 'strat-movie-2',
+        action: 'Apply Global Visual Cohesion',
+        impact: 'High',
+        difficulty: 'Medium',
+        toolId: 'image-video-lab'
+      });
+    }
+
     return recommendations.length > 0 ? recommendations : [
       { id: 'strat-5', action: 'Analyze Market Trends', impact: 'Medium', difficulty: 'Low', toolId: 'analytics' },
       { id: 'strat-6', action: 'Optimize Low-End Frequencies', impact: 'High', difficulty: 'Medium', toolId: 'studio' }
     ];
+  }
+
+  async runNeuralSceneDetection(videoUrl: string): Promise<any> {
+    // Mock local AI inference for scene detection
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve([
+          { timestamp: 0, label: 'Intro / Establishing Shot' },
+          { timestamp: 45, label: 'Action Sequence Alpha' },
+          { timestamp: 120, label: 'Character Dialogue' }
+        ]);
+      }, 2000);
+    });
+  }
+
+  async applyAutoMastering(audioBuffer: AudioBuffer): Promise<AudioBuffer> {
+    // Mock local AI sound enhancement
+    return audioBuffer;
   }
 
   async generateMusic(prompt: string): Promise<any[]> {

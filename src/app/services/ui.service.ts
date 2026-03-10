@@ -61,7 +61,7 @@ export class UIService {
     { mode: 'strategy', label: 'Strategy Hub', icon: 'fa-chess', category: 'STRATEGY' },
     { mode: 'career', label: 'Career Hub', icon: 'fa-briefcase', category: 'STRATEGY' },
     { mode: 'analytics', label: 'Analytics', icon: 'fa-chart-line', category: 'STRATEGY' },
-    { mode: 'image-video-lab', label: 'Media Lab', icon: 'fa-video', category: 'CREATIVE' },
+    { mode: 'image-video-lab', label: 'Cinema Engine', icon: 'fa-video', category: 'CREATIVE' },
     { mode: 'practice', label: 'Practice Space', icon: 'fa-microphone-alt', category: 'CORE' },
     { mode: 'projects', label: 'Projects', icon: 'fa-project-diagram', category: 'STRATEGY' },
     { mode: 'remix-arena', label: 'Remix Arena', icon: 'fa-compact-disc', category: 'COMMUNITY' },

@@ -416,12 +416,10 @@ export class UserProfileService {
     const currentProfile = this.profile();
     const updatedProfile = { ...currentProfile };
 
-    if (upgrade.type === "Software" || upgrade.type === "Service") {
+    if (upgrade.type === 'Software' || upgrade.type === 'Service') {
       if (!updatedProfile.daw.includes(upgrade.title)) {
         updatedProfile.daw = [...updatedProfile.daw, upgrade.title];
       }
-    } else if (upgrade.type === "Gear") {
-    if (upgrade.type === 'Software') {
       if (!updatedProfile.vst_plugins.includes(upgrade.title)) {
         updatedProfile.vst_plugins = [...updatedProfile.vst_plugins, upgrade.title];
       }
