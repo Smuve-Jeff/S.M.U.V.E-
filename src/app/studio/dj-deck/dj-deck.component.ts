@@ -22,6 +22,7 @@ import { DeckService } from '../../services/deck.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
+import { PlayerService } from '../../services/player.service';
 
 @Component({
   selector: 'app-dj-deck',
@@ -54,12 +55,13 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public uiService = inject(UIService);
   private profileService = inject(UserProfileService);
+  public playerService = inject(PlayerService);
 
   hasNeuralStems = computed(() => {
     const profile = this.profileService.profile();
     return profile.daw.includes('Neural Audio Interface V1 (Prototype)') ||
            profile.equipment.includes('Neural Audio Interface V1 (Prototype)') ||
-           profile.daw.includes('Sub-Atomic Kick Dominance Pack'); // Simplified check for testing
+           profile.daw.includes('Sub-Atomic Kick Dominance Pack');
   });
 
   pitchAPercentage = computed(

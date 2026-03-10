@@ -27,19 +27,18 @@
 
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-center">
           <div class="md:col-span-4">
-             <input type="text" placeholder="ARTIST ALIAS" class="hero-input w-full text-center md:text-left">
+             <input type="text"
+                    [(ngModel)]="quickProfile().artistName"
+                    placeholder="ARTIST ALIAS"
+                    class="hero-input w-full text-center md:text-left bg-transparent border-b border-white/20 p-2 focus:border-emerald-500 transition-colors">
           </div>
           <div class="md:col-span-4">
-             <select class="hero-select w-full text-center md:text-left">
-               <option>GENRE AFFINITY</option>
-               <option>Electronic</option>
-               <option>Hip-Hop</option>
-               <option>Cinematic</option>
-               <option>Experimental</option>
+             <select [(ngModel)]="quickProfile().primaryGenre" class="hero-select w-full text-center md:text-left bg-transparent border-b border-white/20 p-2 focus:border-emerald-500 transition-colors appearance-none">
+               <option *ngFor="let g of genres" [value]="g">{{ g }}</option>
              </select>
           </div>
           <div class="md:col-span-4">
-             <button class="hero-cta-button w-full">Deploy Profile</button>
+             <button (click)="onQuickStart()" class="hero-cta-button w-full bg-emerald-500 text-black font-black py-3 rounded-xl hover:bg-white transition-all">Deploy Profile</button>
           </div>
         </div>
       </div>
@@ -48,31 +47,61 @@
 
   <!-- Global Radio Player Section -->
   <section class="p-4 md:p-12 max-w-7xl mx-auto">
-    <div class="radio-module grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-slate-900/40 border border-white/5 p-6 md:p-10 rounded-3xl backdrop-blur-xl">
+    <div class="radio-module grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-slate-900/40 border border-white/5 p-6 md:p-10 rounded-3xl backdrop-blur-xl relative overflow-hidden">
+      <!-- Progress Bar Overlay -->
+      <div class="absolute bottom-0 left-0 h-1 bg-emerald-500/30 transition-all duration-300" [style.width.%]="playerService.progress()"></div>
+
       <div class="lg:col-span-4 flex flex-col gap-4">
         <div class="flex items-center gap-3">
-          <div class="live-indicator">LIVE</div>
+          <div class="live-indicator" [class.active]="playerService.isPlaying()">LIVE</div>
           <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Global Strategic Broadcast</span>
         </div>
         <div class="track-info">
           <div class="now-playing-label">Now Transmitting</div>
-          <h3 class="track-title text-2xl md:text-3xl">NEON ARCHITECT</h3>
-          <p class="text-emerald-500/60 font-mono text-xs mt-1">S.M.U.V.E. Original Composition</p>
+          <h3 class="track-title text-2xl md:text-3xl uppercase font-black italic tracking-tighter">{{ playerService.currentTrack()?.title }}</h3>
+          <p class="text-emerald-500/60 font-mono text-xs mt-1">{{ playerService.currentTrack()?.artist }}</p>
         </div>
       </div>
 
-      <div class="lg:col-span-5">
+      <div class="lg:col-span-4">
         <div class="radio-visualizer h-12 md:h-16 flex items-end gap-1 px-4">
-          <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]"
-               class="bar flex-grow bg-emerald-500/30 rounded-t-sm"
-               [style.height.%]="20 + 60 * (i % 3 === 0 ? 0.8 : 0.4)"></div>
+          @for (val of visualizerData(); track $index) {
+            <div class="bar flex-grow bg-emerald-500/30 rounded-t-sm transition-all duration-75"
+                 [style.height.%]="val"></div>
+          }
         </div>
       </div>
 
-      <div class="lg:col-span-3 flex justify-center lg:justify-end gap-4">
-        <button class="radio-util-btn"><i class="fas fa-step-backward"></i></button>
-        <button class="radio-play-btn playing"><i class="fas fa-play ml-1"></i></button>
-        <button class="radio-util-btn"><i class="fas fa-step-forward"></i></button>
+      <div class="lg:col-span-4 flex flex-wrap justify-center lg:justify-end gap-3 items-center">
+        <button (click)="playerService.toggleShuffle()"
+                class="radio-util-btn text-xs"
+                [class.text-emerald-500]="playerService.isShuffle()">
+          <i class="fas fa-random"></i>
+        </button>
+        <button (click)="playerService.toggleRepeat()"
+                class="radio-util-btn text-xs"
+                [class.text-emerald-500]="playerService.isRepeat()">
+          <i class="fas fa-redo"></i>
+        </button>
+
+        <div class="h-8 w-px bg-white/10 mx-2"></div>
+
+        <button (click)="playerService.previous()" class="radio-util-btn"><i class="fas fa-step-backward"></i></button>
+        <button (click)="playerService.togglePlay()"
+                class="radio-play-btn"
+                [class.playing]="playerService.isPlaying()">
+          <i class="fas" [class.fa-pause]="playerService.isPlaying()" [class.fa-play]="!playerService.isPlaying()" [class.ml-1]="!playerService.isPlaying()"></i>
+        </button>
+        <button (click)="playerService.next()" class="radio-util-btn"><i class="fas fa-step-forward"></i></button>
+
+        <div class="h-8 w-px bg-white/10 mx-2"></div>
+
+        <button (click)="playerService.loadExternalTrack()" class="radio-util-btn text-xs hover:text-emerald-500" title="Load Local File">
+          <i class="fas fa-upload"></i>
+        </button>
+        <button (click)="playerService.exportCurrent()" class="radio-util-btn text-xs hover:text-emerald-500" title="Export Current">
+          <i class="fas fa-download"></i>
+        </button>
       </div>
     </div>
   </section>
@@ -90,7 +119,7 @@
           <button class="jam-btn" (click)="uiService.navigateToView('dj')"><i class="fas fa-layer-group mr-2"></i> STEM ISOLATOR</button>
         </div>
       </div>
-      <div class="deck-preview-graphic group">
+      <div class="deck-preview-graphic group cursor-pointer" (click)="uiService.navigateToView('dj')">
         <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-all duration-700"></div>
         <div class="platter-ring"></div>
         <div class="absolute inset-0 flex items-center justify-center">
@@ -113,7 +142,7 @@
           <button class="btn-outline-emerald">VIEW SCHEMATICS</button>
         </div>
       </div>
-      <div class="daw-preview-graphic bg-slate-900 border border-white/5 flex items-center justify-center p-8 md:p-12">
+      <div class="daw-preview-graphic bg-slate-900 border border-white/5 flex items-center justify-center p-8 md:p-12 cursor-pointer" (click)="goToStudio()">
         <div class="w-full h-full border border-emerald-500/20 rounded flex flex-col gap-2 p-4">
           <div *ngFor="let i of [1,2,3,4]" class="h-6 bg-white/5 rounded flex gap-1 px-1 items-center">
             <div *ngFor="let j of [1,2,3,4,5,6,7,8]" class="h-4 w-full bg-emerald-500/20 rounded-sm"></div>
