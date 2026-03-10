@@ -82,7 +82,7 @@
              <span>Diff: {{ srec.difficulty }}</span>
              <span>Tag: {{ srec.toolId }}</span>
           </div>
-          <button class="mt-2 text-[9px] font-black uppercase text-violet-400 hover:text-white transition-colors flex items-center gap-1">
+          <button (click)="initializeOperation(srec)" class="mt-2 text-[9px] font-black uppercase text-violet-400 hover:text-white transition-colors flex items-center gap-1">
             <i class="fas fa-play-circle"></i> Initialize Operation
           </button>
         </div>

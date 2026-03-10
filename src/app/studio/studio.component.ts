@@ -84,6 +84,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         this.showPianoRoll.set(true);
       }
     });
+
+    effect(() => {
+      const decrees = this.aiService.strategicDecrees();
+      if (decrees.length > 0) {
+        this.currentDecree.set(decrees[Math.floor(Math.random() * decrees.length)]);
+      }
+    });
   }
 
   toggleView(view: 'daw' | 'dj' | 'mastering') {

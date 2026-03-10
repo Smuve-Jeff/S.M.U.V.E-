@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+export interface StrategicRecommendation {
+  action: string;
+  impact: 'High' | 'Medium' | 'Low';
+  difficulty: 'High' | 'Medium' | 'Low';
+  toolId: string;
+}
+=======
+export interface StrategicRecommendation {
+  id: string;
+  action: string;
+  impact: 'Extreme' | 'High' | 'Medium' | 'Low';
+  difficulty: 'High' | 'Medium' | 'Low';
+  toolId: string;
+}
+>>>>>>> REPLACE

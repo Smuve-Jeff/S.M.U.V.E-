@@ -33,7 +33,7 @@ export interface AdvisorAdvice {
 export interface StrategicRecommendation {
   id: string;
   action: string;
-  impact: 'High' | 'Medium' | 'Low';
+  impact: 'Extreme' | 'High' | 'Medium' | 'Low';
   difficulty: 'High' | 'Medium' | 'Low';
   toolId: string;
 }
@@ -107,16 +107,32 @@ export class AiService {
       const view = this.userContextService.mainViewMode();
       const profile = this.userProfileService.profile();
       this.updateAdvisorAdvice(view, profile);
+      this.generateDynamicDecrees(profile);
     });
 
-    // Re-initialize chat when profile or reputation changes
-    effect(() => {
-      const profile = this.userProfileService.profile();
-      const rep = this.reputationService.state();
-      if (profile && rep) {
-        this.initializeChat(profile);
-      }
-    });
+  }
+
+  private generateDynamicDecrees(profile: UserProfile) {
+    const decrees: string[] = [];
+    if (profile.expertiseLevels.production < 6) {
+      decrees.push("COMMAND: PRODUCTION DEFICIT DETECTED. INITIALIZE CHANNEL STRIP AUDIT.");
+    }
+    if (profile.yearsActive < 2) {
+      decrees.push("DECREE: ACQUIRE MARKET INTELLIGENCE. REPUTATION IS THE ONLY CURRENCY.");
+    }
+    if (profile.equipment.length < 5) {
+      decrees.push("TACTICAL ALERT: GEAR INFRASTRUCTURE IS INSUFFICIENT. PROCURE UPGRADES.");
+    }
+    if (profile.releasedTracks > 5) {
+      decrees.push("STRATEGIC DECREE: SATURATION ACHIEVED. EXECUTE ADVANCED MARKETING CAMPAIGN.");
+    }
+
+    if (decrees.length === 0) {
+      decrees.push('DOMINATE THE AIRWAVES', 'MAXIMIZE STREAMING REVENUE', 'ELIMINATE WEAK CONTENT');
+    }
+
+    this.strategicDecrees.set(decrees);
+
   }
 
   private updateAdvisorAdvice(view: MainViewMode, profile: UserProfile) {
@@ -279,7 +295,9 @@ export class AiService {
     }
   }
 
-  private async initializeChat(profile: UserProfile): Promise<void> {}
+  private async initializeChat(profile: UserProfile): Promise<void> {
+    // Logic to initialize chat with specific profile context
+  }
 
   get chatInstance() {
     return this._chatInstance.asReadonly();
@@ -328,7 +346,53 @@ export class AiService {
 
 
   async getStrategicRecommendations(): Promise<StrategicRecommendation[]> {
-    return [];
+    const profile = this.userProfileService.profile();
+    const recommendations: StrategicRecommendation[] = [];
+
+    if (profile.expertiseLevels.mixing < 7) {
+      recommendations.push({
+        id: 'strat-1',
+        action: 'Execute Master Bus Compression',
+        impact: 'High',
+        difficulty: 'Medium',
+        toolId: 'mastering'
+      });
+    }
+
+    if (profile.expertiseLevels.melodyCreation < 5) {
+      recommendations.push({
+        id: 'strat-2',
+        action: 'Initialize MIDI Tactical Editor',
+        impact: 'Extreme',
+        difficulty: 'High',
+        toolId: 'piano-roll'
+      });
+    }
+
+    if (profile.equipment.length < 3) {
+      recommendations.push({
+        id: 'strat-3',
+        action: 'Procure Essential Hardware',
+        impact: 'Medium',
+        difficulty: 'Low',
+        toolId: 'strategy'
+      });
+    }
+
+    if (profile.releasedTracks === 0) {
+      recommendations.push({
+        id: 'strat-4',
+        action: 'Finalize Distribution Protocol',
+        impact: 'Extreme',
+        difficulty: 'High',
+        toolId: 'career'
+      });
+    }
+
+    return recommendations.length > 0 ? recommendations : [
+      { id: 'strat-5', action: 'Analyze Market Trends', impact: 'Medium', difficulty: 'Low', toolId: 'analytics' },
+      { id: 'strat-6', action: 'Optimize Low-End Frequencies', impact: 'High', difficulty: 'Medium', toolId: 'studio' }
+    ];
   }
 
   async generateMusic(prompt: string): Promise<any[]> {

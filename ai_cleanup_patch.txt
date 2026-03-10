@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    // Re-initialize chat when profile or reputation changes
+    effect(() => {
+      const profile = this.userProfileService.profile();
+      const rep = this.reputationService.state();
+      if (profile && rep) {
+        this.initializeChat(profile);
+      }
+    });
+  }
+=======
+  }
+
+  private initializeChatEffect = effect(() => {
+    const profile = this.userProfileService.profile();
+    const rep = this.reputationService.state();
+    if (profile && rep) {
+      this.initializeChat(profile);
+    }
+  });
+>>>>>>> REPLACE

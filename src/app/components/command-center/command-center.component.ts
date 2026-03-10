@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { UIService } from '../../services/ui.service';
 import { AiService, StrategicRecommendation } from '../../services/ai.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { ReputationService } from '../../services/reputation.service';
@@ -15,6 +16,7 @@ import { UpgradeRecommendation } from '../../types/ai.types';
 export class CommandCenterComponent implements OnInit, OnDestroy {
   public aiService = inject(AiService);
   public profileService = inject(UserProfileService);
+  public uiService = inject(UIService);
   public reputationService = inject(ReputationService);
 
   recommendations = computed(() => this.aiService.getUpgradeRecommendations());
@@ -57,9 +59,16 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
     }, 500);
   }
 
-    acquireUpgrade(rec: UpgradeRecommendation) {
+    async acquireUpgrade(rec: UpgradeRecommendation) {
     if (rec.url) {
       window.open(rec.url, '_blank');
+    }
+    await this.profileService.acquireUpgrade({ title: rec.title, type: rec.type });
+  }
+
+  initializeOperation(srec: StrategicRecommendation) {
+    if (srec.toolId) {
+      this.uiService.navigateToView(srec.toolId as any);
     }
   }
 
