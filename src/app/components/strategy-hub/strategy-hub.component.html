@@ -29,23 +29,38 @@
     <div *ngSwitchCase="'overview'" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div class="lg:col-span-2 space-y-8">
         <section class="bg-brand-surface/50 p-6 rounded-xl border border-white/10">
-          <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-            <i class="fas fa-tasks text-emerald-500"></i>
-            Rollout Management
-          </h2>
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold flex items-center gap-2">
+              <i class="fas fa-tasks text-emerald-500"></i>
+              AI-Generated Rollout Management
+            </h2>
+            <button (click)="refreshStrategicIntelligence()" class="text-[10px] uppercase font-black text-emerald-500/50 hover:text-emerald-500 transition-colors">
+              <i class="fas fa-sync-alt mr-1"></i> Re-Sync Checklist
+            </button>
+          </div>
           <div class="space-y-6">
             <div *ngFor="let cat of ['pre', 'day', 'post']">
               <h3 class="text-xs uppercase tracking-widest text-slate-500 mb-3 font-bold border-l-2 border-emerald-500 pl-3">
                 {{ cat === 'pre' ? 'Pre-Release' : cat === 'day' ? 'Release Day' : 'Post-Release' }}
               </h3>
               <div class="space-y-2">
-                <button type="button" *ngFor="let item of checklists()" [hidden]="item.category !== cat" (click)="toggleItem(item.id)"
-                        class="w-full text-left flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-all border border-transparent">
-                  <div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors" [class.bg-emerald-500]="item.completed" [class.border-emerald-500]="item.completed" [class.border-neutral-600]="!item.completed">
-                    <i *ngIf="item.completed" class="fas fa-check text-[10px] text-black"></i>
-                  </div>
-                  <span [class.line-through]="item.completed" [class.opacity-40]="item.completed">{{ item.label }}</span>
-                </button>
+                <div *ngFor="let item of checklists()">
+                  <button type="button" *ngIf="item.category === cat" (click)="toggleItem(item.id)"
+                          class="w-full text-left flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-all border border-transparent group">
+                    <div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors" [class.bg-emerald-500]="item.completed" [class.border-emerald-500]="item.completed" [class.border-neutral-600]="!item.completed">
+                      <i *ngIf="item.completed" class="fas fa-check text-[10px] text-black"></i>
+                    </div>
+                    <div class="flex-grow">
+                      <div class="flex justify-between items-center">
+                        <span [class.line-through]="item.completed" [class.opacity-40]="item.completed" class="font-bold">{{ item.label }}</span>
+                        <span class="text-[9px] uppercase font-black opacity-0 group-hover:opacity-100 transition-opacity" [ngClass]="getImpactColor(item.impact)">
+                          {{ item.impact }} Impact
+                        </span>
+                      </div>
+                      <p *ngIf="item.description" class="text-[10px] text-slate-500 mt-1" [class.hidden]="item.completed">{{ item.description }}</p>
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -62,6 +77,10 @@
              <div class="flex justify-between items-center border-b border-white/10 pb-2">
                <span class="text-slate-500 text-xs uppercase">Artist</span>
                <span class="font-bold">{{ profile().artistName }}</span>
+             </div>
+             <div class="flex justify-between items-center border-b border-white/10 pb-2">
+               <span class="text-slate-500 text-xs uppercase">Genre</span>
+               <span class="font-bold text-emerald-500">{{ profile().primaryGenre }}</span>
              </div>
              <button class="w-full mt-2 py-2 bg-emerald-500 text-black rounded text-xs uppercase tracking-widest font-black italic">
                Generate Public Link
@@ -162,7 +181,7 @@
           <div class="bg-brand-dark p-6 rounded border border-white/5">
             <h3 class="text-sm font-bold mb-4 uppercase text-slate-400">Automated Press Release</h3>
             <p class="text-xs text-slate-500 mb-6 italic line-clamp-3">
-              "[Artist Name] announces the release of their latest single '...' bringing a unique blend of [Genre] and [Sub-genre] to the global stage. S.M.U.V.E. intelligence suggests..."
+              "{{ profile().artistName }} announces the release of their latest single '...' bringing a unique blend of {{ profile().primaryGenre }} to the global stage. S.M.U.V.E. intelligence suggests..."
             </p>
             <button class="w-full py-2 bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20 font-bold text-xs uppercase">Draft Full Release</button>
           </div>
@@ -182,13 +201,18 @@
     <!-- SOCIAL TAB -->
     <div *ngSwitchCase="'social'" class="space-y-8">
       <section class="bg-brand-surface/50 p-6 rounded-xl border border-white/10">
-        <h2 class="text-xl font-bold mb-6 flex items-center gap-2 uppercase text-yellow-500">Viral Hook Generator</h2>
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold flex items-center gap-2 uppercase text-yellow-500 italic">
+            Viral Hook Generator
+          </h2>
+          <span class="text-[10px] font-mono text-slate-500 uppercase">Context: {{ profile().primaryGenre }}</span>
+        </div>
         <div class="space-y-4">
-          <div *ngFor="let hook of trendHooks()" class="p-4 bg-brand-dark rounded border border-white/5 flex items-center gap-4">
+          <div *ngFor="let hook of trendHooks()" class="hook-item p-4 bg-brand-dark rounded border border-white/5 flex items-center gap-4 wow animate__animated animate__slideInLeft">
             <i class="fas fa-bolt text-yellow-500"></i>
             <span class="text-sm font-medium">{{ hook }}</span>
           </div>
-          <button class="w-full py-3 bg-yellow-400/10 text-yellow-400 rounded border border-yellow-400/20 font-bold text-xs uppercase tracking-widest">
+          <button (click)="refreshStrategicIntelligence()" class="w-full py-3 bg-yellow-400/10 text-yellow-400 rounded border border-yellow-400/20 font-bold text-xs uppercase tracking-widest hover:bg-yellow-400 hover:text-black transition-all">
             Scan Real-World Trends & Regenerate
           </button>
         </div>

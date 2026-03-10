@@ -46,6 +46,10 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
       const decrees = this.aiService.strategicDecrees();
       if (decrees.length > 0) {
         clearInterval(checkDecrees);
+
+        // Clear existing lines to refresh simulation if needed
+        this.terminalLines.set([]);
+
         let currentLine = 0;
         this.intervalId = setInterval(() => {
           if (currentLine < decrees.length) {
@@ -64,7 +68,6 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
     if (rec.url) {
       window.open(rec.url, '_blank');
     }
-    await this.profileService.acquireUpgrade({ title: rec.title, type: rec.type });
   }
 
   initializeOperation(srec: StrategicRecommendation) {
