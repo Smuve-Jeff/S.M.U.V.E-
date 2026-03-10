@@ -29,7 +29,7 @@ export const appConfig: ApplicationConfig = {
       registrationStrategy: 'registerWhenStable:30000',
     }),
     provideAiService(),
-    { provide: API_KEY_TOKEN, useValue: 'AIzaSyCVdPtw0C_5rgiHDRi5mQYL4GXZMrdiDj4' },
+    { provide: API_KEY_TOKEN, useValue: window.localStorage.getItem('SMUVE_API_KEY') || '' },
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
     {
       provide: APP_INITIALIZER,
