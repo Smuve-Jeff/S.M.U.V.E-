@@ -2,7 +2,6 @@ import {
   Component,
   ChangeDetectionStrategy,
   signal,
-  input,
   computed,
   inject,
   OnInit,
@@ -13,7 +12,6 @@ import {
   HostListener
 } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
-import { AppTheme } from '../../services/user-context.service';
 import { FileLoaderService } from '../../services/file-loader.service';
 import { ExportService } from '../../services/export.service';
 import { LibraryService } from '../../services/library.service';
@@ -36,8 +34,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('waveformB') waveformB!: ElementRef<HTMLCanvasElement>;
   @ViewChild('meterA') meterA!: ElementRef<HTMLCanvasElement>;
   @ViewChild('meterB') meterB!: ElementRef<HTMLCanvasElement>;
-
-  theme = input<AppTheme>(inject(UIService).activeTheme());
 
   midiEnabled = signal(false);
   phantomPowerEnabled = signal(false);
@@ -145,8 +141,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const startSample = Math.floor(currentSample - (samplesInWindow / 2));
     const amp = canvas.height / 2;
 
-    ctx.strokeStyle = id === 'A' ? '#10b981' : '#f59e0b';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = id === 'A' ? '#25f46a' : '#f48525';
+    ctx.lineWidth = 3;
     ctx.beginPath();
     for (let i = 0; i < canvas.width; i++) {
         const idx = Math.floor(startSample + i * step);
@@ -158,8 +154,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     ctx.stroke();
 
-    ctx.strokeStyle = '#f43f5e';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(canvas.width / 2, 0);
     ctx.lineTo(canvas.width / 2, canvas.height);
@@ -180,15 +176,15 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-    gradient.addColorStop(0, '#10b981');
-    gradient.addColorStop(0.7, '#fbbf24');
+    gradient.addColorStop(0, '#25f46a');
+    gradient.addColorStop(0.7, '#f2b90d');
     gradient.addColorStop(1, '#ef4444');
 
-    ctx.fillStyle = '#020617';
+    ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = gradient;
-    const h = Math.min(canvas.height, level * canvas.height * 1.5);
+    const h = Math.min(canvas.height, level * canvas.height * 2.0);
     ctx.fillRect(0, canvas.height - h, canvas.width, h);
   }
 
@@ -201,59 +197,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       file
     );
     this.deckService.loadDeckBuffer(deck, buffer, file.name);
-  }
-
-  tapBpm(deck: 'A' | 'B') {
-    const now = Date.now();
-    if (!this.tapTimes[deck]) this.tapTimes[deck] = [];
-    this.tapTimes[deck].push(now);
-    if (this.tapTimes[deck].length > 4) this.tapTimes[deck].shift();
-    if (this.tapTimes[deck].length > 1) {
-      const diffs = [];
-      for (let i = 1; i < this.tapTimes[deck].length; i++) {
-        diffs.push(this.tapTimes[deck][i] - this.tapTimes[deck][i - 1]);
-      }
-      const avg = diffs.reduce((a, b) => a + b) / diffs.length;
-      const bpm = Math.round(60000 / avg);
-      this.deckService.setBpm(deck, bpm);
-    }
-  }
-
-  handlePadPress(deck: 'A' | 'B', index: number) {
-    const mode = this.performanceMode();
-    if (mode === 'cue') {
-      const d = deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
-      if (d.hotCues[index] === null) this.deckService.setHotCue(deck, index);
-      else this.deckService.jumpToHotCue(deck, index);
-    }
-  }
-
-  setPlaybackRate(deck: 'A' | 'B', rate: any) {
-    const r = parseFloat(rate);
-    if (deck === 'A') this.deckService.deckA.update(d => ({ ...d, playbackRate: r }));
-    else this.deckService.deckB.update(d => ({ ...d, playbackRate: r }));
-  }
-
-  setEq(deck: 'A' | 'B', band: 'high' | 'mid' | 'low', val: any) {
-    const v = parseFloat(val);
-    const d = deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
-    let { eqHigh, eqMid, eqLow } = d;
-    if (band === 'high') eqHigh = v;
-    if (band === 'mid') eqMid = v;
-    if (band === 'low') eqLow = v;
-    this.deckService.setDeckEq(deck, eqHigh, eqMid, eqLow);
-  }
-
-  setFilter(deck: 'A' | 'B', val: any) {
-    this.deckService.setDeckFilter(deck, parseFloat(val));
-  }
-
-  setGain(deck: 'A' | 'B', val: any) {
-    this.deckService.setDeckGain(deck, parseFloat(val));
-  }
-
-  setSend(deck: 'A' | 'B', send: 'A' | 'B', val: any) {
-    this.deckService.setDeckSend(deck, send, parseFloat(val));
   }
 
   setMasterVolume(val: any) {
@@ -276,7 +219,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `mix-${Date.now()}.webm`;
+      a.download = `elite-mix-${Date.now()}.webm`;
       a.click();
     });
   }

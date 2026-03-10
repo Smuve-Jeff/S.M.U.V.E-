@@ -33,24 +33,6 @@ export class PlayerService {
 
   isPlaying = computed(() => this.deckService.deckA().isPlaying);
   currentTrack = computed(() => this.playlist()[this.currentIndex()]);
-  isPlaying = computed(() => this.deckService.deckA().isPlaying);
-  currentTrack = signal<GlobalTrack | null>({
-    id: 'default',
-    title: 'S.M.U.V.E Radio Broadcast',
-  /**
-   * Keep DeckService's deck state (isPlaying/progress/etc) fresh across the app (e.g. Hub),
-   * since syncProgress() was previously only driven by the DJ deck component.
-   */
-  private readonly _progressSyncIntervalId: number | null = (() => {
-    // DeckService.syncProgress() signature varies; call defensively.
-    const sync = () => (this.deckService as any).syncProgress?.();
-    return typeof globalThis !== 'undefined' && typeof globalThis.setInterval === 'function'
-      ? globalThis.setInterval(sync, 100)
-      : null;
-  })();
-
-  isPlaying = computed(() => this.deckService.deckA().isPlaying);
-  currentTrack = computed(() => this.playlist()[this.currentIndex()]);
 
   progress = computed(() => {
     const d = this.deckService.deckA();
@@ -61,29 +43,28 @@ export class PlayerService {
   isRepeat = signal(false);
 
   togglePlay() {
-    // Ensure DeckState is up-to-date before togglePlay branches on isPlaying.
-    (this.deckService as any).syncProgress?.();
     this.deckService.togglePlay('A');
   }
 
-  const playlist = this.playlist();
-  if (playlist.length === 0) return;
+  next() {
+    const playlist = this.playlist();
+    if (playlist.length === 0) return;
 
-  // Repeat current track: reload/restart without changing the index.
-  if (this.isRepeat()) {
+    if (this.isRepeat()) {
+      this.autoLoadCurrent();
+      return;
+    }
+
+    let nextIndex = this.currentIndex() + 1;
+    if (this.isShuffle()) {
+      nextIndex = Math.floor(Math.random() * playlist.length);
+    } else if (nextIndex >= playlist.length) {
+      nextIndex = 0;
+    }
+
+    this.currentIndex.set(nextIndex);
     this.autoLoadCurrent();
-    return;
   }
-
-  let nextIndex = this.currentIndex() + 1;
-  if (this.isShuffle()) {
-    nextIndex = Math.floor(Math.random() * playlist.length);
-  } else if (nextIndex >= playlist.length) {
-    nextIndex = 0;
-  }
-
-  this.currentIndex.set(nextIndex);
-  this.autoLoadCurrent();
 
   previous() {
     let prevIndex = this.currentIndex() - 1;
@@ -99,39 +80,6 @@ export class PlayerService {
     if (track && track.buffer) {
       this.deckService.loadDeckBuffer('A', track.buffer, track.title);
       if (!this.isPlaying()) this.togglePlay();
-    } else {
-      console.log('PlayerService: Track has no buffer, skipping auto-load');
-  if (track?.url) {
-        void (async () => {
-          try {
-            const res = await fetch(track.url);
-            const arrayBuffer = await res.arrayBuffer();
-            const buffer = await this.audioEngine
-              .getContext()
-              .decodeAudioData(arrayBuffer.slice(0));
-
-            // Cache decoded buffer on the playlist entry so next/prev stays in sync.
-            this.playlist.update((p) =>
-              p.map((t, i) =>
-                i === this.currentIndex() ? { ...t, buffer } : t
-              )
-            );
-
-            this.deckService.loadDeckBuffer('A', buffer, track.title);
-            if (!this.isPlaying()) this.togglePlay();
-          } catch (err) {
-            console.warn(
-              'PlayerService: Failed to load track audio from URL',
-              err
-            );
-          }
-        })();
-      } else {
-        console.warn(
-          'PlayerService: Track has no buffer or URL; cannot auto-load',
-          track
-        );
-      }
     }
   }
 
@@ -140,7 +88,7 @@ export class PlayerService {
 
   async loadExternalTrack() {
     const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
-    if (files.length > 0) {
+    if (files && files.length > 0) {
       const file = files[0];
       const buffer = await this.fileLoader.decodeToAudioBuffer(
         this.audioEngine.getContext(),
@@ -148,8 +96,6 @@ export class PlayerService {
       );
 
       const newTrack: GlobalTrack = {
-      this.deckService.loadDeckBuffer('A', buffer, file.name);
-      this.currentTrack.set({
         id: Date.now().toString(),
         title: file.name.replace(/\.[^/.]+$/, ""),
         artist: 'Local Import',
@@ -159,21 +105,21 @@ export class PlayerService {
       this.playlist.update(p => [newTrack, ...p]);
       this.currentIndex.set(0);
       this.deckService.loadDeckBuffer('A', buffer, file.name);
-      });
       if (!this.isPlaying()) this.togglePlay();
     }
   }
 
   exportCurrent() {
-    const buffer = this.audioEngine.getDeck('A').buffer;
+    const deck = this.audioEngine.getDeck('A');
+    const buffer = deck ? (deck as any).buffer : null;
     if (!buffer) return;
     const wavBuffer = this.exportService.audioBufferToWav(buffer);
     const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
     const url = URL.createObjectURL(wavBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${this.currentTrack()?.title || 'exported_track'}.wav`;
-    a.download = `${this.currentTrack()?.title}.wav`;
+    const track = this.currentTrack();
+    a.download = `${track?.title || 'exported_track'}.wav`;
     a.click();
     URL.revokeObjectURL(url);
   }

@@ -1,211 +1,41 @@
-.studio-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-  background-color: #020617;
-  color: #e2e8f0;
+.animate-fade-in {
+  animation: fadeIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.film-grain {
   position: relative;
 }
 
-/* --- Strategic Commander Aesthetic Overlays --- */
-.scanlines {
+.film-grain::before {
+  content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    to bottom,
-    rgba(18, 16, 16, 0) 50%,
-    rgba(0, 0, 0, 0.1) 50%
-  );
+  inset: 0;
+  background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCJdRps4xsElI8RLBdEdz48FTkzc2IOOhAlDF0vzeJb--Njg2f35g75mcHd69TrgSwcdafZ9pWM40ovz_zrTmhokmPPgQpHCFf0mctC333KWXvdlsqMR9QABth9oVl71HgefBDIkn-hQvuDyQd8mDYOTkzhs45ZOvPmLCmktmbnIuG9eGxjgD531kJ_rKb--12HIDP65p69GaaMyduUt0bCS_Q2EwOlY6NVLxVKXfeaCv38eEKYjvm-BxSHmZ9B94sxfH-tFXJX8ts');
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scanline {
+  background: linear-gradient(to bottom, transparent 50%, rgba(255, 255, 255, 0.02) 50%);
   background-size: 100% 4px;
-  z-index: 999;
-  pointer-events: none;
-  opacity: 0.15;
-}
-
-.crt-flicker {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 998;
-  pointer-events: none;
-  animation: flicker 0.15s infinite;
-  background: rgba(16, 185, 129, 0.005);
-}
-
-@keyframes flicker {
-  0% { opacity: 0.27861; }
-  5% { opacity: 0.34769; }
-  10% { opacity: 0.23604; }
-  15% { opacity: 0.90626; }
-  20% { opacity: 0.18128; }
-  25% { opacity: 0.83891; }
-  30% { opacity: 0.65583; }
-  35% { opacity: 0.57807; }
-  40% { opacity: 0.26559; }
-  45% { opacity: 0.84693; }
-  50% { opacity: 0.96019; }
-  55% { opacity: 0.08523; }
-  60% { opacity: 0.71313; }
-  65% { opacity: 0.33441; }
-  70% { opacity: 0.77942; }
-  75% { opacity: 0.20713; }
-  80% { opacity: 0.43035; }
-  85% { opacity: 0.62124; }
-  90% { opacity: 0.27361; }
-  95% { opacity: 0.29422; }
-  100% { opacity: 0.80301; }
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: transparent;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.3);
+  background: rgba(244, 133, 37, 0.2);
   border-radius: 10px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.5);
-}
-
-.main-view {
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
-}
-
-.bottom-panel {
-  transition: height 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-  min-height: 0;
-  will-change: height;
-}
-
-/* --- Strategic Commander Panels --- */
-.commander-panel {
-  background: rgba(2, 6, 23, 0.85);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.1);
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(16, 185, 129, 0.02);
-  position: relative;
-  overflow: hidden;
-}
-
-.commander-panel::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #10b981, transparent);
-  animation: scanlineMove 4s linear infinite;
-  opacity: 0.3;
-}
-
-@keyframes scanlineMove {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(1000%); }
-}
-
-.neon-border-emerald {
-  border-color: rgba(16, 185, 129, 0.4);
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
-}
-
-.neon-text-emerald {
-  color: #10b981;
-  text-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
-}
-
-.hidden {
-  display: none;
-}
-
-/* Strategic Buttons */
-.btn-commander {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  color: #94a3b8;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-family: 'Fira Code', monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-commander:hover, .btn-commander.active {
-  background: #10b981;
-  color: #020617;
-  border-color: #10b981;
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
-}
-
-.btn-commander.active::before {
-  content: '>';
-  margin-right: 4px;
-}
-
-/* Faders & Knobs */
-input[type=range].commander-fader {
-  appearance: none;
-  background: rgba(0,0,0,0.5);
-  height: 4px;
-  border-radius: 2px;
-}
-
-input[type=range].commander-fader::-webkit-slider-thumb {
-  appearance: none;
-  width: 12px;
-  height: 24px;
-  background: #10b981;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-}
-
-@media (max-width: 1024px) {
-  .rack-panel {
-    width: 250px !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .rack-panel {
-    width: 100% !important;
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .bottom-panel > .flex {
-    flex-direction: column;
-    overflow-y: auto;
-  }
-
-  .main-bottom-area {
-    min-height: 300px;
-  }
-
-  .studio-header {
-    flex-direction: column;
-    gap: 1rem;
-    padding: 1rem !important;
-    height: auto !important;
-    align-items: flex-start !important;
-  }
+  background: rgba(244, 133, 37, 0.5);
 }

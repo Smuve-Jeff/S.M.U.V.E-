@@ -1,39 +1,58 @@
-
-<div class="app-container" [attr.data-theme]="uiService.activeTheme().name" [class.sidebar-closed]="!isSidebarOpen()" [class.is-mobile]="isMobile()">
+<div class="relative flex min-h-screen flex-col overflow-x-hidden bg-[#050706] text-slate-100 font-display film-grain">
   <app-notification-toast></app-notification-toast>
-  <app-smuve-advisor></app-smuve-advisor>
 
-  <aside class="app-sidebar" [class.open]="isSidebarOpen()">
-    <div class="sidebar-header" (click)="navigateToView('hub')">
-      <div class="logo-icon"><i class="fas fa-microchip"></i></div>
-      <div class="logo-text"><span>S.M.U.V.E</span></div>
-    </div>
-    <nav class="sidebar-nav">
-       <a *ngFor="let view of uiService.getViewConfigs()" (click)="navigateToView(view.mode)" class="nav-item" [class.active]="uiService.mainViewMode() === view.mode">
-         <i class="fas {{view.icon}}"></i>
-         <span *ngIf="isSidebarOpen() || isMobile()">{{view.label}}</span>
-       </a>
-    </nav>
-  </aside>
+  <!-- High-Power Elite Header -->
+  <header class="flex items-center justify-between px-10 pt-10 pb-6 z-40 relative">
+    <div class="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none"></div>
 
-  <header class="app-top-bar">
-    <div class="header-left">
-      <button *ngIf="isMobile()" (click)="toggleSidebar()"><i class="fas fa-bars"></i></button>
-      <h2 class="ml-4">{{ uiService.mainViewMode() | uppercase }}</h2>
+    <div class="flex items-center gap-6 cursor-pointer relative z-10" (click)="uiService.navigateToView('hub')">
+      <div class="size-16 rounded-2xl border-2 border-primary overflow-hidden shadow-[0_0_30px_rgba(37,244,106,0.2)] bg-black">
+        <img alt="Executive Profile" class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" src="assets/avatar.jpg"/>
+      </div>
+      <div>
+        <h2 class="text-xs font-black text-primary uppercase tracking-[0.4em] italic">S.M.U.V.E. 4.0</h2>
+        <p class="text-2xl font-black tracking-tight text-white uppercase italic tracking-tighter">Elite Domain</p>
+      </div>
     </div>
-    <div class="header-right">
-       <button *ngIf="!authService.isAuthenticated()" routerLink="/login" class="bg-emerald-500 text-black px-4 py-1 rounded">LOGIN</button>
-       <div *ngIf="authService.isAuthenticated()" class="flex items-center gap-2">
-          <img src="assets/avatar.jpg" class="w-8 h-8 rounded-full">
-          <button (click)="authService.logout()"><i class="fas fa-power-off"></i></button>
-       </div>
+
+    <div class="flex items-center gap-8 relative z-10">
+      <div class="flex flex-col items-end">
+         <span class="text-[9px] font-black text-primary uppercase tracking-[0.3em]">Signal Status</span>
+         <span class="text-xs font-mono text-white">ENCRYPTED_LINK_STABLE</span>
+      </div>
+      <button class="relative size-14 flex items-center justify-center rounded-2xl glass-panel-elite border-primary/20 text-primary hover:bg-primary/10 transition-all shadow-2xl" (click)="uiService.toggleChatbot()">
+        <span class="material-symbols-outlined text-3xl">notifications_active</span>
+        <span class="absolute -top-1 -right-1 size-3 bg-primary rounded-full border-2 border-[#050706] shadow-[0_0_10px_#25f46a]"></span>
+      </button>
     </div>
   </header>
 
-  <main class="app-content">
+  <!-- Main View Area -->
+  <main class="flex-grow pb-40">
     <router-outlet></router-outlet>
-    <aside *ngIf="uiService.isChatbotOpen()" class="ai-drawer">
-      <app-chatbot (close)="uiService.toggleChatbot()"></app-chatbot>
-    </aside>
   </main>
+
+  <!-- High-Power Navigation Bar -->
+  <nav class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 glass-panel-elite border-primary/30 py-4 px-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-[600px]">
+    <div class="flex justify-between items-center gap-12">
+      <a *ngFor="let view of [{m:'hub', l:'Command', i:'dashboard'}, {m:'studio', l:'Studio', i:'graphic_eq'}, {m:'player', l:'Broadcast', i:'podcasts'}, {m:'tha-spot', l:'Domain', i:'nightlife'}, {m:'profile', l:'Identity', i:'account_circle'}]"
+         (click)="uiService.navigateToView(view.m)"
+         class="flex flex-col items-center gap-1 transition-all cursor-pointer group"
+         [class.text-primary]="uiService.mainViewMode() === view.m"
+         [class.text-slate-600]="uiService.mainViewMode() !== view.m">
+        <span class="material-symbols-outlined text-3xl group-hover:scale-125 transition-transform" [class.fill-1]="uiService.mainViewMode() === view.m">{{ view.i }}</span>
+        <span class="text-[9px] font-black uppercase tracking-[0.2em] italic">{{ view.l }}</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- AI S.M.U.V.E. Chatbot Drawer -->
+  <aside *ngIf="uiService.isChatbotOpen()" class="fixed inset-y-0 right-0 w-[400px] z-[60] glass-panel-elite border-l border-primary/20 shadow-2xl animate-slide-in">
+    <app-chatbot (close)="uiService.toggleChatbot()"></app-chatbot>
+  </aside>
+
+  <!-- Footer Notice -->
+  <footer class="text-center py-6 text-[10px] text-slate-800 z-0 font-black uppercase tracking-[0.5em]">
+    (©️ Smuve Jeff Presents)
+  </footer>
 </div>

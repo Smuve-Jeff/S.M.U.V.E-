@@ -1,666 +1,140 @@
-<div class="p-6 h-full flex flex-col bg-[`#020617`] text-slate-300 font-sans selection:bg-emerald-500/30 overflow-y-auto">
-  <!-- TOP NAV / STATUS BAR -->
-  <div class="flex items-center justify-between mb-8 p-4 bg-slate-900/40 rounded-2xl border border-white/5 backdrop-blur-md">
-    <div class="flex items-center gap-6">
-      <div class="flex flex-col">
-        <h1 class="text-2xl font-black italic tracking-tighter text-white uppercase leading-none">DJ<span class="text-emerald-500">BOOTH</span></h1>
-        <span class="text-[8px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">S.M.U.V.E. Hardware Interface v3.0</span>
-      </div>
-      <div class="h-8 w-px bg-white/10"></div>
-      <div class="flex gap-4">
-        <div class="flex flex-col">
-          <span class="text-[8px] font-black text-slate-600 uppercase tracking-widest">Master Out</span>
-          <div class="flex gap-1 items-center">
-            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></div>
-            <span class="text-[10px] font-mono text-emerald-500 font-bold">READY</span>
-          </div>
-        </div>
-        <div class="flex flex-col">
-          <span class="text-[8px] font-black text-slate-600 uppercase tracking-widest">Recording</span>
-          <button (click)="startStopRecording()" class="flex gap-1 items-center group">
-            <div class="w-1.5 h-1.5 rounded-full bg-slate-700 transition-colors" [class.bg-red-500]="recording()" [class.animate-pulse]="recording()"></div>
-            <span class="text-[10px] font-mono group-hover:text-white transition-colors uppercase">{{ recording() ? 'Live' : 'Standby' }}</span>
-          </button>
-        </div>
-      </div>
-    </div>
+<div class="p-10 bg-black min-h-screen text-slate-100 animate-fade-in film-grain relative overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 pointer-events-none"></div>
 
-    <div class="flex items-center gap-4">
-      <div class="flex flex-col items-end">
-         <span class="text-[8px] font-black text-slate-600 uppercase tracking-widest">Master Volume</span>
-         <input type="range" min="0" max="1" step="0.01" [ngModel]="masterVolume()" (input)="setMasterVolume(($event.target).value)" class="w-32 h-1 accent-emerald-500 bg-white/10 rounded-full cursor-pointer">
-         <input type="range" min="0" max="1" step="0.01" [ngModel]="masterVolume()" (input)="setMasterVolume($any($event.target).value)" class="w-32 h-1 accent-emerald-500 bg-white/10 rounded-full cursor-pointer">
-      </div>
-      <button class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 hover:text-emerald-500 transition-all shadow-lg">
-        <i class="fas fa-cog"></i>
-      </button>
-    </div>
-  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start relative z-10">
 
-  <!-- MAIN HARDWARE GRID -->
-  <div class="grid grid-cols-12 gap-6 flex-grow overflow-hidden mb-20">
-
-    <!-- DECK A -->
-    <div class="col-span-12 lg:col-span-5 flex flex-col gap-4 bg-slate-900/30 rounded-3xl p-6 border border-white/5 relative overflow-hidden group">
-      <!-- Deck A Header -->
-      <div class="flex justify-between items-start z-10">
-        <div class="flex flex-col gap-1 max-w-[70%]">
-          <div class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Deck A // Primary</div>
-          <h3 class="text-xl font-black truncate text-white uppercase italic tracking-tighter">{{ deckService.deckA().track.name || 'NO SIGNAL' }}</h3>
-          <div class="flex gap-4 items-center mt-1">
-            <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{{ deckService.deckA().bpm | number:'1.1-1' }} BPM</span>
-            <span class="text-[10px] font-mono text-slate-500">{{ pitchAPercentage() }} PITCH</span>
-          </div>
+    <!-- DECK A: Luxury Hardware -->
+    <div class="lg:col-span-4 glass-panel-elite rounded-[3rem] p-12 border-primary/20 shadow-[0_40px_80px_rgba(0,0,0,0.8)] relative overflow-hidden group">
+      <div class="absolute inset-0 scanline opacity-10 pointer-events-none"></div>
+      <div class="flex justify-between items-start mb-12 relative z-20">
+        <div>
+          <span class="px-4 py-1 rounded-full text-[9px] font-black bg-primary text-black mb-4 inline-block uppercase tracking-[0.3em] italic">Platinum Deck Alpha</span>
+          <h3 class="text-3xl font-black italic tracking-tighter text-white truncate w-56 uppercase drop-shadow-lg">{{ deckService.deckA().track.name || 'NO_SIGNAL_SYNC' }}</h3>
+          <p class="text-sm text-primary font-mono mt-2 font-black uppercase tracking-[0.4em] italic">{{ deckService.deckA().bpm | number:'1.1-1' }} BPM</p>
         </div>
-        <!-- Spinning Platter Simulation -->
-        <div class="w-16 h-16 rounded-full border-2 border-emerald-500/20 flex items-center justify-center relative overflow-hidden shrink-0">
-           <div class="absolute inset-1 rounded-full border border-emerald-500/10 border-dashed" [class.animate-spin-slow]="deckService.deckA().isPlaying"></div>
-           <i class="fas fa-compact-disc text-2xl text-emerald-500/40" [class.animate-spin]="deckService.deckA().isPlaying"></i>
-        </div>
+        <button (click)="loadTrackFor('A')" class="size-16 rounded-[2rem] glass-panel-elite border-primary/30 flex items-center justify-center text-primary hover:bg-primary/10 transition-all shadow-2xl group-hover:scale-110">
+          <span class="material-symbols-outlined text-4xl">cloud_upload</span>
+        </button>
       </div>
 
-      <!-- Deck A Waveform -->
-      <div class="relative h-40 bg-black/40 rounded-2xl border border-white/5 overflow-hidden group/wv">
-        <canvas #waveformA class="w-full h-full cursor-crosshair"></canvas>
-        <div class="absolute top-2 left-2 flex gap-1">
-          <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]"></div>
-          <span class="text-[8px] font-mono text-emerald-500/50 uppercase tracking-widest">Live Flow</span>
+      <!-- Platter A: Hyper-Realistic -->
+      <div class="relative size-80 mx-auto mb-12 flex items-center justify-center group/platter">
+        <div class="absolute inset-0 rounded-full border-8 border-white/5 shadow-[inset_0_0_50px_rgba(0,0,0,1)]"></div>
+        <div class="absolute inset-2 rounded-full border-4 border-primary/20 border-dashed animate-spin-slow group-hover:duration-[2s] transition-all"></div>
+        <div class="absolute inset-10 rounded-full bg-[#111] shadow-[0_0_40px_rgba(0,0,0,1),inset_0_0_40px_rgba(255,255,255,0.05)] flex items-center justify-center overflow-hidden">
+           <img src="assets/avatar.jpg" class="w-full h-full object-cover opacity-20 grayscale group-hover:opacity-40 transition-all">
+           <div class="absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-white/5"></div>
+           <span class="material-symbols-outlined text-8xl text-primary/10 absolute animate-pulse">album</span>
         </div>
+        <canvas #waveformA class="absolute inset-0 w-full h-full rounded-full opacity-60 mix-blend-screen scale-110"></canvas>
       </div>
 
-      <!-- Deck A Controls Area -->
-      <div class="grid grid-cols-12 gap-6 z-10">
-        <!-- Vertical Controls -->
-        <div class="col-span-2 flex flex-col justify-between items-center py-4 bg-black/20 rounded-2xl border border-white/5 min-h-[220px]">
-          <div class="flex flex-col items-center gap-1">
-            <span class="text-[7px] font-black text-slate-500 uppercase">Pitch</span>
-            <input type="range" min="0.8" max="1.2" step="0.001" [ngModel]="deckService.deckA().playbackRate" (input)="setPlaybackRate('A', ($event.target).value)" class="vertical-range h-24 accent-emerald-500" orient="vertical">
-          </div>
-          <div class="flex flex-col items-center gap-1">
-             <span class="text-[7px] font-black text-slate-500 uppercase">Gain</span>
-             <input type="range" min="0" max="1.5" step="0.01" [ngModel]="deckService.deckA().gain" (input)="setGain('A', ($event.target).value)" class="vertical-range h-16 accent-emerald-500" orient="vertical">
-          </div>
-        </div>
-
-        <!-- Main Interaction Area -->
-        <div class="col-span-10 flex flex-col gap-4">
-  <div class="grid grid-cols-12 gap-6 flex-grow">
-
-    <!-- DECK A -->
-    <div class="col-span-12 lg:col-span-5 flex flex-col gap-4 bg-slate-900/30 rounded-3xl p-4 border border-white/5 relative overflow-hidden group">
-      <!-- Deck A Background Glow -->
-      <div class="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full group-hover:bg-emerald-500/10 transition-all duration-700"></div>
-
-      <!-- Deck A Header -->
-      <div class="flex justify-between items-start z-10">
-        <div class="flex flex-col gap-1 max-w-[60%]">
-          <div class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Deck A // Primary</div>
-          <h3 class="text-lg font-black truncate text-white uppercase italic tracking-tighter">{{ deckService.deckA().track.name || 'EMPTY DECK' }}</h3>
-          <div class="flex gap-4 items-center mt-1">
-            <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{{ deckService.deckA().bpm | number:'1.1-1' }} BPM</span>
-            <span class="text-[10px] font-mono text-slate-500">{{ pitchAPercentage() }} PITCH</span>
-          </div>
-        </div>
-        <div class="flex flex-col items-end gap-2">
-           <canvas #meterA width="12" height="60" class="rounded bg-black/40 border border-white/5"></canvas>
-           <div class="text-[8px] font-mono text-slate-500 uppercase font-bold">Level</div>
-        </div>
-      </div>
-
-      <!-- Deck A Waveform -->
-      <div class="relative h-44 bg-black/40 rounded-2xl border border-white/5 overflow-hidden group/wv">
-        <canvas #waveformA class="w-full h-full cursor-crosshair"></canvas>
-        <div class="absolute top-2 left-2 flex gap-1">
-          <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]"></div>
-          <span class="text-[8px] font-mono text-emerald-500/50 uppercase tracking-widest">Live Flow</span>
-        </div>
-        <div class="absolute bottom-4 right-4 text-[10px] font-mono text-slate-600 bg-black/80 px-2 py-1 rounded border border-white/5">
-          {{ deckService.deckA().progress | number:'1.2-2' }}s / {{ deckService.deckA().duration | number:'1.2-2' }}s
-        </div>
-      </div>
-
-      <!-- Deck A Controls Area -->
-      <div class="grid grid-cols-12 gap-4 z-10">
-        <!-- Vertical Controls (Pitch, Filter, Gain) -->
-        <div class="col-span-2 flex flex-col justify-between items-center py-4 bg-black/20 rounded-2xl border border-white/5 min-h-[250px]">
-          <div class="flex flex-col items-center gap-1">
-            <span class="text-[7px] font-black text-slate-500 uppercase">Pitch</span>
-            <input type="range" min="0.8" max="1.2" step="0.001" [ngModel]="deckService.deckA().playbackRate" (input)="setPlaybackRate('A', $any($event.target).value)" class="vertical-range h-24 accent-emerald-500" orient="vertical">
-          </div>
-          <div class="flex flex-col items-center gap-1">
-             <span class="text-[7px] font-black text-slate-500 uppercase">Gain</span>
-             <input type="range" min="0" max="1.5" step="0.01" [ngModel]="deckService.deckA().gain" (input)="setGain('A', $any($event.target).value)" class="vertical-range h-20 accent-emerald-500" orient="vertical">
-          </div>
-        </div>
-
-        <!-- Main Interaction Area -->
-        <div class="col-span-10 flex flex-col gap-4">
-          <!-- Performance Pads -->
-          <div class="flex flex-col gap-2">
-            <div class="flex gap-4 border-b border-white/5">
-              @for (mode of ['cue', 'roll', 'sampler']; track mode) {
-                <button (click)="performanceMode.set($any(mode))"
-                        class="pb-1 text-[9px] font-black uppercase tracking-[0.2em] transition-all border-b-2"
-                        [class.text-emerald-500]="performanceMode() === mode"
-                        [class.border-emerald-500]="performanceMode() === mode"
-                        [class.text-slate-600]="performanceMode() !== mode"
-                        [class.border-transparent]="performanceMode() !== mode">
-                  {{ mode }}
-                </button>
-              }
+      <!-- Holographic Stems A -->
+      <div class="grid grid-cols-4 gap-4 mb-12">
+         <div *ngFor="let s of ['Drums', 'Bass', 'Vocal', 'Synth']" class="p-3 rounded-xl glass-panel-elite border-primary/30 text-center group/stem cursor-pointer hover:bg-primary/20 transition-all">
+            <p class="text-[8px] font-black text-primary uppercase tracking-widest mb-1 italic">{{ s }}</p>
+            <div class="h-1 bg-primary/20 rounded-full overflow-hidden">
+               <div class="h-full bg-primary" [style.width.%]="100"></div>
             </div>
-            <div class="grid grid-cols-4 gap-2">
-              @for (cue of [0,1,2,3,4,5,6,7]; track cue) {
-                <button (click)="handlePadPress('A', cue)"
-                        class="h-10 rounded-lg border border-white/5 transition-all active:scale-95 flex flex-col items-center justify-center gap-1 group/pad"
-                        [class.bg-emerald-500]="performanceMode() === 'cue' && deckService.deckA().hotCues[cue] !== null"
-                        [class.bg-slate-800/50]="performanceMode() !== 'cue' || deckService.deckA().hotCues[cue] === null">
-                  <span class="text-[10px] font-black" [class.text-black]="performanceMode() === 'cue' && deckService.deckA().hotCues[cue] !== null" [class.text-slate-500]="performanceMode() !== 'cue' || deckService.deckA().hotCues[cue] === null">{{ cue + 1 }}</span>
-                        class="h-12 rounded-lg border border-white/5 transition-all active:scale-95 flex flex-col items-center justify-center gap-1 group/pad"
-                        [class.bg-emerald-500]="performanceMode() === 'cue' && deckService.deckA().hotCues[cue] !== null"
-                        [class.bg-slate-800/50]="performanceMode() !== 'cue' || deckService.deckA().hotCues[cue] === null">
-                  <span class="text-[10px] font-black" [class.text-black]="performanceMode() === 'cue' && deckService.deckA().hotCues[cue] !== null" [class.text-slate-500]="performanceMode() !== 'cue' || deckService.deckA().hotCues[cue] === null">{{ cue + 1 }}</span>
-                  <div class="w-1 h-1 rounded-full group-hover:scale-150 transition-transform" [class.bg-emerald-400]="performanceMode() === 'cue' && deckService.deckA().hotCues[cue] !== null" [class.bg-slate-600]="performanceMode() !== 'cue' || deckService.deckA().hotCues[cue] === null"></div>
-                </button>
-              }
-            </div>
-          </div>
-
-          <div class="flex items-center gap-4 mt-auto">
-             <button (click)="loadTrackFor('A')" class="w-12 h-12 rounded-xl bg-slate-800 border border-white/10 text-slate-400 hover:text-emerald-500 flex items-center justify-center shadow-lg transition-all">
-                <i class="fas fa-plus"></i>
-             </button>
-             <button (click)="deckService.togglePlay('A')"
-                     class="flex-grow h-12 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl bg-slate-800 text-emerald-500 font-black italic tracking-widest uppercase"
-                     [class.bg-emerald-500]="deckService.deckA().isPlaying"
-                     [class.text-black]="deckService.deckA().isPlaying">
-               <i class="fas text-xl" [class.fa-pause]="deckService.deckA().isPlaying" [class.fa-play]="!deckService.deckA().isPlaying"></i>
-               <span>ENGAGE</span>
-             </button>
-             <div class="flex flex-col gap-1">
-                <button (click)="sync('A')" class="w-10 py-1.5 rounded bg-slate-800 border border-white/10 text-[7px] font-black text-emerald-500 uppercase tracking-tighter">SYNC</button>
-                <button (click)="tapBpm('A')" class="w-10 py-1.5 rounded bg-slate-800 border border-white/10 text-[7px] font-black text-slate-400 uppercase tracking-tighter">TAP</button>
-          <!-- Deck A Footer Controls -->
-          <div class="flex items-center gap-4 mt-auto">
-             <button (click)="loadTrackFor('A')" class="w-14 h-14 rounded-2xl bg-slate-800 border border-white/10 text-slate-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all flex items-center justify-center shadow-lg">
-                <i class="fas fa-plus text-xl"></i>
-             </button>
-             <button (click)="deckService.togglePlay('A')"
-                     class="flex-grow h-14 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl relative overflow-hidden group/play"
-                     [class.bg-emerald-500]="deckService.deckA().isPlaying"
-                     [class.bg-slate-800]="!deckService.deckA().isPlaying"
-                     [class.text-black]="deckService.deckA().isPlaying"
-                     [class.text-emerald-500]="!deckService.deckA().isPlaying">
-               <i class="fas text-2xl" [class.fa-pause]="deckService.deckA().isPlaying" [class.fa-play]="!deckService.deckA().isPlaying"></i>
-               <span class="font-black italic tracking-[0.2em] text-sm uppercase">{{ deckService.deckA().isPlaying ? 'Halt' : 'Engage' }}</span>
-             </button>
-             <div class="flex flex-col gap-1">
-                <button (click)="sync('A')" class="w-12 py-2 rounded bg-slate-800 border border-white/10 text-[8px] font-black text-emerald-500 uppercase tracking-tighter hover:bg-emerald-500 hover:text-black transition-all">SYNC</button>
-                <button (click)="tapBpm('A')" class="w-12 py-2 rounded bg-slate-800 border border-white/10 text-[8px] font-black text-slate-400 uppercase tracking-tighter hover:text-white transition-all">TAP</button>
-             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Deck A Stems -->
-      <div class="bg-black/20 rounded-2xl p-4 border border-white/5 z-10 mt-auto relative overflow-hidden group/stems">
-         @if (!hasNeuralStems()) {
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-4 text-center">
-               <i class="fas fa-lock text-emerald-500/40 text-sm mb-1"></i>
-               <div class="text-[7px] font-black text-emerald-500/60 uppercase tracking-widest">Neural Lock</div>
-            </div>
-         }
-         <div class="grid grid-cols-4 gap-4">
-            @for (stem of ['vocals', 'drums', 'bass', 'melody']; track stem) {
-               <div class="flex flex-col items-center gap-1">
-                  <div class="text-[6px] font-black text-slate-500 uppercase">{{ stem }}</div>
-                  <input type="range" min="0" max="1" step="0.01" value="1" (input)="deckService.onStemGainChange('A', {stem: stem, gain: $any($event.target).value})" class="vertical-range h-12 accent-emerald-500" orient="vertical">
-               </div>
-            }
          </div>
       </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <button (click)="deckService.togglePlay('A')" class="py-6 rounded-3xl bg-primary text-black flex items-center justify-center shadow-[0_0_40px_rgba(37,244,106,0.4)] hover:scale-105 transition-all">
+          <span class="material-symbols-outlined text-5xl fill-1">{{ deckService.deckA().isPlaying ? 'pause' : 'play_arrow' }}</span>
+        </button>
+        <button (click)="sync('A')" class="py-6 rounded-3xl glass-panel-elite border-primary/40 flex items-center justify-center text-primary hover:bg-primary/20 transition-all text-xs font-black uppercase tracking-[0.4em] italic">
+          Lock_Sync
+        </button>
+      </div>
     </div>
 
-    <!-- CENTRAL MIXER -->
-    <div class="col-span-12 lg:col-span-2 flex flex-col gap-6 bg-slate-900/50 rounded-3xl p-6 border border-white/10 relative overflow-hidden shadow-2xl">
-       <div class="flex flex-col gap-6 flex-grow">
-          <!-- EQ Section -->
-          <div class="flex flex-col gap-5 items-center">
-             <div class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-white/10 w-full text-center pb-2">EQ Matrix</div>
-             @for (band of ['high', 'mid', 'low']; track band) {
-               <div class="flex flex-col items-center gap-1.5">
-                  <div class="text-[8px] text-slate-600 font-bold uppercase">{{ band }}</div>
-                  <div class="flex gap-4">
-                     <input type="range" min="0" max="2" step="0.01" [ngModel]="deckService.deckA()['eq' + (band | titlecase)]" (input)="setEq('A', band, $any($event.target).value)" class="knob-range w-8 h-8 accent-emerald-500">
-                     <input type="range" min="0" max="2" step="0.01" [ngModel]="deckService.deckB()['eq' + (band | titlecase)]" (input)="setEq('B', band, $any($event.target).value)" class="knob-range w-8 h-8 accent-orange-500">
-                  </div>
-               </div>
-             }
+    <!-- CENTRAL MIXER: Chrome & Emerald -->
+    <div class="lg:col-span-4 flex flex-col items-center">
+      <div class="glass-panel-elite rounded-[4rem] p-12 border-silver/20 shadow-[0_50px_100px_rgba(0,0,0,0.9)] bg-black/40 wood-edge flex flex-col items-center relative overflow-hidden w-full">
+        <div class="absolute inset-0 bg-gradient-to-b from-silver/5 via-transparent to-primary/5"></div>
+        <h3 class="text-[11px] font-black uppercase tracking-[0.5em] text-silver mb-16 italic">Elite Command Console</h3>
+
+        <!-- Backlit VU Meters -->
+        <div class="flex gap-12 mb-16 h-72 items-end bg-black/80 p-8 rounded-[3rem] border-4 border-silver/10 shadow-inner relative">
+          <div class="absolute inset-0 scanline opacity-20"></div>
+          <div class="w-6 h-full glass-panel-elite rounded-full overflow-hidden relative border-primary/20">
+             <div class="absolute bottom-0 w-full bg-gradient-to-t from-primary via-emerald-400 to-white shadow-[0_0_30px_#25f46a]" [style.height.%]="85"></div>
           </div>
-
-          <!-- FX Sends -->
-          <div class="flex flex-col gap-4 items-center">
-             <div class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-white/10 w-full text-center pb-2">FX Sends</div>
-             <div class="grid grid-cols-2 gap-3">
-                <input type="range" min="0" max="1" step="0.01" [ngModel]="deckService.deckA().sendA" (input)="setSend('A', 'A', $any($event.target).value)" class="knob-range w-6 h-6 accent-emerald-500">
-                <input type="range" min="0" max="1" step="0.01" [ngModel]="deckService.deckB().sendA" (input)="setSend('B', 'A', $any($event.target).value)" class="knob-range w-6 h-6 accent-orange-500">
-                <input type="range" min="0" max="1" step="0.01" [ngModel]="deckService.deckA().sendB" (input)="setSend('A', 'B', $any($event.target).value)" class="knob-range w-6 h-6 accent-emerald-500">
-                <input type="range" min="0" max="1" step="0.01" [ngModel]="deckService.deckB().sendB" (input)="setSend('B', 'B', $any($event.target).value)" class="knob-range w-6 h-6 accent-orange-500">
-             </div>
+          <div class="w-6 h-full glass-panel-elite rounded-full overflow-hidden relative border-primary/20">
+             <div class="absolute bottom-0 w-full bg-gradient-to-t from-primary via-emerald-400 to-white shadow-[0_0_30px_#25f46a]" [style.height.%]="82"></div>
           </div>
+        </div>
 
-          <!-- Resonance -->
-          <div class="flex flex-col gap-4 items-center mt-auto">
-             <div class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-white/10 w-full text-center pb-2">Resonance</div>
-             <div class="flex gap-4">
-                <input type="range" min="20" max="20000" step="1" [ngModel]="deckService.deckA().filterFreq" (input)="setFilter('A', $any($event.target).value)" class="knob-range w-10 h-10 accent-emerald-500">
-                <input type="range" min="20" max="20000" step="1" [ngModel]="deckService.deckB().filterFreq" (input)="setFilter('B', $any($event.target).value)" class="knob-range w-10 h-10 accent-orange-500">
+        <!-- Long Throw Silver Fader -->
+        <div class="w-full space-y-12 px-10">
+          <div class="flex justify-between items-center">
+            <span class="text-[11px] font-black text-silver uppercase tracking-[0.4em] italic">Master Intensity</span>
+            <span class="text-2xl font-mono text-primary font-black drop-shadow-[0_0_10px_#25f46a]">{{ masterVolume() * 100 | number:'1.0-0' }}</span>
+          </div>
+          <div class="relative h-2 flex items-center">
+             <div class="absolute w-full h-1 bg-silver/10 rounded-full"></div>
+             <input type="range"
+                    [value]="masterVolume()"
+                    (input)="setMasterVolume($any($event.target).value)"
+                    min="0" max="1" step="0.01"
+                    class="w-full appearance-none bg-transparent cursor-pointer z-10 accent-primary scale-125">
+          </div>
+        </div>
 
-      <!-- Deck A Stems Area -->
-      <div class="bg-black/20 rounded-2xl p-4 border border-white/5 z-10 mt-auto relative overflow-hidden group/stems">
-         @if (!hasNeuralStems()) {
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-4 text-center">
-               <i class="fas fa-lock text-emerald-500/40 text-xl mb-2"></i>
-               <div class="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest">Neural Stem Extraction Restricted</div>
-               <button (click)="uiService.navigateToView('strategy')" class="mt-2 text-[7px] font-black text-white bg-emerald-500/20 px-3 py-1 rounded border border-emerald-500/40 hover:bg-emerald-500 hover:text-black transition-all">UPGRADE AT COMMAND CENTER</button>
+        <button (click)="startStopRecording()"
+                [class.text-primary]="recording()"
+                class="mt-20 flex items-center gap-6 px-12 py-6 rounded-[2.5rem] glass-panel-elite border-silver/20 hover:border-primary/50 transition-all text-xs font-black uppercase tracking-[0.4em] italic group shadow-2xl">
+          <div class="size-4 rounded-full bg-primary shadow-[0_0_20px_#25f46a]" [class.animate-ping]="recording()"></div>
+          {{ recording() ? 'Finalizing Capture' : 'Initialize Capture' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- DECK B: Matching Luxury -->
+    <div class="lg:col-span-4 glass-panel-elite rounded-[3rem] p-12 border-primary/20 shadow-[0_40px_80px_rgba(0,0,0,0.8)] relative overflow-hidden group">
+      <div class="absolute inset-0 scanline opacity-10 pointer-events-none"></div>
+      <div class="flex justify-between items-start mb-12 relative z-20">
+        <div>
+          <span class="px-4 py-1 rounded-full text-[9px] font-black bg-primary text-black mb-4 inline-block uppercase tracking-[0.3em] italic">Platinum Deck Beta</span>
+          <h3 class="text-3xl font-black italic tracking-tighter text-white truncate w-56 uppercase drop-shadow-lg">{{ deckService.deckB().track.name || 'NO_SIGNAL_SYNC' }}</h3>
+          <p class="text-sm text-primary font-mono mt-2 font-black uppercase tracking-[0.4em] italic">{{ deckService.deckB().bpm | number:'1.1-1' }} BPM</p>
+        </div>
+        <button (click)="loadTrackFor('B')" class="size-16 rounded-[2rem] glass-panel-elite border-primary/30 flex items-center justify-center text-primary hover:bg-primary/10 transition-all shadow-2xl group-hover:scale-110">
+          <span class="material-symbols-outlined text-4xl">cloud_upload</span>
+        </button>
+      </div>
+
+      <!-- Platter B -->
+      <div class="relative size-80 mx-auto mb-12 flex items-center justify-center group/platter">
+        <div class="absolute inset-0 rounded-full border-8 border-white/5 shadow-[inset_0_0_50px_rgba(0,0,0,1)]"></div>
+        <div class="absolute inset-2 rounded-full border-4 border-primary/20 border-dashed animate-spin-slow group-hover:duration-[2s] transition-all"></div>
+        <div class="absolute inset-10 rounded-full bg-[#111] shadow-[0_0_40px_rgba(0,0,0,1),inset_0_0_40px_rgba(255,255,255,0.05)] flex items-center justify-center overflow-hidden">
+           <img src="assets/avatar.jpg" class="w-full h-full object-cover opacity-20 grayscale group-hover:opacity-40 transition-all">
+           <div class="absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-white/5"></div>
+           <span class="material-symbols-outlined text-8xl text-primary/10 absolute animate-pulse">album</span>
+        </div>
+        <canvas #waveformB class="absolute inset-0 w-full h-full rounded-full opacity-60 mix-blend-screen scale-110"></canvas>
+      </div>
+
+      <!-- Holographic Stems B -->
+      <div class="grid grid-cols-4 gap-4 mb-12">
+         <div *ngFor="let s of ['Drums', 'Bass', 'Vocal', 'Synth']" class="p-3 rounded-xl glass-panel-elite border-primary/30 text-center group/stem cursor-pointer hover:bg-primary/20 transition-all">
+            <p class="text-[8px] font-black text-primary uppercase tracking-widest mb-1 italic">{{ s }}</p>
+            <div class="h-1 bg-primary/20 rounded-full overflow-hidden">
+               <div class="h-full bg-primary" [style.width.%]="100"></div>
             </div>
-         }
-         <div class="text-[8px] font-black text-slate-600 uppercase tracking-[0.3em] mb-3">Neural Stem Isolation</div>
-         <div class="grid grid-cols-4 gap-4">
-            @for (stem of ['vocals', 'drums', 'bass', 'melody']; track stem) {
-               <div class="flex flex-col items-center gap-2">
-                  <div class="text-[7px] font-black text-slate-500 uppercase">{{ stem }}</div>
-                  <input type="range" min="0" max="1" step="0.01" value="1" (input)="deckService.onStemGainChange('A', {stem: stem, gain: $any($event.target).value})" class="vertical-range h-16 accent-emerald-500" orient="vertical">
-               </div>
-            }
          </div>
       </div>
-    </div>
 
-    <!-- CENTRAL MIXER -->
-    <div class="col-span-12 lg:col-span-2 flex flex-col gap-6 bg-slate-900/50 rounded-3xl p-6 border border-white/10 relative overflow-hidden shadow-2xl">
-       <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
-
-       <!-- Mixer Channel Strips -->
-       <div class="flex flex-col gap-8 flex-grow">
-          <!-- EQ Section -->
-          <div class="flex flex-col gap-6 items-center">
-             <div class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-white/10 w-full text-center pb-2">EQ Matrix</div>
-
-             <!-- High EQ -->
-             <div class="flex flex-col items-center gap-2">
-                <div class="text-[8px] text-slate-600 font-bold uppercase">High</div>
-                <div class="flex gap-4">
-                   <input type="range" min="0" max="2" step="0.01" [ngModel]="deckService.deckA().eqHigh" (input)="setEq('A', 'high', $any($event.target).value)" class="knob-range w-10 h-10 accent-emerald-500">
-                   <input type="range" min="0" max="2" step="0.01" [ngModel]="deckService.deckB().eqHigh" (input)="setEq('B', 'high', $any($event.target).value)" class="knob-range w-10 h-10 accent-orange-500">
-                </div>
-             </div>
-
-             <!-- Mid EQ -->
-             <div class="flex flex-col items-center gap-2">
-                <div class="text-[8px] text-slate-600 font-bold uppercase">Mid</div>
-                <div class="flex gap-4">
-                   <input type="range" min="0" max="2" step="0.01" [ngModel]="deckService.deckA().eqMid" (input)="setEq('A', 'mid', $any($event.target).value)" class="knob-range w-10 h-10 accent-emerald-500">
-                   <input type="range" min="0" max="2" step="0.01" [ngModel]="deckService.deckB().eqMid" (input)="setEq('B', 'mid', $any($event.target).value)" class="knob-range w-10 h-10 accent-orange-500">
-                </div>
-             </div>
-
-             <!-- Low EQ -->
-             <div class="flex flex-col items-center gap-2">
-                <div class="text-[8px] text-slate-600 font-bold uppercase">Low</div>
-                <div class="flex gap-4">
-                   <input type="range" min="0" max="2" step="0.01" [ngModel]="deckService.deckA().eqLow" (input)="setEq('A', 'low', $any($event.target).value)" class="knob-range w-10 h-10 accent-emerald-500">
-                   <input type="range" min="0" max="2" step="0.01" [ngModel]="deckService.deckB().eqLow" (input)="setEq('B', 'low', $any($event.target).value)" class="knob-range w-10 h-10 accent-orange-500">
-                </div>
-             </div>
-          </div>
-
-          <!-- FX Section -->
-          <div class="flex flex-col gap-4 items-center">
-             <div class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-white/10 w-full text-center pb-2">FX Sends</div>
-             <div class="grid grid-cols-2 gap-x-6 gap-y-4">
-                <div class="flex flex-col items-center gap-1">
-                   <input type="range" min="0" max="1" step="0.01" [ngModel]="deckService.deckA().sendA" (input)="setSend('A', 'A', $any($event.target).value)" class="knob-range w-8 h-8 accent-emerald-500">
-                   <span class="text-[6px] text-slate-600 font-black">RVB A</span>
-                </div>
-                <div class="flex flex-col items-center gap-1">
-                   <input type="range" min="0" max="1" step="0.01" [ngModel]="deckService.deckB().sendA" (input)="setSend('B', 'A', $any($event.target).value)" class="knob-range w-8 h-8 accent-orange-500">
-                   <span class="text-[6px] text-slate-600 font-black">RVB B</span>
-                </div>
-                <div class="flex flex-col items-center gap-1">
-                   <input type="range" min="0" max="1" step="0.01" [ngModel]="deckService.deckA().sendB" (input)="setSend('A', 'B', $any($event.target).value)" class="knob-range w-8 h-8 accent-emerald-500">
-                   <span class="text-[6px] text-slate-600 font-black">DLY A</span>
-                </div>
-                <div class="flex flex-col items-center gap-1">
-                   <input type="range" min="0" max="1" step="0.01" [ngModel]="deckService.deckB().sendB" (input)="setSend('B', 'B', $any($event.target).value)" class="knob-range w-8 h-8 accent-orange-500">
-                   <span class="text-[6px] text-slate-600 font-black">DLY B</span>
-                </div>
-             </div>
-          </div>
-
-          <!-- Filter Section -->
-          <div class="flex flex-col gap-4 items-center mt-auto">
-             <div class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-white/10 w-full text-center pb-2">Resonance</div>
-             <div class="flex gap-6">
-                <div class="flex flex-col items-center gap-2">
-                   <input type="range" min="20" max="20000" step="1" [ngModel]="deckService.deckA().filterFreq" (input)="setFilter('A', $any($event.target).value)" class="knob-range w-12 h-12 accent-emerald-500">
-                   <span class="text-[7px] text-slate-500 font-bold uppercase">Fltr A</span>
-                </div>
-                <div class="flex flex-col items-center gap-2">
-                   <input type="range" min="20" max="20000" step="1" [ngModel]="deckService.deckB().filterFreq" (input)="setFilter('B', $any($event.target).value)" class="knob-range w-12 h-12 accent-orange-500">
-                   <span class="text-[7px] text-slate-500 font-bold uppercase">Fltr B</span>
-                </div>
-             </div>
-          </div>
-       </div>
-
-       <!-- Crossfader -->
-       <div class="mt-8 flex flex-col items-center gap-4">
-          <div class="text-[9px] font-black text-emerald-500/50 uppercase tracking-[0.3em]">Crossfader</div>
-          <input type="range" min="-1" max="1" step="0.001" [ngModel]="deckService.crossfade()" (ngModelChange)="deckService.crossfade.set($event)" class="w-full h-1 appearance-none bg-emerald-500/20 rounded cursor-pointer accent-emerald-500">
-       <!-- Crossfader Section -->
-       <div class="mt-8 flex flex-col items-center gap-4">
-          <div class="text-[9px] font-black text-emerald-500/50 uppercase tracking-[0.3em]">Crossfader</div>
-          <div class="relative w-full h-12 bg-black/40 rounded-xl border border-white/5 flex items-center px-4 overflow-hidden">
-             <input type="range" min="-1" max="1" step="0.001" [ngModel]="deckService.crossfade()" (ngModelChange)="deckService.crossfade.set($event)" class="w-full h-1 appearance-none bg-emerald-500/20 rounded cursor-pointer accent-emerald-500">
-          </div>
-          <div class="flex justify-between w-full px-1">
-             <span class="text-[8px] font-black text-slate-600 uppercase">A</span>
-             <span class="text-[8px] font-black text-slate-600 uppercase">B</span>
-          </div>
-       </div>
-    </div>
-
-    <!-- DECK B -->
-    <div class="col-span-12 lg:col-span-5 flex flex-col gap-4 bg-slate-900/30 rounded-3xl p-6 border border-white/5 relative overflow-hidden group">
-      <!-- Deck B Header -->
-      <div class="flex justify-between items-start z-10 flex-row-reverse">
-        <div class="flex flex-col gap-1 items-end max-w-[70%]">
-          <div class="text-[10px] font-black text-orange-500 uppercase tracking-widest">Deck B // Secondary</div>
-          <h3 class="text-xl font-black truncate text-white uppercase italic tracking-tighter text-right">{{ deckService.deckB().track.name || 'NO SIGNAL' }}</h3>
-    <div class="col-span-12 lg:col-span-5 flex flex-col gap-4 bg-slate-900/30 rounded-3xl p-4 border border-white/5 relative overflow-hidden group">
-      <!-- Deck B Background Glow -->
-      <div class="absolute -top-24 -right-24 w-64 h-64 bg-orange-500/5 blur-[100px] rounded-full group-hover:bg-orange-500/10 transition-all duration-700"></div>
-
-      <!-- Deck B Header -->
-      <div class="flex justify-between items-start z-10 flex-row-reverse">
-        <div class="flex flex-col gap-1 items-end max-w-[60%]">
-          <div class="text-[10px] font-black text-orange-500 uppercase tracking-widest">Deck B // Secondary</div>
-          <h3 class="text-lg font-black truncate text-white uppercase italic tracking-tighter text-right">{{ deckService.deckB().track.name || 'EMPTY DECK' }}</h3>
-          <div class="flex gap-4 items-center mt-1">
-            <span class="text-[10px] font-mono text-slate-500">{{ pitchBPercentage() }} PITCH</span>
-            <span class="text-xs font-mono text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20">{{ deckService.deckB().bpm | number:'1.1-1' }} BPM</span>
-          </div>
-        </div>
-        <!-- Spinning Platter B -->
-        <div class="w-16 h-16 rounded-full border-2 border-orange-500/20 flex items-center justify-center relative overflow-hidden shrink-0">
-           <div class="absolute inset-1 rounded-full border border-orange-500/10 border-dashed" [class.animate-spin-slow]="deckService.deckB().isPlaying"></div>
-           <i class="fas fa-compact-disc text-2xl text-orange-500/40" [class.animate-spin]="deckService.deckB().isPlaying"></i>
-        <div class="flex flex-col items-start gap-2">
-           <canvas #meterB width="12" height="60" class="rounded bg-black/40 border border-white/5"></canvas>
-           <div class="text-[8px] font-mono text-slate-500 uppercase font-bold">Level</div>
-        </div>
+      <div class="grid grid-cols-2 gap-6">
+        <button (click)="deckService.togglePlay('B')" class="py-6 rounded-3xl bg-primary text-black flex items-center justify-center shadow-[0_0_40px_rgba(37,244,106,0.4)] hover:scale-105 transition-all">
+          <span class="material-symbols-outlined text-5xl fill-1">{{ deckService.deckB().isPlaying ? 'pause' : 'play_arrow' }}</span>
+        </button>
+        <button (click)="sync('B')" class="py-6 rounded-3xl glass-panel-elite border-primary/40 flex items-center justify-center text-primary hover:bg-primary/20 transition-all text-xs font-black uppercase tracking-[0.4em] italic">
+          Lock_Sync
+        </button>
       </div>
-
-      <!-- Deck B Waveform -->
-      <div class="relative h-40 bg-black/40 rounded-2xl border border-white/5 overflow-hidden group/wv">
-      <div class="relative h-44 bg-black/40 rounded-2xl border border-white/5 overflow-hidden group/wv">
-        <canvas #waveformB class="w-full h-full cursor-crosshair"></canvas>
-        <div class="absolute top-2 right-2 flex flex-row-reverse gap-1">
-          <div class="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_5px_#f59e0b]"></div>
-          <span class="text-[8px] font-mono text-orange-500/50 uppercase tracking-widest">Live Flow</span>
-        </div>
-        <div class="absolute bottom-4 left-4 text-[10px] font-mono text-slate-600 bg-black/80 px-2 py-1 rounded border border-white/5">
-          {{ deckService.deckB().progress | number:'1.2-2' }}s / {{ deckService.deckB().duration | number:'1.2-2' }}s
-        </div>
-      </div>
-
-      <!-- Deck B Controls Area -->
-      <div class="grid grid-cols-12 gap-6 z-10">
-        <!-- Vertical Controls -->
-        <div class="col-span-2 flex flex-col justify-between items-center py-4 bg-black/20 rounded-2xl border border-white/5 min-h-[220px] order-last">
-      <div class="grid grid-cols-12 gap-4 z-10">
-        <!-- Vertical Controls (Pitch, Filter, Gain) -->
-        <div class="col-span-2 flex flex-col justify-between items-center py-4 bg-black/20 rounded-2xl border border-white/5 min-h-[250px] order-last">
-          <div class="flex flex-col items-center gap-1">
-            <span class="text-[7px] font-black text-slate-500 uppercase">Pitch</span>
-            <input type="range" min="0.8" max="1.2" step="0.001" [ngModel]="deckService.deckB().playbackRate" (input)="setPlaybackRate('B', $any($event.target).value)" class="vertical-range h-24 accent-orange-500" orient="vertical">
-          </div>
-          <div class="flex flex-col items-center gap-1">
-             <span class="text-[7px] font-black text-slate-500 uppercase">Gain</span>
-             <input type="range" min="0" max="1.5" step="0.01" [ngModel]="deckService.deckB().gain" (input)="setGain('B', $any($event.target).value)" class="vertical-range h-16 accent-orange-500" orient="vertical">
-          </div>
-        </div>
-
-        <div class="col-span-10 flex flex-col gap-4">
-             <input type="range" min="0" max="1.5" step="0.01" [ngModel]="deckService.deckB().gain" (input)="setGain('B', $any($event.target).value)" class="vertical-range h-20 accent-orange-500" orient="vertical">
-          </div>
-        </div>
-
-        <!-- Main Interaction Area -->
-        <div class="col-span-10 flex flex-col gap-4">
-          <!-- Performance Pads -->
-          <div class="flex flex-col gap-2">
-            <div class="flex gap-4 border-b border-white/5 flex-row-reverse">
-              @for (mode of ['cue', 'roll', 'sampler']; track mode) {
-                <button (click)="performanceMode.set($any(mode))"
-                        class="pb-1 text-[9px] font-black uppercase tracking-[0.2em] transition-all border-b-2"
-                        [class.text-orange-500]="performanceMode() === mode"
-                        [class.border-orange-500]="performanceMode() === mode">
-                        [class.border-orange-500]="performanceMode() === mode"
-                        [class.text-slate-600]="performanceMode() !== mode"
-                        [class.border-transparent]="performanceMode() !== mode">
-                  {{ mode }}
-                </button>
-              }
-            </div>
-            <div class="grid grid-cols-4 gap-2">
-              @for (cue of [0,1,2,3,4,5,6,7]; track cue) {
-                <button (click)="handlePadPress('B', cue)"
-                        class="h-10 rounded-lg border border-white/5 transition-all active:scale-95 bg-slate-800/50"
-                        [class.bg-orange-500]="performanceMode() === 'cue' && deckService.deckB().hotCues[cue] !== null">
-                  <span class="text-[10px] font-black">{{ cue + 1 }}</span>
-                        class="h-12 rounded-lg border border-white/5 transition-all active:scale-95 flex flex-col items-center justify-center gap-1 group/pad"
-                        [class.bg-orange-500]="performanceMode() === 'cue' && deckService.deckB().hotCues[cue] !== null"
-                        [class.bg-slate-800/50]="performanceMode() !== 'cue' || deckService.deckB().hotCues[cue] === null">
-                  <span class="text-[10px] font-black" [class.text-black]="performanceMode() === 'cue' && deckService.deckB().hotCues[cue] !== null" [class.text-slate-500]="performanceMode() !== 'cue' || deckService.deckB().hotCues[cue] === null">{{ cue + 1 }}</span>
-                  <div class="w-1 h-1 rounded-full group-hover:scale-150 transition-transform" [class.bg-orange-400]="performanceMode() === 'cue' && deckService.deckB().hotCues[cue] !== null" [class.bg-slate-600]="performanceMode() !== 'cue' || deckService.deckB().hotCues[cue] === null"></div>
-                </button>
-              }
-            </div>
-          </div>
-
-          <div class="flex items-center gap-4 mt-auto flex-row-reverse">
-             <button (click)="loadTrackFor('B')" class="w-12 h-12 rounded-xl bg-slate-800 border border-white/10 text-slate-400 hover:text-orange-500 flex items-center justify-center shadow-lg transition-all">
-                <i class="fas fa-plus"></i>
-             </button>
-             <button (click)="deckService.togglePlay('B')"
-                     class="flex-grow h-12 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl bg-slate-800 text-orange-500 font-black italic tracking-widest uppercase"
-                     [class.bg-orange-500]="deckService.deckB().isPlaying"
-                     [class.text-black]="deckService.deckB().isPlaying">
-               <i class="fas text-xl" [class.fa-pause]="deckService.deckB().isPlaying" [class.fa-play]="!deckService.deckB().isPlaying"></i>
-               <span>ENGAGE</span>
-             </button>
-             <div class="flex flex-col gap-1">
-                <button (click)="sync('B')" class="w-10 py-1.5 rounded bg-slate-800 border border-white/10 text-[7px] font-black text-orange-500 uppercase tracking-tighter">SYNC</button>
-                <button (click)="tapBpm('B')" class="w-10 py-1.5 rounded bg-slate-800 border border-white/10 text-[7px] font-black text-slate-400 uppercase tracking-tighter">TAP</button>
-          <!-- Deck B Footer Controls -->
-          <div class="flex items-center gap-4 mt-auto flex-row-reverse">
-             <button (click)="loadTrackFor('B')" class="w-14 h-14 rounded-2xl bg-slate-800 border border-white/10 text-slate-400 hover:text-orange-500 hover:border-orange-500/30 transition-all flex items-center justify-center shadow-lg">
-                <i class="fas fa-plus text-xl"></i>
-             </button>
-             <button (click)="deckService.togglePlay('B')"
-                     class="flex-grow h-14 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl relative overflow-hidden group/play"
-                     [class.bg-orange-500]="deckService.deckB().isPlaying"
-                     [class.bg-slate-800]="!deckService.deckB().isPlaying"
-                     [class.text-black]="deckService.deckB().isPlaying"
-                     [class.text-orange-500]="!deckService.deckB().isPlaying">
-               <i class="fas text-2xl" [class.fa-pause]="deckService.deckB().isPlaying" [class.fa-play]="!deckService.deckB().isPlaying"></i>
-               <span class="font-black italic tracking-[0.2em] text-sm uppercase">{{ deckService.deckB().isPlaying ? 'Halt' : 'Engage' }}</span>
-             </button>
-             <div class="flex flex-col gap-1">
-                <button (click)="sync('B')" class="w-12 py-2 rounded bg-slate-800 border border-white/10 text-[8px] font-black text-orange-500 uppercase tracking-tighter hover:bg-orange-500 hover:text-black transition-all">SYNC</button>
-                <button (click)="tapBpm('B')" class="w-12 py-2 rounded bg-slate-800 border border-white/10 text-[8px] font-black text-slate-400 uppercase tracking-tighter hover:text-white transition-all">TAP</button>
-             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Deck B Stems -->
-      <div class="bg-black/20 rounded-2xl p-4 border border-white/5 z-10 mt-auto relative overflow-hidden group/stems">
-         @if (!hasNeuralStems()) {
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-4 text-center">
-               <i class="fas fa-lock text-orange-500/40 text-sm mb-1"></i>
-               <div class="text-[7px] font-black text-orange-500/60 uppercase tracking-widest">Neural Lock</div>
-            </div>
-         }
-         <div class="grid grid-cols-4 gap-4">
-            @for (stem of ['vocals', 'drums', 'bass', 'melody']; track stem) {
-               <div class="flex flex-col items-center gap-1">
-                  <div class="text-[6px] font-black text-slate-500 uppercase">{{ stem }}</div>
-                  <input type="range" min="0" max="1" step="0.01" value="1" (input)="deckService.onStemGainChange('B', {stem: stem, gain: $any($event.target).value})" class="vertical-range h-12 accent-orange-500" orient="vertical">
-      <!-- Deck B Stems Area -->
-      <div class="bg-black/20 rounded-2xl p-4 border border-white/5 z-10 mt-auto relative overflow-hidden group/stems">
-         @if (!hasNeuralStems()) {
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-4 text-center">
-               <i class="fas fa-lock text-orange-500/40 text-xl mb-2"></i>
-               <div class="text-[8px] font-black text-orange-500/60 uppercase tracking-widest">Neural Stem Extraction Restricted</div>
-               <button (click)="uiService.navigateToView('strategy')" class="mt-2 text-[7px] font-black text-white bg-orange-500/20 px-3 py-1 rounded border border-orange-500/40 hover:bg-orange-500 hover:text-black transition-all">UPGRADE AT COMMAND CENTER</button>
-            </div>
-         }
-         <div class="text-[8px] font-black text-slate-600 uppercase tracking-[0.3em] mb-3 text-right">Neural Stem Isolation</div>
-         <div class="grid grid-cols-4 gap-4">
-            @for (stem of ['vocals', 'drums', 'bass', 'melody']; track stem) {
-               <div class="flex flex-col items-center gap-2">
-                  <div class="text-[7px] font-black text-slate-500 uppercase">{{ stem }}</div>
-                  <input type="range" min="0" max="1" step="0.01" value="1" (input)="deckService.onStemGainChange('B', {stem: stem, gain: $any($event.target).value})" class="vertical-range h-16 accent-orange-500" orient="vertical">
-               </div>
-            }
-         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- GLOBAL TRANSPORT BAR (FIXED BOTTOM) -->
-  <div class="fixed bottom-0 left-0 w-full p-4 z-50 pointer-events-none">
-     <div class="max-w-7xl mx-auto pointer-events-auto bg-black/90 backdrop-blur-3xl border border-white/10 rounded-full shadow-[0_-20px_50px_rgba(0,0,0,0.8)] p-2 px-6 flex items-center justify-between">
-        <div class="flex items-center gap-6">
-           <div class="flex flex-col">
-              <span class="text-[7px] font-black text-emerald-500 uppercase tracking-widest">Global Master</span>
-              <h4 class="text-xs font-black text-white italic truncate w-40 uppercase tracking-tighter">{{ playerService.currentTrack()?.title }}</h4>
-           </div>
-           <div class="flex items-center gap-1">
-              <button (click)="playerService.toggleShuffle()" class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] transition-all hover:bg-white/5" [class.text-emerald-500]="playerService.isShuffle()" [class.text-slate-600]="!playerService.isShuffle()">
-                 <i class="fas fa-random"></i>
-              </button>
-              <button (click)="playerService.toggleRepeat()" class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] transition-all hover:bg-white/5" [class.text-emerald-500]="playerService.isRepeat()" [class.text-slate-600]="!playerService.isRepeat()">
-                 <i class="fas fa-redo"></i>
-              </button>
-           </div>
-        </div>
-
-        <div class="flex items-center gap-6">
-           <button (click)="playerService.previous()" class="w-10 h-10 rounded-full bg-slate-900 text-slate-400 hover:text-white transition-all border border-white/5 active:scale-90">
-              <i class="fas fa-step-backward"></i>
-           </button>
-           <button (click)="playerService.togglePlay()" class="w-14 h-14 rounded-full bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all">
-              <i class="fas text-xl" [class.fa-play]="!playerService.isPlaying()" [class.fa-pause]="playerService.isPlaying()" [class.ml-1]="!playerService.isPlaying()"></i>
-           </button>
-           <button (click)="playerService.next()" class="w-10 h-10 rounded-full bg-slate-900 text-slate-400 hover:text-white transition-all border border-white/5 active:scale-90">
-              <i class="fas fa-step-forward"></i>
-           </button>
-        </div>
-
-        <div class="flex items-center gap-6">
-           <div class="flex flex-col items-end gap-1 w-24">
-              <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                 <div class="h-full bg-emerald-500 transition-all duration-300" [style.width.%]="playerService.progress()"></div>
-              </div>
-              <span class="text-[7px] font-mono text-slate-600 uppercase">{{ playerService.progress() | number:'1.0-0' }}% TRANS</span>
-           </div>
-           <div class="flex gap-2">
-              <button (click)="playerService.loadExternalTrack()" class="w-10 h-10 rounded-full border border-white/5 bg-slate-900/50 flex items-center justify-center text-slate-500 hover:text-emerald-500 transition-all">
-                 <i class="fas fa-upload text-[10px]"></i>
-              </button>
-              <button (click)="playerService.exportCurrent()" class="w-10 h-10 rounded-full border border-white/5 bg-slate-900/50 flex items-center justify-center text-slate-500 hover:text-emerald-500 transition-all">
-                 <i class="fas fa-download text-[10px]"></i>
-              </button>
-           </div>
-        </div>
-     </div>
-  <!-- BOTTOM UTILITY BAR -->
-  <div class="mt-6 flex flex-wrap gap-4 items-center justify-between p-4 bg-slate-900/40 rounded-2xl border border-white/5 backdrop-blur-md">
-    <div class="flex gap-4">
-      <button (click)="showSampleLibrary.set(!showSampleLibrary())"
-              class="px-6 py-2.5 rounded-xl bg-slate-800 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-black transition-all flex items-center gap-2 border border-white/5">
-        <i class="fas fa-layer-group"></i> SMUVE MATRIX
-      </button>
-    </div>
-
-    <div class="flex gap-8 items-center">
-       <div class="flex flex-col items-end">
-         <div class="text-[8px] font-black text-slate-600 uppercase tracking-widest font-bold">Latency</div>
-         <div class="text-xs font-mono text-emerald-500 font-bold">1.8ms</div>
-       </div>
-       <div class="h-8 w-px bg-white/10"></div>
-       <div class="flex flex-col items-end">
-         <div class="text-[8px] font-black text-slate-600 uppercase tracking-widest font-bold">Neural Engine</div>
-         <div class="text-xs font-mono text-emerald-500 font-bold">v4.5.2 PRO</div>
-       </div>
     </div>
   </div>
 </div>
-
-<style>
-  .animate-spin-slow {
-    animation: spin 8s linear infinite;
-  }
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  .vertical-range {
-    appearance: none;
-    background: #020617;
-    border-radius: 4px;
-    width: 4px;
-    width: 6px;
-    border: 1px solid rgba(255,255,255,0.05);
-    cursor: ns-resize;
-  }
-  .vertical-range::-webkit-slider-thumb {
-    appearance: none;
-    width: 14px;
-    height: 8px;
-    background: currentColor;
-    border-radius: 2px;
-    box-shadow: 0 0 10px currentColor;
-    width: 18px;
-    height: 10px;
-    background: currentColor;
-    border-radius: 2px;
-    box-shadow: 0 0 15px currentColor;
-  }
-  .knob-range {
-    appearance: none;
-    background: #020617;
-    border: 2px solid rgba(255,255,255,0.1);
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: inset 0 2px 10px rgba(0,0,0,0.8);
-    transition: all 0.2s;
-  }
-  .knob-range:hover {
-    border-color: rgba(255, 255, 255, 0.4);
-  }
-  .knob-range::-webkit-slider-thumb {
-    appearance: none;
-    width: 4px;
-    height: 10px;
-    height: 12px;
-    background: currentColor;
-    border-radius: 2px;
-    transform: translateY(-4px);
-    box-shadow: 0 0 10px currentColor;
-  }
-</style>

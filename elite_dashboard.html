@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>S.M.U.V.E. 4.0 - Elite Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#25f46a",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#080c09",
+                        "obsidian": "#050706",
+                        "silver": "#c0c0c0",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(192, 192, 192, 0.2);
+        }
+        .emerald-glow {
+            box-shadow: 0 0 20px rgba(37, 244, 106, 0.15);
+        }
+        .silver-edge {
+            border-bottom: 1px solid rgba(192, 192, 192, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+<!-- Top Navigation / Header -->
+<header class="flex items-center justify-between px-6 py-4 bg-obsidian/80 backdrop-blur-md sticky top-0 z-50 silver-edge">
+<span class="material-symbols-outlined text-primary">menu</span>
+<h2 class="text-sm font-bold tracking-[0.2em] uppercase text-slate-100">S.M.U.V.E. 4.0</h2>
+<div class="relative">
+<span class="material-symbols-outlined text-silver">notifications</span>
+<div class="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full"></div>
+</div>
+</header>
+<main class="flex-1 pb-24">
+<!-- Strategic Pulse Section -->
+<section class="px-6 pt-8 pb-4">
+<div class="flex flex-col items-center text-center space-y-2 mb-8">
+<h1 class="text-4xl font-bold tracking-tight text-white italic">Strategic Pulse</h1>
+<p class="text-primary text-xs font-medium tracking-[0.3em] uppercase">High-Fidelity Neural Stream</p>
+</div>
+<!-- 3D Waveform Container -->
+<div class="relative w-full h-64 bg-obsidian rounded-xl overflow-hidden border border-primary/20 emerald-glow">
+<!-- Decorative Grid -->
+<div class="absolute inset-0 opacity-10" style="background-image: linear-gradient(to right, #25f46a 1px, transparent 1px), linear-gradient(to bottom, #25f46a 1px, transparent 1px); background-size: 20px 20px;"></div>
+<!-- Main Waveform -->
+<div class="absolute inset-0 flex items-center justify-center py-10">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 400 150">
+<defs>
+<lineargradient id="waveGradient" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="rgba(37, 244, 106, 0)"></stop>
+<stop offset="50%" stop-color="rgba(37, 244, 106, 1)"></stop>
+<stop offset="100%" stop-color="rgba(37, 244, 106, 0)"></stop>
+</lineargradient>
+</defs>
+<path d="M0,75 Q50,5 100,75 T200,75 T300,75 T400,75" fill="none" opacity="0.8" stroke="url(#waveGradient)" stroke-width="4"></path>
+<path d="M0,75 Q50,145 100,75 T200,75 T300,75 T400,75" fill="none" opacity="0.4" stroke="url(#waveGradient)" stroke-width="2"></path>
+<path d="M0,75 Q25,25 50,75 T100,75 T150,75 T200,75 T250,75 T300,75 T350,75 T400,75" fill="none" opacity="0.2" stroke="#25f46a" stroke-width="1"></path>
+</svg>
+</div>
+<div class="absolute bottom-4 left-6 flex items-center gap-2">
+<div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+<span class="text-[10px] text-primary font-bold tracking-widest uppercase">Live Frequency: 432Hz</span>
+</div>
+<div class="absolute bottom-4 right-6">
+<span class="text-[10px] text-silver font-bold tracking-widest uppercase">Delta Phase: Active</span>
+</div>
+</div>
+</section>
+<!-- Omniscient Command Section -->
+<section class="px-6 py-6">
+<h3 class="text-xs font-bold text-silver/60 uppercase tracking-[0.2em] mb-4 px-1">Omniscient Command</h3>
+<div class="glass-panel rounded-xl p-6 relative overflow-hidden group">
+<!-- Liquid Silver Border Accent -->
+<div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-silver/5 via-silver to-silver/5"></div>
+<div class="space-y-4">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary text-xl">terminal</span>
+<div>
+<p class="text-[10px] text-primary uppercase tracking-widest mb-1">AI Decree #772</p>
+<p class="text-sm text-slate-300 leading-relaxed font-light">Optimize market entry protocols for the Asia-Pacific quadrant. Deploy liquid capital reserves into neural-network infrastructures by 04:00 UTC.</p>
+</div>
+</div>
+<div class="pt-4 border-t border-silver/10 flex justify-between items-center">
+<span class="text-[10px] text-silver/40 font-medium">Confidence Rating: 99.8%</span>
+<button class="bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-bold py-1 px-3 rounded-full border border-primary/30 transition-colors uppercase tracking-widest">Execute</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Global Broadcast Player -->
+<section class="px-6 py-4">
+<div class="bg-obsidian border border-silver/20 rounded-xl overflow-hidden shadow-2xl">
+<div class="p-6">
+<div class="flex items-center gap-4 mb-6">
+<div class="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/40 to-obsidian border border-primary/30 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover opacity-80" data-alt="Cyberpunk high-tech music album cover art" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAi5fbxi93owF2bUns2mPyqQ7pKDt8Oj4n5P8FTEfjgFYWg234kk-M4TMsw22ai7BoeqwFs4KbCbdR2j-nofJohEji6pRfjYwGB2HU07oVy5XH97P2Sq9X8I8jl2hxrGic0MsK0nPhOQLwnlVXDa2MWN8rm4rlwr6Wl6lPebmOlihbsBVczcMWb8mJ7SOoQF8QGXV61a7ZvypHW2-iENkDKnaDbhklAnVhEmJarJycsa7QwdmbCOI2QWU6DSBXzOdo0_o1NPe2cfWA"/>
+</div>
+<div>
+<h4 class="text-lg font-bold text-white tracking-tight leading-none">Global Broadcast</h4>
+<p class="text-xs text-silver/60 mt-1">S.M.U.V.E. Executive Stream</p>
+</div>
+</div>
+<!-- Mini Visualizer for Player -->
+<div class="flex items-end justify-between h-8 gap-1 mb-6 px-2">
+<div class="bg-primary w-1 h-1/2 rounded-full"></div>
+<div class="bg-primary w-1 h-3/4 rounded-full"></div>
+<div class="bg-primary w-1 h-full rounded-full"></div>
+<div class="bg-primary w-1 h-1/3 rounded-full"></div>
+<div class="bg-primary w-1 h-2/3 rounded-full"></div>
+<div class="bg-primary w-1 h-full rounded-full"></div>
+<div class="bg-primary w-1 h-3/4 rounded-full"></div>
+<div class="bg-primary w-1 h-1/2 rounded-full"></div>
+<div class="bg-primary w-1 h-1/3 rounded-full"></div>
+<div class="bg-primary w-1 h-2/3 rounded-full"></div>
+<div class="bg-primary w-1 h-full rounded-full"></div>
+<div class="bg-primary w-1 h-3/4 rounded-full"></div>
+</div>
+<div class="flex items-center justify-center gap-8 mb-4">
+<span class="material-symbols-outlined text-silver text-2xl cursor-pointer hover:text-white transition-colors">skip_previous</span>
+<div class="w-12 h-12 rounded-full bg-primary flex items-center justify-center cursor-pointer shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-background-dark text-3xl font-bold">play_arrow</span>
+</div>
+<span class="material-symbols-outlined text-silver text-2xl cursor-pointer hover:text-white transition-colors">skip_next</span>
+</div>
+<div class="w-full bg-white/5 h-1 rounded-full relative">
+<div class="absolute top-0 left-0 h-full bg-primary w-1/3 rounded-full"></div>
+<div class="absolute top-1/2 left-1/3 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-primary"></div>
+</div>
+<div class="flex justify-between mt-2">
+<span class="text-[9px] text-silver/40 font-mono tracking-tighter">04:21</span>
+<span class="text-[9px] text-silver/40 font-mono tracking-tighter">12:00</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-obsidian/95 backdrop-blur-xl border-t border-silver/10 px-6 py-4 flex justify-between items-center z-50">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined fill-1">dashboard</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Command</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-silver/40 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Pulse</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-silver/40 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">radio</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Broadcast</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-silver/40 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">settings_suggest</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">System</span>
+</a>
+</nav>
+<!-- Background Subtle Light Trails -->
+<div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+<div class="absolute top-[20%] -left-[10%] w-[50%] h-[1px] bg-gradient-to-r from-transparent via-silver/20 to-transparent rotate-12"></div>
+<div class="absolute top-[60%] -right-[10%] w-[40%] h-[1px] bg-gradient-to-r from-transparent via-primary/10 to-transparent -rotate-6"></div>
+</div>
+</body></html>

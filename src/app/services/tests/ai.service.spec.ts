@@ -1,13 +1,13 @@
 import { MarketingService } from '../marketing.service';
 import { AnalyticsService } from '../analytics.service';
-import { TestBed, flush, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { AiService, API_KEY_TOKEN } from '../ai.service';
 import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
 import { ReputationService } from '../reputation.service';
 import { StemSeparationService } from '../stem-separation.service';
 import { AudioEngineService } from '../audio-engine.service';
-import { signal, runInInjectionContext, Injector } from '@angular/core';
+import { signal } from '@angular/core';
 
 describe('AiService', () => {
   let service: AiService;
@@ -17,7 +17,15 @@ describe('AiService', () => {
   let analyticsService: any;
 
   beforeEach(() => {
-    userProfileService = { profile: signal({ catalog: [], tasks: [], skills: [] }), updateProfile: jest.fn() };
+    userProfileService = {
+      profile: signal({
+        catalog: [],
+        tasks: [],
+        skills: [],
+        expertiseLevels: { production: 8, mixing: 7, mastering: 6 }
+      }),
+      updateProfile: jest.fn()
+    };
     userContextService = { mainViewMode: signal('hub'), setMainViewMode: jest.fn(), navigateToView: jest.fn() };
     reputationService = { state: signal({ level: 1 }) };
     analyticsService = {
@@ -36,7 +44,7 @@ describe('AiService', () => {
         { provide: UserContextService, useValue: userContextService },
         { provide: ReputationService, useValue: reputationService },
         { provide: StemSeparationService, useValue: {} },
-        { provide: AudioEngineService, useValue: { resume: jest.fn() } }
+        { provide: AudioEngineService, useValue: { resume: jest.fn(), getAnalyser: () => ({ frequencyBinCount: 1024 }) } }
       ]
     });
     service = TestBed.inject(AiService);
@@ -46,12 +54,9 @@ describe('AiService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should generate advisor advice when state changes', fakeAsync(() => {
-    // Manually call the private update method if effects aren't triggering in Jest/fakeAsync
-    (service as any).updateAdvisorAdvice('hub', userProfileService.profile());
-
-    const advice = service.advisorAdvice();
-    expect(advice.length).toBeGreaterThan(0);
-    expect(advice[0].title).toBe('Visibility Surge Needed');
-  }));
+  it('should have strategic decrees initialized', () => {
+    const decrees = service.strategicDecrees();
+    expect(decrees.length).toBeGreaterThan(0);
+    expect(decrees[0].title).toBeDefined();
+  });
 });

@@ -1,87 +1,115 @@
-<div class="mixer-container p-4 md:p-6 h-full flex flex-col bg-slate-950/40 overflow-hidden relative">
-  <div class="mixer-header flex items-center justify-between mb-4 md:mb-6 border-b border-emerald-500/20 pb-2 md:pb-4">
-    <div class="flex items-center gap-2 md:gap-3">
-      <div class="p-1.5 md:p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-        <i class="fas fa-sliders-h text-emerald-500 text-xs md:text-sm"></i>
-      </div>
-      <div>
-        <h2 class="text-[8px] md:text-xs font-black uppercase tracking-[0.2em] text-emerald-500 neon-text-emerald">Strategic Console Mixer</h2>
-        <div class="text-[7px] md:text-[9px] text-slate-500 font-mono mt-0.5 tracking-tighter">HIGH-PRECISION ROUTING ENGINE</div>
-      </div>
+<div class="h-full flex bg-[#121212]/80 backdrop-blur-3xl overflow-x-auto custom-scrollbar animate-fade-in film-grain">
+  <!-- Mic Channels -->
+  <div *ngFor="let channel of micChannels()" class="w-32 shrink-0 border-r-4 border-industrial-steel flex flex-col items-center py-8 relative group hover:bg-danger-orange/5 transition-all">
+     <div class="mb-6 transform -rotate-90 origin-center whitespace-nowrap">
+      <span class="text-[11px] font-black uppercase tracking-[0.3em] text-danger-orange italic group-hover:drop-shadow-[0_0_8px_#f48525]">MIC_{{ channel.id }}</span>
     </div>
-
-    <div class="flex gap-2 md:gap-4">
-      <div class="flex flex-col items-end">
-        <span class="text-[6px] md:text-[8px] font-bold text-slate-600 uppercase">Signal Count</span>
-        <span class="text-[8px] md:text-[10px] font-mono text-emerald-400 uppercase tracking-tighter">{{ tracks().length + micChannels().length }} ACTIVE</span>
-      </div>
-      <div class="h-4 md:h-6 w-px bg-white/10"></div>
-      <div class="flex flex-col items-end">
-        <span class="text-[6px] md:text-[8px] font-bold text-slate-600 uppercase">Master Peak</span>
-        <span class="text-[8px] md:text-[10px] font-mono text-violet-400 tracking-tighter">-0.3 dB</span>
-      </div>
+    <div class="flex-grow w-4 bg-black/60 rounded-full border-2 border-industrial-steel overflow-hidden relative mb-8 shadow-inner">
+       <div class="absolute bottom-0 w-full bg-danger-orange shadow-[0_0_15px_#f48525]" [style.height.%]="85"></div>
+    </div>
+    <div class="h-56 w-10 relative flex flex-col items-center mb-8">
+       <div class="absolute h-full w-1 bg-industrial-steel rounded-full"></div>
+       <input type="range"
+              class="appearance-none vertical-slider-industrial w-56 -rotate-90 bg-transparent cursor-pointer z-10">
     </div>
   </div>
 
-  <div class="mixer-main flex gap-2 md:gap-4 h-full overflow-hidden">
-    <div class="channels-viewport flex-grow overflow-x-auto overflow-y-hidden flex gap-2 md:gap-3 custom-scrollbar pb-2">
-       <!-- Real Mic Channels -->
-       <app-channel-strip *ngFor="let channel of micChannels()" [channel]="channel" class="flex-shrink-0"></app-channel-strip>
+  <!-- Music Tracks -->
+  <div *ngFor="let track of tracks(); let i = index"
+       class="w-32 shrink-0 border-r-4 border-industrial-steel flex flex-col items-center py-8 relative group hover:bg-danger-orange/5 transition-all">
 
-       <!-- Real Music Manager Tracks -->
-       <div *ngFor="let track of tracks(); let i = index"
-            class="flex-shrink-0 w-20 md:w-24 bg-slate-900/60 rounded-xl border border-white/5 p-2 flex flex-col items-center gap-3 commander-panel">
-          <div class="text-[7px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest">CH {{ i + micChannels().length + 1 | number:'2.0' }}</div>
+    <div class="mb-6 transform -rotate-90 origin-center whitespace-nowrap">
+      <span class="text-[11px] font-black uppercase tracking-[0.3em] text-white/60 group-hover:text-danger-orange transition-colors italic">{{ track.name }}</span>
+    </div>
 
-          <div class="flex-grow w-1.5 bg-black/60 rounded-full relative shadow-inner">
-             <!-- Static VU for now, fader thumb -->
-             <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-full opacity-40" [style.height.%]="60 + (i*5) % 30"></div>
-             <div class="absolute bottom-[70%] left-[-12px] right-[-12px] h-4 bg-slate-300 rounded-sm border-y border-slate-500 cursor-pointer shadow-xl hover:bg-white transition-colors"></div>
-          </div>
+    <!-- Rugged Gain Knob -->
+    <div class="mb-10 flex flex-col items-center gap-2">
+      <div class="size-14 rounded-full border-4 border-industrial-steel flex items-center justify-center relative overflow-hidden bg-[#1a1a1a] shadow-2xl">
+         <div class="absolute top-2 left-1/2 -translate-x-1/2 w-1 h-4 bg-danger-orange rounded-full shadow-[0_0_10px_#f48525]" [style.transform]="'rotate(' + (track.volume * 240 - 120) + 'deg)'"></div>
+         <input type="range"
+                [value]="track.volume"
+                (input)="setVolume(track, $any($event.target).value)"
+                min="0" max="1" step="0.01"
+                class="absolute inset-0 opacity-0 cursor-pointer">
+      </div>
+      <span class="text-[8px] font-black text-white/30 uppercase tracking-widest">DRIVE</span>
+    </div>
 
-          <div class="flex gap-1 w-full px-1">
-             <button (click)="toggleMute(track.id)"
-                     [class.bg-red-500]="track.mute"
-                     [class.text-black]="track.mute"
-                     class="flex-1 text-[6px] font-black uppercase py-1 rounded-sm border border-white/5 bg-slate-800 text-slate-400">M</button>
-             <button (click)="toggleSolo(track.id)"
-                     [class.bg-yellow-500]="track.solo"
-                     [class.text-black]="track.solo"
-                     class="flex-1 text-[6px] font-black uppercase py-1 rounded-sm border border-white/5 bg-slate-800 text-slate-400">S</button>
-          </div>
+    <!-- Industrial VU Meter -->
+    <div class="flex-grow w-4 bg-black rounded-full border-2 border-industrial-steel overflow-hidden relative mb-8 shadow-[inset_0_0_15px_rgba(0,0,0,1)]">
+       <div class="absolute bottom-0 w-full bg-gradient-to-t from-danger-orange via-danger-orange to-white shadow-[0_0_20px_#f48525]" [style.height.%]="80"></div>
+    </div>
 
-          <div class="text-[6px] md:text-[8px] font-mono text-emerald-500 truncate w-full text-center">{{ track.name }}</div>
+    <!-- Heavy Duty Fader -->
+    <div class="h-56 w-12 relative flex flex-col items-center mb-8">
+       <div class="absolute h-full w-1.5 bg-black border border-industrial-steel rounded-full"></div>
+       <input type="range"
+              [value]="track.volume"
+              (input)="setVolume(track, $any($event.target).value)"
+              min="0" max="1.5" step="0.01"
+              class="appearance-none vertical-slider-industrial w-56 -rotate-90 bg-transparent cursor-pointer z-10">
+    </div>
+
+    <div class="flex flex-col gap-4">
+       <button (click)="toggleMute(track)"
+               [class.bg-red-900]="track.muted"
+               [class.text-white]="track.muted"
+               class="size-10 rounded-xl border-2 border-industrial-steel flex items-center justify-center text-xs font-black hover:border-red-600 transition-all bg-black/40 shadow-xl">M</button>
+       <button (click)="toggleSolo(track)"
+               [class.bg-danger-orange]="track.solo"
+               [class.text-black]="track.solo"
+               class="size-10 rounded-xl border-2 border-industrial-steel flex items-center justify-center text-xs font-black hover:border-danger-orange transition-all bg-black/40 shadow-xl">S</button>
+    </div>
+  </div>
+
+  <!-- Industrial Master Out -->
+  <div class="w-40 shrink-0 bg-danger-orange/5 border-l-8 border-industrial-steel flex flex-col items-center py-8 relative overflow-hidden wood-edge shadow-[0_0_60px_rgba(0,0,0,1)]">
+    <div class="absolute inset-0 scanline opacity-10 pointer-events-none"></div>
+    <div class="mb-10 transform -rotate-90 origin-center whitespace-nowrap">
+      <span class="text-lg font-black uppercase tracking-[0.5em] text-danger-orange italic drop-shadow-[0_0_15px_#f48525]">MASTER_OUT</span>
+    </div>
+
+    <div class="flex-grow w-8 flex gap-2 items-end mb-10">
+       <div class="w-3 bg-black rounded-full h-full relative overflow-hidden border-2 border-industrial-steel shadow-inner">
+          <div class="absolute bottom-0 w-full bg-danger-orange" [style.height.%]="85"></div>
+       </div>
+       <div class="w-3 bg-black rounded-full h-full relative overflow-hidden border-2 border-industrial-steel shadow-inner">
+          <div class="absolute bottom-0 w-full bg-danger-orange" [style.height.%]="82"></div>
        </div>
     </div>
 
-    <!-- Master Fader Section -->
-    <div class="master-fader-section w-20 md:w-32 flex flex-col bg-slate-900/60 rounded-2xl border border-violet-500/20 shadow-[0_0_20px_rgba(139,92,246,0.1)] p-2 md:p-4 ml-1 md:ml-4 commander-panel">
-      <div class="flex-grow flex justify-center py-2 md:py-4 relative">
-        <!-- Scale markers -->
-        <div class="absolute left-1 md:left-4 top-2 bottom-2 w-4 flex flex-col justify-between text-[6px] md:text-[8px] font-mono text-slate-600 pointer-events-none">
-          <span>+6</span><span>0</span><span>-6</span><span>-12</span><span>-inf</span>
-        </div>
+    <div class="h-56 w-14 relative flex flex-col items-center mb-10">
+       <div class="absolute h-full w-2 bg-black border-2 border-industrial-steel rounded-full shadow-inner"></div>
+       <input type="range"
+              class="appearance-none vertical-slider-industrial master-fader-industrial w-56 -rotate-90 bg-transparent cursor-pointer z-10 h-1">
+    </div>
 
-        <div class="fader-track w-8 md:w-10 bg-black/60 rounded-full flex justify-center py-2 border border-white/5 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-          <div class="absolute bottom-2 left-1 right-1 bg-gradient-to-t from-violet-600 to-violet-400 rounded-full shadow-[0_0_15px_rgba(139,92,246,0.3)] opacity-40" [style.height.%]="masterVolume()"></div>
-
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            orient="vertical"
-            [value]="masterVolume()"
-            (input)="updateMasterVolume(+($event.target).value)"
-            class="master-fader w-6 h-full appearance-none bg-transparent cursor-pointer z-10"
-          >
-        </div>
-      </div>
-
-      <div class="mt-2 md:mt-4 text-center">
-        <div class="text-[7px] md:text-xs font-black tracking-widest text-violet-500 uppercase mb-0.5 md:mb-1">MASTER</div>
-        <div class="text-[7px] md:text-[9px] font-mono text-slate-400">{{ (masterVolume()).toFixed(0) }}%</div>
-      </div>
+    <div class="size-16 rounded-3xl bg-danger-orange text-black flex items-center justify-center shadow-[0_0_30px_rgba(244,133,37,0.4)] hover:scale-110 transition-all border-4 border-black cursor-pointer">
+       <span class="material-symbols-outlined text-4xl">settings_input_component</span>
     </div>
   </div>
 </div>
+
+<style>
+  .vertical-slider-industrial {
+    -webkit-appearance: none;
+    position: absolute;
+    top: 50%;
+  }
+  .vertical-slider-industrial::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 40px;
+    width: 60px;
+    background: #2d2d2d;
+    border: 3px solid #f48525;
+    border-radius: 8px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+    cursor: grab;
+  }
+  .master-fader-industrial::-webkit-slider-thumb {
+    background: #f48525;
+    border-color: #fff;
+    height: 50px;
+    width: 80px;
+  }
+</style>

@@ -1,65 +1,65 @@
-import { Component, inject, effect, signal, HostListener, computed } from '@angular/core';
+import { Component, inject, signal, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterOutlet, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
-import { filter } from 'rxjs/operators';
+import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
+import { UIService } from './services/ui.service';
 import { AuthService } from './services/auth.service';
-import { UIService, ViewConfig } from './services/ui.service';
 import { ChatbotComponent } from './components/chatbot/chatbot.component';
 import { NotificationToastComponent } from './components/notification-toast/notification-toast.component';
 import { SmuveAdvisorComponent } from './components/smuve-advisor/smuve-advisor.component';
-import { NotificationService } from './services/notification.service';
-import { MainViewMode } from './services/user-context.service';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ChatbotComponent, NotificationToastComponent, SmuveAdvisorComponent],
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    ChatbotComponent,
+    NotificationToastComponent,
+    SmuveAdvisorComponent
+  ],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css'],
+  styleUrls: ['./app.component.css']
 })
-export class AppComponent {
-  authService = inject(AuthService);
-  uiService = inject(UIService);
-  notificationService = inject(NotificationService);
-  router = inject(Router);
+export class AppComponent implements OnInit {
+  public uiService = inject(UIService);
+  public authService = inject(AuthService);
+  private router = inject(Router);
 
   isSidebarOpen = signal(true);
-  isViewSelectorOpen = signal(false);
-  viewSearchQuery = signal("");
   isMobile = signal(false);
 
-  constructor() {
+  ngOnInit() {
     this.checkMobile();
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
-    ).subscribe(() => {
-      const path = this.router.url.split('/')[1];
+    ).subscribe((event: any) => {
+      const path = event.urlAfterRedirects.split('/')[1];
       if (path && this.uiService.getViewModes().includes(path as any)) {
         this.uiService.mainViewMode.set(path as any);
-      }
-    });
-
-    effect(() => {
-      if (this.uiService.isOnline()) {
-        this.notificationService.show('System Online', 'success', 3000);
       }
     });
   }
 
   @HostListener('window:resize')
-  onResize() { this.checkMobile(); }
-
-  private checkMobile() {
-    this.isMobile.set(window.innerWidth <= 1024);
-    if (this.isMobile()) this.isSidebarOpen.set(false);
-    else this.isSidebarOpen.set(true);
+  onResize() {
+    this.checkMobile();
   }
 
-  toggleSidebar() { this.isSidebarOpen.update(v => !v); }
-  toggleChatbot() { this.uiService.toggleChatbot(); }
-  toggleViewSelector() { this.isViewSelectorOpen.update(v => !v); }
-  navigateToView(mode: MainViewMode) {
+  private checkMobile() {
+    if (typeof window !== 'undefined') {
+      const mobile = window.innerWidth < 1024;
+      this.isMobile.set(mobile);
+      if (mobile) this.isSidebarOpen.set(false);
+    }
+  }
+
+  toggleSidebar() {
+    this.isSidebarOpen.update(v => !v);
+  }
+
+  navigateToView(mode: any) {
     this.uiService.navigateToView(mode);
-    this.isViewSelectorOpen.set(false);
+    if (this.isMobile()) this.isSidebarOpen.set(false);
   }
 }

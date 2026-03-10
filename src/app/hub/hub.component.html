@@ -1,189 +1,89 @@
-<div class="hub-container bg-[#020617] text-slate-200 selection:bg-emerald-500/30 font-sans min-h-screen overflow-x-hidden">
+<div class="px-10 py-12 animate-fade-in">
 
-  <!-- Hero Landing Section -->
-  <section class="hero-section relative min-h-[90vh] flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden">
-    <!-- Animated background particles (CSS only simulation) -->
-    <div class="absolute inset-0 z-0 opacity-20 pointer-events-none">
-       <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-[120px] animate-pulse"></div>
-       <div class="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-[150px] animate-pulse" style="animation-delay: 2s"></div>
-    </div>
-
-    <div class="z-10 max-w-6xl w-full flex flex-col items-center text-center gap-4 md:gap-8">
-      <div class="space-y-2 md:space-y-4">
-        <div class="flex items-center justify-center gap-2 md:gap-4 mb-2 md:mb-6">
-          <span class="h-px w-8 md:w-16 bg-gradient-to-r from-transparent to-emerald-500"></span>
-          <span class="text-[8px] md:text-[10px] font-black uppercase tracking-[0.5em] text-emerald-500">Universal Strategic Intelligence</span>
-          <span class="h-px w-8 md:w-16 bg-gradient-to-l from-transparent to-emerald-500"></span>
+  <!-- Massive Strategic Pulse Visualizer -->
+  <div class="mb-16 relative h-64 glass-panel-elite rounded-[3rem] overflow-hidden border-primary/20 bg-black/60 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+     <div class="absolute inset-0 opacity-10 pointer-events-none scanline"></div>
+     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div class="w-full flex items-center justify-center gap-1.5 px-20">
+           <div *ngFor="let val of visualizerData()"
+                class="flex-grow bg-primary shadow-[0_0_20px_#25f46a] rounded-full transition-all duration-75"
+                [style.height.%]="val * 1.5"></div>
         </div>
-        <h1 class="glitch-text text-4xl md:text-7xl lg:text-9xl" [attr.data-text]="'S.M.U.V.E. 3.0'">S.M.U.V.E. 3.0</h1>
-        <p class="hero-subtitle text-base md:text-xl lg:text-2xl font-light text-slate-400 max-w-3xl mx-auto px-4">
-          The autonomous <span class="text-white font-bold italic">Strategic Music Utility</span> for elite architects of sound. Dominate the industry with algorithmic precision.
-        </p>
-      </div>
+     </div>
+     <div class="absolute bottom-8 left-10 z-20">
+        <h1 class="text-6xl font-black italic tracking-tighter uppercase text-white drop-shadow-2xl">It's Only Entertainment.</h1>
+        <p class="text-primary font-black uppercase tracking-[0.4em] mt-2 text-xs italic">High-Power Tactical Hub // Domain Alpha</p>
+     </div>
+  </div>
 
-      <!-- Quick Start Profile Build -->
-      <div class="quickstart-card w-full max-w-4xl bg-black/60 backdrop-blur-3xl p-6 md:p-10 rounded-3xl border border-emerald-500/20 shadow-[0_0_100px_rgba(16,185,129,0.1)] relative group">
-        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-black px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_#10b981]">Quick Initialize</div>
-
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-center">
-          <div class="md:col-span-4">
-             <input type="text"
-                    [(ngModel)]="quickProfile().artistName"
-                    placeholder="ARTIST ALIAS"
-                    class="hero-input w-full text-center md:text-left bg-transparent border-b border-white/20 p-2 focus:border-emerald-500 transition-colors">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+    <!-- Omniscient Command: Silver Etched -->
+    <div class="lg:col-span-8">
+      <div class="glass-panel-elite rounded-[2.5rem] p-10 border-silver/20 relative overflow-hidden h-full group cursor-pointer shadow-2xl" (click)="navigateToLink('strategy')">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-silver/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        <div class="flex justify-between items-start mb-12">
+          <div class="flex items-center gap-4">
+             <div class="size-12 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary shadow-[0_0_15px_#25f46a]">
+                <span class="material-symbols-outlined text-3xl">terminal</span>
+             </div>
+             <h3 class="text-xs font-black uppercase tracking-[0.3em] text-silver italic">Strategic Command Matrix</h3>
           </div>
-          <div class="md:col-span-4">
-             <select [(ngModel)]="quickProfile().primaryGenre" class="hero-select w-full text-center md:text-left bg-transparent border-b border-white/20 p-2 focus:border-emerald-500 transition-colors appearance-none">
-               <option *ngFor="let g of genres" [value]="g">{{ g }}</option>
-             </select>
-          </div>
-          <div class="md:col-span-4">
-             <button (click)="onQuickStart()" class="hero-cta-button w-full bg-emerald-500 text-black font-black py-3 rounded-xl hover:bg-white transition-all">Deploy Profile</button>
-          </div>
+          <span class="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black italic">Neural_Link_98.4%</span>
         </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- Global Radio Player Section -->
-  <section class="p-4 md:p-12 max-w-7xl mx-auto">
-    <div class="radio-module grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-slate-900/40 border border-white/5 p-6 md:p-10 rounded-3xl backdrop-blur-xl relative overflow-hidden">
-      <!-- Progress Bar Overlay -->
-      <div class="absolute bottom-0 left-0 h-1 bg-emerald-500/30 transition-all duration-300" [style.width.%]="playerService.progress()"></div>
-
-      <div class="lg:col-span-4 flex flex-col gap-4">
-        <div class="flex items-center gap-3">
-          <div class="live-indicator" [class.active]="playerService.isPlaying()">LIVE</div>
-          <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Global Strategic Broadcast</span>
+        <div class="space-y-6">
+           <h2 class="text-4xl font-black text-white uppercase italic tracking-tighter">{{ currentDecree()?.title || 'INITIALIZING_STRATEGY' }}</h2>
+           <p class="text-xl text-slate-400 font-medium leading-relaxed max-w-2xl italic">{{ currentDecree()?.content || 'Analyzing market vectors for maximum resonance...' }}</p>
         </div>
-        <div class="track-info">
-          <div class="now-playing-label">Now Transmitting</div>
-          <h3 class="track-title text-2xl md:text-3xl uppercase font-black italic tracking-tighter">{{ playerService.currentTrack()?.title }}</h3>
-          <p class="text-emerald-500/60 font-mono text-xs mt-1">{{ playerService.currentTrack()?.artist }}</p>
-        </div>
-      </div>
 
-      <div class="lg:col-span-4">
-        <div class="radio-visualizer h-12 md:h-16 flex items-end gap-1 px-4">
-          @for (val of visualizerData(); track $index) {
-            <div class="bar flex-grow bg-emerald-500/30 rounded-t-sm transition-all duration-75"
-                 [style.height.%]="val"></div>
-          }
-        </div>
-      </div>
-
-      <div class="lg:col-span-4 flex flex-wrap justify-center lg:justify-end gap-3 items-center">
-        <button (click)="playerService.toggleShuffle()"
-                class="radio-util-btn text-xs"
-                [class.text-emerald-500]="playerService.isShuffle()">
-          <i class="fas fa-random"></i>
-        </button>
-        <button (click)="playerService.toggleRepeat()"
-                class="radio-util-btn text-xs"
-                [class.text-emerald-500]="playerService.isRepeat()">
-          <i class="fas fa-redo"></i>
-        </button>
-
-        <div class="h-8 w-px bg-white/10 mx-2"></div>
-
-        <button (click)="playerService.previous()" class="radio-util-btn"><i class="fas fa-step-backward"></i></button>
-        <button (click)="playerService.togglePlay()"
-                class="radio-play-btn"
-                [class.playing]="playerService.isPlaying()">
-          <i class="fas" [class.fa-pause]="playerService.isPlaying()" [class.fa-play]="!playerService.isPlaying()" [class.ml-1]="!playerService.isPlaying()"></i>
-        </button>
-        <button (click)="playerService.next()" class="radio-util-btn"><i class="fas fa-step-forward"></i></button>
-
-        <div class="h-8 w-px bg-white/10 mx-2"></div>
-
-        <button (click)="playerService.loadExternalTrack()" class="radio-util-btn text-xs hover:text-emerald-500" title="Load Local File">
-          <i class="fas fa-upload"></i>
-        </button>
-        <button (click)="playerService.exportCurrent()" class="radio-util-btn text-xs hover:text-emerald-500" title="Export Current">
-          <i class="fas fa-download"></i>
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- DJ Booth Hero -->
-  <section class="py-12 md:py-24 px-4 md:px-12 bg-gradient-to-b from-transparent to-emerald-500/5">
-    <div class="max-w-7xl mx-auto hero-split items-center">
-      <div class="hero-text-content space-y-6 md:space-y-8">
-        <h2 class="section-title-aggressive text-4xl md:text-6xl">THE BOOTH</h2>
-        <p class="text-slate-400 text-lg md:text-xl leading-relaxed">
-          Integrated DJ hardware simulation with real-time stem isolation. Manipulate sound with professional precision. Low-latency engine optimized for performance architects.
-        </p>
-        <div class="flex flex-wrap gap-4">
-          <button class="jam-btn active" (click)="uiService.navigateToView('dj')"><i class="fas fa-bolt mr-2"></i> ENGAGE DECK</button>
-          <button class="jam-btn" (click)="uiService.navigateToView('dj')"><i class="fas fa-layer-group mr-2"></i> STEM ISOLATOR</button>
-        </div>
-      </div>
-      <div class="deck-preview-graphic group cursor-pointer" (click)="uiService.navigateToView('dj')">
-        <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-all duration-700"></div>
-        <div class="platter-ring"></div>
-        <div class="absolute inset-0 flex items-center justify-center">
-          <i class="fas fa-compact-disc text-6xl md:text-8xl text-emerald-500/20 group-hover:text-emerald-500 transition-colors"></i>
+        <div class="mt-12 flex items-center gap-6">
+           <div class="h-1 flex-grow bg-white/5 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-primary to-silver animate-pulse w-3/4"></div>
+           </div>
+           <span class="text-[10px] font-black text-primary uppercase tracking-widest italic group-hover:translate-x-2 transition-transform">Initialize Protocol Alpha >></span>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- DAW Interface Hero -->
-  <section class="py-12 md:py-24 px-4 md:px-12">
-    <div class="max-w-7xl mx-auto hero-split reverse items-center">
-      <div class="hero-text-content space-y-6 md:space-y-8">
-        <h2 class="section-title-aggressive text-4xl md:text-6xl">THE ENGINE</h2>
-        <p class="text-slate-400 text-lg md:text-xl leading-relaxed">
-          A full-scale DAW within your terminal. Sequencing, automation, and AI-assisted mastering. 32-bit float processing for uncompromising sonic clarity.
-        </p>
-        <div class="flex flex-wrap gap-4">
-          <button class="btn-primary-emerald" (click)="goToStudio()">INITIALIZE STUDIO</button>
-          <button class="btn-outline-emerald">VIEW SCHEMATICS</button>
+    <!-- Global Broadcast: Emerald Neon -->
+    <div class="lg:col-span-4">
+      <div class="glass-panel-elite rounded-[2.5rem] p-10 border-primary/20 bg-black/40 flex flex-col justify-between h-full shadow-2xl relative overflow-hidden wood-edge">
+        <div class="absolute inset-0 scanline opacity-10 pointer-events-none"></div>
+        <div>
+           <span class="px-3 py-1 rounded-lg text-[9px] font-black bg-primary text-black mb-6 inline-block uppercase tracking-widest italic">Live Domain Broadcast</span>
+           <h4 class="text-3xl font-black italic tracking-tighter text-white uppercase">{{ playerService.currentTrack()?.title || 'Tactical Frequency' }}</h4>
+           <p class="text-xs text-primary font-bold uppercase tracking-widest mt-2 italic">{{ playerService.currentTrack()?.artist || 'Executive Intel' }}</p>
         </div>
-      </div>
-      <div class="daw-preview-graphic bg-slate-900 border border-white/5 flex items-center justify-center p-8 md:p-12 cursor-pointer" (click)="goToStudio()">
-        <div class="w-full h-full border border-emerald-500/20 rounded flex flex-col gap-2 p-4">
-          <div *ngFor="let i of [1,2,3,4]" class="h-6 bg-white/5 rounded flex gap-1 px-1 items-center">
-            <div *ngFor="let j of [1,2,3,4,5,6,7,8]" class="h-4 w-full bg-emerald-500/20 rounded-sm"></div>
-          </div>
+
+        <div class="my-10 h-32 flex items-end gap-1.5 px-4 bg-black/60 rounded-3xl border border-white/5 shadow-inner relative overflow-hidden">
+           <div *ngFor="let val of visualizerData()" class="flex-grow bg-primary/40 shadow-[0_0_10px_#25f46a] rounded-t-sm transition-all duration-75" [style.height.%]="val"></div>
+        </div>
+
+        <div class="flex justify-between items-center gap-6">
+           <button class="size-16 rounded-2xl glass-panel-elite border-white/10 flex items-center justify-center text-slate-500 hover:text-primary transition-all">
+             <span class="material-symbols-outlined text-3xl">skip_previous</span>
+           </button>
+           <button class="size-24 rounded-[2rem] bg-primary flex items-center justify-center text-black shadow-[0_0_40px_rgba(37,244,106,0.3)] hover:scale-105 transition-all" (click)="playerService.togglePlay()">
+             <span class="material-symbols-outlined text-6xl fill-1">{{ playerService.isPlaying() ? 'pause' : 'play_arrow' }}</span>
+           </button>
+           <button class="size-16 rounded-2xl glass-panel-elite border-white/10 flex items-center justify-center text-slate-500 hover:text-primary transition-all">
+             <span class="material-symbols-outlined text-3xl">skip_next</span>
+           </button>
         </div>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- Tha Spot Finale -->
-  <section class="py-24 md:py-32 px-4 md:px-12 bg-black">
-    <div class="max-w-5xl mx-auto tha-spot-preview rounded-[3rem] border-2 border-emerald-500/20 p-8 md:p-20 relative overflow-hidden">
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_#10b98115_0%,_transparent_70%)]"></div>
-
-      <div class="relative z-10 flex flex-col items-center gap-8 md:gap-12">
-        <h2 class="section-title-aggressive large text-5xl md:text-8xl">THA SPOT</h2>
-
-        <div class="spot-features flex flex-col md:flex-row gap-8 md:gap-16">
-          <div class="spot-feature">
-            <i class="fas fa-gamepad"></i>
-            <span>ARCADE</span>
-          </div>
-          <div class="spot-feature">
-            <i class="fas fa-users"></i>
-            <span>NETWORK</span>
-          </div>
-          <div class="spot-feature">
-            <i class="fas fa-rocket"></i>
-            <span>SHOWCASE</span>
-          </div>
+  <!-- Elite Access Modules -->
+  <div class="mt-10 grid grid-cols-4 gap-8">
+     <div *ngFor="let m of [{id:'studio', l:'The Studio', i:'graphic_eq', c:'primary'}, {id:'tha-spot', l:'Neon Domain', i:'nightlife', c:'primary'}, {id:'image-video-lab', l:'Media Labs', i:'science', c:'primary'}, {id:'analytics', l:'Intel Hub', i:'monitoring', c:'primary'}]"
+          class="glass-panel-elite rounded-3xl p-8 border-white/10 hover:border-primary/40 transition-all cursor-pointer group flex flex-col items-center gap-6 shadow-xl relative overflow-hidden"
+          (click)="navigateToLink(m.id)">
+        <div class="size-20 rounded-3xl bg-black flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner border border-white/5 relative z-10">
+           <span class="material-symbols-outlined text-5xl">{{ m.i }}</span>
         </div>
-
-        <button class="spot-enter-btn w-full md:w-auto" (click)="goToThaSpot()">ENTER THE HUB</button>
-      </div>
-    </div>
-  </section>
-
-  <footer class="py-8 md:py-12 border-t border-white/5 text-center px-4">
-    <div class="text-[10px] md:text-xs font-black uppercase tracking-[0.4em] text-slate-600">
-      Strategic Music Utility Virtual Enhancer • System v3.0.4-PRO
-    </div>
-  </footer>
+        <span class="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-white transition-colors relative z-10 italic">{{ m.l }}</span>
+     </div>
+  </div>
 
 </div>

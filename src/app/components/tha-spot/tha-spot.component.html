@@ -1,338 +1,188 @@
-<div class="tha-spot-container min-h-screen text-white font-sans selection:bg-emerald-500/30">
-  <!-- NAV BAR -->
-  <nav class="flex items-center justify-between px-12 py-8 border-b border-white/5 bg-slate-950/50 backdrop-blur-xl sticky top-0 z-40">
-    <div class="flex items-center gap-4">
-      <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-        <i class="fas fa-bolt text-black text-xl"></i>
+<div class="px-10 py-12 animate-fade-in bg-[#0c0214] min-h-screen">
+  <div class="flex justify-between items-end mb-16 border-b border-neon-pink/20 pb-8 relative overflow-hidden p-10 rounded-[3rem] glass-panel-neon">
+    <div class="absolute inset-0 bg-gradient-to-r from-neon-pink/10 via-transparent to-electric-violet/10"></div>
+    <div class="relative z-10">
+      <h1 class="text-7xl font-black tracking-tighter bg-gradient-to-r from-white via-neon-pink to-electric-violet bg-clip-text text-transparent uppercase italic drop-shadow-[0_0_30px_rgba(244,37,140,0.4)]">
+        Neon Domain
+      </h1>
+      <p class="text-xs text-electric-violet uppercase tracking-[0.6em] mt-4 font-black italic">Immersive Social Core // Virtual Pulse</p>
+    </div>
+    <div class="flex gap-8 items-center relative z-10">
+      <div class="glass-panel-neon px-10 py-4 rounded-full border-neon-pink/30 flex items-center gap-4 shadow-[0_0_40px_rgba(244,37,140,0.15)]">
+        <div class="size-3 bg-[#0df280] rounded-full animate-ping shadow-[0_0_15px_#0df280]"></div>
+        <span class="text-sm font-black text-white uppercase tracking-[0.2em] italic">{{ onlineCount() }} VIRTUALS_ACTIVE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cyber Tab Navigation -->
+  <div class="flex gap-10 mb-16 overflow-x-auto pb-6 scrollbar-hide">
+    <button *ngFor="let tab of tabs"
+            (click)="activeTab.set(tab.id)"
+            [class.bg-neon-pink]="activeTab() === tab.id"
+            [class.text-white]="activeTab() === tab.id"
+            [class.shadow-[0_0_30px_#f4258c]]="activeTab() === tab.id"
+            class="px-12 py-4 glass-panel-neon rounded-2xl border-white/5 text-xs font-black uppercase tracking-[0.4em] whitespace-nowrap transition-all border group relative overflow-hidden italic">
+      <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <span class="relative z-10">{{ tab.label }}</span>
+    </button>
+  </div>
+
+  <!-- Content Area -->
+  <div [ngSwitch]="activeTab()" class="min-h-[800px]">
+    <!-- Arcade Section: Holographic Cubes -->
+    <div *ngSwitchCase="'arcade'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16">
+      <div *ngFor="let game of games()" class="relative group perspective-1000 cursor-pointer" (click)="playGame(game)">
+        <!-- Holographic Cube Wrapper -->
+        <div class="relative h-96 w-full transition-all duration-700 transform-gpu group-hover:rotate-y-12 group-hover:rotate-x-12 group-hover:scale-110">
+           <div class="absolute inset-0 rounded-[3rem] bg-gradient-to-br from-neon-pink/40 to-electric-violet/40 blur-2xl opacity-20 group-hover:opacity-60 transition-opacity"></div>
+           <div class="h-full w-full glass-panel-neon rounded-[3rem] border-2 border-white/10 overflow-hidden shadow-2xl relative">
+              <div class="absolute inset-0 scanline opacity-30 z-20 pointer-events-none"></div>
+              <img [src]="game.thumbnail" class="w-full h-64 object-cover opacity-60 group-hover:opacity-100 transition-all duration-700 brightness-90 scale-105 group-hover:scale-125">
+              <div class="absolute inset-0 bg-gradient-to-t from-[#0c0214] via-transparent to-transparent opacity-90"></div>
+
+              <div class="absolute bottom-10 left-10 right-10 z-30 space-y-4">
+                 <span class="px-3 py-1 rounded-lg text-[9px] font-black bg-electric-violet text-white uppercase tracking-widest italic shadow-[0_0_15px_rgba(175,37,244,0.5)]">{{ game.genre }} ENGINE</span>
+                 <h3 class="text-3xl font-black text-white uppercase italic tracking-tighter drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">{{ game.title }}</h3>
+                 <div class="flex justify-between items-center border-t border-white/10 pt-4">
+                    <span class="text-[10px] font-mono text-neon-pink font-bold tracking-widest">{{ game.plays }} UPLINKS</span>
+                    <span class="material-symbols-outlined text-white text-3xl group-hover:text-neon-pink group-hover:scale-125 transition-all">play_circle</span>
+                 </div>
+              </div>
+           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Networking Lounge: Light-Grid Floor Style -->
+    <div *ngSwitchCase="'networking'" class="space-y-12 animate-fade-in relative">
+      <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: linear-gradient(rgba(244,37,140,0.2) 1px, transparent 0), linear-gradient(90deg, rgba(244,37,140,0.2) 1px, transparent 0); background-size: 60px 60px;"></div>
+
+      <div class="glass-panel-neon rounded-[4rem] p-16 border-white/5 bg-black/40 shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-20 opacity-5">
+           <span class="material-symbols-outlined text-[300px] text-electric-violet">hub</span>
+        </div>
+        <div class="relative z-10">
+           <h2 class="text-3xl font-black uppercase tracking-[0.4em] text-white italic mb-16 flex items-center gap-6">
+             <span class="size-4 rounded-full bg-neon-pink animate-ping shadow-[0_0_20px_#f4258c]"></span>
+             Neural Networking Matrix
+           </h2>
+           <div class="grid grid-cols-1 gap-10 max-h-[1000px] overflow-y-auto pr-10 custom-scrollbar">
+             <div *ngFor="let post of networkingFeed()" class="flex gap-12 p-12 rounded-[3rem] glass-panel-neon border-white/5 hover:border-neon-pink/40 transition-all group relative overflow-hidden bg-white/5">
+               <div class="relative shrink-0">
+                  <div class="absolute inset-0 bg-neon-pink/20 rounded-[2rem] blur-xl group-hover:blur-2xl transition-all"></div>
+                  <img [src]="post.avatar" class="size-24 rounded-[2rem] border-2 border-white/10 shadow-2xl relative z-10 group-hover:scale-110 transition-transform grayscale group-hover:grayscale-0">
+               </div>
+               <div class="flex-grow relative z-10">
+                 <div class="flex justify-between items-start mb-6">
+                   <div>
+                     <h4 class="text-xl font-black text-white uppercase italic tracking-widest">{{ post.username }}</h4>
+                     <p class="text-xs text-neon-pink font-bold tracking-[0.2em] mt-1">SIGNAL_ID: @{{ post.handle }}</p>
+                   </div>
+                   <span class="text-xs font-mono text-slate-500 uppercase tracking-widest font-black italic">{{ post.time }}</span>
+                 </div>
+                 <p class="text-lg text-slate-200 leading-relaxed font-medium italic">"{{ post.content }}"</p>
+                 <div class="flex gap-12 mt-10">
+                   <button class="flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-neon-pink transition-all group/btn">
+                     <span class="material-symbols-outlined text-2xl group-hover/btn:scale-125 transition-transform">favorite</span> {{ post.likes }}
+                   </button>
+                   <button class="flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-electric-violet transition-all group/btn">
+                     <span class="material-symbols-outlined text-2xl group-hover/btn:scale-125 transition-transform">chat_bubble</span> {{ post.replies }}
+                   </button>
+                   <button class="flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all group/btn">
+                     <span class="material-symbols-outlined text-2xl group-hover/btn:rotate-45 transition-transform">bolt</span> BOOST
+                   </button>
+                 </div>
+               </div>
+             </div>
+           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Showcase: Liquid Metal Visualizers -->
+    <div *ngSwitchCase="'showcase'" class="grid grid-cols-1 lg:grid-cols-2 gap-16 animate-fade-in">
+      <div *ngFor="let track of featuredTracks()" class="glass-panel-neon rounded-[4rem] p-12 border-white/5 hover:border-electric-violet/40 transition-all group flex gap-12 items-center bg-white/5 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-electric-violet/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        <div class="relative size-48 shrink-0">
+          <div class="absolute inset-0 rounded-full bg-black shadow-2xl border-4 border-white/5 group-hover:rotate-[360deg] transition-transform duration-[8000ms] linear infinite flex items-center justify-center overflow-hidden">
+             <img [src]="track.cover" class="w-full h-full object-cover opacity-20 group-hover:opacity-50 transition-opacity">
+             <div class="absolute size-14 rounded-full bg-[#0c0214] border-2 border-white/10 flex items-center justify-center">
+                <div class="size-3 rounded-full bg-neon-pink shadow-[0_0_10px_#f4258c]"></div>
+             </div>
+          </div>
+          <div class="absolute -inset-8 border-2 border-neon-pink/10 rounded-full animate-ping opacity-20 pointer-events-none"></div>
+          <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 bg-neon-pink/20 rounded-full z-20 backdrop-blur-sm">
+             <span class="material-symbols-outlined text-white text-6xl">play_circle</span>
+          </div>
+        </div>
+        <div class="flex-grow relative z-10">
+          <span class="px-4 py-1 rounded-full text-[10px] font-black bg-neon-pink text-white mb-4 inline-block uppercase tracking-[0.3em] italic">Platinum Domain Record</span>
+          <h4 class="text-4xl font-black text-white uppercase italic tracking-tighter drop-shadow-xl">{{ track.title }}</h4>
+          <p class="text-lg text-electric-violet font-black uppercase tracking-[0.4em] mt-2 italic">{{ track.artist }}</p>
+          <div class="mt-10 h-12 flex items-end gap-1.5 px-6 bg-black/60 rounded-2xl p-2 border border-white/5 shadow-inner">
+             <div *ngFor="let b of track.waves" class="flex-grow bg-neon-pink/60 rounded-full group-hover:bg-electric-violet transition-colors group-hover:shadow-[0_0_15px_#af25f4]" [style.height.%]="b"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Game Modal: Ultra-Immersive -->
+<div *ngIf="selectedGame()" class="fixed inset-0 z-[100] bg-black flex flex-col animate-fade-in">
+  <div class="p-10 flex justify-between items-center border-b border-white/5 bg-[#0c0214] relative overflow-hidden">
+    <div class="absolute inset-0 scanline opacity-20 pointer-events-none"></div>
+    <div class="flex items-center gap-10 relative z-10">
+      <div class="size-16 rounded-[2rem] bg-neon-pink/10 border-2 border-neon-pink/40 flex items-center justify-center text-neon-pink shadow-[0_0_20px_#f4258c]">
+         <span class="material-symbols-outlined text-4xl">rocket_launch</span>
       </div>
       <div>
-        <h1 class="text-2xl font-black italic tracking-tighter uppercase leading-none">Tha Spot</h1>
-        <p class="text-[10px] font-bold text-emerald-500 tracking-[0.3em] uppercase">Global Interaction Hub</p>
+         <h2 class="text-4xl font-black text-white uppercase italic tracking-tighter drop-shadow-2xl">{{ selectedGame()?.title }}</h2>
+         <p class="text-xs text-electric-violet uppercase tracking-[0.5em] font-black italic mt-2 flex items-center gap-3">
+            <span class="size-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            NEURAL_STREAM_SYNC_OPTIMAL
+         </p>
       </div>
     </div>
-
-    <div class="flex items-center gap-8">
-      <div class="flex gap-4">
-        <button (click)="setActiveTab('arcade')" [class.active]="activeTab() === 'arcade'" class="tab-btn">Arcade</button>
-        <button (click)="setActiveTab('showcase')" [class.active]="activeTab() === 'showcase'" class="tab-btn">Showcase</button>
-        <button (click)="setActiveTab('networking')" [class.active]="activeTab() === 'networking'" class="tab-btn">Networking</button>
-      </div>
-      <div class="h-8 w-px bg-white/10"></div>
-      <button (click)="goToMyProfile()" class="flex items-center gap-3 group">
-        <div class="text-right">
-          <p class="text-xs font-black uppercase group-hover:text-emerald-400 transition-colors">{{ profileService.profile().artistName || 'Artist' }}</p>
-          <p class="text-[8px] font-mono text-slate-500 uppercase">Level {{ (reputationService.state().level || 1) }}</p>
-        </div>
-        <div class="w-10 h-10 rounded-xl bg-slate-900 border border-emerald-500/30 overflow-hidden">
-          <img [src]="'https://api.dicebear.com/7.x/avataaars/svg?seed=' + profileService.profile().artistName" class="w-full h-full object-cover">
-        </div>
-      </button>
-    </div>
-  </nav>
-
-  <div class="flex gap-8 p-12 h-[calc(100vh-110px)] overflow-hidden">
-    <!-- Main Content Area -->
-    <main class="flex-1 overflow-y-auto pr-4 custom-scrollbar">
-
-      <!-- ARCADE TAB -->
-      <div *ngIf="activeTab() === 'arcade'" class="wow animate__animated animate__fadeIn">
-        <!-- LIVE ROOMS SECTION -->
-        <div class="mb-12">
-            <h2 class="text-xs font-black text-emerald-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-4">
-                <span class="w-8 h-px bg-emerald-500/30"></span>
-                Live PvP Rooms
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div *ngFor="let room of gameRooms()" class="bg-slate-900/60 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between hover:bg-slate-900 transition-all">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                            <i class="fas fa-broadcast-tower"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-sm font-black text-white uppercase tracking-tight">{{ room.roomName }}</h4>
-                            <p class="text-[10px] text-slate-500 uppercase font-mono">Host: {{ room.host }} // {{ room.players }}/{{ room.maxPlayers }} PLAYERS</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span [class]="room.status === 'Waiting' ? 'text-emerald-500' : 'text-amber-500'" class="text-[9px] font-bold uppercase tracking-widest">{{ room.status }}</span>
-                        <button (click)="joinRoom(room)" class="px-4 py-2 bg-emerald-500 text-black text-[10px] font-black rounded-lg uppercase hover:bg-white transition-all">Join</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="hub-controls mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div class="search-bar relative flex-1 max-w-md">
-            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-            <input
-              type="text"
-              placeholder="Search games..."
-              (input)="onSearch()"
-              class="bg-slate-900/50 border border-slate-800 text-white pl-12 pr-4 py-3 rounded-xl w-full focus:border-emerald-500 outline-none transition-all"
-              aria-label="Search games"
-            />
-          </div>
-          <div class="genre-filters flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <button
-              *ngFor="let genre of genres"
-              (click)="setGenre(genre)"
-              [class.active]="activeFilters().genre === genre"
-              class="px-4 py-2 rounded-full border border-slate-800 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all hover:border-emerald-500/50"
-              [ngClass]="activeFilters().genre === genre ? 'bg-emerald-500 text-black border-emerald-500' : 'text-slate-400'"
-            >
-              {{ genre }}
-            </button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div
-            *ngFor="let game of games()"
-            class="game-card group"
-            (click)="selectGame(game)"
-          >
-            <div class="relative h-44 mb-4 overflow-hidden rounded-xl border border-white/5">
-              <img [src]="game.image" [alt]="game.name" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-              <div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-black text-white flex items-center gap-1">
-                <i class="fas fa-users text-emerald-400"></i> {{ game.playersOnline || 0 }}
-              </div>
-              <!-- PvP Badge -->
-              <div class="absolute bottom-3 left-3 bg-emerald-500 text-black px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(16,185,129,0.5)]">
-                PvP Enabled
-              </div>
-            </div>
-            <h3 class="text-lg font-black text-white uppercase tracking-tight">{{ game.name }}</h3>
-            <p class="text-xs text-slate-500 mb-4 line-clamp-2">{{ game.description }}</p>
-            <button class="play-btn">PLAY NOW</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- SHOWCASE TAB -->
-      <div *ngIf="activeTab() === 'showcase'" class="wow animate__animated animate__fadeIn">
-        <h2 class="text-3xl font-black text-white mb-8 uppercase italic tracking-tighter">Community Showcase</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div *ngFor="let project of showcaseProjects()" class="project-card group" (click)="viewProfile(project.creator)">
-            <div class="relative h-56 mb-4 overflow-hidden rounded-2xl border border-white/5">
-              <img [src]="project.thumbnail" [alt]="project.title" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-700" />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-6">
-                <div class="flex gap-2">
-                  <span *ngFor="let tag of project.tags" class="text-[9px] font-bold px-2 py-1 bg-emerald-500 text-black rounded uppercase">{{tag}}</span>
-                </div>
-              </div>
-            </div>
-            <div class="flex justify-between items-start">
-              <div>
-                <h4 class="text-xl font-black text-white uppercase">{{ project.title }}</h4>
-                <p class="text-xs text-emerald-500 font-bold uppercase tracking-widest">by {{ project.creator }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- NETWORKING TAB -->
-      <div *ngIf="activeTab() === 'networking'" class="wow animate__animated animate__fadeIn">
-        <div class="flex justify-between items-center mb-8">
-          <h2 class="text-3xl font-black text-white uppercase italic tracking-tighter">Collab Board</h2>
-          <button class="px-6 py-2 bg-emerald-500 text-black font-black uppercase text-xs rounded-full hover:bg-white transition-colors">Post Request</button>
-        </div>
-
-        <div class="space-y-4">
-          <div *ngFor="let req of collabRequests()" class="collab-card">
-            <div class="flex gap-6 items-center">
-              <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-emerald-500/20 flex items-center justify-center text-2xl text-emerald-500 cursor-pointer" (click)="viewProfile(req.user)">
-                <i class="fas" [ngClass]="req.role === 'Vocalist' ? 'fa-microphone' : 'fa-drum'"></i>
-              </div>
-              <div class="flex-1">
-                <div class="flex justify-between">
-                  <h4 class="text-lg font-black text-white uppercase tracking-tight cursor-pointer hover:text-emerald-400 transition-colors" (click)="viewProfile(req.user)">
-                    {{ req.user }} <span class="text-emerald-500 mx-2">//</span> {{ req.role }}
-                  </h4>
-                  <span class="text-[10px] font-mono text-slate-500">{{ req.timestamp | date:'shortTime' }}</span>
-                </div>
-                <p class="text-sm text-slate-400 mt-1">{{ req.projectGoal }}</p>
-              </div>
-              <button class="px-6 py-3 border border-emerald-500/30 text-emerald-500 font-black uppercase text-[10px] rounded-xl hover:bg-emerald-500 hover:text-black transition-all">Connect</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <!-- Sidebar: Terminal / Chat / Users -->
-    <aside class="w-80 flex flex-col gap-6">
-      <!-- Active Users -->
-      <div class="bg-slate-900/50 rounded-3xl border border-white/5 p-6 flex-1 flex flex-col overflow-hidden">
-        <h3 class="text-xs font-black text-emerald-500 uppercase tracking-[0.2em] mb-4 flex items-center">
-          <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse mr-2"></span>
-          Live Lobbies
-        </h3>
-        <div class="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-2">
-          <div *ngFor="let user of onlineUsers()" class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all cursor-pointer group">
-            <div class="relative w-10 h-10 rounded-full overflow-hidden border border-emerald-500/30">
-              <img [src]="user.avatar" class="w-full h-full object-cover">
-              <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-900"></div>
-            </div>
-            <div class="flex-1">
-              <p class="text-xs font-black text-white uppercase">{{ user.name }}</p>
-              <p class="text-[10px] text-slate-500 font-mono">{{ user.status }}</p>
-            </div>
-            <button (click)="challengeUser(user); $event.stopPropagation()" class="opacity-0 group-hover:opacity-100 px-2 py-1 bg-emerald-500 text-black text-[8px] font-black rounded uppercase transition-all">
-                DUEL
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Global Chat -->
-      <div class="bg-black/40 rounded-3xl border border-emerald-500/20 p-6 h-[400px] flex flex-col">
-        <div class="flex-1 overflow-y-auto space-y-3 font-mono text-[10px] mb-4 custom-scrollbar pr-2">
-          <div *ngFor="let msg of chatMessages()" class="chat-msg">
-            <span *ngIf="!msg.isSystem" class="text-emerald-500 font-bold cursor-pointer hover:underline" (click)="viewProfile(msg.user)">[{{ msg.user }}]: </span>
-            <span *ngIf="msg.isSystem" class="text-slate-500 italic">>>> </span>
-            <span [class.text-slate-300]="!msg.isSystem" [class.text-emerald-400]="msg.isSystem">{{ msg.text }}</span>
-          </div>
-        </div>
-        <div class="relative">
-          <input
-            type="text"
-            [(ngModel)]="newChatMessage"
-            (keyup.enter)="sendChatMessage()"
-            placeholder="SYSTEM_COMMAND_INPUT..."
-            class="w-full bg-slate-900 border border-emerald-500/30 rounded-lg py-3 px-4 text-[10px] font-mono text-emerald-500 outline-none focus:border-emerald-500"
-          >
-          <button (click)="sendChatMessage()" class="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 hover:text-white transition-colors">
-            <i class="fas fa-paper-plane"></i>
-          </button>
-        </div>
-      </div>
-    </aside>
-  </div>
-
-  <!-- GAME OVERLAY (MODAL) -->
-  <div *ngIf="isGameOverlayActive()" class="fixed inset-0 z-[100] bg-black flex flex-col animate__animated animate__fadeIn">
-    <!-- Overlay Header -->
-    <div class="bg-slate-950 border-b border-emerald-500/30 px-8 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-6">
-            <button (click)="closeGame()" class="text-slate-500 hover:text-white text-xl">
-                <i class="fas fa-times"></i>
-            </button>
-            <div>
-                <h2 class="text-xl font-black text-white uppercase italic tracking-tighter">{{ selectedGame()?.name }}</h2>
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-                    <span class="text-[10px] font-mono text-emerald-500 uppercase">PvP SESSION ACTIVE // LOBBY_ID: 0x{{ selectedGame()?.id }}FF</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- AI Commentary Ticker -->
-        <div class="flex-1 max-w-2xl mx-12 bg-slate-900/50 border border-emerald-500/10 py-2 px-6 rounded-lg overflow-hidden relative">
-            <p class="text-[11px] font-mono text-emerald-400 whitespace-nowrap animate-pulse">{{ aiCommentary() }}</p>
-            <div class="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-900/50 to-transparent"></div>
-            <div class="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-900/50 to-transparent"></div>
-        </div>
-
-        <div class="flex items-center gap-4">
-            <div class="text-right">
-                <p class="text-[10px] font-black text-white uppercase">Opponent: AI_DRONE_7</p>
-                <div class="w-32 h-1 bg-slate-800 rounded-full mt-1 overflow-hidden">
-                    <div class="h-full bg-rose-500" [style.width.%]="opponentHealth()"></div>
-                </div>
-            </div>
-            <div class="w-10 h-10 rounded-lg bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-500">
-                <i class="fas fa-skull"></i>
-            </div>
-        </div>
-    </div>
-
-    <!-- The Game Content -->
-    <div class="flex-1 relative bg-black flex flex-col">
-        <!-- HUD Overlay (Left) -->
-        <div class="absolute top-8 left-8 z-10 space-y-4">
-
-            <div class="bg-black/60 backdrop-blur-md border-l-4 border-emerald-500 p-4 rounded-r-xl">
-                <p class="text-[10px] text-slate-400 uppercase font-black mb-1">Score</p>
-                <p class="text-2xl font-black text-white">{{ gameScore() | number:'1.0-0' }}</p>
-            </div>
-            <!-- S.M.U.V.E. Strategic Buff -->
-            <button (click)="requestAiBuff()" class="w-full bg-emerald-500/10 border border-emerald-500/50 p-4 rounded-xl flex items-center justify-between group hover:bg-emerald-500 hover:text-black transition-all">
-                <div class="text-left">
-                    <p class="text-[8px] font-black uppercase opacity-60">S.M.U.V.E. Buff</p>
-                    <p class="text-[10px] font-black uppercase">Request Overdrive</p>
-                </div>
-                <i class="fas fa-bolt group-hover:animate-bounce"></i>
-            </button>
-            <div class="bg-black/60 backdrop-blur-md border-l-4 border-amber-500 p-4 rounded-r-xl">
-                <p class="text-[10px] text-slate-400 uppercase font-black mb-1">Multiplier</p>
-                <p class="text-2xl font-black text-amber-500">x{{ gameMultiplier() | number:'1.1-1' }}</p>
-            </div>
-        </div>
-
-        <!-- HUD Overlay (Right) -->
-        <div class="absolute top-8 right-8 z-10 text-right space-y-4">
-            <div class="bg-black/60 backdrop-blur-md border-r-4 border-emerald-500 p-4 rounded-l-xl">
-                <p class="text-[10px] text-slate-400 uppercase font-black mb-1">Status</p>
-                <p class="text-xs font-black text-emerald-500 uppercase tracking-widest">
-                    {{ opponentHealth() > 50 ? 'DOMINATING' : 'FINISH THEM' }}
-                </p>
-            </div>
-            <div class="bg-black/60 backdrop-blur-md p-4 rounded-xl border border-white/5">
-                <p class="text-[8px] text-slate-500 uppercase font-black mb-2">Crowd Hype</p>
-                <div class="flex gap-1 h-8 items-end">
-                    <div *ngFor="let h of crowdHype()" class="w-1 bg-emerald-500" [style.height.%]="h"></div>
-                </div>
-            </div>
-        </div>
-
-        <iframe
-            *ngIf="safeGameUrl()"
-            [src]="safeGameUrl()"
-            class="w-full h-full border-none shadow-[inset_0_0_100px_rgba(0,0,0,1)]"
-            title="S.M.U.V.E Game Session"
-        ></iframe>
-    </div>
-
-    <!-- Overlay Footer -->
-    <div class="bg-slate-950 border-t border-emerald-500/20 px-12 py-3 flex justify-between items-center text-[10px] font-mono text-slate-500 uppercase">
-        <div class="flex gap-8">
-            <span>PING: 24ms</span>
-            <span>PACKET_LOSS: 0%</span>
-            <span>SERVER: US-EAST-1</span>
-        </div>
-        <div class="flex gap-4">
-            <button class="hover:text-emerald-500 transition-colors"><i class="fas fa-cog mr-2"></i>SETTINGS</button>
-            <button class="hover:text-emerald-500 transition-colors"><i class="fas fa-expand mr-2"></i>FULLSCREEN</button>
-        </div>
+    <div class="flex items-center gap-16 relative z-10">
+       <div class="text-right">
+          <p class="text-[11px] text-slate-500 uppercase font-black tracking-widest italic mb-1">Session Score</p>
+          <p class="text-5xl font-mono text-white font-black tracking-tighter drop-shadow-[0_0_20px_#f4258c]">{{ currentScore() | number }}</p>
+       </div>
+       <button (click)="closeGame()" class="size-16 rounded-[2rem] glass-panel-neon border-white/10 flex items-center justify-center text-slate-500 hover:text-neon-pink hover:scale-110 transition-all shadow-2xl group">
+         <span class="material-symbols-outlined text-4xl group-hover:rotate-90 transition-transform">close</span>
+       </button>
     </div>
   </div>
+  <div class="flex-grow relative bg-[#000] flex items-center justify-center overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-neon-pink/5 via-transparent to-electric-violet/5 pointer-events-none z-20"></div>
+    <iframe [src]="selectedGame()?.url | safe:'resource'" class="w-full h-full border-none relative z-10 grayscale hover:grayscale-0 transition-all duration-1000"></iframe>
 
-  <!-- Profile View Modal -->
-  <div *ngIf="viewingProfile()" class="fixed inset-0 z-[150] flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl">
-    <div class="bg-slate-950 border-2 border-emerald-500/50 rounded-[3rem] w-full max-w-2xl overflow-hidden shadow-[0_0_100px_rgba(16,185,129,0.2)]">
-      <div class="relative h-40 bg-gradient-to-r from-emerald-900/50 to-slate-900">
-        <button (click)="closeProfile()" class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors text-2xl">
-          <i class="fas fa-times"></i>
-        </button>
-        <div class="absolute -bottom-16 left-12 w-32 h-32 rounded-3xl bg-slate-900 border-4 border-emerald-500 overflow-hidden">
-          <img [src]="'https://api.dicebear.com/7.x/avataaars/svg?seed=' + viewingProfile()?.artistName" class="w-full h-full object-cover">
-        </div>
-      </div>
-
-      <div class="pt-20 p-12">
-        <div class="flex justify-between items-start mb-6">
-          <div>
-            <h2 class="text-4xl font-black text-white uppercase italic tracking-tighter">{{ viewingProfile()?.artistName }}</h2>
-            <p class="text-emerald-500 font-bold uppercase text-xs tracking-widest mt-1">{{ viewingProfile()?.primaryGenre }} // {{ viewingProfile()?.careerStage }}</p>
+    <!-- Game HUD: High-Power Panels -->
+    <div class="absolute bottom-16 left-16 right-16 flex justify-between items-end pointer-events-none z-30">
+       <div class="glass-panel-neon p-12 rounded-[4rem] border-neon-pink/40 min-w-[450px] pointer-events-auto shadow-[0_0_60px_rgba(244,37,140,0.2)] bg-black/60 relative overflow-hidden group">
+          <div class="absolute inset-0 scanline opacity-10"></div>
+          <div class="flex justify-between items-end mb-6 relative z-10">
+             <p class="text-xs text-white uppercase font-black tracking-[0.4em] italic">Domain Reputation Ascension</p>
+             <span class="text-2xl font-mono text-neon-pink font-black">{{ repProgress() | number:'1.0-0' }}%</span>
           </div>
-          <button class="px-8 py-3 bg-emerald-500 text-black font-black uppercase text-xs rounded-xl hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all">Follow Artist</button>
-        </div>
-        <p class="text-slate-400 leading-relaxed mb-8">{{ viewingProfile()?.bio }}</p>
-        <button (click)="closeProfile()" class="w-full py-4 border-2 border-emerald-500/30 text-emerald-500 font-black uppercase tracking-[0.2em] text-xs rounded-2xl hover:bg-emerald-500 hover:text-black transition-all">
-          Close Profile
-        </button>
-      </div>
+          <div class="h-4 bg-black rounded-full overflow-hidden border-2 border-white/5 shadow-inner relative z-10">
+             <div class="h-full bg-gradient-to-r from-neon-pink via-electric-violet to-white shadow-[0_0_30px_#f4258c] group-hover:translate-x-1 transition-transform" [style.width.%]="repProgress()"></div>
+          </div>
+       </div>
+       <div class="glass-panel-neon p-12 rounded-[4rem] border-electric-violet/40 flex items-center gap-16 pointer-events-auto shadow-[0_0_60px_rgba(175,37,244,0.2)] bg-black/60 relative overflow-hidden group">
+          <div class="absolute inset-0 scanline opacity-10"></div>
+          <div class="text-center relative z-10">
+             <p class="text-xs text-slate-500 uppercase font-black tracking-[0.4em] italic mb-2">Neural Integrity</p>
+             <p class="text-5xl font-mono text-white font-black tracking-tighter">{{ gameStats().health }}%</p>
+          </div>
+          <div class="h-24 w-1 bg-white/5 rounded-full skew-x-[-20deg]"></div>
+          <div class="text-center relative z-10">
+             <p class="text-xs text-slate-500 uppercase font-black tracking-[0.4em] italic mb-2">Pulse Multiplier</p>
+             <p class="text-5xl font-mono text-neon-pink font-black tracking-tighter drop-shadow-[0_0_15px_#f4258c]">x{{ gameStats().multiplier }}</p>
+          </div>
+       </div>
     </div>
   </div>
 </div>

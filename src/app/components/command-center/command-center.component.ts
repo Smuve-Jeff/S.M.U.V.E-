@@ -1,10 +1,9 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UIService } from '../../services/ui.service';
 import { AiService, StrategicRecommendation } from '../../services/ai.service';
-import { UserProfileService } from '../../services/user-profile.service';
 import { ReputationService } from '../../services/reputation.service';
-import { UpgradeRecommendation } from '../../types/ai.types';
+import { UserProfileService } from '../../services/user-profile.service';
+import { UIService } from '../../services/ui.service';
 
 @Component({
   selector: 'app-command-center',
@@ -13,76 +12,50 @@ import { UpgradeRecommendation } from '../../types/ai.types';
   templateUrl: './command-center.component.html',
   styleUrls: ['./command-center.component.css']
 })
-export class CommandCenterComponent implements OnInit, OnDestroy {
+export class CommandCenterComponent implements OnInit {
   public aiService = inject(AiService);
-  public profileService = inject(UserProfileService);
-  public uiService = inject(UIService);
   public reputationService = inject(ReputationService);
+  private profileService = inject(UserProfileService);
+  private uiService = inject(UIService);
 
-  recommendations = computed(() => this.aiService.getUpgradeRecommendations());
+  recommendations = signal<any[]>([]);
   strategicRecs = signal<StrategicRecommendation[]>([]);
-
-  // Terminal state
-  terminalLines = signal<string[]>([]);
-  private intervalId: any;
+  terminalLines = signal<string[]>(['Initializing S.M.U.V.E. 4.0 Interface...', 'Neural Link Established.', 'Analyzing Market Data...']);
 
   ngOnInit() {
-    this.startTerminalSimulation();
-    this.loadStrategicRecommendations();
+    this.recommendations.set(this.aiService.getUpgradeRecommendations().slice(0, 5));
+    this.strategicRecs.set(this.aiService.getStrategicRecommendations());
+
+    // Periodically add terminal lines
+    const decrees = this.aiService.strategicDecrees();
+    let currentLine = 0;
+    const interval = setInterval(() => {
+       if (currentLine < decrees.length) {
+          this.terminalLines.update(lines => [...lines, decrees[currentLine].content]);
+          currentLine++;
+       } else {
+          clearInterval(interval);
+       }
+    }, 2000);
   }
 
-  async loadStrategicRecommendations() {
-    const recs = await this.aiService.getStrategicRecommendations();
-    this.strategicRecs.set(recs);
+  acquireUpgrade(rec: any) {
+    this.profileService.acquireUpgrade({ title: rec.title, type: rec.type });
+    this.recommendations.update(recs => recs.filter(r => r.title !== rec.title));
   }
 
-  ngOnDestroy() {
-    if (this.intervalId) clearInterval(this.intervalId);
-  }
-
-  private startTerminalSimulation() {
-    // Wait for decrees to be available
-    const checkDecrees = setInterval(() => {
-      const decrees = this.aiService.strategicDecrees();
-      if (decrees.length > 0) {
-        clearInterval(checkDecrees);
-
-        // Clear existing lines to refresh simulation if needed
-        this.terminalLines.set([]);
-
-        let currentLine = 0;
-        this.intervalId = setInterval(() => {
-          if (currentLine < decrees.length) {
-            this.terminalLines.update(lines => [...lines, decrees[currentLine]]);
-            currentLine++;
-          } else {
-            clearInterval(this.intervalId);
-          }
-        }, 800);
-      }
-    }, 500);
-  }
-
-    async acquireUpgrade(rec: UpgradeRecommendation) {
-    await this.profileService.acquireUpgrade({ title: rec.title, type: rec.type });
-    if (rec.url) {
-      window.open(rec.url, '_blank');
+  initializeOperation(op: any) {
+    if (op && op.toolId) {
+      this.uiService.navigateToView(op.toolId as any);
     }
   }
 
-  initializeOperation(srec: StrategicRecommendation) {
-    if (srec.toolId) {
-      this.uiService.navigateToView(srec.toolId as any);
-    }
-  }
-
-  getImpactColor(impact: string): string {
+  getImpactColor(impact: string) {
     switch (impact) {
-      case 'Extreme': return 'text-violet-400 animate-pulse font-black';
-      case 'High': return 'text-emerald-400';
-      case 'Medium': return 'text-yellow-400';
-      case 'Low': return 'text-slate-400';
-      default: return 'text-white';
+      case 'Extreme': return 'text-red-500';
+      case 'High': return 'text-orange-500';
+      case 'Medium': return 'text-primary';
+      default: return 'text-slate-400';
     }
   }
 }

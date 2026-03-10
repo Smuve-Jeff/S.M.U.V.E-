@@ -1,323 +1,128 @@
-<div
-  class="p-6 h-full overflow-y-auto bg-brand-dark text-white"
-  [ngStyle]="{ 'border-color': theme().primary, color: theme().primary }"
->
-  <!-- Authenticated View -->
-  <div *ngIf="isAuthenticated() && currentUser() as user; else guestView">
-    <!-- Main Profile View -->
-    <div class="flex gap-8">
-      <!-- Sidebar Menu -->
-      <div class="w-1/4 sticky top-0 self-start">
-        <div class="bg-brand-surface p-4 rounded-lg shadow-lg">
-          <nav class="flex flex-col gap-2">
-            <button
-              *ngFor="let section of sections"
-              (click)="activeSection.set(section.id)"
-              [class.active-section]="activeSection() === section.id"
-              class="text-left p-3 rounded-md transition-colors text-neutral-300 hover:bg-neutral-700/50 flex items-center gap-3"
-            >
-              <i
-                class="fas text-lg w-6 text-center"
-                [ngClass]="section.icon"
-                [style.color]="theme().accent"
-              ></i>
-              <span>{{ section.label }}</span>
-            </button>
-          </nav>
-        </div>
+<div class="px-6 py-8 animate-fade-in film-grain">
+  <div class="flex justify-between items-end mb-10 border-b-2 border-[#3d2b1f] pb-6 wood-edge bg-black/20 p-6 rounded-2xl shadow-xl">
+    <div>
+      <h1 class="text-4xl font-black tracking-tighter bg-gradient-to-r from-white via-gold to-orange-500 bg-clip-text text-transparent uppercase italic">
+        Artist Identity
+      </h1>
+      <p class="text-[10px] text-gold uppercase tracking-[0.4em] mt-2 font-black">Strategic Profile // Domain Metadata</p>
+    </div>
+    <div class="flex gap-4">
+       <button (click)="saveProfile()" class="px-10 py-3 bg-gold text-black font-black uppercase text-[10px] rounded-xl shadow-lg shadow-gold/20 hover:scale-105 transition-all italic">
+         Execute Global Update
+       </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-12 gap-10">
+    <!-- Sidebar Navigation: Executive Gold -->
+    <div class="col-span-12 lg:col-span-3">
+      <div class="glass-panel-executive rounded-[2rem] border-gold/20 p-8 shadow-2xl relative overflow-hidden flex flex-col gap-4">
+         <div class="absolute inset-0 scanline opacity-5"></div>
+         <button *ngFor="let section of sections"
+                 (click)="activeSection.set(section.id)"
+                 [class.bg-gold]="activeSection() === section.id"
+                 [class.text-black]="activeSection() === section.id"
+                 class="w-full p-4 rounded-xl glass-panel border-white/5 hover:border-gold/40 transition-all flex items-center gap-4 group">
+            <i class="fas {{ section.icon }} text-lg" [class.text-gold]="activeSection() !== section.id"></i>
+            <span class="text-[10px] font-black uppercase tracking-widest italic">{{ section.label }}</span>
+         </button>
       </div>
+    </div>
 
-      <!-- Content -->
-      <div class="w-3/4">
-        <div class="bg-brand-surface p-8 rounded-lg shadow-lg">
-          <ng-container *ngFor="let section of sections">
-            <div *ngIf="activeSection() === section.id" class="animate-fade-in">
-              <h3
-                class="text-2xl font-bold mb-6 flex items-center gap-3"
-                [style.color]="theme().primary"
-              >
-                <i class="fas" [ngClass]="section.icon"></i>
-                {{ section.label }}
-              </h3>
+    <!-- Main Content Area -->
+    <div class="col-span-12 lg:col-span-9">
+      <div class="glass-panel-executive rounded-[2.5rem] border-gold/20 p-12 shadow-2xl bg-black/40 relative overflow-hidden min-h-[600px] wood-edge">
+        <div class="absolute inset-0 scanline opacity-10 pointer-events-none"></div>
 
-              <!-- Social & Links Section -->
-              <div *ngIf="section.id === 'social'" class="space-y-10">
-                <!-- Official Music Portals -->
-                <div class="space-y-4">
-                  <h4 class="text-xl font-bold text-emerald-500 flex items-center gap-2">
-                    <i class="fas fa-check-circle"></i>
-                    Official Music Portals
-                  </h4>
-                  <div class="grid grid-cols-1 gap-4">
-                    <div *ngFor="let p of objectKeys(editableProfile().officialMusicProfiles)"
-                         class="bg-brand-dark/40 p-4 rounded-lg border border-white/10 flex flex-col gap-3">
-                      <div class="flex justify-between items-center">
-                        <label class="capitalize font-bold text-sm tracking-widest text-slate-400">{{ p }} For Artists</label>
-                        <div class="flex items-center gap-2">
-                          <span *ngIf="editableProfile().officialMusicProfiles[p].status === 'verified'"
-                                class="text-[10px] bg-green-500/20 text-green-500 px-2 py-0.5 rounded uppercase font-bold">
-                            Verified
-                          </span>
-                          <span *ngIf="editableProfile().officialMusicProfiles[p].status === 'syncing'"
-                                class="text-[10px] bg-emerald-500/20 text-emerald-500 px-2 py-0.5 rounded uppercase font-bold animate-pulse">
-                            Syncing...
-                          </span>
-                        </div>
-                      </div>
-                      <div class="flex gap-2">
-                        <input type="text"
-                               [value]="editableProfile().officialMusicProfiles[p].url"
-                               (input)="updatePlatformUrl('officialMusicProfiles', p, $event)"
-                               placeholder="Enter dashboard URL"
-                               class="flex-grow p-2 bg-brand-surface rounded border border-white/10 outline-none focus:border-emerald-500 transition-colors" />
-                        <button (click)="verifyPlatform('officialMusicProfiles', p)"
-                                [disabled]="!editableProfile().officialMusicProfiles[p].url || editableProfile().officialMusicProfiles[p].status === 'syncing'"
-                                class="px-4 py-2 bg-emerald-500 text-black font-bold rounded hover:scale-105 transition-transform disabled:opacity-50">
-                          {{ editableProfile().officialMusicProfiles[p].verified ? 'Re-Sync' : 'Verify' }}
-                        </button>
-                      </div>
-                      <div *ngIf="editableProfile().officialMusicProfiles[p].lastSynced" class="text-[9px] text-neutral-600 italic">
-                        Last synced: {{ editableProfile().officialMusicProfiles[p].lastSynced | date:'short' }}
-                      </div>
-                    </div>
+        <div class="relative z-10">
+          <ng-container [ngSwitch]="activeSection()">
+
+            <!-- BASIC INFO -->
+            <div *ngSwitchCase="'basic'" class="space-y-12 animate-fade-in">
+               <div class="flex items-center gap-12 border-b border-white/5 pb-10">
+                  <div class="relative size-32">
+                     <div class="absolute inset-0 bg-gold/20 rounded-full blur-2xl animate-pulse"></div>
+                     <img src="assets/avatar.jpg" class="size-32 rounded-full border-4 border-gold/30 object-cover relative z-10">
+                     <button class="absolute bottom-0 right-0 size-10 rounded-full bg-gold text-black flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined text-sm">photo_camera</span>
+                     </button>
                   </div>
-                </div>
-
-                <!-- Behind-The-Scenes / Personal Profiles -->
-                <div class="space-y-4 pt-6 border-t border-white/10">
-                  <h4 class="text-xl font-bold text-violet-500 flex items-center gap-2">
-                    <i class="fas fa-share-alt"></i>
-                    Behind-The-Scenes / Personal Profiles
-                  </h4>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div *ngFor="let p of objectKeys(editableProfile().personalSocialProfiles)"
-                         class="bg-brand-dark/40 p-4 rounded-lg border border-white/10 flex flex-col gap-3">
-                      <label class="capitalize font-bold text-sm tracking-widest text-slate-400">{{ p === 'x' ? 'X (Twitter)' : p }}</label>
-                      <div class="flex gap-2">
-                        <input type="text"
-                               [value]="editableProfile().personalSocialProfiles[p].url"
-                               (input)="updatePlatformUrl('personalSocialProfiles', p, $event)"
-                               placeholder="Profile URL"
-                               class="flex-grow p-2 bg-brand-surface rounded border border-white/10 outline-none focus:border-violet-500 transition-colors" />
-                        <button (click)="verifyPlatform('personalSocialProfiles', p)"
-                                [disabled]="!editableProfile().personalSocialProfiles[p].url"
-                                class="p-2 bg-brand-surface rounded hover:text-violet-500 transition-colors">
-                          <i class="fas" [class.fa-link]="!editableProfile().personalSocialProfiles[p].verified"
-                                         [class.fa-check]="editableProfile().personalSocialProfiles[p].verified"></i>
-                        </button>
-                      </div>
-                    </div>
+                  <div class="flex-grow space-y-4">
+                     <div class="space-y-2">
+                        <label class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 italic ml-2">Artist Legal Designation</label>
+                        <input type="text" [(ngModel)]="editableProfile().artistName" class="w-full bg-black/60 border border-white/5 p-4 rounded-xl text-white font-black italic uppercase tracking-widest outline-none focus:border-gold/40 transition-all">
+                     </div>
                   </div>
-                </div>
-              </div>
+               </div>
 
-
-              <!-- Catalog & Assets Section -->
-              <div *ngIf="section.id === 'catalog'" class="space-y-6">
-                <div class="border-b border-white/10 pb-4 mb-6">
-                  <h3 class="text-2xl font-black text-white uppercase tracking-tighter">Artist Catalog</h3>
-                  <p class="text-slate-400 text-sm">Manage your masters, demos, stems, and creative assets with full metadata tracking.</p>
-                </div>
-                <app-catalog-manager></app-catalog-manager>
-              </div>
-
-              <!-- Professional ID Section -->
-              <div *ngIf="section.id === 'professional'" class="space-y-6">
-                <app-form-field label="Official Artist Profile" description="Mark this as an official artist profile.">
-                  <div class="flex items-center gap-3">
-                    <input type="checkbox"
-                           [ngModel]="editableProfile().isOfficialProfile"
-                           (ngModelChange)="updateProfileField('isOfficialProfile', $event)"
-                           class="w-6 h-6 bg-neutral-700 rounded-md accent-emerald-500" />
-                    <span class="text-neutral-300">Official Profile</span>
+               <div class="grid grid-cols-2 gap-10">
+                  <div class="space-y-2">
+                     <label class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 italic ml-2">Primary Domain (Genre)</label>
+                     <select [(ngModel)]="editableProfile().primaryGenre" class="w-full bg-black/60 border border-white/5 p-4 rounded-xl text-white font-bold uppercase outline-none focus:border-gold/40 transition-all appearance-none">
+                        <option value="Hip Hop">HIP_HOP_CORE</option>
+                        <option value="R&B">RHYTHM_AND_SOUL</option>
+                        <option value="Electronic">NEURAL_ELECTRONIC</option>
+                     </select>
                   </div>
-                </app-form-field>
-
-                <div class="grid grid-cols-2 gap-4">
-                  <app-form-field label="PRO Name" description="ASCAP, BMI, SESAC, etc.">
-                    <input type="text"
-                           [ngModel]="editableProfile().proName"
-                           (ngModelChange)="updateProfileField('proName', $event)"
-                           class="w-full p-2 bg-brand-surface rounded-md" />
-                  </app-form-field>
-                  <app-form-field label="PRO IPI" description="Your Interested Party Information number.">
-                    <input type="text"
-                           [ngModel]="editableProfile().proIpi"
-                           (ngModelChange)="updateProfileField('proIpi', $event)"
-                           class="w-full p-2 bg-brand-surface rounded-md" />
-                  </app-form-field>
-                  <app-form-field label="SoundExchange ID" description="Your SoundExchange ID.">
-                    <input type="text"
-                           [ngModel]="editableProfile().soundExchangeId"
-                           (ngModelChange)="updateProfileField('soundExchangeId', $event)"
-                           class="w-full p-2 bg-brand-surface rounded-md" />
-                  </app-form-field>
-                  <app-form-field label="The MLC ID" description="Your Mechanical Licensing Collective ID.">
-                    <input type="text"
-                           [ngModel]="editableProfile().mlcId"
-                           (ngModelChange)="updateProfileField('mlcId', $event)"
-                           class="w-full p-2 bg-brand-surface rounded-md" />
-                  </app-form-field>
-                  <app-form-field label="ISNI" description="International Standard Name Identifier.">
-                    <input type="text"
-                           [ngModel]="editableProfile().isni"
-                           (ngModelChange)="updateProfileField('isni', $event)"
-                           class="w-full p-2 bg-brand-surface rounded-md" />
-                  </app-form-field>
-                </div>
-
-                <div class="border-t border-neutral-700 pt-6">
-                  <h4 class="text-xl font-bold mb-4">Distribution Settings</h4>
-                  <div class="grid grid-cols-2 gap-4">
-                    <app-form-field label="Preferred Distributor" description="DistroKid, TuneCore, etc.">
-                      <input type="text"
-                             [ngModel]="editableProfile().preferredDistributor"
-                             (ngModelChange)="updateProfileField('preferredDistributor', $event)"
-                             class="w-full p-2 bg-brand-surface rounded-md" />
-                    </app-form-field>
-                    <app-form-field label="Distribution Status" description="Current status of your latest release.">
-                      <select [ngModel]="editableProfile().distributionStatus"
-                              (ngModelChange)="updateProfileField('distributionStatus', $event)"
-                              class="w-full p-2 bg-brand-surface rounded-md">
-                        <option value="Not Started">Not Started</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Distributed">Distributed</option>
-                      </select>
-                    </app-form-field>
+                  <div class="space-y-2">
+                     <label class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 italic ml-2">Experience Delta (Years)</label>
+                     <input type="number" [(ngModel)]="editableProfile().yearsActive" class="w-full bg-black/60 border border-white/5 p-4 rounded-xl text-white font-mono font-bold outline-none focus:border-gold/40 transition-all">
                   </div>
-                </div>
-
-
-                <div class="border-t border-white/10 pt-8 mt-8">
-                   <h4 class="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2">
-                     <i class="fas fa-tasks"></i>
-                     Strategic Action Tasks
-                   </h4>
-                   <div class="space-y-3">
-                      <div *ngFor="let task of editableProfile().tasks"
-                           class="flex items-center justify-between p-4 bg-slate-900/50 border border-white/5 rounded-xl">
-                         <div class="flex items-center gap-4">
-                            <div class="w-2 h-2 rounded-full" [ngClass]="task.priority === 'high' ? 'bg-red-500' : 'bg-emerald-500'"></div>
-                            <div>
-                               <div class="font-bold text-sm text-slate-100">{{ task.title }}</div>
-                               <div class="text-[10px] text-slate-500 uppercase">{{ task.category }} • {{ task.status }}</div>
-                            </div>
-                         </div>
-                         <div class="flex items-center gap-2">
-                            <button *ngIf="task.aiSuggested" class="text-[8px] font-bold bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded-full uppercase">AI Suggested</button>
-                            <button (click)="removeTask(task.id)" class="text-slate-600 hover:text-red-400 p-2"><i class="fas fa-trash"></i></button>
-                         </div>
-                      </div>
-                      <div *ngIf="!editableProfile().tasks?.length" class="text-center py-6 border border-dashed border-white/5 rounded-xl text-slate-600 text-xs italic">
-                        No active tasks. AI will suggest actions as you work.
-                      </div>
-                   </div>
-                </div>
-
-                <div class="flex justify-end pt-4">
-                   <button (click)="saveProfile()" class="px-6 py-2 bg-emerald-600 rounded-md font-bold hover:bg-emerald-700 transition-colors">
-                     SAVE PROFESSIONAL IDENTITY
-                   </button>
-                </div>
-              </div>
-
-              <!-- Legal Docs Section -->
-              <div *ngIf="section.id === 'legal'" class="space-y-6">
-                <div class="flex justify-between items-center">
-                  <p class="text-slate-400">
-                    Create and manage your legal document templates.
-                  </p>
-                  <button (click)="openNewDocument()" class="action-button">
-                    New Document
-                  </button>
-                </div>
-                <div class="space-y-4">
-                  <div
-                    *ngFor="let doc of editableProfile().legalDocuments"
-                    class="bg-neutral-700/50 p-4 rounded-lg flex justify-between items-center"
-                  >
-                    <span class="font-bold">{{ doc.title }}</span>
-                    <div class="flex gap-2">
-                      <button
-                        (click)="openEditDocument(doc)"
-                        class="px-3 py-1 bg-emerald-600 rounded-md"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        (click)="deleteLegalDocument(doc.id)"
-                        class="px-3 py-1 bg-red-600 rounded-md"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  <p
-                    *ngIf="!editableProfile().legalDocuments?.length"
-                    class="text-center text-slate-500"
-                  >
-                    No legal documents yet.
-                  </p>
-                </div>
-              </div>
+               </div>
             </div>
+
+            <!-- CATALOG & ASSETS -->
+            <div *ngSwitchCase="'catalog'" class="animate-fade-in h-full">
+               <app-catalog-manager></app-catalog-manager>
+            </div>
+
+            <!-- PROFESSIONAL ID -->
+            <div *ngSwitchCase="'professional'" class="space-y-10 animate-fade-in">
+               <div class="grid grid-cols-2 gap-8">
+                  <div *ngFor="let field of [{l:'PRO_NAME', k:'proName'}, {l:'PRO_IPI', k:'proIpi'}, {l:'SOUNDEXCHANGE_ID', k:'soundExchangeId'}, {l:'MLC_ID', k:'mlcId'}]" class="space-y-2">
+                     <label class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 italic ml-2">{{ field.l }}</label>
+                     <input type="text" [ngModel]="editableProfile()[field.k]" (ngModelChange)="updateProfileField(field.k, $event)" class="w-full bg-black/60 border border-white/5 p-4 rounded-xl text-white font-mono outline-none focus:border-gold/40 transition-all uppercase">
+                  </div>
+               </div>
+
+               <div class="p-8 rounded-[2rem] bg-gold/5 border border-gold/20 shadow-inner mt-10">
+                  <h4 class="text-[10px] font-black uppercase tracking-widest text-gold mb-6 italic">Strategic Deployment Logic</h4>
+                  <div class="grid grid-cols-2 gap-10">
+                     <div class="space-y-2">
+                        <label class="text-[8px] font-black uppercase tracking-widest text-slate-500">Distribution_Hub</label>
+                        <input type="text" [(ngModel)]="editableProfile().preferredDistributor" class="w-full bg-black/40 border border-white/5 p-3 rounded-lg text-white text-xs outline-none">
+                     </div>
+                     <div class="space-y-2">
+                        <label class="text-[8px] font-black uppercase tracking-widest text-slate-500">Current_Deployment_State</label>
+                        <select [(ngModel)]="editableProfile().distributionStatus" class="w-full bg-black/40 border border-white/5 p-3 rounded-lg text-white text-xs outline-none">
+                           <option value="Not Started">STATIONARY</option>
+                           <option value="In Progress">ACTIVE_UPLOAD</option>
+                           <option value="Distributed">SATURATED</option>
+                        </select>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            <!-- Default Placeholder -->
+            <div *ngSwitchDefault class="flex flex-col items-center justify-center py-20 opacity-20">
+               <span class="material-symbols-outlined text-9xl text-gold mb-8">engineering</span>
+               <h2 class="text-2xl font-black uppercase tracking-[0.4em] text-white italic">Protocol Initializing</h2>
+            </div>
+
           </ng-container>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Legal Document Editor Modal -->
-  <div *ngIf="showLegalEditor()" class="modal-overlay">
-    <app-legal-document-editor
-      [document]="editingDocument()"
-      (save)="saveLegalDocument($event)"
-      (cancel)="showLegalEditor.set(false)"
-    >
-    </app-legal-document-editor>
-  </div>
-  <!-- Guest View -->
-  <ng-template #guestView>
-    <div class="guest-container wow animate__animated animate__fadeIn">
-      <div class="guest-welcome">
-        <h2 class="title-1">Welcome to S.M.U.V.E 2.0</h2>
-        <p class="subtitle">Strategic Music Utility Virtual Enhancer</p>
-
-        <div class="guest-features">
-          <div class="feature-card">
-            <i class="fas fa-microphone-alt"></i>
-            <h3>The Studio</h3>
-            <p>
-              Professional DAW with high-precision mixer, synth, and mastering
-              suite.
-            </p>
-          </div>
-          <div class="feature-card">
-            <i class="fas fa-robot"></i>
-            <h3>AI Strategic Partner</h3>
-            <p>
-              Get actionable "Strategic Decrees" from our omniscient AI commander.
-            </p>
-          </div>
-          <div class="feature-card">
-            <i class="fas fa-gamepad"></i>
-            <h3>Tha Spot</h3>
-            <p>Interactive gaming hub and AI-powered live jam sessions.</p>
-          </div>
-        </div>
-
-        <div class="guest-actions">
-          <button routerLink="/login" class="cta-button primary">
-            Get Started
-          </button>
-          <button
-            class="cta-button secondary"
-            (click)="activeSection.set('about')"
-          >
-            Learn More
-          </button>
-        </div>
-      </div>
-    </div>
-  </ng-template>
+<div *ngIf="showLegalEditor()" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-12 animate-fade-in">
+   <div class="w-full max-w-4xl h-full">
+      <app-legal-document-editor
+        [document]="editingDocument()"
+        (save)="saveLegalDocument($event)"
+        (cancel)="showLegalEditor.set(false)"
+      ></app-legal-document-editor>
+   </div>
 </div>

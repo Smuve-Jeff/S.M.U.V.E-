@@ -1,159 +1,126 @@
-<div class="studio-container bg-[#020617] text-slate-200 font-sans selection:bg-emerald-500/30 h-screen flex flex-col overflow-hidden">
-  <!-- Strategic Overlays -->
-  <div class="scanlines"></div>
-  <div class="crt-flicker"></div>
-
-  <!-- Top Navigation / Transport -->
-  <header class="studio-header border-b border-white/5 bg-slate-950/80 backdrop-blur-xl px-4 md:px-6 py-2 flex items-center justify-between sticky top-0 z-[100] shadow-2xl">
-    <div class="flex items-center gap-4 md:gap-6">
+<div class="flex flex-col h-screen bg-[#1a1a1a] text-slate-100 overflow-hidden animate-fade-in film-grain">
+  <!-- Industrial Header -->
+  <header class="glass-panel-industrial px-10 py-6 flex items-center justify-between border-b-4 border-danger-orange/20 z-50 shadow-[0_10px_40px_rgba(0,0,0,0.9)] relative">
+    <div class="absolute inset-0 scanline opacity-10 pointer-events-none"></div>
+    <div class="flex items-center gap-10 relative z-10">
       <div class="flex flex-col">
-        <h1 class="text-xs md:text-sm font-black uppercase tracking-[0.2em] text-emerald-500 italic neon-text-emerald">S.M.U.V.E Studio</h1>
-        <div class="text-[8px] md:text-[9px] text-slate-500 font-mono uppercase tracking-tighter">STRATEGIC COMMANDER v3.0 PRO</div>
+        <h1 class="text-xl font-black uppercase tracking-[0.3em] text-danger-orange italic drop-shadow-[0_0_10px_#f48525]">Industrial Engine</h1>
+        <div class="text-[10px] text-white/40 font-mono uppercase tracking-widest font-black flex items-center gap-2">
+           <span class="size-1.5 rounded-full bg-danger-orange animate-pulse"></span>
+           Tactical Production Suite v4.0
+        </div>
       </div>
-      <div class="h-8 w-px bg-white/10 hidden sm:block"></div>
-      <app-transport-bar class="hidden sm:block"></app-transport-bar>
+      <div class="h-14 w-1 bg-white/5 skew-x-[-20deg]"></div>
+      <app-transport-bar></app-transport-bar>
     </div>
 
-    <!-- AI Decree Banner (Global) -->
-    <div class="flex-grow flex justify-center px-4 hidden lg:flex">
-       <div class="max-w-xl w-full bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-4 py-1 flex items-center gap-3 animate__animated animate__pulse animate__infinite">
-          <i class="fas fa-brain text-[10px] text-emerald-500"></i>
-          <span class="text-[9px] font-mono text-emerald-400 uppercase tracking-tighter truncate">{{ currentDecree() }}</span>
-          <button (click)="generateNewDecree()" class="ml-auto text-[8px] text-slate-500 hover:text-emerald-500 transition-colors uppercase font-black">REFRESH</button>
+    <!-- Nixie Tube BPM Display -->
+    <div class="flex items-center gap-4 bg-black/80 rounded-2xl p-4 border-2 border-industrial-steel shadow-inner relative group cursor-crosshair">
+       <div class="flex gap-2">
+          <div *ngFor="let digit of [1,2,8]" class="size-12 rounded-lg bg-danger-orange/5 border border-danger-orange/20 flex items-center justify-center">
+             <span class="text-3xl font-mono text-danger-orange italic drop-shadow-[0_0_15px_#f48525]">{{ digit }}</span>
+          </div>
        </div>
+       <span class="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 italic">BPM_SYNC</span>
     </div>
 
-    <div class="flex items-center gap-2 md:gap-4">
-      <div class="flex items-center bg-black/40 rounded-xl p-0.5 md:p-1 border border-white/5 shadow-inner">
-         <button (click)="toggleView('daw')"
-                 [class.active]="activeView() === 'daw'"
-                 class="btn-commander px-2 md:px-4 py-1.5">Studio</button>
-         <button (click)="toggleView('dj')"
-                 [class.active]="activeView() === 'dj'"
-                 class="btn-commander px-2 md:px-4 py-1.5">DJ Booth</button>
-         <button (click)="toggleView('mastering')"
-                 [class.active]="activeView() === 'mastering'"
-                 class="btn-commander px-2 md:px-4 py-1.5">Mastering</button>
-      </div>
-
-      <div class="flex items-center gap-1 md:gap-2 border-l border-white/10 pl-2 md:pl-4">
-        <button (click)="showRack.set(!showRack())"
-                [class.text-emerald-500]="showRack()"
-                class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center hover:bg-emerald-500 hover:text-black transition-all shadow-lg">
-          <i class="fas fa-th-list text-[10px] md:text-xs"></i>
-        </button>
-        <button (click)="showMixer.set(!showMixer())"
-                [class.text-emerald-500]="showMixer()"
-                class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center hover:bg-emerald-500 hover:text-black transition-all shadow-lg">
-          <i class="fas fa-sliders-h text-[10px] md:text-xs"></i>
-        </button>
-      </div>
+    <div class="flex items-center gap-4 relative z-10">
+      <button (click)="showRack.set(!showRack())" [class.text-danger-orange]="showRack()" class="size-14 rounded-2xl glass-panel-industrial flex items-center justify-center hover:bg-danger-orange/10 transition-all shadow-2xl border-industrial-steel group">
+        <span class="material-symbols-outlined text-3xl group-hover:rotate-90 transition-transform">grid_view</span>
+      </button>
+      <button (click)="showMixer.set(!showMixer())" [class.text-danger-orange]="showMixer()" class="size-14 rounded-2xl glass-panel-industrial flex items-center justify-center hover:bg-danger-orange/10 transition-all shadow-2xl border-industrial-steel group">
+        <span class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">tune</span>
+      </button>
     </div>
   </header>
 
-  <main class="main-view flex-grow relative overflow-hidden flex flex-col h-full">
+  <!-- Main Content -->
+  <main class="flex-grow relative flex flex-col h-full overflow-hidden">
 
-    <!-- PRODUCTION VIEW (INTEGRATED) -->
-    <div class="production-view flex-grow flex flex-col h-full" [class.hidden]="activeView() !== 'daw'">
-      <!-- Top Section: Arrangement / Playlist -->
-      <div class="arrangement-section flex-grow relative overflow-hidden commander-panel">
+    <!-- DAW VIEW -->
+    <div class="flex-grow flex flex-col h-full" *ngIf="activeView() === 'daw'">
+      <div class="flex-grow relative overflow-hidden bg-black/40">
+        <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: radial-gradient(#fff 1px, transparent 0); background-size: 80px 80px;"></div>
         <app-arrangement-view class="h-full"></app-arrangement-view>
       </div>
 
-      <!-- Bottom Panel: Mixer / Rack / Piano Roll -->
-      <div class="bottom-panel bg-slate-950/90 border-t border-white/5 backdrop-blur-xl transition-all overflow-hidden"
-           [style.height]="showMixer() || showRack() || showPianoRoll() ? '45%' : '0px'">
-        <div class="flex h-full overflow-hidden flex-col md:flex-row">
-          <!-- Side Panel: Channel Rack -->
-          <div class="rack-panel w-full md:w-80 lg:w-96 border-r border-white/5 flex flex-col overflow-hidden transition-all commander-panel"
-               [class.hidden]="!showRack()">
-            <app-channel-rack class="flex-grow h-full"></app-channel-rack>
+      <!-- Bottom Dock: Brutalist Hardware -->
+      <div class="glass-panel-industrial border-t-4 border-industrial-steel transition-all overflow-hidden" [style.height]="showMixer() || showRack() || showPianoRoll() ? '45%' : '0px'">
+        <div class="flex h-full overflow-hidden bg-[#121212]">
+          <div class="w-[500px] border-r-4 border-industrial-steel overflow-hidden bg-black/20" *ngIf="showRack()">
+             <div class="bg-industrial-steel/40 px-6 py-2 border-b-2 border-danger-orange/20 flex justify-between items-center">
+                <span class="text-[10px] font-black uppercase text-danger-orange tracking-widest italic flex items-center gap-3">
+                   <span class="size-2 rounded-full bg-danger-orange"></span>
+                   SCHEMATIC_SEQUENCER_01
+                </span>
+                <div class="flex gap-2">
+                   <div class="size-2 rounded bg-industrial-steel"></div>
+                   <div class="size-2 rounded bg-danger-orange/40"></div>
+                </div>
+             </div>
+            <app-channel-rack class="h-full"></app-channel-rack>
           </div>
-
-          <!-- Main Bottom Area: Mixer -->
-          <div class="main-bottom-area flex-grow flex flex-col overflow-hidden commander-panel">
-            <div class="flex-grow overflow-hidden" [class.hidden]="!showMixer()">
-              <app-mixer class="h-full"></app-mixer>
-            </div>
+          <div class="flex-grow overflow-hidden relative" *ngIf="showMixer()">
+            <app-mixer class="h-full"></app-mixer>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- DJ BOOTH VIEW -->
-    <div class="dj-view h-full overflow-y-auto" [class.hidden]="activeView() !== 'dj'">
+    <!-- DJ BOOTH -->
+    <div class="h-full overflow-y-auto" *ngIf="activeView() === 'dj'">
        <app-dj-deck></app-dj-deck>
     </div>
 
-    <!-- MASTERING VIEW -->
-    <div class="mastering-view h-full p-4 md:p-8 bg-slate-950 flex flex-col items-center justify-center overflow-y-auto" [class.hidden]="activeView() !== 'mastering'">
-       <div class="max-w-6xl w-full flex flex-col gap-6 md:gap-12 py-8">
-          <div class="text-center">
-             <h2 class="text-lg md:text-3xl font-black uppercase tracking-[0.4em] text-emerald-500 italic neon-text-emerald">Strategic Mastering Suite</h2>
-             <div class="text-[8px] md:text-xs text-slate-500 font-mono mt-2 tracking-widest">REAL-TIME SIGNAL INTELLIGENCE</div>
-          </div>
+    <!-- MASTERING -->
+    <div class="h-full p-16 flex flex-col items-center justify-center bg-black/80 relative" *ngIf="activeView() === 'mastering'">
+      <div class="max-w-6xl w-full grid grid-cols-2 gap-16 animate-fade-in relative z-10">
+        <div class="space-y-10">
+           <h2 class="text-6xl font-black uppercase tracking-tighter text-white italic">Signal <span class="text-danger-orange underline decoration-danger-orange/20">Finalization</span></h2>
+           <p class="text-lg text-white/40 leading-relaxed italic font-medium">Inject industrial-grade spectral cohesion into your master bus. Zero compromise on dynamic intensity.</p>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 min-h-[400px]">
-             <!-- Large Spectrum Analyzer -->
-             <div class="commander-panel bg-black/60 rounded-3xl p-4 md:p-6 flex flex-col gap-4 shadow-2xl overflow-hidden relative min-h-[300px]">
-                <div class="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-emerald-500/60">Spectral Distribution Analysis</div>
-                <div class="flex-grow flex items-end gap-0.5 px-2 md:px-4 overflow-hidden relative">
-                   <canvas id="masterAnalyzerCanvas" class="w-full h-full"></canvas>
-                </div>
-                <div class="flex justify-between text-[6px] md:text-[8px] font-mono text-slate-600 px-2 md:px-4">
-                   <span>20Hz</span><span>1kHz</span><span>20kHz</span>
-                </div>
-             </div>
+           <div class="grid grid-cols-2 gap-8">
+              <div *ngFor="let s of [{l:'Dynamic Range', v:'12.4dB'}, {l:'LUFS Target', v:'-8.0'}]" class="p-8 bg-industrial-steel/20 border-l-4 border-danger-orange rounded-r-2xl">
+                 <p class="text-[10px] font-black text-danger-orange uppercase tracking-widest mb-2 italic">{{ s.l }}</p>
+                 <p class="text-4xl font-mono text-white font-black">{{ s.v }}</p>
+              </div>
+           </div>
+        </div>
 
-             <!-- Mastering Controls / Loudness -->
-             <div class="commander-panel bg-black/60 rounded-3xl p-6 md:p-8 flex flex-col justify-between shadow-2xl min-h-[300px]">
-                <div class="flex flex-col gap-4 md:gap-8">
-                   <div class="flex justify-between items-center">
-                      <div class="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-violet-500">Loudness Intel (LUFS)</div>
-                      <div class="text-xl md:text-2xl font-mono text-violet-400">-14.2</div>
-                   </div>
-                   <div class="h-3 md:h-4 bg-black rounded-full border border-white/5 overflow-hidden p-0.5 shadow-inner">
-                      <div class="h-full bg-gradient-to-r from-violet-600 via-emerald-500 to-red-500 rounded-full w-[70%] shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                   </div>
-
-                   <div class="grid grid-cols-3 gap-2 md:gap-4">
-                      <div class="flex flex-col gap-1 p-2 md:p-4 bg-white/5 rounded-2xl border border-white/5 text-center shadow-lg">
-                         <div class="text-[6px] md:text-[8px] uppercase font-bold text-slate-500">Peak Headroom</div>
-                         <div class="text-xs md:text-sm font-mono text-slate-300">-0.1 dB</div>
-                      </div>
-                      <div class="flex flex-col gap-1 p-2 md:p-4 bg-white/5 rounded-2xl border border-white/5 text-center shadow-lg">
-                         <div class="text-[6px] md:text-[8px] uppercase font-bold text-slate-500">Signal Range</div>
-                         <div class="text-xs md:text-sm font-mono text-slate-300">12.5</div>
-                      </div>
-                      <div class="flex flex-col gap-1 p-2 md:p-4 bg-white/5 rounded-2xl border border-white/5 text-center shadow-lg">
-                         <div class="text-[6px] md:text-[8px] uppercase font-bold text-slate-500">Stereo Field</div>
-                         <div class="text-xs md:text-sm font-mono text-slate-300">110%</div>
-                      </div>
-                   </div>
-                </div>
-
-                <button class="w-full mt-6 py-3 md:py-4 bg-emerald-500 text-black font-black uppercase tracking-widest rounded-2xl hover:bg-emerald-400 transition-all shadow-[0_0_30px_rgba(16,185,129,0.4)] text-xs md:text-sm active:scale-95" (click)="executeMastering()">Execute Strategic Mastering Engine</button>
-             </div>
-          </div>
-       </div>
-    </div>
-
-    <!-- PIANO ROLL (NOW DOCKED OR FLOATING) -->
-    <div class="absolute inset-0 z-[200] flex items-center justify-center p-4 md:p-12 pointer-events-none" *ngIf="showPianoRoll()">
-       <div class="w-full h-full max-w-6xl pointer-events-auto shadow-[0_50px_100px_rgba(0,0,0,0.9)] rounded-3xl border border-white/10 overflow-hidden bg-slate-950 flex flex-col commander-panel">
-         <div class="piano-roll-header bg-slate-900 px-4 md:px-6 py-2 flex items-center justify-between border-b border-white/10">
-            <div class="flex items-center gap-3">
-              <i class="fas fa-keyboard text-emerald-500 text-[10px] md:text-xs"></i>
-              <span class="text-[8px] md:text-[10px] font-black uppercase tracking-widest neon-text-emerald">MIDI Tactical Editor</span>
-            </div>
-            <button (click)="showPianoRoll.set(false)" class="text-slate-500 hover:text-white transition-all"><i class="fas fa-times text-xs"></i></button>
-         </div>
-         <app-piano-roll class="flex-grow h-full"></app-piano-roll>
-       </div>
+        <div class="glass-panel-industrial rounded-[3rem] p-12 border-industrial-steel shadow-2xl flex flex-col justify-between">
+           <div class="space-y-12">
+              <div class="h-10 bg-black rounded-xl border-2 border-industrial-steel overflow-hidden p-1 shadow-inner relative">
+                 <div class="h-full bg-gradient-to-r from-danger-orange/40 via-danger-orange to-red-600 rounded-lg w-[85%] shadow-[0_0_20px_#f48525]"></div>
+              </div>
+              <div class="h-48 glass-panel-industrial rounded-3xl p-6 border-white/5">
+                 <canvas id="masterAnalyzerCanvas" class="w-full h-full opacity-60"></canvas>
+              </div>
+           </div>
+           <button class="w-full py-6 bg-danger-orange text-black font-black uppercase tracking-[0.4em] italic text-sm rounded-2xl hover:scale-105 transition-all shadow-[0_0_50px_rgba(244,133,37,0.3)] mt-12" (click)="executeMastering()">
+             Execute Industrial Master
+           </button>
+        </div>
+      </div>
     </div>
   </main>
 
-  <footer class="bg-slate-950 border-t border-white/10 px-4 md:px-6 py-2 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] relative z-[100] hidden sm:block">
+  <footer class="glass-panel-industrial border-t-4 border-industrial-steel px-10 py-4 shadow-2xl z-50 bg-[#121212]">
     <app-master-controls></app-master-controls>
   </footer>
+
+  <!-- Piano Roll Modal: Tactical Grid -->
+  <div class="absolute inset-0 z-[200] flex items-center justify-center p-20 pointer-events-none" *ngIf="showPianoRoll()">
+    <div class="w-full h-full max-w-7xl pointer-events-auto glass-panel-industrial shadow-[0_0_100px_rgba(0,0,0,0.9)] rounded-[3.5rem] border-4 border-industrial-steel overflow-hidden flex flex-col">
+      <div class="bg-industrial-steel px-10 py-5 flex items-center justify-between border-b-4 border-danger-orange/20">
+        <div class="flex items-center gap-6">
+          <span class="material-symbols-outlined text-danger-orange text-3xl animate-pulse">keyboard_command_key</span>
+          <span class="text-sm font-black uppercase tracking-[0.5em] text-white italic">Tactical_MIDI_Schematic_V4</span>
+        </div>
+        <button (click)="showPianoRoll.set(false)" class="size-12 rounded-xl glass-panel-industrial border-white/10 text-slate-500 hover:text-danger-orange transition-all flex items-center justify-center">
+           <span class="material-symbols-outlined text-3xl">close</span>
+        </button>
+      </div>
+      <app-piano-roll class="flex-grow h-full bg-black/60"></app-piano-roll>
+    </div>
+  </div>
 </div>
