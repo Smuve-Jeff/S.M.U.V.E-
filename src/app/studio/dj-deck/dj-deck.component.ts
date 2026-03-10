@@ -62,7 +62,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     return profile.daw.includes('Neural Audio Interface V1 (Prototype)') ||
            profile.equipment.includes('Neural Audio Interface V1 (Prototype)') ||
            profile.daw.includes('Sub-Atomic Kick Dominance Pack');
-           profile.daw.includes('Sub-Atomic Kick Dominance Pack'); // Simplified check for testing
   });
 
   pitchAPercentage = computed(
