@@ -74,7 +74,7 @@ export class CatalogManagerComponent {
 
   getStatusColor(status: string): string {
     switch (status) {
-      case 'released': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+      case 'released': return 'bg-brand-primary/20 text-brand-primary border-brand-primary/30';
       case 'completed': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
     }

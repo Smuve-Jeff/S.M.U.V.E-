@@ -48,8 +48,8 @@
   }
 }
 
-/* Glitch Effect */
-.glitch-text {
+/* precision Effect */
+.smooth-transition-text {
   position: relative;
   font-size: 3rem;
   font-weight: 900;
@@ -59,13 +59,13 @@
 }
 
 @media (min-width: 768px) {
-  .glitch-text {
+  .smooth-transition-text {
     font-size: 5rem;
   }
 }
 
-.glitch-text::before,
-.glitch-text::after {
+.smooth-transition-text::before,
+.smooth-transition-text::after {
   content: attr(data-text);
   position: absolute;
   top: 0;
@@ -74,21 +74,21 @@
   height: 100%;
 }
 
-.glitch-text::before {
+.smooth-transition-text::before {
   left: 2px;
   text-shadow: -2px 0 #ff00c1;
   clip: rect(44px, 450px, 56px, 0);
-  animation: glitch-anim 5s infinite linear alternate-reverse;
+  animation: smooth-transition-anim 5s infinite linear alternate-reverse;
 }
 
-.glitch-text::after {
+.smooth-transition-text::after {
   left: -2px;
   text-shadow: -2px 0 #00fff9;
   clip: rect(44px, 450px, 56px, 0);
-  animation: glitch-anim2 5s infinite linear alternate-reverse;
+  animation: smooth-transition-anim2 5s infinite linear alternate-reverse;
 }
 
-@keyframes glitch-anim {
+@keyframes smooth-transition-anim {
   0% { clip: rect(31px, 9999px, 94px, 0); }
   20% { clip: rect(62px, 9999px, 42px, 0); }
   40% { clip: rect(16px, 9999px, 78px, 0); }
@@ -97,7 +97,7 @@
   100% { clip: rect(24px, 9999px, 98px, 0); }
 }
 
-@keyframes glitch-anim2 {
+@keyframes smooth-transition-anim2 {
   0% { clip: rect(76px, 9999px, 12px, 0); }
   20% { clip: rect(12px, 9999px, 88px, 0); }
   40% { clip: rect(93px, 9999px, 4px, 0); }

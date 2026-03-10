@@ -20,6 +20,6 @@ export class GlobalErrorHandler implements ErrorHandler {
         this.notificationService.show('System Anomaly Detected: ' + message.substring(0, 50) + '...', 'warning');
     }
 
-    console.warn('Attempting tactical system recovery for error:', message);
+    console.warn('Attempting executive system recovery for error:', message);
   }
 }

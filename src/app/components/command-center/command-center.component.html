@@ -1,99 +1,97 @@
-<div class="command-center-container p-6 bg-slate-950 border border-emerald-500/20 rounded-xl overflow-hidden relative min-h-[400px]">
-  <!-- GLITCH HEADER -->
-  <div class="flex justify-between items-start mb-8">
-    <div>
-      <h2 class="text-2xl font-black text-emerald-500 uppercase tracking-tighter italic animate-pulse">
-        S.M.U.V.E 3.0 Strategic Command
-      </h2>
-      <div class="text-[10px] font-mono text-emerald-500/50 uppercase tracking-[0.3em]">
-        Neural Link Stable // Proactive Strategic Audit
-      </div>
+<div class="p-8 max-w-[1400px] mx-auto animate-enter">
+  <header class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 border-b border-white/5 pb-8">
+    <div class="flex flex-col">
+       <div class="flex items-center gap-3 mb-2">
+          <div class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></div>
+          <span class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em]">Strategic Control</span>
+       </div>
+       <h1 class="text-4xl font-black tracking-tighter text-white uppercase italic leading-none">COMMAND<span class="text-brand-primary">CENTER</span></h1>
+       <p class="text-sm text-silver-dim mt-3 font-medium">Real-time reputation management and executive upgrade procurement.</p>
     </div>
-    <div class="text-right">
-      <div class="text-xs font-mono text-slate-500 mb-1 uppercase">Reputation Rank</div>
-      <div class="text-xl font-black text-violet-500 italic">{{ reputationService.state().title }}</div>
+
+    <div class="flex items-center gap-4">
+       <div class="px-6 py-3 rounded-2xl bg-brand-surface/60 border border-white/10 flex flex-col items-end">
+          <span class="text-[9px] font-black text-brand-accent uppercase tracking-widest">Reputation Rank</span>
+          <span class="text-xl font-black text-white italic tracking-tighter">{{ reputationService.state().title }}</span>
+       </div>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-12 gap-8">
+    <!-- ADVICE TERMINAL (Elegant Style) -->
+    <div class="col-span-12 lg:col-span-4 space-y-6">
+       <div class="glass-panel rounded-3xl p-8 border border-white/10 bg-black/40 h-full flex flex-col min-h-[400px]">
+          <div class="flex items-center justify-between mb-6">
+             <h3 class="text-[10px] font-black text-brand-primary uppercase tracking-widest flex items-center gap-2">
+                <i class="fas fa-terminal"></i> Executive Intelligence
+             </h3>
+             <div class="flex gap-1">
+                <div class="w-1 h-1 rounded-full bg-brand-primary"></div>
+                <div class="w-1 h-1 rounded-full bg-brand-primary/40"></div>
+             </div>
+          </div>
+
+          <div class="flex-grow space-y-4 overflow-y-auto custom-scrollbar pr-2">
+             @for (line of terminalLines(); track line) {
+                <div class="flex gap-3 text-xs leading-relaxed group">
+                   <span class="text-brand-primary font-black opacity-40 group-hover:opacity-100 transition-opacity">></span>
+                   <p class="text-silver-bright font-medium">{{ line }}</p>
+                </div>
+             }
+             <div class="text-brand-primary animate-pulse ml-6">_</div>
+          </div>
+       </div>
+    </div>
+
+    <!-- UPGRADES GRID -->
+    <div class="col-span-12 lg:col-span-4 space-y-6">
+       <h3 class="text-[10px] font-black text-silver-dim uppercase tracking-[0.3em] px-2">Recommended Infrastructure</h3>
+       <div class="space-y-4">
+          @for (rec of recommendations(); track rec.id) {
+             <div class="card-elegant p-6 group cursor-pointer border-white/5 hover:border-brand-primary/30 relative overflow-hidden" (click)="acquireUpgrade(rec)">
+                <div class="absolute inset-0 bg-gradient-to-br from-brand-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="relative z-10">
+                   <div class="flex justify-between items-start mb-4">
+                      <span class="text-[9px] font-black text-brand-accent uppercase tracking-widest">{{ rec.type }}</span>
+                      <span class="text-[10px] font-mono text-brand-primary font-bold">{{ rec.cost }}</span>
+                   </div>
+                   <h4 class="text-sm font-bold text-white mb-2">{{ rec.title }}</h4>
+                   <p class="text-[10px] text-silver-dim leading-relaxed mb-4 line-clamp-2">{{ rec.description }}</p>
+                   <div class="flex items-center justify-between pt-4 border-t border-white/5">
+                      <span class="text-[8px] font-black uppercase tracking-widest text-brand-primary">{{ rec.impact }} IMPACT</span>
+                      <button class="text-[9px] font-black text-white bg-brand-primary/10 px-3 py-1 rounded border border-brand-primary/20 group-hover:bg-brand-primary group-hover:text-black transition-all uppercase">Acquire</button>
+                   </div>
+                </div>
+             </div>
+          }
+          @if (recommendations().length === 0) {
+             <div class="p-12 text-center bg-brand-surface/20 rounded-3xl border border-white/5 border-dashed">
+                <p class="text-xs text-silver-dim italic">Gear catalog fully optimized for current rank.</p>
+             </div>
+          }
+       </div>
+    </div>
+
+    <!-- STRATEGIC OPERATIONS -->
+    <div class="col-span-12 lg:col-span-4 space-y-6">
+       <h3 class="text-[10px] font-black text-silver-dim uppercase tracking-[0.3em] px-2">Executive Operations</h3>
+       <div class="space-y-4">
+          @for (srec of strategicRecs(); track srec.id) {
+             <div class="p-6 rounded-3xl bg-brand-surface/40 border border-white/5 hover:border-brand-accent/30 transition-all group">
+                <div class="flex justify-between items-start mb-4">
+                   <h4 class="text-sm font-bold text-white uppercase tracking-tight">{{ srec.action }}</h4>
+                   <span class="text-[8px] font-black px-2 py-1 rounded-full bg-brand-accent/10 text-brand-accent uppercase tracking-widest">{{ srec.impact }}</span>
+                </div>
+                <div class="flex gap-4 text-[9px] font-black text-silver-dim uppercase mb-6">
+                   <span>Difficulty: {{ srec.difficulty }}</span>
+                   <span>Target: {{ srec.toolId }}</span>
+                </div>
+                <button (click)="initializeOperation(srec)" class="w-full btn-elegant btn-elegant-outline text-[10px] font-black uppercase tracking-widest py-3">
+                   <i class="fas fa-play-circle text-brand-accent mr-2"></i> Initialize Operation
+                </button>
+             </div>
+          }
+       </div>
     </div>
   </div>
-
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <!-- PROACTIVE ADVICE TERMINAL -->
-    <div class="terminal-module bg-black/80 border border-emerald-500/30 rounded p-4 font-mono text-[11px] leading-relaxed relative min-h-[250px] flex flex-col">
-      <div class="absolute top-2 right-2 flex gap-1">
-        <div class="w-2 h-2 rounded-full bg-emerald-500/50 animate-ping"></div>
-        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-      </div>
-      <div class="text-emerald-500 mb-2 border-b border-emerald-500/20 pb-1 flex items-center gap-2">
-        <i class="fas fa-terminal"></i> STRATEGIC_DECREES.EXE
-      </div>
-      <div class="space-y-3 overflow-y-auto flex-grow scrollbar-hide">
-        <div *ngFor="let line of terminalLines()" class="typing-text text-emerald-400">
-          <span class="text-emerald-600 mr-2">></span> {{ line }}
-        </div>
-        <div class="text-emerald-500 animate-pulse">_</div>
-      </div>
-    </div>
-
-    <!-- UPGRADE RECOMMENDATIONS GRID -->
-    <div class="upgrades-module">
-      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-        <i class="fas fa-microchip text-violet-500"></i>
-        Powerful Upgrades Recommended
-      </h3>
-      <div class="grid grid-cols-1 gap-4">
-        <div *ngFor="let rec of recommendations()"
-             class="upgrade-card group bg-slate-900/50 border border-white/5 p-4 rounded-lg hover:border-emerald-500/50 transition-all cursor-pointer">
-          <div class="flex justify-between items-start mb-2">
-            <span class="text-[10px] font-mono text-violet-400 uppercase tracking-widest">{{ rec.type }}</span>
-            <span class="text-[10px] font-black text-emerald-500">{{ rec.cost }}</span>
-          </div>
-          <h4 class="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">{{ rec.title }}</h4>
-          <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">{{ rec.description }}</p>
-          <div class="mt-3 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-               <div class="w-2 h-2 rounded-full" [ngClass]="rec.impact === 'High' ? 'bg-emerald-500' : 'bg-yellow-500'"></div>
-               <span class="text-[9px] uppercase font-bold" [ngClass]="getImpactColor(rec.impact)">{{ rec.impact }} Impact</span>
-            </div>
-            <button (click)="acquireUpgrade(rec)" class="text-[9px] uppercase font-black text-white bg-emerald-500/10 px-3 py-1.5 rounded border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-black transition-all">
-              Acquire
-            </button>
-          </div>
-        </div>
-        <div *ngIf="recommendations().length === 0" class="text-center py-8 text-slate-500 text-xs italic">
-          No new upgrades at your current reputation level.
-        </div>
-      </div>
-    </div>
-
-    <!-- STRATEGIC ACTIONS TERMINAL -->
-    <div class="strategic-module bg-brand-dark/40 border border-violet-500/30 rounded p-4 font-mono text-[11px] leading-relaxed relative min-h-[250px] flex flex-col">
-      <div class="text-violet-400 mb-2 border-b border-violet-500/20 pb-1 flex items-center gap-2 uppercase tracking-widest font-bold">
-        <i class="fas fa-crosshairs"></i> Strategic_Operations.db
-      </div>
-      <div class="space-y-4 overflow-y-auto flex-grow scrollbar-hide p-2">
-        <div *ngFor="let srec of strategicRecs()" class="group/srec border-l-2 border-violet-500/20 pl-3 py-1 hover:border-violet-500 transition-colors">
-          <div class="flex justify-between items-center mb-1">
-            <span class="text-violet-300 font-bold uppercase tracking-tighter">{{ srec.action }}</span>
-            <span class="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20"
-                  [ngClass]="getImpactColor(srec.impact)">
-              {{ srec.impact }} IMPACT
-            </span>
-          </div>
-          <div class="flex gap-4 text-[9px] text-slate-500 uppercase">
-             <span>Diff: {{ srec.difficulty }}</span>
-             <span>Tag: {{ srec.toolId }}</span>
-          </div>
-          <button (click)="initializeOperation(srec)" class="mt-2 text-[9px] font-black uppercase text-violet-400 hover:text-white transition-colors flex items-center gap-1">
-            <i class="fas fa-play-circle"></i> Initialize Operation
-          </button>
-        </div>
-        <div *ngIf="strategicRecs().length === 0" class="text-slate-600 italic">
-          Fetching tactical intelligence...
-        </div>
-      </div>
-    </div>
-  </div>
-
-      <!-- DECORATIVE ELEMENTS -->
-  <div class="absolute bottom-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -mr-16 -mb-16"></div>
-  <div class="absolute top-0 left-0 w-24 h-24 bg-violet-500/5 blur-3xl rounded-full -ml-12 -mt-12"></div>
 </div>

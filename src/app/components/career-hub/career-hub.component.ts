@@ -50,7 +50,7 @@ export class CareerHubComponent {
     },
     {
       labelName: 'Atlantic Records',
-      demoUrl: 'https://smuve.ai/demo/neon-lights',
+      demoUrl: 'https://smuve.ai/demo/refined-glow-lights',
       status: 'Pending',
       date: '2024-05-20',
     },

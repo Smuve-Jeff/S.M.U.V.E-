@@ -3,8 +3,8 @@
   <!-- Left: Branding & DSP Toggle -->
   <div class="flex items-center gap-6">
     <div class="flex flex-col min-w-[120px]">
-      <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 italic">S.M.U.V.E Studio</h3>
-      <div class="text-[8px] text-slate-500 font-mono uppercase tracking-tighter">Production Environment v3.0</div>
+      <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary italic">S.M.U.V.E Studio</h3>
+      <div class="text-[8px] text-slate-500 font-mono text-[11px] tracking-tight uppercase tracking-tighter">Production Environment v3.0</div>
     </div>
 
     <div class="h-8 w-px bg-white/5"></div>
@@ -12,10 +12,10 @@
     <!-- DSP DROPDOWN TRIGGER -->
     <button (click)="toggleDropdown()"
             [class.active]="isDropdownOpen()"
-            class="dsp-trigger-btn group flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-900 border border-white/5 hover:border-emerald-500/30 transition-all">
+            class="dsp-trigger-btn group flex items-center gap-3 px-4 py-2 rounded-xl bg-brand-surface border border-white/10 hover:border-brand-primary/30 transition-all">
       <div class="flex flex-col items-start">
-        <span class="text-[10px] font-black uppercase tracking-widest text-emerald-500 group-hover:text-emerald-400">Master DSP</span>
-        <span class="text-[7px] text-slate-500 font-mono uppercase">Control Panel</span>
+        <span class="text-[10px] font-black uppercase tracking-widest text-brand-primary group-hover:text-brand-primary">Master DSP</span>
+        <span class="text-[7px] text-slate-500 font-mono text-[11px] tracking-tight uppercase">Control Panel</span>
       </div>
       <i class="fas fa-chevron-up text-[10px] transition-transform duration-300" [class.rotate-180]="isDropdownOpen()"></i>
     </button>
@@ -28,8 +28,8 @@
 
       <div class="flex items-center justify-between mb-2">
         <div class="flex flex-col">
-          <span class="text-[10px] font-black uppercase tracking-widest text-emerald-500">Master Bus DSP</span>
-          <span class="text-[8px] text-slate-500 font-mono">Precision Signal Processing Chain</span>
+          <span class="text-[10px] font-black uppercase tracking-widest text-brand-primary">Master Bus DSP</span>
+          <span class="text-[8px] text-slate-500 font-mono text-[11px] tracking-tight">Precision Signal Processing Chain</span>
         </div>
         <button (click)="isDropdownOpen.set(false)" class="text-slate-500 hover:text-white transition-all"><i class="fas fa-times text-xs"></i></button>
       </div>
@@ -41,7 +41,7 @@
         <div class="control-group flex flex-col gap-2">
           <div class="flex justify-between items-center mb-1">
             <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Master Output Gain</label>
-            <span class="text-[9px] font-mono text-emerald-500">{{ masterVolumePercent() }}%</span>
+            <span class="text-[9px] font-mono text-[11px] tracking-tight text-brand-primary">{{ masterVolumePercent() }}%</span>
           </div>
           <div class="fader-track w-full h-1.5 bg-black rounded-full relative overflow-hidden">
             <input type="range" min="0" max="1" step="0.01" [value]="masterVolume()"
@@ -54,7 +54,7 @@
         <div class="control-group flex flex-col gap-2">
            <div class="flex justify-between items-center mb-1">
             <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Global Ambience Mix</label>
-            <span class="text-[9px] font-mono text-emerald-500">{{ reverbMixPercent() }}%</span>
+            <span class="text-[9px] font-mono text-[11px] tracking-tight text-brand-primary">{{ reverbMixPercent() }}%</span>
           </div>
           <div class="fader-track w-full h-1.5 bg-black rounded-full relative overflow-hidden">
             <input type="range" min="0" max="1" step="0.01" [value]="reverbMix()"
@@ -97,7 +97,7 @@
         <!-- Section 4: Monitoring -->
         <div class="flex flex-col gap-3">
           <span class="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">Signal Monitor</span>
-          <div class="bg-black/40 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center flex-grow">
+          <div class="bg-black/40 rounded-2xl p-4 border border-white/10 flex flex-col items-center justify-center flex-grow">
             <app-gain-reduction-meter [compressor]="compressor"></app-gain-reduction-meter>
           </div>
         </div>
@@ -109,8 +109,8 @@
   <div class="flex items-center gap-4 ml-auto">
     <button (click)="toggleRecording()"
             [class.recording]="isRecording()"
-            class="rec-btn flex items-center gap-3 px-4 py-2 rounded-xl border border-white/5 bg-slate-900 transition-all">
-      <div class="w-2 h-2 rounded-full" [class.bg-red-500]="isRecording()" [class.bg-slate-700]="!isRecording()" [class.animate-pulse]="isRecording()"></div>
+            class="rec-btn flex items-center gap-3 px-4 py-2 rounded-xl border border-white/10 bg-brand-surface transition-all">
+      <div class="w-2 h-2 rounded-full" [class.bg-red-500]="isRecording()" [class.bg-slate-700]="!isRecording()" [class.animate-pulse-subtle]="isRecording()"></div>
       <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">
         {{ isRecording() ? 'STOP RECORDING' : 'REC MASTER' }}
       </span>
@@ -118,7 +118,7 @@
 
     <button (click)="finishTrack()"
             [disabled]="isFinishing()"
-            class="finish-btn group relative overflow-hidden px-8 py-2 rounded-xl bg-emerald-500 text-black font-black text-[10px] uppercase tracking-widest hover:bg-emerald-400 transition-all disabled:opacity-50">
+            class="finish-btn group relative overflow-hidden px-8 py-2 rounded-xl bg-brand-primary text-black font-black text-[10px] uppercase tracking-widest hover:bg-emerald-400 transition-all disabled:opacity-50">
       <div class="flex items-center justify-center gap-2">
         <i class="fas" [ngClass]="{'fa-paper-plane': !isFinishing(), 'fa-spinner fa-spin': isFinishing()}"></i>
         <span>{{ isFinishing() ? 'FINALIZING...' : 'FINISH TRACK' }}</span>

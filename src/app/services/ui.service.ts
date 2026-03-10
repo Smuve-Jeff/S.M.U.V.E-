@@ -13,7 +13,7 @@ const THEMES: AppTheme[] = [
     blue: 'blue',
   },
   {
-    name: 'Cyberpunk',
+    name: 'pro-gradepunk',
     primary: 'cyan',
     accent: 'pink',
     neutral: 'gray',

@@ -39,8 +39,8 @@ export class MarketingService {
       monthlyListeners: 85000,
       totalStreams: 1200000,
       topTracks: [
-        { id: 'sp-1', title: 'Neon Nights', streams: 450000 },
-        { id: 'sp-2', title: 'Cyber Pulse', streams: 320000 }
+        { id: 'sp-1', title: 'elegant Nights', streams: 450000 },
+        { id: 'sp-2', title: 'pro-grade Pulse', streams: 320000 }
       ],
       playlistAdds: 1250,
       lastUpdated: Date.now()
@@ -50,7 +50,7 @@ export class MarketingService {
       monthlyListeners: 32000,
       totalStreams: 450000,
       topTracks: [
-        { id: 'am-1', title: 'Neon Nights', streams: 180000 }
+        { id: 'am-1', title: 'elegant Nights', streams: 180000 }
       ],
       playlistAdds: 450,
       lastUpdated: Date.now()

@@ -31,15 +31,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   activeDirectorTab = signal<'assets' | 'effects' | 'ai'>('assets');
   zoomLevel = signal(1.0);
 
-  aiFeedback = signal('S.M.U.V.E. Cinema Engine Offline. Initialize for tactical visual capture.');
+  aiFeedback = signal('S.M.U.V.E. Cinema Engine Offline. Initialize for executive visual capture.');
 
   private stream: MediaStream | null = null;
   private canvasCtx: CanvasRenderingContext2D | null = null;
 
   templates = [
     { name: 'Cinematic Noir', prompt: 'film noir style, high contrast, dramatic shadows' },
-    { name: 'Vaporwave Dreams', prompt: '80s aesthetic, neon pink and teal, lo-fi textures' },
-    { name: 'Cyberpunk Grit', prompt: 'futuristic city, rain-slicked streets, neon lights' },
+    { name: 'Vaporwave Dreams', prompt: '80s aesthetic, refined-glow pink and teal, lo-fi textures' },
+    { name: 'pro-gradepunk Grit', prompt: 'futuristic city, rain-slicked streets, refined-glow lights' },
     { name: 'Ethereal Clouds', prompt: 'soft lighting, dreamlike atmosphere, pastel colors' },
   ];
 
@@ -114,7 +114,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     ctx.moveTo(canvas.width - 40, 20); ctx.lineTo(canvas.width - 20, 20); ctx.lineTo(canvas.width - 20, 40);
     ctx.stroke();
 
-    // Scanlines
+    // hiddens
     ctx.fillStyle = 'rgba(16, 185, 129, 0.05)';
     for (let i = 0; i < canvas.height; i += 4) {
       ctx.fillRect(0, i, canvas.width, 1);

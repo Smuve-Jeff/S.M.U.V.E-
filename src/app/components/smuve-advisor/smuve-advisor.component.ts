@@ -31,7 +31,7 @@ export class SmuveAdvisorComponent {
 
   getPriorityClass(priority: string): string {
     switch (priority) {
-      case 'high': return 'border-emerald-500/50 text-emerald-400';
+      case 'high': return 'border-brand-primary/50 text-brand-primary';
       case 'medium': return 'border-yellow-500/50 text-yellow-400';
       default: return 'border-slate-500/50 text-slate-400';
     }

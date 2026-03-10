@@ -1,189 +1,127 @@
-<div class="hub-container bg-[#020617] text-slate-200 selection:bg-emerald-500/30 font-sans min-h-screen overflow-x-hidden">
-
-  <!-- Hero Landing Section -->
-  <section class="hero-section relative min-h-[90vh] flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden">
-    <!-- Animated background particles (CSS only simulation) -->
-    <div class="absolute inset-0 z-0 opacity-20 pointer-events-none">
-       <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-[120px] animate-pulse"></div>
-       <div class="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-[150px] animate-pulse" style="animation-delay: 2s"></div>
+<div class="p-8 max-w-[1600px] mx-auto animate-enter">
+  <!-- HUB HEADER -->
+  <header class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+    <div class="flex flex-col">
+       <div class="flex items-center gap-3 mb-2">
+          <div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse-subtle"></div>
+          <span class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em]">Artist Command Center</span>
+       </div>
+       <h1 class="text-5xl font-black tracking-tighter text-white uppercase italic leading-none">THE<span class="text-brand-primary">HUB</span></h1>
+       <p class="text-sm text-silver-dim mt-3 font-medium max-w-xl">A professional synthesis of your production assets, career strategy, and global market positioning.</p>
     </div>
 
-    <div class="z-10 max-w-6xl w-full flex flex-col items-center text-center gap-4 md:gap-8">
-      <div class="space-y-2 md:space-y-4">
-        <div class="flex items-center justify-center gap-2 md:gap-4 mb-2 md:mb-6">
-          <span class="h-px w-8 md:w-16 bg-gradient-to-r from-transparent to-emerald-500"></span>
-          <span class="text-[8px] md:text-[10px] font-black uppercase tracking-[0.5em] text-emerald-500">Universal Strategic Intelligence</span>
-          <span class="h-px w-8 md:w-16 bg-gradient-to-l from-transparent to-emerald-500"></span>
-        </div>
-        <h1 class="glitch-text text-4xl md:text-7xl lg:text-9xl" [attr.data-text]="'S.M.U.V.E. 3.0'">S.M.U.V.E. 3.0</h1>
-        <p class="hero-subtitle text-base md:text-xl lg:text-2xl font-light text-slate-400 max-w-3xl mx-auto px-4">
-          The autonomous <span class="text-white font-bold italic">Strategic Music Utility</span> for elite architects of sound. Dominate the industry with algorithmic precision.
-        </p>
-      </div>
-
-      <!-- Quick Start Profile Build -->
-      <div class="quickstart-card w-full max-w-4xl bg-black/60 backdrop-blur-3xl p-6 md:p-10 rounded-3xl border border-emerald-500/20 shadow-[0_0_100px_rgba(16,185,129,0.1)] relative group">
-        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-black px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_#10b981]">Quick Initialize</div>
-
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-center">
-          <div class="md:col-span-4">
-             <input type="text"
-                    [(ngModel)]="quickProfile().artistName"
-                    placeholder="ARTIST ALIAS"
-                    class="hero-input w-full text-center md:text-left bg-transparent border-b border-white/20 p-2 focus:border-emerald-500 transition-colors">
-          </div>
-          <div class="md:col-span-4">
-             <select [(ngModel)]="quickProfile().primaryGenre" class="hero-select w-full text-center md:text-left bg-transparent border-b border-white/20 p-2 focus:border-emerald-500 transition-colors appearance-none">
-               <option *ngFor="let g of genres" [value]="g">{{ g }}</option>
-             </select>
-          </div>
-          <div class="md:col-span-4">
-             <button (click)="onQuickStart()" class="hero-cta-button w-full bg-emerald-500 text-black font-black py-3 rounded-xl hover:bg-white transition-all">Deploy Profile</button>
-          </div>
-        </div>
-      </div>
+    <div class="flex items-center gap-4">
+       <div class="px-6 py-3 rounded-2xl bg-brand-surface/60 border border-white/10 flex flex-col items-end">
+          <span class="text-[9px] font-black text-brand-primary uppercase tracking-widest">Global Rank</span>
+          <span class="text-xl font-black text-white italic tracking-tighter">#1,248</span>
+       </div>
+       <button (click)="uiService.navigateToView('strategy')" class="btn-elegant btn-elegant-primary px-8 text-[10px] font-black tracking-widest uppercase">
+          New Strategy
+       </button>
     </div>
-  </section>
+  </header>
 
-  <!-- Global Radio Player Section -->
-  <section class="p-4 md:p-12 max-w-7xl mx-auto">
-    <div class="radio-module grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-slate-900/40 border border-white/5 p-6 md:p-10 rounded-3xl backdrop-blur-xl relative overflow-hidden">
-      <!-- Progress Bar Overlay -->
-      <div class="absolute bottom-0 left-0 h-1 bg-emerald-500/30 transition-all duration-300" [style.width.%]="playerService.progress()"></div>
+  <!-- GRID MATRIX -->
+  <div class="grid grid-cols-12 gap-8">
 
-      <div class="lg:col-span-4 flex flex-col gap-4">
-        <div class="flex items-center gap-3">
-          <div class="live-indicator" [class.active]="playerService.isPlaying()">LIVE</div>
-          <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Global Strategic Broadcast</span>
-        </div>
-        <div class="track-info">
-          <div class="now-playing-label">Now Transmitting</div>
-          <h3 class="track-title text-2xl md:text-3xl uppercase font-black italic tracking-tighter">{{ playerService.currentTrack()?.title }}</h3>
-          <p class="text-emerald-500/60 font-mono text-xs mt-1">{{ playerService.currentTrack()?.artist }}</p>
-        </div>
-      </div>
+    <!-- PRIMARY PLAYER: Global Broadcast -->
+    <div class="col-span-12 lg:col-span-8 space-y-8">
+       <div class="glass-panel rounded-3xl p-10 border border-white/10 relative overflow-hidden group">
+          <div class="absolute -top-32 -left-32 w-80 h-80 bg-brand-primary/5 blur-[120px] rounded-full group-hover:bg-brand-primary/10 transition-all duration-1000"></div>
 
-      <div class="lg:col-span-4">
-        <div class="radio-visualizer h-12 md:h-16 flex items-end gap-1 px-4">
-          @for (val of visualizerData(); track $index) {
-            <div class="bar flex-grow bg-emerald-500/30 rounded-t-sm transition-all duration-75"
-                 [style.height.%]="val"></div>
-          }
-        </div>
-      </div>
+          <div class="relative z-10 flex flex-col md:flex-row gap-10 items-center">
+             <div class="w-64 h-64 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center relative overflow-hidden shrink-0 shadow-2xl">
+                <i class="fas fa-compact-disc text-6xl text-brand-primary/20 animate-spin-slow"></i>
+                <div class="absolute inset-0 flex items-center justify-center">
+                   <div class="w-1 h-1 bg-brand-primary rounded-full shadow-[0_0_15px_#10b981]"></div>
+                </div>
+             </div>
 
-      <div class="lg:col-span-4 flex flex-wrap justify-center lg:justify-end gap-3 items-center">
-        <button (click)="playerService.toggleShuffle()"
-                class="radio-util-btn text-xs"
-                [class.text-emerald-500]="playerService.isShuffle()">
-          <i class="fas fa-random"></i>
-        </button>
-        <button (click)="playerService.toggleRepeat()"
-                class="radio-util-btn text-xs"
-                [class.text-emerald-500]="playerService.isRepeat()">
-          <i class="fas fa-redo"></i>
-        </button>
+             <div class="flex-grow space-y-8">
+                <div>
+                   <span class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2 block">Global Strategic Broadcast</span>
+                   <h2 class="text-4xl font-black text-white italic tracking-tighter uppercase">{{ playerService.currentTrack()?.title }}</h2>
+                   <p class="text-silver-dim font-bold text-sm tracking-wide mt-1">{{ playerService.currentTrack()?.artist }}</p>
+                </div>
 
-        <div class="h-8 w-px bg-white/10 mx-2"></div>
+                <div class="space-y-4">
+                   <div class="flex items-center justify-between text-[10px] font-mono text-[11px] tracking-tight text-silver-dim">
+                      <span>{{ (playerService.progress() / 100 * 320) | number:'1.2-2' }}s</span>
+                      <span>320.00s</span>
+                   </div>
+                   <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                      <div class="h-full bg-brand-primary transition-all duration-500 shadow-[0_0_10px_#10b981]" [style.width.%]="playerService.progress()"></div>
+                   </div>
+                </div>
 
-        <button (click)="playerService.previous()" class="radio-util-btn"><i class="fas fa-step-backward"></i></button>
-        <button (click)="playerService.togglePlay()"
-                class="radio-play-btn"
-                [class.playing]="playerService.isPlaying()">
-          <i class="fas" [class.fa-pause]="playerService.isPlaying()" [class.fa-play]="!playerService.isPlaying()" [class.ml-1]="!playerService.isPlaying()"></i>
-        </button>
-        <button (click)="playerService.next()" class="radio-util-btn"><i class="fas fa-step-forward"></i></button>
-
-        <div class="h-8 w-px bg-white/10 mx-2"></div>
-
-        <button (click)="playerService.loadExternalTrack()" class="radio-util-btn text-xs hover:text-emerald-500" title="Load Local File">
-          <i class="fas fa-upload"></i>
-        </button>
-        <button (click)="playerService.exportCurrent()" class="radio-util-btn text-xs hover:text-emerald-500" title="Export Current">
-          <i class="fas fa-download"></i>
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- DJ Booth Hero -->
-  <section class="py-12 md:py-24 px-4 md:px-12 bg-gradient-to-b from-transparent to-emerald-500/5">
-    <div class="max-w-7xl mx-auto hero-split items-center">
-      <div class="hero-text-content space-y-6 md:space-y-8">
-        <h2 class="section-title-aggressive text-4xl md:text-6xl">THE BOOTH</h2>
-        <p class="text-slate-400 text-lg md:text-xl leading-relaxed">
-          Integrated DJ hardware simulation with real-time stem isolation. Manipulate sound with professional precision. Low-latency engine optimized for performance architects.
-        </p>
-        <div class="flex flex-wrap gap-4">
-          <button class="jam-btn active" (click)="uiService.navigateToView('dj')"><i class="fas fa-bolt mr-2"></i> ENGAGE DECK</button>
-          <button class="jam-btn" (click)="uiService.navigateToView('dj')"><i class="fas fa-layer-group mr-2"></i> STEM ISOLATOR</button>
-        </div>
-      </div>
-      <div class="deck-preview-graphic group cursor-pointer" (click)="uiService.navigateToView('dj')">
-        <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-all duration-700"></div>
-        <div class="platter-ring"></div>
-        <div class="absolute inset-0 flex items-center justify-center">
-          <i class="fas fa-compact-disc text-6xl md:text-8xl text-emerald-500/20 group-hover:text-emerald-500 transition-colors"></i>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- DAW Interface Hero -->
-  <section class="py-12 md:py-24 px-4 md:px-12">
-    <div class="max-w-7xl mx-auto hero-split reverse items-center">
-      <div class="hero-text-content space-y-6 md:space-y-8">
-        <h2 class="section-title-aggressive text-4xl md:text-6xl">THE ENGINE</h2>
-        <p class="text-slate-400 text-lg md:text-xl leading-relaxed">
-          A full-scale DAW within your terminal. Sequencing, automation, and AI-assisted mastering. 32-bit float processing for uncompromising sonic clarity.
-        </p>
-        <div class="flex flex-wrap gap-4">
-          <button class="btn-primary-emerald" (click)="goToStudio()">INITIALIZE STUDIO</button>
-          <button class="btn-outline-emerald">VIEW SCHEMATICS</button>
-        </div>
-      </div>
-      <div class="daw-preview-graphic bg-slate-900 border border-white/5 flex items-center justify-center p-8 md:p-12 cursor-pointer" (click)="goToStudio()">
-        <div class="w-full h-full border border-emerald-500/20 rounded flex flex-col gap-2 p-4">
-          <div *ngFor="let i of [1,2,3,4]" class="h-6 bg-white/5 rounded flex gap-1 px-1 items-center">
-            <div *ngFor="let j of [1,2,3,4,5,6,7,8]" class="h-4 w-full bg-emerald-500/20 rounded-sm"></div>
+                <div class="flex items-center gap-6">
+                   <button (click)="playerService.previous()" class="text-silver-dim hover:text-white transition-all"><i class="fas fa-step-backward text-xl"></i></button>
+                   <button (click)="playerService.togglePlay()" class="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl shadow-white/5">
+                      <i class="fas text-2xl" [class.fa-play]="!playerService.isPlaying()" [class.fa-pause]="playerService.isPlaying()"></i>
+                   </button>
+                   <button (click)="playerService.next()" class="text-silver-dim hover:text-white transition-all"><i class="fas fa-step-forward text-xl"></i></button>
+                </div>
+             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </section>
+       </div>
 
-  <!-- Tha Spot Finale -->
-  <section class="py-24 md:py-32 px-4 md:px-12 bg-black">
-    <div class="max-w-5xl mx-auto tha-spot-preview rounded-[3rem] border-2 border-emerald-500/20 p-8 md:p-20 relative overflow-hidden">
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_#10b98115_0%,_transparent_70%)]"></div>
-
-      <div class="relative z-10 flex flex-col items-center gap-8 md:gap-12">
-        <h2 class="section-title-aggressive large text-5xl md:text-8xl">THA SPOT</h2>
-
-        <div class="spot-features flex flex-col md:flex-row gap-8 md:gap-16">
-          <div class="spot-feature">
-            <i class="fas fa-gamepad"></i>
-            <span>ARCADE</span>
+       <!-- SUB-GRID: Live Modules -->
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div (click)="uiService.navigateToView('studio')" class="card-elegant p-8 group cursor-pointer border-brand-primary/10">
+             <div class="w-12 h-12 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary mb-6 group-hover:scale-110 transition-transform">
+                <i class="fas fa-music text-xl"></i>
+             </div>
+             <h3 class="text-xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-brand-primary transition-colors">Initialize Studio</h3>
+             <p class="text-xs text-silver-dim leading-relaxed">Enter the production matrix with ultra-low latency hardware monitoring and neural mastering.</p>
           </div>
-          <div class="spot-feature">
-            <i class="fas fa-users"></i>
-            <span>NETWORK</span>
+
+          <div (click)="uiService.navigateToView('tha-spot')" class="card-elegant p-8 group cursor-pointer border-brand-secondary/10">
+             <div class="w-12 h-12 rounded-2xl bg-brand-secondary/10 border border-brand-secondary/20 flex items-center justify-center text-brand-secondary mb-6 group-hover:scale-110 transition-transform">
+                <i class="fas fa-bolt text-xl"></i>
+             </div>
+             <h3 class="text-xl font-bold text-white uppercase tracking-tight mb-2 group-hover:text-brand-secondary transition-colors">Enter Tha Spot</h3>
+             <p class="text-xs text-silver-dim leading-relaxed">Engage with the community, dominate the arcade leaderboard, and network with elite producers.</p>
           </div>
-          <div class="spot-feature">
-            <i class="fas fa-rocket"></i>
-            <span>SHOWCASE</span>
+       </div>
+    </div>
+
+    <!-- SIDEBAR: Executive Analysis -->
+    <aside class="col-span-12 lg:col-span-4 space-y-8">
+       <div class="glass-panel rounded-3xl p-8 border border-white/10 bg-brand-surface/30">
+          <h2 class="text-sm font-black text-white uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+             <i class="fas fa-brain text-brand-primary"></i> Executive Intelligence
+          </h2>
+          <div class="space-y-6">
+             @for (decree of aiService.strategicDecrees().slice(0, 3); track decree) {
+                <div class="flex gap-4 group cursor-default">
+                   <div class="w-1 h-auto bg-brand-primary/20 group-hover:bg-brand-primary transition-all rounded-full"></div>
+                   <div class="py-1">
+                      <div class="text-[8px] font-black text-brand-primary uppercase tracking-widest mb-1">Decree #0{{ $index + 1 }}</div>
+                      <p class="text-[11px] text-silver-bright font-medium leading-relaxed uppercase tracking-wide italic">"{{ decree }}"</p>
+                   </div>
+                </div>
+             }
           </div>
-        </div>
+          <button (click)="uiService.navigateToView('career')" class="w-full mt-10 btn-elegant btn-elegant-outline text-[10px] font-black uppercase tracking-widest">
+             Full Strategic Audit
+          </button>
+       </div>
 
-        <button class="spot-enter-btn w-full md:w-auto" (click)="goToThaSpot()">ENTER THE HUB</button>
-      </div>
-    </div>
-  </section>
+       <div class="bg-brand-surface/40 rounded-3xl p-8 border border-white/10">
+          <h2 class="text-sm font-black text-white uppercase tracking-[0.2em] mb-6">Market Activity</h2>
+          <div class="space-y-4">
+             @for (i of [1,2,3]; track i) {
+                <div class="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/10">
+                   <div class="flex items-center gap-3">
+                      <div class="w-2 h-2 rounded-full bg-brand-primary/40"></div>
+                      <span class="text-[10px] font-bold text-silver-bright uppercase">Stream Injection</span>
+                   </div>
+                   <span class="text-[9px] font-mono text-[11px] tracking-tight text-silver-dim">+1.2K</span>
+                </div>
+             }
+          </div>
+       </div>
+    </aside>
 
-  <footer class="py-8 md:py-12 border-t border-white/5 text-center px-4">
-    <div class="text-[10px] md:text-xs font-black uppercase tracking-[0.4em] text-slate-600">
-      Strategic Music Utility Virtual Enhancer • System v3.0.4-PRO
-    </div>
-  </footer>
-
+  </div>
 </div>

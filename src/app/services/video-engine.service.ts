@@ -83,7 +83,7 @@ export class VideoEngineService {
     this.currentTime.set(Math.max(0, Math.min(time, this.duration())));
   }
 
-  togglePlayback() {
+  togglePlay() {
     if (this.isPlaying()) {
       this.pause();
     } else {

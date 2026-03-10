@@ -1,29 +1,29 @@
 <div class="catalog-container space-y-6">
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl">
+    <div class="p-4 bg-brand-surface/50 border border-white/10 rounded-2xl">
       <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Assets</div>
       <div class="text-2xl font-black text-white">{{ stats().total }}</div>
     </div>
-    <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl">
+    <div class="p-4 bg-brand-surface/50 border border-white/10 rounded-2xl">
       <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Demos</div>
       <div class="text-2xl font-black text-amber-400">{{ stats().demos }}</div>
     </div>
-    <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl">
+    <div class="p-4 bg-brand-surface/50 border border-white/10 rounded-2xl">
       <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Released</div>
-      <div class="text-2xl font-black text-emerald-400">{{ stats().released }}</div>
+      <div class="text-2xl font-black text-brand-primary">{{ stats().released }}</div>
     </div>
-    <div class="p-4 bg-slate-900/50 border border-white/5 rounded-2xl">
+    <div class="p-4 bg-brand-surface/50 border border-white/10 rounded-2xl">
       <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Resources</div>
       <div class="text-2xl font-black text-blue-400">{{ stats().assets }}</div>
     </div>
   </div>
 
-  <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/30 p-2 rounded-xl border border-white/5">
+  <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-brand-surface/30 p-2 rounded-xl border border-white/10">
     <div class="flex gap-1">
       <button *ngFor="let f of ['all', 'demo', 'completed', 'released']"
               (click)="activeFilter.set(f)"
-              class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
-              [ngClass]="activeFilter() === f ? 'bg-emerald-500 text-slate-900' : 'text-slate-400 hover:text-white'">
+              class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+              [ngClass]="activeFilter() === f ? 'bg-brand-primary text-brand-surface' : 'text-slate-400 hover:text-white'">
         {{ f }}
       </button>
     </div>
@@ -37,10 +37,10 @@
 
   <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
     <div *ngFor="let item of filteredCatalog()"
-         class="group bg-slate-900/80 border border-white/10 rounded-2xl p-4 hover:border-emerald-500/30 transition-all">
+         class="group bg-brand-surface/80 border border-white/10 rounded-2xl p-4 hover:border-brand-primary/30 transition-all">
       <div class="flex gap-4">
-        <div class="w-20 h-20 rounded-xl bg-slate-800 flex items-center justify-center border border-white/5 group-hover:border-emerald-500/20 transition-all">
-          <i class="fas fa-music text-2xl text-slate-600 group-hover:text-emerald-400"></i>
+        <div class="w-20 h-20 rounded-xl bg-brand-surface-light flex items-center justify-center border border-white/10 group-hover:border-brand-primary/20 transition-all">
+          <i class="fas fa-music text-2xl text-slate-600 group-hover:text-brand-primary"></i>
         </div>
         <div class="flex-1 space-y-3">
           <input [(ngModel)]="item.title" (blur)="updateItem(item)"

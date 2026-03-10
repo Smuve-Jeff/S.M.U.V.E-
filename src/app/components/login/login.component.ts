@@ -49,7 +49,7 @@ export class LoginComponent {
       }
     } catch (err) {
       this.isError.set(true);
-      this.message.set('A tactical error occurred. System offline.');
+      this.message.set('A executive error occurred. System offline.');
     } finally {
       this.isLoading.set(false);
     }

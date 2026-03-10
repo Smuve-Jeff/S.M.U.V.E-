@@ -78,8 +78,8 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
 
   getImpactColor(impact: string): string {
     switch (impact) {
-      case 'Extreme': return 'text-violet-400 animate-pulse font-black';
-      case 'High': return 'text-emerald-400';
+      case 'Extreme': return 'text-violet-400 animate-pulse-subtle font-black';
+      case 'High': return 'text-brand-primary';
       case 'Medium': return 'text-yellow-400';
       case 'Low': return 'text-slate-400';
       default: return 'text-white';
