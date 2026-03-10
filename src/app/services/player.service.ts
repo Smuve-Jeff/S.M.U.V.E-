@@ -101,14 +101,38 @@ export class PlayerService {
       if (!this.isPlaying()) this.togglePlay();
     } else {
       console.log('PlayerService: Track has no buffer, skipping auto-load');
-    }
-    console.log('PlayerService: Skipping to next track');
-    // Implement playlist logic if needed
-  }
+  if (track?.url) {
+        void (async () => {
+          try {
+            const res = await fetch(track.url);
+            const arrayBuffer = await res.arrayBuffer();
+            const buffer = await this.audioEngine
+              .getContext()
+              .decodeAudioData(arrayBuffer.slice(0));
 
-  previous() {
-    console.log('PlayerService: Returning to previous track');
-    // Implement playlist logic if needed
+            // Cache decoded buffer on the playlist entry so next/prev stays in sync.
+            this.playlist.update((p) =>
+              p.map((t, i) =>
+                i === this.currentIndex() ? { ...t, buffer } : t
+              )
+            );
+
+            this.deckService.loadDeckBuffer('A', buffer, track.title);
+            if (!this.isPlaying()) this.togglePlay();
+          } catch (err) {
+            console.warn(
+              'PlayerService: Failed to load track audio from URL',
+              err
+            );
+          }
+        })();
+      } else {
+        console.warn(
+          'PlayerService: Track has no buffer or URL; cannot auto-load',
+          track
+        );
+      }
+    }
   }
 
   toggleShuffle() { this.isShuffle.set(!this.isShuffle()); }
