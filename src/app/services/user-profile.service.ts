@@ -420,12 +420,9 @@ export class UserProfileService {
       if (!updatedProfile.daw.includes(upgrade.title)) {
         updatedProfile.daw = [...updatedProfile.daw, upgrade.title];
       }
-      if (!updatedProfile.vst_plugins.includes(upgrade.title)) {
+      if (upgrade.type === 'Software' && !updatedProfile.vst_plugins.includes(upgrade.title)) {
         updatedProfile.vst_plugins = [...updatedProfile.vst_plugins, upgrade.title];
       }
-       if (!updatedProfile.daw.includes(upgrade.title)) {
-         updatedProfile.daw = [...updatedProfile.daw, upgrade.title];
-       }
        if (upgrade.type === 'Software') {
           if (!updatedProfile.vst_plugins.includes(upgrade.title)) {
             updatedProfile.vst_plugins = [...updatedProfile.vst_plugins, upgrade.title];

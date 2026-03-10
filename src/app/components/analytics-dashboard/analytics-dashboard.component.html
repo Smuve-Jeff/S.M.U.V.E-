@@ -1,50 +1,86 @@
-<div class="analytics-container">
-  <header class="analytics-header">
-    <h1 class="title">DATA PULSE</h1>
-    <div class="time-range">LAST 30 DAYS</div>
+<div class="p-8 max-w-[1400px] mx-auto animate-enter">
+  <header class="flex items-center justify-between mb-12 border-b border-white/10 pb-8">
+    <div class="flex flex-col">
+      <div class="flex items-center gap-3 mb-2">
+         <div class="w-2 h-2 rounded-full bg-brand-primary animate-pulse-subtle"></div>
+         <span class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em]">Live Intelligence Feed</span>
+      </div>
+      <h1 class="text-4xl font-black tracking-tighter text-white uppercase italic">DATA<span class="text-brand-primary">PULSE</span></h1>
+    </div>
+    <div class="px-4 py-2 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-black uppercase tracking-widest">
+      Reporting: Last 30 Days
+    </div>
   </header>
 
-  <div class="stats-grid">
-    <div class="stat-card streams">
-      <div class="label">TOTAL STREAMS</div>
-      <div class="value">{{ analytics.streams().value }}</div>
-      <div class="trend positive">+12.4%</div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+    <div class="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group">
+      <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-primary/5 blur-3xl rounded-full"></div>
+      <div class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4">Total Streams</div>
+      <div class="flex items-end justify-between">
+        <div class="text-4xl font-black text-white italic tracking-tighter">{{ analytics.streams().value | number }}</div>
+        <div class="text-xs font-bold text-brand-primary">+12.4%</div>
+      </div>
     </div>
-    <div class="stat-card revenue">
-      <div class="label">EST. REVENUE</div>
-      <div class="value">$4,120</div>
-      <div class="trend positive">+8.2%</div>
+
+    <div class="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group">
+      <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-secondary/5 blur-3xl rounded-full"></div>
+      <div class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4">Est. Revenue</div>
+      <div class="flex items-end justify-between">
+        <div class="text-4xl font-black text-white italic tracking-tighter">$4,120</div>
+        <div class="text-xs font-bold text-brand-primary">+8.2%</div>
+      </div>
     </div>
-    <div class="stat-card listeners">
-      <div class="label">MONTHLY LISTENERS</div>
-      <div class="value">12.5K</div>
-      <div class="trend negative">-2.1%</div>
+
+    <div class="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group">
+      <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-danger/5 blur-3xl rounded-full"></div>
+      <div class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4">Monthly Listeners</div>
+      <div class="flex items-end justify-between">
+        <div class="text-4xl font-black text-white italic tracking-tighter">12.5K</div>
+        <div class="text-xs font-bold text-brand-danger">-2.1%</div>
+      </div>
     </div>
   </div>
 
-  <div class="main-grid">
-    <section class="superfans-section">
-      <h2 class="section-title">TOP SUPERFANS</h2>
-      <div class="superfan-list">
-        <div *ngFor="let fan of superfans()" class="fan-item">
-          <div class="fan-info">
-            <div class="fan-name">{{ fan.name }}</div>
-            <div class="fan-meta">{{ fan.location }}</div>
+  <div class="grid grid-cols-12 gap-8">
+    <section class="col-span-12 lg:col-span-7 bg-brand-surface/30 rounded-3xl p-8 border border-white/10">
+      <div class="flex items-center justify-between mb-8">
+         <h2 class="text-lg font-bold text-white uppercase tracking-tight">Top Superfans</h2>
+         <button class="text-[10px] font-black text-brand-primary uppercase tracking-widest hover:underline">View All</button>
+      </div>
+      <div class="space-y-4">
+        <div *ngFor="let fan of superfans()" class="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all">
+          <div class="flex items-center gap-4">
+             <div class="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-black text-xs">
+                {{ fan.name.charAt(0) }}
+             </div>
+             <div>
+               <div class="text-sm font-bold text-white">{{ fan.name }}</div>
+               <div class="text-[10px] text-silver-dim uppercase tracking-widest">{{ fan.location }}</div>
+             </div>
           </div>
-          <div class="fan-streams">{{ fan.streams }} STREAMS</div>
+          <div class="text-right">
+             <div class="text-sm font-black text-brand-primary italic">{{ fan.streams }} STREAMS</div>
+             <div class="text-[8px] font-bold text-silver-dim uppercase tracking-tighter">{{ fan.status }}</div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="insights-section">
-      <h2 class="section-title">SMART TACTICS</h2>
-      <div class="tactic-cards">
-        <div *ngFor="let tactic of engagementTactics" class="tactic-card">
-          <i class="fas fa-lightbulb"></i>
-          <p>{{ tactic }}</p>
-        </div>
-      </div>
-      <button class="action-button" routerLink="/strategy">EXECUTE STRATEGY</button>
+    <section class="col-span-12 lg:col-span-5 flex flex-col gap-6">
+       <div class="bg-brand-primary/10 rounded-3xl p-8 border border-brand-primary/20 flex-grow">
+          <h2 class="text-lg font-bold text-brand-primary uppercase tracking-tight mb-6 flex items-center gap-3">
+             <i class="fas fa-brain"></i> Strategic Insights
+          </h2>
+          <div class="space-y-4">
+            <div *ngFor="let tactic of engagementTactics" class="flex gap-4 p-4 rounded-2xl bg-black/40 border border-white/10 text-sm leading-relaxed">
+              <i class="fas fa-bolt text-brand-warning mt-1"></i>
+              <p class="text-silver-bright font-medium">{{ tactic }}</p>
+            </div>
+          </div>
+          <button class="w-full mt-8 btn-elegant btn-elegant-primary text-[10px] font-black uppercase tracking-[0.2em]" routerLink="/strategy">
+            Execute Strategy Matrix
+          </button>
+       </div>
     </section>
   </div>
 </div>

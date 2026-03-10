@@ -1,64 +1,63 @@
-<div class="chat-header">
-  <div class="flex items-center gap-4">
-    <div class="relative">
-      <div class="w-12 h-12 rounded-sm bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center overflow-hidden">
-        <i class="fas fa-microchip text-emerald-500 text-xl animate-pulse"></i>
+<div class="h-full flex flex-col bg-brand-dark overflow-hidden">
+  <div class="p-6 border-b border-white/10 flex items-center justify-between bg-brand-surface/40">
+    <div class="flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary">
+        <i class="fas fa-microchip animate-pulse-subtle"></i>
       </div>
-      <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]"></div>
+      <div>
+        <h3 class="text-sm font-bold text-white uppercase tracking-widest">S.M.U.V.E AI</h3>
+        <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em]">Omniscient Mode</span>
+      </div>
     </div>
-    <div>
-      <h3>S.M.U.V.E 3.0</h3>
-      <span class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest opacity-80">Omniscient Mode Engaged</span>
-    </div>
-  </div>
-  <button (click)="onClose()" class="text-slate-500 hover:text-white transition-colors">
-    <i class="fas fa-times"></i>
-  </button>
-</div>
-
-<div class="chat-history" #scrollContainer>
-  <div
-    *ngFor="let message of messages()"
-    class="message"
-    [ngClass]="{
-      'user-message': message.role === 'user',
-      'bot-message': message.role === 'model'
-    }"
-  >
-    <div class="text-[9px] uppercase font-black tracking-widest opacity-50 mb-2" *ngIf="message.role === 'model'">
-      [SYSTEM_DECREE]
-    </div>
-    <div class="text-[9px] uppercase font-black tracking-widest opacity-50 mb-2 text-right" *ngIf="message.role === 'user'">
-      [SUBJECT_INPUT]
-    </div>
-    <div class="message-content">{{ message.content }}</div>
-  </div>
-
-  <div *ngIf="isLoading()" class="loading-indicator">
-    >> ANALYZING_VECTORS...
-  </div>
-</div>
-
-<div class="chat-input-container">
-  <div class="input-wrapper">
-    <input
-      [(ngModel)]="userInput"
-      (keyup.enter)="sendMessage()"
-      placeholder="COMMAND S.M.U.V.E..."
-      aria-label="Chat message input"
-    />
-    <button class="send-btn" (click)="sendMessage()" aria-label="Send message">
-      <i class="fas fa-terminal"></i>
+    <button (click)="onClose()" class="w-8 h-8 rounded-xl hover:bg-white/5 text-silver-dim hover:text-white transition-all">
+      <i class="fas fa-times"></i>
     </button>
   </div>
-  <div class="mt-4 flex justify-between items-center px-1">
-    <div class="flex gap-4">
-      <span class="text-[8px] text-emerald-500/40 font-bold tracking-[0.2em]">LATENCY: 12ms</span>
-      <span class="text-[8px] text-emerald-500/40 font-bold tracking-[0.2em]">INTEGRITY: 100%</span>
+
+  <div class="flex-grow p-6 overflow-y-auto space-y-6 custom-scrollbar" #scrollContainer>
+    @for (message of messages(); track message.content) {
+      <div class="flex flex-col" [class.items-end]="message.role === 'user'">
+        <div class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-2 px-1">
+          {{ message.role === 'model' ? '[SYSTEM_DECREE]' : '[SUBJECT_INPUT]' }}
+        </div>
+        <div class="max-w-[85%] p-4 rounded-2xl text-xs leading-relaxed"
+             [class.bg-brand-surface]="message.role === 'model'"
+             [class.text-silver-bright]="message.role === 'model'"
+             [class.border]="message.role === 'model'"
+             [class.border-white/10]="message.role === 'model'"
+             [class.bg-brand-primary]="message.role === 'user'"
+             [class.text-black]="message.role === 'user'"
+             [class.font-bold]="message.role === 'user'">
+          {{ message.content }}
+        </div>
+      </div>
+    }
+
+    @if (isLoading()) {
+      <div class="flex items-center gap-3 text-[9px] font-black text-brand-primary uppercase tracking-widest animate-pulse-subtle">
+         <i class="fas fa-spinner fa-spin"></i> Analyzing Vectors...
+      </div>
+    }
+  </div>
+
+  <div class="p-6 bg-brand-surface/20 border-t border-white/10">
+    <div class="relative group">
+       <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()"
+              placeholder="Command S.M.U.V.E..."
+              class="w-full bg-black/40 border border-white/10 rounded-2xl pl-4 pr-12 py-4 text-xs focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim">
+       <button (click)="sendMessage()" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-brand-primary text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
+          <i class="fas fa-terminal text-sm"></i>
+       </button>
     </div>
-    <div class="flex gap-3">
-      <i class="fas fa-wifi text-[10px] text-emerald-500"></i>
-      <i class="fas fa-fingerprint text-[10px] text-emerald-500"></i>
+    <div class="mt-4 flex justify-between items-center opacity-40">
+       <div class="flex gap-4 text-[7px] font-black text-brand-primary uppercase tracking-widest">
+          <span>Latency: 1.2ms</span>
+          <span>Integrity: 100%</span>
+       </div>
+       <div class="flex gap-2 text-brand-primary">
+          <i class="fas fa-wifi text-[8px]"></i>
+          <i class="fas fa-fingerprint text-[8px]"></i>
+       </div>
     </div>
   </div>
 </div>

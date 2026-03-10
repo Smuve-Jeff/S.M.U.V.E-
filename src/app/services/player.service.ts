@@ -22,10 +22,10 @@ export class PlayerService implements OnDestroy {
   private exportService = inject(ExportService);
 
   private defaultPlaylist: GlobalTrack[] = [
-    { id: '1', title: 'NEON ARCHITECT', artist: 'S.M.U.V.E. CORE' },
+    { id: '1', title: 'elegant ARCHITECT', artist: 'S.M.U.V.E. CORE' },
     { id: '2', title: 'SYNTHETIC DREAMS', artist: 'AI SYNDICATE' },
-    { id: '3', title: 'CYBERPUNK BEATS', artist: 'TECHNO ARCHITECT' },
-    { id: '4', title: 'GLITCH IN THE MATRIX', artist: 'S.M.U.V.E. PRO' }
+    { id: '3', title: 'pro-gradePUNK BEATS', artist: 'TECHNO ARCHITECT' },
+    { id: '4', title: 'precision IN THE MATRIX', artist: 'S.M.U.V.E. PRO' }
   ];
 
   playlist = signal<GlobalTrack[]>(this.defaultPlaylist);
@@ -42,6 +42,13 @@ export class PlayerService implements OnDestroy {
   isShuffle = signal(false);
   isRepeat = signal(false);
 
+  private _progressSyncIntervalId: any = null;
+
+  constructor() {
+    // Keep DeckService's deck state fresh
+    if (typeof globalThis !== 'undefined' && typeof globalThis.setInterval === 'function') {
+      const sync = () => (this.deckService as any).syncProgress?.();
+      this._progressSyncIntervalId = globalThis.setInterval(sync, 100);
   private readonly _progressSyncIntervalId: any = (() => {
     const sync = () => {
       if ('syncProgress' in this.deckService) {
@@ -61,6 +68,7 @@ export class PlayerService implements OnDestroy {
   }
 
   togglePlay() {
+    (this.deckService as any).syncProgress?.();
     if ('syncProgress' in this.deckService) {
       (this.deckService as any).syncProgress();
     }
@@ -100,6 +108,7 @@ export class PlayerService implements OnDestroy {
   }
 
   private autoLoadCurrent() {
+    const track = this.currentTrack();
     const targetIndex = this.currentIndex();
     const track = this.playlist()[targetIndex];
 
@@ -112,6 +121,15 @@ export class PlayerService implements OnDestroy {
       void (async () => {
         try {
           const res = await fetch(track.url);
+          const arrayBuffer = await res.arrayBuffer();
+          const buffer = await this.audioEngine.getContext().decodeAudioData(arrayBuffer);
+
+          this.playlist.update((p) =>
+            p.map((t, i) => (i === this.currentIndex() ? { ...t, buffer } : t))
+          );
+
+          this.deckService.loadDeckBuffer('A', buffer, track.title);
+          if (!this.isPlaying()) this.togglePlay();
           if (!res.ok) throw new Error(`Failed to fetch track: ${res.status}`);
           const arrayBuffer = await res.arrayBuffer();
           const buffer = await this.audioEngine.getContext().decodeAudioData(arrayBuffer);
@@ -135,10 +153,15 @@ export class PlayerService implements OnDestroy {
     }
   }
 
-  toggleShuffle() { this.isShuffle.set(!this.isShuffle()); }
-  toggleRepeat() { this.isRepeat.set(!this.isRepeat()); }
+  toggleShuffle() { this.isShuffle.update(v => !v); }
+  toggleRepeat() { this.isRepeat.update(v => !v); }
 
   async loadExternalTrack() {
+    const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
+    if (files.length > 0) {
+      const file = files[0];
+      try {
+        const buffer = await this.fileLoader.decodeToAudioBuffer(this.audioEngine.getContext(), file);
     try {
       const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
       if (files && files.length > 0) {
@@ -156,6 +179,9 @@ export class PlayerService implements OnDestroy {
         this.currentIndex.set(0);
         this.deckService.loadDeckBuffer('A', buffer, file.name);
         if (!this.isPlaying()) this.togglePlay();
+      } catch (err) {
+        console.error('PlayerService: Failed to load external track', err);
+      }
       }
     } catch (err) {
       console.error('PlayerService: Failed to load external track', err);

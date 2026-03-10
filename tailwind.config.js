@@ -8,42 +8,48 @@ export default {
           dark: '#020617', // Slate 950
           surface: '#0f172a', // Slate 900
           'surface-light': '#1e293b', // Slate 800
-          primary: '#10b981', // Emerald 500
+          primary: '#10b981', // Emerald 500 (Refined)
           secondary: '#38bdf8', // Sky 400
-          accent: '#8b5cf6', // Violet 500
-          danger: '#ef4444', // Red 500
+          accent: '#6366f1', // Indigo 500
+          danger: '#f43f5e', // Rose 500
           warning: '#f59e0b', // Amber 500
-          success: '#22c55e', // Green 500
+          success: '#10b981', // Emerald 500
+          muted: '#64748b', // Slate 500
         },
         obsidian: {
           DEFAULT: '#020617',
           light: '#0f172a',
           deep: '#010413',
         },
-        cyber: {
-          cyan: '#10b981', // Map old cyber colors to new brand colors for compatibility
-          pink: '#8b5cf6',
-          indigo: '#6366f1',
-          green: '#22c55e',
-          yellow: '#f59e0b',
-          red: '#ef4444',
-        },
+        silver: {
+          DEFAULT: '#cbd5e1', // Slate 300
+          bright: '#f8fafc', // Slate 50
+          dim: '#94a3b8', // Slate 400
+        }
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['Fira Code', 'monospace'],
+        display: ['Inter', 'sans-serif'],
       },
       animation: {
-        'spin-slow': 'spin 12s linear infinite',
-        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        float: 'float 6s ease-in-out infinite',
+        'fade-in': 'fadeIn 0.5s ease-out',
+        'slide-up': 'slideUp 0.4s cubic-bezier(0, 0, 0.2, 1)',
+        'pulse-subtle': 'pulseSubtle 3s ease-in-out infinite',
       },
       keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-10px)' },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
-      },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic':
-          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        slideUp: {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        pulseSubtle: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.8' },
+        }
       },
     },
   },

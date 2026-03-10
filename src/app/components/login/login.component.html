@@ -1,73 +1,52 @@
-<div class="min-h-screen flex items-center justify-center bg-slate-950 p-4 font-mono">
-  <div class="w-full max-w-md bg-slate-900 border-2 border-emerald-500/30 p-8 rounded-lg shadow-[0_0_30px_rgba(16,185,129,0.1)] relative overflow-hidden">
-    <!-- Glitch Scanline Effect -->
-    <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]"></div>
+<div class="min-h-screen flex items-center justify-center bg-brand-dark p-6 relative overflow-hidden animate-enter">
+  <div class="absolute inset-0 bg-gradient-to-br from-brand-primary/10 via-transparent to-brand-accent/10 pointer-events-none"></div>
 
-    <div class="relative z-20">
-      <div class="mb-8 text-center">
-        <h1 class="text-3xl font-black text-emerald-500 uppercase tracking-tighter animate-pulse">
-          S.M.U.V.E 3.0
-        </h1>
-        <p class="text-emerald-500/60 text-xs mt-2 uppercase tracking-widest">Strategic Music Utility Virtual Enhancer</p>
-      </div>
+  <div class="w-full max-w-md glass-panel rounded-[2rem] border border-white/10 p-10 shadow-2xl relative z-10">
+    <div class="text-center mb-10">
+       <div class="w-16 h-16 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6 shadow-lg">
+          <i class="fas fa-feather-pointed text-3xl"></i>
+       </div>
+       <h1 class="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">S.M.U.V.E.<span class="text-brand-primary">3.0</span></h1>
+       <p class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em] mt-3">Strategic Candidate Authorization</p>
+    </div>
 
-      <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="space-y-6">
-        <div *ngIf="isRegistering()" class="space-y-1">
-          <label class="block text-emerald-500 text-xs uppercase font-bold tracking-widest">Artist Designation</label>
-          <input
-            type="text"
-            [(ngModel)]="artistName"
-            name="artistName"
-            required
-            placeholder="ENTER STAGE NAME"
-            class="w-full bg-slate-950 border border-emerald-500/50 text-emerald-400 p-3 outline-none focus:border-emerald-400 focus:shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all uppercase placeholder:text-emerald-900"
-          >
-        </div>
+    <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="space-y-6">
+       @if (isRegistering()) {
+          <div class="space-y-2">
+             <label class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1">Artist Designation</label>
+             <input type="text" [(ngModel)]="artistName" name="artistName" required placeholder="STAGE NAME"
+                    class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim uppercase">
+          </div>
+       }
 
-        <div class="space-y-1">
-          <label class="block text-emerald-500 text-xs uppercase font-bold tracking-widest">Secure Email</label>
-          <input
-            type="email"
-            [(ngModel)]="credentials.email"
-            name="email"
-            required
-            placeholder="COMM_CHANNEL@SECURE.NET"
-            class="w-full bg-slate-950 border border-emerald-500/50 text-emerald-400 p-3 outline-none focus:border-emerald-400 focus:shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all uppercase placeholder:text-emerald-900"
-          >
-        </div>
+       <div class="space-y-2">
+          <label class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1">Secure Channel</label>
+          <input type="email" [(ngModel)]="credentials.email" name="email" required placeholder="EMAIL ADDRESS"
+                 class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim uppercase">
+       </div>
 
-        <div class="space-y-1">
-          <label class="block text-emerald-500 text-xs uppercase font-bold tracking-widest">Encrypted Password</label>
-          <input
-            type="password"
-            [(ngModel)]="credentials.password"
-            name="password"
-            required
-            placeholder="********"
-            class="w-full bg-slate-950 border border-emerald-500/50 text-emerald-400 p-3 outline-none focus:border-emerald-400 focus:shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all placeholder:text-emerald-900"
-          >
-        </div>
+       <div class="space-y-2">
+          <label class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1">Access Cipher</label>
+          <input type="password" [(ngModel)]="credentials.password" name="password" required placeholder="PASSWORD"
+                 class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim">
+       </div>
 
-        <button
-          type="submit"
-          [disabled]="isLoading() || !loginForm.form.valid"
-          class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900 disabled:text-emerald-950 text-slate-950 font-black py-4 uppercase tracking-[0.2em] transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
-        >
-          <span *ngIf="!isLoading()">{{ isRegistering() ? 'Initialize Genesis' : 'Authorize Access' }}</span>
-          <span *ngIf="isLoading()" class="animate-ping">...PROCESSING...</span>
-        </button>
-      </form>
+       <button type="submit" [disabled]="isLoading() || !loginForm.form.valid"
+               class="w-full mt-4 btn-elegant btn-elegant-primary h-14 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-brand-primary/10">
+          {{ isRegistering() ? 'Initialize Genesis' : 'Authorize Access' }}
+       </button>
+    </form>
 
-      <div *ngIf="message()"
-           [class]="isError() ? 'mt-6 p-4 border border-red-500/50 bg-red-950/20 text-red-400 text-xs uppercase' : 'mt-6 p-4 border border-emerald-500/50 bg-emerald-950/20 text-emerald-400 text-xs uppercase'">
-        {{ message() }}
-      </div>
+    <div *ngIf="message()" class="mt-6 p-4 rounded-xl border text-center text-[10px] font-bold uppercase tracking-widest"
+         [class.border-brand-danger]="isError()" [class.text-brand-danger]="isError()" [class.bg-brand-danger/5]="isError()"
+         [class.border-brand-primary]="!isError()" [class.text-brand-primary]="!isError()" [class.bg-brand-primary/5]="!isError()">
+       {{ message() }}
+    </div>
 
-      <div class="mt-8 pt-6 border-t border-emerald-500/20 text-center">
-        <button (click)="toggleMode()" class="text-emerald-500/40 hover:text-emerald-400 text-xs uppercase tracking-widest transition-colors">
+    <div class="mt-10 pt-8 border-t border-white/10 text-center">
+       <button (click)="toggleMode()" class="text-[9px] font-black text-silver-dim hover:text-brand-primary uppercase tracking-[0.2em] transition-all">
           {{ isRegistering() ? 'Already an Elite Member? Login' : 'New Strategic Candidate? Register' }}
-        </button>
-      </div>
+       </button>
     </div>
   </div>
 </div>

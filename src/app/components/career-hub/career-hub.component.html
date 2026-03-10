@@ -1,154 +1,178 @@
-<div class="career-page">
-  <div class="glass-container max-w-6xl mx-auto">
-    <header class="page-header mb-12 border-b border-white/10 pb-8 flex justify-between items-end">
-      <div class="title-group">
-        <h1 class="gradient-text text-5xl font-black italic tracking-tighter uppercase bg-gradient-to-r from-emerald-400 to-violet-500 bg-clip-text text-transparent">
-          CAREER COMMAND
-        </h1>
-        <p class="subtitle text-slate-400 mt-2">Manage your path to the main stage.</p>
+<div class="p-8 max-w-[1600px] mx-auto animate-enter">
+  <!-- DASHBOARD HEADER -->
+  <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+    <div class="flex flex-col">
+      <div class="flex items-center gap-3 mb-2">
+        <span class="text-[10px] font-black text-brand-primary uppercase tracking-[0.4em]">Strategic Control</span>
+        <div class="h-px w-12 bg-brand-primary/30"></div>
       </div>
-      <div class="profile-summary text-right">
-        <span class="rank block font-black text-emerald-500 uppercase italic">LEVEL {{ profile().experienceLevel }}</span>
-        <span class="xp text-[10px] font-mono text-slate-500">CATALOG: {{ profile().releasedTracks }} TRACKS</span>
-      </div>
-    </header>
-
-    <div class="bento-grid grid grid-cols-12 gap-6">
-      <!-- LABEL SUBMISSIONS -->
-      <section class="grid-item submissions col-span-12 lg:col-span-7 bg-slate-900/50 border border-white/5 rounded-2xl p-6">
-        <h3 class="item-title text-sm font-black uppercase tracking-widest text-white mb-6 flex items-center gap-2">
-          <i class="fas fa-paper-plane text-emerald-500"></i> LABEL RADAR
-        </h3>
-        <div class="submission-list space-y-3 mb-6">
-          <div *ngFor="let sub of submissions()" class="submission-card bg-slate-950 p-4 rounded-lg border border-white/5 hover:border-emerald-500/30 transition-all">
-            <div class="card-main flex justify-between items-center mb-2">
-              <span class="label-name font-bold text-white">{{ sub.labelName }}</span>
-              <span class="status-pill text-[10px] font-black uppercase px-2 py-0.5 rounded-full"
-                    [ngClass]="{
-                      'bg-emerald-500/10 text-emerald-500': sub.status === 'Accepted',
-                      'bg-violet-500/10 text-violet-500': sub.status === 'Reviewing',
-                      'bg-yellow-500/10 text-yellow-500': sub.status === 'Pending',
-                      'bg-red-500/10 text-red-500': sub.status === 'Rejected'
-                    }">
-                {{ sub.status }}
-              </span>
-            </div>
-            <div class="card-footer flex justify-between items-center text-[10px] text-slate-500">
-              <span class="date">{{ sub.date }}</span>
-              <a [href]="sub.demoUrl" target="_blank" class="demo-link font-black text-emerald-500 hover:text-emerald-400 transition-colors uppercase tracking-widest">VIEW DEMO</a>
-            </div>
-          </div>
-        </div>
-        <div class="add-submission mt-6 pt-6 border-t border-white/5">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <input [(ngModel)]="newLabel" placeholder="Label Name..." class="form-input bg-slate-950 border border-white/10 rounded-lg p-3 text-sm text-white focus:border-emerald-500 outline-none transition-all">
-            <input [(ngModel)]="newDemo" placeholder="Demo URL..." class="form-input bg-slate-950 border border-white/10 rounded-lg p-3 text-sm text-white focus:border-emerald-500 outline-none transition-all">
-          </div>
-          <button (click)="submitToLabel()" class="btn-submit w-full py-3 bg-emerald-500 text-black font-black uppercase italic rounded-lg hover:scale-[1.02] active:scale-95 transition-all">
-            SUBMIT PITCH
-          </button>
-        </div>
-      </section>
-
-      <!-- AI STRATEGIC AUDIT -->
-      <section class="grid-item audit col-span-12 lg:col-span-5 bg-slate-900/50 border border-white/5 rounded-2xl p-6 relative overflow-hidden" [class.auditing]="isAuditing()">
-        <h3 class="item-title text-sm font-black uppercase tracking-widest text-white mb-6 flex items-center gap-2">
-          <i class="fas fa-stethoscope text-emerald-500"></i> AI STRATEGIC AUDIT
-        </h3>
-
-        <div *ngIf="!auditResult() && !isAuditing()" class="audit-empty py-12 text-center">
-          <p class="text-slate-400 text-sm mb-8">Run S.M.U.V.E analysis on your current EPK and pitch materials.</p>
-          <button (click)="runPitchAudit()" class="btn-audit w-full py-4 bg-emerald-500/10 border border-emerald-500 text-emerald-500 font-black uppercase italic rounded-lg hover:bg-emerald-500 hover:text-black transition-all">
-            Initialize Audit
-          </button>
-        </div>
-
-        <div *ngIf="isAuditing()" class="audit-loading py-20 text-center">
-          <div class="loader mb-6 mx-auto w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
-          <p class="text-xs font-mono text-emerald-500 animate-pulse uppercase tracking-[0.3em]">Analyzing Strategic Infrastructure...</p>
-        </div>
-
-        <div *ngIf="auditResult() && !isAuditing()" class="audit-results animate__animated animate__fadeIn">
-          <div class="score-header flex items-center mb-8">
-            <div class="score-circle flex-shrink-0 w-24 h-24 border-4 border-emerald-500 rounded-full flex flex-col items-center justify-center bg-emerald-500/5">
-              <span class="score-val text-3xl font-black text-white">{{ auditResult()?.score }}</span>
-              <span class="score-label text-[8px] font-black text-emerald-500 uppercase tracking-widest">OVERALL</span>
-            </div>
-            <div class="category-scores grid grid-cols-2 gap-2 flex-grow ml-6">
-              <div *ngFor="let cat of ['production', 'marketing', 'career', 'technical']" class="cat-pill bg-slate-950 p-3 rounded-xl border border-white/5">
-                <div class="text-[8px] uppercase text-slate-500 font-black tracking-widest mb-1">{{ cat }}</div>
-                <div class="text-lg font-black text-emerald-500">{{ auditResult()?.categories?.[cat] }}%</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="audit-details space-y-6">
-            <div *ngIf="auditResult()?.strengths?.length">
-              <h4 class="text-[10px] uppercase font-black text-emerald-500 mb-3 tracking-[0.2em] border-l-2 border-emerald-500 pl-3">Primary Strengths</h4>
-              <ul class="feedback-list space-y-2">
-                <li *ngFor="let item of auditResult()?.strengths" class="text-xs text-slate-300 flex items-start gap-3">
-                  <i class="fas fa-check-circle text-emerald-500 mt-0.5"></i>
-                  <span>{{ item }}</span>
-                </li>
-              </ul>
-            </div>
-
-            <div *ngIf="auditResult()?.weaknesses?.length">
-              <h4 class="text-[10px] uppercase font-black text-violet-400 mb-3 tracking-[0.2em] border-l-2 border-violet-500 pl-3">Critical Deficits</h4>
-              <ul class="feedback-list space-y-2">
-                <li *ngFor="let item of auditResult()?.weaknesses" class="text-xs text-slate-300 flex items-start gap-3">
-                  <i class="fas fa-exclamation-triangle text-violet-400 mt-0.5"></i>
-                  <span>{{ item }}</span>
-                </li>
-              </ul>
-            </div>
-
-            <div class="mt-8 pt-6 border-t border-white/5 flex justify-center">
-              <button (click)="runPitchAudit()" class="text-[10px] uppercase font-black text-slate-500 hover:text-emerald-500 transition-colors tracking-[0.2em] flex items-center gap-2">
-                <i class="fas fa-redo text-xs"></i> Re-Run Analysis
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- BOOKING ENGINE -->
-      <section class="grid-item booking col-span-12 lg:col-span-6 bg-slate-900/50 border border-white/5 rounded-2xl p-6">
-        <h3 class="item-title text-sm font-black uppercase tracking-widest text-white mb-6 flex items-center gap-2">
-          <i class="fas fa-calendar-check text-emerald-500"></i> LIVE BOOKING
-        </h3>
-        <div class="venue-list grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div *ngFor="let venue of venues()" class="venue-card bg-slate-950 p-5 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all group">
-            <div class="venue-info mb-4">
-              <span class="venue-name block font-bold text-white group-hover:text-emerald-500 transition-colors">{{ venue.name }}</span>
-              <span class="venue-loc text-[10px] text-slate-500 uppercase tracking-widest">{{ venue.location }}</span>
-            </div>
-            <div class="venue-status pt-4 border-t border-white/5 flex justify-between items-center text-[10px] font-black tracking-widest">
-              <span class="capacity text-violet-400">{{ venue.capacity }} CAP</span>
-              <span class="booking-status text-emerald-500 uppercase italic">{{ venue.bookingStatus }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- LEGAL & SPLITS -->
-      <section class="grid-item legal col-span-12 lg:col-span-6 bg-slate-900/50 border border-white/5 rounded-2xl p-6">
-        <h3 class="item-title text-sm font-black uppercase tracking-widest text-white mb-6 flex items-center gap-2">
-          <i class="fas fa-file-contract text-emerald-500"></i> RIGHTS & SPLITS
-        </h3>
-        <button (click)="generateSplitSheet()" class="btn-split w-full py-4 bg-violet-600 text-white font-black uppercase italic rounded-xl hover:bg-violet-500 hover:scale-[1.02] transition-all mb-8 shadow-lg shadow-violet-600/20">
-          CREATE NEW SPLIT SHEET
-        </button>
-        <div class="split-list grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div *ngFor="let sheet of splitSheets()" class="split-card bg-slate-950 p-5 rounded-xl border border-white/5 hover:border-violet-500/30 transition-all">
-            <div class="split-info">
-               <span class="track-name block font-bold text-white mb-1">{{ sheet.track }}</span>
-               <span class="split-status text-[9px] uppercase font-black text-slate-500 tracking-widest">{{ sheet.status }}</span>
-            </div>
-            <div class="split-id mt-4 text-[10px] font-mono text-violet-500 opacity-50">#{{ sheet.id }}</div>
-          </div>
-        </div>
-      </section>
+      <h1 class="text-4xl font-black tracking-tighter text-white uppercase italic">CAREER<span class="text-brand-primary">HUB</span></h1>
+      <p class="text-silver-dim text-sm mt-2 font-medium">Global career management & strategic trajectory analysis.</p>
     </div>
+
+    <div class="flex items-center gap-4">
+      <button (click)="runPitchAudit()"
+              [disabled]="isAuditing()"
+              class="btn-elegant bg-white text-black hover:bg-silver-bright px-8 shadow-xl shadow-white/5">
+        <i class="fas fa-shield-halved" [class.fa-spin]="isAuditing()"></i>
+        <span class="font-bold tracking-widest text-[10px] uppercase">{{ isAuditing() ? 'Auditing...' : 'Run Strategic Audit' }}</span>
+      </button>
+      <button class="w-12 h-12 rounded-xl bg-brand-surface border border-white/10 flex items-center justify-center text-silver-dim hover:text-white transition-all">
+        <i class="fas fa-ellipsis-v"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- BENTO GRID LAYOUT -->
+  <div class="grid grid-cols-12 gap-6">
+
+    <!-- AI STRATEGIC AUDIT (Large Feature) -->
+    <div class="col-span-12 lg:col-span-8 glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group">
+      <div class="absolute -top-24 -right-24 w-64 h-64 bg-brand-primary/5 blur-[100px] rounded-full group-hover:bg-brand-primary/10 transition-all duration-700"></div>
+
+      <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary">
+            <i class="fas fa-chart-pie text-xl"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-white uppercase tracking-tight">AI Strategic Audit</h2>
+            <p class="text-[10px] text-silver-dim font-bold uppercase tracking-widest">Real-time Performance Analysis</p>
+          </div>
+        </div>
+        <div class="text-right" *ngIf="auditResult()">
+           <div class="text-3xl font-black text-brand-primary italic tracking-tighter">{{ auditResult()?.score }}%</div>
+           <div class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Global Index</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" *ngIf="auditResult()">
+         @for (cat of ['production', 'marketing', 'career', 'technical']; track cat) {
+            <div class="bg-black/20 rounded-2xl p-4 border border-white/10">
+               <div class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">{{ cat }}</div>
+               <div class="flex items-end justify-between">
+                  <span class="text-lg font-bold text-white">{{ (auditResult()?.categories?.[cat] || 0) }}%</span>
+                  <div class="w-12 h-1 bg-white/5 rounded-full overflow-hidden mb-2">
+                     <div class="h-full bg-brand-primary" [style.width.%]="auditResult()?.categories?.[cat]"></div>
+                  </div>
+               </div>
+            </div>
+         }
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="space-y-4">
+          <h3 class="text-[10px] font-black text-brand-primary uppercase tracking-widest flex items-center gap-2">
+            <i class="fas fa-bolt"></i> Key Strengths
+          </h3>
+          <ul class="space-y-2">
+            @for (strength of auditResult()?.strengths; track strength) {
+              <li class="flex items-start gap-3 p-3 rounded-xl bg-brand-primary/5 border border-brand-primary/10 text-xs font-medium">
+                <i class="fas fa-check-circle text-brand-primary mt-0.5"></i>
+                {{ strength }}
+              </li>
+            } @empty {
+               <li class="text-xs text-silver-dim italic">Run audit to identify strengths.</li>
+            }
+          </ul>
+        </div>
+        <div class="space-y-4">
+          <h3 class="text-[10px] font-black text-brand-danger uppercase tracking-widest flex items-center gap-2">
+            <i class="fas fa-triangle-exclamation"></i> Critical Deficits
+          </h3>
+          <ul class="space-y-2">
+            @for (weak of auditResult()?.weaknesses; track weak) {
+              <li class="flex items-start gap-3 p-3 rounded-xl bg-brand-danger/5 border border-brand-danger/10 text-xs font-medium">
+                <i class="fas fa-exclamation-circle text-brand-danger mt-0.5"></i>
+                {{ weak }}
+              </li>
+            } @empty {
+               <li class="text-xs text-silver-dim italic">No critical deficits detected.</li>
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- LABEL SUBMISSIONS (Medium Card) -->
+    <div class="col-span-12 lg:col-span-4 bg-brand-surface/40 rounded-3xl p-8 border border-white/10 flex flex-col">
+       <div class="flex items-center justify-between mb-6">
+          <h2 class="text-lg font-bold text-white uppercase tracking-tight">Active Pitches</h2>
+          <span class="text-[10px] font-black text-silver-dim bg-white/5 px-2 py-1 rounded">{{ submissions().length }} SUBMITTED</span>
+       </div>
+
+       <div class="space-y-3 flex-grow overflow-y-auto max-h-[400px] custom-scrollbar pr-2">
+          @for (sub of submissions(); track sub.labelName) {
+             <div class="p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all group/item">
+                <div class="flex justify-between items-start mb-2">
+                   <h4 class="text-sm font-bold text-white">{{ sub.labelName }}</h4>
+                   <span class="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                         [class.bg-brand-warning/10]="sub.status === 'Reviewing'"
+                         [class.text-brand-warning]="sub.status === 'Reviewing'"
+                         [class.bg-brand-muted/10]="sub.status === 'Pending'"
+                         [class.text-brand-muted]="sub.status === 'Pending'">{{ sub.status }}</span>
+                </div>
+                <div class="text-[10px] text-silver-dim mb-3 truncate">{{ sub.demoUrl }}</div>
+                <div class="flex items-center justify-between">
+                   <span class="text-[9px] font-mono text-[11px] tracking-tight text-silver-dim">{{ sub.date }}</span>
+                   <button class="text-[9px] font-black text-brand-primary uppercase opacity-0 group-hover/item:opacity-100 transition-all">Recall</button>
+                </div>
+             </div>
+          }
+       </div>
+
+       <div class="mt-8 pt-6 border-t border-white/10 space-y-4">
+          <input type="text" [(ngModel)]="newLabel" placeholder="Label Name" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all">
+          <input type="text" [(ngModel)]="newDemo" placeholder="Demo Link" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all">
+          <button (click)="submitToLabel()" class="w-full btn-elegant btn-elegant-primary text-[10px] font-black uppercase tracking-widest">Submit Proposal</button>
+       </div>
+    </div>
+
+    <!-- VENUES / TOURING (Smaller Grid) -->
+    <div class="col-span-12 lg:col-span-4 bg-brand-surface/20 rounded-3xl p-6 border border-white/10">
+       <div class="flex items-center gap-3 mb-6">
+          <i class="fas fa-map-marker-alt text-brand-secondary"></i>
+          <h3 class="text-sm font-bold text-white uppercase">Live Circuit</h3>
+       </div>
+       <div class="space-y-4">
+          @for (v of venues(); track v.name) {
+             <div class="flex items-center justify-between">
+                <div>
+                   <div class="text-xs font-bold text-white">{{ v.name }}</div>
+                   <div class="text-[9px] text-silver-dim">{{ v.location }} • {{ v.capacity }} cap</div>
+                </div>
+                <span class="text-[8px] font-black px-2 py-1 rounded bg-brand-primary/10 text-brand-primary uppercase">{{ v.bookingStatus }}</span>
+             </div>
+          }
+       </div>
+    </div>
+
+    <!-- SPLIT SHEETS / LEGAL (Smaller Grid) -->
+    <div class="col-span-12 lg:col-span-4 bg-brand-surface/20 rounded-3xl p-6 border border-white/10">
+       <div class="flex items-center gap-3 mb-6">
+          <i class="fas fa-file-signature text-brand-accent"></i>
+          <h3 class="text-sm font-bold text-white uppercase">Legal & Rights</h3>
+       </div>
+       <div class="space-y-4">
+          <div class="flex flex-col gap-2">
+             <button (click)="generateSplitSheet()" class="w-full text-left p-3 rounded-xl bg-black/20 border border-white/10 hover:bg-white/5 transition-all">
+                <div class="text-xs font-bold text-white">Generate Split Sheet</div>
+                <div class="text-[9px] text-silver-dim">Track ID: Aurora_Final_V2</div>
+             </button>
+             <button class="w-full text-left p-3 rounded-xl bg-black/20 border border-white/10 hover:bg-white/5 transition-all">
+                <div class="text-xs font-bold text-white">Copyright Registration</div>
+                <div class="text-[9px] text-silver-dim">Submit to US Copyright Office</div>
+             </button>
+          </div>
+       </div>
+    </div>
+
+    <!-- REVENUE PROJECTION (Small Static Card) -->
+    <div class="col-span-12 lg:col-span-4 bg-brand-primary/10 rounded-3xl p-6 border border-brand-primary/20 flex flex-col justify-center text-center">
+       <div class="text-[9px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2">Q3 Revenue Forecast</div>
+       <div class="text-3xl font-black text-white italic tracking-tighter">$24.5K</div>
+       <div class="text-[8px] text-brand-primary/60 font-bold mt-1 uppercase">+18% vs PREVIOUS QUARTER</div>
+    </div>
+
   </div>
 </div>

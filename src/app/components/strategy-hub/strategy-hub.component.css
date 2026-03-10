@@ -4,13 +4,13 @@
 .bg-brand-surface {
   background-color: rgba(15, 23, 42, 0.5); /* Slate 900 / 50 */
 }
-.text-emerald-500 {
+.text-brand-primary {
   color: #10b981;
 }
-.border-emerald-500\/20 {
+.border-brand-primary\/20 {
   border-color: rgba(16, 185, 129, 0.2);
 }
-.bg-emerald-500 {
+.bg-brand-primary {
   background-color: #10b981;
 }
 
