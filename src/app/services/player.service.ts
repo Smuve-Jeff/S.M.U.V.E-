@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
 import { DeckService } from './deck.service';
 import { AudioEngineService } from './audio-engine.service';
 import { FileLoaderService } from './file-loader.service';
@@ -15,7 +15,7 @@ export interface GlobalTrack {
 @Injectable({
   providedIn: 'root'
 })
-export class PlayerService {
+export class PlayerService implements OnDestroy {
   private deckService = inject(DeckService);
   private audioEngine = inject(AudioEngineService);
   private fileLoader = inject(FileLoaderService);
@@ -33,24 +33,6 @@ export class PlayerService {
 
   isPlaying = computed(() => this.deckService.deckA().isPlaying);
   currentTrack = computed(() => this.playlist()[this.currentIndex()]);
-  isPlaying = computed(() => this.deckService.deckA().isPlaying);
-  currentTrack = signal<GlobalTrack | null>({
-    id: 'default',
-    title: 'S.M.U.V.E Radio Broadcast',
-  /**
-   * Keep DeckService's deck state (isPlaying/progress/etc) fresh across the app (e.g. Hub),
-   * since syncProgress() was previously only driven by the DJ deck component.
-   */
-  private readonly _progressSyncIntervalId: number | null = (() => {
-    // DeckService.syncProgress() signature varies; call defensively.
-    const sync = () => (this.deckService as any).syncProgress?.();
-    return typeof globalThis !== 'undefined' && typeof globalThis.setInterval === 'function'
-      ? globalThis.setInterval(sync, 100)
-      : null;
-  })();
-
-  isPlaying = computed(() => this.deckService.deckA().isPlaying);
-  currentTrack = computed(() => this.playlist()[this.currentIndex()]);
 
   progress = computed(() => {
     const d = this.deckService.deckA();
@@ -60,78 +42,96 @@ export class PlayerService {
   isShuffle = signal(false);
   isRepeat = signal(false);
 
+  private readonly _progressSyncIntervalId: any = (() => {
+    const sync = () => {
+      if ('syncProgress' in this.deckService) {
+        (this.deckService as any).syncProgress();
+      }
+    };
+    if (typeof window !== 'undefined') {
+      return window.setInterval(sync, 100);
+    }
+    return null;
+  })();
+
+  ngOnDestroy() {
+    if (this._progressSyncIntervalId) {
+      clearInterval(this._progressSyncIntervalId);
+    }
+  }
+
   togglePlay() {
-    // Ensure DeckState is up-to-date before togglePlay branches on isPlaying.
-    (this.deckService as any).syncProgress?.();
+    if ('syncProgress' in this.deckService) {
+      (this.deckService as any).syncProgress();
+    }
     this.deckService.togglePlay('A');
   }
 
-  const playlist = this.playlist();
-  if (playlist.length === 0) return;
+  next() {
+    const playlist = this.playlist();
+    if (playlist.length === 0) return;
 
-  // Repeat current track: reload/restart without changing the index.
-  if (this.isRepeat()) {
+    if (this.isRepeat()) {
+      this.autoLoadCurrent();
+      return;
+    }
+
+    let nextIndex = this.currentIndex() + 1;
+    if (this.isShuffle()) {
+      nextIndex = Math.floor(Math.random() * playlist.length);
+    } else if (nextIndex >= playlist.length) {
+      nextIndex = 0;
+    }
+
+    this.currentIndex.set(nextIndex);
     this.autoLoadCurrent();
-    return;
   }
-
-  let nextIndex = this.currentIndex() + 1;
-  if (this.isShuffle()) {
-    nextIndex = Math.floor(Math.random() * playlist.length);
-  } else if (nextIndex >= playlist.length) {
-    nextIndex = 0;
-  }
-
-  this.currentIndex.set(nextIndex);
-  this.autoLoadCurrent();
 
   previous() {
+    const playlist = this.playlist();
+    if (playlist.length === 0) return;
+
     let prevIndex = this.currentIndex() - 1;
     if (prevIndex < 0) {
-      prevIndex = this.playlist().length - 1;
+      prevIndex = playlist.length - 1;
     }
     this.currentIndex.set(prevIndex);
     this.autoLoadCurrent();
   }
 
   private autoLoadCurrent() {
-    const track = this.currentTrack();
-    if (track && track.buffer) {
+    const targetIndex = this.currentIndex();
+    const track = this.playlist()[targetIndex];
+
+    if (!track) return;
+
+    if (track.buffer) {
       this.deckService.loadDeckBuffer('A', track.buffer, track.title);
       if (!this.isPlaying()) this.togglePlay();
-    } else {
-      console.log('PlayerService: Track has no buffer, skipping auto-load');
-  if (track?.url) {
-        void (async () => {
-          try {
-            const res = await fetch(track.url);
-            const arrayBuffer = await res.arrayBuffer();
-            const buffer = await this.audioEngine
-              .getContext()
-              .decodeAudioData(arrayBuffer.slice(0));
+    } else if (track.url) {
+      void (async () => {
+        try {
+          const res = await fetch(track.url);
+          if (!res.ok) throw new Error(`Failed to fetch track: ${res.status}`);
+          const arrayBuffer = await res.arrayBuffer();
+          const buffer = await this.audioEngine.getContext().decodeAudioData(arrayBuffer);
 
-            // Cache decoded buffer on the playlist entry so next/prev stays in sync.
-            this.playlist.update((p) =>
-              p.map((t, i) =>
-                i === this.currentIndex() ? { ...t, buffer } : t
-              )
-            );
+          // Use the captured targetIndex to ensure we update the correct track entry
+          this.playlist.update((p) =>
+            p.map((t, i) => (i === targetIndex ? { ...t, buffer } : t))
+          );
 
+          // Only load and play if the user hasn't already switched to another track
+          if (this.currentIndex() === targetIndex) {
             this.deckService.loadDeckBuffer('A', buffer, track.title);
             if (!this.isPlaying()) this.togglePlay();
-          } catch (err) {
-            console.warn(
-              'PlayerService: Failed to load track audio from URL',
-              err
-            );
           }
-        })();
-      } else {
-        console.warn(
-          'PlayerService: Track has no buffer or URL; cannot auto-load',
-          track
-        );
-      }
+        } catch (err) {
+          console.warn('PlayerService: Failed to load track audio from URL', err);
+        }
+      })();
+    } else {
+      console.warn('PlayerService: Track has no buffer or URL; cannot auto-load', track);
     }
   }
 
@@ -139,32 +139,32 @@ export class PlayerService {
   toggleRepeat() { this.isRepeat.set(!this.isRepeat()); }
 
   async loadExternalTrack() {
-    const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
-    if (files.length > 0) {
-      const file = files[0];
-      const buffer = await this.fileLoader.decodeToAudioBuffer(
-        this.audioEngine.getContext(),
-        file
-      );
+    try {
+      const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
+      if (files && files.length > 0) {
+        const file = files[0];
+        const buffer = await this.fileLoader.decodeToAudioBuffer(this.audioEngine.getContext(), file);
 
-      const newTrack: GlobalTrack = {
-      this.deckService.loadDeckBuffer('A', buffer, file.name);
-      this.currentTrack.set({
-        id: Date.now().toString(),
-        title: file.name.replace(/\.[^/.]+$/, ""),
-        artist: 'Local Import',
-        buffer: buffer
-      };
+        const newTrack: GlobalTrack = {
+          id: Date.now().toString(),
+          title: file.name.replace(/\.[^/.]+$/, ""),
+          artist: 'Local Import',
+          buffer: buffer
+        };
 
-      this.playlist.update(p => [newTrack, ...p]);
-      this.currentIndex.set(0);
-      this.deckService.loadDeckBuffer('A', buffer, file.name);
-      });
-      if (!this.isPlaying()) this.togglePlay();
+        this.playlist.update(p => [newTrack, ...p]);
+        this.currentIndex.set(0);
+        this.deckService.loadDeckBuffer('A', buffer, file.name);
+        if (!this.isPlaying()) this.togglePlay();
+      }
+    } catch (err) {
+      console.error('PlayerService: Failed to load external track', err);
     }
   }
 
   exportCurrent() {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
     const buffer = this.audioEngine.getDeck('A').buffer;
     if (!buffer) return;
     const wavBuffer = this.exportService.audioBufferToWav(buffer);
@@ -173,7 +173,6 @@ export class PlayerService {
     const a = document.createElement('a');
     a.href = url;
     a.download = `${this.currentTrack()?.title || 'exported_track'}.wav`;
-    a.download = `${this.currentTrack()?.title}.wav`;
     a.click();
     URL.revokeObjectURL(url);
   }
