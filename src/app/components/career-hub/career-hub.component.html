@@ -1,85 +1,151 @@
 <div class="career-page">
-  <div class="glass-container">
-    <header class="page-header">
+  <div class="glass-container max-w-6xl mx-auto">
+    <header class="page-header mb-12 border-b border-white/10 pb-8 flex justify-between items-end">
       <div class="title-group">
-        <h1 class="gradient-text">CAREER COMMAND</h1>
-        <p class="subtitle">Manage your path to the main stage.</p>
+        <h1 class="gradient-text text-5xl font-black italic tracking-tighter uppercase bg-gradient-to-r from-emerald-400 to-violet-500 bg-clip-text text-transparent">
+          CAREER COMMAND
+        </h1>
+        <p class="subtitle text-slate-400 mt-2">Manage your path to the main stage.</p>
       </div>
-      <div class="profile-summary">
-        <span class="rank">LEVEL 42</span>
-        <span class="xp">XP: 12,400</span>
+      <div class="profile-summary text-right">
+        <span class="rank block font-black text-emerald-500 uppercase italic">LEVEL {{ profile().experienceLevel }}</span>
+        <span class="xp text-[10px] font-mono text-slate-500">CATALOG: {{ profile().releasedTracks }} TRACKS</span>
       </div>
     </header>
 
-    <div class="bento-grid">
+    <div class="bento-grid grid grid-cols-12 gap-6">
       <!-- LABEL SUBMISSIONS -->
-      <section class="grid-item submissions">
-        <h3 class="item-title"><i class="fas fa-paper-plane"></i> LABEL RADAR</h3>
-        <div class="submission-list">
-          <div *ngFor="let sub of submissions()" class="submission-card">
-            <div class="card-main">
-              <span class="label-name">{{ sub.labelName }}</span>
-              <span class="status-pill" [attr.data-status]="sub.status">{{ sub.status }}</span>
+      <section class="grid-item submissions col-span-12 lg:col-span-7 bg-slate-900/50 border border-white/5 rounded-2xl p-6">
+        <h3 class="item-title text-sm font-black uppercase tracking-widest text-white mb-6 flex items-center gap-2">
+          <i class="fas fa-paper-plane text-emerald-500"></i> LABEL RADAR
+        </h3>
+        <div class="submission-list space-y-3 mb-6">
+          <div *ngFor="let sub of submissions()" class="submission-card bg-slate-950 p-4 rounded-lg border border-white/5 hover:border-emerald-500/30 transition-all">
+            <div class="card-main flex justify-between items-center mb-2">
+              <span class="label-name font-bold text-white">{{ sub.labelName }}</span>
+              <span class="status-pill text-[10px] font-black uppercase px-2 py-0.5 rounded-full"
+                    [ngClass]="{
+                      'bg-emerald-500/10 text-emerald-500': sub.status === 'Accepted',
+                      'bg-violet-500/10 text-violet-500': sub.status === 'Reviewing',
+                      'bg-yellow-500/10 text-yellow-500': sub.status === 'Pending',
+                      'bg-red-500/10 text-red-500': sub.status === 'Rejected'
+                    }">
+                {{ sub.status }}
+              </span>
             </div>
-            <div class="card-footer">
+            <div class="card-footer flex justify-between items-center text-[10px] text-slate-500">
               <span class="date">{{ sub.date }}</span>
-              <a [href]="sub.demoUrl" target="_blank" class="demo-link">VIEW DEMO</a>
+              <a [href]="sub.demoUrl" target="_blank" class="demo-link font-black text-emerald-500 hover:text-emerald-400 transition-colors uppercase tracking-widest">VIEW DEMO</a>
             </div>
           </div>
         </div>
-        <div class="add-submission">
-          <input [(ngModel)]="newLabel" placeholder="Label Name..." class="form-input">
-          <input [(ngModel)]="newDemo" placeholder="Demo URL..." class="form-input">
-          <button (click)="submitToLabel()" class="btn-submit">SUBMIT PITCH</button>
+        <div class="add-submission mt-6 pt-6 border-t border-white/5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <input [(ngModel)]="newLabel" placeholder="Label Name..." class="form-input bg-slate-950 border border-white/10 rounded-lg p-3 text-sm text-white focus:border-emerald-500 outline-none transition-all">
+            <input [(ngModel)]="newDemo" placeholder="Demo URL..." class="form-input bg-slate-950 border border-white/10 rounded-lg p-3 text-sm text-white focus:border-emerald-500 outline-none transition-all">
+          </div>
+          <button (click)="submitToLabel()" class="btn-submit w-full py-3 bg-emerald-500 text-black font-black uppercase italic rounded-lg hover:scale-[1.02] active:scale-95 transition-all">
+            SUBMIT PITCH
+          </button>
         </div>
       </section>
 
-      <!-- PITCH AUDIT -->
-      <section class="grid-item audit">
-        <h3 class="item-title"><i class="fas fa-stethoscope"></i> AI PITCH AUDIT</h3>
-        <div *ngIf="!auditScore()" class="audit-empty">
-          <p>Run S.M.U.V.E analysis on your current EPK and pitch materials.</p>
-          <button (click)="runPitchAudit()" class="btn-audit">RUN AUDIT</button>
+      <!-- AI STRATEGIC AUDIT -->
+      <section class="grid-item audit col-span-12 lg:col-span-5 bg-slate-900/50 border border-white/5 rounded-2xl p-6 relative overflow-hidden" [class.auditing]="isAuditing()">
+        <h3 class="item-title text-sm font-black uppercase tracking-widest text-white mb-6 flex items-center gap-2">
+          <i class="fas fa-stethoscope text-emerald-500"></i> AI STRATEGIC AUDIT
+        </h3>
+
+        <div *ngIf="!auditResult() && !isAuditing()" class="audit-empty py-12 text-center">
+          <p class="text-slate-400 text-sm mb-8">Run S.M.U.V.E analysis on your current EPK and pitch materials.</p>
+          <button (click)="runPitchAudit()" class="btn-audit w-full py-4 bg-emerald-500/10 border border-emerald-500 text-emerald-500 font-black uppercase italic rounded-lg hover:bg-emerald-500 hover:text-black transition-all">
+            Initialize Audit
+          </button>
         </div>
-        <div *ngIf="auditScore()" class="audit-results animate__animated animate__fadeIn">
-          <div class="score-circle">
-            <span class="score-val">{{ auditScore() }}</span>
-            <span class="score-label">SCORE</span>
+
+        <div *ngIf="isAuditing()" class="audit-loading py-20 text-center">
+          <div class="loader mb-6 mx-auto w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+          <p class="text-xs font-mono text-emerald-500 animate-pulse uppercase tracking-[0.3em]">Analyzing Strategic Infrastructure...</p>
+        </div>
+
+        <div *ngIf="auditResult() && !isAuditing()" class="audit-results animate__animated animate__fadeIn">
+          <div class="score-header flex items-center mb-8">
+            <div class="score-circle flex-shrink-0 w-24 h-24 border-4 border-emerald-500 rounded-full flex flex-col items-center justify-center bg-emerald-500/5">
+              <span class="score-val text-3xl font-black text-white">{{ auditResult()?.score }}</span>
+              <span class="score-label text-[8px] font-black text-emerald-500 uppercase tracking-widest">OVERALL</span>
+            </div>
+            <div class="category-scores grid grid-cols-2 gap-2 flex-grow ml-6">
+              <div *ngFor="let cat of ['production', 'marketing', 'career', 'technical']" class="cat-pill bg-slate-950 p-3 rounded-xl border border-white/5">
+                <div class="text-[8px] uppercase text-slate-500 font-black tracking-widest mb-1">{{ cat }}</div>
+                <div class="text-lg font-black text-emerald-500">{{ auditResult()?.categories?.[cat] }}%</div>
+              </div>
+            </div>
           </div>
-          <ul class="feedback-list">
-            <li *ngFor="let item of auditFeedback()"><i class="fas fa-check-circle"></i> {{ item }}</li>
-          </ul>
+
+          <div class="audit-details space-y-6">
+            <div *ngIf="auditResult()?.strengths?.length">
+              <h4 class="text-[10px] uppercase font-black text-emerald-500 mb-3 tracking-[0.2em] border-l-2 border-emerald-500 pl-3">Primary Strengths</h4>
+              <ul class="feedback-list space-y-2">
+                <li *ngFor="let item of auditResult()?.strengths" class="text-xs text-slate-300 flex items-start gap-3">
+                  <i class="fas fa-check-circle text-emerald-500 mt-0.5"></i>
+                  <span>{{ item }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <div *ngIf="auditResult()?.weaknesses?.length">
+              <h4 class="text-[10px] uppercase font-black text-violet-400 mb-3 tracking-[0.2em] border-l-2 border-violet-500 pl-3">Critical Deficits</h4>
+              <ul class="feedback-list space-y-2">
+                <li *ngFor="let item of auditResult()?.weaknesses" class="text-xs text-slate-300 flex items-start gap-3">
+                  <i class="fas fa-exclamation-triangle text-violet-400 mt-0.5"></i>
+                  <span>{{ item }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-white/5 flex justify-center">
+              <button (click)="runPitchAudit()" class="text-[10px] uppercase font-black text-slate-500 hover:text-emerald-500 transition-colors tracking-[0.2em] flex items-center gap-2">
+                <i class="fas fa-redo text-xs"></i> Re-Run Analysis
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- BOOKING ENGINE -->
-      <section class="grid-item booking">
-        <h3 class="item-title"><i class="fas fa-calendar-check"></i> LIVE BOOKING</h3>
-        <div class="venue-list">
-          <div *ngFor="let venue of venues()" class="venue-card">
-            <div class="venue-info">
-              <span class="venue-name">{{ venue.name }}</span>
-              <span class="venue-loc">{{ venue.location }}</span>
+      <section class="grid-item booking col-span-12 lg:col-span-6 bg-slate-900/50 border border-white/5 rounded-2xl p-6">
+        <h3 class="item-title text-sm font-black uppercase tracking-widest text-white mb-6 flex items-center gap-2">
+          <i class="fas fa-calendar-check text-emerald-500"></i> LIVE BOOKING
+        </h3>
+        <div class="venue-list grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div *ngFor="let venue of venues()" class="venue-card bg-slate-950 p-5 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all group">
+            <div class="venue-info mb-4">
+              <span class="venue-name block font-bold text-white group-hover:text-emerald-500 transition-colors">{{ venue.name }}</span>
+              <span class="venue-loc text-[10px] text-slate-500 uppercase tracking-widest">{{ venue.location }}</span>
             </div>
-            <div class="venue-status">
-              <span class="capacity">{{ venue.capacity }} CAP</span>
-              <span class="booking-status">{{ venue.bookingStatus }}</span>
+            <div class="venue-status pt-4 border-t border-white/5 flex justify-between items-center text-[10px] font-black tracking-widest">
+              <span class="capacity text-violet-400">{{ venue.capacity }} CAP</span>
+              <span class="booking-status text-emerald-500 uppercase italic">{{ venue.bookingStatus }}</span>
             </div>
           </div>
         </div>
       </section>
 
       <!-- LEGAL & SPLITS -->
-      <section class="grid-item legal">
-        <h3 class="item-title"><i class="fas fa-file-contract"></i> RIGHTS & SPLITS</h3>
-        <button (click)="generateSplitSheet()" class="btn-split">CREATE NEW SPLIT SHEET</button>
-        <div class="split-list">
-          <div *ngFor="let sheet of splitSheets()" class="split-card">
+      <section class="grid-item legal col-span-12 lg:col-span-6 bg-slate-900/50 border border-white/5 rounded-2xl p-6">
+        <h3 class="item-title text-sm font-black uppercase tracking-widest text-white mb-6 flex items-center gap-2">
+          <i class="fas fa-file-contract text-emerald-500"></i> RIGHTS & SPLITS
+        </h3>
+        <button (click)="generateSplitSheet()" class="btn-split w-full py-4 bg-violet-600 text-white font-black uppercase italic rounded-xl hover:bg-violet-500 hover:scale-[1.02] transition-all mb-8 shadow-lg shadow-violet-600/20">
+          CREATE NEW SPLIT SHEET
+        </button>
+        <div class="split-list grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div *ngFor="let sheet of splitSheets()" class="split-card bg-slate-950 p-5 rounded-xl border border-white/5 hover:border-violet-500/30 transition-all">
             <div class="split-info">
-               <span class="track-name">{{ sheet.track }}</span>
-               <span class="split-status">{{ sheet.status }}</span>
+               <span class="track-name block font-bold text-white mb-1">{{ sheet.track }}</span>
+               <span class="split-status text-[9px] uppercase font-black text-slate-500 tracking-widest">{{ sheet.status }}</span>
             </div>
-            <div class="split-id">#{{ sheet.id }}</div>
+            <div class="split-id mt-4 text-[10px] font-mono text-violet-500 opacity-50">#{{ sheet.id }}</div>
           </div>
         </div>
       </section>

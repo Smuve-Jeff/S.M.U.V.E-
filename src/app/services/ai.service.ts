@@ -13,7 +13,7 @@ import { ReputationService } from './reputation.service';
 import { StemSeparationService } from './stem-separation.service';
 import { AudioEngineService } from './audio-engine.service';
 import { TrackNote } from './music-manager.service';
-import { LearnedStyle, ProductionSecret, TrendData, UpgradeRecommendation } from '../types/ai.types';
+import { LearnedStyle, ProductionSecret, TrendData, UpgradeRecommendation, ProfileAuditResult, StrategicTask } from '../types/ai.types';
 import { UserContextService, MainViewMode } from './user-context.service';
 import { AnalyticsService } from './analytics.service';
 import { MarketingService } from './marketing.service';
@@ -84,6 +84,7 @@ export class AiService {
 
   advisorAdvice = signal<AdvisorAdvice[]>([]);
   currentStrategyMode = signal<"growth" | "retention" | "experimental">("growth");
+  activeAudit = signal<ProfileAuditResult | null>(null);
 
   private static readonly CHAT_MODEL = 'gemini-1.5-pro-latest';
   private _apiKey = inject(API_KEY_TOKEN, { optional: true });
@@ -114,9 +115,17 @@ export class AiService {
 
   private generateDynamicDecrees(profile: UserProfile) {
     const decrees: string[] = [];
+    const genre = profile.primaryGenre || 'Music';
+
     if (profile.expertiseLevels.production < 6) {
-      decrees.push("COMMAND: PRODUCTION DEFICIT DETECTED. INITIALIZE CHANNEL STRIP AUDIT.");
+      decrees.push(`COMMAND: ${genre.toUpperCase()} PRODUCTION DEFICIT DETECTED. INITIALIZE CHANNEL STRIP AUDIT.`);
     }
+
+    const growth = this.analyticsService.overallGrowth();
+    if (growth < 5) {
+       decrees.push(`TACTICAL ALERT: MARKET PENETRATION STAGNANT. DEPLOY AGGRESSIVE ${genre.toUpperCase()} PROMO.`);
+    }
+
     if (profile.yearsActive < 2) {
       decrees.push("DECREE: ACQUIRE MARKET INTELLIGENCE. REPUTATION IS THE ONLY CURRENCY.");
     }
@@ -132,7 +141,121 @@ export class AiService {
     }
 
     this.strategicDecrees.set(decrees);
+  }
 
+  async runProfileAudit(): Promise<ProfileAuditResult> {
+    const profile = this.userProfileService.profile();
+    const streams = this.analyticsService.streams();
+    const reputation = this.reputationService.state();
+    const genre = profile.primaryGenre || 'Music';
+
+    // Simulate Deep Analysis
+    await new Promise(r => setTimeout(r, 2000));
+
+    const productionScore = Math.min(100, (profile.expertiseLevels.production * 10) + (profile.equipment.length * 2));
+    const marketingScore = Math.min(100, (streams.trend * 5) + (profile.marketingCampaigns?.length || 0 * 10));
+    const careerScore = Math.min(100, (reputation.level * 2) + (profile.releasedTracks * 5));
+    const technicalScore = Math.min(100, (profile.expertiseLevels.mixing * 10) + (profile.expertiseLevels.mastering * 10) / 2);
+
+    const score = Math.round((productionScore + marketingScore + careerScore + technicalScore) / 4);
+
+    const result: ProfileAuditResult = {
+      score,
+      timestamp: Date.now(),
+      categories: {
+        production: productionScore,
+        marketing: marketingScore,
+        career: careerScore,
+        technical: technicalScore
+      },
+      strengths: [],
+      weaknesses: [],
+      recommendations: []
+    };
+
+    if (productionScore > 80) result.strengths.push(`Elite ${genre} Production Infrastructure`);
+    else result.weaknesses.push(`Insufficient ${genre} Sound Design Pipeline`);
+
+    if (marketingScore < 40) {
+      result.weaknesses.push("Market Visibility Crisis");
+      result.recommendations.push("Launch genre-targeted TikTok campaign");
+    } else {
+      result.strengths.push("Stable Audience Engagement");
+    }
+
+    if (careerScore < 50) {
+      result.recommendations.push("Increase release frequency to build catalog equity");
+    }
+
+    this.activeAudit.set(result);
+    return result;
+  }
+
+  getDynamicChecklist(): StrategicTask[] {
+    const profile = this.userProfileService.profile();
+    const audit = this.activeAudit();
+    const tasks: StrategicTask[] = [];
+
+    // Base Tasks
+    tasks.push({ id: '1', label: 'Register with PRO (ASCAP/BMI)', completed: false, category: 'pre', impact: 'High' });
+    tasks.push({ id: '2', label: 'Submit to The MLC', completed: false, category: 'pre', impact: 'Medium' });
+
+    if (audit && audit.categories.marketing < 50) {
+      tasks.push({
+        id: 'at-1',
+        label: 'Execute Emergency Social Blitz',
+        completed: false,
+        category: 'day',
+        impact: 'High',
+        description: 'Your marketing score is low. This is critical for visibility.'
+      });
+    }
+
+    if (profile.expertiseLevels.mastering < 5) {
+      tasks.push({
+        id: 'at-2',
+        label: 'Run AI Mastering Audit',
+        completed: false,
+        category: 'pre',
+        impact: 'High',
+        description: 'Technical deficit detected. Ensure your masters meet DSP standards.'
+      });
+    }
+
+    return tasks;
+  }
+
+  getViralHooks(): string[] {
+    const profile = this.userProfileService.profile();
+    const genre = (profile.primaryGenre || 'Music').toLowerCase();
+
+    const hooks: Record<string, string[]> = {
+      'hip-hop': [
+        "The beat switch that actually makes you feel something.",
+        "POV: You just found the hardest underground lyricist.",
+        "Write a verse in 30 seconds: Trap edition.",
+        "How I made this bassline break my car speakers."
+      ],
+      'electronic': [
+        "The drop that took me 40 hours to finish.",
+        "Can you guess the sample? (Hint: It's a coffee machine)",
+        "Synth sound design: Creating the 'Alien' lead.",
+        "POV: You're at a festival and this track starts."
+      ],
+      'pop': [
+        "The melody you'll be humming all day.",
+        "Behind the lyrics: What '...' actually means.",
+        "How we recorded the vocals for my new single.",
+        "Vibe check: Morning coffee vs Late night drive."
+      ]
+    };
+
+    return hooks[genre] || [
+      `Start with a question that your ${genre} audience always asks.`,
+      `The 'POV: You just found your new favorite artist' transition.`,
+      `Show the 'Struggle vs Success' timeline of your latest track.`,
+      `Vibe check: Use high-contrast lighting with your latest track.`
+    ];
   }
 
   private updateAdvisorAdvice(view: MainViewMode, profile: UserProfile) {
@@ -389,10 +512,46 @@ export class AiService {
       });
     }
 
+    // Movie Strategic Recommendations
+    if (profile.expertiseLevels.production > 5) {
+      recommendations.push({
+        id: 'strat-movie-1',
+        action: 'Perform Neural Scene Audit',
+        impact: 'Extreme',
+        difficulty: 'High',
+        toolId: 'image-video-lab'
+      });
+      recommendations.push({
+        id: 'strat-movie-2',
+        action: 'Apply Global Visual Cohesion',
+        impact: 'High',
+        difficulty: 'Medium',
+        toolId: 'image-video-lab'
+      });
+    }
+
     return recommendations.length > 0 ? recommendations : [
       { id: 'strat-5', action: 'Analyze Market Trends', impact: 'Medium', difficulty: 'Low', toolId: 'analytics' },
       { id: 'strat-6', action: 'Optimize Low-End Frequencies', impact: 'High', difficulty: 'Medium', toolId: 'studio' }
     ];
+  }
+
+  async runNeuralSceneDetection(videoUrl: string): Promise<any> {
+    // Mock local AI inference for scene detection
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve([
+          { timestamp: 0, label: 'Intro / Establishing Shot' },
+          { timestamp: 45, label: 'Action Sequence Alpha' },
+          { timestamp: 120, label: 'Character Dialogue' }
+        ]);
+      }, 2000);
+    });
+  }
+
+  async applyAutoMastering(audioBuffer: AudioBuffer): Promise<AudioBuffer> {
+    // Mock local AI sound enhancement
+    return audioBuffer;
   }
 
   async generateMusic(prompt: string): Promise<any[]> {
@@ -448,7 +607,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'DistroKid Musician Plus',
     type: 'Service',
     description: 'Essential infrastructure. Unlimited uploads, synced lyrics, and daily sales stats for the serious architect.',
-    cost: '$35.99/yr',
+    cost: '5.99/yr',
     url: 'https://distrokid.com',
     minLevel: 1,
     impact: 'Medium'
@@ -458,7 +617,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Serum Advanced Wavetable Synth',
     type: 'Software',
     description: 'The sonic foundation of modern electronic music. Precise wavetable manipulation for elite sound design.',
-    cost: '$189',
+    cost: '89',
     url: 'https://xferrecords.com',
     minLevel: 5,
     impact: 'High',
@@ -469,7 +628,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Neumann U87 Ai',
     type: 'Gear',
     description: 'The undisputed gold standard multi-pattern condenser microphone. Necessary for radio-ready vocal clarity.',
-    cost: '$3,600',
+    cost: ',600',
     url: 'https://en-de.neumann.com',
     minLevel: 20,
     impact: 'High',
@@ -480,7 +639,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Splice Creator Plan',
     type: 'Software',
     description: 'Rapid prototyping assets. Access to millions of royalty-free loops and one-shots for efficient workflow.',
-    cost: '$19.99/mo',
+    cost: '9.99/mo',
     url: 'https://splice.com',
     minLevel: 1,
     impact: 'Medium'
@@ -490,7 +649,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Waves Horizon Bundle',
     type: 'Software',
     description: 'Strategic arsenal. 80+ industry-standard plugins for every stage of the production lifecycle.',
-    cost: '$299',
+    cost: '$199',
     url: 'https://waves.com',
     minLevel: 15,
     impact: 'High'
@@ -500,7 +659,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Focal Shape 65 Studio Monitors',
     type: 'Gear',
     description: 'Tactical transparency. Precise stereo imaging for critical decision-making in the mix phase.',
-    cost: '$1,800/pair',
+    cost: ',800/pair',
     url: 'https://www.focal.com',
     minLevel: 12,
     impact: 'High'
@@ -510,7 +669,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Native Instruments Komplete 14 Ultimate',
     type: 'Software',
     description: 'The total production ecosystem. 140,000+ sounds to ensure you never hit a creative bottleneck.',
-    cost: '$1,199',
+    cost: ',199',
     url: 'https://www.native-instruments.com',
     minLevel: 30,
     impact: 'Extreme',
@@ -521,7 +680,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Songtrust Publishing Administration',
     type: 'Service',
     description: 'Asset protection. Autonomous collection of global mechanical and performance royalties.',
-    cost: '$100 one-time',
+    cost: '00 one-time',
     url: 'https://www.songtrust.com',
     minLevel: 3,
     impact: 'High'
@@ -531,7 +690,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'SoundBetter Premium',
     type: 'Service',
     description: 'Network expansion. Connect with world-class engineers to delegate high-precision tasks.',
-    cost: '$20/mo',
+    cost: '$10/mo',
     url: 'https://soundbetter.com',
     minLevel: 8,
     impact: 'Medium'
@@ -541,7 +700,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'iZotope Music Production Suite 6',
     type: 'Software',
     description: 'AI-assisted dominance. Intelligent tools for mixing and mastering that adapt to your profile.',
-    cost: '$599',
+    cost: '$199',
     url: 'https://www.izotope.com',
     minLevel: 10,
     impact: 'High'
@@ -551,7 +710,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Moog Matriarch Semi-Modular Synth',
     type: 'Gear',
     description: 'Analog purity. A 4-note paraphonic synthesizer for creating unique sonic signatures.',
-    cost: '$2,299',
+    cost: ',299',
     url: 'https://www.moogmusic.com',
     minLevel: 35,
     impact: 'High',
@@ -562,7 +721,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Chartmetric Premium',
     type: 'Service',
     description: 'Data intelligence. Comprehensive analytics to track your global market penetration.',
-    cost: '$140/mo',
+    cost: '40/mo',
     url: 'https://chartmetric.com',
     minLevel: 18,
     impact: 'High'
@@ -572,7 +731,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'FabFilter Total Bundle',
     type: 'Software',
     description: 'Precision engineering. The industry\'s most intuitive and powerful tools for signal processing.',
-    cost: '$899',
+    cost: '$199',
     url: 'https://www.fabfilter.com',
     minLevel: 20,
     impact: 'High'
@@ -582,7 +741,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Ableton Live 12 Suite',
     type: 'Software',
     description: 'Operational headquarters. The most flexible environment for creation and live execution.',
-    cost: '$749',
+    cost: '$349',
     url: 'https://www.ableton.com',
     minLevel: 1,
     impact: 'High',
@@ -593,7 +752,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Solid State Logic Duality Fuse',
     type: 'Gear',
     description: 'The pinnacle of analog command. SuperAnalogue circuitry with seamless DAW integration.',
-    cost: '$285,000',
+    cost: '85,000',
     url: 'https://www.solidstatelogic.com',
     minLevel: 55,
     impact: 'Extreme'
@@ -603,7 +762,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Wanda Film Studio Scoring Stage Residency',
     type: 'Service',
     description: 'Orchestral supremacy. Unlimited access to elite scoring stages and a full symphony ensemble.',
-    cost: '$50,000/session',
+    cost: '0,000/session',
     url: 'https://www.wandafilm.com',
     minLevel: 50,
     impact: 'Extreme',
@@ -624,7 +783,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Global Stadium World Tour Logistics',
     type: 'Service',
     description: 'Total market saturation. End-to-end management for international stadium-level campaigns.',
-    cost: '$5M+',
+    cost: '$1M+',
     url: 'https://www.live-nation.com',
     minLevel: 60,
     impact: 'Extreme'
@@ -687,7 +846,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Audeze LCD-MX4 Professional Headphones',
     type: 'Gear',
     description: 'Critical monitoring anywhere. Planar magnetic technology for mastering-grade accuracy.',
-    cost: '$2,995',
+    cost: '$3,995',
     url: 'https://www.audeze.com',
     minLevel: 18,
     impact: 'High'
@@ -697,7 +856,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'RED V-RAPTOR XL 8K VV',
     type: 'Gear',
     description: 'Cinematic powerhouse. Multi-format 8K sensor for elite music video production and feature films.',
-    cost: '$39,500',
+    cost: '$59,500',
     url: 'https://www.red.com',
     minLevel: 50,
     impact: 'Extreme',
@@ -730,7 +889,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Teradek Bolt 6 XT 750',
     type: 'Gear',
     description: 'Zero-delay wireless video transmission for real-time monitoring on set.',
-    cost: '$2,990',
+    cost: '$6,990',
     url: 'https://teradek.com',
     minLevel: 25,
     impact: 'Medium',
@@ -752,7 +911,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Sub-Atomic Kick Dominance Pack',
     type: 'Software',
     description: 'Low-frequency psychological warfare. Kicks engineered to bypass conscious resistance and impact the central nervous system.',
-    cost: '$49',
+    cost: '$29',
     url: 'https://www.smuve.ai/samples/kicks',
     minLevel: 5,
     impact: 'High',
@@ -763,7 +922,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Tectonic 808 Earthshaker Series',
     type: 'Software',
     description: 'Seismic assets for territorial expansion. Sub-basses that redefine structural integrity and establish sonic dominance.',
-    cost: '$59',
+    cost: '$29',
     url: 'https://www.smuve.ai/samples/808',
     minLevel: 8,
     impact: 'High',
@@ -774,7 +933,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Orbital Hi-Hat Precision Modules',
     type: 'Software',
     description: 'High-velocity rhythmic projectiles. Ultra-crisp transients designed for rapid-fire deployment in competitive soundscapes.',
-    cost: '$39',
+    cost: '$29',
     url: 'https://www.smuve.ai/samples/hats',
     minLevel: 3,
     impact: 'Medium',
@@ -785,7 +944,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Global Tribal Rhythmetic Warfare',
     type: 'Software',
     description: 'Ancient percussive intelligence. A multi-continental arsenal for complex rhythmic maneuvers and cultural infiltration.',
-    cost: '$69',
+    cost: '$29',
     url: 'https://www.smuve.ai/samples/perc',
     minLevel: 12,
     impact: 'High',
@@ -807,7 +966,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Grand Imperial Ivory Command',
     type: 'Software',
     description: 'The definitive piano protocol. Multi-sampled grandeur for those who demand total melodic authority and emotional leverage.',
-    cost: '$499',
+    cost: '$199',
     url: 'https://www.smuve.ai/samples/piano',
     minLevel: 20,
     impact: 'Extreme',
@@ -829,7 +988,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Cinematic Sovereign Orchestral Suite',
     type: 'Software',
     description: 'Total atmospheric control. An elite symphony at your command for creating narratives of unstoppable scale.',
-    cost: '$899',
+    cost: '$199',
     url: 'https://www.smuve.ai/samples/orchestra',
     minLevel: 40,
     impact: 'Extreme',
@@ -840,7 +999,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Quantum Glitch & Transition Tactics',
     type: 'Software',
     description: 'Temporal distortion assets. FX and transitions that disrupt the listener\'s perception of time and space.',
-    cost: '$79',
+    cost: '$29',
     url: 'https://www.smuve.ai/samples/fx',
     minLevel: 10,
     impact: 'High',
@@ -862,7 +1021,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Portable Vocal Shield',
     type: 'Gear',
     description: 'Isolation for the nomadic artist. Eliminate room reflections and capture studio-quality vocals in any environment.',
-    cost: '9',
+    cost: '$29',
     url: 'https://www.seelectronics.com',
     minLevel: 0,
     impact: 'High',
@@ -873,7 +1032,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'DIY Acoustic Treatment Kit',
     type: 'Gear',
     description: 'Strategic sound absorption. A curated set of high-density foam panels to neutralize standing waves in your practice space.',
-    cost: '49',
+    cost: '$349',
     url: 'https://www.gikacoustics.com',
     minLevel: 5,
     impact: 'Medium'
@@ -883,7 +1042,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Professional In-Ear Monitors',
     type: 'Gear',
     description: 'Critical hearing protection and clarity. Hear every detail of your performance without the stage noise.',
-    cost: '99',
+    cost: '$199',
     url: 'https://www.shure.com',
     minLevel: 10,
     impact: 'High'
@@ -893,7 +1052,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Soundproof Rehearsal Space Credit',
     type: 'Service',
     description: 'Tactical retreats. Access to elite, soundproof rehearsal environments for high-intensity performance training.',
-    cost: '50/mo',
+    cost: '$50/mo',
     url: 'https://www.pirate.com',
     minLevel: 0,
     impact: 'Medium'
@@ -903,7 +1062,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'High-Performance Visual Metronome',
     type: 'Gear',
     description: 'Internalize the pulse. A haptic and visual timing device for developing rock-solid rhythmic discipline.',
-    cost: '5',
+    cost: '$45',
     url: 'https://www.soundbrenner.com',
     minLevel: 0,
     impact: 'Medium'
@@ -913,7 +1072,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Mobile Rehearsal Interface',
     type: 'Gear',
     description: 'Battle-ready connectivity. A rugged, high-fidelity interface for recording and analyzing rehearsals on the go.',
-    cost: '99',
+    cost: '$199',
     url: 'https://www.focusrite.com',
     minLevel: 0,
     impact: 'High'
@@ -923,7 +1082,7 @@ const UPGRADE_DB: UpgradeRecommendation[] = [
     title: 'Professional Vocal Steam Inhaler',
     type: 'Gear',
     description: 'Biological maintenance. Essential hydration for the vocal folds to ensure peak performance stamina.',
-    cost: '5',
+    cost: '$45',
     url: 'https://www.vicks.com',
     minLevel: 0,
     impact: 'Medium',

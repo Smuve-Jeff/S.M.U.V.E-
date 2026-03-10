@@ -1,233 +1,244 @@
-<div class="p-8 text-white bg-brand-dark min-h-full">
-  <header class="mb-12 flex justify-between items-end">
-    <div>
-      <h1 class="text-5xl font-black italic tracking-tighter text-emerald-500 uppercase">Image & Video Lab</h1>
-      <p class="text-slate-400 mt-2">Visual Branding & AI-Powered Multimedia Studio</p>
+<div class="min-h-screen bg-brand-dark text-slate-100 font-mono flex flex-col p-4 md:p-8 pt-24 gap-8">
+
+  <!-- AI Status Banner -->
+  <header class="bg-brand-surface border border-emerald-500/30 p-4 rounded-xl flex items-center justify-between shadow-lg shadow-emerald-500/5">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center animate-pulse border border-emerald-500/40">
+        <i class="fas fa-microchip text-emerald-400"></i>
+      </div>
+      <div>
+        <h1 class="text-xs font-black uppercase tracking-[0.3em] text-emerald-500">S.M.U.V.E. Cinema Engine v3.0</h1>
+        <p class="text-lg font-black italic tracking-tighter text-white">{{ aiFeedback() }}</p>
+      </div>
     </div>
-    <div class="hidden lg:block text-right">
-      <div class="text-xs font-black text-emerald-500 tracking-[0.2em] uppercase mb-1">AI System Status</div>
-      <div class="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 font-mono text-sm animate-pulse">
-        {{ aiFeedback() }}
+    <div class="flex items-center gap-6">
+      <div class="text-right">
+        <span class="block text-[10px] text-slate-500 font-black uppercase tracking-widest">Global Playback</span>
+        <span class="text-xl font-mono text-emerald-400">{{ videoEngine.currentTime() | number:'1.2-2' }}s / {{ videoEngine.duration() / 60 | number:'1.0-0' }}m</span>
       </div>
     </div>
   </header>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
-    <!-- Director's Monitor & Video Tools -->
-    <div class="lg:col-span-2 space-y-8">
+  <div class="flex-1 grid grid-cols-1 xl:grid-cols-[1fr,380px] gap-8 min-h-0">
 
-      <!-- Video Monitor -->
-      <section class="bg-brand-surface border-2 border-slate-800 rounded-3xl overflow-hidden shadow-2xl relative">
-        <div class="bg-slate-900/80 p-4 border-b border-slate-800 flex justify-between items-center">
+    <!-- Central Cinema Suite -->
+    <div class="flex flex-col gap-6 min-h-0">
+
+      <!-- Video Preview -->
+      <section class="flex-1 bg-black rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden group">
+        <div class="absolute inset-0 pointer-events-none z-10">
+          <div class="absolute top-4 left-4 border-t-2 border-l-2 border-emerald-500/50 w-12 h-12"></div>
+          <div class="absolute top-4 right-4 border-t-2 border-r-2 border-emerald-500/50 w-12 h-12"></div>
+          <div class="absolute bottom-4 left-4 border-b-2 border-l-2 border-emerald-500/50 w-12 h-12"></div>
+          <div class="absolute bottom-4 right-4 border-b-2 border-r-2 border-emerald-500/50 w-12 h-12"></div>
+        </div>
+
+        <canvas #previewCanvas class="w-full h-full object-contain" width="1280" height="720"></canvas>
+
+        <!-- Preview Controls Overlay -->
+        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black to-transparent p-6 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="flex items-center justify-center gap-8">
+            <button (click)="videoEngine.seek(0)" class="text-slate-400 hover:text-emerald-400 transition-colors"><i class="fas fa-step-backward fa-2x"></i></button>
+            <button (click)="videoEngine.togglePlayback()" class="w-16 h-16 bg-emerald-500 rounded-full text-black flex items-center justify-center hover:scale-110 transition-transform shadow-lg shadow-emerald-500/20">
+              <i class="fas fa-2x" [class.fa-play]="!videoEngine.isPlaying()" [class.fa-pause]="videoEngine.isPlaying()"></i>
+            </button>
+            <button class="text-slate-400 hover:text-emerald-400 transition-colors"><i class="fas fa-step-forward fa-2x"></i></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Multi-Track Timeline -->
+      <section class="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden flex flex-col h-[320px]">
+        <div class="bg-slate-900 p-3 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex gap-4">
+            <button class="px-3 py-1 bg-slate-800 rounded text-[10px] font-bold uppercase tracking-widest text-emerald-400"><i class="fas fa-plus mr-2"></i>Add Track</button>
+            <button class="px-3 py-1 bg-slate-800 rounded text-[10px] font-bold uppercase tracking-widest text-slate-400"><i class="fas fa-scissors mr-2"></i>Split</button>
+          </div>
           <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2">
-              <div class="w-2 h-2 rounded-full" [ngClass]="isCameraActive() ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-slate-700'"></div>
-              <span class="text-[10px] font-black tracking-widest uppercase text-slate-400">Cam A-1</span>
-            </div>
-            <div *ngIf="isRecording()" class="flex items-center gap-2 animate-pulse">
-              <div class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]"></div>
-              <span class="text-[10px] font-black tracking-widest uppercase text-red-500">REC</span>
-            </div>
-          </div>
-          <div class="text-[10px] font-mono text-slate-500">RES: {{ streamingSettings().resolution }} | FPS: 60 | BITRATE: {{ streamingSettings().bitrate }}kbps</div>
-        </div>
-
-        <div class="aspect-video bg-black relative flex items-center justify-center">
-          <video #videoElement autoplay playsinline [muted]="true" class="w-full h-full object-cover" [class.hidden]="!isCameraActive()"></video>
-
-          <div *ngIf="!isCameraActive()" class="flex flex-col items-center text-center p-12">
-            <i class="fas fa-video-slash text-6xl text-slate-800 mb-6"></i>
-            <h3 class="text-2xl font-black italic uppercase text-slate-700">Sensor Link Offline</h3>
-            <p class="text-slate-500 max-w-xs mt-2">Initialize hardware for real-time visual monitoring and capture.</p>
-          </div>
-
-          <!-- Overlay UI -->
-          <div *ngIf="isCameraActive()" class="absolute inset-0 pointer-events-none border-[20px] border-transparent">
-            <div class="absolute top-4 left-4 border-t-2 border-l-2 border-emerald-500/50 w-12 h-12"></div>
-            <div class="absolute top-4 right-4 border-t-2 border-r-2 border-emerald-500/50 w-12 h-12"></div>
-            <div class="absolute bottom-4 left-4 border-b-2 border-l-2 border-emerald-500/50 w-12 h-12"></div>
-            <div class="absolute bottom-4 right-4 border-b-2 border-r-2 border-emerald-500/50 w-12 h-12"></div>
-
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 opacity-20">
-              <div class="absolute top-1/2 left-0 w-full h-0.5 bg-emerald-500"></div>
-              <div class="absolute top-0 left-1/2 w-0.5 h-full bg-emerald-500"></div>
-            </div>
+             <input type="range" [min]="0.1" [max]="5" [step]="0.1" [ngModel]="zoomLevel()" (ngModelChange)="zoomLevel.set($any($event))" class="w-32 accent-emerald-500">
+             <span class="text-[10px] text-slate-500 font-bold">ZOOM: {{ zoomLevel() | number:'1.1-1' }}x</span>
           </div>
         </div>
 
-        <div class="p-6 bg-slate-900/50 backdrop-blur-md flex flex-wrap gap-4">
-          <button
-            *ngIf="!isCameraActive()"
-            (click)="startCamera()"
-            class="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase italic tracking-tighter transition-all flex items-center gap-3 rounded-lg"
-          >
-            <i class="fas fa-camera"></i>
-            Initialize Camera
-          </button>
+        <div class="flex-1 overflow-auto custom-scrollbar">
+          <div class="relative min-w-full" [style.width.px]="videoEngine.duration() * 10 * zoomLevel()">
 
-          <ng-container *ngIf="isCameraActive()">
-            <button
-              (click)="stopCamera()"
-              class="px-6 py-3 bg-slate-800 hover:bg-red-500/20 hover:text-red-500 border border-transparent hover:border-red-500/50 font-black uppercase italic tracking-tighter transition-all flex items-center gap-3 rounded-lg"
-            >
-              <i class="fas fa-power-off"></i>
-              Disconnect
-            </button>
-
-            <button
-              *ngIf="!isRecording()"
-              (click)="startRecording()"
-              class="px-8 py-3 bg-red-600 hover:bg-red-500 text-white font-black uppercase italic tracking-tighter transition-all flex items-center gap-3 rounded-lg shadow-lg shadow-red-600/20"
-            >
-              <i class="fas fa-circle"></i>
-              Start Recording
-            </button>
-
-            <button
-              *ngIf="isRecording()"
-              (click)="stopRecording()"
-              class="px-8 py-3 bg-white hover:bg-slate-100 text-black font-black uppercase italic tracking-tighter transition-all flex items-center gap-3 rounded-lg animate-pulse"
-            >
-              <i class="fas fa-stop"></i>
-              Stop Capture
-            </button>
-          </ng-container>
-        </div>
-      </section>
-
-      <!-- AI Image Generation (Secondary but integrated) -->
-      <section class="bg-brand-surface border border-emerald-500/20 p-8 rounded-2xl shadow-2xl relative overflow-hidden group">
-        <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] pointer-events-none group-hover:bg-emerald-500/10 transition-all"></div>
-
-        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
-          <i class="fas fa-magic text-emerald-400"></i>
-          Concept Art Generator
-        </h2>
-
-        <div class="space-y-6">
-          <div class="relative">
-            <textarea
-              [ngModel]="imagePrompt()"
-              (ngModelChange)="imagePrompt.set($event)"
-              placeholder="Describe a cinematic scene or music video aesthetic..."
-              class="w-full h-32 p-4 bg-brand-dark border border-slate-700 rounded-xl focus:border-emerald-500 outline-none transition-all resize-none text-lg"
-            ></textarea>
-
-            <div class="absolute bottom-4 right-4 flex items-center gap-4">
-              <label class="flex items-center gap-2 cursor-pointer group">
-                <span class="text-xs font-bold uppercase tracking-widest text-slate-500 group-hover:text-emerald-400 transition-colors">HQ Enhancer</span>
-                <input type="checkbox" [ngModel]="highQualityEnhancer()" (ngModelChange)="highQualityEnhancer.set($event)" class="w-5 h-5 accent-emerald-500">
-              </label>
+            <!-- Playhead -->
+            <div class="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 pointer-events-none" [style.left.px]="videoEngine.currentTime() * 10 * zoomLevel()">
+              <div class="absolute -top-1 -left-1.5 w-4 h-4 bg-red-500 rounded-full shadow-lg shadow-red-500/40"></div>
             </div>
-          </div>
 
-          <div class="flex flex-wrap gap-2">
-            <button
-              *ngFor="let template of templates"
-              (click)="applyTemplate(template.prompt)"
-              class="px-4 py-2 bg-brand-dark hover:bg-emerald-500/10 border border-slate-700 hover:border-emerald-500/50 rounded-full text-xs font-bold uppercase tracking-widest transition-all"
-            >
-              {{ template.name }}
-            </button>
-          </div>
+            <!-- Tracks -->
+            <div *ngFor="let track of videoEngine.tracks()" class="h-16 border-b border-slate-800/50 relative flex items-center group">
+              <div class="sticky left-0 z-10 w-48 h-full bg-slate-900/90 backdrop-blur-md border-r border-slate-800 p-4 flex items-center justify-between">
+                <div>
+                   <h3 class="text-[10px] font-black uppercase tracking-widest" [class.text-emerald-400]="track.type === 'visual'" [class.text-violet-400]="track.type === 'overlay'">{{ track.name }}</h3>
+                </div>
+                <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <button (click)="track.muted = !track.muted" [class.text-red-500]="track.muted" class="text-slate-500"><i class="fas" [class.fa-volume-up]="!track.muted" [class.fa-volume-mute]="track.muted"></i></button>
+                   <button (click)="track.locked = !track.locked" [class.text-emerald-500]="track.locked" class="text-slate-500"><i class="fas" [class.fa-unlock]="!track.locked" [class.fa-lock]="track.locked"></i></button>
+                </div>
+              </div>
 
-          <button
-            (click)="generateImage()"
-            [disabled]="isGenerating() || !imagePrompt()"
-            class="w-full py-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-700 text-black font-black uppercase tracking-tighter italic text-xl transition-all flex items-center justify-center gap-3"
-          >
-            <i class="fas" [ngClass]="{'fa-bolt': !isGenerating(), 'fa-spinner fa-spin': isGenerating()}"></i>
-            {{ isGenerating() ? 'VISUALIZING CONCEPT...' : 'GENERATE CONCEPT ART' }}
-          </button>
-        </div>
-
-        <!-- Result Preview -->
-        <div *ngIf="generatedImageUrl() || isGenerating()" class="mt-8 border-t border-slate-800 pt-8">
-          <div class="relative aspect-video rounded-xl overflow-hidden bg-brand-dark border border-slate-700">
-            <img *ngIf="generatedImageUrl()" [src]="generatedImageUrl()" alt="Generated visual" class="w-full h-full object-cover">
-            <div *ngIf="isGenerating()" class="absolute inset-0 flex flex-col items-center justify-center bg-brand-dark/80 backdrop-blur-sm">
-              <div class="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p class="text-emerald-400 font-bold animate-pulse">S.M.U.V.E is visualizing...</p>
+              <!-- Clips -->
+              <div
+                *ngFor="let clip of track.clips"
+                class="absolute h-12 rounded-lg border flex items-center px-4 cursor-move transition-all"
+                [class.bg-emerald-500/20]="track.type === 'visual'"
+                [class.border-emerald-500/50]="track.type === 'visual'"
+                [class.bg-violet-500/20]="track.type === 'overlay'"
+                [class.border-violet-500/50]="track.type === 'overlay'"
+                [style.left.px]="clip.startTime * 10 * zoomLevel()"
+                [style.width.px]="clip.duration * 10 * zoomLevel()"
+              >
+                <span class="text-[10px] font-bold truncate">{{ clip.name }}</span>
+                <div *ngIf="clip.effects.upscale" class="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-sm shadow-emerald-500"></div>
+              </div>
             </div>
-          </div>
-          <div *ngIf="generatedImageUrl()" class="mt-4 flex justify-end gap-4">
-            <button class="text-slate-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"><i class="fas fa-download mr-2"></i>Export</button>
-            <button class="text-slate-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"><i class="fas fa-share-alt mr-2"></i>Use as Storyboard</button>
-          </div>
-        </div>
-      </section>
-    </div>
 
-    <!-- Sidebar: Assets & Streaming -->
-    <div class="space-y-8">
-
-      <!-- Visual Vault (Recorded Clips) -->
-      <section class="bg-brand-surface border border-slate-800 p-6 rounded-2xl">
-        <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-          <i class="fas fa-film text-emerald-400"></i>
-          Visual Vault
-        </h2>
-
-        <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-          <div *ngIf="recordedClips().length === 0" class="text-center py-12 border-2 border-dashed border-slate-800 rounded-xl">
-            <p class="text-slate-600 text-xs font-bold uppercase tracking-widest">No captures yet</p>
-          </div>
-
-          <div *ngFor="let clip of recordedClips()" class="group relative aspect-video bg-black rounded-xl overflow-hidden border border-slate-700 hover:border-emerald-500/50 transition-all">
-            <video [src]="clip.url" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"></video>
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-4">
-              <div class="flex justify-between items-center">
-                <span class="text-[10px] font-mono text-slate-400">{{ clip.timestamp | date:'HH:mm:ss' }}</span>
-                <button (click)="downloadClip(clip.url)" class="w-8 h-8 rounded-full bg-emerald-500 text-black flex items-center justify-center hover:scale-110 transition-transform">
-                  <i class="fas fa-download text-xs"></i>
-                </button>
+            <!-- Timeline Marks -->
+            <div class="absolute top-0 w-full h-full flex pointer-events-none">
+              <div *ngFor="let _ of [].constructor(60); let i = index" class="border-l border-slate-800 h-full" [style.width.px]="60 * 10 * zoomLevel()">
+                <span class="text-[8px] text-slate-700 p-1">{{ i }}m</span>
               </div>
             </div>
           </div>
         </div>
       </section>
+    </div>
 
-      <!-- Global Stream Hub -->
-      <section class="bg-brand-surface border border-violet-500/20 p-6 rounded-2xl relative overflow-hidden">
-        <div class="absolute -top-12 -right-12 w-32 h-32 bg-violet-500/10 blur-3xl rounded-full"></div>
+    <!-- Sidebar: AI Strategic Director -->
+    <aside class="flex flex-col gap-8">
 
-        <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-          <i class="fas fa-broadcast-tower text-violet-400"></i>
-          Global Radio / Stream
-        </h3>
+      <!-- Director Tabs -->
+      <nav class="flex p-1 bg-brand-surface rounded-xl border border-slate-800">
+        <button
+          (click)="activeDirectorTab.set('assets')"
+          [class.bg-emerald-500]="activeDirectorTab() === 'assets'"
+          [class.text-black]="activeDirectorTab() === 'assets'"
+          class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
+        >VAULT</button>
+        <button
+          (click)="activeDirectorTab.set('effects')"
+          [class.bg-emerald-500]="activeDirectorTab() === 'effects'"
+          [class.text-black]="activeDirectorTab() === 'effects'"
+          class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
+        >FX ENGINE</button>
+        <button
+          (click)="activeDirectorTab.set('ai')"
+          [class.bg-emerald-500]="activeDirectorTab() === 'ai'"
+          [class.text-black]="activeDirectorTab() === 'ai'"
+          class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
+        >DIRECTOR</button>
+      </nav>
 
-        <div class="space-y-4 mb-8">
-          <div class="flex justify-between items-center p-3 bg-brand-dark/50 rounded-lg border border-slate-800">
-            <span class="text-[10px] font-black text-slate-500 tracking-widest uppercase">Platform</span>
-            <span class="text-xs font-bold text-violet-400">{{ streamingSettings().platform }}</span>
-          </div>
-          <div class="flex justify-between items-center p-3 bg-brand-dark/50 rounded-lg border border-slate-800">
-            <span class="text-[10px] font-black text-slate-500 tracking-widest uppercase">Resolution</span>
-            <span class="text-xs font-bold">{{ streamingSettings().resolution }}</span>
-          </div>
+      <div class="flex-1 overflow-y-auto custom-scrollbar">
+
+        <!-- Vault Tab -->
+        <div *ngIf="activeDirectorTab() === 'assets'" class="space-y-6">
+           <div class="p-8 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center gap-4 hover:border-emerald-500/50 transition-colors cursor-pointer relative overflow-hidden group">
+              <input type="file" (change)="onFileUpload()" class="absolute inset-0 opacity-0 cursor-pointer">
+              <i class="fas fa-upload text-3xl text-slate-700 group-hover:text-emerald-400 transition-colors"></i>
+              <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Ingest Full Length Asset</span>
+           </div>
+
+           <div class="space-y-4">
+              <h3 class="text-xs font-black uppercase text-slate-500 tracking-widest">Global Resource Repository</h3>
+              <div *ngFor="let track of videoEngine.tracks()" class="space-y-2">
+                 <div *ngFor="let clip of track.clips" class="p-3 bg-brand-surface border border-slate-800 rounded-xl flex items-center justify-between group hover:border-emerald-500/30 transition-all">
+                    <div class="flex items-center gap-3">
+                       <i class="fas fa-file-video text-emerald-400"></i>
+                       <span class="text-xs font-bold truncate w-32">{{ clip.name }}</span>
+                    </div>
+                    <button (click)="videoEngine.removeClip(clip.id)" class="text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-trash text-[10px]"></i></button>
+                 </div>
+              </div>
+           </div>
         </div>
 
-        <button
-          (click)="toggleLive()"
-          [class.bg-red-500]="streamingSettings().isLive"
-          [class.bg-violet-500]="!streamingSettings().isLive"
-          class="w-full py-4 text-black font-black uppercase tracking-tighter italic text-xl rounded-xl transition-all shadow-lg flex items-center justify-center gap-3"
-        >
-          <i class="fas" [ngClass]="streamingSettings().isLive ? 'fa-stop-circle animate-pulse' : 'fa-play-circle'"></i>
-          {{ streamingSettings().isLive ? 'TERMINATE BROADCAST' : 'INITIATE LIVE STREAM' }}
-        </button>
+        <!-- FX Engine Tab -->
+        <div *ngIf="activeDirectorTab() === 'effects'" class="space-y-8">
+           <section class="space-y-4">
+              <h3 class="text-[10px] font-black uppercase text-emerald-500 tracking-widest flex items-center gap-2">
+                 <i class="fas fa-brain"></i> Neural Enhancement
+              </h3>
+              <div class="space-y-3">
+                 <label class="flex items-center justify-between p-4 bg-brand-surface rounded-xl border border-slate-800 cursor-pointer group hover:border-emerald-500/30">
+                    <span class="text-xs font-bold uppercase tracking-widest">Strategic Upscaling (4K)</span>
+                    <input type="checkbox" class="w-5 h-5 accent-emerald-500">
+                 </label>
+                 <label class="flex items-center justify-between p-4 bg-brand-surface rounded-xl border border-slate-800 cursor-pointer group hover:border-emerald-500/30">
+                    <span class="text-xs font-bold uppercase tracking-widest">Neural Background Purge</span>
+                    <input type="checkbox" class="w-5 h-5 accent-emerald-500">
+                 </label>
+              </div>
+           </section>
+
+           <section class="space-y-4">
+              <h3 class="text-[10px] font-black uppercase text-violet-500 tracking-widest flex items-center gap-2">
+                 <i class="fas fa-sliders-h"></i> Manual Correction
+              </h3>
+              <div class="space-y-6 bg-brand-surface p-4 rounded-xl border border-slate-800">
+                 <div class="space-y-2">
+                    <div class="flex justify-between text-[8px] font-black uppercase tracking-widest text-slate-500">
+                       <span>Visual Gain</span>
+                       <span class="text-white">100%</span>
+                    </div>
+                    <input type="range" class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-violet-500">
+                 </div>
+                 <div class="space-y-2">
+                    <div class="flex justify-between text-[8px] font-black uppercase tracking-widest text-slate-500">
+                       <span>Tactical Contrast</span>
+                       <span class="text-white">100%</span>
+                    </div>
+                    <input type="range" class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-violet-500">
+                 </div>
+              </div>
+           </section>
+        </div>
+
+        <!-- Director Tab -->
+        <div *ngIf="activeDirectorTab() === 'ai'" class="space-y-6">
+           <div class="bg-gradient-to-br from-emerald-500/10 to-transparent p-6 rounded-2xl border border-emerald-500/20">
+              <h3 class="font-bold mb-2 flex items-center gap-2">
+                 <i class="fas fa-robot text-emerald-400"></i> AI Strategic Audit
+              </h3>
+              <p class="text-[10px] text-slate-400 leading-relaxed uppercase tracking-wider italic">
+                 "Directing is the management of absolute chaos into a focused tactical sequence. Initialize Neural Scene Detection to identify high-value cinematic frames."
+              </p>
+              <button class="w-full mt-4 py-3 bg-emerald-500 text-black font-black uppercase italic tracking-tighter text-sm rounded-lg hover:scale-105 transition-transform">
+                 Initialize Scene Audit
+              </button>
+           </div>
+
+           <div class="space-y-4">
+              <h3 class="text-xs font-black uppercase text-slate-500 tracking-widest">AI Concept Visualization</h3>
+              <div class="relative">
+                 <textarea
+                   [ngModel]="imagePrompt()"
+                   (ngModelChange)="imagePrompt.set()"
+                   placeholder="Prompt tactical cinematic asset..."
+                   class="w-full h-32 p-4 bg-brand-dark border border-slate-700 rounded-xl focus:border-emerald-500 outline-none transition-all resize-none text-xs"
+                 ></textarea>
+                 <button
+                  (click)="generateImage()"
+                  [disabled]="isGenerating() || !imagePrompt()"
+                  class="absolute bottom-4 right-4 w-10 h-10 bg-emerald-500 text-black rounded-lg flex items-center justify-center hover:scale-110 transition-transform disabled:bg-slate-700"
+                 >
+                    <i class="fas" [class.fa-bolt]="!isGenerating()" [class.fa-spinner]="isGenerating()" [class.fa-spin]="isGenerating()"></i>
+                 </button>
+              </div>
+           </div>
+        </div>
+      </div>
+
+      <!-- Export Protocol -->
+      <section class="mt-auto pt-6 border-t border-slate-800">
+         <button class="w-full py-4 bg-white text-black font-black uppercase tracking-tighter italic text-xl rounded-xl hover:bg-emerald-500 transition-colors shadow-lg">
+            Finalize Cinema Export
+         </button>
       </section>
 
-      <!-- Tactical Tips -->
-      <section class="bg-gradient-to-br from-emerald-500/10 to-transparent p-6 rounded-2xl border border-emerald-500/20">
-        <h3 class="font-bold mb-2 flex items-center gap-2">
-          <i class="fas fa-lightbulb text-emerald-400"></i>
-          Director's Brief
-        </h3>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          The S.M.U.V.E. visual engine thrives on high-contrast lighting. Use the "Cinematic Noir" template for music videos that emphasize raw technical proficiency.
-        </p>
-      </section>
-    </div>
+    </aside>
   </div>
 </div>

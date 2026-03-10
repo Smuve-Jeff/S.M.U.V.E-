@@ -61,3 +61,26 @@ export interface UpgradeRecommendation {
   url?: string;
   impact: 'Extreme' | 'High' | 'Medium' | 'Low';
 }
+
+export interface ProfileAuditResult {
+  score: number;
+  timestamp: number;
+  categories: {
+    production: number;
+    marketing: number;
+    career: number;
+    technical: number;
+  };
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+}
+
+export interface StrategicTask {
+  id: string;
+  label: string;
+  completed: boolean;
+  category: 'pre' | 'day' | 'post';
+  impact: 'High' | 'Medium' | 'Low';
+  description?: string;
+}
