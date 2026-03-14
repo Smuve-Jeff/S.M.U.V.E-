@@ -1,5 +1,5 @@
 {
-  "name": "S.M.U.V.E 2.0",
-  "description": "S.M.U.V.E 2.0 is the ultimate self-hosted, open-source ecosystem for independent artists. It combines a professional music production suite (DAW) with an interactive online social hub featuring a huge catalog of games from HTMLGames. Create music, connect with artists, and showcase your work, all while maintaining full control over your data. Your all-in-one platform for creation, connection, and career growth.",
+  "name": "S.M.U.V.E 4.0",
+  "description": "S.M.U.V.E 4.0: The ultimate self-hosted, sophisticated ecosystem for independent artists. Featuring a professional music production suite (DAW) and an authoritative AI commander. Maintain total control of your data and career growth within an elite strategic framework.",
   "requestFramePermissions": ["microphone", "camera"]
 }

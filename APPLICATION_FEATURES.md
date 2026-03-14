@@ -55,7 +55,7 @@ A dynamic online hub where artists can connect, compete, collaborate, and share 
 
 ## 🛠️ Technical Innovation
 
-- **Framework**: Built on **Angular 18** using modern **Signals** for reactive state management.
+- **Framework**: Built on **Angular 21** using modern **Signals** for reactive state management.
 - **Audio Engine**: Powered by the **Web Audio API** with a custom high-precision scheduling engine.
 - **AI Integration**: Direct integration with **Google Gemini 1.5 Flash** for strategic analysis and creative tools.
 - **UI/UX**: Responsive design utilizing **Tailwind CSS**, **Animate.css**, and **FontAwesome** for a premium, fast, and stable interface.

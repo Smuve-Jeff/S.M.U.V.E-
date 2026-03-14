@@ -18,7 +18,10 @@ describe('PlayerService', () => {
       loadDeckBuffer: jest.fn()
     };
     mockAudioEngine = {
-      getContext: jest.fn().mockReturnValue({ sampleRate: 44100 }),
+      getContext: jest.fn().mockReturnValue({
+        sampleRate: 44100,
+        decodeAudioData: jest.fn()
+      }),
       getDeck: jest.fn().mockReturnValue({ buffer: {} })
     };
 
@@ -34,6 +37,10 @@ describe('PlayerService', () => {
     service = TestBed.inject(PlayerService);
   });
 
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+
   it('should toggle play on Deck A', () => {
     service.togglePlay();
     expect(mockDeckService.togglePlay).toHaveBeenCalledWith('A');
@@ -42,5 +49,30 @@ describe('PlayerService', () => {
   it('should calculate progress correctly', () => {
     mockDeckService.deckA.set({ isPlaying: true, progress: 50, duration: 100 });
     expect(service.progress()).toBe(50);
+  });
+
+  it('should move to next track', () => {
+    const initialIndex = service.currentIndex();
+    service.next();
+    expect(service.currentIndex()).toBe(initialIndex + 1);
+  });
+
+  it('should move to previous track', () => {
+    const playlistLength = service.playlist().length;
+    service.currentIndex.set(0);
+    service.previous();
+    expect(service.currentIndex()).toBe(playlistLength - 1);
+  });
+
+  it('should toggle shuffle', () => {
+    const initial = service.isShuffle();
+    service.toggleShuffle();
+    expect(service.isShuffle()).toBe(!initial);
+  });
+
+  it('should toggle repeat', () => {
+    const initial = service.isRepeat();
+    service.toggleRepeat();
+    expect(service.isRepeat()).toBe(!initial);
   });
 });
