@@ -90,10 +90,6 @@ export class AudioEngineService {
     this.delayNode.connect(this.delayWet);
     this.delayWet.connect(this.masterGain);
 
-    // Reverb chain
-    this.reverbConvolver.connect(this.reverbWet);
-    this.reverbWet.connect(this.masterGain);
-
     // Default FX setup
     this.compressor.threshold.value = -24;
     this.compressor.ratio.value = 4;
@@ -165,11 +161,11 @@ export class AudioEngineService {
     deck.pan.connect(deck.gain);
 
     // Sends
-    deck.gain.connect(deck.sendA);
-    deck.gain.connect(deck.sendB);
     deck.sendA.connect(this.reverbConvolver);
     deck.sendB.connect(this.delayNode);
 
+    deck.gain.connect(deck.sendA);
+    deck.gain.connect(deck.sendB);
     deck.gain.connect(deck.analyser);
     deck.analyser.connect(this.masterGain);
 

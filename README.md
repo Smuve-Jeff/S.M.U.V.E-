@@ -1,10 +1,10 @@
-# Smuve Jeff Presents S.M.U.V.E 3.0 (Strategic Music Utility Virtual Enhancer)
+# Smuve Jeff Presents S.M.U.V.E 4.0 (Strategic Music Utility Virtual Enhancer)
 
-S.M.U.V.E 3.0 is a professional-grade, AI-powered music studio and strategic management platform for the modern independent artist. Built on Angular 21 and utilizing Google's Gemini AI, it serves as an omniscient, arrogant, and assertive "Strategic Commander" to guide and dominate your musical journey.
+S.M.U.V.E 4.0 is a professional-grade, AI-powered music studio and strategic management platform for the modern independent artist. Built on Angular 21 and utilizing Google's Gemini AI, it serves as an omniscient, arrogant, and assertive "Strategic Commander" to guide and dominate your musical journey.
 
 ## 🚀 Key Features
 
-### 🎙️ The Studio (v3.0)
+### 🎙️ The Studio (v4.0)
 
 A Digital Audio Workstation (DAW) in your browser:
 
@@ -14,7 +14,7 @@ A Digital Audio Workstation (DAW) in your browser:
 - **Mastering Suite:** Professional mastering tools including a Limiter, Soft-clip toggle, and Global Ambience.
 - **Multi-track Recording:** Capture live audio with real-time spectral waveforms and professional monitoring.
 
-### 🤖 S.M.U.V.E 3.0 AI Assistant
+### 🤖 S.M.U.V.E 4.0 AI Assistant
 
 Your "Strategic Music Utility Virtual Enhancer" persona: an omniscient, arrogant commander who scales their arrogance based on your reputation level.
 
@@ -42,7 +42,7 @@ A high-energy dashboard with an aggressive design system (glitch effects, skewed
 
 ## 🎨 Design System
 
-S.M.U.V.E 3.0 utilizes a **Modern Professional** aesthetic:
+S.M.U.V.E 4.0 utilizes a **Modern Professional** aesthetic:
 
 - **Background:** Slate (#020617)
 - **Accents:** Emerald Neon (#10b981)

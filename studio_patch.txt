@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+  constructor() {
+    effect(() => {
+      const selectedId = this.musicManager.selectedTrackId();
+      if (selectedId) {
+        if (this.activeView() !== "dj") this.showPianoRoll.set(true);
+      }
+    });
+  }
+=======
+  constructor() {
+    effect(() => {
+      const selectedId = this.musicManager.selectedTrackId();
+      if (selectedId) {
+        if (this.activeView() !== 'dj') {
+          this.showPianoRoll.set(true);
+        }
+      }
+    });
+  }
+>>>>>>> REPLACE

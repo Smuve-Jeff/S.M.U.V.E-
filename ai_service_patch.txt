@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+  getUpgradeRecommendations(): UpgradeRecommendation[] { return UPGRADE_DB.slice(0, 5); }
+=======
+  getUpgradeRecommendations(): UpgradeRecommendation[] {
+    const profile = this.userProfileService.profile();
+    const reputation = this.reputationService.state();
+
+    return UPGRADE_DB.filter(item => {
+      // 1. Reputation Level Gate
+      if (reputation.level < item.minLevel) return false;
+
+      // 2. Exclude Owned Items
+      if (item.type === 'Gear' && profile.equipment.includes(item.title)) return false;
+      if (item.type === 'Software' && (profile.daw.includes(item.title) || profile.vst_plugins.includes(item.title))) return false;
+      if (item.type === 'Service' && profile.daw.includes(item.title)) return false;
+
+      // 3. Genre Affinity
+      if (item.genres && item.genres.length > 0) {
+        const userGenres = [profile.primaryGenre, ...profile.secondaryGenres];
+        const hasGenreMatch = item.genres.some(g => userGenres.includes(g));
+        if (!hasGenreMatch) return false;
+      }
+
+      return true;
+    }).slice(0, 5);
+  }
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+const UPGRADE_DB: UpgradeRecommendation[] = [
+  { id: 'u-20', title: 'Neural Audio Interface V1', type: 'Gear', description: 'Link.', cost: 'Priceless', url: '', minLevel: 0, impact: 'Extreme' }
+];
+=======
+const UPGRADE_DB: UpgradeRecommendation[] = [
+  { id: 'u-20', title: 'Neural Audio Interface V1', type: 'Gear', description: 'Elite neural-link interface for direct DAW control.', cost: 'Priceless', url: '', minLevel: 5, impact: 'Extreme' },
+  { id: 'u-41', title: 'Vocal Master Bundle', type: 'Software', description: 'Professional vocal processing suite.', cost: '99', minLevel: 2, genres: ['R&B', 'Pop', 'Hip Hop'], impact: 'High' },
+  { id: 'u-42', title: 'Analog Mastering Chain', type: 'Gear', description: 'High-end analog rack for final polish.', cost: ',000', minLevel: 8, impact: 'Extreme' },
+  { id: 'u-43', title: 'Global PR Blitz', type: 'Service', description: 'Strategic marketing across top-tier blogs.', cost: ',500', minLevel: 4, impact: 'High' },
+  { id: 'u-44', title: 'Beat-Runner Pro', type: 'Software', description: 'Advanced AI-assisted sequencer.', cost: '49', minLevel: 1, impact: 'Medium' },
+  { id: 'u-45', title: 'Studio One 7', type: 'Software', description: 'The next generation of professional production.', cost: '99', minLevel: 3, impact: 'High' },
+  { id: 'u-46', title: 'Executive Coaching', type: 'Service', description: '1-on-1 strategic sessions with Smuve Jeff.', cost: ',000/hr', minLevel: 10, impact: 'Extreme' }
+];
+>>>>>>> REPLACE

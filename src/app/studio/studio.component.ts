@@ -72,7 +72,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     effect(() => {
       const selectedId = this.musicManager.selectedTrackId();
       if (selectedId) {
-        if (this.activeView() !== "dj") this.showPianoRoll.set(true);
+        if (this.activeView() !== 'dj') {
+          this.showPianoRoll.set(true);
+        }
       }
     });
   }
