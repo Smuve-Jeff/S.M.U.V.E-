@@ -4,7 +4,7 @@
     <div class="flex items-center gap-6">
       <div class="flex flex-col">
         <h1 class="text-2xl font-black italic tracking-tighter text-white uppercase leading-none">DJ<span class="text-brand-primary">BOOTH</span></h1>
-        <span class="text-[8px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">S.M.U.V.E. Hardware Interface v3.0</span>
+        <span class="text-[8px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">S.M.U.V.E. Hardware Interface v4.0</span>
       </div>
       <div class="h-8 w-px bg-white/10"></div>
       <div class="flex gap-4">
@@ -193,24 +193,6 @@
         </div>
       </div>
     </div>
-
-      <!-- Deck B Stems -->
-      <div class="bg-black/20 rounded-2xl p-4 border border-white/5 z-10 mt-auto relative overflow-hidden group/stems">
-         @if (!hasNeuralStems()) {
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-4 text-center">
-               <i class="fas fa-lock text-orange-500/40 text-sm mb-1"></i>
-               <div class="text-[7px] font-black text-orange-500/60 uppercase tracking-widest">Neural Lock</div>
-            </div>
-         }
-         <div class="grid grid-cols-4 gap-4">
-            @for (stem of ['vocals', 'drums', 'bass', 'melody']; track stem) {
-               <div class="flex flex-col items-center gap-1">
-                  <div class="text-[6px] font-black text-slate-500 uppercase">{{ stem }}</div>
-                  <input type="range" min="0" max="1" step="0.01" value="1" (input)="deckService.onStemGainChange('B', {stem: stem, gain: $any($event.target).value})" class="vertical-range h-12 accent-orange-500" orient="vertical">
-               </div>
-            }
-         </div>
-      </div>
   </div>
 
   <!-- GLOBAL TRANSPORT BAR (FIXED BOTTOM) -->
@@ -261,7 +243,7 @@
         </div>
      </div>
   </div>
-     </div>
+
   <!-- BOTTOM UTILITY BAR -->
   <div class="mt-6 flex flex-wrap gap-4 items-center justify-between p-4 bg-slate-900/40 rounded-2xl border border-white/5 backdrop-blur-md">
     <div class="flex gap-4">

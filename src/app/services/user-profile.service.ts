@@ -3,6 +3,7 @@ import { Injectable, signal, effect, inject } from '@angular/core';
 import { AuthService } from './auth.service';
 import { DatabaseService } from './database.service';
 import { LegalDocument } from '../components/legal-document-editor/legal-document-editor.component';
+export type { LegalDocument };
 import { ArtistKnowledgeBase } from '../types/ai.types';
 
 export interface ShowcaseItem {
@@ -131,10 +132,10 @@ export interface UserProfile {
   promotionChannels: string[]; // Social media, Radio, Blogs, Playlists, etc.
   marketingBudget:
     | 'No Budget'
-    | '<$500/mo'
-    | '$500-2K/mo'
-    | '$2K-5K/mo'
-    | '$5K+/mo';
+    | '<00/mo'
+    | '00-2K/mo'
+    | 'K-5K/mo'
+    | 'K+/mo';
   contentStrategy: string;
 
   // === BUSINESS & REVENUE ===

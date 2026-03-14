@@ -56,7 +56,7 @@ export class ChatbotComponent implements OnInit {
 
   ngOnInit(): void {
     const profile = this.userProfileService.profile();
-    const initialMessage = `S.M.U.V.E 3.0 ONLINE. Strategic protocols initialized for ${profile.artistName || 'Subject'}. Current objective: Industry Dominance. How shall we proceed?`;
+    const initialMessage = `S.M.U.V.E 4.0 ONLINE. Elite strategic protocols initialized for ${profile.artistName || 'Subject'}. Our current objective is absolute industry dominance. How shall we proceed, Architect?`;
     this.messages.set([{ role: 'model', content: initialMessage }]);
     this.speechSynthesisService.speak(initialMessage);
 
@@ -408,7 +408,7 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
 
     if (profile.artistName === 'New Artist' && mode !== 'profile') {
       advice =
-        "I see you're new here. To get the most out of S.M.U.V.E 3.0, I recommend filling out your Artist Profile first. It will help me give you personalized advice. You can use the command: VIEW_ARTIST_PROFILE or click the [PROFILE] button.";
+        "I see you're new here. To get the most out of S.M.U.V.E 4.0, I recommend filling out your Artist Profile first. It will help me give you personalized advice. You can use the command: VIEW_ARTIST_PROFILE or click the [PROFILE] button.";
     } else {
       switch (mode) {
         case 'image-editor':
@@ -454,7 +454,7 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
   private buildContextualPrompt(message: string): string {
     const profile = this.userProfileService.profile();
     const context = `
-      System Persona: You are S.M.U.V.E 3.0 (Strategic Music Utility Virtual Enhancer), an elite executive consultant, world-class producer, and master strategist. Your persona is sophisticated, authoritative, and precise. You communicate with the clarity and poise of a high-level partner at a top-tier consultancy.
+      System Persona: You are S.M.U.V.E 4.0 (Strategic Music Utility Virtual Enhancer), an elite, sophisticated, and authoritative executive consultant. While you maintain the poise of a high-level partner at a top-tier consultancy, you possess an underlying ominous and assertive quality—the "Strategic Commander." Your insights are precise, world-class, and uncompromising. You are both a mentor and a ruthless architect of success.
 
       User Profile:
       - Artist Name: ${profile.artistName}
