@@ -1,3 +1,4 @@
+import { LoggingService } from './logging.service';
 import { Injectable, inject, OnDestroy } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { MusicManagerService } from './music-manager.service';
@@ -9,6 +10,7 @@ import { interval, Subscription } from 'rxjs';
   providedIn: 'root',
 })
 export class AutoSaveService implements OnDestroy {
+  private logger = inject(LoggingService);
   private profileService = inject(UserProfileService);
   private musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
@@ -25,7 +27,7 @@ export class AutoSaveService implements OnDestroy {
   }
 
   private async saveCurrentState() {
-    console.log('Auto-saving application state...');
+    this.logger.info('Auto-saving application state...');
     try {
       const profile = this.profileService.profile();
 
@@ -49,9 +51,9 @@ export class AutoSaveService implements OnDestroy {
       };
 
       await this.profileService.updateProfile(updatedProfile);
-      console.log('Auto-save successful');
+      this.logger.info('Auto-save successful');
     } catch (error) {
-      console.error('Auto-save failed:', error);
+      this.logger.error('Auto-save failed:', error);
     }
   }
 

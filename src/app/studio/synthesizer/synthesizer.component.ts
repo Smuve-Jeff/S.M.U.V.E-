@@ -1,4 +1,5 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { LoggingService } from '../../services/logging.service';
+import { Component, Input, OnInit , inject} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Clip } from '../instrument.service';
@@ -11,6 +12,7 @@ import { Clip } from '../instrument.service';
   styleUrls: ['./synthesizer.component.css']
 })
 export class SynthesizerComponent implements OnInit {
+  private logger = inject(LoggingService);
   @Input() clip!: Clip;
 
   // Default synthesizer parameters
@@ -33,7 +35,7 @@ export class SynthesizerComponent implements OnInit {
   updateSynthParam(param: string, value: any) {
     this.synthParams[param] = value;
     // Here you would typically update the audio node in real-time
-    console.log(`Updated ${param}: ${value}`);
+    this.logger.info(`Updated ${param}: ${value}`);
     // This is where you would also save the changes to the clip
     this.clip.synthParams = this.synthParams;
   }

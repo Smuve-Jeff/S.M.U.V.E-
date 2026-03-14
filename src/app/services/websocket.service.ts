@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { LoggingService } from './logging.service';
+import { Injectable , inject} from '@angular/core';
 import { Observable, Observer } from 'rxjs';
 import { AnonymousSubject } from 'rxjs/internal/Subject';
 import { Subject } from 'rxjs';
@@ -12,6 +13,7 @@ export interface Message {
   providedIn: 'root',
 })
 export class WebsocketService {
+  private logger = inject(LoggingService);
   private subject!: AnonymousSubject<MessageEvent>;
   public messages: Subject<Message>;
 
@@ -22,7 +24,7 @@ export class WebsocketService {
   public connect(url: string): void {
     if (!this.subject) {
       this.subject = this.create(url);
-      console.log('Successfully connected: ' + url);
+      this.logger.info('Successfully connected: ' + url);
     }
   }
 
@@ -35,10 +37,10 @@ export class WebsocketService {
       return ws.close.bind(ws);
     });
     const observer = {
-      error: (err: any) => console.error(err),
+      error: (err: any) => this.logger.error(err),
       complete: () => {},
       next: (data: object) => {
-        console.log('Message sent to websocket: ', data);
+        this.logger.info('Message sent to websocket: ', data);
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify(data));
         }

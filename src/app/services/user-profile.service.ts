@@ -1,3 +1,4 @@
+import { LoggingService } from './logging.service';
 import { MarketingCampaign } from '../types/marketing.types';
 import { Injectable, signal, effect, inject } from '@angular/core';
 import { AuthService } from './auth.service';
@@ -382,6 +383,7 @@ export const initialProfile: UserProfile = {
   providedIn: 'root',
 })
 export class UserProfileService {
+  private logger = inject(LoggingService);
   private authService = inject(AuthService);
   private databaseService = inject(DatabaseService);
   profile = signal<UserProfile>(initialProfile);
@@ -409,7 +411,7 @@ export class UserProfileService {
         await this.databaseService.saveUserProfile(initialProfile);
       }
     } catch (error) {
-      console.error('UserProfileService: Failed to load profile', error);
+      this.logger.error('UserProfileService: Failed to load profile', error);
     }
   }
 
@@ -443,7 +445,7 @@ export class UserProfileService {
       await this.databaseService.saveUserProfile(newProfile);
       this.profile.set(newProfile);
     } catch (error) {
-      console.error('UserProfileService: Failed to save profile', error);
+      this.logger.error('UserProfileService: Failed to save profile', error);
     }
   }
 }

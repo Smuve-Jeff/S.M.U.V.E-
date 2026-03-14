@@ -1,3 +1,4 @@
+import { LoggingService } from '../services/logging.service';
 import { Injectable, inject } from '@angular/core';
 import { AudioEngineService } from '../services/audio-engine.service';
 
@@ -18,6 +19,7 @@ export interface Clip {
   providedIn: 'root'
 })
 export class InstrumentService {
+  private logger = inject(LoggingService);
   private engine = inject(AudioEngineService);
 
   constructor() {}
@@ -53,6 +55,6 @@ export class InstrumentService {
 
   connect(destination: AudioNode) {
     // Compatibility method
-    console.log('InstrumentService: connect requested');
+    this.logger.info('InstrumentService: connect requested');
   }
 }

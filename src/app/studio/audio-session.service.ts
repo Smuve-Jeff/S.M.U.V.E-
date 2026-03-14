@@ -1,3 +1,4 @@
+import { LoggingService } from '../services/logging.service';
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { InstrumentService } from './instrument.service';
 import { AudioEngineService } from '../services/audio-engine.service';
@@ -18,6 +19,7 @@ export interface MicChannel {
   providedIn: 'root',
 })
 export class AudioSessionService {
+  private logger = inject(LoggingService);
   private readonly instrumentService = inject(InstrumentService);
   private readonly engine = inject(AudioEngineService);
   private readonly micService = inject(MicrophoneService);
@@ -133,7 +135,7 @@ export class AudioSessionService {
   }
 
   onNoteClicked(note: { midi: number; velocity: number }): void {
-    console.log('AudioSession: Note clicked:', note);
+    this.logger.info('AudioSession: Note clicked:', note);
     this.instrumentService.play(0, note.midi || 60, note.velocity || 0.8);
   }
 }

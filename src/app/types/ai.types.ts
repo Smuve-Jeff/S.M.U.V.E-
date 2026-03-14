@@ -80,7 +80,7 @@ export interface StrategicTask {
   id: string;
   label: string;
   completed: boolean;
-  category: 'pre' | 'day' | 'post';
-  impact: 'High' | 'Medium' | 'Low';
+  category: 'pre' | 'day' | 'post' | 'production' | 'legal';
+  impact: 'Extreme' | 'High' | 'Medium' | 'Low';
   description?: string;
 }

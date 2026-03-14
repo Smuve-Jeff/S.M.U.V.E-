@@ -1,3 +1,4 @@
+import { LoggingService } from './logging.service';
 import { ErrorHandler, Injectable, inject } from '@angular/core';
 import { NotificationService } from './notification.service';
 
@@ -5,10 +6,11 @@ import { NotificationService } from './notification.service';
   providedIn: 'root'
 })
 export class GlobalErrorHandler implements ErrorHandler {
+  private logger = inject(LoggingService);
   private notificationService = inject(NotificationService);
 
   handleError(error: any): void {
-    console.error('S.M.U.V.E Critical System Error:', error);
+    this.logger.error('S.M.U.V.E 4.0 Critical System Error:', error);
 
     const message = error.message ? error.message : error.toString();
 
@@ -20,6 +22,6 @@ export class GlobalErrorHandler implements ErrorHandler {
         this.notificationService.show('System Anomaly Detected: ' + message.substring(0, 50) + '...', 'warning');
     }
 
-    console.warn('Attempting executive system recovery for error:', message);
+    this.logger.warn('Attempting executive system recovery for error:', message);
   }
 }

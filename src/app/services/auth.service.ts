@@ -1,5 +1,7 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { LoggingService } from './logging.service';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { UserProfile, initialProfile } from './user-profile.service';
+import { APP_SECURITY_CONFIG } from '../app.security';
 
 export interface AuthCredentials {
   email: string;
@@ -19,6 +21,7 @@ export interface AuthUser {
   providedIn: 'root',
 })
 export class AuthService {
+  private logger = inject(LoggingService);
   private _isAuthenticated = signal(false);
   private _currentUser = signal<AuthUser | null>(null);
   private _userProfile = signal<UserProfile | null>(null);
@@ -26,9 +29,6 @@ export class AuthService {
   isAuthenticated = this._isAuthenticated.asReadonly();
   currentUser = this._currentUser.asReadonly();
 
-  private readonly AUTH_KEY = 'SMUVE_AUTH_SECRET_2.0';
-
-  // Calculate profile completeness to encourage artists to fill out more info
   profileCompleteness = computed(() => {
     const profile = this._userProfile();
     if (!profile) return 0;
@@ -36,48 +36,39 @@ export class AuthService {
     let completedFields = 0;
     let totalFields = 0;
 
-    // Basic Info (5 fields)
     totalFields += 5;
-    if (profile.artistName && profile.artistName !== 'New Artist')
-      completedFields++;
+    if (profile.artistName && profile.artistName !== 'New Artist') completedFields++;
     if (profile.stageName) completedFields++;
     if (profile.location) completedFields++;
-    if (profile.bio && profile.bio !== 'Describe your musical journey...')
-      completedFields++;
+    if (profile.bio && profile.bio !== 'Describe your musical journey...') completedFields++;
     if (profile.primaryGenre) completedFields++;
 
-    // Musical Identity (4 fields)
     totalFields += 4;
     if (profile.secondaryGenres.length > 0) completedFields++;
     if (profile.musicalInfluences) completedFields++;
     if (profile.artistsYouSoundLike.length > 0) completedFields++;
     if (profile.uniqueSound) completedFields++;
 
-    // Experience & Expertise (3 fields)
     totalFields += 3;
     if (profile.yearsActive > 0) completedFields++;
     if (profile.skills.length > 0) completedFields++;
     if (profile.formalTraining) completedFields++;
 
-    // Career & Goals (4 fields)
     totalFields += 4;
     if (profile.careerGoals.length > 0) completedFields++;
     if (profile.currentFocus) completedFields++;
     if (profile.biggestChallenge) completedFields++;
     if (profile.upcomingProjects) completedFields++;
 
-    // Marketing & Business (3 fields)
     totalFields += 3;
     if (profile.promotionChannels.length > 0) completedFields++;
     if (profile.revenueStreams.length > 0) completedFields++;
     if (profile.contentStrategy) completedFields++;
 
-    // Equipment & Setup (2 fields)
     totalFields += 2;
     if (profile.daw.length > 0) completedFields++;
     if (profile.equipment.length > 0) completedFields++;
 
-    // Social & Links (1 field)
     totalFields += 1;
     if (Object.keys(profile.links).length > 0) completedFields++;
 
@@ -85,12 +76,11 @@ export class AuthService {
   });
 
   constructor() {
-    // Check for existing session in localStorage
     this.loadSession();
   }
 
   private encrypt(data: string): string {
-    const salted = data + '|' + this.AUTH_KEY;
+    const salted = data + '|' + APP_SECURITY_CONFIG.auth_salt;
     return btoa(unescape(encodeURIComponent(salted)));
   }
 
@@ -98,7 +88,7 @@ export class AuthService {
     try {
       const decoded = decodeURIComponent(escape(atob(encoded)));
       const [data, key] = decoded.split('|');
-      if (key === this.AUTH_KEY) {
+      if (key === APP_SECURITY_CONFIG.auth_salt) {
         return data;
       }
       return null;
@@ -126,7 +116,7 @@ export class AuthService {
         }
       }
     } catch (error) {
-      console.error('Failed to load session:', error);
+      this.logger.error('Failed to load session:', error);
       this.clearSession();
     }
   }
@@ -136,7 +126,7 @@ export class AuthService {
       localStorage.setItem('smuve_auth_session', this.encrypt(JSON.stringify(user)));
       localStorage.setItem('smuve_user_profile', this.encrypt(JSON.stringify(profile)));
     } catch (error) {
-      console.error('Failed to save session:', error);
+      this.logger.error('Failed to save session:', error);
     }
   }
 
@@ -152,14 +142,11 @@ export class AuthService {
     try {
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      const existingUser = localStorage.getItem(
-        `smuve_user_${credentials.email}`
-      );
+      const existingUser = localStorage.getItem(`smuve_user_${credentials.email}`);
       if (existingUser) {
         return {
           success: false,
-          message:
-            'An artist with this email already exists in the S.M.U.V.E system.',
+          message: 'An artist with this email already exists in the S.M.U.V.E 4.0 system.',
         };
       }
 
@@ -192,7 +179,7 @@ export class AuthService {
 
       return {
         success: true,
-        message: 'Welcome to S.M.U.V.E Your journey to greatness begins now.',
+        message: 'Welcome to S.M.U.V.E 4.0 Your journey to greatness begins now.',
       };
     } catch {
       return {
@@ -212,8 +199,7 @@ export class AuthService {
       if (!encryptedUserData) {
         return {
           success: false,
-          message:
-            'No artist found with this email. Register to begin your journey.',
+          message: 'No artist found with this email. Register to begin your journey.',
         };
       }
 
@@ -252,7 +238,7 @@ export class AuthService {
 
       return {
         success: true,
-        message: `Welcome back, ${user.artistName}. S.M.U.V.E has been waiting.`,
+        message: `Welcome back, ${user.artistName}. S.M.U.V.E 4.0 has been waiting.`,
       };
     } catch {
       return {
@@ -294,12 +280,11 @@ export class AuthService {
   }
 
   private hashPassword(password: string): string {
-    // Improved simulated hash with salting and multiple rounds
     let hash = 0;
-    const salt = "SMUVE_SALT_2024";
+    const salt = APP_SECURITY_CONFIG.auth_salt;
     const saltedPassword = password + salt;
 
-    for (let j = 0; j < 5; j++) { // 5 rounds of hashing
+    for (let j = 0; j < 5; j++) {
         for (let i = 0; i < saltedPassword.length; i++) {
             const char = saltedPassword.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;

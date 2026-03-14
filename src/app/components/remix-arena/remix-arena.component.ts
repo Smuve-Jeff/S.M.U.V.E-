@@ -24,7 +24,7 @@ export class RemixArenaComponent {
   musicManager = inject(MusicManagerService);
   libraryService = inject(LibraryService);
 
-  code = signal('// S.M.U.V.E REMIX ENGINE\n// Start writing your logic here...\n\nfunction onBeat(step) {\n  if (step % 4 === 0) {\n    playKick();\n  }\n}');
+  code = signal('// S.M.U.V.E 4.0 REMIX ENGINE\n// Start writing your logic here...\n\nfunction onBeat(step) {\n  if (step % 4 === 0) {\n    playKick();\n  }\n}');
 
   messages = signal([
     { user: 'System', text: 'Welcome to Remix Arena! Collaboration is now LIVE.' },

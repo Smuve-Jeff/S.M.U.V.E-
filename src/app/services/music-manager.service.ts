@@ -1,3 +1,4 @@
+import { LoggingService } from './logging.service';
 import { Injectable, signal, effect, inject } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { InstrumentsService } from './instruments.service';
@@ -26,6 +27,7 @@ export interface TrackModel {
 
 @Injectable({ providedIn: 'root' })
 export class MusicManagerService {
+  private logger = inject(LoggingService);
   public engine = inject(AudioEngineService);
   private instruments = inject(InstrumentsService);
   private profileService = inject(UserProfileService);
@@ -108,7 +110,7 @@ export class MusicManagerService {
     const lastSession = (profile.knowledgeBase as any).lastDawSession;
 
     if (lastSession && lastSession.tracks && lastSession.tracks.length > 0) {
-      console.log('MusicManager: Restoring last session...');
+      this.logger.info('MusicManager: Restoring last session...');
       this.tracks.set(lastSession.tracks);
       this.engine.tempo.set(lastSession.tempo || 120);
       this.engine.loopStart.set(lastSession.loopStart || 0);

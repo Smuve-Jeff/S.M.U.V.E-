@@ -1,13 +1,13 @@
 import { MarketingService } from '../marketing.service';
 import { AnalyticsService } from '../analytics.service';
-import { TestBed, flush, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed, fakeAsync } from '@angular/core/testing';
 import { AiService, API_KEY_TOKEN } from '../ai.service';
 import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
 import { ReputationService } from '../reputation.service';
 import { StemSeparationService } from '../stem-separation.service';
 import { AudioEngineService } from '../audio-engine.service';
-import { signal, runInInjectionContext, Injector } from '@angular/core';
+import { signal } from '@angular/core';
 
 describe('AiService', () => {
   let service: AiService;
@@ -17,7 +17,20 @@ describe('AiService', () => {
   let analyticsService: any;
 
   beforeEach(() => {
-    userProfileService = { profile: signal({ catalog: [], tasks: [], skills: [] }), updateProfile: jest.fn() };
+    userProfileService = {
+      profile: signal({
+        catalog: [],
+        tasks: [],
+        skills: [],
+        expertiseLevels: {
+          production: 5,
+          marketing: 5,
+          mastering: 5,
+          audioEngineering: 5
+        }
+      }),
+      updateProfile: jest.fn()
+    };
     userContextService = { mainViewMode: signal('hub'), setMainViewMode: jest.fn(), navigateToView: jest.fn() };
     reputationService = { state: signal({ level: 1 }) };
     analyticsService = {

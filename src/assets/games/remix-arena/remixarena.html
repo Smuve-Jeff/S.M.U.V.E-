@@ -245,7 +245,7 @@
         // Listen for parent messages (e.g. AI interventions)
         window.addEventListener('message', (event) => {
             if (event.data.type === 'AI_INTERVENTION') {
-                document.getElementById('status').innerText = 'S.M.U.V.E INTERVENTION: ' + event.data.payload;
+                document.getElementById('status').innerText = 'S.M.U.V.E 4.0 INTERVENTION: ' + event.data.payload;
                 multiplier += 0.5;
             }
         });

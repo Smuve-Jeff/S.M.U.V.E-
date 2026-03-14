@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { LoggingService } from './logging.service';
+import { Injectable, signal , inject} from '@angular/core';
 
 export interface AudioInputDevice {
   deviceId: string;
@@ -9,6 +10,7 @@ export interface AudioInputDevice {
   providedIn: 'root',
 })
 export class MicrophoneService {
+  private logger = inject(LoggingService);
   private audioContext: AudioContext | null = null;
   private analyserNode: AnalyserNode | null = null;
   private mediaStream: MediaStream | null = null;
@@ -40,7 +42,7 @@ export class MicrophoneService {
         this.selectedDeviceId.set(audioInputs[0].deviceId);
       }
     } catch (error) {
-      console.error('Error enumerating audio devices:', error);
+      this.logger.error('Error enumerating audio devices:', error);
     }
   }
 
@@ -61,9 +63,9 @@ export class MicrophoneService {
       this.sourceNode.connect(this.analyserNode);
       this.isInitialized.set(true);
       if (deviceId) this.selectedDeviceId.set(deviceId);
-      console.log('MicrophoneService initialized with device:', deviceId || 'default');
+      this.logger.info('MicrophoneService initialized with device:', deviceId || 'default');
     } catch (error) {
-      console.error('Error initializing microphone service:', error);
+      this.logger.error('Error initializing microphone service:', error);
       this.isInitialized.set(false);
     }
   }

@@ -1,3 +1,4 @@
+import { LoggingService } from '../services/logging.service';
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { InstrumentsService, InstrumentPreset } from '../services/instruments.service';
 import { AudioEngineService } from '../services/audio-engine.service';
@@ -33,6 +34,7 @@ export interface SequencerPattern {
   providedIn: 'root'
 })
 export class SequencerService {
+  private logger = inject(LoggingService);
   private readonly instrumentsService = inject(InstrumentsService);
   private readonly engine = inject(AudioEngineService);
 
@@ -211,7 +213,7 @@ export class SequencerService {
   }
 
   selectTrack(trackId: string) {
-    console.log('SequencerService: selectTrack', trackId);
+    this.logger.info('SequencerService: selectTrack', trackId);
     this.selectedTrackId.set(trackId);
   }
 

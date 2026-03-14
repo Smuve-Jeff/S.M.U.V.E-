@@ -1,3 +1,4 @@
+import { LoggingService } from './logging.service';
 import { Injectable, signal, inject } from '@angular/core';
 import { AiService } from './ai.service';
 
@@ -13,6 +14,7 @@ export interface LibraryItem {
 
 @Injectable({ providedIn: 'root' })
 export class LibraryService {
+  private logger = inject(LoggingService);
   private aiService = inject(AiService);
   items = signal<LibraryItem[]>([]);
 
@@ -55,7 +57,7 @@ export class LibraryService {
         this.aiService.studyTrack(audioBuffer, item.name);
       }
     } catch (error) {
-      console.warn('LibraryService: Failed to trigger AI study', error);
+      this.logger.warn('LibraryService: Failed to trigger AI study', error);
     }
   }
 

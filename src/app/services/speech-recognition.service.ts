@@ -1,9 +1,11 @@
-import { Injectable, signal } from '@angular/core';
+import { LoggingService } from './logging.service';
+import { Injectable, signal , inject} from '@angular/core';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SpeechRecognitionService {
+  private logger = inject(LoggingService);
   isListening = signal(false);
   private speechRecognition: SpeechRecognition | null = null;
 
@@ -20,7 +22,7 @@ export class SpeechRecognitionService {
       this.speechRecognition.continuous = false;
       this.speechRecognition.interimResults = false;
     } else {
-      console.error('Speech recognition not supported in this browser.');
+      this.logger.error('Speech recognition not supported in this browser.');
     }
   }
 
@@ -36,14 +38,14 @@ export class SpeechRecognitionService {
       };
       this.speechRecognition.onend = () => this.isListening.set(false);
       this.speechRecognition.onerror = (event: { error: string }) => {
-        console.error('Speech recognition error', event);
+        this.logger.error('Speech recognition error', event);
         this.isListening.set(false);
       };
       try {
         this.speechRecognition.start();
         this.isListening.set(true);
       } catch (error) {
-        console.error('Could not start speech recognition', error);
+        this.logger.error('Could not start speech recognition', error);
         this.isListening.set(false);
       }
     }

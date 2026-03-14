@@ -1,3 +1,4 @@
+import { LoggingService } from './logging.service';
 import { Injectable, signal, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { StemSeparationService } from './stem-separation.service';
@@ -32,6 +33,7 @@ interface DeckChannel {
   providedIn: 'root'
 })
 export class AudioEngineService {
+  private logger = inject(LoggingService);
   private stemSeparationService = inject(StemSeparationService);
   private ctx: AudioContext;
   private masterGain: GainNode;
@@ -181,7 +183,7 @@ export class AudioEngineService {
     try {
       deck.stems = await firstValueFrom(this.stemSeparationService.separate(buffer));
     } catch (e) {
-      console.warn('Stem separation failed for deck', id, e);
+      this.logger.warn('Stem separation failed for deck', id, e);
     }
   }
 

@@ -1,3 +1,4 @@
+import { LoggingService } from '../../services/logging.service';
 import {
   Component,
   inject,
@@ -28,6 +29,7 @@ interface ChatMessage {
   styleUrls: ['./chatbot.component.css'],
 })
 export class ChatbotComponent {
+  private logger = inject(LoggingService);
   private aiService = inject(AiService);
   private userProfileService = inject(UserProfileService);
   private audioEngineService = inject(AudioEngineService);
@@ -185,7 +187,7 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
       if (!lastImage) {
         throw new Error('No generated visuals found to critique.');
       }
-      const content = `[VISUAL CRITIQUE]: Analyzing brand alignment... The current aesthetic is strong, but to maximize impact for a '${this.userProfileService.profile().primaryGenre}' release, S.M.U.V.E recommends more high-contrast lighting and a narrower color palette.`;
+      const content = `[VISUAL CRITIQUE]: Analyzing brand alignment... The current aesthetic is strong, but to maximize impact for a '${this.userProfileService.profile().primaryGenre}' release, S.M.U.V.E 4.0 recommends more high-contrast lighting and a narrower color palette.`;
       this.messages.update((m) => [...m, { role: 'model', content }]);
       this.speechSynthesisService.speak(content);
     } catch (e) {
@@ -213,7 +215,7 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
 
   private handleError(e: unknown, context: string) {
     const message = `Error with ${context}: ${e instanceof Error ? e.message : String(e)}`;
-    console.error(message, e);
+    this.logger.error(message, e);
     this.messages.update((msgs) => [
       ...msgs,
       {

@@ -1,3 +1,4 @@
+import { LoggingService } from './logging.service';
 import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
 import { DeckService } from './deck.service';
 import { AudioEngineService } from './audio-engine.service';
@@ -16,16 +17,17 @@ export interface GlobalTrack {
   providedIn: 'root'
 })
 export class PlayerService implements OnDestroy {
+  private logger = inject(LoggingService);
   private deckService = inject(DeckService);
   private audioEngine = inject(AudioEngineService);
   private fileLoader = inject(FileLoaderService);
   private exportService = inject(ExportService);
 
   private defaultPlaylist: GlobalTrack[] = [
-    { id: '1', title: 'elegant ARCHITECT', artist: 'S.M.U.V.E. CORE' },
+    { id: '1', title: 'elegant ARCHITECT', artist: 'S.M.U.V.E 4.0 CORE' },
     { id: '2', title: 'SYNTHETIC DREAMS', artist: 'AI SYNDICATE' },
     { id: '3', title: 'pro-gradePUNK BEATS', artist: 'TECHNO ARCHITECT' },
-    { id: '4', title: 'precision IN THE MATRIX', artist: 'S.M.U.V.E. PRO' }
+    { id: '4', title: 'precision IN THE MATRIX', artist: 'S.M.U.V.E 4.0 PRO' }
   ];
 
   playlist = signal<GlobalTrack[]>(this.defaultPlaylist);
@@ -126,7 +128,7 @@ export class PlayerService implements OnDestroy {
             if (!this.isPlaying()) this.togglePlay();
           }
         } catch (err) {
-          console.warn('PlayerService: Failed to load track audio from URL', err);
+          this.logger.warn('PlayerService: Failed to load track audio from URL', err);
         }
       })();
     }
@@ -155,7 +157,7 @@ export class PlayerService implements OnDestroy {
         if (!this.isPlaying()) this.togglePlay();
       }
     } catch (err) {
-      console.error('PlayerService: Failed to load external track', err);
+      this.logger.error('PlayerService: Failed to load external track', err);
     }
   }
 

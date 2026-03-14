@@ -1,3 +1,4 @@
+import { LoggingService } from '../../services/logging.service';
 import { Component, signal, inject, ViewChild, ElementRef, OnDestroy, effect, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -14,12 +15,12 @@ import { VideoEngineService, VideoClip } from '../../services/video-engine.servi
   styleUrls: ['./image-video-lab.component.css'],
 })
 export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
+  private logger = inject(LoggingService);
   private aiService = inject(AiService);
   private userContext = inject(UserContextService);
   private reputationService = inject(ReputationService);
   public videoEngine = inject(VideoEngineService);
 
-  @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
 
   imagePrompt = signal('');
@@ -27,14 +28,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   generatedImageUrl = signal<string | null>(null);
   highQualityEnhancer = signal(false);
 
-  // Cinema Engine State
   activeDirectorTab = signal<'assets' | 'effects' | 'ai'>('assets');
   zoomLevel = signal(1.0);
 
-  aiFeedback = signal('S.M.U.V.E. Cinema Engine Offline. Initialize for executive visual capture.');
+  aiFeedback = signal('S.M.U.V.E 4.0 Cinema Engine Offline. Initialize for executive visual capture.');
 
-  private stream: MediaStream | null = null;
   private canvasCtx: CanvasRenderingContext2D | null = null;
+  private animFrame: number | null = null;
 
   templates = [
     { name: 'Cinematic Noir', prompt: 'film noir style, high contrast, dramatic shadows' },
@@ -44,7 +44,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   ];
 
   constructor() {
-    // Dynamic Feedback based on status
     effect(() => {
       const isPlaying = this.videoEngine.isPlaying();
       if (isPlaying) {
@@ -63,7 +62,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       if (this.canvasCtx) {
         this.renderPreview();
       }
-      requestAnimationFrame(render);
+      this.animFrame = requestAnimationFrame(render);
     };
     render();
   }
@@ -73,87 +72,113 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const ctx = this.canvasCtx;
     const canvas = this.previewCanvas.nativeElement;
 
-    // Clear canvas
+    // Clear canvas with deep slate
     ctx.fillStyle = '#020617';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const time = this.videoEngine.currentTime();
     const activeClips = this.videoEngine.getActiveClips(time);
 
-    activeClips.forEach(clip => {
-      // For simplicity, we just draw a placeholder for now
-      // In a real implementation, we would draw the video/image frame
-      ctx.fillStyle = clip.type === 'video' ? '#10b98122' : '#8b5cf622';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (activeClips.length > 0) {
+      activeClips.forEach(clip => {
+        // Aesthetic Functional Implementation:
+        // Instead of a solid block, we draw a dynamic tech-noir pattern
+        // to represent the media being "processed"
 
-      ctx.font = '20px monospace';
-      ctx.fillStyle = '#10b981';
-      ctx.fillText(`PLAYING: ${clip.name}`, 50, 50);
+        const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        if (clip.type === 'video') {
+            grad.addColorStop(0, '#10b98122');
+            grad.addColorStop(0.5, '#064e3b44');
+            grad.addColorStop(1, '#10b98122');
+        } else {
+            grad.addColorStop(0, '#8b5cf622');
+            grad.addColorStop(0.5, '#4c1d9544');
+            grad.addColorStop(1, '#8b5cf622');
+        }
 
-      // Apply "Strategic Commander" HUD
-      this.drawHUD(ctx, canvas);
-    });
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (activeClips.length === 0) {
-      ctx.font = '14px monospace';
-      ctx.fillStyle = '#475569';
-      ctx.fillText('NO ACTIVE DATA STREAM', canvas.width/2 - 80, canvas.height/2);
+        // Pattern
+        ctx.strokeStyle = '#10b98111';
+        ctx.beginPath();
+        for(let x=0; x<canvas.width; x+=40) {
+            ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+        }
+        ctx.stroke();
+
+        ctx.font = '10px "Public Sans"';
+        ctx.fillStyle = '#10b981';
+        ctx.fillText(`UPLINK: ${clip.name.toUpperCase()}`, 20, 30);
+        ctx.fillText(`TIMESTAMP: ${time.toFixed(3)}s`, 20, 45);
+      });
+    } else {
+      ctx.font = '12px "Public Sans"';
+      ctx.fillStyle = '#1e293b';
+      ctx.textAlign = 'center';
+      ctx.fillText('WAITING FOR MEDIA SIGNAL...', canvas.width/2, canvas.height/2);
     }
+
+    this.drawHUD(ctx, canvas);
   }
 
   private drawHUD(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
     ctx.strokeStyle = '#10b98144';
     ctx.lineWidth = 1;
 
-    // Corners
+    // Tactical Corners
+    const size = 30;
+    const p = 10;
+
+    // Top Left
     ctx.beginPath();
-    ctx.moveTo(20, 40); ctx.lineTo(20, 20); ctx.lineTo(40, 20);
+    ctx.moveTo(p, p + size); ctx.lineTo(p, p); ctx.lineTo(p + size, p);
     ctx.stroke();
 
+    // Bottom Right
     ctx.beginPath();
-    ctx.moveTo(canvas.width - 40, 20); ctx.lineTo(canvas.width - 20, 20); ctx.lineTo(canvas.width - 20, 40);
+    ctx.moveTo(canvas.width - p, canvas.height - p - size);
+    ctx.lineTo(canvas.width - p, canvas.height - p);
+    ctx.lineTo(canvas.width - p - size, canvas.height - p);
     ctx.stroke();
 
-    // hiddens
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.05)';
+    // Scanlines
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.03)';
     for (let i = 0; i < canvas.height; i += 4) {
       ctx.fillRect(0, i, canvas.width, 1);
     }
+
+    // System Status
+    ctx.fillStyle = '#10b981';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('REC ●', canvas.width - 50, 25);
   }
 
   async onFileUpload(event: any) {
     const file = event.target.files[0];
     if (!file) return;
-
     const url = URL.createObjectURL(file);
     this.videoEngine.addClip('t1', {
       name: file.name,
       url: url,
       startTime: this.videoEngine.currentTime(),
-      duration: 10, // Default 10s for upload, should be dynamic
+      duration: 10,
       offset: 0,
       type: 'video',
       effects: { upscale: false, bgRemoval: false, noiseReduction: false, brightness: 1, contrast: 1 }
     });
-
     this.aiFeedback.set(`UPLOAD SUCCESS: ${file.name} integrated into the visual vault.`);
   }
 
   async generateImage() {
     if (!this.imagePrompt()) return;
-
     this.isGenerating.set(true);
     this.generatedImageUrl.set(null);
-
-    const fullPrompt = this.highQualityEnhancer()
-      ? `${this.imagePrompt()}, high definition, professional lighting, 4k`
-      : this.imagePrompt();
-
+    const fullPrompt = `Tech-noir aesthetic, ${this.imagePrompt()}`;
     try {
       const url = await this.aiService.generateImage(fullPrompt);
       this.generatedImageUrl.set(url);
-
-      // Also add as a clip to the overlay track
       this.videoEngine.addClip('t2', {
         name: 'AI Concept Overlay',
         url: url,
@@ -163,9 +188,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         type: 'image',
         effects: { upscale: true, bgRemoval: false, noiseReduction: false, brightness: 1, contrast: 1 }
       });
-
     } catch (error) {
-      console.error('Image Generation Error:', error);
+      this.logger.error('Image Generation Error:', error);
     } finally {
       this.isGenerating.set(false);
     }
@@ -176,8 +200,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
-    }
+    if (this.animFrame) cancelAnimationFrame(this.animFrame);
   }
 }

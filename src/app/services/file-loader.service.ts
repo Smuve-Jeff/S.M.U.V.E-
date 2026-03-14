@@ -1,7 +1,9 @@
-import { Injectable } from '@angular/core';
+import { LoggingService } from './logging.service';
+import { Injectable , inject} from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class FileLoaderService {
+  private logger = inject(LoggingService);
   constructor() {}
 
   async pickLocalFiles(accept = '.mp3,.wav,.ogg,.webm'): Promise<File[]> {
@@ -18,7 +20,7 @@ export class FileLoaderService {
       try {
         input.click();
       } catch (err) {
-        console.warn('FileLoaderService: Failed to trigger file picker', err);
+        this.logger.warn('FileLoaderService: Failed to trigger file picker', err);
         resolve([]);
       }
     });
@@ -39,7 +41,7 @@ export class FileLoaderService {
       // We slice the buffer because decodeAudioData detaches it
       return await ctx.decodeAudioData(arrayBuffer.slice(0));
     } catch (err) {
-      console.error('FileLoaderService: Error decoding audio data', err);
+      this.logger.error('FileLoaderService: Error decoding audio data', err);
       throw new Error('Failed to decode audio file. Please ensure it is a valid audio format.');
     }
   }
@@ -53,7 +55,7 @@ export class FileLoaderService {
       if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
       return await res.arrayBuffer();
     } catch (err) {
-      console.error('FileLoaderService: Error fetching array buffer', err);
+      this.logger.error('FileLoaderService: Error fetching array buffer', err);
       throw err;
     }
   }

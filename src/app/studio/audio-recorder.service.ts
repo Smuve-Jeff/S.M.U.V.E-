@@ -1,3 +1,4 @@
+import { LoggingService } from '../services/logging.service';
 import { Injectable, signal, inject } from '@angular/core';
 import { AudioEngineService } from '../services/audio-engine.service';
 
@@ -5,6 +6,7 @@ import { AudioEngineService } from '../services/audio-engine.service';
   providedIn: 'root'
 })
 export class AudioRecorderService {
+  private logger = inject(LoggingService);
   private engine = inject(AudioEngineService);
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
@@ -38,7 +40,7 @@ export class AudioRecorderService {
     this.mediaRecorder.onstop = () => {
       const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm;codecs=opus' });
       const audioUrl = URL.createObjectURL(audioBlob);
-      console.log('Recording stopped. Audio URL:', audioUrl);
+      this.logger.info('Recording stopped. Audio URL:', audioUrl);
 
       // Auto-download for the user to verify
       const link = document.createElement('a');

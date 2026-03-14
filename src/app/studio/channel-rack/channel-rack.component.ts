@@ -1,3 +1,4 @@
+import { LoggingService } from '../../services/logging.service';
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MusicManagerService, TrackModel } from '../../services/music-manager.service';
@@ -12,6 +13,7 @@ import { InstrumentsService } from '../../services/instruments.service';
   styleUrls: ['./channel-rack.component.css']
 })
 export class ChannelRackComponent {
+  private logger = inject(LoggingService);
   public musicManager = inject(MusicManagerService);
   private engine = inject(AudioEngineService);
   private instruments = inject(InstrumentsService);
@@ -27,7 +29,7 @@ export class ChannelRackComponent {
   }
 
   selectTrack(track: TrackModel) {
-    console.log('ChannelRack: Selecting track:', track.name, track.id);
+    this.logger.info('ChannelRack: Selecting track:', track.name, track.id);
     this.musicManager.selectedTrackId.set(track.id);
   }
 

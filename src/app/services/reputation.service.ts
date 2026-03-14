@@ -41,6 +41,11 @@ export class ReputationService {
     });
   }
 
+  // Alias for compatibility
+  addExperience(amount: number): void {
+    this.addXp(amount);
+  }
+
   private calculateTitle(level: number): string {
     if (level >= 50) return 'Legendary Strategic Commander';
     if (level >= 30) return 'Platinum Architect';
