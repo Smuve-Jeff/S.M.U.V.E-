@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CareerHubComponent } from './career-hub.component';
 import { provideRouter } from '@angular/router';
-import { API_KEY_TOKEN } from '../../services/ai.service';
+import { API_KEY_TOKEN, AiService } from '../../services/ai.service';
+import { UIService } from '../../services/ui.service';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('CareerHubComponent', () => {
@@ -41,6 +42,8 @@ describe('CareerHubComponent', () => {
       imports: [CareerHubComponent, NoopAnimationsModule],
       providers: [
         provideRouter([]),
+        AiService,
+        UIService,
         { provide: API_KEY_TOKEN, useValue: 'TEST_KEY_LONG_ENOUGH_FOR_STRATEGIC_DECREE' }
       ],
     }).compileComponents();

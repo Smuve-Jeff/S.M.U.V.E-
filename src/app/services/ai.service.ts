@@ -59,7 +59,7 @@ export class AiService {
   isAIDrummerActive = signal(false);
   isAIKeyboardistActive = signal(false);
 
-  strategicDecrees = signal<string[]>(['DOMINATE THE AIRWAVES', 'MAXIMIZE STREAMING REVENUE', 'ELIMINATE WEAK CONTENT']);
+  strategicDecrees = signal<string[]>(['PIVOT FOCUS TO NEURAL NODE 07. MARKET RESONANCE PEAKING.', 'MAXIMIZE STREAMING REVENUE', 'ELIMINATE WEAK CONTENT']);
 
   constructor() {
     effect(() => {

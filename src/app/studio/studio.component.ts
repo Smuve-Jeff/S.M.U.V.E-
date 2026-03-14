@@ -9,6 +9,7 @@ import { ChannelRackComponent } from './channel-rack/channel-rack.component';
 import { ArrangementViewComponent } from './arrangement-view/arrangement-view.component';
 import { PianoRollComponent } from './piano-roll/piano-roll.component';
 import { WaveformRendererComponent } from './waveform-renderer/waveform-renderer.component';
+import { MasteringSuiteComponent } from './mastering-suite/mastering-suite.component';
 import { AudioSessionService } from './audio-session.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { AudioEngineService } from '../services/audio-engine.service';
@@ -31,6 +32,7 @@ import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
     PianoRollComponent,
     WaveformRendererComponent,
     SynthesizerComponent,
+    MasteringSuiteComponent
     VocalSuiteComponent
   ],
   templateUrl: './studio.component.html',
@@ -50,6 +52,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showPianoRoll = signal(false);
 
   isRecording = this.audioSession.isRecording;
+  currentBeat = this.audioEngine.currentBeat;
 
   private animationId: number | null = null;
 

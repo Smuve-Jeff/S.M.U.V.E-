@@ -26,6 +26,16 @@ export default {
           bright: '#f8fafc', // Slate 50
           dim: '#94a3b8', // Slate 400
         },
+        "primary": "#ec5b13",
+        "background-light": "#f8f6f6",
+        "background-dark": "#221610",
+        "extreme-obsidian": "#0d0d0d",
+        "extreme-titanium": "#2a2a2a",
+        "accent-purple": "#a855f7",
+        "accent-magenta": "#d946ef",
+        "extreme-surface": "#3a2a1f",
+        "extreme-panel": "#2d1e16",
+        "extreme-titanium-dark": "#1a1a1a",
         vocal: {
           primary: '#9d00ff',
           'background-light': '#f7f5f8',
@@ -38,6 +48,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['Fira Code', 'monospace'],
+        display: ["Public Sans", 'Inter', 'sans-serif'],
         display: ['Inter', 'sans-serif'],
         'vocal-display': ['Public Sans', 'sans-serif'],
       },

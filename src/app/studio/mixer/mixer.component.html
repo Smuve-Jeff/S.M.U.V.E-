@@ -1,76 +1,119 @@
-<div class="h-full flex flex-col bg-brand-dark p-6 overflow-hidden">
+<div class="h-full flex flex-col bg-background-dark p-6 overflow-hidden titanium-texture">
+  <!-- Mixer Header -->
   <header class="flex items-center justify-between mb-8 border-b border-white/5 pb-6">
     <div class="flex items-center gap-4">
-      <div class="w-10 h-10 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary">
-        <i class="fas fa-sliders"></i>
+      <div class="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+        <span class="material-symbols-outlined">view_carousel</span>
       </div>
       <div>
-        <h2 class="text-sm font-black text-white uppercase tracking-[0.2em]">Console Mixer</h2>
-        <p class="text-[9px] font-bold text-silver-dim uppercase tracking-widest">High-Fidelity Routing Environment</p>
+        <h2 class="text-sm font-black text-white uppercase tracking-[0.2em]">Technical Mixing Console</h2>
+        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">Precision Signal Path Management</p>
       </div>
     </div>
 
-    <div class="flex items-center gap-6">
+    <div class="flex items-center gap-8">
        <div class="flex flex-col items-end">
-          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Active Channels</span>
-          <span class="text-xs font-bold text-brand-primary">{{ tracks().length + micChannels().length }} ACTIVE</span>
+          <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Global Headroom</span>
+          <span class="text-xs font-mono font-bold text-primary">-4.2 dB</span>
        </div>
-       <div class="h-8 w-px bg-white/10"></div>
+       <div class="h-10 w-px bg-white/5"></div>
        <div class="flex flex-col items-end">
-          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Master Peak</span>
-          <span class="text-xs font-bold text-brand-accent">-0.2 dB</span>
+          <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Engine Load</span>
+          <span class="text-xs font-mono font-bold text-cyan-400">12.4%</span>
        </div>
     </div>
   </header>
 
   <div class="flex-grow flex gap-4 overflow-hidden">
-    <div class="flex-grow flex gap-3 overflow-x-auto custom-scrollbar pb-4">
+    <div class="flex-grow flex gap-3 overflow-x-auto no-scrollbar pb-6">
        <!-- MICROPHONE INPUTS -->
        <app-channel-strip *ngFor="let channel of micChannels()" [channel]="channel" class="flex-shrink-0"></app-channel-strip>
 
-       <!-- TRACK CHANNELS -->
+       <!-- TRACK CHANNELS (Brushed Titanium style) -->
        <div *ngFor="let track of tracks(); let i = index"
-            class="flex-shrink-0 w-24 glass-panel rounded-2xl p-3 flex flex-col items-center gap-4 group hover:border-brand-primary/20 transition-all">
-          <div class="text-[8px] font-black text-silver-dim uppercase tracking-widest">CH {{ i + micChannels().length + 1 | number:'2.0' }}</div>
-
-          <div class="flex-grow w-2 bg-black/40 rounded-full relative shadow-inner overflow-hidden border border-white/5">
-             <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-brand-primary/60 to-brand-primary/20 transition-all duration-300" [style.height.%]="60 + (i*7) % 30"></div>
-             <div class="absolute bottom-[70%] left-[-8px] right-[-8px] h-3 bg-white rounded shadow-lg"></div>
+            class="flex-shrink-0 w-28 bg-extreme-titanium/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-4 group hover:bg-extreme-titanium/50 hover:border-primary/20 transition-all shadow-inner relative">
+          <div class="w-full bg-black/60 rounded p-1.5 mb-2 text-center border border-white/5">
+             <span class="text-[9px] text-slate-400 font-mono font-black uppercase">CH {{ i + micChannels().length + 1 }}</span>
           </div>
 
-          <div class="flex gap-1.5 w-full">
+          <!-- High-density VU Meter -->
+          <div class="flex gap-1 h-48 mb-2 bg-black/40 p-1.5 rounded-lg border border-white/5 shadow-inner">
+             <div class="w-3 h-full relative bg-slate-900 rounded-sm overflow-hidden">
+                <div class="absolute bottom-0 w-full bg-vu-meter-gradient opacity-90 transition-all duration-100" [style.height.%]="60 + (i*9) % 35"></div>
+             </div>
+             <div class="w-3 h-full relative bg-slate-900 rounded-sm overflow-hidden opacity-80">
+                <div class="absolute bottom-0 w-full bg-vu-meter-gradient opacity-90 transition-all duration-100" [style.height.%]="55 + (i*9) % 35"></div>
+             </div>
+          </div>
+
+          <!-- Knobs Placeholder -->
+          <div class="flex flex-col items-center gap-3">
+             <div class="size-8 rounded-full border-2 border-white/10 bg-slate-800 flex items-center justify-center shadow-lg">
+                <div class="w-0.5 h-3 bg-primary rotate-45 origin-bottom"></div>
+             </div>
+             <div class="flex flex-col items-center gap-1">
+                <div class="size-6 rounded-full border border-white/10 bg-slate-800 flex items-center justify-center relative">
+                   <div class="w-0.5 h-2 bg-slate-500 -rotate-45 origin-bottom"></div>
+                </div>
+                <span class="text-[7px] text-slate-500 uppercase font-black">PAN</span>
+             </div>
+          </div>
+
+          <!-- Fader -->
+          <div class="flex-grow w-1.5 bg-black/60 rounded-full relative mb-4 shadow-inner">
+             <div class="absolute top-1/2 -left-3.5 w-8 h-3.5 bg-slate-100 rounded-sm shadow-2xl cursor-pointer border border-slate-400 hover:brightness-110 transition-all"></div>
+          </div>
+
+          <div class="flex gap-2 w-full">
              <button (click)="toggleMute(track.id)"
-                     class="flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all"
-                     [class.bg-brand-danger]="track.mute"
-                     [class.text-black]="track.mute"
-                     [class.bg-white/5]="!track.mute"
-                     [class.text-silver-dim]="!track.mute">M</button>
+                     class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
+                     [class.bg-red-600]="track.mute"
+                     [class.text-white]="track.mute"
+                     [class.bg-black/40]="!track.mute"
+                     [class.text-slate-500]="!track.mute">M</button>
              <button (click)="toggleSolo(track.id)"
-                     class="flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all"
-                     [class.bg-brand-warning]="track.solo"
+                     class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
+                     [class.bg-primary]="track.solo"
                      [class.text-black]="track.solo"
-                     [class.bg-white/5]="!track.solo"
-                     [class.text-silver-dim]="!track.solo">S</button>
+                     [class.bg-black/40]="!track.solo"
+                     [class.text-slate-500]="!track.solo">S</button>
           </div>
 
-          <div class="text-[9px] font-bold text-white truncate w-full text-center">{{ track.name }}</div>
+          <div class="text-[10px] font-black text-white truncate w-full text-center tracking-tight">{{ track.name }}</div>
        </div>
     </div>
 
-    <!-- MASTER CHANNEL -->
-    <div class="w-32 bg-brand-surface/40 rounded-3xl border border-brand-accent/20 p-4 flex flex-col items-center gap-6 shadow-2xl">
-       <div class="flex-grow w-3 bg-black/60 rounded-full relative shadow-inner border border-white/5 overflow-hidden">
-          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-brand-accent/60 to-brand-accent/20 transition-all" [style.height.%]="masterVolume()"></div>
-          <input type="range" min="0" max="100" step="1" orient="vertical" [value]="masterVolume()"
-                 (input)="updateMasterVolume(+($any($event.target).value))"
-                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-          <div class="absolute w-8 h-4 bg-white rounded-lg shadow-xl pointer-events-none -ml-2.5"
-               [style.bottom.%]="masterVolume() - 5"></div>
+    <!-- MASTER STRIP -->
+    <div class="w-36 bg-primary/5 rounded-[32px] border border-primary/20 p-5 flex flex-col items-center gap-6 shadow-2xl relative overflow-hidden">
+       <div class="absolute inset-0 bg-primary/5 blur-[40px] pointer-events-none"></div>
+       <div class="w-full bg-primary/20 rounded p-1.5 mb-2 text-center border border-primary/30 z-10">
+          <span class="text-[10px] text-primary font-mono font-black uppercase tracking-wider">MASTER BUS</span>
        </div>
 
-       <div class="text-center">
-          <span class="text-[10px] font-black text-brand-accent uppercase tracking-widest block mb-1">Master</span>
-          <span class="text-xs font-mono text-silver-dim">{{ masterVolume().toFixed(0) }}%</span>
+       <div class="flex-grow flex gap-2 h-full z-10">
+          <div class="w-5 bg-black/60 rounded-lg relative shadow-inner border border-primary/10 overflow-hidden">
+             <div class="absolute bottom-0 left-0 right-0 bg-vu-meter-gradient transition-all" [style.height.%]="masterVolume()"></div>
+          </div>
+          <div class="w-5 bg-black/60 rounded-lg relative shadow-inner border border-primary/10 overflow-hidden">
+             <div class="absolute bottom-0 left-0 right-0 bg-vu-meter-gradient transition-all opacity-80" [style.height.%]="masterVolume() - 2"></div>
+          </div>
+       </div>
+
+       <div class="flex gap-3 mb-2 z-10">
+          <div class="size-7 rounded-full border border-primary/40 bg-black flex items-center justify-center text-[10px] font-black text-primary">M</div>
+          <div class="size-7 rounded-full border border-primary/40 bg-black flex items-center justify-center text-[10px] font-black text-primary">S</div>
+       </div>
+
+       <div class="w-2 h-24 bg-black rounded-full relative z-10">
+          <div class="absolute -left-4 w-10 h-4 bg-primary rounded-sm shadow-[0_0_15px_rgba(236,91,19,0.5)] border border-white/20 cursor-pointer"
+               [style.top.%]="100 - masterVolume()"></div>
+          <input type="range" min="0" max="100" step="1" orient="vertical" [value]="masterVolume()"
+                 (input)="updateMasterVolume(+($any($event.target).value))"
+                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+       </div>
+
+       <div class="text-center z-10">
+          <span class="text-xs font-mono font-black text-primary tracking-widest">{{ masterVolume().toFixed(0) }}%</span>
        </div>
     </div>
   </div>

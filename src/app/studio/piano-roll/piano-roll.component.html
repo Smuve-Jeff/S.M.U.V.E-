@@ -1,70 +1,246 @@
-<div class="piano-roll-container bg-brand-dark border border-white/10 rounded-3xl overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] h-full flex flex-col scale-[0.98] transition-all hover:scale-100">
-  <!-- Toolbar with Tool Selection -->
-  <div class="piano-roll-toolbar bg-brand-surface px-6 py-2 flex items-center justify-between border-b border-white/10">
-    <div class="flex items-center gap-6">
-       <div class="flex items-center gap-2">
-         <button class="w-8 h-8 rounded bg-brand-primary text-black flex items-center justify-center"><i class="fas fa-mouse-pointer text-[10px]"></i></button>
-         <button class="w-8 h-8 rounded bg-brand-surface-light text-slate-500 hover:text-white flex items-center justify-center"><i class="fas fa-pencil-alt text-[10px]"></i></button>
-         <button class="w-8 h-8 rounded bg-brand-surface-light text-slate-500 hover:text-white flex items-center justify-center"><i class="fas fa-eraser text-[10px]"></i></button>
-       </div>
-       <div class="h-6 w-px bg-white/10"></div>
-       <div class="flex items-center gap-4">
-          <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Snap: 1/16</span>
-          <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Scale: C Minor</span>
-       </div>
-    </div>
-    <div class="flex items-center gap-3">
-       <button (click)="musicManager.selectedTrackId.set(null)" class="text-slate-500 hover:text-white transition-all"><i class="fas fa-times text-xs"></i></button>
-    </div>
-  </div>
+<div class="flex h-full w-full flex-col overflow-hidden bg-white dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 animate-enter">
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Left Sidebar: Neural AI Panel -->
+    <aside class="w-64 shrink-0 flex flex-col border-r border-primary/10 bg-slate-50 dark:bg-slate-900/50 p-4">
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs font-black uppercase tracking-widest text-slate-400">Neural Workflow</h3>
+          <span class="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">94% CONFIDENCE</span>
+        </div>
+        <div class="space-y-1">
+          <button (click)="aiService.getViralHooks()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">
+            <span class="material-symbols-outlined text-xl">auto_awesome</span>
+            <span class="text-sm font-semibold">Generate Melodies</span>
+          </button>
+          <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/10 text-slate-600 dark:text-slate-300 transition-colors">
+            <span class="material-symbols-outlined text-xl">waves</span>
+            <span class="text-sm font-medium">Chord Gen</span>
+          </button>
+          <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/10 text-slate-600 dark:text-slate-300 transition-colors">
+            <span class="material-symbols-outlined text-xl">grid_view</span>
+            <span class="text-sm font-medium">Rhythm AI</span>
+          </button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto space-y-4 no-scrollbar">
+        <div class="rounded-xl border border-primary/20 bg-white dark:bg-slate-800 p-3">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="material-symbols-outlined text-primary text-sm">psychology</span>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Seed Parameters</h4>
+          </div>
+          <div class="space-y-3">
+            <div class="space-y-1">
+              <div class="flex justify-between text-[10px] font-bold text-slate-400">
+                <span>COMPLEXITY</span>
+                <span>78%</span>
+              </div>
+              <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div class="h-full bg-primary" style="width: 78%"></div>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <div class="flex justify-between text-[10px] font-bold text-slate-400">
+                <span>VARIATION</span>
+                <span>42%</span>
+              </div>
+              <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div class="h-full bg-primary" style="width: 42%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary bg-primary/5 px-4 py-2.5 text-sm font-bold text-primary hover:bg-primary hover:text-white transition-all">
+        <span class="material-symbols-outlined text-lg">add_circle</span>
+        New Neural Session
+      </button>
+    </aside>
 
-  <div class="piano-roll-content flex flex-grow overflow-hidden relative">
-    <!-- Keys with Scale Highlighting -->
-    <div class="piano-keys w-20 bg-brand-surface border-r border-white/10 overflow-y-auto custom-scrollbar-hide h-full flex flex-col">
-       <div *ngFor="let key of keys"
-            [class.black-key]="isBlackKey(key)"
-            class="key h-8 w-full border-b border-white/10 flex items-center justify-end px-3 relative"
-            [class.bg-brand-surface-light]="!isBlackKey(key)"
-            [class.bg-black]="isBlackKey(key)">
-          <div class="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary/20" *ngIf="key % 12 === 0"></div>
-          <span class="text-[8px] font-mono text-[11px] tracking-tight" [class.text-slate-400]="!isBlackKey(key)" [class.text-brand-primary/60]="isBlackKey(key)">{{ getKeyName(key) }}</span>
-       </div>
-    </div>
+    <!-- Main Content Area: Piano Roll -->
+    <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-background-dark relative">
+      <!-- Top Controls: Scale & Chord Lock -->
+      <div class="flex items-center gap-4 px-6 py-3 border-b border-primary/10 bg-slate-50 dark:bg-slate-900/30 shrink-0">
+        <div class="flex items-center gap-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 shadow-sm">
+          <span class="material-symbols-outlined text-primary text-lg">music_note</span>
+          <span class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">Scale Assistant:</span>
+          <span class="text-xs font-black text-primary uppercase">C MAJOR</span>
+          <span class="material-symbols-outlined text-slate-400 text-sm">keyboard_arrow_down</span>
+        </div>
+        <div class="flex items-center gap-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 shadow-sm">
+          <span class="material-symbols-outlined text-primary text-lg">lock</span>
+          <span class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">Chord Lock:</span>
+          <span class="text-xs font-black text-slate-400">OFF</span>
+        </div>
+        <div class="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
+        <div class="flex-1"></div>
+        <div class="flex items-center gap-2">
+          <button class="flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            <span class="material-symbols-outlined text-sm">brush</span>
+            Draw
+          </button>
+          <button class="flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary uppercase tracking-wider">
+            <span class="material-symbols-outlined text-sm">ads_click</span>
+            Select
+          </button>
+        </div>
+      </div>
 
-    <!-- Main MIDI Grid -->
-    <div class="midi-grid-container flex-grow overflow-auto custom-scrollbar relative">
-       <div class="midi-grid flex flex-col relative" [style.width.px]="gridWidth" (mousedown)="onGridClick($event)">
-          <div *ngFor="let row of keys" class="grid-row h-8 border-b border-white/10 flex pointer-events-none relative"
-               [class.bg-brand-primary/[0.02]]="!isBlackKey(row)">
-             <div *ngFor="let cell of cells"
-                  class="grid-cell border-r border-white/10 flex-shrink-0"
-                  [style.width.px]="cellWidth"
-                  [class.bg-white/[0.02]]="isStrongBeat(cell)">
+      <!-- Piano Roll Grid -->
+      <div class="flex-1 relative overflow-hidden flex">
+        <!-- Piano Keys -->
+        <div class="w-12 shrink-0 flex flex-col bg-slate-100 dark:bg-slate-900 border-r border-slate-300 dark:border-slate-700 overflow-y-auto no-scrollbar">
+          <div *ngFor="let key of keys"
+               class="h-8 border-b border-slate-300 dark:border-slate-700 flex items-center justify-end pr-1 text-[10px] font-bold transition-colors"
+               [class.bg-slate-800]="isBlackKey(key)"
+               [class.text-slate-400]="!isBlackKey(key)"
+               [class.text-brand-primary/40]="isBlackKey(key)">
+            {{ key % 12 === 0 ? 'C' + (key/12 - 1) : '' }}
+          </div>
+        </div>
+
+        <!-- MIDI Grid Area -->
+        <div class="flex-1 relative overflow-auto custom-scrollbar bg-white dark:bg-background-dark">
+          <div class="midi-grid relative" [style.width.px]="gridWidth" (mousedown)="onGridClick($event)">
+             <!-- Grid Lines -->
+             <div *ngFor="let row of keys" class="h-8 border-b border-slate-100 dark:border-white/5 flex pointer-events-none"
+                  [class.bg-slate-50]="!isBlackKey(row)"
+                  [class.dark:bg-white/[0.01]]="!isBlackKey(row)">
+                <div *ngFor="let cell of cells" class="w-10 border-r border-slate-100 dark:border-white/5 shrink-0"
+                     [class.bg-primary/[0.03]]="isStrongBeat(cell)"></div>
              </div>
+
+             <!-- MIDI Notes -->
+             @for (note of selectedTrack()?.notes; track note.id) {
+                <div (mousedown)="onNoteMouseDown($event, note)"
+                     (contextmenu)="deleteNote($event, note.id); false"
+                     class="absolute h-7 rounded-sm bg-primary border border-primary/50 shadow-sm flex items-center px-2 cursor-move group hover:brightness-110 transition-all"
+                     [style.left.px]="note.step * cellWidth"
+                     [style.top.px]="(108 - note.midi) * rowHeight + 1"
+                     [style.width.px]="note.length * cellWidth">
+                   <div class="h-full w-px bg-white/30 ml-auto mr-1"></div>
+                   <div class="flex flex-col items-end pr-1">
+                      <span class="text-[8px] text-white font-black">{{ getKeyName(note.midi) }}</span>
+                      <span class="text-[6px] text-white/70 font-medium tracking-tighter">VEL: {{ (note.velocity * 127).toFixed(0) }}</span>
+                   </div>
+                </div>
+             }
+
+             <!-- Playhead -->
+             <div class="absolute top-0 bottom-0 w-px bg-primary z-10 shadow-[0_0_15px_#ec5b13]"
+                  [style.left.px]="currentStep() * cellWidth"></div>
           </div>
 
-          <!-- MIDI Notes with Glow and Velocity Display -->
-          <div *ngFor="let note of selectedTrack()?.notes"
-               (mousedown)="onNoteMouseDown($event, note)"
-               (contextmenu)="deleteNote($event, note.id); false"
-               class="midi-note absolute h-6 rounded-sm bg-gradient-to-r from-brand-primary to-emerald-400 border border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.4)] flex items-center px-2 cursor-move group overflow-hidden"
-               [style.left.px]="note.step * cellWidth"
-               [style.top.px]="(108 - note.midi) * rowHeight + 4"
-               [style.width.px]="note.length * cellWidth">
-               <div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-               <span class="text-[7px] font-black text-black uppercase opacity-60 truncate pointer-events-none">{{ getKeyName(note.midi) }}</span>
-               <div class="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20"></div>
+          <!-- Neural Confidence Overlay -->
+          <div class="absolute top-4 right-4 max-w-xs space-y-2 pointer-events-none z-20">
+            <div class="rounded-xl border border-primary/30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-4 shadow-2xl">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="p-1.5 rounded-lg bg-primary/20">
+                  <span class="material-symbols-outlined text-primary text-base">batch_prediction</span>
+                </div>
+                <h4 class="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-100">Neural Sync</h4>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3 font-medium">AI generated sequence aligns with Scale Assistant (C MAJOR).</p>
+              <div class="flex gap-1 h-1.5">
+                <div class="flex-1 bg-primary rounded-full"></div>
+                <div class="flex-1 bg-primary rounded-full"></div>
+                <div class="flex-1 bg-primary rounded-full"></div>
+                <div class="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+              </div>
+              <div class="mt-2 flex justify-between">
+                <span class="text-[10px] font-black text-primary">STABILITY: 74%</span>
+                <span class="text-[10px] font-black text-slate-400">REFRESH</span>
+              </div>
+            </div>
           </div>
-
-          <!-- Vertical Velocity Bars Overlay (Bottom) -->
-          <div class="absolute bottom-0 left-0 right-0 h-24 bg-black/40 border-t border-white/10 pointer-events-none flex items-end">
-             <div *ngFor="let cell of cells" class="flex-grow bg-brand-primary/20 mx-[1px]" [style.height.%]="getVelocityAt(cell)"></div>
-          </div>
-
-          <!-- Playhead -->
-          <div class="playhead absolute top-0 bottom-0 w-px bg-white z-10 pointer-events-none shadow-[0_0_10px_white]"
-               [style.left.px]="currentStep() * cellWidth"></div>
-       </div>
-    </div>
+        </div>
+      </div>
+    </main>
   </div>
+
+  <!-- Bottom: Modular MIDI FX Rack -->
+  <footer class="h-64 shrink-0 border-t border-primary/10 bg-slate-50 dark:bg-slate-900/50 flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-2 border-b border-primary/10">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary">extension</span>
+        <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">MIDI FX Rack</h3>
+      </div>
+      <div class="flex gap-2">
+        <button class="p-1 rounded bg-slate-200 dark:bg-slate-800 hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-sm">add</span>
+        </button>
+      </div>
+    </div>
+    <div class="flex flex-1 gap-4 p-4 overflow-x-auto no-scrollbar">
+      <!-- Arpeggiator Module -->
+      <div class="w-72 shrink-0 rounded-xl border border-primary/30 bg-white dark:bg-slate-800 shadow-sm flex flex-col bg-gradient-to-br from-white to-slate-200 dark:from-slate-800 dark:to-slate-950">
+        <div class="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700">
+           <div class="flex items-center gap-2">
+              <div class="size-2.5 bg-primary rounded-full shadow-[0_0_8px_#ec5b13]"></div>
+              <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-900 dark:text-white">ARP-PRO EXTREME</h4>
+           </div>
+           <div class="flex items-center gap-2">
+              <span class="text-[8px] font-black text-slate-400 uppercase">Bypass</span>
+              <span class="material-symbols-outlined text-primary text-sm cursor-pointer">toggle_on</span>
+           </div>
+        </div>
+        <div class="p-3 flex-1 grid grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Rate</label>
+            <div class="relative flex items-center justify-center pt-2">
+              <div class="size-10 rounded-full border-2 border-slate-100 dark:border-slate-700 flex items-center justify-center relative">
+                <div class="absolute inset-0 border-t-2 border-primary rounded-full rotate-[45deg]"></div>
+                <span class="text-[10px] font-black">1/16</span>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Octave</label>
+            <div class="relative flex items-center justify-center pt-2">
+              <div class="size-10 rounded-full border-2 border-slate-100 dark:border-slate-700 flex items-center justify-center relative">
+                <div class="absolute inset-0 border-t-2 border-primary rounded-full rotate-[120deg]"></div>
+                <span class="text-[10px] font-black">+2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Velocity Humanizer -->
+      <div class="w-72 shrink-0 rounded-xl border border-primary/10 bg-white dark:bg-slate-800 shadow-sm flex flex-col bg-gradient-to-br from-white to-slate-200 dark:from-slate-800 dark:to-slate-950">
+        <div class="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700">
+          <div class="flex items-center gap-2">
+            <div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
+            <h4 class="text-[10px] font-black uppercase text-slate-900 dark:text-white">Velocity Humanizer</h4>
+          </div>
+          <span class="material-symbols-outlined text-slate-400 text-sm">power_settings_new</span>
+        </div>
+        <div class="p-3 flex-1 space-y-4">
+           <div class="space-y-1">
+              <div class="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                 <span>Amount</span>
+                 <span class="text-primary">24.0%</span>
+              </div>
+              <div class="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                 <div class="h-full bg-primary" style="width: 24%"></div>
+              </div>
+           </div>
+           <div class="space-y-1">
+              <div class="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                 <span>Timing Shift</span>
+                 <span class="text-primary">-8.0ms</span>
+              </div>
+              <div class="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                 <div class="h-full bg-primary" style="width: 42%"></div>
+              </div>
+           </div>
+        </div>
+      </div>
+
+      <!-- Empty Slot -->
+      <div class="w-72 shrink-0 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 gap-2 hover:border-primary/40 hover:text-primary transition-all cursor-pointer">
+        <span class="material-symbols-outlined text-3xl">add_box</span>
+        <span class="text-[10px] font-black uppercase tracking-widest">Add Module</span>
+      </div>
+    </div>
+  </footer>
 </div>

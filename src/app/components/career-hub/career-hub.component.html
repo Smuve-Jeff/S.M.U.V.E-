@@ -1,178 +1,308 @@
-<div class="p-8 max-w-[1600px] mx-auto animate-enter">
-  <!-- DASHBOARD HEADER -->
-  <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-    <div class="flex flex-col">
-      <div class="flex items-center gap-3 mb-2">
-        <span class="text-[10px] font-black text-brand-primary uppercase tracking-[0.4em]">Strategic Control</span>
-        <div class="h-px w-12 bg-brand-primary/30"></div>
-      </div>
-      <h1 class="text-4xl font-black tracking-tighter text-white uppercase italic">CAREER<span class="text-brand-primary">HUB</span></h1>
-      <p class="text-silver-dim text-sm mt-2 font-medium">Global career management & strategic trajectory analysis.</p>
-    </div>
-
-    <div class="flex items-center gap-4">
-      <button (click)="runPitchAudit()"
-              [disabled]="isAuditing()"
-              class="btn-elegant bg-white text-black hover:bg-silver-bright px-8 shadow-xl shadow-white/5">
-        <i class="fas fa-shield-halved" [class.fa-spin]="isAuditing()"></i>
-        <span class="font-bold tracking-widest text-[10px] uppercase">{{ isAuditing() ? 'Auditing...' : 'Run Strategic Audit' }}</span>
-      </button>
-      <button class="w-12 h-12 rounded-xl bg-brand-surface border border-white/10 flex items-center justify-center text-silver-dim hover:text-white transition-all">
-        <i class="fas fa-ellipsis-v"></i>
-      </button>
-    </div>
-  </header>
-
-  <!-- BENTO GRID LAYOUT -->
-  <div class="grid grid-cols-12 gap-6">
-
-    <!-- AI STRATEGIC AUDIT (Large Feature) -->
-    <div class="col-span-12 lg:col-span-8 glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group">
-      <div class="absolute -top-24 -right-24 w-64 h-64 bg-brand-primary/5 blur-[100px] rounded-full group-hover:bg-brand-primary/10 transition-all duration-700"></div>
-
-      <div class="flex items-center justify-between mb-8">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary">
-            <i class="fas fa-chart-pie text-xl"></i>
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-300">
+  <div class="layout-container flex h-full grow flex-col">
+    <!-- TopNavBar -->
+    <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-800 px-10 py-4 bg-obsidian/90 backdrop-blur-xl sticky top-0 z-50">
+      <div class="flex items-center gap-8">
+        <div class="flex items-center gap-4 text-primary">
+          <div class="size-8 neo-gradient rounded-lg flex items-center justify-center text-white shadow-lg shadow-primary/20">
+            <span class="material-symbols-outlined !text-2xl">settings_input_component</span>
           </div>
-          <div>
-            <h2 class="text-xl font-bold text-white uppercase tracking-tight">AI Strategic Audit</h2>
-            <p class="text-[10px] text-silver-dim font-bold uppercase tracking-widest">Real-time Performance Analysis</p>
-          </div>
+          <h2 class="text-slate-900 dark:text-white text-xl font-black leading-tight tracking-tighter uppercase">STUDIO PRO <span class="text-primary">v4 EXTREME</span></h2>
         </div>
-        <div class="text-right" *ngIf="auditResult()">
-           <div class="text-3xl font-black text-brand-primary italic tracking-tighter">{{ auditResult()?.score }}%</div>
-           <div class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Global Index</div>
-        </div>
+        <nav class="hidden md:flex items-center gap-9">
+          <a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary text-sm font-bold uppercase tracking-widest transition-colors cursor-pointer" (click)="navigateTo('studio')">Studio</a>
+          <a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary text-sm font-bold uppercase tracking-widest transition-colors cursor-pointer" (click)="navigateTo('analytics')">Analytics</a>
+          <a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary text-sm font-bold uppercase tracking-widest transition-colors cursor-pointer" (click)="navigateTo('tha-spot')">Market</a>
+          <a class="text-primary text-sm font-bold uppercase tracking-widest flex items-center gap-1 cursor-pointer">
+            <span class="material-symbols-outlined !text-sm">neurology</span> Neural AI
+          </a>
+        </nav>
       </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" *ngIf="auditResult()">
-         @for (cat of ['production', 'marketing', 'career', 'technical']; track cat) {
-            <div class="bg-black/20 rounded-2xl p-4 border border-white/10">
-               <div class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">{{ cat }}</div>
-               <div class="flex items-end justify-between">
-                  <span class="text-lg font-bold text-white">{{ (auditResult()?.categories?.[cat] || 0) }}%</span>
-                  <div class="w-12 h-1 bg-white/5 rounded-full overflow-hidden mb-2">
-                     <div class="h-full bg-brand-primary" [style.width.%]="auditResult()?.categories?.[cat]"></div>
-                  </div>
-               </div>
+      <div class="flex flex-1 justify-end gap-6 items-center">
+        <label class="hidden lg:flex flex-col min-w-40 h-10 max-w-64">
+          <div class="flex w-full flex-1 items-stretch rounded-xl h-full glass-card overflow-hidden">
+            <div class="text-slate-400 flex items-center justify-center pl-4">
+              <span class="material-symbols-outlined">search</span>
             </div>
-         }
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="space-y-4">
-          <h3 class="text-[10px] font-black text-brand-primary uppercase tracking-widest flex items-center gap-2">
-            <i class="fas fa-bolt"></i> Key Strengths
-          </h3>
-          <ul class="space-y-2">
-            @for (strength of auditResult()?.strengths; track strength) {
-              <li class="flex items-start gap-3 p-3 rounded-xl bg-brand-primary/5 border border-brand-primary/10 text-xs font-medium">
-                <i class="fas fa-check-circle text-brand-primary mt-0.5"></i>
-                {{ strength }}
-              </li>
-            } @empty {
-               <li class="text-xs text-silver-dim italic">Run audit to identify strengths.</li>
-            }
-          </ul>
-        </div>
-        <div class="space-y-4">
-          <h3 class="text-[10px] font-black text-brand-danger uppercase tracking-widest flex items-center gap-2">
-            <i class="fas fa-triangle-exclamation"></i> Critical Deficits
-          </h3>
-          <ul class="space-y-2">
-            @for (weak of auditResult()?.weaknesses; track weak) {
-              <li class="flex items-start gap-3 p-3 rounded-xl bg-brand-danger/5 border border-brand-danger/10 text-xs font-medium">
-                <i class="fas fa-exclamation-circle text-brand-danger mt-0.5"></i>
-                {{ weak }}
-              </li>
-            } @empty {
-               <li class="text-xs text-silver-dim italic">No critical deficits detected.</li>
-            }
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- LABEL SUBMISSIONS (Medium Card) -->
-    <div class="col-span-12 lg:col-span-4 bg-brand-surface/40 rounded-3xl p-8 border border-white/10 flex flex-col">
-       <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-bold text-white uppercase tracking-tight">Active Pitches</h2>
-          <span class="text-[10px] font-black text-silver-dim bg-white/5 px-2 py-1 rounded">{{ submissions().length }} SUBMITTED</span>
-       </div>
-
-       <div class="space-y-3 flex-grow overflow-y-auto max-h-[400px] custom-scrollbar pr-2">
-          @for (sub of submissions(); track sub.labelName) {
-             <div class="p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all group/item">
-                <div class="flex justify-between items-start mb-2">
-                   <h4 class="text-sm font-bold text-white">{{ sub.labelName }}</h4>
-                   <span class="text-[9px] font-bold px-2 py-0.5 rounded-full"
-                         [class.bg-brand-warning/10]="sub.status === 'Reviewing'"
-                         [class.text-brand-warning]="sub.status === 'Reviewing'"
-                         [class.bg-brand-muted/10]="sub.status === 'Pending'"
-                         [class.text-brand-muted]="sub.status === 'Pending'">{{ sub.status }}</span>
-                </div>
-                <div class="text-[10px] text-silver-dim mb-3 truncate">{{ sub.demoUrl }}</div>
-                <div class="flex items-center justify-between">
-                   <span class="text-[9px] font-mono text-[11px] tracking-tight text-silver-dim">{{ sub.date }}</span>
-                   <button class="text-[9px] font-black text-brand-primary uppercase opacity-0 group-hover/item:opacity-100 transition-all">Recall</button>
-                </div>
-             </div>
-          }
-       </div>
-
-       <div class="mt-8 pt-6 border-t border-white/10 space-y-4">
-          <input type="text" [(ngModel)]="newLabel" placeholder="Label Name" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all">
-          <input type="text" [(ngModel)]="newDemo" placeholder="Demo Link" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all">
-          <button (click)="submitToLabel()" class="w-full btn-elegant btn-elegant-primary text-[10px] font-black uppercase tracking-widest">Submit Proposal</button>
-       </div>
-    </div>
-
-    <!-- VENUES / TOURING (Smaller Grid) -->
-    <div class="col-span-12 lg:col-span-4 bg-brand-surface/20 rounded-3xl p-6 border border-white/10">
-       <div class="flex items-center gap-3 mb-6">
-          <i class="fas fa-map-marker-alt text-brand-secondary"></i>
-          <h3 class="text-sm font-bold text-white uppercase">Live Circuit</h3>
-       </div>
-       <div class="space-y-4">
-          @for (v of venues(); track v.name) {
-             <div class="flex items-center justify-between">
-                <div>
-                   <div class="text-xs font-bold text-white">{{ v.name }}</div>
-                   <div class="text-[9px] text-silver-dim">{{ v.location }} • {{ v.capacity }} cap</div>
-                </div>
-                <span class="text-[8px] font-black px-2 py-1 rounded bg-brand-primary/10 text-brand-primary uppercase">{{ v.bookingStatus }}</span>
-             </div>
-          }
-       </div>
-    </div>
-
-    <!-- SPLIT SHEETS / LEGAL (Smaller Grid) -->
-    <div class="col-span-12 lg:col-span-4 bg-brand-surface/20 rounded-3xl p-6 border border-white/10">
-       <div class="flex items-center gap-3 mb-6">
-          <i class="fas fa-file-signature text-brand-accent"></i>
-          <h3 class="text-sm font-bold text-white uppercase">Legal & Rights</h3>
-       </div>
-       <div class="space-y-4">
-          <div class="flex flex-col gap-2">
-             <button (click)="generateSplitSheet()" class="w-full text-left p-3 rounded-xl bg-black/20 border border-white/10 hover:bg-white/5 transition-all">
-                <div class="text-xs font-bold text-white">Generate Split Sheet</div>
-                <div class="text-[9px] text-silver-dim">Track ID: Aurora_Final_V2</div>
-             </button>
-             <button class="w-full text-left p-3 rounded-xl bg-black/20 border border-white/10 hover:bg-white/5 transition-all">
-                <div class="text-xs font-bold text-white">Copyright Registration</div>
-                <div class="text-[9px] text-silver-dim">Submit to US Copyright Office</div>
-             </button>
+            <input class="form-input flex w-full min-w-0 flex-1 border-none bg-transparent focus:ring-0 placeholder:text-slate-500 px-4 text-base font-normal" placeholder="Command Search..." />
           </div>
-       </div>
-    </div>
+        </label>
+        <div class="flex gap-3">
+          <button class="flex items-center justify-center rounded-xl size-10 bg-slate-200 dark:bg-extreme-titanium hover:bg-primary/20 transition-all">
+            <span class="material-symbols-outlined">settings</span>
+          </button>
+          <button class="flex items-center justify-center rounded-xl size-10 bg-slate-200 dark:bg-extreme-titanium hover:bg-primary/20 transition-all relative">
+            <span class="material-symbols-outlined">notifications</span>
+            <span class="absolute top-2 right-2 size-2 bg-primary rounded-full"></span>
+          </button>
+        </div>
+        <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBrQpYZnOeZ9ZfJW1gLJhCorqyScKxtf34CXoaJTAE2j7Q9YOX4FXtRvU9z5xt70wkfwREN9AsnlU9t8LbGx78dWVKiQxBh2QuYn9BVuE7VVGh_viag9a8Rj9PSh7GgI8O4s0Txpu07VvC_eBtWzLljQByOWG_UTEbmKVj1innnH52pzIf34jxGRElkZsSOfGGIE0wojPZb6ounloer4dFo_G3lJYl1R4ikD9JFGpJxdIwhu-1kTQGshcnVcPU_fgooxRtHvVsE2gc');"></div>
+      </div>
+    </header>
 
-    <!-- REVENUE PROJECTION (Small Static Card) -->
-    <div class="col-span-12 lg:col-span-4 bg-brand-primary/10 rounded-3xl p-6 border border-brand-primary/20 flex flex-col justify-center text-center">
-       <div class="text-[9px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2">Q3 Revenue Forecast</div>
-       <div class="text-3xl font-black text-white italic tracking-tighter">$24.5K</div>
-       <div class="text-[8px] text-brand-primary/60 font-bold mt-1 uppercase">+18% vs PREVIOUS QUARTER</div>
-    </div>
+    <!-- Main Layout Content -->
+    <main class="flex flex-1 overflow-hidden">
+      <!-- Left Sidebar: Stats & Decrees -->
+      <aside class="w-80 hidden xl:flex flex-col border-r border-slate-200 dark:border-slate-800 p-6 gap-6 bg-slate-50 dark:bg-extreme-obsidian titanium-texture">
+        <div class="flex items-center gap-3">
+          <div class="size-10 rounded-full neo-gradient flex items-center justify-center text-white shadow-lg shadow-accent-purple/30">
+            <span class="material-symbols-outlined">bolt</span>
+          </div>
+          <div class="flex flex-col">
+            <h1 class="text-slate-900 dark:text-white text-base font-bold leading-none">Central Command</h1>
+            <p class="text-primary text-xs font-bold uppercase tracking-tighter">SMUVE 4.0 Active</p>
+          </div>
+        </div>
 
+        <!-- Performance Stats -->
+        <div class="flex flex-col gap-4">
+          <h3 class="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Real-Time Stats</h3>
+          <div class="grid gap-3">
+            <!-- CPU EXTREME -->
+            <div class="p-4 rounded-xl glass-card border-l-4 border-accent-purple bg-gradient-to-br from-extreme-titanium/40 to-extreme-obsidian">
+              <div class="flex justify-between items-center mb-1">
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">CPU THREAD LOAD</p>
+                <span class="text-accent-purple material-symbols-outlined !text-sm animate-pulse">memory</span>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <p class="text-slate-900 dark:text-white text-3xl font-black tabular-nums">08.2<span class="text-sm text-slate-500 font-normal">%</span></p>
+                <span class="text-[10px] text-accent-purple font-mono">STABLE</span>
+              </div>
+              <div class="w-full bg-slate-800 h-0.5 mt-3 rounded-full overflow-hidden">
+                <div class="bg-accent-purple h-full" style="width: 8%"></div>
+              </div>
+            </div>
+            <!-- LATENCY EXTREME -->
+            <div class="p-4 rounded-xl glass-card border-l-4 border-accent-magenta bg-gradient-to-br from-extreme-titanium/40 to-extreme-obsidian">
+              <div class="flex justify-between items-center mb-1">
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">QUANTUM LATENCY</p>
+                <span class="text-accent-magenta material-symbols-outlined !text-sm">shutter_speed</span>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <p class="text-slate-900 dark:text-white text-3xl font-black tabular-nums">0.04<span class="text-sm text-slate-500 font-normal">ms</span></p>
+                <span class="text-[10px] text-green-400 font-mono">ULTRA-LOW</span>
+              </div>
+              <p class="text-slate-600 text-[9px] font-bold mt-2 uppercase">Pivoting to Sub-Millisecond Array</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gemini Strategic Decrees -->
+        <div class="flex flex-col gap-4 mt-auto">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">auto_awesome</span>
+            <h3 class="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Strategic Decrees</h3>
+          </div>
+          <div class="p-4 rounded-xl bg-primary/10 border border-primary/20 italic text-sm text-slate-700 dark:text-slate-300 leading-relaxed relative">
+            <span class="absolute -top-2 -left-2 text-primary material-symbols-outlined !text-lg">format_quote</span>
+            "{{ currentDecree() }}"
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center Main Content -->
+      <section class="flex-1 flex flex-col p-6 gap-6 overflow-y-auto custom-scrollbar">
+        <div class="flex flex-wrap justify-between items-end gap-4">
+          <div>
+            <h2 class="text-slate-900 dark:text-white text-4xl font-black tracking-tight leading-none mb-2">Neural Career Audit <span class="text-xs align-top px-2 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30 ml-2">v4_EXTREME</span></h2>
+            <p class="text-slate-500 dark:text-slate-400 text-base">Industry node connections and strategic trajectory mapping.</p>
+          </div>
+          <div class="flex gap-3">
+            <button class="px-6 h-12 rounded-xl glass-card text-slate-900 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-extreme-titanium flex items-center gap-2 transition-all">
+              <span class="material-symbols-outlined">download</span> Export Data
+            </button>
+            <button (click)="runPitchAudit()" [disabled]="isAuditing()" class="px-6 h-12 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/30 flex items-center gap-2 hover:scale-105 transition-transform">
+              <span class="material-symbols-outlined" [class.animate-spin]="isAuditing()">refresh</span> {{ isAuditing() ? 'Auditing...' : 'Refresh Audit' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Bento Grid Main Content -->
+        <div class="grid grid-cols-12 gap-6">
+          <!-- Main Audit Graph -->
+          <div class="col-span-12 lg:col-span-8 glass-card rounded-3xl p-8 relative overflow-hidden group min-h-[400px]">
+            <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: linear-gradient(#ccc 1px, transparent 1px), linear-gradient(90deg, #ccc 1px, transparent 1px); background-size: 20px 20px;"></div>
+            <div class="relative z-10 h-full flex flex-col">
+              <div class="flex justify-between items-start mb-6">
+                <div class="flex gap-8">
+                  <div>
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mb-1">Node Connection Density</p>
+                    <div class="flex items-baseline gap-3">
+                      <h4 class="text-6xl font-black text-slate-900 dark:text-white tabular-nums">{{ auditResult()?.score || 98.4 }}<span class="text-xl">%</span></h4>
+                      <span class="text-green-400 font-bold flex items-center gap-1 text-sm bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                        <span class="material-symbols-outlined !text-xs">trending_up</span> +24.8%
+                      </span>
+                    </div>
+                  </div>
+                  <div class="h-12 w-[1px] bg-slate-800 self-center"></div>
+                  <div>
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mb-1">Synaptic Flow</p>
+                    <h4 class="text-3xl font-black text-slate-900 dark:text-white tabular-nums">2.1Tb<span class="text-sm text-slate-500">/s</span></h4>
+                  </div>
+                </div>
+              </div>
+              <div class="flex-1 relative">
+                <svg class="w-full h-full drop-shadow-[0_0_15px_rgba(168,85,247,0.4)]" preserveAspectRatio="none" viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="areaGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+                      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.4"></stop>
+                      <stop offset="100%" stop-color="#d946ef" stop-opacity="0"></stop>
+                    </linearGradient>
+                    <linearGradient id="lineGrad" x1="0%" x2="100%" y1="0%" y2="0%">
+                      <stop offset="0%" stop-color="#a855f7"></stop>
+                      <stop offset="50%" stop-color="#ec5b13"></stop>
+                      <stop offset="100%" stop-color="#d946ef"></stop>
+                    </linearGradient>
+                  </defs>
+                  <path d="M0 250 Q 150 150, 250 180 T 450 100 T 650 140 T 850 40 T 1000 60 V 300 H 0 Z" fill="url(#areaGrad)"></path>
+                  <path d="M0 250 Q 150 150, 250 180 T 450 100 T 650 140 T 850 40 T 1000 60" fill="none" stroke="url(#lineGrad)" stroke-width="4"></path>
+                  <g class="nodes">
+                    <circle cx="250" cy="180" fill="#fff" r="4"></circle>
+                    <circle cx="450" cy="100" fill="#fff" r="4"></circle>
+                    <circle cx="650" cy="140" fill="#fff" r="4"></circle>
+                    <circle class="animate-ping" cx="850" cy="40" fill="#ec5b13" r="6"></circle>
+                    <circle cx="850" cy="40" fill="#fff" r="4"></circle>
+                  </g>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Pitches -->
+          <div class="col-span-12 lg:col-span-4 glass-card rounded-3xl p-8 border border-white/10 flex flex-col">
+             <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-bold text-white uppercase tracking-tight">Active Pitches</h2>
+                <span class="text-[10px] font-black text-slate-500 bg-white/5 px-2 py-1 rounded">{{ submissions().length }} SUBMITTED</span>
+             </div>
+             <div class="space-y-3 flex-grow overflow-y-auto max-h-[300px] no-scrollbar pr-2">
+                @for (sub of submissions(); track sub.labelName) {
+                   <div class="p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-primary/30 transition-all group/item">
+                      <div class="flex justify-between items-start mb-2">
+                         <h4 class="text-sm font-bold text-white">{{ sub.labelName }}</h4>
+                         <span class="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                               [class.bg-brand-warning/10]="sub.status === 'Reviewing'"
+                               [class.text-brand-warning]="sub.status === 'Reviewing'"
+                               [class.bg-brand-muted/10]="sub.status === 'Pending'"
+                               [class.text-brand-muted]="sub.status === 'Pending'">{{ sub.status }}</span>
+                      </div>
+                      <div class="text-[10px] text-slate-500 mb-3 truncate">{{ sub.demoUrl }}</div>
+                      <div class="flex items-center justify-between">
+                         <span class="text-[9px] font-mono tracking-tight text-slate-500">{{ sub.date }}</span>
+                         <button class="text-[9px] font-black text-primary uppercase opacity-0 group-hover/item:opacity-100 transition-all">Recall</button>
+                      </div>
+                   </div>
+                }
+             </div>
+             <div class="mt-8 pt-6 border-t border-white/10 space-y-4">
+                <input type="text" [(ngModel)]="newLabel" placeholder="Label Name" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-primary transition-all text-white outline-none">
+                <input type="text" [(ngModel)]="newDemo" placeholder="Demo Link" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-primary transition-all text-white outline-none">
+                <button (click)="submitToLabel()" class="w-full btn-elegant btn-elegant-primary text-[10px] font-black uppercase tracking-widest py-3">Submit Proposal</button>
+             </div>
+          </div>
+
+          <!-- Venues -->
+          <div class="col-span-12 lg:col-span-6 glass-card rounded-3xl p-6 border border-white/10">
+             <div class="flex items-center gap-3 mb-6 text-brand-secondary">
+                <span class="material-symbols-outlined">map</span>
+                <h3 class="text-sm font-bold text-white uppercase">Live Circuit</h3>
+             </div>
+             <div class="space-y-4">
+                @for (v of venues(); track v.name) {
+                   <div class="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all">
+                      <div>
+                         <div class="text-xs font-bold text-white">{{ v.name }}</div>
+                         <div class="text-[9px] text-slate-500 uppercase tracking-wider">{{ v.location }} • {{ v.capacity }} CAP</div>
+                      </div>
+                      <span class="text-[8px] font-black px-2 py-1 rounded bg-primary/10 text-primary uppercase border border-primary/20">{{ v.bookingStatus }}</span>
+                   </div>
+                }
+             </div>
+          </div>
+
+          <!-- Revenue / Stats -->
+          <div class="col-span-12 lg:col-span-6 grid grid-cols-2 gap-6">
+             <div class="glass-card rounded-3xl p-6 border-l-4 border-primary flex flex-col justify-center text-center">
+                <div class="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-2">Q3 Revenue Forecast</div>
+                <div class="text-3xl font-black text-white italic tracking-tighter">$24.5K</div>
+                <div class="text-[8px] text-primary/60 font-bold mt-1 uppercase">+18% vs PREVIOUS QUARTER</div>
+             </div>
+             <div class="glass-card rounded-3xl p-6 border-l-4 border-accent-magenta flex flex-col justify-center text-center">
+                <div class="text-[9px] font-black text-accent-magenta uppercase tracking-[0.3em] mb-2">Fan Growth Velocity</div>
+                <div class="text-3xl font-black text-white italic tracking-tighter">+12.4%</div>
+                <div class="text-[8px] text-accent-magenta/60 font-bold mt-1 uppercase">HYPER-GROWTH DETECTED</div>
+             </div>
+          </div>
+
+        </div>
+
+        <!-- Activity Feed Carousel -->
+        <div class="flex flex-col gap-4 mt-8">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Real-Time Activity Feed</h3>
+            <button class="text-primary text-xs font-bold uppercase hover:underline">View Ledger</button>
+          </div>
+          <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+            <div class="min-w-[300px] p-4 glass-card rounded-xl flex items-center gap-4 border-r-2 border-accent-purple/30">
+              <div class="size-12 rounded-lg bg-extreme-titanium flex items-center justify-center text-accent-magenta">
+                <span class="material-symbols-outlined">output</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-slate-900 dark:text-white font-bold text-sm">Main_Theme_V4_Final</span>
+                <span class="text-slate-500 text-xs">Render Complete • 2m ago</span>
+              </div>
+            </div>
+            <div class="min-w-[300px] p-4 glass-card rounded-xl flex items-center gap-4">
+              <div class="size-12 rounded-lg bg-extreme-titanium flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined">smart_toy</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-slate-900 dark:text-white font-bold text-sm">Strategic Pivot Match</span>
+                <span class="text-slate-500 text-xs">AI Opportunity Found • 12m ago</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Sidebar: Modular Tools -->
+      <aside class="w-20 hidden lg:flex flex-col border-l border-slate-800 py-6 items-center gap-6 bg-gradient-to-b from-extreme-obsidian to-extreme-titanium shadow-2xl shrink-0">
+        <button class="size-12 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-110 transition-transform extreme-glow">
+          <span class="material-symbols-outlined !text-3xl">add_circle</span>
+        </button>
+        <div class="w-8 h-[1px] bg-slate-800"></div>
+        <button class="size-12 rounded-xl hover:bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all">
+          <span class="material-symbols-outlined">grid_view</span>
+        </button>
+        <button class="size-12 rounded-xl hover:bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all">
+          <span class="material-symbols-outlined">folder</span>
+        </button>
+        <button class="size-12 rounded-xl hover:bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all">
+          <span class="material-symbols-outlined">bar_chart</span>
+        </button>
+        <div class="mt-auto">
+          <button class="size-12 rounded-xl hover:bg-red-500/10 flex items-center justify-center text-red-500 extreme-glow">
+            <span class="material-symbols-outlined !text-3xl">logout</span>
+          </button>
+        </div>
+      </aside>
+    </main>
   </div>
 </div>
+
+<!-- Scrolling Activity Feed Marquee -->
+<footer class="h-8 obsidian-bg border-t border-slate-800 flex items-center overflow-hidden whitespace-nowrap">
+  <div class="flex animate-marquee items-center gap-10">
+    <span class="text-[10px] font-black text-slate-500 flex items-center gap-2">
+      <span class="size-1.5 bg-green-500 rounded-full animate-ping"></span> SYSTEM CORE: 100% OPERATIONAL
+    </span>
+    <span class="text-[10px] font-black text-slate-500 flex items-center gap-2">
+      <span class="size-1.5 bg-accent-magenta rounded-full"></span> NEURAL LINK: v4_EXTREME_SYNC_ESTABLISHED
+    </span>
+    <span class="text-[10px] font-black text-slate-500 flex items-center gap-2">
+      <span class="size-1.5 bg-primary rounded-full"></span> MARKET VOLATILITY: NEGLIGIBLE
+    </span>
+    <span class="text-[10px] font-black text-slate-400 flex items-center gap-2 uppercase">
+        PROTOCOL EXTREME: ACTIVATED • ENCRYPTED UPLINK SECURE • BYPASSING TRADITIONAL SYNAPSE LIMITS
+    </span>
+  </div>
+</footer>

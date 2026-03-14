@@ -2,6 +2,7 @@ import { Component, inject, HostListener, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MusicManagerService, TrackNote } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { AiService } from '../../services/ai.service';
 
 @Component({
   selector: 'app-piano-roll',
@@ -12,6 +13,7 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 })
 export class PianoRollComponent {
   public musicManager = inject(MusicManagerService);
+  public aiService = inject(AiService);
   private engine = inject(AudioEngineService);
 
   keys = Array.from({ length: 88 }, (_, i) => 108 - i);

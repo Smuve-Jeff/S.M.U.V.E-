@@ -30,6 +30,15 @@ const THEMES: AppTheme[] = [
     red: 'red',
     blue: 'blue',
   },
+  {
+    name: 'v4 Extreme',
+    primary: 'orange',
+    accent: 'magenta',
+    neutral: 'slate',
+    purple: 'purple',
+    red: 'red',
+    blue: 'blue',
+  },
 ];
 
 export interface ViewConfig {

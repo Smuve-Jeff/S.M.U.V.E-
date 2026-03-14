@@ -1,18 +1,25 @@
-<div class="arrangement-container bg-brand-dark/40 border border-white/10 rounded-3xl overflow-hidden flex flex-col h-full shadow-inner">
+<div class="arrangement-container bg-background-dark/40 border border-white/5 rounded-[32px] overflow-hidden flex flex-col h-full shadow-2xl titanium-texture">
   <!-- Header with Transport Mini-Display -->
-  <div class="arrangement-header bg-brand-surface/80 px-6 py-3 flex items-center justify-between border-b border-white/10">
-    <div class="flex items-center gap-4">
-      <i class="fas fa-stream text-brand-primary text-xs"></i>
-      <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Project Timeline</h3>
+  <div class="arrangement-header bg-extreme-panel/80 px-8 py-4 flex items-center justify-between border-b border-white/5 backdrop-blur-md">
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-lg">reorder</span>
+        <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Project Arrangement</h3>
+      </div>
+      <div class="h-4 w-px bg-white/10"></div>
+      <div class="flex gap-4">
+        <button class="text-[9px] font-black uppercase tracking-widest text-primary border-b border-primary">Arrangement</button>
+        <button class="text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors">Automation</button>
+      </div>
     </div>
-    <div class="flex items-center gap-4 text-[9px] font-mono text-[11px] tracking-tight text-slate-500">
-      <div class="flex items-center gap-2">
-         <span class="w-2 h-2 rounded-full bg-brand-primary/40"></span>
+    <div class="flex items-center gap-6 text-[10px] font-mono font-black text-slate-500 bg-black/40 px-4 py-2 rounded-xl border border-white/5">
+      <div class="flex items-center gap-3">
+         <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
          1.1.1
       </div>
       <div class="h-4 w-px bg-white/10"></div>
-      <div class="flex items-center gap-2">
-         <i class="fas fa-clock"></i>
+      <div class="flex items-center gap-3">
+         <span class="material-symbols-outlined text-xs">schedule</span>
          00:00:00
       </div>
     </div>
@@ -20,92 +27,74 @@
 
   <div class="arrangement-content flex-grow flex overflow-hidden">
     <!-- Track Headers (Advanced Controls) -->
-    <div class="track-headers-column w-64 border-r border-white/10 flex flex-col overflow-y-auto custom-scrollbar-hide bg-brand-dark/20">
-      <div *ngFor="let track of tracks" class="track-header h-24 border-b border-white/10 p-4 flex flex-col justify-between hover:bg-white/5 transition-all">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <div class="w-1.5 h-6 rounded-full" [style.background-color]="track.clips[0]?.color"></div>
-            <span class="text-[10px] font-black uppercase tracking-wider text-slate-300 truncate w-32">{{ track.name }}</span>
+    <div class="track-headers-column w-72 border-r border-white/5 flex flex-col overflow-y-auto no-scrollbar bg-black/20">
+      <div *ngFor="let track of tracks" class="track-header h-28 border-b border-white/5 p-5 flex flex-col justify-between hover:bg-white/5 transition-all group">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-2 h-8 rounded-full shadow-lg" [style.background-color]="track.clips[0]?.color || '#ec5b13'"></div>
+            <div class="flex flex-col">
+              <span class="text-[10px] font-black uppercase tracking-wider text-white truncate w-40">{{ track.name }}</span>
+              <span class="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Spectral Stream L/R</span>
+            </div>
           </div>
-          <div class="flex gap-1">
-            <button class="w-4 h-4 rounded-full bg-brand-surface-light border border-white/10 flex items-center justify-center text-[8px] text-slate-500 hover:text-brand-primary">S</button>
-            <button class="w-4 h-4 rounded-full bg-brand-surface-light border border-white/10 flex items-center justify-center text-[8px] text-slate-500 hover:text-red-500">M</button>
+          <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button class="w-6 h-6 rounded bg-slate-800 border border-white/10 flex items-center justify-center text-[9px] font-black text-slate-400 hover:text-primary">S</button>
+            <button class="w-6 h-6 rounded bg-slate-800 border border-white/10 flex items-center justify-center text-[9px] font-black text-slate-400 hover:text-red-500">M</button>
           </div>
         </div>
 
-        <!-- Track Automation Mini-Lane Toggle -->
-        <div class="flex items-center gap-3">
-          <button class="text-[8px] font-bold text-slate-600 uppercase tracking-tighter hover:text-brand-primary transition-all">
-            <i class="fas fa-bezier-curve mr-1"></i> Auto
-          </button>
-          <div class="flex-grow h-1.5 bg-black/40 rounded-full border border-white/10 overflow-hidden">
-             <div class="h-full bg-brand-primary/30 w-3/4"></div>
+        <div class="flex items-center gap-4">
+          <div class="flex-grow h-1.5 bg-black/60 rounded-full border border-white/5 overflow-hidden shadow-inner">
+             <div class="h-full bg-primary/40 w-3/4 shadow-[0_0_10px_rgba(236,91,19,0.2)]"></div>
           </div>
-          <span class="text-[8px] font-mono text-[11px] tracking-tight text-slate-500">-3.2dB</span>
+          <span class="text-[9px] font-mono font-black text-primary">-6.2dB</span>
         </div>
       </div>
     </div>
 
-    <!-- Timeline Grid with Advanced Clip Manipulation -->
-    <div class="timeline-viewport flex-grow overflow-auto custom-scrollbar relative">
+    <!-- Timeline Grid -->
+    <div class="timeline-viewport flex-grow overflow-auto no-scrollbar relative bg-black/10">
       <div class="timeline-grid relative h-full" [style.width.px]="gridWidth">
         <!-- Rulers -->
-        <div class="absolute top-0 left-0 right-0 h-6 bg-brand-surface/60 border-b border-white/10 z-40 flex items-center">
+        <div class="absolute top-0 left-0 right-0 h-8 bg-black/40 border-b border-white/5 z-40 flex items-center backdrop-blur-sm">
            <ng-container *ngFor="let bar of bars">
-             <div class="absolute h-full border-l border-white/10 flex items-center px-2" [style.left.px]="bar * barWidth" *ngIf="bar % 4 === 0">
-                <span class="text-[8px] font-mono text-[11px] tracking-tight text-slate-500">{{ bar / 4 + 1 }}</span>
+             <div class="absolute h-full border-l border-white/10 flex items-center px-3" [style.left.px]="bar * barWidth" *ngIf="bar % 4 === 0">
+                <span class="text-[9px] font-mono font-black text-slate-600">{{ bar / 4 + 1 }}</span>
              </div>
            </ng-container>
         </div>
 
-        <!-- Vertical Bar Lines -->
-        <div *ngFor="let bar of bars" class="absolute top-6 bottom-0 border-l border-white/10 pointer-events-none" [style.left.px]="bar * barWidth" [class.border-white/20]="bar % 4 === 0"></div>
+        <!-- Vertical Lines -->
+        <div *ngFor="let bar of bars" class="absolute top-8 bottom-0 border-l border-white/5 pointer-events-none" [style.left.px]="bar * barWidth" [class.border-white/10]="bar % 4 === 0"></div>
 
-        <!-- Tracks Content -->
-        <div *ngFor="let track of tracks" class="track-lane h-24 border-b border-white/10 relative group mt-6">
-          <!-- Audio/MIDI Clips -->
+        <!-- Tracks Lane Content -->
+        <div *ngFor="let track of tracks" class="track-lane h-28 border-b border-white/5 relative group mt-8">
+          <!-- Clips with v4 Extreme Waveforms -->
           <div *ngFor="let clip of track.clips"
-               class="clip-item absolute h-20 top-2 rounded-xl border flex flex-col overflow-hidden cursor-move shadow-2xl group/clip"
+               class="clip-item absolute h-24 top-2 rounded-2xl border flex flex-col overflow-hidden cursor-move shadow-2xl group/clip backdrop-blur-sm"
                [style.left.px]="clip.start * barWidth"
                [style.width.px]="clip.length * barWidth"
-               [style.background-color]="clip.color + '33'"
-               [style.border-color]="clip.color">
+               [style.background-color]="(clip.color || '#ec5b13') + '22'"
+               [style.border-color]="clip.color || '#ec5b13'">
 
-               <!-- Clip Header -->
-               <div class="px-3 py-1 bg-black/20 flex justify-between items-center">
-                  <span class="text-[8px] font-black uppercase tracking-[0.2em] text-white/80">{{ clip.name }}</span>
-                  <div class="flex gap-1 opacity-0 group-hover/clip:opacity-100 transition-opacity">
-                     <i class="fas fa-scissors text-[7px] text-white/40"></i>
-                     <i class="fas fa-sync text-[7px] text-white/40"></i>
-                  </div>
+               <div class="px-4 py-2 bg-black/30 flex justify-between items-center border-b border-white/5">
+                  <span class="text-[9px] font-black uppercase tracking-widest text-white/90">{{ clip.name }}</span>
+                  <span class="text-[7px] font-black text-white/40 font-mono">24-BIT</span>
                </div>
 
-               <!-- Multi-Waveform Analysis Rendering -->
-               <div class="clip-waveform flex-grow flex items-end gap-[1px] px-3 pb-2 opacity-60">
-                  <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]"
-                       class="flex-grow bg-white/40 rounded-t-[1px]"
-                       [style.height.%]="20 + 70 * (i % 5 === 0 ? 0.9 : (i % 2 === 0 ? 0.4 : 0.6))"></div>
+               <!-- Advanced Waveform SVG -->
+               <div class="clip-waveform flex-grow relative opacity-70 p-2">
+                  <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 1000 100">
+                    <path d="M0 50 C 50 10, 100 90, 150 50 S 250 10, 300 50 S 400 90, 450 50 S 550 10, 600 50 S 700 90, 750 50 S 850 10, 900 50 S 950 90, 1000 50 L 1000 100 L 0 100 Z" [attr.fill]="clip.color || '#ec5b13'" fill-opacity="0.2" />
+                    <path d="M0 50 C 50 10, 100 90, 150 50 S 250 10, 300 50 S 400 90, 450 50 S 550 10, 600 50 S 700 90, 750 50 S 850 10, 900 50 S 950 90, 1000 50" [attr.stroke]="clip.color || '#ec5b13'" stroke-width="2" fill="none" />
+                  </svg>
                </div>
-
-               <!-- Fade Handles (Simulated) -->
-               <div class="absolute top-0 left-0 w-4 h-4 bg-white/20 rounded-br-full cursor-nw-resize opacity-0 group-hover/clip:opacity-100"></div>
-               <div class="absolute top-0 right-0 w-4 h-4 bg-white/20 rounded-bl-full cursor-ne-resize opacity-0 group-hover/clip:opacity-100"></div>
-          </div>
-
-          <!-- Track Automation Lane (Simulated) -->
-          <div class="absolute bottom-1 left-0 right-0 h-4 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-             <svg width="100%" height="100%" class="overflow-visible">
-                <path d="M 0 10 L 200 10 L 400 5 L 600 15 L 800 10" stroke="rgba(16, 185, 129, 0.4)" stroke-width="1" fill="none" />
-                <circle cx="200" cy="10" r="2" fill="#10b981" />
-                <circle cx="400" cy="5" r="2" fill="#10b981" />
-                <circle cx="600" cy="15" r="2" fill="#10b981" />
-             </svg>
           </div>
         </div>
 
         <!-- Playhead -->
-        <div class="playhead absolute top-0 bottom-0 w-[2px] bg-red-500 z-50 shadow-[0_0_20px_rgba(239,68,68,0.8)] pointer-events-none" [style.left.px]="playheadPos">
-           <div class="absolute -top-1 -left-[3px] w-2 h-2 bg-red-500 rotate-45 border border-white/20"></div>
+        <div class="playhead absolute top-0 bottom-0 w-[2px] bg-primary z-50 shadow-[0_0_20px_#ec5b13] pointer-events-none" [style.left.px]="playheadPos">
+           <div class="absolute -top-1 -left-[4px] w-2.5 h-2.5 bg-primary rotate-45 border border-white/20 shadow-lg"></div>
         </div>
       </div>
     </div>

@@ -107,3 +107,46 @@ html, body {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* --- v4 Extreme Utilities --- */
+.glass-card {
+    background: rgba(42, 42, 42, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.neo-gradient {
+    background: linear-gradient(135deg, #a855f7 0%, #d946ef 100%);
+}
+.obsidian-bg {
+    background-color: #0d0d0d;
+}
+.titanium-texture {
+    background-image: repeating-linear-gradient(45deg, rgba(255,255,255, 0.02) 0px, rgba(255,255,255, 0.02) 1px, transparent 1px, transparent 10px);
+    background-color: #1a1a1a;
+}
+.extreme-glow {
+    box-shadow: 0 0 20px rgba(236, 91, 19, 0.2), inset 0 0 10px rgba(255,255,255, 0.05);
+}
+.vu-meter-gradient {
+    background: linear-gradient(to top, #0bda7a 0%, #0bda7a 70%, #ec5b13 90%, #ff0000 100%);
+}
+.obsidian-panel {
+    background: linear-gradient(145deg, #2d1e16, #221610);
+}
+
+/* Marquee Animation */
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+    display: flex;
+    animation: marquee 30s linear infinite;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

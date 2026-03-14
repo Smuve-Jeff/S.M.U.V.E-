@@ -1,8 +1,9 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserProfileService } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
+import { UIService } from '../../services/ui.service';
 import { ProfileAuditResult } from '../../types/ai.types';
 
 interface Submission {
@@ -35,7 +36,8 @@ interface SplitSheet {
 })
 export class CareerHubComponent {
   private profileService = inject(UserProfileService);
-  private aiService = inject(AiService);
+  public readonly aiService = inject(AiService);
+  private uiService = inject(UIService);
 
   profile = this.profileService.profile;
   isAuditing = signal(false);
@@ -73,8 +75,13 @@ export class CareerHubComponent {
 
   newLabel = signal('');
   newDemo = signal('');
+  currentDecree = computed(() => this.aiService.strategicDecrees()[0] || "Awaiting AI Analysis...");
 
   splitSheets = signal<SplitSheet[]>([]);
+
+  public navigateTo(view: string) {
+    this.uiService.navigateToView(view as any);
+  }
 
   async runPitchAudit() {
     this.isAuditing.set(true);
