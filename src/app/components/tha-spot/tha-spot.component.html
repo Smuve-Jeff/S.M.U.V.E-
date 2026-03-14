@@ -154,16 +154,35 @@
      </div>
   </div>
 
-  <div *ngIf="currentGame()" class="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-8 animate-enter">
+  <div *ngIf="currentGame()" class="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-8 animate-enter">
      <div class="w-full h-full max-w-7xl glass-panel rounded-3xl border border-white/10 flex flex-col overflow-hidden">
-        <header class="p-6 border-b border-white/10 flex items-center justify-between bg-brand-surface/40">
-           <h2 class="text-sm font-bold text-white uppercase tracking-widest">{{ currentGame()?.name }}</h2>
-           <button (click)="closeGame()" class="w-10 h-10 rounded-xl bg-brand-danger/10 text-brand-danger hover:bg-brand-danger hover:text-black transition-all flex items-center justify-center">
-              <i class="fas fa-times"></i>
-           </button>
+        <header class="p-4 md:p-6 border-b border-white/10 flex items-center justify-between bg-brand-surface/40">
+           <div class="flex items-center gap-4">
+              <div class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></div>
+              <h2 class="text-xs md:text-sm font-bold text-white uppercase tracking-widest">{{ currentGame()?.name }}</h2>
+           </div>
+           <div class="flex items-center gap-2">
+              <button (click)="closeGame()" class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-brand-danger/10 text-brand-danger hover:bg-brand-danger hover:text-black transition-all flex items-center justify-center">
+                 <i class="fas fa-times"></i>
+              </button>
+           </div>
         </header>
-        <div class="flex-grow bg-black">
-           <iframe *ngIf="currentGame()?.url" [src]="getSafeUrl(currentGame()?.url!)" class="w-full h-full border-none"></iframe>
+        <div class="flex-grow bg-black relative game-container">
+           <iframe *ngIf="currentGame()?.url"
+                   #gameIframe
+                   [src]="getSafeUrl(currentGame()?.url!)"
+                   allow="autoplay; fullscreen; gamepad"
+                   class="w-full h-full border-none"></iframe>
+
+           <!-- Control Overlay -->
+           <div class="game-controls-overlay">
+              <button (click)="refocusGame()" title="Refocus Control" class="control-btn">
+                 <i class="fas fa-keyboard"></i>
+              </button>
+              <button (click)="toggleFullscreen()" title="Toggle Fullscreen" class="control-btn">
+                 <i class="fas fa-expand"></i>
+              </button>
+           </div>
         </div>
      </div>
   </div>

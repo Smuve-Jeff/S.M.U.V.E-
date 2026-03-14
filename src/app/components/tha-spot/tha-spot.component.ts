@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, OnDestroy, HostListener, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, HostListener, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -27,6 +27,8 @@ interface ChatMessage {
   styleUrls: ['./tha-spot.component.css']
 })
 export class ThaSpotComponent implements OnInit, OnDestroy {
+  @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
+
   private gameService = inject(GameService);
   private reputationService = inject(ReputationService);
   private profileService = inject(UserProfileService);
@@ -87,6 +89,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     } else {
       this.currentGame.set(game);
       this.gameData.set({ score: 0, health: 100, commentary: 'System link established.' });
+      setTimeout(() => this.refocusGame(), 500);
     }
   }
 
@@ -106,6 +109,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
           this.isSearching.set(false);
           this.currentGame.set(game);
           this.gameData.set({ score: 0, health: 100, commentary: 'Combat link synchronized.' });
+          setTimeout(() => this.refocusGame(), 500);
         }, 2000);
       }
     }, 100);
@@ -127,6 +131,25 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.activeTab.set(tab);
   }
 
+  refocusGame() {
+    if (this.gameIframe?.nativeElement) {
+      this.gameIframe.nativeElement.focus();
+    }
+  }
+
+  toggleFullscreen() {
+    if (this.gameIframe?.nativeElement) {
+      const iframe = this.gameIframe.nativeElement;
+      if (iframe.requestFullscreen) {
+        iframe.requestFullscreen();
+      } else if ((iframe as any).webkitRequestFullscreen) {
+        (iframe as any).webkitRequestFullscreen();
+      } else if ((iframe as any).msRequestFullscreen) {
+        (iframe as any).msRequestFullscreen();
+      }
+    }
+  }
+
   sendChatMessage() {
     if (!this.newChatMessage()) return;
     this.chatMessages.update(msgs => [...msgs, {
@@ -138,10 +161,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.newChatMessage.set('');
   }
 
-  @HostListener('window:message', [''])
+  @HostListener('window:message', ['$event'])
   onMessage(event: MessageEvent) {
-    if (event.data.type === 'GAME_UPDATE') {
+    if (event.data?.type === 'GAME_UPDATE') {
       this.gameData.update(d => ({ ...d, ...event.data.payload }));
+
+      // Update reputation if score reached threshold
+      if (event.data.payload.score > 5000) {
+        this.reputationService.addExperience(10);
+      }
     }
   }
 }
