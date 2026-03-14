@@ -9,7 +9,7 @@
     </div>
 
     <div class="flex items-center gap-2 p-1.5 bg-brand-surface/40 rounded-2xl border border-white/10">
-       @for (tab of ['arcade', 'showcase', 'networking']; track tab) {
+       @for (tab of ['arcade', 'battle arena', 'networking']; track tab) {
           <button (click)="setActiveTab(tab)"
                   class="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
                   [class.bg-brand-primary]="activeTab() === tab"
@@ -28,8 +28,24 @@
           <div class="col-span-12 lg:col-span-3 space-y-8">
              <div class="flex flex-col gap-4">
                 <h3 class="text-[10px] font-black text-brand-primary uppercase tracking-widest">Global Terminal</h3>
-                <input type="text" [(ngModel)]="searchQuery" placeholder="Search Simulation..."
-                       class="w-full bg-brand-surface/40 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:border-brand-primary outline-none transition-all">
+                <div class="relative">
+                  <input type="text" [(ngModel)]="searchQuery" placeholder="Search Simulation..."
+                         class="w-full bg-brand-surface/40 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:border-brand-primary outline-none transition-all pr-10">
+                  <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-silver-dim"></i>
+                </div>
+             </div>
+
+             <div class="p-4 rounded-2xl bg-brand-surface/20 border border-white/5 space-y-4">
+                <div class="flex items-center justify-between">
+                   <span class="text-[10px] font-black text-silver-dim uppercase tracking-widest">Multiplayer Only</span>
+                   <button (click)="toggleMultiplayer()"
+                           class="w-10 h-5 rounded-full relative transition-all duration-300"
+                           [class.bg-brand-primary]="multiplayerOnly()"
+                           [class.bg-white/10]="!multiplayerOnly()">
+                      <div class="absolute top-1 left-1 w-3 h-3 rounded-full bg-white transition-all duration-300"
+                           [class.translate-x-5]="multiplayerOnly()"></div>
+                   </button>
+                </div>
              </div>
              <div class="flex flex-col gap-4">
                 <h3 class="text-[10px] font-black text-silver-dim uppercase tracking-widest">Active Leaderboard</h3>
@@ -44,33 +60,129 @@
           <div class="col-span-12 lg:col-span-9">
              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 @for (game of filteredGames(); track game.id) {
-                   <div (click)="playGame(game)" class="card-elegant p-6 group cursor-pointer overflow-hidden relative">
-                      <h3 class="text-lg font-bold text-white uppercase group-hover:text-brand-primary transition-colors">{{ game.name }}</h3>
-                      <p class="text-[10px] text-silver-dim mt-2 line-clamp-2">{{ game.description }}</p>
+                   <div (click)="playGame(game)" class="card-elegant p-0 group cursor-pointer overflow-hidden relative group">
+                      <div class="h-32 w-full overflow-hidden relative">
+                         <img [src]="game.image" [alt]="game.name" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-60">
+                         <div class="absolute inset-0 bg-gradient-to-t from-brand-dark to-transparent"></div>
+
+                         <div *ngIf="game.tags?.includes('Multiplayer')" class="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-0.5 rounded bg-brand-primary/20 border border-brand-primary/40 backdrop-blur-md">
+                            <div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div>
+                            <span class="text-[8px] font-black text-brand-primary uppercase tracking-tighter">Live</span>
+                         </div>
+
+                         <div class="absolute bottom-3 right-3 flex items-center gap-1 text-white/60">
+                            <i class="fas fa-users text-[8px]"></i>
+                            <span class="text-[8px] font-bold">{{ game.playersOnline | number }}</span>
+                         </div>
+                      </div>
+                      <div class="p-6">
+                        <h3 class="text-sm font-bold text-white uppercase group-hover:text-brand-primary transition-colors truncate">{{ game.name }}</h3>
+                        <p class="text-[10px] text-silver-dim mt-2 line-clamp-2 leading-relaxed h-8">{{ game.description }}</p>
+                        <div class="mt-4 flex flex-wrap gap-2">
+                           @for (tag of game.tags?.slice(0, 2); track tag) {
+                              <span class="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[8px] font-bold text-silver-dim uppercase">{{ tag }}</span>
+                           }
+                        </div>
+                      </div>
                    </div>
                 }
              </div>
           </div>
        </div>
     </div>
-    <div *ngIf="activeTab() !== 'arcade'" class="flex items-center justify-center py-24">
+    <div *ngIf="activeTab() === 'battle arena'" class="space-y-12">
+       <div class="flex flex-col items-center justify-center py-12 text-center">
+          <div class="w-20 h-20 rounded-3xl bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6 animate-pulse">
+             <i class="fas fa-shield-alt text-3xl text-brand-primary"></i>
+          </div>
+          <h2 class="text-2xl font-black text-white uppercase italic tracking-tighter mb-2">BATTLE <span class="text-brand-primary">ARENA</span></h2>
+          <p class="text-silver-dim text-xs max-w-md mx-auto mb-12">Select a simulation to begin real-time competitive engagement. Reputation stakes are active.</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl">
+             @for (game of games().filter(g => g.tags?.includes('Multiplayer')).slice(0, 4); track game.id) {
+                <div (click)="playGame(game)" class="p-8 rounded-3xl bg-brand-surface/20 border border-white/10 hover:border-brand-primary transition-all cursor-pointer group">
+                   <div class="w-12 h-12 rounded-2xl bg-black/40 flex items-center justify-center mb-6 group-hover:bg-brand-primary group-hover:text-black transition-all">
+                      <i class="fas fa-crosshairs"></i>
+                   </div>
+                   <h3 class="text-sm font-bold text-white uppercase mb-2">{{ game.name }}</h3>
+                   <div class="flex items-center gap-2 text-[10px] font-black text-brand-primary uppercase">
+                      <span class="animate-pulse">Active Lobby</span>
+                      <span class="text-white/20">•</span>
+                      <span>{{ game.playersOnline | number }} In-Game</span>
+                   </div>
+                </div>
+             }
+          </div>
+       </div>
+    </div>
+
+    <div *ngIf="activeTab() === 'networking'" class="flex items-center justify-center py-24">
        <div class="text-center max-w-sm">
-          <h2 class="text-xl font-bold text-white uppercase tracking-widest mb-4">{{ activeTab() | uppercase }} MODULE</h2>
+          <h2 class="text-xl font-bold text-white uppercase tracking-widest mb-4">NETWORKING MODULE</h2>
           <button (click)="setActiveTab('arcade')" class="btn-elegant btn-elegant-primary w-full text-[10px] font-black uppercase">Return to Arcade</button>
        </div>
     </div>
   </main>
 
-  <div *ngIf="currentGame()" class="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-8 animate-enter">
+  <!-- Matchmaking Overlay -->
+  <div *ngIf="isSearching()" class="fixed inset-0 z-[150] bg-black/95 backdrop-blur-xl flex items-center justify-center p-8 animate-enter">
+     <div class="text-center max-w-md w-full">
+        <div class="relative w-32 h-32 mx-auto mb-12">
+           <svg class="w-full h-full -rotate-90">
+              <circle cx="64" cy="64" r="60" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="4"></circle>
+              <circle cx="64" cy="64" r="60" fill="none" stroke="#ec5b13" stroke-width="4"
+                      [attr.stroke-dasharray]="377"
+                      [attr.stroke-dashoffset]="377 - (377 * searchProgress() / 100)"
+                      class="transition-all duration-300"></circle>
+           </svg>
+           <div class="absolute inset-0 flex items-center justify-center">
+              <span class="text-2xl font-black text-white italic">{{ searchProgress() }}%</span>
+           </div>
+        </div>
+
+        <h2 class="text-3xl font-black text-white uppercase italic tracking-tighter mb-4">
+           {{ matchFound() ? 'MATCH FOUND' : 'SEARCHING FOR RIVALS' }}
+        </h2>
+
+        <p class="text-silver-dim text-[10px] font-black uppercase tracking-[0.4em] mb-12 animate-pulse">
+           {{ matchFound() ? 'Syncing neural link with ' + opponentName() : 'Scanning Global Entertainment Matrix' }}
+        </p>
+
+        <div class="flex items-center gap-4 h-1 bg-white/5 rounded-full overflow-hidden">
+           <div class="h-full bg-brand-primary transition-all duration-300" [style.width.%]="searchProgress()"></div>
+        </div>
+     </div>
+  </div>
+
+  <div *ngIf="currentGame()" class="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-8 animate-enter">
      <div class="w-full h-full max-w-7xl glass-panel rounded-3xl border border-white/10 flex flex-col overflow-hidden">
-        <header class="p-6 border-b border-white/10 flex items-center justify-between bg-brand-surface/40">
-           <h2 class="text-sm font-bold text-white uppercase tracking-widest">{{ currentGame()?.name }}</h2>
-           <button (click)="closeGame()" class="w-10 h-10 rounded-xl bg-brand-danger/10 text-brand-danger hover:bg-brand-danger hover:text-black transition-all flex items-center justify-center">
-              <i class="fas fa-times"></i>
-           </button>
+        <header class="p-4 md:p-6 border-b border-white/10 flex items-center justify-between bg-brand-surface/40">
+           <div class="flex items-center gap-4">
+              <div class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></div>
+              <h2 class="text-xs md:text-sm font-bold text-white uppercase tracking-widest">{{ currentGame()?.name }}</h2>
+           </div>
+           <div class="flex items-center gap-2">
+              <button (click)="closeGame()" class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-brand-danger/10 text-brand-danger hover:bg-brand-danger hover:text-black transition-all flex items-center justify-center">
+                 <i class="fas fa-times"></i>
+              </button>
+           </div>
         </header>
-        <div class="flex-grow bg-black">
-           <iframe *ngIf="currentGame()?.url" [src]="getSafeUrl(currentGame()?.url!)" class="w-full h-full border-none"></iframe>
+        <div class="flex-grow bg-black relative game-container">
+           <iframe *ngIf="currentGame()?.url"
+                   #gameIframe
+                   [src]="getSafeUrl(currentGame()?.url!)"
+                   allow="autoplay; fullscreen; gamepad"
+                   class="w-full h-full border-none"></iframe>
+
+           <!-- Control Overlay -->
+           <div class="game-controls-overlay">
+              <button (click)="refocusGame()" title="Refocus Control" class="control-btn">
+                 <i class="fas fa-keyboard"></i>
+              </button>
+              <button (click)="toggleFullscreen()" title="Toggle Fullscreen" class="control-btn">
+                 <i class="fas fa-expand"></i>
+              </button>
+           </div>
         </div>
      </div>
   </div>

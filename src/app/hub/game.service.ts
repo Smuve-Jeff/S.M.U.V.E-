@@ -14,7 +14,8 @@ const MOCK_GAMES: Game[] = [
     genre: 'Music Battle',
     rating: 4.9,
     playersOnline: 1250,
-    image: 'https://picsum.photos/seed/battle/300/200'
+    image: 'https://picsum.photos/seed/battle/300/200',
+    tags: ['Multiplayer', 'Original', 'PvP']
   },
   {
     id: '2',
@@ -24,7 +25,8 @@ const MOCK_GAMES: Game[] = [
     genre: 'Rhythm',
     rating: 4.7,
     playersOnline: 850,
-    image: 'https://picsum.photos/seed/remix/300/200'
+    image: 'https://picsum.photos/seed/remix/300/200',
+    tags: ['Multiplayer', 'Original', 'Co-op']
   },
   {
     id: '3',
@@ -34,7 +36,8 @@ const MOCK_GAMES: Game[] = [
     genre: 'Runner',
     rating: 4.5,
     playersOnline: 2100,
-    image: 'https://picsum.photos/seed/beat/300/200'
+    image: 'https://picsum.photos/seed/beat/300/200',
+    tags: ['Multiplayer', 'Arcade']
   },
 
   // SHOOTER
@@ -46,7 +49,8 @@ const MOCK_GAMES: Game[] = [
     genre: 'Shooter',
     rating: 4.9,
     playersOnline: 3400,
-    image: 'https://picsum.photos/seed/vanguard/300/200'
+    image: 'https://picsum.photos/seed/vanguard/300/200',
+    tags: ['Multiplayer', 'PvP', 'FPS']
   },
   {
     id: '6',
@@ -56,17 +60,8 @@ const MOCK_GAMES: Game[] = [
     genre: 'Shooter',
     rating: 4.8,
     playersOnline: 1800,
-    image: 'https://picsum.photos/seed/assassin/300/200'
-  },
-  {
-    id: '17',
-    name: 'Frontline Tactics',
-    url: 'https://html5.gamedistribution.com/e37d544079814234850754876b5b91b5/',
-    description: 'Coordinate your squad and dominate the frontline.',
-    genre: 'Shooter',
-    rating: 4.5,
-    playersOnline: 900,
-    image: 'https://picsum.photos/seed/frontline/300/200'
+    image: 'https://picsum.photos/seed/assassin/300/200',
+    tags: ['Single Player', 'Action']
   },
   {
     id: '30',
@@ -76,7 +71,104 @@ const MOCK_GAMES: Game[] = [
     genre: 'Shooter',
     rating: 4.7,
     playersOnline: 1200,
-    image: 'https://picsum.photos/seed/swat/300/200'
+    image: 'https://picsum.photos/seed/swat/300/200',
+    tags: ['Multiplayer', 'Tactical']
+  },
+
+  // RACING
+  {
+    id: '40',
+    name: 'Neon Velocity',
+    url: 'https://html5.gamedistribution.com/a4f3b7c8d9e0f1a2b3c4d5e6f7a8b9c0/',
+    description: 'High-speed racing through neon-lit cityscapes.',
+    genre: 'Racing',
+    rating: 4.6,
+    playersOnline: 2500,
+    image: 'https://picsum.photos/seed/racing1/300/200',
+    tags: ['Multiplayer', 'Racing']
+  },
+  {
+    id: '41',
+    name: 'Drift Masters',
+    url: 'https://html5.gamedistribution.com/b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6/',
+    description: 'Master the art of drifting in competitive global circuits.',
+    genre: 'Racing',
+    rating: 4.8,
+    playersOnline: 1900,
+    image: 'https://picsum.photos/seed/racing2/300/200',
+    tags: ['Multiplayer', 'Competitive']
+  },
+
+  // SPORTS
+  {
+    id: '50',
+    name: 'Street Hoops Pro',
+    url: 'https://html5.gamedistribution.com/c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6/',
+    description: 'Show your skills on the urban courts in 3v3 matches.',
+    genre: 'Sports',
+    rating: 4.7,
+    playersOnline: 3100,
+    image: 'https://picsum.photos/seed/sports1/300/200',
+    tags: ['Multiplayer', 'Sports']
+  },
+  {
+    id: '51',
+    name: 'Global Soccer Duel',
+    url: 'https://html5.gamedistribution.com/d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6/',
+    description: 'Face off against players worldwide in high-stakes soccer duels.',
+    genre: 'Sports',
+    rating: 4.5,
+    playersOnline: 4200,
+    image: 'https://picsum.photos/seed/sports2/300/200',
+    tags: ['Multiplayer', 'PvP']
+  },
+
+  // STRATEGY
+  {
+    id: '60',
+    name: 'Empire Command',
+    url: 'https://html5.gamedistribution.com/e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6/',
+    description: 'Build your empire and command your armies in real-time.',
+    genre: 'Strategy',
+    rating: 4.9,
+    playersOnline: 5600,
+    image: 'https://picsum.photos/seed/strategy1/300/200',
+    tags: ['Multiplayer', 'RTS']
+  },
+  {
+    id: '61',
+    name: 'Grandmaster Chess',
+    url: 'https://html5.gamedistribution.com/f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6/',
+    description: 'The ultimate board game, refined for the modern executive.',
+    genre: 'Strategy',
+    rating: 4.8,
+    playersOnline: 2200,
+    image: 'https://picsum.photos/seed/strategy2/300/200',
+    tags: ['Multiplayer', 'Classic']
+  },
+
+  // PUZZLE
+  {
+    id: '70',
+    name: 'Cyber Enigma',
+    url: 'https://html5.gamedistribution.com/a1b2c3d4e5f67890abcdef1234567890/',
+    description: 'Solve complex neural puzzles in a race against time.',
+    genre: 'Puzzle',
+    rating: 4.7,
+    playersOnline: 1400,
+    image: 'https://picsum.photos/seed/puzzle1/300/200',
+    tags: ['Single Player', 'Logic']
+  },
+  {
+    id: '71',
+    name: 'Tetra Fusion',
+    url: 'https://html5.gamedistribution.com/b2c3d4e5f67890abcdef1234567890a1/',
+    description: 'A modern twist on the block-stacking classic with PvP modes.',
+    genre: 'Puzzle',
+    rating: 4.6,
+    playersOnline: 3800,
+    image: 'https://picsum.photos/seed/puzzle2/300/200',
+    tags: ['Multiplayer', 'PvP']
   },
 
   // ADVENTURE
@@ -88,17 +180,8 @@ const MOCK_GAMES: Game[] = [
     genre: 'Adventure',
     rating: 4.8,
     playersOnline: 3200,
-    image: 'https://picsum.photos/seed/mystic/300/200'
-  },
-  {
-    id: '19',
-    name: 'elegant Explorer',
-    url: 'https://html5.gamedistribution.com/39a676b779a547789178f9f8c148c903/',
-    description: 'Navigate the vibrant refined-glow landscapes of a distant future.',
-    genre: 'Adventure',
-    rating: 4.7,
-    playersOnline: 1800,
-    image: 'https://picsum.photos/seed/explorer/300/200'
+    image: 'https://picsum.photos/seed/mystic/300/200',
+    tags: ['Single Player', 'RPG']
   },
 
   // CLASSIC
@@ -110,19 +193,11 @@ const MOCK_GAMES: Game[] = [
     genre: 'Classic',
     rating: 4.8,
     playersOnline: 5200,
-    image: 'https://picsum.photos/seed/hextris/300/200'
-  },
-  {
-    id: '11',
-    name: 'Pac-Man Retro',
-    url: 'https://pacman.live/play.html',
-    description: 'The definitive arcade experience, perfectly preserved.',
-    genre: 'Classic',
-    rating: 5.0,
-    playersOnline: 15000,
-    image: 'https://picsum.photos/seed/pacman/300/200'
+    image: 'https://picsum.photos/seed/hextris/300/200',
+    tags: ['Single Player', 'Arcade']
   }
 ];
+;
 
 const GAMES_API_URL = 'https://firebasestorage.googleapis.com/v0/b/builder-406918.appspot.com/o/gaming-pwa%2Fgames.json?alt=media';
 

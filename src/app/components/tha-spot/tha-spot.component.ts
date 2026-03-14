@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, OnDestroy, HostListener, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, HostListener, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -27,6 +27,8 @@ interface ChatMessage {
   styleUrls: ['./tha-spot.component.css']
 })
 export class ThaSpotComponent implements OnInit, OnDestroy {
+  @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
+
   private gameService = inject(GameService);
   private reputationService = inject(ReputationService);
   private profileService = inject(UserProfileService);
@@ -37,6 +39,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   activeTab = signal<any>('arcade');
   games = signal<Game[]>([]);
   searchQuery = '';
+  multiplayerOnly = signal(false);
+  isSearching = signal(false);
+  matchFound = signal(false);
+  searchProgress = signal(0);
+  opponentName = signal('');
   private searchSubject = new Subject<string>();
 
   currentGame = signal<Game | null>(null);
@@ -68,12 +75,48 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   filteredGames = computed(() => {
     const q = this.searchQuery.toLowerCase();
-    return this.games().filter(g => g.name.toLowerCase().includes(q) || (g.genre?.toLowerCase().includes(q) ?? false));
+    const multi = this.multiplayerOnly();
+    return this.games().filter(g => {
+      const matchesQuery = g.name.toLowerCase().includes(q) || (g.genre?.toLowerCase().includes(q) ?? false);
+      const matchesMulti = !multi || (g.tags?.includes('Multiplayer') ?? false);
+      return matchesQuery && matchesMulti;
+    });
   });
 
   playGame(game: Game) {
-    this.currentGame.set(game);
-    this.gameData.set({ score: 0, health: 100, commentary: 'System link established.' });
+    if (game.tags?.includes('Multiplayer')) {
+      this.startMatchmaking(game);
+    } else {
+      this.currentGame.set(game);
+      this.gameData.set({ score: 0, health: 100, commentary: 'System link established.' });
+      setTimeout(() => this.refocusGame(), 500);
+    }
+  }
+
+  startMatchmaking(game: Game) {
+    this.isSearching.set(true);
+    this.matchFound.set(false);
+    this.searchProgress.set(0);
+
+    const interval = setInterval(() => {
+      this.searchProgress.update(p => p + 5);
+      if (this.searchProgress() >= 100) {
+        clearInterval(interval);
+        this.matchFound.set(true);
+        this.opponentName.set(this.leaderboard()[Math.floor(Math.random() * this.leaderboard().length)].player);
+
+        setTimeout(() => {
+          this.isSearching.set(false);
+          this.currentGame.set(game);
+          this.gameData.set({ score: 0, health: 100, commentary: 'Combat link synchronized.' });
+          setTimeout(() => this.refocusGame(), 500);
+        }, 2000);
+      }
+    }, 100);
+  }
+
+  toggleMultiplayer() {
+    this.multiplayerOnly.update(m => !m);
   }
 
   closeGame() {
@@ -88,6 +131,25 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.activeTab.set(tab);
   }
 
+  refocusGame() {
+    if (this.gameIframe?.nativeElement) {
+      this.gameIframe.nativeElement.focus();
+    }
+  }
+
+  toggleFullscreen() {
+    if (this.gameIframe?.nativeElement) {
+      const iframe = this.gameIframe.nativeElement;
+      if (iframe.requestFullscreen) {
+        iframe.requestFullscreen();
+      } else if ((iframe as any).webkitRequestFullscreen) {
+        (iframe as any).webkitRequestFullscreen();
+      } else if ((iframe as any).msRequestFullscreen) {
+        (iframe as any).msRequestFullscreen();
+      }
+    }
+  }
+
   sendChatMessage() {
     if (!this.newChatMessage()) return;
     this.chatMessages.update(msgs => [...msgs, {
@@ -99,10 +161,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.newChatMessage.set('');
   }
 
-  @HostListener('window:message', [''])
+  @HostListener('window:message', ['$event'])
   onMessage(event: MessageEvent) {
-    if (event.data.type === 'GAME_UPDATE') {
+    if (event.data?.type === 'GAME_UPDATE') {
       this.gameData.update(d => ({ ...d, ...event.data.payload }));
+
+      // Update reputation if score reached threshold
+      if (event.data.payload.score > 5000) {
+        this.reputationService.addXp(10);
+      }
     }
   }
 }
