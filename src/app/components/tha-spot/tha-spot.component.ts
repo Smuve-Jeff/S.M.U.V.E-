@@ -37,6 +37,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   activeTab = signal<any>('arcade');
   games = signal<Game[]>([]);
   searchQuery = '';
+  multiplayerOnly = signal(false);
+  isSearching = signal(false);
+  matchFound = signal(false);
+  searchProgress = signal(0);
+  opponentName = signal('');
   private searchSubject = new Subject<string>();
 
   currentGame = signal<Game | null>(null);
@@ -68,12 +73,46 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   filteredGames = computed(() => {
     const q = this.searchQuery.toLowerCase();
-    return this.games().filter(g => g.name.toLowerCase().includes(q) || (g.genre?.toLowerCase().includes(q) ?? false));
+    const multi = this.multiplayerOnly();
+    return this.games().filter(g => {
+      const matchesQuery = g.name.toLowerCase().includes(q) || (g.genre?.toLowerCase().includes(q) ?? false);
+      const matchesMulti = !multi || (g.tags?.includes('Multiplayer') ?? false);
+      return matchesQuery && matchesMulti;
+    });
   });
 
   playGame(game: Game) {
-    this.currentGame.set(game);
-    this.gameData.set({ score: 0, health: 100, commentary: 'System link established.' });
+    if (game.tags?.includes('Multiplayer')) {
+      this.startMatchmaking(game);
+    } else {
+      this.currentGame.set(game);
+      this.gameData.set({ score: 0, health: 100, commentary: 'System link established.' });
+    }
+  }
+
+  startMatchmaking(game: Game) {
+    this.isSearching.set(true);
+    this.matchFound.set(false);
+    this.searchProgress.set(0);
+
+    const interval = setInterval(() => {
+      this.searchProgress.update(p => p + 5);
+      if (this.searchProgress() >= 100) {
+        clearInterval(interval);
+        this.matchFound.set(true);
+        this.opponentName.set(this.leaderboard()[Math.floor(Math.random() * this.leaderboard().length)].player);
+
+        setTimeout(() => {
+          this.isSearching.set(false);
+          this.currentGame.set(game);
+          this.gameData.set({ score: 0, health: 100, commentary: 'Combat link synchronized.' });
+        }, 2000);
+      }
+    }, 100);
+  }
+
+  toggleMultiplayer() {
+    this.multiplayerOnly.update(m => !m);
   }
 
   closeGame() {
