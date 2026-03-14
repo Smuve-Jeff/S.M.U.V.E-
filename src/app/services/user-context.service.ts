@@ -11,6 +11,7 @@ export type MainViewMode =
   | 'piano-roll'
   | 'image-editor'
   | 'video-editor'
+  | 'vocal-suite'
   | 'networking'
   | 'profile'
   | 'tha-spot'

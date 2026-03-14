@@ -1,0 +1,319 @@
+<div class="relative flex min-h-screen flex-col overflow-x-hidden bg-vocal-background-dark font-vocal-display text-slate-100 antialiased selection:bg-vocal-primary selection:text-white">
+  <!-- Top Navigation -->
+  <header class="flex items-center justify-between border-b border-white/5 bg-vocal-obsidian/80 backdrop-blur-md px-6 py-3 sticky top-0 z-50">
+    <div class="flex items-center gap-4">
+      <div class="size-8 bg-vocal-primary rounded flex items-center justify-center shadow-lg shadow-vocal-primary/20">
+        <span class="material-symbols-outlined text-white text-xl">graphic_eq</span>
+      </div>
+      <div>
+        <h1 class="text-slate-100 text-sm font-bold tracking-widest uppercase">Studio Pro <span class="text-vocal-primary">Vocal Suite v4</span></h1>
+        <p class="text-[10px] text-slate-400 font-medium tracking-[0.2em] uppercase">High-Performance Engine</p>
+      </div>
+    </div>
+    <nav class="hidden md:flex items-center gap-8">
+      @for (view of [
+        {id: 'vocal-chain', label: 'Vocal Chain'},
+        {id: 'ai-pitch', label: 'AI Pitch'},
+        {id: 'spatial', label: 'Spatial'},
+        {id: 'analyzer', label: 'Analyzer'}
+      ]; track view.id) {
+        <button
+          (click)="setSubView(view.id)"
+          class="text-xs font-bold tracking-widest uppercase transition-colors pb-1 border-b-2"
+          [class.text-vocal-primary]="activeSubView() === view.id"
+          [class.border-vocal-primary]="activeSubView() === view.id"
+          [class.text-slate-400]="activeSubView() !== view.id"
+          [class.border-transparent]="activeSubView() !== view.id"
+          [class.hover:text-slate-100]="activeSubView() !== view.id"
+        >
+          {{ view.label }}
+        </button>
+      }
+    </nav>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-1 bg-vocal-oled px-3 py-1.5 rounded-lg border border-white/5">
+        <span class="size-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-[10px] font-mono text-emerald-500 uppercase tracking-tighter">Engine Ready</span>
+      </div>
+      <button class="flex size-9 items-center justify-center rounded bg-vocal-titanium border border-white/10 hover:bg-white/10 transition-all">
+        <span class="material-symbols-outlined text-slate-300 text-xl">settings</span>
+      </button>
+      <div class="size-9 rounded-full border-2 border-vocal-primary/40 p-0.5">
+        <div class="size-full rounded-full bg-cover bg-center" style="background-image: url('assets/avatar.jpg')"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 flex overflow-hidden">
+    <!-- Sidebar Controls -->
+    <aside class="w-64 border-r border-white/5 bg-vocal-obsidian flex flex-col p-4 gap-6 shrink-0">
+      <div>
+        <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Library & Assets</h3>
+        <div class="space-y-1">
+          <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded bg-vocal-primary/10 border border-vocal-primary/20 text-vocal-primary">
+            <span class="material-symbols-outlined text-lg">folder_special</span>
+            <span class="text-xs font-bold tracking-wide">Signature Presets</span>
+          </button>
+          <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded hover:bg-white/5 text-slate-400 transition-colors">
+            <span class="material-symbols-outlined text-lg">history</span>
+            <span class="text-xs font-bold tracking-wide">Session History</span>
+          </button>
+          <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded hover:bg-white/5 text-slate-400 transition-colors">
+            <span class="material-symbols-outlined text-lg">layers</span>
+            <span class="text-xs font-bold tracking-wide">Template Vault</span>
+          </button>
+        </div>
+      </div>
+      <div class="mt-auto p-4 rounded-xl bg-gradient-to-br from-vocal-primary/20 to-transparent border border-vocal-primary/20">
+        <p class="text-[10px] font-bold text-vocal-primary uppercase tracking-widest mb-1">System Load</p>
+        <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden mb-2">
+          <div class="h-full bg-vocal-primary transition-all duration-500" [style.width.%]="systemLoad().cpu"></div>
+        </div>
+        <div class="flex justify-between text-[9px] font-mono text-slate-500">
+          <span>CPU: {{systemLoad().cpu}}%</span>
+          <span>RAM: {{systemLoad().ram}}GB</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <section class="flex-1 overflow-y-auto bg-vocal-background-dark p-6 space-y-6 custom-scrollbar">
+      <!-- Modular Vocal Chain Builder -->
+      <div class="space-y-4">
+        <div class="flex items-end justify-between border-b border-white/5 pb-4">
+          <div>
+            <h2 class="text-2xl font-black tracking-tighter text-slate-100">Vocal Chain <span class="text-vocal-primary">Master</span></h2>
+            <p class="text-xs text-slate-500 font-medium tracking-wide">Precision-milled processing modules</p>
+          </div>
+          <div class="flex gap-2">
+            <button
+              (click)="toggleBypass()"
+              class="px-4 py-2 bg-vocal-titanium text-[10px] font-bold tracking-widest uppercase rounded border border-white/10 hover:border-vocal-primary/50 transition-all"
+              [class.text-vocal-primary]="isBypassed()"
+              [class.border-vocal-primary]="isBypassed()"
+            >
+              {{ isBypassed() ? 'Resume All' : 'Bypass All' }}
+            </button>
+            <button class="px-4 py-2 bg-vocal-primary text-[10px] font-bold tracking-widest uppercase rounded shadow-lg shadow-vocal-primary/20 hover:scale-105 transition-all text-white">Save Chain</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          @for (mod of vocalChainModules(); track mod.id) {
+            <div class="group relative bg-vocal-titanium border border-white/10 rounded-lg p-1 transition-all hover:border-vocal-primary/40">
+              <div class="vocal-brushed-metal rounded-lg p-4 h-full flex flex-col gap-4">
+                <div class="flex justify-between items-center">
+                  <span class="text-[10px] font-bold text-slate-500 tracking-widest uppercase">{{ mod.type }}</span>
+                  <span class="size-2 rounded-full bg-vocal-primary shadow-[0_0_8px_rgba(157,0,255,0.8)]"></span>
+                </div>
+                <div class="space-y-1">
+                  <h4 class="text-sm font-black text-slate-200">{{ mod.name }}</h4>
+                  <p class="text-[9px] text-vocal-primary/80 font-mono tracking-tighter">{{ mod.id === 'input' ? 'Harmonic Saturation: ' : '' }}{{ mod.detail }}</p>
+                </div>
+
+                @if (mod.id === 'input') {
+                  <div class="flex justify-center py-4">
+                    <div class="size-16 rounded-full border-4 border-vocal-primary/20 border-t-vocal-primary rotate-45 flex items-center justify-center">
+                      <span class="text-[10px] font-mono text-slate-100 font-bold">{{ mod.value }}%</span>
+                    </div>
+                  </div>
+                } @else if (mod.id === 'dynamics') {
+                  <div class="mt-2 h-12 flex items-end gap-0.5 bg-vocal-oled/50 rounded p-1">
+                    <div class="w-1 bg-vocal-primary h-[80%] rounded-full opacity-40"></div>
+                    <div class="w-1 bg-vocal-primary h-[60%] rounded-full opacity-60"></div>
+                    <div class="w-1 bg-vocal-primary h-[90%] rounded-full"></div>
+                    <div class="w-1 bg-vocal-primary h-[40%] rounded-full opacity-50"></div>
+                    <div class="w-1 bg-vocal-primary h-[75%] rounded-full"></div>
+                  </div>
+                } @else if (mod.id === 'tone') {
+                  <div class="h-12 bg-vocal-oled overflow-hidden rounded border border-white/5" style="background-image: linear-gradient(to right, rgba(157,0,255,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(157,0,255,0.1) 1px, transparent 1px); background-size: 8px 8px;">
+                    <svg class="w-full h-full" viewBox="0 0 100 40">
+                      <path d="M0 20 Q 25 5, 50 20 T 100 35" fill="transparent" stroke="#9d00ff" stroke-width="1.5"></path>
+                    </svg>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Add Module -->
+          <div class="group relative bg-vocal-obsidian/40 border-2 border-dashed border-white/5 rounded-lg p-1 transition-all hover:border-vocal-primary/20 cursor-pointer">
+            <div class="rounded-lg h-full flex flex-col items-center justify-center gap-2 py-8">
+              <span class="material-symbols-outlined text-slate-600 group-hover:text-vocal-primary transition-colors text-3xl font-light">add_circle</span>
+              <span class="text-[10px] font-bold text-slate-600 group-hover:text-vocal-primary uppercase tracking-widest">Insert Module</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Pitch & Spatial Engine Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- AI Pitch Correction -->
+        <div class="bg-vocal-titanium/50 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+          <div class="px-5 py-3 border-b border-white/5 flex justify-between items-center bg-vocal-obsidian/40">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-vocal-primary text-lg">auto_fix_high</span>
+              <h3 class="text-xs font-black tracking-widest uppercase text-slate-200">AI Neural Pitch Engine</h3>
+            </div>
+            <div class="flex gap-3 text-[10px] font-mono text-slate-400">
+              <span>Key: <span class="text-vocal-primary font-bold">C-Min</span></span>
+              <span>Scale: <span class="text-vocal-primary font-bold">Harmonic</span></span>
+            </div>
+          </div>
+          <div class="p-5 space-y-6">
+            <div class="h-48 bg-vocal-oled rounded-lg border border-white/5 relative overflow-hidden flex items-center justify-center">
+              <!-- Simulated Frequency Grid -->
+              <div class="absolute inset-0 opacity-20" style="background-image: linear-gradient(rgba(157,0,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(157,0,255,0.2) 1px, transparent 1px); background-size: 20px 20px;"></div>
+              <svg class="absolute inset-0 w-full h-full">
+                <path class="opacity-80" d="M0 80 L20 85 L40 70 L60 90 L80 60 L100 75 L120 50 L140 110 L160 40 L180 90 L200 70 L220 100 L240 60 L260 85 L280 40 L300 70 L320 55 L340 90 L360 40 L380 60 L400 80" fill="none" stroke="#9d00ff" stroke-width="1.5"></path>
+                <rect fill="rgba(157,0,255,0.1)" height="120" stroke="rgba(157,0,255,0.3)" stroke-dasharray="4" width="40" x="180" y="40"></rect>
+              </svg>
+              <div class="z-10 text-center">
+                <div class="text-3xl font-mono font-black text-vocal-primary tracking-tighter">{{ currentPitch() | number:'1.1-1' }}<span class="text-slate-500">Hz</span></div>
+                <div class="text-[10px] font-mono text-emerald-500 uppercase">Phase Aligned</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <div class="flex justify-between text-[10px] font-bold uppercase text-slate-500 tracking-wider">
+                  <span>Correction Speed</span>
+                  <span class="text-vocal-primary">{{ correctionSpeed() > 70 ? 'Fast' : 'Natural' }}</span>
+                </div>
+                <input
+                  type="range"
+                  [value]="correctionSpeed()"
+                  (input)="correctionSpeed.set($any($event.target).value)"
+                  class="w-full h-1 bg-white/5 rounded-full appearance-none accent-vocal-primary cursor-pointer"
+                />
+              </div>
+              <div class="space-y-2">
+                <div class="flex justify-between text-[10px] font-bold uppercase text-slate-500 tracking-wider">
+                  <span>Humanize Factor</span>
+                  <span class="text-vocal-primary">{{ humanizeFactor() }}%</span>
+                </div>
+                <input
+                  type="range"
+                  [value]="humanizeFactor()"
+                  (input)="humanizeFactor.set($any($event.target).value)"
+                  class="w-full h-1 bg-white/5 rounded-full appearance-none accent-vocal-primary cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spatial Engine -->
+        <div class="bg-vocal-titanium/50 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+          <div class="px-5 py-3 border-b border-white/5 flex justify-between items-center bg-vocal-obsidian/40">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-vocal-primary text-lg">blur_on</span>
+              <h3 class="text-xs font-black tracking-widest uppercase text-slate-200">Spatial Rendering Engine</h3>
+            </div>
+            <span class="px-2 py-0.5 bg-vocal-primary/20 text-vocal-primary rounded text-[9px] font-bold uppercase tracking-widest">3D Mode</span>
+          </div>
+          <div class="p-5 flex flex-col gap-6">
+            <div class="grid grid-cols-2 gap-4 flex-1">
+              <!-- Silk Reverb -->
+              <div class="bg-vocal-oled/40 rounded-lg p-4 border border-white/5 space-y-4">
+                <div class="flex justify-between items-center">
+                  <h4 class="text-xs font-bold text-slate-200 uppercase tracking-widest">Silk Reverb</h4>
+                  <span class="material-symbols-outlined text-sm text-slate-500">waves</span>
+                </div>
+                <div class="space-y-3">
+                  <div class="flex items-end justify-center gap-1 h-12">
+                    <div class="w-3 bg-vocal-primary/20 h-[40%] rounded-sm"></div>
+                    <div class="w-3 bg-vocal-primary/40 h-[60%] rounded-sm"></div>
+                    <div class="w-3 bg-vocal-primary/60 h-[80%] rounded-sm"></div>
+                    <div class="w-3 bg-vocal-primary h-[100%] rounded-sm shadow-[0_0_10px_rgba(157,0,255,0.5)]"></div>
+                    <div class="w-3 bg-vocal-primary/60 h-[70%] rounded-sm"></div>
+                    <div class="w-3 bg-vocal-primary/40 h-[40%] rounded-sm"></div>
+                  </div>
+                  <div class="text-center font-mono text-xs text-slate-400">Decay: 2.4s</div>
+                </div>
+              </div>
+              <!-- Micro Delay -->
+              <div class="bg-vocal-oled/40 rounded-lg p-4 border border-white/5 space-y-4">
+                <div class="flex justify-between items-center">
+                  <h4 class="text-xs font-bold text-slate-200 uppercase tracking-widest">Micro-Delay</h4>
+                  <span class="material-symbols-outlined text-sm text-slate-500">timer</span>
+                </div>
+                <div class="space-y-4">
+                  <div class="relative pt-6">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                      <div class="size-12 rounded-full border-2 border-vocal-primary/20 border-t-vocal-primary animate-[spin_3s_linear_infinite]"></div>
+                    </div>
+                    <div class="text-center relative z-10 font-mono text-[10px] text-vocal-primary">SYNCED</div>
+                  </div>
+                  <div class="text-center font-mono text-xs text-slate-400">Time: 1/8t</div>
+                </div>
+              </div>
+            </div>
+            <div class="h-20 bg-vocal-oled rounded-lg border border-white/5 relative flex items-center justify-center group overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-vocal-primary/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              <span class="text-[10px] font-bold text-slate-600 tracking-[0.3em] uppercase">XY Stereo Visualizer</span>
+              <div class="absolute size-4 border border-vocal-primary/50 rounded-full blur-[2px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Technical Metering Footer -->
+      <div class="bg-vocal-oled border border-white/10 rounded-lg p-4 flex flex-wrap gap-8 items-center justify-between shadow-inner">
+        <div class="flex gap-8">
+          <div class="space-y-1">
+            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Loudness (LUFS)</p>
+            <div class="flex items-center gap-3">
+              <span class="text-xl font-mono font-black text-slate-100">{{ loudness() | number:'1.1-1' }}</span>
+              <div class="w-32 h-2 bg-white/5 rounded-full overflow-hidden flex">
+                <div class="h-full bg-emerald-500 w-[60%]"></div>
+                <div class="h-full bg-yellow-500 w-[20%]"></div>
+                <div class="h-full bg-rose-500 w-[5%]"></div>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Peak Level</p>
+            <div class="flex items-center gap-3">
+              <span class="text-xl font-mono font-black text-emerald-400">{{ peakLevel() | number:'1.1-1' }}</span>
+              <div class="w-32 h-2 bg-white/5 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-emerald-500 to-rose-500 w-[94%]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-6 items-center">
+          <div class="text-right">
+            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Pitch Deviation</p>
+            <p class="text-xs font-mono text-vocal-primary font-bold">+{{ pitchDeviation() | number:'1.1-1' }} cents</p>
+          </div>
+          <div class="h-10 w-[1px] bg-white/10"></div>
+          <div class="flex gap-2">
+            <button class="size-10 rounded bg-vocal-titanium border border-white/10 flex items-center justify-center hover:bg-vocal-primary transition-all">
+              <span class="material-symbols-outlined text-white text-xl">play_arrow</span>
+            </button>
+            <button class="size-10 rounded bg-vocal-titanium border border-white/10 flex items-center justify-center hover:bg-rose-600 transition-all">
+              <span class="material-symbols-outlined text-white text-xl">fiber_manual_record</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom Status Bar -->
+  <footer class="h-8 bg-vocal-obsidian border-t border-white/5 flex items-center justify-between px-6 text-[10px] font-mono text-slate-500 uppercase tracking-tight">
+    <div class="flex gap-4">
+      <span>Lat: 2.1ms</span>
+      <span class="text-slate-700">|</span>
+      <span>Sample: 96kHz</span>
+      <span class="text-slate-700">|</span>
+      <span>Bit: 32-Float</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-vocal-primary font-bold">V4.0.2 - Platinum Edition</span>
+      <span class="size-2 rounded-full bg-vocal-primary/20 flex items-center justify-center">
+        <span class="size-1 rounded-full bg-vocal-primary animate-pulse"></span>
+      </span>
+    </div>
+  </footer>
+</div>

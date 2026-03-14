@@ -3,6 +3,7 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   { path: 'hub', loadComponent: () => import('./hub/hub.component').then(m => m.HubComponent) },
   { path: 'studio', loadComponent: () => import('./studio/studio.component').then(m => m.StudioComponent) },
+  { path: 'vocal-suite', loadComponent: () => import('./studio/studio.component').then(m => m.StudioComponent) },
   { path: 'profile', loadComponent: () => import('./components/journey/journey.component').then(m => m.JourneyComponent) },
   { path: 'tha-spot', loadComponent: () => import('./components/tha-spot/tha-spot.component').then(m => m.ThaSpotComponent) },
   { path: 'practice', loadComponent: () => import('./components/practice-space/practice-space.component').then(m => m.PracticeSpaceComponent) },

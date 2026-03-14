@@ -39,7 +39,7 @@
 
   <!-- VIEW TABS -->
   <div class="flex items-center gap-2 px-8 py-4 bg-brand-surface/20 shrink-0 border-b border-white/10">
-     @for (view of ['dj', 'piano-roll', 'mixer', 'performance', 'mastering']; track view) {
+     @for (view of ['dj', 'piano-roll', 'mixer', 'vocal-suite', 'performance', 'mastering']; track view) {
         <button (click)="activeView.set($any(view))"
                 class="px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 border"
                 [class.bg-brand-primary/10]="activeView() === view"
@@ -75,6 +75,10 @@
 
      <div class="absolute inset-0 transition-opacity duration-500" [class.opacity-100]="activeView() === 'mixer'" [class.pointer-events-none]="activeView() !== 'mixer'" [class.opacity-0]="activeView() !== 'mixer'">
         <app-mixer></app-mixer>
+     </div>
+
+     <div class="absolute inset-0 transition-opacity duration-500" [class.opacity-100]="activeView() === 'vocal-suite'" [class.pointer-events-none]="activeView() !== 'vocal-suite'" [class.opacity-0]="activeView() !== 'vocal-suite'">
+        <app-vocal-suite></app-vocal-suite>
      </div>
 
      <div class="absolute inset-0 flex items-center justify-center" *ngIf="activeView() === 'performance' || activeView() === 'mastering'">

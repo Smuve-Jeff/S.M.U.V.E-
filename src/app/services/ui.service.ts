@@ -57,6 +57,7 @@ export class UIService {
   private viewConfigs: ViewConfig[] = [
     { mode: 'hub', label: 'Hub Dashboard', icon: 'fa-th-large', category: 'CORE' },
     { mode: 'studio', label: 'Studio DAW', icon: 'fa-music', category: 'CORE' },
+    { mode: 'vocal-suite', label: 'Vocal Suite', icon: 'fa-microphone-lines', category: 'CORE' },
     { mode: 'profile', label: 'Artist Profile', icon: 'fa-user-circle', category: 'CORE' },
     { mode: 'strategy', label: 'Strategy Hub', icon: 'fa-chess', category: 'STRATEGY' },
     { mode: 'career', label: 'Career Hub', icon: 'fa-briefcase', category: 'STRATEGY' },
