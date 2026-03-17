@@ -1,75 +1,93 @@
-<div class="hud-container min-h-screen p-4 md:p-8 animate-enter">
-  <div class="hud-scanline"></div>
+<div class="h-full bg-black/90 p-6 flex flex-col gap-6 animate-enter">
 
-  <!-- HUD HEADER -->
-  <header class="flex flex-col md:flex-row md:items-start justify-between gap-8 mb-12 border-b border-brand-primary/20 pb-8 relative z-10">
-    <div class="flex flex-col">
-       <div class="flex items-center gap-3 mb-2">
-          <div class="w-3 h-3 rounded-full bg-brand-primary hud-pulse shadow-[0_0_10px_#10b981]"></div>
-          <span class="digital-readout text-[10px] font-black uppercase tracking-[0.5em]">Neural Link: Stable</span>
+  <!-- TOP BAR: SYSTEM STATUS -->
+  <header class="flex flex-wrap items-center justify-between gap-6 pb-6 border-b border-white/5">
+    <div class="flex items-center gap-4">
+       <div class="w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center">
+          <i class="fas fa-terminal text-brand-primary animate-pulse-subtle"></i>
        </div>
-       <h1 class="text-5xl font-black tracking-tighter text-white uppercase italic leading-none">COMMAND<span class="text-brand-primary hud-glitch">CENTER</span></h1>
-       <div class="flex items-center gap-4 mt-4">
-          <div class="flex flex-col">
-             <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Operator Identity</span>
-             <span class="text-sm font-bold text-white tracking-tight italic">{{ profileService.profile().artistName || 'Artist Prime' }}</span>
-          </div>
-          <div class="h-6 w-px bg-white/10"></div>
-          <div class="flex flex-col">
-             <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">System Protocol</span>
-             <span class="text-sm font-bold text-white tracking-tight italic">v4.0 EXTREME</span>
+       <div class="flex flex-col">
+          <h1 class="digital-readout text-xl font-black text-white italic tracking-tighter">CENTRAL_COMMAND_v4.0</h1>
+          <div class="flex items-center gap-2">
+             <div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div>
+             <span class="text-[8px] font-black text-brand-primary uppercase tracking-[0.3em]">Neural Link: Synchronized</span>
           </div>
        </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-       @for (stat of [
-         { label: 'CPU LOAD', value: aiService.systemStatus().cpuLoad.toFixed(1) + '%', color: 'text-brand-primary' },
-         { label: 'NEURAL SYNC', value: aiService.systemStatus().neuralSync.toFixed(1) + '%', color: 'text-brand-accent' },
-         { label: 'LATENCY', value: aiService.systemStatus().latency.toFixed(2) + 'ms', color: 'text-brand-primary' },
-         { label: 'MARKET VEL', value: aiService.systemStatus().marketVelocity.toFixed(1) + '%', color: 'text-brand-primary' }
-       ]; track stat.label) {
-          <div class="hud-border bg-black/40 p-3 flex flex-col items-center justify-center min-w-[100px]">
-             <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">{{ stat.label }}</span>
-             <span class="digital-readout text-lg font-black {{ stat.color }}">{{ stat.value }}</span>
+    <!-- MARKET TICKER (NEW) -->
+    <div class="flex-grow max-w-2xl px-8 overflow-hidden">
+      @if (aiService.marketAlerts().length > 0) {
+        <div class="flex items-center gap-4 animate-slide-left whitespace-nowrap">
+          @for (alert of aiService.marketAlerts(); track alert.id) {
+            <div class="flex items-center gap-2">
+              <span class="text-[8px] font-black text-brand-accent uppercase">[MARKET_ALERT]</span>
+              <span class="text-[9px] font-bold text-white uppercase">{{ alert.title }}:</span>
+              <span class="text-[9px] text-silver-dim uppercase">{{ alert.message }}</span>
+              <span class="text-white/20 mx-4">|</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="flex gap-8">
+       @for (metric of ['cpuLoad', 'neuralSync', 'memoryUsage', 'latency']; track metric) {
+          <div class="flex flex-col items-end">
+             <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">{{ metric }}</span>
+             <span class="digital-readout text-xs font-bold text-brand-primary">{{ aiService.systemStatus()[metric] }}{{ metric === 'latency' ? 'ms' : '%' }}</span>
           </div>
        }
     </div>
   </header>
 
-  <div class="grid grid-cols-12 gap-6 relative z-10">
+  <!-- DECREE BANNER -->
+  <div class="bg-brand-primary/10 border-y border-brand-primary/20 py-3 overflow-hidden">
+     <div class="flex gap-12 animate-slide-left whitespace-nowrap">
+        @for (decree of aiService.strategicDecrees(); track decree) {
+           <span class="text-[10px] font-black text-brand-primary italic tracking-[0.1em] uppercase">{{ decree }}</span>
+        }
+     </div>
+  </div>
 
-    <!-- LEFT COLUMN: INTELLIGENCE & COMMAND -->
-    <div class="col-span-12 lg:col-span-4 space-y-6">
+  <div class="grid grid-cols-12 gap-6 flex-grow overflow-hidden">
 
+    <!-- LEFT COLUMN: TERMINAL & CHAT -->
+    <div class="col-span-12 lg:col-span-4 flex flex-col gap-6 overflow-hidden">
        <!-- TERMINAL HUD -->
-       <div class="hud-border rounded-lg p-6 bg-black/60 flex flex-col min-h-[500px]">
-          <div class="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
-             <h3 class="digital-readout text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                <i class="fas fa-terminal"></i> Strategic Uplink
-             </h3>
-             <span class="text-[8px] font-mono text-brand-primary/60">SESSION_LOG_4092</span>
+       <div class="flex-grow hud-border rounded-lg bg-black/60 flex flex-col overflow-hidden">
+          <div class="p-3 border-b border-white/5 flex items-center justify-between bg-white/5">
+             <div class="flex items-center gap-2">
+                <i class="fas fa-code text-[10px] text-brand-primary"></i>
+                <span class="digital-readout text-[9px] font-black text-silver-dim uppercase">System_Terminal_v4</span>
+             </div>
+             <div class="flex gap-1">
+                <div class="w-1.5 h-1.5 rounded-full bg-brand-accent/40"></div>
+                <div class="w-1.5 h-1.5 rounded-full bg-brand-primary/40"></div>
+             </div>
           </div>
 
-          <div class="flex-grow space-y-3 overflow-y-auto custom-scrollbar pr-2 data-stream mb-6">
-             @for (line of terminalLines(); track $index) {
-                <div class="flex gap-3 text-[11px] leading-relaxed group animate-enter">
-                   <span class="text-brand-primary font-black opacity-40 group-hover:opacity-100 transition-opacity">>></span>
-                   <p class="text-silver-bright font-mono tracking-tight">{{ line }}</p>
+          <div #terminalContainer class="flex-grow p-4 font-mono text-[10px] overflow-y-auto space-y-2 custom-scrollbar bg-[radial-gradient(circle_at_50%_50%,#111,0,#000_100%)]">
+             @for (log of terminalLogs(); track $index) {
+                <div class="flex gap-3">
+                   <span class="text-white/20">[{{ log.timestamp | date:'HH:mm:ss' }}]</span>
+                   <span [ngClass]="{
+                      'text-brand-primary': log.type === 'command',
+                      'text-brand-accent': log.type === 'system',
+                      'text-silver-dim': log.type === 'response'
+                   }">
+                      {{ log.type === 'command' ? '>' : '::' }} {{ log.message }}
+                   </span>
                 </div>
              }
-             <div class="text-brand-primary animate-pulse ml-6">_</div>
           </div>
 
-          <!-- UNIVERSAL COMMAND INPUT -->
-          <div class="relative group mt-auto pt-4 border-t border-white/10">
-             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary font-black">></span>
-             <input
-                #cmdInput
-                type="text"
-                placeholder="ENTER SYSTEM COMMAND..."
-                class="w-full bg-brand-primary/5 border border-brand-primary/20 rounded-lg pl-10 pr-4 py-3 text-xs font-mono text-white placeholder:text-brand-primary/30 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/40 outline-none transition-all"
-                (keyup.enter)="handleCommand(cmdInput.value); cmdInput.value = ''"
+          <div class="p-3 border-t border-white/5 bg-black/40 relative">
+             <input #cmdInput
+                    type="text"
+                    placeholder="ENTER COMMAND OR /HELP"
+                    class="w-full bg-transparent border-none text-[10px] font-mono text-brand-primary placeholder:text-brand-primary/20 focus:ring-0 uppercase"
+                    (keyup.enter)="handleCommand(cmdInput.value); cmdInput.value = ''"
              >
              <div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
                 <span class="text-[8px] font-black text-brand-primary/40 uppercase">AWAITING_INPUT</span>
@@ -79,10 +97,10 @@
     </div>
 
     <!-- MIDDLE COLUMN: NEURAL NETWORK VIEW & UPGRADES -->
-    <div class="col-span-12 lg:col-span-5 space-y-6">
+    <div class="col-span-12 lg:col-span-5 space-y-6 overflow-y-auto custom-scrollbar pr-2">
 
        <!-- VISUAL NEURAL MAP (SVG) -->
-       <div class="hud-border rounded-lg p-6 bg-black/40 h-[300px] overflow-hidden relative">
+       <div class="hud-border rounded-lg p-6 bg-black/40 h-[250px] overflow-hidden relative">
           <div class="absolute inset-0 opacity-20 data-stream">
              <svg class="w-full h-full" viewBox="0 0 400 300">
                 <g class="hud-node-link">
@@ -152,7 +170,7 @@
     </div>
 
     <!-- RIGHT COLUMN: STRATEGIC OPS & AUDIT -->
-    <div class="col-span-12 lg:col-span-3 space-y-6">
+    <div class="col-span-12 lg:col-span-3 space-y-6 overflow-y-auto custom-scrollbar pr-2">
 
        <!-- STRATEGIC AUDIT SUMMARY -->
        <div class="hud-border rounded-lg p-6 bg-brand-primary/5 border-brand-primary/30">
@@ -178,17 +196,6 @@
                       </div>
                    }
                 </div>
-
-                <div class="pt-4 space-y-2">
-                   <div class="flex items-center gap-2">
-                      <i class="fas fa-check-circle text-brand-primary text-[10px]"></i>
-                      <span class="text-[10px] font-bold text-white uppercase">{{ audit.strengths[0] }}</span>
-                   </div>
-                   <div class="flex items-center gap-2">
-                      <i class="fas fa-exclamation-triangle text-brand-accent text-[10px]"></i>
-                      <span class="text-[10px] font-bold text-white uppercase">{{ audit.weaknesses[0] }}</span>
-                   </div>
-                </div>
              </div>
           } @else {
              <div class="flex flex-col items-center justify-center py-12 text-center group cursor-pointer" (click)="handleCommand('/audit')">
@@ -199,22 +206,19 @@
           }
        </div>
 
-       <!-- STRATEGIC OPERATIONS -->
+       <!-- STRATEGIC OPERATIONS (LATEST INTEL) -->
        <div class="space-y-4">
-          <h3 class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2">Tactical Operations</h3>
+          <h3 class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2">High-Priority Intel</h3>
           <div class="space-y-3">
-             @for (srec of strategicRecs(); track srec.id) {
+             @for (brief of aiService.intelligenceBriefs().slice(0, 2); track brief.id) {
                 <div class="hud-border p-5 bg-black/40 hover:bg-black/60 transition-all group border-white/5 hover:border-brand-accent/30">
                    <div class="flex justify-between items-start mb-3">
-                      <h4 class="text-[11px] font-black text-white uppercase tracking-tight">{{ srec.action }}</h4>
-                      <span class="text-[7px] font-black px-1.5 py-0.5 rounded bg-brand-accent/10 text-brand-accent uppercase border border-brand-accent/20">{{ srec.impact }}</span>
+                      <h4 class="text-[11px] font-black text-white uppercase tracking-tight">{{ brief.title }}</h4>
+                      <span class="text-[7px] font-black px-1.5 py-0.5 rounded bg-brand-accent/10 text-brand-accent uppercase border border-brand-accent/20">{{ brief.impact }}</span>
                    </div>
-                   <div class="flex gap-4 text-[8px] font-black text-silver-dim uppercase mb-5 font-mono">
-                      <span>DIF: <span class="text-white">{{ srec.difficulty }}</span></span>
-                      <span>TARGET: <span class="text-brand-primary">{{ srec.toolId }}</span></span>
-                   </div>
-                   <button (click)="initializeOperation(srec)" class="w-full digital-readout text-[9px] border border-white/10 hover:border-brand-accent hover:bg-brand-accent/5 py-3 transition-all uppercase tracking-widest">
-                      Initialize Deployment
+                   <p class="text-[9px] text-silver-dim leading-relaxed line-clamp-2 mb-3">{{ brief.content }}</p>
+                   <button (click)="handleCommand('/intel')" class="w-full digital-readout text-[8px] border border-white/10 hover:border-brand-accent hover:bg-brand-accent/5 py-2 transition-all uppercase tracking-widest">
+                      View Briefing
                    </button>
                 </div>
              }
@@ -223,7 +227,7 @@
     </div>
   </div>
 
-  <!-- ACQUISITION OVERLAY (Dynamic Power-Up) -->
+  <!-- ACQUISITION OVERLAY -->
   @if (isPoweringUp()) {
      <div class="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
         <div class="power-up-flash absolute inset-0"></div>

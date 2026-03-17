@@ -11,11 +11,22 @@ import {
 } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
 import { ReputationService } from './reputation.service';
-import { LearnedStyle, ProductionSecret, TrendData, UpgradeRecommendation, ProfileAuditResult, StrategicTask, ExecutiveAuditReport } from '../types/ai.types';
+import {
+  LearnedStyle,
+  ProductionSecret,
+  TrendData,
+  UpgradeRecommendation,
+  ProfileAuditResult,
+  StrategicTask,
+  ExecutiveAuditReport,
+  IntelligenceBrief,
+  MarketAlert
+} from '../types/ai.types';
 import { UserContextService, MainViewMode } from './user-context.service';
 import { AnalyticsService } from './analytics.service';
 import { MarketingService } from './marketing.service';
 import { UIService } from './ui.service';
+import { INTELLIGENCE_LIBRARY, MARKET_ALERTS, PRODUCTION_SECRETS } from './ai-knowledge.data';
 
 export const API_KEY_TOKEN = new InjectionToken<string>('API_KEY');
 
@@ -83,12 +94,17 @@ export class AiService {
     activeProcesses: 42
   });
 
+  // Intelligence Signals
+  intelligenceBriefs = signal<IntelligenceBrief[]>([]);
+  marketAlerts = signal<MarketAlert[]>(MARKET_ALERTS);
+
   constructor() {
     effect(() => {
       const view = this.userContextService.mainViewMode();
       const profile = this.userProfileService.profile();
       this.updateAdvisorAdvice(view, profile);
       this.generateDynamicDecrees(profile);
+      this.refreshIntelligenceBriefs(profile);
     });
 
     setInterval(() => {
@@ -99,7 +115,32 @@ export class AiService {
         latency: Math.min(10, Math.max(0.5, s.latency + (Math.random() - 0.5) * 0.1)),
         marketVelocity: s.marketVelocity
       }));
+
+      // Occasionally trigger a random market alert
+      if (Math.random() > 0.95) {
+        this.triggerRandomMarketAlert();
+      }
     }, 3000);
+  }
+
+  private triggerRandomMarketAlert() {
+    const alert = MARKET_ALERTS[Math.floor(Math.random() * MARKET_ALERTS.length)];
+    const newAlert = { ...alert, id: `alert-${Date.now()}`, timestamp: Date.now() };
+    this.marketAlerts.update(alerts => [newAlert, ...alerts.slice(0, 4)]);
+  }
+
+  refreshIntelligenceBriefs(profile: UserProfile) {
+    const goals = profile.careerGoals || [];
+    const genre = profile.primaryGenre || '';
+
+    // Filter briefs based on goals
+    const filtered = INTELLIGENCE_LIBRARY.filter(brief => {
+      const matchesGoal = goals.some(goal => brief.category.toLowerCase().includes(goal.toLowerCase()) || goal.toLowerCase().includes(brief.category.toLowerCase()));
+      const isExtreme = brief.impact === 'Extreme';
+      return matchesGoal || isExtreme;
+    });
+
+    this.intelligenceBriefs.set(filtered);
   }
 
   performExecutiveAudit() {
@@ -145,12 +186,20 @@ export class AiService {
 
   private generateDynamicDecrees(profile: UserProfile) {
     const decrees: string[] = [];
-    const genre = profile.primaryGenre || 'Music';
+    const genre = (profile.primaryGenre || 'Music').toUpperCase();
     const rep = this.reputationService.state();
     const prefix = rep.level > 10 ? 'EXECUTIVE DECREE:' : 'COMMAND:';
 
+    // Goal-specific decrees
+    if (profile.careerGoals?.includes('Sync Licensing')) {
+      decrees.push(`${prefix} SYNC MARKET VOLATILITY DETECTED. OPTIMIZE METADATA FOR ${genre} SUBMISSIONS.`);
+    }
+    if (profile.careerGoals?.includes('Touring')) {
+      decrees.push(`${prefix} ROUTE LOGISTICS COMPROMISED. RE-EVALUATE RADIUS CLAUSES IN PRIMARY CORRIDORS.`);
+    }
+
     if (profile.expertiseLevels?.production < 6) {
-      decrees.push(`${prefix} ${genre.toUpperCase()} DEFICIT DETECTED. INITIALIZE TECHNICAL AUDIT.`);
+      decrees.push(`${prefix} ${genre} DEFICIT DETECTED. INITIALIZE TECHNICAL AUDIT.`);
     }
 
     if (profile.marketingBudget === 'No Budget' || (profile.marketingBudget as string) === '<00/mo') {
@@ -175,6 +224,9 @@ export class AiService {
     if (cmd === '/audit') {
       this.performExecutiveAudit();
       return 'INITIALIZING EXECUTIVE STUDIO AUDIT.';
+    }
+    if (cmd === '/intel') {
+      return 'INTELLIGENCE BRIEFING SYNCHRONIZED. CHECK STRATEGY HUB.';
     }
     return `UNKNOWN COMMAND: ${command.toUpperCase()}. CONSULT SYSTEM DIRECTORY.`;
   }
@@ -216,7 +268,19 @@ export class AiService {
   async stopAIKeyboardist() { this.isAIKeyboardistActive.set(false); }
 
   getDynamicChecklist(): StrategicTask[] {
-    return [{ id: '1', label: 'Optimize Master Bus', completed: false, category: 'production', impact: 'Medium' }];
+    const profile = this.userProfileService.profile();
+    const tasks: StrategicTask[] = [];
+
+    if (profile.careerGoals?.includes('Sync Licensing')) {
+      tasks.push({ id: 'task-sync-1', label: 'Tag 5 Tracks for One-Stop Clearance', completed: false, category: 'Sync', impact: 'High', description: 'Supervisors need instant clearance info.' });
+    }
+    if (profile.careerGoals?.includes('Touring')) {
+      tasks.push({ id: 'task-tour-1', label: 'Draft Regional Radius Clause Waiver', completed: false, category: 'Touring', impact: 'Medium', description: 'Protect your underground sets.' });
+    }
+
+    tasks.push({ id: '1', label: 'Optimize Master Bus', completed: false, category: 'production', impact: 'Medium' });
+
+    return tasks;
   }
 
   async generateImage(prompt: string): Promise<string> { return 'https://picsum.photos/seed/smuve/800/600'; }
