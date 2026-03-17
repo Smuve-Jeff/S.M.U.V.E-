@@ -1,65 +1,40 @@
-export interface StudioSettings {
-  compression?: {
-    threshold?: number;
-    ratio?: number;
-    attack?: number;
-    release?: number;
-  };
-  limiter?: {
-    ceiling?: number;
-    release?: number;
-    lookahead?: number;
-  };
-  eq?: {
-    highs: number;
-    mids: number;
-    lows: number;
-  };
-  filterFreq?: number;
-}
-
 export interface LearnedStyle {
   id: string;
   name: string;
-  bpm?: number;
-  key?: string;
-  energy?: 'low' | 'medium' | 'high';
+  genre: string;
+  complexity: number;
+  bpm: number;
+  key: string;
+  energy: number;
   description: string;
-  studioSettings?: StudioSettings;
-  timestamp: number;
 }
 
 export interface ProductionSecret {
   id: string;
-  artist: string;
-  secret: string;
-  category: 'mixing' | 'production' | 'songwriting' | 'marketing';
-  source?: string;
+  title: string;
+  content: string;
+  category: string;
+  metadata: any;
 }
 
 export interface TrendData {
   id: string;
-  genre: string;
-  description: string;
-  lastUpdated: number;
-}
-
-export interface ArtistKnowledgeBase {
-  learnedStyles: LearnedStyle[];
-  productionSecrets: ProductionSecret[];
-  coreTrends: TrendData[];
+  trend: string;
+  velocity: number;
+  category: string;
+  metadata: any;
 }
 
 export interface UpgradeRecommendation {
   id: string;
   title: string;
+  type: 'Gear' | 'Software' | 'Service';
   description: string;
-  type: 'Gear' | 'Service' | 'Software';
   cost: string;
+  url: string;
   minLevel: number;
-  genres?: string[];
-  url?: string;
   impact: 'Extreme' | 'High' | 'Medium' | 'Low';
+  genres?: string[];
 }
 
 export interface ProfileAuditResult {
@@ -80,7 +55,32 @@ export interface StrategicTask {
   id: string;
   label: string;
   completed: boolean;
-  category: 'pre' | 'day' | 'post' | 'production' | 'legal';
-  impact: 'Extreme' | 'High' | 'Medium' | 'Low';
-  description?: string;
+  category: string;
+  impact: string;
+}
+
+export interface ExecutiveAuditReport {
+  overallScore: number;
+  sonicCohesion: number;
+  arrangementDepth: number;
+  marketViability: number;
+  criticalDeficits: string[];
+  technicalRecommendations: string[];
+}
+
+export interface ArtistKnowledgeBase {
+  id: string;
+  artistId: string;
+  dataPoints: any[];
+  learnedStyles: LearnedStyle[];
+  productionSecrets: ProductionSecret[];
+  coreTrends: TrendData[];
+}
+
+export interface StudioSettings {
+  id: string;
+  theme: 'titanium' | 'obsidian' | 'vocal';
+  neuralFeedback: boolean;
+  autoSave: boolean;
+  latencyCompensation: number;
 }

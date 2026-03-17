@@ -366,7 +366,7 @@ export const initialProfile: UserProfile = {
   investingInEducation: false,
 
   // AI Knowledge Base
-  knowledgeBase: {
+  knowledgeBase: { id: "kb_01", artistId: "artist_01", dataPoints: [],
     learnedStyles: [],
     productionSecrets: [],
     coreTrends: [],
