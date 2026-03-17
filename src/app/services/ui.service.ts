@@ -75,6 +75,8 @@ export class UIService {
     { mode: 'image-video-lab', label: 'Cinema Engine', icon: 'fa-video', category: 'CREATIVE' },
     { mode: 'practice', label: 'Practice Space', icon: 'fa-microphone-alt', category: 'CORE' },
     { mode: 'projects', label: 'Projects', icon: 'fa-project-diagram', category: 'STRATEGY' },
+    { mode: 'release-pipeline', label: 'Release Pipeline', icon: 'fa-rocket', category: 'STRATEGY' },
+    { mode: 'lyric-editor', label: 'Lyric Editor', icon: 'fa-pen-fancy', category: 'CREATIVE' },
     { mode: 'remix-arena', label: 'Remix Arena', icon: 'fa-compact-disc', category: 'COMMUNITY' },
     { mode: 'tha-spot', label: 'Tha Spot', icon: 'fa-bolt', category: 'COMMUNITY' },
     { mode: 'networking', label: 'Networking', icon: 'fa-users', category: 'COMMUNITY' },

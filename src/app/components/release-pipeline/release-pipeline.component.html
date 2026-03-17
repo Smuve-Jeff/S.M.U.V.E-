@@ -1,0 +1,130 @@
+<div class="p-8 h-full bg-brand-dark overflow-y-auto">
+  <div *ngIf="releaseService.activeRelease() as release; else noRelease" class="space-y-8">
+    <!-- Header -->
+    <div class="flex justify-between items-end">
+      <div>
+        <div class="flex items-center gap-3 mb-2">
+          <span class="px-2 py-0.5 bg-brand-primary/10 text-brand-primary text-[10px] font-black uppercase tracking-widest rounded border border-brand-primary/20">
+            {{ release.type }}
+          </span>
+          <span class="text-slate-500 text-[10px] font-black uppercase tracking-widest">
+            Phase: {{ release.status }}
+          </span>
+        </div>
+        <h1 class="text-5xl font-black text-white uppercase italic tracking-tighter">{{ release.name }}</h1>
+      </div>
+
+      <div class="flex gap-4">
+        <button (click)="triggerDistribution()"
+                [disabled]="release.status === 'Released' || isDistributing()"
+                class="bg-brand-primary text-black font-black uppercase tracking-tighter italic text-sm py-4 px-10 rounded-xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)] disabled:opacity-50 disabled:grayscale">
+          {{ release.status === 'Released' ? 'Live on DSPs' : 'Launch Sequence' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-4 gap-4">
+      <div class="bg-brand-surface/30 p-6 rounded-2xl border border-white/10">
+        <div class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Tracks</div>
+        <div class="text-3xl font-black text-white">{{ release.tracks.length }}</div>
+      </div>
+      <div class="bg-brand-surface/30 p-6 rounded-2xl border border-white/10">
+        <div class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Sonic Cohesion</div>
+        <div class="text-3xl font-black text-brand-primary italic">88%</div>
+      </div>
+      <div class="bg-brand-surface/30 p-6 rounded-2xl border border-white/10">
+        <div class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Market Readiness</div>
+        <div class="text-3xl font-black text-white italic">High</div>
+      </div>
+      <div class="bg-brand-surface/30 p-6 rounded-2xl border border-white/10">
+        <div class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Credits Status</div>
+        <div class="text-3xl font-black text-slate-300">Verified</div>
+      </div>
+    </div>
+
+    <!-- Track Pipeline -->
+    <div class="space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-black text-white uppercase italic tracking-widest">Production Pipeline</h2>
+        <button (click)="addTrack('New Master Track')" class="text-brand-primary text-[10px] font-black uppercase tracking-widest hover:underline">+ Add Track</button>
+      </div>
+
+      <div *ngFor="let track of release.tracks" class="bg-brand-surface/20 rounded-2xl border border-white/5 overflow-hidden group hover:border-white/10 transition-all">
+        <div class="p-6 flex items-center gap-8">
+          <div class="w-12 h-12 bg-black/40 rounded-xl flex items-center justify-center border border-white/10 group-hover:border-brand-primary/30">
+            <i class="fas fa-music text-brand-primary"></i>
+          </div>
+          <div class="flex-grow">
+            <h3 class="text-lg font-black text-white uppercase tracking-tight">{{ track.title }}</h3>
+            <div class="flex gap-4 mt-2">
+              <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">{{ track.status }}</span>
+            </div>
+          </div>
+
+          <!-- Stage Matrix -->
+          <div class="flex gap-2">
+            <div *ngFor="let stage of ['instrumental', 'lyrics', 'vocals', 'mixing', 'mastering']"
+                 (click)="navigateToStage(track, stage)"
+                 class="px-3 py-2 rounded-lg border text-[8px] font-black uppercase tracking-widest cursor-pointer transition-all"
+                 [ngClass]="{
+                   'bg-brand-primary border-brand-primary text-black': track.stages[stage] === 'Completed',
+                   'bg-black/40 border-white/10 text-slate-500 hover:border-brand-primary/50': track.stages[stage] !== 'Completed'
+                 }">
+              {{ stage }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Distribution Overlay -->
+    <div *ngIf="isDistributing()" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-12">
+      <div class="w-full max-w-4xl space-y-8">
+        <div class="text-center">
+          <h2 class="text-6xl font-black text-white uppercase italic tracking-tighter mb-4 animate-pulse">Launching to Global DSPs</h2>
+          <p class="text-brand-primary font-black uppercase tracking-[0.5em]">Synchronizing Metadata & Binary Buffers</p>
+        </div>
+
+        <div class="relative h-2 bg-white/5 rounded-full overflow-hidden border border-white/10">
+          <div class="absolute inset-y-0 left-0 bg-brand-primary shadow-[0_0_50px_rgba(16,185,129,1)] transition-all duration-500"
+               [style.width.%]="distributionProgress()"></div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-8">
+          <div *ngFor="let dsp of ['Spotify', 'Apple Music', 'Tidal', 'Amazon']"
+               class="p-6 rounded-2xl border border-white/10 bg-white/5 flex flex-col items-center gap-4 transition-all"
+               [class.opacity-50]="distributionProgress() < 50"
+               [class.border-brand-primary]="distributionProgress() > 80">
+            <span class="text-xs font-black uppercase tracking-widest text-white">{{ dsp }}</span>
+            <div class="text-[10px] font-black uppercase text-brand-primary">
+              {{ distributionProgress() > 90 ? 'Live' : 'Pending' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #noRelease>
+    <div class="h-full flex flex-col items-center justify-center text-center">
+      <div class="w-24 h-24 bg-brand-primary/10 rounded-full flex items-center justify-center mb-8 border border-brand-primary/20">
+        <i class="fas fa-rocket text-4xl text-brand-primary"></i>
+      </div>
+      <h2 class="text-4xl font-black text-white uppercase italic tracking-tighter mb-4">Initialize Release Pipeline</h2>
+      <p class="text-slate-500 text-sm max-w-md mb-8">Ready to dominate the market? Start your next professional release cycle today. Album, EP, or Mixtape—S.M.U.V.E. 4.0 will guide you through the fire.</p>
+
+      <div class="flex flex-col gap-4 w-full max-w-xs">
+        <input #nameInput type="text" placeholder="Release Title" class="bg-brand-surface/50 border border-white/10 rounded-xl px-6 py-4 text-white font-bold uppercase tracking-widest focus:outline-none focus:border-brand-primary/50">
+        <select #typeSelect class="bg-brand-surface/50 border border-white/10 rounded-xl px-6 py-4 text-white font-bold uppercase tracking-widest focus:outline-none focus:border-brand-primary/50">
+          <option value="Album">Album</option>
+          <option value="EP">EP</option>
+          <option value="Mixtape">Mixtape</option>
+        </select>
+        <button (click)="startNewRelease(nameInput.value, typeSelect.value)" class="bg-brand-primary text-black font-black uppercase tracking-tighter italic text-sm py-4 rounded-xl hover:scale-105 transition-all">
+          Deploy Strategy
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</div>

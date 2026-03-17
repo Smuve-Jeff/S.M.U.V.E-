@@ -17,6 +17,8 @@ export type MainViewMode =
   | 'tha-spot'
   | 'login'
   | 'projects'
+  | 'release-pipeline'
+  | 'lyric-editor'
   | 'remix-arena'
   | 'image-video-lab'
   | 'strategy'

@@ -76,6 +76,7 @@ export interface ArtistKnowledgeBase {
   learnedStyles: LearnedStyle[];
   productionSecrets: ProductionSecret[];
   coreTrends: TrendData[];
+  currentRelease?: any;
 }
 
 export interface StudioSettings {

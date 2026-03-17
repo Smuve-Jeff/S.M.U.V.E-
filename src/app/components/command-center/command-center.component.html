@@ -31,13 +31,20 @@
       }
     </div>
 
-    <div class="flex gap-8">
-       @for (metric of ['cpuLoad', 'neuralSync', 'memoryUsage', 'latency']; track metric) {
-          <div class="flex flex-col items-end">
-             <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">{{ metric }}</span>
-             <span class="digital-readout text-xs font-bold text-brand-primary">{{ aiService.systemStatus()[metric] }}{{ metric === 'latency' ? 'ms' : '%' }}</span>
-          </div>
-       }
+    <div class="flex gap-4 items-center">
+       <!-- RELEASE PIPELINE BUTTON (PROMINENT) -->
+       <button (click)="uiService.navigateToView('release-pipeline')" class="bg-brand-primary text-black font-black uppercase tracking-tighter italic text-[10px] py-2 px-6 rounded-lg hover:scale-105 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+          Initialize Release Pipeline
+       </button>
+
+       <div class="flex gap-8 ml-4">
+          @for (metric of ['cpuLoad', 'neuralSync', 'memoryUsage', 'latency']; track metric) {
+             <div class="flex flex-col items-end">
+                <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">{{ metric }}</span>
+                <span class="digital-readout text-xs font-bold text-brand-primary">{{ aiService.systemStatus()[metric] }}{{ metric === 'latency' ? 'ms' : '%' }}</span>
+             </div>
+          }
+       </div>
     </div>
   </header>
 
@@ -50,151 +57,106 @@
      </div>
   </div>
 
-  <div class="grid grid-cols-12 gap-6 flex-grow overflow-hidden">
+  <div class="flex-grow grid grid-cols-12 gap-6 overflow-hidden">
+    <!-- LEFT PANEL: TERMINAL & RECS -->
+    <div class="col-span-8 flex flex-col gap-6 overflow-hidden">
 
-    <!-- LEFT COLUMN: TERMINAL & CHAT -->
-    <div class="col-span-12 lg:col-span-4 flex flex-col gap-6 overflow-hidden">
-       <!-- TERMINAL HUD -->
-       <div class="flex-grow hud-border rounded-lg bg-black/60 flex flex-col overflow-hidden">
-          <div class="p-3 border-b border-white/5 flex items-center justify-between bg-white/5">
-             <div class="flex items-center gap-2">
-                <i class="fas fa-code text-[10px] text-brand-primary"></i>
-                <span class="digital-readout text-[9px] font-black text-silver-dim uppercase">System_Terminal_v4</span>
-             </div>
-             <div class="flex gap-1">
-                <div class="w-1.5 h-1.5 rounded-full bg-brand-accent/40"></div>
-                <div class="w-1.5 h-1.5 rounded-full bg-brand-primary/40"></div>
-             </div>
+       <!-- HUD TERMINAL -->
+       <div class="flex-grow bg-brand-surface/30 rounded-2xl p-6 border border-white/10 flex flex-col gap-4 overflow-hidden relative group">
+          <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity">
+             <span class="text-[8px] font-mono text-brand-primary">ROOT@SMUVE_v4.0:~$</span>
           </div>
 
-          <div #terminalContainer class="flex-grow p-4 font-mono text-[10px] overflow-y-auto space-y-2 custom-scrollbar bg-[radial-gradient(circle_at_50%_50%,#111,0,#000_100%)]">
-             @for (log of terminalLogs(); track $index) {
-                <div class="flex gap-3">
-                   <span class="text-white/20">[{{ log.timestamp | date:'HH:mm:ss' }}]</span>
+          <div class="flex-grow overflow-y-auto font-mono text-[10px] space-y-2 no-scrollbar pr-4">
+             @for (log of terminalLogs(); track log.timestamp) {
+                <div class="flex gap-4 animate-enter">
+                   <span class="text-slate-600">[{{ log.timestamp | date:'HH:mm:ss' }}]</span>
                    <span [ngClass]="{
-                      'text-brand-primary': log.type === 'command',
-                      'text-brand-accent': log.type === 'system',
-                      'text-silver-dim': log.type === 'response'
-                   }">
-                      {{ log.type === 'command' ? '>' : '::' }} {{ log.message }}
-                   </span>
+                      'text-brand-primary font-bold': log.type === 'command',
+                      'text-silver-dim': log.type === 'system',
+                      'text-brand-accent': log.type === 'response'
+                   }">{{ log.type === 'command' ? '>' : log.type === 'response' ? 'AI:' : 'SYS:' }} {{ log.message }}</span>
                 </div>
              }
           </div>
 
-          <div class="p-3 border-t border-white/5 bg-black/40 relative">
-             <input #cmdInput
-                    type="text"
-                    placeholder="ENTER COMMAND OR /HELP"
-                    class="w-full bg-transparent border-none text-[10px] font-mono text-brand-primary placeholder:text-brand-primary/20 focus:ring-0 uppercase"
-                    (keyup.enter)="handleCommand(cmdInput.value); cmdInput.value = ''"
-             >
-             <div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
-                <span class="text-[8px] font-black text-brand-primary/40 uppercase">AWAITING_INPUT</span>
-             </div>
+          <div class="relative mt-4">
+             <input #cmdInput (keyup.enter)="handleCommand(cmdInput.value); cmdInput.value = ''"
+                    type="text" placeholder="Execute Strategic Command..."
+                    class="w-full bg-black/40 border border-white/10 rounded-xl px-6 py-4 text-xs font-mono text-brand-primary placeholder:text-slate-700 focus:border-brand-primary/50 outline-none transition-all">
+             <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black text-slate-700 uppercase tracking-widest pointer-events-none">Press Enter to Commit</div>
           </div>
+       </div>
+
+       <!-- STRATEGIC RECOMMENDATIONS (BENTO) -->
+       <div class="grid grid-cols-2 gap-4 h-64">
+          @for (rec of strategicRecs().slice(0, 2); track rec.action) {
+             <div class="bg-brand-surface/20 rounded-2xl p-6 border border-white/5 hover:border-brand-primary/30 transition-all cursor-pointer group flex flex-col justify-between"
+                  (click)="initializeOperation(rec)">
+                <div>
+                   <div class="flex justify-between items-start mb-2">
+                      <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Operation</span>
+                      <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Operation: Ready</span>
+                   </div>
+                   <h3 class="text-sm font-black text-white uppercase italic tracking-tight mb-2">{{ rec.action }}</h3>
+                   <p class="text-[9px] text-slate-500 line-clamp-2 leading-relaxed">Strategic maneuver detected by neural array. Initialize to gain market advantage.</p>
+                </div>
+                <div class="flex justify-between items-center">
+                   <span class="text-[8px] font-black uppercase tracking-widest" [ngClass]="getImpactColor(rec.impact)">Impact: {{ rec.impact }}</span>
+                   <span class="material-symbols-outlined text-sm text-brand-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </div>
+             </div>
+          }
        </div>
     </div>
 
-    <!-- MIDDLE COLUMN: NEURAL NETWORK VIEW & UPGRADES -->
-    <div class="col-span-12 lg:col-span-5 space-y-6 overflow-y-auto custom-scrollbar pr-2">
+    <!-- RIGHT PANEL: AUDIT & ALERTS -->
+    <div class="col-span-4 flex flex-col gap-6 overflow-hidden">
 
-       <!-- VISUAL NEURAL MAP (SVG) -->
-       <div class="hud-border rounded-lg p-6 bg-black/40 h-[250px] overflow-hidden relative">
-          <div class="absolute inset-0 opacity-20 data-stream">
-             <svg class="w-full h-full" viewBox="0 0 400 300">
-                <g class="hud-node-link">
-                   <path d="M50,150 L150,50 L350,150 L150,250 Z" fill="none" stroke="#10b981" stroke-width="0.5" stroke-dasharray="4,4" />
-                   <circle cx="50" cy="150" r="3" fill="#10b981" />
-                   <circle cx="150" cy="50" r="3" fill="#10b981" />
-                   <circle cx="350" cy="150" r="3" fill="#10b981" />
-                   <circle cx="150" cy="250" r="3" fill="#10b981" />
-                </g>
-                <circle cx="200" cy="150" r="80" fill="none" stroke="#10b981" stroke-width="0.2" />
-                <circle cx="200" cy="150" r="60" fill="none" stroke="#10b981" stroke-width="0.2" />
-                <line x1="200" y1="70" x2="200" y2="230" stroke="#10b981" stroke-width="0.2" />
-                <line x1="120" y1="150" x2="280" y2="150" stroke="#10b981" stroke-width="0.2" />
-             </svg>
-          </div>
-          <div class="relative z-10">
-             <h3 class="digital-readout text-[9px] font-black uppercase tracking-[0.3em] mb-4">Neural Architecture Analysis</h3>
-             <div class="grid grid-cols-2 gap-8">
-                <div class="flex flex-col">
-                   <span class="text-[8px] font-black text-brand-accent uppercase mb-1">Synaptic Integrity</span>
-                   <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                      <div class="h-full bg-brand-accent" [style.width.%]="aiService.systemStatus().neuralSync"></div>
-                   </div>
-                </div>
-                <div class="flex flex-col">
-                   <span class="text-[8px] font-black text-brand-primary uppercase mb-1">Process Saturation</span>
-                   <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                      <div class="h-full bg-brand-primary" [style.width.%]="aiService.systemStatus().cpuLoad"></div>
-                   </div>
-                </div>
-             </div>
-          </div>
-       </div>
-
-       <!-- UPGRADES HUD -->
-       <div class="space-y-4">
-          <div class="flex items-center justify-between px-2">
-             <h3 class="digital-readout text-[10px] font-black uppercase tracking-[0.4em]">Hardware Expansion</h3>
-             <span class="text-[8px] font-black text-brand-primary uppercase">{{ recommendations().length }} PROTOCOLS AVAILABLE</span>
+       <!-- EXECUTIVE AUDIT SUMMARY -->
+       <div class="bg-brand-surface/30 rounded-2xl p-6 border border-white/10 flex flex-col gap-4">
+          <div class="flex justify-between items-center mb-2">
+             <h3 class="digital-readout text-[10px] font-black uppercase tracking-[0.3em]">Executive_Audit</h3>
+             <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">LIVE_DATA</span>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-             @for (rec of recommendations(); track rec.id) {
-                <div class="holographic-card p-5 group cursor-pointer relative overflow-hidden" (click)="acquireUpgrade(rec)">
-                   <div class="absolute inset-0 bg-gradient-to-br from-brand-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                   <div class="relative z-10">
-                      <div class="flex justify-between items-start mb-3">
-                         <span class="text-[8px] font-black text-brand-accent uppercase tracking-widest">{{ rec.type }}</span>
-                         <span class="digital-readout text-[10px] font-bold text-brand-primary">{{ rec.cost }}</span>
-                      </div>
-                      <h4 class="text-xs font-black text-white mb-2 uppercase tracking-tight group-hover:text-brand-primary transition-colors">{{ rec.title }}</h4>
-                      <p class="text-[10px] text-silver-dim leading-relaxed mb-4 line-clamp-2 font-medium">{{ rec.description }}</p>
-
-                      <div class="flex items-center justify-between pt-3 border-t border-white/5">
-                         <div class="flex items-center gap-1">
-                            <div class="w-1 h-1 rounded-full bg-brand-primary"></div>
-                            <span class="text-[7px] font-black uppercase text-brand-primary">{{ rec.impact }} IMPACT</span>
-                         </div>
-                         <span class="text-[8px] font-black text-white/40 group-hover:text-brand-primary uppercase transition-colors">INITIATE_ACQUISITION</span>
+          @if (aiService.executiveAudit(); as audit) {
+             <div class="space-y-4">
+                <div class="flex items-center gap-6">
+                   <div class="relative size-20">
+                      <svg viewBox="0 0 36 36" class="size-full -rotate-90">
+                         <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="3" />
+                         <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ec5b13" [attr.stroke-dasharray]="audit.overallScore + ', 100'" stroke-width="3" stroke-linecap="round" />
+                      </svg>
+                      <div class="absolute inset-0 flex flex-col items-center justify-center">
+                         <span class="text-xl font-black text-white italic">{{ audit.overallScore }}</span>
                       </div>
                    </div>
-                </div>
-             }
-          </div>
-       </div>
-    </div>
-
-    <!-- RIGHT COLUMN: STRATEGIC OPS & AUDIT -->
-    <div class="col-span-12 lg:col-span-3 space-y-6 overflow-y-auto custom-scrollbar pr-2">
-
-       <!-- STRATEGIC AUDIT SUMMARY -->
-       <div class="hud-border rounded-lg p-6 bg-brand-primary/5 border-brand-primary/30">
-          <h3 class="digital-readout text-[10px] font-black uppercase tracking-widest mb-6 border-b border-brand-primary/20 pb-3">Active Audit Analysis</h3>
-
-          @if (aiService.activeAudit(); as audit) {
-             <div class="space-y-6">
-                <div class="flex items-end justify-between">
-                   <span class="text-4xl font-black text-white italic tracking-tighter">{{ audit.score }}</span>
-                   <span class="text-[9px] font-black text-brand-primary uppercase mb-2">Aggregate Power</span>
+                   <div class="flex flex-col gap-1">
+                      <span class="text-[10px] font-black text-white uppercase italic tracking-tighter">Current Readiness</span>
+                      <span class="text-[8px] font-bold text-slate-500 uppercase">{{ audit.criticalDeficits.length }} Critical Deficits</span>
+                   </div>
                 </div>
 
-                <div class="space-y-3">
-                   @for (cat of ['production', 'marketing', 'career', 'technical']; track cat) {
-                      <div class="flex flex-col gap-1">
-                         <div class="flex justify-between text-[8px] font-black uppercase text-silver-dim">
-                            <span>{{ cat }}</span>
-                            <span class="text-brand-primary">{{ audit.categories[cat] }}%</span>
-                         </div>
-                         <div class="w-full h-0.5 bg-white/5 rounded-full overflow-hidden">
-                            <div class="h-full bg-brand-primary" [style.width.%]="audit.categories[cat]"></div>
-                         </div>
+                <div class="grid grid-cols-2 gap-3">
+                   <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                      <div class="flex justify-between text-[8px] font-black uppercase tracking-widest mb-1">
+                         <span class="text-slate-500">Cohesion</span>
+                         <span class="text-brand-primary">{{ audit.sonicCohesion }}%</span>
                       </div>
-                   }
+                      <div class="w-full h-0.5 bg-white/5 rounded-full overflow-hidden">
+                         <div class="h-full bg-brand-primary" [style.width.%]="audit.sonicCohesion"></div>
+                      </div>
+                   </div>
+                   <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                      <div class="flex justify-between text-[8px] font-black uppercase tracking-widest mb-1">
+                         <span class="text-slate-500">Viability</span>
+                         <span class="text-brand-primary">{{ audit.marketViability }}%</span>
+                      </div>
+                      <div class="w-full h-0.5 bg-white/5 rounded-full overflow-hidden">
+                         <div class="h-full bg-brand-primary" [style.width.%]="audit.marketViability"></div>
+                      </div>
+                   </div>
                 </div>
              </div>
           } @else {

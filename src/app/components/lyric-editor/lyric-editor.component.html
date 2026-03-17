@@ -1,0 +1,60 @@
+<div class="p-8 h-full bg-brand-dark flex flex-col gap-6">
+  <div class="flex justify-between items-center border-b border-white/10 pb-4">
+    <div>
+      <h1 class="text-3xl font-black text-white uppercase italic tracking-tighter">Songwriter's Pad v4.0</h1>
+      <p class="text-brand-primary text-xs font-black uppercase tracking-widest mt-1">Refining: {{ trackTitle() }}</p>
+    </div>
+    <button (click)="saveLyrics()" class="bg-brand-primary text-black font-black uppercase tracking-tighter italic text-xs py-2 px-6 rounded-lg hover:scale-105 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+      Commit to Release
+    </button>
+  </div>
+
+  <div class="flex gap-6 h-full overflow-hidden">
+    <!-- Editor -->
+    <div class="flex-grow bg-brand-surface/30 rounded-2xl p-6 border border-white/10 flex flex-col shadow-inner">
+      <textarea
+        [(ngModel)]="lyrics"
+        placeholder="Start writing your masterpiece..."
+        class="w-full h-full bg-transparent text-slate-200 font-medium leading-relaxed resize-none focus:outline-none placeholder:text-slate-600"
+      ></textarea>
+    </div>
+
+    <!-- AI Side Panel -->
+    <div class="w-80 flex flex-col gap-6">
+      <div class="bg-brand-surface/50 rounded-2xl p-6 border border-brand-primary/20 relative overflow-hidden group">
+        <div class="absolute inset-0 bg-brand-primary/5 animate-pulse"></div>
+        <h3 class="text-xs font-black uppercase tracking-widest text-brand-primary mb-4 relative z-10 flex items-center gap-2">
+          <span class="w-2 h-2 bg-brand-primary rounded-full"></span>
+          Neural Rhyme Engine
+        </h3>
+        <div class="space-y-3 relative z-10">
+          <div *ngFor="let suggestion of aiSuggestions()" class="text-[10px] text-slate-400 bg-black/40 p-3 rounded-lg border border-white/5 hover:border-brand-primary/30 transition-all cursor-pointer">
+            {{ suggestion }}
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-brand-surface/30 rounded-2xl p-6 border border-white/10">
+        <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Metadata</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="text-[8px] font-black uppercase text-slate-600 block mb-1">Mood</label>
+            <select class="w-full bg-brand-dark border border-white/10 rounded px-2 py-1 text-xs text-white uppercase font-black">
+              <option>Dark/Aggressive</option>
+              <option>Melodic/Ethereal</option>
+              <option>Upbeat/Hype</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[8px] font-black uppercase text-slate-600 block mb-1">Key Phrase Tracking</label>
+            <div class="flex flex-wrap gap-2">
+              <span class="text-[8px] bg-white/5 text-white px-2 py-1 rounded">Velocity</span>
+              <span class="text-[8px] bg-white/5 text-white px-2 py-1 rounded">Noir</span>
+              <span class="text-[8px] bg-white/5 text-white px-2 py-1 rounded">Neon</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,100 @@
+<div class="h-full bg-black/90 p-6 flex flex-col gap-6 animate-enter">
+
+  <!-- TOP BAR: SYSTEM STATUS -->
+  <header class="flex flex-wrap items-center justify-between gap-6 pb-6 border-b border-white/5">
+    <div class="flex items-center gap-4">
+       <div class="w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center">
+          <i class="fas fa-terminal text-brand-primary animate-pulse-subtle"></i>
+       </div>
+       <div class="flex flex-col">
+          <h1 class="digital-readout text-xl font-black text-white italic tracking-tighter">CENTRAL_COMMAND_v4.0</h1>
+          <div class="flex items-center gap-2">
+             <div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div>
+             <span class="text-[8px] font-black text-brand-primary uppercase tracking-[0.3em]">Neural Link: Synchronized</span>
+          </div>
+       </div>
+    </div>
+
+    <!-- MARKET TICKER (NEW) -->
+    <div class="flex-grow max-w-2xl px-8 overflow-hidden">
+    <!-- RELEASE PIPELINE BUTTON -->
+    <button (click)="uiService.navigateToView('release-pipeline')" class="bg-brand-primary text-black font-black uppercase tracking-tighter italic text-[10px] py-2 px-6 rounded-lg hover:scale-105 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+       Initialize Release Pipeline
+    </button>
+      @if (aiService.marketAlerts().length > 0) {
+        <div class="flex items-center gap-4 animate-slide-left whitespace-nowrap">
+          @for (alert of aiService.marketAlerts(); track alert.id) {
+            <div class="flex items-center gap-2">
+              <span class="text-[8px] font-black text-brand-accent uppercase">[MARKET_ALERT]</span>
+              <span class="text-[9px] font-bold text-white uppercase">{{ alert.title }}:</span>
+              <span class="text-[9px] text-silver-dim uppercase">{{ alert.message }}</span>
+              <span class="text-white/20 mx-4">|</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="flex gap-8">
+       @for (metric of ['cpuLoad', 'neuralSync', 'memoryUsage', 'latency']; track metric) {
+          <div class="flex flex-col items-end">
+             <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">{{ metric }}</span>
+             <span class="digital-readout text-xs font-bold text-brand-primary">{{ aiService.systemStatus()[metric] }}{{ metric === 'latency' ? 'ms' : '%' }}</span>
+          </div>
+       }
+    </div>
+  </header>
+
+  <!-- DECREE BANNER -->
+  <div class="bg-brand-primary/10 border-y border-brand-primary/20 py-3 overflow-hidden">
+     <div class="flex gap-12 animate-slide-left whitespace-nowrap">
+        @for (decree of aiService.strategicDecrees(); track decree) {
+           <span class="text-[10px] font-black text-brand-primary italic tracking-[0.1em] uppercase">{{ decree }}</span>
+        }
+     </div>
+  </div>
+
+  <div class="grid grid-cols-12 gap-6 flex-grow overflow-hidden">
+
+    <!-- LEFT COLUMN: TERMINAL & CHAT -->
+    <div class="col-span-12 lg:col-span-4 flex flex-col gap-6 overflow-hidden">
+       <!-- TERMINAL HUD -->
+       <div class="flex-grow hud-border rounded-lg bg-black/60 flex flex-col overflow-hidden">
+          <div class="p-3 border-b border-white/5 flex items-center justify-between bg-white/5">
+             <div class="flex items-center gap-2">
+                <i class="fas fa-code text-[10px] text-brand-primary"></i>
+                <span class="digital-readout text-[9px] font-black text-silver-dim uppercase">System_Terminal_v4</span>
+             </div>
+             <div class="flex gap-1">
+                <div class="w-1.5 h-1.5 rounded-full bg-brand-accent/40"></div>
+                <div class="w-1.5 h-1.5 rounded-full bg-brand-primary/40"></div>
+             </div>
+          </div>
+
+          <div #terminalContainer class="flex-grow p-4 font-mono text-[10px] overflow-y-auto space-y-2 custom-scrollbar bg-[radial-gradient(circle_at_50%_50%,#111,0,#000_100%)]">
+             @for (log of terminalLogs(); track $index) {
+                <div class="flex gap-3">
+                   <span class="text-white/20">[{{ log.timestamp | date:'HH:mm:ss' }}]</span>
+                   <span [ngClass]="{
+                      'text-brand-primary': log.type === 'command',
+                      'text-brand-accent': log.type === 'system',
+                      'text-silver-dim': log.type === 'response'
+                   }">
+                      {{ log.type === 'command' ? '>' : '::' }} {{ log.message }}
+                   </span>
+                </div>
+             }
+          </div>
+
+          <div class="p-3 border-t border-white/5 bg-black/40 relative">
+             <input #cmdInput
+                    type="text"
+                    placeholder="ENTER COMMAND OR /HELP"
+                    class="w-full bg-transparent border-none text-[10px] font-mono text-brand-primary placeholder:text-brand-primary/20 focus:ring-0 uppercase"
+                    (keyup.enter)="handleCommand(cmdInput.value); cmdInput.value = ''"
+             >
+             <div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
+                <span class="text-[8px] font-black text-brand-primary/40 uppercase">AWAITING_INPUT</span>
+             </div>
+          </div>
+       </div>

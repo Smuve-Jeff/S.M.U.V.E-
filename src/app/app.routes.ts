@@ -11,6 +11,8 @@ export const routes: Routes = [
   { path: 'strategy', loadComponent: () => import('./components/strategy-hub/strategy-hub.component').then(m => m.StrategyHubComponent) },
   { path: 'career', loadComponent: () => import('./components/career-hub/career-hub.component').then(m => m.CareerHubComponent) },
   { path: 'projects', loadComponent: () => import('./components/projects/projects.component').then(m => m.ProjectsComponent) },
+  { path: 'release-pipeline', loadComponent: () => import('./components/release-pipeline/release-pipeline.component').then(m => m.ReleasePipelineComponent) },
+  { path: 'lyric-editor', loadComponent: () => import('./components/lyric-editor/lyric-editor.component').then(m => m.LyricEditorComponent) },
   { path: 'remix-arena', loadComponent: () => import('./components/remix-arena/remix-arena.component').then(m => m.RemixArenaComponent) },
   { path: 'image-video-lab', loadComponent: () => import('./components/image-video-lab/image-video-lab.component').then(m => m.ImageVideoLabComponent) },
   { path: 'login', loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent) },
