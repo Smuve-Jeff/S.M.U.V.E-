@@ -13,7 +13,7 @@ export interface ProductionSecret {
   id: string;
   title: string;
   content: string;
-  category: string;
+  category: 'production' | 'marketing' | 'business' | 'legal' | 'technical';
   metadata: any;
 }
 
@@ -57,6 +57,7 @@ export interface StrategicTask {
   completed: boolean;
   category: string;
   impact: string;
+  description?: string;
 }
 
 export interface ExecutiveAuditReport {
@@ -83,4 +84,23 @@ export interface StudioSettings {
   neuralFeedback: boolean;
   autoSave: boolean;
   latencyCompensation: number;
+}
+
+export interface IntelligenceBrief {
+  id: string;
+  title: string;
+  content: string;
+  category: 'Legal' | 'Touring' | 'Sync' | 'Fan Engagement' | 'Business' | 'Production';
+  relevanceScore: number;
+  actionable: boolean;
+  impact: 'Extreme' | 'High' | 'Medium';
+}
+
+export interface MarketAlert {
+  id: string;
+  title: string;
+  message: string;
+  severity: 'Critical' | 'Warning' | 'Info';
+  timestamp: number;
+  category: string;
 }

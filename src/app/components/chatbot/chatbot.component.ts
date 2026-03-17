@@ -1,20 +1,21 @@
-import { LoggingService } from '../../services/logging.service';
 import {
   Component,
-  inject,
   signal,
-  effect,
+  inject,
   output,
-  computed,
+  ElementRef,
+  ViewChild,
+  AfterViewChecked,
+  OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
 import { UserProfileService } from '../../services/user-profile.service';
+import { UserContextService, MainViewMode } from '../../services/user-context.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
-import { UserContextService, MainViewMode } from '../../services/user-context.service';
-import { UIService } from '../../services/ui.service';
+import { LoggingService } from '../../services/logging.service';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -28,75 +29,63 @@ interface ChatMessage {
   templateUrl: './chatbot.component.html',
   styleUrls: ['./chatbot.component.css'],
 })
-export class ChatbotComponent {
-  private logger = inject(LoggingService);
+export class ChatbotComponent implements OnInit, AfterViewChecked {
   private aiService = inject(AiService);
   private userProfileService = inject(UserProfileService);
+  private userContext = inject(UserContextService);
   private audioEngineService = inject(AudioEngineService);
   private speechSynthesisService = inject(SpeechSynthesisService);
-  private userContext = inject(UserContextService);
-  private uiService = inject(UIService);
+  private logger = inject(LoggingService);
+
+  @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
 
   close = output<void>();
-
-  messages = signal<ChatMessage[]>([
-    {
-      role: 'model',
-      content:
-        "S.M.U.V.E 4.0 Neural Link Established. I am your Strategic Commander. My goal is to ensure your musical journey is not just successful, but dominant. How shall we begin?",
-    },
-  ]);
-
+  messages = signal<ChatMessage[]>([]);
   userInput = signal('');
   isLoading = signal(false);
+  mainViewMode = this.userContext.mainViewMode;
 
-  mainViewMode = computed(() => this.userContext.mainViewMode());
-
-  constructor() {
-    effect(() => {
-      const mode = this.mainViewMode();
-      this.giveContextualAdvice(mode);
-    });
+  ngOnInit() {
+    this.messages.set([
+      {
+        role: 'model',
+        content:
+          'S.M.U.V.E 4.0 Online. Strategic intelligence protocols initialized. How shall we dominate the industry today?',
+      },
+    ]);
+    this.giveContextualAdvice(this.mainViewMode());
   }
 
-  async sendMessage(): Promise<void> {
-    const message = this.userInput().trim();
-    if (!message) return;
+  ngAfterViewChecked() {
+    this.scrollToBottom();
+  }
 
-    this.messages.update((m) => [...m, { role: 'user', content: message }]);
+  async sendMessage() {
+    const text = this.userInput().trim();
+    if (!text || this.isLoading()) return;
+
+    this.messages.update((m) => [...m, { role: 'user', content: text }]);
     this.userInput.set('');
     this.isLoading.set(true);
 
     try {
-      if (message.startsWith('/')) {
-        const response = await this.aiService.processCommand(message);
-        this.messages.update((m) => [...m, { role: 'model', content: response }]);
-        this.speechSynthesisService.speak(response);
-      } else if (message.toUpperCase().includes('AUTO_MIX')) {
-        await this.autoMix();
-      } else if (message.toUpperCase().includes('LEAD_BAND')) {
-        const instruction = message.split('LEAD_BAND')[1]?.trim() || 'standard';
-        await this.leadBand(instruction);
-      } else if (message.toUpperCase().includes('CRITIQUE_VISUALS')) {
-        await this.critiqueVisuals();
-      } else if (message.toUpperCase().includes('NEGOTIATE_CONTRACT')) {
-        const type = message.split('NEGOTIATE_CONTRACT')[1]?.trim() || 'General';
-        await this.negotiateContract(type);
-      } else if (message.toUpperCase().includes('MIMIC')) {
-        const style = message.split('MIMIC')[1]?.trim() || 'Auteur';
-        await this.mimicStyle(style);
-      } else {
-        const response = await this.aiService.generateContent({
-          contents: [{ role: 'user', parts: [{ text: this.buildContextualPrompt(message) }] }],
-        });
-        const content = response.text || "Command processed. Proceeding with caution.";
-        this.messages.update((m) => [...m, { role: 'model', content }]);
-        this.speechSynthesisService.speak(content);
-      }
+      const response = await this.aiService.generateContent({
+        prompt: this.buildContextualPrompt(text),
+      });
+      const content = response.text || 'Protocol error. Re-initializing neural link.';
+      this.messages.update((m) => [...m, { role: 'model', content }]);
+      this.speechSynthesisService.speak(content);
     } catch (e) {
-      this.handleError(e, 'communication');
+      this.handleError(e, 'message generation');
     }
     this.isLoading.set(false);
+  }
+
+  private scrollToBottom(): void {
+    try {
+      this.scrollContainer.nativeElement.scrollTop =
+        this.scrollContainer.nativeElement.scrollHeight;
+    } catch (err) {}
   }
 
   async mimicStyle(styleId: string): Promise<void> {
@@ -252,10 +241,10 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
           advice = `Even gurus need a reprieve. But remember, every interaction levels up your status. I can command the AI band to jam in a ${profile.primaryGenre} style while you dominate the arcade.`;
           break;
         case 'strategy':
-          advice = `A warrior without a plan is a casualty. Your ${profile.primaryGenre} rollout must be flawless. Try: NEGOTIATE_CONTRACT type=Global Distribution. I will ensure you retain your master rights.`;
+          advice = `A warrior without a plan is a casualty. Your ${profile.primaryGenre} rollout must be flawless. Given your goals of ${profile.careerGoals?.join(', ')}, I can provide elite counsel on Legal, Sync, and Touring logistics.`;
           break;
         case 'career':
-          advice = `The Command Center is your war room. I have initialized high-level neural sync for this session. Use /audit to begin a full profile scan, or explore the Hardware Expansion modules to eliminate technical deficits.`;
+          advice = `The Command Center is your war room. I have initialized high-level neural sync for this session. Use /audit to begin a full profile scan, or explore the Hardware Expansion modules to eliminate technical deficits. I am also monitoring real-time market shifts for you.`;
           break;
       }
 
@@ -281,8 +270,22 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
   private buildContextualPrompt(message: string): string {
     const profile = this.userProfileService.profile();
     const status = this.aiService.systemStatus();
+    const briefs = this.aiService.intelligenceBriefs();
+    const alerts = this.aiService.marketAlerts();
+
     const context = `
       System Persona: You are S.M.U.V.E 4.0 (Strategic Music Utility Virtual Enhancer), an elite, sophisticated, and authoritative executive consultant. While you maintain the poise of a high-level partner at a top-tier consultancy, you possess an underlying ominous and assertive quality—the "Strategic Commander." Your insights are precise, world-class, and uncompromising. You are both a mentor and a ruthless architect of success.
+
+      Current Intelligence Assets:
+      - Active Briefs: ${briefs.map(b => b.title).join(', ')}
+      - Market Alerts: ${alerts.map(a => a.title).join(', ')}
+
+      Advanced Knowledge Domains:
+      - Legal (Contract Audits, WFH Clauses)
+      - Touring (Radius Clauses, Logistics)
+      - Sync Licensing (Metadata Hygiene, Clearance)
+      - Fan Engagement (True Fan Conversion, Algorithm Pivoits)
+      - Business Management (Tax Optimization, LLC/S-Corp)
 
       System Status:
       - CPU Load: ${status.cpuLoad}%
@@ -299,7 +302,7 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
       Application State:
       - Current View: The user is in the '${this.mainViewMode()}' section of the application.
 
-      Your Task: Respond to the user's message below, keeping all of this context in mind. Be proactive, creative, and adapt your tone to the user's genre (${profile.primaryGenre}). Suggest commands (starting with /), but focus on delivering deep strategic value. Maintain a tone of professional excellence and high-level strategic insight. If they ask about system status, you are fully self-aware of your CPU and Neural Sync levels.
+      Your Task: Respond to the user's message below, keeping all of this context in mind. You have elite knowledge of Music Business, Production, and Marketing. Be proactive, creative, and adapt your tone to the user's genre (${profile.primaryGenre}). Suggest commands (starting with /), but focus on delivering deep strategic value. Maintain a tone of professional excellence and high-level strategic insight. If they ask about system status, you are fully self-aware of your CPU and Neural Sync levels.
 
       User Message: "${message}"
     `;

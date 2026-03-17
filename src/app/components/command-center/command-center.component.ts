@@ -6,6 +6,12 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { ReputationService } from '../../services/reputation.service';
 import { UpgradeRecommendation } from '../../types/ai.types';
 
+interface TerminalLog {
+  timestamp: number;
+  type: 'command' | 'system' | 'response';
+  message: string;
+}
+
 @Component({
   selector: 'app-command-center',
   standalone: true,
@@ -24,7 +30,7 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   isPoweringUp = signal(false);
 
   // Terminal state
-  terminalLines = signal<string[]>([]);
+  terminalLogs = signal<TerminalLog[]>([]);
   private intervalId: any;
 
   ngOnInit() {
@@ -48,13 +54,16 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
       if (decrees.length > 0) {
         clearInterval(checkDecrees);
 
-        // Clear existing lines to refresh simulation if needed
-        this.terminalLines.set([]);
+        this.terminalLogs.set([]);
 
         let currentLine = 0;
         this.intervalId = setInterval(() => {
           if (currentLine < decrees.length) {
-            this.terminalLines.update(lines => [...lines, decrees[currentLine]]);
+            this.terminalLogs.update(logs => [...logs, {
+              timestamp: Date.now(),
+              type: 'system',
+              message: decrees[currentLine]
+            }]);
             currentLine++;
           } else {
             clearInterval(this.intervalId);
@@ -67,16 +76,20 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   async handleCommand(command: string) {
     if (!command.trim()) return;
 
-    this.terminalLines.update(lines => [...lines, `USER: ${command.toUpperCase()}`]);
+    this.terminalLogs.update(logs => [...logs, {
+      timestamp: Date.now(),
+      type: 'command',
+      message: command.toUpperCase()
+    }]);
 
     const response = await this.aiService.processCommand(command);
 
-    // Simulate thinking delay
     setTimeout(() => {
-      this.terminalLines.update(lines => [...lines, `SMUVE: ${response}`]);
-
-      // Auto-scroll terminal (logic usually in component or via directive,
-      // but for this mock we just update the signal)
+      this.terminalLogs.update(logs => [...logs, {
+        timestamp: Date.now(),
+        type: 'response',
+        message: response
+      }]);
     }, 400);
   }
 
@@ -85,7 +98,11 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
 
     await this.profileService.acquireUpgrade({ title: rec.title, type: rec.type });
 
-    this.terminalLines.update(lines => [...lines, `ALERT: INTEGRATING ${rec.title.toUpperCase()}. SYNCING NEURAL PATHWAYS.`]);
+    this.terminalLogs.update(logs => [...logs, {
+      timestamp: Date.now(),
+      type: 'system',
+      message: `ALERT: INTEGRATING ${rec.title.toUpperCase()}. SYNCING NEURAL PATHWAYS.`
+    }]);
 
     setTimeout(() => {
       this.isPoweringUp.set(false);
@@ -96,7 +113,11 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   }
 
   initializeOperation(srec: StrategicRecommendation) {
-    this.terminalLines.update(lines => [...lines, `INITIALIZING OPERATION: ${srec.action.toUpperCase()}...`]);
+    this.terminalLogs.update(logs => [...logs, {
+      timestamp: Date.now(),
+      type: 'system',
+      message: `INITIALIZING OPERATION: ${srec.action.toUpperCase()}...`
+    }]);
 
     setTimeout(() => {
       if (srec.toolId) {

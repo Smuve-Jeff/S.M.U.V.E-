@@ -27,6 +27,57 @@
     <!-- OVERVIEW TAB -->
     <div *ngSwitchCase="'overview'" class="grid grid-cols-12 gap-8">
        <div class="col-span-12 lg:col-span-8 space-y-8">
+          <!-- MARKET ALERTS BANNER -->
+          @if (marketAlerts().length > 0) {
+            <section class="space-y-4">
+              <h2 class="text-[10px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Real-Time Market Intelligence</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @for (alert of marketAlerts(); track alert.id) {
+                  <div class="p-4 rounded-2xl border flex flex-col gap-2 transition-all hover:scale-[1.02]" [ngClass]="getSeverityClass(alert.severity)">
+                    <div class="flex justify-between items-center">
+                      <span class="text-[8px] font-black uppercase tracking-widest">{{ alert.category }}</span>
+                      <span class="text-[8px] opacity-60">{{ alert.timestamp | date:'shortTime' }}</span>
+                    </div>
+                    <h3 class="text-xs font-black uppercase italic tracking-tight">{{ alert.title }}</h3>
+                    <p class="text-[10px] leading-relaxed font-medium">{{ alert.message }}</p>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+          <!-- INTELLIGENCE BRIEFS -->
+          <section class="glass-panel rounded-3xl p-8 border border-white/10">
+             <div class="flex justify-between items-center mb-8">
+               <h2 class="text-lg font-bold text-white uppercase tracking-tight">Executive Intelligence Briefs</h2>
+               <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">{{ intelligenceBriefs().length }} ANALYZED</span>
+             </div>
+             <div class="grid gap-6">
+                @for (brief of intelligenceBriefs(); track brief.id) {
+                   <div class="group relative bg-black/40 rounded-2xl border border-white/5 p-6 hover:border-brand-primary/30 transition-all">
+                      <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                          <span class="px-2 py-1 rounded bg-white/5 text-[8px] font-black text-silver-dim uppercase">{{ brief.category }}</span>
+                          <span class="text-[8px] font-black uppercase tracking-widest" [ngClass]="getImpactColor(brief.impact)">{{ brief.impact }} IMPACT</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                          <span class="text-[10px] font-black text-white/20 uppercase">RELEVANCE</span>
+                          <span class="text-xs font-black text-brand-primary italic">{{ brief.relevanceScore }}%</span>
+                        </div>
+                      </div>
+                      <h3 class="text-sm font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">{{ brief.title }}</h3>
+                      <p class="text-xs text-silver-dim leading-relaxed mb-6 font-medium">{{ brief.content }}</p>
+
+                      @if (brief.actionable) {
+                        <button class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all">
+                          Initiate Counter-Strategy <i class="fas fa-arrow-right"></i>
+                        </button>
+                      }
+                   </div>
+                }
+             </div>
+          </section>
+
           <section class="glass-panel rounded-3xl p-8 border border-white/10">
              <h2 class="text-lg font-bold text-white uppercase tracking-tight mb-8">Strategic Protocol Checklist</h2>
              <div class="space-y-3">
@@ -68,9 +119,33 @@
                    <span class="text-[10px] font-black text-silver-dim uppercase">Genre</span>
                    <span class="text-xs font-bold text-brand-primary">{{ profile().primaryGenre }}</span>
                 </div>
+                <div class="flex flex-col gap-2 pt-4">
+                  <span class="text-[10px] font-black text-silver-dim uppercase">Active Goals</span>
+                  <div class="flex flex-wrap gap-2">
+                    @for (goal of profile().careerGoals; track goal) {
+                      <span class="px-2 py-1 rounded bg-brand-primary/10 border border-brand-primary/20 text-[8px] font-black text-brand-primary uppercase">{{ goal }}</span>
+                    }
+                  </div>
+                </div>
                 <button class="w-full mt-4 btn-elegant btn-elegant-primary text-[10px] font-black uppercase">
                    Generate Public Link
                 </button>
+             </div>
+          </div>
+
+          <div class="bg-black/60 rounded-3xl p-8 border border-brand-accent/20">
+             <h3 class="digital-readout text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mb-6">Neural Sync Status</h3>
+             <div class="space-y-6">
+                <div class="flex flex-col gap-2">
+                   <div class="flex justify-between text-[8px] font-black uppercase">
+                      <span class="text-silver-dim">Strategic Alignment</span>
+                      <span class="text-brand-accent">{{ aiService.systemStatus().neuralSync }}%</span>
+                   </div>
+                   <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                      <div class="h-full bg-brand-accent animate-pulse-subtle" [style.width.%]="aiService.systemStatus().neuralSync"></div>
+                   </div>
+                </div>
+                <p class="text-[9px] text-silver-dim leading-relaxed italic">Intelligence briefs are synchronized with your active career goals and market velocity.</p>
              </div>
           </div>
        </div>
