@@ -49,6 +49,7 @@ export interface DeckState {
   progress: number;
   duration: number;
   playbackRate: number;
+  vinylImageUrl?: string;
   filterFreq: number;
   loop: boolean;
   gain: number;

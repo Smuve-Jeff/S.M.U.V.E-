@@ -192,7 +192,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     ctx.fillRect(0, canvas.height - h, canvas.width, h);
   }
 
-  async loadTrackFor(deck: 'A' | 'B') {
+  async loadTrackFor(deckId: 'A' | 'B') {
     const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
     if (!files?.length) return;
     const file = files[0];
@@ -200,7 +200,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       this.engine.getContext(),
       file
     );
-    this.deckService.loadDeckBuffer(deck, buffer, file.name);
+    this.deckService.loadDeckBuffer(deckId, buffer, file.name);
   }
 
   tapBpm(deck: 'A' | 'B') {

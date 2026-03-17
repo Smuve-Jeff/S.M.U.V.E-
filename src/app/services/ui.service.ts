@@ -1,4 +1,4 @@
-import { Injectable, signal, inject } from '@angular/core';
+import { Injectable, signal, inject, effect } from '@angular/core';
 import { Router } from '@angular/router';
 import { MainViewMode, AppTheme } from './user-context.service';
 
@@ -62,6 +62,7 @@ export class UIService {
   visualIntensity = signal(0);
 
   isOnline = signal(true);
+  performanceMode = signal(false);
 
   private viewConfigs: ViewConfig[] = [
     { mode: 'hub', label: 'Hub Dashboard', icon: 'fa-th-large', category: 'CORE' },
@@ -91,7 +92,29 @@ export class UIService {
       this.isOnline.set(navigator.onLine);
       window.addEventListener('online', () => this.updateOnlineStatus(true));
       window.addEventListener('offline', () => this.updateOnlineStatus(false));
+
+      const savedPerfMode = localStorage.getItem('smuve_perf_mode');
+      if (savedPerfMode) {
+        this.performanceMode.set(savedPerfMode === 'true');
+      }
+
+      effect(() => {
+        const isPerf = this.performanceMode();
+        if (isPerf) {
+          document.body.classList.add('perf-mode-active');
+        } else {
+          document.body.classList.remove('perf-mode-active');
+        }
+      });
     }
+  }
+
+  togglePerformanceMode() {
+    this.performanceMode.update(v => {
+      const newVal = !v;
+      localStorage.setItem('smuve_perf_mode', String(newVal));
+      return newVal;
+    });
   }
 
   private updateOnlineStatus(status: boolean) {

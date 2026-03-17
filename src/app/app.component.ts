@@ -1,4 +1,4 @@
-import { Component, inject, effect, signal, HostListener, computed } from '@angular/core';
+import { Component, inject, effect, signal, HostListener, computed, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterOutlet, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -9,6 +9,8 @@ import { NotificationToastComponent } from './components/notification-toast/noti
 import { SmuveAdvisorComponent } from './components/smuve-advisor/smuve-advisor.component';
 import { NotificationService } from './services/notification.service';
 import { MainViewMode } from './services/user-context.service';
+import { AiService } from './services/ai.service';
+import { PlayerService } from './services/player.service';
 
 @Component({
   selector: 'app-root',
@@ -20,6 +22,8 @@ import { MainViewMode } from './services/user-context.service';
 export class AppComponent {
   authService = inject(AuthService);
   uiService = inject(UIService);
+  aiService = inject(AiService);
+  playerService = inject(PlayerService);
   notificationService = inject(NotificationService);
   router = inject(Router);
 
@@ -44,6 +48,27 @@ export class AppComponent {
         this.notificationService.show('System Online', 'success', 3000);
       }
     });
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+
+    const key = event.key.toLowerCase();
+    if (key === ' ') {
+      event.preventDefault();
+      this.playerService.togglePlay();
+    } else if (key === 'a' && event.altKey) {
+      this.aiService.performExecutiveAudit();
+      this.notificationService.show('Manual Audit Triggered', 'info', 2000);
+    } else if (key === 'p' && event.altKey) {
+      this.uiService.togglePerformanceMode();
+      this.notificationService.show(
+        this.uiService.performanceMode() ? 'Performance Mode Active' : 'Performance Mode Disabled',
+        'info',
+        2000
+      );
+    }
   }
 
   @HostListener('window:resize')

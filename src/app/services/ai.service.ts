@@ -63,6 +63,8 @@ export class AiService {
 
   // v4 Extreme Signals
   isScanning = signal(false);
+  scanningProgress = signal(0);
+  currentProcessStep = signal("");
   executiveAudit = signal<ExecutiveAuditReport | null>(null);
 
   isAIBassistActive = signal(false);
@@ -103,23 +105,42 @@ export class AiService {
   performExecutiveAudit() {
     this.isScanning.set(true);
     this.executiveAudit.set(null);
-    setTimeout(() => {
-      this.isScanning.set(false);
-      this.executiveAudit.set({
-        overallScore: 92,
-        sonicCohesion: 88,
-        arrangementDepth: 94,
-        marketViability: 91,
-        criticalDeficits: [
-          'Sub-bass saturation peaking in corridor 4',
-          'Vocal transient mismatch in pre-chorus'
-        ],
-        technicalRecommendations: [
-          'Apply surgical multi-band to corridor 4',
-          'Sync neural pitch engine to vocal chain'
-        ]
-      });
-    }, 3000);
+    this.scanningProgress.set(0);
+
+    const steps = [
+      { progress: 10, label: 'INITIALIZING NEURAL LINK...' },
+      { progress: 25, label: 'SCANNING FREQUENCY CORRIDORS...' },
+      { progress: 45, label: 'ANALYZING SONIC COHESION...' },
+      { progress: 65, label: 'AUDITING ARRANGEMENT DEPTH...' },
+      { progress: 85, label: 'CALCULATING MARKET VIABILITY...' },
+      { progress: 100, label: 'AUDIT COMPLETE.' }
+    ];
+
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      if (currentStep < steps.length) {
+        this.scanningProgress.set(steps[currentStep].progress);
+        this.currentProcessStep.set(steps[currentStep].label);
+        currentStep++;
+      } else {
+        clearInterval(interval);
+        this.isScanning.set(false);
+        this.executiveAudit.set({
+          overallScore: 92,
+          sonicCohesion: 88,
+          arrangementDepth: 94,
+          marketViability: 91,
+          criticalDeficits: [
+            'Sub-bass saturation peaking in corridor 4',
+            'Vocal transient mismatch in pre-chorus'
+          ],
+          technicalRecommendations: [
+            'Apply surgical multi-band to corridor 4',
+            'Sync neural pitch engine to vocal chain'
+          ]
+        });
+      }
+    }, 600);
   }
 
   private generateDynamicDecrees(profile: UserProfile) {

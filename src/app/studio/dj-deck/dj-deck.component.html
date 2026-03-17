@@ -50,9 +50,21 @@
             <span class="text-[10px] font-mono text-[11px] tracking-tight text-slate-500">{{ pitchAPercentage() }} PITCH</span>
           </div>
         </div>
-        <div class="w-16 h-16 rounded-full border-2 border-brand-primary/20 flex items-center justify-center relative overflow-hidden shrink-0">
-           <div class="absolute inset-1 rounded-full border border-brand-primary/10 border-dashed" [class.animate-spin-slow]="deckService.deckA().isPlaying"></div>
-           <i class="fas fa-compact-disc text-2xl text-brand-primary/40" [class.animate-spin]="deckService.deckA().isPlaying"></i>
+        <div class="w-16 h-16 rounded-full border-2 border-brand-primary/20 flex items-center justify-center relative overflow-hidden shrink-0 bg-black/40">
+           @if (deckService.deckA().vinylImageUrl) {
+              <img [src]="deckService.deckA().vinylImageUrl" class="absolute inset-0 w-full h-full object-cover rounded-full opacity-60" [class.animate-spin-slow]="deckService.deckA().isPlaying">
+           } @else {
+              <div class="absolute inset-1 rounded-full border border-brand-primary/10 border-dashed" [class.animate-spin-slow]="deckService.deckA().isPlaying"></div>
+           }
+           <i class="fas fa-compact-disc text-2xl text-brand-primary/40 relative z-10" [class.animate-spin]="deckService.deckA().isPlaying"></i>
+
+           <!-- Overlay for uploading specifically to this vinyl -->
+           <div class="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity bg-brand-primary/40 flex items-center justify-center cursor-pointer z-20" (click)="loadTrackFor('A')">
+              <div class="flex flex-col items-center gap-1 scale-75">
+                 <i class="fas fa-upload text-white text-xl"></i>
+                 <span class="text-[8px] font-black text-white uppercase tracking-tighter">Load A</span>
+              </div>
+           </div>
         </div>
       </div>
 
@@ -139,9 +151,21 @@
             <span class="text-[10px] font-mono text-[11px] tracking-tight text-slate-500 text-right">{{ pitchBPercentage() }} PITCH</span>
           </div>
         </div>
-        <div class="w-16 h-16 rounded-full border-2 border-brand-secondary/20 flex items-center justify-center relative overflow-hidden shrink-0">
-           <div class="absolute inset-1 rounded-full border border-brand-secondary/10 border-dashed" [class.animate-spin-slow]="deckService.deckB().isPlaying"></div>
-           <i class="fas fa-compact-disc text-2xl text-brand-secondary/40" [class.animate-spin]="deckService.deckB().isPlaying"></i>
+        <div class="w-16 h-16 rounded-full border-2 border-brand-secondary/20 flex items-center justify-center relative overflow-hidden shrink-0 bg-black/40">
+           @if (deckService.deckB().vinylImageUrl) {
+              <img [src]="deckService.deckB().vinylImageUrl" class="absolute inset-0 w-full h-full object-cover rounded-full opacity-60" [class.animate-spin-slow]="deckService.deckB().isPlaying">
+           } @else {
+              <div class="absolute inset-1 rounded-full border border-brand-secondary/10 border-dashed" [class.animate-spin-slow]="deckService.deckB().isPlaying"></div>
+           }
+           <i class="fas fa-compact-disc text-2xl text-brand-secondary/40 relative z-10" [class.animate-spin]="deckService.deckB().isPlaying"></i>
+
+           <!-- Overlay for uploading specifically to this vinyl -->
+           <div class="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity bg-brand-secondary/40 flex items-center justify-center cursor-pointer z-20" (click)="loadTrackFor('B')">
+              <div class="flex flex-col items-center gap-1 scale-75">
+                 <i class="fas fa-upload text-white text-xl"></i>
+                 <span class="text-[8px] font-black text-white uppercase tracking-tighter">Load B</span>
+              </div>
+           </div>
         </div>
       </div>
 

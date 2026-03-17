@@ -42,7 +42,7 @@ export class DeckService {
     this.engine.setDeckStemGain(deck, event.stem as keyof Stems, event.gain);
   }
 
-  loadDeckBuffer(deck: DeckId, buffer: AudioBuffer, fileName: string) {
+  loadDeckBuffer(deck: DeckId, buffer: AudioBuffer, fileName: string, vinylUrl?: string) {
     this.engine.loadDeck(deck, buffer);
     if (deck === 'A') {
       this.deckA.update((d) => ({
@@ -50,7 +50,8 @@ export class DeckService {
         track: { ...d.track, name: fileName, url: '' },
         duration: buffer.duration,
         hotCues: new Array(8).fill(null),
-        progress: 0
+        progress: 0,
+        vinylImageUrl: vinylUrl || 'https://picsum.photos/seed/' + fileName + '/200'
       }));
     } else {
       this.deckB.update((d) => ({
@@ -58,7 +59,8 @@ export class DeckService {
         track: { ...d.track, name: fileName, url: '' },
         duration: buffer.duration,
         hotCues: new Array(8).fill(null),
-        progress: 0
+        progress: 0,
+        vinylImageUrl: vinylUrl || 'https://picsum.photos/seed/' + fileName + '/200'
       }));
     }
   }

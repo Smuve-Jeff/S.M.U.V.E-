@@ -267,3 +267,81 @@ html, body {
     0% { background: white; opacity: 0.8; }
     100% { background: transparent; opacity: 0; }
 }
+
+/* ======================================================
+   PERFORMANCE MODE: Optimization Overrides
+   ====================================================== */
+
+.perf-mode-active *,
+.perf-mode-active *::before,
+.perf-mode-active *::after {
+  /* Disable non-critical animations */
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0s !important;
+}
+
+.perf-mode-active {
+  /* Remove expensive blur effects */
+  --glass: rgba(15, 23, 42, 0.95);
+}
+
+.perf-mode-active .glass-panel,
+.perf-mode-active .glass-card,
+.perf-mode-active .holographic-card,
+.perf-mode-active .ai-drawer {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(15, 23, 42, 0.98) !important;
+}
+
+.perf-mode-active .hud-scanline,
+.perf-mode-active .hud-glitch,
+.perf-mode-active .power-up-flash {
+  display: none !important;
+  animation: none !important;
+}
+
+.perf-mode-active .animate-enter,
+.perf-mode-active .animate-marquee {
+  animation: none !important;
+  transform: none !important;
+}
+
+.perf-mode-active .hud-border::before,
+.perf-mode-active .hud-border::after {
+  /* Keep borders but remove glow if any */
+  box-shadow: none !important;
+}
+
+.perf-mode-active .extreme-glow,
+.perf-mode-active .holographic-card:hover {
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Performance Mode Overrides */
+.perf-mode-active *,
+.perf-mode-active *::before,
+.perf-mode-active *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+.perf-mode-active .glass-card {
+    background: rgba(13, 13, 13, 0.95) !important;
+    border: 1px solid #333 !important;
+}
+
+.perf-mode-active .neo-gradient {
+    background: #1a1a1a !important;
+}
+
+.perf-mode-active canvas {
+    image-rendering: pixelated;
+}

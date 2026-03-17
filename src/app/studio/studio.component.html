@@ -18,7 +18,18 @@
                 <div class="absolute -inset-4 border-2 border-primary/20 rounded-full animate-ping"></div>
              </div>
              <h2 class="text-3xl font-black text-white uppercase tracking-[0.3em] mt-8 animate-pulse">Neural Path Analysis In Progress</h2>
-             <p class="text-primary font-mono text-sm mt-4 tracking-widest uppercase">Deciphering sonic architecture...</p>
+
+             <div class="mt-8 max-w-md mx-auto">
+                <div class="flex justify-between text-[10px] font-black text-primary uppercase mb-2 tracking-widest">
+                   <span>{{ aiService.currentProcessStep() }}</span>
+                   <span>{{ aiService.scanningProgress() }}%</span>
+                </div>
+                <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                   <div class="h-full bg-primary shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-300" [style.width.%]="aiService.scanningProgress()"></div>
+                </div>
+             </div>
+
+             <p class="text-slate-500 font-mono text-[10px] mt-6 tracking-widest uppercase opacity-50">Authorized Personnel Only // S.M.U.V.E Strategic Engine</p>
           </div>
         } @else if (aiService.executiveAudit(); as report) {
           <div class="flex justify-between items-start mb-10">
