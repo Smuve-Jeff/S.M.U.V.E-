@@ -39,11 +39,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   activeTab = signal<any>('arcade');
   games = signal<Game[]>([]);
   searchQuery = '';
+  selectedGenre = signal<string>('All');
   multiplayerOnly = signal(false);
   isSearching = signal(false);
   matchFound = signal(false);
   searchProgress = signal(0);
   opponentName = signal('');
+  matchmakingStep = signal<string>('Initializing');
   private searchSubject = new Subject<string>();
 
   currentGame = signal<Game | null>(null);
@@ -76,12 +78,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   filteredGames = computed(() => {
     const q = this.searchQuery.toLowerCase();
     const multi = this.multiplayerOnly();
+    const genre = this.selectedGenre();
+
     return this.games().filter(g => {
       const matchesQuery = g.name.toLowerCase().includes(q) || (g.genre?.toLowerCase().includes(q) ?? false);
       const matchesMulti = !multi || (g.tags?.includes('Multiplayer') ?? false);
-      return matchesQuery && matchesMulti;
+      const matchesGenre = genre === 'All' || g.genre === genre;
+      return matchesQuery && matchesMulti && matchesGenre;
     });
   });
+
+  setGenre(genre: string) {
+    this.selectedGenre.set(genre);
+  }
 
   playGame(game: Game) {
     if (game.tags?.includes('Multiplayer')) {
@@ -97,9 +106,22 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.isSearching.set(true);
     this.matchFound.set(false);
     this.searchProgress.set(0);
+    this.matchmakingStep.set('Scanning Matrix');
+
+    const steps = [
+      { p: 20, s: 'Neural Link Negotiating' },
+      { p: 40, s: 'Bypassing Local Firewalls' },
+      { p: 60, s: 'Synchronizing Latency' },
+      { p: 80, s: 'Opponent Verified' },
+      { p: 100, s: 'Battle Ready' }
+    ];
 
     const interval = setInterval(() => {
-      this.searchProgress.update(p => p + 5);
+      this.searchProgress.update(p => p + 2);
+
+      const currentStep = steps.find(s => this.searchProgress() >= s.p && this.searchProgress() < s.p + 2);
+      if (currentStep) this.matchmakingStep.set(currentStep.s);
+
       if (this.searchProgress() >= 100) {
         clearInterval(interval);
         this.matchFound.set(true);
@@ -108,11 +130,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         setTimeout(() => {
           this.isSearching.set(false);
           this.currentGame.set(game);
-          this.gameData.set({ score: 0, health: 100, commentary: 'Combat link synchronized.' });
+          this.gameData.set({
+            score: 0,
+            health: 100,
+            commentary: `System: Connected to ${this.opponentName()}. Good luck, you'll need it.`
+          });
           setTimeout(() => this.refocusGame(), 500);
         }, 2000);
       }
-    }, 100);
+    }, 50);
   }
 
   toggleMultiplayer() {
@@ -163,12 +189,23 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   @HostListener('window:message', ['$event'])
   onMessage(event: MessageEvent) {
-    if (event.data?.type === 'GAME_UPDATE') {
-      this.gameData.update(d => ({ ...d, ...event.data.payload }));
+    const type = event.data?.type;
+    const payload = event.data?.payload || event.data?.data;
 
-      // Update reputation if score reached threshold
-      if (event.data.payload.score > 5000) {
-        this.reputationService.addExperience(10);
+    if (type === 'GAME_UPDATE' && payload) {
+      this.gameData.update(d => ({ ...d, ...payload }));
+
+      if (payload.score > 1000) {
+        this.reputationService.addExperience(5);
+        if (payload.score % 5000 < 500) {
+           this.chatMessages.update(msgs => [...msgs, {
+             id: Date.now().toString(),
+             user: 'S.M.U.V.E',
+             text: `EXECUTIVE PERFORMANCE DETECTED: ${payload.score} POINTS. REPUTATION SYNCED.`,
+             timestamp: new Date(),
+             isSystem: true
+           }]);
+        }
       }
     }
   }

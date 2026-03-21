@@ -187,6 +187,28 @@ const MOCK_GAMES: Game[] = [
   // CLASSIC
   {
     id: '10',
+    name: 'Pac-Man Retro',
+    url: 'https://html5.gamedistribution.com/602934415a2a4b8787c672b1a8f6d7c1/',
+    description: 'The ultimate arcade classic, remastered for the S.M.U.V.E. network.',
+    genre: 'Classic',
+    rating: 4.9,
+    playersOnline: 8500,
+    image: 'https://picsum.photos/seed/pacman/300/200',
+    tags: ['Single Player', 'Arcade']
+  },
+  {
+    id: '11',
+    name: 'Galaga Retro',
+    url: 'https://html5.gamedistribution.com/9b7083834311895a9d4530869d8540c6/',
+    description: 'Defend the galaxy against swarms of alien invaders in this high-octane classic.',
+    genre: 'Classic',
+    rating: 4.8,
+    playersOnline: 4200,
+    image: 'https://picsum.photos/seed/galaga/300/200',
+    tags: ['Single Player', 'Shooter']
+  },
+  {
+    id: '12',
     name: 'Hextris',
     url: 'https://hextris.io/',
     description: 'Fast-paced hexagonal puzzle challenge. Modern classic.',
