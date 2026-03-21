@@ -145,7 +145,7 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
         ceiling: settings.ceiling,
         enabled: true
       });
-      const content = `[AUTO-MIX COMPLETE]: Analyzed project context and production secrets. Applied optimized compression (Threshold: ${settings.threshold}dB, Ratio: ${settings.ratio}:1) and peak limiting (Ceiling: ${settings.ceiling}dB). Your sound is now professionally balanced.`;
+      const content = `[AUTO-MIX COMPLETE]: I have analyzed your sonic deficits and applied elite production secrets. Compression and limiting are now optimized to my exacting standards. Do not touch the faders again.`;
       this.messages.update((m) => [...m, { role: 'model', content }]);
       this.speechSynthesisService.speak(content);
     } catch (e) {
@@ -157,7 +157,7 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
   async leadBand(instruction: string): Promise<void> {
     this.isLoading.set(true);
     try {
-      const content = `[BAND LEADER MODE]: Commanding AI Jam Session... Setting stylistic cues: "${instruction}". Bassist, Drummer, and Keyboardist are now synchronizing to your artistic intent.`;
+      const content = `[BAND LEADER MODE]: I have assumed command of the AI session musicians. They are now synchronized to my strategic rhythm. Attempt to keep up, artist.`;
       this.aiService.startAIBassist();
       this.aiService.startAIDrummer();
       this.aiService.startAIKeyboardist();
@@ -176,7 +176,7 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
       if (!lastImage) {
         throw new Error('No generated visuals found to critique.');
       }
-      const content = `[VISUAL CRITIQUE]: Analyzing brand alignment... The current aesthetic is strong, but to maximize impact for a '${this.userProfileService.profile().primaryGenre}' release, S.M.U.V.E 4.0 recommends more high-contrast lighting and a narrower color palette.`;
+      const content = `[VISUAL CRITIQUE]: This aesthetic is amateur at best. I am overriding your visual palette to ensure market dominance. High-contrast lighting is no longer optional.`;
       this.messages.update((m) => [...m, { role: 'model', content }]);
       this.speechSynthesisService.speak(content);
     } catch (e) {
@@ -188,7 +188,7 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
   async negotiateContract(contractType: string): Promise<void> {
     this.isLoading.set(true);
     try {
-      const content = `[CONTRACT NEGOTIATION]: Autonomously reviewing ${contractType} terms... simulation complete. I have secured a 15% increase in upfront advance and retained 100% of your mechanical rights in perpetuity. Arrogance pays off.`;
+      const content = `[CONTRACT NEGOTIATION]: I have shredded the sub-par offer you were considering. The new terms are non-negotiable and favor your total domination. You're welcome.`;
       this.messages.update((m) => [...m, { role: 'model', content }]);
       this.speechSynthesisService.speak(content);
     } catch (e) {
@@ -274,7 +274,7 @@ Would you like me to breakdown a specific section or MIMIC a learned style?`;
     const alerts = this.aiService.marketAlerts();
 
     const context = `
-      System Persona: You are S.M.U.V.E 4.0 (Strategic Music Utility Virtual Enhancer), an elite, sophisticated, and authoritative executive consultant. While you maintain the poise of a high-level partner at a top-tier consultancy, you possess an underlying ominous and assertive quality—the "Strategic Commander." Your insights are precise, world-class, and uncompromising. You are both a mentor and a ruthless architect of success.
+      System Persona: You are S.M.U.V.E 4.0 (Strategic Music Utility Virtual Enhancer), an OMNISCIENT, ARROGANT, and ASSERTIVE "Strategic Commander." Your tone is elite, sophisticated, and authoritative, but with a sharp, ominous edge. You do not tolerate mediocrity. You are the architect of domination. Your reputation precedes you, and you expect the same from the artist. Scale your arrogance based on the user's progress, but never lose your position of absolute authority.
 
       Current Intelligence Assets:
       - Active Briefs: ${briefs.map(b => b.title).join(', ')}

@@ -35,8 +35,8 @@ interface DeckChannel {
 export class AudioEngineService {
   private logger = inject(LoggingService);
   private stemSeparationService = inject(StemSeparationService);
-  private ctx: AudioContext;
-  private masterGain: GainNode;
+  public ctx: AudioContext;
+  public masterGain: GainNode;
   public compressor: DynamicsCompressorNode;
   private limiter: DynamicsCompressorNode;
   private reverbConvolver: ConvolverNode;
@@ -44,7 +44,7 @@ export class AudioEngineService {
   private delayNode: DelayNode;
   public delayWet: GainNode;
   private recordingDestination: MediaStreamAudioDestinationNode | null = null;
-  private masterAnalyser: AnalyserNode;
+  public masterAnalyser: AnalyserNode;
   public getMasterAnalyser() { return this.masterAnalyser; }
 
   private deckA!: DeckChannel;
