@@ -1,0 +1,151 @@
+<div class="drum-machine hardware-surface p-10 rounded-3xl border border-white/10 shadow-2xl h-full flex flex-col gap-10 overflow-hidden">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <span class="material-symbols-outlined text-4xl text-primary animate-pulse">grid_view</span>
+      <div>
+        <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">NEURAL DRUM <span class="text-primary">SYNTH v1</span></h2>
+        <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Autonomous Sonic Extraction Module</p>
+      </div>
+    </div>
+
+    <div class="flex gap-4 items-center">
+      <div class="bg-black/60 px-6 py-2 rounded-xl border border-white/5 flex flex-col items-end">
+        <span class="text-[7px] font-black text-slate-500 uppercase">Process Mode</span>
+        <span class="text-xs font-black text-primary uppercase">EXTREME v4</span>
+      </div>
+      <div class="h-10 w-px bg-white/10"></div>
+      <div class="flex flex-col items-end">
+        <span class="text-[7px] font-black text-slate-500 uppercase">Neural Sync</span>
+        <span class="text-xs font-mono text-cyan-400 font-bold">98.2%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 flex-grow overflow-hidden">
+
+    <!-- Pads Grid -->
+    <div class="lg:col-span-7 flex flex-col gap-8">
+      <div class="grid grid-cols-4 gap-6">
+        @for (pad of pads(); track pad.id) {
+          <button
+            (click)="selectPad(pad); triggerPad(pad)"
+            class="pad-button group relative aspect-square rounded-2xl border-2 transition-all duration-150 active:scale-95"
+            [style.border-color]="selectedPad()?.id === pad.id ? pad.color : 'rgba(255,255,255,0.05)'"
+            [style.background]="pad.active ? pad.color : 'rgba(255,255,255,0.03)'"
+            [class.shadow-neon]="selectedPad()?.id === pad.id"
+            [style.--neon-color]="pad.color">
+
+            <div class="absolute top-2 left-3 text-[10px] font-black italic tracking-tighter transition-colors group-hover:text-white"
+                 [style.color]="selectedPad()?.id === pad.id ? 'white' : 'rgba(255,255,255,0.2)'">
+              {{ pad.id.toUpperCase() }}
+            </div>
+
+            <div class="flex flex-col items-center justify-center h-full">
+              <span class="text-xs font-black uppercase tracking-widest transition-all group-hover:scale-110"
+                    [style.color]="pad.active ? 'black' : (selectedPad()?.id === pad.id ? pad.color : 'rgba(255,255,255,0.4)')">
+                {{ pad.name }}
+              </span>
+            </div>
+
+            <!-- LED status -->
+            <div class="absolute bottom-2 right-3 w-1.5 h-1.5 rounded-full transition-all"
+                 [style.background]="pad.active ? 'white' : (selectedPad()?.id === pad.id ? pad.color : 'rgba(255,255,255,0.1)')"
+                 [style.box-shadow]="pad.active ? '0 0 10px white' : (selectedPad()?.id === pad.id ? '0 0 10px ' + pad.color : 'none')">
+            </div>
+          </button>
+        }
+      </div>
+
+      <!-- Visualizer -->
+      <div class="relative h-32 bg-black/60 rounded-2xl border border-white/5 overflow-hidden">
+        <canvas #visualizer class="w-full h-full"></canvas>
+        <div class="absolute top-2 left-4 text-[7px] font-black text-slate-600 uppercase tracking-widest">Real-time Spectral Waveform</div>
+      </div>
+    </div>
+
+    <!-- Parameter Controls -->
+    <div class="lg:col-span-5 obsidian-panel rounded-3xl border border-white/5 p-8 flex flex-col gap-8 shadow-inner overflow-y-auto custom-scrollbar">
+      <div class="flex items-center gap-4 border-b border-white/5 pb-4">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center border-2" [style.border-color]="selectedPad()?.color">
+          <span class="material-symbols-outlined text-lg" [style.color]="selectedPad()?.color">settings_b_roll</span>
+        </div>
+        <div>
+          <h3 class="text-sm font-black text-white uppercase tracking-widest">{{ selectedPad()?.name || 'SELECT PAD' }}</h3>
+          <p class="text-[7px] font-black text-slate-500 uppercase">Core synthesis parameters</p>
+        </div>
+      </div>
+
+      @if (selectedPad(); as pad) {
+        <div class="grid grid-cols-2 gap-8">
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">PITCH / FREQ</span>
+                <span class="text-xs font-mono text-primary font-bold">{{ pad.type === 'kick' ? pad.params.pitch : pad.params.frequency }}</span>
+              </div>
+              @if (pad.type === 'kick') {
+                <input type="range" min="40" max="300" step="1" [(ngModel)]="pad.params.pitch"
+                       class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+              } @else {
+                <input type="range" min="50" max="15000" step="1" [(ngModel)]="pad.params.frequency"
+                       class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+              }
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">DECAY</span>
+                <span class="text-xs font-mono text-cyan-400 font-bold">{{ pad.params.decay }}s</span>
+              </div>
+              <input type="range" min="0.05" max="2" step="0.01" [(ngModel)]="pad.params.decay"
+                     class="w-full accent-cyan-400 h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">GAIN / AMP</span>
+                <span class="text-xs font-mono text-magenta font-bold">{{ pad.params.gain }}</span>
+              </div>
+              <input type="range" min="0" max="1.5" step="0.01" [(ngModel)]="pad.params.gain"
+                     class="w-full accent-magenta h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">DRIVE</span>
+                <span class="text-xs font-mono text-orange font-bold">0.4</span>
+              </div>
+              <input type="range" min="0" max="1" step="0.01" value="0.4"
+                     class="w-full accent-orange h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 bg-primary/5 border border-primary/20 p-6 rounded-2xl">
+          <h4 class="text-[10px] font-black text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">psychology</span> S.M.U.V.E. ANALYTIC OVERRIDE
+          </h4>
+          <p class="text-[10px] font-medium text-slate-400 leading-relaxed italic">
+            "Your transient response on this {{ pad.name.toLowerCase() }} is insufficient.
+            I've calculated the optimal phase alignment. Adjust decay to {{ (pad.params.decay * 0.8).toFixed(2) }}s
+            for maximum impact in high-velocity corridors."
+          </p>
+          <button (click)="pad.params.decay = (pad.params.decay * 0.8)"
+                  class="mt-4 px-4 py-2 bg-primary/20 hover:bg-primary/40 text-primary text-[9px] font-black uppercase tracking-widest rounded transition-all">
+            Accept Strategic Optimization
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<style>
+  .shadow-neon {
+    box-shadow: 0 0 20px var(--neon-color);
+  }
+</style>

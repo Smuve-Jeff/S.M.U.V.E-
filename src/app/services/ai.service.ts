@@ -83,7 +83,7 @@ export class AiService {
   isAIKeyboardistActive = signal(false);
   chatInstance = signal<any>(null);
 
-  strategicDecrees = signal<string[]>(['PIVOT FOCUS TO NEURAL NODE 07. MARKET RESONANCE PEAKING.', 'MAXIMIZE STREAMING REVENUE', 'ELIMINATE WEAK CONTENT']);
+  strategicDecrees = signal<string[]>(['S.M.U.V.E 4.0 ONLINE. I AM YOUR STRATEGIC COMMANDER.', 'INITIALIZING DOMINATION PROTOCOLS.', 'YOUR CURRENT SONIC OUTPUT IS... ADEQUATE. BARELY.']);
 
   systemStatus = signal<SystemStatus>({
     cpuLoad: 12.4,
@@ -227,6 +227,18 @@ export class AiService {
     }
     if (cmd === '/intel') {
       return 'INTELLIGENCE BRIEFING SYNCHRONIZED. CHECK STRATEGY HUB.';
+    }
+    if (cmd === '/auto_mix') {
+      return 'AUTO_MIX INITIATED. ANALYZING HARMONIC DISTORTION... COMPRESSOR RATIOS OPTIMIZED. LIMITER CEILING SECURED.';
+    }
+    if (cmd === '/lead_band') {
+      return 'LEAD_BAND PROTOCOL ENGAGED. AI SESSION MUSICIANS SYNCHRONIZED TO YOUR BPM. DOMINATE THE GROOVE.';
+    }
+    if (cmd === '/critique') {
+      return 'CRITIQUE ENGINE ONLINE. YOUR VISUAL BRAND IS LACKING COHESION. RECOMMEND AGGRESSIVE REBRANDING IN CORRIDOR 7.';
+    }
+    if (cmd === '/negotiate') {
+      return 'NEGOTIATION MODULE ACTIVE. I HAVE AUTONOMOUSLY REJECTED THREE SUB-PAR OFFERS. STAND BY FOR ELITE CONTRACT TERMS.';
     }
     return `UNKNOWN COMMAND: ${command.toUpperCase()}. CONSULT SYSTEM DIRECTORY.`;
   }
