@@ -50,7 +50,7 @@ export class AppComponent {
     });
   }
 
-  @HostListener('window:keydown', ['$event'])
+  @HostListener('window:keydown', [''])
   handleKeyboardEvent(event: KeyboardEvent) {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
 
@@ -75,9 +75,12 @@ export class AppComponent {
   onResize() { this.checkMobile(); }
 
   private checkMobile() {
-    this.isMobile.set(window.innerWidth <= 1024);
-    if (this.isMobile()) this.isSidebarOpen.set(false);
-    else this.isSidebarOpen.set(true);
+    const isNowMobile = window.innerWidth <= 1024;
+    if (isNowMobile !== this.isMobile()) {
+      this.isMobile.set(isNowMobile);
+      if (isNowMobile) this.isSidebarOpen.set(false);
+      else this.isSidebarOpen.set(true);
+    }
   }
 
   toggleSidebar() { this.isSidebarOpen.update(v => !v); }
@@ -86,5 +89,6 @@ export class AppComponent {
   navigateToView(mode: MainViewMode) {
     this.uiService.navigateToView(mode);
     this.isViewSelectorOpen.set(false);
+    if (this.isMobile()) this.isSidebarOpen.set(false);
   }
 }

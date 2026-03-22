@@ -1,18 +1,20 @@
-<div class="p-8 max-w-[1600px] mx-auto animate-enter">
-  <header class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 border-b border-white/10 pb-8">
+<div class="p-4 md:p-8 max-w-[1600px] mx-auto animate-enter overflow-x-hidden">
+  <!-- HUB HEADER -->
+  <header class="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8 mb-10 md:mb-16">
     <div class="flex flex-col">
        <div class="flex items-center gap-3 mb-2">
-          <div class="w-1.5 h-1.5 rounded-full bg-brand-primary"></div>
-          <span class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em]">Strategic Matrix</span>
+          <div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse-subtle"></div>
+          <span class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase tracking-[0.3em] md:tracking-[0.4em]">Strategic Synthesis Matrix</span>
        </div>
-       <h1 class="text-4xl font-black tracking-tighter text-white uppercase italic leading-none">STRATEGY<span class="text-brand-primary">HUB</span></h1>
-       <p class="text-sm text-silver-dim mt-3 font-medium max-w-xl">Advanced release orchestration and market infiltration tactics.</p>
+       <h1 class="text-3xl md:text-5xl font-black tracking-tighter text-white uppercase italic leading-none">STRATEGY<span class="text-brand-primary">HUB</span></h1>
+       <p class="text-xs md:text-sm text-silver-dim mt-3 font-medium max-w-xl">High-fidelity intelligence mapping for professional career trajectories and market positioning.</p>
     </div>
 
-    <div class="flex items-center gap-2 p-1 bg-brand-surface/40 rounded-2xl border border-white/10">
+    <!-- Tab Container with horizontal scroll on mobile -->
+    <div class="flex items-center gap-1 p-1 overflow-x-auto no-scrollbar bg-brand-surface/40 rounded-2xl border border-white/10 max-w-full">
        @for (tab of ['overview', 'campaigns', 'analytics', 'outreach', 'social']; track tab) {
-          <button (click)="activeHubTab.set($any(tab))"
-                  class="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+          <button (click)="activeHubTab.set((tab))"
+                  class="px-4 md:px-6 py-2 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap"
                   [class.bg-brand-primary]="activeHubTab() === tab"
                   [class.text-black]="activeHubTab() === tab"
                   [class.text-silver-dim]="activeHubTab() !== tab"
@@ -23,14 +25,14 @@
     </div>
   </header>
 
-  <div [ngSwitch]="activeHubTab()" class="min-h-[600px]">
+  <div [ngSwitch]="activeHubTab()" class="min-h-[400px] md:min-h-[600px]">
     <!-- OVERVIEW TAB -->
-    <div *ngSwitchCase="'overview'" class="grid grid-cols-12 gap-8">
-       <div class="col-span-12 lg:col-span-8 space-y-8">
+    <div *ngSwitchCase="'overview'" class="grid grid-cols-12 gap-6 md:gap-8">
+       <div class="col-span-12 lg:col-span-8 space-y-6 md:space-y-8">
           <!-- MARKET ALERTS BANNER -->
           @if (marketAlerts().length > 0) {
             <section class="space-y-4">
-              <h2 class="text-[10px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Real-Time Market Intelligence</h2>
+              <h2 class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Real-Time Market Intelligence</h2>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 @for (alert of marketAlerts(); track alert.id) {
                   <div class="p-4 rounded-2xl border flex flex-col gap-2 transition-all hover:scale-[1.02]" [ngClass]="getSeverityClass(alert.severity)">
@@ -47,26 +49,26 @@
           }
 
           <!-- INTELLIGENCE BRIEFS -->
-          <section class="glass-panel rounded-3xl p-8 border border-white/10">
+          <section class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
              <div class="flex justify-between items-center mb-8">
-               <h2 class="text-lg font-bold text-white uppercase tracking-tight">Executive Intelligence Briefs</h2>
-               <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">{{ intelligenceBriefs().length }} ANALYZED</span>
+               <h2 class="text-base md:text-lg font-bold text-white uppercase tracking-tight">Executive Intelligence Briefs</h2>
+               <span class="text-[9px] md:text-[10px] font-black text-brand-primary uppercase tracking-widest">{{ intelligenceBriefs().length }} ANALYZED</span>
              </div>
              <div class="grid gap-6">
                 @for (brief of intelligenceBriefs(); track brief.id) {
                    <div class="group relative bg-black/40 rounded-2xl border border-white/5 p-6 hover:border-brand-primary/30 transition-all">
                       <div class="flex justify-between items-start mb-4">
-                        <div class="flex items-center gap-3">
+                        <div class="flex flex-wrap items-center gap-3">
                           <span class="px-2 py-1 rounded bg-white/5 text-[8px] font-black text-silver-dim uppercase">{{ brief.category }}</span>
                           <span class="text-[8px] font-black uppercase tracking-widest" [ngClass]="getImpactColor(brief.impact)">{{ brief.impact }} IMPACT</span>
                         </div>
-                        <div class="flex items-center gap-1">
+                        <div class="hidden sm:flex items-center gap-1">
                           <span class="text-[10px] font-black text-white/20 uppercase">RELEVANCE</span>
                           <span class="text-xs font-black text-brand-primary italic">{{ brief.relevanceScore }}%</span>
                         </div>
                       </div>
                       <h3 class="text-sm font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">{{ brief.title }}</h3>
-                      <p class="text-xs text-silver-dim leading-relaxed mb-6 font-medium">{{ brief.content }}</p>
+                      <p class="text-[11px] md:text-xs text-silver-dim leading-relaxed mb-6 font-medium">{{ brief.content }}</p>
 
                       @if (brief.actionable) {
                         <button class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all">
@@ -78,13 +80,13 @@
              </div>
           </section>
 
-          <section class="glass-panel rounded-3xl p-8 border border-white/10">
-             <h2 class="text-lg font-bold text-white uppercase tracking-tight mb-8">Strategic Protocol Checklist</h2>
+          <section class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
+             <h2 class="text-base md:text-lg font-bold text-white uppercase tracking-tight mb-8">Strategic Protocol Checklist</h2>
              <div class="space-y-3">
                 @for (item of strategicTasks(); track item.id) {
                    <button (click)="item.completed = !item.completed"
                            class="w-full flex items-center gap-4 p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all text-left group">
-                      <div class="w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all"
+                      <div class="w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all shrink-0"
                            [class.border-brand-primary]="item.completed"
                            [class.bg-brand-primary]="item.completed"
                            [class.border-white/10]="!item.completed">
@@ -92,8 +94,8 @@
                       </div>
                       <div class="flex-grow">
                          <div class="flex justify-between items-center">
-                            <span class="text-sm font-bold transition-all" [class.text-silver-dim]="item.completed" [class.line-through]="item.completed">{{ item.label }}</span>
-                            <span class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded bg-brand-primary/10 text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span class="text-[13px] md:text-sm font-bold transition-all" [class.text-silver-dim]="item.completed" [class.line-through]="item.completed">{{ item.label }}</span>
+                            <span class="hidden sm:block text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded bg-brand-primary/10 text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity">
                                {{ item.impact }} IMPACT
                             </span>
                          </div>
@@ -105,36 +107,36 @@
           </section>
        </div>
 
-       <div class="col-span-12 lg:col-span-4 space-y-8">
-          <div class="bg-brand-surface/40 rounded-3xl p-8 border border-white/10">
-             <h2 class="text-sm font-black text-white uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+       <div class="col-span-12 lg:col-span-4 space-y-6 md:space-y-8">
+          <div class="bg-brand-surface/40 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
+             <h2 class="text-[11px] md:text-sm font-black text-white uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
                 <i class="fas fa-id-badge text-brand-primary"></i> EPK Snapshot
              </h2>
              <div class="space-y-4">
                 <div class="flex justify-between border-b border-white/10 pb-3">
-                   <span class="text-[10px] font-black text-silver-dim uppercase">Artist</span>
-                   <span class="text-xs font-bold text-white">{{ profile().artistName }}</span>
+                   <span class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase">Artist</span>
+                   <span class="text-[11px] md:text-xs font-bold text-white truncate max-w-[120px]">{{ profile().artistName }}</span>
                 </div>
                 <div class="flex justify-between border-b border-white/10 pb-3">
-                   <span class="text-[10px] font-black text-silver-dim uppercase">Genre</span>
-                   <span class="text-xs font-bold text-brand-primary">{{ profile().primaryGenre }}</span>
+                   <span class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase">Genre</span>
+                   <span class="text-[11px] md:text-xs font-bold text-brand-primary">{{ profile().primaryGenre }}</span>
                 </div>
-                <div class="flex flex-col gap-2 pt-4">
-                  <span class="text-[10px] font-black text-silver-dim uppercase">Active Goals</span>
+                <div class="flex flex-col gap-3 pt-4">
+                  <span class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase">Active Goals</span>
                   <div class="flex flex-wrap gap-2">
                     @for (goal of profile().careerGoals; track goal) {
                       <span class="px-2 py-1 rounded bg-brand-primary/10 border border-brand-primary/20 text-[8px] font-black text-brand-primary uppercase">{{ goal }}</span>
                     }
                   </div>
                 </div>
-                <button class="w-full mt-4 btn-elegant btn-elegant-primary text-[10px] font-black uppercase">
+                <button class="w-full mt-4 btn-elegant btn-elegant-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3">
                    Generate Public Link
                 </button>
              </div>
           </div>
 
-          <div class="bg-black/60 rounded-3xl p-8 border border-brand-accent/20">
-             <h3 class="digital-readout text-[10px] font-black text-brand-accent uppercase tracking-[0.3em] mb-6">Neural Sync Status</h3>
+          <div class="bg-black/60 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-brand-accent/20">
+             <h3 class="digital-readout text-[11px] font-black text-brand-accent uppercase tracking-[0.3em] mb-6">Neural Sync Status</h3>
              <div class="space-y-6">
                 <div class="flex flex-col gap-2">
                    <div class="flex justify-between text-[8px] font-black uppercase">
@@ -151,15 +153,15 @@
        </div>
     </div>
 
-    <!-- OTHER TABS (Placeholders for Aesthetic consistency) -->
-    <div *ngSwitchDefault class="flex items-center justify-center py-24">
-       <div class="text-center max-w-sm">
-          <div class="w-16 h-16 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6">
+    <!-- OTHER TABS -->
+    <div *ngSwitchDefault class="flex items-center justify-center py-16 md:py-24 px-6 text-center">
+       <div class="max-w-sm">
+          <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6">
              <i class="fas fa-microchip text-2xl animate-pulse-subtle"></i>
           </div>
-          <h2 class="text-xl font-bold text-white uppercase tracking-widest mb-4">{{ activeHubTab() | uppercase }} MODULE</h2>
-          <p class="text-xs text-silver-dim leading-relaxed">System integration for the {{ activeHubTab() }} expansion is 98% complete. Strategic assets are ready for deployment.</p>
-          <button (click)="activeHubTab.set('overview')" class="mt-8 btn-elegant btn-elegant-primary w-full text-[10px] font-black uppercase">Return to Overview</button>
+          <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest mb-4">{{ activeHubTab() | uppercase }} MODULE</h2>
+          <p class="text-[11px] md:text-xs text-silver-dim leading-relaxed">System integration for the {{ activeHubTab() }} expansion is 98% complete. Strategic assets are ready for deployment.</p>
+          <button (click)="activeHubTab.set('overview')" class="mt-8 btn-elegant btn-elegant-primary w-full text-[10px] font-black uppercase tracking-widest py-3">Return to Overview</button>
        </div>
     </div>
   </div>
