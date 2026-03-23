@@ -12,37 +12,94 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.2);
+  background: rgba(236, 91, 19, 0.4);
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.4);
+  background: rgba(236, 91, 19, 0.6);
 }
 
-.custom-scrollbar-hide::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
-.key.black-key {
-  height: 6px;
-  margin: 1px 0;
-  border-radius: 0 4px 4px 0;
-}
-
-.grid-cell {
-    box-sizing: border-box;
-}
-
 .midi-note {
-    transition: box-shadow 0.2s;
+  box-shadow: 0 0 15px rgba(236, 91, 19, 0.1);
+  transition: box-shadow 0.2s, transform 0.1s;
 }
 
 .midi-note:hover {
-    box-shadow: 0 0 25px rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 25px rgba(236, 91, 19, 0.4);
+  z-index: 50;
 }
 
-.velocity-bar {
-    cursor: pointer;
-    min-width: 1px;
+.selected-note {
+  box-shadow: 0 0 30px rgba(52, 211, 153, 0.5);
+  border-color: rgba(255, 255, 255, 0.6);
+  z-index: 51;
+}
+
+/* Scanline animation */
+.scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    rgba(0, 0, 0, 0.05) 51%,
+    transparent 51%
+  );
+  background-size: 100% 4px;
+  z-index: 100;
+  pointer-events: none;
+  animation: scanline 10s linear infinite;
+}
+
+@keyframes scanline {
+  from { background-position: 0 0; }
+  to { background-position: 0 100%; }
+}
+
+.grid-background {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 32px;
+}
+
+/* HUD Glitch Effect */
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+
+.glitch-text:hover {
+  animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+}
+
+/* Custom transitions */
+.animate-in {
+  animation: animate-in 0.4s ease-out forwards;
+}
+
+@keyframes animate-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in-from-bottom {
+  animation: slide-in 0.3s ease-out;
+}
+
+@keyframes slide-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
