@@ -1,27 +1,24 @@
-import { Injectable } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
+import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from './auth.service';
 
-@Injectable({ providedIn: 'root' })
-export class AuthGuardService {
-  constructor(private auth: AuthService, private router: Router) {}
-  canActivate(): boolean {
-    if (this.auth.isAuthenticated()) {
-      return true;
-    }
-    this.router.navigate(['/login']);
+export const authGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (!authService.isAuthenticated()) {
+    router.navigate(['/login']);
     return false;
   }
-}
 
-// Functional guard for standalone route config
-export const authGuard: CanActivateFn = () => {
-  const auth = inject(AuthService);
-  const router = inject(Router);
-  if (auth.isAuthenticated()) {
-    return true;
+  const requiredPermission = route.data['permission'] as string;
+  if (requiredPermission) {
+    const user = authService.currentUser();
+    if (!user || !user.permissions.includes(requiredPermission) && !user.permissions.includes('ALL_ACCESS')) {
+      router.navigate(['/hub']);
+      return false;
+    }
   }
-  router.navigate(['/login']);
-  return false;
+
+  return true;
 };

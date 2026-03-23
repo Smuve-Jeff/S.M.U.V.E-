@@ -2,16 +2,20 @@ import { LoggingService } from './logging.service';
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { UserProfile, initialProfile } from './user-profile.service';
 import { APP_SECURITY_CONFIG } from '../app.security';
+import { SecurityService } from './security.service';
 
 export interface AuthCredentials {
   email: string;
   password: string;
+  twoFactorCode?: string;
 }
 
 export interface AuthUser {
   id: string;
   email: string;
   artistName: string;
+  role: 'Admin' | 'Manager' | 'Collaborator' | 'Engineer' | 'Viewer';
+  permissions: string[];
   createdAt: Date;
   lastLogin: Date;
   profileCompleteness: number;
@@ -22,6 +26,7 @@ export interface AuthUser {
 })
 export class AuthService {
   private logger = inject(LoggingService);
+  private securityService = inject(SecurityService);
   private _isAuthenticated = signal(false);
   private _currentUser = signal<AuthUser | null>(null);
   private _userProfile = signal<UserProfile | null>(null);
@@ -154,6 +159,8 @@ export class AuthService {
         id: this.generateUserId(),
         email: credentials.email,
         artistName: artistName,
+        role: 'Admin',
+        permissions: ['ALL_ACCESS'],
         createdAt: new Date(),
         lastLogin: new Date(),
         profileCompleteness: 0,
@@ -177,6 +184,8 @@ export class AuthService {
       this._isAuthenticated.set(true);
       this.saveSession(newUser, newProfile);
 
+      await this.securityService.logEvent('ACCOUNT_CREATED', 'New artist account registered.');
+
       return {
         success: true,
         message: 'Welcome to S.M.U.V.E 4.2 Your journey to greatness begins now.',
@@ -191,7 +200,7 @@ export class AuthService {
 
   async login(
     credentials: AuthCredentials
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{ success: boolean; message: string; requires2FA?: boolean }> {
     try {
       await new Promise((resolve) => setTimeout(resolve, 800));
 
@@ -214,17 +223,35 @@ export class AuthService {
       const { user, passwordHash } = JSON.parse(userData);
 
       if (this.hashPassword(credentials.password) !== passwordHash) {
+        await this.securityService.logEvent('LOGIN_FAILURE', `Failed login attempt for ${credentials.email}`);
         return {
           success: false,
           message: 'Incorrect password. Access denied.',
         };
       }
 
-      user.lastLogin = new Date();
-
+      // Check for 2FA in profile
       const encryptedProfile = localStorage.getItem('smuve_user_profile');
       const profileData = encryptedProfile ? this.decrypt(encryptedProfile) : null;
       const profile = profileData ? JSON.parse(profileData) : initialProfile;
+
+      if (profile.settings.security?.twoFactorEnabled && !credentials.twoFactorCode) {
+         return {
+           success: false,
+           message: 'Two-Factor Authentication required.',
+           requires2FA: true
+         };
+      }
+
+      if (profile.settings.security?.twoFactorEnabled && credentials.twoFactorCode !== '123456') { // Mock check
+          await this.securityService.logEvent('2FA_FAILURE', 'Invalid 2FA code entered.');
+          return {
+            success: false,
+            message: 'Invalid 2FA code. Access denied.',
+          };
+      }
+
+      user.lastLogin = new Date();
 
       this._currentUser.set(user);
       this._userProfile.set(profile);
@@ -235,6 +262,10 @@ export class AuthService {
         `smuve_user_${credentials.email}`,
         this.encrypt(JSON.stringify({ user, passwordHash }))
       );
+
+      const sessionId = this.generateSecureId('sess');
+      await this.securityService.registerCurrentSession(sessionId, 'Current Device', 'Unknown');
+      await this.securityService.logEvent('LOGIN_SUCCESS', `Artist ${user.artistName} logged in successfully.`);
 
       return {
         success: true,
@@ -249,6 +280,7 @@ export class AuthService {
   }
 
   logout(): void {
+    this.securityService.logEvent('LOGOUT', 'User logged out.');
     this._currentUser.set(null);
     this._userProfile.set(null);
     this._isAuthenticated.set(false);
@@ -276,7 +308,7 @@ export class AuthService {
   }
 
   private generateUserId(): string {
-    return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    return this.generateSecureId('user_' + Date.now());
   }
 
   private hashPassword(password: string): string {
@@ -292,5 +324,10 @@ export class AuthService {
         }
     }
     return Math.abs(hash).toString(36) + (hash >>> 0).toString(16);
+  }
+  private generateSecureId(prefix: string): string {
+    const array = new Uint32Array(2);
+    crypto.getRandomValues(array);
+    return prefix + '_' + array[0].toString(36) + array[1].toString(36);
   }
 }

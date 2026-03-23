@@ -237,7 +237,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     this.selectedNoteIds().forEach(id => {
       const n = track.notes.find(x => x.id === id);
       if (n) {
-        this.musicManager.addNote(track.id, { ...n, id: Math.random().toString(36).substr(2, 9), step: n.step + 16 });
+        this.musicManager.addNote(track.id, n.midi, n.step + 16, n.length, n.velocity);
       }
     });
   }
