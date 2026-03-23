@@ -33,6 +33,7 @@ interface DeckChannel {
   providedIn: 'root'
 })
 export class AudioEngineService {
+  public outputMode = signal<"speakers" | "headphones">("speakers");
   private logger = inject(LoggingService);
   private stemSeparationService = inject(StemSeparationService);
   public ctx: AudioContext;
@@ -86,6 +87,7 @@ export class AudioEngineService {
     this.compressor.connect(this.saturationNode);
     this.saturationNode.connect(this.limiter);
     this.limiter.connect(this.masterAnalyser);
+    // Output Bus logic moved to setOutputMode behavior if needed
     this.masterAnalyser.connect(this.ctx.destination);
 
     // FX Chain
@@ -112,6 +114,7 @@ export class AudioEngineService {
   get limiterNode() { return this.limiter; }
   getAnalyser() { return this.masterAnalyser; }
 
+  setOutputMode(mode: "speakers" | "headphones") { this.outputMode.set(mode); }
   resume() { if (this.ctx.state === 'suspended') this.ctx.resume(); }
 
   private setupSaturation(amount: number) {
