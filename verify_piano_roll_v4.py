@@ -22,7 +22,7 @@ async def run():
 
     async with async_playwright() as p:
         browser = await p.chromium.launch()
-        page = await browser.new_row_page() if hasattr(browser, 'new_row_page') else await browser.new_page()
+        page = await browser.new_page()
 
         # Navigate to Studio (Piano Roll is usually here)
         await page.goto("http://localhost:4200/piano-roll")
