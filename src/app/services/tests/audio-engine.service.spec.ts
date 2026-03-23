@@ -19,6 +19,8 @@ describe('AudioEngineService', () => {
       attack: { value: 0, setTargetAtTime: jest.fn() },
       release: { value: 0, setTargetAtTime: jest.fn() },
       knee: { value: 0 },
+      curve: null,
+      oversample: 'none',
       connect: jest.fn().mockImplementation(() => createMockNode()),
       disconnect: jest.fn(),
       start: jest.fn(),
@@ -37,6 +39,7 @@ describe('AudioEngineService', () => {
       createAnalyser: jest.fn().mockImplementation(createMockNode),
       createConvolver: jest.fn().mockImplementation(createMockNode),
       createStereoPanner: jest.fn().mockImplementation(createMockNode),
+      createWaveShaper: jest.fn().mockImplementation(createMockNode),
       createBuffer: jest.fn().mockReturnValue({
         getChannelData: jest.fn().mockReturnValue(new Float32Array(100)),
         numberOfChannels: 2,

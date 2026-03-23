@@ -29,7 +29,9 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     { name: 'C Major', notes: [0, 2, 4, 5, 7, 9, 11] },
     { name: 'C Minor', notes: [0, 2, 3, 5, 7, 8, 10] },
     { name: 'G Major', notes: [7, 9, 11, 0, 2, 4, 6] },
-    { name: 'A Minor', notes: [9, 11, 0, 2, 4, 5, 7] }
+    { name: 'A Minor', notes: [9, 11, 0, 2, 4, 5, 7] },
+    { name: 'D Phrygian', notes: [2, 3, 5, 7, 9, 10, 0] },
+    { name: 'E Lydian', notes: [4, 6, 8, 9, 11, 1, 3] }
   ];
 
   selectedScale = signal(this.scales[0]);
@@ -39,7 +41,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   rowHeight = 24;
   cellWidth = 32;
   numOctaves = 4;
-  numMeasures = 4;
+  numMeasures = 8;
   stepsPerMeasure = 16;
 
   cells = Array.from({ length: this.numMeasures * this.stepsPerMeasure }, (_, i) => i);
@@ -110,6 +112,11 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     const track = this.selectedTrack();
     if (!track) return;
 
+    if (this.editMode() === 'chord') {
+        this.addChordAt(track.id, midi, step);
+        return;
+    }
+
     const existingNote = track.notes.find(n => n.step === step && n.midi === midi);
     if (existingNote) {
       this.musicManager.deleteNoteById(track.id, existingNote.id);
@@ -121,6 +128,19 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
         velocity: 0.8
       });
     }
+  }
+
+  private addChordAt(trackId: number, rootMidi: number, step: number) {
+      const isMajor = this.selectedScale().name.includes('Major');
+      const chordOffsets = isMajor ? [0, 4, 7] : [0, 3, 7]; // Basic triad
+      chordOffsets.forEach(offset => {
+          this.musicManager.addNoteToTrack(trackId, {
+              midi: rootMidi + offset,
+              step,
+              length: 4,
+              velocity: 0.7
+          });
+      });
   }
 
   onNoteMouseDown(event: MouseEvent, note: TrackNote) {
@@ -143,7 +163,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
 
     this.isAiGenerating.set(true);
     try {
-      const prompt = `Generate a professional ${this.selectedScale().name} ${track.name} pattern. Return JSON: { notes: [{midi, step, length, velocity}] }`;
+      const prompt = `Generate a professional ${this.selectedScale().name} ${track.name} pattern that sounds like a top-tier industry production. Provide high-voltage energy. Return JSON: { notes: [{midi, step, length, velocity}] }`;
       const response = await this.aiService.generateAiResponse(prompt);
 
       try {

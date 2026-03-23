@@ -1,8 +1,9 @@
 import { LoggingService } from '../../services/logging.service';
-import { Component, Input, OnInit , inject} from '@angular/core';
+import { Component, Input, OnInit , inject, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Clip } from '../instrument.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
 
 @Component({
   selector: 'app-synthesizer',
@@ -13,15 +14,22 @@ import { Clip } from '../instrument.service';
 })
 export class SynthesizerComponent implements OnInit {
   private logger = inject(LoggingService);
+  private audioEngine = inject(AudioEngineService);
   @Input() clip!: Clip;
 
   // Default synthesizer parameters
-  synthParams = {
-    oscillator: 'sine',
+  synthParams: any = {
+    oscillator: 'sawtooth' as OscillatorType,
+    subOsc: true,
+    subType: 'sine' as OscillatorType,
+    subGain: 0.3,
     attack: 0.01,
     decay: 0.2,
     sustain: 0.5,
-    release: 1.0
+    release: 0.8,
+    cutoff: 2000,
+    q: 1,
+    distortion: 0.1
   };
 
   constructor() { }
@@ -34,9 +42,13 @@ export class SynthesizerComponent implements OnInit {
 
   updateSynthParam(param: string, value: any) {
     this.synthParams[param] = value;
-    // Here you would typically update the audio node in real-time
     this.logger.info(`Updated ${param}: ${value}`);
-    // This is where you would also save the changes to the clip
-    this.clip.synthParams = this.synthParams;
+    if (this.clip) {
+        this.clip.synthParams = { ...this.synthParams };
+    }
+
+    if (param === 'distortion') {
+        this.audioEngine.setSaturation(value);
+    }
   }
 }

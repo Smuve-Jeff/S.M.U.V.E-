@@ -27,14 +27,14 @@ export class DrumMachineComponent implements AfterViewInit {
   private readonly logger = inject(LoggingService);
 
   pads = signal<DrumPad[]>([
-    { id: 'p1', name: 'KICK', type: 'kick', color: '#ec5b13', active: false, params: { pitch: 150, decay: 0.5, gain: 1.0 } },
-    { id: 'p2', name: 'SNARE', type: 'snare', color: '#a855f7', active: false, params: { frequency: 250, decay: 0.2, gain: 0.8 } },
-    { id: 'p3', name: 'HI-HAT (C)', type: 'hihat', color: '#10b981', active: false, params: { frequency: 10000, decay: 0.1, gain: 0.5 } },
-    { id: 'p4', name: 'BASS', type: 'bass', color: '#d946ef', active: false, params: { frequency: 55, decay: 0.3, gain: 0.9 } },
-    { id: 'p5', name: 'CLAP', type: 'snare', color: '#ec5b13', active: false, params: { frequency: 1200, decay: 0.15, gain: 0.7 } },
-    { id: 'p6', name: 'TOM', type: 'kick', color: '#a855f7', active: false, params: { pitch: 100, decay: 0.4, gain: 0.8 } },
-    { id: 'p7', name: 'RIM', type: 'hihat', color: '#10b981', active: false, params: { frequency: 5000, decay: 0.05, gain: 0.6 } },
-    { id: 'p8', name: 'CRASH', type: 'hihat', color: '#d946ef', active: false, params: { frequency: 8000, decay: 1.5, gain: 0.4 } },
+    { id: 'p1', name: 'KICK', type: 'kick', color: '#ec5b13', active: false, params: { pitch: 150, decay: 0.5, gain: 1.0, punch: 0.5 } },
+    { id: 'p2', name: 'SNARE', type: 'snare', color: '#a855f7', active: false, params: { frequency: 250, decay: 0.2, gain: 0.8, snap: 0.6 } },
+    { id: 'p3', name: 'HI-HAT (C)', type: 'hihat', color: '#10b981', active: false, params: { frequency: 10000, decay: 0.1, gain: 0.5, crispness: 0.8 } },
+    { id: 'p4', name: 'BASS', type: 'bass', color: '#d946ef', active: false, params: { frequency: 55, decay: 0.3, gain: 0.9, sub: 0.7 } },
+    { id: 'p5', name: 'CLAP', type: 'snare', color: '#ec5b13', active: false, params: { frequency: 1200, decay: 0.15, gain: 0.7, width: 0.5 } },
+    { id: 'p6', name: 'TOM', type: 'kick', color: '#a855f7', active: false, params: { pitch: 100, decay: 0.4, gain: 0.8, thump: 0.4 } },
+    { id: 'p7', name: 'RIM', type: 'hihat', color: '#10b981', active: false, params: { frequency: 5000, decay: 0.05, gain: 0.6, click: 0.9 } },
+    { id: 'p8', name: 'CRASH', type: 'hihat', color: '#d946ef', active: false, params: { frequency: 8000, decay: 1.5, gain: 0.4, shimmer: 0.6 } },
   ]);
 
   selectedPad = signal<DrumPad | null>(this.pads()[0]);
@@ -69,6 +69,20 @@ export class DrumMachineComponent implements AfterViewInit {
       gain.gain.exponentialRampToValueAtTime(0.01, startTime + p.decay);
       osc.start(startTime);
       osc.stop(startTime + p.decay);
+
+      // Punch component (Transient)
+      if (p.punch > 0) {
+          const punchOsc = ctx.createOscillator();
+          const punchGain = ctx.createGain();
+          punchOsc.connect(punchGain);
+          punchGain.connect(dest);
+          punchOsc.frequency.setValueAtTime(400, startTime);
+          punchOsc.frequency.exponentialRampToValueAtTime(100, startTime + 0.02);
+          punchGain.gain.setValueAtTime(p.punch * p.gain, startTime);
+          punchGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.02);
+          punchOsc.start(startTime);
+          punchOsc.stop(startTime + 0.02);
+      }
     } else if (pad.type === 'snare') {
       // Noise component
       const bufferSize = ctx.sampleRate * p.decay;
@@ -80,7 +94,7 @@ export class DrumMachineComponent implements AfterViewInit {
       noise.buffer = buffer;
       const noiseFilter = ctx.createBiquadFilter();
       noiseFilter.type = 'highpass';
-      noiseFilter.frequency.value = 1000;
+      noiseFilter.frequency.value = 1000 + (p.snap * 2000);
       const noiseGain = ctx.createGain();
       noise.connect(noiseFilter);
       noiseFilter.connect(noiseGain);
@@ -110,6 +124,7 @@ export class DrumMachineComponent implements AfterViewInit {
       const bandpass = ctx.createBiquadFilter();
       bandpass.type = 'bandpass';
       bandpass.frequency.value = p.frequency;
+      bandpass.Q.value = 5 + (p.crispness * 10);
       const highpass = ctx.createBiquadFilter();
       highpass.type = 'highpass';
       highpass.frequency.value = 7000;
@@ -127,7 +142,7 @@ export class DrumMachineComponent implements AfterViewInit {
       osc.type = 'sawtooth';
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(800, startTime);
+      filter.frequency.setValueAtTime(800 * (1 + p.sub), startTime);
       filter.frequency.exponentialRampToValueAtTime(100, startTime + p.decay);
       osc.connect(filter).connect(gain).connect(dest);
       osc.frequency.setValueAtTime(p.frequency, startTime);
@@ -156,7 +171,10 @@ export class DrumMachineComponent implements AfterViewInit {
 
       for (let i = 0; i < bufferLength; i++) {
         const barHeight = dataArray[i] / 2;
-        ctx.fillStyle = `rgb(236, 91, 19)`; // S.M.U.V.E Orange
+        const r = 236;
+        const g = 91 + (dataArray[i] / 2);
+        const b = 19 + (dataArray[i] / 4);
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
         ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
         x += barWidth + 1;
       }

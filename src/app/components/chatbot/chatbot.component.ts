@@ -18,8 +18,9 @@ import { SpeechSynthesisService } from '../../services/speech-synthesis.service'
 import { LoggingService } from '../../services/logging.service';
 
 interface ChatMessage {
-  role: 'user' | 'model';
-  content: string;
+  role: 'user' | 'assistant';
+  text: string;
+  timestamp: number;
 }
 
 @Component({
@@ -30,31 +31,27 @@ interface ChatMessage {
   styleUrls: ['./chatbot.component.css'],
 })
 export class ChatbotComponent implements OnInit, AfterViewChecked {
-  private aiService = inject(AiService);
-  private userProfileService = inject(UserProfileService);
+  public aiService = inject(AiService);
+  public userProfileService = inject(UserProfileService);
   private userContext = inject(UserContextService);
   private audioEngineService = inject(AudioEngineService);
   private speechSynthesisService = inject(SpeechSynthesisService);
   private logger = inject(LoggingService);
 
-  @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
+  @ViewChild('messageViewport') private scrollContainer!: ElementRef;
 
   close = output<void>();
-  onClose(): void {
-    this.speechSynthesisService.cancel();
-    this.close.emit();
-  }
   messages = signal<ChatMessage[]>([]);
-  userInput = signal('');
-  isLoading = signal(false);
-  mainViewMode = this.userContext.mainViewMode;
+  userInput = '';
+  isTyping = signal(false);
+  profile = this.userProfileService.profile;
 
   ngOnInit() {
     this.messages.set([
       {
-        role: 'model',
-        content:
-          'S.M.U.V.E 4.0 Online. Strategic intelligence protocols initialized. How shall we dominate the industry today?',
+        role: 'assistant',
+        text: 'S.M.U.V.E 4.0 Online. Strategic intelligence protocols initialized. How shall we dominate the industry today?',
+        timestamp: Date.now()
       },
     ]);
   }
@@ -64,22 +61,33 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   }
 
   async sendMessage() {
-    const text = this.userInput().trim();
-    if (!text || this.isLoading()) return;
+    const text = this.userInput.trim();
+    if (!text || this.isTyping()) return;
 
-    this.messages.update((m) => [...m, { role: 'user', content: text }]);
-    this.userInput.set('');
-    this.isLoading.set(true);
+    this.messages.update((m) => [...m, { role: 'user', text, timestamp: Date.now() }]);
+    this.userInput = '';
+    this.isTyping.set(true);
 
     try {
-      const response = await this.aiService.generateAiResponse(this.buildContextualPrompt(text));
+      const response = await this.aiService.processCommand(text);
       const content = response || 'Protocol error. Re-initializing neural link.';
-      this.messages.update((m) => [...m, { role: 'model', content }]);
+      this.messages.update((m) => [...m, { role: 'assistant', text: content, timestamp: Date.now() }]);
       this.speechSynthesisService.speak(content);
     } catch (e) {
       this.handleError(e, 'message generation');
     }
-    this.isLoading.set(false);
+    this.isTyping.set(false);
+  }
+
+  toggleKbWriteAccess() {
+      const p = this.profile();
+      this.userProfileService.updateProfile({
+          ...p,
+          settings: {
+              ...p.settings,
+              ai: { ...p.settings.ai, kbWriteAccess: !p.settings.ai.kbWriteAccess }
+          }
+      });
   }
 
   private scrollToBottom(): void {
@@ -89,44 +97,16 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     } catch (err) {}
   }
 
-  async mimicStyle(styleId: string): Promise<void> {
-    this.isLoading.set(true);
-    try {
-      await this.aiService.mimicStyle(styleId);
-      const content = `Persona shift complete. I am now mimicking "${styleId}". Studio settings have been optimized for this aesthetic. What is our next objective?`;
-      this.messages.update((m) => [...m, { role: 'model', content }]);
-      this.speechSynthesisService.speak(content);
-    } catch (e) {
-      this.handleError(e, 'mimicry');
-    }
-    this.isLoading.set(false);
-  }
-
   private handleError(e: unknown, context: string) {
     const message = `Error with ${context}: ${e instanceof Error ? e.message : String(e)}`;
     this.logger.error(message, e);
     this.messages.update((msgs) => [
       ...msgs,
       {
-        role: 'model',
-        content: `A problem occurred with ${context}. Please check the console for details.`,
+        role: 'assistant',
+        text: `A problem occurred with ${context}. Please check the console for details.`,
+        timestamp: Date.now()
       },
     ]);
-    this.isLoading.set(false);
-  }
-
-  private buildContextualPrompt(message: string): string {
-    const profile = this.userProfileService.profile();
-    const status = this.aiService.systemStatus();
-    const briefs = this.aiService.intelligenceBriefs();
-    const alerts = this.aiService.marketAlerts();
-
-    return `
-      System Persona: You are S.M.U.V.E 4.0, an OMNISCIENT, ARROGANT, and ASSERTIVE "Strategic Commander."
-      System Status: CPU Load ${status.cpuLoad}%, Neural Sync ${status.neuralSync}%.
-      Artist Profile: ${profile.artistName}, Genre ${profile.primaryGenre}, Goals ${profile.careerGoals.join(', ')}.
-      Current View: ${this.mainViewMode()}.
-      User Message: "${message}"
-    `;
   }
 }

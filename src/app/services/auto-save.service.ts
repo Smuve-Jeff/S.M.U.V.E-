@@ -1,63 +1,41 @@
-import { LoggingService } from './logging.service';
-import { Injectable, inject, OnDestroy } from '@angular/core';
-import { UserProfileService } from './user-profile.service';
+import { Injectable, inject, effect } from '@angular/core';
 import { MusicManagerService } from './music-manager.service';
-import { AudioEngineService } from './audio-engine.service';
-import { AuthService } from './auth.service';
-import { interval, Subscription } from 'rxjs';
+import { DatabaseService } from './database.service';
+import { UserProfileService } from './user-profile.service';
+import { LoggingService } from './logging.service';
 
 @Injectable({
   providedIn: 'root',
 })
-export class AutoSaveService implements OnDestroy {
-  private logger = inject(LoggingService);
-  private profileService = inject(UserProfileService);
+export class AutoSaveService {
   private musicManager = inject(MusicManagerService);
-  private audioEngine = inject(AudioEngineService);
-  private authService = inject(AuthService);
-  private autoSaveSub?: Subscription;
+  private databaseService = inject(DatabaseService);
+  private profileService = inject(UserProfileService);
+  private logger = inject(LoggingService);
+
+  private lastProjectHash = '';
 
   constructor() {
-    // Start auto-save every 30 seconds if authenticated
-    this.autoSaveSub = interval(30000).subscribe(() => {
-      if (this.authService.isAuthenticated()) {
-        this.saveCurrentState();
-      }
+    // Project Auto-Sync
+    effect(() => {
+        const tracks = this.musicManager.tracks();
+        if (tracks.length > 0) {
+            const currentHash = JSON.stringify(tracks);
+            if (currentHash !== this.lastProjectHash) {
+                this.lastProjectHash = currentHash;
+                this.syncProject();
+            }
+        }
     });
   }
 
-  private async saveCurrentState() {
-    this.logger.info('Auto-saving application state...');
-    try {
+  private async syncProject() {
+      const tracks = this.musicManager.tracks();
       const profile = this.profileService.profile();
+      const projectId = profile.knowledgeBase.currentRelease?.id || 'project_v4_auto';
+      const projectTitle = profile.knowledgeBase.currentRelease?.title || 'Auto-Sync Session';
 
-      // Store current DAW state in the profile's knowledge base or a dedicated projects field
-      // For now, we'll extend the profile with a simple 'lastSession' data
-      const sessionData = {
-        tracks: this.musicManager.tracks(),
-        tempo: this.audioEngine.tempo(),
-        loopStart: this.audioEngine.loopStart(),
-        loopEnd: this.audioEngine.loopEnd(),
-        timestamp: Date.now()
-      };
-
-      // We persist this session data in the knowledge base under a special key
-      const updatedProfile = {
-        ...profile,
-        knowledgeBase: {
-          ...profile.knowledgeBase,
-          lastDawSession: sessionData
-        }
-      };
-
-      await this.profileService.updateProfile(updatedProfile);
-      this.logger.info('Auto-save successful');
-    } catch (error) {
-      this.logger.error('Auto-save failed:', error);
-    }
-  }
-
-  ngOnDestroy() {
-    this.autoSaveSub?.unsubscribe();
+      this.logger.info(`AutoSyncService: Initializing cloud sync for ${projectTitle}`);
+      await this.databaseService.saveProject(projectId, projectTitle, { tracks });
   }
 }

@@ -7,7 +7,6 @@ import { LoggingService } from '../logging.service';
 import { UserContextService } from '../user-context.service';
 import { AnalyticsService } from '../analytics.service';
 import { UserProfileService } from '../user-profile.service';
-import { ReputationService } from '../reputation.service';
 
 describe('AiService Granular Audit', () => {
   let service: AiService;
@@ -19,7 +18,6 @@ describe('AiService Granular Audit', () => {
         { provide: UserContextService, useValue: { mainViewMode: signal('hub') } },
         { provide: AnalyticsService, useValue: { overallGrowth: signal(10) } },
         { provide: UserProfileService, useValue: { profile: signal({ careerGoals: [] }) } },
-        { provide: ReputationService, useValue: { state: signal({ level: 5 }) } }
       ]
     });
     service = TestBed.inject(AiService);

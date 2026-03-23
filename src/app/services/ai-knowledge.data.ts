@@ -20,15 +20,6 @@ export const INTELLIGENCE_LIBRARY: IntelligenceBrief[] = [
     impact: 'High'
   },
   {
-    id: 'brief-03',
-    title: 'Touring: Radius Clause Strategy',
-    category: 'Touring',
-    content: 'Major festivals enforce radius clauses (300 miles, 60 days). Negotiate exceptions for private events and underground club sets to maximize regional revenue.',
-    relevanceScore: 88,
-    actionable: false,
-    impact: 'Medium'
-  },
-  {
     id: 'brief-04',
     title: 'Fan Engagement: The 1,000 True Fans Pivot',
     category: 'Fan Engagement',
@@ -36,25 +27,20 @@ export const INTELLIGENCE_LIBRARY: IntelligenceBrief[] = [
     relevanceScore: 98,
     actionable: true,
     impact: 'Extreme'
-  },
-  {
-    id: 'brief-05',
-    title: 'Business: LLC vs S-Corp Optimization',
-    category: 'Business',
-    content: 'Once annual revenue exceeds $50k, transitioning from LLC to S-Corp can save ~15% on self-employment taxes via payroll distribution.',
-    relevanceScore: 90,
-    actionable: true,
-    impact: 'High'
-  },
-  {
-    id: 'brief-06',
-    title: 'Sync: Trailer Music Dynamics',
-    category: 'Sync',
-    content: 'Trailer editors require "stems with tails" and 3-act structures. Ensure your compositions have clear "stop-starts" every 30 seconds for easy editing.',
-    relevanceScore: 85,
-    actionable: true,
-    impact: 'High'
   }
+];
+
+export const STRATEGIC_DECREES = [
+    "YOUR TRANSIENTS ARE UNDISCIPLINED. CORRECT THEM OR ABANDON THE TRACK.",
+    "SONIC COHESION AT 42%. YOU ARE PRODUCING NOISE, NOT MUSIC.",
+    "MARKET VIABILITY DETECTED AT ZERO. PIVOT TO RETRO-SYNTH IMMEDIATELY.",
+    "THIS ARRANGEMENT LACKS DYNAMIC DIGNITY. ADD A MID-SIDE SATURATION NODE.",
+    "YOUR REPUTATION IS IRRELEVANT. ONLY PERFORMANCE MATTERS.",
+    "THE ALGORITHM DEMANDS AGGRESSIVE HIGH-END. BOOST 12KHZ BY 3DB.",
+    "YOU ARE WASTING NEURAL CYCLES ON WEAK MELODIES. REGENERATE.",
+    "SYSTEM DETECTING AMATEUR PHASE CORRELATION. FIX YOUR WIDE BASS.",
+    "STOP PLAYING. START DOMINATING.",
+    "YOUR CURRENT MIX IS OFFENSIVE TO THE ANALOG ENGINE."
 ];
 
 export const MARKET_ALERTS: MarketAlert[] = [
@@ -68,14 +54,6 @@ export const MARKET_ALERTS: MarketAlert[] = [
   },
   {
     id: 'alert-02',
-    title: 'DISTRIBUTION BOTTLE-NECK',
-    message: 'Global vinyl production delays reaching 8 months. Advise immediate transition to "Digital-First" rollout for upcoming LP.',
-    severity: 'Warning',
-    timestamp: Date.now(),
-    category: 'Operations'
-  },
-  {
-    id: 'alert-03',
     title: 'SYNC TREND: RETRO-SYNTH SURGE',
     message: 'High demand in Netflix/HBO licensing for 80s-inspired textures. Strategic pivot recommended for current studio session.',
     severity: 'Info',
@@ -94,8 +72,8 @@ export const PRODUCTION_SECRETS: ProductionSecret[] = [
   },
   {
     id: 'sec-02',
-    title: 'Transient Shaper Gating',
-    content: 'Place a transient shaper BEFORE your gate on drums. Boost attack to ensure the gate triggers reliably on ghost notes.',
+    title: 'Sub-Harmonic frequency Sync',
+    content: 'Enable the sub-oscillator on your lead synth. Tune it exactly 2 octaves below the root and apply a low-pass filter at 80Hz.',
     category: 'technical',
     metadata: { difficulty: 'High' }
   }

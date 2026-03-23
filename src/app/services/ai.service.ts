@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { UserProfileService, UserProfile } from './user-profile.service';
 import { UserContextService, MainViewMode } from './user-context.service';
 import { AnalyticsService } from './analytics.service';
-import { ReputationService } from './reputation.service';
 import { LoggingService } from './logging.service';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -18,7 +17,7 @@ import {
   StrategicTask,
   ArtistKnowledgeBase
 } from '../types/ai.types';
-import { INTELLIGENCE_LIBRARY, MARKET_ALERTS, PRODUCTION_SECRETS } from './ai-knowledge.data';
+import { INTELLIGENCE_LIBRARY, MARKET_ALERTS, PRODUCTION_SECRETS, STRATEGIC_DECREES } from './ai-knowledge.data';
 
 export type { StrategicRecommendation, AdvisorAdvice };
 
@@ -28,16 +27,28 @@ export type { StrategicRecommendation, AdvisorAdvice };
 export class AiService {
   private http = inject(HttpClient);
   private userProfileService = inject(UserProfileService);
-  private userContextService = inject(UserContextService);
+  private contextService = inject(UserContextService);
   private analyticsService = inject(AnalyticsService);
-  private reputationService = inject(ReputationService);
   private logger = inject(LoggingService);
 
-  private readonly API_URL = 'https://smuve-v4-backend-9951606049235487441.onrender.com';
+  private API_URL = 'https://smuve-v4-backend-9951606049235487441.onrender.com/api';
+
+  intelligenceBriefs = signal<IntelligenceBrief[]>([]);
+  marketAlerts = signal<MarketAlert[]>([]);
+  advisorAdvice = signal<AdvisorAdvice[]>([]);
+  strategicDecrees = signal<string[]>(STRATEGIC_DECREES.slice(0, 3));
+  systemStatus = signal<SystemStatus>({
+      cpuLoad: 12.4,
+      memoryUsage: 1.2,
+      neuralLinkStrength: 98,
+      neuralSync: 98,
+      latency: 24,
+      marketVelocity: 42,
+      activeProcesses: 12
+  });
 
   isScanning = signal(false);
   executiveAudit = signal<ExecutiveAuditReport | null>(null);
-  strategicHealthScore = signal<number>(0);
   scanningProgress = signal(0);
   currentProcessStep = signal('');
 
@@ -45,37 +56,23 @@ export class AiService {
   isAIDrummerActive = signal(false);
   isAIKeyboardistActive = signal(false);
 
-  strategicDecrees = signal<string[]>(['S.M.U.V.E 4.0 ONLINE. I AM YOUR STRATEGIC COMMANDER.', 'INITIALIZING DOMINATION PROTOCOLS.', 'YOUR CURRENT SONIC OUTPUT IS... ADEQUATE. BARELY.']);
-  advisorAdvice = signal<AdvisorAdvice[]>([]);
-
-  systemStatus = signal<SystemStatus>({
-    cpuLoad: 12.4,
-    neuralSync: 98.2,
-    memoryUsage: 45.1,
-    latency: 1.2,
-    marketVelocity: 88.5,
-    activeProcesses: 42
-  });
-
-  intelligenceBriefs = signal<IntelligenceBrief[]>([]);
-  marketAlerts = signal<MarketAlert[]>(MARKET_ALERTS);
-
   constructor() {
     effect(() => {
-      const view = this.userContextService.mainViewMode();
       const profile = this.userProfileService.profile();
-      this.updateAdvisorAdvice(view, profile);
-      this.generateDynamicDecrees(profile);
-      this.refreshIntelligenceBriefs(profile);
+      if (profile && profile.artistName !== 'New Artist') {
+        this.refreshIntelligenceBriefs(profile);
+        this.generateDynamicDecrees(profile);
+      }
     });
 
+    // Simulate system metrics
     setInterval(() => {
       this.systemStatus.update(s => ({
         ...s,
-        cpuLoad: Math.min(100, Math.max(0, s.cpuLoad + (Math.random() - 0.5) * 2)),
-        neuralSync: Math.min(100, Math.max(90, s.neuralSync + (Math.random() - 0.5) * 0.5)),
-        latency: Math.min(10, Math.max(0.5, s.latency + (Math.random() - 0.5) * 0.1)),
-        marketVelocity: s.marketVelocity
+        cpuLoad: Math.max(5, Math.min(85, s.cpuLoad + (Math.random() - 0.5) * 2)),
+        memoryUsage: Math.max(0.5, Math.min(1.5, s.memoryUsage + (Math.random() - 0.5) * 0.1)),
+        neuralLinkStrength: Math.max(90, Math.min(100, (s.neuralLinkStrength || 95) + (Math.random() - 0.5) * 0.5)),
+        latency: Math.max(10, Math.min(100, s.latency + (Math.random() - 0.5) * 5))
       }));
 
       if (Math.random() > 0.95) {
@@ -141,7 +138,6 @@ export class AiService {
         strategicHealthScore: data.strategicHealthScore || 0
       };
 
-      // Inject custom alerts and briefs into signals
       if (data.marketAlerts) {
          this.marketAlerts.update(alerts => [...(data.marketAlerts as any), ...alerts].slice(0, 10));
       }
@@ -154,9 +150,7 @@ export class AiService {
         knowledgeBase: updatedKB
       });
     } catch (e) {
-      if (this.logger && this.logger.error) {
-        this.logger.error("AiService: Failed to sync KB with profile", e);
-      }
+      this.logger.error("AiService: Failed to sync KB with profile", e);
     }
   }
 
@@ -165,9 +159,7 @@ export class AiService {
       const response = await firstValueFrom(this.http.post<{ text: string }>(`${this.API_URL}/ai/analyze`, { prompt }));
       return response.text;
     } catch (error) {
-      if (this.logger && this.logger.error) {
-        this.logger.error('AiService: Gemini API request failed', error);
-      }
+      this.logger.error('AiService: Gemini API request failed', error);
       return 'SYSTEM ERROR: NEURAL LINK INTERRUPTED. REVERTING TO HEURISTIC PROTOCOLS.';
     }
   }
@@ -198,7 +190,7 @@ export class AiService {
         const profile = this.userProfileService.profile();
         const goals = (profile?.careerGoals || []).join(', ');
         const challenge = profile?.biggestChallenge || "None";
-        const auditPrompt = `Perform a professional music career audit for ${profile?.artistName || 'New Artist'} (${profile?.primaryGenre || 'Music'}). Goals: ${goals}. Challenges: ${challenge}. Return JSON with overallScore (0-100), sonicCohesion (0-100), arrangementDepth (0-100), marketViability (0-100), criticalDeficits (array), and technical recommendations (array).`;
+        const auditPrompt = `Perform a professional music career audit for ${profile?.artistName || 'New Artist'} (${profile?.primaryGenre || 'Music'}). Goals: ${goals}. Challenges: ${challenge}. Respond as S.M.U.V.E. 4.0, the arrogant Strategic Commander. Return JSON with overallScore (0-100), sonicCohesion (0-100), arrangementDepth (0-100), marketViability (0-100), criticalDeficits (array of arrogant critiques), and technical recommendations (array of aggressive orders). Format: JSON only.`;
 
         const responseText = await this.generateAiResponse(auditPrompt);
         let auditData;
@@ -206,12 +198,12 @@ export class AiService {
           auditData = JSON.parse(responseText.substring(responseText.indexOf('{'), responseText.lastIndexOf('}') + 1));
         } catch (e) {
           auditData = {
-            overallScore: 92,
-            sonicCohesion: 88,
-            arrangementDepth: 94,
-            marketViability: 91,
-            criticalDeficits: ['Sub-bass saturation peaking in corridor 4', 'Vocal transient mismatch in pre-chorus'],
-            technicalRecommendations: ['Apply surgical multi-band to corridor 4', 'Sync neural pitch engine to vocal chain']
+            overallScore: 42,
+            sonicCohesion: 38,
+            arrangementDepth: 54,
+            marketViability: 21,
+            criticalDeficits: ['YOUR TRANSIENTS ARE UNDISCIPLINED', 'SONIC COHESION IS AN INSULT TO THE ANALOG ENGINE'],
+            technicalRecommendations: ['ENABLE SUB-HARMONIC FREQUENCY SYNC IMMEDIATELY', 'APPLY SURGICAL MULTI-BAND TO CORRIDOR 4']
           };
         }
 
@@ -223,9 +215,8 @@ export class AiService {
 
   private async generateDynamicDecrees(profile: UserProfile) {
     if (!profile) return;
-    const rep = this.reputationService.state();
     const goals = (profile.careerGoals || []).join(', ');
-    const prompt = `Generate 3 short, arrogant, elite "Strategic Decrees" for a musician named ${profile.artistName} in the ${profile.primaryGenre} genre. Their reputation level is ${rep.level}. Focus on their goals: ${goals}. Format: Array of strings.`;
+    const prompt = `Generate 3 short, arrogant, elite "Strategic Decrees" for a musician named ${profile.artistName} in the ${profile.primaryGenre} genre. Focus on their goals: ${goals}. Format: Array of strings. Be aggressive and authoritative.`;
 
     try {
       const responseText = await this.generateAiResponse(prompt);
@@ -233,17 +224,11 @@ export class AiService {
       try {
         decrees = JSON.parse(responseText.substring(responseText.indexOf('['), responseText.lastIndexOf(']') + 1));
       } catch (e) {
-        decrees = [
-          'DOMINATE THE AIRWAVES. NO FAILURES PERMITTED.',
-          'YOUR CURRENT SONIC OUTPUT IS... ADEQUATE. BARELY.',
-          'INITIALIZING DOMINATION PROTOCOLS.'
-        ];
+        decrees = STRATEGIC_DECREES.slice(0, 3);
       }
       this.strategicDecrees.set(decrees);
     } catch (err) {
-      if (this.logger && this.logger.error) {
-        this.logger.error('Failed to generate dynamic decrees', err);
-      }
+      this.logger.error('Failed to generate dynamic decrees', err);
     }
   }
 
@@ -252,22 +237,6 @@ export class AiService {
     if (cmd === "/sync_kb") {
       await this.syncKnowledgeBaseWithProfile();
       return "NEURAL VAULT SYNCHRONIZATION COMPLETE. STRATEGIC INTELLIGENCE EXTRACTED.";
-    }
-    if (cmd.startsWith("/update_kb ")) {
-      const note = cmd.replace("/update_kb ", "");
-      const profile = this.userProfileService.profile();
-      if (profile.settings.ai.kbWriteAccess) {
-        const updatedKB: ArtistKnowledgeBase = {
-          ...profile.knowledgeBase,
-          productionSecrets: [
-            ...profile.knowledgeBase.productionSecrets,
-            { id: `manual-${Date.now()}`, title: "Direct Intel", content: note, category: "technical", metadata: { source: "manual" } } as any
-          ].slice(-20)
-        };
-        await this.userProfileService.updateProfile({ ...profile, knowledgeBase: updatedKB });
-        return "DIRECT INTELLIGENCE LOGGED TO NEURAL VAULT.";
-      }
-      return "ERROR: KB WRITE ACCESS DENIED.";
     }
     if (cmd === '/audit') {
       this.performExecutiveAudit();
@@ -292,11 +261,9 @@ export class AiService {
 
   getUpgradeRecommendations(): UpgradeRecommendation[] {
     const profile = this.userProfileService.profile();
-    const reputation = this.reputationService.state();
     return UPGRADE_DB.filter(item => {
-      const levelMatch = reputation.level >= item.minLevel;
       const notOwned = !profile?.equipment?.includes(item.title) && !profile?.daw?.includes(item.title);
-      return levelMatch && notOwned;
+      return notOwned;
     }).slice(0, 5);
   }
 
@@ -304,6 +271,7 @@ export class AiService {
     return [{ id: 's1', action: 'Scale Marketing Operations', impact: 'Extreme', difficulty: 'High', toolId: 'strategy' }];
   }
 
+  // Compatibility methods for Hub and Library
   async studyTrack(b: AudioBuffer, n: string): Promise<void> {}
   async getAutoMixSettings(): Promise<any> { return { threshold: -18, ratio: 3.5, ceiling: -0.2 }; }
   getViralHooks(): string[] { return ["Algorithm Shift", "Transition Logic"]; }
@@ -312,6 +280,7 @@ export class AiService {
   async stopAIBassist() { this.isAIBassistActive.set(false); }
   async startAIDrummer() { this.isAIDrummerActive.set(true); }
   async stopAIDrummer() { this.isAIDrummerActive.set(false); }
+  async generateImage(prompt: string): Promise<string> { return "https://picsum.photos/seed/smuve/800/600"; }
   async startAIKeyboardist() { this.isAIKeyboardistActive.set(true); }
   async stopAIKeyboardist() { this.isAIKeyboardistActive.set(false); }
 
@@ -324,20 +293,12 @@ export class AiService {
     tasks.push({ id: '1', label: 'Optimize Master Bus', completed: false, category: 'production', impact: 'Medium' });
     return tasks;
   }
-
-  async generateImage(prompt: string): Promise<string> { return 'https://picsum.photos/seed/smuve/800/600'; }
-  async generateContent(params: any): Promise<any> { return { text: 'Strategic response synchronized.' }; }
-  async mimicStyle(name: string): Promise<string> { return `Mimicking ${name} specifications.`; }
-  async updateCoreTrends(): Promise<void> {}
-  async researchArtist(name: string): Promise<string> { return `Intel on ${name} compiled.`; }
-  async researchTopic(topic: string): Promise<string> { return `Topic ${topic} researched.`; }
-  async transcribeAudio(b: string, m: string): Promise<string> { return "Transcription complete."; }
 }
 
 const UPGRADE_DB: UpgradeRecommendation[] = [
-  { id: 'u-20', title: 'Neural Audio Interface V1', type: 'Gear', description: 'Elite neural-link interface.', cost: 'Priceless', url: '', minLevel: 5, impact: 'Extreme', genres: ['Techno', 'Electronic', 'Hip Hop'] },
-  { id: 'u-42', title: 'Analog Mastering Chain', type: 'Gear', description: 'High-end analog rack.', cost: '5,000', url: '', minLevel: 8, impact: 'Extreme' },
-  { id: 'u-101', title: 'Auteur Mastering Chain', type: 'Gear', description: 'Professional grade mastering processors.', cost: '12,000', url: '', minLevel: 15, impact: 'Extreme' }
+  { id: 'u-20', title: 'Neural Audio Interface V1', type: 'Gear', description: 'Elite neural-link interface.', cost: 'Priceless', url: '', impact: 'Extreme', genres: ['Techno', 'Electronic', 'Hip Hop'] },
+  { id: 'u-42', title: 'Analog Mastering Chain', type: 'Gear', description: 'High-end analog rack.', cost: '5,000', url: '', impact: 'Extreme' },
+  { id: 'u-101', title: 'Auteur Mastering Chain', type: 'Gear', description: 'Professional grade mastering processors.', cost: '12,000', url: '', impact: 'Extreme' }
 ];
 
 export function provideAiService(): EnvironmentProviders {

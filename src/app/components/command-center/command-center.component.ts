@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { UIService } from '../../services/ui.service';
 import { AiService, StrategicRecommendation } from '../../services/ai.service';
 import { UserProfileService } from '../../services/user-profile.service';
-import { ReputationService } from '../../services/reputation.service';
 import { UpgradeRecommendation } from '../../types/ai.types';
 
 interface TerminalLog {
@@ -23,7 +22,6 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   public aiService = inject(AiService);
   public profileService = inject(UserProfileService);
   public uiService = inject(UIService);
-  public reputationService = inject(ReputationService);
 
   recommendations = computed(() => this.aiService.getUpgradeRecommendations());
   strategicRecs = signal<StrategicRecommendation[]>([]);

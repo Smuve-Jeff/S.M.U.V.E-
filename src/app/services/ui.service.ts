@@ -1,35 +1,17 @@
-import { Injectable, signal, inject, effect } from '@angular/core';
+import { Injectable, signal, inject, effect, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { MainViewMode, AppTheme } from './user-context.service';
 import { UserProfileService } from './user-profile.service';
 
 const THEMES: AppTheme[] = [
   {
-    name: 'Modern Professional',
-    primary: 'emerald',
-    accent: 'violet',
-    neutral: 'slate',
-    purple: 'purple',
-    red: 'red',
-    blue: 'blue',
-  },
-  {
-    name: 'pro-gradepunk',
-    primary: 'cyan',
-    accent: 'pink',
-    neutral: 'gray',
-    purple: 'purple',
-    red: 'red',
-    blue: 'blue',
-  },
-  {
-    name: 'Vintage',
-    primary: 'orange',
-    accent: 'teal',
-    neutral: 'stone',
-    purple: 'purple',
-    red: 'red',
-    blue: 'blue',
+    name: 'Titanium-Noir',
+    primary: '#ec5b13',
+    accent: '#10b981',
+    neutral: '#050505',
+    purple: '#a855f7',
+    red: '#ef4444',
+    blue: '#3b82f6',
   },
   {
     name: 'v4 Extreme',
@@ -67,31 +49,20 @@ export class UIService {
   performanceMode = signal(false);
   showScanlines = signal(true);
 
-  private viewConfigs: ViewConfig[] = [
-    { mode: 'hub', label: 'Hub Dashboard', icon: 'fa-th-large', category: 'CORE' },
-    { mode: 'studio', label: 'Studio DAW', icon: 'fa-music', category: 'CORE' },
-    { mode: 'vocal-suite', label: 'Vocal Suite', icon: 'fa-microphone-lines', category: 'CORE' },
-    { mode: 'profile', label: 'Artist Profile', icon: 'fa-user-circle', category: 'CORE' },
-    { mode: 'strategy', label: 'Strategy Hub', icon: 'fa-chess', category: 'STRATEGY' },
-    { mode: 'career', label: 'Career Hub', icon: 'fa-briefcase', category: 'STRATEGY' },
-    { mode: 'analytics', label: 'Analytics', icon: 'fa-chart-line', category: 'STRATEGY' },
-    { mode: 'image-video-lab', label: 'Cinema Engine', icon: 'fa-video', category: 'CREATIVE' },
-    { mode: 'practice', label: 'Practice Space', icon: 'fa-microphone-alt', category: 'CORE' },
-    { mode: 'projects', label: 'Projects', icon: 'fa-project-diagram', category: 'STRATEGY' },
-    { mode: 'release-pipeline', label: 'Release Pipeline', icon: 'fa-rocket', category: 'STRATEGY' },
-    { mode: 'lyric-editor', label: 'Lyric Editor', icon: 'fa-pen-fancy', category: 'CREATIVE' },
-    { mode: 'remix-arena', label: 'Remix Arena', icon: 'fa-compact-disc', category: 'COMMUNITY' },
-    { mode: 'tha-spot', label: 'Tha Spot', icon: 'fa-bolt', category: 'COMMUNITY' },
-    { mode: 'networking', label: 'Networking', icon: 'fa-users', category: 'COMMUNITY' },
-    { mode: 'player', label: 'Global Player', icon: 'fa-play-circle', category: 'UTILITY' },
-    { mode: 'dj', label: 'DJ Booth', icon: 'fa-headphones', category: 'CORE' },
-    { mode: 'piano-roll', label: 'Piano Roll', icon: 'fa-keyboard', category: 'UTILITY' },
-    { mode: 'image-editor', label: 'Image Editor', icon: 'fa-image', category: 'CREATIVE' },
-    { mode: 'video-editor', label: 'Video Editor', icon: 'fa-film', category: 'CREATIVE' },
-    { mode: 'settings', label: 'Settings', icon: 'fa-cog', category: 'UTILITY' },
-  ];
+  // Derived signals for UI state
+  isLowPower = computed(() => this.performanceMode());
+  isUplinkActive = computed(() => this.isOnline());
 
-  private currentViewIndex = 0;
+  private viewConfigs: ViewConfig[] = [
+    { mode: 'hub', label: 'HUB', icon: 'grid_view', category: 'CORE' },
+    { mode: 'studio', label: 'STUDIO', icon: 'token', category: 'CORE' },
+    { mode: 'vocal-suite', label: 'VOCALS', icon: 'neurology', category: 'CORE' },
+    { mode: 'strategy', label: 'INTEL', icon: 'analytics', category: 'STRATEGY' },
+    { mode: 'career', label: 'CAREER', icon: 'business_center', category: 'STRATEGY' },
+    { mode: 'profile', label: 'IDENTITY', icon: 'person', category: 'CORE' },
+    { mode: 'tha-spot', label: 'SPOT', icon: 'bolt', category: 'COMMUNITY' },
+    { mode: 'settings', label: 'CONFIG', icon: 'settings', category: 'UTILITY' },
+  ];
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -101,10 +72,13 @@ export class UIService {
 
       // Sync from Profile Settings
       effect(() => {
-        const settings = this.profileService.profile().settings.ui;
-        this.performanceMode.set(settings.performanceMode);
-        this.showScanlines.set(settings.showScanlines);
-        this.setTheme(settings.theme);
+        const profile = this.profileService.profile();
+        if (profile && profile.settings) {
+            const settings = profile.settings.ui;
+            this.performanceMode.set(settings.performanceMode);
+            this.showScanlines.set(settings.showScanlines);
+            this.setTheme(settings.theme);
+        }
       });
 
       effect(() => {
@@ -148,20 +122,8 @@ export class UIService {
     this.router.navigate([route]);
   }
 
-  toggleMainViewMode() {
-    const modes = this.getViewModes();
-    this.currentViewIndex = (this.currentViewIndex + 1) % modes.length;
-    const nextMode = modes[this.currentViewIndex];
-    this.navigateToView(nextMode);
-  }
-
   toggleChatbot() {
     this.isChatbotOpen.update((isOpen) => !isOpen);
-  }
-
-  randomizeTheme() {
-    const newTheme = THEMES[Math.floor(Math.random() * THEMES.length)];
-    this.activeTheme.set(newTheme);
   }
 
   setTheme(themeName: string) {

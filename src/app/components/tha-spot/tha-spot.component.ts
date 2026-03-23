@@ -5,7 +5,6 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { GameService } from '../../hub/game.service';
 import { Game } from '../../hub/game';
-import { ReputationService } from '../../services/reputation.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
 import { Subject } from 'rxjs';
@@ -30,7 +29,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
 
   private gameService = inject(GameService);
-  private reputationService = inject(ReputationService);
   private profileService = inject(UserProfileService);
   private aiService = inject(AiService);
   private sanitizer = inject(DomSanitizer);
@@ -196,12 +194,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       this.gameData.update(d => ({ ...d, ...payload }));
 
       if (payload.score > 1000) {
-        this.reputationService.addExperience(5);
         if (payload.score % 5000 < 500) {
            this.chatMessages.update(msgs => [...msgs, {
              id: Date.now().toString(),
              user: 'S.M.U.V.E',
-             text: `EXECUTIVE PERFORMANCE DETECTED: ${payload.score} POINTS. REPUTATION SYNCED.`,
+             text: `EXECUTIVE PERFORMANCE DETECTED: ${payload.score} POINTS. STATUS SYNCED.`,
              timestamp: new Date(),
              isSystem: true
            }]);

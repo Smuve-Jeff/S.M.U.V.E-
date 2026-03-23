@@ -12,6 +12,8 @@ import { MainViewMode } from './services/user-context.service';
 import { AiService } from './services/ai.service';
 import { PlayerService } from './services/player.service';
 import { SettingsIntegrationService } from './services/settings-integration.service';
+import { DatabaseService } from './services/database.service';
+import { AutoSaveService } from './services/auto-save.service';
 
 @Component({
   selector: 'app-root',
@@ -27,6 +29,8 @@ export class AppComponent {
   playerService = inject(PlayerService);
   notificationService = inject(NotificationService);
   settingsIntegration = inject(SettingsIntegrationService);
+  databaseService = inject(DatabaseService);
+  autoSaveService = inject(AutoSaveService);
   router = inject(Router);
 
   isSidebarOpen = signal(true);

@@ -36,7 +36,7 @@ export interface UpgradeRecommendation {
   description: string;
   cost: string;
   url: string;
-  minLevel: number;
+  minLevel?: number;
   impact: 'Extreme' | 'High' | 'Medium' | 'Low';
   genres?: string[];
 }
@@ -122,6 +122,7 @@ export interface SystemStatus {
   latency: number;
   marketVelocity: number;
   activeProcesses: number;
+  neuralLinkStrength?: number;
 }
 
 export interface StrategicRecommendation {

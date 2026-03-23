@@ -1,7 +1,6 @@
 import { Component, inject, signal, computed, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { InstrumentService } from '../instrument.service';
-import { ReputationService } from '../../services/reputation.service';
 import { ExportService } from '../../services/export.service';
 import { GainReductionMeterComponent } from './gain-reduction-meter.component';
 import { NotificationService } from '../../services/notification.service';
@@ -15,7 +14,6 @@ import { NotificationService } from '../../services/notification.service';
 })
 export class MasterControlsComponent {
   private readonly instrumentService = inject(InstrumentService);
-  private readonly reputationService = inject(ReputationService);
   private readonly exportService = inject(ExportService);
   private readonly notificationService = inject(NotificationService);
   private readonly elementRef = inject(ElementRef);
@@ -104,7 +102,6 @@ export class MasterControlsComponent {
   finishTrack() {
     this.isFinishing.set(true);
     setTimeout(() => {
-      this.reputationService.addXp(200);
       this.isFinishing.set(false);
       this.notificationService.show('Track Exported & XP Awarded!', 'success');
     }, 3000);

@@ -4,7 +4,6 @@ import { TestBed, fakeAsync } from '@angular/core/testing';
 import { AiService, API_KEY_TOKEN } from '../ai.service';
 import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
-import { ReputationService } from '../reputation.service';
 import { StemSeparationService } from '../stem-separation.service';
 import { AudioEngineService } from '../audio-engine.service';
 import { signal } from '@angular/core';
@@ -13,7 +12,6 @@ describe('AiService', () => {
   let service: AiService;
   let userProfileService: any;
   let userContextService: any;
-  let reputationService: any;
   let analyticsService: any;
 
   beforeEach(() => {
@@ -32,7 +30,6 @@ describe('AiService', () => {
       updateProfile: jest.fn()
     };
     userContextService = { mainViewMode: signal('hub'), setMainViewMode: jest.fn(), navigateToView: jest.fn() };
-    reputationService = { state: signal({ level: 1 }) };
     analyticsService = {
         overallGrowth: signal(2),
         engagement: signal({ trend: -1 }),
@@ -47,7 +44,6 @@ describe('AiService', () => {
         { provide: API_KEY_TOKEN, useValue: 'AIzaSyCVdPtw0C_5rgiHDRi5mQYL4GXZMrdiDj4' },
         { provide: UserProfileService, useValue: userProfileService },
         { provide: UserContextService, useValue: userContextService },
-        { provide: ReputationService, useValue: reputationService },
         { provide: StemSeparationService, useValue: {} },
         { provide: AudioEngineService, useValue: { resume: jest.fn() } }
       ]

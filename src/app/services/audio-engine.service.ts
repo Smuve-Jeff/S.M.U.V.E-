@@ -38,7 +38,8 @@ export class AudioEngineService {
   public ctx: AudioContext;
   public masterGain: GainNode;
   public compressor: DynamicsCompressorNode;
-  private limiter: DynamicsCompressorNode;
+  public saturationNode: WaveShaperNode;
+  public limiter: DynamicsCompressorNode;
   private reverbConvolver: ConvolverNode;
   public reverbWet: GainNode;
   private delayNode: DelayNode;
@@ -72,6 +73,7 @@ export class AudioEngineService {
     this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     this.masterGain = this.ctx.createGain();
     this.compressor = this.ctx.createDynamicsCompressor();
+    this.saturationNode = this.ctx.createWaveShaper();
     this.limiter = this.ctx.createDynamicsCompressor();
     this.reverbConvolver = this.ctx.createConvolver();
     this.reverbWet = this.ctx.createGain();
@@ -79,9 +81,10 @@ export class AudioEngineService {
     this.delayWet = this.ctx.createGain();
     this.masterAnalyser = this.ctx.createAnalyser();
 
-    // Signal chain: ... -> masterGain -> compressor -> limiter -> masterAnalyser -> destination
+    // Signal chain: ... -> masterGain -> compressor -> saturation -> limiter -> masterAnalyser -> destination
     this.masterGain.connect(this.compressor);
-    this.compressor.connect(this.limiter);
+    this.compressor.connect(this.saturationNode);
+    this.saturationNode.connect(this.limiter);
     this.limiter.connect(this.masterAnalyser);
     this.masterAnalyser.connect(this.ctx.destination);
 
@@ -98,6 +101,7 @@ export class AudioEngineService {
     this.limiter.threshold.value = -0.5;
     this.limiter.ratio.value = 20;
 
+    this.setupSaturation(0.2);
     this.initDeck('A');
     this.initDeck('B');
     this.loadDefaultImpulse();
@@ -110,7 +114,24 @@ export class AudioEngineService {
 
   resume() { if (this.ctx.state === 'suspended') this.ctx.resume(); }
 
-    private initDeck(id: DeckId) {
+  private setupSaturation(amount: number) {
+    const k = amount * 100;
+    const n_samples = 44100;
+    const curve = new Float32Array(n_samples);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < n_samples; ++i) {
+      const x = (i * 2) / n_samples - 1;
+      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+    }
+    this.saturationNode.curve = curve;
+    this.saturationNode.oversample = '4x';
+  }
+
+  public setSaturation(amount: number) {
+    this.setupSaturation(amount);
+  }
+
+  private initDeck(id: DeckId) {
     const deck: DeckChannel = {
       id,
       buffer: null,
@@ -150,9 +171,6 @@ export class AudioEngineService {
     deck.eqHigh.frequency.value = 4000;
 
     deck.analyser.fftSize = 1024;
-
-    deck.sendA.gain.value = 0;
-    deck.sendB.gain.value = 0;
 
     // Routing: Stems -> EQ -> Filter -> Pan -> Gain -> Analyser -> Master
     Object.values(deck.gains).forEach(g => g.connect(deck.eqLow));

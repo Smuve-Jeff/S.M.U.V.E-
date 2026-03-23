@@ -36,7 +36,7 @@ import { UserProfileService } from '../../services/user-profile.service';
             <span class="material-symbols-outlined mr-2">security</span> PRODUCTION SECRETS
           </h2>
           <div *ngIf="profile().knowledgeBase.productionSecrets.length === 0" class="text-slate-500 italic mb-4">
-            Proprietary secrets locked. Reputation level insufficient for high-level technical extraction.
+            Proprietary secrets locked. Access all proprietary secrets immediately.
           </div>
           <div class="space-y-3">
             @for (secret of profile().knowledgeBase.productionSecrets; track secret.id) {

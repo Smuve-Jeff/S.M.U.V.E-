@@ -5,7 +5,7 @@
     <div class="flex items-center gap-4">
       <span class="material-symbols-outlined text-4xl text-primary animate-pulse">grid_view</span>
       <div>
-        <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">NEURAL DRUM <span class="text-primary">SYNTH v1</span></h2>
+        <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">NEURAL DRUM <span class="text-primary">SYNTH v4 EXTREME</span></h2>
         <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Autonomous Sonic Extraction Module</p>
       </div>
     </div>
@@ -13,12 +13,12 @@
     <div class="flex gap-4 items-center">
       <div class="bg-black/60 px-6 py-2 rounded-xl border border-white/5 flex flex-col items-end">
         <span class="text-[7px] font-black text-slate-500 uppercase">Process Mode</span>
-        <span class="text-xs font-black text-primary uppercase">EXTREME v4</span>
+        <span class="text-xs font-black text-primary uppercase">TITANIUM-NOIR</span>
       </div>
       <div class="h-10 w-px bg-white/10"></div>
       <div class="flex flex-col items-end">
         <span class="text-[7px] font-black text-slate-500 uppercase">Neural Sync</span>
-        <span class="text-xs font-mono text-cyan-400 font-bold">98.2%</span>
+        <span class="text-xs font-mono text-cyan-400 font-bold">99.9%</span>
       </div>
     </div>
   </div>
@@ -60,7 +60,7 @@
 
       <!-- Visualizer -->
       <div class="relative h-32 bg-black/60 rounded-2xl border border-white/5 overflow-hidden">
-        <canvas #visualizer class="w-full h-full"></canvas>
+        <canvas #visualizer class="w-full h-full" width="600" height="128"></canvas>
         <div class="absolute top-2 left-4 text-[7px] font-black text-slate-600 uppercase tracking-widest">Real-time Spectral Waveform</div>
       </div>
     </div>
@@ -99,53 +99,75 @@
                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">DECAY</span>
                 <span class="text-xs font-mono text-cyan-400 font-bold">{{ pad.params.decay }}s</span>
               </div>
-              <input type="range" min="0.05" max="2" step="0.01" [(ngModel)]="pad.params.decay"
-                     class="w-full accent-cyan-400 h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+              <input type="range" min="0.01" max="2" step="0.01" [(ngModel)]="pad.params.decay"
+                     class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">OUTPUT GAIN</span>
+                <span class="text-xs font-mono text-emerald-400 font-bold">{{ (pad.params.gain * 100) | number:'1.0-0' }}%</span>
+              </div>
+              <input type="range" min="0" max="1.5" step="0.01" [(ngModel)]="pad.params.gain"
+                     class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
             </div>
           </div>
 
           <div class="flex flex-col gap-4">
-            <div class="flex flex-col gap-2">
-              <div class="flex justify-between items-center px-1">
-                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">GAIN / AMP</span>
-                <span class="text-xs font-mono text-magenta font-bold">{{ pad.params.gain }}</span>
-              </div>
-              <input type="range" min="0" max="1.5" step="0.01" [(ngModel)]="pad.params.gain"
-                     class="w-full accent-magenta h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
-            </div>
-
-            <div class="flex flex-col gap-2">
-              <div class="flex justify-between items-center px-1">
-                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">DRIVE</span>
-                <span class="text-xs font-mono text-orange font-bold">0.4</span>
-              </div>
-              <input type="range" min="0" max="1" step="0.01" value="0.4"
-                     class="w-full accent-orange h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
-            </div>
+              @if (pad.type === 'kick') {
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between items-center px-1">
+                      <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">PUNCH</span>
+                      <span class="text-xs font-mono text-primary font-bold">{{ (pad.params.punch * 100) | number:'1.0-0' }}</span>
+                    </div>
+                    <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.punch"
+                           class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+                </div>
+              }
+              @if (pad.type === 'snare') {
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between items-center px-1">
+                      <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">SNAP</span>
+                      <span class="text-xs font-mono text-primary font-bold">{{ (pad.params.snap * 100) | number:'1.0-0' }}</span>
+                    </div>
+                    <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.snap"
+                           class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+                </div>
+              }
+              @if (pad.type === 'hihat') {
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between items-center px-1">
+                      <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">CRISPNESS</span>
+                      <span class="text-xs font-mono text-primary font-bold">{{ (pad.params.crispness * 100) | number:'1.0-0' }}</span>
+                    </div>
+                    <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.crispness"
+                           class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+                </div>
+              }
+              @if (pad.type === 'bass') {
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between items-center px-1">
+                      <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">SUB WEIGHT</span>
+                      <span class="text-xs font-mono text-primary font-bold">{{ (pad.params.sub * 100) | number:'1.0-0' }}</span>
+                    </div>
+                    <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.sub"
+                           class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+                </div>
+              }
           </div>
         </div>
-
-        <div class="mt-4 bg-primary/5 border border-primary/20 p-6 rounded-2xl">
-          <h4 class="text-[10px] font-black text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
-            <span class="material-symbols-outlined text-sm">psychology</span> S.M.U.V.E. ANALYTIC OVERRIDE
-          </h4>
-          <p class="text-[10px] font-medium text-slate-400 leading-relaxed italic">
-            "Your transient response on this {{ pad.name.toLowerCase() }} is insufficient.
-            I've calculated the optimal phase alignment. Adjust decay to {{ (pad.params.decay * 0.8).toFixed(2) }}s
-            for maximum impact in high-velocity corridors."
-          </p>
-          <button (click)="pad.params.decay = (pad.params.decay * 0.8)"
-                  class="mt-4 px-4 py-2 bg-primary/20 hover:bg-primary/40 text-primary text-[9px] font-black uppercase tracking-widest rounded transition-all">
-            Accept Strategic Optimization
-          </button>
-        </div>
       }
+
+      <!-- AI Analysis HUD -->
+      <div class="mt-auto p-6 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col gap-3">
+        <div class="flex items-center gap-2">
+           <span class="material-symbols-outlined text-xs text-primary animate-pulse">analytics</span>
+           <span class="text-[8px] font-black text-primary uppercase tracking-widest">Neural_Acoustic_Audit</span>
+        </div>
+        <p class="text-[9px] text-slate-400 italic leading-tight">
+          "The transient integrity of this sample is borderline amateur. I've adjusted the lookahead on the master bus to compensate for your timing deficits."
+        </p>
+      </div>
     </div>
   </div>
 </div>
-
-<style>
-  .shadow-neon {
-    box-shadow: 0 0 20px var(--neon-color);
-  }
-</style>

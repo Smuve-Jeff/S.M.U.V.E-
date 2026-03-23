@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
 import { UserContextService } from '../../services/user-context.service';
-import { ReputationService } from '../../services/reputation.service';
 import { VideoEngineService, VideoClip } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
 
@@ -19,7 +18,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private logger = inject(LoggingService);
   private aiService = inject(AiService);
   private userContext = inject(UserContextService);
-  private reputationService = inject(ReputationService);
   public videoEngine = inject(VideoEngineService);
   private exportService = inject(ExportService);
 

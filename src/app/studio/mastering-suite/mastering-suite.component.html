@@ -1,255 +1,79 @@
-<div class="h-full flex flex-col bg-[#0d0a08] text-slate-100 overflow-hidden font-display animate-enter">
-  <!-- Top Navigation Bar (Integrated with Suite branding) -->
-  <header class="flex items-center justify-between border-b border-primary/20 bg-background-dark px-6 py-3 shrink-0">
-    <div class="flex items-center gap-4">
-      <div class="text-primary">
-        <span class="material-symbols-outlined text-4xl">settings_input_component</span>
-      </div>
-      <div>
-        <h2 class="text-lg font-bold leading-tight tracking-tight uppercase italic">STUDIO PRO <span class="text-primary font-black">v4 EXTREME</span></h2>
-        <p class="text-[10px] uppercase tracking-widest text-slate-500">Technical Mastering & Export Suite</p>
-      </div>
+<div class="mastering-suite-container p-6 bg-slate-950/90 backdrop-blur-3xl border border-white/5 rounded-3xl animate__animated animate__fadeIn">
+  <header class="flex justify-between items-center mb-10">
+    <div>
+      <h1 class="text-3xl font-black text-white italic tracking-tighter uppercase">Neural<span class="text-primary">Mastering</span></h1>
+      <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">Precision Bus Processor v4.0</p>
     </div>
-    <div class="flex items-center gap-6">
-       <div class="flex flex-col items-end mr-4">
-          <span class="text-[10px] text-slate-500 uppercase font-black tracking-widest">Engine Status</span>
-          <span class="text-[10px] font-bold text-green-500 flex items-center gap-1">
-             <span class="size-1.5 rounded-full bg-green-500 animate-pulse"></span> ONLINE
-          </span>
-       </div>
-       <button (click)="processMastering()" class="btn-elegant btn-elegant-primary h-10 px-8 text-[10px] font-black tracking-widest uppercase shadow-lg shadow-primary/20 ring-1 ring-primary/50">
-          PROCESS MASTER
-       </button>
+    <div class="flex gap-4">
+      <button (click)="processMastering()" class="px-6 py-2 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+        AUTO-PROCESS
+      </button>
     </div>
   </header>
 
-  <!-- Main Workspace -->
-  <main class="flex flex-1 overflow-hidden p-4 gap-4">
-    <!-- Left: Surgical Multi-band Compressor -->
-    <aside class="w-80 flex flex-col gap-4 bg-white/5 rounded-2xl border border-primary/10 p-4">
-      <div class="flex items-center justify-between mb-2">
-        <h3 class="text-xs font-black uppercase tracking-[0.2em] text-primary">Surgical Multi-Band</h3>
-        <span class="material-symbols-outlined text-sm text-slate-500">tune</span>
+  <div class="grid grid-cols-12 gap-8">
+    <!-- Visualizer Section -->
+    <div class="col-span-12 lg:col-span-7 space-y-6">
+      <div class="glass-card p-4 rounded-2xl border border-white/5 relative overflow-hidden h-64">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
+        <canvas #spectrogram class="w-full h-full rounded-xl" width="800" height="256"></canvas>
+        <div class="absolute top-4 left-4 text-[8px] font-black text-primary/40 uppercase tracking-widest">Spectral_History_Matrix</div>
       </div>
 
-      <div class="flex flex-col gap-3 flex-1 overflow-y-auto no-scrollbar pr-1">
+      <div class="grid grid-cols-5 gap-3">
         @for (band of bands(); track band.id) {
-           <div class="bg-slate-800/50 p-4 rounded-xl border border-white/5 shadow-inner group hover:border-primary/30 transition-all">
-              <div class="flex justify-between text-[10px] font-black mb-3">
-                 <span class="text-primary uppercase tracking-tighter">BAND {{ band.id }}: {{ band.name }}</span>
-                 <span class="text-slate-500 font-mono">{{ band.range }}</span>
-              </div>
-              <div class="flex items-center gap-4 mb-4">
-                 <div class="flex-1 h-1 bg-slate-700 rounded-full relative overflow-hidden">
-                    <div class="absolute left-0 top-0 h-full bg-primary" [style.width.%]="60 + (band.id * 5)"></div>
-                 </div>
-                 <span class="text-[10px] font-mono text-primary font-bold">{{ band.gain }}dB</span>
-              </div>
-              <div class="grid grid-cols-3 gap-3">
-                 <div class="flex flex-col items-center">
-                    <div class="size-8 rounded-full border border-primary/40 flex items-center justify-center mb-1 bg-black/40">
-                       <div class="w-0.5 h-3 bg-primary -rotate-45 origin-bottom"></div>
-                    </div>
-                    <span class="text-[8px] uppercase font-bold text-slate-500">Thresh</span>
-                 </div>
-                 <div class="flex flex-col items-center opacity-60">
-                    <div class="size-8 rounded-full border border-slate-600 flex items-center justify-center mb-1 bg-black/40">
-                       <div class="w-0.5 h-3 bg-slate-400 rotate-12 origin-bottom"></div>
-                    </div>
-                    <span class="text-[8px] uppercase font-bold text-slate-600">Ratio</span>
-                 </div>
-                 <div class="flex flex-col items-center opacity-60">
-                    <div class="size-8 rounded-full border border-slate-600 flex items-center justify-center mb-1 bg-black/40">
-                       <div class="w-0.5 h-3 bg-slate-400 rotate-90 origin-bottom"></div>
-                    </div>
-                    <span class="text-[8px] uppercase font-bold text-slate-600">Attack</span>
-                 </div>
-              </div>
-           </div>
+          <div class="p-3 bg-black/40 border border-white/5 rounded-2xl flex flex-col items-center text-center group hover:border-primary/30 transition-all">
+            <span class="text-[8px] font-black text-slate-500 mb-1">{{ band.range }}</span>
+            <span class="text-xs font-bold text-white mb-3">{{ band.name }}</span>
+            <div class="w-1.5 h-20 bg-white/5 rounded-full overflow-hidden relative">
+              <div class="absolute bottom-0 left-0 right-0 bg-primary group-hover:bg-accent-magenta transition-colors" [style.height.%]="((band.gain + 12) / 24) * 100"></div>
+            </div>
+            <span class="mt-3 text-[10px] font-mono font-bold" [class.text-primary]="band.gain > 0">{{ band.gain > 0 ? '+' : '' }}{{ band.gain }}dB</span>
+          </div>
         }
       </div>
-    </aside>
+    </div>
 
-    <!-- Center: 3D Spectral Waterfall Visualization -->
-    <section class="flex-1 flex flex-col gap-4">
-      <div class="flex-1 relative rounded-2xl overflow-hidden border border-primary/20 bg-black shadow-2xl titanium-texture">
-         <!-- Overlay Grid -->
-         <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: linear-gradient(rgba(236, 91, 19, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(236, 91, 19, 0.2) 1px, transparent 1px); background-size: 40px 40px;"></div>
-
-         <!-- Spectral Visualization SVG -->
-         <div class="absolute inset-0 flex flex-col items-center justify-center p-12">
-            <div class="w-full h-full relative">
-               <svg class="w-full h-full overflow-visible" viewBox="0 0 800 400">
-                  <defs>
-                     <linearGradient id="spectrumGrad" x1="0%" x2="100%" y1="0%" y2="0%">
-                        <stop offset="0%" stop-color="#ec5b13" />
-                        <stop offset="50%" stop-color="#a855f7" />
-                        <stop offset="100%" stop-color="#d946ef" />
-                     </linearGradient>
-                     <filter id="glow">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                     </filter>
-                  </defs>
-                  <!-- 3D Waterfall Paths -->
-                  @for (i of [1,2,3,4,5]; track i) {
-                     <path [attr.d]="'M0 ' + (380 - i*30) + ' Q 100 ' + (300 - i*20) + ' 200 ' + (350 - i*25) + ' T 400 ' + (310 - i*20) + ' T 600 ' + (340 - i*25) + ' T 800 ' + (310 - i*20)"
-                           fill="none" [attr.stroke]="'url(#spectrumGrad)'" [attr.stroke-width]="1 + i/2" [attr.opacity]="0.1 * i" />
-                  }
-                  <path d="M0 250 Q 150 100, 250 150 T 450 120 T 650 160 T 800 110"
-                        fill="none" stroke="url(#spectrumGrad)" stroke-width="3" filter="url(#glow)" />
-               </svg>
-               <div class="absolute bottom-4 left-4 text-primary font-mono text-[10px] font-black tracking-widest uppercase">Real-Time Spectral Distribution [3D]</div>
-               <div class="absolute bottom-4 right-4 flex gap-6 text-[9px] text-slate-500 font-mono font-black uppercase tracking-tighter">
-                  <span>Freq (Hz)</span>
-                  <span>Mag (dB)</span>
-                  <span>Time (ms)</span>
-               </div>
-            </div>
-         </div>
+    <!-- Meters Section -->
+    <div class="col-span-12 lg:col-span-5 space-y-6">
+      <div class="glass-card p-6 rounded-3xl border border-white/5 grid grid-cols-2 gap-6">
+        <div class="flex flex-col gap-1">
+          <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Integrated_LUFS</span>
+          <span class="text-3xl font-black text-white italic">{{ lufsIntegrated() }}</span>
+          <div class="w-full h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
+             <div class="h-full bg-primary" [style.width.%]="70"></div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">True_Peak_dBFS</span>
+          <span class="text-3xl font-black text-white italic">{{ truePeak() }}</span>
+          <div class="w-full h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
+             <div class="h-full bg-accent-magenta" [style.width.%]="90"></div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Loudness_Range</span>
+          <span class="text-3xl font-black text-white italic">{{ lra() }}</span>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Phase_Correlation</span>
+          <span class="text-3xl font-black text-white italic">{{ correlation() }}</span>
+        </div>
       </div>
 
-      <!-- Loudness History -->
-      <div class="h-40 bg-white/5 rounded-2xl border border-primary/10 p-6 flex flex-col">
-         <div class="flex items-center justify-between mb-4">
-            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Technical History (Loudness Trends)</h3>
-            <div class="flex gap-2">
-               <span class="size-1.5 rounded-full bg-primary shadow-[0_0_8px_#ec5b13]"></span>
-               <span class="size-1.5 rounded-full bg-slate-600"></span>
-            </div>
-         </div>
-         <div class="flex-grow flex items-end gap-[2px]">
-            @for (i of [40,55,70,65,80,75,90,85,95,88,60,45,50,65,75,80,70,60]; track $index) {
-               <div class="flex-1 bg-primary/20 hover:bg-primary transition-all rounded-t-sm" [style.height.%]="i"></div>
-            }
-         </div>
-         <div class="flex justify-between mt-3 text-[8px] font-mono text-slate-600 font-black uppercase tracking-widest">
-            <span>-10:00m</span>
-            <span>-05:00m</span>
-            <span>Now</span>
-         </div>
+      <div class="p-6 rounded-3xl bg-primary/5 border border-primary/20 flex flex-col gap-4">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-primary animate-pulse">shield</span>
+          <span class="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Safety_Intelligence</span>
+        </div>
+        <p class="text-xs text-slate-400 italic leading-relaxed">
+          "True peak clipping detected at 12kHz. Your transients are undisciplined. I have applied a soft-knee ceiling at -0.1dB to preserve what's left of your dynamic dignity."
+        </p>
+        <div class="flex gap-3">
+          <div class="px-3 py-1 bg-primary/20 rounded border border-primary/30 text-[9px] font-black text-primary uppercase">Limiter_Active</div>
+          <div class="px-3 py-1 bg-white/5 rounded border border-white/10 text-[9px] font-black text-slate-500 uppercase">Oversampling_4X</div>
+        </div>
       </div>
-    </section>
-
-    <!-- Right: Professional Loudness Suite -->
-    <aside class="w-72 flex flex-col gap-4">
-      <div class="flex-1 bg-white/5 rounded-2xl border border-primary/10 p-6 flex flex-col">
-         <h3 class="text-xs font-black uppercase tracking-[0.2em] text-primary mb-8 italic">Loudness Engine <span class="text-[8px] opacity-40 ml-1">v4.X_EXTREME</span></h3>
-
-         <div class="flex-grow flex gap-6">
-            <!-- LUFS Meter -->
-            <div class="flex flex-col items-center gap-3 flex-1">
-               <div class="flex-1 w-10 bg-black/60 rounded-lg relative overflow-hidden flex flex-col justify-end border border-white/5 shadow-inner">
-                  <div class="w-full h-[74%] vu-meter-gradient opacity-80"></div>
-                  <div class="absolute inset-0 flex flex-col justify-between py-4 pointer-events-none opacity-20">
-                     @for (mark of [0,-3,-6,-9,-12,-14,-18,-23,-36,-48]; track mark) {
-                        <div class="w-full border-t border-white flex justify-end pr-1 text-[6px] font-black">{{ mark }}</div>
-                     }
-                  </div>
-               </div>
-               <span class="text-[10px] font-black tracking-widest text-slate-400">LUFS</span>
-            </div>
-            <!-- Peak Meter -->
-            <div class="flex flex-col items-center gap-3 flex-1">
-               <div class="flex-1 w-10 bg-black/60 rounded-lg relative overflow-hidden flex flex-col justify-end border border-white/5 shadow-inner">
-                  <div class="w-full h-[88%] vu-meter-gradient opacity-80"></div>
-                  <div class="absolute top-[10%] left-0 w-full h-px bg-red-500 shadow-[0_0_10px_red]"></div>
-               </div>
-               <span class="text-[10px] font-black tracking-widest text-slate-400">PEAK</span>
-            </div>
-         </div>
-
-         <div class="mt-10 space-y-4">
-            <div class="flex justify-between items-center bg-black/40 p-4 rounded-xl border border-white/5">
-               <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Integrated</span>
-               <span class="text-sm font-mono font-black text-primary">{{ lufsIntegrated() }}</span>
-            </div>
-            <div class="flex justify-between items-center bg-black/40 p-4 rounded-xl border border-white/5">
-               <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">True Peak</span>
-               <span class="text-sm font-mono font-black text-red-500">{{ truePeak() }}</span>
-            </div>
-            <div class="flex justify-between items-center bg-black/40 p-4 rounded-xl border border-white/5">
-               <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Range (LRA)</span>
-               <span class="text-sm font-mono font-black text-slate-200">{{ lra() }} LU</span>
-            </div>
-         </div>
-      </div>
-
-      <div class="h-32 bg-primary rounded-2xl p-6 flex flex-col justify-between text-black shadow-2xl shadow-primary/30 relative overflow-hidden">
-         <div class="absolute -right-4 -top-4 text-white/10">
-            <span class="material-symbols-outlined !text-6xl">graphic_eq</span>
-         </div>
-         <span class="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">System Phase Correlation</span>
-         <div class="flex items-center gap-3 z-10">
-            <span class="text-[10px] font-black">-1</span>
-            <div class="flex-1 h-2 bg-black/20 rounded-full relative overflow-hidden border border-white/10">
-               <div class="absolute inset-y-0 left-[60%] right-[10%] bg-white rounded-full shadow-[0_0_10px_white]"></div>
-            </div>
-            <span class="text-[10px] font-black">+1</span>
-         </div>
-         <span class="text-center font-mono text-[11px] font-black tracking-widest uppercase z-10">Sync: {{ correlation() }}</span>
-      </div>
-    </aside>
-  </main>
-
-  <!-- Bottom: Export & Metadata Console -->
-  <footer class="h-56 border-t border-primary/20 bg-background-dark/80 backdrop-blur-xl p-6 flex gap-10 shrink-0">
-     <div class="w-1/3">
-        <div class="flex items-center justify-between mb-4">
-           <h3 class="text-[10px] font-black uppercase tracking-widest text-primary">Mastering Queue</h3>
-           <span class="text-[8px] font-black text-slate-500 uppercase">2 Assets Pending</span>
-        </div>
-        <div class="space-y-2 overflow-y-auto max-h-32 no-scrollbar">
-           <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-primary/20 group hover:border-primary transition-all">
-              <div class="flex items-center gap-4">
-                 <span class="material-symbols-outlined text-primary">audio_file</span>
-                 <div>
-                    <p class="text-[10px] font-black text-white uppercase tracking-tight">Master_Final_Mix_v4.wav</p>
-                    <p class="text-[8px] font-bold text-slate-500 uppercase">24-bit / 48kHz / Lossless</p>
-                 </div>
-              </div>
-              <span class="text-[9px] font-black text-green-500 uppercase tracking-widest">Ready</span>
-           </div>
-        </div>
-     </div>
-
-     <div class="w-1/3 flex flex-col">
-        <h3 class="text-[10px] font-black uppercase tracking-widest text-primary mb-4">Format Calibration</h3>
-        <div class="grid grid-cols-3 gap-3 flex-grow">
-           <button class="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-primary bg-primary/10 transition-all shadow-lg shadow-primary/10">
-              <span class="text-xs font-black text-white">WAV</span>
-              <span class="text-[8px] font-bold text-primary/60 uppercase">High Fidelity</span>
-           </button>
-           <button class="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-primary/50 transition-all grayscale hover:grayscale-0">
-              <span class="text-xs font-black text-white">MP3</span>
-              <span class="text-[8px] font-bold text-slate-500 uppercase">Web Optimized</span>
-           </button>
-           <button class="flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-primary/50 transition-all grayscale hover:grayscale-0">
-              <span class="text-xs font-black text-white">FLAC</span>
-              <span class="text-[8px] font-bold text-slate-500 uppercase">Compressed</span>
-           </button>
-        </div>
-     </div>
-
-     <div class="flex-1 flex flex-col">
-        <h3 class="text-[10px] font-black uppercase tracking-widest text-primary mb-4">Executive Metadata</h3>
-        <div class="grid grid-cols-2 gap-4">
-           <div class="space-y-1">
-              <label class="text-[8px] font-black uppercase text-slate-500 tracking-widest">Artist ID</label>
-              <input type="text" value="Studio Pro Ensemble" class="w-full bg-white/5 border border-white/5 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-primary transition-all">
-           </div>
-           <div class="space-y-1">
-              <label class="text-[8px] font-black uppercase text-slate-500 tracking-widest">Collection</label>
-              <input type="text" value="Titanium-Noir 2024" class="w-full bg-white/5 border border-white/5 rounded-xl p-3 text-[10px] font-bold text-white outline-none focus:border-primary transition-all">
-           </div>
-           <div class="col-span-2 flex items-center justify-between gap-4 mt-2">
-              <button class="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all"><span class="material-symbols-outlined">add_photo_alternate</span></button>
-              <button (click)="processMastering()" class="flex-grow bg-primary/20 text-primary border border-primary/40 hover:bg-primary hover:text-white text-[10px] font-black py-4 rounded-2xl uppercase transition-all tracking-[0.2em] flex items-center justify-center gap-3">
-                 <span class="material-symbols-outlined !text-xl">rocket_launch</span>
-                 Process & Export Extreme Master
-              </button>
-           </div>
-        </div>
-     </div>
-  </footer>
+    </div>
+  </div>
 </div>

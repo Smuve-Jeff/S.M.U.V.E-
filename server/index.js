@@ -9,10 +9,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// CodeQL Fix: Rate Limiting for DB access
+// Rate Limiting
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 500, // Increased for Studio syncing
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -36,14 +36,24 @@ const initDb = async () => {
         profile_data JSONB NOT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS projects (
+        project_id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        project_data JSONB NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
+      );
     `);
-    console.log('Database initialized');
+    console.log('Database initialized with Project support');
   } catch (err) {
     console.error('Error initializing database', err);
   }
 };
 initDb();
 
+// Profile Endpoints
 app.get('/api/profile/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -71,6 +81,31 @@ app.post('/api/profile', async (req, res) => {
   }
 });
 
+// Project Endpoints (Cloud Sync)
+app.get('/api/projects/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { rows } = await pool.query('SELECT * FROM projects WHERE user_id = $1 ORDER BY updated_at DESC', [userId]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/projects', async (req, res) => {
+  try {
+    const { projectId, userId, title, projectData } = req.body;
+    await pool.query(
+      'INSERT INTO projects (project_id, user_id, title, project_data, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) ON CONFLICT (project_id) DO UPDATE SET title = $3, project_data = $4, updated_at = CURRENT_TIMESTAMP',
+      [projectId, userId, title, JSON.stringify(projectData)]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// AI Analyze Proxy
 app.post('/api/ai/analyze', async (req, res) => {
   try {
     const { prompt } = req.body;

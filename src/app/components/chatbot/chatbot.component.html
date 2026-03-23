@@ -1,63 +1,65 @@
-<div class="h-full flex flex-col bg-brand-dark overflow-hidden">
-  <div class="p-6 border-b border-white/10 flex items-center justify-between bg-brand-surface/40">
+<div class="chatbot-container h-full flex flex-col glass-card border-none selection:bg-primary/20 animate-enter no-scrollbar overflow-hidden">
+  <header class="h-20 shrink-0 border-b border-white/5 px-8 flex items-center justify-between bg-black/40">
     <div class="flex items-center gap-4">
-      <div class="w-10 h-10 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary">
-        <i class="fas fa-microchip animate-pulse-subtle"></i>
+      <div class="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group">
+        <span class="material-symbols-outlined text-2xl group-hover:scale-125 transition-transform duration-500">neurology</span>
       </div>
-      <div>
-        <h3 class="text-sm font-bold text-white uppercase tracking-widest">S.M.U.V.E 4.0 AI</h3>
-        <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em]">Omniscient Mode</span>
+      <div class="flex flex-col">
+        <h3 class="text-sm font-black text-white uppercase italic tracking-tighter">Strategic<span class="text-primary">Commander</span></h3>
+        <span class="text-[8px] font-black text-primary uppercase tracking-[0.4em]">S.M.U.V.E v4.0</span>
       </div>
     </div>
-    <button (click)="onClose()" class="w-8 h-8 rounded-xl hover:bg-white/5 text-silver-dim hover:text-white transition-all">
-      <i class="fas fa-times"></i>
-    </button>
-  </div>
-
-  <div class="flex-grow p-6 overflow-y-auto space-y-6 custom-scrollbar" #scrollContainer>
-    @for (message of messages(); track message.content) {
-      <div class="flex flex-col" [class.items-end]="message.role === 'user'">
-        <div class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-2 px-1">
-          {{ message.role === 'model' ? '[SYSTEM_DECREE]' : '[SUBJECT_INPUT]' }}
-        </div>
-        <div class="max-w-[85%] p-4 rounded-2xl text-xs leading-relaxed"
-             [class.bg-brand-surface]="message.role === 'model'"
-             [class.text-silver-bright]="message.role === 'model'"
-             [class.border]="message.role === 'model'"
-             [class.border-white/10]="message.role === 'model'"
-             [class.bg-brand-primary]="message.role === 'user'"
-             [class.text-black]="message.role === 'user'"
-             [class.font-bold]="message.role === 'user'">
-          {{ message.content }}
-        </div>
-      </div>
-    }
-
-    @if (isLoading()) {
-      <div class="flex items-center gap-3 text-[9px] font-black text-brand-primary uppercase tracking-widest animate-pulse-subtle">
-         <i class="fas fa-spinner fa-spin"></i> Analyzing Vectors...
-      </div>
-    }
-  </div>
-
-  <div class="p-6 bg-brand-surface/20 border-t border-white/10">
-    <div class="relative group">
-       <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()"
-              placeholder="Command S.M.U.V.E..."
-              class="w-full bg-black/40 border border-white/10 rounded-2xl pl-4 pr-12 py-4 text-xs focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim">
-       <button (click)="sendMessage()" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-brand-primary text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
-          <i class="fas fa-terminal text-sm"></i>
+    <div class="flex items-center gap-3">
+       <button (click)="toggleKbWriteAccess()" class="p-2 rounded-xl transition-all" [class.text-primary]="profile().settings.ai.kbWriteAccess" [class.text-slate-600]="!profile().settings.ai.kbWriteAccess" [title]="profile().settings.ai.kbWriteAccess ? 'Neural Vault: Write Access Granted' : 'Neural Vault: Read Only'">
+          <span class="material-symbols-outlined text-lg">{{ profile().settings.ai.kbWriteAccess ? 'lock_open' : 'lock' }}</span>
+       </button>
+       <button (click)="close.emit()" class="w-8 h-8 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white transition-all flex items-center justify-center">
+          <span class="material-symbols-outlined">close</span>
        </button>
     </div>
-    <div class="mt-4 flex justify-between items-center opacity-40">
-       <div class="flex gap-4 text-[7px] font-black text-brand-primary uppercase tracking-widest">
-          <span>Latency: 1.2ms</span>
-          <span>Integrity: 100%</span>
+  </header>
+
+  <div class="messages-viewport flex-grow overflow-y-auto no-scrollbar p-8 space-y-6" #messageViewport>
+    <div *ngFor="let msg of messages()" class="flex flex-col gap-2" [class.items-end]="msg.role === 'user'">
+      <div class="flex items-center gap-2 mb-1" *ngIf="msg.role === 'assistant'">
+         <div class="size-1.5 rounded-full bg-primary animate-pulse"></div>
+         <span class="text-[8px] font-black text-slate-600 uppercase tracking-widest">Commander_Uplink</span>
+      </div>
+      <div class="max-w-[85%] p-5 rounded-3xl text-xs font-medium leading-relaxed transition-all shadow-lg"
+           [class.bg-black/60]="msg.role === 'assistant'"
+           [class.text-slate-300]="msg.role === 'assistant'"
+           [class.border]="msg.role === 'assistant'"
+           [class.border-white/5]="msg.role === 'assistant'"
+           [class.bg-primary]="msg.role === 'user'"
+           [class.text-white]="msg.role === 'user'"
+           [class.font-black]="msg.role === 'user'">
+        {{ msg.text }}
+      </div>
+      <span class="text-[7px] font-black text-slate-700 uppercase tracking-widest px-2">{{ msg.timestamp | date:'HH:mm:ss' }}_UTC</span>
+    </div>
+    <div *ngIf="isTyping()" class="flex items-center gap-3 p-4 bg-black/40 rounded-2xl w-max animate-pulse">
+       <div class="flex gap-1">
+          <div class="size-1 bg-primary rounded-full"></div>
+          <div class="size-1 bg-primary rounded-full"></div>
+          <div class="size-1 bg-primary rounded-full"></div>
        </div>
-       <div class="flex gap-2 text-brand-primary">
-          <i class="fas fa-wifi text-[8px]"></i>
-          <i class="fas fa-fingerprint text-[8px]"></i>
-       </div>
+       <span class="text-[8px] font-black text-primary uppercase tracking-widest">Neural Processing...</span>
     </div>
   </div>
+
+  <footer class="p-8 border-t border-white/5 bg-black/40">
+    <div class="relative flex items-center">
+      <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()"
+             placeholder="Command Strategic Core..."
+             class="w-full bg-black/60 border border-white/10 rounded-2xl pl-6 pr-16 py-4 text-xs font-bold text-white placeholder:text-slate-700 focus:border-primary/40 focus:bg-black/80 transition-all outline-none">
+      <button (click)="sendMessage()" class="absolute right-3 w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-110 active:scale-95 transition-all">
+        <span class="material-symbols-outlined text-lg">bolt</span>
+      </button>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2">
+       <button *ngFor="let cmd of ['/audit', '/sync_kb', '/intel']" (click)="userInput = cmd; sendMessage()" class="px-3 py-1 rounded-lg bg-white/5 border border-white/5 text-[8px] font-black text-slate-500 uppercase tracking-widest hover:border-primary/40 hover:text-primary transition-all">
+          {{ cmd }}
+       </button>
+    </div>
+  </footer>
 </div>
