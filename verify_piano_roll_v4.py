@@ -23,7 +23,7 @@ async def run():
         page = await browser.new_row_page() if hasattr(browser, 'new_row_page') else await browser.new_page()
 
         # Navigate to Studio (Piano Roll is usually here)
-        await page.goto("http://localhost:4200/studio")
+        await page.goto("http://localhost:4200/piano-roll")
         await page.wait_for_timeout(3000)
 
         # Take screenshot of the new Piano Roll High-Voltage UI
