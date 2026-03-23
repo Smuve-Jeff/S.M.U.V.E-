@@ -284,4 +284,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   sync(deck: 'A' | 'B') {
     this.deckService.sync(deck);
   }
+
+  setCrossfade(val: any) {
+    this.deckService.crossfade.set(parseFloat(val));
+  }
 }
