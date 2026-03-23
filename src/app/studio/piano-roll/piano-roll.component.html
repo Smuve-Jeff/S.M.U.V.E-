@@ -1,28 +1,28 @@
-<div class="piano-roll-container flex h-full bg-slate-950 text-slate-200 selection:bg-primary/30 relative overflow-hidden">
-  <aside class="w-80 shrink-0 border-r border-primary/20 bg-slate-900/80 backdrop-blur-xl flex flex-col z-20">
-    <div class="p-4 border-b border-primary/20 bg-gradient-to-br from-primary/10 to-transparent flex items-center justify-between">
+<div class="piano-roll-container flex h-full bg-slate-950 text-slate-200 selection:bg-brand-primary/30 relative overflow-hidden">
+  <aside class="w-80 shrink-0 border-r border-brand-primary/20 bg-slate-900/80 backdrop-blur-xl flex flex-col z-20">
+    <div class="p-4 border-b border-brand-primary/20 bg-gradient-to-br from-brand-primary/10 to-transparent flex items-center justify-between">
        <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary text-sm">inventory_2</span>
+          <span class="material-symbols-outlined text-brand-primary text-sm">inventory_2</span>
           <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-white">Channel Rack</h2>
        </div>
-       <button (click)="musicManager.ensureTrack('Synth')" class="p-1 rounded bg-primary/20 hover:bg-primary/40 text-primary transition-all">
+       <button (click)="musicManager.ensureTrack('Synth')" class="p-1 rounded bg-brand-primary/20 hover:bg-brand-primary/40 text-brand-primary transition-all">
           <span class="material-symbols-outlined text-sm">add</span>
        </button>
     </div>
     <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 bg-black/20">
        <div *ngFor="let track of musicManager.tracks()" (click)="selectTrack(track)"
             class="group p-2 rounded-lg border transition-all cursor-pointer flex flex-col gap-2"
-            [class.bg-primary/10]="musicManager.selectedTrackId() === track.id"
-            [class.border-primary/40]="musicManager.selectedTrackId() === track.id"
+            [class.bg-brand-primary/10]="musicManager.selectedTrackId() === track.id"
+            [class.border-brand-primary/40]="musicManager.selectedTrackId() === track.id"
             [class.border-white/5]="musicManager.selectedTrackId() !== track.id">
           <div class="flex items-center justify-between">
              <div class="flex items-center gap-2">
-                <div class="size-1.5 rounded-full bg-primary" [class.animate-pulse]="musicManager.selectedTrackId() === track.id"></div>
+                <div class="size-1.5 rounded-full bg-brand-primary" [class.animate-pulse]="musicManager.selectedTrackId() === track.id"></div>
                 <span class="text-[10px] font-bold truncate uppercase tracking-widest text-slate-300 group-hover:text-white">{{track.name}}</span>
              </div>
              <div class="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                 <button (click)="$event.stopPropagation(); musicManager.toggleMute(track.id)"
-                        [class.text-primary]="track.mute" class="hover:text-primary transition-colors p-1">
+                        [class.text-brand-primary]="track.mute" class="hover:text-brand-primary transition-colors p-1">
                    <span class="material-symbols-outlined text-xs">volume_off</span>
                 </button>
              </div>
@@ -40,39 +40,39 @@
                <option *ngFor="let s of scales" [ngValue]="s">{{s.name}}</option>
             </select>
              <button (click)="snapToScale.set(!snapToScale())"
-                     [class.bg-primary]="snapToScale()"
-                     class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border border-white/10 hover:border-primary/40 transition-all">
+                     [class.bg-brand-primary]="snapToScale()"
+                     class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40 transition-all">
                Snap
              </button>
          </div>
          <div class="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5">
             <button *ngFor="let mode of ['draw', 'select', 'brush', 'chord']"
                     (click)="setEditMode(mode)"
-                    [class.bg-primary/20]="editMode() === mode"
+                    [class.bg-brand-primary/20]="editMode() === mode"
                     class="p-1.5 rounded hover:bg-white/5 transition-all group">
                <span class="material-symbols-outlined text-sm">{{ mode === 'draw' ? 'edit' : (mode === 'select' ? 'near_me' : (mode === 'brush' ? 'brush' : 'format_list_bulleted')) }}</span>
             </button>
          </div>
          <div class="flex items-center gap-2">
             <button (click)="generateAiPattern()" [disabled]="isAiGenerating()"
-                    class="flex items-center gap-2 px-3 py-1.5 rounded bg-primary/10 border border-primary/30 text-primary text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all disabled:opacity-50">
+                    class="flex items-center gap-2 px-3 py-1.5 rounded bg-brand-primary/10 border border-brand-primary/30 text-brand-primary text-[9px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all disabled:opacity-50">
                <span class="material-symbols-outlined text-xs" [class.animate-spin]="isAiGenerating()">psychology</span>
                {{ isAiGenerating() ? 'Generating...' : 'AI Pattern' }}
             </button>
-            <button (click)="quantizeNotes()" class="p-1.5 rounded hover:text-primary group"><span class="material-symbols-outlined text-sm">grid_on</span></button>
-            <button (click)="randomizeVelocity()" class="p-1.5 rounded hover:text-primary group"><span class="material-symbols-outlined text-sm">shuffle</span></button>
+            <button (click)="quantizeNotes()" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">grid_on</span></button>
+            <button (click)="randomizeVelocity()" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">shuffle</span></button>
             <button (click)="deleteSelected()" class="p-1.5 rounded hover:text-red-500 group"><span class="material-symbols-outlined text-sm">delete</span></button>
          </div>
       </div>
       <div class="flex items-center gap-4">
          <div class="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-white/10">
-            <button (click)="showAutomation.set(!showAutomation())" [class.text-primary]="showAutomation()" class="p-1 rounded hover:bg-white/5 transition-all">
+            <button (click)="showAutomation.set(!showAutomation())" [class.text-brand-primary]="showAutomation()" class="p-1 rounded hover:bg-white/5 transition-all">
                <span class="material-symbols-outlined text-sm">equalizer</span>
             </button>
-            <button *ngIf="!isStandalone()" (click)="goStandalone()" class="p-1 rounded hover:text-primary group"><span class="material-symbols-outlined text-sm">fullscreen</span></button>
-            <button *ngIf="isStandalone()" (click)="goToStudio()" class="p-1 rounded hover:text-primary group"><span class="material-symbols-outlined text-sm">exit_to_app</span></button>
+            <button *ngIf="!isStandalone()" (click)="goStandalone()" class="p-1 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">fullscreen</span></button>
+            <button *ngIf="isStandalone()" (click)="goToStudio()" class="p-1 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">exit_to_app</span></button>
          </div>
-         <div class="text-[9px] font-black font-mono text-primary bg-primary/5 px-2 py-1 rounded border border-primary/20">
+         <div class="text-[9px] font-black font-mono text-brand-primary bg-brand-primary/5 px-2 py-1 rounded border border-brand-primary/20">
            {{ musicManager.engine.tempo() }} BPM
          </div>
       </div>
@@ -92,15 +92,15 @@
              </div>
           </div>
           <div class="flex-1 relative cursor-crosshair grid-background" (mousedown)="onGridMouseDown($event)" [style.height.px]="getDisplayKeys().length * rowHeight">
-             <div *ngFor="let cell of cells" class="absolute top-0 bottom-0 border-r pointer-events-none" [class.border-white/10]="!isStrongBeat(cell)" [class.border-primary/40]="isStrongBeat(cell)" [style.left.px]="cell * cellWidth" [style.width.px]="cellWidth"></div>
-             <div *ngFor="let pitch of getDisplayKeys(); let i = index" class="absolute left-0 right-0 border-b pointer-events-none" [class.bg-primary/5]="!isInScale(pitch) && !isDrumTrack()" [class.border-white/5]="pitch % 12 !== 0" [class.border-white/10]="pitch % 12 === 0" [style.top.px]="i * rowHeight" [style.height.px]="rowHeight"></div>
-             <div class="absolute top-0 bottom-0 w-px bg-primary shadow-[0_0_15px_#ec5b13] z-10 pointer-events-none" [style.left.px]="musicManager.currentStep() * cellWidth">
-                <div class="absolute top-0 left-1/2 -translate-x-1/2 size-2 bg-primary rounded-full"></div>
+             <div *ngFor="let cell of cells" class="absolute top-0 bottom-0 border-r pointer-events-none" [class.border-white/10]="!isStrongBeat(cell)" [class.border-brand-primary/40]="isStrongBeat(cell)" [style.left.px]="cell * cellWidth" [style.width.px]="cellWidth"></div>
+             <div *ngFor="let pitch of getDisplayKeys(); let i = index" class="absolute left-0 right-0 border-b pointer-events-none" [class.bg-brand-primary/5]="!isInScale(pitch) && !isDrumTrack()" [class.border-white/5]="pitch % 12 !== 0" [class.border-white/10]="pitch % 12 === 0" [style.top.px]="i * rowHeight" [style.height.px]="rowHeight"></div>
+             <div class="absolute top-0 bottom-0 w-px bg-brand-primary shadow-[0_0_15px_#ec5b13] z-10 pointer-events-none" [style.left.px]="musicManager.currentStep() * cellWidth">
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 size-2 bg-brand-primary rounded-full"></div>
              </div>
              <ng-container *ngIf="selectedTrack() as track">
                 <div *ngFor="let note of track.notes" (mousedown)="onNoteMouseDown($event, note)"
                      class="absolute rounded-sm cursor-move midi-note border border-white/20 flex flex-col justify-center overflow-hidden bg-gradient-to-br"
-                     [class.from-primary]="!selectedNoteIds().has(note.id)"
+                     [class.from-brand-primary]="!selectedNoteIds().has(note.id)"
                      [class.to-orange-600]="!selectedNoteIds().has(note.id)"
                      [class.from-emerald-400]="selectedNoteIds().has(note.id)"
                      [class.to-emerald-600]="selectedNoteIds().has(note.id)"
@@ -115,10 +115,10 @@
        </div>
     </div>
 
-    <footer *ngIf="showAutomation()" class="h-40 shrink-0 border-t border-primary/20 bg-slate-900/90 backdrop-blur-md flex flex-col overflow-hidden">
+    <footer *ngIf="showAutomation()" class="h-40 shrink-0 border-t border-brand-primary/20 bg-slate-900/90 backdrop-blur-md flex flex-col overflow-hidden">
       <div class="flex-1 relative flex items-end p-4 gap-px overflow-x-auto no-scrollbar" [style.width.px]="gridWidth">
          <div *ngFor="let cell of cells" class="flex-1 bg-slate-800/30 hover:bg-white/5 transition-colors relative" [style.width.px]="cellWidth">
-            <div class="w-full bg-primary/40 group-hover:bg-primary transition-all rounded-t-sm shadow-[0_0_10px_rgba(236,91,19,0.2)]" [style.height.%]="getVelocityAt(cell)"></div>
+            <div class="w-full bg-brand-primary/40 group-hover:bg-brand-primary transition-all rounded-t-sm shadow-[0_0_10px_rgba(236,91,19,0.2)]" [style.height.%]="getVelocityAt(cell)"></div>
          </div>
       </div>
     </footer>

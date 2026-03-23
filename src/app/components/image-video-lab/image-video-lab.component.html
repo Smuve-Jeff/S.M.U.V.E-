@@ -72,7 +72,7 @@
                   </div>
 
                   @for (clip of track.clips; track clip.id) {
-                     <div class="absolute h-8 top-2 rounded-xl border border-brand-primary/20 bg-brand-primary/10 flex items-center px-3 cursor-pointer hover:bg-brand-primary/20 transition-all"
+                     <div class="absolute h-8 top-2 rounded-xl border border-brand-brand-primary/20 bg-brand-brand-primary/10 flex items-center px-3 cursor-pointer hover:bg-brand-brand-primary/20 transition-all"
                           [style.left.px]="clip.startTime * 10 * zoomLevel()"
                           [style.width.px]="clip.duration * 10 * zoomLevel()">
                         <span class="text-[9px] font-bold text-white truncate">{{ clip.name }}</span>
@@ -96,8 +96,8 @@
        <div class="flex flex-col gap-6">
           <h2 class="text-lg font-bold text-white uppercase tracking-tight">AI Strategic Director</h2>
 
-          <div class="p-4 rounded-2xl bg-brand-primary/5 border border-brand-primary/10 italic">
-             <p class="text-[10px] text-brand-primary/80 leading-relaxed uppercase tracking-wider">
+          <div class="p-4 rounded-2xl bg-brand-brand-primary/5 border border-brand-brand-primary/10 italic">
+             <p class="text-[10px] text-brand-brand-primary/80 leading-relaxed uppercase tracking-wider">
                 "Visual flow optimization recommended. Increasing saturation in Channel 2 to align with release aesthetic."
              </p>
           </div>
@@ -105,7 +105,7 @@
           <div class="space-y-4">
              <h3 class="text-[10px] font-black text-silver-dim uppercase tracking-widest">Neural Assets</h3>
              <div class="grid grid-cols-2 gap-3">
-                <button (click)="generateImage()" class="h-24 rounded-2xl bg-brand-surface border border-white/10 hover:border-brand-primary/40 transition-all flex flex-col items-center justify-center gap-2 group">
+                <button (click)="generateImage()" class="h-24 rounded-2xl bg-brand-surface border border-white/10 hover:border-brand-brand-primary/40 transition-all flex flex-col items-center justify-center gap-2 group">
                    <i class="fas fa-wand-magic-sparkles text-brand-primary group-hover:scale-125 transition-transform"></i>
                    <span class="text-[8px] font-black uppercase text-silver-dim group-hover:text-white">Synthesize</span>
                 </button>
@@ -121,7 +121,7 @@
              <h3 class="text-[10px] font-black text-silver-dim uppercase tracking-widest">FX Matrix</h3>
              <div class="space-y-3">
                 @for (fx of ['Upscale 4K', 'Background Purge', 'Grain Texture']; track fx) {
-                   <label class="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10 cursor-pointer group hover:border-brand-primary/20">
+                   <label class="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10 cursor-pointer group hover:border-brand-brand-primary/20">
                       <span class="text-[10px] font-bold text-silver-bright uppercase">{{ fx }}</span>
                       <input type="checkbox" class="w-4 h-4 accent-brand-primary">
                    </label>

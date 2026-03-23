@@ -1,7 +1,7 @@
 <div class="p-8 h-full bg-brand-dark flex flex-col gap-6">
   <div class="flex justify-between items-center border-b border-white/10 pb-4">
     <div>
-      <h1 class="text-3xl font-black text-white uppercase italic tracking-tighter">Songwriter's Pad v4.0</h1>
+      <h1 class="text-3xl font-black text-white uppercase italic tracking-tighter">Songwriter's Pad v4.2</h1>
       <p class="text-brand-primary text-xs font-black uppercase tracking-widest mt-1">Refining: {{ trackTitle() }}</p>
     </div>
     <button (click)="saveLyrics()" class="bg-brand-primary text-black font-black uppercase tracking-tighter italic text-xs py-2 px-6 rounded-lg hover:scale-105 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]">
@@ -21,14 +21,14 @@
 
     <!-- AI Side Panel -->
     <div class="w-80 flex flex-col gap-6">
-      <div class="bg-brand-surface/50 rounded-2xl p-6 border border-brand-primary/20 relative overflow-hidden group">
-        <div class="absolute inset-0 bg-brand-primary/5 animate-pulse"></div>
+      <div class="bg-brand-surface/50 rounded-2xl p-6 border border-brand-brand-primary/20 relative overflow-hidden group">
+        <div class="absolute inset-0 bg-brand-brand-primary/5 animate-pulse"></div>
         <h3 class="text-xs font-black uppercase tracking-widest text-brand-primary mb-4 relative z-10 flex items-center gap-2">
           <span class="w-2 h-2 bg-brand-primary rounded-full"></span>
           Neural Rhyme Engine
         </h3>
         <div class="space-y-3 relative z-10">
-          <div *ngFor="let suggestion of aiSuggestions()" class="text-[10px] text-slate-400 bg-black/40 p-3 rounded-lg border border-white/5 hover:border-brand-primary/30 transition-all cursor-pointer">
+          <div *ngFor="let suggestion of aiSuggestions()" class="text-[10px] text-slate-400 bg-black/40 p-3 rounded-lg border border-white/5 hover:border-brand-brand-primary/30 transition-all cursor-pointer">
             {{ suggestion }}
           </div>
         </div>

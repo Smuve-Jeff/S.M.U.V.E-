@@ -1,9 +1,9 @@
-import { Component, inject, effect, signal, HostListener, computed, viewChild } from '@angular/core';
+import { Component, inject, effect, signal, HostListener, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterOutlet, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from './services/auth.service';
-import { UIService, ViewConfig } from './services/ui.service';
+import { UIService } from './services/ui.service';
 import { ChatbotComponent } from './components/chatbot/chatbot.component';
 import { NotificationToastComponent } from './components/notification-toast/notification-toast.component';
 import { SmuveAdvisorComponent } from './components/smuve-advisor/smuve-advisor.component';
@@ -35,8 +35,6 @@ export class AppComponent {
 
   isSidebarOpen = signal(true);
   isFullPageMode = signal(false);
-  isViewSelectorOpen = signal(false);
-  viewSearchQuery = signal("");
   isMobile = signal(false);
 
   constructor() {
@@ -95,10 +93,9 @@ export class AppComponent {
 
   toggleSidebar() { this.isSidebarOpen.update(v => !v); }
   toggleChatbot() { this.uiService.toggleChatbot(); }
-  toggleViewSelector() { this.isViewSelectorOpen.update(v => !v); }
+
   navigateToView(mode: MainViewMode) {
     this.uiService.navigateToView(mode);
-    this.isViewSelectorOpen.set(false);
     if (this.isMobile()) this.isSidebarOpen.set(false);
   }
 }

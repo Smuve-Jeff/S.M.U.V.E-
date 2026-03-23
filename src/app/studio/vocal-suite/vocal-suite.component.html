@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-vocal-obsidian text-slate-100 font-sans selection:bg-vocal-primary/30 flex flex-col relative overflow-hidden">
+<div class="min-h-screen bg-vocal-obsidian text-slate-100 font-sans selection:bg-vocal-brand-primary/30 flex flex-col relative overflow-hidden">
   <!-- Dynamic HUD Background -->
   <div class="absolute inset-0 pointer-events-none opacity-20">
     <div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(157,0,255,0.1),transparent_70%)]"></div>
@@ -34,8 +34,8 @@
 
     <div class="flex items-center gap-4">
        <!-- S.M.U.V.E. Mini HUD -->
-       <div class="bg-vocal-titanium/40 border border-vocal-primary/20 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer hover:border-vocal-primary transition-all" (click)="vocalAi.isPassiveMode.set(!vocalAi.isPassiveMode())">
-          <div class="size-8 rounded-full bg-vocal-primary/10 border border-vocal-primary flex items-center justify-center">
+       <div class="bg-vocal-titanium/40 border border-vocal-brand-primary/20 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer hover:border-vocal-primary transition-all" (click)="vocalAi.isPassiveMode.set(!vocalAi.isPassiveMode())">
+          <div class="size-8 rounded-full bg-vocal-brand-primary/10 border border-vocal-primary flex items-center justify-center">
             <span class="material-symbols-outlined text-vocal-primary text-sm" [class.animate-pulse]="!vocalAi.isPassiveMode()">{{ vocalAi.isPassiveMode() ? 'visibility_off' : 'neurology' }}</span>
           </div>
           <div class="flex flex-col">
@@ -55,7 +55,7 @@
         <button *ngFor="let s of ['setup', 'record', 'edit', 'master']"
           (click)="setStep(s)"
           [class.border-vocal-primary]="currentStep() === s"
-          [class.bg-vocal-primary/10]="currentStep() === s"
+          [class.bg-vocal-brand-primary/10]="currentStep() === s"
           class="border border-white/5 rounded-xl p-4 transition-all hover:bg-white/5 group text-left">
           <div class="flex items-center gap-3">
             <span class="text-xs font-black font-mono text-slate-500 group-hover:text-vocal-primary transition-colors uppercase tracking-widest">0{{s === 'setup' ? 1 : s === 'record' ? 2 : s === 'edit' ? 3 : 4}}</span>
@@ -101,15 +101,15 @@
               </div>
             </div>
 
-            <button (click)="setStep('record')" class="w-full py-4 bg-vocal-primary text-white font-black uppercase tracking-widest rounded-xl hover:bg-vocal-primary/80 transition-all shadow-[0_0_20px_rgba(157,0,255,0.3)]">
+            <button (click)="setStep('record')" class="w-full py-4 bg-vocal-primary text-white font-black uppercase tracking-widest rounded-xl hover:bg-vocal-brand-primary/80 transition-all shadow-[0_0_20px_rgba(157,0,255,0.3)]">
               Begin Strategic Capture
             </button>
           </div>
 
           <div class="bg-vocal-oled rounded-2xl border border-white/10 p-6 flex flex-col items-center justify-center relative group overflow-hidden">
-             <div class="absolute inset-0 bg-gradient-to-t from-vocal-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-             <div class="size-48 rounded-full border-2 border-dashed border-vocal-primary/20 flex items-center justify-center relative animate-[spin_20s_linear_infinite]">
-                <div class="size-40 rounded-full border-2 border-vocal-primary/40 flex items-center justify-center animate-[spin_10s_linear_infinite_reverse]"></div>
+             <div class="absolute inset-0 bg-gradient-to-t from-vocal-brand-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+             <div class="size-48 rounded-full border-2 border-dashed border-vocal-brand-primary/20 flex items-center justify-center relative animate-[spin_20s_linear_infinite]">
+                <div class="size-40 rounded-full border-2 border-vocal-brand-primary/40 flex items-center justify-center animate-[spin_10s_linear_infinite_reverse]"></div>
              </div>
              <div class="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
                 <span class="material-symbols-outlined text-5xl text-vocal-primary drop-shadow-[0_0_15px_rgba(157,0,255,0.5)]">mic_external_on</span>
@@ -225,7 +225,7 @@
 
             <!-- Mastering Intel Sidebar -->
             <div class="space-y-6">
-               <div class="bg-vocal-oled/80 border border-vocal-primary/30 rounded-2xl p-6 backdrop-blur-xl">
+               <div class="bg-vocal-oled/80 border border-vocal-brand-primary/30 rounded-2xl p-6 backdrop-blur-xl">
                   <h3 class="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                      <span class="material-symbols-outlined text-vocal-primary text-sm animate-pulse">auto_awesome</span>
                      S.M.U.V.E. INTEL HUD
@@ -285,7 +285,7 @@
           </div>
 
           <div class="col-span-12 lg:col-span-4 space-y-6">
-             <div class="bg-vocal-obsidian border border-vocal-primary/20 rounded-3xl p-6 h-full flex flex-col shadow-2xl">
+             <div class="bg-vocal-obsidian border border-vocal-brand-primary/20 rounded-3xl p-6 h-full flex flex-col shadow-2xl">
                 <h3 class="text-xs font-black uppercase tracking-[0.3em] text-slate-500 mb-8 flex items-center gap-2">
                    <span class="material-symbols-outlined text-sm">Tune</span>
                    Mastering Control Strip
@@ -308,12 +308,12 @@
                       <input type="range" [ngModel]="mastering.params().limiter.ceiling" (ngModelChange)="mastering.updateParams({limiter: { ...mastering.params().limiter, ceiling: $event }})" min="-12" max="0" step="0.1" class="w-full h-1 bg-white/5 rounded-full appearance-none accent-vocal-primary cursor-pointer">
                    </div>
 
-                   <div class="bg-vocal-primary/5 rounded-xl p-4 border border-vocal-primary/10 animate-pulse" *ngIf="!vocalAi.isPassiveMode()">
+                   <div class="bg-vocal-brand-primary/5 rounded-xl p-4 border border-vocal-brand-primary/10 animate-pulse" *ngIf="!vocalAi.isPassiveMode()">
                       <p class="text-[9px] text-vocal-primary leading-relaxed font-bold uppercase italic">"Strategic Commander: Signal optimization active. Dominating frequency corridors."</p>
                    </div>
                 </div>
 
-                <button (click)="downloadRecording()" class="w-full py-4 mt-8 bg-vocal-primary rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-vocal-primary/80 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+                <button (click)="downloadRecording()" class="w-full py-4 mt-8 bg-vocal-primary rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-vocal-brand-primary/80 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
                    Instant Export
                 </button>
              </div>

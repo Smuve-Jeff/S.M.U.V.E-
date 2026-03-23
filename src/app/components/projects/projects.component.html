@@ -13,7 +13,7 @@
         (click)="selectProject(project)"
         class="p-4 rounded-xl cursor-pointer transition-all border border-transparent"
         [ngClass]="{
-          'bg-brand-primary/10 border-brand-primary/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]': selectedProject()?.id === project.id,
+          'bg-brand-brand-primary/10 border-brand-brand-primary/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]': selectedProject()?.id === project.id,
           'hover:bg-white/5': selectedProject()?.id !== project.id
         }"
       >
@@ -36,7 +36,7 @@
         <div>
           <h2 class="text-3xl font-black text-white uppercase italic tracking-tighter">{{ project.name }}</h2>
           <div class="flex gap-4 mt-2">
-            <span class="text-[10px] font-black uppercase tracking-widest text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded">{{ project.status }}</span>
+            <span class="text-[10px] font-black uppercase tracking-widest text-brand-primary bg-brand-brand-primary/10 px-2 py-0.5 rounded">{{ project.status }}</span>
             <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Deadline: {{ project.deadline | date: 'MMM d, yyyy' }}</span>
           </div>
         </div>
@@ -50,13 +50,13 @@
       <div class="space-y-3">
         <div
           *ngFor="let task of project.tasks"
-          class="flex items-center gap-4 bg-brand-dark/40 p-4 rounded-xl border border-white/10 hover:border-brand-primary/20 transition-all group"
+          class="flex items-center gap-4 bg-brand-dark/40 p-4 rounded-xl border border-white/10 hover:border-brand-brand-primary/20 transition-all group"
           [class.opacity-50]="task.completed"
         >
           <div
             (click)="toggleTask(task)"
             class="w-6 h-6 rounded-xl border-2 flex items-center justify-center cursor-pointer transition-all"
-            [ngClass]="task.completed ? 'bg-brand-primary border-brand-primary' : 'border-slate-700 group-hover:border-brand-primary/50'"
+            [ngClass]="task.completed ? 'bg-brand-primary border-brand-primary' : 'border-slate-700 group-hover:border-brand-brand-primary/50'"
           >
             <i *ngIf="task.completed" class="fas fa-check text-black text-xs"></i>
           </div>

@@ -1,56 +1,44 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./src/**/*.{html,ts}', './index.html'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        brand: {
-          dark: '#020617', // Slate 950
-          surface: '#0f172a', // Slate 900
-          'surface-light': '#1e293b', // Slate 800
-          primary: '#10b981', // Emerald 500 (Refined)
-          secondary: '#38bdf8', // Sky 400
-          accent: '#6366f1', // Indigo 500
-          danger: '#f43f5e', // Rose 500
-          warning: '#f59e0b', // Amber 500
-          success: '#10b981', // Emerald 500
-          muted: '#64748b', // Slate 500
-        },
-        obsidian: {
-          DEFAULT: '#020617',
-          light: '#0f172a',
-          deep: '#010413',
-        },
-        silver: {
-          DEFAULT: '#cbd5e1', // Slate 300
-          bright: '#f8fafc', // Slate 50
-          dim: '#94a3b8', // Slate 400
-        },
-        "primary": "#ec5b13",
-        "background-light": "#f8f6f6",
-        "background-dark": "#221610",
-        "extreme-obsidian": "#0d0d0d",
-        "extreme-titanium": "#2a2a2a",
-        "accent-purple": "#a855f7",
-        "accent-magenta": "#d946ef",
-        "extreme-surface": "#3a2a1f",
-        "extreme-panel": "#2d1e16",
-        "extreme-titanium-dark": "#1a1a1a",
-        vocal: {
-          primary: '#9d00ff',
-          'background-light': '#f7f5f8',
-          'background-dark': '#0a060c',
-          obsidian: '#140c1a',
-          titanium: '#2d2433',
-          oled: '#020102'
-        }
+        // S.M.U.V.E 4.2 Professional Palette (Explicit for JIT)
+        'primary': '#10b981',
+        'secondary': '#6366f1',
+        'accent': '#f59e0b',
+        'background': 'var(--color-bg)',
+        'background-alt': 'var(--color-bg-alt)',
+        'surface': 'var(--color-surface)',
+        'surface-bright': 'var(--color-surface-bright)',
+        'text-main': 'var(--color-text)',
+        'text-dim': 'var(--color-text-dim)',
+        'border': 'var(--color-border)',
+        'border-bright': 'var(--color-border-bright)',
+
+        // Brand Legacy compatibility (Flattened for better JIT support)
+        'brand-dark': '#020617',
+        'brand-surface': '#0f172a',
+        'brand-surface-light': '#1e293b',
+        'brand-primary': '#10b981',
+        'brand-secondary': '#38bdf8',
+        'brand-accent': '#6366f1',
+        'brand-danger': '#f43f5e',
+        'brand-warning': '#f59e0b',
+        'brand-success': '#10b981',
+        'brand-muted': '#64748b',
+
+        // Legacy/Specialized View Support
+        'hv-primary': '#ec5b13',
+        'hv-secondary': '#a855f7',
+        'hv-obsidian': '#050505'
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['Fira Code', 'monospace'],
-        display: ["Public Sans", 'Inter', 'sans-serif'],
-        display: ['Inter', 'sans-serif'],
-        'vocal-display': ['Public Sans', 'sans-serif'],
+        display: ['Public Sans', 'Inter', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',
@@ -71,6 +59,12 @@ export default {
           '50%': { opacity: '0.8' },
         }
       },
+      boxShadow: {
+        'v42-sm': 'var(--shadow-sm)',
+        'v42-md': 'var(--shadow-md)',
+        'v42-lg': 'var(--shadow-lg)',
+        'v42-xl': 'var(--shadow-xl)',
+      }
     },
   },
   plugins: [],

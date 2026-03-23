@@ -1,12 +1,12 @@
 <div class="min-h-screen flex items-center justify-center bg-brand-dark p-6 relative overflow-hidden animate-enter">
-  <div class="absolute inset-0 bg-gradient-to-br from-brand-primary/10 via-transparent to-brand-accent/10 pointer-events-none"></div>
+  <div class="absolute inset-0 bg-gradient-to-br from-brand-brand-primary/10 via-transparent to-brand-brand-accent/10 pointer-events-none"></div>
 
   <div class="w-full max-w-md glass-panel rounded-[2rem] border border-white/10 p-10 shadow-2xl relative z-10">
     <div class="text-center mb-10">
-       <div class="w-16 h-16 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6 shadow-lg">
+       <div class="w-16 h-16 rounded-2xl bg-brand-brand-primary/10 border border-brand-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6 shadow-lg">
           <i class="fas fa-feather-pointed text-3xl"></i>
        </div>
-       <h1 class="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">S.M.U.V.E.<span class="text-brand-primary">4.0</span></h1>
+       <h1 class="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">S.M.U.V.E.<span class="text-brand-primary">4.2</span></h1>
        <p class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em] mt-3">Strategic Candidate Authorization</p>
     </div>
 
@@ -32,14 +32,14 @@
        </div>
 
        <button type="submit" [disabled]="isLoading() || !loginForm.form.valid"
-               class="w-full mt-4 btn-elegant btn-elegant-primary h-14 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-brand-primary/10">
+               class="w-full mt-4 btn-elegant btn-elegant-primary h-14 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-brand-brand-primary/10">
           {{ isRegistering() ? 'Initialize Genesis' : 'Authorize Access' }}
        </button>
     </form>
 
     <div *ngIf="message()" class="mt-6 p-4 rounded-xl border text-center text-[10px] font-bold uppercase tracking-widest"
          [class.border-brand-danger]="isError()" [class.text-brand-danger]="isError()" [class.bg-brand-danger/5]="isError()"
-         [class.border-brand-primary]="!isError()" [class.text-brand-primary]="!isError()" [class.bg-brand-primary/5]="!isError()">
+         [class.border-brand-primary]="!isError()" [class.text-brand-primary]="!isError()" [class.bg-brand-brand-primary/5]="!isError()">
        {{ message() }}
     </div>
 

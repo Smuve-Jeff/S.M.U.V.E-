@@ -24,10 +24,10 @@ export class PlayerService implements OnDestroy {
   private exportService = inject(ExportService);
 
   private defaultPlaylist: GlobalTrack[] = [
-    { id: '1', title: 'elegant ARCHITECT', artist: 'S.M.U.V.E 4.0 CORE' },
+    { id: '1', title: 'elegant ARCHITECT', artist: 'S.M.U.V.E 4.2 CORE' },
     { id: '2', title: 'SYNTHETIC DREAMS', artist: 'AI SYNDICATE' },
     { id: '3', title: 'pro-gradePUNK BEATS', artist: 'TECHNO ARCHITECT' },
-    { id: '4', title: 'precision IN THE MATRIX', artist: 'S.M.U.V.E 4.0 PRO' }
+    { id: '4', title: 'precision IN THE MATRIX', artist: 'S.M.U.V.E 4.2 PRO' }
   ];
 
   playlist = signal<GlobalTrack[]>(this.defaultPlaylist);

@@ -5,10 +5,10 @@
         <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
           <div>
             <div class="flex items-center gap-3 mb-2">
-              <span class="size-1.5 rounded-full bg-primary animate-pulse"></span>
+              <span class="size-1.5 rounded-full bg-brand-primary animate-pulse"></span>
               <span class="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] md:tracking-[0.4em]">Career Trajectory Matrix</span>
             </div>
-            <h1 class="text-3xl md:text-4xl font-black text-white italic tracking-tighter uppercase leading-none">EXECUTIVE<span class="text-primary">HUB</span></h1>
+            <h1 class="text-3xl md:text-4xl font-black text-white italic tracking-tighter uppercase leading-none">EXECUTIVE<span class="text-brand-primary">HUB</span></h1>
           </div>
           <div class="flex items-center gap-4">
           </div>
@@ -20,7 +20,7 @@
             <div class="flex items-center justify-between mb-8">
               <h2 class="text-sm md:text-base font-bold text-white uppercase tracking-tight">Market Positioning Matrix</h2>
               <div class="flex gap-2">
-                <span class="size-2 rounded-full bg-primary"></span>
+                <span class="size-2 rounded-full bg-brand-primary"></span>
                 <span class="size-2 rounded-full bg-accent-magenta"></span>
               </div>
             </div>
@@ -59,7 +59,7 @@
              </div>
              <div class="space-y-3 flex-grow overflow-y-auto max-h-[250px] md:max-h-[300px] no-scrollbar pr-2">
                 @for (sub of submissions(); track sub.labelName) {
-                   <div class="p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-primary/30 transition-all group/item">
+                   <div class="p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all group/item">
                       <div class="flex justify-between items-start mb-2">
                          <h4 class="text-sm font-bold text-white">{{ sub.labelName }}</h4>
                          <span class="text-[9px] font-bold px-2 py-0.5 rounded-full"
@@ -71,14 +71,14 @@
                       <div class="text-[10px] text-slate-500 mb-3 truncate">{{ sub.demoUrl }}</div>
                       <div class="flex items-center justify-between">
                          <span class="text-[9px] font-mono tracking-tight text-slate-500">{{ sub.date }}</span>
-                         <button class="text-[9px] font-black text-primary uppercase opacity-0 group-hover/item:opacity-100 transition-all">Recall</button>
+                         <button class="text-[9px] font-black text-brand-primary uppercase opacity-0 group-hover/item:opacity-100 transition-all">Recall</button>
                       </div>
                    </div>
                 }
              </div>
              <div class="mt-8 pt-6 border-t border-white/10 space-y-4">
-                <input type="text" [(ngModel)]="newLabel" placeholder="Label Name" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-primary transition-all text-white outline-none">
-                <input type="text" [(ngModel)]="newDemo" placeholder="Demo Link" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-primary transition-all text-white outline-none">
+                <input type="text" [(ngModel)]="newLabel" placeholder="Label Name" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all text-white outline-none">
+                <input type="text" [(ngModel)]="newDemo" placeholder="Demo Link" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all text-white outline-none">
                 <button (click)="submitToLabel()" class="w-full btn-elegant btn-elegant-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3 h-auto">Submit Proposal</button>
              </div>
           </div>
@@ -96,7 +96,7 @@
                          <div class="text-xs font-bold text-white truncate max-w-[150px] md:max-w-none">{{ v.name }}</div>
                          <div class="text-[9px] text-slate-500 uppercase tracking-wider">{{ v.location }} • {{ v.capacity }} CAP</div>
                       </div>
-                      <span class="text-[8px] font-black px-2 py-1 rounded bg-primary/10 text-primary uppercase border border-primary/20 shrink-0">{{ v.bookingStatus }}</span>
+                      <span class="text-[8px] font-black px-2 py-1 rounded bg-brand-primary/10 text-brand-primary uppercase border border-brand-primary/20 shrink-0">{{ v.bookingStatus }}</span>
                    </div>
                 }
              </div>
@@ -104,10 +104,10 @@
 
           <!-- Revenue / Stats -->
           <div class="col-span-12 lg:col-span-6 grid grid-cols-2 gap-4 md:gap-6">
-             <div class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 border-l-4 border-primary flex flex-col justify-center text-center">
-                <div class="text-[8px] md:text-[9px] font-black text-primary uppercase tracking-[0.2em] md:tracking-[0.3em] mb-2">Q3 Revenue</div>
+             <div class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 border-l-4 border-brand-primary flex flex-col justify-center text-center">
+                <div class="text-[8px] md:text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] md:tracking-[0.3em] mb-2">Q3 Revenue</div>
                 <div class="text-xl md:text-3xl font-black text-white italic tracking-tighter">4.5K</div>
-                <div class="text-[7px] md:text-[8px] text-primary/60 font-bold mt-1 uppercase">+18% vs PREV</div>
+                <div class="text-[7px] md:text-[8px] text-brand-primary/60 font-bold mt-1 uppercase">+18% vs PREV</div>
              </div>
              <div class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 border-l-4 border-accent-magenta flex flex-col justify-center text-center">
                 <div class="text-[8px] md:text-[9px] font-black text-accent-magenta uppercase tracking-[0.2em] md:tracking-[0.3em] mb-2">Fan Growth</div>
@@ -121,7 +121,7 @@
         <div class="flex flex-col gap-4 mt-12 mb-8">
           <div class="flex items-center justify-between">
             <h3 class="text-[11px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Real-Time Activity Feed</h3>
-            <button class="text-primary text-[10px] font-bold uppercase hover:underline">View Ledger</button>
+            <button class="text-brand-primary text-[10px] font-bold uppercase hover:underline">View Ledger</button>
           </div>
           <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
             <div class="min-w-[260px] md:min-w-[300px] p-4 glass-card rounded-xl flex items-center gap-4 border-r-2 border-accent-purple/30">
@@ -134,7 +134,7 @@
               </div>
             </div>
             <div class="min-w-[260px] md:min-w-[300px] p-4 glass-card rounded-xl flex items-center gap-4">
-              <div class="size-10 md:size-12 rounded-lg bg-extreme-titanium flex items-center justify-center text-primary shrink-0">
+              <div class="size-10 md:size-12 rounded-lg bg-extreme-titanium flex items-center justify-center text-brand-primary shrink-0">
                 <span class="material-symbols-outlined !text-xl md:!text-2xl">smart_toy</span>
               </div>
               <div class="flex flex-col">
@@ -148,7 +148,7 @@
 
       <!-- Right Sidebar: Modular Tools - Hidden on Mobile -->
       <aside class="w-20 hidden lg:flex flex-col border-l border-slate-800 py-6 items-center gap-6 bg-gradient-to-b from-extreme-obsidian to-extreme-titanium shadow-2xl shrink-0">
-        <button class="size-12 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-110 transition-transform extreme-glow">
+        <button class="size-12 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-lg shadow-brand-primary/20 hover:scale-110 transition-transform extreme-glow">
           <span class="material-symbols-outlined !text-3xl">add_circle</span>
         </button>
         <div class="w-8 h-[1px] bg-slate-800"></div>
@@ -181,7 +181,7 @@
       <span class="size-1.5 bg-accent-magenta rounded-full"></span> NEURAL LINK: v4_EXTREME_SYNC_ESTABLISHED
     </span>
     <span class="text-[10px] font-black text-slate-500 flex items-center gap-2">
-      <span class="size-1.5 bg-primary rounded-full"></span> MARKET VOLATILITY: NEGLIGIBLE
+      <span class="size-1.5 bg-brand-primary rounded-full"></span> MARKET VOLATILITY: NEGLIGIBLE
     </span>
     <span class="text-[10px] font-black text-slate-400 flex items-center gap-2 uppercase">
         PROTOCOL EXTREME: ACTIVATED • ENCRYPTED UPLINK SECURE • BYPASSING TRADITIONAL SYNAPSE LIMITS

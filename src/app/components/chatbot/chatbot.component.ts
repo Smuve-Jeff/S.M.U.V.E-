@@ -50,7 +50,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     this.messages.set([
       {
         role: 'assistant',
-        text: 'S.M.U.V.E 4.0 Online. Strategic intelligence protocols initialized. How shall we dominate the industry today?',
+        text: 'S.M.U.V.E 4.2 Online. Strategic intelligence protocols initialized. How shall we dominate the industry today?',
         timestamp: Date.now()
       },
     ]);

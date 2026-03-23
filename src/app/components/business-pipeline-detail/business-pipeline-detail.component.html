@@ -3,7 +3,7 @@
   <div class="flex justify-between items-end mb-12">
     <div>
       <div class="flex items-center gap-3 mb-2">
-        <span class="px-2 py-0.5 bg-brand-primary/10 text-brand-primary text-[10px] font-black uppercase tracking-widest rounded border border-brand-primary/20">
+        <span class="px-2 py-0.5 bg-brand-brand-primary/10 text-brand-primary text-[10px] font-black uppercase tracking-widest rounded border border-brand-brand-primary/20">
           {{ p.type }} INFRASTRUCTURE
         </span>
         <button routerLink="/business-suite" class="text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">
@@ -51,14 +51,14 @@
         </div>
 
         <div *for="let step of stage.steps" class="group bg-brand-surface/30 rounded-3xl border transition-all overflow-hidden"
-             [ngClass]="{'border-brand-primary/30 shadow-[0_0_30px_rgba(16,185,129,0.05)]': step.status === 'Pending', 'border-white/5': step.status === 'Completed'}">
+             [ngClass]="{'border-brand-brand-primary/30 shadow-[0_0_30px_rgba(16,185,129,0.05)]': step.status === 'Pending', 'border-white/5': step.status === 'Completed'}">
           <!-- Step implementation... (using *ngFor="let step of stage.steps") -->
         </div>
 
         <!-- Re-writing track content for clarity and robustness -->
         <ng-container *ngFor="let step of stage.steps">
           <div class="group bg-brand-surface/30 rounded-3xl border transition-all overflow-hidden mb-6"
-               [ngClass]="{'border-brand-primary/30 shadow-[0_0_30px_rgba(16,185,129,0.05)]': step.status === 'Pending', 'border-white/5': step.status === 'Completed'}">
+               [ngClass]="{'border-brand-brand-primary/30 shadow-[0_0_30px_rgba(16,185,129,0.05)]': step.status === 'Pending', 'border-white/5': step.status === 'Completed'}">
             <div class="p-8">
               <div class="flex justify-between items-start mb-4">
                 <div>
@@ -84,7 +84,7 @@
               </div>
 
               <!-- AI Guidance -->
-              <div class="mt-6 bg-black/40 rounded-2xl p-6 border-l-2 border-brand-primary/50 relative overflow-hidden">
+              <div class="mt-6 bg-black/40 rounded-2xl p-6 border-l-2 border-brand-brand-primary/50 relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -103,14 +103,14 @@
     <!-- S.M.U.V.E. Assistant Sidebar -->
     <div class="col-span-12 lg:col-span-4">
       <div class="sticky top-8 space-y-6">
-        <div class="bg-brand-primary/10 rounded-3xl p-8 border border-brand-primary/20">
+        <div class="bg-brand-brand-primary/10 rounded-3xl p-8 border border-brand-brand-primary/20">
           <div class="flex items-center gap-4 mb-8">
             <div class="w-12 h-12 rounded-2xl bg-brand-primary flex items-center justify-center text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]">
               <i class="fas fa-user-secret text-2xl"></i>
             </div>
             <div>
               <div class="text-sm font-black text-white uppercase italic tracking-tighter">Strategic Commander</div>
-              <div class="text-[10px] font-bold text-brand-primary uppercase tracking-widest">S.M.U.V.E. 4.0 Active</div>
+              <div class="text-[10px] font-bold text-brand-primary uppercase tracking-widest">S.M.U.V.E. 4.2 Active</div>
             </div>
           </div>
 
@@ -133,7 +133,7 @@
 
         <!-- Career Impact Stats -->
         <div class="bg-brand-surface/30 rounded-3xl p-8 border border-white/10 relative overflow-hidden">
-          <div class="absolute -top-12 -right-12 w-24 h-24 bg-brand-primary/5 blur-3xl"></div>
+          <div class="absolute -top-12 -right-12 w-24 h-24 bg-brand-brand-primary/5 blur-3xl"></div>
           <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-6">Module Impact Metrics</h3>
           <div class="space-y-6">
             <div class="flex justify-between items-end">

@@ -4,12 +4,12 @@
       <i class="fas fa-layer-group text-brand-accent text-[10px]"></i>
       <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Effects Chain</h3>
     </div>
-    <div class="h-1 w-8 bg-brand-accent/30 rounded-full"></div>
+    <div class="h-1 w-8 bg-brand-brand-accent/30 rounded-full"></div>
   </div>
 
   <div class="slots-container flex-grow flex flex-col gap-2">
     <div *ngFor="let i of [1,2,3,4,5,6,7,8]" class="slot-item group">
-      <div class="slot-header flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 hover:border-brand-accent/50 transition-all cursor-pointer">
+      <div class="slot-header flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 hover:border-brand-brand-accent/50 transition-all cursor-pointer">
         <div class="flex items-center gap-3">
           <div class="w-1.5 h-1.5 rounded-full" [class.bg-brand-accent]="activeSlot === i" [class.bg-brand-surface-light]="activeSlot !== i"></div>
           <span class="text-[9px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-300">Slot {{ i }}</span>
@@ -23,10 +23,10 @@
   </div>
 
   <div class="mt-auto pt-6 border-t border-white/10">
-    <div class="bg-brand-accent/5 rounded-2xl border border-brand-accent/10 p-4">
+    <div class="bg-brand-brand-accent/5 rounded-2xl border border-brand-brand-accent/10 p-4">
       <div class="flex items-center justify-between mb-3">
         <span class="text-[8px] font-black uppercase tracking-widest text-violet-400">Master Dry/Wet</span>
-        <span class="text-[9px] font-mono text-[11px] tracking-tight text-brand-accent/80">100%</span>
+        <span class="text-[9px] font-mono text-[11px] tracking-tight text-brand-brand-accent/80">100%</span>
       </div>
       <div class="h-1.5 w-full bg-brand-surface-light rounded-full relative overflow-hidden">
         <div class="absolute inset-y-0 left-0 bg-brand-accent w-full shadow-[0_0_10px_#8b5cf6]"></div>

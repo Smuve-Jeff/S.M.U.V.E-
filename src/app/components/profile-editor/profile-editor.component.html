@@ -2,7 +2,7 @@
   <!-- Top Navigation & Status -->
   <header class="sticky top-0 z-50 bg-neutral-900/80 backdrop-blur-xl border-b border-white/5 p-4 flex justify-between items-center">
     <div class="flex items-center gap-4">
-      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-purple-600 flex items-center justify-center shadow-lg shadow-brand-primary/20">
+      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-purple-600 flex items-center justify-center shadow-lg shadow-brand-brand-primary/20">
         <i class="fas fa-user-shield text-white text-lg"></i>
       </div>
         <!-- PROACTIVE AI SUGGESTIONS -->
@@ -13,7 +13,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -53,7 +53,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -80,7 +80,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -106,7 +106,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -132,7 +132,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -154,7 +154,7 @@
     <div class="flex items-center gap-3">
       <button (click)="saveProfile()"
               [disabled]="saveStatus() === 'saving'"
-              class="px-6 py-2 bg-brand-primary hover:bg-emerald-600 disabled:opacity-50 text-black font-black uppercase text-xs rounded-sm tracking-widest transition-all shadow-lg shadow-brand-primary/20">
+              class="px-6 py-2 bg-brand-primary hover:bg-emerald-600 disabled:opacity-50 text-black font-black uppercase text-xs rounded-sm tracking-widest transition-all shadow-lg shadow-brand-brand-primary/20">
         Push to Neural Vault
       </button>
     </div>
@@ -166,7 +166,7 @@
       <div *ngIf="intelligenceBriefs().length > 0" class="space-y-2 mt-4">
          <h4 class="text-[9px] font-black uppercase text-brand-primary tracking-widest px-2">Strategic Briefs</h4>
          <div *ngFor="let brief of intelligenceBriefs().slice(0, 3)"
-              class="p-3 bg-brand-primary/5 border border-brand-primary/10 rounded-lg hover:border-brand-primary/30 transition-all cursor-help">
+              class="p-3 bg-brand-brand-primary/5 border border-brand-brand-primary/10 rounded-lg hover:border-brand-brand-primary/30 transition-all cursor-help">
             <h5 class="text-[9px] font-black text-white uppercase">{{brief.title}}</h5>
             <p class="text-[8px] text-slate-500 mt-1 line-clamp-2 uppercase">{{brief.content}}</p>
          </div>
@@ -178,7 +178,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -204,7 +204,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -230,7 +230,7 @@
         <span class="text-xs font-bold uppercase tracking-widest">{{section.label}}</span>
       </button>
 
-      <div class="mt-8 p-4 bg-brand-primary/5 border border-brand-primary/10 rounded-xl">
+      <div class="mt-8 p-4 bg-brand-brand-primary/5 border border-brand-brand-primary/10 rounded-xl">
          <h4 class="text-[9px] font-black uppercase text-brand-primary mb-2 tracking-widest">S.M.U.V.E. ADVISORY</h4>
          <p class="text-[9px] text-slate-400 leading-relaxed italic uppercase">"Detailed profiles increase sync licensing hit-rates by 40%. complete all deep-dive fields."</p>
       </div>
@@ -242,7 +242,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -274,7 +274,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -300,7 +300,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -321,7 +321,7 @@
 
     <!-- Main Content Area -->
     <main class="flex-1 bg-white/5 rounded-2xl border border-white/5 p-8 backdrop-blur-sm overflow-hidden relative min-h-[70vh]">
-      <div class="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+      <div class="absolute top-0 right-0 w-64 h-64 bg-brand-brand-primary/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
 
       <div [ngSwitch]="activeSection()" class="relative z-10 space-y-12">
 
@@ -357,7 +357,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -390,7 +390,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -426,7 +426,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -462,7 +462,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -497,7 +497,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -524,7 +524,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -564,7 +564,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -590,7 +590,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -630,7 +630,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -656,7 +656,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -692,7 +692,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -718,7 +718,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -754,7 +754,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -780,7 +780,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -816,7 +816,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -842,7 +842,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -878,7 +878,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -904,7 +904,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -945,7 +945,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -971,7 +971,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1002,7 +1002,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1028,7 +1028,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1083,7 +1083,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1116,7 +1116,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1143,7 +1143,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1173,7 +1173,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1216,7 +1216,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1243,7 +1243,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1273,7 +1273,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1300,7 +1300,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1327,7 +1327,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1365,7 +1365,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1396,7 +1396,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1418,7 +1418,7 @@
         <div *ngSwitchCase="'team'" class="space-y-8 animate-fade-in">
           <div class="flex justify-between items-center">
              <h2 class="text-xl font-black uppercase italic text-brand-primary">Team Management</h2>
-             <button (click)="addTeamMember()" class="px-4 py-2 border border-brand-primary/30 text-brand-primary text-[10px] font-black uppercase hover:bg-brand-primary/10 transition-colors">
+             <button (click)="addTeamMember()" class="px-4 py-2 border border-brand-brand-primary/30 text-brand-primary text-[10px] font-black uppercase hover:bg-brand-brand-primary/10 transition-colors">
                Add Specialist
              </button>
           </div>
@@ -1430,7 +1430,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1472,7 +1472,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1500,7 +1500,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1526,7 +1526,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1552,7 +1552,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1582,7 +1582,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1618,7 +1618,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1637,7 +1637,7 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div *ngFor="let doc of editableProfile().legalDocuments"
-                 class="p-4 bg-slate-900/50 border border-white/5 rounded-lg flex justify-between items-center hover:border-brand-primary/30 transition-all group">
+                 class="p-4 bg-slate-900/50 border border-white/5 rounded-lg flex justify-between items-center hover:border-brand-brand-primary/30 transition-all group">
               <span class="font-bold text-[10px] uppercase tracking-widest text-slate-300 group-hover:text-white transition-colors">{{ doc.title }}</span>
               <div class="flex gap-2">
                 <button (click)="openEditDocument(doc)" class="p-2 text-slate-500 hover:text-brand-primary transition-colors"><i class="fas fa-edit"></i></button>
@@ -1651,7 +1651,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1677,7 +1677,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1704,7 +1704,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1730,7 +1730,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>
@@ -1757,7 +1757,7 @@
            </div>
            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div *ngFor="let brief of intelligenceBriefs()"
-                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                   class="p-6 bg-brand-brand-primary/5 border border-brand-brand-primary/20 rounded-2xl group hover:bg-brand-brand-primary/10 transition-all relative overflow-hidden">
                  <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
                     <i class="fas fa-brain text-4xl text-brand-primary"></i>
                  </div>

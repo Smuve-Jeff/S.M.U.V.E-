@@ -43,8 +43,8 @@ describe('SpeechSynthesisService', () => {
     expect(mockUtterance.rate).toBe(1.0);
   });
 
-  it('should replace S.M.U.V.E 4.0 with Smooth', () => {
-    service.speak('Welcome to S.M.U.V.E 4.0');
+  it('should replace S.M.U.V.E 4.2 with Smooth', () => {
+    service.speak('Welcome to S.M.U.V.E 4.2');
 
     expect(global.SpeechSynthesisUtterance).toHaveBeenCalledWith('Welcome to Smooth');
   });

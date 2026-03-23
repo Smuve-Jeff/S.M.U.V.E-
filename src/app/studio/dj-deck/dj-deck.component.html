@@ -1,4 +1,4 @@
-<div class="h-full w-full bg-[#0d0d0d] text-slate-300 p-8 flex flex-col gap-8 overflow-y-auto relative selection:bg-brand-primary/30">
+<div class="h-full w-full bg-[#0d0d0d] text-slate-300 p-8 flex flex-col gap-8 overflow-y-auto relative selection:bg-brand-brand-primary/30">
   <!-- TOP STATUS HEADER -->
   <div class="flex items-center justify-between border-b border-white/5 pb-4">
     <div class="flex flex-col">
@@ -98,7 +98,7 @@
            <div class="grid grid-cols-4 gap-2">
               @for (i of [0,1,2,3,4,5,6,7]; track i) {
                  <button (click)="handlePadPress('A', i)"
-                         class="aspect-square rounded bg-slate-800/50 border border-white/5 text-[10px] flex items-center justify-center hover:bg-brand-primary/20 transition-all"
+                         class="aspect-square rounded bg-slate-800/50 border border-white/5 text-[10px] flex items-center justify-center hover:bg-brand-brand-primary/20 transition-all"
                          [class.border-brand-primary]="deckService.deckA().hotCues[i] !== null">
                    {{ i + 1 }}
                  </button>
@@ -207,10 +207,10 @@
 
        <!-- Deck Status Displays -->
        <div class="absolute -top-4 left-1/2 -translate-x-1/2 flex gap-4">
-          <div class="px-4 py-1 bg-slate-800 rounded-full border border-brand-primary/50 text-[10px] font-mono text-brand-primary">
+          <div class="px-4 py-1 bg-slate-800 rounded-full border border-brand-brand-primary/50 text-[10px] font-mono text-brand-primary">
              {{ deckService.deckA().bpm | number:'1.1-1' }} BPM
           </div>
-          <div class="px-4 py-1 bg-slate-800 rounded-full border border-brand-secondary/50 text-[10px] font-mono text-brand-secondary">
+          <div class="px-4 py-1 bg-slate-800 rounded-full border border-brand-brand-secondary/50 text-[10px] font-mono text-brand-secondary">
              {{ deckService.deckB().bpm | number:'1.1-1' }} BPM
           </div>
        </div>
@@ -287,7 +287,7 @@
            <div class="grid grid-cols-4 gap-2">
               @for (i of [0,1,2,3,4,5,6,7]; track i) {
                  <button (click)="handlePadPress('B', i)"
-                         class="aspect-square rounded bg-slate-800/50 border border-white/5 text-[10px] flex items-center justify-center hover:bg-brand-secondary/20 transition-all"
+                         class="aspect-square rounded bg-slate-800/50 border border-white/5 text-[10px] flex items-center justify-center hover:bg-brand-brand-secondary/20 transition-all"
                          [class.border-brand-secondary]="deckService.deckB().hotCues[i] !== null">
                    {{ i + 1 }}
                  </button>

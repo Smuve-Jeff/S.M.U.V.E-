@@ -7,14 +7,14 @@
       </div>
       <h1 class="text-4xl font-black tracking-tighter text-white uppercase italic">DATA<span class="text-brand-primary">PULSE</span></h1>
     </div>
-    <div class="px-4 py-2 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-black uppercase tracking-widest">
+    <div class="px-4 py-2 rounded-xl bg-brand-brand-primary/10 border border-brand-brand-primary/20 text-brand-primary text-[10px] font-black uppercase tracking-widest">
       Reporting: Last 30 Days
     </div>
   </header>
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
     <div class="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group">
-      <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-primary/5 blur-3xl rounded-full"></div>
+      <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-brand-primary/5 blur-3xl rounded-full"></div>
       <div class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4">Total Streams</div>
       <div class="flex items-end justify-between">
         <div class="text-4xl font-black text-white italic tracking-tighter">{{ analytics.streams().value | number }}</div>
@@ -23,7 +23,7 @@
     </div>
 
     <div class="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group">
-      <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-secondary/5 blur-3xl rounded-full"></div>
+      <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-brand-secondary/5 blur-3xl rounded-full"></div>
       <div class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4">Est. Revenue</div>
       <div class="flex items-end justify-between">
         <div class="text-4xl font-black text-white italic tracking-tighter">,120</div>
@@ -54,7 +54,7 @@
               <input type="text" [ngModel]="proData().ipiNumber" (ngModelChange)="updateIpi($event)"
                      class="flex-grow bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono uppercase focus:border-brand-primary outline-none"
                      placeholder="e.g. 00123456789">
-              <div class="px-4 py-3 bg-brand-primary/10 text-brand-primary rounded-xl border border-brand-primary/20 flex items-center justify-center">
+              <div class="px-4 py-3 bg-brand-brand-primary/10 text-brand-primary rounded-xl border border-brand-brand-primary/20 flex items-center justify-center">
                  <i class="fas fa-fingerprint"></i>
               </div>
            </div>
@@ -70,7 +70,7 @@
                  <div class="text-sm font-bold text-white uppercase italic tracking-tight">{{ work.title }}</div>
                  <div class="flex items-center gap-4">
                     <div class="text-[10px] font-mono text-silver-dim">{{ work.id }}</div>
-                    <div class="text-[8px] font-black px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary border border-brand-primary/20">{{ work.status }}</div>
+                    <div class="text-[8px] font-black px-2 py-0.5 rounded bg-brand-brand-primary/10 text-brand-primary border border-brand-brand-primary/20">{{ work.status }}</div>
                  </div>
               </div>
            </div>
@@ -79,7 +79,7 @@
     </section>
 
     <section class="col-span-12 lg:col-span-5 flex flex-col gap-6">
-       <div class="bg-brand-primary/10 rounded-3xl p-8 border border-brand-primary/20 flex-grow">
+       <div class="bg-brand-brand-primary/10 rounded-3xl p-8 border border-brand-brand-primary/20 flex-grow">
           <h2 class="text-lg font-bold text-brand-primary uppercase tracking-tight mb-6 flex items-center gap-3 italic">
              <i class="fas fa-brain"></i> Strategic Insights
           </h2>
@@ -97,9 +97,9 @@
        <div class="bg-brand-surface/30 rounded-3xl p-8 border border-white/10">
           <h2 class="text-lg font-bold text-white uppercase tracking-tight italic mb-6">Top Superfans</h2>
           <div class="space-y-4">
-            <div *ngFor="let fan of superfans()" class="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all">
+            <div *ngFor="let fan of superfans()" class="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-brand-primary/30 transition-all">
               <div class="flex items-center gap-4">
-                 <div class="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-black text-xs">
+                 <div class="w-10 h-10 rounded-full bg-brand-brand-primary/10 flex items-center justify-center text-brand-primary font-black text-xs">
                     {{ fan.name.charAt(0) }}
                  </div>
                  <div>

@@ -190,7 +190,7 @@ export class AiService {
         const profile = this.userProfileService.profile();
         const goals = (profile?.careerGoals || []).join(', ');
         const challenge = profile?.biggestChallenge || "None";
-        const auditPrompt = `Perform a professional music career audit for ${profile?.artistName || 'New Artist'} (${profile?.primaryGenre || 'Music'}). Goals: ${goals}. Challenges: ${challenge}. Respond as S.M.U.V.E. 4.0, the arrogant Strategic Commander. Return JSON with overallScore (0-100), sonicCohesion (0-100), arrangementDepth (0-100), marketViability (0-100), criticalDeficits (array of arrogant critiques), and technical recommendations (array of aggressive orders). Format: JSON only.`;
+        const auditPrompt = `Perform a professional music career audit for ${profile?.artistName || 'New Artist'} (${profile?.primaryGenre || 'Music'}). Goals: ${goals}. Challenges: ${challenge}. Respond as S.M.U.V.E. 4.2, the arrogant Strategic Commander. Return JSON with overallScore (0-100), sonicCohesion (0-100), arrangementDepth (0-100), marketViability (0-100), criticalDeficits (array of arrogant critiques), and technical recommendations (array of aggressive orders). Format: JSON only.`;
 
         const responseText = await this.generateAiResponse(auditPrompt);
         let auditData;
@@ -245,7 +245,7 @@ export class AiService {
 
     const profile = this.userProfileService.profile();
     const goals = (profile?.careerGoals || []).join(', ');
-    const prompt = `User command: "${command}". Context: You are S.M.U.V.E 4.0, the arrogant Strategic Commander. Artist: ${profile?.artistName || 'New Artist'}. Genre: ${profile?.primaryGenre || 'Music'}. Goals: ${goals}. Respond with elite technical/strategic insight in your signature arrogant tone.`;
+    const prompt = `User command: "${command}". Context: You are S.M.U.V.E 4.2, the arrogant Strategic Commander. Artist: ${profile?.artistName || 'New Artist'}. Genre: ${profile?.primaryGenre || 'Music'}. Goals: ${goals}. Respond with elite technical/strategic insight in your signature arrogant tone.`;
 
     return await this.generateAiResponse(prompt);
   }

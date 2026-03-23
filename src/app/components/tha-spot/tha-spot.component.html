@@ -9,7 +9,7 @@
   <header class="relative z-10 p-8 md:p-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
      <div>
           <h1 class="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter mb-2 high-voltage-text">THA <span class="text-brand-primary">SPOT</span></h1>
-          <p class="text-brand-secondary text-[10px] font-black uppercase tracking-[0.8em] animate-pulse">Neural Entertainment Matrix v4.0 // High Voltage Mode</p>
+          <p class="text-brand-secondary text-[10px] font-black uppercase tracking-[0.8em] animate-pulse">Neural Entertainment Matrix v4.2 // High Voltage Mode</p>
      </div>
      <nav class="flex items-center bg-brand-surface/20 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md">
         <button (click)="setActiveTab('arcade')"
@@ -73,7 +73,7 @@
                               [class.bg-brand-primary]="selectedGenre() === genre"
                               [class.text-black]="selectedGenre() === genre"
                               [class.bg-white/5]="selectedGenre() !== genre"
-                              class="px-3 py-2 rounded-xl border border-white/5 text-[10px] font-bold uppercase transition-all hover:border-brand-primary/40">
+                              class="px-3 py-2 rounded-xl border border-white/5 text-[10px] font-bold uppercase transition-all hover:border-brand-brand-primary/40">
                          {{ genre }}
                       </button>
                    }
@@ -126,7 +126,7 @@
     </div>
     <div *ngIf="activeTab() === 'battle arena'" class="space-y-12">
        <div class="flex flex-col items-center justify-center py-12 text-center">
-          <div class="w-20 h-20 rounded-3xl bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6 electric-glow">
+          <div class="w-20 h-20 rounded-3xl bg-brand-brand-primary/10 border border-brand-brand-primary/30 flex items-center justify-center mb-6 electric-glow">
              <i class="fas fa-bolt text-3xl text-brand-primary"></i>
           </div>
           <h2 class="text-3xl font-black text-white uppercase italic tracking-tighter mb-2 high-voltage-text">BATTLE <span class="text-brand-primary">ARENA</span></h2>
@@ -135,7 +135,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl">
              @for (game of games().filter(g => g.tags?.includes('Multiplayer')).slice(0, 4); track game.id) {
                 <div (click)="playGame(game)" class="p-8 rounded-3xl bg-brand-surface/20 border border-white/10 hover:border-brand-primary transition-all cursor-pointer group relative overflow-hidden">
-                   <div class="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                   <div class="absolute inset-0 bg-gradient-to-br from-brand-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                    <div class="w-12 h-12 rounded-2xl bg-black/40 flex items-center justify-center mb-6 group-hover:bg-brand-primary group-hover:text-black transition-all relative z-10">
                       <i class="fas fa-crosshairs"></i>
                    </div>
@@ -173,7 +173,7 @@
            <div class="absolute inset-0 flex items-center justify-center">
               <span class="text-3xl font-black text-white italic high-voltage-text">{{ searchProgress() }}%</span>
            </div>
-           <div class="absolute -inset-4 border border-brand-primary/20 rounded-full animate-ping"></div>
+           <div class="absolute -inset-4 border border-brand-brand-primary/20 rounded-full animate-ping"></div>
         </div>
 
         <h2 class="text-4xl font-black text-white uppercase italic tracking-tighter mb-4 high-voltage-text">
@@ -194,7 +194,7 @@
   </div>
 
   <div *ngIf="currentGame()" class="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-8 animate-enter">
-     <div class="w-full h-full max-w-7xl glass-panel rounded-3xl border-2 border-brand-primary/30 flex flex-col overflow-hidden electric-glow">
+     <div class="w-full h-full max-w-7xl glass-panel rounded-3xl border-2 border-brand-brand-primary/30 flex flex-col overflow-hidden electric-glow">
         <header class="p-4 md:p-6 border-b border-white/10 flex items-center justify-between bg-brand-surface/60">
            <div class="flex items-center gap-4">
               <div class="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse shadow-[0_0_10px_#ec5b13]"></div>

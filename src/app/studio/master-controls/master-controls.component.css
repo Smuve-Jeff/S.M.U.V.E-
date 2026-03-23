@@ -17,8 +17,8 @@
 }
 
 .dsp-toggle-btn {
-  @apply relative rounded-2xl bg-brand-surface border border-white/10 flex flex-col items-center justify-center transition-all duration-300;
-  @apply hover:border-brand-primary/30 hover:bg-brand-surface-light hover:shadow-[0_0_15px_rgba(16,185,129,0.1)];
+  @apply relative rounded-2xl bg-surface border border-white/10 flex flex-col items-center justify-center transition-all duration-300;
+  @apply hover:border-brand-primary/30 hover:bg-surface-bright hover:shadow-[0_0_15px_rgba(16,185,129,0.1)];
   color: #64748b;
 }
 
@@ -28,11 +28,11 @@
 }
 
 .status-dot {
-  @apply absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-brand-surface-light transition-all duration-300;
+  @apply absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-surface-bright transition-all duration-300;
 }
 
 .status-dot.on {
-  @apply bg-brand-primary shadow-[0_0_8px_#10b981];
+  @apply bg-primary shadow-[0_0_8px_#10b981];
 }
 
 .fader-track {
@@ -44,7 +44,7 @@
 }
 
 .rec-btn {
-  @apply hover:bg-brand-surface-light hover:border-red-500/30 transition-all duration-300;
+  @apply hover:bg-surface-bright hover:border-red-500/30 transition-all duration-300;
 }
 
 .rec-btn.recording {

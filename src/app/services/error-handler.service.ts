@@ -10,7 +10,7 @@ export class GlobalErrorHandler implements ErrorHandler {
   private notificationService = inject(NotificationService);
 
   handleError(error: any): void {
-    this.logger.error('S.M.U.V.E 4.0 Critical System Error:', error);
+    this.logger.error('S.M.U.V.E 4.2 Critical System Error:', error);
 
     const message = error.message ? error.message : error.toString();
 

@@ -3,7 +3,7 @@
   <header class="flex justify-between items-end mb-12 border-b border-white/10 pb-8">
     <div>
       <div class="flex items-center gap-3 mb-2">
-        <span class="px-2 py-0.5 bg-brand-primary/10 text-brand-primary text-[10px] font-black uppercase tracking-widest rounded border border-brand-primary/20">
+        <span class="px-2 py-0.5 bg-brand-brand-primary/10 text-brand-primary text-[10px] font-black uppercase tracking-widest rounded border border-brand-brand-primary/20">
           Corporate Infrastructure
         </span>
         <span class="text-slate-500 text-[10px] font-black uppercase tracking-widest">
@@ -25,15 +25,15 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div *ngFor="let pipeline of bizService.activePipelines()"
            (click)="navigateToPipeline(pipeline.id)"
-           class="bg-brand-surface/30 rounded-3xl p-8 border border-white/10 hover:border-brand-primary/50 transition-all cursor-pointer group relative overflow-hidden">
-        <div class="absolute -top-12 -right-12 w-24 h-24 bg-brand-primary/5 blur-3xl group-hover:bg-brand-primary/10 transition-all"></div>
+           class="bg-brand-surface/30 rounded-3xl p-8 border border-white/10 hover:border-brand-brand-primary/50 transition-all cursor-pointer group relative overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-24 h-24 bg-brand-brand-primary/5 blur-3xl group-hover:bg-brand-brand-primary/10 transition-all"></div>
 
         <div class="flex justify-between items-start mb-6">
-          <div class="w-12 h-12 bg-black/40 rounded-xl flex items-center justify-center border border-white/10 group-hover:border-brand-primary/30">
+          <div class="w-12 h-12 bg-black/40 rounded-xl flex items-center justify-center border border-white/10 group-hover:border-brand-brand-primary/30">
             <i class="fas fa-chart-line text-brand-primary"></i>
           </div>
           <span class="text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-black/40 rounded border border-white/10"
-                [ngClass]="{'text-brand-primary border-brand-primary/30': pipeline.status === 'Active', 'text-slate-500': pipeline.status !== 'Active'}">
+                [ngClass]="{'text-brand-primary border-brand-brand-primary/30': pipeline.status === 'Active', 'text-slate-500': pipeline.status !== 'Active'}">
             {{ pipeline.status }}
           </span>
         </div>

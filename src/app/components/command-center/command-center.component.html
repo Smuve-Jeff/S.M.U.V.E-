@@ -3,11 +3,11 @@
   <!-- TOP BAR: SYSTEM STATUS -->
   <header class="flex flex-wrap items-center justify-between gap-6 pb-6 border-b border-white/5">
     <div class="flex items-center gap-4">
-       <div class="w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center">
+       <div class="w-10 h-10 rounded-full bg-brand-brand-primary/10 border border-brand-brand-primary/30 flex items-center justify-center">
           <i class="fas fa-terminal text-brand-primary animate-pulse-subtle"></i>
        </div>
        <div class="flex flex-col">
-          <h1 class="digital-readout text-xl font-black text-white italic tracking-tighter">CENTRAL_COMMAND_v4.0</h1>
+          <h1 class="digital-readout text-xl font-black text-white italic tracking-tighter">CENTRAL_COMMAND_v4.2</h1>
           <div class="flex items-center gap-2">
              <div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div>
              <span class="text-[8px] font-black text-brand-primary uppercase tracking-[0.3em]">Neural Link: Synchronized</span>
@@ -49,7 +49,7 @@
   </header>
 
   <!-- DECREE BANNER -->
-  <div class="bg-brand-primary/10 border-y border-brand-primary/20 py-3 overflow-hidden">
+  <div class="bg-brand-brand-primary/10 border-y border-brand-brand-primary/20 py-3 overflow-hidden">
      <div class="flex gap-12 animate-slide-left whitespace-nowrap">
         @for (decree of aiService.strategicDecrees(); track decree) {
            <span class="text-[10px] font-black text-brand-primary italic tracking-[0.1em] uppercase">{{ decree }}</span>
@@ -64,7 +64,7 @@
        <!-- HUD TERMINAL -->
        <div class="flex-grow bg-brand-surface/30 rounded-2xl p-6 border border-white/10 flex flex-col gap-4 overflow-hidden relative group">
           <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity">
-             <span class="text-[8px] font-mono text-brand-primary">ROOT@SMUVE_v4.0:~$</span>
+             <span class="text-[8px] font-mono text-brand-primary">ROOT@SMUVE_v4.2:~$</span>
           </div>
 
           <div class="flex-grow overflow-y-auto font-mono text-[10px] space-y-2 no-scrollbar pr-4">
@@ -83,7 +83,7 @@
           <div class="relative mt-4">
              <input #cmdInput (keyup.enter)="handleCommand(cmdInput.value); cmdInput.value = ''"
                     type="text" placeholder="Execute Strategic Command..."
-                    class="w-full bg-black/40 border border-white/10 rounded-xl px-6 py-4 text-xs font-mono text-brand-primary placeholder:text-slate-700 focus:border-brand-primary/50 outline-none transition-all">
+                    class="w-full bg-black/40 border border-white/10 rounded-xl px-6 py-4 text-xs font-mono text-brand-primary placeholder:text-slate-700 focus:border-brand-brand-primary/50 outline-none transition-all">
              <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black text-slate-700 uppercase tracking-widest pointer-events-none">Press Enter to Commit</div>
           </div>
        </div>
@@ -91,7 +91,7 @@
        <!-- STRATEGIC RECOMMENDATIONS (BENTO) -->
        <div class="grid grid-cols-2 gap-4 h-64">
           @for (rec of strategicRecs().slice(0, 2); track rec.action) {
-             <div class="bg-brand-surface/20 rounded-2xl p-6 border border-white/5 hover:border-brand-primary/30 transition-all cursor-pointer group flex flex-col justify-between"
+             <div class="bg-brand-surface/20 rounded-2xl p-6 border border-white/5 hover:border-brand-brand-primary/30 transition-all cursor-pointer group flex flex-col justify-between"
                   (click)="initializeOperation(rec)">
                 <div>
                    <div class="flex justify-between items-start mb-2">
@@ -161,9 +161,9 @@
              </div>
           } @else {
              <div class="flex flex-col items-center justify-center py-12 text-center group cursor-pointer" (click)="handleCommand('/audit')">
-                <i class="fas fa-microscope text-brand-primary/40 text-3xl mb-4 group-hover:scale-110 group-hover:text-brand-primary transition-all"></i>
+                <i class="fas fa-microscope text-brand-brand-primary/40 text-3xl mb-4 group-hover:scale-110 group-hover:text-brand-primary transition-all"></i>
                 <p class="text-[10px] font-black text-silver-dim uppercase tracking-widest">Initialization Required</p>
-                <button class="mt-4 digital-readout text-[9px] border border-brand-primary/20 px-4 py-2 rounded uppercase hover:bg-brand-primary/10 transition-all">Run Profile Audit</button>
+                <button class="mt-4 digital-readout text-[9px] border border-brand-brand-primary/20 px-4 py-2 rounded uppercase hover:bg-brand-brand-primary/10 transition-all">Run Profile Audit</button>
              </div>
           }
        </div>
@@ -173,13 +173,13 @@
           <h3 class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2">High-Priority Intel</h3>
           <div class="space-y-3">
              @for (brief of aiService.intelligenceBriefs().slice(0, 2); track brief.id) {
-                <div class="hud-border p-5 bg-black/40 hover:bg-black/60 transition-all group border-white/5 hover:border-brand-accent/30">
+                <div class="hud-border p-5 bg-black/40 hover:bg-black/60 transition-all group border-white/5 hover:border-brand-brand-accent/30">
                    <div class="flex justify-between items-start mb-3">
                       <h4 class="text-[11px] font-black text-white uppercase tracking-tight">{{ brief.title }}</h4>
-                      <span class="text-[7px] font-black px-1.5 py-0.5 rounded bg-brand-accent/10 text-brand-accent uppercase border border-brand-accent/20">{{ brief.impact }}</span>
+                      <span class="text-[7px] font-black px-1.5 py-0.5 rounded bg-brand-brand-accent/10 text-brand-accent uppercase border border-brand-brand-accent/20">{{ brief.impact }}</span>
                    </div>
                    <p class="text-[9px] text-silver-dim leading-relaxed line-clamp-2 mb-3">{{ brief.content }}</p>
-                   <button (click)="handleCommand('/intel')" class="w-full digital-readout text-[8px] border border-white/10 hover:border-brand-accent hover:bg-brand-accent/5 py-2 transition-all uppercase tracking-widest">
+                   <button (click)="handleCommand('/intel')" class="w-full digital-readout text-[8px] border border-white/10 hover:border-brand-accent hover:bg-brand-brand-accent/5 py-2 transition-all uppercase tracking-widest">
                       View Briefing
                    </button>
                 </div>

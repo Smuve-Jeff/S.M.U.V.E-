@@ -3,17 +3,17 @@
   <!-- Holographic Executive Audit Overlay -->
   @if (aiService.executiveAudit()) {
     <div class="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4 md:p-8 animate-enter">
-      <div class="w-full max-w-5xl glass-card rounded-[2.5rem] border border-primary/30 p-8 md:p-12 relative overflow-hidden shadow-[0_0_100px_rgba(16,185,129,0.15)] titanium-texture">
-        <div class="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 blur-[80px] rounded-full"></div>
+      <div class="w-full max-w-5xl glass-card rounded-[2.5rem] border border-brand-primary/30 p-8 md:p-12 relative overflow-hidden shadow-[0_0_100px_rgba(16,185,129,0.15)] titanium-texture">
+        <div class="absolute -top-24 -right-24 w-64 h-64 bg-brand-primary/10 blur-[80px] rounded-full"></div>
         <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-cyan-400/10 blur-[80px] rounded-full"></div>
 
         <header class="flex items-start justify-between mb-12">
            <div>
               <div class="flex items-center gap-3 mb-2">
-                 <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-                 <span class="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Audit Sequence Complete</span>
+                 <div class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></div>
+                 <span class="text-[10px] font-black text-brand-primary uppercase tracking-[0.4em]">Audit Sequence Complete</span>
               </div>
-              <h2 class="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">EXECUTIVE <span class="text-primary">DECREE</span></h2>
+              <h2 class="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">EXECUTIVE <span class="text-brand-primary">DECREE</span></h2>
            </div>
            <div class="text-right">
               <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Audit Reference</div>
@@ -25,7 +25,7 @@
           <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10 mb-12">
              <div class="bg-black/40 border border-white/5 p-6 rounded-2xl text-center">
                 <span class="text-[8px] font-black text-slate-500 uppercase block mb-2">Overall Score</span>
-                <span class="text-4xl font-black text-primary">{{ report.overallScore }}</span>
+                <span class="text-4xl font-black text-brand-primary">{{ report.overallScore }}</span>
              </div>
              <div class="bg-black/40 border border-white/5 p-6 rounded-2xl text-center">
                 <span class="text-[8px] font-black text-slate-500 uppercase block mb-2">Sonic Cohesion</span>
@@ -43,7 +43,7 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
              <div>
-                <h3 class="text-xs font-black text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
+                <h3 class="text-xs font-black text-brand-primary uppercase tracking-widest mb-4 flex items-center gap-2">
                    <span class="material-symbols-outlined text-sm">warning</span> Critical Deficits
                 </h3>
                 <ul class="space-y-3">
@@ -84,20 +84,20 @@
   <!-- STUDIO HEADER -->
   <header class="h-16 obsidian-panel border-b border-white/5 px-4 md:px-6 flex items-center justify-between shrink-0 relative shadow-2xl z-50">
      <div class="flex items-center gap-3 md:gap-6">
-        <div class="flex items-center gap-2 md:gap-3 text-primary">
+        <div class="flex items-center gap-2 md:gap-3 text-brand-primary">
            <span class="material-symbols-outlined text-2xl md:text-3xl">token</span>
-           <h2 class="text-slate-100 text-sm md:text-lg font-black tracking-tight uppercase italic leading-none truncate max-w-[120px] md:max-w-none">STUDIO PRO <span class="text-primary font-black">v4</span></h2>
+           <h2 class="text-slate-100 text-sm md:text-lg font-black tracking-tight uppercase italic leading-none truncate max-w-[120px] md:max-w-none">STUDIO PRO <span class="text-brand-primary font-black">v4</span></h2>
         </div>
         <div class="h-8 w-px bg-white/10 hidden sm:block"></div>
-        <div class="hidden lg:flex items-center gap-3 bg-black/40 px-4 py-1.5 rounded-lg border border-primary/20">
-           <span class="material-symbols-outlined text-primary text-sm">schedule</span>
-           <span class="text-primary font-mono text-xl font-bold tracking-[0.2em]">00:04:12:<span class="text-xs opacity-50">{{ currentBeat().toFixed(0) }}</span></span>
+        <div class="hidden lg:flex items-center gap-3 bg-black/40 px-4 py-1.5 rounded-lg border border-brand-primary/20">
+           <span class="material-symbols-outlined text-brand-primary text-sm">schedule</span>
+           <span class="text-brand-primary font-mono text-xl font-bold tracking-[0.2em]">00:04:12:<span class="text-xs opacity-50">{{ currentBeat().toFixed(0) }}</span></span>
         </div>
      </div>
 
      <div class="flex items-center gap-2 md:gap-4">
         <div class="hidden xl:flex items-center gap-3 opacity-80">
-           <i class="fas fa-tower-broadcast text-primary text-xs animate-pulse"></i>
+           <i class="fas fa-tower-broadcast text-brand-primary text-xs animate-pulse"></i>
            <div class="flex flex-col">
               <span class="text-[7px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">AI Strategic Decree</span>
               <span class="text-[10px] font-bold text-white uppercase tracking-tight italic">{{ aiService.strategicDecrees()[0] }}</span>
@@ -106,7 +106,7 @@
         <div class="flex items-center gap-1 md:gap-2 bg-black/40 px-3 md:px-4 py-1.5 rounded-lg border border-white/5">
            <div class="flex flex-col items-center px-1 md:px-2">
               <span class="text-[7px] font-black text-slate-500 uppercase">CPU</span>
-              <span class="text-[9px] md:text-[10px] font-mono font-bold text-primary">{{ aiService.systemStatus().cpuLoad.toFixed(1) }}%</span>
+              <span class="text-[9px] md:text-[10px] font-mono font-bold text-brand-primary">{{ aiService.systemStatus().cpuLoad.toFixed(1) }}%</span>
            </div>
            <div class="h-4 w-px bg-white/10"></div>
            <div class="flex flex-col items-center px-1 md:px-2">
@@ -127,9 +127,9 @@
            @for (view of ['dj', 'drum-machine', 'piano-roll', 'mixer', 'vocal-suite', 'performance', 'mastering']; track view) {
               <button (click)="activeView.set((view))"
                       class="px-3 md:px-5 py-1.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-300 border border-transparent whitespace-nowrap"
-                      [class.bg-primary/20]="activeView() === view"
-                      [class.text-primary]="activeView() === view"
-                      [class.border-primary/20]="activeView() === view"
+                      [class.bg-brand-primary/20]="activeView() === view"
+                      [class.text-brand-primary]="activeView() === view"
+                      [class.border-brand-primary/20]="activeView() === view"
                       [class.text-slate-500]="activeView() !== view"
                       [class.hover:text-white]="activeView() !== view">
                  {{ view.replace('-', ' ') }}
@@ -138,8 +138,8 @@
         </div>
      </div>
      <div class="hidden sm:flex gap-4 ml-4">
-        <button (click)="showMixer.set(!showMixer())" class="text-[10px] font-black uppercase tracking-widest transition-all" [class.text-primary]="showMixer()" [class.text-slate-500]="!showMixer()">Mixer</button>
-        <button (click)="showRack.set(!showRack())" class="text-[10px] font-black uppercase tracking-widest transition-all" [class.text-primary]="showRack()" [class.text-slate-500]="!showRack()">Rack</button>
+        <button (click)="showMixer.set(!showMixer())" class="text-[10px] font-black uppercase tracking-widest transition-all" [class.text-brand-primary]="showMixer()" [class.text-slate-500]="!showMixer()">Mixer</button>
+        <button (click)="showRack.set(!showRack())" class="text-[10px] font-black uppercase tracking-widest transition-all" [class.text-brand-primary]="showRack()" [class.text-slate-500]="!showRack()">Rack</button>
      </div>
   </div>
 
@@ -172,8 +172,8 @@
 
      <!-- PERFORMANCE & MASTERING FALLBACK -->
      <div class="absolute inset-0 flex items-center justify-center bg-black/80" *ngIf="activeView() === 'performance'">
-        <div class="text-center p-8 md:p-12 glass-card rounded-3xl border border-primary/20 max-w-sm md:max-w-md animate-enter mx-4">
-           <span class="material-symbols-outlined !text-4xl md:!text-6xl text-primary mb-6 animate-pulse">sensors</span>
+        <div class="text-center p-8 md:p-12 glass-card rounded-3xl border border-brand-primary/20 max-w-sm md:max-w-md animate-enter mx-4">
+           <span class="material-symbols-outlined !text-4xl md:!text-6xl text-brand-primary mb-6 animate-pulse">sensors</span>
            <h2 class="text-lg md:text-xl font-black text-white uppercase tracking-widest mb-4">Performance Rehearsal Lab</h2>
            <p class="text-[10px] md:text-xs text-slate-400 leading-relaxed font-medium">Neural stage simulation is active. Connect hardware triggers to initialize the executive visual metronome and performance protocols.</p>
            <button (click)="uiService.navigateToView('practice')" class="mt-8 btn-elegant btn-elegant-primary text-[10px] font-black uppercase w-full py-3">Open Practice Space</button>

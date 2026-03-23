@@ -32,7 +32,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   activeDirectorTab = signal<'assets' | 'effects' | 'ai'>('assets');
   zoomLevel = signal(1.0);
 
-  aiFeedback = signal('S.M.U.V.E 4.0 Cinema Engine Offline. Initialize for executive visual capture.');
+  aiFeedback = signal('S.M.U.V.E 4.2 Cinema Engine Offline. Initialize for executive visual capture.');
 
   private canvasCtx: CanvasRenderingContext2D | null = null;
   private animFrame: number | null = null;

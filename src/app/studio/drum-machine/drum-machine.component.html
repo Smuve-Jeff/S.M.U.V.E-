@@ -3,9 +3,9 @@
   <!-- Header -->
   <div class="flex items-center justify-between">
     <div class="flex items-center gap-4">
-      <span class="material-symbols-outlined text-4xl text-primary animate-pulse">grid_view</span>
+      <span class="material-symbols-outlined text-4xl text-brand-primary animate-pulse">grid_view</span>
       <div>
-        <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">NEURAL DRUM <span class="text-primary">SYNTH v4 EXTREME</span></h2>
+        <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">NEURAL DRUM <span class="text-brand-primary">SYNTH v4 EXTREME</span></h2>
         <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Autonomous Sonic Extraction Module</p>
       </div>
     </div>
@@ -13,7 +13,7 @@
     <div class="flex gap-4 items-center">
       <div class="bg-black/60 px-6 py-2 rounded-xl border border-white/5 flex flex-col items-end">
         <span class="text-[7px] font-black text-slate-500 uppercase">Process Mode</span>
-        <span class="text-xs font-black text-primary uppercase">TITANIUM-NOIR</span>
+        <span class="text-xs font-black text-brand-primary uppercase">TITANIUM-NOIR</span>
       </div>
       <div class="h-10 w-px bg-white/10"></div>
       <div class="flex flex-col items-end">
@@ -83,7 +83,7 @@
             <div class="flex flex-col gap-2">
               <div class="flex justify-between items-center px-1">
                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">PITCH / FREQ</span>
-                <span class="text-xs font-mono text-primary font-bold">{{ pad.type === 'kick' ? pad.params.pitch : pad.params.frequency }}</span>
+                <span class="text-xs font-mono text-brand-primary font-bold">{{ pad.type === 'kick' ? pad.params.pitch : pad.params.frequency }}</span>
               </div>
               @if (pad.type === 'kick') {
                 <input type="range" min="40" max="300" step="1" [(ngModel)]="pad.params.pitch"
@@ -118,7 +118,7 @@
                 <div class="flex flex-col gap-2">
                     <div class="flex justify-between items-center px-1">
                       <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">PUNCH</span>
-                      <span class="text-xs font-mono text-primary font-bold">{{ (pad.params.punch * 100) | number:'1.0-0' }}</span>
+                      <span class="text-xs font-mono text-brand-primary font-bold">{{ (pad.params.punch * 100) | number:'1.0-0' }}</span>
                     </div>
                     <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.punch"
                            class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
@@ -128,7 +128,7 @@
                 <div class="flex flex-col gap-2">
                     <div class="flex justify-between items-center px-1">
                       <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">SNAP</span>
-                      <span class="text-xs font-mono text-primary font-bold">{{ (pad.params.snap * 100) | number:'1.0-0' }}</span>
+                      <span class="text-xs font-mono text-brand-primary font-bold">{{ (pad.params.snap * 100) | number:'1.0-0' }}</span>
                     </div>
                     <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.snap"
                            class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
@@ -138,7 +138,7 @@
                 <div class="flex flex-col gap-2">
                     <div class="flex justify-between items-center px-1">
                       <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">CRISPNESS</span>
-                      <span class="text-xs font-mono text-primary font-bold">{{ (pad.params.crispness * 100) | number:'1.0-0' }}</span>
+                      <span class="text-xs font-mono text-brand-primary font-bold">{{ (pad.params.crispness * 100) | number:'1.0-0' }}</span>
                     </div>
                     <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.crispness"
                            class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
@@ -148,7 +148,7 @@
                 <div class="flex flex-col gap-2">
                     <div class="flex justify-between items-center px-1">
                       <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">SUB WEIGHT</span>
-                      <span class="text-xs font-mono text-primary font-bold">{{ (pad.params.sub * 100) | number:'1.0-0' }}</span>
+                      <span class="text-xs font-mono text-brand-primary font-bold">{{ (pad.params.sub * 100) | number:'1.0-0' }}</span>
                     </div>
                     <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.sub"
                            class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
@@ -159,10 +159,10 @@
       }
 
       <!-- AI Analysis HUD -->
-      <div class="mt-auto p-6 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col gap-3">
+      <div class="mt-auto p-6 rounded-2xl bg-brand-primary/5 border border-brand-primary/20 flex flex-col gap-3">
         <div class="flex items-center gap-2">
-           <span class="material-symbols-outlined text-xs text-primary animate-pulse">analytics</span>
-           <span class="text-[8px] font-black text-primary uppercase tracking-widest">Neural_Acoustic_Audit</span>
+           <span class="material-symbols-outlined text-xs text-brand-primary animate-pulse">analytics</span>
+           <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Neural_Acoustic_Audit</span>
         </div>
         <p class="text-[9px] text-slate-400 italic leading-tight">
           "The transient integrity of this sample is borderline amateur. I've adjusted the lookahead on the master bus to compensate for your timing deficits."

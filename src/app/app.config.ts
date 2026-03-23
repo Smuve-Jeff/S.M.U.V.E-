@@ -26,7 +26,7 @@ export const appConfig: ApplicationConfig = {
         const logger = inject(LoggingService);
         const autoSave = inject(AutoSaveService);
         return () => {
-          logger.system('S.M.U.V.E 4.0 Executive Suite Initialized');
+          logger.system('S.M.U.V.E 4.2 Executive Suite Initialized');
           logger.info('Auto-Save Service Initialized');
         };
       },

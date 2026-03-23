@@ -2,7 +2,7 @@
   display: block;
   height: 100%;
 }
-.bg-brand-dark { background-color: #0d0d0d; }
-.text-brand-primary { color: #ec5b13; }
-.bg-brand-primary { background-color: #ec5b13; }
-.border-brand-primary { border-color: #ec5b13; }
+.bg-background { background-color: #0d0d0d; }
+.text-primary { color: #ec5b13; }
+.bg-primary { background-color: #ec5b13; }
+.border-primary { border-color: #ec5b13; }

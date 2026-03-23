@@ -14,5 +14,5 @@
 }
 
 .btn-elegant {
-  @apply bg-brand-primary text-black font-black uppercase tracking-tighter italic text-sm py-4 rounded-xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)];
+  @apply bg-primary text-black font-black uppercase tracking-tighter italic text-sm py-4 rounded-xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)];
 }

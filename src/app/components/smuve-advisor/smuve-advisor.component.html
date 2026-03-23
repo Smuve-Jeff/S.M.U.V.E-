@@ -2,10 +2,10 @@
   <!-- Advice Popover -->
   <div *ngIf="isOpen()"
        class="mb-4 w-80 max-h-[500px] overflow-y-auto bg-brand-surface/95 backdrop-blur-xl border border-brand-surface-light rounded-2xl shadow-2xl pointer-events-auto transition-all duration-300 animate-in slide-in-from-bottom-4">
-    <div class="p-4 border-b border-white/10 flex justify-between items-center bg-brand-primary/10">
+    <div class="p-4 border-b border-white/10 flex justify-between items-center bg-brand-brand-primary/10">
       <div class="flex items-center gap-2">
         <i class="fas fa-robot text-brand-primary"></i>
-        <h3 class="font-bold text-xs uppercase tracking-widest text-brand-primary">S.M.U.V.E 4.0 Advisor</h3>
+        <h3 class="font-bold text-xs uppercase tracking-widest text-brand-primary">S.M.U.V.E 4.2 Advisor</h3>
       </div>
       <button (click)="toggleOpen()" class="text-slate-500 hover:text-white transition-colors">
         <i class="fas fa-times"></i>
@@ -36,7 +36,7 @@
 
         <button *ngIf="item.actionLabel"
                 (click)="handleAction(item)"
-                class="w-full mt-2 py-2 px-3 bg-brand-primary/20 border border-brand-primary/30 rounded-xl text-brand-primary text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all">
+                class="w-full mt-2 py-2 px-3 bg-brand-brand-primary/20 border border-brand-brand-primary/30 rounded-xl text-brand-primary text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all">
           {{ item.actionLabel }}
         </button>
       </div>

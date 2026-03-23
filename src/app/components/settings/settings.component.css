@@ -8,7 +8,7 @@
   padding: 12px 24px;
   background: transparent;
   border-bottom: 2px solid transparent;
-  color: var(--silver-dim);
+  color: var(--color-text-dim);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -18,14 +18,13 @@
 }
 
 .settings-tab:hover {
-  color: white;
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-text);
+  border-bottom-color: var(--color-border-bright);
 }
 
 .settings-tab.active-tab {
-  color: var(--brand-primary);
-  border-bottom-color: var(--brand-primary);
-  text-shadow: 0 0 10px rgba(var(--brand-primary-rgb), 0.5);
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
 }
 
 .setting-group {
@@ -37,7 +36,7 @@
   font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
-  color: white;
+  color: var(--color-text-main);
   letter-spacing: 0.2em;
 }
 
@@ -46,29 +45,31 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--color-surface-bright);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   transition: all 0.2s ease;
+  @apply shadow-v42-sm;
 }
 
 .setting-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--color-bg-alt);
+  border-color: var(--color-border-bright);
 }
 
 .setting-title {
   font-size: 14px;
   font-weight: 800;
   letter-spacing: -0.02em;
+  color: var(--color-text-main);
 }
 
 .theme-btn {
   padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--color-surface-bright);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  color: var(--silver-dim);
+  color: var(--color-text-dim);
   font-size: 10px;
   font-weight: 700;
   text-align: center;
@@ -76,22 +77,22 @@
 }
 
 .theme-btn:hover {
-  background: rgba(255, 255, 255, 0.07);
-  color: white;
+  background: var(--color-bg-alt);
+  color: var(--color-text-main);
 }
 
 .theme-btn.theme-active {
-  background: var(--brand-primary);
-  border-color: var(--brand-primary);
-  color: var(--brand-dark);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
 }
 
 .persona-btn {
   padding: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--color-surface-bright);
+  border: 1px solid var(--color-border);
   border-radius: 14px;
-  color: var(--silver-dim);
+  color: var(--color-text-dim);
   font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
@@ -99,30 +100,29 @@
 }
 
 .persona-btn.persona-active {
-  background: var(--brand-accent);
-  border-color: var(--brand-accent);
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
   color: white;
-  box-shadow: 0 0 20px rgba(var(--brand-accent-rgb), 0.3);
 }
 
 .btn-active {
-   background: white !important;
-   color: black !important;
-   border-color: white !important;
+   background: var(--color-primary) !important;
+   color: white !important;
+   border-color: transparent !important;
 }
 
 /* Toggle Switch Style */
 .toggle-btn {
   width: 44px;
   height: 24px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-border-bright);
   border-radius: 12px;
   position: relative;
   transition: all 0.3s ease;
 }
 
 .toggle-btn.on {
-  background: var(--brand-primary);
+  background: var(--color-primary);
 }
 
 .toggle-handle {
@@ -144,7 +144,7 @@
 .smuve-slider {
   appearance: none;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-border);
   border-radius: 4px;
   outline: none;
 }
@@ -153,23 +153,17 @@
   appearance: none;
   width: 16px;
   height: 16px;
-  background: var(--brand-primary);
+  background: var(--color-primary);
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(var(--brand-primary-rgb), 0.5);
-  transition: transform 0.2s ease;
-}
-
-.smuve-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
 }
 
 /* S.M.U.V.E Input Styles */
 .smuve-input {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--color-surface-bright);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  color: white;
+  color: var(--color-text-main);
   font-size: 12px;
   padding: 12px 16px;
   font-weight: 600;
@@ -178,14 +172,5 @@
 }
 
 .smuve-input:focus {
-  border-color: var(--brand-primary);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.smuve-input option {
-  background: #111;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+  border-color: var(--color-primary);
 }

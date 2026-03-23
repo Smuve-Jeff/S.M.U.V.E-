@@ -1,16 +1,16 @@
-.bg-brand-dark {
+.bg-background {
   background-color: #020617; /* Slate 950 */
 }
-.bg-brand-surface {
+.bg-surface {
   background-color: rgba(15, 23, 42, 0.5); /* Slate 900 / 50 */
 }
-.text-brand-primary {
+.text-primary {
   color: #10b981;
 }
-.border-brand-primary\/20 {
+.border-primary\/20 {
   border-color: rgba(16, 185, 129, 0.2);
 }
-.bg-brand-primary {
+.bg-primary {
   background-color: #10b981;
 }
 

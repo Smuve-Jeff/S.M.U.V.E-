@@ -5,22 +5,22 @@ import { UserProfileService } from './user-profile.service';
 
 const THEMES: AppTheme[] = [
   {
-    name: 'Titanium-Noir',
-    primary: '#ec5b13',
-    accent: '#10b981',
-    neutral: '#050505',
-    purple: '#a855f7',
+    name: 'Light',
+    primary: '#10b981',
+    accent: '#f59e0b',
+    neutral: '#f8fafc',
+    purple: '#6366f1',
     red: '#ef4444',
     blue: '#3b82f6',
   },
   {
-    name: 'v4 Extreme',
-    primary: 'orange',
-    accent: 'magenta',
-    neutral: 'slate',
-    purple: 'purple',
-    red: 'red',
-    blue: 'blue',
+    name: 'Dark',
+    primary: '#10b981',
+    accent: '#38bdf8',
+    neutral: '#020617',
+    purple: '#6366f1',
+    red: '#f43f5e',
+    blue: '#3b82f6',
   },
 ];
 
@@ -47,7 +47,7 @@ export class UIService {
 
   isOnline = signal(true);
   performanceMode = signal(false);
-  showScanlines = signal(true);
+  showScanlines = signal(false);
 
   // Derived signals for UI state
   isLowPower = computed(() => this.performanceMode());
@@ -75,9 +75,9 @@ export class UIService {
         const profile = this.profileService.profile();
         if (profile && profile.settings) {
             const settings = profile.settings.ui;
-            this.performanceMode.set(settings.performanceMode);
-            this.showScanlines.set(settings.showScanlines);
-            this.setTheme(settings.theme);
+            this.performanceMode.set(settings.performanceMode || false);
+            this.showScanlines.set(settings.showScanlines || false);
+            this.setTheme(settings.theme || 'Light');
         }
       });
 
@@ -89,17 +89,37 @@ export class UIService {
           document.body.classList.remove('perf-mode-active');
         }
       });
+
+      effect(() => {
+        const theme = this.activeTheme();
+        if (theme.name === 'Dark') {
+          document.documentElement.classList.add('dark-mode');
+        } else {
+          document.documentElement.classList.remove('dark-mode');
+        }
+      });
     }
   }
 
   togglePerformanceMode() {
     const newVal = !this.performanceMode();
+    this.updateSetting('performanceMode', newVal);
+  }
+
+  toggleTheme() {
+    const nextTheme = this.activeTheme().name === 'Light' ? 'Dark' : 'Light';
+    this.updateSetting('theme', nextTheme);
+  }
+
+  private updateSetting(key: string, value: any) {
     const currentProfile = this.profileService.profile();
+    if (!currentProfile) return;
+
     this.profileService.updateProfile({
       ...currentProfile,
       settings: {
         ...currentProfile.settings,
-        ui: { ...currentProfile.settings.ui, performanceMode: newVal }
+        ui: { ...currentProfile.settings.ui, [key]: value }
       }
     });
   }
@@ -133,5 +153,9 @@ export class UIService {
     if (theme) {
       this.activeTheme.set(theme);
     }
+  }
+
+  getAvailableThemes() {
+    return THEMES;
   }
 }
