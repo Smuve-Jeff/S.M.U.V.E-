@@ -1,9 +1,10 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserProfileService, AppSettings } from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
 import { NotificationService } from '../../services/notification.service';
+import { SecurityService } from '../../services/security.service';
 
 @Component({
   selector: 'app-settings',
@@ -12,14 +13,19 @@ import { NotificationService } from '../../services/notification.service';
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.css']
 })
-export class SettingsComponent {
+export class SettingsComponent implements OnInit {
   profileService = inject(UserProfileService);
   uiService = inject(UIService);
   notificationService = inject(NotificationService);
+  securityService = inject(SecurityService);
 
   settings = computed(() => this.profileService.profile().settings);
+  activeTab = signal<'ui' | 'audio' | 'ai' | 'studio' | 'security'>('ui');
 
-  activeTab = signal<'ui' | 'audio' | 'ai' | 'studio' | 'privacy'>('ui');
+  ngOnInit() {
+    this.securityService.fetchLogs();
+    this.securityService.fetchSessions();
+  }
 
   async updateSetting(category: keyof AppSettings, key: string, value: any) {
     const currentProfile = this.profileService.profile();
@@ -48,12 +54,24 @@ export class SettingsComponent {
       }
 
       this.notificationService.show('Settings synchronized to cloud.', 'success', 2000);
+      if (category === 'security') {
+        this.securityService.logEvent('SETTING_CHANGED', `Updated ${key} to ${value}`);
+      }
     } catch (err) {
       this.notificationService.show('Sync failed. Local cache maintained.', 'error', 3000);
     }
   }
 
-  setTab(tab: 'ui' | 'audio' | 'ai' | 'studio' | 'privacy') {
+  setTab(tab: 'ui' | 'audio' | 'ai' | 'studio' | 'security') {
     this.activeTab.set(tab);
+    if (tab === 'security') {
+      this.securityService.fetchLogs();
+      this.securityService.fetchSessions();
+    }
+  }
+
+  async revokeSession(id: string) {
+    await this.securityService.revokeSession(id);
+    this.notificationService.show('Session revoked successfully.', 'success');
   }
 }
