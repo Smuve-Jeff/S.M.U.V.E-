@@ -263,6 +263,7 @@ export class AuthService {
         this.encrypt(JSON.stringify({ user, passwordHash }))
       );
 
+      const sessionId = this.generateSecureId('sess');
       const sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
       await this.securityService.registerCurrentSession(sessionId, 'Current Device', 'Unknown');
       await this.securityService.logEvent('LOGIN_SUCCESS', `Artist ${user.artistName} logged in successfully.`);
@@ -308,7 +309,7 @@ export class AuthService {
   }
 
   private generateUserId(): string {
-    return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    return this.generateSecureId('user_' + Date.now());
   }
 
   private hashPassword(password: string): string {
@@ -324,5 +325,10 @@ export class AuthService {
         }
     }
     return Math.abs(hash).toString(36) + (hash >>> 0).toString(16);
+  }
+  private generateSecureId(prefix: string): string {
+    const array = new Uint32Array(2);
+    crypto.getRandomValues(array);
+    return prefix + '_' + array[0].toString(36) + array[1].toString(36);
   }
 }
