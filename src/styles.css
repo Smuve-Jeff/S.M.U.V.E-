@@ -214,3 +214,22 @@ app-studio .view-nav-container {
     background: #0d0d0d;
     border-bottom: 1px solid rgba(255,255,255,0.05);
 }
+
+/* --- Footer Refinement --- */
+.elegant-footer-text {
+    font-family: var(--font-display);
+    font-weight: 800; /* Bold visual appearance */
+    letter-spacing: 0.15em; /* Tightened from 0.4em to standard professional */
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.7;
+}
+
+.elegant-footer-text:hover {
+    opacity: 1;
+    letter-spacing: 0.2em; /* Subtle dynamic "breathing" effect */
+    text-shadow: 0 0 12px var(--color-text-dim);
+}
+
+.dark-mode .elegant-footer-text:hover {
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+}
