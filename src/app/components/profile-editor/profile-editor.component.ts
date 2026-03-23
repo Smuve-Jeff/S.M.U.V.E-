@@ -187,7 +187,7 @@ export class ProfileEditorComponent {
   addTeamMember() {
     this.editableProfile.update(p => ({
       ...p,
-      team: [...(p.team || []), { role: '', name: '', contact: '', active: true }]
+      team: [...(p.team || []), { role: 'Viewer', name: '', contact: '', active: true, permissions: [] }]
     }));
   }
 

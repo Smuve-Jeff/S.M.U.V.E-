@@ -236,7 +236,7 @@
 
           <!-- Platter (Interactive) -->
           <div class="w-full h-full rounded-full bg-[#1a1c1e] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex items-center justify-center relative border-4 border-black/40 cursor-grab active:cursor-grabbing"
-               (mousedown)="onPlatterDown('B', )" (touchstart)="onPlatterDown('B', )">
+               (mousedown)="onPlatterDown('B', $event)" (touchstart)="onPlatterDown('B', $event)">
              <!-- Real-time Rotating Vinyl -->
              <div class="w-[95%] h-[95%] rounded-full relative overflow-hidden shadow-inner flex items-center justify-center"
                   [class.animate-spin-vinyl]="deckService.deckB().isPlaying && !isScratchingB()"

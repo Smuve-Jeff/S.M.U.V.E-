@@ -36,6 +36,13 @@ export interface AppSettings {
     shareAnalytics: boolean;
     publicProfile: boolean;
   };
+  security: {
+    twoFactorEnabled: boolean;
+    endToEndEncryption: boolean;
+    sessionTimeout: number;
+    biometricLock: boolean;
+    auditLogEnabled: boolean;
+  };
 }
 
 export interface CatalogItem {
@@ -225,10 +232,11 @@ export interface UserProfile {
     brandStory: string;
   };
   team: {
-    role: string;
+    role: 'Admin' | 'Manager' | 'Collaborator' | 'Engineer' | 'Viewer';
     name: string;
     contact: string;
     active: boolean;
+    permissions: string[];
   }[];
   socialMediaStrategy: {
     platforms: string[];
@@ -263,7 +271,14 @@ export const initialProfile: UserProfile = {
     audio: { masterVolume: 0.8, sampleRate: 44100, bufferSize: 512, autoSaveEnabled: true, defaultExportFormat: "wav" },
     ai: { kbWriteAccess: true, commanderPersona: "Elite", autoAuditEnabled: false, intelligenceFrequency: "High" },
     studio: { defaultQuantize: "1/16", pianoRollSnap: "1/16", showVelocityLane: true, autoMixEnabled: false },
-    privacy: { shareAnalytics: true, publicProfile: true }
+    privacy: { shareAnalytics: true, publicProfile: true },
+    security: {
+      twoFactorEnabled: false,
+      endToEndEncryption: true,
+      sessionTimeout: 3600,
+      biometricLock: false,
+      auditLogEnabled: true
+    }
   },
   catalog: [],
   tasks: [],
@@ -382,7 +397,15 @@ export const initialProfile: UserProfile = {
     },
     brandStory: ""
   },
-  team: [],
+  team: [
+    {
+      role: 'Admin',
+      name: 'Executive Artist',
+      contact: 'internal',
+      active: true,
+      permissions: ['ALL_ACCESS', 'MANAGE_SETTINGS', 'MANAGE_BILLING', 'MANAGE_CATALOG', 'AI_WRITE']
+    }
+  ],
   socialMediaStrategy: {
     platforms: [],
     frequency: "Daily",

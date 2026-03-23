@@ -11,10 +11,10 @@
       <button (click)="setTab('audio')" [class.active-tab]="activeTab() === 'audio'" class="settings-tab">Audio Engine</button>
       <button (click)="setTab('ai')" [class.active-tab]="activeTab() === 'ai'" class="settings-tab">Intelligence</button>
       <button (click)="setTab('studio')" [class.active-tab]="activeTab() === 'studio'" class="settings-tab">Studio Pro</button>
-      <button (click)="setTab('privacy')" [class.active-tab]="activeTab() === 'privacy'" class="settings-tab">Security</button>
+      <button (click)="setTab('security')" [class.active-tab]="activeTab() === 'security'" class="settings-tab">Security</button>
     </div>
 
-    <div class="p-8 settings-content-area custom-scrollbar overflow-y-auto max-h-[60vh]">
+    <div class="p-8 settings-content-area custom-scrollbar overflow-y-auto max-h-[70vh]">
 
       <!-- Interface Section -->
       <div *ngIf="activeTab() === 'ui'" class="flex flex-col gap-6 animate-enter">
@@ -157,17 +157,102 @@
           </div>
       </div>
 
-      <!-- Privacy Section -->
-      <div *ngIf="activeTab() === 'privacy'" class="flex flex-col gap-6 animate-enter">
-        <div class="setting-item">
-          <div>
-            <h3 class="setting-title">Intelligence Exchange</h3>
-            <p class="text-xs text-text-dim">Share anonymous metadata to refine global models.</p>
+      <!-- Security Section -->
+      <div *ngIf="activeTab() === 'security'" class="flex flex-col gap-8 animate-enter">
+        <!-- Core Security Toggles -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+            <div>
+              <h3 class="setting-title">Two-Factor Auth</h3>
+              <p class="text-xs text-text-dim">Shield access with 2FA.</p>
+            </div>
+            <button (click)="updateSetting('security', 'twoFactorEnabled', !settings().security.twoFactorEnabled)"
+              class="toggle-btn" [class.on]="settings().security.twoFactorEnabled">
+              <div class="toggle-handle"></div>
+            </button>
           </div>
-          <button (click)="updateSetting('privacy', 'shareAnalytics', !settings().privacy.shareAnalytics)"
-            class="toggle-btn" [class.on]="settings().privacy.shareAnalytics">
-            <div class="toggle-handle"></div>
-          </button>
+
+          <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+            <div>
+              <h3 class="setting-title">E2E Encryption</h3>
+              <p class="text-xs text-text-dim">Secure neural data streams.</p>
+            </div>
+            <button (click)="updateSetting('security', 'endToEndEncryption', !settings().security.endToEndEncryption)"
+              class="toggle-btn" [class.on]="settings().security.endToEndEncryption">
+              <div class="toggle-handle"></div>
+            </button>
+          </div>
+
+          <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+            <div>
+              <h3 class="setting-title">Biometric Lock</h3>
+              <p class="text-xs text-text-dim">Use system biometric verification.</p>
+            </div>
+            <button (click)="updateSetting('security', 'biometricLock', !settings().security.biometricLock)"
+              class="toggle-btn" [class.on]="settings().security.biometricLock">
+              <div class="toggle-handle"></div>
+            </button>
+          </div>
+
+          <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+            <div>
+              <h3 class="setting-title">Audit Logging</h3>
+              <p class="text-xs text-text-dim">Record all security events.</p>
+            </div>
+            <button (click)="updateSetting('security', 'auditLogEnabled', !settings().security.auditLogEnabled)"
+              class="toggle-btn" [class.on]="settings().security.auditLogEnabled">
+              <div class="toggle-handle"></div>
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Session Timeout (Seconds)</label>
+          <input type="number"
+            [ngModel]="settings().security.sessionTimeout"
+            (ngModelChange)="updateSetting('security', 'sessionTimeout', $event)"
+            class="smuve-input w-full mt-2">
+        </div>
+
+        <!-- Session Management -->
+        <div class="security-module">
+          <h4 class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center">
+            <span class="w-1 h-4 bg-brand-primary mr-2"></span> Active_Sessions
+          </h4>
+          <div class="flex flex-col gap-2">
+            <div *ngFor="let sess of securityService.sessions()" class="flex justify-between items-center bg-background/40 p-3 rounded-lg border border-border/50">
+              <div class="flex flex-col">
+                <span class="text-[11px] font-bold text-text-main">{{sess.device_name}}</span>
+                <span class="text-[9px] text-text-dim uppercase tracking-tighter">{{sess.location}} • {{sess.last_active | date:'short'}}</span>
+              </div>
+              <button (click)="revokeSession(sess.session_id)" class="text-[9px] font-black text-red-500 uppercase tracking-widest hover:underline px-2 py-1">Revoke</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Audit Log -->
+        <div class="security-module">
+           <h4 class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center">
+            <span class="w-1 h-4 bg-brand-secondary mr-2"></span> Security_Audit_Log
+          </h4>
+          <div class="bg-background/20 rounded-xl border border-border overflow-hidden">
+            <table class="w-full text-left text-[10px] uppercase">
+              <thead class="bg-background-alt/50 border-b border-border">
+                <tr>
+                  <th class="p-3 font-black tracking-widest text-text-dim">Event</th>
+                  <th class="p-3 font-black tracking-widest text-text-dim">Details</th>
+                  <th class="p-3 font-black tracking-widest text-text-dim">Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let log of securityService.logs()" class="border-b border-border/30 hover:bg-background/40">
+                  <td class="p-3 font-bold text-brand-primary">{{log.event_type}}</td>
+                  <td class="p-3 text-text-dim">{{log.description}}</td>
+                  <td class="p-3 text-text-dim">{{log.created_at | date:'shortTime'}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="mt-8 p-6 bg-red-500/5 border border-red-500/20 rounded-2xl">
