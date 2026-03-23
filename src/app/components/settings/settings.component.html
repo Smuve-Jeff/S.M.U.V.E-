@@ -1,0 +1,257 @@
+<div class="settings-container animate-enter">
+  <div class="glass-panel p-8 border border-white/10 flex flex-col gap-8">
+
+    <!-- Header -->
+    <div class="flex flex-col gap-2">
+      <h1 class="text-3xl font-black tracking-tighter text-white uppercase flex items-center gap-3">
+        <i class="fas fa-cog text-brand-primary"></i>
+        Application Settings
+      </h1>
+      <p class="text-silver-dim text-sm font-medium tracking-wide">
+        Configure your executive environment. All changes are synchronized to your neural profile in real-time.
+      </p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex items-center gap-2 border-b border-white/5 pb-0 overflow-x-auto no-scrollbar">
+      <button (click)="setTab('ui')"
+        [class.active-tab]="activeTab() === 'ui'"
+        class="settings-tab">
+        <i class="fas fa-palette mr-2"></i> Interface
+      </button>
+      <button (click)="setTab('audio')"
+        [class.active-tab]="activeTab() === 'audio'"
+        class="settings-tab">
+        <i class="fas fa-volume-up mr-2"></i> Audio Engine
+      </button>
+      <button (click)="setTab('ai')"
+        [class.active-tab]="activeTab() === 'ai'"
+        class="settings-tab">
+        <i class="fas fa-brain mr-2"></i> Strategic AI
+      </button>
+      <button (click)="setTab('studio')"
+        [class.active-tab]="activeTab() === 'studio'"
+        class="settings-tab">
+        <i class="fas fa-music mr-2"></i> Studio
+      </button>
+      <button (click)="setTab('privacy')"
+        [class.active-tab]="activeTab() === 'privacy'"
+        class="settings-tab">
+        <i class="fas fa-shield-alt mr-2"></i> Privacy
+      </button>
+    </div>
+
+    <!-- Content Sections -->
+    <div class="settings-content-area custom-scrollbar overflow-y-auto max-h-[60vh]">
+
+      <!-- Interface Section -->
+      <div *ngIf="activeTab() === 'ui'" class="flex flex-col gap-6 animate-enter">
+        <div class="setting-group">
+          <label class="setting-label">Active Theme</label>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+            <button *ngFor="let t of ['Modern Professional', 'pro-gradepunk', 'Vintage', 'v4 Extreme']"
+              (click)="updateSetting('ui', 'theme', t)"
+              [class.theme-active]="settings().ui.theme === t"
+              class="theme-btn">
+              {{t}}
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title text-white">Performance Mode</h3>
+            <p class="text-xs text-silver-dim">Disable animations and effects for lower CPU usage.</p>
+          </div>
+          <button (click)="updateSetting('ui', 'performanceMode', !settings().ui.performanceMode)"
+            class="toggle-btn" [class.on]="settings().ui.performanceMode">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title text-white">HUD Scanlines</h3>
+            <p class="text-xs text-silver-dim">Toggle the vintage holographic overlay across the app.</p>
+          </div>
+          <button (click)="updateSetting('ui', 'showScanlines', !settings().ui.showScanlines)"
+            class="toggle-btn" [class.on]="settings().ui.showScanlines">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Audio Section -->
+      <div *ngIf="activeTab() === 'audio'" class="flex flex-col gap-6 animate-enter">
+        <div class="setting-group">
+          <label class="setting-label">Master Volume ({{(settings().audio.masterVolume * 100).toFixed(0)}}%)</label>
+          <input type="range" min="0" max="1" step="0.01"
+            [ngModel]="settings().audio.masterVolume"
+            (ngModelChange)="updateSetting('audio', 'masterVolume', $event)"
+            class="smuve-slider w-full mt-2">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+          <div class="setting-group">
+            <label class="setting-label">Sample Rate</label>
+            <select [ngModel]="settings().audio.sampleRate"
+              (ngModelChange)="updateSetting('audio', 'sampleRate', $event)"
+              class="smuve-input w-full mt-2">
+              <option [value]="44100">44.1 kHz (CD Quality)</option>
+              <option [value]="48000">48.0 kHz (Pro Video)</option>
+              <option [value]="96000">96.0 kHz (High Res)</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label class="setting-label">Buffer Size</label>
+            <select [ngModel]="settings().audio.bufferSize"
+              (ngModelChange)="updateSetting('audio', 'bufferSize', $event)"
+              class="smuve-input w-full mt-2">
+              <option [value]="128">128 (Ultra Low Latency)</option>
+              <option [value]="256">256 (Balanced)</option>
+              <option [value]="512">512 (Stable)</option>
+              <option [value]="1024">1024 (Mastering Only)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title text-white">Export Format</h3>
+            <p class="text-xs text-silver-dim">Default file type for studio renders.</p>
+          </div>
+          <div class="flex gap-2">
+            <button *ngFor="let fmt of ['wav', 'mp3', 'webm']"
+              (click)="updateSetting('audio', 'defaultExportFormat', fmt)"
+              [class.btn-active]="settings().audio.defaultExportFormat === fmt"
+              class="px-3 py-1 rounded-lg border border-white/10 text-[10px] uppercase font-bold text-silver-dim">
+              {{fmt}}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Strategic Section -->
+      <div *ngIf="activeTab() === 'ai'" class="flex flex-col gap-6 animate-enter">
+        <div class="setting-group">
+          <label class="setting-label">Strategic Commander Persona</label>
+          <div class="grid grid-cols-3 gap-3 mt-2">
+            <button *ngFor="let p of ['Elite', 'Balanced', 'Supportive']"
+              (click)="updateSetting('ai', 'commanderPersona', p)"
+              [class.persona-active]="settings().ai.commanderPersona === p"
+              class="persona-btn">
+              {{p}}
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title text-white">Auto-Audit Trigger</h3>
+            <p class="text-xs text-silver-dim">Allow AI to perform background audits on track completion.</p>
+          </div>
+          <button (click)="updateSetting('ai', 'autoAuditEnabled', !settings().ai.autoAuditEnabled)"
+            class="toggle-btn" [class.on]="settings().ai.autoAuditEnabled">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Intelligence Frequency</label>
+          <div class="flex gap-4 mt-2">
+            <label *ngFor="let f of ['High', 'Medium', 'Low']" class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="freq" [value]="f"
+                [checked]="settings().ai.intelligenceFrequency === f"
+                (change)="updateSetting('ai', 'intelligenceFrequency', f)"
+                class="accent-brand-primary">
+              <span class="text-sm text-silver-dim font-bold">{{f}}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Studio Preferences -->
+      <div *ngIf="activeTab() === 'studio'" class="flex flex-col gap-6 animate-enter">
+         <div class="grid grid-cols-2 gap-6">
+            <div class="setting-group">
+              <label class="setting-label">Default Quantize</label>
+              <select [ngModel]="settings().studio.defaultQuantize"
+                (ngModelChange)="updateSetting('studio', 'defaultQuantize', $event)"
+                class="smuve-input w-full mt-2">
+                <option value="1/4">1/4 Note</option>
+                <option value="1/8">1/8 Note</option>
+                <option value="1/16">1/16 Note</option>
+                <option value="1/32">1/32 Note</option>
+              </select>
+            </div>
+            <div class="setting-group">
+               <label class="setting-label">Piano Roll Snap</label>
+               <select [ngModel]="settings().studio.pianoRollSnap"
+                 (ngModelChange)="updateSetting('studio', 'pianoRollSnap', $event)"
+                 class="smuve-input w-full mt-2">
+                 <option value="1/16">Grid (1/16)</option>
+                 <option value="1/32">Grid (1/32)</option>
+                 <option value="none">Off</option>
+               </select>
+             </div>
+         </div>
+
+         <div class="setting-item">
+            <div>
+              <h3 class="setting-title text-white">Show Velocity Lane</h3>
+              <p class="text-xs text-silver-dim">Always display MIDI velocity editor in Piano Roll.</p>
+            </div>
+            <button (click)="updateSetting('studio', 'showVelocityLane', !settings().studio.showVelocityLane)"
+              class="toggle-btn" [class.on]="settings().studio.showVelocityLane">
+              <div class="toggle-handle"></div>
+            </button>
+          </div>
+
+          <div class="setting-item">
+            <div>
+              <h3 class="setting-title text-white">Smart Auto-Mix</h3>
+              <p class="text-xs text-silver-dim">Apply neural gain staging automatically on playback.</p>
+            </div>
+            <button (click)="updateSetting('studio', 'autoMixEnabled', !settings().studio.autoMixEnabled)"
+              class="toggle-btn" [class.on]="settings().studio.autoMixEnabled">
+              <div class="toggle-handle"></div>
+            </button>
+          </div>
+      </div>
+
+      <!-- Privacy Section -->
+      <div *ngIf="activeTab() === 'privacy'" class="flex flex-col gap-6 animate-enter">
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title text-white">Share Intelligence Analytics</h3>
+            <p class="text-xs text-silver-dim">Help improve neural models by sharing anonymous production data.</p>
+          </div>
+          <button (click)="updateSetting('privacy', 'shareAnalytics', !settings().privacy.shareAnalytics)"
+            class="toggle-btn" [class.on]="settings().privacy.shareAnalytics">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title text-white">Public Neural Vault</h3>
+            <p class="text-xs text-silver-dim">Allow other artists to see your learned production styles.</p>
+          </div>
+          <button (click)="updateSetting('privacy', 'publicProfile', !settings().privacy.publicProfile)"
+            class="toggle-btn" [class.on]="settings().privacy.publicProfile">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="mt-8 p-4 bg-brand-danger/10 border border-brand-danger/20 rounded-xl">
+           <h4 class="text-brand-danger font-black uppercase text-xs tracking-widest mb-2">Danger Zone</h4>
+           <p class="text-[10px] text-brand-danger/80 mb-4">Wiping your profile is permanent and will reset all neural sync progress.</p>
+           <button class="px-6 py-2 bg-brand-danger text-white text-[10px] font-bold rounded-lg uppercase tracking-widest hover:bg-red-600 transition-colors">
+              Request Profile Purge
+           </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

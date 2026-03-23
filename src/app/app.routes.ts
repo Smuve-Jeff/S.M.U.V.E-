@@ -18,6 +18,7 @@ export const routes: Routes = [
   { path: 'lyric-editor', loadComponent: () => import('./components/lyric-editor/lyric-editor.component').then(m => m.LyricEditorComponent) },
   { path: 'remix-arena', loadComponent: () => import('./components/remix-arena/remix-arena.component').then(m => m.RemixArenaComponent) },
   { path: 'image-video-lab', loadComponent: () => import('./components/image-video-lab/image-video-lab.component').then(m => m.ImageVideoLabComponent) },
+  { path: 'settings', loadComponent: () => import('./components/settings/settings.component').then(m => m.SettingsComponent) },
   { path: 'login', loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent) },
   { path: 'dj', loadComponent: () => import('./studio/studio.component').then(m => m.StudioComponent) },
   { path: 'piano-roll', loadComponent: () => import('./studio/studio.component').then(m => m.StudioComponent) },

@@ -25,6 +25,7 @@ export type MainViewMode =
   | 'analytics'
   | 'practice'
   | 'career' | 'knowledge-base' | 'business-suite' | 'business-pipeline';
+  | 'career' | 'knowledge-base' | 'settings';
 
 export type { MainViewMode as ViewMode };
 

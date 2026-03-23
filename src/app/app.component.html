@@ -1,7 +1,7 @@
 <div class="app-container font-sans bg-brand-dark text-silver selection:bg-brand-primary/20"
      [class.sidebar-closed]="!isSidebarOpen()"
      [class.is-mobile]="isMobile()"
-     [class.perf-mode-active]="uiService.performanceMode()">
+     [class.perf-mode-active]="uiService.performanceMode()" [class.show-scanlines]="uiService.showScanlines()">
   <app-notification-toast></app-notification-toast>
   <app-smuve-advisor></app-smuve-advisor>
 

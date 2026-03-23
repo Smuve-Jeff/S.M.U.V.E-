@@ -1,6 +1,7 @@
 import { Injectable, signal, inject, effect } from '@angular/core';
 import { Router } from '@angular/router';
 import { MainViewMode, AppTheme } from './user-context.service';
+import { UserProfileService } from './user-profile.service';
 
 const THEMES: AppTheme[] = [
   {
@@ -53,6 +54,7 @@ export interface ViewConfig {
 })
 export class UIService {
   private router = inject(Router);
+  private profileService = inject(UserProfileService);
 
   mainViewMode = signal<MainViewMode>('hub');
   activeTheme = signal<AppTheme>(THEMES[0]);
@@ -63,6 +65,7 @@ export class UIService {
 
   isOnline = signal(true);
   performanceMode = signal(false);
+  showScanlines = signal(true);
 
   private viewConfigs: ViewConfig[] = [
     { mode: 'hub', label: 'Hub Dashboard', icon: 'fa-th-large', category: 'CORE' },
@@ -85,6 +88,7 @@ export class UIService {
     { mode: 'piano-roll', label: 'Piano Roll', icon: 'fa-keyboard', category: 'UTILITY' },
     { mode: 'image-editor', label: 'Image Editor', icon: 'fa-image', category: 'CREATIVE' },
     { mode: 'video-editor', label: 'Video Editor', icon: 'fa-film', category: 'CREATIVE' },
+    { mode: 'settings', label: 'Settings', icon: 'fa-cog', category: 'UTILITY' },
   ];
 
   private currentViewIndex = 0;
@@ -95,10 +99,13 @@ export class UIService {
       window.addEventListener('online', () => this.updateOnlineStatus(true));
       window.addEventListener('offline', () => this.updateOnlineStatus(false));
 
-      const savedPerfMode = localStorage.getItem('smuve_perf_mode');
-      if (savedPerfMode) {
-        this.performanceMode.set(savedPerfMode === 'true');
-      }
+      // Sync from Profile Settings
+      effect(() => {
+        const settings = this.profileService.profile().settings.ui;
+        this.performanceMode.set(settings.performanceMode);
+        this.showScanlines.set(settings.showScanlines);
+        this.setTheme(settings.theme);
+      });
 
       effect(() => {
         const isPerf = this.performanceMode();
@@ -112,10 +119,14 @@ export class UIService {
   }
 
   togglePerformanceMode() {
-    this.performanceMode.update(v => {
-      const newVal = !v;
-      localStorage.setItem('smuve_perf_mode', String(newVal));
-      return newVal;
+    const newVal = !this.performanceMode();
+    const currentProfile = this.profileService.profile();
+    this.profileService.updateProfile({
+      ...currentProfile,
+      settings: {
+        ...currentProfile.settings,
+        ui: { ...currentProfile.settings.ui, performanceMode: newVal }
+      }
     });
   }
 

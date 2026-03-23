@@ -2,6 +2,37 @@ import { BusinessPipeline, ProData } from "../types/business.types";
 import { LoggingService } from './logging.service';
 import { MarketingCampaign } from '../types/marketing.types';
 import { Injectable, signal, effect, inject } from '@angular/core';
+export interface AppSettings {
+  ui: {
+    theme: string;
+    performanceMode: boolean;
+    showScanlines: boolean;
+    animationsEnabled: boolean;
+  };
+  audio: {
+    masterVolume: number;
+    sampleRate: number;
+    bufferSize: number;
+    autoSaveEnabled: boolean;
+    defaultExportFormat: "wav" | "mp3" | "webm";
+  };
+  ai: {
+    commanderPersona: "Elite" | "Balanced" | "Supportive";
+    autoAuditEnabled: boolean;
+    intelligenceFrequency: "High" | "Medium" | "Low";
+  };
+  studio: {
+    defaultQuantize: string;
+    pianoRollSnap: string;
+    showVelocityLane: boolean;
+    autoMixEnabled: boolean;
+  };
+  privacy: {
+    shareAnalytics: boolean;
+    publicProfile: boolean;
+  };
+}
+
 import { AuthService } from './auth.service';
 import { DatabaseService } from './database.service';
 import { LegalDocument } from '../components/legal-document-editor/legal-document-editor.component';
@@ -65,6 +96,7 @@ export interface ArtistTask {
 }
 
 export interface UserProfile {
+  settings: AppSettings;
   catalog: CatalogItem[];
   businessPipelines?: BusinessPipeline[];
   proData?: ProData;
@@ -239,6 +271,13 @@ export interface UserProfile {
 }
 
 export const initialProfile: UserProfile = {
+  settings: {
+    ui: { theme: "Modern Professional", performanceMode: false, showScanlines: true, animationsEnabled: true },
+    audio: { masterVolume: 0.8, sampleRate: 44100, bufferSize: 512, autoSaveEnabled: true, defaultExportFormat: "wav" },
+    ai: { commanderPersona: "Elite", autoAuditEnabled: false, intelligenceFrequency: "High" },
+    studio: { defaultQuantize: "1/16", pianoRollSnap: "1/16", showVelocityLane: true, autoMixEnabled: false },
+    privacy: { shareAnalytics: true, publicProfile: true }
+  },
   catalog: [],
   tasks: [],
   marketingCampaigns: [],
