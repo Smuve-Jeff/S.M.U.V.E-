@@ -264,6 +264,7 @@ export class AuthService {
       );
 
       const sessionId = this.generateSecureId('sess');
+      const sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
       await this.securityService.registerCurrentSession(sessionId, 'Current Device', 'Unknown');
       await this.securityService.logEvent('LOGIN_SUCCESS', `Artist ${user.artistName} logged in successfully.`);
 
