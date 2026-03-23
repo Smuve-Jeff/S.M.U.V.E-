@@ -345,3 +345,19 @@ html, body {
 .perf-mode-active canvas {
     image-rendering: pixelated;
 }
+
+/* Vocal Suite Specific Theme v4.1 */
+:root {
+  --vocal-primary: #a855f7;
+  --vocal-secondary: #ec5b13;
+  --vocal-obsidian: #0d0d0d;
+  --vocal-titanium: #1a1a1a;
+  --vocal-oled: #050505;
+}
+
+.bg-vocal-obsidian { background-color: var(--vocal-obsidian); }
+.bg-vocal-titanium { background-color: var(--vocal-titanium); }
+.bg-vocal-oled { background-color: var(--vocal-oled); }
+.bg-vocal-primary { background-color: var(--vocal-primary); }
+.text-vocal-primary { color: var(--vocal-primary); }
+.border-vocal-primary { border-color: var(--vocal-primary); }
