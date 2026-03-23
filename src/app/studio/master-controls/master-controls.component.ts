@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { InstrumentService } from '../instrument.service';
+import { AudioEngineService } from "../../services/audio-engine.service";
 import { ExportService } from '../../services/export.service';
 import { GainReductionMeterComponent } from './gain-reduction-meter.component';
 import { NotificationService } from '../../services/notification.service';
@@ -17,6 +18,7 @@ export class MasterControlsComponent {
   private readonly exportService = inject(ExportService);
   private readonly notificationService = inject(NotificationService);
   private readonly elementRef = inject(ElementRef);
+  public readonly audioEngine = inject(AudioEngineService);
 
   readonly compressor = this.instrumentService.getCompressor();
   isLimiterActive = signal(false);

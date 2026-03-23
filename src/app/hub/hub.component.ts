@@ -35,7 +35,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   public aiService = inject(AiService);
   private fileLoader = inject(FileLoaderService);
   private exportService = inject(ExportService);
-  private audioEngine = inject(AudioEngineService);
+  public audioEngine = inject(AudioEngineService);
   private notificationService = inject(NotificationService);
   public playerService = inject(PlayerService);
 

@@ -209,6 +209,39 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     this.selectedNoteIds.set(new Set());
   }
 
+  transposeSelected(semitones: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    track.notes.forEach(n => {
+       if (this.selectedNoteIds().has(n.id)) {
+          this.musicManager.updateNote(track.id, n.id, { midi: n.midi + semitones });
+       }
+    });
+  }
+
+  legatoSelected() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const sortedNotes = [...track.notes].sort((a,b) => a.step - b.step);
+    sortedNotes.forEach((n, i) => {
+      if (this.selectedNoteIds().has(n.id) && i < sortedNotes.length - 1) {
+        const next = sortedNotes[i+1];
+        this.musicManager.updateNote(track.id, n.id, { length: next.step - n.step });
+      }
+    });
+  }
+
+  duplicateSelected() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    this.selectedNoteIds().forEach(id => {
+      const n = track.notes.find(x => x.id === id);
+      if (n) {
+        this.musicManager.addNote(track.id, { ...n, id: Math.random().toString(36).substr(2, 9), step: n.step + 16 });
+      }
+    });
+  }
+
   selectTrack(track: TrackModel) {
     this.musicManager.selectedTrackId.set(track.id);
     this.selectedNoteIds.set(new Set());
