@@ -203,7 +203,7 @@ export class PianoRollComponent {
     else this.dragType = 'move';
   }
 
-  @HostListener('window:mousemove', [''])
+  @HostListener('window:mousemove', ['$event'])
   onMouseMove(event: MouseEvent) {
     if (this.isSelecting) {
       const dx = event.clientX - this.startX;
