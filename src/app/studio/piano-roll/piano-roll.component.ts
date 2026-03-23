@@ -136,32 +136,33 @@ export class PianoRollComponent {
          this.selectionBox.set({ x, y, w: 0, h: 0, active: true });
          this.startX = event.clientX;
          this.startY = event.clientY;
-       } else if (this.editMode() === 'draw' || this.editMode() === 'select') {
+       } else if (this.editMode() === 'draw' || this.editMode() === 'select' || this.editMode() === 'chord') {
          this.selectedNoteIds.set(new Set());
 
          if (!this.isDrumTrack() && this.snapToScale() && !this.isInScale(pitch)) {
-            const scaleNotes = this.selectedScale().intervals.map(i => (i + this.selectedRoot()) % 12);
-            let minDist = 12;
-            let targetPitch = pitch;
-            for (let i = -6; i <= 6; i++) {
-               const p = pitch + i;
-               if (scaleNotes.includes(p % 12 < 0 ? p % 12 + 12 : p % 12)) {
-                  if (Math.abs(i) < minDist) {
-                    minDist = Math.abs(i);
-                    targetPitch = p;
-                  }
-               }
-            }
-            pitch = targetPitch;
+           const scaleNotes = this.selectedScale().intervals.map(i => (i + this.selectedRoot()) % 12);
+           let minDist = 12;
+           let targetPitch = pitch;
+
+           for (let i = -6; i <= 6; i++) {
+             const p = pitch + i;
+             const pitchClass = p % 12 < 0 ? (p % 12) + 12 : (p % 12);
+             if (scaleNotes.includes(pitchClass) && Math.abs(i) < minDist) {
+               minDist = Math.abs(i);
+               targetPitch = p;
+             }
+           }
+
+           pitch = targetPitch;
          }
 
          const track = this.selectedTrack();
-         if (track) {
-           if (this.editMode() === 'chord' && !this.isDrumTrack()) {
-              this.addChord(track.id, pitch, step);
-           } else {
-              this.musicManager.addNoteToTrack(track.id, { midi: pitch, step, length: 1, velocity: 0.8 });
-           }
+         if (!track) return;
+
+         if (this.editMode() === 'chord' && !this.isDrumTrack()) {
+           this.addChord(track.id, pitch, step);
+         } else {
+           this.musicManager.addNoteToTrack(track.id, { midi: pitch, step, length: 1, velocity: 0.8 });
          }
        }
     }
