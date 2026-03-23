@@ -55,27 +55,6 @@ export class AppComponent {
       }
     });
   }
-  isViewSelectorOpen = signal(false);
-  viewSearchQuery = signal("");
-  isMobile = signal(false);
-
-  constructor() {
-    this.checkMobile();
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe(() => {
-      const path = this.router.url.split('/')[1];
-      if (path && this.uiService.getViewModes().includes(path as any)) {
-        this.uiService.mainViewMode.set(path as any);
-      }
-    });
-
-    effect(() => {
-      if (this.uiService.isOnline()) {
-        this.notificationService.show('System Online', 'success', 3000);
-      }
-    });
-  }
 
   @HostListener('window:keydown', [''])
   handleKeyboardEvent(event: KeyboardEvent) {

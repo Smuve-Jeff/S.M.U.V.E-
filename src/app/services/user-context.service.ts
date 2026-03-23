@@ -24,12 +24,14 @@ export type MainViewMode =
   | 'strategy'
   | 'analytics'
   | 'practice'
-  | 'career' | 'knowledge-base' | 'business-suite' | 'business-pipeline';
-  | 'career' | 'knowledge-base' | 'settings';
+  | 'career'
+  | 'knowledge-base'
+  | 'business-suite'
+  | 'business-pipeline'
+  | 'settings';
 
 export type { MainViewMode as ViewMode };
 
-// FIX: Moved shared interfaces here to break circular dependencies
 export interface Track {
   name: string;
   url: string;
@@ -98,11 +100,6 @@ export const initialDeckState: DeckState = {
   sendB: 0,
 };
 
-/**
- * Service to hold the user's current session context.
- * This allows the AI to have a short-term "memory" of user actions
- * like theme changes or image generations.
- */
 @Injectable({
   providedIn: 'root',
 })

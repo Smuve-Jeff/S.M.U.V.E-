@@ -1,323 +1,1791 @@
-<div
-  class="p-6 h-full overflow-y-auto bg-brand-dark text-white"
-  [ngStyle]="{ 'border-color': theme().primary, color: theme().primary }"
->
-  <!-- Authenticated View -->
-  <div *ngIf="isAuthenticated() && currentUser() as user; else guestView">
-    <!-- Main Profile View -->
-    <div class="flex gap-8">
-      <!-- Sidebar Menu -->
-      <div class="w-1/4 sticky top-0 self-start">
-        <div class="bg-brand-surface p-4 rounded-xl shadow-lg">
-          <nav class="flex flex-col gap-2">
-            <button
-              *ngFor="let section of sections"
-              (click)="activeSection.set(section.id)"
-              [class.active-section]="activeSection() === section.id"
-              class="text-left p-3 rounded-lg transition-colors text-neutral-300 hover:bg-neutral-700/50 flex items-center gap-3"
-            >
-              <i
-                class="fas text-lg w-6 text-center"
-                [ngClass]="section.icon"
-                [style.color]="theme().accent"
-              ></i>
-              <span>{{ section.label }}</span>
-            </button>
-          </nav>
-        </div>
+<div class="profile-editor-view bg-black/90 min-h-screen text-slate-100 font-mono">
+  <!-- Top Navigation & Status -->
+  <header class="sticky top-0 z-50 bg-neutral-900/80 backdrop-blur-xl border-b border-white/5 p-4 flex justify-between items-center">
+    <div class="flex items-center gap-4">
+      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-purple-600 flex items-center justify-center shadow-lg shadow-brand-primary/20">
+        <i class="fas fa-user-shield text-white text-lg"></i>
       </div>
-
-      <!-- Content -->
-      <div class="w-3/4">
-        <div class="bg-brand-surface p-8 rounded-xl shadow-lg">
-          <ng-container *ngFor="let section of sections">
-            <div *ngIf="activeSection() === section.id" class="animate-fade-in">
-              <h3
-                class="text-2xl font-bold mb-6 flex items-center gap-3"
-                [style.color]="theme().primary"
-              >
-                <i class="fas" [ngClass]="section.icon"></i>
-                {{ section.label }}
-              </h3>
-
-              <!-- Social & Links Section -->
-              <div *ngIf="section.id === 'social'" class="space-y-10">
-                <!-- Official Music Portals -->
-                <div class="space-y-4">
-                  <h4 class="text-xl font-bold text-brand-primary flex items-center gap-2">
-                    <i class="fas fa-check-circle"></i>
-                    Official Music Portals
-                  </h4>
-                  <div class="grid grid-cols-1 gap-4">
-                    <div *ngFor="let p of objectKeys(editableProfile().officialMusicProfiles)"
-                         class="bg-brand-dark/40 p-4 rounded-xl border border-white/10 flex flex-col gap-3">
-                      <div class="flex justify-between items-center">
-                        <label class="capitalize font-bold text-sm tracking-widest text-slate-400">{{ p }} For Artists</label>
-                        <div class="flex items-center gap-2">
-                          <span *ngIf="editableProfile().officialMusicProfiles[p].status === 'verified'"
-                                class="text-[10px] bg-green-500/20 text-green-500 px-2 py-0.5 rounded uppercase font-bold">
-                            Verified
-                          </span>
-                          <span *ngIf="editableProfile().officialMusicProfiles[p].status === 'syncing'"
-                                class="text-[10px] bg-brand-primary/20 text-brand-primary px-2 py-0.5 rounded uppercase font-bold animate-pulse-subtle">
-                            Syncing...
-                          </span>
-                        </div>
-                      </div>
-                      <div class="flex gap-2">
-                        <input type="text"
-                               [value]="editableProfile().officialMusicProfiles[p].url"
-                               (input)="updatePlatformUrl('officialMusicProfiles', p, $event)"
-                               placeholder="Enter dashboard URL"
-                               class="flex-grow p-2 bg-brand-surface rounded border border-white/10 outline-none focus:border-brand-primary transition-colors" />
-                        <button (click)="verifyPlatform('officialMusicProfiles', p)"
-                                [disabled]="!editableProfile().officialMusicProfiles[p].url || editableProfile().officialMusicProfiles[p].status === 'syncing'"
-                                class="px-4 py-2 bg-brand-primary text-black font-bold rounded hover:scale-105 transition-transform disabled:opacity-50">
-                          {{ editableProfile().officialMusicProfiles[p].verified ? 'Re-Sync' : 'Verify' }}
-                        </button>
-                      </div>
-                      <div *ngIf="editableProfile().officialMusicProfiles[p].lastSynced" class="text-[9px] text-neutral-600 italic">
-                        Last synced: {{ editableProfile().officialMusicProfiles[p].lastSynced | date:'short' }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Behind-The-Scenes / Personal Profiles -->
-                <div class="space-y-4 pt-6 border-t border-white/10">
-                  <h4 class="text-xl font-bold text-brand-accent flex items-center gap-2">
-                    <i class="fas fa-share-alt"></i>
-                    Behind-The-Scenes / Personal Profiles
-                  </h4>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div *ngFor="let p of objectKeys(editableProfile().personalSocialProfiles)"
-                         class="bg-brand-dark/40 p-4 rounded-xl border border-white/10 flex flex-col gap-3">
-                      <label class="capitalize font-bold text-sm tracking-widest text-slate-400">{{ p === 'x' ? 'X (Twitter)' : p }}</label>
-                      <div class="flex gap-2">
-                        <input type="text"
-                               [value]="editableProfile().personalSocialProfiles[p].url"
-                               (input)="updatePlatformUrl('personalSocialProfiles', p, $event)"
-                               placeholder="Profile URL"
-                               class="flex-grow p-2 bg-brand-surface rounded border border-white/10 outline-none focus:border-brand-accent transition-colors" />
-                        <button (click)="verifyPlatform('personalSocialProfiles', p)"
-                                [disabled]="!editableProfile().personalSocialProfiles[p].url"
-                                class="p-2 bg-brand-surface rounded hover:text-brand-accent transition-colors">
-                          <i class="fas" [class.fa-link]="!editableProfile().personalSocialProfiles[p].verified"
-                                         [class.fa-check]="editableProfile().personalSocialProfiles[p].verified"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
               </div>
+           </div>
+        </div>
 
-
-              <!-- Catalog & Assets Section -->
-              <div *ngIf="section.id === 'catalog'" class="space-y-6">
-                <div class="border-b border-white/10 pb-4 mb-6">
-                  <h3 class="text-2xl font-black text-white uppercase tracking-tighter">Artist Catalog</h3>
-                  <p class="text-slate-400 text-sm">Manage your masters, demos, stems, and creative assets with full metadata tracking.</p>
-                </div>
-                <app-catalog-manager></app-catalog-manager>
-              </div>
-
-              <!-- Professional ID Section -->
-              <div *ngIf="section.id === 'professional'" class="space-y-6">
-                <app-form-field label="Official Artist Profile" description="Mark this as an official artist profile.">
-                  <div class="flex items-center gap-3">
-                    <input type="checkbox"
-                           [ngModel]="editableProfile().isOfficialProfile"
-                           (ngModelChange)="updateProfileField('isOfficialProfile', $event)"
-                           class="w-6 h-6 bg-neutral-700 rounded-lg accent-brand-primary" />
-                    <span class="text-neutral-300">Official Profile</span>
-                  </div>
-                </app-form-field>
-
-                <div class="grid grid-cols-2 gap-4">
-                  <app-form-field label="PRO Name" description="ASCAP, BMI, SESAC, etc.">
-                    <input type="text"
-                           [ngModel]="editableProfile().proName"
-                           (ngModelChange)="updateProfileField('proName', $event)"
-                           class="w-full p-2 bg-brand-surface rounded-lg" />
-                  </app-form-field>
-                  <app-form-field label="PRO IPI" description="Your Interested Party Information number.">
-                    <input type="text"
-                           [ngModel]="editableProfile().proIpi"
-                           (ngModelChange)="updateProfileField('proIpi', $event)"
-                           class="w-full p-2 bg-brand-surface rounded-lg" />
-                  </app-form-field>
-                  <app-form-field label="SoundExchange ID" description="Your SoundExchange ID.">
-                    <input type="text"
-                           [ngModel]="editableProfile().soundExchangeId"
-                           (ngModelChange)="updateProfileField('soundExchangeId', $event)"
-                           class="w-full p-2 bg-brand-surface rounded-lg" />
-                  </app-form-field>
-                  <app-form-field label="The MLC ID" description="Your Mechanical Licensing Collective ID.">
-                    <input type="text"
-                           [ngModel]="editableProfile().mlcId"
-                           (ngModelChange)="updateProfileField('mlcId', $event)"
-                           class="w-full p-2 bg-brand-surface rounded-lg" />
-                  </app-form-field>
-                  <app-form-field label="ISNI" description="International Standard Name Identifier.">
-                    <input type="text"
-                           [ngModel]="editableProfile().isni"
-                           (ngModelChange)="updateProfileField('isni', $event)"
-                           class="w-full p-2 bg-brand-surface rounded-lg" />
-                  </app-form-field>
-                </div>
-
-                <div class="border-t border-neutral-700 pt-6">
-                  <h4 class="text-xl font-bold mb-4">Distribution Settings</h4>
-                  <div class="grid grid-cols-2 gap-4">
-                    <app-form-field label="Preferred Distributor" description="DistroKid, TuneCore, etc.">
-                      <input type="text"
-                             [ngModel]="editableProfile().preferredDistributor"
-                             (ngModelChange)="updateProfileField('preferredDistributor', $event)"
-                             class="w-full p-2 bg-brand-surface rounded-lg" />
-                    </app-form-field>
-                    <app-form-field label="Distribution Status" description="Current status of your latest release.">
-                      <select [ngModel]="editableProfile().distributionStatus"
-                              (ngModelChange)="updateProfileField('distributionStatus', $event)"
-                              class="w-full p-2 bg-brand-surface rounded-lg">
-                        <option value="Not Started">Not Started</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Distributed">Distributed</option>
-                      </select>
-                    </app-form-field>
-                  </div>
-                </div>
-
-
-                <div class="border-t border-white/10 pt-8 mt-8">
-                   <h4 class="text-xl font-bold text-brand-primary mb-4 flex items-center gap-2">
-                     <i class="fas fa-tasks"></i>
-                     Strategic Action Tasks
-                   </h4>
-                   <div class="space-y-3">
-                      <div *ngFor="let task of editableProfile().tasks"
-                           class="flex items-center justify-between p-4 bg-brand-surface/50 border border-white/10 rounded-xl">
-                         <div class="flex items-center gap-4">
-                            <div class="w-2 h-2 rounded-full" [ngClass]="task.priority === 'high' ? 'bg-red-500' : 'bg-brand-primary'"></div>
-                            <div>
-                               <div class="font-bold text-sm text-slate-100">{{ task.title }}</div>
-                               <div class="text-[10px] text-slate-500 uppercase">{{ task.category }} • {{ task.status }}</div>
-                            </div>
-                         </div>
-                         <div class="flex items-center gap-2">
-                            <button *ngIf="task.aiSuggested" class="text-[8px] font-bold bg-brand-primary/10 text-brand-primary px-2 py-1 rounded-full uppercase">AI Suggested</button>
-                            <button (click)="removeTask(task.id)" class="text-slate-600 hover:text-red-400 p-2"><i class="fas fa-trash"></i></button>
-                         </div>
-                      </div>
-                      <div *ngIf="!editableProfile().tasks?.length" class="text-center py-6 border border-dashed border-white/10 rounded-xl text-slate-600 text-xs italic">
-                        No active tasks. AI will suggest actions as you work.
-                      </div>
-                   </div>
-                </div>
-
-                <div class="flex justify-end pt-4">
-                   <button (click)="saveProfile()" class="px-6 py-2 bg-brand-primary rounded-lg font-bold hover:bg-emerald-700 transition-colors">
-                     SAVE PROFESSIONAL IDENTITY
-                   </button>
-                </div>
-              </div>
-
-              <!-- Legal Docs Section -->
-              <div *ngIf="section.id === 'legal'" class="space-y-6">
-                <div class="flex justify-between items-center">
-                  <p class="text-slate-400">
-                    Create and manage your legal document templates.
-                  </p>
-                  <button (click)="openNewDocument()" class="action-button">
-                    New Document
-                  </button>
-                </div>
-                <div class="space-y-4">
-                  <div
-                    *ngFor="let doc of editableProfile().legalDocuments"
-                    class="bg-neutral-700/50 p-4 rounded-xl flex justify-between items-center"
-                  >
-                    <span class="font-bold">{{ doc.title }}</span>
-                    <div class="flex gap-2">
-                      <button
-                        (click)="openEditDocument(doc)"
-                        class="px-3 py-1 bg-brand-primary rounded-lg"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        (click)="deleteLegalDocument(doc.id)"
-                        class="px-3 py-1 bg-red-600 rounded-lg"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  <p
-                    *ngIf="!editableProfile().legalDocuments?.length"
-                    class="text-center text-slate-500"
-                  >
-                    No legal documents yet.
-                  </p>
-                </div>
-              </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tighter uppercase italic text-white">Executive Artist Profile</h1>
+        <div class="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase">
+          <span [class.text-emerald-500]="saveStatus() === 'saved'" [class.animate-pulse]="saveStatus() === 'saving'">
+            {{ saveStatus() === 'saving' ? 'Processing...' : (saveStatus() === 'saved' ? 'Synchronized' : 'Status: Ready') }}
+          </span>
+          <span class="opacity-20">|</span>
+          <span [class.text-purple-400]="syncingWithAi()" class="transition-colors">
+            AI Neural Link: {{ syncingWithAi() ? 'Active Extraction' : 'Standby' }}
+          </span>
+          <span class="opacity-20">|</span>
+          <div class="flex items-center gap-2">
+            <div class="w-20 h-1 bg-white/10 rounded-full overflow-hidden">
+              <div class="h-full bg-brand-primary transition-all duration-1000" [style.width.%]="optimizationScore()"></div>
             </div>
-          </ng-container>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
         </div>
+
+            <span class="text-brand-primary">Opt Score: {{ optimizationScore() }}%</span>
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
       </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
     </div>
+
+    <div class="flex items-center gap-3">
+      <button (click)="saveProfile()"
+              [disabled]="saveStatus() === 'saving'"
+              class="px-6 py-2 bg-brand-primary hover:bg-emerald-600 disabled:opacity-50 text-black font-black uppercase text-xs rounded-sm tracking-widest transition-all shadow-lg shadow-brand-primary/20">
+        Push to Neural Vault
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto flex gap-6 p-6">
+    <!-- Sidebar Navigation -->
+      <!-- Proactive AI Recommendations -->
+      <div *ngIf="intelligenceBriefs().length > 0" class="space-y-2 mt-4">
+         <h4 class="text-[9px] font-black uppercase text-brand-primary tracking-widest px-2">Strategic Briefs</h4>
+         <div *ngFor="let brief of intelligenceBriefs().slice(0, 3)"
+              class="p-3 bg-brand-primary/5 border border-brand-primary/10 rounded-lg hover:border-brand-primary/30 transition-all cursor-help">
+            <h5 class="text-[9px] font-black text-white uppercase">{{brief.title}}</h5>
+            <p class="text-[8px] text-slate-500 mt-1 line-clamp-2 uppercase">{{brief.content}}</p>
+         </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+      </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+    <nav class="w-72 sticky top-24 h-fit space-y-2">
+      <button *ngFor="let section of sections"
+              (click)="activeSection.set(section.id)"
+              [class.active-nav]="activeSection() === section.id"
+              class="w-full flex items-center gap-4 p-4 text-left rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all group">
+        <i class="fas {{section.icon}} text-slate-500 group-hover:text-brand-primary transition-colors"></i>
+        <span class="text-xs font-bold uppercase tracking-widest">{{section.label}}</span>
+      </button>
+
+      <div class="mt-8 p-4 bg-brand-primary/5 border border-brand-primary/10 rounded-xl">
+         <h4 class="text-[9px] font-black uppercase text-brand-primary mb-2 tracking-widest">S.M.U.V.E. ADVISORY</h4>
+         <p class="text-[9px] text-slate-400 leading-relaxed italic uppercase">"Detailed profiles increase sync licensing hit-rates by 40%. complete all deep-dive fields."</p>
+      </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+      <!-- Sync Log HUD -->
+      <div *ngIf="syncLog().length > 0" class="mt-4 p-4 bg-black border border-white/5 rounded-xl font-mono text-[8px] uppercase text-slate-500 space-y-1">
+         <div *ngFor="let log of syncLog()" class="flex gap-2">
+            <span class="text-brand-primary">></span>
+            <span>{{log}}</span>
+         </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+      </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 bg-white/5 rounded-2xl border border-white/5 p-8 backdrop-blur-sm overflow-hidden relative min-h-[70vh]">
+      <div class="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+
+      <div [ngSwitch]="activeSection()" class="relative z-10 space-y-12">
+
+        <!-- IDENTITY & VISION -->
+        <div *ngSwitchCase="'basic'" class="space-y-8 animate-fade-in">
+          <section class="grid grid-cols-2 gap-8">
+            <app-form-field label="Artist / Stage Name" description="How the world knows you.">
+              <input type="text" [(ngModel)]="editableProfile().artistName" class="executive-input" placeholder="e.g. THA NEURAL COMMANDER">
+            </app-form-field>
+            <app-form-field label="Primary Genre" description="Your core sonic foundation.">
+              <select [(ngModel)]="editableProfile().primaryGenre" class="executive-input">
+                <option value="">Select Genre...</option>
+                <option *ngFor="let g of allGenres" [value]="g">{{g}}</option>
+              </select>
+            </app-form-field>
+          </section>
+
+          <section>
+            <label class="block text-[10px] font-black uppercase text-slate-500 mb-3 tracking-widest">Core Skills & Expertise</label>
+            <div class="flex flex-wrap gap-2">
+              <button *ngFor="let skill of skillsList"
+                      (click)="toggleChip('skills', skill)"
+                      [class.chip-active]="editableProfile().skills.includes(skill)"
+                      class="chip">
+                {{skill}}
+              </button>
+            </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </section>
+
+          <section class="space-y-4">
+            <app-form-field label="Executive Bio" description="A high-level summary of your career trajectory.">
+              <textarea [(ngModel)]="editableProfile().bio" rows="4" class="executive-input resize-none" placeholder="Enter artist narrative..."></textarea>
+            </app-form-field>
+          </section>
+        </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+        <!-- GENRE INTELLIGENCE -->
+        <div *ngSwitchCase="'genre-deep-dive'" class="space-y-8 animate-fade-in">
+          <header class="border-b border-white/5 pb-4">
+            <h2 class="text-2xl font-black italic uppercase text-brand-primary">Genre-Specific Intelligence</h2>
+            <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-2">Dynamic parameters for: {{editableProfile().primaryGenre || 'NONE SELECTED'}}</p>
+          </header>
+
+          <div *ngIf="!editableProfile().primaryGenre" class="p-8 border border-dashed border-white/10 rounded-xl text-center">
+            <p class="text-slate-500 uppercase text-xs">Select a primary genre to unlock deep-dive parameters.</p>
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+          <!-- Hip Hop -->
+          <div *ngIf="editableProfile().primaryGenre === 'Hip Hop'" class="space-y-8">
+            <div class="grid grid-cols-2 gap-8">
+              <app-form-field label="Lyrical Complexity" description="Rate focus on wordplay/bars.">
+                <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['hiphop_complexity']" class="w-full accent-brand-primary">
+              </app-form-field>
+              <app-form-field label="Street Credibility" description="Narrative authenticity focus.">
+                 <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['hiphop_cred']" class="w-full accent-brand-primary">
+              </app-form-field>
+            </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+            <section>
+              <label class="block text-[10px] font-black uppercase text-slate-500 mb-3 tracking-widest">Sub-Genre Focus</label>
+              <div class="flex flex-wrap gap-2">
+                <button *ngFor="let sub of ['Trap', 'Boom Bap', 'Drill', 'Conscious', 'Experimental', 'Phonk', 'Grime']"
+                        (click)="toggleChip('subGenres', sub)"
+                        [class.chip-active]="editableProfile().subGenres.includes(sub)"
+                        class="chip">
+                  {{sub}}
+                </button>
+              </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+            </section>
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+          <!-- Electronic -->
+          <div *ngIf="editableProfile().primaryGenre === 'Electronic'" class="space-y-8">
+            <div class="grid grid-cols-2 gap-8">
+              <app-form-field label="Sound Design Depth" description="Custom synthesized vs Presets.">
+                <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['edm_sound_design']" class="w-full accent-purple-500">
+              </app-form-field>
+              <app-form-field label="Live Performance Style" description="DJ Set vs Live Hardware.">
+                <select [(ngModel)]="editableProfile().genreSpecificData['edm_live_type']" class="executive-input">
+                   <option value="DJ">DJ / Hybrid</option>
+                   <option value="Hardware">Live Hardware</option>
+                   <option value="Controllerist">Controllerist</option>
+                </select>
+              </app-form-field>
+            </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+          <!-- Rock / Metal -->
+          <div *ngIf="editableProfile().primaryGenre === 'Rock' || editableProfile().primaryGenre === 'Metal'" class="space-y-8">
+             <div class="grid grid-cols-2 gap-8">
+                <app-form-field label="Instrumentation Focus" description="Main focus of the sonic wall.">
+                   <select [(ngModel)]="editableProfile().genreSpecificData['rock_focus']" class="executive-input">
+                      <option value="Guitar">Guitar Heavy</option>
+                      <option value="Vocal">Vocal Driven</option>
+                      <option value="Atmospheric">Atmospheric / Shoegaze</option>
+                   </select>
+                </app-form-field>
+                <app-form-field label="Production Style" description="Raw vs Over-Produced.">
+                   <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['rock_grit']" class="w-full accent-orange-500">
+                </app-form-field>
+             </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+          <!-- Country / Folk -->
+          <div *ngIf="editableProfile().primaryGenre === 'Country' || editableProfile().primaryGenre === 'Folk'" class="space-y-8">
+             <div class="grid grid-cols-2 gap-8">
+                <app-form-field label="Storytelling focus" description="Importance of narrative vs melody.">
+                   <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['folk_story']" class="w-full accent-emerald-500">
+                </app-form-field>
+                <app-form-field label="Acoustic Authenticity" description="Use of organic vs digital instruments.">
+                   <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['organic_ratio']" class="w-full accent-emerald-500">
+                </app-form-field>
+             </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+          <!-- Latin / Afrobeats -->
+          <div *ngIf="editableProfile().primaryGenre === 'Latin' || editableProfile().primaryGenre === 'Afrobeats'" class="space-y-8">
+             <div class="grid grid-cols-2 gap-8">
+                <app-form-field label="Rhythmic Complexity" description="Syncopation and polyrhythm focus.">
+                   <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['rhythm_depth']" class="w-full accent-orange-400">
+                </app-form-field>
+                <app-form-field label="Danceability" description="Club and dance floor orientation.">
+                   <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['dance_index']" class="w-full accent-orange-400">
+                </app-form-field>
+             </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+          <!-- Jazz / Classical -->
+          <div *ngIf="editableProfile().primaryGenre === 'Jazz' || editableProfile().primaryGenre === 'Classical'" class="space-y-8">
+             <div class="grid grid-cols-2 gap-8">
+                <app-form-field label="Technical Proficiency" description="Focus on mastery and theory.">
+                   <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['virtuosity']" class="w-full accent-emerald-400">
+                </app-form-field>
+                <app-form-field label="Ensemble Type" description="Size of the performance group.">
+                   <input type="text" [(ngModel)]="editableProfile().genreSpecificData['ensemble']" class="executive-input" placeholder="e.g. Quartet, Orchestra">
+                </app-form-field>
+             </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+          <!-- Pop / R&B -->
+          <div *ngIf="editableProfile().primaryGenre === 'Pop' || editableProfile().primaryGenre === 'R&B'" class="space-y-8">
+             <div class="grid grid-cols-2 gap-8">
+                <app-form-field label="Vocal Polish" description="Focus on pitch correction / layers.">
+                   <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['vocal_polish']" class="w-full accent-pink-500">
+                </app-form-field>
+                <app-form-field label="Market Appeal" description="Focus on catchy hooks / virality.">
+                   <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['hook_focus']" class="w-full accent-pink-500">
+                </app-form-field>
+             </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+          <!-- Reggae -->
+          <div *ngIf="editableProfile().primaryGenre === 'Reggae'" class="space-y-8">
+             <div class="grid grid-cols-2 gap-8">
+                <app-form-field label="Bass Weight" description="Focus on low-end frequencies and dub space.">
+                   <input type="range" min="1" max="10" [(ngModel)]="editableProfile().genreSpecificData['reggae_bass']" class="w-full accent-emerald-500">
+                </app-form-field>
+                <app-form-field label="Rhythm Style" description="Core drum pattern foundation.">
+                   <select [(ngModel)]="editableProfile().genreSpecificData['reggae_rhythm']" class="executive-input">
+                      <option value="One-Drop">One-Drop</option>
+                      <option value="Steppers">Steppers</option>
+                      <option value="Rockers">Rockers</option>
+                      <option value="Dancehall">Dancehall / Riddim</option>
+                   </select>
+                </app-form-field>
+             </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          <!-- Default -->
+          <div *ngIf="editableProfile().primaryGenre && !['Hip Hop', 'Electronic', 'Rock', 'Metal', 'Jazz', 'Classical', 'Pop', 'R&B', 'Country', 'Folk', 'Latin', 'Afrobeats'].includes(editableProfile().primaryGenre)" class="space-y-6">
+             <app-form-field label="Musical Influence Logic" description="Key artists that shaped this sound.">
+               <input type="text" [(ngModel)]="editableProfile().musicalInfluences" class="executive-input" placeholder="e.g. Miles Davis, Radiohead">
+             </app-form-field>
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+        <!-- TOURING & LIVE -->
+        <div *ngSwitchCase="'touring'" class="space-y-8 animate-fade-in">
+          <section class="grid grid-cols-2 gap-8">
+            <app-form-field label="Performance Frequency" description="Annual live shows.">
+              <select [(ngModel)]="editableProfile().performancesPerYear" class="executive-input">
+                <option value="None">None</option>
+                <option value="1-5">1-5</option>
+                <option value="6-20">6-20</option>
+                <option value="20-50">20-50</option>
+                <option value="50+">50+</option>
+              </select>
+            </app-form-field>
+            <app-form-field label="Travel Preference" description="How do you get to the gig?">
+              <select [(ngModel)]="editableProfile().touringDetails.travelPreference" class="executive-input">
+                <option *ngFor="let opt of travelOptions" [value]="opt">{{opt}}</option>
+              </select>
+            </app-form-field>
+          </section>
+
+          <section>
+            <label class="block text-[10px] font-black uppercase text-slate-500 mb-3 tracking-widest">Venue Type Specialty</label>
+            <div class="flex flex-wrap gap-2">
+              <button *ngFor="let venue of ['Clubs', 'Festivals', 'Arenas', 'Online', 'House Shows', 'Theaters']"
+                      (click)="toggleChip('venueTypes', venue)"
+                      [class.chip-active]="editableProfile().venueTypes.includes(venue)"
+                      class="chip">
+                {{venue}}
+              </button>
+            </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </section>
+
+          <section class="grid grid-cols-2 gap-4">
+            <div class="p-4 bg-white/5 border border-white/5 rounded-xl flex justify-between items-center">
+              <div>
+                <h4 class="text-xs font-bold uppercase text-white">Technical Rider</h4>
+                <p class="text-[9px] text-slate-500 uppercase">Active Rider URL attached?</p>
+              </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+              <input type="checkbox" [(ngModel)]="editableProfile().touringDetails.hasRider" class="w-6 h-6 accent-brand-primary">
+            </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+            <app-form-field label="Avg Guarantee" description="Expected minimum per show ($).">
+               <input type="text" [(ngModel)]="editableProfile().touringDetails.averageGuarantee" class="executive-input">
+            </app-form-field>
+          </section>
+        </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+        <!-- PUBLISHING & SYNC -->
+        <div *ngSwitchCase="'publishing'" class="space-y-8 animate-fade-in">
+          <section class="grid grid-cols-2 gap-8">
+            <app-form-field label="PRO Name" description="Performing Rights Organization.">
+              <input type="text" [(ngModel)]="editableProfile().proName" class="executive-input" placeholder="ASCAP, BMI, etc.">
+            </app-form-field>
+            <app-form-field label="IPI Number" description="Your unique 9-digit ID.">
+              <input type="text" [(ngModel)]="editableProfile().proIpi" class="executive-input" placeholder="000-00-00-00">
+            </app-form-field>
+          </section>
+
+          <section class="grid grid-cols-2 gap-8">
+            <div class="p-4 bg-white/5 border border-white/5 rounded-xl flex justify-between items-center">
+              <div>
+                <h4 class="text-xs font-bold uppercase text-white">ISWC Registration</h4>
+                <p class="text-[9px] text-slate-500 uppercase">Are your works registered?</p>
+              </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+              <input type="checkbox" [(ngModel)]="editableProfile().publishingDetails.iswcRegistered" class="w-6 h-6 accent-brand-primary">
+            </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+            <div class="p-4 bg-white/5 border border-white/5 rounded-xl flex justify-between items-center">
+              <div>
+                <h4 class="text-xs font-bold uppercase text-white">Sync Agency</h4>
+                <p class="text-[9px] text-slate-500 uppercase">Represented for Licensing?</p>
+              </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+              <input type="checkbox" [(ngModel)]="editableProfile().publishingDetails.hasSyncAgent" class="w-6 h-6 accent-brand-primary">
+            </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </section>
+        </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+        <!-- BRAND & AUDIENCE -->
+        <div *ngSwitchCase="'brand'" class="space-y-8 animate-fade-in">
+          <section>
+            <label class="block text-[10px] font-black uppercase text-slate-500 mb-3 tracking-widest">Brand Voice & Tone</label>
+            <div class="flex flex-wrap gap-2">
+              <button *ngFor="let voice of brandVoices"
+                      (click)="toggleChip('', voice, 'brandIdentity.brandVoice')"
+                      [class.chip-active]="editableProfile().brandIdentity.brandVoice.includes(voice)"
+                      class="chip">
+                {{voice}}
+              </button>
+            </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </section>
+
+          <app-form-field label="The Brand Story" description="Core narrative behind the music.">
+            <textarea [(ngModel)]="editableProfile().brandIdentity.brandStory" rows="4" class="executive-input resize-none" placeholder="The legend begins here..."></textarea>
+          </app-form-field>
+        </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+        <!-- EXECUTIVE TEAM -->
+        <div *ngSwitchCase="'team'" class="space-y-8 animate-fade-in">
+          <div class="flex justify-between items-center">
+             <h2 class="text-xl font-black uppercase italic text-brand-primary">Team Management</h2>
+             <button (click)="addTeamMember()" class="px-4 py-2 border border-brand-primary/30 text-brand-primary text-[10px] font-black uppercase hover:bg-brand-primary/10 transition-colors">
+               Add Specialist
+             </button>
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+          <div class="space-y-4">
+             <div *ngFor="let member of editableProfile().team; let i = index"
+                  class="p-6 bg-white/5 border border-white/5 rounded-xl grid grid-cols-4 gap-4 items-end relative group transition-all hover:bg-white/10">
+                <app-form-field label="Role">
+                  <input type="text" [(ngModel)]="member.role" class="executive-input" placeholder="e.g. Manager">
+                </app-form-field>
+                <app-form-field label="Name">
+                  <input type="text" [(ngModel)]="member.name" class="executive-input" placeholder="Name">
+                </app-form-field>
+                <app-form-field label="Contact">
+                  <input type="text" [(ngModel)]="member.contact" class="executive-input" placeholder="Email/Phone">
+                </app-form-field>
+                <button (click)="removeTeamMember(i)" class="h-[42px] text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                  <i class="fas fa-trash"></i>
+                </button>
+             </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+             <div *ngIf="!editableProfile().team?.length" class="text-center py-12 border border-dashed border-white/10 rounded-xl">
+               <p class="text-slate-600 uppercase text-xs tracking-widest italic">No team members identified. S.M.U.V.E. will act as your default executive.</p>
+             </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+        <!-- CATALOG ASSETS -->
+        <div *ngSwitchCase="'catalog'" class="animate-fade-in">
+          <app-catalog-manager></app-catalog-manager>
+        </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+        <!-- LEGAL VAULT -->
+        <div *ngSwitchCase="'legal'" class="animate-fade-in space-y-6">
+           <div class="flex justify-between items-center border-b border-white/5 pb-4">
+            <p class="text-slate-400 text-xs uppercase tracking-widest">
+              Secured legal document templates and contracts.
+            </p>
+            <button (click)="openNewDocument()" class="px-4 py-2 bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase border border-emerald-500/30 hover:bg-emerald-500/20 transition-all">
+              Generate Template
+            </button>
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div *ngFor="let doc of editableProfile().legalDocuments"
+                 class="p-4 bg-slate-900/50 border border-white/5 rounded-lg flex justify-between items-center hover:border-brand-primary/30 transition-all group">
+              <span class="font-bold text-[10px] uppercase tracking-widest text-slate-300 group-hover:text-white transition-colors">{{ doc.title }}</span>
+              <div class="flex gap-2">
+                <button (click)="openEditDocument(doc)" class="p-2 text-slate-500 hover:text-brand-primary transition-colors"><i class="fas fa-edit"></i></button>
+                <button (click)="deleteLegalDocument(doc.id)" class="p-2 text-slate-500 hover:text-red-500 transition-colors"><i class="fas fa-trash"></i></button>
+              </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+            </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+            <p *ngIf="!editableProfile().legalDocuments?.length" class="col-span-2 text-center py-12 text-slate-600 text-[10px] uppercase tracking-widest">Vault is currently empty.</p>
+          </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
+      </div>
+        <!-- PROACTIVE AI SUGGESTIONS -->
+        <div *ngIf="intelligenceBriefs().length > 0" class="border-t border-white/5 pt-12 mt-12 animate-fade-in">
+           <div class="flex items-center gap-3 mb-6">
+              <i class="fas fa-lightbulb text-brand-primary text-xl"></i>
+              <h3 class="text-xl font-black uppercase italic text-white">S.M.U.V.E. Strategic Guidance</h3>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let brief of intelligenceBriefs()"
+                   class="p-6 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl group hover:bg-brand-primary/10 transition-all relative overflow-hidden">
+                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                 </div>
+                 <div class="flex justify-between items-start mb-3">
+                    <span class="text-[8px] font-black bg-brand-primary text-black px-2 py-0.5 rounded uppercase tracking-widest">{{brief.category}}</span>
+                    <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{brief.impact}} Impact</span>
+                 </div>
+                 <h4 class="text-xs font-black text-white uppercase mb-2 tracking-wide">{{brief.title}}</h4>
+                 <p class="text-[10px] text-slate-400 leading-relaxed uppercase">{{brief.content}}</p>
+                 <div class="mt-4 flex justify-end">
+                    <button class="text-[9px] font-black text-brand-primary uppercase hover:underline">Execute Directive</button>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+    </main>
   </div>
 
   <!-- Legal Document Editor Modal -->
-  <div *ngIf="showLegalEditor()" class="modal-overlay">
-    <app-legal-document-editor
-      [document]="editingDocument()"
-      (save)="saveLegalDocument($event)"
-      (cancel)="showLegalEditor.set(false)"
-    >
-    </app-legal-document-editor>
-  </div>
-  <!-- Guest View -->
-  <ng-template #guestView>
-    <div class="guest-container wow animate__animated animate__fadeIn">
-      <div class="guest-welcome">
-        <h2 class="title-1">Welcome to S.M.U.V.E 4.0</h2>
-        <p class="subtitle">Strategic Music Utility Virtual Enhancer</p>
-
-        <div class="guest-features">
-          <div class="feature-card">
-            <i class="fas fa-microphone-alt"></i>
-            <h3>The Studio</h3>
-            <p>
-              Professional DAW with high-precision mixer, synth, and mastering
-              suite.
-            </p>
-          </div>
-          <div class="feature-card">
-            <i class="fas fa-robot"></i>
-            <h3>AI Strategic Partner</h3>
-            <p>
-              Get actionable "Strategic Decrees" from our omniscient AI commander.
-            </p>
-          </div>
-          <div class="feature-card">
-            <i class="fas fa-gamepad"></i>
-            <h3>Tha Spot</h3>
-            <p>Interactive gaming hub and AI-powered live jam sessions.</p>
-          </div>
-        </div>
-
-        <div class="guest-actions">
-          <button routerLink="/login" class="cta-button primary">
-            Get Started
-          </button>
-          <button
-            class="cta-button secondary"
-            (click)="activeSection.set('about')"
-          >
-            Learn More
-          </button>
-        </div>
-      </div>
+  <div *ngIf="showLegalEditor()" class="fixed inset-0 z-[100] flex items-center justify-center p-8 bg-black/90 backdrop-blur-md animate-fade-in">
+    <div class="w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl rounded-2xl border border-white/10">
+      <app-legal-document-editor
+        [document]="editingDocument()"
+        (save)="saveLegalDocument()"
+        (cancel)="showLegalEditor.set(false)"
+      >
+      </app-legal-document-editor>
     </div>
-  </ng-template>
+  </div>
 </div>

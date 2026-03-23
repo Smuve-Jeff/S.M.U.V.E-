@@ -1,22 +1,24 @@
-import { Injectable, signal, effect, inject, EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
+import { Injectable, inject, signal, effect, EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
-import { LoggingService } from './logging.service';
-import { UserProfileService } from './user-profile.service';
-import { ReputationService } from './reputation.service';
-import { AnalyticsService } from './analytics.service';
+import { UserProfileService, UserProfile } from './user-profile.service';
 import { UserContextService, MainViewMode } from './user-context.service';
-import { UserProfile } from './user-profile.service';
-import { INTELLIGENCE_LIBRARY, MARKET_ALERTS } from './ai-knowledge.data';
+import { AnalyticsService } from './analytics.service';
+import { ReputationService } from './reputation.service';
+import { LoggingService } from './logging.service';
+import { firstValueFrom } from 'rxjs';
 import {
   IntelligenceBrief,
   MarketAlert,
+  ProductionSecret,
   SystemStatus,
   StrategicRecommendation,
-  StrategicTask,
   AdvisorAdvice,
-  UpgradeRecommendation
+  UpgradeRecommendation,
+  ExecutiveAuditReport,
+  StrategicTask,
+  ArtistKnowledgeBase
 } from '../types/ai.types';
+import { INTELLIGENCE_LIBRARY, MARKET_ALERTS, PRODUCTION_SECRETS } from './ai-knowledge.data';
 
 export type { StrategicRecommendation, AdvisorAdvice };
 
@@ -24,25 +26,27 @@ export type { StrategicRecommendation, AdvisorAdvice };
   providedIn: 'root',
 })
 export class AiService {
-  private logger = inject(LoggingService);
-  private userProfileService = inject(UserProfileService);
-  private reputationService = inject(ReputationService);
-  private analyticsService = inject(AnalyticsService);
-  private userContextService = inject(UserContextService);
   private http = inject(HttpClient);
-  private API_URL = 'https://smuve-v4-backend-9951606049235487441.onrender.com/api';
+  private userProfileService = inject(UserProfileService);
+  private userContextService = inject(UserContextService);
+  private analyticsService = inject(AnalyticsService);
+  private reputationService = inject(ReputationService);
+  private logger = inject(LoggingService);
+
+  private readonly API_URL = 'https://smuve-v4-backend-9951606049235487441.onrender.com';
 
   isScanning = signal(false);
-  executiveAudit = signal<any>(null);
+  executiveAudit = signal<ExecutiveAuditReport | null>(null);
+  strategicHealthScore = signal<number>(0);
   scanningProgress = signal(0);
   currentProcessStep = signal('');
-  advisorAdvice = signal<AdvisorAdvice[]>([]);
+
   isAIBassistActive = signal(false);
   isAIDrummerActive = signal(false);
   isAIKeyboardistActive = signal(false);
-  chatInstance = signal<any>(null);
 
   strategicDecrees = signal<string[]>(['S.M.U.V.E 4.0 ONLINE. I AM YOUR STRATEGIC COMMANDER.', 'INITIALIZING DOMINATION PROTOCOLS.', 'YOUR CURRENT SONIC OUTPUT IS... ADEQUATE. BARELY.']);
+  advisorAdvice = signal<AdvisorAdvice[]>([]);
 
   systemStatus = signal<SystemStatus>({
     cpuLoad: 12.4,
@@ -96,6 +100,66 @@ export class AiService {
     this.intelligenceBriefs.set(filtered);
   }
 
+  async syncKnowledgeBaseWithProfile() {
+    const profile = this.userProfileService.profile();
+    if (!profile.settings.ai.kbWriteAccess) return;
+
+    const prompt = `Analyze the following artist profile and extract strategic intelligence to update their Neural Knowledge Vault.
+    Artist: ${profile.artistName}
+    Genre: ${profile.primaryGenre}
+    Sub-genres: ${profile.subGenres.join(", ")}
+    Experience: ${profile.experienceLevel}
+    Touring: ${JSON.stringify(profile.touringDetails)}
+    Publishing: ${JSON.stringify(profile.publishingDetails)}
+    Team: ${JSON.stringify(profile.team)}
+    Social Strategy: ${JSON.stringify(profile.socialMediaStrategy)}
+    Brand Voice: ${profile.brandIdentity.brandVoice.join(", ")}
+    Brand Story: ${profile.brandIdentity.brandStory}
+    Goals: ${profile.careerGoals.join(", ")}
+
+    Return a JSON object with:
+    7. strategicHealthScore (number 0-100 based on profile strength)
+    1. learnedStyles (array of objects with id, name, genre, description, complexity, bpm, key, energy)
+    2. productionSecrets (array of objects with id, title, content, category, metadata)
+    3. strategicDirectives (array of strings)
+    4. genreAnalysis (specific insights object for their primary genre)
+    5. marketAlerts (array of custom MarketAlert objects tailored to their data)
+    6. intelligenceBriefs (array of custom IntelligenceBrief objects)
+
+    Format: JSON only.`;
+
+    try {
+      const responseText = await this.generateAiResponse(prompt);
+      const data = JSON.parse(responseText.substring(responseText.indexOf("{"), responseText.lastIndexOf("}") + 1));
+
+      const updatedKB: ArtistKnowledgeBase = {
+        ...profile.knowledgeBase,
+        learnedStyles: [...profile.knowledgeBase.learnedStyles, ...(data.learnedStyles || [])].slice(-10),
+        productionSecrets: [...profile.knowledgeBase.productionSecrets, ...(data.productionSecrets || [])].slice(-10) as any,
+        strategicDirectives: data.strategicDirectives || [],
+        genreAnalysis: { ...profile.knowledgeBase.genreAnalysis, [profile.primaryGenre]: data.genreAnalysis },
+        strategicHealthScore: data.strategicHealthScore || 0
+      };
+
+      // Inject custom alerts and briefs into signals
+      if (data.marketAlerts) {
+         this.marketAlerts.update(alerts => [...(data.marketAlerts as any), ...alerts].slice(0, 10));
+      }
+      if (data.intelligenceBriefs) {
+         this.intelligenceBriefs.update(briefs => [...(data.intelligenceBriefs as any), ...briefs].slice(0, 10));
+      }
+
+      await this.userProfileService.updateProfile({
+        ...profile,
+        knowledgeBase: updatedKB
+      });
+    } catch (e) {
+      if (this.logger && this.logger.error) {
+        this.logger.error("AiService: Failed to sync KB with profile", e);
+      }
+    }
+  }
+
   async generateAiResponse(prompt: string): Promise<string> {
     try {
       const response = await firstValueFrom(this.http.post<{ text: string }>(`${this.API_URL}/ai/analyze`, { prompt }));
@@ -134,7 +198,7 @@ export class AiService {
         const profile = this.userProfileService.profile();
         const goals = (profile?.careerGoals || []).join(', ');
         const challenge = profile?.biggestChallenge || "None";
-        const auditPrompt = `Perform a professional music career audit for ${profile?.artistName || 'New Artist'} (${profile?.primaryGenre || 'Music'}). Goals: ${goals}. Challenges: ${challenge}. Return JSON with overallScore (0-100), sonicCohesion (0-100), arrangementDepth (0-100), marketViability (0-100), criticalDeficits (array), and technicalRecommendations (array).`;
+        const auditPrompt = `Perform a professional music career audit for ${profile?.artistName || 'New Artist'} (${profile?.primaryGenre || 'Music'}). Goals: ${goals}. Challenges: ${challenge}. Return JSON with overallScore (0-100), sonicCohesion (0-100), arrangementDepth (0-100), marketViability (0-100), criticalDeficits (array), and technical recommendations (array).`;
 
         const responseText = await this.generateAiResponse(auditPrompt);
         let auditData;
@@ -185,6 +249,26 @@ export class AiService {
 
   async processCommand(command: string): Promise<string> {
     const cmd = command.toLowerCase().trim();
+    if (cmd === "/sync_kb") {
+      await this.syncKnowledgeBaseWithProfile();
+      return "NEURAL VAULT SYNCHRONIZATION COMPLETE. STRATEGIC INTELLIGENCE EXTRACTED.";
+    }
+    if (cmd.startsWith("/update_kb ")) {
+      const note = cmd.replace("/update_kb ", "");
+      const profile = this.userProfileService.profile();
+      if (profile.settings.ai.kbWriteAccess) {
+        const updatedKB: ArtistKnowledgeBase = {
+          ...profile.knowledgeBase,
+          productionSecrets: [
+            ...profile.knowledgeBase.productionSecrets,
+            { id: `manual-${Date.now()}`, title: "Direct Intel", content: note, category: "technical", metadata: { source: "manual" } } as any
+          ].slice(-20)
+        };
+        await this.userProfileService.updateProfile({ ...profile, knowledgeBase: updatedKB });
+        return "DIRECT INTELLIGENCE LOGGED TO NEURAL VAULT.";
+      }
+      return "ERROR: KB WRITE ACCESS DENIED.";
+    }
     if (cmd === '/audit') {
       this.performExecutiveAudit();
       return 'INITIALIZING EXECUTIVE STUDIO AUDIT.';
@@ -246,6 +330,7 @@ export class AiService {
   async mimicStyle(name: string): Promise<string> { return `Mimicking ${name} specifications.`; }
   async updateCoreTrends(): Promise<void> {}
   async researchArtist(name: string): Promise<string> { return `Intel on ${name} compiled.`; }
+  async researchTopic(topic: string): Promise<string> { return `Topic ${topic} researched.`; }
   async transcribeAudio(b: string, m: string): Promise<string> { return "Transcription complete."; }
 }
 

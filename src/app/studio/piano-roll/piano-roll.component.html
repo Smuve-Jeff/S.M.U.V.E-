@@ -1,7 +1,5 @@
 <div class="piano-roll-container flex h-full bg-slate-950 text-slate-200 selection:bg-primary/30 relative overflow-hidden">
-
-  <!-- Left Panel: Channel Rack & Neural Intelligence -->
-  <aside class="w-80 shrink-0 border-r border-primary/20 bg-slate-900/80 backdrop-blur-xl flex flex-col z-20 overflow-hidden">
+  <aside class="w-80 shrink-0 border-r border-primary/20 bg-slate-900/80 backdrop-blur-xl flex flex-col z-20">
     <div class="p-4 border-b border-primary/20 bg-gradient-to-br from-primary/10 to-transparent flex items-center justify-between">
        <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-primary text-sm">inventory_2</span>
@@ -11,284 +9,119 @@
           <span class="material-symbols-outlined text-sm">add</span>
        </button>
     </div>
-
-    <!-- Track List (The "Channel Rack") -->
     <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 bg-black/20">
-       <div *ngFor="let track of musicManager.tracks()"
-            (click)="selectTrack(track)"
+       <div *ngFor="let track of musicManager.tracks()" (click)="selectTrack(track)"
             class="group p-2 rounded-lg border transition-all cursor-pointer flex flex-col gap-2"
             [class.bg-primary/10]="musicManager.selectedTrackId() === track.id"
             [class.border-primary/40]="musicManager.selectedTrackId() === track.id"
-            [class.border-white/5]="musicManager.selectedTrackId() !== track.id"
-            [class.bg-slate-900/50]="musicManager.selectedTrackId() !== track.id">
-
+            [class.border-white/5]="musicManager.selectedTrackId() !== track.id">
           <div class="flex items-center justify-between">
-             <div class="flex items-center gap-2 truncate">
-                <div class="size-2 rounded-full" [class.bg-primary]="musicManager.selectedTrackId() === track.id" [class.bg-slate-700]="musicManager.selectedTrackId() !== track.id"></div>
-                <span class="text-[9px] font-black uppercase tracking-widest truncate">{{ track.name }}</span>
+             <div class="flex items-center gap-2">
+                <div class="size-1.5 rounded-full bg-primary" [class.animate-pulse]="musicManager.selectedTrackId() === track.id"></div>
+                <span class="text-[10px] font-bold truncate uppercase tracking-widest text-slate-300 group-hover:text-white">{{track.name}}</span>
              </div>
-             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button (click)="musicManager.toggleMute(track.id); $event.stopPropagation()" [class.text-red-500]="track.mute" class="text-[8px] font-bold p-1 hover:text-red-400">M</button>
-                <button (click)="musicManager.toggleSolo(track.id); $event.stopPropagation()" [class.text-emerald-400]="track.solo" class="text-[8px] font-bold p-1 hover:text-emerald-300">S</button>
-             </div>
-          </div>
-
-          <!-- Mini 16-step Sequencer for Rack -->
-          <div class="grid grid-cols-16 gap-0.5">
-             <div *ngFor="let step of cells.slice(0, 16); let i = index"
-                  (click)="musicManager.toggleStep(track.id, i); $event.stopPropagation()"
-                  [class.bg-primary]="track.steps[i]"
-                  [class.bg-slate-800]="!track.steps[i]"
-                  [class.opacity-50]="i % 4 !== 0"
-                  class="h-2 rounded-sm hover:brightness-125 transition-all">
+             <div class="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                <button (click)="$event.stopPropagation(); musicManager.toggleMute(track.id)"
+                        [class.text-primary]="track.mute" class="hover:text-primary transition-colors p-1">
+                   <span class="material-symbols-outlined text-xs">volume_off</span>
+                </button>
              </div>
           </div>
        </div>
-    </div>
-
-    <!-- Scale & AI -->
-    <div class="mt-auto border-t border-primary/20 bg-slate-950/60 p-4 space-y-4">
-       <div class="space-y-2">
-          <label class="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Scale & Snap</label>
-          <div class="flex gap-2">
-             <select [ngModel]="selectedScale()" (ngModelChange)="selectedScale.set($event)"
-                     class="flex-1 bg-slate-800 border border-white/10 rounded p-1.5 text-[9px] font-bold outline-none hover:border-primary/50 transition-all">
-                <option *ngFor="let s of scales" [ngValue]="s">{{s.name}}</option>
-             </select>
-             <button (click)="snapToScale.set(!snapToScale())"
-                     [class.bg-primary]="snapToScale()"
-                     [class.text-white]="snapToScale()"
-                     class="px-2 rounded border border-white/10 text-[9px] font-bold hover:border-primary transition-all">SNAP</button>
-          </div>
-       </div>
-
-       <button (click)="generateAiPattern()"
-               [disabled]="isAiGenerating()"
-               class="w-full py-3 rounded bg-primary text-white font-black text-[9px] uppercase tracking-widest hover:brightness-125 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(236,91,19,0.3)]">
-          <span class="material-symbols-outlined text-sm" [class.animate-spin]="isAiGenerating()">
-            {{ isAiGenerating() ? 'sync' : 'bolt' }}
-          </span>
-          Neural pattern
-       </button>
     </div>
   </aside>
 
-  <!-- Main Workspace -->
-  <main class="flex-1 flex flex-col min-w-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
-
-    <!-- Top Toolbar -->
-    <header class="h-14 shrink-0 border-b border-white/5 bg-slate-950/80 backdrop-blur-md flex items-center justify-between px-6 z-10">
+  <main class="flex-1 flex flex-col min-w-0 bg-slate-900/50 relative">
+    <header class="h-14 shrink-0 border-b border-white/5 bg-slate-950/80 backdrop-blur-md flex items-center justify-between px-6 z-30">
       <div class="flex items-center gap-6">
-         <!-- Tool Selector -->
-         <div class="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-white/10">
-            <button *ngFor="let mode of ['select', 'draw', 'chord']"
-                    (click)="editMode.set(mode as any)"
-                    [class.bg-primary]="editMode() === mode"
-                    [class.text-white]="editMode() === mode"
-                    class="p-1.5 rounded transition-all group" [title]="mode">
-               <span class="material-symbols-outlined text-sm group-hover:scale-110">
-                  {{ mode === 'select' ? 'near_me' : mode === 'draw' ? 'edit' : 'view_kanban' }}
-               </span>
+         <div class="flex items-center gap-3">
+            <select [ngModel]="selectedScale()" (ngModelChange)="selectedScale.set($event)"
+                    class="bg-slate-900 border border-white/10 rounded px-2 py-1 text-[10px] font-bold text-slate-300 outline-none">
+               <option *ngFor="let s of scales" [ngValue]="s">{{s.name}}</option>
+            </select>
+             <button (click)="snapToScale.set(!snapToScale())"
+                     [class.bg-primary]="snapToScale()"
+                     class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border border-white/10 hover:border-primary/40 transition-all">
+               Snap
+             </button>
+         </div>
+         <div class="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5">
+            <button *ngFor="let mode of ['draw', 'select', 'brush', 'chord']"
+                    (click)="setEditMode(mode)"
+                    [class.bg-primary/20]="editMode() === mode"
+                    class="p-1.5 rounded hover:bg-white/5 transition-all group">
+               <span class="material-symbols-outlined text-sm">{{ mode === 'draw' ? 'edit' : (mode === 'select' ? 'near_me' : (mode === 'brush' ? 'brush' : 'format_list_bulleted')) }}</span>
             </button>
          </div>
-
-         <div class="h-4 w-px bg-white/10"></div>
-
-         <div class="flex items-center gap-1">
-            <button (click)="quantizeNotes()" class="p-1.5 rounded hover:text-primary transition-all group" title="Quantize Selection">
-               <span class="material-symbols-outlined text-sm group-hover:scale-125">grid_on</span>
+         <div class="flex items-center gap-2">
+            <button (click)="generateAiPattern()" [disabled]="isAiGenerating()"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded bg-primary/10 border border-primary/30 text-primary text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all disabled:opacity-50">
+               <span class="material-symbols-outlined text-xs" [class.animate-spin]="isAiGenerating()">psychology</span>
+               {{ isAiGenerating() ? 'Generating...' : 'AI Pattern' }}
             </button>
-            <button (click)="randomizeVelocity()" class="p-1.5 rounded hover:text-primary transition-all group" title="Randomize Velocity">
-               <span class="material-symbols-outlined text-sm group-hover:scale-125">shuffle</span>
-            </button>
-            <button (click)="deleteSelected()" class="p-1.5 rounded hover:text-red-500 transition-all group" title="Delete Selection">
-               <span class="material-symbols-outlined text-sm group-hover:scale-125">delete</span>
-            </button>
+            <button (click)="quantizeNotes()" class="p-1.5 rounded hover:text-primary group"><span class="material-symbols-outlined text-sm">grid_on</span></button>
+            <button (click)="randomizeVelocity()" class="p-1.5 rounded hover:text-primary group"><span class="material-symbols-outlined text-sm">shuffle</span></button>
+            <button (click)="deleteSelected()" class="p-1.5 rounded hover:text-red-500 group"><span class="material-symbols-outlined text-sm">delete</span></button>
          </div>
       </div>
-
       <div class="flex items-center gap-4">
-         <!-- View Toggles -->
          <div class="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-white/10">
-            <button (click)="showAutomation.set(!showAutomation())"
-                    [class.text-primary]="showAutomation()"
-                    class="p-1 rounded hover:bg-white/5 transition-all" title="Toggle Velocity Lane">
+            <button (click)="showAutomation.set(!showAutomation())" [class.text-primary]="showAutomation()" class="p-1 rounded hover:bg-white/5 transition-all">
                <span class="material-symbols-outlined text-sm">equalizer</span>
             </button>
-
-            <div class="w-px h-3 bg-white/10"></div>
-
-            <button *ngIf="!isStandalone()" (click)="goStandalone()"
-                    class="p-1 rounded hover:text-primary hover:bg-white/5 transition-all group" title="Maximize Piano Roll">
-               <span class="material-symbols-outlined text-sm group-hover:scale-110">fullscreen</span>
-            </button>
-
-            <button *ngIf="isStandalone()" (click)="goToStudio()"
-                    class="p-1 rounded hover:text-primary hover:bg-white/5 transition-all group" title="Return to Studio">
-               <span class="material-symbols-outlined text-sm group-hover:scale-110">exit_to_app</span>
-            </button>
+            <button *ngIf="!isStandalone()" (click)="goStandalone()" class="p-1 rounded hover:text-primary group"><span class="material-symbols-outlined text-sm">fullscreen</span></button>
+            <button *ngIf="isStandalone()" (click)="goToStudio()" class="p-1 rounded hover:text-primary group"><span class="material-symbols-outlined text-sm">exit_to_app</span></button>
          </div>
-
-         <div class="text-[9px] font-black font-mono text-primary bg-primary/5 px-2 py-1 rounded border border-primary/20 shadow-[inset_0_0_10px_rgba(236,91,19,0.1)]">
+         <div class="text-[9px] font-black font-mono text-primary bg-primary/5 px-2 py-1 rounded border border-primary/20">
            {{ musicManager.engine.tempo() }} BPM
          </div>
       </div>
     </header>
 
-    <!-- Grid Container -->
     <div class="flex-1 overflow-auto custom-scrollbar relative" #scrollContainer>
        <div class="flex relative" [style.width.px]="gridWidth">
-
-          <!-- Key Labels -->
-          <div class="w-16 sticky left-0 z-30 bg-slate-900 border-r border-white/10 shadow-2xl">
+          <div class="w-16 sticky left-0 z-30 bg-slate-900 border-r border-white/10">
              <div *ngFor="let pitch of getDisplayKeys(); let i = index"
                   [style.height.px]="rowHeight"
                   [class.bg-black]="isBlackKey(pitch)"
                   [class.bg-white]="!isBlackKey(pitch)"
                   [class.opacity-20]="!isInScale(pitch)"
-                  class="w-full flex items-center justify-end px-2 border-b border-black/5 relative group transition-all">
-                <span class="text-[8px] font-black tracking-tighter mix-blend-difference truncate">
-                  {{ getKeyName(pitch) }}
-                </span>
+                  class="w-full flex items-center justify-end px-2 border-b border-black/5 relative transition-all">
+                <span class="text-[8px] font-black tracking-tighter mix-blend-difference truncate">{{ getKeyName(pitch) }}</span>
                 <div *ngIf="pitch % 12 === 0 && !isDrumTrack()" class="absolute left-1 top-1 text-[7px] font-black mix-blend-difference">C{{pitch/12 - 1}}</div>
              </div>
           </div>
-
-          <!-- Main Grid -->
-          <div class="flex-1 relative cursor-crosshair grid-background"
-               (mousedown)="onGridMouseDown($event)"
-               [style.height.px]="getDisplayKeys().length * rowHeight">
-
-             <!-- Vertical Measure Lines -->
-             <div *ngFor="let cell of cells"
-                  class="absolute top-0 bottom-0 border-r pointer-events-none"
-                  [class.border-white/10]="!isStrongBeat(cell)"
-                  [class.border-primary/40]="isStrongBeat(cell)"
-                  [style.left.px]="cell * cellWidth"
-                  [style.width.px]="cellWidth">
-             </div>
-
-             <!-- Horizontal Lanes -->
-             <div *ngFor="let pitch of getDisplayKeys(); let i = index"
-                  class="absolute left-0 right-0 border-b pointer-events-none"
-                  [class.bg-primary/5]="!isInScale(pitch) && !isDrumTrack()"
-                  [class.border-white/5]="pitch % 12 !== 0"
-                  [class.border-white/10]="pitch % 12 === 0"
-                  [style.top.px]="i * rowHeight"
-                  [style.height.px]="rowHeight">
-             </div>
-
-             <!-- Playhead -->
-             <div class="absolute top-0 bottom-0 w-px bg-primary shadow-[0_0_15px_#ec5b13] z-10 pointer-events-none transition-all"
-                  [style.left.px]="musicManager.currentStep() * cellWidth">
+          <div class="flex-1 relative cursor-crosshair grid-background" (mousedown)="onGridMouseDown($event)" [style.height.px]="getDisplayKeys().length * rowHeight">
+             <div *ngFor="let cell of cells" class="absolute top-0 bottom-0 border-r pointer-events-none" [class.border-white/10]="!isStrongBeat(cell)" [class.border-primary/40]="isStrongBeat(cell)" [style.left.px]="cell * cellWidth" [style.width.px]="cellWidth"></div>
+             <div *ngFor="let pitch of getDisplayKeys(); let i = index" class="absolute left-0 right-0 border-b pointer-events-none" [class.bg-primary/5]="!isInScale(pitch) && !isDrumTrack()" [class.border-white/5]="pitch % 12 !== 0" [class.border-white/10]="pitch % 12 === 0" [style.top.px]="i * rowHeight" [style.height.px]="rowHeight"></div>
+             <div class="absolute top-0 bottom-0 w-px bg-primary shadow-[0_0_15px_#ec5b13] z-10 pointer-events-none" [style.left.px]="musicManager.currentStep() * cellWidth">
                 <div class="absolute top-0 left-1/2 -translate-x-1/2 size-2 bg-primary rounded-full"></div>
              </div>
-
-             <!-- MIDI Notes -->
              <ng-container *ngIf="selectedTrack() as track">
-                <div *ngFor="let note of track.notes"
-                <div *ngFor="let note of getVisibleNotes(track)"
-                     (mousedown)="onNoteMouseDown($event, note)"
-                     class="absolute rounded-sm cursor-move midi-note transition-all border border-white/20 flex flex-col justify-center overflow-hidden"
-                     [class.selected-note]="selectedNoteIds().has(note.id)"
+                <div *ngFor="let note of track.notes" (mousedown)="onNoteMouseDown($event, note)"
+                     class="absolute rounded-sm cursor-move midi-note border border-white/20 flex flex-col justify-center overflow-hidden bg-gradient-to-br"
                      [class.from-primary]="!selectedNoteIds().has(note.id)"
                      [class.to-orange-600]="!selectedNoteIds().has(note.id)"
                      [class.from-emerald-400]="selectedNoteIds().has(note.id)"
                      [class.to-emerald-600]="selectedNoteIds().has(note.id)"
-                     [class.bg-gradient-to-br]="true"
                      [style.left.px]="note.step * cellWidth"
-                <ng-container *ngFor="let note of track.notes">
-                  <ng-container *ngIf="getDisplayKeys().indexOf(note.midi) as rowIndex">
-                    <div *ngIf="rowIndex !== -1"
-                         (mousedown)="onNoteMouseDown($event, note)"
-                         class="absolute rounded-sm cursor-move midi-note transition-all border border-white/20 flex flex-col justify-center overflow-hidden"
-                         [class.selected-note]="selectedNoteIds().has(note.id)"
-                         [class.from-primary]="!selectedNoteIds().has(note.id)"
-                         [class.to-orange-600]="!selectedNoteIds().has(note.id)"
-                         [class.from-emerald-400]="selectedNoteIds().has(note.id)"
-                         [class.to-emerald-600]="selectedNoteIds().has(note.id)"
-                         [class.bg-gradient-to-br]="true"
-                         [style.left.px]="note.step * cellWidth"
-                         [style.top.px]="rowIndex * rowHeight"
-                         [style.width.px]="note.length * cellWidth"
-                         [style.height.px]="rowHeight - 2">
-                      <div class="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity"></div>
-                      <div class="h-1 bg-white/30 absolute bottom-0 left-0" [style.width.%]="note.velocity * 100"></div>
-                    </div>
-                  </ng-container>
-                </ng-container>
                      [style.top.px]="getDisplayKeys().indexOf(note.midi) * rowHeight"
                      [style.width.px]="note.length * cellWidth"
                      [style.height.px]="rowHeight - 2">
-                  <div class="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity"></div>
                   <div class="h-1 bg-white/30 absolute bottom-0 left-0" [style.width.%]="note.velocity * 100"></div>
                 </div>
              </ng-container>
-
-             <!-- Selection Box -->
-             <div *ngIf="selectionBox().active"
-                  class="absolute border border-emerald-400 bg-emerald-400/20 z-40 pointer-events-none"
-                  [style.left.px]="selectionBox().w < 0 ? selectionBox().x + selectionBox().w : selectionBox().x"
-                  [style.top.px]="selectionBox().h < 0 ? selectionBox().y + selectionBox().h : selectionBox().y"
-                  [style.width.px]="selectionBox().w < 0 ? -selectionBox().w : selectionBox().w"
-                  [style.height.px]="selectionBox().h < 0 ? -selectionBox().h : selectionBox().h">
-             </div>
           </div>
        </div>
     </div>
 
-    <!-- Automation / Velocity Lane -->
-    <footer *ngIf="showAutomation()"
-            class="h-40 shrink-0 border-t border-primary/20 bg-slate-900/90 backdrop-blur-md flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
+    <footer *ngIf="showAutomation()" class="h-40 shrink-0 border-t border-primary/20 bg-slate-900/90 backdrop-blur-md flex flex-col overflow-hidden">
       <div class="flex-1 relative flex items-end p-4 gap-px overflow-x-auto no-scrollbar" [style.width.px]="gridWidth">
-         <div *ngFor="let cell of cells"
-              class="flex-1 bg-slate-800/30 hover:bg-white/5 transition-colors group relative"
-              [style.width.px]="cellWidth">
-            <div class="w-full bg-primary/40 group-hover:bg-primary transition-all rounded-t-sm relative shadow-[0_0_10px_rgba(236,91,19,0.2)]"
-                 [style.height.%]="getVelocityAt(cell)">
-               <div class="absolute -top-4 left-1/2 -translate-x-1/2 text-[8px] font-black text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                 {{ getVelocityAt(cell) | number:'1.0-0' }}
-               </div>
-            </div>
+         <div *ngFor="let cell of cells" class="flex-1 bg-slate-800/30 hover:bg-white/5 transition-colors relative" [style.width.px]="cellWidth">
+            <div class="w-full bg-primary/40 group-hover:bg-primary transition-all rounded-t-sm shadow-[0_0_10px_rgba(236,91,19,0.2)]" [style.height.%]="getVelocityAt(cell)"></div>
          </div>
       </div>
     </footer>
   </main>
-
-  <!-- Right Sidebar: HUD & Stats -->
-  <aside class="w-64 shrink-0 border-l border-primary/20 bg-slate-950/80 backdrop-blur-xl flex flex-col p-6 space-y-6 z-20 overflow-hidden">
-     <div class="space-y-4">
-        <div class="flex items-center justify-between">
-           <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">SMUVE AUDIT</span>
-           <div class="size-1 bg-primary rounded-full animate-ping"></div>
-        </div>
-
-        <div class="p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-2 relative overflow-hidden group">
-           <div class="absolute top-0 left-0 w-full h-0.5 bg-primary/10 group-hover:bg-primary/30 transition-all"></div>
-           <div class="flex justify-between text-[8px] font-black uppercase text-white">
-              <span>Rhythmic Intensity</span>
-              <span class="text-primary">High</span>
-           </div>
-           <p class="text-[9px] text-slate-400 italic leading-relaxed">"The pattern density matches Elite Touring standards. Proceed with arrangement."</p>
-        </div>
-     </div>
-
-     <div class="space-y-3">
-        <h4 class="text-[9px] font-black uppercase text-slate-500 tracking-widest">PRODUCTION RACK</h4>
-        <div class="space-y-1">
-           <div class="flex items-center gap-2 p-2 rounded bg-slate-900 border border-white/5 text-[9px] font-bold hover:border-primary/40 transition-all cursor-pointer">
-              <span class="material-symbols-outlined text-xs text-primary">equalizer</span>
-              EQ-PRO V1
-           </div>
-           <div class="flex items-center gap-2 p-2 rounded bg-slate-900 border border-white/5 text-[9px] font-bold hover:border-primary/40 transition-all cursor-pointer">
-              <span class="material-symbols-outlined text-xs text-primary">compress</span>
-              SMUVE COMP
-           </div>
-        </div>
-     </div>
-  </aside>
-
-  <!-- Glitch Overlay -->
   <div class="scanline"></div>
-</div>
 </div>

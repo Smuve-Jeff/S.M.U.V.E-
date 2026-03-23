@@ -80,6 +80,11 @@ export interface ArtistKnowledgeBase {
   learnedStyles: LearnedStyle[];
   productionSecrets: ProductionSecret[];
   coreTrends: TrendData[];
+  strategicDirectives: string[];
+  marketIntel: any[];
+  genreAnalysis: { [genre: string]: any };
+  brandStatus: any;
+  strategicHealthScore?: number;
   currentRelease?: any;
 }
 
