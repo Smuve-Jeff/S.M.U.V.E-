@@ -53,7 +53,19 @@ export class PianoRollComponent {
 
   selectedTrack = computed(() => this.musicManager.tracks().find(t => t.id === this.musicManager.selectedTrackId()));
   currentStep = this.engine.currentBeat;
-  isStandalone = computed(() => this.router.url === '/piano-roll');
+  private destroyRef = inject(DestroyRef);
+
+  private readonly _isStandaloneSignal = signal(this.router.url === '/piano-roll');
+
+  // Keep standalone state reactive across navigations while the component remains mounted
+  private readonly _standaloneRouteListener = this.router.events
+    .pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      takeUntilDestroyed(this.destroyRef)
+    )
+    .subscribe(() => this._isStandaloneSignal.set(this.router.url === '/piano-roll'));
+
+  isStandalone = computed(() => this._isStandaloneSignal());
 
   // UI State
   selectedScale = signal(SCALES[1]);
