@@ -80,6 +80,7 @@ export const initialDeckState: DeckState = {
   progress: 0,
   duration: 0,
   playbackRate: 1,
+  vinylImageUrl: 'https://picsum.photos/seed/placeholder/200/200',
   filterFreq: 20000,
   loop: false,
   gain: 1.0,
