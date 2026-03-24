@@ -365,26 +365,31 @@ export class CommandPaletteService {
     }
 
     if (lowerKey === 'a' && event.altKey) {
+      event.preventDefault();
       this.triggerById('executive-audit');
       return true;
     }
 
     if (lowerKey === 'p' && event.altKey) {
+      event.preventDefault();
       this.triggerById('toggle-performance');
       return true;
     }
 
     if (lowerKey === 't' && event.altKey) {
+      event.preventDefault();
       this.triggerById('toggle-theme');
       return true;
     }
 
     if (lowerKey === 'c' && event.altKey) {
+      event.preventDefault();
       this.triggerById('toggle-chatbot');
       return true;
     }
 
     if (lowerKey === 's' && event.altKey) {
+      event.preventDefault();
       this.triggerById('toggle-scanlines');
       return true;
     }
