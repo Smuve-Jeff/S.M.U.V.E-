@@ -1,4 +1,11 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  OnInit,
+  OnDestroy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UIService } from '../../services/ui.service';
 import { AiService, StrategicRecommendation } from '../../services/ai.service';
@@ -16,7 +23,7 @@ interface TerminalLog {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './command-center.component.html',
-  styleUrls: ['./command-center.component.css']
+  styleUrls: ['./command-center.component.css'],
 })
 export class CommandCenterComponent implements OnInit, OnDestroy {
   public aiService = inject(AiService);
@@ -57,11 +64,14 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
         let currentLine = 0;
         this.intervalId = setInterval(() => {
           if (currentLine < decrees.length) {
-            this.terminalLogs.update(logs => [...logs, {
-              timestamp: Date.now(),
-              type: 'system',
-              message: decrees[currentLine]
-            }]);
+            this.terminalLogs.update((logs) => [
+              ...logs,
+              {
+                timestamp: Date.now(),
+                type: 'system',
+                message: decrees[currentLine],
+              },
+            ]);
             currentLine++;
           } else {
             clearInterval(this.intervalId);
@@ -74,33 +84,45 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   async handleCommand(command: string) {
     if (!command.trim()) return;
 
-    this.terminalLogs.update(logs => [...logs, {
-      timestamp: Date.now(),
-      type: 'command',
-      message: command.toUpperCase()
-    }]);
+    this.terminalLogs.update((logs) => [
+      ...logs,
+      {
+        timestamp: Date.now(),
+        type: 'command',
+        message: command.toUpperCase(),
+      },
+    ]);
 
     const response = await this.aiService.processCommand(command);
 
     setTimeout(() => {
-      this.terminalLogs.update(logs => [...logs, {
-        timestamp: Date.now(),
-        type: 'response',
-        message: response
-      }]);
+      this.terminalLogs.update((logs) => [
+        ...logs,
+        {
+          timestamp: Date.now(),
+          type: 'response',
+          message: response,
+        },
+      ]);
     }, 400);
   }
 
   async acquireUpgrade(rec: UpgradeRecommendation) {
     this.isPoweringUp.set(true);
 
-    await this.profileService.acquireUpgrade({ title: rec.title, type: rec.type });
+    await this.profileService.acquireUpgrade({
+      title: rec.title,
+      type: rec.type,
+    });
 
-    this.terminalLogs.update(logs => [...logs, {
-      timestamp: Date.now(),
-      type: 'system',
-      message: `ALERT: INTEGRATING ${rec.title.toUpperCase()}. SYNCING NEURAL PATHWAYS.`
-    }]);
+    this.terminalLogs.update((logs) => [
+      ...logs,
+      {
+        timestamp: Date.now(),
+        type: 'system',
+        message: `ALERT: INTEGRATING ${rec.title.toUpperCase()}. SYNCING NEURAL PATHWAYS.`,
+      },
+    ]);
 
     setTimeout(() => {
       this.isPoweringUp.set(false);
@@ -111,11 +133,14 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   }
 
   initializeOperation(srec: StrategicRecommendation) {
-    this.terminalLogs.update(logs => [...logs, {
-      timestamp: Date.now(),
-      type: 'system',
-      message: `INITIALIZING OPERATION: ${srec.action.toUpperCase()}...`
-    }]);
+    this.terminalLogs.update((logs) => [
+      ...logs,
+      {
+        timestamp: Date.now(),
+        type: 'system',
+        message: `INITIALIZING OPERATION: ${srec.action.toUpperCase()}...`,
+      },
+    ]);
 
     setTimeout(() => {
       if (srec.toolId) {
@@ -126,11 +151,16 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
 
   getImpactColor(impact: string): string {
     switch (impact) {
-      case 'Extreme': return 'text-violet-400 animate-pulse-subtle font-black';
-      case 'High': return 'text-brand-primary';
-      case 'Medium': return 'text-yellow-400';
-      case 'Low': return 'text-slate-400';
-      default: return 'text-white';
+      case 'Extreme':
+        return 'text-violet-400 animate-pulse-subtle font-black';
+      case 'High':
+        return 'text-brand-primary';
+      case 'Medium':
+        return 'text-yellow-400';
+      case 'Low':
+        return 'text-slate-400';
+      default:
+        return 'text-white';
     }
   }
 }

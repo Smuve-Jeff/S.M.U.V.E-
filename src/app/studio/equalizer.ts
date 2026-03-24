@@ -33,15 +33,19 @@ export class Equalizer {
 
   setGain(bandIndex: number, gain: number) {
     if (this.filters[bandIndex]) {
-      this.filters[bandIndex].gain.setTargetAtTime(gain, this.context.currentTime, 0.01);
+      this.filters[bandIndex].gain.setTargetAtTime(
+        gain,
+        this.context.currentTime,
+        0.01
+      );
     }
   }
 
   getBands() {
-    return this.filters.map(f => ({
+    return this.filters.map((f) => ({
       frequency: f.frequency.value,
       gain: f.gain.value,
-      type: f.type
+      type: f.type,
     }));
   }
 

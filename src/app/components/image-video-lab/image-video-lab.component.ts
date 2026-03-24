@@ -1,10 +1,22 @@
 import { LoggingService } from '../../services/logging.service';
-import { Component, signal, inject, ViewChild, ElementRef, OnDestroy, effect, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  signal,
+  inject,
+  ViewChild,
+  ElementRef,
+  OnDestroy,
+  effect,
+  AfterViewInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
 import { UserContextService } from '../../services/user-context.service';
-import { VideoEngineService, VideoClip } from '../../services/video-engine.service';
+import {
+  VideoEngineService,
+  VideoClip,
+} from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
 
 @Component({
@@ -32,25 +44,44 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   activeDirectorTab = signal<'assets' | 'effects' | 'ai'>('assets');
   zoomLevel = signal(1.0);
 
-  aiFeedback = signal('S.M.U.V.E 4.2 Cinema Engine Offline. Initialize for executive visual capture.');
+  aiFeedback = signal(
+    'S.M.U.V.E 4.2 Cinema Engine Offline. Initialize for executive visual capture.'
+  );
 
   private canvasCtx: CanvasRenderingContext2D | null = null;
   private animFrame: number | null = null;
 
   templates = [
-    { name: 'Cinematic Noir', prompt: 'film noir style, high contrast, dramatic shadows' },
-    { name: 'Vaporwave Dreams', prompt: '80s aesthetic, refined-glow pink and teal, lo-fi textures' },
-    { name: 'pro-gradepunk Grit', prompt: 'futuristic city, rain-slicked streets, refined-glow lights' },
-    { name: 'Ethereal Clouds', prompt: 'soft lighting, dreamlike atmosphere, pastel colors' },
+    {
+      name: 'Cinematic Noir',
+      prompt: 'film noir style, high contrast, dramatic shadows',
+    },
+    {
+      name: 'Vaporwave Dreams',
+      prompt: '80s aesthetic, refined-glow pink and teal, lo-fi textures',
+    },
+    {
+      name: 'pro-gradepunk Grit',
+      prompt: 'futuristic city, rain-slicked streets, refined-glow lights',
+    },
+    {
+      name: 'Ethereal Clouds',
+      prompt: 'soft lighting, dreamlike atmosphere, pastel colors',
+    },
   ];
 
   constructor() {
-    effect(() => {
-      const isPlaying = this.videoEngine.isPlaying();
-      if (isPlaying) {
-        this.aiFeedback.set('BROADCAST LIVE. Dominating the digital airwaves.');
-      }
-    }, { allowSignalWrites: true });
+    effect(
+      () => {
+        const isPlaying = this.videoEngine.isPlaying();
+        if (isPlaying) {
+          this.aiFeedback.set(
+            'BROADCAST LIVE. Dominating the digital airwaves.'
+          );
+        }
+      },
+      { allowSignalWrites: true }
+    );
   }
 
   ngAfterViewInit() {
@@ -80,16 +111,21 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const activeClips = this.videoEngine.getActiveClips(time);
 
     if (activeClips.length > 0) {
-      activeClips.forEach(clip => {
-        const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      activeClips.forEach((clip) => {
+        const grad = ctx.createLinearGradient(
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
         if (clip.type === 'video') {
-            grad.addColorStop(0, '#10b98122');
-            grad.addColorStop(0.5, '#064e3b44');
-            grad.addColorStop(1, '#10b98122');
+          grad.addColorStop(0, '#10b98122');
+          grad.addColorStop(0.5, '#064e3b44');
+          grad.addColorStop(1, '#10b98122');
         } else {
-            grad.addColorStop(0, '#8b5cf622');
-            grad.addColorStop(0.5, '#4c1d9544');
-            grad.addColorStop(1, '#8b5cf622');
+          grad.addColorStop(0, '#8b5cf622');
+          grad.addColorStop(0.5, '#4c1d9544');
+          grad.addColorStop(1, '#8b5cf622');
         }
 
         ctx.fillStyle = grad;
@@ -97,8 +133,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
         ctx.strokeStyle = '#10b98111';
         ctx.beginPath();
-        for(let x=0; x<canvas.width; x+=40) {
-            ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+        for (let x = 0; x < canvas.width; x += 40) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height);
         }
         ctx.stroke();
 
@@ -111,7 +148,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       ctx.font = '12px "Public Sans"';
       ctx.fillStyle = '#1e293b';
       ctx.textAlign = 'center';
-      ctx.fillText('WAITING FOR MEDIA SIGNAL...', canvas.width/2, canvas.height/2);
+      ctx.fillText(
+        'WAITING FOR MEDIA SIGNAL...',
+        canvas.width / 2,
+        canvas.height / 2
+      );
     }
 
     this.drawHUD(ctx, canvas);
@@ -123,7 +164,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const size = 30;
     const p = 10;
     ctx.beginPath();
-    ctx.moveTo(p, p + size); ctx.lineTo(p, p); ctx.lineTo(p + size, p);
+    ctx.moveTo(p, p + size);
+    ctx.lineTo(p, p);
+    ctx.lineTo(p + size, p);
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(canvas.width - p, canvas.height - p - size);
@@ -143,17 +186,26 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   async exportVideo() {
     if (this.isExporting()) return;
     this.isExporting.set(true);
-    this.aiFeedback.set("INITIALIZING MULTI-STREAM EXPORT. STAND BY FOR ELITE CAPTURE.");
-    const { recorder, result } = await this.exportService.startVideoExport(this.previewCanvas.nativeElement);
+    this.aiFeedback.set(
+      'INITIALIZING MULTI-STREAM EXPORT. STAND BY FOR ELITE CAPTURE.'
+    );
+    const { recorder, result } = await this.exportService.startVideoExport(
+      this.previewCanvas.nativeElement
+    );
     this.videoEngine.currentTime.set(0);
     this.videoEngine.togglePlay();
     setTimeout(() => {
       recorder.stop();
       this.videoEngine.togglePlay();
-      result.then(blob => {
-        this.exportService.downloadBlob(blob, "smuve_4_export_" + Date.now() + ".webm");
+      result.then((blob) => {
+        this.exportService.downloadBlob(
+          blob,
+          'smuve_4_export_' + Date.now() + '.webm'
+        );
         this.isExporting.set(false);
-        this.aiFeedback.set("VIDEO EXPORT CAPTURE COMPLETE. DOWNLOAD INITIALIZED.");
+        this.aiFeedback.set(
+          'VIDEO EXPORT CAPTURE COMPLETE. DOWNLOAD INITIALIZED.'
+        );
       });
     }, 10000);
   }
@@ -169,9 +221,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       duration: 10,
       offset: 0,
       type: 'video',
-      effects: { upscale: false, bgRemoval: false, noiseReduction: false, brightness: 1, contrast: 1 }
+      effects: {
+        upscale: false,
+        bgRemoval: false,
+        noiseReduction: false,
+        brightness: 1,
+        contrast: 1,
+      },
     });
-    this.aiFeedback.set(`UPLOAD SUCCESS: ${file.name} integrated into the visual vault.`);
+    this.aiFeedback.set(
+      `UPLOAD SUCCESS: ${file.name} integrated into the visual vault.`
+    );
   }
 
   async generateImage() {
@@ -188,7 +248,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         duration: 5,
         offset: 0,
         type: 'image',
-        effects: { upscale: true, bgRemoval: false, noiseReduction: false, brightness: 1, contrast: 1 }
+        effects: {
+          upscale: true,
+          bgRemoval: false,
+          noiseReduction: false,
+          brightness: 1,
+          contrast: 1,
+        },
       });
     } catch (error) {
       this.logger.error('Image Generation Error:', error);

@@ -10,17 +10,21 @@ describe('SpeechSynthesisService', () => {
     mockSpeechSynthesis = {
       speak: jest.fn(),
       cancel: jest.fn(),
-      getVoices: jest.fn().mockReturnValue([{ name: 'Google English', lang: 'en-US' }]),
+      getVoices: jest
+        .fn()
+        .mockReturnValue([{ name: 'Google English', lang: 'en-US' }]),
     };
 
     mockUtterance = {};
-    (global as any).SpeechSynthesisUtterance = jest.fn().mockImplementation(() => mockUtterance);
+    (global as any).SpeechSynthesisUtterance = jest
+      .fn()
+      .mockImplementation(() => mockUtterance);
 
     // In JSDOM/Jest, window might already exist, so we need to be careful
     Object.defineProperty(window, 'speechSynthesis', {
       value: mockSpeechSynthesis,
       writable: true,
-      configurable: true
+      configurable: true,
     });
 
     TestBed.configureTestingModule({});
@@ -46,7 +50,9 @@ describe('SpeechSynthesisService', () => {
   it('should replace S.M.U.V.E 4.2 with Smooth', () => {
     service.speak('Welcome to S.M.U.V.E 4.2');
 
-    expect(global.SpeechSynthesisUtterance).toHaveBeenCalledWith('Welcome to Smooth');
+    expect(global.SpeechSynthesisUtterance).toHaveBeenCalledWith(
+      'Welcome to Smooth'
+    );
   });
 
   it('should cancel previous speech when speaking new text', () => {

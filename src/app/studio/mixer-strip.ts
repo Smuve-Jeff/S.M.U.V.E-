@@ -26,7 +26,10 @@ export class MixerStrip {
   }
 
   setVolume(volume: number) {
-    this.output.gain.setValueAtTime(volume / 100, this.audioContext.currentTime);
+    this.output.gain.setValueAtTime(
+      volume / 100,
+      this.audioContext.currentTime
+    );
   }
 
   setPan(pan: number) {

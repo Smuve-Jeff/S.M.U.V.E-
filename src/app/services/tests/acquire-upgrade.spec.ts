@@ -11,19 +11,19 @@ describe('UserProfileService - Acquire Upgrade', () => {
 
   beforeEach(() => {
     mockAuthService = {
-      isAuthenticated: signal(true)
+      isAuthenticated: signal(true),
     };
     mockDatabaseService = {
       loadUserProfile: jest.fn().mockResolvedValue({ ...initialProfile }),
-      saveUserProfile: jest.fn().mockResolvedValue(undefined)
+      saveUserProfile: jest.fn().mockResolvedValue(undefined),
     };
 
     TestBed.configureTestingModule({
       providers: [
         UserProfileService,
         { provide: AuthService, useValue: mockAuthService },
-        { provide: DatabaseService, useValue: mockDatabaseService }
-      ]
+        { provide: DatabaseService, useValue: mockDatabaseService },
+      ],
     });
     service = TestBed.inject(UserProfileService);
   });
@@ -51,7 +51,9 @@ describe('UserProfileService - Acquire Upgrade', () => {
     const upgrade = { title: 'Duplicate Item', type: 'Gear' };
     await service.acquireUpgrade(upgrade);
     await service.acquireUpgrade(upgrade);
-    const count = service.profile().equipment.filter(e => e === 'Duplicate Item').length;
+    const count = service
+      .profile()
+      .equipment.filter((e) => e === 'Duplicate Item').length;
     expect(count).toBe(1);
   });
 });

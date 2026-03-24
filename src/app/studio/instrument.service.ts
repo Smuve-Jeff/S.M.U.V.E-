@@ -16,7 +16,7 @@ export interface Clip {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class InstrumentService {
   private logger = inject(LoggingService);
@@ -29,7 +29,7 @@ export class InstrumentService {
   }
 
   getCompressor(): DynamicsCompressorNode {
-      return this.engine.compressor;
+    return this.engine.compressor;
   }
 
   setMasterVolume(volume: number) {
@@ -39,17 +39,21 @@ export class InstrumentService {
   setReverbMix(mix: number) {
     const reverbWet = this.engine.reverbWet;
     if (reverbWet) {
-        reverbWet.gain.setTargetAtTime(mix, this.engine.getContext().currentTime, 0.01);
+      reverbWet.gain.setTargetAtTime(
+        mix,
+        this.engine.getContext().currentTime,
+        0.01
+      );
     }
   }
 
   play(time: number, midi: number, velocity: number) {
     const freq = 440 * Math.pow(2, (midi - 69) / 12);
     this.engine.playSynth(
-        this.engine.getContext().currentTime + time,
-        freq,
-        0.5,
-        velocity
+      this.engine.getContext().currentTime + time,
+      freq,
+      0.5,
+      velocity
     );
   }
 

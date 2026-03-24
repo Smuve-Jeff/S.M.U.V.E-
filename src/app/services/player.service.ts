@@ -14,7 +14,7 @@ export interface GlobalTrack {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PlayerService implements OnDestroy {
   private logger = inject(LoggingService);
@@ -27,7 +27,7 @@ export class PlayerService implements OnDestroy {
     { id: '1', title: 'elegant ARCHITECT', artist: 'S.M.U.V.E 4.2 CORE' },
     { id: '2', title: 'SYNTHETIC DREAMS', artist: 'AI SYNDICATE' },
     { id: '3', title: 'pro-gradePUNK BEATS', artist: 'TECHNO ARCHITECT' },
-    { id: '4', title: 'precision IN THE MATRIX', artist: 'S.M.U.V.E 4.2 PRO' }
+    { id: '4', title: 'precision IN THE MATRIX', artist: 'S.M.U.V.E 4.2 PRO' },
   ];
 
   playlist = signal<GlobalTrack[]>(this.defaultPlaylist);
@@ -117,7 +117,9 @@ export class PlayerService implements OnDestroy {
           const res = await fetch(track.url);
           if (!res.ok) throw new Error(`Failed to fetch track: ${res.status}`);
           const arrayBuffer = await res.arrayBuffer();
-          const buffer = await this.audioEngine.getContext().decodeAudioData(arrayBuffer);
+          const buffer = await this.audioEngine
+            .getContext()
+            .decodeAudioData(arrayBuffer);
 
           this.playlist.update((p) =>
             p.map((t, i) => (i === targetIndex ? { ...t, buffer } : t))
@@ -128,30 +130,40 @@ export class PlayerService implements OnDestroy {
             if (!this.isPlaying()) this.togglePlay();
           }
         } catch (err) {
-          this.logger.warn('PlayerService: Failed to load track audio from URL', err);
+          this.logger.warn(
+            'PlayerService: Failed to load track audio from URL',
+            err
+          );
         }
       })();
     }
   }
 
-  toggleShuffle() { this.isShuffle.update(v => !v); }
-  toggleRepeat() { this.isRepeat.update(v => !v); }
+  toggleShuffle() {
+    this.isShuffle.update((v) => !v);
+  }
+  toggleRepeat() {
+    this.isRepeat.update((v) => !v);
+  }
 
   async loadExternalTrack() {
     try {
       const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
       if (files && files.length > 0) {
         const file = files[0];
-        const buffer = await this.fileLoader.decodeToAudioBuffer(this.audioEngine.getContext(), file);
+        const buffer = await this.fileLoader.decodeToAudioBuffer(
+          this.audioEngine.getContext(),
+          file
+        );
 
         const newTrack: GlobalTrack = {
           id: Date.now().toString(),
-          title: file.name.replace(/\.[^/.]+$/, ""),
+          title: file.name.replace(/\.[^/.]+$/, ''),
           artist: 'Local Import',
-          buffer: buffer
+          buffer: buffer,
         };
 
-        this.playlist.update(p => [newTrack, ...p]);
+        this.playlist.update((p) => [newTrack, ...p]);
         this.currentIndex.set(0);
         this.deckService.loadDeckBuffer('A', buffer, file.name);
         if (!this.isPlaying()) this.togglePlay();
@@ -162,7 +174,8 @@ export class PlayerService implements OnDestroy {
   }
 
   exportCurrent() {
-    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    if (typeof window === 'undefined' || typeof document === 'undefined')
+      return;
 
     const buffer = this.audioEngine.getDeck('A').buffer;
     if (!buffer) return;

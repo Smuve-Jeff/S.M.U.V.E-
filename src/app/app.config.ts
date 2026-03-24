@@ -1,9 +1,14 @@
-import { ApplicationConfig, provideZoneChangeDetection, isDevMode, inject } from '@angular/core';
+import {
+  ApplicationConfig,
+  provideZoneChangeDetection,
+  isDevMode,
+  inject,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideServiceWorker } from '@angular/service-worker';
 import { provideAnimations } from '@angular/platform-browser/animations';
-import { provideHttpClient } from "@angular/common/http";
+import { provideHttpClient } from '@angular/common/http';
 import { provideAiService } from './services/ai.service';
 import { APP_INITIALIZER } from '@angular/core';
 import { AutoSaveService } from './services/auto-save.service';
@@ -16,7 +21,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
-      registrationStrategy: 'registerWhenStable:30000'
+      registrationStrategy: 'registerWhenStable:30000',
     }),
     provideAnimations(),
     provideAiService(),
@@ -30,7 +35,7 @@ export const appConfig: ApplicationConfig = {
           logger.info('Auto-Save Service Initialized');
         };
       },
-      multi: true
-    }
-  ]
+      multi: true,
+    },
+  ],
 };

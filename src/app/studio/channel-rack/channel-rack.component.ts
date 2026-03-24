@@ -1,7 +1,10 @@
 import { LoggingService } from '../../services/logging.service';
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MusicManagerService, TrackModel } from '../../services/music-manager.service';
+import {
+  MusicManagerService,
+  TrackModel,
+} from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { InstrumentsService } from '../../services/instruments.service';
 
@@ -10,7 +13,7 @@ import { InstrumentsService } from '../../services/instruments.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './channel-rack.component.html',
-  styleUrls: ['./channel-rack.component.css']
+  styleUrls: ['./channel-rack.component.css'],
 })
 export class ChannelRackComponent {
   private logger = inject(LoggingService);
@@ -42,11 +45,19 @@ export class ChannelRackComponent {
   }
 
   updateVolume(track: TrackModel, event: any) {
-    this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? { ...t, gain: +event.target.value / 100 } : t));
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === track.id ? { ...t, gain: +event.target.value / 100 } : t
+      )
+    );
   }
 
   updatePan(track: TrackModel, event: any) {
-    this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? { ...t, pan: +event.target.value / 100 } : t));
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === track.id ? { ...t, pan: +event.target.value / 100 } : t
+      )
+    );
   }
 
   toggleMute(track: TrackModel) {

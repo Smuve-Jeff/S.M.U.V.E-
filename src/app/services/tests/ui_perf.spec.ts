@@ -15,15 +15,15 @@ describe('UIService Performance Mode', () => {
       updateProfile: jest.fn().mockImplementation((p) => {
         profileServiceMock.profile.set(p);
         return Promise.resolve();
-      })
+      }),
     };
 
     TestBed.configureTestingModule({
       providers: [
         UIService,
         { provide: Router, useValue: routerMock },
-        { provide: UserProfileService, useValue: profileServiceMock }
-      ]
+        { provide: UserProfileService, useValue: profileServiceMock },
+      ],
     });
     service = TestBed.inject(UIService);
     document.body.classList.remove('perf-mode-active');

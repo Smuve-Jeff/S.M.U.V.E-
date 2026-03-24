@@ -21,19 +21,45 @@ export class PracticeSpaceComponent implements OnDestroy {
   metronomeActive = signal(false);
   private metronomeInterval: any;
 
-  recommendedUpgrades = computed(() => this.aiService.getUpgradeRecommendations().slice(0, 3));
+  recommendedUpgrades = computed(() =>
+    this.aiService.getUpgradeRecommendations().slice(0, 3)
+  );
 
   protocols = signal<any[]>([
-    { id: '1', title: 'Vocal Resonance', category: 'VOCAL', duration: '10m', description: 'Focus on harmonic placement.', icon: 'fa-microphone', difficulty: 'Intermediate' },
-    { id: '2', title: 'Stage Presence', category: 'PERFORMANCE', duration: '15m', description: 'Choreographed energy control.', icon: 'fa-walking', difficulty: 'Advanced' },
-    { id: '3', title: 'Lyric Memory', category: 'COGNITIVE', duration: '5m', description: 'Rapid recall drill.', icon: 'fa-brain', difficulty: 'Expert' }
+    {
+      id: '1',
+      title: 'Vocal Resonance',
+      category: 'VOCAL',
+      duration: '10m',
+      description: 'Focus on harmonic placement.',
+      icon: 'fa-microphone',
+      difficulty: 'Intermediate',
+    },
+    {
+      id: '2',
+      title: 'Stage Presence',
+      category: 'PERFORMANCE',
+      duration: '15m',
+      description: 'Choreographed energy control.',
+      icon: 'fa-walking',
+      difficulty: 'Advanced',
+    },
+    {
+      id: '3',
+      title: 'Lyric Memory',
+      category: 'COGNITIVE',
+      duration: '5m',
+      description: 'Rapid recall drill.',
+      icon: 'fa-brain',
+      difficulty: 'Expert',
+    },
   ]);
 
   toggleMetronome() {
-    this.metronomeActive.update(v => !v);
+    this.metronomeActive.update((v) => !v);
     if (this.metronomeActive()) {
       this.metronomeInterval = setInterval(() => {
-        this.currentTick.update(t => (t + 1) % 4);
+        this.currentTick.update((t) => (t + 1) % 4);
       }, 500);
     } else {
       clearInterval(this.metronomeInterval);
@@ -42,7 +68,10 @@ export class PracticeSpaceComponent implements OnDestroy {
   }
 
   acquireUpgrade(upgrade: any) {
-    this.profileService.acquireUpgrade({ title: upgrade.title, type: upgrade.type });
+    this.profileService.acquireUpgrade({
+      title: upgrade.title,
+      type: upgrade.type,
+    });
   }
 
   ngOnDestroy() {

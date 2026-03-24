@@ -13,18 +13,18 @@ describe('VocalSuiteComponent', () => {
   beforeEach(async () => {
     mockUIService = {
       activeTheme: signal({ name: 'test', primary: 'purple' }),
-      navigateToView: jest.fn()
+      navigateToView: jest.fn(),
     };
     mockRouter = {
-      navigate: jest.fn()
+      navigate: jest.fn(),
     };
 
     await TestBed.configureTestingModule({
       imports: [VocalSuiteComponent],
       providers: [
         { provide: UIService, useValue: mockUIService },
-        { provide: Router, useValue: mockRouter }
-      ]
+        { provide: Router, useValue: mockRouter },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(VocalSuiteComponent);

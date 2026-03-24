@@ -21,5 +21,8 @@ test('Strategy Hub Dynamic Features', async ({ page }) => {
   const hookCount = await hooks.count();
   console.log('Found ' + hookCount + ' viral hooks');
 
-  await page.screenshot({ path: '/home/jules/verification/strategy_social.png', fullPage: true });
+  await page.screenshot({
+    path: '/home/jules/verification/strategy_social.png',
+    fullPage: true,
+  });
 });

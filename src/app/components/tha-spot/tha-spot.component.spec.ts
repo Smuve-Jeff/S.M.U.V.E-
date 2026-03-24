@@ -12,15 +12,27 @@ describe('ThaSpotComponent', () => {
     // Mock AudioContext
     const mockAudioParam = {
       value: 0,
-      setTargetAtTime: function () { return this; },
-      setValueAtTime: function () { return this; },
-      linearRampToValueAtTime: function () { return this; },
-      exponentialRampToValueAtTime: function () { return this; },
+      setTargetAtTime: function () {
+        return this;
+      },
+      setValueAtTime: function () {
+        return this;
+      },
+      linearRampToValueAtTime: function () {
+        return this;
+      },
+      exponentialRampToValueAtTime: function () {
+        return this;
+      },
     };
 
     const mockNode = {
-      connect: function (target: any) { return target; },
-      disconnect: function () { return this; },
+      connect: function (target: any) {
+        return target;
+      },
+      disconnect: function () {
+        return this;
+      },
       gain: mockAudioParam,
       frequency: mockAudioParam,
       Q: mockAudioParam,
@@ -32,25 +44,55 @@ describe('ThaSpotComponent', () => {
       pan: mockAudioParam,
       delayTime: mockAudioParam,
       playbackRate: mockAudioParam,
-      start: function () { return this; },
-      stop: function () { return this; },
+      start: function () {
+        return this;
+      },
+      stop: function () {
+        return this;
+      },
       buffer: null,
     };
 
     (window as any).AudioContext = class {
-      createGain() { return { ...mockNode }; }
-      createOscillator() { return { ...mockNode }; }
-      createDynamicsCompressor() { return { ...mockNode }; }
-      createDelay() { return { ...mockNode }; }
-      createBiquadFilter() { return { ...mockNode }; }
-      createAnalyser() { return { ...mockNode, getByteFrequencyData: () => {} }; }
-      createConvolver() { return { ...mockNode }; }
-      createStereoPanner() { return { ...mockNode }; }
-      createBufferSource() { return { ...mockNode }; }
-      createBuffer() { return { getChannelData: () => new Float32Array(100) }; }
-      get destination() { return { connect: () => {}, disconnect: () => {} }; }
-      get currentTime() { return 0; }
-      get sampleRate() { return 44100; }
+      createGain() {
+        return { ...mockNode };
+      }
+      createOscillator() {
+        return { ...mockNode };
+      }
+      createDynamicsCompressor() {
+        return { ...mockNode };
+      }
+      createDelay() {
+        return { ...mockNode };
+      }
+      createBiquadFilter() {
+        return { ...mockNode };
+      }
+      createAnalyser() {
+        return { ...mockNode, getByteFrequencyData: () => {} };
+      }
+      createConvolver() {
+        return { ...mockNode };
+      }
+      createStereoPanner() {
+        return { ...mockNode };
+      }
+      createBufferSource() {
+        return { ...mockNode };
+      }
+      createBuffer() {
+        return { getChannelData: () => new Float32Array(100) };
+      }
+      get destination() {
+        return { connect: () => {}, disconnect: () => {} };
+      }
+      get currentTime() {
+        return 0;
+      }
+      get sampleRate() {
+        return 44100;
+      }
     };
     (window as any).webkitAudioContext = (window as any).AudioContext;
 
@@ -87,7 +129,9 @@ describe('ThaSpotComponent', () => {
     component.newChatMessage.set('Hello Test');
     component.sendChatMessage();
     expect(component.chatMessages().length).toBe(initialCount + 1);
-    expect(component.chatMessages()[component.chatMessages().length - 1].text).toBe('Hello Test');
+    expect(
+      component.chatMessages()[component.chatMessages().length - 1].text
+    ).toBe('Hello Test');
     expect(component.newChatMessage()).toBe('');
   });
 });

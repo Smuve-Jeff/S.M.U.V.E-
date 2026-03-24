@@ -4,7 +4,8 @@ import {
   inject,
   signal,
   input,
-  effect, computed,
+  effect,
+  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -58,7 +59,10 @@ export class ProfileEditorComponent {
   showLegalEditor = signal(false);
   editingDocument = signal<LegalDocument | undefined>(undefined);
   syncingWithAi = signal(false);
-  optimizationScore = computed(() => this.userProfileService.profile().knowledgeBase.strategicHealthScore || 0);
+  optimizationScore = computed(
+    () =>
+      this.userProfileService.profile().knowledgeBase.strategicHealthScore || 0
+  );
   syncLog = signal<string[]>([]);
   intelligenceBriefs = this.aiService.intelligenceBriefs;
 
@@ -69,11 +73,50 @@ export class ProfileEditorComponent {
   saveStatus = signal<'idle' | 'saving' | 'saved'>('idle');
   activeSection = signal<string>('basic');
 
-  readonly allGenres = ['Hip Hop', 'R&B', 'Pop', 'Rock', 'Electronic', 'Jazz', 'Classical', 'Country', 'Latin', 'Afrobeats', 'Metal', 'Folk', 'Reggae'];
-  readonly experienceLevels = ['Beginner', 'Intermediate', 'Advanced', 'Professional'];
-  readonly skillsList = ['Vocalist', 'Producer', 'Songwriter', 'DJ', 'Engineer', 'Musician', 'Manager', 'Marketer'];
+  readonly allGenres = [
+    'Hip Hop',
+    'R&B',
+    'Pop',
+    'Rock',
+    'Electronic',
+    'Jazz',
+    'Classical',
+    'Country',
+    'Latin',
+    'Afrobeats',
+    'Metal',
+    'Folk',
+    'Reggae',
+  ];
+  readonly experienceLevels = [
+    'Beginner',
+    'Intermediate',
+    'Advanced',
+    'Professional',
+  ];
+  readonly skillsList = [
+    'Vocalist',
+    'Producer',
+    'Songwriter',
+    'DJ',
+    'Engineer',
+    'Musician',
+    'Manager',
+    'Marketer',
+  ];
   readonly travelOptions = ['Van', 'Bus', 'Flight', 'Private'];
-  readonly brandVoices = ['Mysterious', 'Aggressive', 'Sophisticated', 'Relatable', 'Elite', 'Vulnerable', 'High-Energy', 'Cinematic', 'Underground', 'Commercial'];
+  readonly brandVoices = [
+    'Mysterious',
+    'Aggressive',
+    'Sophisticated',
+    'Relatable',
+    'Elite',
+    'Vulnerable',
+    'High-Energy',
+    'Cinematic',
+    'Underground',
+    'Commercial',
+  ];
 
   sections = [
     { id: 'basic', label: 'Identity & Vision', icon: 'fa-user-tie' },
@@ -119,7 +162,7 @@ export class ProfileEditorComponent {
   }
 
   private addLog(msg: string) {
-    this.syncLog.update(logs => [msg, ...logs].slice(0, 5));
+    this.syncLog.update((logs) => [msg, ...logs].slice(0, 5));
   }
 
   private calculateScore(): number {
@@ -136,7 +179,7 @@ export class ProfileEditorComponent {
   }
 
   toggleChip(field: string, value: any, nestedPath?: string) {
-    this.editableProfile.update(p => {
+    this.editableProfile.update((p) => {
       const updated = { ...p };
       let target: any[] = [];
 
@@ -152,7 +195,7 @@ export class ProfileEditorComponent {
         target = current[lastPart];
 
         if (target.includes(value)) {
-          current[lastPart] = target.filter(v => v !== value);
+          current[lastPart] = target.filter((v) => v !== value);
         } else {
           current[lastPart] = [...target, value];
         }
@@ -172,7 +215,7 @@ export class ProfileEditorComponent {
 
   updateProfileField(field: string, value: any) {
     const parts = field.split('.');
-    this.editableProfile.update(p => {
+    this.editableProfile.update((p) => {
       const updated = { ...p };
       let current: any = updated;
       for (let i = 0; i < parts.length - 1; i++) {
@@ -185,16 +228,25 @@ export class ProfileEditorComponent {
   }
 
   addTeamMember() {
-    this.editableProfile.update(p => ({
+    this.editableProfile.update((p) => ({
       ...p,
-      team: [...(p.team || []), { role: 'Viewer', name: '', contact: '', active: true, permissions: [] }]
+      team: [
+        ...(p.team || []),
+        {
+          role: 'Viewer',
+          name: '',
+          contact: '',
+          active: true,
+          permissions: [],
+        },
+      ],
     }));
   }
 
   removeTeamMember(index: number) {
-    this.editableProfile.update(p => ({
+    this.editableProfile.update((p) => ({
       ...p,
-      team: p.team.filter((_, i) => i !== index)
+      team: p.team.filter((_, i) => i !== index),
     }));
   }
 

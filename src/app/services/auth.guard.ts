@@ -14,7 +14,11 @@ export const authGuard: CanActivateFn = (route, state) => {
   const requiredPermission = route.data['permission'] as string;
   if (requiredPermission) {
     const user = authService.currentUser();
-    if (!user || !user.permissions.includes(requiredPermission) && !user.permissions.includes('ALL_ACCESS')) {
+    if (
+      !user ||
+      (!user.permissions.includes(requiredPermission) &&
+        !user.permissions.includes('ALL_ACCESS'))
+    ) {
       router.navigate(['/hub']);
       return false;
     }

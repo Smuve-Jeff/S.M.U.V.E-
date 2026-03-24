@@ -2,7 +2,10 @@ import { Component, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { UserProfileService, UserProfile } from '../../services/user-profile.service';
+import {
+  UserProfileService,
+  UserProfile,
+} from '../../services/user-profile.service';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -24,7 +27,7 @@ export class JourneyComponent {
     { title: 'The Origin', subtitle: 'Where it all began' },
     { title: 'The Sound', subtitle: 'Defining your frequency' },
     { title: 'The Vision', subtitle: 'Mapping the future' },
-    { title: 'The Legacy', subtitle: 'Finalizing the dossier' }
+    { title: 'The Legacy', subtitle: 'Finalizing the dossier' },
   ];
 
   constructor() {
@@ -33,8 +36,13 @@ export class JourneyComponent {
     });
   }
 
-  next() { if (this.activeStep() < this.steps.length - 1) this.activeStep.update(s => s + 1); }
-  prev() { if (this.activeStep() > 0) this.activeStep.update(s => s - 1); }
+  next() {
+    if (this.activeStep() < this.steps.length - 1)
+      this.activeStep.update((s) => s + 1);
+  }
+  prev() {
+    if (this.activeStep() > 0) this.activeStep.update((s) => s - 1);
+  }
 
   updateProfile() {
     this.userProfileService.updateProfile(this.profile());

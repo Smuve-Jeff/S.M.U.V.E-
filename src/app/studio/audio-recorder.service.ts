@@ -1,76 +1,68 @@
+import { Injectable, inject, signal } from '@angular/core';
+import { LocalStorageService } from '../services/local-storage.service';
 import { LoggingService } from '../services/logging.service';
-import { Injectable, signal, inject } from '@angular/core';
-import { AudioEngineService } from '../services/audio-engine.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AudioRecorderService {
+  private localStorageService = inject(LocalStorageService);
   private logger = inject(LoggingService);
-  private engine = inject(AudioEngineService);
-  private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
-  private analyser: AnalyserNode | null = null;
 
-  recordingState = signal<'idle' | 'recording' | 'paused'>('idle');
-  waveform = signal<number[]>([]);
+  isRecording = signal(false);
+  recordedBlobs: Blob[] = [];
+  mediaRecorder: MediaRecorder | null = null;
 
-  constructor() { }
-
-  async startRecording(stream?: MediaStream) {
-    this.engine.resume();
-
-    // If no stream provided, use the master stream from engine
-    const sourceStream = stream || this.engine.getMasterStream().stream;
-
-    const ctx = this.engine.getContext();
-    this.analyser = ctx.createAnalyser();
-    const source = ctx.createMediaStreamSource(sourceStream);
-    source.connect(this.analyser);
-
-    this.mediaRecorder = new MediaRecorder(sourceStream);
-    this.audioChunks = [];
+  async startRecording(stream: MediaStream) {
+    this.recordedBlobs = [];
+    const options = { mimeType: 'audio/webm' };
+    this.mediaRecorder = new MediaRecorder(stream, options);
 
     this.mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        this.audioChunks.push(event.data);
+      if (event.data && event.data.size > 0) {
+        this.recordedBlobs.push(event.data);
       }
     };
 
-    this.mediaRecorder.onstop = () => {
-      const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm;codecs=opus' });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      this.logger.info('Recording stopped. Audio URL:', audioUrl);
+    this.mediaRecorder.onstop = async () => {
+      const blob = new Blob(this.recordedBlobs, { type: 'audio/webm' });
+      const id = `rec_${Date.now()}`;
 
-      // Auto-download for the user to verify
-      const link = document.createElement('a');
-      link.href = audioUrl;
-      link.download = `smuve_recording_${Date.now()}.webm`;
-      link.click();
+      // High-fidelity local save
+      await this.localStorageService.saveItem('audio_blobs', {
+        id,
+        blob,
+        name: `Recording ${new Date().toLocaleTimeString()}`,
+        timestamp: Date.now(),
+        settings: { gain: 1.0, trimmed: false },
+      });
 
-      this.recordingState.set('idle');
+      this.logger.info(
+        `Recording ${id} saved to high-fidelity offline storage.`
+      );
     };
 
     this.mediaRecorder.start();
-    this.recordingState.set('recording');
-    this.updateWaveform();
-  }
-
-  private updateWaveform() {
-    if (this.recordingState() !== 'recording' || !this.analyser) return;
-
-    const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-    this.analyser.getByteTimeDomainData(dataArray);
-
-    const waveformValues = Array.from(dataArray).map(val => (val - 128) / 128);
-    this.waveform.set(waveformValues);
-
-    requestAnimationFrame(() => this.updateWaveform());
+    this.isRecording.set(true);
   }
 
   stopRecording() {
-    if (this.mediaRecorder && this.recordingState() === 'recording') {
+    if (this.mediaRecorder) {
       this.mediaRecorder.stop();
+      this.isRecording.set(false);
+    }
+  }
+
+  async getOfflineRecordings() {
+    return await this.localStorageService.getAllItems('audio_blobs');
+  }
+
+  async applyOfflineEdit(id: string, edits: any) {
+    const item = await this.localStorageService.getItem('audio_blobs', id);
+    if (item) {
+      item.settings = { ...item.settings, ...edits };
+      await this.localStorageService.saveItem('audio_blobs', item);
+      this.logger.info(`Offline edits applied to recording ${id}.`);
     }
   }
 }

@@ -20,7 +20,7 @@ export interface ArrangementClip {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './arrangement-view.component.html',
-  styleUrls: ['./arrangement-view.component.css']
+  styleUrls: ['./arrangement-view.component.css'],
 })
 export class ArrangementViewComponent {
   bars = Array.from({ length: 64 }, (_, i) => i);
@@ -29,9 +29,40 @@ export class ArrangementViewComponent {
   playheadPos = 120;
 
   tracks: ArrangementTrack[] = [
-    { id: '1', name: 'Kick', clips: [{ id: 'c1', name: 'Pattern 1', start: 0, length: 4, color: '#10b981' }, { id: 'c2', name: 'Pattern 1', start: 8, length: 4, color: '#10b981' }] },
-    { id: '2', name: 'Snare', clips: [{ id: 'c3', name: 'Pattern 2', start: 4, length: 4, color: '#8b5cf6' }] },
-    { id: '3', name: 'Vocal 01', clips: [{ id: 'c4', name: 'Verse 1 Recording', start: 0, length: 16, color: '#f59e0b' }] },
-    { id: '4', name: 'Lead Synth', clips: [{ id: 'c5', name: 'Synth Loop', start: 8, length: 8, color: '#3b82f6' }] }
+    {
+      id: '1',
+      name: 'Kick',
+      clips: [
+        { id: 'c1', name: 'Pattern 1', start: 0, length: 4, color: '#10b981' },
+        { id: 'c2', name: 'Pattern 1', start: 8, length: 4, color: '#10b981' },
+      ],
+    },
+    {
+      id: '2',
+      name: 'Snare',
+      clips: [
+        { id: 'c3', name: 'Pattern 2', start: 4, length: 4, color: '#8b5cf6' },
+      ],
+    },
+    {
+      id: '3',
+      name: 'Vocal 01',
+      clips: [
+        {
+          id: 'c4',
+          name: 'Verse 1 Recording',
+          start: 0,
+          length: 16,
+          color: '#f59e0b',
+        },
+      ],
+    },
+    {
+      id: '4',
+      name: 'Lead Synth',
+      clips: [
+        { id: 'c5', name: 'Synth Loop', start: 8, length: 8, color: '#3b82f6' },
+      ],
+    },
   ];
 }

@@ -6,16 +6,16 @@ export default {
     extend: {
       colors: {
         // S.M.U.V.E 4.2 Professional Palette (Explicit for JIT)
-        'primary': '#10b981',
-        'secondary': '#6366f1',
-        'accent': '#f59e0b',
-        'background': 'var(--color-bg)',
+        primary: '#10b981',
+        secondary: '#6366f1',
+        accent: '#f59e0b',
+        background: 'var(--color-bg)',
         'background-alt': 'var(--color-bg-alt)',
-        'surface': 'var(--color-surface)',
+        surface: 'var(--color-surface)',
         'surface-bright': 'var(--color-surface-bright)',
         'text-main': 'var(--color-text)',
         'text-dim': 'var(--color-text-dim)',
-        'border': 'var(--color-border)',
+        border: 'var(--color-border)',
         'border-bright': 'var(--color-border-bright)',
 
         // Brand Legacy compatibility (Flattened for better JIT support)
@@ -33,7 +33,7 @@ export default {
         // Legacy/Specialized View Support
         'hv-primary': '#ec5b13',
         'hv-secondary': '#a855f7',
-        'hv-obsidian': '#050505'
+        'hv-obsidian': '#050505',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -57,14 +57,14 @@ export default {
         pulseSubtle: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.8' },
-        }
+        },
       },
       boxShadow: {
         'v42-sm': 'var(--shadow-sm)',
         'v42-md': 'var(--shadow-md)',
         'v42-lg': 'var(--shadow-lg)',
         'v42-xl': 'var(--shadow-xl)',
-      }
+      },
     },
   },
   plugins: [],

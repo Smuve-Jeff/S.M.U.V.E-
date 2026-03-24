@@ -10,7 +10,11 @@ export class Sampler {
     this.buffers.set(pitch, buffer);
   }
 
-  play(pitch: number, velocity: number, when: number = this.context.currentTime) {
+  play(
+    pitch: number,
+    velocity: number,
+    when: number = this.context.currentTime
+  ) {
     const buffer = this.buffers.get(pitch);
     if (!buffer) return;
 

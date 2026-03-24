@@ -10,12 +10,12 @@ describe('FileLoaderService', () => {
       decodeAudioData: jest.fn().mockResolvedValue({
         duration: 1.0,
         sampleRate: 44100,
-        numberOfChannels: 2
-      })
+        numberOfChannels: 2,
+      }),
     };
 
     TestBed.configureTestingModule({
-      providers: [FileLoaderService]
+      providers: [FileLoaderService],
     });
     service = TestBed.inject(FileLoaderService);
   });
@@ -33,10 +33,13 @@ describe('FileLoaderService', () => {
   });
 
   it('should handle decoding errors', async () => {
-    mockAudioContext.decodeAudioData.mockRejectedValue(new Error('Decode error'));
+    mockAudioContext.decodeAudioData.mockRejectedValue(
+      new Error('Decode error')
+    );
     const buffer = new ArrayBuffer(8);
 
-    await expect(service.decodeToAudioBuffer(mockAudioContext, buffer))
-      .rejects.toThrow('Failed to decode audio file');
+    await expect(
+      service.decodeToAudioBuffer(mockAudioContext, buffer)
+    ).rejects.toThrow('Failed to decode audio file');
   });
 });

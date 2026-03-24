@@ -10,7 +10,7 @@ import {
   ViewChild,
   ElementRef,
   AfterViewInit,
-  HostListener
+  HostListener,
 } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { AppTheme } from '../../services/user-context.service';
@@ -50,7 +50,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private animFrame: number | null = null;
   private syncInterval: any = null;
-  performanceMode = signal<"cue" | "roll" | "sampler">("cue");
+  performanceMode = signal<'cue' | 'roll' | 'sampler'>('cue');
   private tapTimes: { [key: string]: number[] } = { A: [], B: [] };
 
   isScratchingA = signal(false);
@@ -64,9 +64,11 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   hasNeuralStems = computed(() => {
     const profile = this.profileService.profile();
-    return profile.daw.includes('Neural Audio Interface V1 (Prototype)') ||
-           profile.equipment.includes('Neural Audio Interface V1 (Prototype)') ||
-           profile.daw.includes('Sub-Atomic Kick Dominance Pack');
+    return (
+      profile.daw.includes('Neural Audio Interface V1 (Prototype)') ||
+      profile.equipment.includes('Neural Audio Interface V1 (Prototype)') ||
+      profile.daw.includes('Sub-Atomic Kick Dominance Pack')
+    );
   });
 
   pitchAPercentage = computed(
@@ -129,7 +131,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const deck = id === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+    const deck =
+      id === 'A' ? this.deckService.deckA() : this.deckService.deckB();
     const data = this.engine.getDeckWaveformData(id);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -147,19 +150,19 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const samplesInWindow = windowSize * sampleRate;
     const step = samplesInWindow / canvas.width;
     const currentSample = deck.progress * sampleRate;
-    const startSample = Math.floor(currentSample - (samplesInWindow / 2));
+    const startSample = Math.floor(currentSample - samplesInWindow / 2);
     const amp = canvas.height / 2;
 
     ctx.strokeStyle = id === 'A' ? '#10b981' : '#f59e0b';
     ctx.lineWidth = 2;
     ctx.beginPath();
     for (let i = 0; i < canvas.width; i++) {
-        const idx = Math.floor(startSample + i * step);
-        if (idx >= 0 && idx < data.length) {
-            const val = data[idx];
-            ctx.moveTo(i, amp - val * amp);
-            ctx.lineTo(i, amp + val * amp);
-        }
+      const idx = Math.floor(startSample + i * step);
+      if (idx >= 0 && idx < data.length) {
+        const val = data[idx];
+        ctx.moveTo(i, amp - val * amp);
+        ctx.lineTo(i, amp + val * amp);
+      }
     }
     ctx.stroke();
 
@@ -227,7 +230,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   handlePadPress(deck: 'A' | 'B', index: number) {
     const mode = this.performanceMode();
     if (mode === 'cue') {
-      const d = deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+      const d =
+        deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
       if (d.hotCues[index] === null) this.deckService.setHotCue(deck, index);
       else this.deckService.jumpToHotCue(deck, index);
     }
@@ -235,13 +239,15 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setPlaybackRate(deck: 'A' | 'B', rate: any) {
     const r = parseFloat(rate);
-    if (deck === 'A') this.deckService.deckA.update(d => ({ ...d, playbackRate: r }));
-    else this.deckService.deckB.update(d => ({ ...d, playbackRate: r }));
+    if (deck === 'A')
+      this.deckService.deckA.update((d) => ({ ...d, playbackRate: r }));
+    else this.deckService.deckB.update((d) => ({ ...d, playbackRate: r }));
   }
 
   setEq(deck: 'A' | 'B', band: 'high' | 'mid' | 'low', val: any) {
     const v = parseFloat(val);
-    const d = deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+    const d =
+      deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
     let { eqHigh, eqMid, eqLow } = d;
     if (band === 'high') eqHigh = v;
     if (band === 'mid') eqMid = v;
@@ -359,8 +365,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private getAngle(event: MouseEvent | TouchEvent): number {
-    const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
-    const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+    const clientX =
+      'touches' in event ? event.touches[0].clientX : event.clientX;
+    const clientY =
+      'touches' in event ? event.touches[0].clientY : event.clientY;
 
     const target = event.currentTarget as HTMLElement;
     if (target) {
@@ -370,7 +378,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       return Math.atan2(clientY - centerY, clientX - centerX);
     }
 
-    return Math.atan2(clientY - (window.innerHeight / 2), clientX - (window.innerWidth / 2));
+    return Math.atan2(
+      clientY - window.innerHeight / 2,
+      clientX - window.innerWidth / 2
+    );
   }
 
   applyScratchFx(deck: 'A' | 'B', type: 'brake' | 'spinback' | 'transform') {

@@ -27,11 +27,19 @@ export class SidechainCompressor {
   }
 
   setThreshold(threshold: number) {
-    this.compressor.threshold.setTargetAtTime(threshold, this.context.currentTime, 0.01);
+    this.compressor.threshold.setTargetAtTime(
+      threshold,
+      this.context.currentTime,
+      0.01
+    );
   }
 
   setRatio(ratio: number) {
-    this.compressor.ratio.setTargetAtTime(ratio, this.context.currentTime, 0.01);
+    this.compressor.ratio.setTargetAtTime(
+      ratio,
+      this.context.currentTime,
+      0.01
+    );
   }
 
   connect(destination: AudioNode) {

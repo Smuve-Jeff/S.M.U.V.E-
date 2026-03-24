@@ -48,7 +48,7 @@ import { CommonModule } from '@angular/common';
         border-radius: 2px;
         position: relative;
         overflow: hidden;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
       }
       .meter-bar {
         background: linear-gradient(to bottom, #ef4444, #f97316);

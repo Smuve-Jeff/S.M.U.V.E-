@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './effects-rack-ui.component.html',
-  styleUrls: ['./effects-rack-ui.component.css']
+  styleUrls: ['./effects-rack-ui.component.css'],
 })
 export class EffectsRackUiComponent {
   activeSlot = 1;

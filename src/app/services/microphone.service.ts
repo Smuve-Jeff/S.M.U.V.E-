@@ -48,27 +48,38 @@ export class MicrophoneService implements OnDestroy {
       const devices = await navigator.mediaDevices.enumerateDevices();
 
       // Stop the temp stream used for labels
-      stream.getTracks().forEach(t => t.stop());
+      stream.getTracks().forEach((t) => t.stop());
 
       const audioInputs = devices
-        .filter(device => device.kind === 'audioinput')
-        .map(device => {
-          const label = device.label || `Microphone ${device.deviceId.slice(0, 5)}`;
+        .filter((device) => device.kind === 'audioinput')
+        .map((device) => {
+          const label =
+            device.label || `Microphone ${device.deviceId.slice(0, 5)}`;
           let type: AudioInputDevice['type'] = 'built-in';
 
           const lowerLabel = label.toLowerCase();
-          if (lowerLabel.includes('interface') || lowerLabel.includes('focusrite') || lowerLabel.includes('universal audio') || lowerLabel.includes('behringer') || lowerLabel.includes('preamp')) {
+          if (
+            lowerLabel.includes('interface') ||
+            lowerLabel.includes('focusrite') ||
+            lowerLabel.includes('universal audio') ||
+            lowerLabel.includes('behringer') ||
+            lowerLabel.includes('preamp')
+          ) {
             type = 'interface';
           } else if (lowerLabel.includes('midi')) {
             type = 'midi';
-          } else if (lowerLabel.includes('virtual') || lowerLabel.includes('cable') || lowerLabel.includes('blackhole')) {
+          } else if (
+            lowerLabel.includes('virtual') ||
+            lowerLabel.includes('cable') ||
+            lowerLabel.includes('blackhole')
+          ) {
             type = 'virtual';
           }
 
           return {
             deviceId: device.deviceId,
             label,
-            type
+            type,
           };
         });
 
@@ -94,25 +105,32 @@ export class MicrophoneService implements OnDestroy {
           noiseSuppression: false,
           autoGainControl: false,
           sampleRate: 48000,
-          channelCount: 2
+          channelCount: 2,
         },
       };
 
       this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
+      this.audioContext = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )({
         latencyHint: 'interactive',
-        sampleRate: 48000
+        sampleRate: 48000,
       });
 
       this.analyserNode = this.audioContext.createAnalyser();
       this.analyserNode.fftSize = 2048;
 
-      this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+      this.sourceNode = this.audioContext.createMediaStreamSource(
+        this.mediaStream
+      );
       this.sourceNode.connect(this.analyserNode);
 
       this.isInitialized.set(true);
       if (deviceId) this.selectedDeviceId.set(deviceId);
-      this.logger.info('MicrophoneService (High Quality) initialized:', deviceId || 'default');
+      this.logger.info(
+        'MicrophoneService (High Quality) initialized:',
+        deviceId || 'default'
+      );
     } catch (error) {
       this.logger.error('Error initializing microphone service:', error);
       this.isInitialized.set(false);
@@ -173,7 +191,7 @@ export class MicrophoneService implements OnDestroy {
   private startTimer(): void {
     this.stopTimer();
     this.timerInterval = setInterval(() => {
-      this.recordingTime.update(t => t + 0.1);
+      this.recordingTime.update((t) => t + 0.1);
     }, 100);
   }
 

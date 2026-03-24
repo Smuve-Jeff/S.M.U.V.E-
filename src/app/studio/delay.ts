@@ -21,11 +21,19 @@ export class Delay {
   }
 
   setDelayTime(time: number) {
-    this.delayNode.delayTime.setTargetAtTime(time, this.context.currentTime, 0.01);
+    this.delayNode.delayTime.setTargetAtTime(
+      time,
+      this.context.currentTime,
+      0.01
+    );
   }
 
   setFeedback(feedback: number) {
-    this.feedbackGain.gain.setTargetAtTime(feedback, this.context.currentTime, 0.01);
+    this.feedbackGain.gain.setTargetAtTime(
+      feedback,
+      this.context.currentTime,
+      0.01
+    );
   }
 
   connect(destination: AudioNode) {

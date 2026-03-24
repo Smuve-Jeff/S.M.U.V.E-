@@ -100,7 +100,13 @@ export interface IntelligenceBrief {
   id: string;
   title: string;
   content: string;
-  category: 'Legal' | 'Touring' | 'Sync' | 'Fan Engagement' | 'Business' | 'Production';
+  category:
+    | 'Legal'
+    | 'Touring'
+    | 'Sync'
+    | 'Fan Engagement'
+    | 'Business'
+    | 'Production';
   relevanceScore: number;
   actionable: boolean;
   impact: 'Extreme' | 'High' | 'Medium';

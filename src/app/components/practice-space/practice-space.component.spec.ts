@@ -23,17 +23,44 @@ describe('PracticeSpaceComponent', () => {
     };
 
     (window as any).AudioContext = class {
-      createGain() { return { ...mockNode }; }
-      createDynamicsCompressor() { return { ...mockNode }; }
-      createAnalyser() { return { ...mockNode, fftSize: 0, frequencyBinCount: 10, getByteFrequencyData: jest.fn() }; }
-      createConvolver() { return { ...mockNode }; }
-      createDelay() { return { ...mockNode }; }
-      createBiquadFilter() { return { ...mockNode }; }
-      createStereoPanner() { return { ...mockNode }; }
-      createBuffer() { return { getChannelData: () => new Float32Array(100) }; }
-      get destination() { return {}; }
-      get currentTime() { return 0; }
-      get sampleRate() { return 44100; }
+      createGain() {
+        return { ...mockNode };
+      }
+      createDynamicsCompressor() {
+        return { ...mockNode };
+      }
+      createAnalyser() {
+        return {
+          ...mockNode,
+          fftSize: 0,
+          frequencyBinCount: 10,
+          getByteFrequencyData: jest.fn(),
+        };
+      }
+      createConvolver() {
+        return { ...mockNode };
+      }
+      createDelay() {
+        return { ...mockNode };
+      }
+      createBiquadFilter() {
+        return { ...mockNode };
+      }
+      createStereoPanner() {
+        return { ...mockNode };
+      }
+      createBuffer() {
+        return { getChannelData: () => new Float32Array(100) };
+      }
+      get destination() {
+        return {};
+      }
+      get currentTime() {
+        return 0;
+      }
+      get sampleRate() {
+        return 44100;
+      }
     };
     (window as any).webkitAudioContext = (window as any).AudioContext;
 
@@ -41,7 +68,10 @@ describe('PracticeSpaceComponent', () => {
       imports: [PracticeSpaceComponent, NoopAnimationsModule],
       providers: [
         provideRouter([]),
-        { provide: API_KEY_TOKEN, useValue: 'TEST_KEY_LONG_ENOUGH_FOR_STRATEGIC_DECREE' }
+        {
+          provide: API_KEY_TOKEN,
+          useValue: 'TEST_KEY_LONG_ENOUGH_FOR_STRATEGIC_DECREE',
+        },
       ],
     }).compileComponents();
 

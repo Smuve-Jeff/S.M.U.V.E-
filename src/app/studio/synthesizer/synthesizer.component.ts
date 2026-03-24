@@ -1,5 +1,5 @@
 import { LoggingService } from '../../services/logging.service';
-import { Component, Input, OnInit , inject, signal} from '@angular/core';
+import { Component, Input, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Clip } from '../instrument.service';
@@ -10,7 +10,7 @@ import { AudioEngineService } from '../../services/audio-engine.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './synthesizer.component.html',
-  styleUrls: ['./synthesizer.component.css']
+  styleUrls: ['./synthesizer.component.css'],
 })
 export class SynthesizerComponent implements OnInit {
   private logger = inject(LoggingService);
@@ -29,10 +29,10 @@ export class SynthesizerComponent implements OnInit {
     release: 0.8,
     cutoff: 2000,
     q: 1,
-    distortion: 0.1
+    distortion: 0.1,
   };
 
-  constructor() { }
+  constructor() {}
 
   ngOnInit(): void {
     if (this.clip && this.clip.synthParams) {
@@ -44,11 +44,11 @@ export class SynthesizerComponent implements OnInit {
     this.synthParams[param] = value;
     this.logger.info(`Updated ${param}: ${value}`);
     if (this.clip) {
-        this.clip.synthParams = { ...this.synthParams };
+      this.clip.synthParams = { ...this.synthParams };
     }
 
     if (param === 'distortion') {
-        this.audioEngine.setSaturation(value);
+      this.audioEngine.setSaturation(value);
     }
   }
 }

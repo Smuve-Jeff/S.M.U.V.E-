@@ -26,11 +26,19 @@ export class RemixArenaComponent implements OnInit {
   libraryService = inject(LibraryService);
   authService = inject(AuthService);
 
-  code = signal('// S.M.U.V.E 4.2 REMIX ENGINE\n// Start writing your logic here...\n\nfunction onBeat(step) {\n  if (step % 4 === 0) {\n    playKick();\n  }\n}');
+  code = signal(
+    '// S.M.U.V.E 4.2 REMIX ENGINE\n// Start writing your logic here...\n\nfunction onBeat(step) {\n  if (step % 4 === 0) {\n    playKick();\n  }\n}'
+  );
 
   messages = signal([
-    { user: 'System', text: 'Welcome to Remix Arena! Collaboration is now LIVE.' },
-    { user: 'SmuveBot', text: 'I am ready to help you mix. Try adding a baseline.' }
+    {
+      user: 'System',
+      text: 'Welcome to Remix Arena! Collaboration is now LIVE.',
+    },
+    {
+      user: 'SmuveBot',
+      text: 'I am ready to help you mix. Try adding a baseline.',
+    },
   ]);
 
   newMessage = signal('');
@@ -41,9 +49,17 @@ export class RemixArenaComponent implements OnInit {
   async startSession() {
     const user = this.authService.currentUser();
     if (user) {
-      const id = await this.collaborationService.startSession(user, { code: this.code() });
+      const id = await this.collaborationService.startSession(user, {
+        code: this.code(),
+      });
       this.sessionId.set(id);
-      this.messages.update(m => [...m, { user: 'System', text: `Session started: ${id}. Share with peers for P2P sync.` }]);
+      this.messages.update((m) => [
+        ...m,
+        {
+          user: 'System',
+          text: `Session started: ${id}. Share with peers for P2P sync.`,
+        },
+      ]);
     }
   }
 
@@ -53,25 +69,39 @@ export class RemixArenaComponent implements OnInit {
     if (user && id) {
       await this.collaborationService.joinSession(id, user);
       this.sessionId.set(id);
-      this.messages.update(m => [...m, { user: 'System', text: `Joined session: ${id}. Establishing P2P link...` }]);
+      this.messages.update((m) => [
+        ...m,
+        {
+          user: 'System',
+          text: `Joined session: ${id}. Establishing P2P link...`,
+        },
+      ]);
     }
   }
 
   onCodeChange(newCode: string) {
     this.code.set(newCode);
     if (this.sessionId()) {
-      this.collaborationService.sendProjectUpdate(this.sessionId(), { code: newCode });
+      this.collaborationService.sendProjectUpdate(this.sessionId(), {
+        code: newCode,
+      });
     }
   }
 
   sendMessage() {
     if (!this.newMessage()) return;
-    this.messages.update(m => [...m, { user: 'Me', text: this.newMessage() }]);
+    this.messages.update((m) => [
+      ...m,
+      { user: 'Me', text: this.newMessage() },
+    ]);
     this.newMessage.set('');
   }
 
   remixTrack(track: any) {
     this.musicManager.selectedTrackId.set(track.id);
-    this.messages.update(m => [...m, { user: 'System', text: 'Remixing ' + track.name + '...' }]);
+    this.messages.update((m) => [
+      ...m,
+      { user: 'System', text: 'Remixing ' + track.name + '...' },
+    ]);
   }
 }

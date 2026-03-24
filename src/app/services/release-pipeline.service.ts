@@ -1,11 +1,15 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
-import { ReleaseProject, ProductionTrack, ReleaseType } from '../types/release.types';
+import {
+  ReleaseProject,
+  ProductionTrack,
+  ReleaseType,
+} from '../types/release.types';
 import { LoggingService } from './logging.service';
 import { MarketingService } from './marketing.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ReleasePipelineService {
   private profileService = inject(UserProfileService);
@@ -39,10 +43,10 @@ export class ReleasePipelineService {
         artistName: profile.artistName || 'Artist',
         proName: profile.proName,
         proIpi: profile.proIpi,
-        collaborators: []
+        collaborators: [],
       },
       createdAt: Date.now(),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     };
 
     this.activeRelease.set(newRelease);
@@ -63,32 +67,38 @@ export class ReleasePipelineService {
         lyrics: 'Pending',
         vocals: 'Pending',
         mixing: 'Pending',
-        mastering: 'Pending'
-      }
+        mastering: 'Pending',
+      },
     };
 
     const updated = {
       ...current,
       tracks: [...current.tracks, newTrack],
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     };
 
     this.activeRelease.set(updated);
     await this.saveToProfile(updated);
   }
 
-  async updateTrackStage(trackId: string, stage: keyof ProductionTrack['stages'], status: ProductionTrack['status']): Promise<void> {
+  async updateTrackStage(
+    trackId: string,
+    stage: keyof ProductionTrack['stages'],
+    status: ProductionTrack['status']
+  ): Promise<void> {
     const current = this.activeRelease();
     if (!current) return;
 
-    const updatedTracks = current.tracks.map(t => {
+    const updatedTracks = current.tracks.map((t) => {
       if (t.id === trackId) {
         const newStages = { ...t.stages, [stage]: status };
-        const allCompleted = Object.values(newStages).every(s => s === 'Completed');
+        const allCompleted = Object.values(newStages).every(
+          (s) => s === 'Completed'
+        );
         return {
           ...t,
           stages: newStages,
-          status: (allCompleted ? 'Completed' : 'In Progress') as any
+          status: (allCompleted ? 'Completed' : 'In Progress') as any,
         };
       }
       return t;
@@ -97,7 +107,7 @@ export class ReleasePipelineService {
     const updated = {
       ...current,
       tracks: updatedTracks,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     };
 
     this.activeRelease.set(updated);
@@ -111,7 +121,7 @@ export class ReleasePipelineService {
     const updated = {
       ...current,
       status,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     };
 
     this.activeRelease.set(updated);
@@ -126,12 +136,14 @@ export class ReleasePipelineService {
     const current = this.activeRelease();
     if (!current) return;
 
-    this.logger.info('ReleasePipeline: Triggering S.M.U.V.E. Marketing Campaign');
+    this.logger.info(
+      'ReleasePipeline: Triggering S.M.U.V.E. Marketing Campaign'
+    );
     await this.marketingService.createCampaign({
       name: `Global Push: ${current.name}`,
       status: 'Active',
       startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString(),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       budget: 1500,
       targetAudience: 'Global',
       goals: ['Streaming Growth', 'Fan Engagement'],
@@ -145,8 +157,8 @@ export class ReleasePipelineService {
         spend: 0,
         roi: 0,
         ctr: 0,
-        cpc: 0
-      }
+        cpc: 0,
+      },
     });
   }
 
@@ -156,8 +168,8 @@ export class ReleasePipelineService {
       ...profile,
       knowledgeBase: {
         ...profile.knowledgeBase,
-        currentRelease: release
-      } as any
+        currentRelease: release,
+      } as any,
     });
   }
 }

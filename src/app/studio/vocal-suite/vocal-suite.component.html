@@ -34,7 +34,7 @@
 
     <div class="flex items-center gap-4">
        <!-- S.M.U.V.E. Mini HUD -->
-       <div class="bg-vocal-titanium/40 border border-vocal-brand-primary/20 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer hover:border-vocal-primary transition-all" (click)="vocalAi.isPassiveMode.set(!vocalAi.isPassiveMode())">
+       <div class="bg-vocal-titanium/40 border border-vocal-brand-primary/20 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer hover:border-vocal-primary transition-all" (click)="vocalAi.toggleFeedbackMode()">
           <div class="size-8 rounded-full bg-vocal-brand-primary/10 border border-vocal-primary flex items-center justify-center">
             <span class="material-symbols-outlined text-vocal-primary text-sm" [class.animate-pulse]="!vocalAi.isPassiveMode()">{{ vocalAi.isPassiveMode() ? 'visibility_off' : 'neurology' }}</span>
           </div>

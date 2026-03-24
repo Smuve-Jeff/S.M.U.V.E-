@@ -56,12 +56,32 @@ export class UIService {
   private viewConfigs: ViewConfig[] = [
     { mode: 'hub', label: 'HUB', icon: 'grid_view', category: 'CORE' },
     { mode: 'studio', label: 'STUDIO', icon: 'token', category: 'CORE' },
-    { mode: 'vocal-suite', label: 'VOCALS', icon: 'neurology', category: 'CORE' },
-    { mode: 'strategy', label: 'INTEL', icon: 'analytics', category: 'STRATEGY' },
-    { mode: 'career', label: 'CAREER', icon: 'business_center', category: 'STRATEGY' },
+    {
+      mode: 'vocal-suite',
+      label: 'VOCALS',
+      icon: 'neurology',
+      category: 'CORE',
+    },
+    {
+      mode: 'strategy',
+      label: 'INTEL',
+      icon: 'analytics',
+      category: 'STRATEGY',
+    },
+    {
+      mode: 'career',
+      label: 'CAREER',
+      icon: 'business_center',
+      category: 'STRATEGY',
+    },
     { mode: 'profile', label: 'IDENTITY', icon: 'person', category: 'CORE' },
     { mode: 'tha-spot', label: 'SPOT', icon: 'bolt', category: 'COMMUNITY' },
-    { mode: 'settings', label: 'CONFIG', icon: 'settings', category: 'UTILITY' },
+    {
+      mode: 'settings',
+      label: 'CONFIG',
+      icon: 'settings',
+      category: 'UTILITY',
+    },
   ];
 
   constructor() {
@@ -74,10 +94,10 @@ export class UIService {
       effect(() => {
         const profile = this.profileService.profile();
         if (profile && profile.settings) {
-            const settings = profile.settings.ui;
-            this.performanceMode.set(settings.performanceMode || false);
-            this.showScanlines.set(settings.showScanlines || false);
-            this.setTheme(settings.theme || 'Light');
+          const settings = profile.settings.ui;
+          this.performanceMode.set(settings.performanceMode || false);
+          this.showScanlines.set(settings.showScanlines || false);
+          this.setTheme(settings.theme || 'Light');
         }
       });
 
@@ -119,8 +139,8 @@ export class UIService {
       ...currentProfile,
       settings: {
         ...currentProfile.settings,
-        ui: { ...currentProfile.settings.ui, [key]: value }
-      }
+        ui: { ...currentProfile.settings.ui, [key]: value },
+      },
     });
   }
 
@@ -133,7 +153,7 @@ export class UIService {
   }
 
   getViewModes(): MainViewMode[] {
-    return this.viewConfigs.map(v => v.mode);
+    return this.viewConfigs.map((v) => v.mode);
   }
 
   navigateToView(mode: MainViewMode) {

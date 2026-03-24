@@ -22,8 +22,8 @@ app.use('/api/', apiLimiter);
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false,
+  },
 });
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -78,7 +78,10 @@ initDb();
 app.get('/api/profile/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const { rows } = await pool.query('SELECT profile_data FROM user_profiles WHERE user_id = $1', [userId]);
+    const { rows } = await pool.query(
+      'SELECT profile_data FROM user_profiles WHERE user_id = $1',
+      [userId]
+    );
     if (rows.length > 0) {
       res.json(rows[0].profile_data);
     } else {
@@ -106,7 +109,10 @@ app.post('/api/profile', async (req, res) => {
 app.get('/api/security/logs/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const { rows } = await pool.query('SELECT * FROM security_logs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50', [userId]);
+    const { rows } = await pool.query(
+      'SELECT * FROM security_logs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50',
+      [userId]
+    );
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -129,7 +135,10 @@ app.post('/api/security/log', async (req, res) => {
 app.get('/api/security/sessions/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const { rows } = await pool.query('SELECT * FROM user_sessions WHERE user_id = $1 ORDER BY last_active DESC', [userId]);
+    const { rows } = await pool.query(
+      'SELECT * FROM user_sessions WHERE user_id = $1 ORDER BY last_active DESC',
+      [userId]
+    );
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -152,7 +161,9 @@ app.post('/api/security/session', async (req, res) => {
 app.delete('/api/security/session/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params;
-    await pool.query('DELETE FROM user_sessions WHERE session_id = $1', [sessionId]);
+    await pool.query('DELETE FROM user_sessions WHERE session_id = $1', [
+      sessionId,
+    ]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -173,7 +184,10 @@ app.delete('/api/security/sessions/:userId', async (req, res) => {
 app.get('/api/projects/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const { rows } = await pool.query('SELECT * FROM projects WHERE user_id = $1 ORDER BY updated_at DESC', [userId]);
+    const { rows } = await pool.query(
+      'SELECT * FROM projects WHERE user_id = $1 ORDER BY updated_at DESC',
+      [userId]
+    );
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -197,7 +211,7 @@ app.post('/api/projects', async (req, res) => {
 app.post('/api/ai/analyze', async (req, res) => {
   try {
     const { prompt } = req.body;
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     res.json({ text: response.text() });

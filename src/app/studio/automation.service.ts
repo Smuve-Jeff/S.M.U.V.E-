@@ -15,7 +15,7 @@ export interface AutomationLane {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AutomationService {
   private readonly engine = inject(AudioEngineService);
@@ -28,15 +28,15 @@ export class AutomationService {
       trackId,
       parameter,
       points: [],
-      enabled: true
+      enabled: true,
     };
-    this.lanes.update(lanes => [...lanes, lane]);
+    this.lanes.update((lanes) => [...lanes, lane]);
     return lane;
   }
 
   addPoint(laneId: string, time: number, value: number) {
-    this.lanes.update(lanes => {
-      const lane = lanes.find(l => l.id === laneId);
+    this.lanes.update((lanes) => {
+      const lane = lanes.find((l) => l.id === laneId);
       if (lane) {
         lane.points.push({ time, value });
         lane.points.sort((a, b) => a.time - b.time);
@@ -46,8 +46,8 @@ export class AutomationService {
   }
 
   removePoint(laneId: string, pointIndex: number) {
-    this.lanes.update(lanes => {
-      const lane = lanes.find(l => l.id === laneId);
+    this.lanes.update((lanes) => {
+      const lane = lanes.find((l) => l.id === laneId);
       if (lane) {
         lane.points.splice(pointIndex, 1);
       }
@@ -56,17 +56,21 @@ export class AutomationService {
   }
 
   getValueAtTime(laneId: string, time: number): number | null {
-    const lane = this.lanes().find(l => l.id === laneId);
+    const lane = this.lanes().find((l) => l.id === laneId);
     if (!lane || lane.points.length === 0) return null;
 
     const points = lane.points;
     if (time <= points[0].time) return points[0].value;
-    if (time >= points[points.length - 1].time) return points[points.length - 1].value;
+    if (time >= points[points.length - 1].time)
+      return points[points.length - 1].value;
 
     for (let i = 0; i < points.length - 1; i++) {
       if (time >= points[i].time && time <= points[i + 1].time) {
-        const ratio = (time - points[i].time) / (points[i + 1].time - points[i].time);
-        return points[i].value + ratio * (points[i + 1].value - points[i].value);
+        const ratio =
+          (time - points[i].time) / (points[i + 1].time - points[i].time);
+        return (
+          points[i].value + ratio * (points[i + 1].value - points[i].value)
+        );
       }
     }
     return null;
@@ -74,7 +78,7 @@ export class AutomationService {
 
   applyAutomation(time: number, duration: number) {
     const lanes = this.lanes();
-    lanes.forEach(lane => {
+    lanes.forEach((lane) => {
       if (!lane.enabled) return;
       const value = this.getValueAtTime(lane.id, time);
       if (value !== null) {

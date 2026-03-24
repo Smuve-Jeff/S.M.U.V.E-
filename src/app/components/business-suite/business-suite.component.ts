@@ -10,19 +10,49 @@ import { UserContextService } from '../../services/user-context.service';
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './business-suite.component.html',
-  styleUrls: ['./business-suite.component.css']
+  styleUrls: ['./business-suite.component.css'],
 })
 export class BusinessSuiteComponent implements OnInit {
   bizService = inject(BusinessPipelineService);
   router = inject(Router);
   userContext = inject(UserContextService);
 
-  availableModules: { type: BusinessPipelineType; icon: string; description: string; color: string }[] = [
-    { type: 'Merch', icon: 'fas fa-tshirt', description: 'Design and deploy a professional merchandise line.', color: 'brand-primary' },
-    { type: 'Record Label', icon: 'fas fa-building', description: 'Establish your legal entity and record label operations.', color: 'brand-secondary' },
-    { type: 'Website', icon: 'fas fa-globe', description: 'Build a high-performance fan portal and landing page.', color: 'brand-warning' },
-    { type: 'PRO', icon: 'fas fa-copyright', description: 'Register with BMI/ASCAP and secure your royalties.', color: 'brand-danger' },
-    { type: 'Legal', icon: 'fas fa-file-contract', description: 'AI-generated contracts and split sheets for protection.', color: 'brand-info' }
+  availableModules: {
+    type: BusinessPipelineType;
+    icon: string;
+    description: string;
+    color: string;
+  }[] = [
+    {
+      type: 'Merch',
+      icon: 'fas fa-tshirt',
+      description: 'Design and deploy a professional merchandise line.',
+      color: 'brand-primary',
+    },
+    {
+      type: 'Record Label',
+      icon: 'fas fa-building',
+      description: 'Establish your legal entity and record label operations.',
+      color: 'brand-secondary',
+    },
+    {
+      type: 'Website',
+      icon: 'fas fa-globe',
+      description: 'Build a high-performance fan portal and landing page.',
+      color: 'brand-warning',
+    },
+    {
+      type: 'PRO',
+      icon: 'fas fa-copyright',
+      description: 'Register with BMI/ASCAP and secure your royalties.',
+      color: 'brand-danger',
+    },
+    {
+      type: 'Legal',
+      icon: 'fas fa-file-contract',
+      description: 'AI-generated contracts and split sheets for protection.',
+      color: 'brand-info',
+    },
   ];
 
   ngOnInit() {

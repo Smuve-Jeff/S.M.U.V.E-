@@ -23,11 +23,14 @@ export class AnalyticsDashboardComponent {
   analytics = inject(AnalyticsService);
   profileService = inject(UserProfileService);
 
-  proData = computed(() => this.profileService.profile().proData || {
-    ipiNumber: '',
-    workIds: [],
-    affiliations: []
-  });
+  proData = computed(
+    () =>
+      this.profileService.profile().proData || {
+        ipiNumber: '',
+        workIds: [],
+        affiliations: [],
+      }
+  );
 
   superfans = signal<Superfan[]>([
     { name: 'Alex M.', streams: 450, location: 'London', status: 'Active' },
@@ -47,20 +50,24 @@ export class AnalyticsDashboardComponent {
       ...profile,
       proData: {
         ...(profile.proData || { workIds: [], affiliations: [] }),
-        ipiNumber: ipi
-      }
+        ipiNumber: ipi,
+      },
     });
   }
 
   async addWorkId(title: string, id: string) {
     const profile = this.profileService.profile();
-    const currentPro = profile.proData || { ipiNumber: '', workIds: [], affiliations: [] };
+    const currentPro = profile.proData || {
+      ipiNumber: '',
+      workIds: [],
+      affiliations: [],
+    };
     await this.profileService.updateProfile({
       ...profile,
       proData: {
         ...currentPro,
-        workIds: [...currentPro.workIds, { title, id, status: 'Verified' }]
-      }
+        workIds: [...currentPro.workIds, { title, id, status: 'Verified' }],
+      },
     });
   }
 

@@ -13,14 +13,27 @@ describe('AiService Granular Audit', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        AiService, provideHttpClient(), provideHttpClientTesting(),
-        { provide: LoggingService, useValue: { info: jest.fn(), error: jest.fn(), system: jest.fn() } },
-        { provide: UserContextService, useValue: { mainViewMode: signal('hub') } },
+        AiService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), error: jest.fn(), system: jest.fn() },
+        },
+        {
+          provide: UserContextService,
+          useValue: { mainViewMode: signal('hub') },
+        },
         { provide: AnalyticsService, useValue: { overallGrowth: signal(10) } },
-        { provide: UserProfileService, useValue: { profile: signal({ careerGoals: [] }) } },
-      ]
+        {
+          provide: UserProfileService,
+          useValue: { profile: signal({ careerGoals: [] }) },
+        },
+      ],
     });
     service = TestBed.inject(AiService);
   });
-  it('should exist', () => { expect(service).toBeTruthy(); });
+  it('should exist', () => {
+    expect(service).toBeTruthy();
+  });
 });

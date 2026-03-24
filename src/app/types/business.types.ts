@@ -1,6 +1,15 @@
-export type BusinessPipelineType = 'Merch' | 'Record Label' | 'Website' | 'PRO' | 'Legal';
+export type BusinessPipelineType =
+  | 'Merch'
+  | 'Record Label'
+  | 'Website'
+  | 'PRO'
+  | 'Legal';
 
-export type BusinessStageStatus = 'Locked' | 'Pending' | 'In Progress' | 'Completed';
+export type BusinessStageStatus =
+  | 'Locked'
+  | 'Pending'
+  | 'In Progress'
+  | 'Completed';
 
 export interface BusinessStep {
   id: string;
@@ -34,7 +43,11 @@ export interface BusinessPipeline {
 export interface ProData {
   ipiNumber?: string;
   workIds: { title: string; id: string; status: string }[];
-  affiliations: { name: string; type: 'Writer' | 'Publisher'; status: string }[];
+  affiliations: {
+    name: string;
+    type: 'Writer' | 'Publisher';
+    status: string;
+  }[];
 }
 
 export interface LegalDocumentTemplate {

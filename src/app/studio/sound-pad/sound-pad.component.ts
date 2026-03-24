@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './sound-pad.component.html',
-  styleUrls: ['./sound-pad.component.css']
+  styleUrls: ['./sound-pad.component.css'],
 })
 export class SoundPadComponent {
   @Input() name: string = '';

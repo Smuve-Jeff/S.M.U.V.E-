@@ -40,16 +40,16 @@ export class MusicManagerService {
   constructor() {
     // Initial setup if no tracks exist
     setTimeout(() => {
-        if (this.tracks().length === 0) {
-            this.loadLastSession();
-        }
+      if (this.tracks().length === 0) {
+        this.loadLastSession();
+      }
     }, 500);
 
     // Bridge engine scheduler to request notes
     this.engine.onScheduleStep = (stepIndex, when, stepDur) => {
       this.currentStep.set(stepIndex);
       const dur = stepDur * 0.95;
-      const anySolo = this.tracks().some(t => t.solo);
+      const anySolo = this.tracks().some((t) => t.solo);
       for (const t of this.tracks()) {
         if (t.mute || (anySolo && !t.solo)) continue;
         const inst = this.instruments
@@ -118,18 +118,18 @@ export class MusicManagerService {
 
       // Register tracks with engine
       for (const t of lastSession.tracks) {
-          this.engine.ensureTrack({
-              id: t.id,
-              name: t.name,
-              instrumentId: t.instrumentId,
-              gain: t.gain,
-              pan: t.pan,
-              sendA: t.sendA,
-              sendB: t.sendB
-          });
+        this.engine.ensureTrack({
+          id: t.id,
+          name: t.name,
+          instrumentId: t.instrumentId,
+          gain: t.gain,
+          pan: t.pan,
+          sendA: t.sendA,
+          sendB: t.sendB,
+        });
       }
       if (lastSession.tracks.length > 0) {
-          this.selectedTrackId.set(lastSession.tracks[0].id);
+        this.selectedTrackId.set(lastSession.tracks[0].id);
       }
     } else {
       this.ensureTrack('Piano');
@@ -191,7 +191,19 @@ export class MusicManagerService {
     this.tracks.update((ts) =>
       ts.map((t) =>
         t.id === trackId
-          ? { ...t, notes: [...t.notes, { id: Math.random().toString(36).substring(7), midi, step, length, velocity }] }
+          ? {
+              ...t,
+              notes: [
+                ...t.notes,
+                {
+                  id: Math.random().toString(36).substring(7),
+                  midi,
+                  step,
+                  length,
+                  velocity,
+                },
+              ],
+            }
           : t
       )
     );
@@ -217,29 +229,38 @@ export class MusicManagerService {
     );
   }
 
-
   deleteNoteById(trackId: number, noteId: string) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id === trackId) {
-        const newNotes = t.notes.filter(n => n.id !== noteId);
-        const newSteps = new Array(64).fill(false);
-        newNotes.forEach(n => { if (n.step >= 0 && n.step < 64) newSteps[n.step] = true; });
-        return { ...t, notes: newNotes, steps: newSteps };
-      }
-      return t;
-    }));
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id === trackId) {
+          const newNotes = t.notes.filter((n) => n.id !== noteId);
+          const newSteps = new Array(64).fill(false);
+          newNotes.forEach((n) => {
+            if (n.step >= 0 && n.step < 64) newSteps[n.step] = true;
+          });
+          return { ...t, notes: newNotes, steps: newSteps };
+        }
+        return t;
+      })
+    );
   }
 
   removeNote(trackId: number, midi: number, step: number) {
-    this.tracks.update((ts) => ts.map((t) => {
-      if (t.id === trackId) {
-        const newNotes = t.notes.filter((n) => !(n.midi === midi && n.step === step));
-        const newSteps = new Array(64).fill(false);
-        newNotes.forEach(n => { if (n.step >= 0 && n.step < 64) newSteps[n.step] = true; });
-        return { ...t, notes: newNotes, steps: newSteps };
-      }
-      return t;
-    }));
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id === trackId) {
+          const newNotes = t.notes.filter(
+            (n) => !(n.midi === midi && n.step === step)
+          );
+          const newSteps = new Array(64).fill(false);
+          newNotes.forEach((n) => {
+            if (n.step >= 0 && n.step < 64) newSteps[n.step] = true;
+          });
+          return { ...t, notes: newNotes, steps: newSteps };
+        }
+        return t;
+      })
+    );
   }
 
   clearTrack(trackId: number) {
@@ -248,44 +269,53 @@ export class MusicManagerService {
     );
   }
 
-
   removeTrack(id: number) {
-    this.tracks.update(ts => ts.filter(t => t.id !== id));
+    this.tracks.update((ts) => ts.filter((t) => t.id !== id));
     if (this.selectedTrackId() === id) {
-      this.selectedTrackId.set(this.tracks().length > 0 ? this.tracks()[0].id : null);
+      this.selectedTrackId.set(
+        this.tracks().length > 0 ? this.tracks()[0].id : null
+      );
     }
   }
 
   toggleMute(id: number) {
-    this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, mute: !t.mute } : t));
+    this.tracks.update((ts) =>
+      ts.map((t) => (t.id === id ? { ...t, mute: !t.mute } : t))
+    );
   }
 
   toggleSolo(id: number) {
-    const isSolo = this.tracks().find(t => t.id === id)?.solo;
-    this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, solo: !isSolo } : { ...t, solo: false }));
+    const isSolo = this.tracks().find((t) => t.id === id)?.solo;
+    this.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === id ? { ...t, solo: !isSolo } : { ...t, solo: false }
+      )
+    );
   }
 
   toggleStep(trackId: number, stepIndex: number) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id === trackId) {
-        const newSteps = [...t.steps];
-        newSteps[stepIndex] = !newSteps[stepIndex];
-        let newNotes = [...t.notes];
-        if (newSteps[stepIndex]) {
-          newNotes.push({
-            id: Math.random().toString(36).substring(7),
-            midi: this.getDefaultPitchForTrack(t),
-            step: stepIndex,
-            length: 1,
-            velocity: 0.8
-          });
-        } else {
-          newNotes = newNotes.filter(n => n.step !== stepIndex);
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id === trackId) {
+          const newSteps = [...t.steps];
+          newSteps[stepIndex] = !newSteps[stepIndex];
+          let newNotes = [...t.notes];
+          if (newSteps[stepIndex]) {
+            newNotes.push({
+              id: Math.random().toString(36).substring(7),
+              midi: this.getDefaultPitchForTrack(t),
+              step: stepIndex,
+              length: 1,
+              velocity: 0.8,
+            });
+          } else {
+            newNotes = newNotes.filter((n) => n.step !== stepIndex);
+          }
+          return { ...t, steps: newSteps, notes: newNotes };
         }
-        return { ...t, steps: newSteps, notes: newNotes };
-      }
-      return t;
-    }));
+        return t;
+      })
+    );
   }
 
   private getDefaultPitchForTrack(track: TrackModel): number {
@@ -298,27 +328,40 @@ export class MusicManagerService {
   }
 
   updateNote(trackId: number, noteId: string, patch: Partial<TrackNote>) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id === trackId) {
-        const newNotes = t.notes.map(n => n.id === noteId ? { ...n, ...patch } : n);
-        const newSteps = new Array(64).fill(false);
-        newNotes.forEach(n => { if (n.step >= 0 && n.step < 64) newSteps[n.step] = true; });
-        return { ...t, notes: newNotes, steps: newSteps };
-      }
-      return t;
-    }));
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id === trackId) {
+          const newNotes = t.notes.map((n) =>
+            n.id === noteId ? { ...n, ...patch } : n
+          );
+          const newSteps = new Array(64).fill(false);
+          newNotes.forEach((n) => {
+            if (n.step >= 0 && n.step < 64) newSteps[n.step] = true;
+          });
+          return { ...t, notes: newNotes, steps: newSteps };
+        }
+        return t;
+      })
+    );
   }
 
   addNoteToTrack(trackId: number, note: Omit<TrackNote, 'id'>) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id === trackId) {
-        const newNotes = [...t.notes, { ...note, id: Math.random().toString(36).substring(7) }];
-        const newSteps = new Array(64).fill(false);
-        newNotes.forEach(n => { if (n.step >= 0 && n.step < 64) newSteps[n.step] = true; });
-        return { ...t, notes: newNotes, steps: newSteps };
-      }
-      return t;
-    }));
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id === trackId) {
+          const newNotes = [
+            ...t.notes,
+            { ...note, id: Math.random().toString(36).substring(7) },
+          ];
+          const newSteps = new Array(64).fill(false);
+          newNotes.forEach((n) => {
+            if (n.step >= 0 && n.step < 64) newSteps[n.step] = true;
+          });
+          return { ...t, notes: newNotes, steps: newSteps };
+        }
+        return t;
+      })
+    );
   }
 
   setTempo(bpm: number) {

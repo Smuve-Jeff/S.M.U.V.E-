@@ -3,7 +3,10 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { InstrumentService } from './instrument.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { PlaybackState } from './playback-state';
-import { MicrophoneService, AudioInputDevice } from '../services/microphone.service';
+import {
+  MicrophoneService,
+  AudioInputDevice,
+} from '../services/microphone.service';
 
 export interface MicChannel {
   id: string;
@@ -54,39 +57,39 @@ export class AudioSessionService {
   constructor() {
     this.instrumentService.connect(this.engine.getContext().destination);
     // Initialize first armed channel with default device if possible
-    const armed = this.micChannels().find(ch => ch.armed);
+    const armed = this.micChannels().find((ch) => ch.armed);
     if (armed) {
-        this.initializeMic(armed.id);
+      this.initializeMic(armed.id);
     }
   }
 
   async initializeMic(channelId: string, deviceId?: string): Promise<void> {
-    const channel = this.micChannels().find(ch => ch.id === channelId);
+    const channel = this.micChannels().find((ch) => ch.id === channelId);
     if (channel) {
-        await this.micService.initialize(deviceId || channel.deviceId);
-        if (deviceId) {
-            this.updateChannelDevice(channelId, deviceId);
-        }
+      await this.micService.initialize(deviceId || channel.deviceId);
+      if (deviceId) {
+        this.updateChannelDevice(channelId, deviceId);
+      }
     }
   }
 
   togglePlay(): void {
     if (this.engine.isPlaying()) {
-        this.engine.stop();
-        this.playbackState.set('stopped');
+      this.engine.stop();
+      this.playbackState.set('stopped');
     } else {
-        this.engine.start();
-        this.playbackState.set('playing');
+      this.engine.start();
+      this.playbackState.set('playing');
     }
   }
 
   toggleRecord(): void {
     if (this.isRecording()) {
-        this.engine.stop();
-        this.playbackState.set('stopped');
+      this.engine.stop();
+      this.playbackState.set('stopped');
     } else {
-        this.engine.start();
-        this.playbackState.set('recording');
+      this.engine.start();
+      this.playbackState.set('recording');
     }
   }
 
@@ -122,9 +125,9 @@ export class AudioSessionService {
     this.micChannels.update((channels) =>
       channels.map((ch) => (ch.id === id ? { ...ch, armed: !ch.armed } : ch))
     );
-    const channel = this.micChannels().find(ch => ch.id === id);
+    const channel = this.micChannels().find((ch) => ch.id === id);
     if (channel?.armed && !this.micService.isInitialized()) {
-        this.initializeMic(id);
+      this.initializeMic(id);
     }
   }
 

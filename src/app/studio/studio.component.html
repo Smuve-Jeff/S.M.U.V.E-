@@ -106,12 +106,12 @@
         <div class="flex items-center gap-1 md:gap-2 bg-black/40 px-3 md:px-4 py-1.5 rounded-lg border border-white/5">
            <div class="flex flex-col items-center px-1 md:px-2">
               <span class="text-[7px] font-black text-slate-500 uppercase">CPU</span>
-              <span class="text-[9px] md:text-[10px] font-mono font-bold text-brand-primary">{{ aiService.systemStatus().cpuLoad.toFixed(1) }}%</span>
+              <span class="text-[9px] md:text-[10px] font-mono font-bold text-brand-primary">{{ aiService.systemStatus().cpuLoad }}%</span>
            </div>
            <div class="h-4 w-px bg-white/10"></div>
            <div class="flex flex-col items-center px-1 md:px-2">
               <span class="text-[7px] font-black text-slate-500 uppercase">MEM</span>
-              <span class="text-[9px] md:text-[10px] font-mono font-bold text-cyan-400">{{ aiService.systemStatus().memoryUsage.toFixed(0) }}G</span>
+              <span class="text-[9px] md:text-[10px] font-mono font-bold text-cyan-400">{{ aiService.systemStatus().memoryUsage }}G</span>
            </div>
         </div>
         <button (click)="aiService.performExecutiveAudit()" class="btn-elegant btn-elegant-primary text-[8px] md:text-[9px] font-black tracking-widest py-1 md:py-1.5 px-3 md:px-6 h-auto uppercase">

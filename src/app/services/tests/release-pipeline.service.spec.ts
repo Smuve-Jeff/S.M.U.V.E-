@@ -14,13 +14,13 @@ describe('ReleasePipelineService', () => {
     profileServiceSpy = {
       profile: signal({
         artistName: 'Test Artist',
-        knowledgeBase: {}
+        knowledgeBase: {},
       }),
-      updateProfile: jest.fn().mockResolvedValue(undefined)
+      updateProfile: jest.fn().mockResolvedValue(undefined),
     };
 
     marketingServiceSpy = {
-      createCampaign: jest.fn().mockResolvedValue(undefined)
+      createCampaign: jest.fn().mockResolvedValue(undefined),
     };
 
     TestBed.configureTestingModule({
@@ -28,8 +28,11 @@ describe('ReleasePipelineService', () => {
         ReleasePipelineService,
         { provide: UserProfileService, useValue: profileServiceSpy },
         { provide: MarketingService, useValue: marketingServiceSpy },
-        { provide: LoggingService, useValue: { info: jest.fn(), error: jest.fn() } }
-      ]
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), error: jest.fn() },
+        },
+      ],
     });
     service = TestBed.inject(ReleasePipelineService);
   });
@@ -57,7 +60,9 @@ describe('ReleasePipelineService', () => {
     const trackId = service.activeRelease()!.tracks[0].id;
 
     await service.updateTrackStage(trackId, 'instrumental', 'Completed');
-    expect(service.activeRelease()?.tracks[0].stages.instrumental).toBe('Completed');
+    expect(service.activeRelease()?.tracks[0].stages.instrumental).toBe(
+      'Completed'
+    );
 
     await service.updateStatus('Released');
     expect(service.activeRelease()?.status).toBe('Released');

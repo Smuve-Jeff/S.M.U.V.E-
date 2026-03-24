@@ -10,9 +10,14 @@ import { UserContextService } from '../../services/user-context.service';
 @Component({
   selector: 'app-business-pipeline-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, MerchDesignLabComponent, LegalTemplateComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MerchDesignLabComponent,
+    LegalTemplateComponent,
+  ],
   templateUrl: './business-pipeline-detail.component.html',
-  styleUrls: ['./business-pipeline-detail.component.css']
+  styleUrls: ['./business-pipeline-detail.component.css'],
 })
 export class BusinessPipelineDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
@@ -24,7 +29,7 @@ export class BusinessPipelineDetailComponent implements OnInit {
 
   pipeline = computed(() => {
     const id = this.pipelineId();
-    return this.bizService.activePipelines().find(p => p.id === id);
+    return this.bizService.activePipelines().find((p) => p.id === id);
   });
 
   currentStage = computed(() => {
@@ -34,7 +39,7 @@ export class BusinessPipelineDetailComponent implements OnInit {
   });
 
   constructor() {
-    this.route.params.subscribe(params => {
+    this.route.params.subscribe((params) => {
       this.pipelineId.set(params['id']);
     });
   }
@@ -52,16 +57,16 @@ export class BusinessPipelineDetailComponent implements OnInit {
   }
 
   performAction(step: BusinessStep) {
-     if (step.actionType === 'Design') {
-        this.activeModuleAction.set('Design');
-     } else if (step.actionType === 'Template') {
-        this.activeModuleAction.set('Template');
-     } else {
-        alert(`Action: ${step.actionType} initializing...`);
-     }
+    if (step.actionType === 'Design') {
+      this.activeModuleAction.set('Design');
+    } else if (step.actionType === 'Template') {
+      this.activeModuleAction.set('Template');
+    } else {
+      alert(`Action: ${step.actionType} initializing...`);
+    }
   }
 
   closeAction() {
-     this.activeModuleAction.set(null);
+    this.activeModuleAction.set(null);
   }
 }

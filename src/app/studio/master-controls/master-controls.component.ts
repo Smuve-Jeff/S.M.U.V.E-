@@ -1,7 +1,14 @@
-import { Component, inject, signal, computed, HostListener, ElementRef } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  HostListener,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { InstrumentService } from '../instrument.service';
-import { AudioEngineService } from "../../services/audio-engine.service";
+import { AudioEngineService } from '../../services/audio-engine.service';
 import { ExportService } from '../../services/export.service';
 import { GainReductionMeterComponent } from './gain-reduction-meter.component';
 import { NotificationService } from '../../services/notification.service';
@@ -43,11 +50,11 @@ export class MasterControlsComponent {
   }
 
   toggleDropdown(): void {
-    this.isDropdownOpen.update(v => !v);
+    this.isDropdownOpen.update((v) => !v);
   }
 
   toggleLimiter(): void {
-    this.isLimiterActive.update(v => !v);
+    this.isLimiterActive.update((v) => !v);
     if (this.isLimiterActive()) {
       this.compressor.threshold.value = -0.1;
       this.compressor.ratio.value = 20;
@@ -58,7 +65,7 @@ export class MasterControlsComponent {
   }
 
   toggleSoftClip(): void {
-    this.isSoftClipActive.update(v => !v);
+    this.isSoftClipActive.update((v) => !v);
   }
 
   updateMasterVolume(event: Event): void {
@@ -87,7 +94,7 @@ export class MasterControlsComponent {
     this.isRecording.set(true);
     this.notificationService.show('Recording Started...', 'success');
 
-    result.then(blob => {
+    result.then((blob) => {
       this.exportService.downloadBlob(blob, `SMUVE_Session_${Date.now()}.webm`);
       this.notificationService.show('Recording Saved to Device', 'success');
     });

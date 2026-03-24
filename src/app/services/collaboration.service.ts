@@ -18,7 +18,9 @@ export class CollaborationService {
 
   async joinSession(sessionId: string, user: AuthUser): Promise<void> {
     this.logger.system(`JOINING P2P COLLABORATION SESSION: ${sessionId}`);
-    const peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    const peerConnection = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    });
     const dataChannel = peerConnection.createDataChannel('smuve-sync');
     dataChannel.onopen = () => this.logger.system('P2P DATA LINK ESTABLISHED.');
     this.peers[sessionId] = peerConnection;
@@ -35,6 +37,6 @@ export class CollaborationService {
   private generateSecureId(): string {
     const array = new Uint32Array(4);
     window.crypto.getRandomValues(array);
-    return Array.from(array, dec => dec.toString(16)).join('');
+    return Array.from(array, (dec) => dec.toString(16)).join('');
   }
 }

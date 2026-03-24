@@ -46,7 +46,7 @@ export class AdvancedSynth extends Instrument {
     attack: 0.1,
     decay: 0.2,
     sustain: 0.6,
-    release: 0.5
+    release: 0.5,
   };
 
   private voices: Map<number, any> = new Map();
@@ -86,7 +86,10 @@ export class AdvancedSynth extends Instrument {
     // Oscillators
     const osc1 = this.audioContext.createOscillator();
     osc1.type = this.params.osc1Type;
-    osc1.frequency.setValueAtTime(freq * Math.pow(2, this.params.osc1Octave), now);
+    osc1.frequency.setValueAtTime(
+      freq * Math.pow(2, this.params.osc1Octave),
+      now
+    );
     osc1.detune.setValueAtTime(this.params.osc1Detune, now);
 
     const osc1Gain = this.audioContext.createGain();
@@ -94,7 +97,10 @@ export class AdvancedSynth extends Instrument {
 
     const osc2 = this.audioContext.createOscillator();
     osc2.type = this.params.osc2Type;
-    osc2.frequency.setValueAtTime(freq * Math.pow(2, this.params.osc2Octave), now);
+    osc2.frequency.setValueAtTime(
+      freq * Math.pow(2, this.params.osc2Octave),
+      now
+    );
     osc2.detune.setValueAtTime(this.params.osc2Detune, now);
 
     const osc2Gain = this.audioContext.createGain();
@@ -104,15 +110,18 @@ export class AdvancedSynth extends Instrument {
     const ampGain = this.audioContext.createGain();
     ampGain.gain.setValueAtTime(0, now);
     ampGain.gain.linearRampToValueAtTime(1, now + this.params.attack);
-    ampGain.gain.linearRampToValueAtTime(this.params.sustain, now + this.params.attack + this.params.decay);
+    ampGain.gain.linearRampToValueAtTime(
+      this.params.sustain,
+      now + this.params.attack + this.params.decay
+    );
 
     if (this.params.lfoTarget === 'volume') {
-        const lfoAmpGain = this.audioContext.createGain();
-        lfoAmpGain.gain.setValueAtTime(0, now);
-        lfoGain.connect(lfoAmpGain.gain);
-        ampGain.connect(lfoAmpGain).connect(filter);
+      const lfoAmpGain = this.audioContext.createGain();
+      lfoAmpGain.gain.setValueAtTime(0, now);
+      lfoGain.connect(lfoAmpGain.gain);
+      ampGain.connect(lfoAmpGain).connect(filter);
     } else {
-        ampGain.connect(filter);
+      ampGain.connect(filter);
     }
 
     osc1.connect(osc1Gain).connect(ampGain);
@@ -133,7 +142,10 @@ export class AdvancedSynth extends Instrument {
       const now = this.audioContext.currentTime;
       voice.ampGain.gain.cancelScheduledValues(now);
       voice.ampGain.gain.setValueAtTime(voice.ampGain.gain.value, now);
-      voice.ampGain.gain.exponentialRampToValueAtTime(0.001, now + this.params.release);
+      voice.ampGain.gain.exponentialRampToValueAtTime(
+        0.001,
+        now + this.params.release
+      );
 
       voice.osc1.stop(now + this.params.release + 0.1);
       voice.osc2.stop(now + this.params.release + 0.1);

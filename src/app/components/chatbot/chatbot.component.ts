@@ -12,7 +12,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
 import { UserProfileService } from '../../services/user-profile.service';
-import { UserContextService, MainViewMode } from '../../services/user-context.service';
+import {
+  UserContextService,
+  MainViewMode,
+} from '../../services/user-context.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 import { LoggingService } from '../../services/logging.service';
@@ -51,7 +54,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       {
         role: 'assistant',
         text: 'S.M.U.V.E 4.2 Online. Strategic intelligence protocols initialized. How shall we dominate the industry today?',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       },
     ]);
   }
@@ -64,14 +67,21 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     const text = this.userInput.trim();
     if (!text || this.isTyping()) return;
 
-    this.messages.update((m) => [...m, { role: 'user', text, timestamp: Date.now() }]);
+    this.messages.update((m) => [
+      ...m,
+      { role: 'user', text, timestamp: Date.now() },
+    ]);
     this.userInput = '';
     this.isTyping.set(true);
 
     try {
       const response = await this.aiService.processCommand(text);
-      const content = response || 'Protocol error. Re-initializing neural link.';
-      this.messages.update((m) => [...m, { role: 'assistant', text: content, timestamp: Date.now() }]);
+      const content =
+        response || 'Protocol error. Re-initializing neural link.';
+      this.messages.update((m) => [
+        ...m,
+        { role: 'assistant', text: content, timestamp: Date.now() },
+      ]);
       this.speechSynthesisService.speak(content);
     } catch (e) {
       this.handleError(e, 'message generation');
@@ -80,14 +90,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   }
 
   toggleKbWriteAccess() {
-      const p = this.profile();
-      this.userProfileService.updateProfile({
-          ...p,
-          settings: {
-              ...p.settings,
-              ai: { ...p.settings.ai, kbWriteAccess: !p.settings.ai.kbWriteAccess }
-          }
-      });
+    const p = this.profile();
+    this.userProfileService.updateProfile({
+      ...p,
+      settings: {
+        ...p.settings,
+        ai: { ...p.settings.ai, kbWriteAccess: !p.settings.ai.kbWriteAccess },
+      },
+    });
   }
 
   private scrollToBottom(): void {
@@ -105,7 +115,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       {
         role: 'assistant',
         text: `A problem occurred with ${context}. Please check the console for details.`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       },
     ]);
   }

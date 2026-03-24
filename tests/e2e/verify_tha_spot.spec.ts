@@ -3,15 +3,18 @@ import { test, expect } from '@playwright/test';
 test('Verify Tha Spot Gaming Hub and Filters', async ({ page }) => {
   // Mock localStorage for auth bypass
   await page.addInitScript(() => {
-    localStorage.setItem('smuve_user_profile', JSON.stringify({
-      artistName: 'Jules Test',
-      artistType: 'Producer',
-      primaryGenre: 'Electronic',
-      bio: 'Test bio',
-      skills: ['Producer', 'DJ'],
-      careerStage: 'Rising Talent',
-      careerGoal: 'Release Album'
-    }));
+    localStorage.setItem(
+      'smuve_user_profile',
+      JSON.stringify({
+        artistName: 'Jules Test',
+        artistType: 'Producer',
+        primaryGenre: 'Electronic',
+        bio: 'Test bio',
+        skills: ['Producer', 'DJ'],
+        careerStage: 'Rising Talent',
+        careerGoal: 'Release Album',
+      })
+    );
   });
 
   // Try common routes
@@ -22,23 +25,29 @@ test('Verify Tha Spot Gaming Hub and Filters', async ({ page }) => {
 
   // Look for the "Tha Spot" header or a button to enter
   const title = page.locator('h1:has-text("Tha Spot")');
-  if (await title.count() === 0) {
-     // If the route /tha-spot doesn't work directly (maybe /hub contains it)
-     await page.goto('http://localhost:4200/hub');
-     const spotLink = page.locator('a:has-text("Tha Spot"), button:has-text("Tha Spot")');
-     if (await spotLink.count() > 0) {
-        await spotLink.click();
-     } else {
-        // Just try clicking some navigation to find it or screenshot
-        await page.screenshot({ path: 'tests/e2e/hub_load.png' });
-     }
+  if ((await title.count()) === 0) {
+    // If the route /tha-spot doesn't work directly (maybe /hub contains it)
+    await page.goto('http://localhost:4200/hub');
+    const spotLink = page.locator(
+      'a:has-text("Tha Spot"), button:has-text("Tha Spot")'
+    );
+    if ((await spotLink.count()) > 0) {
+      await spotLink.click();
+    } else {
+      // Just try clicking some navigation to find it or screenshot
+      await page.screenshot({ path: 'tests/e2e/hub_load.png' });
+    }
   }
 
   // Wait for "Tha Spot" title
-  await expect(page.locator('h1:has-text("Tha Spot")')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('h1:has-text("Tha Spot")')).toBeVisible({
+    timeout: 15000,
+  });
 
   // Verify Arcade tab
-  await expect(page.locator('.tab-btn.active:has-text("Arcade")')).toBeVisible();
+  await expect(
+    page.locator('.tab-btn.active:has-text("Arcade")')
+  ).toBeVisible();
 
   // Verify genre buttons
   const categories = ['Shooter', 'Adventure', 'Sports', 'RPG', 'Classic'];

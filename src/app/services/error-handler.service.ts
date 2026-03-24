@@ -3,7 +3,7 @@ import { ErrorHandler, Injectable, inject } from '@angular/core';
 import { NotificationService } from './notification.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class GlobalErrorHandler implements ErrorHandler {
   private logger = inject(LoggingService);
@@ -16,12 +16,23 @@ export class GlobalErrorHandler implements ErrorHandler {
 
     // User-facing notification for critical errors
     if (message.includes('AudioContext') || message.includes('MediaDevices')) {
-        this.notificationService.show('Hardware Access Error: Check your mic/speaker permissions.', 'error');
-    } else if (!message.includes('ExpressionChangedAfterItHasBeenCheckedError')) {
-        // Suppress noisy Angular development warnings but show real logical errors
-        this.notificationService.show('System Anomaly Detected: ' + message.substring(0, 50) + '...', 'warning');
+      this.notificationService.show(
+        'Hardware Access Error: Check your mic/speaker permissions.',
+        'error'
+      );
+    } else if (
+      !message.includes('ExpressionChangedAfterItHasBeenCheckedError')
+    ) {
+      // Suppress noisy Angular development warnings but show real logical errors
+      this.notificationService.show(
+        'System Anomaly Detected: ' + message.substring(0, 50) + '...',
+        'warning'
+      );
     }
 
-    this.logger.warn('Attempting executive system recovery for error:', message);
+    this.logger.warn(
+      'Attempting executive system recovery for error:',
+      message
+    );
   }
 }

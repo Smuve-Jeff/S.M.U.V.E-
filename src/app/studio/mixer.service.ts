@@ -13,7 +13,7 @@ export interface Channel {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class MixerService {
   private readonly instrumentService = inject(InstrumentService);
@@ -43,15 +43,15 @@ export class MixerService {
       volume: 80,
       pan: 0,
       muted: false,
-      soloed: false
+      soloed: false,
     };
 
-    this.channels.update(channels => [...channels, channel]);
+    this.channels.update((channels) => [...channels, channel]);
     return channel;
   }
 
   getChannel(id: string) {
-    return this.channels().find(c => c.id === id);
+    return this.channels().find((c) => c.id === id);
   }
 
   setVolume(channelId: string, volume: number) {

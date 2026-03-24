@@ -10,34 +10,37 @@ const MOCK_GAMES: Game[] = [
     id: '1',
     name: 'Tha Battlefield',
     url: '/assets/games/battlefield/battlefield.html',
-    description: 'High-stakes executive rap battle arena. Dominate the mic in real-time PvP.',
+    description:
+      'High-stakes executive rap battle arena. Dominate the mic in real-time PvP.',
     genre: 'Music Battle',
     rating: 4.9,
     playersOnline: 1250,
     image: 'https://picsum.photos/seed/battle/300/200',
-    tags: ['Multiplayer', 'Original', 'PvP']
+    tags: ['Multiplayer', 'Original', 'PvP'],
   },
   {
     id: '2',
     name: 'Remix Arena',
     url: '/assets/games/remix-arena/remixarena.html',
-    description: 'Collaborative real-time remixing challenge. Out-sequence your rivals.',
+    description:
+      'Collaborative real-time remixing challenge. Out-sequence your rivals.',
     genre: 'Rhythm',
     rating: 4.7,
     playersOnline: 850,
     image: 'https://picsum.photos/seed/remix/300/200',
-    tags: ['Multiplayer', 'Original', 'Co-op']
+    tags: ['Multiplayer', 'Original', 'Co-op'],
   },
   {
     id: '3',
     name: 'Beat Runner',
     url: 'https://htmlgames.com/game/Beat+Runner',
-    description: 'Sprint through refined-glow landscapes synced to the beat. PvP Ranking enabled.',
+    description:
+      'Sprint through refined-glow landscapes synced to the beat. PvP Ranking enabled.',
     genre: 'Runner',
     rating: 4.5,
     playersOnline: 2100,
     image: 'https://picsum.photos/seed/beat/300/200',
-    tags: ['Multiplayer', 'Arcade']
+    tags: ['Multiplayer', 'Arcade'],
   },
 
   // SHOOTER
@@ -45,23 +48,25 @@ const MOCK_GAMES: Game[] = [
     id: '5',
     name: 'Vanguard: elegant Strike',
     url: 'https://html5.gamedistribution.com/694921971d9c4909a34d0b0b8c28373b/',
-    description: 'Elite executive shooter set in a dystopian refined-glow future.',
+    description:
+      'Elite executive shooter set in a dystopian refined-glow future.',
     genre: 'Shooter',
     rating: 4.9,
     playersOnline: 3400,
     image: 'https://picsum.photos/seed/vanguard/300/200',
-    tags: ['Multiplayer', 'PvP', 'FPS']
+    tags: ['Multiplayer', 'PvP', 'FPS'],
   },
   {
     id: '6',
     name: 'pro-grade Assassin',
     url: 'https://html5.gamedistribution.com/5f65349479e04874983058869c0d4561/',
-    description: 'Stealth and precision meet high-speed action in the underworld.',
+    description:
+      'Stealth and precision meet high-speed action in the underworld.',
     genre: 'Shooter',
     rating: 4.8,
     playersOnline: 1800,
     image: 'https://picsum.photos/seed/assassin/300/200',
-    tags: ['Single Player', 'Action']
+    tags: ['Single Player', 'Action'],
   },
   {
     id: '30',
@@ -72,7 +77,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.7,
     playersOnline: 1200,
     image: 'https://picsum.photos/seed/swat/300/200',
-    tags: ['Multiplayer', 'Tactical']
+    tags: ['Multiplayer', 'Tactical'],
   },
 
   // RACING
@@ -85,7 +90,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.6,
     playersOnline: 2500,
     image: 'https://picsum.photos/seed/racing1/300/200',
-    tags: ['Multiplayer', 'Racing']
+    tags: ['Multiplayer', 'Racing'],
   },
   {
     id: '41',
@@ -96,7 +101,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.8,
     playersOnline: 1900,
     image: 'https://picsum.photos/seed/racing2/300/200',
-    tags: ['Multiplayer', 'Competitive']
+    tags: ['Multiplayer', 'Competitive'],
   },
 
   // SPORTS
@@ -109,18 +114,19 @@ const MOCK_GAMES: Game[] = [
     rating: 4.7,
     playersOnline: 3100,
     image: 'https://picsum.photos/seed/sports1/300/200',
-    tags: ['Multiplayer', 'Sports']
+    tags: ['Multiplayer', 'Sports'],
   },
   {
     id: '51',
     name: 'Global Soccer Duel',
     url: 'https://html5.gamedistribution.com/d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6/',
-    description: 'Face off against players worldwide in high-stakes soccer duels.',
+    description:
+      'Face off against players worldwide in high-stakes soccer duels.',
     genre: 'Sports',
     rating: 4.5,
     playersOnline: 4200,
     image: 'https://picsum.photos/seed/sports2/300/200',
-    tags: ['Multiplayer', 'PvP']
+    tags: ['Multiplayer', 'PvP'],
   },
 
   // STRATEGY
@@ -133,7 +139,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.9,
     playersOnline: 5600,
     image: 'https://picsum.photos/seed/strategy1/300/200',
-    tags: ['Multiplayer', 'RTS']
+    tags: ['Multiplayer', 'RTS'],
   },
   {
     id: '61',
@@ -144,7 +150,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.8,
     playersOnline: 2200,
     image: 'https://picsum.photos/seed/strategy2/300/200',
-    tags: ['Multiplayer', 'Classic']
+    tags: ['Multiplayer', 'Classic'],
   },
 
   // PUZZLE
@@ -157,7 +163,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.7,
     playersOnline: 1400,
     image: 'https://picsum.photos/seed/puzzle1/300/200',
-    tags: ['Single Player', 'Logic']
+    tags: ['Single Player', 'Logic'],
   },
   {
     id: '71',
@@ -168,7 +174,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.6,
     playersOnline: 3800,
     image: 'https://picsum.photos/seed/puzzle2/300/200',
-    tags: ['Multiplayer', 'PvP']
+    tags: ['Multiplayer', 'PvP'],
   },
 
   // ADVENTURE
@@ -181,7 +187,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.8,
     playersOnline: 3200,
     image: 'https://picsum.photos/seed/mystic/300/200',
-    tags: ['Single Player', 'RPG']
+    tags: ['Single Player', 'RPG'],
   },
 
   // CLASSIC
@@ -189,23 +195,25 @@ const MOCK_GAMES: Game[] = [
     id: '10',
     name: 'Pac-Man Retro',
     url: 'https://html5.gamedistribution.com/602934415a2a4b8787c672b1a8f6d7c1/',
-    description: 'The ultimate arcade classic, remastered for the S.M.U.V.E. network.',
+    description:
+      'The ultimate arcade classic, remastered for the S.M.U.V.E. network.',
     genre: 'Classic',
     rating: 4.9,
     playersOnline: 8500,
     image: 'https://picsum.photos/seed/pacman/300/200',
-    tags: ['Single Player', 'Arcade']
+    tags: ['Single Player', 'Arcade'],
   },
   {
     id: '11',
     name: 'Galaga Retro',
     url: 'https://html5.gamedistribution.com/9b7083834311895a9d4530869d8540c6/',
-    description: 'Defend the galaxy against swarms of alien invaders in this high-octane classic.',
+    description:
+      'Defend the galaxy against swarms of alien invaders in this high-octane classic.',
     genre: 'Classic',
     rating: 4.8,
     playersOnline: 4200,
     image: 'https://picsum.photos/seed/galaga/300/200',
-    tags: ['Single Player', 'Shooter']
+    tags: ['Single Player', 'Shooter'],
   },
   {
     id: '12',
@@ -216,12 +224,11 @@ const MOCK_GAMES: Game[] = [
     rating: 4.8,
     playersOnline: 5200,
     image: 'https://picsum.photos/seed/hextris/300/200',
-    tags: ['Single Player', 'Arcade']
-  }
+    tags: ['Single Player', 'Arcade'],
+  },
 ];
-;
-
-const GAMES_API_URL = 'https://firebasestorage.googleapis.com/v0/b/builder-406918.appspot.com/o/gaming-pwa%2Fgames.json?alt=media';
+const GAMES_API_URL =
+  'https://firebasestorage.googleapis.com/v0/b/builder-406918.appspot.com/o/gaming-pwa%2Fgames.json?alt=media';
 
 @Injectable({
   providedIn: 'root',
@@ -246,7 +253,9 @@ export class GameService implements OnDestroy {
   }
 
   getTrending(): Observable<Game[]> {
-    return this.listGames({}, 'Popular').pipe(map((games) => games.slice(0, 5)));
+    return this.listGames({}, 'Popular').pipe(
+      map((games) => games.slice(0, 5))
+    );
   }
 
   getNew(): Observable<Game[]> {
@@ -276,7 +285,9 @@ export class GameService implements OnDestroy {
     // Apply Sorting
     switch (sort) {
       case 'Popular':
-        filtered.sort((a, b) => (b.playersOnline || 0) - (a.playersOnline || 0));
+        filtered.sort(
+          (a, b) => (b.playersOnline || 0) - (a.playersOnline || 0)
+        );
         break;
       case 'Rating':
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));

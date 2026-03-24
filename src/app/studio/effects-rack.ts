@@ -62,7 +62,7 @@ export class EffectsRack {
       name,
       type,
       instance,
-      enabled: true
+      enabled: true,
     };
     this.effects.push(effect);
     this.rebuildChain();
@@ -70,7 +70,7 @@ export class EffectsRack {
   }
 
   removeEffect(id: string) {
-    this.effects = this.effects.filter(e => e.id !== id);
+    this.effects = this.effects.filter((e) => e.id !== id);
     this.rebuildChain();
   }
 
@@ -88,7 +88,7 @@ export class EffectsRack {
   }
 
   toggleEffect(id: string) {
-    const effect = this.effects.find(e => e.id === id);
+    const effect = this.effects.find((e) => e.id === id);
     if (effect) {
       effect.enabled = !effect.enabled;
       this.rebuildChain();

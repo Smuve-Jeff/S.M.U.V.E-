@@ -1,5 +1,5 @@
 import { LoggingService } from './logging.service';
-import { Injectable , inject} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, Observer } from 'rxjs';
 import { AnonymousSubject } from 'rxjs/internal/Subject';
 import { Subject } from 'rxjs';

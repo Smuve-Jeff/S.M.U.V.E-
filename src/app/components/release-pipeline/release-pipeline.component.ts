@@ -10,7 +10,7 @@ import { RouterModule } from '@angular/router';
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './release-pipeline.component.html',
-  styleUrls: ['./release-pipeline.component.css']
+  styleUrls: ['./release-pipeline.component.css'],
 })
 export class ReleasePipelineComponent {
   public releaseService = inject(ReleasePipelineService);

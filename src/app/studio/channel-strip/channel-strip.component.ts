@@ -18,12 +18,18 @@ export class ChannelStripComponent implements OnInit {
 
   ngOnInit() {
     // Initialize heights to prevent ExpressionChangedAfterItHasBeenCheckedError
-    this.visualizerHeights.set(Array.from({ length: 12 }, () => 5 + Math.random() * 80));
+    this.visualizerHeights.set(
+      Array.from({ length: 12 }, () => 5 + Math.random() * 80)
+    );
 
     // Simulate activity if armed
     setInterval(() => {
       if (this.channel.armed) {
-        this.visualizerHeights.update(h => h.map(val => Math.max(5, Math.min(90, val + (Math.random() - 0.5) * 20))));
+        this.visualizerHeights.update((h) =>
+          h.map((val) =>
+            Math.max(5, Math.min(90, val + (Math.random() - 0.5) * 20))
+          )
+        );
       }
     }, 100);
   }
@@ -45,7 +51,7 @@ export class ChannelStripComponent implements OnInit {
   }
 
   toggleSettings(): void {
-    this.showSettings.update(v => !v);
+    this.showSettings.update((v) => !v);
   }
 
   updateDevice(event: any): void {

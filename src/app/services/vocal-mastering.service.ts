@@ -35,7 +35,8 @@ export class VocalMasteringService {
 
   private compLow: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
   private compMid: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
-  private compHigh: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
+  private compHigh: DynamicsCompressorNode =
+    this.ctx.createDynamicsCompressor();
 
   private harmonicExciter: WaveShaperNode = this.ctx.createWaveShaper();
 
@@ -43,7 +44,8 @@ export class VocalMasteringService {
   private eqMid: BiquadFilterNode = this.ctx.createBiquadFilter();
   private eqHigh: BiquadFilterNode = this.ctx.createBiquadFilter();
 
-  private masterLimiter: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
+  private masterLimiter: DynamicsCompressorNode =
+    this.ctx.createDynamicsCompressor();
 
   params = signal<MasteringParameters>({
     deesser: { threshold: -24, frequency: 6500, bypass: false },
@@ -54,7 +56,7 @@ export class VocalMasteringService {
     },
     exciter: { amount: 0.1, frequency: 8000, bypass: false },
     eq: { low: 0, mid: 0, high: 0, bypass: false },
-    limiter: { ceiling: -0.1, release: 0.1, bypass: false }
+    limiter: { ceiling: -0.1, release: 0.1, bypass: false },
   });
 
   constructor() {
@@ -103,9 +105,11 @@ export class VocalMasteringService {
 
     // Exciter (Saturation curve)
     if (!p.exciter.bypass) {
-        this.harmonicExciter.curve = this.makeDistortionCurve(p.exciter.amount * 100);
+      this.harmonicExciter.curve = this.makeDistortionCurve(
+        p.exciter.amount * 100
+      );
     } else {
-        this.harmonicExciter.curve = null;
+      this.harmonicExciter.curve = null;
     }
   }
 
@@ -114,22 +118,26 @@ export class VocalMasteringService {
     const n_samples = 44100;
     const curve = new Float32Array(n_samples);
     const deg = Math.PI / 180;
-    for (let i = 0 ; i < n_samples; ++i ) {
-      const x = i * 2 / n_samples - 1;
-      curve[i] = ( 3 + k ) * x * 20 * deg / ( Math.PI + k * Math.abs(x) );
+    for (let i = 0; i < n_samples; ++i) {
+      const x = (i * 2) / n_samples - 1;
+      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
     }
     return curve;
   }
 
-  getInputNode() { return this.inputNode; }
-  getOutputNode() { return this.outputNode; }
+  getInputNode() {
+    return this.inputNode;
+  }
+  getOutputNode() {
+    return this.outputNode;
+  }
 
   applyToSource(source: AudioNode) {
     source.connect(this.inputNode);
   }
 
   updateParams(newParams: Partial<MasteringParameters>) {
-    this.params.update(p => ({ ...p, ...newParams }));
+    this.params.update((p) => ({ ...p, ...newParams }));
     this.updateNodes();
   }
 }

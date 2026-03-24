@@ -34,7 +34,10 @@ export class LoginComponent {
     try {
       let result;
       if (this.isRegistering()) {
-        result = await this.authService.register(this.credentials, this.artistName);
+        result = await this.authService.register(
+          this.credentials,
+          this.artistName
+        );
       } else {
         result = await this.authService.login(this.credentials);
       }
@@ -56,7 +59,7 @@ export class LoginComponent {
   }
 
   toggleMode() {
-    this.isRegistering.update(v => !v);
+    this.isRegistering.update((v) => !v);
     this.message.set('');
   }
 }

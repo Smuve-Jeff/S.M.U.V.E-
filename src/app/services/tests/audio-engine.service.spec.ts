@@ -9,7 +9,12 @@ describe('AudioEngineService', () => {
 
   beforeEach(() => {
     const createMockNode = () => ({
-      gain: { value: 0, setTargetAtTime: jest.fn(), setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn() },
+      gain: {
+        value: 0,
+        setTargetAtTime: jest.fn(),
+        setValueAtTime: jest.fn(),
+        linearRampToValueAtTime: jest.fn(),
+      },
       delayTime: { value: 0, setTargetAtTime: jest.fn() },
       frequency: { value: 0, setTargetAtTime: jest.fn() },
       pan: { value: 0 },
@@ -26,7 +31,7 @@ describe('AudioEngineService', () => {
       start: jest.fn(),
       stop: jest.fn(),
       type: 'lowpass',
-      frequencyBinCount: 1024
+      frequencyBinCount: 1024,
     });
 
     compressorNode = createMockNode();
@@ -44,26 +49,28 @@ describe('AudioEngineService', () => {
         getChannelData: jest.fn().mockReturnValue(new Float32Array(100)),
         numberOfChannels: 2,
         length: 100,
-        sampleRate: 44100
+        sampleRate: 44100,
       }),
       createMediaStreamDestination: jest.fn().mockReturnValue({
         stream: {},
-        connect: jest.fn()
+        connect: jest.fn(),
       }),
       destination: {},
       currentTime: 0,
       sampleRate: 44100,
       state: 'suspended',
-      resume: jest.fn().mockResolvedValue(undefined)
+      resume: jest.fn().mockResolvedValue(undefined),
     };
 
-    (window as any).AudioContext = jest.fn().mockImplementation(() => mockAudioContext);
+    (window as any).AudioContext = jest
+      .fn()
+      .mockImplementation(() => mockAudioContext);
 
     TestBed.configureTestingModule({
       providers: [
         AudioEngineService,
-        { provide: StemSeparationService, useValue: {} }
-      ]
+        { provide: StemSeparationService, useValue: {} },
+      ],
     });
     service = TestBed.inject(AudioEngineService);
   });
@@ -79,6 +86,10 @@ describe('AudioEngineService', () => {
 
   it('should configure compressor correctly', () => {
     service.configureCompressor({ threshold: -20, ratio: 4 });
-    expect(compressorNode.threshold.setTargetAtTime).toHaveBeenCalledWith(-20, 0, 0.01);
+    expect(compressorNode.threshold.setTargetAtTime).toHaveBeenCalledWith(
+      -20,
+      0,
+      0.01
+    );
   });
 });

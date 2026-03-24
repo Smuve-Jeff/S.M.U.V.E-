@@ -2,21 +2,33 @@ import { test, expect } from '@playwright/test';
 
 test('Verify Tha Spot v4 High-Voltage Experience', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('smuve_user_profile', JSON.stringify({
-      artistName: 'Jules Test',
-      artistType: 'Producer',
-      primaryGenre: 'Electronic'
-    }));
+    localStorage.setItem(
+      'smuve_user_profile',
+      JSON.stringify({
+        artistName: 'Jules Test',
+        artistType: 'Producer',
+        primaryGenre: 'Electronic',
+      })
+    );
   });
 
   await page.goto('http://localhost:4200/tha-spot');
 
   // Verify Header and Title
-  await expect(page.locator('h1:has-text("THA SPOT")')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('h1:has-text("THA SPOT")')).toBeVisible({
+    timeout: 15000,
+  });
   await expect(page.locator('p:has-text("High Voltage Mode")')).toBeVisible();
 
   // Verify Category Filters
-  const categories = ['All', 'Shooter', 'Adventure', 'Sports', 'Puzzle', 'Classic'];
+  const categories = [
+    'All',
+    'Shooter',
+    'Adventure',
+    'Sports',
+    'Puzzle',
+    'Classic',
+  ];
   for (const genre of categories) {
     await expect(page.locator(`button:has-text("${genre}")`)).toBeVisible();
   }
@@ -44,7 +56,9 @@ test('Verify Tha Spot v4 High-Voltage Experience', async ({ page }) => {
   await expect(page.locator('h2:has-text("SEARCHING RIVALS")')).toBeVisible();
 
   // Wait for Match Found (simulated progress)
-  await expect(page.locator('h2:has-text("MATCH FOUND")')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('h2:has-text("MATCH FOUND")')).toBeVisible({
+    timeout: 15000,
+  });
 
   // Wait for Game to Load
   await expect(page.locator('iframe')).toBeVisible({ timeout: 15000 });

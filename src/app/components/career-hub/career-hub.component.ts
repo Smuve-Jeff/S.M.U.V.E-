@@ -7,6 +7,6 @@ import { CommandCenterComponent } from '../command-center/command-center.compone
   standalone: true,
   imports: [CommonModule, CommandCenterComponent],
   template: '<app-command-center></app-command-center>',
-  styles: [':host { display: block; height: 100%; }']
+  styles: [':host { display: block; height: 100%; }'],
 })
 export class CareerHubComponent {}

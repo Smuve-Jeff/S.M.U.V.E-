@@ -1,4 +1,12 @@
-import { Component, inject, signal, effect, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  effect,
+  OnInit,
+  OnDestroy,
+  AfterViewInit,
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { TransportBarComponent } from './transport-bar/transport-bar.component';
@@ -9,7 +17,7 @@ import { ChannelRackComponent } from './channel-rack/channel-rack.component';
 import { ArrangementViewComponent } from './arrangement-view/arrangement-view.component';
 import { PianoRollComponent } from './piano-roll/piano-roll.component';
 import { WaveformRendererComponent } from './waveform-renderer/waveform-renderer.component';
-import { MasteringSuiteComponent, } from './mastering-suite/mastering-suite.component';
+import { MasteringSuiteComponent } from './mastering-suite/mastering-suite.component';
 import { AudioSessionService } from './audio-session.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { AudioEngineService } from '../services/audio-engine.service';
@@ -38,7 +46,7 @@ import { DrumMachineComponent } from './drum-machine/drum-machine.component';
     DrumMachineComponent,
   ],
   templateUrl: './studio.component.html',
-  styleUrls: ['./studio.component.css']
+  styleUrls: ['./studio.component.css'],
 })
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly audioSession = inject(AudioSessionService);
@@ -48,7 +56,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly route = inject(ActivatedRoute);
   public readonly musicManager = inject(MusicManagerService);
 
-  activeView = signal<'dj' | 'piano-roll' | 'mixer' | 'performance' | 'mastering' | 'vocal-suite' | 'drum-machine'>('dj');
+  activeView = signal<
+    | 'dj'
+    | 'piano-roll'
+    | 'mixer'
+    | 'performance'
+    | 'mastering'
+    | 'vocal-suite'
+    | 'drum-machine'
+  >('dj');
   showMixer = signal(true);
   showRack = signal(true);
   showPianoRoll = signal(false);
@@ -59,9 +75,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private animationId: number | null = null;
 
   ngOnInit() {
-    this.route.url.subscribe(url => {
+    this.route.url.subscribe((url) => {
       const path = url[0]?.path;
-      if (path === 'dj' || path === 'mixer' || path === 'piano-roll' || path === 'vocal-suite' || path === 'drum-machine') {
+      if (
+        path === 'dj' ||
+        path === 'mixer' ||
+        path === 'piano-roll' ||
+        path === 'vocal-suite' ||
+        path === 'drum-machine'
+      ) {
         this.activeView.set(path as any);
       }
     });

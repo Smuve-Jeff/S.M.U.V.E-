@@ -1,78 +1,91 @@
-<div class="journey-container">
-  <div class="background-blobs">
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
+<div class="journey-container min-h-screen bg-background flex items-center justify-center p-4 md:p-8 overflow-y-auto">
+  <div class="fixed inset-0 pointer-events-none overflow-hidden">
+    <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-brand-primary/5 blur-[120px] rounded-full animate-pulse"></div>
+    <div class="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-secondary/5 blur-[120px] rounded-full animate-pulse" style="animation-delay: 2s"></div>
   </div>
 
-  <main class="journey-card glass">
-    <header class="journey-header">
-      <div class="step-indicator">
+  <main class="journey-card glass-v42 w-full max-w-2xl rounded-3xl border border-border flex flex-col relative z-10 overflow-hidden">
+    <header class="p-6 md:p-10 border-b border-border bg-surface/40 backdrop-blur-md">
+      <div class="flex items-center gap-2 mb-6">
         <div *ngFor="let s of steps; let i = index"
-             class="step-dot"
-             [class.active]="i === activeStep()"
-             [class.completed]="i < activeStep()">
+             class="flex-grow h-1.5 rounded-full transition-all duration-500"
+             [class.bg-brand-primary]="i <= activeStep()"
+             [class.bg-border]="i > activeStep()">
         </div>
       </div>
-      <h1 class="journey-title">{{ steps[activeStep()].title }}</h1>
-      <p class="journey-subtitle">{{ steps[activeStep()].subtitle }}</p>
+      <span class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2 block">Step 0{{ activeStep() + 1 }} / 04</span>
+      <h1 class="text-2xl md:text-4xl font-black tracking-tighter text-text-main uppercase italic leading-none mb-2">{{ steps[activeStep()].title }}</h1>
+      <p class="text-[10px] md:text-xs text-text-dim font-bold uppercase tracking-widest">{{ steps[activeStep()].subtitle }}</p>
     </header>
 
-    <div class="journey-content" [ngSwitch]="activeStep()">
+    <div class="journey-content p-6 md:p-10 flex-grow" [ngSwitch]="activeStep()">
       <!-- STEP 0: ORIGIN -->
-      <div *ngSwitchCase="0" class="step-view animate__animated animate__fadeIn">
-        <div class="input-group">
-          <label>WHAT IS YOUR ARTIST NAME?</label>
-          <input type="text" [(ngModel)]="profile().artistName" placeholder="Name the entity...">
+      <div *ngSwitchCase="0" class="space-y-6 animate-enter">
+        <div class="space-y-2">
+          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Artist Name</label>
+          <input type="text" [(ngModel)]="profile().artistName" placeholder="ENTER IDENTITY..."
+                 class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
         </div>
-        <div class="input-group">
-          <label>WHERE DID YOUR JOURNEY START?</label>
-          <textarea [(ngModel)]="profile().bio" placeholder="Describe the spark, the first note, the realization..."></textarea>
+        <div class="space-y-2">
+          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">The Origin Story</label>
+          <textarea [(ngModel)]="profile().bio" placeholder="DESCRIBE THE SPARK..."
+                    class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-32 resize-none"></textarea>
         </div>
       </div>
 
       <!-- STEP 1: SOUND -->
-      <div *ngSwitchCase="1" class="step-view animate__animated animate__fadeIn">
-        <div class="input-group">
-          <label>YOUR PRIMARY FREQUENCY (GENRE)</label>
-          <input type="text" [(ngModel)]="profile().primaryGenre" placeholder="Hip Hop, Techno, Indie...">
+      <div *ngSwitchCase="1" class="space-y-6 animate-enter">
+        <div class="space-y-2">
+          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Primary Genre</label>
+          <input type="text" [(ngModel)]="profile().primaryGenre" placeholder="ELECTRONIC, HIP HOP, JAZZ..."
+                 class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
         </div>
-        <div class="input-group">
-          <label>THE UNIQUE VIBRATION</label>
-          <textarea [(ngModel)]="profile().uniqueSound" placeholder="What makes your sound impossible to replicate?"></textarea>
+        <div class="space-y-2">
+          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">The Unique Frequency</label>
+          <textarea [(ngModel)]="profile().uniqueSound" placeholder="WHAT VIBRATES DIFFERENTLY?..."
+                    class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-32 resize-none"></textarea>
         </div>
       </div>
 
       <!-- STEP 2: VISION -->
-      <div *ngSwitchCase="2" class="step-view animate__animated animate__fadeIn">
-         <div class="vision-board">
-            <div class="board-item">
-               <label>SHORT TERM FOCUS</label>
-               <input type="text" [(ngModel)]="profile().currentFocus" placeholder="The immediate target...">
-            </div>
-            <div class="board-item">
-               <label>THE BIGGEST CHALLENGE</label>
-               <input type="text" [(ngModel)]="profile().biggestChallenge" placeholder="What stands in the way?">
-            </div>
-         </div>
+      <div *ngSwitchCase="2" class="space-y-6 animate-enter">
+        <div class="space-y-2">
+          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Immediate Focus</label>
+          <input type="text" [(ngModel)]="profile().currentFocus" placeholder="THE CURRENT MISSION..."
+                 class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
+        </div>
+        <div class="space-y-2">
+          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Critical Challenge</label>
+          <input type="text" [(ngModel)]="profile().biggestChallenge" placeholder="WHAT STANDS IN THE WAY?..."
+                 class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
+        </div>
       </div>
 
-      <!-- STEP 3: LEGACY -->
-      <div *ngSwitchCase="3" class="step-view animate__animated animate__fadeIn">
-        <div class="summary-box">
-          <h3>IDENTITY SYNOPSIS</h3>
-          <p><strong>Artist:</strong> {{ profile().artistName }}</p>
-          <p><strong>Genre:</strong> {{ profile().primaryGenre }}</p>
-          <p class="it-bio">"{{ profile().bio }}"</p>
+      <!-- STEP 3: DOSSIER -->
+      <div *ngSwitchCase="3" class="space-y-6 animate-enter">
+        <div class="material-depth p-6 border border-border bg-surface/50 space-y-4">
+          <h3 class="text-xs font-black text-text-main uppercase tracking-widest border-b border-border pb-3">Dossier Summary</h3>
+          <div class="grid grid-cols-2 gap-4">
+              <div>
+                  <span class="text-[8px] font-bold text-text-dim uppercase block">Artist</span>
+                  <span class="text-sm font-black text-brand-primary uppercase italic">{{ profile().artistName }}</span>
+              </div>
+              <div>
+                  <span class="text-[8px] font-bold text-text-dim uppercase block">Genre</span>
+                  <span class="text-sm font-black text-text-main uppercase italic">{{ profile().primaryGenre }}</span>
+              </div>
+          </div>
+          <p class="text-[10px] text-text-dim italic leading-relaxed">"{{ profile().bio }}"</p>
         </div>
-        <button (click)="updateProfile()" class="btn-finalize">FINALIZE DOSSIER</button>
+        <button (click)="updateProfile()" class="w-full btn-pro btn-pro-primary py-4 text-xs font-black tracking-[0.2em]">INITIALIZE NEURAL LINK</button>
       </div>
     </div>
 
-    <footer class="journey-footer">
-      <button (click)="prev()" [disabled]="activeStep() === 0" class="btn-nav">PREVIOUS</button>
-      <button (click)="next()" [disabled]="activeStep() === steps.length - 1" class="btn-nav primary">
-        {{ activeStep() === steps.length - 1 ? 'COMPLETE' : 'CONTINUE' }}
-      </button>
+    <footer class="p-6 md:p-8 bg-surface/60 border-t border-border flex items-center justify-between gap-4">
+      <button (click)="prev()" [disabled]="activeStep() === 0"
+              class="btn-pro btn-pro-outline px-6 text-[10px] font-black tracking-widest disabled:opacity-30">BACK</button>
+      <button (click)="next()" [disabled]="activeStep() === steps.length - 1"
+              class="btn-pro btn-pro-primary px-8 text-[10px] font-black tracking-widest disabled:opacity-0">CONTINUE</button>
     </footer>
   </main>
 </div>

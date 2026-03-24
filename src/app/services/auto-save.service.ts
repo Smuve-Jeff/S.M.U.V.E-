@@ -16,26 +16,30 @@ export class AutoSaveService {
   private lastProjectHash = '';
 
   constructor() {
-    // Project Auto-Sync
     effect(() => {
-        const tracks = this.musicManager.tracks();
-        if (tracks.length > 0) {
-            const currentHash = JSON.stringify(tracks);
-            if (currentHash !== this.lastProjectHash) {
-                this.lastProjectHash = currentHash;
-                this.syncProject();
-            }
+      const tracks = this.musicManager.tracks();
+      if (tracks.length > 0) {
+        const currentHash = JSON.stringify(tracks);
+        if (currentHash !== this.lastProjectHash) {
+          this.lastProjectHash = currentHash;
+          this.syncProject();
         }
+      }
     });
   }
 
   private async syncProject() {
-      const tracks = this.musicManager.tracks();
-      const profile = this.profileService.profile();
-      const projectId = profile.knowledgeBase.currentRelease?.id || 'project_v4_auto';
-      const projectTitle = profile.knowledgeBase.currentRelease?.title || 'Auto-Sync Session';
+    const tracks = this.musicManager.tracks();
+    const profile = this.profileService.profile();
+    const userId = profile.id || 'anonymous';
+    const projectId = 'project_v4_auto';
+    const projectTitle = 'Auto-Sync Session';
 
-      this.logger.info(`AutoSyncService: Initializing cloud sync for ${projectTitle}`);
-      await this.databaseService.saveProject(projectId, projectTitle, { tracks });
+    await this.databaseService.saveProject(
+      projectId,
+      projectTitle,
+      { tracks },
+      userId
+    );
   }
 }

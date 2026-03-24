@@ -3,8 +3,14 @@ import { test, expect } from '@playwright/test';
 test('verify dj turntable interface', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.addInitScript(() => {
-    localStorage.setItem('smuve_auth_session', JSON.stringify({ token: 'mock-token' }));
-    localStorage.setItem('smuve_user_profile', JSON.stringify({ id: 'user123', name: 'Pro DJ', level: 50 }));
+    localStorage.setItem(
+      'smuve_auth_session',
+      JSON.stringify({ token: 'mock-token' })
+    );
+    localStorage.setItem(
+      'smuve_user_profile',
+      JSON.stringify({ id: 'user123', name: 'Pro DJ', level: 50 })
+    );
   });
 
   await page.goto('http://localhost:3000/#/studio');

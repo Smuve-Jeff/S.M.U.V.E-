@@ -1,7 +1,10 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UserProfileService, AppSettings } from '../../services/user-profile.service';
+import {
+  UserProfileService,
+  AppSettings,
+} from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
 import { NotificationService } from '../../services/notification.service';
 import { SecurityService } from '../../services/security.service';
@@ -11,7 +14,7 @@ import { SecurityService } from '../../services/security.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './settings.component.html',
-  styleUrls: ['./settings.component.css']
+  styleUrls: ['./settings.component.css'],
 })
 export class SettingsComponent implements OnInit {
   profileService = inject(UserProfileService);
@@ -33,14 +36,14 @@ export class SettingsComponent implements OnInit {
       ...currentProfile.settings,
       [category]: {
         ...(currentProfile.settings as any)[category],
-        [key]: value
-      }
+        [key]: value,
+      },
     };
 
     try {
       await this.profileService.updateProfile({
         ...currentProfile,
-        settings: updatedSettings
+        settings: updatedSettings,
       });
 
       // Immediate UI Feedback/Side effects
@@ -49,16 +52,27 @@ export class SettingsComponent implements OnInit {
       }
       if (category === 'ui' && key === 'performanceMode') {
         if (value !== this.uiService.performanceMode()) {
-           this.uiService.togglePerformanceMode();
+          this.uiService.togglePerformanceMode();
         }
       }
 
-      this.notificationService.show('Settings synchronized to cloud.', 'success', 2000);
+      this.notificationService.show(
+        'Settings synchronized to cloud.',
+        'success',
+        2000
+      );
       if (category === 'security') {
-        this.securityService.logEvent('SETTING_CHANGED', `Updated ${key} to ${value}`);
+        this.securityService.logEvent(
+          'SETTING_CHANGED',
+          `Updated ${key} to ${value}`
+        );
       }
     } catch (err) {
-      this.notificationService.show('Sync failed. Local cache maintained.', 'error', 3000);
+      this.notificationService.show(
+        'Sync failed. Local cache maintained.',
+        'error',
+        3000
+      );
     }
   }
 

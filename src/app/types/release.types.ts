@@ -21,7 +21,13 @@ export interface ReleaseProject {
   name: string;
   type: ReleaseType;
   description: string;
-  status: 'Planning' | 'Production' | 'Visuals' | 'Admin' | 'Distributing' | 'Released';
+  status:
+    | 'Planning'
+    | 'Production'
+    | 'Visuals'
+    | 'Admin'
+    | 'Distributing'
+    | 'Released';
   tracks: ProductionTrack[];
   artworkUrl?: string;
   visualsUrl?: string;

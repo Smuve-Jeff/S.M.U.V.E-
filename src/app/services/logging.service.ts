@@ -5,11 +5,11 @@ export enum LogLevel {
   INFO = 1,
   WARN = 2,
   ERROR = 3,
-  NONE = 4
+  NONE = 4,
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class LoggingService {
   private level: LogLevel = isDevMode() ? LogLevel.DEBUG : LogLevel.WARN;
@@ -44,8 +44,12 @@ export class LoggingService {
 
   // Specialized logging for S.M.U.V.E 4.2 Strategic Commander persona
   system(message: string, ...args: any[]) {
-     if (this.level <= LogLevel.INFO) {
-       console.log(`%c[SYSTEM COMMANDER]: ${message}`, 'color: #10b981; font-weight: bold; text-transform: uppercase;', ...args);
-     }
+    if (this.level <= LogLevel.INFO) {
+      console.log(
+        `%c[SYSTEM COMMANDER]: ${message}`,
+        'color: #10b981; font-weight: bold; text-transform: uppercase;',
+        ...args
+      );
+    }
   }
 }

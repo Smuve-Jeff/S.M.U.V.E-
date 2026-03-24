@@ -8,7 +8,7 @@ import { ReleasePipelineService } from '../../services/release-pipeline.service'
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './lyric-editor.component.html',
-  styleUrls: ['./lyric-editor.component.css']
+  styleUrls: ['./lyric-editor.component.css'],
 })
 export class LyricEditorComponent {
   private releaseService = inject(ReleasePipelineService);
@@ -19,7 +19,7 @@ export class LyricEditorComponent {
   aiSuggestions = signal<string[]>([
     'Try a more aggressive metaphor for the second verse.',
     'Rhyme suggestion: "Velocity" with "Atrocity"',
-    'The hook could use a more rhythmic syncopation.'
+    'The hook could use a more rhythmic syncopation.',
   ]);
 
   saveLyrics() {

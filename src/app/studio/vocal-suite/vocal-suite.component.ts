@@ -1,4 +1,14 @@
-import { Component, signal, inject, ViewChild, ElementRef, AfterViewInit, OnDestroy, computed, effect } from '@angular/core';
+import {
+  Component,
+  signal,
+  inject,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+  OnDestroy,
+  computed,
+  effect,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UIService } from '../../services/ui.service';
 import { MicrophoneService } from '../../services/microphone.service';
@@ -15,7 +25,7 @@ type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './vocal-suite.component.html',
-  styleUrls: ['./vocal-suite.component.css']
+  styleUrls: ['./vocal-suite.component.css'],
 })
 export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   public readonly uiService = inject(UIService);
@@ -79,10 +89,12 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async initializeMic() {
-    await this.micService.initialize(this.micService.selectedDeviceId() || undefined);
+    await this.micService.initialize(
+      this.micService.selectedDeviceId() || undefined
+    );
     const node = this.micService.getAnalyserNode();
     if (node) {
-        this.mastering.applyToSource(node);
+      this.mastering.applyToSource(node);
     }
   }
 
@@ -142,17 +154,17 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
     const analyser = this.micService.getAnalyserNode();
     if (this.micService.isRecording() && analyser) {
-        const dataArray = new Uint8Array(analyser.fftSize);
-        analyser.getByteTimeDomainData(dataArray);
+      const dataArray = new Uint8Array(analyser.fftSize);
+      analyser.getByteTimeDomainData(dataArray);
 
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-            const v = (dataArray[i] / 128.0) - 1;
-            sum += v * v;
-        }
-        const rms = Math.sqrt(sum / dataArray.length);
-        this.waveformData.push(rms);
-        if (this.waveformData.length > 500) this.waveformData.shift();
+      let sum = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        const v = dataArray[i] / 128.0 - 1;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / dataArray.length);
+      this.waveformData.push(rms);
+      if (this.waveformData.length > 500) this.waveformData.shift();
     }
 
     const width = canvas.width;
@@ -165,10 +177,15 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
     const step = width / 500;
     for (let i = 0; i < this.waveformData.length; i++) {
-        const x = i * step;
-        const barH = this.waveformData[i] * height * 2;
-        this.waveformCtx.fillStyle = '#a855f7';
-        this.waveformCtx.fillRect(x, (height - barH) / 2, step - 1, Math.max(2, barH));
+      const x = i * step;
+      const barH = this.waveformData[i] * height * 2;
+      this.waveformCtx.fillStyle = '#a855f7';
+      this.waveformCtx.fillRect(
+        x,
+        (height - barH) / 2,
+        step - 1,
+        Math.max(2, barH)
+      );
     }
     this.waveformCtx.stroke();
   }

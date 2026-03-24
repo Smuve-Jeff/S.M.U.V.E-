@@ -15,14 +15,14 @@ describe('PlayerService', () => {
     mockDeckService = {
       deckA: signal({ isPlaying: false, progress: 0, duration: 100 }),
       togglePlay: jest.fn(),
-      loadDeckBuffer: jest.fn()
+      loadDeckBuffer: jest.fn(),
     };
     mockAudioEngine = {
       getContext: jest.fn().mockReturnValue({
         sampleRate: 44100,
-        decodeAudioData: jest.fn()
+        decodeAudioData: jest.fn(),
       }),
-      getDeck: jest.fn().mockReturnValue({ buffer: {} })
+      getDeck: jest.fn().mockReturnValue({ buffer: {} }),
     };
 
     TestBed.configureTestingModule({
@@ -31,8 +31,8 @@ describe('PlayerService', () => {
         { provide: DeckService, useValue: mockDeckService },
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: FileLoaderService, useValue: {} },
-        { provide: ExportService, useValue: {} }
-      ]
+        { provide: ExportService, useValue: {} },
+      ],
     });
     service = TestBed.inject(PlayerService);
   });

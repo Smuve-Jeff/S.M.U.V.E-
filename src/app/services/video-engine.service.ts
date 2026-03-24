@@ -39,10 +39,38 @@ export class VideoEngineService {
   isPlaying = signal(false);
 
   tracks = signal<VideoTrack[]>([
-    { id: 't1', name: 'Visuals', type: 'visual', clips: [], muted: false, locked: false },
-    { id: 't2', name: 'Overlays', type: 'overlay', clips: [], muted: false, locked: false },
-    { id: 't3', name: 'AI Voiceovers', type: 'voiceover', clips: [], muted: false, locked: false },
-    { id: 't4', name: 'Global Score', type: 'score', clips: [], muted: false, locked: false }
+    {
+      id: 't1',
+      name: 'Visuals',
+      type: 'visual',
+      clips: [],
+      muted: false,
+      locked: false,
+    },
+    {
+      id: 't2',
+      name: 'Overlays',
+      type: 'overlay',
+      clips: [],
+      muted: false,
+      locked: false,
+    },
+    {
+      id: 't3',
+      name: 'AI Voiceovers',
+      type: 'voiceover',
+      clips: [],
+      muted: false,
+      locked: false,
+    },
+    {
+      id: 't4',
+      name: 'Global Score',
+      type: 'score',
+      clips: [],
+      muted: false,
+      locked: false,
+    },
   ]);
 
   private animationFrameId: number | null = null;
@@ -54,29 +82,35 @@ export class VideoEngineService {
     const newClip: VideoClip = {
       ...clip,
       id: Math.random().toString(36).substr(2, 9),
-      trackId
+      trackId,
     };
 
-    this.tracks.update(tracks => tracks.map(t => {
-      if (t.id === trackId) {
-        return { ...t, clips: [...t.clips, newClip] };
-      }
-      return t;
-    }));
+    this.tracks.update((tracks) =>
+      tracks.map((t) => {
+        if (t.id === trackId) {
+          return { ...t, clips: [...t.clips, newClip] };
+        }
+        return t;
+      })
+    );
   }
 
   removeClip(clipId: string) {
-    this.tracks.update(tracks => tracks.map(t => ({
-      ...t,
-      clips: t.clips.filter(c => c.id !== clipId)
-    })));
+    this.tracks.update((tracks) =>
+      tracks.map((t) => ({
+        ...t,
+        clips: t.clips.filter((c) => c.id !== clipId),
+      }))
+    );
   }
 
   updateClip(clipId: string, patch: Partial<VideoClip>) {
-    this.tracks.update(tracks => tracks.map(t => ({
-      ...t,
-      clips: t.clips.map(c => c.id === clipId ? { ...c, ...patch } : c)
-    })));
+    this.tracks.update((tracks) =>
+      tracks.map((t) => ({
+        ...t,
+        clips: t.clips.map((c) => (c.id === clipId ? { ...c, ...patch } : c)),
+      }))
+    );
   }
 
   seek(time: number) {
@@ -126,9 +160,9 @@ export class VideoEngineService {
 
   getActiveClips(time: number): VideoClip[] {
     const active: VideoClip[] = [];
-    this.tracks().forEach(track => {
+    this.tracks().forEach((track) => {
       if (track.muted) return;
-      track.clips.forEach(clip => {
+      track.clips.forEach((clip) => {
         if (time >= clip.startTime && time <= clip.startTime + clip.duration) {
           active.push(clip);
         }

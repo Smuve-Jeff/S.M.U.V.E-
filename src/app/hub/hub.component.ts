@@ -48,7 +48,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   genres = ['Hip Hop', 'R&B', 'Pop', 'Electronic', 'Rock', 'Jazz', 'Classical'];
 
   updateQuickProfile(field: string, value: string) {
-    this.quickProfile.update(p => ({ ...p, [field]: value }));
+    this.quickProfile.update((p) => ({ ...p, [field]: value }));
   }
 
   constructor() {}
@@ -86,7 +86,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
         this.visualizerData.set(newData);
       } else {
         // Idling animation if not playing
-        const idle = this.visualizerData().map(v => Math.max(20, v * 0.95));
+        const idle = this.visualizerData().map((v) => Math.max(20, v * 0.95));
         this.visualizerData.set(idle);
       }
       this.animFrame = requestAnimationFrame(update);
@@ -101,7 +101,10 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   // Quick Start Actions
   onQuickStart() {
     if (!this.quickProfile().artistName) {
-      this.notificationService.show('Please enter your Artist Name to begin!', 'warning');
+      this.notificationService.show(
+        'Please enter your Artist Name to begin!',
+        'warning'
+      );
       return;
     }
 

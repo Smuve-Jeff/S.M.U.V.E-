@@ -24,16 +24,20 @@ describe('AiService', () => {
           production: 5,
           marketing: 5,
           mastering: 5,
-          audioEngineering: 5
-        }
+          audioEngineering: 5,
+        },
       }),
-      updateProfile: jest.fn()
+      updateProfile: jest.fn(),
     };
-    userContextService = { mainViewMode: signal('hub'), setMainViewMode: jest.fn(), navigateToView: jest.fn() };
+    userContextService = {
+      mainViewMode: signal('hub'),
+      setMainViewMode: jest.fn(),
+      navigateToView: jest.fn(),
+    };
     analyticsService = {
-        overallGrowth: signal(2),
-        engagement: signal({ trend: -1 }),
-        streams: signal({ value: 1000 })
+      overallGrowth: signal(2),
+      engagement: signal({ trend: -1 }),
+      streams: signal({ value: 1000 }),
     };
 
     TestBed.configureTestingModule({
@@ -41,12 +45,15 @@ describe('AiService', () => {
         AiService,
         MarketingService,
         { provide: AnalyticsService, useValue: analyticsService },
-        { provide: API_KEY_TOKEN, useValue: 'AIzaSyCVdPtw0C_5rgiHDRi5mQYL4GXZMrdiDj4' },
+        {
+          provide: API_KEY_TOKEN,
+          useValue: 'AIzaSyCVdPtw0C_5rgiHDRi5mQYL4GXZMrdiDj4',
+        },
         { provide: UserProfileService, useValue: userProfileService },
         { provide: UserContextService, useValue: userContextService },
         { provide: StemSeparationService, useValue: {} },
-        { provide: AudioEngineService, useValue: { resume: jest.fn() } }
-      ]
+        { provide: AudioEngineService, useValue: { resume: jest.fn() } },
+      ],
     });
     service = TestBed.inject(AiService);
   });
