@@ -54,31 +54,31 @@ export class UIService {
   isUplinkActive = computed(() => this.isOnline());
 
   private viewConfigs: ViewConfig[] = [
-    { mode: 'hub', label: 'HUB', icon: 'grid_view', category: 'CORE' },
-    { mode: 'studio', label: 'STUDIO', icon: 'token', category: 'CORE' },
+    { mode: 'hub', label: 'Label Hub', icon: 'grid_view', category: 'CORE' },
+    { mode: 'studio', label: 'Studio', icon: 'token', category: 'CORE' },
     {
       mode: 'vocal-suite',
-      label: 'VOCALS',
+      label: 'Vocal Suite',
       icon: 'neurology',
       category: 'CORE',
     },
     {
       mode: 'strategy',
-      label: 'INTEL',
+      label: 'Intel Lab',
       icon: 'analytics',
       category: 'STRATEGY',
     },
     {
       mode: 'career',
-      label: 'CAREER',
+      label: 'Career Board',
       icon: 'business_center',
       category: 'STRATEGY',
     },
-    { mode: 'profile', label: 'IDENTITY', icon: 'person', category: 'CORE' },
-    { mode: 'tha-spot', label: 'SPOT', icon: 'bolt', category: 'COMMUNITY' },
+    { mode: 'profile', label: 'Profile', icon: 'person', category: 'CORE' },
+    { mode: 'tha-spot', label: 'Community', icon: 'bolt', category: 'COMMUNITY' },
     {
       mode: 'settings',
-      label: 'CONFIG',
+      label: 'Settings',
       icon: 'settings',
       category: 'UTILITY',
     },
@@ -159,6 +159,10 @@ export class UIService {
 
   getViewModes(): MainViewMode[] {
     return this.viewConfigs.map((v) => v.mode);
+  }
+
+  getViewLabel(mode: MainViewMode): string {
+    return this.viewConfigs.find((v) => v.mode === mode)?.label ?? mode;
   }
 
   navigateToView(mode: MainViewMode) {
