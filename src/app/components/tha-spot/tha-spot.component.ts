@@ -56,6 +56,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   chatMessages = signal<ChatMessage[]>([]);
   newChatMessage = signal('');
+  chatActive = signal(false);
+
+  // Isometric floor state
+  floorRotation = signal({ x: 60, z: -45 });
+  floorScale = signal(1);
+  private isDragging = false;
+  private lastMousePos = { x: 0, y: 0 };
 
   constructor() {
     this.searchSubject.pipe(debounceTime(300), distinctUntilChanged()).subscribe(q => {
@@ -65,6 +72,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.fetchGames();
+    this.chatMessages.set([
+        { id: '1', user: 'SYSTEM', text: 'NEURAL LINK ESTABLISHED. WELCOME TO THA SPOT.', timestamp: new Date(), isSystem: true }
+    ]);
   }
 
   ngOnDestroy() {}
@@ -185,7 +195,46 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.newChatMessage.set('');
   }
 
-  @HostListener('window:message', ['$event'])
+  toggleChat() {
+    this.chatActive.update(v => !v);
+  }
+
+  navigateTo(path: string) {
+    this.router.navigate([path]);
+  }
+
+  getFloorTransform() {
+    return `rotateX(${this.floorRotation().x}deg) rotateZ(${this.floorRotation().z}deg) scale(${this.floorScale()})`;
+  }
+
+  onFloorMouseDown(event: MouseEvent) {
+    this.isDragging = true;
+    this.lastMousePos = { x: event.clientX, y: event.clientY };
+  }
+
+  onFloorMouseMove(event: MouseEvent) {
+    if (!this.isDragging) return;
+    const deltaX = event.clientX - this.lastMousePos.x;
+    const deltaY = event.clientY - this.lastMousePos.y;
+    this.floorRotation.update(r => ({
+      x: Math.max(30, Math.min(80, r.x - deltaY * 0.5)),
+      z: r.z + deltaX * 0.5
+    }));
+    this.lastMousePos = { x: event.clientX, y: event.clientY };
+  }
+
+  @HostListener('window:mouseup')
+  onFloorMouseUp() {
+    this.isDragging = false;
+  }
+
+  getStationPos(index: number) {
+    const row = Math.floor(index / 4);
+    const col = index % 4;
+    return `pos-${row}-${col}`;
+  }
+
+  @HostListener('window:message', [''])
   onMessage(event: MessageEvent) {
     const type = event.data?.type;
     const payload = event.data?.payload || event.data?.data;

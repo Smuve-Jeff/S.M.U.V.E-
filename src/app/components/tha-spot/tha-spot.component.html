@@ -22,7 +22,7 @@
   </nav>
 
   <!-- Isometric Viewport -->
-  <div class="floor-viewport" (mousedown)="onFloorMouseDown($event)" (mousemove)="onFloorMouseMove($event)" (mouseup)="onFloorMouseUp($event)">
+  <div class="floor-viewport" (mousedown)="onFloorMouseDown($event)" (mousemove)="onFloorMouseMove($event)" (mouseup)="onFloorMouseUp()">
     <div class="isometric-floor" [style.transform]="getFloorTransform()">
       <div class="floor-overlay-glow"></div>
 
