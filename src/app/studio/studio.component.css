@@ -91,11 +91,48 @@
   padding: 0 1rem;
 }
 
+.studio-mode-pills {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 0.25rem 0.5rem;
+}
+
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  transition: all 0.25s ease;
+}
+
+.mode-pill-active {
+  color: var(--fl-accent);
+  background: rgba(255, 140, 0, 0.15);
+}
+
 /* Central Playlist Hub */
 .playlist-hub {
   flex-grow: 1;
   position: relative;
   overflow: hidden;
+}
+
+.studio-grid-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.6;
 }
 
 /* Sliding Editor (Piano Roll / Drum Machine) */

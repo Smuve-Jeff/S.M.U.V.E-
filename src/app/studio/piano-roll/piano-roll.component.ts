@@ -8,7 +8,6 @@ import {
   ElementRef,
   AfterViewInit,
   OnDestroy,
-  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -54,6 +53,13 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   selectedScale = signal(this.scales[0]);
   snapToScale = signal(false);
   editMode = signal<'draw' | 'select' | 'brush' | 'chord'>('draw');
+  snapOptions = [
+    { label: '1/4', steps: 4 },
+    { label: '1/8', steps: 2 },
+    { label: '1/16', steps: 1 },
+    { label: '1/32', steps: 0.5 },
+  ];
+  selectedSnap = signal(1);
 
   rowHeight = 24;
   cellWidth = 32;
@@ -141,7 +147,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    const step = Math.floor(x / this.cellWidth);
+    const step = this.snapStep(Math.floor(x / this.cellWidth));
     const midi = this.getDisplayKeys()[Math.floor(y / this.rowHeight)];
 
     const track = this.selectedTrack();
@@ -233,7 +239,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
         this.selectedNoteIds().has(n.id)
       ) {
         this.musicManager.updateNote(track.id, n.id, {
-          step: Math.round(n.step),
+          step: this.snapStep(n.step),
         });
       }
     });
@@ -269,7 +275,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     track.notes.forEach((n) => {
       if (this.selectedNoteIds().has(n.id)) {
         this.musicManager.updateNote(track.id, n.id, {
-          midi: n.midi + semitones,
+          midi: this.clamp(n.midi + semitones, 0, 127),
         });
       }
     });
@@ -306,6 +312,67 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  setSelectedNoteLength(length: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    track.notes.forEach((n) => {
+      if (
+        this.selectedNoteIds().size === 0 ||
+        this.selectedNoteIds().has(n.id)
+      ) {
+        this.musicManager.updateNote(track.id, n.id, {
+          length: this.clamp(length, 1, this.cells.length),
+        });
+      }
+    });
+  }
+
+  humanizeSelected() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const stepNudge = Math.max(1, Math.round(this.selectedSnap()));
+    track.notes.forEach((n) => {
+      if (
+        this.selectedNoteIds().size === 0 ||
+        this.selectedNoteIds().has(n.id)
+      ) {
+        const stepOffset = Math.random() > 0.5 ? stepNudge : -stepNudge;
+        this.musicManager.updateNote(track.id, n.id, {
+          step: this.snapStep(
+            this.clamp(n.step + stepOffset, 0, this.cells.length - 1)
+          ),
+          velocity: this.clamp(
+            n.velocity + (Math.random() - 0.5) * 0.2,
+            0.2,
+            1
+          ),
+        });
+      }
+    });
+  }
+
+  duplicateNextBar() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const selectedIds = this.selectedNoteIds();
+    const sourceNotes = selectedIds.size
+      ? track.notes.filter((n) => selectedIds.has(n.id))
+      : track.notes;
+
+    sourceNotes.forEach((n) => {
+      const nextStep = n.step + this.stepsPerMeasure;
+      if (nextStep < this.cells.length) {
+        this.musicManager.addNote(
+          track.id,
+          n.midi,
+          nextStep,
+          this.clamp(n.length, 1, this.cells.length),
+          this.clamp(n.velocity, 0.2, 1)
+        );
+      }
+    });
+  }
+
   selectTrack(track: TrackModel) {
     this.musicManager.selectedTrackId.set(track.id);
     this.selectedNoteIds.set(new Set());
@@ -333,7 +400,24 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     this.router.navigate(['/piano-roll']);
   }
 
-  setEditMode(mode: string) {
-    this.editMode.set(mode as any);
+  getHumanizeStatusLabel(): string {
+    return this.selectedTrack() ? 'Humanization Ready' : 'No Track Selected';
+  }
+
+  setEditMode(mode: 'draw' | 'select' | 'brush' | 'chord') {
+    this.editMode.set(mode);
+  }
+
+  private snapStep(step: number): number {
+    const snapValue = this.selectedSnap();
+    return this.clamp(
+      Math.round(step / snapValue) * snapValue,
+      0,
+      this.cells.length - 1
+    );
+  }
+
+  private clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
   }
 }

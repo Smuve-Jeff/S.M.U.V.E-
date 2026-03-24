@@ -41,6 +41,20 @@
       </div>
 
       <div class="flex items-center gap-4">
+        <div class="hidden lg:flex items-center gap-4 studio-mode-pills">
+          <div class="mode-pill" [class.mode-pill-active]="activeView() === 'dj'">
+            <span class="material-symbols-outlined text-[10px]">album</span>
+            <span>Deck Mode</span>
+          </div>
+          <div class="mode-pill" [class.mode-pill-active]="showPianoRoll()">
+            <span class="material-symbols-outlined text-[10px]">piano</span>
+            <span>Piano Roll</span>
+          </div>
+          <div class="mode-pill" [class.mode-pill-active]="activeView() === 'mastering'">
+            <span class="material-symbols-outlined text-[10px]">graphic_eq</span>
+            <span>Master Chain</span>
+          </div>
+        </div>
         <div class="hidden md:flex flex-col items-end opacity-60 mr-4">
           <span class="text-[6px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Neural Hub Status</span>
           <span class="text-[9px] font-bold text-white uppercase tracking-tight italic">{{ aiService.strategicDecrees()[0] }}</span>
@@ -95,6 +109,7 @@
 
     <!-- Main Workspace -->
     <main class="flex-grow relative overflow-hidden bg-background-dark">
+      <div class="studio-grid-overlay pointer-events-none"></div>
       <div class="absolute inset-0 z-10">
         <app-arrangement-view></app-arrangement-view>
       </div>

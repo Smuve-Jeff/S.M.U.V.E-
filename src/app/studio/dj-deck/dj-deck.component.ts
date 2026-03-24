@@ -44,6 +44,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   showSampleLibrary = signal(false);
   isMobile = signal(false);
   masterVolume = signal(0.85);
+  currentBeat = this.engine.currentBeat;
 
   private recorder: MediaRecorder | null = null;
   recording = signal(false);
@@ -200,7 +201,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     ctx.fillRect(0, canvas.height - h, canvas.width, h);
   }
 
-  getDeckLevel(id: "A" | "B") { return this.engine.getDeckLevel(id); }
+  getDeckLevel(id: 'A' | 'B') {
+    return this.engine.getDeckLevel(id);
+  }
 
   async loadTrackFor(deckId: 'A' | 'B') {
     const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');

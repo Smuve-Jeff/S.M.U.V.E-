@@ -34,15 +34,21 @@
   <main class="flex-1 flex flex-col min-w-0 bg-slate-900/50 relative">
     <header class="h-14 shrink-0 border-b border-white/5 bg-slate-950/80 backdrop-blur-md flex items-center justify-between px-6 z-30">
       <div class="flex items-center gap-6">
-         <div class="flex items-center gap-3">
-            <select [ngModel]="selectedScale()" (ngModelChange)="selectedScale.set($event)"
-                    class="bg-slate-900 border border-white/10 rounded px-2 py-1 text-[10px] font-bold text-slate-300 outline-none">
-               <option *ngFor="let s of scales" [ngValue]="s">{{s.name}}</option>
-            </select>
-             <button (click)="snapToScale.set(!snapToScale())"
-                     [class.bg-brand-primary]="snapToScale()"
-                     class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40 transition-all">
-               Snap
+          <div class="flex items-center gap-3">
+             <select [ngModel]="selectedScale()" (ngModelChange)="selectedScale.set($event)"
+                     class="bg-slate-900 border border-white/10 rounded px-2 py-1 text-[10px] font-bold text-slate-300 outline-none">
+                <option *ngFor="let s of scales" [ngValue]="s">{{s.name}}</option>
+             </select>
+             <select
+                     [ngModel]="selectedSnap()"
+                     (ngModelChange)="selectedSnap.set($event)"
+                     class="bg-slate-900 border border-white/10 rounded px-2 py-1 text-[10px] font-bold text-slate-300 outline-none">
+                <option *ngFor="let snap of snapOptions" [ngValue]="snap.steps">Snap {{ snap.label }}</option>
+             </select>
+              <button (click)="snapToScale.set(!snapToScale())"
+                      [class.bg-brand-primary]="snapToScale()"
+                      class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40 transition-all">
+                Snap
              </button>
          </div>
          <div class="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5">
@@ -59,14 +65,17 @@
                <span class="material-symbols-outlined text-xs" [class.animate-spin]="isAiGenerating()">psychology</span>
                {{ isAiGenerating() ? 'Generating...' : 'AI Pattern' }}
             </button>
-            <button (click)="quantizeNotes()" title="Quantize" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">grid_on</span></button>
-            <button (click)="transposeSelected(12)" title="Octave Up" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">arrow_upward</span></button>
-            <button (click)="transposeSelected(-12)" title="Octave Down" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">arrow_downward</span></button>
-            <button (click)="legatoSelected()" title="Legato" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">linear_scale</span></button>
-            <button (click)="duplicateSelected()" title="Duplicate" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">content_copy</span></button>
-            <button (click)="randomizeVelocity()" title="Randomize Velocity" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">shuffle</span></button>
-            <button (click)="deleteSelected()" title="Delete" class="p-1.5 rounded hover:text-red-500 group"><span class="material-symbols-outlined text-sm">delete</span></button>
-         </div>
+             <button (click)="quantizeNotes()" title="Quantize" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">grid_on</span></button>
+             <button (click)="transposeSelected(12)" title="Octave Up" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">arrow_upward</span></button>
+             <button (click)="transposeSelected(-12)" title="Octave Down" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">arrow_downward</span></button>
+             <button (click)="setSelectedNoteLength(4)" title="Set 1/4 Length" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">horizontal_rule</span></button>
+             <button (click)="legatoSelected()" title="Legato" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">linear_scale</span></button>
+             <button (click)="duplicateSelected()" title="Duplicate" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">content_copy</span></button>
+             <button (click)="duplicateNextBar()" title="Duplicate to Next Bar" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">queue</span></button>
+             <button (click)="humanizeSelected()" title="Humanize" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">gesture</span></button>
+             <button (click)="randomizeVelocity()" title="Randomize Velocity" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">shuffle</span></button>
+             <button (click)="deleteSelected()" title="Delete" class="p-1.5 rounded hover:text-red-500 group"><span class="material-symbols-outlined text-sm">delete</span></button>
+          </div>
       </div>
       <div class="flex items-center gap-4">
          <div class="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-white/10">
@@ -120,6 +129,10 @@
     </div>
 
     <footer *ngIf="showAutomation()" class="h-40 shrink-0 border-t border-brand-primary/20 bg-slate-900/90 backdrop-blur-md flex flex-col overflow-hidden">
+      <div class="px-4 py-2 border-b border-white/5 flex items-center justify-between text-[9px] uppercase tracking-widest font-black text-slate-400">
+        <span>Velocity Lane</span>
+        <span class="text-brand-primary">{{ getHumanizeStatusLabel() }}</span>
+      </div>
       <div class="flex-1 relative flex items-end p-4 gap-px overflow-x-auto no-scrollbar" [style.width.px]="gridWidth">
          <div *ngFor="let cell of cells" class="flex-1 bg-slate-800/30 hover:bg-white/5 transition-colors relative" [style.width.px]="cellWidth">
             <div class="w-full bg-brand-primary/40 group-hover:bg-brand-primary transition-all rounded-t-sm shadow-[0_0_10px_rgba(236,91,19,0.2)]" [style.height.%]="getVelocityAt(cell)"></div>
