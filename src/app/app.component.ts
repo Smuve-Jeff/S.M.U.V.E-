@@ -1,11 +1,4 @@
-import {
-  Component,
-  inject,
-  effect,
-  signal,
-  HostListener,
-  computed,
-} from '@angular/core';
+import { Component, inject, effect, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   RouterLink,
@@ -23,10 +16,11 @@ import { SmuveAdvisorComponent } from './components/smuve-advisor/smuve-advisor.
 import { NotificationService } from './services/notification.service';
 import { MainViewMode } from './services/user-context.service';
 import { AiService } from './services/ai.service';
-import { PlayerService } from './services/player.service';
 import { SettingsIntegrationService } from './services/settings-integration.service';
 import { DatabaseService } from './services/database.service';
 import { AutoSaveService } from './services/auto-save.service';
+import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
+import { CommandPaletteService } from './services/command-palette.service';
 
 @Component({
   selector: 'app-root',
@@ -39,6 +33,7 @@ import { AutoSaveService } from './services/auto-save.service';
     ChatbotComponent,
     NotificationToastComponent,
     SmuveAdvisorComponent,
+    CommandPaletteComponent,
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
@@ -47,11 +42,11 @@ export class AppComponent {
   authService = inject(AuthService);
   uiService = inject(UIService);
   aiService = inject(AiService);
-  playerService = inject(PlayerService);
   notificationService = inject(NotificationService);
   settingsIntegration = inject(SettingsIntegrationService);
   databaseService = inject(DatabaseService);
   autoSaveService = inject(AutoSaveService);
+  commandPalette = inject(CommandPaletteService);
   router = inject(Router);
 
   isSidebarOpen = signal(true);
@@ -79,31 +74,9 @@ export class AppComponent {
     });
   }
 
-  @HostListener('window:keydown', [''])
+  @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
-    if (
-      event.target instanceof HTMLInputElement ||
-      event.target instanceof HTMLTextAreaElement
-    )
-      return;
-
-    const key = event.key.toLowerCase();
-    if (key === ' ') {
-      event.preventDefault();
-      this.playerService.togglePlay();
-    } else if (key === 'a' && event.altKey) {
-      this.aiService.performExecutiveAudit();
-      this.notificationService.show('Manual Audit Triggered', 'info', 2000);
-    } else if (key === 'p' && event.altKey) {
-      this.uiService.togglePerformanceMode();
-      this.notificationService.show(
-        this.uiService.performanceMode()
-          ? 'Performance Mode Active'
-          : 'Performance Mode Disabled',
-        'info',
-        2000
-      );
-    }
+    this.commandPalette.handleGlobalKey(event);
   }
 
   @HostListener('window:resize')

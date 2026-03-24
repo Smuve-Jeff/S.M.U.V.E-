@@ -1,130 +1,242 @@
-<div class="app-shell pro-blend min-h-screen flex flex-col md:flex-row overflow-hidden"
-     [class.dark-mode]="uiService.activeTheme().name === 'Dark'"
-     [class.perf-mode-active]="uiService.performanceMode()"
-     [class.show-scanlines]="uiService.showScanlines()">
-
+<div
+  class="app-shell pro-blend min-h-screen flex flex-col md:flex-row overflow-hidden"
+  [class.dark-mode]="uiService.activeTheme().name === 'Dark'"
+  [class.perf-mode-active]="uiService.performanceMode()"
+  [class.show-scanlines]="uiService.showScanlines()"
+>
   <div class="scanlines"></div>
   <div class="vignette"></div>
 
   <app-notification-toast></app-notification-toast>
   <app-smuve-advisor></app-smuve-advisor>
+  <app-command-palette></app-command-palette>
 
   <!-- SIDEBAR: Executive Control -->
-  <aside *ngIf="!isFullPageMode()"
-         class="sidebar glass-v42 z-50 transition-all duration-500 flex flex-col border-r border-border"
-         [class.w-72]="isSidebarOpen()"
-         [class.w-0]="!isSidebarOpen() && !isMobile()"
-         [class.fixed]="isMobile()"
-         [class.inset-y-0]="isMobile()"
-         [class.left-0]="isMobile()"
-         [class.w-full]="isMobile() && isSidebarOpen()">
-
+  <aside
+    *ngIf="!isFullPageMode()"
+    class="sidebar glass-v42 z-50 transition-all duration-500 flex flex-col border-r border-border"
+    [class.w-72]="isSidebarOpen()"
+    [class.w-0]="!isSidebarOpen() && !isMobile()"
+    [class.fixed]="isMobile()"
+    [class.inset-y-0]="isMobile()"
+    [class.left-0]="isMobile()"
+    [class.w-full]="isMobile() && isSidebarOpen()"
+  >
     <div class="p-8 flex items-center gap-4">
-      <div class="w-12 h-12 rounded-xl bg-brand-primary flex items-center justify-center text-white shadow-v42-md">
+      <div
+        class="w-12 h-12 rounded-xl bg-brand-primary flex items-center justify-center text-white shadow-v42-md"
+      >
         <span class="material-symbols-outlined text-2xl">token</span>
       </div>
-      <div class="flex flex-col overflow-hidden" *ngIf="isSidebarOpen() || isMobile()">
-        <span class="text-xl font-bold tracking-tight text-text-main leading-tight uppercase">S.M.U.V.E<span class="text-brand-primary">4.2</span></span>
-        <span class="text-[9px] font-bold text-text-dim tracking-[0.2em] uppercase">Executive Professional</span>
+      <div
+        class="flex flex-col overflow-hidden"
+        *ngIf="isSidebarOpen() || isMobile()"
+      >
+        <span
+          class="text-xl font-bold tracking-tight text-text-main leading-tight uppercase"
+          >S.M.U.V.E<span class="text-brand-primary">4.2</span></span
+        >
+        <span
+          class="text-[9px] font-bold text-text-dim tracking-[0.2em] uppercase"
+          >Executive Professional</span
+        >
       </div>
     </div>
 
-    <nav class="sidebar-nav px-4 flex-grow overflow-y-auto space-y-1 no-scrollbar">
-       <div class="text-[10px] font-bold text-text-dim uppercase tracking-[0.2em] px-4 py-4 mb-2">Management_Nodes</div>
-       <a *ngFor="let view of uiService.getViewConfigs()"
-          (click)="navigateToView(view.mode)"
-          class="nav-item group flex items-center px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer border border-transparent"
-          [class.bg-brand-primary/10]="uiService.mainViewMode() === view.mode"
-          [class.text-brand-primary]="uiService.mainViewMode() === view.mode"
-          [class.text-text-dim]="uiService.mainViewMode() !== view.mode"
-          [class.hover:bg-background-alt]="uiService.mainViewMode() !== view.mode"
-          [class.hover:text-text-main]="uiService.mainViewMode() !== view.mode">
-         <div class="w-8 flex justify-center">
-            <span class="material-symbols-outlined text-xl transition-transform group-hover:scale-110">{{view.icon}}</span>
-         </div>
-         <span class="ml-4 font-bold text-[12px] uppercase tracking-wide" *ngIf="isSidebarOpen() || isMobile()">{{view.label}}</span>
-       </a>
+    <nav
+      class="sidebar-nav px-4 flex-grow overflow-y-auto space-y-1 no-scrollbar"
+    >
+      <div
+        class="text-[10px] font-bold text-text-dim uppercase tracking-[0.2em] px-4 py-4 mb-2"
+      >
+        Management_Nodes
+      </div>
+      <a
+        *ngFor="let view of uiService.getViewConfigs()"
+        (click)="navigateToView(view.mode)"
+        class="nav-item group flex items-center px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer border border-transparent"
+        [class.bg-brand-primary/10]="uiService.mainViewMode() === view.mode"
+        [class.text-brand-primary]="uiService.mainViewMode() === view.mode"
+        [class.text-text-dim]="uiService.mainViewMode() !== view.mode"
+        [class.hover:bg-background-alt]="uiService.mainViewMode() !== view.mode"
+        [class.hover:text-text-main]="uiService.mainViewMode() !== view.mode"
+      >
+        <div class="w-8 flex justify-center">
+          <span
+            class="material-symbols-outlined text-xl transition-transform group-hover:scale-110"
+            >{{ view.icon }}</span
+          >
+        </div>
+        <span
+          class="ml-4 font-bold text-[12px] uppercase tracking-wide"
+          *ngIf="isSidebarOpen() || isMobile()"
+          >{{ view.label }}</span
+        >
+      </a>
     </nav>
 
     <div class="p-6 border-t border-border bg-background-alt/30">
-       <div class="flex items-center gap-4">
-          <div class="w-10 h-10 rounded-full border border-brand-primary/30 p-0.5 overflow-hidden">
-             <img src="assets/avatar.jpg" class="w-full h-full rounded-full object-cover grayscale hover:grayscale-0 transition-all duration-500">
-          </div>
-          <div class="flex flex-col overflow-hidden" *ngIf="isSidebarOpen() || isMobile()">
-             <span class="text-xs font-bold text-text-main uppercase tracking-tight">Executive Artist</span>
-             <span class="text-[8px] font-medium text-text-dim uppercase tracking-widest">Neural Sync: v4.2</span>
-          </div>
-       </div>
+      <div class="flex items-center gap-4">
+        <div
+          class="w-10 h-10 rounded-full border border-brand-primary/30 p-0.5 overflow-hidden"
+        >
+          <img
+            src="assets/avatar.jpg"
+            class="w-full h-full rounded-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
+          />
+        </div>
+        <div
+          class="flex flex-col overflow-hidden"
+          *ngIf="isSidebarOpen() || isMobile()"
+        >
+          <span
+            class="text-xs font-bold text-text-main uppercase tracking-tight"
+            >Executive Artist</span
+          >
+          <span
+            class="text-[8px] font-medium text-text-dim uppercase tracking-widest"
+            >Neural Sync: v4.2</span
+          >
+        </div>
+      </div>
     </div>
   </aside>
 
   <!-- MAIN AREA -->
   <div class="flex-grow flex flex-col overflow-hidden min-w-0">
     <!-- TOP BAR -->
-    <header *ngIf="!isFullPageMode()" class="app-top-bar glass-v42 px-6 md:px-10 flex items-center justify-between z-40 border-b border-border h-16">
+    <header
+      *ngIf="!isFullPageMode()"
+      class="app-top-bar glass-v42 px-6 md:px-10 flex items-center justify-between z-40 border-b border-border h-16"
+    >
       <div class="flex items-center gap-4">
-        <button (click)="toggleSidebar()" class="w-10 h-10 rounded-lg hover:bg-background-alt text-text-dim hover:text-text-main transition-all flex items-center justify-center group">
-          <span class="material-symbols-outlined text-2xl">{{ isSidebarOpen() ? 'menu_open' : 'menu' }}</span>
+        <button
+          (click)="toggleSidebar()"
+          class="w-10 h-10 rounded-lg hover:bg-background-alt text-text-dim hover:text-text-main transition-all flex items-center justify-center group"
+        >
+          <span class="material-symbols-outlined text-2xl">{{
+            isSidebarOpen() ? 'menu_open' : 'menu'
+          }}</span>
         </button>
         <div class="h-6 w-px bg-border mx-2"></div>
         <div class="flex flex-col">
-            <span class="text-[8px] font-bold text-text-dim uppercase tracking-widest leading-none mb-1">Navigation</span>
-            <h2 class="text-xs font-bold tracking-widest text-text-main uppercase truncate max-w-[120px] md:max-w-none">{{ uiService.mainViewMode() }}</h2>
+          <span
+            class="text-[8px] font-bold text-text-dim uppercase tracking-widest leading-none mb-1"
+            >Navigation</span
+          >
+          <h2
+            class="text-xs font-bold tracking-widest text-text-main uppercase truncate max-w-[120px] md:max-w-none"
+          >
+            {{ uiService.mainViewMode() }}
+          </h2>
         </div>
       </div>
 
       <div class="flex items-center gap-3 md:gap-4">
-         <!-- Status Indicators -->
-         <div class="hidden sm:flex items-center gap-4 bg-background-alt/50 rounded-lg px-4 py-1.5 border border-border">
-            <div class="flex items-center gap-2">
-               <div class="status-dot" [class.status-dot-active]="uiService.isOnline()" [class.bg-red-500]="!uiService.isOnline()"></div>
-               <span class="text-[9px] font-bold tracking-widest uppercase text-text-dim">
-                 {{ uiService.isOnline() ? 'STABLE' : 'OFFLINE' }}
-               </span>
-            </div>
-            <div class="h-4 w-px bg-border"></div>
-            <div class="flex flex-col items-end">
-                <span class="text-[10px] font-mono font-medium text-text-main tracking-tighter">
-                  {{ uiService.performanceMode() ? '0.0ms' : (aiService.systemStatus().latency | number:'1.1-1') + 'ms' }}
-                </span>
-            </div>
-         </div>
+        <!-- Status Indicators -->
+        <div
+          class="hidden sm:flex items-center gap-4 bg-background-alt/50 rounded-lg px-4 py-1.5 border border-border"
+        >
+          <div class="flex items-center gap-2">
+            <div
+              class="status-dot"
+              [class.status-dot-active]="uiService.isOnline()"
+              [class.bg-red-500]="!uiService.isOnline()"
+            ></div>
+            <span
+              class="text-[9px] font-bold tracking-widest uppercase text-text-dim"
+            >
+              {{ uiService.isOnline() ? 'STABLE' : 'OFFLINE' }}
+            </span>
+          </div>
+          <div class="h-4 w-px bg-border"></div>
+          <div class="flex flex-col items-end">
+            <span
+              class="text-[10px] font-mono font-medium text-text-main tracking-tighter"
+            >
+              {{
+                uiService.performanceMode()
+                  ? '0.0ms'
+                  : (aiService.systemStatus().latency | number: '1.1-1') + 'ms'
+              }}
+            </span>
+          </div>
+        </div>
 
-         <button (click)="uiService.togglePerformanceMode()" class="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group" [title]="'Toggle High-Voltage Performance'">
-            <span class="material-symbols-outlined text-2xl">{{ uiService.performanceMode() ? 'speed' : 'bolt' }}</span>
-         </button>
+        <button
+          (click)="uiService.togglePerformanceMode()"
+          class="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group"
+          [title]="'Toggle High-Voltage Performance'"
+        >
+          <span class="material-symbols-outlined text-2xl">{{
+            uiService.performanceMode() ? 'speed' : 'bolt'
+          }}</span>
+        </button>
 
-         <button (click)="toggleChatbot()" class="relative group">
-            <div class="w-10 h-10 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all">
-               <span class="material-symbols-outlined text-2xl">neurology</span>
-            </div>
-            <div *ngIf="uiService.isChatbotOpen()" class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-surface animate-pulse"></div>
-         </button>
+        <button
+          (click)="commandPalette.togglePalette()"
+          class="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group"
+          [title]="'Open Command Palette (Ctrl + K)'"
+        >
+          <span class="material-symbols-outlined text-2xl">search</span>
+        </button>
 
-         <div class="h-6 w-px bg-border mx-2 hidden md:block"></div>
+        <button (click)="toggleChatbot()" class="relative group">
+          <div
+            class="w-10 h-10 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all"
+          >
+            <span class="material-symbols-outlined text-2xl">neurology</span>
+          </div>
+          <div
+            *ngIf="uiService.isChatbotOpen()"
+            class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-surface animate-pulse"
+          ></div>
+        </button>
 
-         <button *ngIf="!authService.isAuthenticated()" routerLink="/login" class="btn-pro btn-pro-primary h-10 px-6">LOGIN</button>
-         <button *ngIf="authService.isAuthenticated()" (click)="authService.logout()" class="w-10 h-10 rounded-lg border border-red-500/20 flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all">
-            <span class="material-symbols-outlined">power_settings_new</span>
-         </button>
+        <div class="h-6 w-px bg-border mx-2 hidden md:block"></div>
+
+        <button
+          *ngIf="!authService.isAuthenticated()"
+          routerLink="/login"
+          class="btn-pro btn-pro-primary h-10 px-6"
+        >
+          LOGIN
+        </button>
+        <button
+          *ngIf="authService.isAuthenticated()"
+          (click)="authService.logout()"
+          class="w-10 h-10 rounded-lg border border-red-500/20 flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all"
+        >
+          <span class="material-symbols-outlined">power_settings_new</span>
+        </button>
       </div>
     </header>
 
     <!-- CONTENT -->
-    <main class="app-content relative overflow-hidden flex-grow" [class.full-page]="isFullPageMode()">
-      <div class="content-scroll-container relative z-10 p-0 overflow-y-auto no-scrollbar h-full">
-         <router-outlet></router-outlet>
+    <main
+      class="app-content relative overflow-hidden flex-grow"
+      [class.full-page]="isFullPageMode()"
+    >
+      <div
+        class="content-scroll-container relative z-10 p-0 overflow-y-auto no-scrollbar h-full"
+      >
+        <router-outlet></router-outlet>
       </div>
 
       <!-- AI SIDEBAR -->
-      <aside *ngIf="uiService.isChatbotOpen()" class="ai-drawer glass-v42 border-l border-border transition-all duration-500 z-40 fixed top-0 right-0 h-full w-full md:w-96">
+      <aside
+        *ngIf="uiService.isChatbotOpen()"
+        class="ai-drawer glass-v42 border-l border-border transition-all duration-500 z-40 fixed top-0 right-0 h-full w-full md:w-96"
+      >
         <app-chatbot (close)="uiService.toggleChatbot()"></app-chatbot>
       </aside>
     </main>
 
     <!-- FOOTER: Simplified v4.2 -->
-    <footer *ngIf="!isFullPageMode()" class="h-8 glass-v42 border-t border-border flex items-center justify-center px-10">
+    <footer
+      *ngIf="!isFullPageMode()"
+      class="h-8 glass-v42 border-t border-border flex items-center justify-center px-10"
+    >
       <span class="text-[9px] uppercase elegant-footer-text cursor-default">
         ©️ Smuve Jeff Presents
       </span>
@@ -132,20 +244,43 @@
   </div>
 
   <!-- MOBILE BOTTOM NAV -->
-  <nav *ngIf="!isFullPageMode() && isMobile()" class="mobile-nav-bar border-t border-border glass-v42 h-16 flex items-center justify-around px-4 z-50">
-    <button (click)="navigateToView('hub')" class="flex flex-col items-center gap-1 group" [class.text-brand-primary]="uiService.mainViewMode() === 'hub'" [class.text-text-dim]="uiService.mainViewMode() !== 'hub'">
+  <nav
+    *ngIf="!isFullPageMode() && isMobile()"
+    class="mobile-nav-bar border-t border-border glass-v42 h-16 flex items-center justify-around px-4 z-50"
+  >
+    <button
+      (click)="navigateToView('hub')"
+      class="flex flex-col items-center gap-1 group"
+      [class.text-brand-primary]="uiService.mainViewMode() === 'hub'"
+      [class.text-text-dim]="uiService.mainViewMode() !== 'hub'"
+    >
       <span class="material-symbols-outlined text-xl">grid_view</span>
       <span class="text-[8px] font-bold uppercase">Hub</span>
     </button>
-    <button (click)="navigateToView('studio')" class="flex flex-col items-center gap-1 group" [class.text-brand-primary]="uiService.mainViewMode() === 'studio'" [class.text-text-dim]="uiService.mainViewMode() !== 'studio'">
+    <button
+      (click)="navigateToView('studio')"
+      class="flex flex-col items-center gap-1 group"
+      [class.text-brand-primary]="uiService.mainViewMode() === 'studio'"
+      [class.text-text-dim]="uiService.mainViewMode() !== 'studio'"
+    >
       <span class="material-symbols-outlined text-xl">token</span>
       <span class="text-[8px] font-bold uppercase">Studio</span>
     </button>
-    <button (click)="navigateToView('strategy')" class="flex flex-col items-center gap-1 group" [class.text-brand-primary]="uiService.mainViewMode() === 'strategy'" [class.text-text-dim]="uiService.mainViewMode() !== 'strategy'">
+    <button
+      (click)="navigateToView('strategy')"
+      class="flex flex-col items-center gap-1 group"
+      [class.text-brand-primary]="uiService.mainViewMode() === 'strategy'"
+      [class.text-text-dim]="uiService.mainViewMode() !== 'strategy'"
+    >
       <span class="material-symbols-outlined text-xl">neurology</span>
       <span class="text-[8px] font-bold uppercase">Intel</span>
     </button>
-    <button (click)="navigateToView('profile')" class="flex flex-col items-center gap-1 group" [class.text-brand-primary]="uiService.mainViewMode() === 'profile'" [class.text-text-dim]="uiService.mainViewMode() !== 'profile'">
+    <button
+      (click)="navigateToView('profile')"
+      class="flex flex-col items-center gap-1 group"
+      [class.text-brand-primary]="uiService.mainViewMode() === 'profile'"
+      [class.text-text-dim]="uiService.mainViewMode() !== 'profile'"
+    >
       <span class="material-symbols-outlined text-xl">person</span>
       <span class="text-[8px] font-bold uppercase">Profile</span>
     </button>

@@ -26,6 +26,11 @@ Your "Strategic Music Utility Virtual Enhancer" persona: an omniscient, arrogant
 - **Style Mimicry:** Shifting persona and studio settings to mimic the production secrets of legendary artists.
 - **Strategic Recommendations:** Issues tailored "decrees" for career optimization based on your Artist Profile and Knowledge Base.
 
+### ⚡ Interactive Command Layer
+
+- **Command Palette:** Press `Ctrl + K` (or `⌘ + K`) for rapid navigation and system actions.
+- **Interaction Guide:** Tap `?` for contextual controls and feature tips within the active view.
+
 ### 🎮 Tha Spot & High-Energy Hub
 
 A high-energy dashboard with an aggressive design system (glitch effects, skewed containers) for total industry immersion.

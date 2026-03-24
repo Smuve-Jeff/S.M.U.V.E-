@@ -131,6 +131,11 @@ export class UIService {
     this.updateSetting('theme', nextTheme);
   }
 
+  toggleScanlines() {
+    const nextValue = !this.showScanlines();
+    this.updateSetting('showScanlines', nextValue);
+  }
+
   private updateSetting(key: string, value: any) {
     const currentProfile = this.profileService.profile();
     if (!currentProfile) return;
