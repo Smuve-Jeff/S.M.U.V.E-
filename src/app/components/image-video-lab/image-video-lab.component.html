@@ -1,89 +1,241 @@
 <div class="h-full flex flex-col bg-background animate-enter overflow-hidden">
   <!-- CINEMA HEADER: Fluid & Adaptive -->
-  <header class="p-4 md:p-8 pb-4 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border bg-surface/40 backdrop-blur-md">
+  <header
+    class="p-4 md:p-8 pb-4 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border bg-surface/40 backdrop-blur-md"
+  >
     <div class="flex flex-col">
-       <div class="flex items-center gap-2 mb-1 md:mb-2">
-          <div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div>
-          <span class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest">Visual Production Suite</span>
-       </div>
-       <h1 class="text-2xl md:text-4xl font-black tracking-tighter text-text-main uppercase italic leading-none">CINEMA<span class="text-brand-primary">ENGINE</span></h1>
-       <p class="text-[10px] md:text-xs text-text-dim mt-1 md:mt-2 font-medium">Professional multi-track video orchestration & neural visual synthesis.</p>
+      <div class="flex items-center gap-2 mb-1 md:mb-2">
+        <div
+          class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"
+        ></div>
+        <span
+          class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+          >Visual Production Suite</span
+        >
+      </div>
+      <h1
+        class="text-2xl md:text-4xl font-black tracking-tighter text-text-main uppercase italic leading-none"
+      >
+        CINEMA<span class="text-brand-primary">ENGINE</span>
+      </h1>
+      <p class="text-[10px] md:text-xs text-text-dim mt-1 md:mt-2 font-medium">
+        Professional multi-track video orchestration & neural visual synthesis.
+      </p>
     </div>
 
     <div class="flex items-center gap-3">
-       <button (click)="videoEngine.togglePlay()"
-                  class="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg border border-border"
-                  [class.bg-brand-primary]="videoEngine.isPlaying()"
-                  [class.text-white]="videoEngine.isPlaying()"
-                  [class.bg-surface]="!videoEngine.isPlaying()"
-                  [class.text-brand-primary]="!videoEngine.isPlaying()">
-             <span class="material-symbols-outlined text-xl">{{ videoEngine.isPlaying() ? 'pause' : 'play_arrow' }}</span>
-       </button>
-       <button (click)="exportVideo()" [disabled]="isExporting()" class="btn-pro btn-pro-primary text-[9px] md:text-[10px] font-black tracking-widest px-4 md:px-8 h-10 md:h-12 flex-grow md:flex-grow-0">
-          {{ isExporting() ? "RENDERING..." : "EXPORT VIDEO" }}
-       </button>
+      <button
+        (click)="videoEngine.togglePlay()"
+        class="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg border border-border"
+        [class.bg-brand-primary]="videoEngine.isPlaying()"
+        [class.text-white]="videoEngine.isPlaying()"
+        [class.bg-surface]="!videoEngine.isPlaying()"
+        [class.text-brand-primary]="!videoEngine.isPlaying()"
+      >
+        <span class="material-symbols-outlined text-xl">{{
+          videoEngine.isPlaying() ? 'pause' : 'play_arrow'
+        }}</span>
+      </button>
+      <button
+        (click)="exportVideo()"
+        [disabled]="isExporting()"
+        class="btn-pro btn-pro-primary text-[9px] md:text-[10px] font-black tracking-widest px-4 md:px-8 h-10 md:h-12 flex-grow md:flex-grow-0"
+      >
+        {{ isExporting() ? 'RENDERING...' : 'EXPORT VIDEO' }}
+      </button>
     </div>
   </header>
 
+  <section class="production-upgrade-bar">
+    <div class="production-upgrade-copy">
+      <span class="upgrade-eyebrow">Production Upgrade</span>
+      <h2 class="upgrade-title">
+        One visual suite for films, live social broadcasts, and creator vlogs
+      </h2>
+      <p class="upgrade-description">
+        {{ productionBlueprint().summary }}
+      </p>
+    </div>
+
+    <div class="production-mode-grid">
+      @for (mode of productionModes; track mode.id) {
+        <button
+          class="production-mode-card"
+          [class.active]="videoEngine.productionMode() === mode.id"
+          (click)="selectProductionMode(mode.id)"
+        >
+          <span class="production-mode-label">{{ mode.label }}</span>
+          <span class="production-mode-description">{{
+            mode.description
+          }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="production-blueprint-grid">
+      <div class="blueprint-stat">
+        <span class="blueprint-label">Runtime</span>
+        <span class="blueprint-value">{{
+          productionBlueprint().runtimeLabel
+        }}</span>
+      </div>
+      <div class="blueprint-stat">
+        <span class="blueprint-label">Delivery</span>
+        <span class="blueprint-value">{{
+          productionBlueprint().targetLabel
+        }}</span>
+      </div>
+      <div class="blueprint-stat">
+        <span class="blueprint-label">Format</span>
+        <span class="blueprint-value">{{
+          productionBlueprint().formatLabel
+        }}</span>
+      </div>
+      <div class="blueprint-stat">
+        <span class="blueprint-label">Timeline</span>
+        <span class="blueprint-value">{{
+          productionBlueprint().laneLabel
+        }}</span>
+      </div>
+    </div>
+
+    <div class="delivery-preset-row">
+      @for (
+        preset of getPresetsForMode(videoEngine.productionMode());
+        track preset.id
+      ) {
+        <button
+          class="delivery-preset-card"
+          [class.active]="activePreset().id === preset.id"
+          (click)="selectDeliveryPreset(preset.id)"
+        >
+          <span class="delivery-preset-name">{{ preset.name }}</span>
+          <span class="delivery-preset-meta"
+            >{{ preset.aspectRatio }} · {{ preset.width }}×{{
+              preset.height
+            }}</span
+          >
+          <span class="delivery-preset-copy">{{ preset.description }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
   <div class="flex-grow flex flex-col lg:flex-row overflow-hidden">
-
     <!-- MAIN WORKSPACE -->
-    <div class="flex-grow flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-border overflow-hidden">
-
+    <div
+      class="flex-grow flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-border overflow-hidden"
+    >
       <!-- PREVIEW WINDOW -->
-      <section class="flex-grow p-4 md:p-8 flex items-center justify-center bg-black/5 relative group min-h-[300px]">
-        <div class="w-full max-w-4xl aspect-video glass-v42 rounded-2xl md:rounded-3xl border border-border relative overflow-hidden shadow-2xl bg-black">
-           <canvas #previewCanvas class="w-full h-full object-contain"></canvas>
+      <section
+        class="flex-grow p-4 md:p-8 flex items-center justify-center bg-black/5 relative group min-h-[300px]"
+      >
+        <div
+          class="w-full max-w-4xl aspect-video glass-v42 rounded-2xl md:rounded-3xl border border-border relative overflow-hidden shadow-2xl bg-black"
+        >
+          <canvas #previewCanvas class="w-full h-full object-contain"></canvas>
 
-           <!-- HUD OVERLAY -->
-           <div class="absolute top-4 left-4 md:top-6 md:left-6 flex items-center gap-2 md:gap-3">
-              <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse" *ngIf="videoEngine.isPlaying()"></div>
-              <span class="text-[8px] md:text-[9px] font-black text-white/50 uppercase tracking-widest">{{ videoEngine.isPlaying() ? 'Live Stream' : 'Standby' }}</span>
-           </div>
+          <!-- HUD OVERLAY -->
+          <div
+            class="absolute top-4 left-4 md:top-6 md:left-6 flex items-center gap-2 md:gap-3"
+          >
+            <div
+              class="w-2 h-2 rounded-full bg-red-500 animate-pulse"
+              *ngIf="videoEngine.isPlaying()"
+            ></div>
+            <span
+              class="text-[8px] md:text-[9px] font-black text-white/50 uppercase tracking-widest"
+              >{{ videoEngine.isPlaying() ? 'Live Stream' : 'Standby' }}</span
+            >
+          </div>
 
-           <div class="absolute bottom-4 right-4 md:bottom-6 md:right-6 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-lg border border-white/10 text-[9px] md:text-[10px] font-mono tracking-tight text-white/80">
-              {{ videoEngine.currentTime() | number:'1.2-2' }}s / 60.00s
-           </div>
+          <div
+            class="absolute bottom-4 right-4 md:bottom-6 md:right-6 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-lg border border-white/10 text-[9px] md:text-[10px] font-mono tracking-tight text-white/80"
+          >
+            {{ videoEngine.currentTime() | number: '1.2-2' }}s /
+            {{ videoEngine.duration() | number: '1.2-2' }}s
+          </div>
         </div>
       </section>
 
       <!-- TIMELINE EDITOR: Responsive Height -->
-      <section class="h-48 md:h-64 lg:h-80 bg-surface/50 p-4 md:p-6 flex flex-col gap-4 border-t border-border overflow-hidden">
+      <section
+        class="h-48 md:h-64 lg:h-80 bg-surface/50 p-4 md:p-6 flex flex-col gap-4 border-t border-border overflow-hidden"
+      >
         <div class="flex items-center justify-between">
-           <div class="flex items-center gap-4 md:gap-6">
-              <h3 class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest">Master Timeline</h3>
-              <div class="flex items-center gap-2">
-                 <button (click)="zoomLevel.update(v => v * 0.9)" class="w-6 h-6 rounded border border-border flex items-center justify-center text-[10px] hover:bg-surface transition-all"><span class="material-symbols-outlined text-xs">remove</span></button>
-                 <span class="text-[9px] md:text-[10px] font-mono text-text-dim">{{ (zoomLevel() * 100) | number:'1.0-0' }}%</span>
-                 <button (click)="zoomLevel.update(v => v * 1.1)" class="w-6 h-6 rounded border border-border flex items-center justify-center text-[10px] hover:bg-surface transition-all"><span class="material-symbols-outlined text-xs">add</span></button>
-              </div>
-           </div>
-           <div class="hidden sm:block text-[8px] md:text-[9px] font-bold text-brand-primary uppercase">Neural Sync Active</div>
+          <div class="flex items-center gap-4 md:gap-6">
+            <h3
+              class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >
+              Master Timeline
+            </h3>
+            <div class="flex items-center gap-2">
+              <button
+                (click)="zoomLevel.update(v => v * 0.9)"
+                class="w-6 h-6 rounded border border-border flex items-center justify-center text-[10px] hover:bg-surface transition-all"
+              >
+                <span class="material-symbols-outlined text-xs">remove</span>
+              </button>
+              <span class="text-[9px] md:text-[10px] font-mono text-text-dim"
+                >{{ zoomLevel() * 100 | number: '1.0-0' }}%</span
+              >
+              <button
+                (click)="zoomLevel.update(v => v * 1.1)"
+                class="w-6 h-6 rounded border border-border flex items-center justify-center text-[10px] hover:bg-surface transition-all"
+              >
+                <span class="material-symbols-outlined text-xs">add</span>
+              </button>
+            </div>
+          </div>
+          <div
+            class="hidden sm:block text-[8px] md:text-[9px] font-bold text-brand-primary uppercase"
+          >
+            Neural Sync Active
+          </div>
         </div>
 
         <div class="flex-grow overflow-x-auto custom-scrollbar relative">
-          <div class="flex flex-col gap-2 md:gap-3 min-w-full" [style.width.px]="600 * zoomLevel()">
+          <div
+            class="flex flex-col gap-2 md:gap-3 min-w-full"
+            [style.width.px]="600 * zoomLevel()"
+          >
             @for (track of videoEngine.tracks(); track track.id) {
-               <div class="h-10 md:h-12 bg-background/50 rounded-lg border border-border relative">
-                  <!-- Track Label: Sticky Left -->
-                  <div class="absolute left-0 top-0 bottom-0 w-20 md:w-24 bg-surface/90 backdrop-blur-sm flex items-center px-2 md:px-3 border-r border-border z-20">
-                     <span class="text-[7px] md:text-[8px] font-black text-text-dim uppercase truncate">{{ track.name }}</span>
-                  </div>
+              <div
+                class="h-10 md:h-12 bg-background/50 rounded-lg border border-border relative"
+              >
+                <!-- Track Label: Sticky Left -->
+                <div
+                  class="absolute left-0 top-0 bottom-0 w-20 md:w-24 bg-surface/90 backdrop-blur-sm flex items-center px-2 md:px-3 border-r border-border z-20"
+                >
+                  <span
+                    class="text-[7px] md:text-[8px] font-black text-text-dim uppercase truncate"
+                    >{{ track.name }}</span
+                  >
+                </div>
 
-                  @for (clip of track.clips; track clip.id) {
-                     <div class="absolute h-6 md:h-8 top-1 md:top-2 rounded-md border border-brand-primary/30 bg-brand-primary/10 flex items-center px-2 cursor-pointer hover:bg-brand-primary/20 transition-all z-10"
-                          [style.left.px]="clip.startTime * 10 * zoomLevel()"
-                          [style.width.px]="clip.duration * 10 * zoomLevel()">
-                        <span class="text-[8px] md:text-[9px] font-bold text-text-main truncate">{{ clip.name }}</span>
-                     </div>
-                  }
-               </div>
+                @for (clip of track.clips; track clip.id) {
+                  <div
+                    class="absolute h-6 md:h-8 top-1 md:top-2 rounded-md border border-brand-primary/30 bg-brand-primary/10 flex items-center px-2 cursor-pointer hover:bg-brand-primary/20 transition-all z-10"
+                    [style.left.px]="clip.startTime * 10 * zoomLevel()"
+                    [style.width.px]="clip.duration * 10 * zoomLevel()"
+                  >
+                    <span
+                      class="text-[8px] md:text-[9px] font-bold text-text-main truncate"
+                      >{{ clip.name }}</span
+                    >
+                  </div>
+                }
+              </div>
             }
 
             <!-- Playhead -->
-            <div class="absolute top-0 bottom-0 w-px bg-red-500 z-30 pointer-events-none"
-                 [style.left.px]="videoEngine.currentTime() * 10 * zoomLevel()">
-               <div class="w-1.5 h-1.5 bg-red-500 rounded-full -ml-0.75 -mt-0.75"></div>
+            <div
+              class="absolute top-0 bottom-0 w-px bg-red-500 z-30 pointer-events-none"
+              [style.left.px]="videoEngine.currentTime() * 10 * zoomLevel()"
+            >
+              <div
+                class="w-1.5 h-1.5 bg-red-500 rounded-full -ml-0.75 -mt-0.75"
+              ></div>
             </div>
           </div>
         </div>
@@ -91,56 +243,134 @@
     </div>
 
     <!-- SIDEBAR: AI DIRECTOR -->
-    <aside class="w-full lg:w-80 bg-surface/30 p-6 md:p-8 flex flex-col gap-6 md:gap-8 overflow-y-auto custom-scrollbar shrink-0">
-       <div class="flex flex-col gap-4 md:gap-6">
-          <h2 class="text-md md:text-lg font-black text-text-main uppercase tracking-tight">AI Strategic Director</h2>
+    <aside
+      class="w-full lg:w-80 bg-surface/30 p-6 md:p-8 flex flex-col gap-6 md:gap-8 overflow-y-auto custom-scrollbar shrink-0"
+    >
+      <div class="flex flex-col gap-4 md:gap-6">
+        <h2
+          class="text-md md:text-lg font-black text-text-main uppercase tracking-tight"
+        >
+          AI Strategic Director
+        </h2>
 
-          <div class="p-4 rounded-xl bg-brand-primary/5 border border-brand-primary/10 border-l-4 border-l-brand-primary italic">
-             <p class="text-[9px] md:text-[10px] text-text-main leading-relaxed uppercase font-bold">
-                "Visual flow optimization recommended. Aligning saturation with current strategic brand identity."
-             </p>
+        <div
+          class="p-4 rounded-xl bg-brand-primary/5 border border-brand-primary/10 border-l-4 border-l-brand-primary italic"
+        >
+          <p
+            class="text-[9px] md:text-[10px] text-text-main leading-relaxed uppercase font-bold"
+          >
+            "{{ aiFeedback() }}"
+          </p>
+        </div>
+
+        <div class="production-directives-panel">
+          <div class="panel-head">
+            <h3
+              class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >
+              Mode Directives
+            </h3>
+            <button
+              type="button"
+              class="safe-zone-toggle"
+              (click)="videoEngine.safeZoneEnabled.update(value => !value)"
+            >
+              {{
+                videoEngine.safeZoneEnabled() ? 'Safe Zone On' : 'Safe Zone Off'
+              }}
+            </button>
           </div>
 
-          <div class="space-y-4">
-             <h3 class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest">Neural Assets</h3>
-             <div class="grid grid-cols-2 gap-3">
-                <button (click)="generateImage()" class="h-20 md:h-24 rounded-xl bg-surface border border-border hover:border-brand-primary/40 transition-all flex flex-col items-center justify-center gap-2 group">
-                   <span class="material-symbols-outlined text-brand-primary group-hover:scale-110 transition-transform">auto_fix</span>
-                   <span class="text-[8px] font-black uppercase text-text-dim">Synthesize</span>
-                </button>
-                <div class="h-20 md:h-24 rounded-xl bg-surface border border-border border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer relative">
-                   <input type="file"  (change)="onFileUpload($event)" class="absolute inset-0 opacity-0 cursor-pointer">
-                   <span class="material-symbols-outlined text-text-dim">cloud_upload</span>
-                   <span class="text-[8px] font-black uppercase text-text-dim">Ingest</span>
-                </div>
-             </div>
+          <div class="production-directives-list">
+            @for (directive of productionDirectives(); track directive.title) {
+              <div class="production-directive-row">
+                <p class="production-directive-title">{{ directive.title }}</p>
+                <p class="production-directive-detail">
+                  {{ directive.detail }}
+                </p>
+              </div>
+            }
           </div>
+        </div>
 
-          <div class="space-y-4">
-             <h3 class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest">FX Matrix</h3>
-             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
-                @for (fx of ['Upscale 4K', 'Background Purge', 'Grain Texture']; track fx) {
-                   <label class="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border cursor-pointer group hover:border-brand-primary/20">
-                      <span class="text-[9px] md:text-[10px] font-bold text-text-main uppercase">{{ fx }}</span>
-                      <input type="checkbox" class="w-4 h-4 accent-brand-primary">
-                   </label>
-                }
-             </div>
+        <div class="space-y-4">
+          <h3
+            class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+          >
+            Neural Assets
+          </h3>
+          <div class="grid grid-cols-2 gap-3">
+            <button
+              (click)="generateImage()"
+              class="h-20 md:h-24 rounded-xl bg-surface border border-border hover:border-brand-primary/40 transition-all flex flex-col items-center justify-center gap-2 group"
+            >
+              <span
+                class="material-symbols-outlined text-brand-primary group-hover:scale-110 transition-transform"
+                >auto_fix</span
+              >
+              <span class="text-[8px] font-black uppercase text-text-dim"
+                >Synthesize</span
+              >
+            </button>
+            <div
+              class="h-20 md:h-24 rounded-xl bg-surface border border-border border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer relative"
+            >
+              <input
+                type="file"
+                (change)="onFileUpload($event)"
+                class="absolute inset-0 opacity-0 cursor-pointer"
+              />
+              <span class="material-symbols-outlined text-text-dim"
+                >cloud_upload</span
+              >
+              <span class="text-[8px] font-black uppercase text-text-dim"
+                >Ingest</span
+              >
+            </div>
           </div>
-       </div>
+        </div>
 
-       <div class="mt-auto pt-6 border-t border-border space-y-4">
-          <div class="p-4 rounded-xl bg-surface border border-border">
-             <div class="flex justify-between text-[9px] font-black uppercase mb-2">
-                <span class="text-text-dim">Render Progress</span>
-                <span class="text-brand-primary">64%</span>
-             </div>
-             <div class="w-full h-1 bg-border rounded-full overflow-hidden">
-                <div class="h-full bg-brand-primary transition-all duration-500" [style.width.%]="64"></div>
-             </div>
+        <div class="space-y-4">
+          <h3
+            class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+          >
+            FX Matrix
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
+            @for (
+              fx of ['Upscale 4K', 'Background Purge', 'Grain Texture'];
+              track fx
+            ) {
+              <label
+                class="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border cursor-pointer group hover:border-brand-primary/20"
+              >
+                <span
+                  class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+                  >{{ fx }}</span
+                >
+                <input type="checkbox" class="w-4 h-4 accent-brand-primary" />
+              </label>
+            }
           </div>
-       </div>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-6 border-t border-border space-y-4">
+        <div class="p-4 rounded-xl bg-surface border border-border">
+          <div
+            class="flex justify-between text-[9px] font-black uppercase mb-2"
+          >
+            <span class="text-text-dim">Render Progress</span>
+            <span class="text-brand-primary">64%</span>
+          </div>
+          <div class="w-full h-1 bg-border rounded-full overflow-hidden">
+            <div
+              class="h-full bg-brand-primary transition-all duration-500"
+              [style.width.%]="64"
+            ></div>
+          </div>
+        </div>
+      </div>
     </aside>
-
   </div>
 </div>

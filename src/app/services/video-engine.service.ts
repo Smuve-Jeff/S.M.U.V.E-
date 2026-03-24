@@ -1,6 +1,20 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 
+export type ProductionMode = 'movie' | 'stream' | 'vlog';
+
+export interface DeliveryPreset {
+  id: string;
+  mode: ProductionMode;
+  name: string;
+  aspectRatio: string;
+  width: number;
+  height: number;
+  duration: number;
+  target: string;
+  description: string;
+}
+
 export interface VideoClip {
   id: string;
   name: string;
@@ -28,6 +42,81 @@ export interface VideoTrack {
   locked: boolean;
 }
 
+const DELIVERY_PRESETS: DeliveryPreset[] = [
+  {
+    id: 'movie-cinema-4k',
+    mode: 'movie',
+    name: 'CinemaScope 4K',
+    aspectRatio: '2.39:1',
+    width: 4096,
+    height: 1716,
+    duration: 7200,
+    target: 'Full-Length Film',
+    description:
+      'Built for long-form scenes, theatrical pacing, and soundtrack-driven storytelling.',
+  },
+  {
+    id: 'movie-festival-master',
+    mode: 'movie',
+    name: 'Festival Master',
+    aspectRatio: '16:9',
+    width: 3840,
+    height: 2160,
+    duration: 5400,
+    target: 'Screening / OTT',
+    description:
+      'Balanced for festival submissions, streaming platforms, and polished final masters.',
+  },
+  {
+    id: 'stream-live-landscape',
+    mode: 'stream',
+    name: 'Live Stream Landscape',
+    aspectRatio: '16:9',
+    width: 1920,
+    height: 1080,
+    duration: 14400,
+    target: 'YouTube / Twitch / Stage Broadcast',
+    description:
+      'Optimized for long broadcasts, overlays, chat-safe composition, and live switching.',
+  },
+  {
+    id: 'stream-vertical-social',
+    mode: 'stream',
+    name: 'Vertical Social Live',
+    aspectRatio: '9:16',
+    width: 1080,
+    height: 1920,
+    duration: 3600,
+    target: 'TikTok / IG Live / Shorts',
+    description:
+      'Vertical-first framing for social streaming, cutdowns, and high-retention audience capture.',
+  },
+  {
+    id: 'vlog-daily-drop',
+    mode: 'vlog',
+    name: 'Daily Drop Vlog',
+    aspectRatio: '16:9',
+    width: 1920,
+    height: 1080,
+    duration: 1800,
+    target: 'YouTube / Creator Feed',
+    description:
+      'Fast-turn vlog preset for behind-the-scenes storytelling, talking head segments, and b-roll.',
+  },
+  {
+    id: 'vlog-mobile-story',
+    mode: 'vlog',
+    name: 'Mobile Story Cut',
+    aspectRatio: '9:16',
+    width: 1080,
+    height: 1920,
+    duration: 900,
+    target: 'Reels / Stories / Clips',
+    description:
+      'Tuned for quick vertical edits, teaser cuts, and mobile-native updates.',
+  },
+];
+
 @Injectable({
   providedIn: 'root',
 })
@@ -35,8 +124,11 @@ export class VideoEngineService {
   private audioEngine = inject(AudioEngineService);
 
   currentTime = signal(0);
-  duration = signal(3600); // Default 1 hour for "full length"
+  duration = signal(7200);
   isPlaying = signal(false);
+  productionMode = signal<ProductionMode>('movie');
+  deliveryPreset = signal<DeliveryPreset>(DELIVERY_PRESETS[0]);
+  safeZoneEnabled = signal(true);
 
   tracks = signal<VideoTrack[]>([
     {
@@ -75,6 +167,10 @@ export class VideoEngineService {
 
   private animationFrameId: number | null = null;
   private lastUpdateTime = 0;
+
+  availablePresets = computed(() =>
+    DELIVERY_PRESETS.filter((preset) => preset.mode === this.productionMode())
+  );
 
   constructor() {}
 
@@ -169,5 +265,31 @@ export class VideoEngineService {
       });
     });
     return active;
+  }
+
+  getAllDeliveryPresets(): DeliveryPreset[] {
+    return [...DELIVERY_PRESETS];
+  }
+
+  setProductionMode(mode: ProductionMode) {
+    this.productionMode.set(mode);
+    const nextPreset =
+      DELIVERY_PRESETS.find((preset) => preset.mode === mode) ||
+      DELIVERY_PRESETS[0];
+    this.applyDeliveryPreset(nextPreset.id);
+  }
+
+  applyDeliveryPreset(presetId: string) {
+    const preset =
+      DELIVERY_PRESETS.find((candidate) => candidate.id === presetId) ||
+      DELIVERY_PRESETS[0];
+
+    this.deliveryPreset.set(preset);
+    this.productionMode.set(preset.mode);
+    this.duration.set(preset.duration);
+
+    if (this.currentTime() > preset.duration) {
+      this.seek(0);
+    }
   }
 }
