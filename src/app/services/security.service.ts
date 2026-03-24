@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { UserProfileService } from './user-profile.service';
 import { LoggingService } from './logging.service';
@@ -28,12 +28,16 @@ export interface UserSession {
 })
 export class SecurityService {
   private http = inject(HttpClient);
-  private profileService = inject(UserProfileService);
+  private injector = inject(Injector);
   private logger = inject(LoggingService);
   private readonly API_URL = 'http://localhost:3000/api';
 
   logs = signal<SecurityLog[]>([]);
   sessions = signal<UserSession[]>([]);
+
+  private get profileService() {
+    return this.injector.get(UserProfileService);
+  }
 
   async logEvent(eventType: string, description: string) {
     const profile = this.profileService.profile();
