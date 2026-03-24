@@ -330,12 +330,13 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   humanizeSelected() {
     const track = this.selectedTrack();
     if (!track) return;
+    const stepNudge = Math.max(1, Math.round(this.selectedSnap()));
     track.notes.forEach((n) => {
       if (
         this.selectedNoteIds().size === 0 ||
         this.selectedNoteIds().has(n.id)
       ) {
-        const stepOffset = Math.random() > 0.5 ? 1 : -1;
+        const stepOffset = Math.random() > 0.5 ? stepNudge : -stepNudge;
         this.musicManager.updateNote(track.id, n.id, {
           step: this.snapStep(
             this.clamp(n.step + stepOffset, 0, this.cells.length - 1)
@@ -397,6 +398,10 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
 
   goStandalone() {
     this.router.navigate(['/piano-roll']);
+  }
+
+  getHumanizeStatusLabel(): string {
+    return this.selectedTrack() ? 'Humanization Ready' : 'No Track Selected';
   }
 
   setEditMode(mode: 'draw' | 'select' | 'brush' | 'chord') {

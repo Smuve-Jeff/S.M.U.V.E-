@@ -131,7 +131,7 @@
     <footer *ngIf="showAutomation()" class="h-40 shrink-0 border-t border-brand-primary/20 bg-slate-900/90 backdrop-blur-md flex flex-col overflow-hidden">
       <div class="px-4 py-2 border-b border-white/5 flex items-center justify-between text-[9px] uppercase tracking-widest font-black text-slate-400">
         <span>Velocity Lane</span>
-        <span class="text-brand-primary">Dynamic Humanization Ready</span>
+        <span class="text-brand-primary">{{ getHumanizeStatusLabel() }}</span>
       </div>
       <div class="flex-1 relative flex items-end p-4 gap-px overflow-x-auto no-scrollbar" [style.width.px]="gridWidth">
          <div *ngFor="let cell of cells" class="flex-1 bg-slate-800/30 hover:bg-white/5 transition-colors relative" [style.width.px]="cellWidth">
