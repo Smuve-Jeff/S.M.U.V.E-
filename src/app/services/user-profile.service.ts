@@ -45,6 +45,21 @@ export interface UserProfile {
   proName?: string;
   proIpi?: string;
   catalog: CatalogItem[];
+
+  // Gameplay progression
+  xp?: number;
+  level?: number;
+  achievements?: { id: string; title: string; unlockedAt: number }[];
+  gameStats?: Record<
+    string,
+    {
+      bestScore?: number;
+      lastScore?: number;
+      plays?: number;
+      lastPlayedAt?: number;
+    }
+  >;
+
   [key: string]: any;
 }
 
@@ -74,6 +89,11 @@ export const initialProfile: UserProfile = {
   daw: [],
   marketingCampaigns: [],
   catalog: [],
+
+  xp: 0,
+  level: 1,
+  achievements: [],
+  gameStats: {},
 };
 
 @Injectable({
@@ -86,12 +106,8 @@ export class UserProfileService {
   profile = signal<UserProfile>(initialProfile);
   profile$ = signal<UserProfile>(initialProfile);
 
-  constructor() {}
-
   async loadProfile(userId: string): Promise<void> {
     try {
-      // Lazy load DatabaseService logic to avoid circular dependency if needed,
-      // but here we just call it.
       const userProfile = await this.databaseService.loadUserProfile(userId);
       if (userProfile) {
         this.profile.set(userProfile);
@@ -115,11 +131,74 @@ export class UserProfileService {
 
   async acquireUpgrade(upgrade: { title: string; type: string }) {
     const current = this.profile();
+    const next: UserProfile = {
+      ...current,
+      equipment: [...(current.equipment || [])],
+      daw: [...(current.daw || [])],
+    };
+
     if (upgrade.type === 'Gear') {
-      current.equipment.push(upgrade.title);
+      next.equipment.push(upgrade.title);
     } else {
-      current.daw.push(upgrade.title);
+      next.daw.push(upgrade.title);
     }
-    await this.updateProfile(current);
+
+    await this.updateProfile(next);
+  }
+
+  /**
+   * Adds XP and auto-levels the user.
+   * Level curve: each level requires 250 * level XP.
+   */
+  async awardXp(amount: number, reason: string = 'activity'): Promise<void> {
+    const current = this.profile();
+    const xp = (current.xp || 0) + Math.max(0, Math.floor(amount));
+
+    const requiredForNext = (lvl: number) => 250 * lvl;
+    let level = 1;
+    let remaining = xp;
+    while (remaining >= requiredForNext(level)) {
+      remaining -= requiredForNext(level);
+      level++;
+      if (level > 999) break;
+    }
+
+    await this.updateProfile({
+      ...current,
+      xp,
+      level,
+      lastXpReason: reason,
+      lastXpAt: Date.now(),
+    } as any);
+  }
+
+  async recordGameResult(gameId: string, score: number): Promise<void> {
+    const current = this.profile();
+    const stats = { ...(current.gameStats || {}) };
+    const prev = stats[gameId] || {};
+
+    stats[gameId] = {
+      bestScore: Math.max(prev.bestScore || 0, score),
+      lastScore: score,
+      plays: (prev.plays || 0) + 1,
+      lastPlayedAt: Date.now(),
+    };
+
+    await this.updateProfile({
+      ...current,
+      gameStats: stats,
+    } as any);
+  }
+
+  async unlockAchievement(id: string, title: string): Promise<void> {
+    const current = this.profile();
+    const achievements = [...(current.achievements || [])];
+    if (achievements.some((a) => a.id === id)) return;
+
+    achievements.push({ id, title, unlockedAt: Date.now() });
+    await this.updateProfile({
+      ...current,
+      achievements,
+    } as any);
   }
 }

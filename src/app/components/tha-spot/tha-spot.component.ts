@@ -18,6 +18,12 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { MainViewMode } from '../../services/user-context.service';
+import {
+  GameTelemetryEnvelope,
+  GameOverPayload,
+  GameUpdatePayload,
+  AchievementUnlockedPayload,
+} from '../../types/game-telemetry.types';
 
 interface ChatMessage {
   id: string;
@@ -71,8 +77,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private isDragging = false;
   private lastMousePos = { x: 0, y: 0 };
 
-  // Placeholder for game updates from iframe
+  // Game updates from iframe
   gameData = signal<any>({});
+
+  private lastAwardedScore = 0;
 
   ngOnInit() {
     this.fetchGames();
@@ -206,23 +214,68 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   @HostListener('window:message', ['$event'])
   onMessage(event: MessageEvent) {
-    const type = (event as MessageEvent).data?.type;
-    const payload = (event as MessageEvent).data?.payload || (event as MessageEvent).data?.data;
+    const data: any = (event as MessageEvent).data;
+    if (!data) return;
 
-    if (type === 'GAME_UPDATE' && payload) {
-      this.gameData.update((d: any) => ({ ...d, ...payload }));
+    // Accept both legacy {type,payload} and new envelope.
+    const envelope: GameTelemetryEnvelope = {
+      type: data.type,
+      payload: data.payload ?? data.data,
+      gameId: data.gameId,
+      timestamp: data.timestamp,
+    };
 
-      if (payload.score > 1000 && payload.score % 5000 < 500) {
-        this.chatMessages.update((msgs) => [
-          ...msgs,
-          {
-            id: Date.now().toString(),
-            user: 'S.M.U.V.E',
-            text: `EXECUTIVE PERFORMANCE DETECTED: ${payload.score} POINTS. STATUS SYNCED.`,
-            timestamp: new Date(),
-            isSystem: true,
-          },
-        ]);
+    const gameId = envelope.gameId || this.currentGame()?.id || 'unknown';
+
+    switch (envelope.type) {
+      case 'GAME_READY':
+        this.lastAwardedScore = 0;
+        break;
+
+      case 'GAME_UPDATE': {
+        const payload = (envelope.payload || {}) as GameUpdatePayload;
+        this.gameData.update((d: any) => ({ ...d, ...payload }));
+
+        const score = payload.score || 0;
+        if (score - this.lastAwardedScore >= 1000) {
+          this.lastAwardedScore = score;
+          void this.profileService.awardXp(5, `game:${gameId}:score`);
+        }
+
+        if (score > 1000 && score % 5000 < 500) {
+          this.chatMessages.update((msgs) => [
+            ...msgs,
+            {
+              id: Date.now().toString(),
+              user: 'S.M.U.V.E',
+              text: `EXECUTIVE PERFORMANCE DETECTED: ${score} POINTS. STATUS SYNCED.`,
+              timestamp: new Date(),
+              isSystem: true,
+            },
+          ]);
+        }
+        break;
+      }
+
+      case 'GAME_OVER': {
+        const payload = envelope.payload as GameOverPayload;
+        if (!payload || typeof payload.score !== 'number') return;
+
+        void this.profileService.recordGameResult(gameId, payload.score);
+        const xp = 25 + Math.floor(payload.score / 500);
+        void this.profileService.awardXp(xp, `game:${gameId}:over`);
+
+        if (payload.score >= 10000) {
+          void this.profileService.unlockAchievement(`ach-${gameId}-10k`, '10K Score');
+        }
+        break;
+      }
+
+      case 'ACHIEVEMENT_UNLOCKED': {
+        const payload = envelope.payload as AchievementUnlockedPayload;
+        if (!payload?.achievementId || !payload?.title) return;
+        void this.profileService.unlockAchievement(payload.achievementId, payload.title);
+        break;
       }
     }
   }
