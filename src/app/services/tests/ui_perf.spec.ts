@@ -43,4 +43,9 @@ describe('UIService Performance Mode', () => {
     TestBed.flushEffects();
     expect(service.performanceMode()).toBe(true);
   });
+
+  it('defaults to dark theme from profile settings', () => {
+    TestBed.flushEffects();
+    expect(service.activeTheme().name).toBe('Dark');
+  });
 });
