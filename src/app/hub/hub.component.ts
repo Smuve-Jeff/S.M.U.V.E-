@@ -46,6 +46,17 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   });
 
   genres = ['Hip Hop', 'R&B', 'Pop', 'Electronic', 'Rock', 'Jazz', 'Classical'];
+  labelStats = [
+    { label: 'Roster Ready', value: '12', foot: 'Active talent under management' },
+    { label: 'Pipeline', value: '5', foot: 'Releases in mastering' },
+    { label: 'Momentum', value: '+18%', foot: 'Month over month growth' },
+  ];
+  broadcastDuration = 320;
+  marketPulse = [
+    'Streaming spike – West Coast',
+    'Vinyl preorders up 12%',
+    'Sync request: indie film',
+  ];
 
   updateQuickProfile(field: string, value: string) {
     this.quickProfile.update((p) => ({ ...p, [field]: value }));
