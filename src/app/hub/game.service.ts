@@ -39,7 +39,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.5,
     playersOnline: 2100,
     image: 'https://picsum.photos/seed/beat/300/200',
-    tags: ['Multiplayer', 'Arcade', 'station-cabinet'],
+    tags: ['Multiplayer', 'Arcade', 'AI', 'station-cabinet'],
   },
   {
     id: '5',
@@ -127,7 +127,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.9,
     playersOnline: 5600,
     image: 'https://picsum.photos/seed/strategy1/300/200',
-    tags: ['Multiplayer', 'RTS', 'station-pod'],
+    tags: ['Multiplayer', 'RTS', 'AI', 'station-pod'],
   },
   {
     id: '61',
@@ -138,7 +138,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.8,
     playersOnline: 2200,
     image: 'https://picsum.photos/seed/strategy2/300/200',
-    tags: ['Multiplayer', 'Classic', 'station-cabinet'],
+    tags: ['Multiplayer', 'Classic', 'AI', 'station-cabinet'],
   },
   {
     id: '70',
@@ -160,7 +160,7 @@ const MOCK_GAMES: Game[] = [
     rating: 4.6,
     playersOnline: 3800,
     image: 'https://picsum.photos/seed/puzzle2/300/200',
-    tags: ['Multiplayer', 'PvP', 'station-pod'],
+    tags: ['Multiplayer', 'PvP', 'AI', 'station-pod'],
   },
   {
     id: '18',
@@ -206,6 +206,42 @@ const MOCK_GAMES: Game[] = [
     playersOnline: 5200,
     image: 'https://picsum.photos/seed/hextris/300/200',
     tags: ['Single Player', 'Arcade', 'station-cabinet'],
+  },
+  {
+    id: '80',
+    name: 'Neural Tactics Online',
+    url: 'https://html5.gamedistribution.com/8faeb13cc3fc4f69a19907ac5f8f8a1f/',
+    description:
+      'AI-assisted tactical battleground with live multiplayer squad coordination.',
+    genre: 'Strategy',
+    rating: 4.9,
+    playersOnline: 4700,
+    image: 'https://picsum.photos/seed/neuraltactics/300/200',
+    tags: ['Multiplayer', 'AI', 'Tactical', 'station-pod'],
+  },
+  {
+    id: '81',
+    name: 'Aether Kart League',
+    url: 'https://html5.gamedistribution.com/9dfcf57d88ce49f2bb9df7adf2cc2677/',
+    description:
+      'High-speed online kart battles with AI ghost racing and live PvP tournaments.',
+    genre: 'Racing',
+    rating: 4.8,
+    playersOnline: 5300,
+    image: 'https://picsum.photos/seed/aetherkart/300/200',
+    tags: ['Multiplayer', 'AI', 'PvP', 'station-cabinet'],
+  },
+  {
+    id: '82',
+    name: 'Cipher Strike Arena',
+    url: 'https://html5.gamedistribution.com/e3e9eb7ff7bf41edbcd11a89f0d88e17/',
+    description:
+      'Precision shooter with adaptive AI opponents and ranked cross-region multiplayer.',
+    genre: 'Shooter',
+    rating: 4.7,
+    playersOnline: 6100,
+    image: 'https://picsum.photos/seed/cipherstrike/300/200',
+    tags: ['Multiplayer', 'AI', 'Shooter', 'station-pod'],
   },
 ];
 

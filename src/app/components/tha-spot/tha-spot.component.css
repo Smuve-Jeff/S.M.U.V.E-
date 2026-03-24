@@ -11,6 +11,22 @@
   flex-direction: column;
   position: relative;
   background: radial-gradient(circle at center, #0d0d0d 0%, #050505 100%);
+  transition:
+    filter 0.25s ease,
+    background 0.25s ease;
+}
+
+.tha-spot-container.quality-performance {
+  filter: saturate(0.9) contrast(0.95);
+}
+
+.tha-spot-container.quality-balanced {
+  filter: saturate(1) contrast(1);
+}
+
+.tha-spot-container.quality-ultra {
+  filter: saturate(1.2) contrast(1.08);
+  background: radial-gradient(circle at center, #161616 0%, #040404 100%);
 }
 
 .floor-viewport {
@@ -49,8 +65,8 @@
 
 .station-wrapper {
   position: absolute;
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   transform-style: preserve-3d;
   cursor: pointer;
   transition: all 0.3s ease;

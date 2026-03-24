@@ -95,6 +95,19 @@ describe('ThaSpotComponent', () => {
       }
     };
     (window as any).webkitAudioContext = (window as any).AudioContext;
+    (globalThis as any).indexedDB = {
+      open: () => {
+        const request: any = {};
+        setTimeout(() => {
+          request.result = {
+            objectStoreNames: { contains: () => true },
+            createObjectStore: () => {},
+          };
+          request.onsuccess?.({ target: { result: request.result } });
+        }, 0);
+        return request;
+      },
+    };
 
     await TestBed.configureTestingModule({
       imports: [ThaSpotComponent, NoopAnimationsModule],
@@ -117,21 +130,97 @@ describe('ThaSpotComponent', () => {
   });
 
   it('should switch tabs', () => {
-    component.setActiveTab('showcase');
-    expect(component.activeTab()).toBe('showcase');
+    component.setActiveTab('Multiplayer');
+    expect(component.activeTab()).toBe('Multiplayer');
 
-    component.setActiveTab('networking');
-    expect(component.activeTab()).toBe('networking');
+    component.setActiveTab('AI Arena');
+    expect(component.activeTab()).toBe('AI Arena');
   });
 
   it('should add chat message', () => {
     const initialCount = component.chatMessages().length;
-    component.newChatMessage.set('Hello Test');
+    component.newChatMessage = 'Hello Test';
     component.sendChatMessage();
     expect(component.chatMessages().length).toBe(initialCount + 1);
     expect(
       component.chatMessages()[component.chatMessages().length - 1].text
     ).toBe('Hello Test');
-    expect(component.newChatMessage()).toBe('');
+    expect(component.newChatMessage).toBe('');
+  });
+
+  it('should filter AI multiplayer games with query and rating sort', () => {
+    component.games.set([
+      {
+        id: 'g1',
+        name: 'AI Duel One',
+        url: 'https://example.com/1',
+        genre: 'Strategy',
+        rating: 4.5,
+        playersOnline: 100,
+        tags: ['Multiplayer', 'AI'],
+      },
+      {
+        id: 'g2',
+        name: 'AI Duel Two',
+        url: 'https://example.com/2',
+        genre: 'Strategy',
+        rating: 4.9,
+        playersOnline: 80,
+        tags: ['Multiplayer', 'AI'],
+      },
+      {
+        id: 'g3',
+        name: 'Classic Solo',
+        url: 'https://example.com/3',
+        genre: 'Classic',
+        rating: 5,
+        playersOnline: 10,
+        tags: ['Single Player'],
+      },
+    ]);
+
+    component.setActiveTab('AI Arena');
+    component.setCapabilityFilter('Multiplayer');
+    component.searchQuery.set('duel');
+    component.setSortMode('Rating');
+
+    expect(component.filteredGames().map((g) => g.id)).toEqual(['g2', 'g1']);
+  });
+
+  it('should map visual quality mode class', () => {
+    component.setVisualQuality('Performance');
+    expect(component.qualityModeClass()).toBe('quality-performance');
+
+    component.setVisualQuality('Ultra');
+    expect(component.qualityModeClass()).toBe('quality-ultra');
+  });
+
+  it('should only start matchmaking for multiplayer games', () => {
+    const multiplayerGame = {
+      id: 'm1',
+      name: 'Team Up',
+      url: 'https://example.com/m1',
+      tags: ['Multiplayer'],
+    };
+    const soloGame = {
+      id: 's1',
+      name: 'Solo Run',
+      url: 'https://example.com/s1',
+      tags: ['Single Player'],
+    };
+
+    const matchmakingSpy = jest.spyOn(component, 'startMatchmaking');
+    component.playGame(multiplayerGame as any);
+    expect(matchmakingSpy).toHaveBeenCalledWith(multiplayerGame);
+
+    component.playGame(soloGame as any);
+    expect(component.currentGame()).toEqual(soloGame);
+  });
+
+  it('should block non-https and non-local game urls', () => {
+    const safeBlocked = component.getSafeUrl('javascript:alert(1)');
+    expect((safeBlocked as any).changingThisBreaksApplicationSecurity).toBe(
+      'about:blank'
+    );
   });
 });

@@ -1,5 +1,6 @@
 import {
   Component,
+  computed,
   signal,
   inject,
   OnInit,
@@ -41,6 +42,7 @@ interface ChatMessage {
   styleUrls: ['./tha-spot.component.css'],
 })
 export class ThaSpotComponent implements OnInit, OnDestroy {
+  readonly Math = Math;
   @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
 
   private gameService = inject(GameService);
@@ -50,9 +52,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private sanitizer = inject(DomSanitizer);
   private router = inject(Router);
 
-  activeTab = signal<string>('Arcade');
+  activeTab = signal<string>('Discover');
   games = signal<Game[]>([]);
-  searchQuery = '';
+  searchQuery = signal('');
+  sortMode = signal<'Popular' | 'Rating'>('Popular');
+  capabilityFilter = signal<'All' | 'Multiplayer' | 'AI'>('All');
+  visualQuality = signal<'Performance' | 'Balanced' | 'Ultra'>('Balanced');
   isSearching = signal(false);
   matchFound = signal(false);
   searchProgress = signal(0);
@@ -60,6 +65,46 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   matchmakingStep = signal<string>('Initializing');
 
   currentGame = signal<Game | null>(null);
+  filteredGames = computed(() => {
+    let filtered = [...this.games()];
+    const query = this.searchQuery().trim().toLowerCase();
+
+    if (query) {
+      filtered = filtered.filter(
+        (g) =>
+          g.name.toLowerCase().includes(query) ||
+          g.description?.toLowerCase().includes(query) ||
+          g.genre?.toLowerCase().includes(query) ||
+          g.tags?.some((tag) => tag.toLowerCase().includes(query))
+      );
+    }
+
+    switch (this.activeTab()) {
+      case 'Multiplayer':
+        filtered = filtered.filter((g) => g.tags?.includes('Multiplayer'));
+        break;
+      case 'AI Arena':
+        filtered = filtered.filter((g) => g.tags?.includes('AI'));
+        break;
+      case 'Classics':
+        filtered = filtered.filter(
+          (g) => g.genre === 'Classic' || g.tags?.includes('Classic')
+        );
+        break;
+    }
+
+    if (this.capabilityFilter() !== 'All') {
+      filtered = filtered.filter((g) => g.tags?.includes(this.capabilityFilter()));
+    }
+
+    filtered.sort((a, b) =>
+      this.sortMode() === 'Popular'
+        ? (b.playersOnline || 0) - (a.playersOnline || 0)
+        : (b.rating || 0) - (a.rating || 0)
+    );
+
+    return filtered;
+  });
 
   leaderboard = signal<{ player: string; score: number }[]>([
     { player: 'SmuveKing', score: 125000 },
@@ -105,9 +150,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   ngOnDestroy() {}
 
   fetchGames() {
-    this.gameService
-      .listGames({ query: this.searchQuery })
-      .subscribe((g) => this.games.set(g));
+    this.gameService.listGames().subscribe((g) => this.games.set(g));
   }
 
   navigateToView(mode: string) {
@@ -119,7 +162,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   playGame(game: Game) {
-    if (game.tags?.includes('Multiplayer') || Math.random() > 0.7) {
+    if (game.tags?.includes('Multiplayer')) {
       this.startMatchmaking(game);
     } else {
       this.currentGame.set(game);
@@ -150,7 +193,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   getSafeUrl(url: string): SafeResourceUrl {
-    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    const safeUrl = this.isAllowedGameUrl(url) ? url : 'about:blank';
+    return this.sanitizer.bypassSecurityTrustResourceUrl(safeUrl);
   }
 
   toggleChat() {
@@ -179,6 +223,35 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   setActiveTab(tab: string) {
     this.activeTab.set(tab);
+  }
+
+  setSortMode(mode: string) {
+    if (mode === 'Popular' || mode === 'Rating') {
+      this.sortMode.set(mode);
+    }
+  }
+
+  setCapabilityFilter(filter: string) {
+    if (filter === 'All' || filter === 'Multiplayer' || filter === 'AI') {
+      this.capabilityFilter.set(filter);
+    }
+  }
+
+  setVisualQuality(quality: string) {
+    if (quality === 'Performance' || quality === 'Balanced' || quality === 'Ultra') {
+      this.visualQuality.set(quality);
+    }
+  }
+
+  qualityModeClass() {
+    switch (this.visualQuality()) {
+      case 'Performance':
+        return 'quality-performance';
+      case 'Ultra':
+        return 'quality-ultra';
+      default:
+        return 'quality-balanced';
+    }
   }
 
   getFloorTransform() {
@@ -282,5 +355,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   navigateToPath(path: string) {
     this.router.navigate([path]);
+  }
+
+  private isAllowedGameUrl(url: string): boolean {
+    if (url.startsWith('/assets/games/')) return true;
+
+    try {
+      const parsedUrl = new URL(url);
+      return parsedUrl.protocol === 'https:';
+    } catch {
+      return false;
+    }
   }
 }
