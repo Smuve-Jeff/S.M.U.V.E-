@@ -180,3 +180,38 @@ canvas {
     padding: 1.25rem 2rem 1.5rem;
   }
 }
+
+/* ── Android / mobile viewer fixes ─────────────────────────── */
+
+/* On small screens the production-upgrade-bar content can overflow;
+   make it independently scrollable instead of clipping. */
+@media (max-width: 1024px) {
+  :host {
+    /* Allow the host to scroll on mobile so the whole cinema-engine
+       is accessible even with a compact viewport height. */
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .production-upgrade-bar {
+    /* Restrict vertical growth and make it scrollable on mobile */
+    max-height: 40vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .production-mode-grid {
+    /* 2-column grid on phones instead of auto-fit to avoid overflow */
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .delivery-preset-row {
+    /* Single column on phones for readability */
+    grid-template-columns: 1fr;
+  }
+
+  .production-blueprint-grid {
+    /* 2-column on phones */
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

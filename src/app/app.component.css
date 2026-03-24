@@ -1,6 +1,7 @@
 :host {
   display: block;
-  height: 100vh;
+  height: 100vh; /* fallback for browsers without dvh support */
+  height: 100dvh; /* dynamic viewport height – accounts for Android address-bar */
   width: 100vw;
   overflow: hidden;
   background-color: var(--color-bg);
@@ -14,6 +15,8 @@
 .sidebar {
     height: 100%;
     z-index: 1000;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .app-content {
@@ -24,11 +27,24 @@
 .full-page {
   width: 100vw !important;
   height: 100vh !important;
+  height: 100dvh !important;
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   z-index: 2000 !important;
   margin: 0 !important;
+}
+
+/* Mobile bottom navigation bar – fixed so it stays on screen when the
+   Android address bar appears / disappears or the virtual keyboard opens */
+.mobile-nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  /* Respect Android / iOS safe-area (notch / navigation gestures) */
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  z-index: 1000;
 }
 
 /* Transitions */
@@ -43,5 +59,11 @@
     }
     .sidebar.w-full {
         transform: translateX(0);
+    }
+
+    /* Push the main-content area up so nothing hides behind the fixed nav bar.
+       The mobile nav is h-16 (64 px) plus any safe-area bottom inset. */
+    .mobile-content-offset {
+        padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     }
 }

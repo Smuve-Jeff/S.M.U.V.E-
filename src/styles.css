@@ -64,6 +64,9 @@ html, body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+  /* Prevent text size adjustment on orientation change (Android/iOS) */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
@@ -284,3 +287,12 @@ app-studio .view-nav-container {
     padding: 1rem !important;
   }
 }
+
+/* Android / mobile scrolling performance */
+.overflow-y-auto,
+.overflow-x-auto,
+[class*="overflow-y-auto"],
+[class*="overflow-x-auto"] {
+  -webkit-overflow-scrolling: touch;
+}
+

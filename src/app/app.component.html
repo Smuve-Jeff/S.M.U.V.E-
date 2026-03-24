@@ -403,6 +403,7 @@
     >
       <div
         class="content-scroll-container relative z-10 p-0 overflow-y-auto no-scrollbar h-full"
+        [class.mobile-content-offset]="isMobile() && !isFullPageMode()"
       >
         <router-outlet></router-outlet>
       </div>
