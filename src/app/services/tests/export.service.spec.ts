@@ -5,6 +5,7 @@ import { AudioEngineService } from '../audio-engine.service';
 describe('ExportService', () => {
   let service: ExportService;
   let audioEngineMock: any;
+  let mediaRecorderMock: any;
 
   beforeEach(() => {
     audioEngineMock = {
@@ -22,6 +23,27 @@ describe('ExportService', () => {
         stream: {},
       }),
     };
+
+    mediaRecorderMock = class {
+      static isTypeSupported = jest.fn().mockReturnValue(true);
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      mimeType = 'audio/webm';
+      state = 'inactive';
+      constructor(
+        public stream: MediaStream,
+        public options: MediaRecorderOptions = {}
+      ) {}
+      start = jest.fn(() => {
+        this.state = 'recording';
+      });
+      stop = jest.fn(() => {
+        this.state = 'inactive';
+        this.ondataavailable?.({ data: new Blob(['sample']) });
+        this.onstop?.();
+      });
+    };
+    (globalThis as any).MediaRecorder = mediaRecorderMock;
 
     TestBed.configureTestingModule({
       providers: [
@@ -66,5 +88,34 @@ describe('ExportService', () => {
 
     // Check bits per sample at offset 34
     expect(view.getUint16(34, true)).toBe(32);
+  });
+
+  it('starts high-quality live recording with supported codec', async () => {
+    mediaRecorderMock.isTypeSupported.mockImplementation(
+      (type: string) => type === 'audio/webm;codecs=opus'
+    );
+
+    const { recorder, result } = service.startLiveRecording();
+
+    expect(audioEngineMock.resume).toHaveBeenCalled();
+    expect(recorder.options).toEqual({
+      mimeType: 'audio/webm;codecs=opus',
+      audioBitsPerSecond: 256000,
+    });
+
+    recorder.stop();
+    const blob = await result;
+    expect(blob.type).toBe('audio/webm;codecs=opus');
+  });
+
+  it('falls back safely when no explicit mime type is supported', async () => {
+    mediaRecorderMock.isTypeSupported.mockReturnValue(false);
+
+    const { recorder, result } = service.startLiveRecording();
+
+    expect(recorder.options).toEqual({ audioBitsPerSecond: 256000 });
+    recorder.stop();
+    const blob = await result;
+    expect(blob.type).toBe('audio/webm');
   });
 });

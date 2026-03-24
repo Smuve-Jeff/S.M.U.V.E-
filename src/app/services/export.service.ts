@@ -7,7 +7,7 @@ export class ExportService {
   private logger = inject(LoggingService);
   private engine = inject(AudioEngineService);
 
-  startLiveRecording(mimeType: string = 'audio/webm;codecs=opus') {
+  startLiveRecording() {
     this.engine.resume();
     const dest = this.engine.getMasterStream();
     const types = [
@@ -18,17 +18,20 @@ export class ExportService {
     ];
     const supportedType =
       types.find((t) => MediaRecorder.isTypeSupported(t)) || '';
-    const recorder = new MediaRecorder(dest.stream, {
-      mimeType: supportedType,
-      audioBitsPerSecond: 256000,
-    });
+    const recorderOptions = supportedType
+      ? {
+          mimeType: supportedType,
+          audioBitsPerSecond: 256000,
+        }
+      : { audioBitsPerSecond: 256000 };
+    const recorder = new MediaRecorder(dest.stream, recorderOptions);
+    const outputType = supportedType || recorder.mimeType || 'audio/webm';
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data);
     };
     const promise = new Promise<Blob>((resolve) => {
-      recorder.onstop = () =>
-        resolve(new Blob(chunks, { type: supportedType }));
+      recorder.onstop = () => resolve(new Blob(chunks, { type: outputType }));
     });
     recorder.start();
     return { recorder, result: promise };

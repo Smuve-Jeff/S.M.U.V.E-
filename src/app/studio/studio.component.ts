@@ -7,7 +7,7 @@ import {
   OnDestroy,
   AfterViewInit,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { TransportBarComponent } from './transport-bar/transport-bar.component';
 import { MixerComponent } from './mixer/mixer.component';
@@ -54,6 +54,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly aiService = inject(AiService);
   public readonly uiService = inject(UIService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   public readonly musicManager = inject(MusicManagerService);
 
   activeView = signal<
@@ -87,6 +88,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         this.activeView.set(path as any);
       }
     });
+
+    this.route.queryParamMap.subscribe((params) => {
+      const view = params.get('view');
+      if (
+        view === 'dj' ||
+        view === 'mixer' ||
+        view === 'piano-roll' ||
+        view === 'vocal-suite' ||
+        view === 'drum-machine' ||
+        view === 'performance' ||
+        view === 'mastering'
+      ) {
+        this.setActiveView(view, false);
+      }
+    });
   }
 
   ngAfterViewInit() {}
@@ -105,6 +121,27 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           this.showPianoRoll.set(true);
         }
       }
+    });
+  }
+
+  setActiveView(
+    view:
+      | 'dj'
+      | 'piano-roll'
+      | 'mixer'
+      | 'performance'
+      | 'mastering'
+      | 'vocal-suite'
+      | 'drum-machine',
+    syncRoute = true
+  ) {
+    this.activeView.set(view);
+    if (!syncRoute) return;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { view },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
     });
   }
 }

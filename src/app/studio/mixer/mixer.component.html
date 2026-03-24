@@ -46,17 +46,33 @@
              </div>
           </div>
 
-          <!-- Knobs Placeholder -->
-          <div class="flex flex-col items-center gap-3">
-             <div class="size-8 rounded-full border-2 border-white/10 bg-slate-800 flex items-center justify-center shadow-lg">
-                <div class="w-0.5 h-3 bg-brand-primary rotate-45 origin-bottom"></div>
+          <div class="w-full flex flex-col gap-2">
+             <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-wider">
+                <span class="text-slate-500">Gain</span>
+                <span class="text-brand-primary font-mono">{{ gainPercent(track) }}%</span>
              </div>
-             <div class="flex flex-col items-center gap-1">
-                <div class="size-6 rounded-full border border-white/10 bg-slate-800 flex items-center justify-center relative">
-                   <div class="w-0.5 h-2 bg-slate-500 -rotate-45 origin-bottom"></div>
-                </div>
-                <span class="text-[7px] text-slate-500 uppercase font-black">PAN</span>
+             <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                [value]="gainPercent(track)"
+                (input)="updateTrackGain(track.id, +($any($event.target).value))"
+                class="w-full h-1 accent-brand-primary"
+             >
+             <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-wider">
+                <span class="text-slate-500">Pan</span>
+                <span class="text-cyan-400 font-mono">{{ panPercent(track) }}</span>
              </div>
+             <input
+                type="range"
+                min="-100"
+                max="100"
+                step="1"
+                [value]="panPercent(track)"
+                (input)="updateTrackPan(track.id, +($any($event.target).value))"
+                class="w-full h-1 accent-cyan-400"
+             >
           </div>
 
           <!-- Fader -->

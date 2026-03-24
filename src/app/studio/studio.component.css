@@ -135,6 +135,17 @@
   opacity: 0.6;
 }
 
+.view-pane-transition {
+  transition:
+    opacity 220ms ease-out,
+    transform 220ms ease-out;
+  transform: translateY(0);
+}
+
+.view-pane-transition.opacity-0 {
+  transform: translateY(6px);
+}
+
 /* Sliding Editor (Piano Roll / Drum Machine) */
 .fl-editor-overlay {
   position: absolute;

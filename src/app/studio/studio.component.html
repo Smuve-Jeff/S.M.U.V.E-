@@ -1,23 +1,23 @@
 <div class="studio-container">
   <!-- Sidebar Navigation (FL Style) -->
   <aside class="fl-sidebar">
-    <div class="sidebar-icon" [class.active]="activeView() === 'dj'" (click)="activeView.set('dj')">
+    <div class="sidebar-icon" [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')">
       <span class="material-symbols-outlined">album</span>
       <span class="sidebar-label">DJ</span>
     </div>
-    <div class="sidebar-icon" [class.active]="activeView() === 'mixer'" (click)="activeView.set('mixer')">
+    <div class="sidebar-icon" [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')">
       <span class="material-symbols-outlined">equalizer</span>
       <span class="sidebar-label">Mixer</span>
     </div>
-    <div class="sidebar-icon" [class.active]="activeView() === 'vocal-suite'" (click)="activeView.set('vocal-suite')">
+    <div class="sidebar-icon" [class.active]="activeView() === 'vocal-suite'" (click)="setActiveView('vocal-suite')">
       <span class="material-symbols-outlined">mic</span>
       <span class="sidebar-label">Vocals</span>
     </div>
-    <div class="sidebar-icon" [class.active]="activeView() === 'mastering'" (click)="activeView.set('mastering')">
+    <div class="sidebar-icon" [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')">
       <span class="material-symbols-outlined">compress</span>
       <span class="sidebar-label">Master</span>
     </div>
-    <div class="sidebar-icon" [class.active]="activeView() === 'performance'" (click)="activeView.set('performance')">
+    <div class="sidebar-icon" [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')">
       <span class="material-symbols-outlined">sensors</span>
       <span class="sidebar-label">Live</span>
     </div>
@@ -74,7 +74,7 @@
         <div class="flex items-center gap-1 min-w-max">
           @for (view of ['dj', 'drum-machine', 'piano-roll', 'mixer', 'vocal-suite', 'performance', 'mastering']; track view) {
             <button
-              (click)="activeView.set(view)"
+              (click)="setActiveView($any(view))"
               class="px-3 md:px-5 py-1.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-300 border border-transparent whitespace-nowrap"
               [class.bg-brand-primary/20]="activeView() === view"
               [class.text-brand-primary]="activeView() === view"
@@ -115,7 +115,7 @@
       </div>
 
       <div
-        class="absolute inset-0 z-20 transition-all duration-500"
+        class="absolute inset-0 z-20 view-pane-transition"
         [class.opacity-100]="activeView() === 'dj'"
         [class.pointer-events-none]="activeView() !== 'dj'"
         [class.opacity-0]="activeView() !== 'dj'"
@@ -124,7 +124,7 @@
       </div>
 
       <div
-        class="absolute inset-0 z-20 transition-all duration-500"
+        class="absolute inset-0 z-20 view-pane-transition"
         [class.opacity-100]="activeView() === 'mixer'"
         [class.pointer-events-none]="activeView() !== 'mixer'"
         [class.opacity-0]="activeView() !== 'mixer'"
@@ -133,7 +133,7 @@
       </div>
 
       <div
-        class="absolute inset-0 z-20 transition-all duration-500"
+        class="absolute inset-0 z-20 view-pane-transition"
         [class.opacity-100]="activeView() === 'vocal-suite'"
         [class.pointer-events-none]="activeView() !== 'vocal-suite'"
         [class.opacity-0]="activeView() !== 'vocal-suite'"
@@ -142,7 +142,7 @@
       </div>
 
       <div
-        class="absolute inset-0 z-20 transition-all duration-500"
+        class="absolute inset-0 z-20 view-pane-transition"
         [class.opacity-100]="activeView() === 'mastering'"
         [class.pointer-events-none]="activeView() !== 'mastering'"
         [class.opacity-0]="activeView() !== 'mastering'"
@@ -151,7 +151,7 @@
       </div>
 
       <div
-        class="absolute inset-0 z-20 transition-all duration-500"
+        class="absolute inset-0 z-20 view-pane-transition"
         [class.opacity-100]="activeView() === 'drum-machine'"
         [class.pointer-events-none]="activeView() !== 'drum-machine'"
         [class.opacity-0]="activeView() !== 'drum-machine'"
@@ -160,7 +160,7 @@
       </div>
 
       <div
-        class="absolute inset-0 z-20 transition-all duration-500"
+        class="absolute inset-0 z-20 view-pane-transition"
         [class.opacity-100]="activeView() === 'performance'"
         [class.pointer-events-none]="activeView() !== 'performance'"
         [class.opacity-0]="activeView() !== 'performance'"
