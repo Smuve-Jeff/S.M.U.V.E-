@@ -1,56 +1,91 @@
-<div class="drum-machine hardware-surface p-10 rounded-3xl border border-white/10 shadow-2xl h-full flex flex-col gap-10 overflow-hidden">
+<div class="drum-machine hardware-surface p-10 rounded-3xl border border-white/10 shadow-2xl flex flex-col gap-6 overflow-hidden">
 
   <!-- Header -->
-  <div class="flex items-center justify-between">
+  <div class="flex items-center justify-between flex-shrink-0">
     <div class="flex items-center gap-4">
       <span class="material-symbols-outlined text-4xl text-brand-primary animate-pulse">grid_view</span>
       <div>
-        <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">NEURAL DRUM <span class="text-brand-primary">SYNTH v4 EXTREME</span></h2>
-        <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Autonomous Sonic Extraction Module</p>
+        <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">NEURAL DRUM <span class="text-brand-primary">SYNTH v5</span></h2>
+        <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest">16-Step Sequencer · AI Groove · Mic Sampler</p>
       </div>
     </div>
 
-    <div class="flex gap-4 items-center">
-      <div class="bg-black/60 px-6 py-2 rounded-xl border border-white/5 flex flex-col items-end">
-        <span class="text-[7px] font-black text-slate-500 uppercase">Process Mode</span>
-        <span class="text-xs font-black text-brand-primary uppercase">TITANIUM-NOIR</span>
+    <div class="flex gap-3 items-center">
+      <!-- BPM display -->
+      <div class="bg-black/60 px-4 py-2 rounded-xl border border-white/5 flex flex-col items-center">
+        <span class="text-[7px] font-black text-slate-500 uppercase">BPM</span>
+        <span class="text-sm font-black text-brand-primary font-mono">{{ audioEngine.tempo() }}</span>
       </div>
-      <div class="h-10 w-px bg-white/10"></div>
-      <div class="flex flex-col items-end">
-        <span class="text-[7px] font-black text-slate-500 uppercase">Neural Sync</span>
-        <span class="text-xs font-mono text-cyan-400 font-bold">99.9%</span>
+      <!-- Playback status -->
+      <div class="bg-black/60 px-4 py-2 rounded-xl border border-white/5 flex flex-col items-center">
+        <span class="text-[7px] font-black text-slate-500 uppercase">SEQ</span>
+        <span class="text-xs font-black uppercase" [class.text-emerald-400]="isSequencerRunning()" [class.text-slate-600]="!isSequencerRunning()">
+          {{ isSequencerRunning() ? 'PLAYING' : 'STOPPED' }}
+        </span>
       </div>
+      <!-- AI Generate -->
+      <button
+        (click)="generateAiPattern()"
+        [disabled]="isGeneratingPattern()"
+        class="flex items-center gap-2 px-4 py-2 rounded-xl border font-black text-xs uppercase tracking-widest transition-all"
+        [class.border-brand-primary]="!isGeneratingPattern()"
+        [class.text-brand-primary]="!isGeneratingPattern()"
+        [class.hover:bg-brand-primary/10]="!isGeneratingPattern()"
+        [class.border-white/10]="isGeneratingPattern()"
+        [class.text-slate-500]="isGeneratingPattern()">
+        <span class="material-symbols-outlined text-sm" [class.animate-spin]="isGeneratingPattern()">
+          {{ isGeneratingPattern() ? 'refresh' : 'auto_awesome' }}
+        </span>
+        {{ isGeneratingPattern() ? 'GENERATING…' : 'AI GROOVE' }}
+      </button>
+      <!-- Clear Pattern -->
+      <button
+        (click)="clearPattern()"
+        class="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-slate-500 font-black text-xs uppercase tracking-widest hover:border-red-500/40 hover:text-red-400 transition-all">
+        <span class="material-symbols-outlined text-sm">delete_sweep</span>
+        CLEAR
+      </button>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 flex-grow overflow-hidden">
+  <!-- Main grid -->
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-grow overflow-hidden min-h-0">
 
-    <!-- Pads Grid -->
-    <div class="lg:col-span-7 flex flex-col gap-8">
-      <div class="grid grid-cols-4 gap-6">
+    <!-- Left: Pads + Visualizer -->
+    <div class="xl:col-span-7 flex flex-col gap-4 min-h-0 overflow-hidden">
+
+      <!-- Pad Grid -->
+      <div class="grid grid-cols-4 gap-3 flex-shrink-0">
         @for (pad of pads(); track pad.id) {
           <button
             (click)="selectPad(pad); triggerPad(pad)"
-            class="pad-button group relative aspect-square rounded-2xl border-2 transition-all duration-150 active:scale-95"
+            class="pad-button group relative aspect-square rounded-xl border-2 transition-all duration-150 active:scale-95"
             [style.border-color]="selectedPad()?.id === pad.id ? pad.color : 'rgba(255,255,255,0.05)'"
             [style.background]="pad.active ? pad.color : 'rgba(255,255,255,0.03)'"
             [class.shadow-neon]="selectedPad()?.id === pad.id"
             [style.--neon-color]="pad.color">
 
-            <div class="absolute top-2 left-3 text-[10px] font-black italic tracking-tighter transition-colors group-hover:text-white"
+            <div class="absolute top-1.5 left-2 text-[9px] font-black italic tracking-tighter transition-colors group-hover:text-white"
                  [style.color]="selectedPad()?.id === pad.id ? 'white' : 'rgba(255,255,255,0.2)'">
               {{ pad.id.toUpperCase() }}
             </div>
 
+            <!-- Sampled indicator -->
+            @if (pad.sampledBuffer) {
+              <div class="absolute top-1.5 right-2">
+                <span class="material-symbols-outlined text-[10px] text-cyan-400">mic</span>
+              </div>
+            }
+
             <div class="flex flex-col items-center justify-center h-full">
-              <span class="text-xs font-black uppercase tracking-widest transition-all group-hover:scale-110"
+              <span class="text-[10px] font-black uppercase tracking-widest transition-all group-hover:scale-110 leading-tight text-center"
                     [style.color]="pad.active ? 'black' : (selectedPad()?.id === pad.id ? pad.color : 'rgba(255,255,255,0.4)')">
                 {{ pad.name }}
               </span>
             </div>
 
             <!-- LED status -->
-            <div class="absolute bottom-2 right-3 w-1.5 h-1.5 rounded-full transition-all"
+            <div class="absolute bottom-1.5 right-2 w-1.5 h-1.5 rounded-full transition-all"
                  [style.background]="pad.active ? 'white' : (selectedPad()?.id === pad.id ? pad.color : 'rgba(255,255,255,0.1)')"
                  [style.box-shadow]="pad.active ? '0 0 10px white' : (selectedPad()?.id === pad.id ? '0 0 10px ' + pad.color : 'none')">
             </div>
@@ -59,115 +94,255 @@
       </div>
 
       <!-- Visualizer -->
-      <div class="relative h-32 bg-black/60 rounded-2xl border border-white/5 overflow-hidden">
-        <canvas #visualizer class="w-full h-full" width="600" height="128"></canvas>
-        <div class="absolute top-2 left-4 text-[7px] font-black text-slate-600 uppercase tracking-widest">Real-time Spectral Waveform</div>
+      <div class="relative h-20 bg-black/60 rounded-xl border border-white/5 overflow-hidden flex-shrink-0">
+        <canvas #visualizer class="w-full h-full" width="600" height="80"></canvas>
+        <div class="absolute top-1.5 left-3 text-[7px] font-black text-slate-600 uppercase tracking-widest">Spectral Output</div>
+      </div>
+
+      <!-- Step Sequencer Grid -->
+      <div class="flex-grow overflow-y-auto custom-scrollbar min-h-0">
+        <div class="flex flex-col gap-1.5 pb-2">
+          <!-- Beat number header -->
+          <div class="flex items-center gap-1 pl-[76px] pr-1">
+            @for (step of stepRange; track step) {
+              <div class="flex-1 text-center text-[8px] font-black tracking-widest"
+                   [class.text-brand-primary]="step % 4 === 0"
+                   [class.text-slate-700]="step % 4 !== 0">
+                {{ step % 4 === 0 ? (step / 4 + 1) : '·' }}
+              </div>
+            }
+          </div>
+
+          @for (pad of pads(); track pad.id) {
+            <div class="flex items-center gap-1">
+              <!-- Pad label -->
+              <div class="w-[72px] flex-shrink-0">
+                <button
+                  (click)="selectPad(pad); triggerPad(pad)"
+                  class="w-full text-left px-2 py-1 rounded-lg transition-all text-[9px] font-black uppercase tracking-tight truncate"
+                  [style.color]="selectedPad()?.id === pad.id ? pad.color : 'rgba(255,255,255,0.4)'"
+                  [style.border]="'1px solid ' + (selectedPad()?.id === pad.id ? pad.color + '40' : 'transparent')"
+                  [style.background]="selectedPad()?.id === pad.id ? pad.color + '10' : 'transparent'">
+                  {{ pad.name }}
+                </button>
+              </div>
+
+              <!-- Steps -->
+              @for (step of stepRange; track step) {
+                <button
+                  class="step-cell flex-1 min-w-0 rounded transition-all relative group"
+                  [class.is-current]="isSequencerRunning() && currentStep() === step"
+                  [style.background]="getStepColor(pad, step)"
+                  [style.border-color]="step % 4 === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)'"
+                  (click)="toggleStep(pad, step)"
+                  [title]="pad.name + ' step ' + (step + 1) + ' – vel: ' + (pad.steps[step].velocity | number:'1.0-0')">
+
+                  <!-- Velocity bar inside step -->
+                  @if (pad.steps[step].active) {
+                    <div class="absolute bottom-0 left-0 right-0 rounded-b"
+                         [style.height.%]="pad.steps[step].velocity * 100"
+                         [style.background]="pad.color + '80'">
+                    </div>
+                  }
+                </button>
+              }
+            </div>
+          }
+        </div>
       </div>
     </div>
 
-    <!-- Parameter Controls -->
-    <div class="lg:col-span-5 obsidian-panel rounded-3xl border border-white/5 p-8 flex flex-col gap-8 shadow-inner overflow-y-auto custom-scrollbar">
-      <div class="flex items-center gap-4 border-b border-white/5 pb-4">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center border-2" [style.border-color]="selectedPad()?.color">
-          <span class="material-symbols-outlined text-lg" [style.color]="selectedPad()?.color">settings_b_roll</span>
-        </div>
-        <div>
-          <h3 class="text-sm font-black text-white uppercase tracking-widest">{{ selectedPad()?.name || 'SELECT PAD' }}</h3>
-          <p class="text-[7px] font-black text-slate-500 uppercase">Core synthesis parameters</p>
-        </div>
-      </div>
+    <!-- Right: Parameter Controls -->
+    <div class="xl:col-span-5 obsidian-panel rounded-2xl border border-white/5 p-6 flex flex-col gap-5 shadow-inner overflow-y-auto custom-scrollbar">
 
       @if (selectedPad(); as pad) {
-        <div class="grid grid-cols-2 gap-8">
-          <div class="flex flex-col gap-4">
-            <div class="flex flex-col gap-2">
+        <div class="flex items-center gap-3 border-b border-white/5 pb-3 flex-shrink-0">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center border-2" [style.border-color]="pad.color">
+            <span class="material-symbols-outlined text-base" [style.color]="pad.color">settings_b_roll</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-white uppercase tracking-widest">{{ pad.name }}</h3>
+            <p class="text-[7px] font-black text-slate-500 uppercase">{{ pad.type }} · {{ pad.sampledBuffer ? 'SAMPLED' : 'SYNTHESIZED' }}</p>
+          </div>
+        </div>
+
+        <!-- Synth Parameters -->
+        <div class="grid grid-cols-2 gap-4 flex-shrink-0">
+          <div class="flex flex-col gap-3">
+
+            <!-- Pitch / Freq -->
+            <div class="flex flex-col gap-1.5">
               <div class="flex justify-between items-center px-1">
                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">PITCH / FREQ</span>
-                <span class="text-xs font-mono text-brand-primary font-bold">{{ pad.type === 'kick' ? pad.params.pitch : pad.params.frequency }}</span>
+                <span class="text-xs font-mono text-brand-primary font-bold">{{ pad.type === 'kick' || pad.type === 'tom' || pad.type === 'cowbell' ? pad.params.pitch : pad.params.frequency }}</span>
               </div>
-              @if (pad.type === 'kick') {
-                <input type="range" min="40" max="300" step="1" [(ngModel)]="pad.params.pitch"
-                       class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+              @if (pad.type === 'kick' || pad.type === 'tom' || pad.type === 'cowbell') {
+                <input type="range" min="30" max="600" step="1" [(ngModel)]="pad.params.pitch"
+                       class="param-slider w-full">
               } @else {
                 <input type="range" min="50" max="15000" step="1" [(ngModel)]="pad.params.frequency"
-                       class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+                       class="param-slider w-full">
               }
             </div>
 
-            <div class="flex flex-col gap-2">
+            <!-- Semitone offset (pitch editing) -->
+            <div class="flex flex-col gap-1.5">
               <div class="flex justify-between items-center px-1">
-                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">DECAY</span>
-                <span class="text-xs font-mono text-cyan-400 font-bold">{{ pad.params.decay }}s</span>
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">SEMITONE</span>
+                <span class="text-xs font-mono text-cyan-400 font-bold">{{ pad.params.semitone > 0 ? '+' : '' }}{{ pad.params.semitone }}</span>
               </div>
-              <input type="range" min="0.01" max="2" step="0.01" [(ngModel)]="pad.params.decay"
-                     class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+              <input type="range" min="-24" max="24" step="1" [(ngModel)]="pad.params.semitone"
+                     class="param-slider w-full">
             </div>
 
-            <div class="flex flex-col gap-2">
+            <!-- Decay -->
+            <div class="flex flex-col gap-1.5">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">DECAY</span>
+                <span class="text-xs font-mono text-cyan-400 font-bold">{{ pad.params.decay | number:'1.2-2' }}s</span>
+              </div>
+              <input type="range" min="0.01" max="3" step="0.01" [(ngModel)]="pad.params.decay"
+                     class="param-slider w-full">
+            </div>
+
+            <!-- Output Gain -->
+            <div class="flex flex-col gap-1.5">
               <div class="flex justify-between items-center px-1">
                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">OUTPUT GAIN</span>
                 <span class="text-xs font-mono text-emerald-400 font-bold">{{ (pad.params.gain * 100) | number:'1.0-0' }}%</span>
               </div>
               <input type="range" min="0" max="1.5" step="0.01" [(ngModel)]="pad.params.gain"
-                     class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+                     class="param-slider w-full">
             </div>
           </div>
 
-          <div class="flex flex-col gap-4">
-              @if (pad.type === 'kick') {
-                <div class="flex flex-col gap-2">
-                    <div class="flex justify-between items-center px-1">
-                      <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">PUNCH</span>
-                      <span class="text-xs font-mono text-brand-primary font-bold">{{ (pad.params.punch * 100) | number:'1.0-0' }}</span>
-                    </div>
-                    <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.punch"
-                           class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+          <div class="flex flex-col gap-3">
+            @if (pad.type === 'kick' || pad.type === 'tom') {
+              <div class="flex flex-col gap-1.5">
+                <div class="flex justify-between items-center px-1">
+                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">PUNCH</span>
+                  <span class="text-xs font-mono text-brand-primary font-bold">{{ ((pad.params.punch || 0) * 100) | number:'1.0-0' }}</span>
                 </div>
-              }
-              @if (pad.type === 'snare') {
-                <div class="flex flex-col gap-2">
-                    <div class="flex justify-between items-center px-1">
-                      <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">SNAP</span>
-                      <span class="text-xs font-mono text-brand-primary font-bold">{{ (pad.params.snap * 100) | number:'1.0-0' }}</span>
-                    </div>
-                    <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.snap"
-                           class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+                <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.punch"
+                       class="param-slider w-full">
+              </div>
+            }
+            @if (pad.type === 'snare') {
+              <div class="flex flex-col gap-1.5">
+                <div class="flex justify-between items-center px-1">
+                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">SNAP</span>
+                  <span class="text-xs font-mono text-brand-primary font-bold">{{ ((pad.params.snap || 0) * 100) | number:'1.0-0' }}</span>
                 </div>
-              }
-              @if (pad.type === 'hihat') {
-                <div class="flex flex-col gap-2">
-                    <div class="flex justify-between items-center px-1">
-                      <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">CRISPNESS</span>
-                      <span class="text-xs font-mono text-brand-primary font-bold">{{ (pad.params.crispness * 100) | number:'1.0-0' }}</span>
-                    </div>
-                    <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.crispness"
-                           class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+                <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.snap"
+                       class="param-slider w-full">
+              </div>
+            }
+            @if (pad.type === 'hihat') {
+              <div class="flex flex-col gap-1.5">
+                <div class="flex justify-between items-center px-1">
+                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">CRISPNESS</span>
+                  <span class="text-xs font-mono text-brand-primary font-bold">{{ ((pad.params.crispness || 0) * 100) | number:'1.0-0' }}</span>
                 </div>
-              }
-              @if (pad.type === 'bass') {
-                <div class="flex flex-col gap-2">
-                    <div class="flex justify-between items-center px-1">
-                      <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">SUB WEIGHT</span>
-                      <span class="text-xs font-mono text-brand-primary font-bold">{{ (pad.params.sub * 100) | number:'1.0-0' }}</span>
-                    </div>
-                    <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.sub"
-                           class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer border border-white/5">
+                <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.crispness"
+                       class="param-slider w-full">
+              </div>
+            }
+            @if (pad.type === 'clap') {
+              <div class="flex flex-col gap-1.5">
+                <div class="flex justify-between items-center px-1">
+                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">WIDTH</span>
+                  <span class="text-xs font-mono text-brand-primary font-bold">{{ ((pad.params.width || 0) * 100) | number:'1.0-0' }}</span>
                 </div>
-              }
+                <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.width"
+                       class="param-slider w-full">
+              </div>
+            }
+            @if (pad.type === 'cowbell') {
+              <div class="flex flex-col gap-1.5">
+                <div class="flex justify-between items-center px-1">
+                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">TONE</span>
+                  <span class="text-xs font-mono text-brand-primary font-bold">{{ ((pad.params.tone || 0) * 100) | number:'1.0-0' }}</span>
+                </div>
+                <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.tone"
+                       class="param-slider w-full">
+              </div>
+            }
+            @if (pad.type === 'shaker' || pad.type === 'tambourine') {
+              <div class="flex flex-col gap-1.5">
+                <div class="flex justify-between items-center px-1">
+                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">RATTLE</span>
+                  <span class="text-xs font-mono text-brand-primary font-bold">{{ ((pad.params.rattle || 0) * 100) | number:'1.0-0' }}</span>
+                </div>
+                <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.rattle"
+                       class="param-slider w-full">
+              </div>
+            }
+            @if (pad.type === 'crash' || pad.type === 'ride') {
+              <div class="flex flex-col gap-1.5">
+                <div class="flex justify-between items-center px-1">
+                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">SHIMMER</span>
+                  <span class="text-xs font-mono text-brand-primary font-bold">{{ ((pad.params.shimmer || 0) * 100) | number:'1.0-0' }}</span>
+                </div>
+                <input type="range" min="0" max="1" step="0.01" [(ngModel)]="pad.params.shimmer"
+                       class="param-slider w-full">
+              </div>
+            }
           </div>
         </div>
-      }
 
-      <!-- AI Analysis HUD -->
-      <div class="mt-auto p-6 rounded-2xl bg-brand-primary/5 border border-brand-primary/20 flex flex-col gap-3">
-        <div class="flex items-center gap-2">
-           <span class="material-symbols-outlined text-xs text-brand-primary animate-pulse">analytics</span>
-           <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Neural_Acoustic_Audit</span>
+        <!-- Microphone Sampler Panel -->
+        <div class="mt-auto flex-shrink-0 rounded-xl border p-4 flex flex-col gap-3"
+             [class.border-cyan-500/30]="micStatus() !== 'idle'"
+             [class.bg-cyan-500/5]="micStatus() !== 'idle'"
+             [class.border-white/5]="micStatus() === 'idle'"
+             [class.bg-black/20]="micStatus() === 'idle'">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm"
+                    [class.text-cyan-400]="micStatus() !== 'idle'"
+                    [class.text-slate-600]="micStatus() === 'idle'">mic</span>
+              <span class="text-[9px] font-black uppercase tracking-widest"
+                    [class.text-cyan-400]="micStatus() !== 'idle'"
+                    [class.text-slate-500]="micStatus() === 'idle'">MIC SAMPLER</span>
+            </div>
+            @if (pad.sampledBuffer) {
+              <button (click)="clearPadSample(pad)"
+                      class="text-[8px] font-black text-red-400 hover:text-red-300 uppercase tracking-widest transition-colors">
+                CLEAR SAMPLE
+              </button>
+            }
+          </div>
+
+          @if (micStatus() === 'idle') {
+            <button
+              (click)="armMicSample()"
+              class="w-full py-2 rounded-lg border border-cyan-500/30 text-cyan-400 text-[10px] font-black uppercase tracking-widest hover:bg-cyan-500/10 transition-all flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+              RECORD SAMPLE TO PAD
+            </button>
+            <p class="text-[8px] text-slate-600 italic">Records 1 second of mic audio and maps it to this pad.</p>
+          } @else if (micStatus() === 'armed') {
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-black text-yellow-400 uppercase animate-pulse">ARMED – RECORDING IN {{ micCountdown() }}…</span>
+              <button (click)="cancelMicArm()" class="text-[8px] font-black text-slate-500 hover:text-red-400 uppercase transition-colors">CANCEL</button>
+            </div>
+          } @else if (micStatus() === 'recording') {
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+              <span class="text-[10px] font-black text-red-400 uppercase animate-pulse">RECORDING…</span>
+            </div>
+          } @else if (micStatus() === 'done') {
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm text-emerald-400">check_circle</span>
+              <span class="text-[10px] font-black text-emerald-400 uppercase">SAMPLE LOADED</span>
+            </div>
+          }
         </div>
-        <p class="text-[9px] text-slate-400 italic leading-tight">
-          "The transient integrity of this sample is borderline amateur. I've adjusted the lookahead on the master bus to compensate for your timing deficits."
-        </p>
-      </div>
+      } @else {
+        <div class="flex items-center justify-center h-full text-slate-600 text-xs font-black uppercase tracking-widest">
+          SELECT A PAD
+        </div>
+      }
     </div>
   </div>
 </div>

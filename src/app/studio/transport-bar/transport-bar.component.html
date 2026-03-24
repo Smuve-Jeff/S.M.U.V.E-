@@ -12,13 +12,25 @@
   </div>
 
   <div class="display-section">
-    <div class="display-item">
-      <span class="display-label">TEMPO</span>
-      <span class="display-value">120.00</span>
+    <div class="display-item bpm-control">
+      <span class="display-label">BPM</span>
+      <div class="flex items-center gap-1">
+        <button class="bpm-nudge" (click)="nudgeTempo(-1)" title="Decrease BPM">−</button>
+        <input
+          type="number"
+          class="bpm-input"
+          [value]="audioEngine.tempo()"
+          (change)="onTempoInput($event)"
+          min="20"
+          max="300"
+          title="BPM"
+        />
+        <button class="bpm-nudge" (click)="nudgeTempo(1)" title="Increase BPM">+</button>
+      </div>
     </div>
     <div class="display-item">
       <span class="display-label">POSITION</span>
-      <span class="display-value">1.1.1</span>
+      <span class="display-value">{{ audioEngine.currentBeat() + 1 }}.1</span>
     </div>
   </div>
 

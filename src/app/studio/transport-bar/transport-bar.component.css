@@ -65,3 +65,57 @@
   font-weight: 700;
   color: var(--color-primary);
 }
+
+.bpm-control {
+  gap: 4px;
+}
+
+.bpm-input {
+  width: 52px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: var(--color-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 2px 4px;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.bpm-input::-webkit-inner-spin-button,
+.bpm-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.bpm-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 6px rgba(236, 91, 19, 0.4);
+}
+
+.bpm-nudge {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.bpm-nudge:hover {
+  background: rgba(236, 91, 19, 0.2);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
