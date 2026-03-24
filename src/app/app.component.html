@@ -22,57 +22,123 @@
     [class.left-0]="isMobile()"
     [class.w-full]="isMobile() && isSidebarOpen()"
   >
-    <div class="p-8 flex items-center gap-4">
-      <div
-        class="w-12 h-12 rounded-xl bg-brand-primary flex items-center justify-center text-white shadow-v42-md"
-      >
-        <span class="material-symbols-outlined text-2xl">token</span>
+    <div class="p-6 border-b border-border bg-background-alt/20">
+      <div class="flex items-center gap-4">
+        <div
+          class="w-12 h-12 rounded-xl bg-brand-primary flex items-center justify-center text-white shadow-v42-md"
+        >
+          <span class="material-symbols-outlined text-2xl">token</span>
+        </div>
+        <div
+          class="flex flex-col overflow-hidden"
+          *ngIf="isSidebarOpen() || isMobile()"
+        >
+          <span
+            class="text-xl font-bold tracking-tight text-text-main leading-tight uppercase"
+            >S.M.U.V.E<span class="text-brand-primary">4.2</span></span
+          >
+          <span
+            class="text-[9px] font-bold text-text-dim tracking-[0.2em] uppercase"
+            >Smuve Jeff Neural Command Deck</span
+          >
+        </div>
       </div>
+
       <div
-        class="flex flex-col overflow-hidden"
         *ngIf="isSidebarOpen() || isMobile()"
+        class="mt-5 rounded-2xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-4 space-y-4"
       >
-        <span
-          class="text-xl font-bold tracking-tight text-text-main leading-tight uppercase"
-          >S.M.U.V.E<span class="text-brand-primary">4.2</span></span
-        >
-        <span
-          class="text-[9px] font-bold text-text-dim tracking-[0.2em] uppercase"
-          >Executive Professional</span
-        >
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div
+              class="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-primary"
+            >
+              AI Persona Active
+            </div>
+            <div class="text-sm font-semibold text-text-main mt-2">
+              Executive guidance stays live across every surface.
+            </div>
+            <div class="text-[11px] text-text-dim mt-2 leading-relaxed">
+              Preserve the full S.M.U.V.E workflow while surfacing quicker
+              actions, context tips, and live command shortcuts.
+            </div>
+          </div>
+          <span
+            class="px-2.5 py-1 rounded-full border border-brand-primary/20 text-[9px] font-bold uppercase tracking-[0.2em] text-brand-primary whitespace-nowrap"
+          >
+            {{ uiService.isOnline() ? 'online' : 'offline' }}
+          </span>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button
+            (click)="commandPalette.togglePalette()"
+            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+          >
+            Ctrl + K Palette
+          </button>
+          <button
+            (click)="openInteractionGuide()"
+            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+          >
+            Interaction Guide
+          </button>
+        </div>
       </div>
     </div>
 
     <nav
       class="sidebar-nav px-4 flex-grow overflow-y-auto space-y-1 no-scrollbar"
     >
-      <div
-        class="text-[10px] font-bold text-text-dim uppercase tracking-[0.2em] px-4 py-4 mb-2"
-      >
-        Management_Nodes
-      </div>
-      <a
-        *ngFor="let view of uiService.getViewConfigs()"
-        (click)="navigateToView(view.mode)"
-        class="nav-item group flex items-center px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer border border-transparent"
-        [class.bg-brand-primary/10]="uiService.mainViewMode() === view.mode"
-        [class.text-brand-primary]="uiService.mainViewMode() === view.mode"
-        [class.text-text-dim]="uiService.mainViewMode() !== view.mode"
-        [class.hover:bg-background-alt]="uiService.mainViewMode() !== view.mode"
-        [class.hover:text-text-main]="uiService.mainViewMode() !== view.mode"
-      >
-        <div class="w-8 flex justify-center">
-          <span
-            class="material-symbols-outlined text-xl transition-transform group-hover:scale-110"
-            >{{ view.icon }}</span
-          >
-        </div>
-        <span
-          class="ml-4 font-bold text-[12px] uppercase tracking-wide"
+      <section *ngFor="let group of navigationGroups" class="pb-3">
+        <div
           *ngIf="isSidebarOpen() || isMobile()"
-          >{{ view.label }}</span
+          class="px-4 pt-4 pb-3 space-y-1"
         >
-      </a>
+          <div
+            class="text-[10px] font-bold text-text-dim uppercase tracking-[0.2em]"
+          >
+            {{ group.label }}
+          </div>
+          <div class="text-[11px] text-text-dim/80 leading-relaxed">
+            {{ group.description }}
+          </div>
+        </div>
+
+        <a
+          *ngFor="let view of group.items"
+          (click)="navigateToView(view.mode)"
+          class="nav-item group flex items-center px-4 py-3 rounded-2xl transition-all duration-200 cursor-pointer border border-transparent"
+          [class.bg-brand-primary/10]="uiService.mainViewMode() === view.mode"
+          [class.border-brand-primary/20]="
+            uiService.mainViewMode() === view.mode
+          "
+          [class.text-brand-primary]="uiService.mainViewMode() === view.mode"
+          [class.text-text-dim]="uiService.mainViewMode() !== view.mode"
+          [class.hover:bg-background-alt]="
+            uiService.mainViewMode() !== view.mode
+          "
+          [class.hover:text-text-main]="uiService.mainViewMode() !== view.mode"
+        >
+          <div class="w-8 flex justify-center">
+            <span
+              class="material-symbols-outlined text-xl transition-transform group-hover:scale-110"
+              >{{ view.icon }}</span
+            >
+          </div>
+          <div
+            class="ml-4 min-w-0 flex-1"
+            *ngIf="isSidebarOpen() || isMobile()"
+          >
+            <div class="font-bold text-[12px] uppercase tracking-wide">
+              {{ view.label }}
+            </div>
+            <div class="text-[10px] text-text-dim mt-1 leading-relaxed">
+              {{ view.description }}
+            </div>
+          </div>
+        </a>
+      </section>
     </nav>
 
     <div class="p-6 border-t border-border bg-background-alt/30">
@@ -119,7 +185,32 @@
           }}</span>
         </button>
         <div class="h-6 w-px bg-border mx-2"></div>
-        <div class="flex flex-col">
+        <div
+          class="hidden md:flex items-center gap-4 rounded-2xl border border-border bg-background-alt/40 px-4 py-2 min-w-0"
+        >
+          <div
+            class="w-11 h-11 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center"
+          >
+            <span class="material-symbols-outlined text-2xl">{{
+              activeViewConfig().icon
+            }}</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <span
+              class="text-[8px] font-bold text-text-dim uppercase tracking-widest leading-none mb-1"
+              >Live Surface</span
+            >
+            <h2
+              class="text-xs font-bold tracking-widest text-text-main uppercase truncate"
+            >
+              {{ activeViewConfig().label }}
+            </h2>
+            <span class="text-[11px] text-text-dim truncate">
+              {{ activeViewConfig().description }}
+            </span>
+          </div>
+        </div>
+        <div class="flex flex-col md:hidden">
           <span
             class="text-[8px] font-bold text-text-dim uppercase tracking-widest leading-none mb-1"
             >Navigation</span
@@ -181,6 +272,22 @@
           <span class="material-symbols-outlined text-2xl">search</span>
         </button>
 
+        <button
+          (click)="openInteractionGuide()"
+          class="hidden lg:flex px-3 h-10 rounded-xl border border-border items-center justify-center text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim hover:text-brand-primary hover:border-brand-primary transition-all"
+          title="Open Interaction Guide"
+        >
+          Guide
+        </button>
+
+        <button
+          (click)="uiService.toggleTheme()"
+          class="hidden lg:flex px-3 h-10 rounded-xl border border-border items-center justify-center text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim hover:text-brand-primary hover:border-brand-primary transition-all"
+          title="Shift theme"
+        >
+          Theme
+        </button>
+
         <button (click)="toggleChatbot()" class="relative group">
           <div
             class="w-10 h-10 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all"
@@ -211,6 +318,83 @@
         </button>
       </div>
     </header>
+
+    <section
+      *ngIf="!isFullPageMode()"
+      class="border-b border-border bg-background-alt/20 px-6 md:px-10 py-4"
+    >
+      <div
+        class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4"
+      >
+        <div class="flex items-start gap-4">
+          <div
+            class="w-12 h-12 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0"
+          >
+            <span class="material-symbols-outlined text-2xl">neurology</span>
+          </div>
+          <div class="min-w-0">
+            <div
+              class="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-primary"
+            >
+              Interactive Command Layer
+            </div>
+            <div class="text-sm font-semibold text-text-main mt-1">
+              Smuve Jeff branding and AI persona remain active inside every
+              upgraded workflow.
+            </div>
+            <div class="text-[11px] text-text-dim mt-2 leading-relaxed">
+              The current shell keeps all modules reachable while highlighting
+              live controls, shortcuts, and contextual guidance for
+              {{ activeViewConfig().label }}.
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button
+            (click)="commandPalette.togglePalette()"
+            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+          >
+            Launch Palette
+          </button>
+          <button
+            (click)="openInteractionGuide()"
+            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+          >
+            Show Guide
+          </button>
+          <button
+            (click)="toggleChatbot()"
+            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+          >
+            AI Persona
+          </button>
+          <button
+            (click)="uiService.toggleScanlines()"
+            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+          >
+            Scanlines
+          </button>
+        </div>
+      </div>
+
+      <div class="grid gap-3 md:grid-cols-3 mt-4">
+        <button
+          *ngFor="let tip of spotlightTips()"
+          (click)="openInteractionGuide()"
+          class="text-left rounded-2xl border border-border bg-surface/70 px-4 py-4 hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all"
+        >
+          <div
+            class="text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim"
+          >
+            {{ tip.title }}
+          </div>
+          <div class="text-sm text-text-main font-semibold mt-2">
+            {{ tip.description }}
+          </div>
+        </button>
+      </div>
+    </section>
 
     <!-- CONTENT -->
     <main

@@ -27,6 +27,7 @@ const THEMES: AppTheme[] = [
 export interface ViewConfig {
   mode: MainViewMode;
   label: string;
+  description: string;
   icon: string;
   category: 'CORE' | 'STRATEGY' | 'CREATIVE' | 'COMMUNITY' | 'UTILITY';
 }
@@ -54,31 +55,66 @@ export class UIService {
   isUplinkActive = computed(() => this.isOnline());
 
   private viewConfigs: ViewConfig[] = [
-    { mode: 'hub', label: 'Label Hub', icon: 'grid_view', category: 'CORE' },
-    { mode: 'studio', label: 'Studio', icon: 'token', category: 'CORE' },
+    {
+      mode: 'hub',
+      label: 'Label Hub',
+      description:
+        'Coordinate releases, assets, and day-to-day executive moves.',
+      icon: 'grid_view',
+      category: 'CORE',
+    },
+    {
+      mode: 'studio',
+      label: 'Studio',
+      description:
+        'Build, mix, and refine production sessions with live control.',
+      icon: 'token',
+      category: 'CORE',
+    },
     {
       mode: 'vocal-suite',
       label: 'Vocal Suite',
+      description:
+        'Record, edit, and polish vocal performances through each stage.',
       icon: 'neurology',
       category: 'CORE',
     },
     {
       mode: 'strategy',
       label: 'Intel Lab',
+      description:
+        'Activate AI strategy, market intelligence, and audit flows.',
       icon: 'analytics',
       category: 'STRATEGY',
     },
     {
       mode: 'career',
       label: 'Career Board',
+      description:
+        'Track opportunities, growth priorities, and business momentum.',
       icon: 'business_center',
       category: 'STRATEGY',
     },
-    { mode: 'profile', label: 'Profile', icon: 'person', category: 'CORE' },
-    { mode: 'tha-spot', label: 'Community', icon: 'bolt', category: 'COMMUNITY' },
+    {
+      mode: 'profile',
+      label: 'Profile',
+      description:
+        'Manage artist identity, preferences, and personalized settings.',
+      icon: 'person',
+      category: 'CORE',
+    },
+    {
+      mode: 'tha-spot',
+      label: 'Community',
+      description:
+        'Move through the social floor and engage community features.',
+      icon: 'bolt',
+      category: 'COMMUNITY',
+    },
     {
       mode: 'settings',
       label: 'Settings',
+      description: 'Tune performance, visuals, and command-deck behavior.',
       icon: 'settings',
       category: 'UTILITY',
     },
@@ -161,12 +197,23 @@ export class UIService {
     return this.viewConfigs.map((v) => v.mode);
   }
 
+  getViewConfig(mode: MainViewMode): ViewConfig | undefined {
+    return this.viewConfigs.find((v) => v.mode === mode);
+  }
+
   getViewLabel(mode: MainViewMode): string {
     const fallback = mode
       .split('-')
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ');
-    return this.viewConfigs.find((v) => v.mode === mode)?.label ?? fallback;
+    return this.getViewConfig(mode)?.label ?? fallback;
+  }
+
+  getViewDescription(mode: MainViewMode): string {
+    return (
+      this.getViewConfig(mode)?.description ??
+      'Access this S.M.U.V.E. control surface.'
+    );
   }
 
   navigateToView(mode: MainViewMode) {

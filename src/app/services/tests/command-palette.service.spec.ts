@@ -20,6 +20,8 @@ describe('CommandPaletteService', () => {
         {
           mode: 'hub',
           label: 'HUB',
+          description:
+            'Coordinate releases, assets, and day-to-day executive moves.',
           icon: 'grid_view',
           category: 'CORE',
         },
@@ -64,6 +66,16 @@ describe('CommandPaletteService', () => {
     service.updateQuery('hub');
     const ids = service.filteredActions().map((action) => action.id);
     expect(ids).toContain('nav-hub');
+  });
+
+  it('uses module descriptions in navigation actions', () => {
+    const action = service
+      .actions()
+      .find((candidate) => candidate.id === 'nav-hub');
+
+    expect(action?.description).toBe(
+      'Coordinate releases, assets, and day-to-day executive moves.'
+    );
   });
 
   it('should execute actions and close the palette', () => {

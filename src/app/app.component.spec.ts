@@ -1,101 +1,178 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
+import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+
 import { AppComponent } from './app.component';
+import { AuthService } from './services/auth.service';
 import { UIService } from './services/ui.service';
-import { ChatbotComponent } from './components/chatbot/chatbot.component';
-
-// Mock AudioContext
-const mockAudioContext = jest.fn(() => ({
-  createGain: jest.fn(() => ({
-    connect: jest.fn().mockReturnThis(),
-    gain: { value: 0, setTargetAtTime: jest.fn() },
-  })),
-  createAnalyser: jest.fn(() => ({
-    connect: jest.fn().mockReturnThis(),
-  })),
-  createDynamicsCompressor: jest.fn(() => ({
-    connect: jest.fn().mockReturnThis(),
-    threshold: { value: 0, setTargetAtTime: jest.fn() },
-    ratio: { value: 0, setTargetAtTime: jest.fn() },
-    attack: { value: 0, setTargetAtTime: jest.fn() },
-    release: { value: 0, setTargetAtTime: jest.fn() },
-    knee: { value: 0, setTargetAtTime: jest.fn() },
-  })),
-  createDelay: jest.fn(() => ({
-    connect: jest.fn().mockReturnThis(),
-    delayTime: { value: 0, setTargetAtTime: jest.fn() },
-  })),
-  createBiquadFilter: jest.fn(() => ({
-    connect: jest.fn().mockReturnThis(),
-    type: 'lowpass',
-    frequency: { value: 0, setTargetAtTime: jest.fn() },
-    Q: { value: 0, setTargetAtTime: jest.fn() },
-    gain: { value: 0, setTargetAtTime: jest.fn() },
-  })),
-  createConvolver: jest.fn(() => ({
-    connect: jest.fn().mockReturnThis(),
-    buffer: null,
-  })),
-  createBuffer: jest.fn(() => ({
-    getChannelData: jest.fn(() => new Float32Array(4096)),
-  })),
-  createStereoPanner: jest.fn(() => ({
-    connect: jest.fn().mockReturnThis(),
-    pan: { value: 0, setTargetAtTime: jest.fn() },
-  })),
-  createMediaStreamDestination: jest.fn(() => ({
-    stream: new MediaStream(),
-    connect: jest.fn().mockReturnThis(),
-  })),
-  createBufferSource: jest.fn(() => ({
-    connect: jest.fn().mockReturnThis(),
-    start: jest.fn(),
-    stop: jest.fn(),
-    buffer: null,
-    loop: false,
-    loopStart: 0,
-    loopEnd: 0,
-    playbackRate: { value: 1, setTargetAtTime: jest.fn() },
-    onended: null,
-  })),
-  createOscillator: jest.fn(() => ({
-    connect: jest.fn().mockReturnThis(),
-    frequency: { value: 0 },
-    type: 'sawtooth',
-    start: jest.fn(),
-    stop: jest.fn(),
-  })),
-  destination: {},
-  currentTime: 0,
-  sampleRate: 44100,
-}));
-
-(global as any).AudioContext = mockAudioContext;
-(global as any).webkitAudioContext = mockAudioContext;
+import { NotificationService } from './services/notification.service';
+import { AiService } from './services/ai.service';
+import { SettingsIntegrationService } from './services/settings-integration.service';
+import { DatabaseService } from './services/database.service';
+import { AutoSaveService } from './services/auto-save.service';
+import { CommandPaletteService } from './services/command-palette.service';
 
 describe('AppComponent', () => {
-  let component: AppComponent;
-  let fixture: ComponentFixture<AppComponent>;
-  let uiService: UIService;
+  const createComponent = async () => {
+    const routerEvents$ = new Subject<any>();
+    const uiService = {
+      mainViewMode: signal<'hub' | 'strategy'>('hub'),
+      activeTheme: signal({ name: 'Light' }),
+      performanceMode: signal(false),
+      showScanlines: signal(false),
+      isOnline: signal(true),
+      isChatbotOpen: signal(false),
+      getViewModes: jest.fn().mockReturnValue(['hub', 'strategy']),
+      getViewConfigs: jest.fn().mockReturnValue([
+        {
+          mode: 'hub',
+          label: 'Label Hub',
+          description:
+            'Coordinate releases, assets, and day-to-day executive moves.',
+          icon: 'grid_view',
+          category: 'CORE',
+        },
+        {
+          mode: 'strategy',
+          label: 'Intel Lab',
+          description:
+            'Activate AI strategy, market intelligence, and audit flows.',
+          icon: 'analytics',
+          category: 'STRATEGY',
+        },
+      ]),
+      getViewConfig: jest.fn((mode: 'hub' | 'strategy') =>
+        uiService.getViewConfigs().find((view: any) => view.mode === mode)
+      ),
+      getViewLabel: jest.fn((mode: string) =>
+        mode === 'strategy' ? 'Intel Lab' : 'Label Hub'
+      ),
+      getViewDescription: jest.fn((mode: string) =>
+        mode === 'strategy'
+          ? 'Activate AI strategy, market intelligence, and audit flows.'
+          : 'Coordinate releases, assets, and day-to-day executive moves.'
+      ),
+      navigateToView: jest.fn(),
+      toggleChatbot: jest.fn(),
+      toggleTheme: jest.fn(),
+      toggleScanlines: jest.fn(),
+    };
+    const commandPalette = {
+      handleGlobalKey: jest.fn(),
+      togglePalette: jest.fn(),
+      openGuide: jest.fn(),
+      activeTips: signal([
+        {
+          id: 'global-guide',
+          title: 'Interaction Guide',
+          description:
+            'Press ? to reveal contextual controls for the active view.',
+        },
+        {
+          id: 'global-palette',
+          title: 'Command Palette',
+          description:
+            'Press Ctrl + K (or ⌘ + K) to launch rapid actions across every module.',
+        },
+      ]),
+    };
 
-  beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AppComponent, ChatbotComponent, RouterTestingModule],
-      providers: [UIService],
-    }).compileComponents();
+      imports: [AppComponent],
+      providers: [
+        {
+          provide: AuthService,
+          useValue: { isAuthenticated: jest.fn().mockReturnValue(false) },
+        },
+        { provide: UIService, useValue: uiService },
+        { provide: NotificationService, useValue: { show: jest.fn() } },
+        {
+          provide: AiService,
+          useValue: {
+            systemStatus: signal({ latency: 42 }),
+            performExecutiveAudit: jest.fn(),
+          },
+        },
+        { provide: SettingsIntegrationService, useValue: {} },
+        { provide: DatabaseService, useValue: {} },
+        { provide: AutoSaveService, useValue: {} },
+        { provide: CommandPaletteService, useValue: commandPalette },
+        {
+          provide: Router,
+          useValue: {
+            url: '/hub',
+            events: routerEvents$.asObservable(),
+          },
+        },
+      ],
+    })
+      .overrideComponent(AppComponent, { set: { template: '<div></div>' } })
+      .compileComponents();
 
-    fixture = TestBed.createComponent(AppComponent);
-    component = fixture.componentInstance;
-    uiService = TestBed.inject(UIService);
-  });
+    const fixture = TestBed.createComponent(AppComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
 
-  it('should create the app', () => {
+    return { component, uiService, commandPalette };
+  };
+
+  it('should create the app', async () => {
+    const { component } = await createComponent();
     expect(component).toBeTruthy();
   });
 
-  it('should toggle the chatbot', () => {
-    jest.spyOn(uiService, 'toggleChatbot').mockImplementation();
+  it('groups navigation for the shared shell', async () => {
+    const { component } = await createComponent();
+
+    expect(component.navigationGroups).toEqual([
+      expect.objectContaining({
+        category: 'CORE',
+        label: 'Core Systems',
+        items: [
+          expect.objectContaining({
+            mode: 'hub',
+            description:
+              'Coordinate releases, assets, and day-to-day executive moves.',
+          }),
+        ],
+      }),
+      expect.objectContaining({
+        category: 'STRATEGY',
+        label: 'AI Strategy',
+        items: [
+          expect.objectContaining({
+            mode: 'strategy',
+            description:
+              'Activate AI strategy, market intelligence, and audit flows.',
+          }),
+        ],
+      }),
+    ]);
+  });
+
+  it('exposes active view metadata and spotlight tips', async () => {
+    const { component, uiService } = await createComponent();
+
+    uiService.mainViewMode.set('strategy');
+
+    expect(component.activeViewConfig().label).toBe('Intel Lab');
+    expect(component.spotlightTips()).toHaveLength(2);
+  });
+
+  it('opens the interaction guide from the shell', async () => {
+    const { component, commandPalette } = await createComponent();
+
+    component.openInteractionGuide();
+
+    expect(commandPalette.openGuide).toHaveBeenCalled();
+  });
+
+  it('should toggle the chatbot', async () => {
+    const { component, uiService } = await createComponent();
+
     component.toggleChatbot();
+
     expect(uiService.toggleChatbot).toHaveBeenCalled();
   });
 });

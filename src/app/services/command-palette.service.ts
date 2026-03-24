@@ -94,9 +94,13 @@ export class CommandPaletteService {
     const navigationActions = this.uiService.getViewConfigs().map((view) => ({
       id: `nav-${view.mode}`,
       label: `Open ${view.label}`,
-      description: `Jump to ${view.label} operations`,
+      description: view.description,
       category: view.category,
-      keywords: [view.mode, view.label.toLowerCase()],
+      keywords: [
+        view.mode,
+        view.label.toLowerCase(),
+        view.description.toLowerCase(),
+      ],
       run: () => this.uiService.navigateToView(view.mode),
     }));
 

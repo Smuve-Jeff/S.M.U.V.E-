@@ -1,9 +1,15 @@
-import { Component, inject, effect, signal, HostListener } from '@angular/core';
+import {
+  Component,
+  inject,
+  effect,
+  signal,
+  HostListener,
+  computed,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   RouterLink,
   RouterOutlet,
-  RouterLinkActive,
   Router,
   NavigationEnd,
 } from '@angular/router';
@@ -21,6 +27,14 @@ import { DatabaseService } from './services/database.service';
 import { AutoSaveService } from './services/auto-save.service';
 import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
 import { CommandPaletteService } from './services/command-palette.service';
+import { ViewConfig } from './services/ui.service';
+
+interface NavigationGroup {
+  category: ViewConfig['category'];
+  label: string;
+  description: string;
+  items: ViewConfig[];
+}
 
 @Component({
   selector: 'app-root',
@@ -29,7 +43,6 @@ import { CommandPaletteService } from './services/command-palette.service';
     CommonModule,
     RouterOutlet,
     RouterLink,
-    RouterLinkActive,
     ChatbotComponent,
     NotificationToastComponent,
     SmuveAdvisorComponent,
@@ -52,6 +65,20 @@ export class AppComponent {
   isSidebarOpen = signal(true);
   isFullPageMode = signal(false);
   isMobile = signal(false);
+  navigationGroups: NavigationGroup[] = this.buildNavigationGroups();
+  activeViewConfig = computed(
+    () =>
+      this.uiService.getViewConfig(this.uiService.mainViewMode()) ?? {
+        mode: this.uiService.mainViewMode(),
+        label: this.uiService.getViewLabel(this.uiService.mainViewMode()),
+        description: this.uiService.getViewDescription(
+          this.uiService.mainViewMode()
+        ),
+        icon: 'token',
+        category: 'CORE' as const,
+      }
+  );
+  spotlightTips = computed(() => this.commandPalette.activeTips().slice(0, 3));
 
   constructor() {
     this.checkMobile();
@@ -98,6 +125,51 @@ export class AppComponent {
   }
   toggleChatbot() {
     this.uiService.toggleChatbot();
+  }
+
+  openInteractionGuide() {
+    this.commandPalette.openGuide();
+  }
+
+  private buildNavigationGroups(): NavigationGroup[] {
+    const categoryMeta: Record<
+      ViewConfig['category'],
+      { label: string; description: string }
+    > = {
+      CORE: {
+        label: 'Core Systems',
+        description:
+          'Primary production, identity, and release control surfaces.',
+      },
+      STRATEGY: {
+        label: 'AI Strategy',
+        description:
+          'High-level insight, planning, and executive intelligence.',
+      },
+      CREATIVE: {
+        label: 'Creative Labs',
+        description: 'Experimental tools and asset generation workspaces.',
+      },
+      COMMUNITY: {
+        label: 'Community',
+        description:
+          'Audience-facing spaces and collaborative engagement modules.',
+      },
+      UTILITY: {
+        label: 'System Utilities',
+        description: 'Visual, performance, and environment command settings.',
+      },
+    };
+
+    return (Object.keys(categoryMeta) as ViewConfig['category'][])
+      .map((category) => ({
+        category,
+        ...categoryMeta[category],
+        items: this.uiService
+          .getViewConfigs()
+          .filter((view) => view.category === category),
+      }))
+      .filter((group) => group.items.length > 0);
   }
 
   navigateToView(mode: MainViewMode) {
