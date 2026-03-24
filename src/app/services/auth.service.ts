@@ -242,7 +242,6 @@ export class AuthService {
            requires2FA: true
          };
       }
-
       if (profile.settings.security?.twoFactorEnabled && credentials.twoFactorCode !== '123456') { // Mock check
           await this.securityService.logEvent('2FA_FAILURE', 'Invalid 2FA code entered.');
           return {
@@ -264,8 +263,6 @@ export class AuthService {
       );
 
       const sessionId = this.generateSecureId('sess');
-      const sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
-      await this.securityService.registerCurrentSession(sessionId, 'Current Device', 'Unknown');
       await this.securityService.logEvent('LOGIN_SUCCESS', `Artist ${user.artistName} logged in successfully.`);
 
       return {

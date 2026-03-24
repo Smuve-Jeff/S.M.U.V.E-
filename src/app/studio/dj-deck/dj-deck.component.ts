@@ -81,7 +81,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     private exportService: ExportService,
     public library: LibraryService,
     public deckService: DeckService,
-    private engine: AudioEngineService
+    public engine: AudioEngineService
   ) {}
 
   ngOnInit() {
@@ -196,6 +196,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const h = Math.min(canvas.height, level * canvas.height * 1.5);
     ctx.fillRect(0, canvas.height - h, canvas.width, h);
   }
+
+  getDeckLevel(id: "A" | "B") { return this.engine.getDeckLevel(id); }
 
   async loadTrackFor(deckId: 'A' | 'B') {
     const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');

@@ -233,3 +233,54 @@ app-studio .view-nav-container {
 .dark-mode .elegant-footer-text:hover {
     text-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
 }
+
+/* Touch & Mobile Optimization for Redesigned Components */
+@media (max-width: 768px) {
+  .btn-pro {
+    @apply min-h-[44px] min-w-[44px]; /* Minimum touch target size */
+  }
+
+  .vertical-range {
+    width: 24px !important; /* Wider for easier finger manipulation */
+  }
+
+  .vertical-range::-webkit-slider-thumb {
+    width: 32px !important;
+    height: 20px !important;
+  }
+
+  .knob-range {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .fl-sidebar {
+    width: 50px;
+  }
+
+  .sidebar-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Stack 3D Decks on small screens */
+  .perspective-container {
+    perspective: 2000px;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 120px !important;
+    padding-bottom: 200px;
+  }
+
+  .deck-a-transform, .deck-b-transform {
+    transform: rotateX(20deg) !important;
+    width: 100% !important;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+
+  .central-mixer-console {
+    width: 100% !important;
+    padding: 1rem !important;
+  }
+}

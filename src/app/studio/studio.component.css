@@ -3,63 +3,141 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
+  --fl-charcoal: #1e1e1e;
+  --fl-darker: #121212;
+  --fl-border: #333333;
+  --fl-accent: #ff8c00; /* FL Orange */
+  --fl-track-midi: #4ade80;
+  --fl-track-audio: #38bdf8;
+  --fl-track-drum: #f472b6;
 }
 
 .studio-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* Sidebar layout */
   height: 100%;
   width: 100%;
+  background-color: var(--fl-darker);
+  color: #e0e0e0;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.1);
-  border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.3);
-}
-
-/* Horizontal scroll for studio tabs on mobile */
-.view-nav-container {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
-}
-.view-nav-container::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
+/* FL-Style Sidebar */
+.fl-sidebar {
+  width: 60px;
+  background-color: var(--fl-charcoal);
+  border-right: 1px solid var(--fl-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 0;
+  gap: 1.5rem;
+  z-index: 100;
+  transition: width 0.3s ease;
 }
 
-/* Transitions */
-.active-view-enter {
-  animation: fadeIn 0.3s ease-out;
+.fl-sidebar:hover {
+  width: 160px;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
+.sidebar-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
 }
 
-/* Mobile Adjustments */
+.sidebar-icon:hover, .sidebar-icon.active {
+  background-color: rgba(255, 140, 0, 0.1);
+  color: var(--fl-accent);
+}
+
+.sidebar-label {
+  display: none;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+
+.fl-sidebar:hover .sidebar-label {
+  display: block;
+}
+
+/* Main Content Area */
+.main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* FL-Style Top Bar */
+.fl-top-bar {
+  height: 50px;
+  background-color: var(--fl-charcoal);
+  border-bottom: 1px solid var(--fl-border);
+  display: flex;
+  items-center: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+}
+
+/* Central Playlist Hub */
+.playlist-hub {
+  flex-grow: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Sliding Editor (Piano Roll / Drum Machine) */
+.fl-editor-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50%; /* Default 50% height */
+  background-color: var(--fl-darker);
+  border-top: 2px solid var(--fl-border);
+  z-index: 60;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.fl-editor-overlay.visible {
+  transform: translateY(0);
+}
+
+.editor-header {
+  height: 40px;
+  background-color: var(--fl-charcoal);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--fl-border);
+}
+
+/* Fullscreen mode for some editors */
+.fl-editor-overlay.fullscreen {
+  height: 100%;
+}
+
 @media (max-width: 768px) {
-  .studio-header {
-    height: auto !important;
-    padding-top: 1rem;
-    padding-bottom: 1rem;
-    flex-wrap: wrap;
-    gap: 1rem;
+  .fl-sidebar {
+    width: 50px;
+    padding: 0.5rem 0;
   }
-
-  .studio-header .header-left,
-  .studio-header .header-right {
-    width: 100%;
-    justify-content: space-between;
-  }
+  .fl-sidebar:hover { width: 50px; }
+  .sidebar-label { display: none !important; }
 }
