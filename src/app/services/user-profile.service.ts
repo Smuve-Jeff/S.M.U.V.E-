@@ -66,7 +66,7 @@ export interface UserProfile {
 export const initialProfile: UserProfile = {
   settings: {
     ui: {
-      theme: 'Light',
+      theme: 'Dark',
       performanceMode: false,
       showScanlines: false,
       animationsEnabled: true,

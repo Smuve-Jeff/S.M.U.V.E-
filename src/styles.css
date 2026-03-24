@@ -266,19 +266,19 @@ app-studio .view-nav-container {
     height: 44px;
   }
 
-  /* Stack 3D Decks on small screens */
+  /* Stack DJ decks on small screens with flatter transforms for touch control */
   .perspective-container {
-    perspective: 2000px;
+    perspective: 1200px;
     display: flex !important;
     flex-direction: column !important;
-    gap: 120px !important;
-    padding-bottom: 200px;
+    gap: 32px !important;
+    padding-bottom: 110px;
   }
 
   .deck-a-transform, .deck-b-transform {
-    transform: rotateX(20deg) !important;
+    transform: none !important;
     width: 100% !important;
-    max-width: 300px;
+    max-width: 360px;
     margin: 0 auto;
   }
 
@@ -295,4 +295,3 @@ app-studio .view-nav-container {
 [class*="overflow-x-auto"] {
   -webkit-overflow-scrolling: touch;
 }
-

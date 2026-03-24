@@ -144,3 +144,27 @@
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+
+@media (max-width: 767px) {
+  .track-sidebar {
+    width: 72px;
+  }
+
+  .track-sidebar.is-collapsed .material-symbols-outlined + h2,
+  .track-sidebar.is-collapsed .setting-label {
+    display: none;
+  }
+
+  .piano-toolbar {
+    max-height: 150px;
+    overflow-y: auto;
+  }
+
+  .action-row button {
+    flex: 0 0 auto;
+  }
+
+  .piano-grid-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+}

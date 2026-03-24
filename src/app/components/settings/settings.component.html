@@ -51,6 +51,40 @@
             <div class="toggle-handle"></div>
           </button>
         </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Guidance & Quick Links</label>
+          <p class="text-xs text-text-dim">
+            Keep production guidance here while the home surface stays focused on music controls.
+          </p>
+          <div class="grid gap-3 md:grid-cols-2 mt-2">
+            <button
+              (click)="openExternalLink('https://github.com/Smuve-Jeff/S.M.U.V.E-')"
+              class="guide-link-btn"
+            >
+              <span class="material-symbols-outlined text-sm">link</span>
+              <span>Project Repository</span>
+            </button>
+            <button
+              (click)="openExternalLink('https://github.com/Smuve-Jeff/S.M.U.V.E-/blob/main/README.md')"
+              class="guide-link-btn"
+            >
+              <span class="material-symbols-outlined text-sm">menu_book</span>
+              <span>User Guide</span>
+            </button>
+            <button
+              (click)="openExternalLink('https://github.com/Smuve-Jeff/S.M.U.V.E-/blob/main/APPLICATION_FEATURES.md')"
+              class="guide-link-btn"
+            >
+              <span class="material-symbols-outlined text-sm">tips_and_updates</span>
+              <span>Feature Overview</span>
+            </button>
+            <button (click)="uiService.navigateToView('studio')" class="guide-link-btn">
+              <span class="material-symbols-outlined text-sm">music_note</span>
+              <span>Open Studio</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Audio Section -->

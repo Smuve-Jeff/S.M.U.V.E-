@@ -1,6 +1,6 @@
-<div class="dj-view-container specialized-view h-full flex flex-col p-4 md:p-8 overflow-hidden relative">
+<div class="dj-view-container specialized-view h-full flex flex-col p-3 md:p-8 overflow-hidden relative">
   <!-- Top Stats Display (BPM / Key) -->
-  <div class="deck-stats flex justify-between items-center mb-6 px-4">
+  <div class="deck-stats flex flex-wrap justify-between items-center gap-3 mb-4 md:mb-6 px-1 md:px-4">
     <div class="deck-info glass-v42 px-4 py-2 rounded-xl border-brand-primary/20">
       <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">DECK A</span>
       <div class="flex items-baseline gap-2">
@@ -30,7 +30,7 @@
   </div>
 
   <!-- THE 3D DECKS GRID -->
-  <div class="decks-grid-3d flex-grow grid grid-cols-1 lg:grid-cols-[1fr_300px_1fr] gap-8 items-center perspective-container">
+  <div class="decks-grid-3d flex-grow grid grid-cols-1 lg:grid-cols-[1fr_300px_1fr] gap-4 md:gap-8 items-center perspective-container overflow-y-auto pb-24 md:pb-0">
 
     <!-- DECK A (3D TRANSFORMED) -->
     <div class="deck-3d-wrapper deck-a-transform">
@@ -69,7 +69,7 @@
     </div>
 
     <!-- CENTRAL MIXER (The DiscDj Style) -->
-    <div class="central-mixer-console glass-v42 p-6 rounded-[40px] border-white/10 flex flex-col gap-6 shadow-2xl titanium-texture">
+    <div class="central-mixer-console glass-v42 p-4 md:p-6 rounded-[30px] md:rounded-[40px] border-white/10 flex flex-col gap-4 md:gap-6 shadow-2xl titanium-texture">
       <!-- High/Mid/Low Knobs -->
       <div class="mixer-strips flex justify-around">
         <div class="eq-strip flex flex-col gap-4">
@@ -85,7 +85,7 @@
       </div>
 
       <!-- Volume Faders -->
-      <div class="volume-faders flex justify-around items-end h-40 pb-4">
+      <div class="volume-faders flex justify-around items-end h-32 md:h-40 pb-2 md:pb-4">
         <div class="fader-wrapper"><input type="range" class="vertical-range h-32 accent-brand-primary" orient="vertical" (input)="setGain('A', $any($event.target).value)" min="0" max="1" step="0.01" value="0.8"></div>
         <div class="master-meter w-8 bg-black/40 rounded-full relative overflow-hidden h-full border border-white/5">
            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-emerald-500 via-yellow-400 to-red-500 transition-all duration-100" [style.height.%]="getDeckLevel('A') * 100"></div>
@@ -153,7 +153,7 @@
   </div>
 
   <!-- BOTTOM WAVEFORMS (MINI MAP) -->
-  <div class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-5xl h-16 bg-black/60 rounded-2xl border border-white/10 backdrop-blur-md flex overflow-hidden">
+  <div class="dj-waveform-bar fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 w-[94%] md:w-[90%] max-w-5xl h-14 md:h-16 bg-black/60 rounded-2xl border border-white/10 backdrop-blur-md flex overflow-hidden z-30">
     <canvas #waveformA class="flex-grow h-full opacity-50"></canvas>
     <div class="w-px bg-white/20"></div>
     <canvas #waveformB class="flex-grow h-full opacity-50 scale-x-[-1]"></canvas>
@@ -228,5 +228,23 @@
     background: #e2e8f0;
     border-radius: 2px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  }
+
+  @media (max-width: 1024px) {
+    .deck-a-transform,
+    .deck-b-transform,
+    .deck-a-transform:hover,
+    .deck-b-transform:hover {
+      transform: none;
+    }
+
+    .deck-3d-wrapper .platter-container {
+      max-width: 78vw;
+      margin: 0 auto;
+    }
+
+    .central-mixer-console {
+      order: 3;
+    }
   }
 </style>

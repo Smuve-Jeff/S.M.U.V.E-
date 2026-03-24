@@ -336,16 +336,16 @@
             <div
               class="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-primary"
             >
-              Interactive Command Layer
+              Mobile Production Command Center
             </div>
             <div class="text-sm font-semibold text-text-main mt-1">
-              Smuve Jeff branding and AI persona remain active inside every
-              upgraded workflow.
+              Build full tracks on your phone with faster access to DJ decks,
+              Piano Roll, and live production controls.
             </div>
             <div class="text-[11px] text-text-dim mt-2 leading-relaxed">
-              The current shell keeps all modules reachable while highlighting
-              live controls, shortcuts, and contextual guidance for
-              {{ activeViewConfig().label }}.
+              Guidance, keyboard shortcuts, and quick links now live in Settings
+              so every studio surface stays clean while you stay production-ready
+              in {{ activeViewConfig().label }}.
             </div>
           </div>
         </div>
@@ -358,22 +358,22 @@
             Launch Palette
           </button>
           <button
-            (click)="openInteractionGuide()"
+            (click)="navigateToView('settings')"
             class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
           >
-            Show Guide
+            Open Settings
+          </button>
+          <button
+            (click)="navigateToView('studio')"
+            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+          >
+            Studio View
           </button>
           <button
             (click)="toggleChatbot()"
             class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
           >
             AI Persona
-          </button>
-          <button
-            (click)="uiService.toggleScanlines()"
-            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
-          >
-            Scanlines
           </button>
         </div>
       </div>

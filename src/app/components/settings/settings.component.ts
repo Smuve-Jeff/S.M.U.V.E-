@@ -88,4 +88,10 @@ export class SettingsComponent implements OnInit {
     await this.securityService.revokeSession(id);
     this.notificationService.show('Session revoked successfully.', 'success');
   }
+
+  openExternalLink(url: string) {
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
 }

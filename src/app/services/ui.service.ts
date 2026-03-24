@@ -5,21 +5,21 @@ import { UserProfileService } from './user-profile.service';
 
 const THEMES: AppTheme[] = [
   {
-    name: 'Light',
-    primary: '#10b981',
-    accent: '#f59e0b',
-    neutral: '#f8fafc',
-    purple: '#6366f1',
-    red: '#ef4444',
-    blue: '#3b82f6',
-  },
-  {
     name: 'Dark',
     primary: '#10b981',
     accent: '#38bdf8',
     neutral: '#020617',
     purple: '#6366f1',
     red: '#f43f5e',
+    blue: '#3b82f6',
+  },
+  {
+    name: 'Light',
+    primary: '#10b981',
+    accent: '#f59e0b',
+    neutral: '#f8fafc',
+    purple: '#6366f1',
+    red: '#ef4444',
     blue: '#3b82f6',
   },
 ];
@@ -133,7 +133,7 @@ export class UIService {
           const settings = profile.settings.ui;
           this.performanceMode.set(settings.performanceMode || false);
           this.showScanlines.set(settings.showScanlines || false);
-          this.setTheme(settings.theme || 'Light');
+          this.setTheme(settings.theme || 'Dark');
         }
       });
 

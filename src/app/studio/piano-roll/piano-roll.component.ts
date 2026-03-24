@@ -8,6 +8,7 @@ import {
   ElementRef,
   AfterViewInit,
   OnDestroy,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -76,6 +77,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   selectedNoteIds = signal<Set<string>>(new Set());
   isAiGenerating = signal(false);
   showAutomation = signal(true);
+  isCompactMobile = signal(false);
 
   selectionBox = signal({ active: false, x: 0, y: 0, w: 0, h: 0 });
   isStandalone = computed(() => this.router.url === '/piano-roll');
@@ -86,6 +88,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
         this.uiService.performanceMode.set(true);
       }
     });
+    this.updateViewportFlags();
   }
 
   ngAfterViewInit() {
@@ -97,6 +100,17 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy() {
     if (this.isStandalone()) {
       this.uiService.performanceMode.set(false);
+    }
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.updateViewportFlags();
+  }
+
+  private updateViewportFlags() {
+    if (typeof window !== 'undefined') {
+      this.isCompactMobile.set(window.innerWidth < 768);
     }
   }
 

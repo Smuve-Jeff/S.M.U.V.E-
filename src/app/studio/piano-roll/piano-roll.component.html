@@ -1,5 +1,5 @@
 <div class="piano-roll-container flex h-full bg-slate-950 text-slate-200 selection:bg-brand-primary/30 relative overflow-hidden">
-  <aside class="w-80 shrink-0 border-r border-brand-primary/20 bg-slate-900/80 backdrop-blur-xl flex flex-col z-20">
+  <aside class="track-sidebar w-80 shrink-0 border-r border-brand-primary/20 bg-slate-900/80 backdrop-blur-xl flex flex-col z-20" [class.is-collapsed]="isCompactMobile()">
     <div class="p-4 border-b border-brand-primary/20 bg-gradient-to-br from-brand-primary/10 to-transparent flex items-center justify-between">
        <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-brand-primary text-sm">inventory_2</span>
@@ -9,7 +9,7 @@
           <span class="material-symbols-outlined text-sm">add</span>
        </button>
     </div>
-    <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 bg-black/20">
+    <div *ngIf="!isCompactMobile()" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 bg-black/20">
        <div *ngFor="let track of musicManager.tracks()" (click)="selectTrack(track)"
             class="group p-2 rounded-lg border transition-all cursor-pointer flex flex-col gap-2"
             [class.bg-brand-primary/10]="musicManager.selectedTrackId() === track.id"
@@ -32,11 +32,11 @@
   </aside>
 
   <main class="flex-1 flex flex-col min-w-0 bg-slate-900/50 relative">
-    <header class="h-14 shrink-0 border-b border-white/5 bg-slate-950/80 backdrop-blur-md flex items-center justify-between px-6 z-30">
-      <div class="flex items-center gap-6">
-          <div class="flex items-center gap-3">
+    <header class="piano-toolbar h-auto md:h-14 shrink-0 border-b border-white/5 bg-slate-950/80 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between px-3 md:px-6 py-2 md:py-0 gap-2 md:gap-0 z-30">
+      <div class="flex flex-wrap items-center gap-2 md:gap-6">
+          <div class="flex items-center gap-2 md:gap-3">
              <select [ngModel]="selectedScale()" (ngModelChange)="selectedScale.set($event)"
-                     class="bg-slate-900 border border-white/10 rounded px-2 py-1 text-[10px] font-bold text-slate-300 outline-none">
+                      class="bg-slate-900 border border-white/10 rounded px-2 py-1 text-[10px] font-bold text-slate-300 outline-none">
                 <option *ngFor="let s of scales" [ngValue]="s">{{s.name}}</option>
              </select>
              <select
@@ -49,20 +49,20 @@
                       [class.bg-brand-primary]="snapToScale()"
                       class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40 transition-all">
                 Snap
+              </button>
+          </div>
+          <div class="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5">
+             <button *ngFor="let mode of ['draw', 'select', 'brush', 'chord']"
+                     (click)="setEditMode(mode)"
+                     [class.bg-brand-primary/20]="editMode() === mode"
+                     class="p-1.5 rounded hover:bg-white/5 transition-all group">
+                <span class="material-symbols-outlined text-sm">{{ mode === 'draw' ? 'edit' : (mode === 'select' ? 'near_me' : (mode === 'brush' ? 'brush' : 'format_list_bulleted')) }}</span>
              </button>
-         </div>
-         <div class="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5">
-            <button *ngFor="let mode of ['draw', 'select', 'brush', 'chord']"
-                    (click)="setEditMode(mode)"
-                    [class.bg-brand-primary/20]="editMode() === mode"
-                    class="p-1.5 rounded hover:bg-white/5 transition-all group">
-               <span class="material-symbols-outlined text-sm">{{ mode === 'draw' ? 'edit' : (mode === 'select' ? 'near_me' : (mode === 'brush' ? 'brush' : 'format_list_bulleted')) }}</span>
-            </button>
-         </div>
-         <div class="flex items-center gap-2">
-            <button (click)="generateAiPattern()" [disabled]="isAiGenerating()"
-                    class="flex items-center gap-2 px-3 py-1.5 rounded bg-brand-primary/10 border border-brand-primary/30 text-brand-primary text-[9px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all disabled:opacity-50">
-               <span class="material-symbols-outlined text-xs" [class.animate-spin]="isAiGenerating()">psychology</span>
+          </div>
+          <div class="action-row flex items-center gap-1.5 md:gap-2 overflow-x-auto no-scrollbar max-w-full">
+             <button (click)="generateAiPattern()" [disabled]="isAiGenerating()"
+                     class="flex items-center gap-2 px-3 py-1.5 rounded bg-brand-primary/10 border border-brand-primary/30 text-brand-primary text-[9px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all disabled:opacity-50">
+                <span class="material-symbols-outlined text-xs" [class.animate-spin]="isAiGenerating()">psychology</span>
                {{ isAiGenerating() ? 'Generating...' : 'AI Pattern' }}
             </button>
              <button (click)="quantizeNotes()" title="Quantize" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">grid_on</span></button>
@@ -73,11 +73,11 @@
              <button (click)="duplicateSelected()" title="Duplicate" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">content_copy</span></button>
              <button (click)="duplicateNextBar()" title="Duplicate to Next Bar" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">queue</span></button>
              <button (click)="humanizeSelected()" title="Humanize" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">gesture</span></button>
-             <button (click)="randomizeVelocity()" title="Randomize Velocity" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">shuffle</span></button>
-             <button (click)="deleteSelected()" title="Delete" class="p-1.5 rounded hover:text-red-500 group"><span class="material-symbols-outlined text-sm">delete</span></button>
-          </div>
-      </div>
-      <div class="flex items-center gap-4">
+              <button (click)="randomizeVelocity()" title="Randomize Velocity" class="p-1.5 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">shuffle</span></button>
+              <button (click)="deleteSelected()" title="Delete" class="p-1.5 rounded hover:text-red-500 group"><span class="material-symbols-outlined text-sm">delete</span></button>
+           </div>
+       </div>
+      <div class="flex items-center justify-between md:justify-end gap-2 md:gap-4">
          <div class="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-white/10">
             <button (click)="showAutomation.set(!showAutomation())" [class.text-brand-primary]="showAutomation()" class="p-1 rounded hover:bg-white/5 transition-all">
                <span class="material-symbols-outlined text-sm">equalizer</span>
@@ -91,7 +91,7 @@
       </div>
     </header>
 
-    <div class="flex-1 overflow-auto custom-scrollbar relative" #scrollContainer>
+    <div class="piano-grid-scroll flex-1 overflow-auto custom-scrollbar relative" #scrollContainer>
        <div class="flex relative" [style.width.px]="gridWidth">
           <div class="w-16 sticky left-0 z-30 bg-slate-900 border-r border-white/10">
              <div *ngFor="let pitch of getDisplayKeys(); let i = index"

@@ -87,6 +87,15 @@
   background-color: rgba(16, 185, 129, 0.1);
 }
 
+.guide-link-btn {
+  @apply flex items-center gap-2 px-4 py-3 rounded-xl border border-border text-[10px] font-black uppercase tracking-widest text-text-dim transition-all text-left;
+}
+
+.guide-link-btn:hover {
+  @apply text-brand-primary border-brand-primary/40;
+  background-color: rgba(16, 185, 129, 0.08);
+}
+
 .animate-enter {
   animation: enter 0.4s cubic-bezier(0, 0, 0.2, 1) forwards;
 }
