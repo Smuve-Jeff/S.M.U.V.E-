@@ -12,6 +12,10 @@
   --font-mono: 'Fira Code', monospace;
   --font-display: 'Public Sans', sans-serif;
 
+  /* Mobile navigation + edge guards (defaults tuned for portrait 1080px wide screens) */
+  --mobile-nav-height: 64px;
+  --mobile-edge-padding: 16px;
+
   /* Default: S.M.U.V.E 4.2 Light Palette */
   --color-bg: #f8fafc;
   --color-bg-alt: #f1f5f9;
@@ -235,6 +239,14 @@ app-studio .view-nav-container {
 
 .dark-mode .elegant-footer-text:hover {
     text-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+}
+
+/* Moto G Power 5G + tall Android portrait tuning (≈2400x1080 logical ~412px width) */
+@media (max-width: 540px) {
+  :root {
+    --mobile-nav-height: 76px;
+    --mobile-edge-padding: 18px;
+  }
 }
 
 /* Touch & Mobile Optimization for Redesigned Components */

@@ -224,4 +224,34 @@ describe('PianoRollComponent', () => {
       fixture.nativeElement.querySelector('[data-testid="mastering-suite"]')
     ).toBeTruthy();
   });
+
+  it('widens grid sizing for narrow and compact viewports', async () => {
+    const originalWidth = window.innerWidth;
+    const { component } = await createComponent({ compact: false });
+    const setWidth = (width: number) => {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: width,
+      });
+      (component as any).updateViewportFlags();
+    };
+
+    setWidth(500);
+    expect(component.rowHeight).toBe(30);
+    expect(component.cellWidth).toBe(38);
+
+    setWidth(720);
+    expect(component.rowHeight).toBe(28);
+    expect(component.cellWidth).toBe(34);
+
+    setWidth(1200);
+    expect(component.rowHeight).toBe(24);
+    expect(component.cellWidth).toBe(32);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: originalWidth,
+    });
+    (component as any).updateViewportFlags();
+  });
 });

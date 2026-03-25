@@ -42,9 +42,18 @@
   bottom: 0;
   left: 0;
   right: 0;
+  height: var(--mobile-nav-height, 64px);
+  padding-left: var(--mobile-edge-padding, 16px);
+  padding-right: var(--mobile-edge-padding, 16px);
   /* Respect Android / iOS safe-area (notch / navigation gestures) */
   padding-bottom: env(safe-area-inset-bottom, 0);
   z-index: 1000;
+}
+
+.content-scroll-container {
+  scroll-padding-bottom: calc(
+    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px)
+  );
 }
 
 /* Transitions */
@@ -62,8 +71,31 @@
     }
 
     /* Push the main-content area up so nothing hides behind the fixed nav bar.
-       The mobile nav is h-16 (64 px) plus any safe-area bottom inset. */
+       The mobile nav uses --mobile-nav-height plus any safe-area bottom inset. */
     .mobile-content-offset {
-        padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(
+          var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px)
+        );
+    }
+
+    .mobile-nav-bar {
+        gap: 8px;
+    }
+
+    /* 64px width / 44px height align with Android's ~48dp tap targets on 1080px-wide devices */
+    .mobile-nav-bar button {
+        min-width: 64px;
+        min-height: 44px;
+        padding: 6px 10px;
+        border-radius: 12px;
+    }
+
+    .mobile-nav-bar .material-symbols-outlined {
+        font-size: 22px;
+    }
+
+    .mobile-nav-bar span {
+        font-size: 10px;
+        letter-spacing: 0.12em;
     }
 }
