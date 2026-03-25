@@ -129,10 +129,10 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
       const isCompact = width < 768;
       this.isCompactMobile.set(isCompact);
 
-      const isTallPortraitPhone = width <= 540;
+      const isNarrowViewport = width <= 540;
       if (isCompact) {
-        this.rowHeight = isTallPortraitPhone ? 30 : 28;
-        this.cellWidth = isTallPortraitPhone ? 38 : 34;
+        this.rowHeight = isNarrowViewport ? 30 : 28;
+        this.cellWidth = isNarrowViewport ? 38 : 34;
       } else {
         this.rowHeight = 24;
         this.cellWidth = 32;
