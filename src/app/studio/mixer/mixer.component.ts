@@ -21,14 +21,32 @@ export class MixerComponent {
 
   @Input() activeClip: Clip | null = null;
 
+  playbackState = this.audioSession.playbackState;
+  isPlaying = this.audioSession.isPlaying;
+  isRecording = this.audioSession.isRecording;
   micChannels = this.audioSession.micChannels;
   masterVolume = this.audioSession.masterVolume;
-
-  // Dynamic tracks from MusicManager
+  selectedTrackId = this.musicManager.selectedTrackId;
   tracks = this.musicManager.tracks;
 
   updateMasterVolume(newVolume: number): void {
     this.audioSession.updateMasterVolume(newVolume);
+  }
+
+  togglePlayback(): void {
+    this.audioSession.togglePlay();
+  }
+
+  toggleRecording(): void {
+    this.audioSession.toggleRecord();
+  }
+
+  stopPlayback(): void {
+    this.audioSession.stop();
+  }
+
+  selectTrack(id: number): void {
+    this.musicManager.selectedTrackId.set(id);
   }
 
   toggleMute(id: number) {
@@ -55,11 +73,54 @@ export class MixerComponent {
     this.musicManager.engine.updateTrack(id, { pan });
   }
 
+  updateTrackSend(id: number, send: 'sendA' | 'sendB', value: number) {
+    const normalized = Math.max(0, Math.min(1, value / 100));
+    this.musicManager.tracks.update((tracks) =>
+      tracks.map((track) =>
+        track.id === id ? { ...track, [send]: normalized } : track
+      )
+    );
+    this.musicManager.engine.updateTrack(id, { [send]: normalized });
+  }
+
   gainPercent(track: TrackModel): number {
     return Math.round(Math.max(0, Math.min(1, track.gain)) * 100);
   }
 
   panPercent(track: TrackModel): number {
     return Math.round(Math.max(-1, Math.min(1, track.pan)) * 100);
+  }
+
+  sendPercent(track: TrackModel, send: 'sendA' | 'sendB'): number {
+    return Math.round(Math.max(0, Math.min(1, track[send])) * 100);
+  }
+
+  isSelected(track: TrackModel): boolean {
+    return this.selectedTrackId() === track.id;
+  }
+
+  selectedTrack(): TrackModel | null {
+    return this.tracks().find((track) => this.isSelected(track)) ?? null;
+  }
+
+  activeNotes(track: TrackModel): number {
+    return track.notes.length;
+  }
+
+  selectedTrackNoteCount(): number {
+    const track = this.selectedTrack();
+    return track ? this.activeNotes(track) : 0;
+  }
+
+  armedMicCount(): number {
+    return this.micChannels().filter((channel) => channel.armed).length;
+  }
+
+  mutedTrackCount(): number {
+    return this.tracks().filter((track) => track.mute).length;
+  }
+
+  soloTrackCount(): number {
+    return this.tracks().filter((track) => track.solo).length;
   }
 }

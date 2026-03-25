@@ -23,13 +23,20 @@ describe('MixerComponent', () => {
     ]);
 
     const audioSessionMock = {
+      playbackState: signal<'stopped' | 'playing' | 'recording'>('stopped'),
+      isPlaying: signal(false),
+      isRecording: signal(false),
       micChannels: signal([]),
       masterVolume: signal(80),
       updateMasterVolume: jest.fn(),
+      togglePlay: jest.fn(),
+      toggleRecord: jest.fn(),
+      stop: jest.fn(),
     };
 
     const musicManagerMock = {
       tracks,
+      selectedTrackId: signal<number | null>(null),
       toggleMute: jest.fn(),
       toggleSolo: jest.fn(),
       engine: {
@@ -49,8 +56,8 @@ describe('MixerComponent', () => {
     const component = fixture.componentInstance;
     fixture.detectChanges();
 
-    return { component, musicManagerMock };
-  };
+      return { component, musicManagerMock };
+    };
 
   it('updates and clamps track gain', async () => {
     const { component, musicManagerMock } = await createComponent();
@@ -72,5 +79,47 @@ describe('MixerComponent', () => {
     expect(musicManagerMock.engine.updateTrack).toHaveBeenCalledWith(1, {
       pan: -1,
     });
+  });
+
+  it('updates and clamps track sends', async () => {
+    const { component, musicManagerMock } = await createComponent();
+
+    component.updateTrackSend(1, 'sendA', 160);
+    component.updateTrackSend(1, 'sendB', -10);
+
+    expect(component.tracks()[0].sendA).toBe(1);
+    expect(component.tracks()[0].sendB).toBe(0);
+    expect(musicManagerMock.engine.updateTrack).toHaveBeenNthCalledWith(1, 1, {
+      sendA: 1,
+    });
+    expect(musicManagerMock.engine.updateTrack).toHaveBeenNthCalledWith(2, 1, {
+      sendB: 0,
+    });
+  });
+
+  it('selects a track for focused routing details', async () => {
+    const { component, musicManagerMock } = await createComponent();
+
+    component.selectTrack(1);
+
+    expect(musicManagerMock.selectedTrackId()).toBe(1);
+    expect(component.selectedTrack()?.id).toBe(1);
+  });
+
+  it('delegates transport controls to the audio session', async () => {
+    const { component } = await createComponent();
+    const audioSession = TestBed.inject(AudioSessionService) as {
+      togglePlay: jest.Mock;
+      toggleRecord: jest.Mock;
+      stop: jest.Mock;
+    };
+
+    component.togglePlayback();
+    component.toggleRecording();
+    component.stopPlayback();
+
+    expect(audioSession.togglePlay).toHaveBeenCalled();
+    expect(audioSession.toggleRecord).toHaveBeenCalled();
+    expect(audioSession.stop).toHaveBeenCalled();
   });
 });

@@ -21,19 +21,116 @@
           <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Engine Load</span>
           <span class="text-xs font-mono font-bold text-cyan-400">12.4%</span>
        </div>
+     </div>
+   </header>
+
+  <section class="grid grid-cols-1 xl:grid-cols-[1.6fr,1fr] gap-4 mb-6">
+    <div class="rounded-3xl border border-white/5 bg-black/30 p-4 flex flex-wrap items-center gap-3">
+      <button
+        (click)="togglePlayback()"
+        class="min-w-28 rounded-2xl border px-4 py-3 text-left transition-all"
+        [class.border-emerald-400/40]="isPlaying() && !isRecording()"
+        [class.bg-emerald-400/10]="isPlaying() && !isRecording()"
+        [class.border-white/10]="!isPlaying() || isRecording()"
+        [class.bg-white/5]="!isPlaying() || isRecording()"
+      >
+        <div class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Playback</div>
+        <div class="mt-1 text-sm font-black uppercase text-white">{{ isPlaying() && !isRecording() ? 'Running' : 'Ready' }}</div>
+      </button>
+      <button
+        (click)="toggleRecording()"
+        class="min-w-28 rounded-2xl border px-4 py-3 text-left transition-all"
+        [class.border-red-500/40]="isRecording()"
+        [class.bg-red-500/10]="isRecording()"
+        [class.border-white/10]="!isRecording()"
+        [class.bg-white/5]="!isRecording()"
+      >
+        <div class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Record</div>
+        <div class="mt-1 text-sm font-black uppercase text-white">{{ isRecording() ? 'Capturing' : 'Standby' }}</div>
+      </button>
+      <button
+        (click)="stopPlayback()"
+        class="min-w-28 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left transition-all hover:border-brand-primary/30 hover:bg-brand-primary/10"
+      >
+        <div class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Transport</div>
+        <div class="mt-1 text-sm font-black uppercase text-white">Stop All</div>
+      </button>
+
+      <div class="h-12 w-px bg-white/5 hidden md:block"></div>
+
+      <div class="flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-widest">
+        <div class="rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
+          <div class="text-slate-500 text-[8px]">Recording inputs</div>
+          <div class="text-white mt-1">{{ armedMicCount() }} armed</div>
+        </div>
+        <div class="rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
+          <div class="text-slate-500 text-[8px]">Isolation</div>
+          <div class="text-white mt-1">{{ soloTrackCount() }} solo bus</div>
+        </div>
+        <div class="rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
+          <div class="text-slate-500 text-[8px]">Mute groups</div>
+          <div class="text-white mt-1">{{ mutedTrackCount() }} muted</div>
+        </div>
+      </div>
     </div>
-  </header>
+
+    <div class="rounded-3xl border border-brand-primary/20 bg-brand-primary/5 p-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="text-[8px] font-black uppercase tracking-[0.35em] text-brand-primary">Mixer Brain</p>
+          <h3 class="mt-1 text-sm font-black uppercase tracking-[0.2em] text-white">
+            {{ selectedTrack()?.name || 'Awaiting channel focus' }}
+          </h3>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-right">
+          <p class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Session state</p>
+          <p class="mt-1 text-xs font-mono font-black uppercase text-brand-primary">{{ playbackState() }}</p>
+        </div>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3 text-[10px] font-black uppercase tracking-widest">
+        <div class="rounded-2xl border border-white/5 bg-black/20 px-3 py-3">
+          <div class="text-slate-500 text-[8px]">Instrument route</div>
+          <div class="mt-1 text-white truncate">{{ selectedTrack()?.instrumentId || 'unassigned' }}</div>
+        </div>
+        <div class="rounded-2xl border border-white/5 bg-black/20 px-3 py-3">
+          <div class="text-slate-500 text-[8px]">Note payload</div>
+          <div class="mt-1 text-white">{{ selectedTrackNoteCount() }} clips</div>
+        </div>
+        <div class="rounded-2xl border border-white/5 bg-black/20 px-3 py-3">
+          <div class="text-slate-500 text-[8px]">Output ready</div>
+          <div class="mt-1 text-white">WAV / WebM export</div>
+        </div>
+        <div class="rounded-2xl border border-white/5 bg-black/20 px-3 py-3">
+          <div class="text-slate-500 text-[8px]">Source ingest</div>
+          <div class="mt-1 text-white">MP3 / WAV import</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <div class="flex-grow flex gap-4 overflow-hidden">
-    <div class="flex-grow flex gap-3 overflow-x-auto no-scrollbar pb-6">
-       <!-- MICROPHONE INPUTS -->
-       <app-channel-strip *ngFor="let channel of micChannels()" [channel]="channel" class="flex-shrink-0"></app-channel-strip>
+     <div class="flex-grow flex gap-3 overflow-x-auto no-scrollbar pb-6">
+        <!-- MICROPHONE INPUTS -->
+        <app-channel-strip *ngFor="let channel of micChannels()" [channel]="channel" class="flex-shrink-0"></app-channel-strip>
 
-       <!-- TRACK CHANNELS (Brushed Titanium style) -->
-       <div *ngFor="let track of tracks(); let i = index"
-            class="flex-shrink-0 w-28 bg-extreme-titanium/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-4 group hover:bg-extreme-titanium/50 hover:border-brand-primary/20 transition-all shadow-inner relative">
+        <!-- TRACK CHANNELS (Brushed Titanium style) -->
+        <div *ngFor="let track of tracks(); let i = index"
+             class="flex-shrink-0 w-32 bg-extreme-titanium/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-4 group hover:bg-extreme-titanium/50 hover:border-brand-primary/20 transition-all shadow-inner relative cursor-pointer"
+             [class.border-brand-primary/40]="isSelected(track)"
+             [class.bg-brand-primary/10]="isSelected(track)"
+             (click)="selectTrack(track.id)">
           <div class="w-full bg-black/60 rounded p-1.5 mb-2 text-center border border-white/5">
-             <span class="text-[9px] text-slate-400 font-mono font-black uppercase">CH {{ i + micChannels().length + 1 }}</span>
+             <div class="flex items-center justify-between gap-2">
+               <span class="text-[9px] text-slate-400 font-mono font-black uppercase">CH {{ i + micChannels().length + 1 }}</span>
+               <span
+                 class="text-[8px] font-black uppercase tracking-widest"
+                 [class.text-brand-primary]="isSelected(track)"
+                 [class.text-slate-600]="!isSelected(track)"
+               >
+                 {{ isSelected(track) ? 'Focus' : 'Track' }}
+               </span>
+             </div>
           </div>
 
           <!-- High-density VU Meter -->
@@ -71,33 +168,80 @@
                 step="1"
                 [value]="panPercent(track)"
                 (input)="updateTrackPan(track.id, +($any($event.target).value))"
+                (click)="$event.stopPropagation()"
                 class="w-full h-1 accent-cyan-400"
-             >
-          </div>
+              >
+           </div>
 
-          <!-- Fader -->
-          <div class="flex-grow w-1.5 bg-black/60 rounded-full relative mb-4 shadow-inner">
-             <div class="absolute top-1/2 -left-3.5 w-8 h-3.5 bg-slate-100 rounded-sm shadow-2xl cursor-pointer border border-slate-400 hover:brightness-110 transition-all"></div>
-          </div>
+           <div class="w-full grid grid-cols-2 gap-2">
+             <div class="flex flex-col gap-1">
+               <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-wider">
+                 <span class="text-slate-500">FX A</span>
+                 <span class="text-violet-300 font-mono">{{ sendPercent(track, 'sendA') }}%</span>
+               </div>
+               <input
+                 type="range"
+                 min="0"
+                 max="100"
+                 step="1"
+                 [value]="sendPercent(track, 'sendA')"
+                 (input)="updateTrackSend(track.id, 'sendA', +($any($event.target).value))"
+                 (click)="$event.stopPropagation()"
+                 class="w-full h-1 accent-violet-300"
+               >
+             </div>
+             <div class="flex flex-col gap-1">
+               <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-wider">
+                 <span class="text-slate-500">FX B</span>
+                 <span class="text-fuchsia-300 font-mono">{{ sendPercent(track, 'sendB') }}%</span>
+               </div>
+               <input
+                 type="range"
+                 min="0"
+                 max="100"
+                 step="1"
+                 [value]="sendPercent(track, 'sendB')"
+                 (input)="updateTrackSend(track.id, 'sendB', +($any($event.target).value))"
+                 (click)="$event.stopPropagation()"
+                 class="w-full h-1 accent-fuchsia-300"
+               >
+             </div>
+           </div>
 
-          <div class="flex gap-2 w-full">
-             <button (click)="toggleMute(track.id)"
-                     class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
-                     [class.bg-red-600]="track.mute"
-                     [class.text-white]="track.mute"
-                     [class.bg-black/40]="!track.mute"
-                     [class.text-slate-500]="!track.mute">M</button>
-             <button (click)="toggleSolo(track.id)"
-                     class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
-                     [class.bg-brand-primary]="track.solo"
-                     [class.text-black]="track.solo"
-                     [class.bg-black/40]="!track.solo"
-                     [class.text-slate-500]="!track.solo">S</button>
-          </div>
+           <!-- Fader -->
+           <div class="flex-grow w-1.5 bg-black/60 rounded-full relative mb-4 shadow-inner">
+              <div class="absolute top-1/2 -left-3.5 w-8 h-3.5 bg-slate-100 rounded-sm shadow-2xl cursor-pointer border border-slate-400 hover:brightness-110 transition-all"></div>
+           </div>
 
-          <div class="text-[10px] font-black text-white truncate w-full text-center tracking-tight">{{ track.name }}</div>
-       </div>
-    </div>
+           <div class="flex gap-2 w-full">
+              <button (click)="toggleMute(track.id); $event.stopPropagation()"
+                      class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
+                      [class.bg-red-600]="track.mute"
+                      [class.text-white]="track.mute"
+                      [class.bg-black/40]="!track.mute"
+                      [class.text-slate-500]="!track.mute">M</button>
+              <button (click)="toggleSolo(track.id); $event.stopPropagation()"
+                      class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
+                      [class.bg-brand-primary]="track.solo"
+                      [class.text-black]="track.solo"
+                      [class.bg-black/40]="!track.solo"
+                      [class.text-slate-500]="!track.solo">S</button>
+           </div>
+
+           <div class="w-full rounded-xl border border-white/5 bg-black/30 px-2 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-slate-500">
+             <div class="flex items-center justify-between">
+               <span>Instrument</span>
+               <span class="text-white truncate max-w-[56px] text-right">{{ track.instrumentId }}</span>
+             </div>
+             <div class="mt-1 flex items-center justify-between">
+               <span>Notes</span>
+               <span class="text-cyan-300">{{ activeNotes(track) }}</span>
+             </div>
+           </div>
+
+           <div class="text-[10px] font-black text-white truncate w-full text-center tracking-tight">{{ track.name }}</div>
+        </div>
+     </div>
 
     <!-- MASTER STRIP -->
     <div class="w-36 bg-brand-primary/5 rounded-[32px] border border-brand-primary/20 p-5 flex flex-col items-center gap-6 shadow-2xl relative overflow-hidden">
