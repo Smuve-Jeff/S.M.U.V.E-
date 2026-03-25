@@ -125,7 +125,19 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
 
   private updateViewportFlags() {
     if (typeof window !== 'undefined') {
-      this.isCompactMobile.set(window.innerWidth < 768);
+      const width = window.innerWidth;
+      const isCompact = width < 768;
+      this.isCompactMobile.set(isCompact);
+
+      const isTallPortraitPhone = width <= 540;
+      if (isCompact) {
+        this.rowHeight = isTallPortraitPhone ? 30 : 28;
+        this.cellWidth = isTallPortraitPhone ? 38 : 34;
+      } else {
+        this.rowHeight = 24;
+        this.cellWidth = 32;
+      }
+      this.gridWidth = this.cells.length * this.cellWidth;
     }
   }
 
