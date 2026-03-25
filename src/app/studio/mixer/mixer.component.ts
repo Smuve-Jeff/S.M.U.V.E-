@@ -33,6 +33,10 @@ export class MixerComponent {
     this.audioSession.updateMasterVolume(newVolume);
   }
 
+  stopTrackSelection(event: Event): void {
+    event.stopPropagation();
+  }
+
   togglePlayback(): void {
     this.audioSession.togglePlay();
   }
