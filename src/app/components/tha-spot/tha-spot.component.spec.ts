@@ -187,6 +187,38 @@ describe('ThaSpotComponent', () => {
     expect(component.filteredGames().map((g) => g.id)).toEqual(['g2', 'g1']);
   });
 
+  it('should surface spotlight game from filtered list', () => {
+    component.games.set([
+      {
+        id: 'g1',
+        name: 'Arena Alpha',
+        url: 'https://example.com/1',
+        rating: 4.2,
+        playersOnline: 500,
+      },
+      {
+        id: 'g2',
+        name: 'Arena Beta',
+        url: 'https://example.com/2',
+        rating: 4.9,
+        playersOnline: 300,
+      },
+    ]);
+
+    component.setSortMode('Rating');
+
+    expect(component.spotlightGame()?.id).toBe('g2');
+  });
+
+  it('should summarize hub stats', () => {
+    component.games.set([
+      { id: 'g1', name: 'Alpha', url: 'https://example.com/1', playersOnline: 120 },
+      { id: 'g2', name: 'Beta', url: 'https://example.com/2', playersOnline: 80 },
+    ]);
+
+    expect(component.hubStats()).toEqual({ gameCount: 2, playersOnline: 200 });
+  });
+
   it('should map visual quality mode class', () => {
     component.setVisualQuality('Performance');
     expect(component.qualityModeClass()).toBe('quality-performance');

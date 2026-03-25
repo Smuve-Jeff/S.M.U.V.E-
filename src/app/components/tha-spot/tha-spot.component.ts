@@ -105,6 +105,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
     return filtered;
   });
+  spotlightGame = computed(() => this.filteredGames()[0] ?? null);
+  hubStats = computed(() => {
+    const games = this.games();
+    const playersOnline = games.reduce(
+      (total, game) => total + (game.playersOnline || 0),
+      0
+    );
+    return {
+      gameCount: games.length,
+      playersOnline,
+    };
+  });
 
   leaderboard = signal<{ player: string; score: number }[]>([
     { player: 'SmuveKing', score: 125000 },

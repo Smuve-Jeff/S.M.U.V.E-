@@ -32,6 +32,16 @@
       </div>
     </div>
     <div class="flex items-center gap-2 md:gap-4">
+      <div class="hidden lg:flex items-center gap-3">
+        <div class="hub-metric">
+          <span class="hub-metric-label">Active Bays</span>
+          <span class="hub-metric-value">{{ hubStats().gameCount }}</span>
+        </div>
+        <div class="hub-metric">
+          <span class="hub-metric-label">Players Online</span>
+          <span class="hub-metric-value">{{ hubStats().playersOnline | number }}</span>
+        </div>
+      </div>
       <div class="hidden sm:flex flex-col items-end">
         <span class="text-[8px] font-bold text-white/40 uppercase">Reputation</span>
         <span class="text-xs font-mono text-brand-primary">42,900 XP</span>
@@ -80,6 +90,37 @@
             >
           </button>
         </div>
+      </section>
+
+      <section *ngIf="spotlightGame() as spotlight" class="spotlight-panel">
+        <div class="spotlight-header">
+          <div>
+            <h3 class="spotlight-title">Hub Spotlight</h3>
+            <p class="spotlight-subtitle">Prime-time challenge in the spotlight.</p>
+          </div>
+          <span class="spotlight-chip">Featured</span>
+        </div>
+        <div class="spotlight-body">
+          <img
+            *ngIf="spotlight.image"
+            [src]="spotlight.image"
+            [alt]="spotlight.name + ' spotlight cover'"
+            class="spotlight-thumb"
+          />
+          <div class="spotlight-meta">
+            <div class="spotlight-name">{{ spotlight.name }}</div>
+            <p class="spotlight-description">
+              {{ spotlight.description || 'Step into the highest-rated arena.' }}
+            </p>
+            <div class="spotlight-stats">
+              <span>{{ spotlight.playersOnline || 0 | number }} online</span>
+              <span>★ {{ spotlight.rating || 0 | number : '1.1-1' }}</span>
+            </div>
+          </div>
+        </div>
+        <button (click)="playGame(spotlight)" class="spotlight-cta">
+          Launch Spotlight
+        </button>
       </section>
 
       <section class="space-y-4">
@@ -169,14 +210,18 @@
           @for (game of filteredGames(); track game.id; let i = $index) {
             <div
               class="station-wrapper absolute w-28 h-44"
+              [class.station-spotlight]="i === 0"
               [ngClass]="getStationPos(i)"
               [style.top.px]="220 + ((i % 6) * 210)"
               [style.left.px]="140 + (Math.floor(i / 6) * 230)"
               (click)="playGame(game)"
             >
               <div
-                class="theme-station-card w-full h-full bg-black/70 border border-white/15 rounded-xl overflow-hidden group hover:border-brand-primary transition-all shadow-xl"
+                class="theme-station-card relative w-full h-full bg-black/70 border border-white/15 rounded-xl overflow-hidden group hover:border-brand-primary transition-all shadow-xl"
               >
+                @if (i === 0) {
+                  <div class="spotlight-badge">Spotlight</div>
+                }
                 <img
                   *ngIf="game.image"
                   [src]="game.image"
