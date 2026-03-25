@@ -82,6 +82,7 @@
         gap: 8px;
     }
 
+    /* 64px width / 44px height align with Android's ~48dp tap targets on 1080px-wide devices */
     .mobile-nav-bar button {
         min-width: 64px;
         min-height: 44px;
