@@ -17,6 +17,10 @@ import {
   TrackModel,
   TrackNote,
 } from '../../services/music-manager.service';
+import { ChannelRackComponent } from '../channel-rack/channel-rack.component';
+import { MixerComponent } from '../mixer/mixer.component';
+import { DrumMachineComponent } from '../drum-machine/drum-machine.component';
+import { MasteringSuiteComponent } from '../mastering-suite/mastering-suite.component';
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { Router } from '@angular/router';
@@ -24,7 +28,14 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-piano-roll',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ChannelRackComponent,
+    MixerComponent,
+    DrumMachineComponent,
+    MasteringSuiteComponent,
+  ],
   templateUrl: './piano-roll.component.html',
   styleUrls: ['./piano-roll.component.css'],
 })
@@ -78,6 +89,9 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   isAiGenerating = signal(false);
   showAutomation = signal(true);
   isCompactMobile = signal(false);
+  showAudioDock = signal(false);
+  audioDockView = signal<'mixer' | 'drum-machine' | 'mastering'>('mixer');
+  readonly defaultTrackPresetId = 'synth-lead';
 
   selectionBox = signal({ active: false, x: 0, y: 0, w: 0, h: 0 });
   isStandalone = computed(() => this.router.url === '/piano-roll');
@@ -86,6 +100,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     effect(() => {
       if (this.isStandalone()) {
         this.uiService.performanceMode.set(true);
+        this.showAudioDock.set(true);
       }
     });
     this.updateViewportFlags();
@@ -420,6 +435,15 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
 
   setEditMode(mode: 'draw' | 'select' | 'brush' | 'chord') {
     this.editMode.set(mode);
+  }
+
+  toggleAudioDock() {
+    this.showAudioDock.update((value) => !value);
+  }
+
+  setAudioDockView(view: 'mixer' | 'drum-machine' | 'mastering') {
+    this.audioDockView.set(view);
+    this.showAudioDock.set(true);
   }
 
   private snapStep(step: number): number {

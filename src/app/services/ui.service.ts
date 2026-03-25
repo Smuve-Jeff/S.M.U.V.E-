@@ -72,6 +72,14 @@ export class UIService {
       category: 'CORE',
     },
     {
+      mode: 'piano-roll',
+      label: 'Piano Roll',
+      description:
+        'Compose, edit, and route arrangements with the full rack and mix dock.',
+      icon: 'piano',
+      category: 'CORE',
+    },
+    {
       mode: 'vocal-suite',
       label: 'Vocal Suite',
       description:

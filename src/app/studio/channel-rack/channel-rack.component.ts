@@ -63,4 +63,8 @@ export class ChannelRackComponent {
   toggleMute(track: TrackModel) {
     this.musicManager.toggleMute(track.id);
   }
+
+  updateInstrument(track: TrackModel, presetId: string) {
+    this.musicManager.setInstrument(track.id, presetId);
+  }
 }

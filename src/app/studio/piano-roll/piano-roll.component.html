@@ -1,34 +1,39 @@
 <div class="piano-roll-container flex h-full bg-slate-950 text-slate-200 selection:bg-brand-primary/30 relative overflow-hidden">
   <aside class="track-sidebar w-80 shrink-0 border-r border-brand-primary/20 bg-slate-900/80 backdrop-blur-xl flex flex-col z-20" [class.is-collapsed]="isCompactMobile()">
-    <div class="p-4 border-b border-brand-primary/20 bg-gradient-to-br from-brand-primary/10 to-transparent flex items-center justify-between">
-       <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-brand-primary text-sm">inventory_2</span>
-          <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-white">Channel Rack</h2>
-       </div>
-       <button (click)="musicManager.ensureTrack('Synth')" class="p-1 rounded bg-brand-primary/20 hover:bg-brand-primary/40 text-brand-primary transition-all">
-          <span class="material-symbols-outlined text-sm">add</span>
-       </button>
-    </div>
-    <div *ngIf="!isCompactMobile()" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 bg-black/20">
-       <div *ngFor="let track of musicManager.tracks()" (click)="selectTrack(track)"
-            class="group p-2 rounded-lg border transition-all cursor-pointer flex flex-col gap-2"
-            [class.bg-brand-primary/10]="musicManager.selectedTrackId() === track.id"
-            [class.border-brand-primary/40]="musicManager.selectedTrackId() === track.id"
-            [class.border-white/5]="musicManager.selectedTrackId() !== track.id">
-          <div class="flex items-center justify-between">
-             <div class="flex items-center gap-2">
-                <div class="size-1.5 rounded-full bg-brand-primary" [class.animate-pulse]="musicManager.selectedTrackId() === track.id"></div>
-                <span class="text-[10px] font-bold truncate uppercase tracking-widest text-slate-300 group-hover:text-white">{{track.name}}</span>
-             </div>
-             <div class="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-                <button (click)="$event.stopPropagation(); musicManager.toggleMute(track.id)"
-                        [class.text-brand-primary]="track.mute" class="hover:text-brand-primary transition-colors p-1">
-                   <span class="material-symbols-outlined text-xs">volume_off</span>
-                </button>
-             </div>
-          </div>
-       </div>
-    </div>
+    <ng-container *ngIf="isStandalone() && !isCompactMobile(); else compactRack">
+      <app-channel-rack class="h-full"></app-channel-rack>
+    </ng-container>
+    <ng-template #compactRack>
+      <div class="p-4 border-b border-brand-primary/20 bg-gradient-to-br from-brand-primary/10 to-transparent flex items-center justify-between">
+         <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-brand-primary text-sm">inventory_2</span>
+            <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-white">Channel Rack</h2>
+         </div>
+         <button (click)="musicManager.ensureTrack(defaultTrackPresetId)" class="p-1 rounded bg-brand-primary/20 hover:bg-brand-primary/40 text-brand-primary transition-all">
+            <span class="material-symbols-outlined text-sm">add</span>
+         </button>
+      </div>
+      <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1 bg-black/20">
+         <div *ngFor="let track of musicManager.tracks()" (click)="selectTrack(track)"
+              class="group p-2 rounded-lg border transition-all cursor-pointer flex flex-col gap-2"
+              [class.bg-brand-primary/10]="musicManager.selectedTrackId() === track.id"
+              [class.border-brand-primary/40]="musicManager.selectedTrackId() === track.id"
+              [class.border-white/5]="musicManager.selectedTrackId() !== track.id">
+            <div class="flex items-center justify-between">
+               <div class="flex items-center gap-2">
+                  <div class="size-1.5 rounded-full bg-brand-primary" [class.animate-pulse]="musicManager.selectedTrackId() === track.id"></div>
+                  <span class="text-[10px] font-bold truncate uppercase tracking-widest text-slate-300 group-hover:text-white">{{track.name}}</span>
+               </div>
+               <div class="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                  <button (click)="$event.stopPropagation(); musicManager.toggleMute(track.id)"
+                          [class.text-brand-primary]="track.mute" class="hover:text-brand-primary transition-colors p-1">
+                     <span class="material-symbols-outlined text-xs">volume_off</span>
+                  </button>
+               </div>
+            </div>
+         </div>
+      </div>
+    </ng-template>
   </aside>
 
   <main class="flex-1 flex flex-col min-w-0 bg-slate-900/50 relative">
@@ -77,18 +82,29 @@
               <button (click)="deleteSelected()" title="Delete" class="p-1.5 rounded hover:text-red-500 group"><span class="material-symbols-outlined text-sm">delete</span></button>
            </div>
        </div>
-      <div class="flex items-center justify-between md:justify-end gap-2 md:gap-4">
-         <div class="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-white/10">
-            <button (click)="showAutomation.set(!showAutomation())" [class.text-brand-primary]="showAutomation()" class="p-1 rounded hover:bg-white/5 transition-all">
-               <span class="material-symbols-outlined text-sm">equalizer</span>
-            </button>
-            <button *ngIf="!isStandalone()" (click)="goStandalone()" class="p-1 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">fullscreen</span></button>
-            <button *ngIf="isStandalone()" (click)="goToStudio()" class="p-1 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">exit_to_app</span></button>
-         </div>
-         <div class="text-[9px] font-black font-mono text-brand-primary bg-brand-primary/5 px-2 py-1 rounded border border-brand-primary/20">
-           {{ musicManager.engine.tempo() }} BPM
-         </div>
-      </div>
+       <div class="flex items-center justify-between md:justify-end gap-2 md:gap-4">
+          <div class="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-white/10">
+             <button (click)="showAutomation.set(!showAutomation())" [class.text-brand-primary]="showAutomation()" class="p-1 rounded hover:bg-white/5 transition-all">
+                <span class="material-symbols-outlined text-sm">equalizer</span>
+             </button>
+             <button
+               *ngIf="isStandalone()"
+               (click)="toggleAudioDock()"
+               [class.text-brand-primary]="showAudioDock()"
+               [attr.aria-expanded]="showAudioDock()"
+               aria-controls="audio-dock-panel"
+               aria-label="Toggle audio dock"
+               class="p-1 rounded hover:text-brand-primary group"
+             >
+               <span class="material-symbols-outlined text-sm">tune</span>
+             </button>
+             <button *ngIf="!isStandalone()" (click)="goStandalone()" class="p-1 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">fullscreen</span></button>
+             <button *ngIf="isStandalone()" (click)="goToStudio()" class="p-1 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">exit_to_app</span></button>
+          </div>
+          <div class="text-[9px] font-black font-mono text-brand-primary bg-brand-primary/5 px-2 py-1 rounded border border-brand-primary/20">
+            {{ musicManager.engine.tempo() }} BPM
+          </div>
+       </div>
     </header>
 
     <div class="piano-grid-scroll flex-1 overflow-auto custom-scrollbar relative" #scrollContainer>
@@ -127,6 +143,55 @@
           </div>
        </div>
     </div>
+
+    <section *ngIf="isStandalone()" class="border-t border-white/5 bg-slate-950/80 backdrop-blur-md flex flex-col shrink-0">
+      <div class="px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-[9px] uppercase tracking-widest font-black text-slate-400">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm text-brand-primary">graphic_eq</span>
+          <span>Audio Dock</span>
+          <span class="text-[8px] text-slate-500">Mixer + Drum Machine → Mastering</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            (click)="setAudioDockView('mixer')"
+            class="px-2 py-1 rounded border border-white/10 text-[8px] font-black uppercase tracking-widest"
+            [class.text-brand-primary]="audioDockView() === 'mixer'"
+            [class.border-brand-primary/30]="audioDockView() === 'mixer'"
+          >
+            Mixer
+          </button>
+          <button
+            (click)="setAudioDockView('drum-machine')"
+            class="px-2 py-1 rounded border border-white/10 text-[8px] font-black uppercase tracking-widest"
+            [class.text-brand-primary]="audioDockView() === 'drum-machine'"
+            [class.border-brand-primary/30]="audioDockView() === 'drum-machine'"
+          >
+            Drums
+          </button>
+          <button
+            (click)="setAudioDockView('mastering')"
+            class="px-2 py-1 rounded border border-white/10 text-[8px] font-black uppercase tracking-widest"
+            [class.text-brand-primary]="audioDockView() === 'mastering'"
+            [class.border-brand-primary/30]="audioDockView() === 'mastering'"
+          >
+            Master
+          </button>
+        </div>
+      </div>
+      <div
+        *ngIf="showAudioDock()"
+        id="audio-dock-panel"
+        role="region"
+        aria-label="Audio dock modules"
+        class="h-[360px] md:h-[420px] overflow-hidden border-t border-white/5 bg-black/20"
+      >
+        <div class="h-full overflow-auto custom-scrollbar p-3">
+          <app-mixer *ngIf="audioDockView() === 'mixer'"></app-mixer>
+          <app-drum-machine *ngIf="audioDockView() === 'drum-machine'"></app-drum-machine>
+          <app-mastering-suite *ngIf="audioDockView() === 'mastering'"></app-mastering-suite>
+        </div>
+      </div>
+    </section>
 
     <footer *ngIf="showAutomation()" class="h-40 shrink-0 border-t border-brand-primary/20 bg-slate-900/90 backdrop-blur-md flex flex-col overflow-hidden">
       <div class="px-4 py-2 border-b border-white/5 flex items-center justify-between text-[9px] uppercase tracking-widest font-black text-slate-400">

@@ -34,9 +34,19 @@
       </div>
 
       <!-- Instrument/Name Section -->
-      <div class="flex flex-col gap-1 w-24">
+      <div class="flex flex-col gap-1 w-24 md:w-32">
          <div class="text-[9px] font-black uppercase tracking-wider text-slate-200 truncate">{{ track.name }}</div>
-         <div class="text-[7px] font-mono text-[11px] tracking-tight text-brand-brand-primary/60 uppercase tracking-tighter">{{ track.instrumentId }}</div>
+         <div class="text-[7px] font-mono tracking-tight text-brand-primary/60 uppercase">{{ track.instrumentId }}</div>
+         <select
+           [value]="track.instrumentId"
+           (click)="$event.stopPropagation()"
+           (change)="updateInstrument(track, $any($event.target).value)"
+           class="mt-1 bg-black/60 border border-white/10 rounded-lg px-1.5 py-1 text-[7px] font-black uppercase tracking-widest text-slate-300 focus:outline-none focus:border-brand-primary/40"
+         >
+           <option *ngFor="let preset of availablePresets" [value]="preset.id">
+             {{ preset.name }}
+           </option>
+         </select>
       </div>
 
       <!-- High-Precision Step Sequencer (16-Step Mini-View) -->

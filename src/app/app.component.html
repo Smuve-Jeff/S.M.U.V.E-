@@ -321,78 +321,43 @@
 
     <section
       *ngIf="!isFullPageMode()"
-      class="border-b border-border bg-background-alt/20 px-6 md:px-10 py-4"
+      class="border-b border-border glass-v42 px-4 md:px-8 py-2"
     >
-      <div
-        class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4"
-      >
-        <div class="flex items-start gap-4">
-          <div
-            class="w-12 h-12 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0"
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2 text-brand-primary">
+          <span class="material-symbols-outlined text-sm">menu</span>
+          <span class="text-[9px] font-bold uppercase tracking-[0.3em]"
+            >Command Panel</span
           >
-            <span class="material-symbols-outlined text-2xl">neurology</span>
-          </div>
-          <div class="min-w-0">
-            <div
-              class="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-primary"
-            >
-              Mobile Production Command Center
-            </div>
-            <div class="text-sm font-semibold text-text-main mt-1">
-              Build full tracks on your phone with faster access to DJ decks,
-              Piano Roll, and live production controls.
-            </div>
-            <div class="text-[11px] text-text-dim mt-2 leading-relaxed">
-              Guidance, keyboard shortcuts, and quick links now live in Settings
-              so every studio surface stays clean while you stay production-ready
-              in {{ activeViewConfig().label }}.
-            </div>
-          </div>
         </div>
-
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <select
+            class="bg-surface/70 border border-border rounded-xl px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-text-main"
+            [value]="uiService.mainViewMode()"
+            (change)="navigateToView($any($event.target).value)"
+          >
+            <optgroup
+              *ngFor="let group of navigationGroups"
+              [label]="group.label"
+            >
+              <option *ngFor="let item of group.items" [value]="item.mode">
+                {{ item.label }}
+              </option>
+            </optgroup>
+          </select>
           <button
             (click)="commandPalette.togglePalette()"
-            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+            class="px-3 py-1.5 rounded-xl border border-border text-[9px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
           >
-            Launch Palette
+            Palette
           </button>
           <button
             (click)="navigateToView('settings')"
-            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+            class="px-3 py-1.5 rounded-xl border border-border text-[9px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
           >
-            Open Settings
-          </button>
-          <button
-            (click)="navigateToView('studio')"
-            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
-          >
-            Studio View
-          </button>
-          <button
-            (click)="toggleChatbot()"
-            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
-          >
-            AI Persona
+            Settings
           </button>
         </div>
-      </div>
-
-      <div class="grid gap-3 md:grid-cols-3 mt-4">
-        <button
-          *ngFor="let tip of spotlightTips()"
-          (click)="openInteractionGuide()"
-          class="text-left rounded-2xl border border-border bg-surface/70 px-4 py-4 hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all"
-        >
-          <div
-            class="text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim"
-          >
-            {{ tip.title }}
-          </div>
-          <div class="text-sm text-text-main font-semibold mt-2">
-            {{ tip.description }}
-          </div>
-        </button>
       </div>
     </section>
 

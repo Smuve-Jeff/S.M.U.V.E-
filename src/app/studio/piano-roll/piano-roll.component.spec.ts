@@ -1,13 +1,49 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PianoRollComponent } from './piano-roll.component';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 
+@Component({
+  selector: 'app-channel-rack',
+  standalone: true,
+  template: '<div data-testid="channel-rack"></div>',
+})
+class StubChannelRackComponent {}
+
+@Component({
+  selector: 'app-mixer',
+  standalone: true,
+  template: '<div data-testid="mixer"></div>',
+})
+class StubMixerComponent {}
+
+@Component({
+  selector: 'app-drum-machine',
+  standalone: true,
+  template: '<div data-testid="drum-machine"></div>',
+})
+class StubDrumMachineComponent {}
+
+@Component({
+  selector: 'app-mastering-suite',
+  standalone: true,
+  template: '<div data-testid="mastering-suite"></div>',
+})
+class StubMasteringSuiteComponent {}
+
 describe('PianoRollComponent', () => {
-  const createComponent = async () => {
+  const createComponent = async ({
+    route = '/studio',
+    compact = true,
+  }: {
+    route?: string;
+    compact?: boolean;
+  } = {}) => {
     const updates: Array<{
       trackId: number;
       noteId: string;
@@ -72,15 +108,29 @@ describe('PianoRollComponent', () => {
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: AiService, useValue: { generateAiResponse: jest.fn() } },
         { provide: UIService, useValue: { performanceMode: signal(false) } },
-        { provide: Router, useValue: { url: '/studio', navigate: jest.fn() } },
+        { provide: Router, useValue: { url: route, navigate: jest.fn() } },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(PianoRollComponent, {
+        set: {
+          imports: [
+            CommonModule,
+            FormsModule,
+            StubChannelRackComponent,
+            StubMixerComponent,
+            StubDrumMachineComponent,
+            StubMasteringSuiteComponent,
+          ],
+        },
+      })
+      .compileComponents();
 
     const fixture = TestBed.createComponent(PianoRollComponent);
     const component = fixture.componentInstance;
+    component.isCompactMobile.set(compact);
     fixture.detectChanges();
 
-    return { component, updates, adds };
+    return { component, fixture, updates, adds };
   };
 
   it('clamps transpose to valid midi range', async () => {
@@ -119,5 +169,59 @@ describe('PianoRollComponent', () => {
       length: 2,
       velocity: 0.7,
     });
+  });
+
+  it('opens the audio dock when selecting a dock view', async () => {
+    const { component } = await createComponent();
+
+    component.setAudioDockView('mastering');
+
+    expect(component.audioDockView()).toBe('mastering');
+    expect(component.showAudioDock()).toBe(true);
+  });
+
+  it('toggles the audio dock visibility', async () => {
+    const { component } = await createComponent();
+
+    const startingState = component.showAudioDock();
+    component.toggleAudioDock();
+
+    expect(component.showAudioDock()).toBe(!startingState);
+  });
+
+  it('renders the channel rack in standalone desktop mode', async () => {
+    const { fixture } = await createComponent({
+      route: '/piano-roll',
+      compact: false,
+    });
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="channel-rack"]')
+    ).toBeTruthy();
+  });
+
+  it('renders the selected audio dock module', async () => {
+    const { component, fixture } = await createComponent({
+      route: '/piano-roll',
+    });
+
+    component.showAudioDock.set(true);
+    component.audioDockView.set('mixer');
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="mixer"]')
+    ).toBeTruthy();
+
+    component.audioDockView.set('drum-machine');
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="drum-machine"]')
+    ).toBeTruthy();
+
+    component.audioDockView.set('mastering');
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="mastering-suite"]')
+    ).toBeTruthy();
   });
 });

@@ -173,6 +173,7 @@ export class AppComponent {
   }
 
   navigateToView(mode: MainViewMode) {
+    if (!mode) return;
     this.uiService.navigateToView(mode);
     if (this.isMobile()) this.isSidebarOpen.set(false);
   }

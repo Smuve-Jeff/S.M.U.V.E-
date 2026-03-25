@@ -175,10 +175,37 @@ export class MusicManagerService {
   }
 
   setInstrument(trackId: number, presetId: string) {
+    const presets = this.instruments.getPresets();
+    const preset = presets.find((item) => item.id === presetId);
+    const resolvedPreset = preset ?? presets[0];
+    if (!resolvedPreset) {
+      this.logger.warn('MusicManager: No instrument presets available.');
+      return;
+    }
+    const currentTrack = this.tracks().find((t) => t.id === trackId);
+    const currentPresetName = presets.find(
+      (item) => item.id === currentTrack?.instrumentId
+    )?.name;
+    const shouldRename =
+      !currentTrack?.name || currentTrack.name === currentPresetName;
+    const resolvedName = shouldRename
+      ? resolvedPreset.name
+      : currentTrack?.name ?? resolvedPreset.name;
     this.tracks.update((ts) =>
-      ts.map((t) => (t.id === trackId ? { ...t, instrumentId: presetId } : t))
+      ts.map((t) =>
+        t.id === trackId
+          ? {
+              ...t,
+              instrumentId: resolvedPreset.id,
+              name: resolvedName,
+            }
+          : t
+      )
     );
-    this.engine.updateTrack(trackId, { instrumentId: presetId });
+    this.engine.updateTrack(trackId, {
+      instrumentId: resolvedPreset.id,
+      name: resolvedName,
+    });
   }
 
   addNote(
