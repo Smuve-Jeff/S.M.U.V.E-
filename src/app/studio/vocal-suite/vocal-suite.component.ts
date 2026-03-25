@@ -16,6 +16,7 @@ import { VocalMasteringService } from '../../services/vocal-mastering.service';
 import { VocalAiService } from '../../services/vocal-ai.service';
 import { AiService } from '../../services/ai.service';
 import { FormsModule } from '@angular/forms';
+import { MicrophoneInterfaceComponent } from '../microphone-interface/microphone-interface.component';
 
 type ViewMode = 'pipeline' | 'console';
 type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
@@ -23,7 +24,7 @@ type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
 @Component({
   selector: 'app-vocal-suite',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MicrophoneInterfaceComponent],
   templateUrl: './vocal-suite.component.html',
   styleUrls: ['./vocal-suite.component.css'],
 })

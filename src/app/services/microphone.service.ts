@@ -4,7 +4,23 @@ import { Injectable, signal, inject, OnDestroy } from '@angular/core';
 export interface AudioInputDevice {
   deviceId: string;
   label: string;
-  type: 'built-in' | 'interface' | 'midi' | 'virtual';
+  type:
+    | 'built-in'
+    | 'interface'
+    | 'midi'
+    | 'virtual'
+    | 'headset'
+    | 'speakerphone';
+  isDefault: boolean;
+  capabilities: Array<
+    | 'default'
+    | 'phantom-power'
+    | 'headphone-monitoring'
+    | 'speakerphone'
+    | 'midi-ready'
+    | 'stereo'
+    | 'usb-interface'
+  >;
 }
 
 @Injectable({
@@ -34,6 +50,70 @@ export class MicrophoneService implements OnDestroy {
     this.updateAvailableDevices();
   }
 
+  describeDevice(device: Pick<MediaDeviceInfo, 'deviceId' | 'label'>): AudioInputDevice {
+    const label = device.label || `Microphone ${device.deviceId.slice(0, 5)}`;
+    const lowerLabel = label.toLowerCase();
+    const type = this.resolveDeviceType(lowerLabel);
+    const capabilities = new Set<AudioInputDevice['capabilities'][number]>();
+
+    if (
+      device.deviceId === 'default' ||
+      device.deviceId === 'communications' ||
+      lowerLabel.includes('default') ||
+      lowerLabel.includes('communications')
+    ) {
+      capabilities.add('default');
+    }
+
+    if (
+      type === 'interface' ||
+      lowerLabel.includes('phantom') ||
+      lowerLabel.includes('48v') ||
+      lowerLabel.includes('xlr') ||
+      lowerLabel.includes('condenser')
+    ) {
+      capabilities.add('phantom-power');
+      capabilities.add('usb-interface');
+    }
+
+    if (
+      type === 'headset' ||
+      type === 'interface' ||
+      lowerLabel.includes('headphone') ||
+      lowerLabel.includes('monitor')
+    ) {
+      capabilities.add('headphone-monitoring');
+    }
+
+    if (type === 'speakerphone' || lowerLabel.includes('speakerphone')) {
+      capabilities.add('speakerphone');
+    }
+
+    if (
+      type === 'midi' ||
+      lowerLabel.includes('midi') ||
+      lowerLabel.includes('controller')
+    ) {
+      capabilities.add('midi-ready');
+    }
+
+    if (
+      lowerLabel.includes('stereo') ||
+      type === 'interface' ||
+      type === 'headset'
+    ) {
+      capabilities.add('stereo');
+    }
+
+    return {
+      deviceId: device.deviceId,
+      label,
+      type,
+      isDefault: capabilities.has('default'),
+      capabilities: Array.from(capabilities),
+    };
+  }
+
   ngOnDestroy() {
     this.stop();
     this.stopTimer();
@@ -52,36 +132,7 @@ export class MicrophoneService implements OnDestroy {
 
       const audioInputs = devices
         .filter((device) => device.kind === 'audioinput')
-        .map((device) => {
-          const label =
-            device.label || `Microphone ${device.deviceId.slice(0, 5)}`;
-          let type: AudioInputDevice['type'] = 'built-in';
-
-          const lowerLabel = label.toLowerCase();
-          if (
-            lowerLabel.includes('interface') ||
-            lowerLabel.includes('focusrite') ||
-            lowerLabel.includes('universal audio') ||
-            lowerLabel.includes('behringer') ||
-            lowerLabel.includes('preamp')
-          ) {
-            type = 'interface';
-          } else if (lowerLabel.includes('midi')) {
-            type = 'midi';
-          } else if (
-            lowerLabel.includes('virtual') ||
-            lowerLabel.includes('cable') ||
-            lowerLabel.includes('blackhole')
-          ) {
-            type = 'virtual';
-          }
-
-          return {
-            deviceId: device.deviceId,
-            label,
-            type,
-          };
-        });
+        .map((device) => this.describeDevice(device));
 
       this.availableDevices.set(audioInputs);
       if (audioInputs.length > 0 && !this.selectedDeviceId()) {
@@ -222,5 +273,48 @@ export class MicrophoneService implements OnDestroy {
     this.audioContext = null;
     this.analyserNode = null;
     this.sourceNode = null;
+  }
+
+  private resolveDeviceType(label: string): AudioInputDevice['type'] {
+    if (
+      label.includes('speakerphone') ||
+      label.includes('speaker phone') ||
+      (label.includes('speaker') && label.includes('mic'))
+    ) {
+      return 'speakerphone';
+    }
+
+    if (
+      label.includes('headset') ||
+      label.includes('headphone mic') ||
+      label.includes('airpods') ||
+      label.includes('earpods')
+    ) {
+      return 'headset';
+    }
+
+    if (
+      label.includes('interface') ||
+      label.includes('focusrite') ||
+      label.includes('universal audio') ||
+      label.includes('behringer') ||
+      label.includes('preamp')
+    ) {
+      return 'interface';
+    }
+
+    if (label.includes('midi')) {
+      return 'midi';
+    }
+
+    if (
+      label.includes('virtual') ||
+      label.includes('cable') ||
+      label.includes('blackhole')
+    ) {
+      return 'virtual';
+    }
+
+    return 'built-in';
   }
 }

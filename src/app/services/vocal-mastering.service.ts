@@ -84,6 +84,34 @@ export class VocalMasteringService {
     const p = this.params();
     const now = this.ctx.currentTime;
 
+    // De-esser / vocal cleanup focus
+    this.deesserFilter.type = 'peaking';
+    this.deesserFilter.Q.value = 3.5;
+    this.deesserFilter.frequency.setTargetAtTime(
+      p.deesser.frequency,
+      now,
+      0.05
+    );
+    this.deesserFilter.gain.setTargetAtTime(
+      p.deesser.bypass ? 0 : Math.min(0, p.deesser.threshold / 4),
+      now,
+      0.05
+    );
+
+    // Main vocal compression lane
+    this.compMid.threshold.setTargetAtTime(
+      p.multiband.mid.bypass ? 0 : p.multiband.mid.threshold,
+      now,
+      0.05
+    );
+    this.compMid.ratio.setTargetAtTime(
+      p.multiband.mid.bypass ? 1 : p.multiband.mid.ratio,
+      now,
+      0.05
+    );
+    this.compMid.attack.setTargetAtTime(0.01, now, 0.05);
+    this.compMid.release.setTargetAtTime(0.14, now, 0.05);
+
     // EQ
     this.eqLow.type = 'lowshelf';
     this.eqLow.frequency.value = 250;

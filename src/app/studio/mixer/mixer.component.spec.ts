@@ -3,9 +3,16 @@ import { signal } from '@angular/core';
 import { MixerComponent } from './mixer.component';
 import { AudioSessionService } from '../audio-session.service';
 import { MusicManagerService } from '../../services/music-manager.service';
+import { MicrophoneService } from '../../services/microphone.service';
+import { VocalMasteringService } from '../../services/vocal-mastering.service';
 
 describe('MixerComponent', () => {
   const createComponent = async () => {
+    jest
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation(() => 1 as unknown as number);
+    jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+
     const tracks = signal([
       {
         id: 1,
@@ -32,6 +39,10 @@ describe('MixerComponent', () => {
       togglePlay: jest.fn(),
       toggleRecord: jest.fn(),
       stop: jest.fn(),
+      updateChannelDevice: jest.fn(),
+      toggleChannelArm: jest.fn(),
+      toggleChannelMute: jest.fn(),
+      updateChannelPan: jest.fn(),
     };
 
     const musicManagerMock = {
@@ -44,11 +55,51 @@ describe('MixerComponent', () => {
       },
     };
 
+    const microphoneServiceMock = {
+      availableDevices: signal([
+        {
+          deviceId: 'default',
+          label: 'Default Interface',
+          type: 'interface',
+          isDefault: true,
+          capabilities: ['default', 'phantom-power', 'stereo', 'usb-interface'],
+        },
+      ]),
+      selectedDeviceId: signal<string | null>(null),
+      isInitialized: signal(false),
+      isRecording: signal(false),
+      isPaused: signal(false),
+      initialize: jest.fn().mockResolvedValue(undefined),
+      getAnalyserNode: jest.fn(),
+      startRecording: jest.fn(),
+      stopRecording: jest.fn(),
+      pauseRecording: jest.fn(),
+      resumeRecording: jest.fn(),
+    };
+
+    const masteringMock = {
+      params: signal({
+        deesser: { threshold: -24, frequency: 6500, bypass: false },
+        multiband: {
+          low: { threshold: -20, ratio: 4, bypass: false },
+          mid: { threshold: -18, ratio: 2.5, bypass: false },
+          high: { threshold: -16, ratio: 2, bypass: false },
+        },
+        exciter: { amount: 0.1, frequency: 8000, bypass: false },
+        eq: { low: 0, mid: 0, high: 0, bypass: false },
+        limiter: { ceiling: -0.1, release: 0.1, bypass: false },
+      }),
+      updateParams: jest.fn(),
+      applyToSource: jest.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [MixerComponent],
       providers: [
         { provide: AudioSessionService, useValue: audioSessionMock },
         { provide: MusicManagerService, useValue: musicManagerMock },
+        { provide: MicrophoneService, useValue: microphoneServiceMock },
+        { provide: VocalMasteringService, useValue: masteringMock },
       ],
     }).compileComponents();
 
@@ -58,6 +109,10 @@ describe('MixerComponent', () => {
 
       return { component, musicManagerMock };
     };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it('updates and clamps track gain', async () => {
     const { component, musicManagerMock } = await createComponent();

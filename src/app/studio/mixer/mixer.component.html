@@ -24,7 +24,7 @@
      </div>
    </header>
 
-  <section class="grid grid-cols-1 xl:grid-cols-[1.6fr,1fr] gap-4 mb-6">
+  <section class="grid grid-cols-1 xl:grid-cols-[1.4fr,1fr] gap-4 mb-6">
     <div class="rounded-3xl border border-white/5 bg-black/30 p-4 flex flex-wrap items-center gap-3">
       <button
         (click)="togglePlayback()"
@@ -95,7 +95,7 @@
         </div>
         <div class="rounded-2xl border border-white/5 bg-black/20 px-3 py-3">
           <div class="text-slate-500 text-[8px]">Note payload</div>
-          <div class="mt-1 text-white">{{ selectedTrackNoteCount() }} clips</div>
+          <div class="mt-1 text-white">{{ selectedTrackNoteCount() }} notes</div>
         </div>
         <div class="rounded-2xl border border-white/5 bg-black/20 px-3 py-3">
           <div class="text-slate-500 text-[8px]">Output ready</div>
@@ -107,6 +107,10 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <section class="mb-6">
+    <app-microphone-interface mode="compact"></app-microphone-interface>
   </section>
 
   <div class="flex-grow flex gap-4 overflow-hidden">
@@ -151,12 +155,13 @@
              <input
                 type="range"
                 min="0"
-                max="100"
-                step="1"
-                [value]="gainPercent(track)"
-                (input)="updateTrackGain(track.id, +($any($event.target).value))"
-                class="w-full h-1 accent-brand-primary"
-             >
+                 max="100"
+                 step="1"
+                 [value]="gainPercent(track)"
+                 (input)="updateTrackGain(track.id, +($any($event.target).value))"
+                 (click)="stopTrackSelection($event)"
+                 class="w-full h-1 accent-brand-primary"
+              >
              <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-wider">
                 <span class="text-slate-500">Pan</span>
                 <span class="text-cyan-400 font-mono">{{ panPercent(track) }}%</span>
@@ -164,13 +169,13 @@
              <input
                 type="range"
                 min="-100"
-                max="100"
-                step="1"
-                [value]="panPercent(track)"
-                (input)="updateTrackPan(track.id, +($any($event.target).value))"
-                (click)="$event.stopPropagation()"
-                class="w-full h-1 accent-cyan-400"
-              >
+                 max="100"
+                 step="1"
+                 [value]="panPercent(track)"
+                 (input)="updateTrackPan(track.id, +($any($event.target).value))"
+                 (click)="stopTrackSelection($event)"
+                 class="w-full h-1 accent-cyan-400"
+               >
            </div>
 
            <div class="w-full grid grid-cols-2 gap-2">
@@ -182,13 +187,13 @@
                <input
                  type="range"
                  min="0"
-                 max="100"
-                 step="1"
-                 [value]="sendPercent(track, 'sendA')"
-                 (input)="updateTrackSend(track.id, 'sendA', +($any($event.target).value))"
-                 (click)="$event.stopPropagation()"
-                 class="w-full h-1 accent-violet-300"
-               >
+                  max="100"
+                  step="1"
+                  [value]="sendPercent(track, 'sendA')"
+                  (input)="updateTrackSend(track.id, 'sendA', +($any($event.target).value))"
+                  (click)="stopTrackSelection($event)"
+                  class="w-full h-1 accent-violet-300"
+                >
              </div>
              <div class="flex flex-col gap-1">
                <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-wider">
@@ -198,13 +203,13 @@
                <input
                  type="range"
                  min="0"
-                 max="100"
-                 step="1"
-                 [value]="sendPercent(track, 'sendB')"
-                 (input)="updateTrackSend(track.id, 'sendB', +($any($event.target).value))"
-                 (click)="$event.stopPropagation()"
-                 class="w-full h-1 accent-fuchsia-300"
-               >
+                  max="100"
+                  step="1"
+                  [value]="sendPercent(track, 'sendB')"
+                  (input)="updateTrackSend(track.id, 'sendB', +($any($event.target).value))"
+                  (click)="stopTrackSelection($event)"
+                  class="w-full h-1 accent-fuchsia-300"
+                >
              </div>
            </div>
 
@@ -214,14 +219,14 @@
            </div>
 
            <div class="flex gap-2 w-full">
-              <button (click)="toggleMute(track.id); $event.stopPropagation()"
-                      class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
+               <button (click)="stopTrackSelection($event); toggleMute(track.id)"
+                       class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
                       [class.bg-red-600]="track.mute"
                       [class.text-white]="track.mute"
                       [class.bg-black/40]="!track.mute"
                       [class.text-slate-500]="!track.mute">M</button>
-              <button (click)="toggleSolo(track.id); $event.stopPropagation()"
-                      class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
+               <button (click)="stopTrackSelection($event); toggleSolo(track.id)"
+                       class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
                       [class.bg-brand-primary]="track.solo"
                       [class.text-black]="track.solo"
                       [class.bg-black/40]="!track.solo"
