@@ -11,6 +11,13 @@
   <app-smuve-advisor></app-smuve-advisor>
   <app-command-palette></app-command-palette>
 
+  <!-- Mobile sidebar backdrop -->
+  <div
+    *ngIf="isMobile() && isSidebarOpen() && !isFullPageMode()"
+    class="sidebar-backdrop"
+    (click)="toggleSidebar()"
+  ></div>
+
   <!-- SIDEBAR: Executive Control -->
   <aside
     *ngIf="!isFullPageMode()"
@@ -173,25 +180,25 @@
     <!-- TOP BAR -->
     <header
       *ngIf="!isFullPageMode()"
-      class="app-top-bar glass-v42 px-6 md:px-10 flex items-center justify-between z-40 border-b border-border h-16"
+      class="app-top-bar glass-v42 px-4 md:px-6 lg:px-10 flex items-center justify-between z-40 border-b border-border h-14 md:h-16"
     >
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 md:gap-4 min-w-0">
         <button
           (click)="toggleSidebar()"
-          class="w-10 h-10 rounded-lg hover:bg-background-alt text-text-dim hover:text-text-main transition-all flex items-center justify-center group"
+          class="w-10 h-10 rounded-lg hover:bg-background-alt text-text-dim hover:text-text-main transition-all flex items-center justify-center group shrink-0"
         >
           <span class="material-symbols-outlined text-2xl">{{
             isSidebarOpen() ? 'menu_open' : 'menu'
           }}</span>
         </button>
-        <div class="h-6 w-px bg-border mx-2"></div>
+        <div class="h-6 w-px bg-border mx-1 md:mx-2 hidden sm:block"></div>
         <div
-          class="hidden md:flex items-center gap-4 rounded-2xl border border-border bg-background-alt/40 px-4 py-2 min-w-0"
+          class="hidden md:flex items-center gap-3 md:gap-4 rounded-2xl border border-border bg-background-alt/40 px-3 md:px-4 py-2 min-w-0"
         >
           <div
-            class="w-11 h-11 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center"
+            class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0"
           >
-            <span class="material-symbols-outlined text-2xl">{{
+            <span class="material-symbols-outlined text-xl md:text-2xl">{{
               activeViewConfig().icon
             }}</span>
           </div>
@@ -205,28 +212,28 @@
             >
               {{ activeViewConfig().label }}
             </h2>
-            <span class="text-[11px] text-text-dim truncate">
+            <span class="text-[11px] text-text-dim truncate hidden lg:block">
               {{ activeViewConfig().description }}
             </span>
           </div>
         </div>
-        <div class="flex flex-col md:hidden">
+        <div class="flex flex-col md:hidden min-w-0">
           <span
             class="text-[8px] font-bold text-text-dim uppercase tracking-widest leading-none mb-1"
             >Navigation</span
           >
           <h2
-            class="text-xs font-bold tracking-widest text-text-main uppercase truncate max-w-[120px] md:max-w-none"
+            class="text-xs font-bold tracking-widest text-text-main uppercase truncate max-w-[120px]"
           >
             {{ uiService.getViewLabel(uiService.mainViewMode()) }}
           </h2>
         </div>
       </div>
 
-      <div class="flex items-center gap-3 md:gap-4">
+      <div class="flex items-center gap-2 md:gap-3 lg:gap-4 shrink-0">
         <!-- Status Indicators -->
         <div
-          class="hidden sm:flex items-center gap-4 bg-background-alt/50 rounded-lg px-4 py-1.5 border border-border"
+          class="hidden sm:flex items-center gap-3 md:gap-4 bg-background-alt/50 rounded-lg px-3 md:px-4 py-1.5 border border-border"
         >
           <div class="flex items-center gap-2">
             <div
@@ -235,13 +242,13 @@
               [class.bg-red-500]="!uiService.isOnline()"
             ></div>
             <span
-              class="text-[9px] font-bold tracking-widest uppercase text-text-dim"
+              class="text-[9px] font-bold tracking-widest uppercase text-text-dim hidden md:inline"
             >
               {{ uiService.isOnline() ? 'STABLE' : 'OFFLINE' }}
             </span>
           </div>
-          <div class="h-4 w-px bg-border"></div>
-          <div class="flex flex-col items-end">
+          <div class="h-4 w-px bg-border hidden md:block"></div>
+          <div class="flex flex-col items-end hidden md:flex">
             <span
               class="text-[10px] font-mono font-medium text-text-main tracking-tighter"
             >
@@ -259,17 +266,17 @@
           class="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group"
           [title]="'Toggle High-Voltage Performance'"
         >
-          <span class="material-symbols-outlined text-2xl">{{
+          <span class="material-symbols-outlined text-xl md:text-2xl">{{
             uiService.performanceMode() ? 'speed' : 'bolt'
           }}</span>
         </button>
 
         <button
           (click)="commandPalette.togglePalette()"
-          class="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group"
+          class="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group hidden sm:flex"
           [title]="'Open Command Palette (Ctrl + K)'"
         >
-          <span class="material-symbols-outlined text-2xl">search</span>
+          <span class="material-symbols-outlined text-xl md:text-2xl">search</span>
         </button>
 
         <button
@@ -292,7 +299,7 @@
           <div
             class="w-10 h-10 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all"
           >
-            <span class="material-symbols-outlined text-2xl">neurology</span>
+            <span class="material-symbols-outlined text-xl md:text-2xl">neurology</span>
           </div>
           <div
             *ngIf="uiService.isChatbotOpen()"
@@ -300,12 +307,12 @@
           ></div>
         </button>
 
-        <div class="h-6 w-px bg-border mx-2 hidden md:block"></div>
+        <div class="h-6 w-px bg-border mx-1 md:mx-2 hidden md:block"></div>
 
         <button
           *ngIf="!authService.isAuthenticated()"
           routerLink="/login"
-          class="btn-pro btn-pro-primary h-10 px-6"
+          class="btn-pro btn-pro-primary h-10 px-4 md:px-6 text-[10px] md:text-[11px]"
         >
           LOGIN
         </button>
@@ -321,7 +328,7 @@
 
     <section
       *ngIf="!isFullPageMode()"
-      class="border-b border-border glass-v42 px-4 md:px-8 py-2"
+      class="border-b border-border glass-v42 px-4 md:px-8 py-2 hidden sm:block"
     >
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2 text-brand-primary">
@@ -347,7 +354,7 @@
           </select>
           <button
             (click)="commandPalette.togglePalette()"
-            class="px-3 py-1.5 rounded-xl border border-border text-[9px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+            class="px-3 py-1.5 rounded-xl border border-border text-[9px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all hidden md:block"
           >
             Palette
           </button>
@@ -384,7 +391,7 @@
 
     <!-- FOOTER: Simplified v4.2 -->
     <footer
-      *ngIf="!isFullPageMode()"
+      *ngIf="!isFullPageMode() && !isMobile()"
       class="h-8 glass-v42 border-t border-border flex items-center justify-center px-10"
     >
       <span class="text-[9px] uppercase elegant-footer-text cursor-default">
@@ -396,42 +403,42 @@
   <!-- MOBILE BOTTOM NAV -->
   <nav
     *ngIf="!isFullPageMode() && isMobile()"
-    class="mobile-nav-bar border-t border-border glass-v42 h-16 flex items-center justify-around px-4 z-50"
+    class="mobile-nav-bar border-t border-border glass-v42 z-50"
   >
     <button
       (click)="navigateToView('hub')"
-      class="flex flex-col items-center gap-1 group"
+      class="mobile-nav-button"
       [class.text-brand-primary]="uiService.mainViewMode() === 'hub'"
       [class.text-text-dim]="uiService.mainViewMode() !== 'hub'"
     >
-      <span class="material-symbols-outlined text-xl">grid_view</span>
+      <span class="material-symbols-outlined">grid_view</span>
       <span class="text-[8px] font-bold uppercase">Hub</span>
     </button>
     <button
       (click)="navigateToView('studio')"
-      class="flex flex-col items-center gap-1 group"
+      class="mobile-nav-button"
       [class.text-brand-primary]="uiService.mainViewMode() === 'studio'"
       [class.text-text-dim]="uiService.mainViewMode() !== 'studio'"
     >
-      <span class="material-symbols-outlined text-xl">token</span>
+      <span class="material-symbols-outlined">token</span>
       <span class="text-[8px] font-bold uppercase">Studio</span>
     </button>
     <button
       (click)="navigateToView('strategy')"
-      class="flex flex-col items-center gap-1 group"
+      class="mobile-nav-button"
       [class.text-brand-primary]="uiService.mainViewMode() === 'strategy'"
       [class.text-text-dim]="uiService.mainViewMode() !== 'strategy'"
     >
-      <span class="material-symbols-outlined text-xl">neurology</span>
+      <span class="material-symbols-outlined">neurology</span>
       <span class="text-[8px] font-bold uppercase">Intel</span>
     </button>
     <button
       (click)="navigateToView('profile')"
-      class="flex flex-col items-center gap-1 group"
+      class="mobile-nav-button"
       [class.text-brand-primary]="uiService.mainViewMode() === 'profile'"
       [class.text-text-dim]="uiService.mainViewMode() !== 'profile'"
     >
-      <span class="material-symbols-outlined text-xl">person</span>
+      <span class="material-symbols-outlined">person</span>
       <span class="text-[8px] font-bold uppercase">Profile</span>
     </button>
   </nav>

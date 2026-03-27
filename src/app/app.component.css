@@ -19,6 +19,20 @@
     -webkit-overflow-scrolling: touch;
 }
 
+/* Backdrop overlay for mobile sidebar */
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
 .app-content {
     position: relative;
     background-color: var(--color-bg);
@@ -48,17 +62,34 @@
   /* Respect Android / iOS safe-area (notch / navigation gestures) */
   padding-bottom: env(safe-area-inset-bottom, 0);
   z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
 }
 
 .content-scroll-container {
   scroll-padding-bottom: calc(
     var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px)
   );
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* Transitions */
 .sidebar, .app-top-bar, .app-content, footer {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tablet breakpoint: Better layout for tablet landscape/portrait */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .sidebar {
+        width: 240px !important;
+    }
+
+    .app-top-bar {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
 }
 
 @media (max-width: 1024px) {
@@ -74,28 +105,50 @@
        The mobile nav uses --mobile-nav-height plus any safe-area bottom inset. */
     .mobile-content-offset {
         padding-bottom: calc(
-          var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px)
+          var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 8px
         );
     }
 
-    .mobile-nav-bar {
-        gap: 8px;
+    /* Improved mobile nav bar button spacing and touch targets */
+    .mobile-nav-bar button {
+        min-width: 68px;
+        min-height: 48px;
+        padding: 8px 12px;
+        border-radius: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* 64px width / 44px height align with Android's ~48dp tap targets on 1080px-wide devices */
-    .mobile-nav-bar button {
-        min-width: 64px;
-        min-height: 44px;
-        padding: 6px 10px;
-        border-radius: 12px;
+    .mobile-nav-bar button:active {
+        transform: scale(0.95);
     }
 
     .mobile-nav-bar .material-symbols-outlined {
-        font-size: 22px;
+        font-size: 24px;
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
 
     .mobile-nav-bar span {
         font-size: 10px;
         letter-spacing: 0.12em;
+        font-weight: 700;
+    }
+}
+
+/* Small phone optimizations */
+@media (max-width: 640px) {
+    .mobile-content-offset {
+        padding-bottom: calc(
+          var(--mobile-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 8px
+        );
+    }
+
+    .mobile-nav-bar button {
+        min-width: 60px;
+        min-height: 52px;
     }
 }
