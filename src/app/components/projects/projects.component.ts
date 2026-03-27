@@ -91,6 +91,10 @@ export class ProjectsComponent {
   }
 
   getPlaybookSteps(project: Project): PlaybookStep[] {
+    if (this.playbookTemplate.length === 0) {
+      return [];
+    }
+
     if (project.tasks.length === 0) {
       return this.playbookTemplate.map((phase) => ({
         ...phase,
