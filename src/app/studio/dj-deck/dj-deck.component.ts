@@ -58,6 +58,11 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   isScratchingB = signal(false);
   private lastAngleA = 0;
   private lastAngleB = 0;
+  private platterCenters: Record<'A' | 'B', { x: number; y: number } | null> = {
+    A: null,
+    B: null,
+  };
+  private wasPlaying: Record<'A' | 'B', boolean> = { A: false, B: false };
 
   public uiService = inject(UIService);
   private profileService = inject(UserProfileService);
@@ -205,6 +210,22 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.engine.getDeckLevel(id);
   }
 
+  deckProgressPercent(deck: 'A' | 'B') {
+    const d = deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+    if (!d.duration) return 0;
+    return Math.max(0, Math.min(1, d.progress / d.duration));
+  }
+
+  progressRingStyle(deck: 'A' | 'B') {
+    const pct = this.deckProgressPercent(deck);
+    const accent =
+      deck === 'A'
+        ? 'var(--color-primary, #10b981)'
+        : 'var(--color-accent, #f59e0b)';
+    const deg = pct * 360;
+    return `conic-gradient(${accent} ${deg}deg, rgba(148,163,184,0.2) ${deg}deg 360deg)`;
+  }
+
   async loadTrackFor(deckId: 'A' | 'B') {
     const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
     if (!files?.length) return;
@@ -306,15 +327,19 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onPlatterDown(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {
+    event.preventDefault();
     const isA = deck === 'A';
     if (isA) this.isScratchingA.set(true);
     else this.isScratchingB.set(true);
 
-    const angle = this.getAngle(event);
+    const angle = this.getAngle(event, deck);
     if (isA) this.lastAngleA = angle;
     else this.lastAngleB = angle;
 
-    this.engine.pauseDeck(deck);
+    this.platterCenters[deck] = this.getEventTargetCenter(event);
+    const deckState = isA ? this.deckService.deckA() : this.deckService.deckB();
+    this.wasPlaying[deck] = deckState.isPlaying;
+    if (deckState.isPlaying) this.engine.pauseDeck(deck);
   }
 
   @HostListener('window:mousemove', [''])
@@ -337,16 +362,19 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   onPlatterUp() {
     if (this.isScratchingA()) {
       this.isScratchingA.set(false);
-      if (this.deckService.deckA().isPlaying) this.engine.playDeck('A');
+      if (this.wasPlaying.A) this.engine.playDeck('A');
+      this.wasPlaying.A = false;
     }
     if (this.isScratchingB()) {
       this.isScratchingB.set(false);
-      if (this.deckService.deckB().isPlaying) this.engine.playDeck('B');
+      if (this.wasPlaying.B) this.engine.playDeck('B');
+      this.wasPlaying.B = false;
     }
   }
 
   private processScratch(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {
-    const angle = this.getAngle(event);
+    event.preventDefault();
+    const angle = this.getAngle(event, deck);
     const lastAngle = deck === 'A' ? this.lastAngleA : this.lastAngleB;
     let delta = angle - lastAngle;
 
@@ -356,12 +384,14 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (Math.abs(delta) > 0.01) {
       const progress = this.engine.getDeckProgress(deck).position;
-      const duration = this.deckService.deckA().duration; // Assuming A/B have same logic for now
-      // 2*PI radians = 1 rotation = ~1.8 seconds at 33 1/3 RPM?
-      // Let's just say delta * scale
-      const scrub = delta * 0.5;
+      const deckState =
+        deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+      const duration =
+        deckState.duration || this.engine.getDeckProgress(deck).duration || 0;
+      const scrub = delta * Math.max(0.25, deckState.playbackRate * 0.55);
       let newPos = progress + scrub;
       if (newPos < 0) newPos = 0;
+      if (duration) newPos = Math.min(duration, newPos);
       this.engine.seekDeck(deck, newPos);
 
       if (deck === 'A') this.lastAngleA = angle;
@@ -369,29 +399,40 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  private getAngle(event: MouseEvent | TouchEvent): number {
-    const clientX =
-      'touches' in event ? event.touches[0].clientX : event.clientX;
-    const clientY =
-      'touches' in event ? event.touches[0].clientY : event.clientY;
+  private getAngle(event: MouseEvent | TouchEvent, deck?: 'A' | 'B'): number {
+    const { x, y } = this.getPointerPosition(event);
+    const fallbackCenter = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+    };
+    const storedCenter = deck ? this.platterCenters[deck] : null;
+    const center =
+      storedCenter || this.getEventTargetCenter(event) || fallbackCenter;
+    return Math.atan2(y - center.y, x - center.x);
+  }
 
-    const target = event.currentTarget as HTMLElement;
-    if (target) {
-      const rect = target.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      return Math.atan2(clientY - centerY, clientX - centerX);
+  private getPointerPosition(event: MouseEvent | TouchEvent) {
+    if ('touches' in event && event.touches.length) {
+      const touch = event.touches[0];
+      return { x: touch.clientX, y: touch.clientY };
     }
+    return { x: (event as MouseEvent).clientX, y: (event as MouseEvent).clientY };
+  }
 
-    return Math.atan2(
-      clientY - window.innerHeight / 2,
-      clientX - window.innerWidth / 2
-    );
+  private getEventTargetCenter(event: MouseEvent | TouchEvent) {
+    const target = event.currentTarget as HTMLElement | null;
+    if (target && target.getBoundingClientRect) {
+      const rect = target.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
+    return null;
   }
 
   applyScratchFx(deck: 'A' | 'B', type: 'brake' | 'spinback' | 'transform') {
+    const deckState =
+      deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
     if (type === 'brake') {
-      let rate = this.deckService.deckA().playbackRate;
+      let rate = deckState.playbackRate;
       const interval = setInterval(() => {
         rate -= 0.1;
         if (rate <= 0) {
@@ -404,10 +445,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     } else if (type === 'spinback') {
       this.engine.setDeckRate(deck, -3.0);
       setTimeout(() => {
-        this.engine.setDeckRate(deck, this.deckService.deckA().playbackRate);
+        this.engine.setDeckRate(deck, deckState.playbackRate);
       }, 500);
     } else if (type === 'transform') {
-      const originalGain = this.deckService.deckA().gain;
+      const originalGain = deckState.gain;
       let count = 0;
       const interval = setInterval(() => {
         this.engine.setDeckGain(deck, count % 2 === 0 ? 0 : originalGain);
