@@ -92,4 +92,18 @@ describe('AudioEngineService', () => {
       0.01
     );
   });
+
+  it('should initialize deck filters fully open', () => {
+    const deckA = service.getDeck('A');
+    const deckB = service.getDeck('B');
+    expect(deckA.filter.frequency.value).toBe(20000);
+    expect(deckB.filter.frequency.value).toBe(20000);
+  });
+
+  it('should bypass saturation when amount is zero', () => {
+    service.setSaturation(0.4);
+    service.setSaturation(0);
+    expect(service.saturationNode.curve).toBeNull();
+    expect(service.saturationNode.oversample).toBe('none');
+  });
 });
