@@ -112,7 +112,7 @@ export class AudioEngineService {
     this.limiter.threshold.value = -0.5;
     this.limiter.ratio.value = 20;
 
-    this.setupSaturation(0.2);
+    this.setupSaturation(0);
     this.initDeck('A');
     this.initDeck('B');
     this.loadDefaultImpulse();
@@ -139,6 +139,11 @@ export class AudioEngineService {
   }
 
   private setupSaturation(amount: number) {
+    if (amount <= 0) {
+      this.saturationNode.curve = null;
+      this.saturationNode.oversample = 'none';
+      return;
+    }
     const k = amount * 100;
     const n_samples = 44100;
     const curve = new Float32Array(n_samples);
@@ -193,6 +198,8 @@ export class AudioEngineService {
     deck.eqMid.Q.value = 1;
     deck.eqHigh.type = 'highshelf';
     deck.eqHigh.frequency.value = 4000;
+    deck.filter.type = 'lowpass';
+    deck.filter.frequency.value = 20000;
 
     deck.analyser.fftSize = 1024;
 

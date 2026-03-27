@@ -1,10 +1,12 @@
 export class Compressor {
   readonly input: GainNode;
   readonly compressor: DynamicsCompressorNode;
+  readonly output: GainNode;
 
   constructor(private readonly context: AudioContext) {
     this.input = this.context.createGain();
     this.compressor = this.context.createDynamicsCompressor();
+    this.output = this.context.createGain();
 
     // Default compressor settings
     this.compressor.threshold.value = -24;
@@ -14,14 +16,15 @@ export class Compressor {
     this.compressor.release.value = 0.25;
 
     this.input.connect(this.compressor);
+    this.compressor.connect(this.output);
   }
 
   connect(destination: AudioNode): void {
-    this.compressor.connect(destination);
+    this.output.connect(destination);
   }
 
   disconnect(): void {
-    this.compressor.disconnect();
+    this.output.disconnect();
   }
 
   // Methods to adjust compressor settings (optional)

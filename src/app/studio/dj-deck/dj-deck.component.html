@@ -116,7 +116,7 @@
         </div>
         <div class="micro-control">
           <div class="micro-label">Filter Sweep</div>
-          <input type="range" min="200" max="18000" step="100"
+          <input type="range" min="200" max="20000" step="100"
                  [value]="deckService.deckA().filterFreq"
                  (input)="setFilter('A', $any($event.target).value)"
                  class="micro-slider accent-brand-primary">
@@ -266,7 +266,7 @@
         </div>
         <div class="micro-control">
           <div class="micro-label">Filter Sweep</div>
-          <input type="range" min="200" max="18000" step="100"
+          <input type="range" min="200" max="20000" step="100"
                  [value]="deckService.deckB().filterFreq"
                  (input)="setFilter('B', $any($event.target).value)"
                  class="micro-slider accent-brand-secondary">

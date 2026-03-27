@@ -65,7 +65,11 @@ export class MasterControlsComponent {
   }
 
   toggleSoftClip(): void {
-    this.isSoftClipActive.update((v) => !v);
+    this.isSoftClipActive.update((v) => {
+      const next = !v;
+      this.audioEngine.setSaturation(next ? 0.2 : 0);
+      return next;
+    });
   }
 
   updateMasterVolume(event: Event): void {

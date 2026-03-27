@@ -3,12 +3,14 @@ export class Reverb {
   private readonly wetGain: GainNode;
   private readonly dryGain: GainNode;
   private readonly _input: GainNode;
+  readonly output: GainNode;
 
   constructor(private readonly audioContext: AudioContext) {
     this.convolver = this.audioContext.createConvolver();
     this.wetGain = this.audioContext.createGain();
     this.dryGain = this.audioContext.createGain();
     this._input = this.audioContext.createGain();
+    this.output = this.audioContext.createGain();
 
     this.wetGain.gain.value = 0.5;
     this.dryGain.gain.value = 0.5;
@@ -16,13 +18,18 @@ export class Reverb {
     this._input.connect(this.dryGain);
     this._input.connect(this.convolver);
     this.convolver.connect(this.wetGain);
+    this.wetGain.connect(this.output);
+    this.dryGain.connect(this.output);
 
     this.generateImpulseResponse();
   }
 
   connect(node: AudioNode): void {
-    this.wetGain.connect(node);
-    this.dryGain.connect(node);
+    this.output.connect(node);
+  }
+
+  disconnect(): void {
+    this.output.disconnect();
   }
 
   get input(): AudioNode {
