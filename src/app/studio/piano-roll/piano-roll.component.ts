@@ -24,6 +24,7 @@ import { MasteringSuiteComponent } from '../mastering-suite/mastering-suite.comp
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { Router } from '@angular/router';
+import { HistoryService } from '../../services/history.service';
 
 @Component({
   selector: 'app-piano-roll',
@@ -44,6 +45,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   aiService = inject(AiService);
   uiService = inject(UIService);
   router = inject(Router);
+  historyService = inject(HistoryService);
 
   @ViewChild('scrollContainer') scrollContainer!: ElementRef;
 
@@ -456,6 +458,183 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   setAudioDockView(view: 'mixer' | 'drum-machine' | 'mastering') {
     this.audioDockView.set(view);
     this.showAudioDock.set(true);
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    const track = this.selectedTrack();
+    if (!track) return;
+
+    // Don't intercept if typing in an input field
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+    // Undo/Redo
+    if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
+      event.preventDefault();
+      this.historyService.undo();
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || (event.key === 'z' && event.shiftKey))) {
+      event.preventDefault();
+      this.historyService.redo();
+      return;
+    }
+
+    // Delete selected notes
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      if (this.selectedNoteIds().size > 0) {
+        event.preventDefault();
+        this.deleteSelectedWithHistory();
+      }
+      return;
+    }
+
+    // Select all notes (Ctrl+A)
+    if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+      event.preventDefault();
+      const allNoteIds = new Set(track.notes.map(n => n.id));
+      this.selectedNoteIds.set(allNoteIds);
+      return;
+    }
+
+    // Duplicate selected (Ctrl+D)
+    if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
+      event.preventDefault();
+      if (this.selectedNoteIds().size > 0) {
+        this.duplicateSelectedWithHistory();
+      }
+      return;
+    }
+
+    // Copy/Paste could be added here in the future
+
+    // Arrow key transposition
+    if (event.key === 'ArrowUp' && this.selectedNoteIds().size > 0) {
+      event.preventDefault();
+      this.transposeSelectedWithHistory(1);
+      return;
+    }
+    if (event.key === 'ArrowDown' && this.selectedNoteIds().size > 0) {
+      event.preventDefault();
+      this.transposeSelectedWithHistory(-1);
+      return;
+    }
+
+    // Quantize (Q key)
+    if (event.key === 'q' || event.key === 'Q') {
+      event.preventDefault();
+      this.quantizeNotesWithHistory();
+      return;
+    }
+  }
+
+  private deleteSelectedWithHistory() {
+    const track = this.selectedTrack();
+    if (!track) return;
+
+    const notesToDelete = track.notes.filter(n => this.selectedNoteIds().has(n.id));
+    const deletedNotes = notesToDelete.map(n => ({ ...n })); // Deep copy
+
+    this.historyService.pushAction({
+      description: `Delete ${deletedNotes.length} note(s)`,
+      undo: () => {
+        deletedNotes.forEach(note => {
+          this.musicManager.addNoteToTrack(track.id, {
+            midi: note.midi,
+            step: note.step,
+            length: note.length,
+            velocity: note.velocity,
+          });
+        });
+      },
+      redo: () => {
+        notesToDelete.forEach(n => {
+          this.musicManager.deleteNoteById(track.id, n.id);
+        });
+      },
+    });
+
+    this.deleteSelected();
+  }
+
+  private transposeSelectedWithHistory(semitones: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+
+    const affectedNotes = track.notes
+      .filter(n => this.selectedNoteIds().has(n.id))
+      .map(n => ({ id: n.id, oldMidi: n.midi, newMidi: this.clamp(n.midi + semitones, 0, 127) }));
+
+    this.historyService.pushAction({
+      description: `Transpose ${affectedNotes.length} note(s) ${semitones > 0 ? 'up' : 'down'}`,
+      undo: () => {
+        affectedNotes.forEach(({ id, oldMidi }) => {
+          this.musicManager.updateNote(track.id, id, { midi: oldMidi });
+        });
+      },
+      redo: () => {
+        affectedNotes.forEach(({ id, newMidi }) => {
+          this.musicManager.updateNote(track.id, id, { midi: newMidi });
+        });
+      },
+    });
+
+    this.transposeSelected(semitones);
+  }
+
+  private duplicateSelectedWithHistory() {
+    const track = this.selectedTrack();
+    if (!track) return;
+
+    const notesToDup = track.notes.filter(n => this.selectedNoteIds().has(n.id));
+    const beforeCount = track.notes.length;
+
+    this.historyService.pushAction({
+      description: `Duplicate ${notesToDup.length} note(s)`,
+      undo: () => {
+        // Remove the duplicated notes by removing the last N notes added
+        const currentTrack = this.musicManager.tracks().find(t => t.id === track.id);
+        if (currentTrack) {
+          const addedNoteIds = currentTrack.notes.slice(beforeCount).map(n => n.id);
+          addedNoteIds.forEach(id => {
+            this.musicManager.deleteNoteById(track.id, id);
+          });
+        }
+      },
+      redo: () => {
+        notesToDup.forEach(n => {
+          this.musicManager.addNote(track.id, n.midi, n.step + 16, n.length, n.velocity);
+        });
+      },
+    });
+
+    this.duplicateSelected();
+  }
+
+  private quantizeNotesWithHistory() {
+    const track = this.selectedTrack();
+    if (!track) return;
+
+    const affectedNotes = track.notes
+      .filter(n => this.selectedNoteIds().size === 0 || this.selectedNoteIds().has(n.id))
+      .map(n => ({ id: n.id, oldStep: n.step, newStep: this.snapStep(n.step) }));
+
+    this.historyService.pushAction({
+      description: `Quantize ${affectedNotes.length} note(s)`,
+      undo: () => {
+        affectedNotes.forEach(({ id, oldStep }) => {
+          this.musicManager.updateNote(track.id, id, { step: oldStep });
+        });
+      },
+      redo: () => {
+        affectedNotes.forEach(({ id, newStep }) => {
+          this.musicManager.updateNote(track.id, id, { step: newStep });
+        });
+      },
+    });
+
+    this.quantizeNotes();
   }
 
   private snapStep(step: number): number {
