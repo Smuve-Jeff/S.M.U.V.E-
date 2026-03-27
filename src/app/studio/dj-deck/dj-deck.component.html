@@ -34,42 +34,107 @@
 
     <!-- DECK A (3D TRANSFORMED) -->
     <div class="deck-3d-wrapper deck-a-transform">
-      <div class="platter-container relative aspect-square">
-        <!-- Vinyl Base -->
-        <div class="vinyl-platter absolute inset-0 rounded-full shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-[12px] border-[#1a1a1a]"
-             [class.animate-spin-vinyl]="deckService.deckA().isPlaying"
-             (mousedown)="onPlatterDown('A', $event)" (touchstart)="onPlatterDown('A', $event)">
-          <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-black via-slate-900 to-black opacity-90"></div>
-          <div class="absolute inset-[10%] rounded-full border border-white/5 opacity-20"></div>
-          <div class="absolute inset-[20%] rounded-full border border-white/5 opacity-20"></div>
-          <!-- Label -->
-          <div class="absolute inset-[30%] rounded-full bg-brand-primary/20 flex items-center justify-center overflow-hidden border-2 border-brand-primary/40">
-            <span class="text-[8px] font-black text-white text-center uppercase leading-tight px-4">{{ deckService.deckA().track?.name || 'NO TRACK' }}</span>
+      <div class="deck-chassis glass-v42 p-4 md:p-6 rounded-[30px] border border-white/10 backdrop-blur relative overflow-hidden">
+        <div class="chassis-gradient gradient-a"></div>
+        <div class="flex items-center justify-between mb-3 relative z-10">
+          <div class="badge badge-a">Turntable A</div>
+          <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.18em]">
+            Pitch {{ pitchAPercentage() }} · {{ (deckProgressPercent('A') * 100) | number:'1.0-1' }}%
           </div>
         </div>
-        <!-- Tone Arm -->
-        <div class="tone-arm absolute top-0 right-0 w-8 h-48 origin-top pointer-events-none transition-transform duration-1000"
-             [style.transform]="deckService.deckA().isPlaying ? 'rotate(12deg)' : 'rotate(-15deg)'">
-          <div class="w-1.5 h-full bg-gradient-to-r from-slate-400 to-slate-600 rounded-full shadow-lg"></div>
-          <div class="w-4 h-8 bg-slate-800 absolute bottom-0 left-[-6px] rounded-sm border border-white/10"></div>
+        <div class="platter-container relative aspect-square">
+          <div class="platter-glow aura-a"></div>
+          <div class="progress-ring" [style.background]="progressRingStyle('A')"></div>
+          <div class="platter-reflection"></div>
+          <div
+            class="vinyl-platter absolute inset-0 rounded-full shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-[10px] border-[#0f1116]"
+            [class.animate-spin-vinyl]="deckService.deckA().isPlaying && !isScratchingA()"
+            [class.scratch-active]="isScratchingA()"
+            (mousedown)="onPlatterDown('A', $event)"
+            (touchstart)="onPlatterDown('A', $event)"
+          >
+            <div class="absolute inset-0 rounded-full bg-gradient-to-br from-black via-slate-900 to-black opacity-90"></div>
+            <div class="absolute inset-[8%] rounded-full border border-white/5 opacity-30"></div>
+            <div class="absolute inset-[16%] rounded-full border border-white/5 opacity-20"></div>
+            <div class="absolute inset-[24%] rounded-full border border-white/5 opacity-10"></div>
+            <div class="absolute inset-[32%] rounded-full bg-brand-primary/15 flex flex-col items-center justify-center overflow-hidden border border-brand-primary/40 text-center px-3">
+              <span class="text-[10px] font-black text-white uppercase leading-tight max-h-[2.6em] overflow-hidden">
+                {{ deckService.deckA().track?.name || 'No Track Loaded' }}
+              </span>
+              <span class="text-[9px] font-black text-brand-primary/80 mt-1">BPM {{ deckService.deckA().bpm }}</span>
+            </div>
+          </div>
+          <div class="status-pill left-4 bottom-4 bg-brand-primary/10 text-brand-primary border-brand-primary/30">
+            {{ isScratchingA() ? 'Scratch Hold' : 'Live Play' }}
+          </div>
+          <div class="tone-arm absolute top-0 right-0 w-8 h-48 origin-top pointer-events-none transition-transform duration-1000"
+               [style.transform]="deckService.deckA().isPlaying ? 'rotate(12deg)' : 'rotate(-15deg)'">
+            <div class="w-1.5 h-full bg-gradient-to-r from-slate-400 to-slate-600 rounded-full shadow-lg"></div>
+            <div class="w-4 h-8 bg-slate-800 absolute bottom-0 left-[-6px] rounded-sm border border-white/10"></div>
+          </div>
+        </div>
+        <div class="deck-readouts mt-4 grid grid-cols-2 gap-3 relative z-10">
+          <div class="readout-card">
+            <div class="label">Position</div>
+            <div class="value text-brand-primary">{{ (deckProgressPercent('A') * 100) | number:'1.0-1' }}%</div>
+          </div>
+          <div class="readout-card text-right">
+            <div class="label">Pitch</div>
+            <div class="value text-white">{{ pitchAPercentage() }}</div>
+          </div>
         </div>
       </div>
-      <!-- Deck A Controls (Overlaying the base) -->
-      <div class="mt-8 flex justify-center gap-4">
-        <button (click)="deckService.togglePlay('A')" class="w-12 h-12 rounded-full bg-slate-900 border border-brand-primary/40 flex items-center justify-center text-brand-primary shadow-lg active:scale-95">
+
+      <div class="mt-6 flex justify-center gap-4 flex-wrap">
+        <button (click)="loadTrackFor('A')" class="btn-chrome text-brand-primary border-brand-primary/50">
+          <i class="fas fa-plus"></i> Add Track
+        </button>
+        <button (click)="tapBpm('A')" class="btn-chrome text-slate-200 border-white/20">
+          <span class="tracking-[0.3em] text-[10px] font-black">Tap BPM</span>
+        </button>
+        <button (click)="deckService.togglePlay('A')" class="btn-chrome emphasis text-brand-primary border-brand-primary/50">
           <i class="fas" [class.fa-play]="!deckService.deckA().isPlaying" [class.fa-pause]="deckService.deckA().isPlaying"></i>
         </button>
-        <button (click)="tapBpm('A')" class="w-12 h-12 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white">
-          <span class="text-[8px] font-black tracking-widest">TAP</span>
-        </button>
-        <button (click)="loadTrackFor('A')" class="w-12 h-12 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-slate-500 hover:text-white">
-          <i class="fas fa-plus"></i>
-        </button>
+      </div>
+
+      <div class="mt-4 grid grid-cols-4 gap-2 performance-grid">
+        @for (pad of [0,1,2,3,4,5,6,7]; track pad) {
+          <button class="pad-btn border-brand-primary/30 hover:bg-brand-primary/10"
+                  (click)="handlePadPress('A', pad)">
+            Cue {{ pad + 1 }}
+          </button>
+        }
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3">
+        <div class="micro-control">
+          <div class="micro-label">Pitch Bend</div>
+          <input type="range" min="0.5" max="1.5" step="0.01"
+                 [value]="deckService.deckA().playbackRate"
+                 (input)="setPlaybackRate('A', $any($event.target).value)"
+                 class="micro-slider accent-brand-primary">
+        </div>
+        <div class="micro-control">
+          <div class="micro-label">Filter Sweep</div>
+          <input type="range" min="200" max="18000" step="100"
+                 [value]="deckService.deckA().filterFreq"
+                 (input)="setFilter('A', $any($event.target).value)"
+                 class="micro-slider accent-brand-primary">
+        </div>
       </div>
     </div>
 
     <!-- CENTRAL MIXER (The DiscDj Style) -->
-    <div class="central-mixer-console glass-v42 p-4 md:p-6 rounded-[30px] md:rounded-[40px] border-white/10 flex flex-col gap-4 md:gap-6 shadow-2xl titanium-texture">
+    <div class="central-mixer-console glass-v42 p-4 md:p-6 rounded-[30px] md:rounded-[40px] border-white/10 flex flex-col gap-4 md:gap-6 shadow-2xl titanium-texture relative overflow-hidden">
+      <div class="chassis-gradient gradient-center"></div>
+      <div class="flex items-center justify-between z-10 relative">
+        <div class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Performance Modes</div>
+        <div class="flex gap-2">
+          <button class="mode-chip" [class.active]="performanceMode() === 'cue'" (click)="performanceMode.set('cue')">Cue</button>
+          <button class="mode-chip" [class.active]="performanceMode() === 'roll'" (click)="performanceMode.set('roll')">Roll</button>
+          <button class="mode-chip" [class.active]="performanceMode() === 'sampler'" (click)="performanceMode.set('sampler')">Sampler</button>
+        </div>
+      </div>
       <!-- High/Mid/Low Knobs -->
       <div class="mixer-strips flex justify-around">
         <div class="eq-strip flex flex-col gap-4">
@@ -120,33 +185,92 @@
 
     <!-- DECK B (3D TRANSFORMED) -->
     <div class="deck-3d-wrapper deck-b-transform">
-      <div class="platter-container relative aspect-square">
-        <!-- Vinyl Base -->
-        <div class="vinyl-platter absolute inset-0 rounded-full shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-[12px] border-[#1a1a1a]"
-             [class.animate-spin-vinyl]="deckService.deckB().isPlaying"
-             (mousedown)="onPlatterDown('B', $event)" (touchstart)="onPlatterDown('B', $event)">
-          <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-black via-slate-900 to-black opacity-90"></div>
-          <div class="absolute inset-[30%] rounded-full bg-brand-secondary/20 flex items-center justify-center overflow-hidden border-2 border-brand-secondary/40">
-            <span class="text-[8px] font-black text-white text-center uppercase leading-tight px-4">{{ deckService.deckB().track?.name || 'NO TRACK' }}</span>
+      <div class="deck-chassis glass-v42 p-4 md:p-6 rounded-[30px] border border-white/10 backdrop-blur relative overflow-hidden">
+        <div class="chassis-gradient gradient-b"></div>
+        <div class="flex items-center justify-between mb-3 relative z-10">
+          <div class="badge badge-b">Turntable B</div>
+          <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.18em]">
+            Pitch {{ pitchBPercentage() }} · {{ (deckProgressPercent('B') * 100) | number:'1.0-1' }}%
           </div>
         </div>
-        <!-- Tone Arm -->
-        <div class="tone-arm absolute top-0 left-0 w-8 h-48 origin-top pointer-events-none transition-transform duration-1000 scale-x-[-1]"
-             [style.transform]="deckService.deckB().isPlaying ? 'rotate(-12deg)' : 'rotate(15deg)'">
-          <div class="w-1.5 h-full bg-gradient-to-r from-slate-400 to-slate-600 rounded-full shadow-lg"></div>
-          <div class="w-4 h-8 bg-slate-800 absolute bottom-0 left-[-6px] rounded-sm border border-white/10"></div>
+        <div class="platter-container relative aspect-square">
+          <div class="platter-glow aura-b"></div>
+          <div class="progress-ring" [style.background]="progressRingStyle('B')"></div>
+          <div class="platter-reflection"></div>
+          <div
+            class="vinyl-platter absolute inset-0 rounded-full shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-[10px] border-[#0f1116]"
+            [class.animate-spin-vinyl]="deckService.deckB().isPlaying && !isScratchingB()"
+            [class.scratch-active]="isScratchingB()"
+            (mousedown)="onPlatterDown('B', $event)"
+            (touchstart)="onPlatterDown('B', $event)"
+          >
+            <div class="absolute inset-0 rounded-full bg-gradient-to-br from-black via-slate-900 to-black opacity-90"></div>
+            <div class="absolute inset-[8%] rounded-full border border-white/5 opacity-30"></div>
+            <div class="absolute inset-[16%] rounded-full border border-white/5 opacity-20"></div>
+            <div class="absolute inset-[24%] rounded-full border border-white/5 opacity-10"></div>
+            <div class="absolute inset-[32%] rounded-full bg-brand-secondary/15 flex flex-col items-center justify-center overflow-hidden border border-brand-secondary/40 text-center px-3">
+              <span class="text-[10px] font-black text-white uppercase leading-tight max-h-[2.6em] overflow-hidden">
+                {{ deckService.deckB().track?.name || 'No Track Loaded' }}
+              </span>
+              <span class="text-[9px] font-black text-brand-secondary/80 mt-1">BPM {{ deckService.deckB().bpm }}</span>
+            </div>
+          </div>
+          <div class="status-pill right-4 bottom-4 bg-brand-secondary/10 text-brand-secondary border-brand-secondary/30">
+            {{ isScratchingB() ? 'Scratch Hold' : 'Live Play' }}
+          </div>
+          <div class="tone-arm absolute top-0 left-0 w-8 h-48 origin-top pointer-events-none transition-transform duration-1000 scale-x-[-1]"
+               [style.transform]="deckService.deckB().isPlaying ? 'rotate(-12deg)' : 'rotate(15deg)'">
+            <div class="w-1.5 h-full bg-gradient-to-r from-slate-400 to-slate-600 rounded-full shadow-lg"></div>
+            <div class="w-4 h-8 bg-slate-800 absolute bottom-0 left-[-6px] rounded-sm border border-white/10"></div>
+          </div>
+        </div>
+        <div class="deck-readouts mt-4 grid grid-cols-2 gap-3 relative z-10">
+          <div class="readout-card">
+            <div class="label">Position</div>
+            <div class="value text-brand-secondary">{{ (deckProgressPercent('B') * 100) | number:'1.0-1' }}%</div>
+          </div>
+          <div class="readout-card text-right">
+            <div class="label">Pitch</div>
+            <div class="value text-white">{{ pitchBPercentage() }}</div>
+          </div>
         </div>
       </div>
-      <div class="mt-8 flex justify-center gap-4">
-        <button (click)="loadTrackFor('B')" class="w-12 h-12 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-slate-500 hover:text-white">
-          <i class="fas fa-plus"></i>
+      <div class="mt-6 flex justify-center gap-4 flex-wrap">
+        <button (click)="loadTrackFor('B')" class="btn-chrome text-brand-secondary border-brand-secondary/50">
+          <i class="fas fa-plus"></i> Add Track
         </button>
-        <button (click)="tapBpm('B')" class="w-12 h-12 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white">
-          <span class="text-[8px] font-black tracking-widest">TAP</span>
+        <button (click)="tapBpm('B')" class="btn-chrome text-slate-200 border-white/20">
+          <span class="tracking-[0.3em] text-[10px] font-black">Tap BPM</span>
         </button>
-        <button (click)="deckService.togglePlay('B')" class="w-12 h-12 rounded-full bg-slate-900 border border-brand-secondary/40 flex items-center justify-center text-brand-secondary shadow-lg active:scale-95">
+        <button (click)="deckService.togglePlay('B')" class="btn-chrome emphasis text-brand-secondary border-brand-secondary/50">
           <i class="fas" [class.fa-play]="!deckService.deckB().isPlaying" [class.fa-pause]="deckService.deckB().isPlaying"></i>
         </button>
+      </div>
+
+      <div class="mt-4 grid grid-cols-4 gap-2 performance-grid">
+        @for (pad of [0,1,2,3,4,5,6,7]; track pad) {
+          <button class="pad-btn border-brand-secondary/30 hover:bg-brand-secondary/10"
+                  (click)="handlePadPress('B', pad)">
+            Cue {{ pad + 1 }}
+          </button>
+        }
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3">
+        <div class="micro-control">
+          <div class="micro-label">Pitch Bend</div>
+          <input type="range" min="0.5" max="1.5" step="0.01"
+                 [value]="deckService.deckB().playbackRate"
+                 (input)="setPlaybackRate('B', $any($event.target).value)"
+                 class="micro-slider accent-brand-secondary">
+        </div>
+        <div class="micro-control">
+          <div class="micro-label">Filter Sweep</div>
+          <input type="range" min="200" max="18000" step="100"
+                 [value]="deckService.deckB().filterFreq"
+                 (input)="setFilter('B', $any($event.target).value)"
+                 class="micro-slider accent-brand-secondary">
+        </div>
       </div>
     </div>
 
@@ -161,6 +285,185 @@
 </div>
 
 <style>
+  .deck-chassis {
+    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.03), transparent 45%),
+      radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.05), transparent 45%),
+      #06080f;
+    box-shadow: 0 28px 68px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .chassis-gradient {
+    position: absolute;
+    inset: -40%;
+    filter: blur(80px);
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .gradient-a {
+    background: radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.35), transparent 40%);
+  }
+  .gradient-b {
+    background: radial-gradient(circle at 70% 30%, rgba(245, 158, 11, 0.35), transparent 40%);
+  }
+  .gradient-center {
+    background: radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.08), transparent 40%);
+  }
+  .badge {
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(6px);
+  }
+  .badge-a {
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.4);
+  }
+  .badge-b {
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+  .progress-ring {
+    position: absolute;
+    inset: -6%;
+    border-radius: 9999px;
+    opacity: 0.9;
+    filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.5));
+    z-index: 1;
+  }
+  .platter-glow {
+    position: absolute;
+    inset: 6%;
+    border-radius: 9999px;
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.65);
+    z-index: 0;
+  }
+  .platter-reflection {
+    position: absolute;
+    inset: 18%;
+    border-radius: 9999px;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.05), transparent 55%);
+    filter: blur(12px);
+    z-index: 1;
+  }
+  .vinyl-platter {
+    z-index: 2;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  .vinyl-platter.scratch-active {
+    box-shadow: 0 36px 80px rgba(16, 185, 129, 0.25);
+    filter: brightness(1.1);
+  }
+  .status-pill {
+    position: absolute;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border-width: 1px;
+    border-style: solid;
+    z-index: 5;
+  }
+  .deck-readouts .readout-card {
+    background: #0b0f1a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    padding: 10px 12px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .deck-readouts .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: #94a3b8;
+    font-weight: 800;
+  }
+  .deck-readouts .value {
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+  }
+  .btn-chrome {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(5, 8, 20, 0.9));
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+  }
+  .btn-chrome:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.5);
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+  }
+  .btn-chrome.emphasis {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(21, 94, 239, 0.1));
+  }
+  .performance-grid .pad-btn {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 12px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.02);
+    transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.2s ease;
+  }
+  .performance-grid .pad-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.45);
+  }
+  .micro-control {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .micro-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: #94a3b8;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .micro-slider {
+    width: 100%;
+    accent-color: #22c55e;
+  }
+  .micro-slider.accent-brand-secondary {
+    accent-color: #f59e0b;
+  }
+  .mode-chip {
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.04);
+    color: #e2e8f0;
+    transition: all 0.15s ease;
+  }
+  .mode-chip.active {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.15));
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  }
   .perspective-container {
     perspective: 1200px;
   }
