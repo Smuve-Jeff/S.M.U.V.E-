@@ -227,6 +227,14 @@ describe('ThaSpotComponent', () => {
     expect(component.qualityModeClass()).toBe('quality-ultra');
   });
 
+  it('should apply the visual quality class to the container', () => {
+    component.setVisualQuality('Performance');
+    fixture.detectChanges();
+
+    const container = fixture.nativeElement.querySelector('.tha-spot-container');
+    expect(container.classList.contains('quality-performance')).toBe(true);
+  });
+
   it('should only start matchmaking for multiplayer games', () => {
     const multiplayerGame = {
       id: 'm1',

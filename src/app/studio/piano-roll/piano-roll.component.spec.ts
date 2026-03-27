@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PianoRollComponent } from './piano-roll.component';
+import { AudioSessionService } from '../audio-session.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
@@ -44,6 +45,10 @@ describe('PianoRollComponent', () => {
     route?: string;
     compact?: boolean;
   } = {}) => {
+    const audioSessionMock = {
+      isPlaying: signal(false),
+      togglePlay: jest.fn(),
+    };
     const updates: Array<{
       trackId: number;
       noteId: string;
@@ -106,6 +111,7 @@ describe('PianoRollComponent', () => {
       imports: [PianoRollComponent],
       providers: [
         { provide: MusicManagerService, useValue: mockMusicManager },
+        { provide: AudioSessionService, useValue: audioSessionMock },
         { provide: AiService, useValue: { generateAiResponse: jest.fn() } },
         { provide: UIService, useValue: { performanceMode: signal(false) } },
         { provide: Router, useValue: { url: route, navigate: jest.fn() } },
@@ -130,7 +136,7 @@ describe('PianoRollComponent', () => {
     component.isCompactMobile.set(compact);
     fixture.detectChanges();
 
-    return { component, fixture, updates, adds };
+    return { component, fixture, updates, adds, audioSessionMock };
   };
 
   it('clamps transpose to valid midi range', async () => {
@@ -178,6 +184,14 @@ describe('PianoRollComponent', () => {
 
     expect(component.audioDockView()).toBe('mastering');
     expect(component.showAudioDock()).toBe(true);
+  });
+
+  it('toggles playback from the toolbar button', async () => {
+    const { component, audioSessionMock } = await createComponent();
+
+    component.togglePlay();
+
+    expect(audioSessionMock.togglePlay).toHaveBeenCalled();
   });
 
   it('toggles the audio dock visibility', async () => {

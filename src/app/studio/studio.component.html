@@ -1,4 +1,4 @@
-<div class="studio-container">
+<div class="studio-container" [ngClass]="studioQualityClass()">
   <!-- Sidebar Navigation (FL Style) -->
   <aside class="fl-sidebar">
     <div class="sidebar-icon" [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')">

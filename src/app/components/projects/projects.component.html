@@ -46,6 +46,30 @@
         </div>
       </div>
 
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xs font-black uppercase tracking-widest text-slate-400">Project Playbook</h3>
+          <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Auto-built from tasks</span>
+        </div>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div
+            *ngFor="let step of getPlaybookSteps(project)"
+            class="bg-brand-dark/40 border border-white/10 rounded-xl p-4 flex flex-col gap-2"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] font-black uppercase tracking-widest text-white">{{ step.title }}</span>
+              <span
+                class="text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded border"
+                [ngClass]="getPlaybookStatusClass(step.status)"
+              >
+                {{ step.status }}
+              </span>
+            </div>
+            <p class="text-[9px] text-slate-500 leading-relaxed">{{ step.objective }}</p>
+          </div>
+        </div>
+      </div>
+
       <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 border-b border-white/10 pb-2">Deployment Checklist</h3>
       <div class="space-y-3">
         <div

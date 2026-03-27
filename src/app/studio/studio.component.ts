@@ -124,6 +124,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
+  studioQualityClass() {
+    return this.uiService.performanceMode()
+      ? 'studio-quality-performance'
+      : 'studio-quality-ultra';
+  }
+
   setActiveView(
     view:
       | 'dj'

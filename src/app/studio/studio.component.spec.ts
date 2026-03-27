@@ -14,6 +14,7 @@ describe('StudioComponent', () => {
   const createComponent = async () => {
     const routeUrl$ = new Subject<any[]>();
     const queryParamMap$ = new Subject<any>();
+    const uiServiceMock = { navigateToView: jest.fn(), performanceMode: signal(false) };
     const routerMock = {
       navigate: jest.fn().mockResolvedValue(true),
     };
@@ -38,7 +39,7 @@ describe('StudioComponent', () => {
         },
         {
           provide: UIService,
-          useValue: { navigateToView: jest.fn() },
+          useValue: uiServiceMock,
         },
         {
           provide: MusicManagerService,
@@ -61,7 +62,7 @@ describe('StudioComponent', () => {
     const component = fixture.componentInstance;
     fixture.detectChanges();
 
-    return { component, routeUrl$, queryParamMap$, routerMock };
+    return { component, routeUrl$, queryParamMap$, routerMock, uiServiceMock };
   };
 
   it('syncs active view from query param without navigation loop', async () => {
@@ -80,5 +81,14 @@ describe('StudioComponent', () => {
 
     expect(component.activeView()).toBe('mastering');
     expect(routerMock.navigate).toHaveBeenCalled();
+  });
+
+  it('maps studio quality class based on performance mode', async () => {
+    const { component, uiServiceMock } = await createComponent();
+
+    expect(component.studioQualityClass()).toBe('studio-quality-ultra');
+
+    uiServiceMock.performanceMode.set(true);
+    expect(component.studioQualityClass()).toBe('studio-quality-performance');
   });
 });

@@ -21,6 +21,7 @@ import { ChannelRackComponent } from '../channel-rack/channel-rack.component';
 import { MixerComponent } from '../mixer/mixer.component';
 import { DrumMachineComponent } from '../drum-machine/drum-machine.component';
 import { MasteringSuiteComponent } from '../mastering-suite/mastering-suite.component';
+import { AudioSessionService } from '../audio-session.service';
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { Router } from '@angular/router';
@@ -42,6 +43,7 @@ import { HistoryService } from '../../services/history.service';
 })
 export class PianoRollComponent implements AfterViewInit, OnDestroy {
   musicManager = inject(MusicManagerService);
+  audioSession = inject(AudioSessionService);
   aiService = inject(AiService);
   uiService = inject(UIService);
   router = inject(Router);
@@ -93,6 +95,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   isCompactMobile = signal(false);
   showAudioDock = signal(false);
   audioDockView = signal<'mixer' | 'drum-machine' | 'mastering'>('mixer');
+  isPlaying = this.audioSession.isPlaying;
   readonly defaultTrackPresetId = 'synth-lead';
 
   selectionBox = signal({ active: false, x: 0, y: 0, w: 0, h: 0 });
@@ -449,6 +452,10 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
 
   setEditMode(mode: 'draw' | 'select' | 'brush' | 'chord') {
     this.editMode.set(mode);
+  }
+
+  togglePlay() {
+    this.audioSession.togglePlay();
   }
 
   toggleAudioDock() {

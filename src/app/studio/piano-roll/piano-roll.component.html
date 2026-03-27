@@ -65,6 +65,16 @@
              </button>
           </div>
           <div class="action-row flex items-center gap-1.5 md:gap-2 overflow-x-auto no-scrollbar max-w-full">
+             <button
+               (click)="togglePlay()"
+               [class.text-brand-primary]="isPlaying()"
+               [class.bg-brand-primary/15]="isPlaying()"
+               class="playback-toggle p-1.5 rounded border border-white/10 bg-black/30 hover:border-brand-primary/40 transition-all"
+               title="Play/Pause"
+               aria-label="Play or pause"
+             >
+               <span class="material-symbols-outlined text-sm">{{ isPlaying() ? 'pause' : 'play_arrow' }}</span>
+             </button>
              <button (click)="generateAiPattern()" [disabled]="isAiGenerating()"
                      class="flex items-center gap-2 px-3 py-1.5 rounded bg-brand-primary/10 border border-brand-primary/30 text-brand-primary text-[9px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all disabled:opacity-50">
                 <span class="material-symbols-outlined text-xs" [class.animate-spin]="isAiGenerating()">psychology</span>
