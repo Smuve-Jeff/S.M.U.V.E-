@@ -91,7 +91,14 @@ export class ProjectsComponent {
   }
 
   getPlaybookSteps(project: Project): PlaybookStep[] {
-    const totalTasks = Math.max(project.tasks.length, 1);
+    if (project.tasks.length === 0) {
+      return this.playbookTemplate.map((phase) => ({
+        ...phase,
+        status: 'Queued',
+      }));
+    }
+
+    const totalTasks = project.tasks.length;
     const completedTasks = project.tasks.filter((task) => task.completed).length;
     const progress = completedTasks / totalTasks;
 

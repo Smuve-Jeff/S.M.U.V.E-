@@ -3,6 +3,7 @@ import {
   inject,
   signal,
   effect,
+  computed,
   OnInit,
   OnDestroy,
   AfterViewInit,
@@ -69,6 +70,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showMixer = signal(true);
   showRack = signal(true);
   showPianoRoll = signal(false);
+  studioQualityClass = computed(() =>
+    this.uiService.performanceMode()
+      ? 'studio-quality-performance'
+      : 'studio-quality-ultra'
+  );
 
   isRecording = this.audioSession.isRecording;
   currentBeat = this.audioEngine.currentBeat;
@@ -124,11 +130,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  studioQualityClass() {
-    return this.uiService.performanceMode()
-      ? 'studio-quality-performance'
-      : 'studio-quality-ultra';
-  }
 
   setActiveView(
     view:

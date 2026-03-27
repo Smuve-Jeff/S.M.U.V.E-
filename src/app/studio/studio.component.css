@@ -127,7 +127,7 @@
   background: linear-gradient(90deg, rgba(18, 18, 18, 0.95), rgba(28, 28, 28, 0.95));
   border-bottom: 1px solid var(--fl-border);
   display: flex;
-  items-center: center;
+  align-items: center;
   justify-content: space-between;
   padding: 0 1rem;
   box-shadow: var(--studio-surface-shadow);
