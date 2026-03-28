@@ -209,7 +209,10 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     const y = event.clientY - rect.top;
 
     const step = this.snapStep(Math.floor(x / this.cellWidth));
-    const midi = this.getDisplayKeys()[Math.floor(y / this.rowHeight)];
+    const midiIndex = Math.floor(y / this.rowHeight);
+    const targetMidi = this.getDisplayKeys()[midiIndex];
+    if (targetMidi == null) return;
+    const midi = this.constrainMidiToScale(targetMidi);
 
     const track = this.selectedTrack();
     if (!track) return;
@@ -237,9 +240,10 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   private addChordAt(trackId: number, rootMidi: number, step: number) {
     const isMajor = this.selectedScale().name.includes('Major');
     const chordOffsets = isMajor ? [0, 4, 7] : [0, 3, 7]; // Basic triad
+    const constrainedRoot = this.constrainMidiToScale(rootMidi);
     chordOffsets.forEach((offset) => {
       this.musicManager.addNoteToTrack(trackId, {
-        midi: rootMidi + offset,
+        midi: this.constrainMidiToScale(constrainedRoot + offset),
         step,
         length: 4,
         velocity: 0.7,
@@ -336,7 +340,9 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     track.notes.forEach((n) => {
       if (this.selectedNoteIds().has(n.id)) {
         this.musicManager.updateNote(track.id, n.id, {
-          midi: this.clamp(n.midi + semitones, 0, 127),
+          midi: this.constrainMidiToScale(
+            this.clamp(n.midi + semitones, 0, 127)
+          ),
         });
       }
     });
@@ -675,6 +681,29 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
       0,
       this.cells.length - 1
     );
+  }
+
+  private constrainMidiToScale(midi: number): number {
+    const clampedMidi = this.clamp(midi, 0, 127);
+    if (!this.snapToScale()) {
+      return clampedMidi;
+    }
+
+    const octave = Math.floor(clampedMidi / 12);
+    const candidates = [-1, 0, 1]
+      .flatMap((octaveOffset) =>
+        this.selectedScale().notes.map((scaleNote) =>
+          this.clamp((octave + octaveOffset) * 12 + scaleNote, 0, 127)
+        )
+      )
+      .filter((candidate, index, source) => source.indexOf(candidate) === index)
+      .sort((left, right) => {
+        const distanceDelta =
+          Math.abs(left - clampedMidi) - Math.abs(right - clampedMidi);
+        return distanceDelta === 0 ? left - right : distanceDelta;
+      });
+
+    return candidates[0] ?? clampedMidi;
   }
 
   private clamp(value: number, min: number, max: number): number {

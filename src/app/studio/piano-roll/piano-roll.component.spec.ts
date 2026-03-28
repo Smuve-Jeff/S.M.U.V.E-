@@ -136,7 +136,14 @@ describe('PianoRollComponent', () => {
     component.isCompactMobile.set(compact);
     fixture.detectChanges();
 
-    return { component, fixture, updates, adds, audioSessionMock };
+    return {
+      component,
+      fixture,
+      updates,
+      adds,
+      audioSessionMock,
+      mockMusicManager,
+    };
   };
 
   it('clamps transpose to valid midi range', async () => {
@@ -148,6 +155,44 @@ describe('PianoRollComponent', () => {
     expect(updates).toHaveLength(1);
     expect(updates[0].noteId).toBe('n1');
     expect(updates[0].patch.midi).toBe(127);
+  });
+
+  it('snaps note placement to the selected scale when enabled', async () => {
+    const { component, mockMusicManager } = await createComponent();
+    component.snapToScale.set(true);
+
+    const midi = 61;
+    const y =
+      component.getDisplayKeys().indexOf(midi) * component.rowHeight + 1;
+    component.onGridMouseDown({
+      clientX: 1,
+      clientY: y,
+      currentTarget: {
+        getBoundingClientRect: () => ({ left: 0, top: 0 }),
+      },
+    } as unknown as MouseEvent);
+
+    expect(mockMusicManager.addNoteToTrack).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({
+        midi: 60,
+        step: 0,
+        length: 1,
+        velocity: 0.8,
+      })
+    );
+  });
+
+  it('keeps transposed notes inside the selected scale when scale snap is enabled', async () => {
+    const { component, updates } = await createComponent();
+    component.snapToScale.set(true);
+    component.selectedNoteIds.set(new Set(['n2']));
+
+    component.transposeSelected(2);
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0].noteId).toBe('n2');
+    expect(updates[0].patch.midi).toBe(65);
   });
 
   it('sets selected note length with minimum clamp', async () => {
