@@ -26,6 +26,12 @@ import {
   AchievementUnlockedPayload,
 } from '../../types/game-telemetry.types';
 
+const MAX_TAGS_WITH_AVAILABILITY = 1;
+const MAX_TAGS_WITHOUT_AVAILABILITY = 2;
+const AVAILABILITY_FILTERS = ['All', 'Offline', 'Online', 'Hybrid'] as const;
+
+type AvailabilityFilter = (typeof AVAILABILITY_FILTERS)[number];
+
 interface ChatMessage {
   id: string;
   user: string;
@@ -57,7 +63,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   searchQuery = signal('');
   sortMode = signal<'Popular' | 'Rating'>('Popular');
   capabilityFilter = signal<'All' | 'Multiplayer' | 'AI'>('All');
-  availabilityFilter = signal<'All' | 'Offline' | 'Online' | 'Hybrid'>('All');
+  availabilityFilter = signal<AvailabilityFilter>('All');
   visualQuality = signal<'Performance' | 'Balanced' | 'Ultra'>('Balanced');
   isSearching = signal(false);
   matchFound = signal(false);
@@ -255,13 +261,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   setAvailabilityFilter(filter: string) {
-    if (
-      filter === 'All' ||
-      filter === 'Offline' ||
-      filter === 'Online' ||
-      filter === 'Hybrid'
-    ) {
-      this.availabilityFilter.set(filter as 'All' | 'Offline' | 'Online' | 'Hybrid');
+    if ((AVAILABILITY_FILTERS as readonly string[]).includes(filter)) {
+      this.availabilityFilter.set(filter as AvailabilityFilter);
     }
   }
 
@@ -311,6 +312,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     const row = Math.floor(index / 4);
     const col = index % 4;
     return `pos-${row}-${col}`;
+  }
+
+  getVisibleTags(game: Game) {
+    return (game.tags || []).slice(
+      0,
+      game.availability ? MAX_TAGS_WITH_AVAILABILITY : MAX_TAGS_WITHOUT_AVAILABILITY
+    );
   }
 
   @HostListener('window:message', ['$event'])

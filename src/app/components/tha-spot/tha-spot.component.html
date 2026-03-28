@@ -258,7 +258,7 @@
                       </span>
                     }
                     <span
-                      *ngFor="let tag of (game.tags || []).slice(0, game.availability ? 1 : 2)"
+                      *ngFor="let tag of getVisibleTags(game)"
                       class="px-1.5 py-0.5 rounded bg-white/10 text-[6px] font-bold uppercase tracking-wider"
                       >{{ tag }}</span
                     >

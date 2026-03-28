@@ -3,21 +3,51 @@ import { Game } from './game';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 
+function escapeSvgText(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeSvgColor(value: string) {
+  return /^#[0-9a-f]{6}$/i.test(value) ? value : '#10b981';
+}
+
+const COVER_HASH_SEED = 7;
+
+/**
+ * Generates a deterministic inline SVG cover image so Tha Spot always has local artwork
+ * for curated titles, even when the browser cannot reach external image hosts.
+ */
 function buildGameCover(title: string, eyebrow: string, accentStart: string, accentEnd: string) {
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const hash = Array.from(`${title}|${eyebrow}|${accentStart}|${accentEnd}`).reduce(
+    (total, char) => (total * 31 + char.charCodeAt(0)) >>> 0,
+    COVER_HASH_SEED
+  );
+  const gradientId = `g-cover-${slug || 'spot'}-${hash.toString(16)}`;
+  const safeTitle = escapeSvgText(title);
+  const safeEyebrow = escapeSvgText(eyebrow.toUpperCase());
+  const safeAccentStart = sanitizeSvgColor(accentStart);
+  const safeAccentEnd = sanitizeSvgColor(accentEnd);
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" role="img" aria-label="${safeTitle} cover art">
+      <title>${safeTitle} cover art</title>
       <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="${accentStart}" />
-          <stop offset="100%" stop-color="${accentEnd}" />
+        <linearGradient id="${gradientId}" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="${safeAccentStart}" />
+          <stop offset="100%" stop-color="${safeAccentEnd}" />
         </linearGradient>
       </defs>
       <rect width="300" height="200" rx="24" fill="#020617" />
-      <rect x="12" y="12" width="276" height="176" rx="20" fill="url(#bg)" opacity="0.95" />
+      <rect x="12" y="12" width="276" height="176" rx="20" fill="url(#${gradientId})" opacity="0.95" />
       <circle cx="246" cy="54" r="42" fill="rgba(255,255,255,0.12)" />
       <circle cx="228" cy="138" r="56" fill="rgba(255,255,255,0.08)" />
-      <text x="26" y="44" fill="rgba(255,255,255,0.82)" font-size="16" font-family="Arial, sans-serif" letter-spacing="2">${eyebrow.toUpperCase()}</text>
-      <text x="26" y="116" fill="#ffffff" font-size="30" font-weight="700" font-family="Arial, sans-serif">${title}</text>
+      <text x="26" y="44" fill="rgba(255,255,255,0.82)" font-size="16" font-family="Arial, sans-serif" letter-spacing="2">${safeEyebrow}</text>
+      <text x="26" y="116" fill="#ffffff" font-size="30" font-weight="700" font-family="Arial, sans-serif">${safeTitle}</text>
       <text x="26" y="152" fill="rgba(255,255,255,0.88)" font-size="14" font-family="Arial, sans-serif">Curated for Tha Spot</text>
     </svg>
   `;
