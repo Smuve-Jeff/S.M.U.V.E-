@@ -22,6 +22,9 @@
   --studio-mobile-bottom-padding: calc(
     var(--studio-mobile-safe-padding) + env(safe-area-inset-bottom, 0px)
   );
+  --studio-mobile-dock-padding: calc(
+    var(--studio-mobile-bottom-padding) + 0.4rem
+  );
   display: flex;
   flex-direction: row; /* Sidebar layout */
   height: 100%;
@@ -140,6 +143,10 @@
 
 .studio-title-mobile {
   display: none;
+}
+
+.studio-title-accent {
+  color: var(--fl-accent);
 }
 
 .studio-mobile-transport {
@@ -322,9 +329,7 @@
     padding-bottom: var(--studio-mobile-bottom-padding);
   }
   .studio-bottom-dock {
-    padding-bottom: calc(
-      var(--studio-mobile-bottom-padding) + 0.4rem
-    );
+    padding-bottom: var(--studio-mobile-dock-padding);
   }
   .fl-editor-overlay {
     height: 100%;
