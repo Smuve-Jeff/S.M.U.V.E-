@@ -63,7 +63,8 @@ export class PracticeSpaceComponent implements OnDestroy {
   toggleMetronome() {
     this.metronomeActive.update((v) => !v);
     if (this.metronomeActive()) {
-      const intervalMs = 60000 / this.metronomeBpm();
+      const bpm = Math.max(40, Math.min(240, this.metronomeBpm()));
+      const intervalMs = 60000 / bpm;
       let beatCount = 0;
       this.metronomeInterval = setInterval(() => {
         this.currentTick.update((t) => (t + 1) % 4);
