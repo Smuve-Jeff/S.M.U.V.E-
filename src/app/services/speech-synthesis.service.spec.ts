@@ -76,18 +76,48 @@ describe('SpeechSynthesisService', () => {
   });
 
   it('should avoid reusing the same voice when alternatives exist', () => {
-    randomSpy.mockReturnValue(0);
+    mockSpeechSynthesis.getVoices.mockReturnValue([
+      { name: 'Voice A', lang: 'en-US' },
+      { name: 'Voice B', lang: 'en-US' },
+    ]);
+    randomSpy
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0.3)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0);
 
     service.speak('First');
     service.speak('Second');
 
     expect(mockUtterances[0].voice).toEqual({
-      name: 'Microsoft David',
+      name: 'Voice A',
       lang: 'en-US',
     });
     expect(mockUtterances[1].voice).toEqual({
-      name: 'Microsoft Zira',
+      name: 'Voice B',
       lang: 'en-US',
     });
+  });
+
+  it('should continue speaking when explicit voice assignment is rejected', () => {
+    const failingUtterance: Record<string, unknown> = {};
+    Object.defineProperty(failingUtterance, 'voice', {
+      configurable: true,
+      set: () => {
+        throw new TypeError('Unsupported voice object');
+      },
+    });
+    (global as any).SpeechSynthesisUtterance = jest
+      .fn()
+      .mockImplementation(() => failingUtterance);
+
+    expect(() => service.speak('Fallback voice')).not.toThrow();
+    expect(mockSpeechSynthesis.speak).toHaveBeenCalledTimes(1);
+    expect((failingUtterance as any).pitch).toBeDefined();
+    expect((failingUtterance as any).rate).toBeDefined();
   });
 });

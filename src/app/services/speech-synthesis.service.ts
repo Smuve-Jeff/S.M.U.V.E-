@@ -41,7 +41,6 @@ export class SpeechSynthesisService {
     // Pronunciation rule: S.M.U.V.E -> Smooth
     const processedText = text
       .replace(/S\.M\.U\.V\.E(?:\s+4\.\d+)?/gi, 'Smooth')
-      .replace(/S\.M\.U\.V\.E/gi, 'Smooth')
       .replace(/SMUVE/gi, 'Smooth');
 
     this.cancel();
@@ -79,7 +78,7 @@ export class SpeechSynthesisService {
         voicePool.findIndex((voice) => voice.name === this.lastVoiceName)
       );
       const selectedVoice = voicePool[voiceIndex];
-      utterance.voice = selectedVoice;
+      this.assignVoiceSafely(utterance, selectedVoice);
       this.lastVoiceName = selectedVoice.name;
     }
 
@@ -93,24 +92,27 @@ export class SpeechSynthesisService {
     length: number,
     previousIndex: number | null
   ): number {
-    if (length <= 1) {
-      return 0;
+    if (length <= 1 || previousIndex === null || previousIndex < 0) {
+      return Math.floor(Math.random() * length);
     }
 
-    const index = Math.floor(Math.random() * length);
-    if (
-      previousIndex === null ||
-      previousIndex < 0 ||
-      index !== previousIndex
-    ) {
-      return index;
-    }
-
-    return (index + 1) % length;
+    const index = Math.floor(Math.random() * (length - 1));
+    return index >= previousIndex ? index + 1 : index;
   }
 
   private randomInRange([min, max]: [number, number]): number {
-    return Number((min + Math.random() * (max - min)).toFixed(2));
+    return Math.round((min + Math.random() * (max - min)) * 100) / 100;
+  }
+
+  private assignVoiceSafely(
+    utterance: SpeechSynthesisUtterance,
+    voice: NonNullable<SpeechSynthesisUtterance['voice']>
+  ): void {
+    try {
+      utterance.voice = voice;
+    } catch {
+      // Some browsers expose voice-like objects that cannot be assigned directly.
+    }
   }
 
   cancel(): void {
