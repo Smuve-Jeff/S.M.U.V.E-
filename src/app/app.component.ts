@@ -121,9 +121,10 @@ export class AppComponent {
   }
 
   private updateFullPageMode(url: string) {
-    const path = url.split('?')[0].split('#')[0].split('/')[1];
+    const normalizedPath = url.split(/[?#]/)[0].replace(/^\/+/, '');
+    const path = normalizedPath.split('/')[0];
     this.isFullPageMode.set(
-      ['piano-roll', 'tha-spot', 'networking', 'gaming-hub'].includes(path)
+      ['piano-roll', 'tha-spot', 'networking'].includes(path)
     );
   }
 
