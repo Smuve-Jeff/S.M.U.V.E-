@@ -65,6 +65,8 @@ export class AudioEngineService {
   public stepsPerBeat = signal(4);
   public loopEnd = signal(64);
   public loopStart = signal(0);
+  public metronomeEnabled = signal(false);
+  public metronomeVolume = signal(0.5);
 
   private timerId: any = null;
   private nextNoteTime = 0;
@@ -439,6 +441,13 @@ export class AudioEngineService {
     const stepDur = spb / this.stepsPerBeat();
     while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
       const stepIndex = this.currentBeat();
+      
+      // Play metronome click on each beat (every stepsPerBeat steps)
+      if (stepIndex % this.stepsPerBeat() === 0) {
+        const beatInBar = Math.floor(stepIndex / this.stepsPerBeat()) % 4;
+        this.playMetronomeClick(this.nextNoteTime, beatInBar === 0);
+      }
+      
       this.onScheduleStep?.(stepIndex, this.nextNoteTime, stepDur);
       const next = (stepIndex + 1) % this.loopEnd();
       this.currentBeat.set(next);
@@ -487,6 +496,52 @@ export class AudioEngineService {
       this.ctx.currentTime,
       0.01
     );
+  }
+
+  /**
+   * Plays a metronome click at the specified time
+   * @param when - AudioContext time to play the click
+   * @param isDownbeat - True for downbeat (beat 1), false for other beats
+   */
+  playMetronomeClick(when: number, isDownbeat: boolean = false) {
+    if (!this.metronomeEnabled()) return;
+    this.resume();
+    
+    const osc = this.ctx.createOscillator();
+    const vca = this.ctx.createGain();
+    
+    // Higher pitch for downbeat, lower for regular beats
+    const frequency = isDownbeat ? 1200 : 800;
+    const duration = 0.03;
+    const volume = this.metronomeVolume();
+    
+    osc.type = 'sine';
+    osc.frequency.value = frequency;
+    
+    // Sharp attack and quick decay for click sound
+    vca.gain.setValueAtTime(0, when);
+    vca.gain.linearRampToValueAtTime(volume, when + 0.002);
+    vca.gain.exponentialRampToValueAtTime(0.001, when + duration);
+    
+    osc.connect(vca).connect(this.masterGain);
+    osc.start(when);
+    osc.stop(when + duration + 0.01);
+  }
+
+  /**
+   * Toggle metronome on/off
+   */
+  toggleMetronome(): boolean {
+    const newState = !this.metronomeEnabled();
+    this.metronomeEnabled.set(newState);
+    return newState;
+  }
+
+  /**
+   * Set metronome volume (0-1)
+   */
+  setMetronomeVolume(volume: number) {
+    this.metronomeVolume.set(Math.max(0, Math.min(1, volume)));
   }
 
   ensureTrack(track: any) {

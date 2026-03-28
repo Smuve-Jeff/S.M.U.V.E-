@@ -10,6 +10,31 @@
     </div>
 
     <div class="flex items-center gap-6">
+       <!-- BPM Control -->
+       <div class="flex flex-col items-end">
+          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">BPM</span>
+          <div class="flex items-center gap-2">
+             <input type="number" 
+                    [value]="metronomeBpm()" 
+                    (change)="updateBpm($event)"
+                    min="40" max="240"
+                    class="w-16 bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-center text-sm font-black text-brand-primary focus:border-brand-primary outline-none">
+          </div>
+       </div>
+       
+       <!-- Audio Toggle -->
+       <div class="flex flex-col items-center">
+          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">Audio</span>
+          <button (click)="toggleMetronomeAudio()" 
+                  class="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                  [class.bg-brand-primary]="metronomeAudioEnabled()" 
+                  [class.text-black]="metronomeAudioEnabled()"
+                  [class.bg-brand-surface-light]="!metronomeAudioEnabled()" 
+                  [class.text-silver-dim]="!metronomeAudioEnabled()">
+             <i class="fas" [class.fa-volume-up]="metronomeAudioEnabled()" [class.fa-volume-mute]="!metronomeAudioEnabled()"></i>
+          </button>
+       </div>
+
        <!-- Visual Metronome (Elegant) -->
        <div class="flex flex-col items-end">
           <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">Visual Metronome</span>

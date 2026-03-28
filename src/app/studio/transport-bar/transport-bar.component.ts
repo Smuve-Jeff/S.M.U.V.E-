@@ -48,4 +48,13 @@ export class TransportBarComponent {
       this.audioEngine.tempo.set(val);
     }
   }
+
+  toggleMetronome(): void {
+    this.audioEngine.toggleMetronome();
+  }
+
+  updateMetronomeVolume(event: Event): void {
+    const val = (event.target as HTMLInputElement).valueAsNumber / 100;
+    this.audioEngine.setMetronomeVolume(val);
+  }
 }

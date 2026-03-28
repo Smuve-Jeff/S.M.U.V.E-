@@ -9,6 +9,9 @@
     <button (click)="toggleRecord()" [class.active]="isRecording()" class="transport-btn record-btn" title="Record">
       <i class="fas fa-circle text-[10px]"></i>
     </button>
+    <button (click)="toggleMetronome()" [class.active]="audioEngine.metronomeEnabled()" class="transport-btn metronome-btn" title="Metronome">
+      <i class="fas fa-drum"></i>
+    </button>
   </div>
 
   <div class="display-section">
@@ -35,6 +38,17 @@
   </div>
 
   <div class="flex items-center gap-4">
+    <div *ngIf="audioEngine.metronomeEnabled()" class="flex flex-col">
+      <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">CLICK VOL</span>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        [value]="audioEngine.metronomeVolume() * 100"
+        (input)="updateMetronomeVolume($event)"
+        class="w-16 accent-brand-primary h-1"
+      />
+    </div>
     <div class="flex flex-col">
       <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">MASTER OUT</span>
       <input

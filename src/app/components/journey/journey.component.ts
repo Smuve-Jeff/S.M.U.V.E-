@@ -26,9 +26,37 @@ export class JourneyComponent {
   steps = [
     { title: 'The Origin', subtitle: 'Where it all began' },
     { title: 'The Sound', subtitle: 'Defining your frequency' },
+    { title: 'Production DNA', subtitle: 'Your creative toolkit' },
     { title: 'The Vision', subtitle: 'Mapping the future' },
     { title: 'The Legacy', subtitle: 'Finalizing the dossier' },
   ];
+
+  // Genre options
+  readonly genres = [
+    'Hip Hop', 'R&B', 'Pop', 'Electronic', 'Rock', 'Jazz',
+    'Classical', 'Country', 'Latin', 'Afrobeats', 'Metal', 'Folk', 'Reggae'
+  ];
+
+  // BPM range presets
+  readonly bpmRanges = [
+    { label: 'Slow & Chill (60-90 BPM)', value: '60-90' },
+    { label: 'Mid-Tempo (90-120 BPM)', value: '90-120' },
+    { label: 'Upbeat (120-140 BPM)', value: '120-140' },
+    { label: 'High Energy (140-180 BPM)', value: '140-180' },
+    { label: 'Variable / All Tempos', value: 'variable' }
+  ];
+
+  // Production style options
+  readonly productionStyles = [
+    'Minimalist', 'Layered/Complex', 'Live Instrumentation', 
+    'Sample-Heavy', 'Synthesizer-Driven', 'Hybrid/Mixed'
+  ];
+
+  // Experience levels
+  readonly experienceLevels = ['Beginner', 'Intermediate', 'Advanced', 'Professional'];
+
+  // Skills
+  readonly availableSkills = ['Vocalist', 'Producer', 'Songwriter', 'DJ', 'Engineer', 'Musician', 'Manager'];
 
   constructor() {
     effect(() => {
@@ -46,5 +74,37 @@ export class JourneyComponent {
 
   updateProfile() {
     this.userProfileService.updateProfile(this.profile());
+  }
+
+  toggleSkill(skill: string) {
+    this.profile.update(p => {
+      const skills = p.skills || [];
+      const index = skills.indexOf(skill);
+      if (index > -1) {
+        return { ...p, skills: skills.filter(s => s !== skill) };
+      } else {
+        return { ...p, skills: [...skills, skill] };
+      }
+    });
+  }
+
+  hasSkill(skill: string): boolean {
+    return (this.profile().skills || []).includes(skill);
+  }
+
+  toggleProductionStyle(style: string) {
+    this.profile.update(p => {
+      const styles = p.productionStyles || [];
+      const index = styles.indexOf(style);
+      if (index > -1) {
+        return { ...p, productionStyles: styles.filter(s => s !== style) };
+      } else {
+        return { ...p, productionStyles: [...styles, style] };
+      }
+    });
+  }
+
+  hasProductionStyle(style: string): boolean {
+    return (this.profile().productionStyles || []).includes(style);
   }
 }

@@ -12,7 +12,7 @@ describe('PracticeSpaceComponent', () => {
     const mockNode = {
       connect: jest.fn().mockReturnThis(),
       disconnect: jest.fn(),
-      gain: { value: 0, setTargetAtTime: jest.fn() },
+      gain: { value: 0, setTargetAtTime: jest.fn(), setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
       frequency: { value: 0, setTargetAtTime: jest.fn() },
       threshold: { value: 0, setTargetAtTime: jest.fn() },
       ratio: { value: 0, setTargetAtTime: jest.fn() },
@@ -20,13 +20,26 @@ describe('PracticeSpaceComponent', () => {
       release: { value: 0, setTargetAtTime: jest.fn() },
       pan: { value: 0, setTargetAtTime: jest.fn() },
       Q: { value: 0, setTargetAtTime: jest.fn() },
+      curve: null,
+      oversample: 'none',
+      start: jest.fn(),
+      stop: jest.fn(),
     };
 
     (window as any).AudioContext = class {
+      state = 'running';
+      resume = jest.fn().mockResolvedValue(undefined);
+      close = jest.fn().mockResolvedValue(undefined);
       createGain() {
         return { ...mockNode };
       }
+      createOscillator() {
+        return { ...mockNode, type: 'sine' };
+      }
       createDynamicsCompressor() {
+        return { ...mockNode };
+      }
+      createWaveShaper() {
         return { ...mockNode };
       }
       createAnalyser() {
@@ -80,6 +93,13 @@ describe('PracticeSpaceComponent', () => {
     fixture.detectChanges();
   });
 
+  afterEach(() => {
+    // Clean up any intervals/timeouts
+    if (component.metronomeActive()) {
+      component.toggleMetronome();
+    }
+  });
+
   it('should create', () => {
     expect(component).toBeTruthy();
   });
@@ -90,5 +110,31 @@ describe('PracticeSpaceComponent', () => {
     expect(component.metronomeActive()).toBe(true);
     component.toggleMetronome();
     expect(component.metronomeActive()).toBe(false);
+  });
+
+  it('should toggle metronome audio', () => {
+    expect(component.metronomeAudioEnabled()).toBe(true);
+    component.toggleMetronomeAudio();
+    expect(component.metronomeAudioEnabled()).toBe(false);
+    component.toggleMetronomeAudio();
+    expect(component.metronomeAudioEnabled()).toBe(true);
+  });
+
+  it('should update BPM', () => {
+    const event = { target: { value: '140' } } as any;
+    component.updateBpm(event);
+    expect(component.metronomeBpm()).toBe(140);
+  });
+
+  it('should clamp BPM to valid range', () => {
+    // Test lower bound
+    const lowEvent = { target: { value: '30' } } as any;
+    component.updateBpm(lowEvent);
+    expect(component.metronomeBpm()).toBe(120); // Should remain unchanged (30 is below 40)
+
+    // Test upper bound  
+    const highEvent = { target: { value: '250' } } as any;
+    component.updateBpm(highEvent);
+    expect(component.metronomeBpm()).toBe(120); // Should remain unchanged (250 is above 240)
   });
 });

@@ -14,6 +14,7 @@ describe('AudioEngineService', () => {
         setTargetAtTime: jest.fn(),
         setValueAtTime: jest.fn(),
         linearRampToValueAtTime: jest.fn(),
+        exponentialRampToValueAtTime: jest.fn(),
       },
       delayTime: { value: 0, setTargetAtTime: jest.fn() },
       frequency: { value: 0, setTargetAtTime: jest.fn() },
@@ -38,6 +39,7 @@ describe('AudioEngineService', () => {
 
     mockAudioContext = {
       createGain: jest.fn().mockImplementation(createMockNode),
+      createOscillator: jest.fn().mockImplementation(createMockNode),
       createDynamicsCompressor: jest.fn().mockReturnValue(compressorNode),
       createDelay: jest.fn().mockImplementation(createMockNode),
       createBiquadFilter: jest.fn().mockImplementation(createMockNode),
@@ -105,5 +107,42 @@ describe('AudioEngineService', () => {
     service.setSaturation(0);
     expect(service.saturationNode.curve).toBeNull();
     expect(service.saturationNode.oversample).toBe('none');
+  });
+
+  it('should toggle metronome on and off', () => {
+    expect(service.metronomeEnabled()).toBe(false);
+    const result1 = service.toggleMetronome();
+    expect(result1).toBe(true);
+    expect(service.metronomeEnabled()).toBe(true);
+    const result2 = service.toggleMetronome();
+    expect(result2).toBe(false);
+    expect(service.metronomeEnabled()).toBe(false);
+  });
+
+  it('should set metronome volume within bounds', () => {
+    service.setMetronomeVolume(0.75);
+    expect(service.metronomeVolume()).toBe(0.75);
+    
+    // Test clamping
+    service.setMetronomeVolume(1.5);
+    expect(service.metronomeVolume()).toBe(1);
+    
+    service.setMetronomeVolume(-0.5);
+    expect(service.metronomeVolume()).toBe(0);
+  });
+
+  it('should not play metronome click when disabled', () => {
+    service.metronomeEnabled.set(false);
+    service.playMetronomeClick(0, true);
+    // Should not create oscillator when metronome is disabled
+    expect(mockAudioContext.createOscillator).not.toHaveBeenCalled();
+  });
+
+  it('should play metronome click when enabled', () => {
+    service.metronomeEnabled.set(true);
+    service.playMetronomeClick(0, true);
+    expect(mockAudioContext.resume).toHaveBeenCalled();
+    expect(mockAudioContext.createOscillator).toHaveBeenCalled();
+    expect(mockAudioContext.createGain).toHaveBeenCalled();
   });
 });
