@@ -19,6 +19,23 @@ import { AudioEngineService } from '../services/audio-engine.service';
 import { AfterViewInit } from '@angular/core';
 import { NotificationService } from '../services/notification.service';
 import { PlayerService } from '../services/player.service';
+import { MainViewMode } from '../services/user-context.service';
+
+interface LandingFeature {
+  route: MainViewMode;
+  category: string;
+  title: string;
+  description: string;
+  points: string[];
+  icon: string;
+}
+
+interface WorkflowStage {
+  route: MainViewMode;
+  label: string;
+  title: string;
+  description: string;
+}
 
 @Component({
   selector: 'app-hub',
@@ -56,6 +73,109 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     'Streaming spike – West Coast',
     'Vinyl preorders up 12%',
     'Sync request: indie film',
+  ];
+  featureSpotlights: LandingFeature[] = [
+    {
+      route: 'studio',
+      category: 'Production',
+      title: 'Studio, DJ deck, and mix control',
+      description:
+        'Build records with the browser DAW, effects chain, mastering controls, and live playback routing.',
+      points: ['Channel rack and sequencing', 'Mixer and mastering suite'],
+      icon: 'tune',
+    },
+    {
+      route: 'piano-roll',
+      category: 'Composition',
+      title: 'Piano roll and arrangement editing',
+      description:
+        'Compose melodies, edit timing, and shape arrangements with the dedicated note editor.',
+      points: ['88-key note editing', 'Arrangement-aware workflow'],
+      icon: 'piano',
+    },
+    {
+      route: 'vocal-suite',
+      category: 'Recording',
+      title: 'Capture takes in the vocal suite',
+      description:
+        'Track microphone input, monitor vocal chains, and work with recording-focused tools in one place.',
+      points: ['Microphone interface', 'Waveform-driven recording view'],
+      icon: 'mic',
+    },
+    {
+      route: 'image-video-lab',
+      category: 'Visuals',
+      title: 'Produce visuals with CinemaEngine',
+      description:
+        'Create cover art, visual concepts, and multi-track video timelines tuned for multiple delivery formats.',
+      points: ['Image and video lab', 'Preset-based export workflows'],
+      icon: 'movie',
+    },
+    {
+      route: 'strategy',
+      category: 'Strategy',
+      title: 'Plan campaigns with the Intel Lab',
+      description:
+        'Review market signals, executive briefs, and career planning surfaces backed by the AI strategy layer.',
+      points: ['Campaign and outreach tabs', 'Career and business planning'],
+      icon: 'analytics',
+    },
+    {
+      route: 'tha-spot',
+      category: 'Community',
+      title: 'Drop into Tha Spot',
+      description:
+        'Move from production into the social gaming floor for matchmaking, reputation, and community sessions.',
+      points: ['Arcade discovery hub', 'Networked community energy'],
+      icon: 'sports_esports',
+    },
+  ];
+  workflowStages: WorkflowStage[] = [
+    {
+      route: 'profile',
+      label: '01',
+      title: 'Set the artist identity',
+      description:
+        'Start with the profile flow so the rest of the platform reflects the right genre, goals, and audience.',
+    },
+    {
+      route: 'studio',
+      label: '02',
+      title: 'Produce the record',
+      description:
+        'Move into the studio, piano roll, and vocal suite to shape the release from rough idea to finished mix.',
+    },
+    {
+      route: 'image-video-lab',
+      label: '03',
+      title: 'Build the campaign package',
+      description:
+        'Pair visuals, lyrics, strategy, and business planning around the same release before launch.',
+    },
+    {
+      route: 'release-pipeline',
+      label: '04',
+      title: 'Launch and track momentum',
+      description:
+        'Use the release pipeline, analytics, and project views to manage rollout readiness and follow-through.',
+    },
+  ];
+  commandDeck = [
+    {
+      shortcut: 'Ctrl + K',
+      title: 'Command Palette',
+      description: 'Jump to major modules and quick actions from anywhere.',
+    },
+    {
+      shortcut: '?',
+      title: 'Interaction Guide',
+      description: 'Open contextual tips for the current view and controls.',
+    },
+    {
+      shortcut: 'Themes',
+      title: 'Visual Modes',
+      description: 'Swap theme, scanlines, and performance settings from the shell.',
+    },
   ];
 
   updateQuickProfile(field: string, value: string) {
@@ -162,5 +282,9 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
 
   goToThaSpot() {
     this.router.navigate(['/tha-spot']);
+  }
+
+  navigateToFeature(route: MainViewMode) {
+    this.router.navigate(['/' + route]);
   }
 }

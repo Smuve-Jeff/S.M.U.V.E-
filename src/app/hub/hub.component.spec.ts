@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HubComponent } from './hub.component';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { API_KEY_TOKEN } from '../services/ai.service';
 
 describe('HubComponent', () => {
@@ -113,5 +113,35 @@ describe('HubComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('surfaces major platform areas on the landing page', () => {
+    expect(component.featureSpotlights.map((feature) => feature.route)).toEqual(
+      expect.arrayContaining([
+        'studio',
+        'piano-roll',
+        'vocal-suite',
+        'image-video-lab',
+        'strategy',
+        'tha-spot',
+      ])
+    );
+    expect(component.workflowStages.map((stage) => stage.route)).toEqual([
+      'profile',
+      'studio',
+      'image-video-lab',
+      'release-pipeline',
+    ]);
+  });
+
+  it('navigates to spotlight routes from the landing page', async () => {
+    const router = TestBed.inject(Router);
+    const navigateSpy = jest
+      .spyOn(router, 'navigate')
+      .mockResolvedValue(true as never);
+
+    component.navigateToFeature('release-pipeline');
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/release-pipeline']);
   });
 });

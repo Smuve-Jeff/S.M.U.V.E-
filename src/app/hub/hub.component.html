@@ -11,13 +11,19 @@
         <div>
           <p class="eyebrow">S.M.U.V.E Control Room</p>
           <h1 class="hero-title">
-            Label Command Hub
+            Run the full artist stack from one command hub
           </h1>
           <p class="hero-subtitle">
-            Curate releases, guide your roster, and keep every creative move aligned with the label’s signature sound.
+            Move from production and vocal tracking to visuals, rollout strategy, community play, and release management without leaving the platform.
           </p>
         </div>
-      <div class="flex flex-wrap items-center gap-3">
+        <div class="hero-pillars">
+          <span class="hero-pillar">Production</span>
+          <span class="hero-pillar">AI strategy</span>
+          <span class="hero-pillar">Visual creation</span>
+          <span class="hero-pillar">Release operations</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
           <button class="btn-primary" (click)="uiService.navigateToView('studio')">Open Studio</button>
           <button class="btn-ghost" (click)="uiService.navigateToView('strategy')">Release Strategy</button>
           <button class="btn-outline" (click)="uiService.navigateToView('profile')">Artist Identity</button>
@@ -211,6 +217,84 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <section class="hub-section glass-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Platform Tour</p>
+          <h2 class="section-title">Explore the major surfaces inside S.M.U.V.E.</h2>
+          <p class="section-copy">
+            The landing page now maps directly to the app’s real modules, so you can jump into the right workflow faster.
+          </p>
+        </div>
+        <span class="pill pill-outline">6 live modules</span>
+      </div>
+
+      <div class="feature-grid">
+        @for (feature of featureSpotlights; track feature.route) {
+          <button class="feature-card" (click)="navigateToFeature(feature.route)">
+            <div class="feature-card-head">
+              <span class="feature-icon material-symbols-outlined">{{ feature.icon }}</span>
+              <span class="pill pill-soft">{{ feature.category }}</span>
+            </div>
+            <h3 class="feature-title">{{ feature.title }}</h3>
+            <p class="feature-description">{{ feature.description }}</p>
+            <div class="feature-points">
+              @for (point of feature.points; track point) {
+                <span>{{ point }}</span>
+              }
+            </div>
+          </button>
+        }
+      </div>
+    </section>
+
+    <div class="hub-bottom-grid">
+      <section class="hub-section glass-card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Workflow</p>
+            <h2 class="section-title">A simple path from identity to release</h2>
+          </div>
+        </div>
+
+        <div class="workflow-list">
+          @for (stage of workflowStages; track stage.label) {
+            <button class="workflow-step" (click)="navigateToFeature(stage.route)">
+              <span class="workflow-index">{{ stage.label }}</span>
+              <div>
+                <h3 class="workflow-title">{{ stage.title }}</h3>
+                <p class="workflow-description">{{ stage.description }}</p>
+              </div>
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="hub-section glass-card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Command Deck</p>
+            <h2 class="section-title">Built for fast navigation</h2>
+            <p class="section-copy">
+              Use the shell shortcuts and settings layer to move between creation, planning, and launch tasks.
+            </p>
+          </div>
+        </div>
+
+        <div class="command-list">
+          @for (item of commandDeck; track item.shortcut) {
+            <div class="command-card">
+              <span class="command-shortcut">{{ item.shortcut }}</span>
+              <div>
+                <h3 class="command-title">{{ item.title }}</h3>
+                <p class="command-description">{{ item.description }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
     </div>
   </div>
 </div>

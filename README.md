@@ -1,92 +1,183 @@
-# Smuve Jeff Presents S.M.U.V.E 4.0 (Strategic Music Utility Virtual Enhancer)
+# S.M.U.V.E. 4.0
 
-S.M.U.V.E 4.0 is a professional-grade, AI-powered music studio and strategic management platform for the modern independent artist. Built on Angular 21 and utilizing Google's Gemini AI, it serves as an omniscient, arrogant, and assertive "Strategic Commander" to guide and dominate your musical journey.
+S.M.U.V.E. 4.0 is an Angular-based browser application for independent artists who need production tools, AI-assisted strategy, release planning, and creative support in one place.
 
-## 🚀 Key Features
+The app ships with a command-hub landing page and a set of routed workspaces covering music production, vocal capture, visual creation, artist profile management, strategy, business planning, analytics, and community/gaming experiences.
 
-### 🎙️ The Studio (v4.0)
+## What the application includes
 
-A Digital Audio Workstation (DAW) in your browser:
+### Core creation surfaces
 
-- **16-Step Channel Rack:** Rapidly sequence drums and melodies with a professional workflow.
-- **88-Key Piano Roll:** High-power, precision editing for complex compositions.
-- **Professional Mixer:** 8-slot FX chains per channel (Reverb, Delay, EQ, Compression) with real-time VU metering.
-- **Mastering Suite:** Professional mastering tools including a Limiter, Soft-clip toggle, and Global Ambience.
-- **Multi-track Recording:** Capture live audio with real-time spectral waveforms and professional monitoring.
+- **Label Hub (`/hub`)**  
+  The main landing page and control room. It surfaces playback, quick profile setup, executive notes, market pulse, and direct access to the rest of the platform.
 
-### 🤖 S.M.U.V.E 4.0 AI Assistant
+- **Studio (`/studio`)**  
+  The main production workspace with DAW-style controls, DJ/deck functionality, mixing tools, effects, and mastering-oriented utilities.
 
-Your "Strategic Music Utility Virtual Enhancer" persona: an omniscient, arrogant commander who scales their arrogance based on your reputation level.
+- **Piano Roll (`/piano-roll`)**  
+  MIDI-style note editing and arrangement control for composing and refining parts.
 
-- **Strategic Commands:**
-  - `AUTO_MIX`: S.M.U.V.E analyzes your track and applies professional production secrets to your compressor and limiter.
-  - `LEAD_BAND`: Coordinate your AI session musicians (Bassist, Drummer, Keyboardist) with specific stylistic cues.
-  - `CRITIQUE_VISUALS`: Receive brutal, brand-aligned feedback on your generated artwork and video concepts.
-  - `NEGOTIATE_CONTRACT`: S.M.U.V.E autonomously handles mock industry negotiations to prepare you for the big leagues.
-- **Style Mimicry:** Shifting persona and studio settings to mimic the production secrets of legendary artists.
-- **Strategic Recommendations:** Issues tailored "decrees" for career optimization based on your Artist Profile and Knowledge Base.
+- **Vocal Suite (`/vocal-suite`)**  
+  Recording-focused tooling for vocal sessions, microphone workflows, and take monitoring.
 
-### ⚡ Interactive Command Layer
+- **Lyric Editor (`/lyric-editor`)**  
+  A songwriter workspace for writing lyrics with AI-assisted rhyme and idea support.
 
-- **Command Palette:** Press `Ctrl + K` (or `⌘ + K`) for rapid navigation and system actions.
-- **Interaction Guide:** Tap `?` for contextual controls and feature tips within the active view.
+### Visual and release tooling
 
-### 🎮 Tha Spot & High-Energy Hub
+- **Image & Video Lab / CinemaEngine (`/image-video-lab`)**  
+  A visual production workspace for cover art, visual concepts, and multi-track video timelines with delivery presets.
 
-A high-energy dashboard with an aggressive design system (glitch effects, skewed containers) for total industry immersion.
+- **Release Pipeline (`/release-pipeline`)**  
+  A launch-readiness surface for release staging, cohesion checks, and rollout management.
 
-- **AI Jam Session:** Play along with autonomous AI session musicians in real-time.
-- **Battle Arena & Remix Arena:** Compete and collaborate with other artists in high-stakes creative challenges.
-- **Expansive Gaming Catalog:** Access a full library of arcade and strategy games directly within the hub.
-- **Project Showcase:** A dedicated space to feature your finished tracks and visualizers for the community.
+- **Projects (`/projects`)**  
+  Catalog-style project management for creative work in progress.
 
-### 🎨 Creative Labs
+### Strategy and business surfaces
 
-- **Image & Video Lab:** Generate cinematic cover art, visualizers, and music video concepts with narrative templates.
-- **Streaming Hub:** Professional broadcast settings and visualizer management for live performances.
+- **Strategy Hub / Intel Lab (`/strategy`)**  
+  AI strategy, campaign planning, intelligence briefs, outreach, and market analysis.
 
-## 🎨 Design System
+- **Career Hub (`/career`)**  
+  A career-planning board for opportunities, growth priorities, and momentum tracking.
 
-S.M.U.V.E 4.0 utilizes a **Modern Professional** aesthetic:
+- **Business Suite (`/business-suite`)**  
+  Business pipeline management and infrastructure tracking.
 
-- **Background:** Slate (#020617)
-- **Accents:** Emerald Neon (#10b981)
-- **Aesthetic:** High-energy terminal UI with scanlines, glitch animations, and aggressive pulse effects.
+- **Business Pipeline Detail (`/business-pipeline/:id`)**  
+  Drill-down view for a specific business pipeline item.
 
-## 🛠️ Technical Stack
+- **Analytics Dashboard (`/analytics`)**  
+  Performance and audience-oriented dashboards for releases and artist activity.
 
-- **Framework:** Angular 21 (Signals-based reactivity)
-- **AI Engine:** Google Gemini AI (Vertex AI integration)
-- **Audio Engine:** Tone.js & Custom Web Audio API implementation
-- **Testing:** Playwright (E2E), Jest (Unit Testing)
-- **Styling:** Tailwind CSS, Animate.css, and custom glitch shaders
+- **Knowledge Base (`/knowledge-base`)**  
+  A strategy-oriented information surface for AI and planning workflows.
 
-## 💻 Getting Started
+### Profile, practice, and community
 
-### Prerequisites
+- **Profile / Journey (`/profile`)**  
+  Artist identity, onboarding, goals, and settings.
 
-- Node.js (v22 or higher)
-- npm (v10 or higher)
+- **Practice Space (`/practice`)**  
+  Practice and rehearsal-oriented tooling.
 
-### Installation
+- **Tha Spot (`/tha-spot`)**  
+  A gaming and community hub with discovery, matchmaking, reputation, and social-energy presentation.
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install --legacy-peer-deps
-   ```
-3. Add your Gemini API Key in the service configuration.
+### Utility routes
 
-### Development Server
+- **Settings (`/settings`)**  
+  Theme, performance, and visual-behavior controls.
 
-Run the local development server:
+- **Login (`/login`)**  
+  Authentication entry point.
+
+## Route aliases and shared entry points
+
+Several routes intentionally point to the same feature surface:
+
+- `/player` → Hub
+- `/dj` → Studio
+- `/image-editor` and `/video-editor` → Image & Video Lab
+- `/gaming-hub` and `/networking` → Tha Spot
+
+## Command shell features
+
+Across the shared shell, the app also includes:
+
+- **Command Palette** for quick navigation and actions
+- **Interaction Guide** for contextual usage tips
+- **Theme and performance controls** for adjusting the UI experience
+
+## Tech stack
+
+- **Framework:** Angular 21
+- **Language:** TypeScript
+- **Audio:** Tone.js + Web Audio APIs
+- **AI integration:** Google Generative AI client
+- **Styling:** Tailwind CSS + custom component styles
+- **Unit testing:** Jest
+- **E2E tooling present:** Playwright
+
+## Prerequisites
+
+- **Node.js:** `22.12.0`
+- **npm:** `>=10.0.0`
+
+The repository currently declares an exact Node engine version in `package.json`.
+
+## Installation
+
+```bash
+npm install --legacy-peer-deps
+```
+
+## Development
+
+Start the local development server:
 
 ```bash
 npm run dev
 ```
 
-Navigate to `http://localhost:4200/`.
+Then open:
 
-## 📜 License
+```text
+http://localhost:4200/
+```
 
-©️ Smuve Jeff Presents. All rights reserved.
+The app redirects the root route to `/hub`.
+
+## Build
+
+Create a build with Angular:
+
+```bash
+npx ng build --configuration development
+```
+
+You can also use the package script:
+
+```bash
+npm run build
+```
+
+## Tests
+
+Run Jest tests:
+
+```bash
+npm test
+```
+
+Useful targeted commands while working in this repository:
+
+```bash
+npm test -- --runInBand src/app/app.component.spec.ts src/app/hub/hub.component.spec.ts
+npx ng build --configuration development
+```
+
+## Linting and formatting
+
+```bash
+npm run lint
+npm run format
+```
+
+## Deployment
+
+The repository includes a GitHub Pages deployment script:
+
+```bash
+npm run deploy
+```
+
+## Notes
+
+- Some routes are guarded and depend on the app's auth/permission flow.
+- The application is intentionally multi-surface: production, visuals, strategy, business, and community tooling all live inside the same shell.
+
+## License
+
+© Smuve Jeff Presents. All rights reserved.
