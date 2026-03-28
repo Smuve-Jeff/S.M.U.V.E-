@@ -30,7 +30,10 @@
         <div class="flex items-center gap-2 text-brand-primary">
           <span class="material-symbols-outlined text-xl">token</span>
           <h2 class="text-slate-100 text-xs font-black tracking-tight uppercase italic leading-none">
-            STUDIO PRO <span class="text-brand-primary">v4</span>
+            <span class="studio-title-desktop">STUDIO PRO </span>
+            <span class="studio-title-desktop studio-title-accent">v4</span>
+            <span class="studio-title-mobile">STUDIO </span>
+            <span class="studio-title-mobile studio-title-accent">Mobile</span>
           </h2>
         </div>
         <div class="h-6 w-px bg-white/10"></div>
@@ -61,15 +64,19 @@
         </div>
         <button
           (click)="aiService.performExecutiveAudit()"
-          class="btn-pro btn-pro-primary text-[8px] font-black tracking-widest py-1 px-4 h-auto uppercase"
+          class="fl-audit-button btn-pro btn-pro-primary text-[8px] font-black tracking-widest py-1 px-4 h-auto uppercase"
         >
           Audit
         </button>
       </div>
     </header>
 
+    <div class="studio-mobile-transport">
+      <app-transport-bar class="mobile-transport"></app-transport-bar>
+    </div>
+
     <!-- View Navigation -->
-    <div class="flex items-center justify-between px-4 md:px-6 py-2 md:py-3 bg-[#1a110b] border-b border-white/5 shrink-0 shadow-inner overflow-hidden">
+    <div class="studio-view-nav flex items-center justify-between px-4 md:px-6 py-2 md:py-3 bg-[#1a110b] border-b border-white/5 shrink-0 shadow-inner overflow-hidden">
       <div class="view-nav-container flex-grow">
         <div class="flex items-center gap-1 min-w-max">
           @for (view of ['dj', 'drum-machine', 'piano-roll', 'mixer', 'vocal-suite', 'performance', 'mastering']; track view) {
@@ -192,6 +199,28 @@
       </div>
     </main>
 
-    <app-transport-bar class="shrink-0 border-t border-white/5"></app-transport-bar>
+    <div class="studio-bottom-dock">
+      <app-transport-bar class="studio-transport desktop-transport shrink-0 border-t border-white/5"></app-transport-bar>
+      <nav class="fl-mobile-nav">
+        @for (item of [
+          { view: 'dj', label: 'Song', icon: 'queue_music' },
+          { view: 'drum-machine', label: 'Drums', icon: 'music_note' },
+          { view: 'piano-roll', label: 'Piano', icon: 'piano' },
+          { view: 'mixer', label: 'Mixer', icon: 'equalizer' },
+          { view: 'vocal-suite', label: 'Vocals', icon: 'mic' },
+          { view: 'mastering', label: 'Master', icon: 'graphic_eq' },
+          { view: 'performance', label: 'Live', icon: 'sensors' }
+        ]; track item.view) {
+          <button
+            (click)="setActiveView($any(item.view))"
+            class="fl-mobile-nav-button"
+            [class.active]="activeView() === item.view"
+          >
+            <span class="material-symbols-outlined">{{ item.icon }}</span>
+            <span>{{ item.label }}</span>
+          </button>
+        }
+      </nav>
+    </div>
   </div>
 </div>

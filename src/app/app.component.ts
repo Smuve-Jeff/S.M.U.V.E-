@@ -118,12 +118,14 @@ export class AppComponent {
       if (isNowMobile) this.isSidebarOpen.set(false);
       else this.isSidebarOpen.set(true);
     }
+    this.updateFullPageMode(this.router.url);
   }
 
   private updateFullPageMode(url: string) {
     const path = this.getPrimaryRoute(url);
     this.isFullPageMode.set(
-      ['piano-roll', 'tha-spot', 'networking'].includes(path)
+      ['piano-roll', 'tha-spot', 'networking'].includes(path) ||
+        (path === 'studio' && this.isMobile())
     );
   }
 
