@@ -19,6 +19,9 @@
   --studio-surface-shadow: 0 18px 35px rgba(0, 0, 0, 0.45);
   --studio-topbar-blur: 12px;
   --studio-mobile-safe-padding: 0.35rem;
+  --studio-mobile-bottom-padding: calc(
+    var(--studio-mobile-safe-padding) + env(safe-area-inset-bottom, 0px)
+  );
   display: flex;
   flex-direction: row; /* Sidebar layout */
   height: 100%;
@@ -133,6 +136,10 @@
   padding: 0 1rem;
   box-shadow: var(--studio-surface-shadow);
   backdrop-filter: blur(var(--studio-topbar-blur));
+}
+
+.studio-title-mobile {
+  display: none;
 }
 
 .studio-mobile-transport {
@@ -298,6 +305,12 @@
   .studio-mobile-transport {
     display: block;
   }
+  .studio-title-desktop {
+    display: none;
+  }
+  .studio-title-mobile {
+    display: inline;
+  }
   .studio-view-nav {
     display: none;
   }
@@ -306,13 +319,11 @@
   }
   .fl-mobile-nav {
     display: flex;
-    padding-bottom: calc(
-      var(--studio-mobile-safe-padding) + env(safe-area-inset-bottom, 0px)
-    );
+    padding-bottom: var(--studio-mobile-bottom-padding);
   }
   .studio-bottom-dock {
     padding-bottom: calc(
-      var(--studio-mobile-safe-padding) + 0.4rem + env(safe-area-inset-bottom, 0px)
+      var(--studio-mobile-bottom-padding) + 0.4rem
     );
   }
   .fl-editor-overlay {
