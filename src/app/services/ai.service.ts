@@ -24,6 +24,7 @@ import {
 import {
   AdvisorAdvice,
   StrategicTask,
+  SystemStatus as AiSystemStatus,
   UpgradeRecommendation,
   StrategicRecommendation as StrategicRecommendationType,
 } from '../types/ai.types';
@@ -39,13 +40,7 @@ import {
  */
 export const API_KEY_TOKEN = new InjectionToken<string>('GEMINI_API_KEY');
 
-export interface SystemStatus {
-  latency: number;
-  load: number;
-  health: string;
-  cpuLoad: number;
-  memoryUsage: number;
-}
+export type { AiSystemStatus as SystemStatus };
 
 // Specialty command routing: maps a keyword to a prompt fragment
 const COMMAND_ROUTES: Record<string, string> = {
@@ -101,12 +96,13 @@ export class AiService {
   private API_URL =
     'https://smuve-v4-backend-9951606049235487441.onrender.com/api';
 
-  systemStatus = signal<SystemStatus>({
+  systemStatus = signal<AiSystemStatus>({
     latency: 45,
-    load: 12,
-    health: 'optimal',
     cpuLoad: 8.5,
     memoryUsage: 16,
+    neuralSync: 97,
+    marketVelocity: 88,
+    activeProcesses: 5,
   });
 
   strategicDecrees = signal<string[]>([...STRATEGIC_DECREES]);
@@ -361,7 +357,7 @@ export class AiService {
 
   private handleStatusCommand(): string {
     const status = this.systemStatus();
-    return `[S.M.U.V.E 4.2 STATUS REPORT] Neural Sync: 97.3% | CPU Load: ${status.cpuLoad}% | Memory: ${status.memoryUsage}% | Network Latency: ${status.latency}ms | Strategic Health: OPTIMAL | Market Pulse: ACTIVE | Intelligence Briefs Loaded: ${this.intelligenceBriefs().length} | Active Decrees: ${this.strategicDecrees().length} | Advisor Queue: ${this.advisorAdvice().length} items | System Health: ${status.health.toUpperCase()}`;
+    return `[S.M.U.V.E 4.2 STATUS REPORT] Neural Sync: ${status.neuralSync}% | CPU Load: ${status.cpuLoad}% | Memory: ${status.memoryUsage}% | Network Latency: ${status.latency}ms | Strategic Health: OPTIMAL | Market Pulse: ACTIVE | Intelligence Briefs Loaded: ${this.intelligenceBriefs().length} | Active Decrees: ${this.strategicDecrees().length} | Advisor Queue: ${this.advisorAdvice().length} items | Market Velocity: ${status.marketVelocity}%`;
   }
 
   private handlePromoCommand(artist: string, genre: string): Promise<string> {

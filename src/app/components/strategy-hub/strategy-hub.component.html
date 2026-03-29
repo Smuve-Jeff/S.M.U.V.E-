@@ -13,7 +13,7 @@
     <!-- Tab Container with horizontal scroll on mobile -->
     <div class="flex items-center gap-1 p-1 overflow-x-auto no-scrollbar bg-brand-surface/40 rounded-2xl border border-white/10 max-w-full">
        @for (tab of ['overview', 'campaigns', 'analytics', 'outreach', 'social']; track tab) {
-          <button (click)="activeHubTab.set((tab))"
+          <button (click)="setTab(tab)"
                   class="px-4 md:px-6 py-2 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap"
                   [class.bg-brand-primary]="activeHubTab() === tab"
                   [class.text-black]="activeHubTab() === tab"
@@ -81,10 +81,15 @@
           </section>
 
           <section class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
-             <h2 class="text-base md:text-lg font-bold text-white uppercase tracking-tight mb-8">Strategic Protocol Checklist</h2>
+             <div class="flex justify-between items-center mb-8">
+               <h2 class="text-base md:text-lg font-bold text-white uppercase tracking-tight">Strategic Protocol Checklist</h2>
+               <button (click)="refreshStrategicIntelligence()" class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all">
+                 Refresh <i class="fas fa-sync-alt"></i>
+               </button>
+             </div>
              <div class="space-y-3">
                 @for (item of strategicTasks(); track item.id) {
-                   <button (click)="item.completed = !item.completed"
+                   <button (click)="toggleTask(item.id)"
                            class="w-full flex items-center gap-4 p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-brand-primary/30 transition-all text-left group">
                       <div class="w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all shrink-0"
                            [class.border-brand-primary]="item.completed"
@@ -99,7 +104,7 @@
                                {{ item.impact }} IMPACT
                             </span>
                          </div>
-                         <p *ngIf="item.description" class="text-[10px] text-silver-dim mt-1" [class.hidden]="item.completed">{{ item.description }}</p>
+                         <p *ngIf="item.description && !item.completed" class="text-[10px] text-silver-dim mt-1">{{ item.description }}</p>
                       </div>
                    </button>
                 }
@@ -153,16 +158,387 @@
        </div>
     </div>
 
-    <!-- OTHER TABS -->
-    <div *ngSwitchDefault class="flex items-center justify-center py-16 md:py-24 px-6 text-center">
-       <div class="max-w-sm">
-          <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-brand-brand-primary/10 border border-brand-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6">
-             <i class="fas fa-microchip text-2xl animate-pulse-subtle"></i>
+    <!-- CAMPAIGNS TAB -->
+    <div *ngSwitchCase="'campaigns'" class="space-y-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg md:text-xl font-black text-white uppercase tracking-tight">Marketing Campaigns</h2>
+          <p class="text-[11px] text-silver-dim mt-1">{{ campaigns().length }} campaign(s) active in your pipeline</p>
+        </div>
+        <button (click)="showCampaignForm.set(!showCampaignForm())"
+                class="btn-elegant btn-elegant-primary text-[9px] font-black uppercase tracking-widest px-6 py-3 flex items-center gap-2">
+          <i class="fas fa-plus"></i> New Campaign
+        </button>
+      </div>
+
+      <!-- Create Campaign Form -->
+      @if (showCampaignForm()) {
+        <div class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-brand-primary/30">
+          <h3 class="text-sm font-black text-brand-primary uppercase tracking-widest mb-6">Launch New Campaign</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex flex-col gap-2">
+              <label class="text-[9px] font-black text-silver-dim uppercase tracking-widest">Campaign Name</label>
+              <input type="text"
+                     [value]="newCampaign().name"
+                     (input)="newCampaign.update(c => ({...c, name: $any($event.target).value}))"
+                     placeholder="e.g. Summer Drop Push"
+                     class="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder:text-silver-dim/40 focus:outline-none focus:border-brand-primary/50 transition-colors" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="text-[9px] font-black text-silver-dim uppercase tracking-widest">Budget ($)</label>
+              <input type="number"
+                     [value]="newCampaign().budget"
+                     (input)="newCampaign.update(c => ({...c, budget: +$any($event.target).value}))"
+                     placeholder="500"
+                     class="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder:text-silver-dim/40 focus:outline-none focus:border-brand-primary/50 transition-colors" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="text-[9px] font-black text-silver-dim uppercase tracking-widest">Strategy Level</label>
+              <select [value]="newCampaign().strategyLevel"
+                      (change)="newCampaign.update(c => ({...c, strategyLevel: $any($event.target).value}))"
+                      class="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-brand-primary/50 transition-colors">
+                <option value="Modern Professional">Modern Professional</option>
+                <option value="Aggressive High Energy">Aggressive High Energy</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="text-[9px] font-black text-silver-dim uppercase tracking-widest">Ad Spend Projection ($)</label>
+              <input type="range" min="50" max="2000" step="50"
+                     [value]="adSpend()"
+                     (input)="adSpend.set(+$any($event.target).value)"
+                     class="w-full accent-brand-primary" />
+              <div class="flex justify-between text-[9px] text-silver-dim">
+                <span>${{ adSpend() }}</span>
+                <span class="text-brand-primary">~{{ formatNumber(adProjections().reach) }} reach · {{ adProjections().conversions }} conversions</span>
+              </div>
+            </div>
           </div>
-          <h2 class="text-lg md:text-xl font-bold text-white uppercase tracking-widest mb-4">{{ activeHubTab() | uppercase }} MODULE</h2>
-          <p class="text-[11px] md:text-xs text-silver-dim leading-relaxed">System integration for the {{ activeHubTab() }} expansion is 98% complete. Strategic assets are ready for deployment.</p>
-          <button (click)="activeHubTab.set('overview')" class="mt-8 btn-elegant btn-elegant-primary w-full text-[10px] font-black uppercase tracking-widest py-3">Return to Overview</button>
-       </div>
+          <div class="flex gap-4 mt-8">
+            <button (click)="saveCampaign()"
+                    class="btn-elegant btn-elegant-primary text-[9px] font-black uppercase tracking-widest px-8 py-3 flex items-center gap-2">
+              <i class="fas fa-rocket"></i> Launch Campaign
+            </button>
+            <button (click)="showCampaignForm.set(false)"
+                    class="text-[9px] font-black text-silver-dim uppercase tracking-widest px-6 py-3 rounded-xl border border-white/10 hover:border-white/20 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Campaign List -->
+      @if (campaigns().length > 0) {
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          @for (campaign of campaigns(); track campaign.id) {
+            <div class="campaign-card bg-brand-surface/40 rounded-2xl border border-white/10 p-6 hover:border-brand-primary/30 transition-all group">
+              <div class="flex justify-between items-start mb-4">
+                <h3 class="text-sm font-black text-white uppercase leading-tight group-hover:text-brand-primary transition-colors">{{ campaign.name }}</h3>
+                <span class="px-2 py-1 rounded border text-[8px] font-black uppercase ml-2 shrink-0" [ngClass]="getCampaignStatusClass(campaign.status)">{{ campaign.status }}</span>
+              </div>
+              <div class="space-y-2 mb-4">
+                <div class="flex justify-between text-[10px]">
+                  <span class="text-silver-dim uppercase">Budget</span>
+                  <span class="text-white font-bold">${{ campaign.budget | number }}</span>
+                </div>
+                <div class="flex justify-between text-[10px]">
+                  <span class="text-silver-dim uppercase">Strategy</span>
+                  <span class="text-brand-primary font-bold">{{ campaign.strategyLevel }}</span>
+                </div>
+                <div class="flex justify-between text-[10px]">
+                  <span class="text-silver-dim uppercase">Platforms</span>
+                  <span class="text-white font-bold">{{ campaign.platforms.join(', ') }}</span>
+                </div>
+              </div>
+              <div class="flex justify-between items-center mt-4 pt-4 border-t border-white/5">
+                <span class="text-[8px] text-silver-dim">{{ campaign.startDate | date:'mediumDate' }}</span>
+                <button (click)="deleteCampaign(campaign.id)" class="text-[8px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 transition-colors">
+                  Delete
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="flex items-center justify-center py-20 text-center">
+          <div class="max-w-xs">
+            <div class="w-14 h-14 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6">
+              <i class="fas fa-bullhorn text-2xl"></i>
+            </div>
+            <h3 class="text-sm font-bold text-white uppercase tracking-widest mb-3">No Campaigns Yet</h3>
+            <p class="text-[11px] text-silver-dim leading-relaxed mb-6">Launch your first campaign to start building audience and driving streams.</p>
+            <button (click)="showCampaignForm.set(true)" class="btn-elegant btn-elegant-primary text-[9px] font-black uppercase tracking-widest px-6 py-3">
+              Create First Campaign
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- ANALYTICS TAB -->
+    <div *ngSwitchCase="'analytics'" class="space-y-8">
+      <div>
+        <h2 class="text-lg md:text-xl font-black text-white uppercase tracking-tight mb-1">Performance Analytics</h2>
+        <p class="text-[11px] text-silver-dim">Real-time data across all platforms and channels</p>
+      </div>
+
+      <!-- Aggregate Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2">
+          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Total Followers</span>
+          <span class="text-2xl font-black text-white">{{ formatNumber(totalFollowers()) }}</span>
+          <span class="text-[8px] text-brand-primary uppercase">Across {{ socialStats().length }} platforms</span>
+        </div>
+        <div class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2">
+          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Total Streams</span>
+          <span class="text-2xl font-black text-white">{{ formatNumber(totalStreams()) }}</span>
+          <span class="text-[8px] text-brand-primary uppercase">All-time</span>
+        </div>
+        <div class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2">
+          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Monthly Listeners</span>
+          <span class="text-2xl font-black text-white">{{ formatNumber(totalMonthlyListeners()) }}</span>
+          <span class="text-[8px] text-brand-primary uppercase">This month</span>
+        </div>
+        <div class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2">
+          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Campaigns</span>
+          <span class="text-2xl font-black text-white">{{ campaigns().length }}</span>
+          <span class="text-[8px] text-brand-primary uppercase">Active pipeline</span>
+        </div>
+      </div>
+
+      <!-- Social Platform Data -->
+      <section>
+        <h3 class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Social Presence</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          @for (platform of socialStats(); track platform.platform) {
+            <div class="glass-panel rounded-2xl border border-white/10 p-6">
+              <div class="flex justify-between items-center mb-5">
+                <h4 class="text-sm font-black text-white uppercase">{{ platform.platform }}</h4>
+                <span class="text-[10px] font-black text-brand-primary">{{ formatNumber(platform.followers) }} followers</span>
+              </div>
+              <div class="space-y-3 mb-4">
+                <div class="flex justify-between text-[10px]">
+                  <span class="text-silver-dim uppercase">Engagement Rate</span>
+                  <span class="font-bold" [class.text-brand-primary]="platform.engagementRate >= 5" [class.text-yellow-400]="platform.engagementRate < 5">{{ platform.engagementRate }}%</span>
+                </div>
+              </div>
+              <div>
+                <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-2 block">Top Posts</span>
+                <div class="space-y-2">
+                  @for (post of platform.topPosts; track post.id) {
+                    <div class="flex gap-4 text-[10px] bg-black/30 rounded-xl p-3">
+                      <span class="text-silver-dim flex items-center gap-1"><i class="fas fa-heart text-[8px]"></i> {{ formatNumber(post.likes) }}</span>
+                      <span class="text-silver-dim flex items-center gap-1"><i class="fas fa-share text-[8px]"></i> {{ formatNumber(post.shares) }}</span>
+                      <span class="text-silver-dim flex items-center gap-1"><i class="fas fa-comment text-[8px]"></i> {{ formatNumber(post.comments) }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- Streaming Data -->
+      <section>
+        <h3 class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Streaming Platforms</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          @for (platform of streamingStats(); track platform.platform) {
+            <div class="glass-panel rounded-2xl border border-white/10 p-6">
+              <div class="flex justify-between items-center mb-5">
+                <h4 class="text-sm font-black text-white uppercase">{{ platform.platform }}</h4>
+                <span class="text-[10px] font-black text-brand-primary">{{ formatNumber(platform.monthlyListeners) }} listeners/mo</span>
+              </div>
+              <div class="space-y-3 mb-4">
+                <div class="flex justify-between text-[10px]">
+                  <span class="text-silver-dim uppercase">Total Streams</span>
+                  <span class="text-white font-bold">{{ formatNumber(platform.totalStreams) }}</span>
+                </div>
+                <div class="flex justify-between text-[10px]">
+                  <span class="text-silver-dim uppercase">Playlist Adds</span>
+                  <span class="text-brand-primary font-bold">{{ formatNumber(platform.playlistAdds) }}</span>
+                </div>
+              </div>
+              <div>
+                <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-2 block">Top Tracks</span>
+                <div class="space-y-2">
+                  @for (track of platform.topTracks; track track.id) {
+                    <div class="flex justify-between items-center bg-black/30 rounded-xl p-3 text-[10px]">
+                      <span class="text-white font-medium truncate max-w-[160px]">{{ track.title }}</span>
+                      <span class="text-brand-primary font-black ml-2 shrink-0">{{ formatNumber(track.streams) }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+
+    <!-- OUTREACH TAB -->
+    <div *ngSwitchCase="'outreach'" class="space-y-8">
+      <div>
+        <h2 class="text-lg md:text-xl font-black text-white uppercase tracking-tight mb-1">Outreach Command Center</h2>
+        <p class="text-[11px] text-silver-dim">AI-driven outreach protocols and promotion intelligence</p>
+      </div>
+
+      <!-- Quick AI Commands -->
+      <section class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
+        <h3 class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-6">S.M.U.V.E Outreach Modules</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+              <i class="fas fa-newspaper text-brand-primary"></i>
+            </div>
+            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Press & Blog Outreach</h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Target music blogs, editorial sites, and press outlets in your genre. Personalized pitch templates included.</p>
+            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use /promo in Command Center →</span>
+          </div>
+          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+              <i class="fas fa-music text-brand-primary"></i>
+            </div>
+            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Playlist Pitching</h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Submit to curated playlists via Groover and SubmitHub. Target curators with 10K–100K followers for 15–30% acceptance rates.</p>
+            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use /release in Command Center →</span>
+          </div>
+          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+              <i class="fas fa-handshake text-brand-primary"></i>
+            </div>
+            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Collaboration Outreach</h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Identify ideal collaboration targets—features, producers, and remixers—based on genre alignment and growth-stage synergy.</p>
+            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use COLLAB_STRATEGY in Command Center →</span>
+          </div>
+          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+              <i class="fas fa-film text-brand-primary"></i>
+            </div>
+            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Sync Licensing Pitch</h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Create pitch materials for music supervisors. Include genre tags, mood descriptors, and one-stop clearance status.</p>
+            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use SYNC_PITCH in Command Center →</span>
+          </div>
+          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+              <i class="fas fa-envelope text-brand-primary"></i>
+            </div>
+            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Email List Activation</h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Deploy a 72-hour pre-save email sequence. Personalized subject lines increase open rates by 26%. Drive saves—not just plays.</p>
+            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use /promo in Command Center →</span>
+          </div>
+          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+              <i class="fas fa-bullseye text-brand-primary"></i>
+            </div>
+            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Fan Funnel Architecture</h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Design a fan acquisition pipeline: discovery → streaming → social → email capture → merch and superfan monetization.</p>
+            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use FAN_FUNNEL in Command Center →</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Upgrade Recommendations -->
+      <section>
+        <h3 class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Strategic Upgrade Targets</h3>
+        <div class="space-y-3">
+          @for (rec of upgradeRecs; track rec.id) {
+            <div class="flex items-start gap-4 bg-brand-surface/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
+              <div class="w-8 h-8 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                <i class="fas fa-arrow-up text-brand-primary text-[10px]"></i>
+              </div>
+              <div class="flex-grow min-w-0">
+                <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                  <h4 class="text-xs font-black text-white uppercase group-hover:text-brand-primary transition-colors">{{ rec.title }}</h4>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[8px] font-black text-silver-dim uppercase">{{ rec.type }}</span>
+                    <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded" [ngClass]="getImpactColor(rec.impact)">{{ rec.impact }}</span>
+                  </div>
+                </div>
+                <p class="text-[10px] text-silver-dim leading-relaxed">{{ rec.description }}</p>
+              </div>
+              <span class="text-[10px] font-black text-brand-primary shrink-0 hidden sm:block">{{ rec.cost }}</span>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+
+    <!-- SOCIAL TAB -->
+    <div *ngSwitchCase="'social'" class="space-y-8">
+      <div>
+        <h2 class="text-lg md:text-xl font-black text-white uppercase tracking-tight mb-1">Social Presence Engine</h2>
+        <p class="text-[11px] text-silver-dim">Platform analytics, content intelligence, and viral hook strategies</p>
+      </div>
+
+      <!-- Social Stats Summary -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        @for (platform of socialStats(); track platform.platform) {
+          <div class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2">
+            <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">{{ platform.platform }}</span>
+            <span class="text-xl font-black text-white">{{ formatNumber(platform.followers) }}</span>
+            <div class="flex justify-between items-center">
+              <span class="text-[8px] text-silver-dim">Engagement</span>
+              <span class="text-[10px] font-black" [class.text-brand-primary]="platform.engagementRate >= 5" [class.text-yellow-400]="platform.engagementRate < 5">{{ platform.engagementRate }}%</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Viral Hooks -->
+      <section class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-base font-black text-white uppercase tracking-tight">Viral Hook Library</h3>
+          <span class="text-[9px] font-black text-brand-primary uppercase tracking-widest">{{ viralHooks.length }} HOOKS</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          @for (hook of viralHooks; track hook; let i = $index) {
+            <div class="flex items-start gap-3 bg-black/30 rounded-xl p-4 hover:bg-black/50 transition-all group">
+              <div class="w-7 h-7 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary text-[10px] font-black shrink-0">{{ i + 1 }}</div>
+              <span class="text-xs text-white font-medium group-hover:text-brand-primary transition-colors leading-snug">{{ hook }}</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- Content Strategy Tips -->
+      <section>
+        <h3 class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Platform-Native Content Protocols</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all">
+            <h4 class="text-xs font-black text-white uppercase mb-3 flex items-center gap-2">
+              <i class="fab fa-tiktok text-brand-primary"></i> TikTok Protocol
+            </h4>
+            <ul class="space-y-2 text-[10px] text-silver-dim">
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Post 15–30 second hook clips daily for 7 days</li>
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Use trending audio overlays on instrumental cuts</li>
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Drive saves—saves trigger the algorithm, not just views</li>
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Best posting times: 7–9 AM and 7–10 PM local</li>
+            </ul>
+          </div>
+          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all">
+            <h4 class="text-xs font-black text-white uppercase mb-3 flex items-center gap-2">
+              <i class="fab fa-instagram text-brand-primary"></i> Instagram Protocol
+            </h4>
+            <ul class="space-y-2 text-[10px] text-silver-dim">
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Reels perform 3× better than static posts in reach</li>
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Use Stories for behind-the-scenes studio content</li>
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Tag collaborators and producers to multiply reach</li>
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Link Spotify pre-save in bio during release window</li>
+            </ul>
+          </div>
+          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all">
+            <h4 class="text-xs font-black text-white uppercase mb-3 flex items-center gap-2">
+              <i class="fab fa-youtube text-brand-primary"></i> YouTube Protocol
+            </h4>
+            <ul class="space-y-2 text-[10px] text-silver-dim">
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Upload Shorts version of every release (60 sec max)</li>
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Full music video drives long-term search discovery</li>
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Optimize titles with genre keywords for SEO</li>
+              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Enable monetization to capture YouTube Music streams</li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </div>
