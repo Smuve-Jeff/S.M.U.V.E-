@@ -129,4 +129,30 @@ export class ProjectsComponent {
         return 'border-white/10 text-slate-400 bg-white/5';
     }
   }
+
+  addProject(): void {
+    const name = window.prompt('Enter project name:');
+    if (!name?.trim()) return;
+    const newProject: Project = {
+      id: Date.now(),
+      name: name.trim(),
+      description: 'New release cycle',
+      status: 'In Progress',
+      tasks: [],
+      deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+    };
+    this.projects.update((list) => [...list, newProject]);
+    this.selectedProject.set(newProject);
+  }
+
+  finalizeReleaseCycle(): void {
+    const project = this.selectedProject();
+    if (!project) return;
+    this.projects.update((list) =>
+      list.map((p) =>
+        p.id === project.id ? { ...p, status: 'Completed' } : p
+      )
+    );
+    this.selectedProject.set({ ...project, status: 'Completed' });
+  }
 }

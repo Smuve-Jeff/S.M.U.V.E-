@@ -7,6 +7,7 @@ import { NotificationService } from '../../services/notification.service';
 import { SecurityService } from '../../services/security.service';
 import { MicrophoneService } from '../../services/microphone.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { AuthService } from '../../services/auth.service';
 
 describe('SettingsComponent', () => {
   const createComponent = async () => {
@@ -70,10 +71,14 @@ describe('SettingsComponent', () => {
     const securityServiceMock = {
       fetchLogs: jest.fn(),
       fetchSessions: jest.fn(),
-      logEvent: jest.fn(),
+      logEvent: jest.fn().mockResolvedValue(undefined),
       revokeSession: jest.fn().mockResolvedValue(undefined),
       sessions: signal([]),
       logs: signal([]),
+    };
+
+    const authServiceMock = {
+      logout: jest.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -93,6 +98,7 @@ describe('SettingsComponent', () => {
         { provide: SecurityService, useValue: securityServiceMock },
         { provide: MicrophoneService, useValue: microphoneServiceMock },
         { provide: AudioEngineService, useValue: audioEngineMock },
+        { provide: AuthService, useValue: authServiceMock },
       ],
     }).compileComponents();
 
@@ -105,6 +111,7 @@ describe('SettingsComponent', () => {
       microphoneServiceMock,
       audioEngineMock,
       securityServiceMock,
+      authServiceMock,
     };
   };
 
@@ -137,5 +144,35 @@ describe('SettingsComponent', () => {
 
     expect(securityServiceMock.fetchLogs).toHaveBeenCalled();
     expect(securityServiceMock.fetchSessions).toHaveBeenCalled();
+  });
+
+  it('purgeProfile logs the event and calls logout when confirmed', async () => {
+    const { component, securityServiceMock, authServiceMock } =
+      await createComponent();
+
+    jest.spyOn(window, 'confirm').mockReturnValue(true);
+
+    await component.purgeProfile();
+
+    expect(securityServiceMock.logEvent).toHaveBeenCalledWith(
+      'PROFILE_PURGE',
+      'User initiated irreversible profile purge.'
+    );
+    expect(authServiceMock.logout).toHaveBeenCalled();
+  });
+
+  it('purgeProfile does nothing when user cancels the confirmation', async () => {
+    const { component, securityServiceMock, authServiceMock } =
+      await createComponent();
+
+    jest.spyOn(window, 'confirm').mockReturnValue(false);
+
+    await component.purgeProfile();
+
+    expect(securityServiceMock.logEvent).not.toHaveBeenCalledWith(
+      'PROFILE_PURGE',
+      expect.any(String)
+    );
+    expect(authServiceMock.logout).not.toHaveBeenCalled();
   });
 });

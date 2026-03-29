@@ -10,6 +10,7 @@ import { NotificationService } from '../../services/notification.service';
 import { SecurityService } from '../../services/security.service';
 import { MicrophoneService } from '../../services/microphone.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-settings',
@@ -25,6 +26,7 @@ export class SettingsComponent implements OnInit {
   securityService = inject(SecurityService);
   microphoneService = inject(MicrophoneService);
   audioEngine = inject(AudioEngineService);
+  authService = inject(AuthService);
 
   settings = computed(() => this.profileService.profile().settings);
   activeTab = signal<'ui' | 'audio' | 'ai' | 'studio' | 'security'>('ui');
@@ -111,6 +113,32 @@ export class SettingsComponent implements OnInit {
   openExternalLink(url: string) {
     if (typeof window !== 'undefined') {
       window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  async purgeProfile() {
+    const confirmed = window.confirm(
+      'DANGER: This will permanently delete your executive profile and all neural sync data. This action is irreversible. Proceed?'
+    );
+    if (!confirmed) return;
+
+    try {
+      await this.securityService.logEvent(
+        'PROFILE_PURGE',
+        'User initiated irreversible profile purge.'
+      );
+      this.authService.logout();
+      this.notificationService.show(
+        'Profile purge complete. All data has been erased.',
+        'success',
+        4000
+      );
+    } catch {
+      this.notificationService.show(
+        'Purge failed. Please try again.',
+        'error',
+        3000
+      );
     }
   }
 }

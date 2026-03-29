@@ -3,7 +3,7 @@
   <div class="w-1/3 bg-brand-surface/30 rounded-2xl p-6 border border-white/10">
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-black uppercase tracking-widest text-brand-primary italic">Projects</h2>
-      <button class="w-8 h-8 rounded-full bg-brand-primary text-black flex items-center justify-center text-xs">
+      <button (click)="addProject()" class="w-8 h-8 rounded-full bg-brand-primary text-black flex items-center justify-center text-xs">
         <i class="fas fa-plus"></i>
       </button>
     </div>
@@ -95,6 +95,7 @@
 
       <div class="mt-12 pt-8 border-t border-white/10 flex justify-end">
         <button
+          (click)="finalizeReleaseCycle()"
           class="bg-brand-primary hover:bg-emerald-400 text-black font-black uppercase tracking-tighter italic text-sm py-3 px-8 rounded-xl transition-all hover:scale-105 shadow-[0_0_30px_rgba(16,185,129,0.2)]"
         >
           Finalize Release Cycle
