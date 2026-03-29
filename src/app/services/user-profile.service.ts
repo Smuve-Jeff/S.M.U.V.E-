@@ -131,7 +131,7 @@ export class UserProfileService {
 
   async acquireUpgrade(upgrade: { title: string; type: string }) {
     const current = this.profile();
-    const title = upgrade.title.trim();
+    const title = upgrade.title?.trim() || '';
     const next: UserProfile = {
       ...current,
       equipment: [...(current.equipment || [])],
