@@ -112,10 +112,13 @@
           </div>
         </div>
 
-        <a
+        <button
           *ngFor="let view of group.items"
+          type="button"
           (click)="navigateToView(view.mode)"
-          class="nav-item group flex items-center px-4 py-3 rounded-2xl transition-all duration-200 cursor-pointer border border-transparent"
+          class="nav-item group flex w-full items-center px-4 py-3 rounded-2xl transition-all duration-200 cursor-pointer border border-transparent bg-transparent text-left"
+          [attr.aria-label]="'Open ' + view.label"
+          [title]="view.label"
           [class.bg-brand-primary/10]="uiService.mainViewMode() === view.mode"
           [class.border-brand-primary/20]="
             uiService.mainViewMode() === view.mode
@@ -144,7 +147,7 @@
               {{ view.description }}
             </div>
           </div>
-        </a>
+        </button>
       </section>
     </nav>
 
@@ -184,8 +187,11 @@
     >
       <div class="flex items-center gap-2 md:gap-4 min-w-0">
         <button
+          type="button"
           (click)="toggleSidebar()"
-          class="w-10 h-10 rounded-lg hover:bg-background-alt text-text-dim hover:text-text-main transition-all flex items-center justify-center group shrink-0"
+          class="shell-icon-button w-10 h-10 rounded-lg hover:bg-background-alt text-text-dim hover:text-text-main transition-all flex items-center justify-center group shrink-0"
+          [attr.aria-label]="isSidebarOpen() ? 'Close navigation menu' : 'Open navigation menu'"
+          [title]="isSidebarOpen() ? 'Close navigation menu' : 'Open navigation menu'"
         >
           <span class="material-symbols-outlined text-2xl">{{
             isSidebarOpen() ? 'menu_open' : 'menu'
@@ -262,9 +268,11 @@
         </div>
 
         <button
+          type="button"
           (click)="uiService.togglePerformanceMode()"
-          class="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group"
+          class="shell-icon-button w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group"
           [title]="'Toggle High-Voltage Performance'"
+          aria-label="Toggle performance mode"
         >
           <span class="material-symbols-outlined text-xl md:text-2xl">{{
             uiService.performanceMode() ? 'speed' : 'bolt'
@@ -272,14 +280,17 @@
         </button>
 
         <button
+          type="button"
           (click)="commandPalette.togglePalette()"
-          class="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group hidden sm:flex"
+          class="shell-icon-button w-10 h-10 rounded-lg border border-border items-center justify-center text-text-dim hover:text-brand-primary transition-all group hidden sm:flex"
           [title]="'Open Command Palette (Ctrl + K)'"
+          aria-label="Open command palette"
         >
           <span class="material-symbols-outlined text-xl md:text-2xl">search</span>
         </button>
 
         <button
+          type="button"
           (click)="openInteractionGuide()"
           class="hidden lg:flex px-3 h-10 rounded-xl border border-border items-center justify-center text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim hover:text-brand-primary hover:border-brand-primary transition-all"
           title="Open Interaction Guide"
@@ -288,6 +299,7 @@
         </button>
 
         <button
+          type="button"
           (click)="uiService.toggleTheme()"
           class="hidden lg:flex px-3 h-10 rounded-xl border border-border items-center justify-center text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim hover:text-brand-primary hover:border-brand-primary transition-all"
           title="Shift theme"
@@ -295,7 +307,13 @@
           Theme
         </button>
 
-        <button (click)="toggleChatbot()" class="relative group">
+        <button
+          type="button"
+          (click)="toggleChatbot()"
+          class="shell-icon-button relative group"
+          aria-label="Toggle S.M.U.V.E advisor"
+          title="Toggle S.M.U.V.E advisor"
+        >
           <div
             class="w-10 h-10 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all"
           >
@@ -317,9 +335,12 @@
           LOGIN
         </button>
         <button
+          type="button"
           *ngIf="authService.isAuthenticated()"
           (click)="authService.logout()"
-          class="w-10 h-10 rounded-lg border border-red-500/20 flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all"
+          class="shell-icon-button w-10 h-10 rounded-lg border border-red-500/20 flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all"
+          aria-label="Log out"
+          title="Log out"
         >
           <span class="material-symbols-outlined">power_settings_new</span>
         </button>
@@ -406,8 +427,11 @@
     class="mobile-nav-bar border-t border-border glass-v42 z-50"
   >
     <button
+      type="button"
       (click)="navigateToView('hub')"
       class="mobile-nav-button"
+      aria-label="Open hub"
+      title="Hub"
       [class.text-brand-primary]="uiService.mainViewMode() === 'hub'"
       [class.text-text-dim]="uiService.mainViewMode() !== 'hub'"
     >
@@ -415,8 +439,11 @@
       <span class="text-[8px] font-bold uppercase">Hub</span>
     </button>
     <button
+      type="button"
       (click)="navigateToView('studio')"
       class="mobile-nav-button"
+      aria-label="Open studio"
+      title="Studio"
       [class.text-brand-primary]="uiService.mainViewMode() === 'studio'"
       [class.text-text-dim]="uiService.mainViewMode() !== 'studio'"
     >
@@ -424,8 +451,11 @@
       <span class="text-[8px] font-bold uppercase">Studio</span>
     </button>
     <button
+      type="button"
       (click)="navigateToView('strategy')"
       class="mobile-nav-button"
+      aria-label="Open strategy"
+      title="Intel Lab"
       [class.text-brand-primary]="uiService.mainViewMode() === 'strategy'"
       [class.text-text-dim]="uiService.mainViewMode() !== 'strategy'"
     >
@@ -433,8 +463,11 @@
       <span class="text-[8px] font-bold uppercase">Intel</span>
     </button>
     <button
+      type="button"
       (click)="navigateToView('profile')"
       class="mobile-nav-button"
+      aria-label="Open profile"
+      title="Profile"
       [class.text-brand-primary]="uiService.mainViewMode() === 'profile'"
       [class.text-text-dim]="uiService.mainViewMode() !== 'profile'"
     >

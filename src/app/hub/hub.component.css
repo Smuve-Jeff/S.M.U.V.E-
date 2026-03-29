@@ -42,6 +42,13 @@
   gap: 20px;
 }
 
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
 .hero-title {
   font-size: clamp(2.5rem, 3vw, 3.4rem);
   font-weight: 900;
@@ -479,6 +486,7 @@
 }
 
 .stack-tile {
+  width: 100%;
   padding: 16px;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.03);
@@ -486,6 +494,7 @@
   display: grid;
   gap: 10px;
   cursor: pointer;
+  text-align: left;
   transition: all 0.2s ease;
 }
 
@@ -599,6 +608,11 @@
 }
 
 @media (max-width: 640px) {
+  .hero-actions > * {
+    width: 100%;
+    justify-content: center;
+  }
+
   .section-head,
   .feature-card-head {
     flex-direction: column;
@@ -608,5 +622,15 @@
   .workflow-step,
   .command-card {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .glass-card {
+    padding: 18px;
+  }
+
+  .hub-bottom-grid {
+    gap: 18px;
   }
 }

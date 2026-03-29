@@ -74,6 +74,27 @@ html, body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1em;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  white-space: nowrap;
+  overflow: hidden;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  flex-shrink: 0;
+}
+
 /* --- v4.2 Professional Utilities --- */
 
 /* 1. Frosted Glass (Glassmorphism) */
