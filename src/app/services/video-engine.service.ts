@@ -2,6 +2,9 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 
 export type ProductionMode = 'movie' | 'stream' | 'vlog';
+export type ClipFilter = 'none' | 'cinematic' | 'vivid' | 'mono';
+export type ClipTransition = 'cut' | 'fade' | 'dissolve';
+export const MIN_ACTIVE_CLIP_DURATION = 0.05;
 
 export interface DeliveryPreset {
   id: string;
@@ -30,6 +33,11 @@ export interface VideoClip {
     noiseReduction: boolean;
     brightness: number;
     contrast: number;
+    filter: ClipFilter;
+    transition: ClipTransition;
+    transitionDuration: number;
+    trimStart: number;
+    trimEnd: number;
   };
 }
 
@@ -259,7 +267,26 @@ export class VideoEngineService {
     this.tracks().forEach((track) => {
       if (track.muted) return;
       track.clips.forEach((clip) => {
-        if (time >= clip.startTime && time <= clip.startTime + clip.duration) {
+        const trimStart = Math.max(
+          0,
+          Math.min(
+            clip.effects.trimStart || 0,
+            Math.max(clip.duration - MIN_ACTIVE_CLIP_DURATION, 0)
+          )
+        );
+        const trimEnd = Math.max(
+          0,
+          Math.min(
+            clip.effects.trimEnd || 0,
+            Math.max(clip.duration - trimStart - MIN_ACTIVE_CLIP_DURATION, 0)
+          )
+        );
+        const activeStart = clip.startTime + trimStart;
+        const activeDuration = Math.max(
+          MIN_ACTIVE_CLIP_DURATION,
+          clip.duration - trimStart - trimEnd
+        );
+        if (time >= activeStart && time <= activeStart + activeDuration) {
           active.push(clip);
         }
       });

@@ -15,7 +15,10 @@ import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
 import { UserContextService } from '../../services/user-context.service';
 import {
+  ClipFilter,
+  ClipTransition,
   DeliveryPreset,
+  MIN_ACTIVE_CLIP_DURATION,
   ProductionMode,
   VideoEngineService,
   VideoClip,
@@ -26,6 +29,11 @@ interface ProductionDirective {
   title: string;
   detail: string;
 }
+
+const MIN_TRANSITION_ALPHA = 0.15;
+const HUD_FX_LINE_Y = 60;
+const AI_CLIP_DURATION_MOVIE = 10;
+const AI_CLIP_DURATION_OTHER = 6;
 
 @Component({
   selector: 'app-image-video-lab',
@@ -48,6 +56,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   isExporting = signal(false);
   generatedImageUrl = signal<string | null>(null);
   highQualityEnhancer = signal(false);
+  selectedFilter = signal<ClipFilter>('cinematic');
+  selectedTransition = signal<ClipTransition>('fade');
+  transitionDuration = signal(0.5);
+  trimAmount = signal(0);
 
   activeDirectorTab = signal<'assets' | 'effects' | 'ai'>('assets');
   zoomLevel = signal(1.0);
@@ -215,6 +227,24 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
     if (activeClips.length > 0) {
       activeClips.forEach((clip) => {
+        const trimStart = Math.max(0, clip.effects.trimStart || 0);
+        const trimEnd = Math.max(0, clip.effects.trimEnd || 0);
+        const activeDuration = Math.max(
+          MIN_ACTIVE_CLIP_DURATION,
+          clip.duration - trimStart - trimEnd
+        );
+        const clipStart = clip.startTime + trimStart;
+        const clipLocalTime = Math.max(0, time - clipStart);
+        const alpha = this.resolveTransitionAlpha(
+          clipLocalTime,
+          activeDuration,
+          clip.effects.transition,
+          clip.effects.transitionDuration
+        );
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.filter = this.resolveCanvasFilter(clip.effects);
         const grad = ctx.createLinearGradient(
           0,
           0,
@@ -246,6 +276,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         ctx.fillStyle = '#10b981';
         ctx.fillText(`UPLINK: ${clip.name.toUpperCase()}`, 20, 30);
         ctx.fillText(`TIMESTAMP: ${time.toFixed(3)}s`, 20, 45);
+        ctx.fillText(
+          `FX: ${clip.effects.filter.toUpperCase()} · ${clip.effects.transition.toUpperCase()} · TRIM ${trimStart.toFixed(1)}s/${trimEnd.toFixed(1)}s`,
+          20,
+          HUD_FX_LINE_Y
+        );
+        ctx.restore();
       });
     } else {
       ctx.font = '12px "Public Sans"';
@@ -259,6 +295,33 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
 
     this.drawHUD(ctx, canvas);
+  }
+
+  applyEnhancementsToActiveClips() {
+    const activeClips = this.videoEngine.getActiveClips(this.videoEngine.currentTime());
+    if (!activeClips.length) {
+      this.aiFeedback.set(
+        'NO ACTIVE CLIPS ON THE PLAYHEAD. MOVE THE PLAYHEAD OVER A CLIP TO APPLY FILTER/TRANSITION/TRIM.'
+      );
+      return;
+    }
+
+    activeClips.forEach((clip) => {
+      const trim = this.resolveTrimAmount(clip.duration);
+      this.videoEngine.updateClip(clip.id, {
+        effects: {
+          ...clip.effects,
+          filter: this.selectedFilter(),
+          transition: this.selectedTransition(),
+          transitionDuration: this.transitionDuration(),
+          trimStart: trim,
+          trimEnd: trim,
+        },
+      });
+    });
+    this.aiFeedback.set(
+      `ENHANCEMENTS DEPLOYED: ${this.selectedFilter().toUpperCase()} FILTER, ${this.selectedTransition().toUpperCase()} TRANSITION, ${this.transitionDuration().toFixed(1)}s BLEND, ${this.trimAmount().toFixed(1)}s EDGE TRIM.`
+    );
   }
 
   private drawHUD(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
@@ -354,6 +417,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         noiseReduction: false,
         brightness: 1,
         contrast: 1,
+        filter: this.selectedFilter(),
+        transition: this.selectedTransition(),
+        transitionDuration: this.transitionDuration(),
+        trimStart: this.resolveTrimAmount(duration),
+        trimEnd: this.resolveTrimAmount(duration),
       },
     });
     this.aiFeedback.set(
@@ -368,11 +436,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     try {
       const url = await this.aiService.generateImage(fullPrompt);
       this.generatedImageUrl.set(url);
+      const aiClipDuration =
+        this.videoEngine.productionMode() === 'movie'
+          ? AI_CLIP_DURATION_MOVIE
+          : AI_CLIP_DURATION_OTHER;
       this.videoEngine.addClip('t2', {
         name: 'AI Concept Overlay',
         url: url,
         startTime: this.videoEngine.currentTime(),
-        duration: this.videoEngine.productionMode() === 'movie' ? 10 : 6,
+        duration: aiClipDuration,
         offset: 0,
         type: 'image',
         effects: {
@@ -381,6 +453,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           noiseReduction: false,
           brightness: 1,
           contrast: 1,
+          filter: this.selectedFilter(),
+          transition: this.selectedTransition(),
+          transitionDuration: this.transitionDuration(),
+          trimStart: this.resolveTrimAmount(aiClipDuration),
+          trimEnd: this.resolveTrimAmount(aiClipDuration),
         },
       });
     } catch (error) {
@@ -419,6 +496,44 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  }
+
+  private resolveTrimAmount(duration: number): number {
+    return Math.min(
+      this.trimAmount(),
+      Math.max(0, (duration - MIN_ACTIVE_CLIP_DURATION) / 2)
+    );
+  }
+
+  private resolveCanvasFilter(effects: VideoClip['effects']): string {
+    const styleByFilter: Record<ClipFilter, string> = {
+      none: 'saturate(1)',
+      cinematic: 'saturate(0.82) contrast(1.12)',
+      vivid: 'saturate(1.28) contrast(1.06)',
+      mono: 'grayscale(1) contrast(1.08)',
+    };
+    return `${styleByFilter[effects.filter]} brightness(${effects.brightness}) contrast(${effects.contrast})`;
+  }
+
+  private resolveTransitionAlpha(
+    clipLocalTime: number,
+    activeDuration: number,
+    transition: ClipTransition,
+    transitionDuration: number
+  ): number {
+    if (transition === 'cut' || transitionDuration <= 0) {
+      return 1;
+    }
+
+    const edgeWindow = Math.min(transitionDuration, activeDuration / 2);
+    if (edgeWindow <= 0) return 1;
+
+    const fadeIn = Math.min(1, clipLocalTime / edgeWindow);
+    const fadeOut = Math.min(1, (activeDuration - clipLocalTime) / edgeWindow);
+    const edgeAlpha = Math.min(fadeIn, fadeOut);
+    const transitionAlpha =
+      transition === 'dissolve' ? Math.sqrt(edgeAlpha) : edgeAlpha;
+    return Math.max(MIN_TRANSITION_ALPHA, Math.min(1, transitionAlpha));
   }
 
   ngOnDestroy() {
