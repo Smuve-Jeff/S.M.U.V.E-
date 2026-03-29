@@ -5,6 +5,8 @@ import { UserProfileService, initialProfile } from './user-profile.service';
 
 const APP_SECURITY_CONFIG = {
   auth_salt: 'smuve_v4_executive_secure_link',
+  pbkdf2_iterations: 100000,
+  key_length: 256,
 };
 
 export interface AuthCredentials {
@@ -42,6 +44,41 @@ export class AuthService {
     void this.loadSession();
   }
 
+  private async deriveKey(password: string, salt: string): Promise<string> {
+    if (typeof crypto?.subtle === 'undefined') {
+      // Fallback for environments without SubtleCrypto
+      return this.hashPassword(password);
+    }
+
+    try {
+      const encoder = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(password),
+        'PBKDF2',
+        false,
+        ['deriveBits']
+      );
+
+      const derivedBits = await crypto.subtle.deriveBits(
+        {
+          name: 'PBKDF2',
+          salt: encoder.encode(salt),
+          iterations: APP_SECURITY_CONFIG.pbkdf2_iterations,
+          hash: 'SHA-256',
+        },
+        keyMaterial,
+        APP_SECURITY_CONFIG.key_length
+      );
+
+      return Array.from(new Uint8Array(derivedBits))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    } catch {
+      return this.hashPassword(password);
+    }
+  }
+
   private encrypt(data: string): string {
     const salted = data + '|' + APP_SECURITY_CONFIG.auth_salt;
     return btoa(unescape(encodeURIComponent(salted)));
@@ -66,8 +103,16 @@ export class AuthService {
       if (!sessionData) return;
 
       const user = JSON.parse(sessionData) as AuthUser;
+
+      // Validate session with security service
+      if (!this.securityService.validateSession()) {
+        this.clearSession();
+        return;
+      }
+
       this._currentUser.set(user);
       this._isAuthenticated.set(true);
+      this.securityService.refreshSession();
       await this.profileService.loadProfile(user.id);
     } catch (error) {
       this.logger.error('Failed to load session:', error);
@@ -78,6 +123,7 @@ export class AuthService {
   private saveSession(user: AuthUser): void {
     try {
       localStorage.setItem('smuve_auth_session', this.encrypt(JSON.stringify(user)));
+      this.securityService.refreshSession();
     } catch (error) {
       this.logger.error('Failed to save session:', error);
     }
@@ -111,6 +157,20 @@ export class AuthService {
     credentials: AuthCredentials,
     artistName: string
   ): Promise<{ success: boolean; message: string }> {
+    // Check rate limiting
+    const rateLimitKey = `register_${credentials.email}`;
+    const rateResult = this.securityService.recordAttempt(rateLimitKey);
+
+    if (!rateResult.allowed) {
+      const waitMinutes = Math.ceil(
+        ((rateResult.blockedUntil || 0) - Date.now()) / 60000
+      );
+      return {
+        success: false,
+        message: `Too many registration attempts. Please wait ${waitMinutes} minutes.`,
+      };
+    }
+
     try {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -122,10 +182,16 @@ export class AuthService {
         };
       }
 
+      // Derive secure password hash using PBKDF2
+      const passwordHash = await this.deriveKey(
+        credentials.password,
+        `${credentials.email}_${APP_SECURITY_CONFIG.auth_salt}`
+      );
+
       const newUser: AuthUser = {
         id: this.generateUserId(),
         email: credentials.email,
-        artistName,
+        artistName: this.securityService.sanitizeInput(artistName),
         role: 'Admin',
         permissions: ['ALL_ACCESS'],
         createdAt: new Date(),
@@ -138,7 +204,7 @@ export class AuthService {
         this.encrypt(
           JSON.stringify({
             user: newUser,
-            passwordHash: this.hashPassword(credentials.password),
+            passwordHash,
           })
         )
       );
@@ -146,10 +212,11 @@ export class AuthService {
       this._currentUser.set(newUser);
       this._isAuthenticated.set(true);
       this.saveSession(newUser);
+      this.securityService.clearRateLimit(rateLimitKey);
 
       await this.profileService.updateProfile({
         ...initialProfile,
-        artistName,
+        artistName: this.securityService.sanitizeInput(artistName),
       } as any);
 
       await this.securityService.logEvent('ACCOUNT_CREATED', 'New artist account registered.', newUser.id);
@@ -169,6 +236,24 @@ export class AuthService {
   async login(
     credentials: AuthCredentials
   ): Promise<{ success: boolean; message: string; requires2FA?: boolean }> {
+    // Check rate limiting
+    const rateLimitKey = `login_${credentials.email}`;
+    const rateResult = this.securityService.recordAttempt(rateLimitKey);
+
+    if (!rateResult.allowed) {
+      const waitMinutes = Math.ceil(
+        ((rateResult.blockedUntil || 0) - Date.now()) / 60000
+      );
+      await this.securityService.logEvent(
+        'LOGIN_BLOCKED',
+        `Login blocked due to rate limiting for ${credentials.email}`
+      );
+      return {
+        success: false,
+        message: `Too many login attempts. Please wait ${waitMinutes} minutes.`,
+      };
+    }
+
     try {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -193,11 +278,22 @@ export class AuthService {
         passwordHash: string;
       };
 
-      if (this.hashPassword(credentials.password) !== passwordHash) {
+      // Verify password using PBKDF2 derivation
+      const inputHash = await this.deriveKey(
+        credentials.password,
+        `${credentials.email}_${APP_SECURITY_CONFIG.auth_salt}`
+      );
+
+      // Support both legacy and new hash formats
+      const isValidPassword =
+        inputHash === passwordHash ||
+        this.hashPassword(credentials.password) === passwordHash;
+
+      if (!isValidPassword) {
         await this.securityService.logEvent('LOGIN_FAILURE', `Failed login attempt for ${credentials.email}`, user.id);
         return {
           success: false,
-          message: 'Incorrect password. Access denied.',
+          message: `Incorrect password. Access denied. ${rateResult.remainingAttempts} attempts remaining.`,
         };
       }
 
@@ -227,6 +323,7 @@ export class AuthService {
       this._currentUser.set(user);
       this._isAuthenticated.set(true);
       this.saveSession(user);
+      this.securityService.clearRateLimit(rateLimitKey);
 
       localStorage.setItem(
         `smuve_user_${credentials.email}`,
@@ -252,6 +349,10 @@ export class AuthService {
   }
 
   logout(): void {
+    const user = this._currentUser();
+    if (user) {
+      void this.securityService.logEvent('LOGOUT', `Artist ${user.artistName} logged out.`, user.id);
+    }
     this._currentUser.set(null);
     this._isAuthenticated.set(false);
     this.clearSession();
