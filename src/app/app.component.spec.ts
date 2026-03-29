@@ -217,19 +217,19 @@ describe('AppComponent', () => {
       configurable: true,
       value: 500,
     });
-    const { component: mobileComponent } = await createComponent('/studio');
+    const { component } = await createComponent('/studio');
 
-    expect(mobileComponent.isMobile()).toBe(true);
-    expect(mobileComponent.isFullPageMode()).toBe(true);
+    expect(component.isMobile()).toBe(true);
+    expect(component.isFullPageMode()).toBe(true);
 
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       value: 1280,
     });
-    const { component: desktopComponent } = await createComponent('/studio');
+    component.onResize();
 
-    expect(desktopComponent.isMobile()).toBe(false);
-    expect(desktopComponent.isFullPageMode()).toBe(false);
+    expect(component.isMobile()).toBe(false);
+    expect(component.isFullPageMode()).toBe(false);
 
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
