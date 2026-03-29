@@ -336,21 +336,96 @@
           >
             FX Matrix
           </h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
-            @for (
-              fx of ['Upscale 4K', 'Background Purge', 'Grain Texture'];
-              track fx
-            ) {
-              <label
-                class="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border cursor-pointer group hover:border-brand-primary/20"
+          <div class="grid grid-cols-1 gap-2">
+            <label
+              class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"
+            >
+              <span
+                class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+                >Filter</span
               >
-                <span
-                  class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
-                  >{{ fx }}</span
-                >
-                <input type="checkbox" class="w-4 h-4 accent-brand-primary" />
-              </label>
-            }
+              <select
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                [ngModel]="selectedFilter()"
+                (ngModelChange)="selectedFilter.set($any($event))"
+              >
+                <option value="none">None</option>
+                <option value="cinematic">Cinematic</option>
+                <option value="vivid">Vivid</option>
+                <option value="mono">Mono</option>
+              </select>
+            </label>
+
+            <label
+              class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"
+            >
+              <span
+                class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+                >Transition</span
+              >
+              <select
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                [ngModel]="selectedTransition()"
+                (ngModelChange)="selectedTransition.set($any($event))"
+              >
+                <option value="cut">Cut</option>
+                <option value="fade">Fade</option>
+                <option value="dissolve">Dissolve</option>
+              </select>
+            </label>
+
+            <label
+              class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"
+            >
+              <span
+                class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+                >Transition Blend {{ transitionDuration() | number: '1.1-1' }}s</span
+              >
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                class="w-full accent-brand-primary"
+                [ngModel]="transitionDuration()"
+                (ngModelChange)="transitionDuration.set(+$event)"
+              />
+            </label>
+
+            <label
+              class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"
+            >
+              <span
+                class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+                >Edge Trim {{ trimAmount() | number: '1.1-1' }}s</span
+              >
+              <input
+                type="range"
+                min="0"
+                max="3"
+                step="0.1"
+                class="w-full accent-brand-primary"
+                [ngModel]="trimAmount()"
+                (ngModelChange)="trimAmount.set(+$event)"
+              />
+            </label>
+          </div>
+
+          <button
+            type="button"
+            class="btn-pro btn-pro-primary w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+            (click)="applyEnhancementsToActiveClips()"
+          >
+            APPLY FX TO ACTIVE CLIPS
+          </button>
+          <div class="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border">
+            <span class="text-[9px] md:text-[10px] font-bold text-text-main uppercase">Upscale 4K Uploads</span>
+            <input
+              type="checkbox"
+              class="w-4 h-4 accent-brand-primary"
+              [ngModel]="highQualityEnhancer()"
+              (ngModelChange)="highQualityEnhancer.set(!!$event)"
+            />
           </div>
         </div>
       </div>

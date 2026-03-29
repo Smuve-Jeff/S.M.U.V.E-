@@ -65,6 +65,7 @@ describe('ImageVideoLabComponent', () => {
       getActiveClips: jest.fn().mockReturnValue([]),
       togglePlay: jest.fn(),
       addClip: jest.fn(),
+      updateClip: jest.fn(),
       getAllDeliveryPresets: jest.fn().mockReturnValue([
         {
           id: 'movie-cinema-4k',
@@ -213,6 +214,10 @@ describe('ImageVideoLabComponent', () => {
           fillText: jest.fn(),
           strokeRect: jest.fn(),
           setLineDash: jest.fn(),
+          save: jest.fn(),
+          restore: jest.fn(),
+          globalAlpha: 1,
+          filter: 'none',
           fillStyle: '',
           strokeStyle: '',
           lineWidth: 1,
@@ -267,6 +272,61 @@ describe('ImageVideoLabComponent', () => {
         name: 'thumb.png',
         type: 'image',
         duration: 8,
+        effects: expect.objectContaining({
+          filter: 'cinematic',
+          transition: 'fade',
+          transitionDuration: 0.5,
+          trimStart: 0,
+          trimEnd: 0,
+        }),
+      })
+    );
+  });
+
+  it('applies selected enhancements to clips under the playhead', async () => {
+    const { component, videoEngine } = await createComponent();
+    videoEngine.currentTime.set(4);
+    videoEngine.getActiveClips.mockReturnValue([
+      {
+        id: 'clip-1',
+        name: 'scene',
+        url: 'blob:scene',
+        startTime: 0,
+        duration: 10,
+        offset: 0,
+        trackId: 't1',
+        type: 'video',
+        effects: {
+          upscale: false,
+          bgRemoval: false,
+          noiseReduction: false,
+          brightness: 1,
+          contrast: 1,
+          filter: 'none',
+          transition: 'cut',
+          transitionDuration: 0,
+          trimStart: 0,
+          trimEnd: 0,
+        },
+      },
+    ]);
+
+    component.selectedFilter.set('mono');
+    component.selectedTransition.set('dissolve');
+    component.transitionDuration.set(1.2);
+    component.trimAmount.set(0.4);
+    component.applyEnhancementsToActiveClips();
+
+    expect(videoEngine.updateClip).toHaveBeenCalledWith(
+      'clip-1',
+      expect.objectContaining({
+        effects: expect.objectContaining({
+          filter: 'mono',
+          transition: 'dissolve',
+          transitionDuration: 1.2,
+          trimStart: 0.4,
+          trimEnd: 0.4,
+        }),
       })
     );
   });

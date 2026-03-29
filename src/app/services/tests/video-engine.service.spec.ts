@@ -37,4 +37,31 @@ describe('VideoEngineService', () => {
     expect(service.deliveryPreset().name).toBe('Mobile Story Cut');
     expect(service.duration()).toBe(900);
   });
+
+  it('respects trim start/end when resolving active clips', () => {
+    service.addClip('t1', {
+      name: 'trimmed',
+      url: 'blob:trimmed',
+      startTime: 5,
+      duration: 10,
+      offset: 0,
+      type: 'video',
+      effects: {
+        upscale: false,
+        bgRemoval: false,
+        noiseReduction: false,
+        brightness: 1,
+        contrast: 1,
+        filter: 'cinematic',
+        transition: 'fade',
+        transitionDuration: 0.5,
+        trimStart: 2,
+        trimEnd: 2,
+      },
+    });
+
+    expect(service.getActiveClips(6)).toHaveLength(0);
+    expect(service.getActiveClips(7.2)).toHaveLength(1);
+    expect(service.getActiveClips(13.5)).toHaveLength(0);
+  });
 });
