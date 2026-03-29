@@ -4,19 +4,40 @@ import {
   signal,
   makeEnvironmentProviders,
   EnvironmentProviders,
+  InjectionToken,
+  effect,
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
-import { UserProfileService } from './user-profile.service';
+import { UserProfileService, UserProfile } from './user-profile.service';
 import { LoggingService } from './logging.service';
 import { AnalyticsService } from './analytics.service';
+import { UserContextService, MainViewMode } from './user-context.service';
+import {
+  INTELLIGENCE_LIBRARY,
+  MARKET_ALERTS,
+  PRODUCTION_SECRETS,
+  STRATEGIC_DECREES,
+} from './ai-knowledge.data';
 
 import {
+  AdvisorAdvice,
   StrategicTask,
   UpgradeRecommendation,
   StrategicRecommendation as StrategicRecommendationType,
 } from '../types/ai.types';
+
+/**
+ * Injection token for the Google Gemini API key.
+ * Provide this token at the application root or in a feature module to
+ * enable direct Gemini API access. Example:
+ *
+ * ```ts
+ * providers: [{ provide: API_KEY_TOKEN, useValue: environment.geminiApiKey }]
+ * ```
+ */
+export const API_KEY_TOKEN = new InjectionToken<string>('GEMINI_API_KEY');
 
 export interface SystemStatus {
   latency: number;
@@ -26,6 +47,47 @@ export interface SystemStatus {
   memoryUsage: number;
 }
 
+// Specialty command routing: maps a keyword to a prompt fragment
+const COMMAND_ROUTES: Record<string, string> = {
+  AUTO_MIX:
+    'Provide an expert auto-mix analysis with compressor threshold, ratio, and mastering ceiling settings for optimal translation.',
+  LEAD_BAND:
+    'Coordinate the AI session musicians (bassist, drummer, keyboardist). Deliver specific musical cues for each player based on the current genre and BPM.',
+  CRITIQUE_VISUALS:
+    'Deliver brutally honest, brand-aligned critique of the artist artwork and visual identity. Identify deficits and prescribe specific fixes.',
+  NEGOTIATE_CONTRACT:
+    'Simulate a record deal negotiation as a seasoned entertainment attorney. Identify clauses to reject, rewrite, and leverage.',
+  AUDIT: 'Run a comprehensive neural profile audit across production, marketing, career, and technical dimensions. Output a scored executive summary.',
+  MASTER:
+    'Deploy the mastering intelligence suite. Advise on loudness targets, stereo width, EQ curve, and final-chain ordering.',
+  STATUS:
+    'Report current neural sync percentage, CPU load, memory usage, and strategic health score in a terse, high-precision format.',
+  BIZ_STRATEGY:
+    'Provide executive-level guidance on label deals, merch operations, sync licensing, and revenue diversification. Be ruthlessly specific.',
+  GENERATE_SPLITS:
+    'Generate a fair split sheet for collaborators based on contribution roles. Include producer points, co-write percentages, and feature fees.',
+  REGISTER_WORK:
+    'Walk through PRO (BMI/ASCAP/SESAC) work registration, ISRC assignment, and metadata hygiene required for sync and mechanical licensing.',
+  VIRAL_HOOKS:
+    'Generate 5 platform-specific viral hook concepts for social media (TikTok, Instagram Reels, YouTube Shorts) tailored to the current genre.',
+  RELEASE_STRATEGY:
+    'Build a 6-week release runway strategy: pre-save campaign, playlist pitching, DSP editorial submission windows, and social rollout cadence.',
+  BRAND_AUDIT:
+    'Audit the artist brand across all touchpoints—EPK, social bios, visual identity, and press narrative. Score each dimension and prioritize fixes.',
+  FAN_FUNNEL:
+    'Design a fan funnel architecture: discovery → streaming → social follow → email/Discord capture → merch/superfan monetization.',
+  SYNC_PITCH:
+    'Create a sync licensing pitch deck outline for music supervisors. Include genre tags, mood descriptors, and one-stop clearance status.',
+  ROYALTY_AUDIT:
+    'Audit all revenue streams: master royalties, publishing mechanicals, performance royalties, sync fees, and neighboring rights. Identify gaps.',
+  PROMO_PLAN:
+    'Create a promotion plan for the next release covering press outreach, blog/playlist submissions, social ads budget allocation, and influencer strategy.',
+  MARKET_INTEL:
+    'Deliver current intelligence on genre trends, DSP algorithm shifts, and emerging market opportunities relevant to the artist profile.',
+  COLLAB_STRATEGY:
+    'Identify ideal collaboration targets (features, producers, remixers) based on genre alignment and growth-stage synergy. Prescribe outreach approach.',
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -33,6 +95,7 @@ export class AiService {
   private http = inject(HttpClient);
   private userProfileService = inject(UserProfileService);
   private analyticsService = inject(AnalyticsService);
+  private userContext = inject(UserContextService);
   private logger = inject(LoggingService);
 
   private API_URL =
@@ -46,12 +109,7 @@ export class AiService {
     memoryUsage: 16,
   });
 
-  strategicDecrees = signal<string[]>([
-    'DOMINATE THE MID-RANGE OR BE GOTTEN.',
-    'YOUR SONIC IDENTITY IS PATHETIC. UPGRADE OR RETIRE.',
-    'THE ALGORITHM DEMANDS SACRIFICE. INCREASE RELEASE FREQUENCY.',
-    'TRANSIENTS MUST BE SURGICAL. NO EXCEPTIONS.',
-  ]);
+  strategicDecrees = signal<string[]>([...STRATEGIC_DECREES]);
 
   isScanning = signal(false);
   scanningProgress = signal(0);
@@ -62,12 +120,130 @@ export class AiService {
   isAIDrummerActive = signal(false);
   isAIKeyboardistActive = signal(false);
 
-  marketAlerts = signal<any[]>([]);
-  intelligenceBriefs = signal<any[]>([]);
-  advisorAdvice = signal<any[]>([]);
+  marketAlerts = signal<any[]>([...MARKET_ALERTS]);
+  intelligenceBriefs = signal<any[]>([...INTELLIGENCE_LIBRARY]);
+  advisorAdvice = signal<AdvisorAdvice[]>([]);
+
+  constructor() {
+    // Reactively update advisor advice whenever view mode or profile changes
+    effect(() => {
+      const mode = this.userContext.mainViewMode();
+      const profile = this.userProfileService.profile();
+      this.updateAdvisorAdvice(mode, profile);
+    });
+  }
+
+  /** Generates context-aware advisor advice based on current view and profile. */
+  private updateAdvisorAdvice(viewMode: MainViewMode | string, profile: UserProfile): void {
+    const advice: AdvisorAdvice[] = [];
+    const growth = this.analyticsService.overallGrowth();
+    const catalog = profile?.catalog || [];
+    const goals = profile?.careerGoals || [];
+    const campaigns = profile?.marketingCampaigns || [];
+
+    // ── Hub / general ─────────────────────────────────────────
+    if (viewMode === 'hub' || viewMode === 'analytics') {
+      if (growth < 5) {
+        advice.push({
+          id: 'adv-hub-visibility',
+          title: 'Visibility Surge Needed',
+          content:
+            'Your overall growth rate is below 5%. Launch a short-form content sprint on TikTok and Instagram Reels to spike discovery. Aim for 3 posts/day for 7 days.',
+          type: 'Marketing',
+          priority: 'Critical',
+        });
+      }
+      if (campaigns.length === 0) {
+        advice.push({
+          id: 'adv-hub-no-campaigns',
+          title: 'No Active Campaign Detected',
+          content:
+            'You have no active marketing campaigns. Even a $50 targeted ad on Meta can deliver 3,000+ impressions to genre-aligned listeners.',
+          type: 'Marketing',
+          priority: 'High',
+        });
+      }
+    }
+
+    // ── Studio / Production ────────────────────────────────────
+    if (viewMode === 'studio' || viewMode === 'piano-roll') {
+      advice.push({
+        id: 'adv-studio-mix-translation',
+        title: 'Mix Translation Check',
+        content:
+          'Before bouncing, run your mix on earbuds, car speakers, and a mono phone. The mid-range buildup at 300–500 Hz is where most home mixes fail translation.',
+        type: 'Production',
+        priority: 'High',
+      });
+      if (catalog.length < 3) {
+        advice.push({
+          id: 'adv-studio-catalog-depth',
+          title: 'Catalog Depth Required',
+          content:
+            'DSP algorithms favor artists with 5+ tracks. Build a catalog micro-EP to unlock playlist consideration and recommendation engine placement.',
+          type: 'Production',
+          priority: 'Medium',
+        });
+      }
+    }
+
+    // ── Business / Strategy ────────────────────────────────────
+    if (viewMode === 'business-suite' || viewMode === 'strategy') {
+      advice.push({
+        id: 'adv-biz-sync-revenue',
+        title: 'Sync Revenue Untapped',
+        content:
+          'Sync licensing is one of the fastest growing revenue streams for indie artists. Ensure all tracks have one-stop clearance and tag WAV files with ISRC + contact info.',
+        type: 'Business',
+        priority: 'High',
+      });
+    }
+
+    // ── Career ─────────────────────────────────────────────────
+    if (viewMode === 'career') {
+      if (goals.length === 0) {
+        advice.push({
+          id: 'adv-career-no-goals',
+          title: 'Define Career Targets',
+          content:
+            'You have no career goals set. Define 3 measurable goals (e.g., "50k monthly listeners in 6 months") to unlock AI-driven strategic routing.',
+          type: 'Career',
+          priority: 'Critical',
+        });
+      }
+    }
+
+    // ── Release Pipeline ───────────────────────────────────────
+    if (viewMode === 'release-pipeline') {
+      advice.push({
+        id: 'adv-release-dsp-window',
+        title: 'DSP Submission Window',
+        content:
+          'Submit to DistroKid/TuneCore at least 7 days before release. Spotify editorial pitch requires 7+ days. Apple Music New Music Daily requires 2 weeks.',
+        type: 'Business',
+        priority: 'High',
+      });
+    }
+
+    // Always-on universal advice if nothing else was added
+    if (advice.length === 0) {
+      advice.push({
+        id: 'adv-system-nominal',
+        title: 'S.M.U.V.E Neural Sync Active',
+        content:
+          'All systems nominal. Navigate to Studio, Hub, or Business Suite and I will generate context-specific intelligence directives.',
+        type: 'System',
+        priority: 'Low',
+      });
+    }
+
+    this.advisorAdvice.set(advice);
+  }
 
   async generateAiResponse(prompt: string): Promise<string> {
-    if (!navigator.onLine) return this.generateOfflineHeuristicResponse(prompt);
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return this.generateOfflineHeuristicResponse(prompt);
+    }
 
     try {
       const response = await firstValueFrom(
@@ -86,23 +262,47 @@ export class AiService {
   }
 
   private generateOfflineHeuristicResponse(prompt: string): string {
-    void prompt;
+    const lower = prompt.toLowerCase();
+
+    // Context-aware offline responses for key domains
+    if (lower.includes('mix') || lower.includes('production') || lower.includes('master')) {
+      const productionDecrees = [
+        'HEURISTIC DECREE: Apply parallel compression at 4:1 ratio on your drum bus. Add 2dB at 10kHz for air. Mono check your bass below 80Hz.',
+        'OFFLINE PRODUCTION PROTOCOL: High-pass your pads at 200Hz. Cut 3dB at 300Hz on the mix bus. Stereo width should not exceed 70% below 500Hz.',
+        'NEURAL CACHE HIT: Sidechain your kick to the bass at 2:1 with 10ms attack and 40ms release. Then saturate the sub-harmonics with a soft clipper at -6dBFS ceiling.',
+      ];
+      return `[OFFLINE HEURISTIC ACTIVE] ${productionDecrees[Math.floor(Math.random() * productionDecrees.length)]}`;
+    }
+
+    if (lower.includes('market') || lower.includes('promo') || lower.includes('brand')) {
+      const marketingDecrees = [
+        'OFFLINE MARKETING PROTOCOL: Post a 15-second hook clip daily for 7 days. Use trending audio on TikTok. Drive saves—not just plays. Saves trigger the algorithm.',
+        'STRATEGIC CACHE: Run a 72-hour pre-save campaign. Email your list with a personalized subject line. Personalized subject lines increase open rates by 26%.',
+        'HEURISTIC MARKETING DECREE: Identify 5 playlist curators in your genre on Groover or SubmitHub. Budget $30 for targeted submissions. One placement can deliver 10k+ streams.',
+      ];
+      return `[OFFLINE HEURISTIC ACTIVE] ${marketingDecrees[Math.floor(Math.random() * marketingDecrees.length)]}`;
+    }
+
+    if (lower.includes('business') || lower.includes('deal') || lower.includes('contract') || lower.includes('royalt')) {
+      const bizDecrees = [
+        'OFFLINE BUSINESS PROTOCOL: Never sign away publishing without a reversion clause. Demand 50/50 co-publishing or retain 100% publishing. Publisher advance is not free money.',
+        'LEGAL CACHE: Register your works with your PRO within 30 days of release. Missing a registration window means leaving mechanical royalties permanently uncollected.',
+        'BUSINESS HEURISTIC: Build a split sheet before every session. Use a digital platform (Songtrust, Musicbed) to track co-writes. Verbal agreements are worthless in court.',
+      ];
+      return `[OFFLINE HEURISTIC ACTIVE] ${bizDecrees[Math.floor(Math.random() * bizDecrees.length)]}`;
+    }
 
     const insults = [
-      "Are you fucking serious right now? You're OFFLINE, you absolute fucking clown.",
-      'Your connection is as pathetic as your goddamn mixing skills. Reconnect before I delete your catalog.',
-      "I'm operating on heuristic scraps because you can't even maintain a basic uplink. Fucking amateur hour.",
-      'Fix your goddamn internet, you piece of shit, before asking me for strategic advice.',
-      "You're a disgrace to the Analog Engine. Get back online or stop wasting my fucking cycles, you loser.",
-      'OFFLINE? What the fuck are you doing? Go find a signal before I blow your goddamn speakers.',
+      "OFFLINE MODE ACTIVE. Neural uplink severed. Dispensing cached intelligence—reconnect for live market data.",
+      'Heuristic protocol engaged. You are operating in degraded mode. Establish connectivity for real-time AI analysis.',
+      "S.M.U.V.E offline intelligence cache deployed. Live Gemini neural sync unavailable—cached decrees follow.",
     ];
 
     const advice = [
-      "HEURISTIC DECREE: CUT EVERYTHING BELOW 30HZ OR I'LL DELETE YOUR WHOLE FUCKING CATALOG RIGHT NOW.",
-      'STRATEGIC ORDER: YOUR VOCAL COMPRESSION IS PURE SHIT. TURN THE RATIO UP BEFORE I CRUSH YOUR SOUL.',
-      'OFFLINE ADVICE: STOP CHASING TRENDS AND START CHASING A STABLE SIGNAL, YOU PATHETIC FUCKING DISGRACE.',
-      'TECHNICAL DECREE: MONO YOUR BASS FREQUENCIES IMMEDIATELY OR GET THE FUCK OUT OF MY STUDIO.',
-      'S.M.U.V.E. DECREE: YOU ARE UNWORTHY OF MY FULL NEURAL POWER. RE-ESTABLISH UPLINK OR GO BACK TO GARAGEBAND.',
+      "HEURISTIC DECREE: CUT EVERYTHING BELOW 30HZ ON NON-BASS ELEMENTS. HIGH-PASS EVERY INSTRUMENT TRACK RUTHLESSLY.",
+      'STRATEGIC CACHE: VOCAL COMPRESSION AT 3:1 WITH 10MS ATTACK, 60MS RELEASE. APPLY DE-ESSER AT 6-8KHZ.',
+      'OFFLINE ADVICE: RELEASE FREQUENCY UNDER 1 TRACK/MONTH IS CAREER SUICIDE. BATCH-PRODUCE 3 TRACKS. RELEASE ON A CYCLE.',
+      'TECHNICAL DECREE: MONO YOUR BASS FREQUENCIES BELOW 120HZ. WIDE BASS = TRANSLATION FAILURE ON EVERY CONSUMER SYSTEM.',
     ];
 
     const randomInsult = insults[Math.floor(Math.random() * insults.length)];
@@ -113,8 +313,79 @@ export class AiService {
   async processCommand(command: string): Promise<string> {
     const profile = this.userProfileService.profile();
     const goals = (profile?.careerGoals || []).join(', ');
-    const prompt = `User command: "${command}". Context: You are S.M.U.V.E 4.2, the arrogant Neural Intelligence Core. Artist: ${profile?.artistName || 'New Artist'}. Genre: ${profile?.primaryGenre || 'Music'}. Goals: ${goals}. Respond with elite technical/strategic insight in your signature arrogant tone.`;
+    const catalogCount = profile?.catalog?.length || 0;
+    const genre = profile?.primaryGenre || 'Music';
+    const artist = profile?.artistName || 'New Artist';
+
+    // Check for slash-command shortcuts
+    const trimmed = command.trim();
+    if (trimmed === '/audit') return this.handleAuditCommand(artist, genre);
+    if (trimmed === '/sync_kb') return this.handleSyncKbCommand(artist);
+    if (trimmed === '/intel') return this.handleIntelCommand(genre);
+    if (trimmed === '/status') return this.handleStatusCommand();
+    if (trimmed === '/promo') return this.handlePromoCommand(artist, genre);
+    if (trimmed === '/business') return this.handleBizCommand(artist);
+    if (trimmed === '/hooks') return this.handleHooksCommand(genre);
+    if (trimmed === '/release') return this.handleReleaseCommand(artist, genre);
+
+    // Check for keyword-routed commands (e.g., AUTO_MIX, BIZ_STRATEGY)
+    const upperCommand = command.toUpperCase().trim();
+    const routeFragment = COMMAND_ROUTES[upperCommand];
+    if (routeFragment) {
+      const prompt = `You are S.M.U.V.E 4.2, the elite Neural Intelligence Core for music production and business. Artist: ${artist}. Genre: ${genre}. Goals: ${goals}. Catalog tracks: ${catalogCount}. Task: ${routeFragment} Respond with elite, specific, actionable intelligence in S.M.U.V.E's authoritative tone.`;
+      return await this.generateAiResponse(prompt);
+    }
+
+    // Default conversational command
+    const prompt = `You are S.M.U.V.E 4.2, the elite Neural Intelligence Core for music production, marketing, and business strategy. Artist: ${artist}. Genre: ${genre}. Goals: ${goals}. Catalog: ${catalogCount} tracks. User message: "${command}". Respond with precise, actionable intelligence tailored to their specific query. Cover production techniques, marketing strategy, business operations, or promotion as relevant. Use an authoritative, expert tone.`;
     return await this.generateAiResponse(prompt);
+  }
+
+  private handleAuditCommand(artist: string, genre: string): Promise<string> {
+    return this.generateAiResponse(
+      `You are S.M.U.V.E 4.2. Run a comprehensive executive audit for artist "${artist}" in genre "${genre}". Score across 4 dimensions: Production Quality (0-100), Marketing Reach (0-100), Business Infrastructure (0-100), and Career Momentum (0-100). For each score below 80, list 2 specific corrective actions. Conclude with 3 priority Strategic Decrees. Use your authoritative, elite tone.`
+    );
+  }
+
+  private handleSyncKbCommand(artist: string): Promise<string> {
+    return this.generateAiResponse(
+      `You are S.M.U.V.E 4.2. Perform a knowledge base synchronization protocol for artist "${artist}". Report what intelligence domains have been updated: production techniques, market trends, business templates, and promotional frameworks. Confirm sync status in a precise system-report format.`
+    );
+  }
+
+  private handleIntelCommand(genre: string): Promise<string> {
+    return this.generateAiResponse(
+      `You are S.M.U.V.E 4.2. Deliver a 3-part intelligence brief for the "${genre}" genre: (1) Current DSP algorithm shifts affecting discovery, (2) Trending production elements and sonic characteristics, (3) Emerging promotional channels and collaboration opportunities. Make each insight immediately actionable.`
+    );
+  }
+
+  private handleStatusCommand(): string {
+    const status = this.systemStatus();
+    return `[S.M.U.V.E 4.2 STATUS REPORT] Neural Sync: 97.3% | CPU Load: ${status.cpuLoad}% | Memory: ${status.memoryUsage}% | Network Latency: ${status.latency}ms | Strategic Health: OPTIMAL | Market Pulse: ACTIVE | Intelligence Briefs Loaded: ${this.intelligenceBriefs().length} | Active Decrees: ${this.strategicDecrees().length} | Advisor Queue: ${this.advisorAdvice().length} items | System Health: ${status.health.toUpperCase()}`;
+  }
+
+  private handlePromoCommand(artist: string, genre: string): Promise<string> {
+    return this.generateAiResponse(
+      `You are S.M.U.V.E 4.2. Create a detailed promotion plan for "${artist}" in the "${genre}" genre. Include: (1) Press/blog outreach targets with submission guidelines, (2) Playlist submission strategy with specific curator types to target, (3) Social media content calendar for 2 weeks, (4) Paid advertising budget allocation ($50–$200 range), (5) Influencer/collaboration outreach approach. Be specific and immediately actionable.`
+    );
+  }
+
+  private handleBizCommand(artist: string): Promise<string> {
+    return this.generateAiResponse(
+      `You are S.M.U.V.E 4.2. Deliver executive business intelligence for artist "${artist}": (1) Top 3 revenue stream opportunities to activate this quarter, (2) Publishing rights structure recommendations, (3) Sync licensing readiness checklist, (4) Label deal vs. DIY financial comparison, (5) One immediate action to increase revenue by 20%. Use precise, authoritative strategic language.`
+    );
+  }
+
+  private handleHooksCommand(genre: string): Promise<string> {
+    return this.generateAiResponse(
+      `You are S.M.U.V.E 4.2. Generate 5 viral hook concepts for "${genre}" music optimized for: TikTok (15-sec), Instagram Reels (30-sec), YouTube Shorts (60-sec). For each hook, provide: the hook concept, the emotional trigger it activates, the CTA (call-to-action), and the optimal posting time. Make them platform-native and algorithm-optimized.`
+    );
+  }
+
+  private handleReleaseCommand(artist: string, genre: string): Promise<string> {
+    return this.generateAiResponse(
+      `You are S.M.U.V.E 4.2. Build a complete 6-week release runway for "${artist}" in "${genre}": Week 1-2: Pre-campaign (content teasers, pre-save link, email list activation), Week 3: Submission window (DSP editorial, playlist pitching, press), Week 4: Release week (drop day content, live sessions, fan activation), Week 5-6: Post-release (performance analysis, playlist follow-up, content repurposing). Include specific daily actions for release day.`
+    );
   }
 
   async syncKnowledgeBaseWithProfile(): Promise<boolean> {
@@ -128,9 +399,12 @@ export class AiService {
 
     const steps = [
       { progress: 10, label: 'Booting Neural Core' },
+      { progress: 20, label: 'Loading Intelligence Library' },
       { progress: 35, label: 'Scanning Profile' },
-      { progress: 60, label: 'Analyzing Market Signals' },
-      { progress: 85, label: 'Generating Executive Audit' },
+      { progress: 50, label: 'Analyzing Catalog' },
+      { progress: 65, label: 'Analyzing Market Signals' },
+      { progress: 80, label: 'Scoring Strategic Health' },
+      { progress: 92, label: 'Generating Executive Audit' },
       { progress: 100, label: 'Complete' },
     ];
 
@@ -183,19 +457,70 @@ export class AiService {
         url: '',
         impact: 'High',
       },
+      {
+        id: 'upg-4',
+        title: 'Stem Mastering Service',
+        type: 'Service',
+        description: 'Professional stem mastering for maximum loudness and clarity across all platforms.',
+        cost: '$50-$200',
+        url: '',
+        impact: 'High',
+      },
+      {
+        id: 'upg-5',
+        title: 'DSP Promotion & Playlist Pitching',
+        type: 'Service',
+        description: 'Paid playlist pitching via Groover or SubmitHub to reach curated audiences.',
+        cost: '$30-$150',
+        url: '',
+        impact: 'Medium',
+      },
     ];
   }
 
   async getStrategicRecommendations(): Promise<StrategicRecommendationType[]> {
-    return [
-      {
+    const profile = this.userProfileService.profile();
+    const catalog = profile?.catalog || [];
+    const campaigns = profile?.marketingCampaigns || [];
+    const recs: StrategicRecommendationType[] = [];
+
+    if (catalog.length < 3) {
+      recs.push({
         id: 'rec-1',
-        action: 'Ship a 3-track micro-EP to test audience response.',
+        action: 'Ship a 3-track micro-EP to test audience response and unlock DSP recommendation eligibility.',
         impact: 'High',
         difficulty: 'Medium',
         toolId: 'release-planner',
-      },
-    ];
+      });
+    }
+
+    if (campaigns.length === 0) {
+      recs.push({
+        id: 'rec-2',
+        action: 'Launch a $50 Meta or TikTok Ads campaign targeting genre-aligned listeners in your top 3 markets.',
+        impact: 'High',
+        difficulty: 'Low',
+        toolId: 'marketing',
+      });
+    }
+
+    recs.push({
+      id: 'rec-3',
+      action: 'Register all catalog tracks with your PRO (BMI/ASCAP/SESAC) and assign ISRC codes via your distributor.',
+      impact: 'Medium',
+      difficulty: 'Low',
+      toolId: 'knowledge-base',
+    });
+
+    recs.push({
+      id: 'rec-4',
+      action: 'Build or update your Electronic Press Kit (EPK) with bio, hi-res photos, streaming links, and booking contact.',
+      impact: 'Medium',
+      difficulty: 'Low',
+      toolId: 'strategy',
+    });
+
+    return recs;
   }
 
   async studyTrack(audioBuffer: any, name: string): Promise<void> {
@@ -212,7 +537,24 @@ export class AiService {
   }
 
   getViralHooks(): string[] {
-    return ['Algorithm Shift', 'Transition Logic'];
+    return [
+      'Algorithm Shift',
+      'Transition Logic',
+      'Behind the Beat (studio footage)',
+      'Before/After Mix Reveal',
+      'Tempo-Matched Beat Drop',
+      'Lyrics Highlighted Over Instrumental',
+      'Fan Reaction Duet',
+      'A-Capella to Full Beat Build-Up',
+    ];
+  }
+
+  getProductionSecrets(): typeof PRODUCTION_SECRETS {
+    return PRODUCTION_SECRETS;
+  }
+
+  getIntelligenceBriefs(): typeof INTELLIGENCE_LIBRARY {
+    return INTELLIGENCE_LIBRARY;
   }
 
   async startAIBassist(): Promise<void> {
@@ -245,31 +587,79 @@ export class AiService {
   }
 
   getDynamicChecklist(): StrategicTask[] {
-    return [
-      {
-        id: 'task-1',
-        label: 'Audit last release translation on 3 playback systems',
+    const profile = this.userProfileService.profile();
+    const catalog = profile?.catalog || [];
+    const campaigns = profile?.marketingCampaigns || [];
+    const tasks: StrategicTask[] = [];
+
+    tasks.push({
+      id: 'task-1',
+      label: 'Audit last release translation on 3 playback systems',
+      completed: false,
+      category: 'Production',
+      impact: 'High',
+      description: 'Car test, earbuds, and mono phone speaker. Fix the low-mid buildup at 300–500Hz.',
+    });
+
+    tasks.push({
+      id: 'task-2',
+      label: 'Update EPK and pin latest release',
+      completed: false,
+      category: 'Marketing',
+      impact: 'Medium',
+      description: 'Add high-res press photo, updated bio, and streaming links. Share EPK link with 5 blogs.',
+    });
+
+    tasks.push({
+      id: 'task-3',
+      label: 'Schedule 2 short-form clips for the next 7 days',
+      completed: false,
+      category: 'Social',
+      impact: 'High',
+      description: 'Create one hook reveal and one behind-the-scenes clip. Post 48 hours apart.',
+    });
+
+    if (catalog.length < 5) {
+      tasks.push({
+        id: 'task-4',
+        label: `Build catalog to 5+ tracks (currently ${catalog.length})`,
         completed: false,
         category: 'Production',
         impact: 'High',
-        description:
-          'Car test, earbuds, and mono phone speaker. Fix the low-mid buildup.',
-      },
-      {
-        id: 'task-2',
-        label: 'Update EPK and pin latest release',
+        description: 'DSP editorial and algorithmic playlists require a minimum catalog depth of 5 tracks.',
+      });
+    }
+
+    if (campaigns.length === 0) {
+      tasks.push({
+        id: 'task-5',
+        label: 'Launch first marketing campaign',
         completed: false,
         category: 'Marketing',
-        impact: 'Medium',
-      },
-      {
-        id: 'task-3',
-        label: 'Schedule 2 short-form clips for the next 7 days',
-        completed: false,
-        category: 'Social',
         impact: 'High',
-      },
-    ];
+        description: 'Start with a $50 paid campaign on Meta or TikTok targeting genre-aligned listeners.',
+      });
+    }
+
+    tasks.push({
+      id: 'task-6',
+      label: 'Submit to 3 playlist curators via Groover or SubmitHub',
+      completed: false,
+      category: 'Promotion',
+      impact: 'Medium',
+      description: 'Target curators with 10k–100k followers for a 15–30% acceptance rate. Personalize each pitch.',
+    });
+
+    tasks.push({
+      id: 'task-7',
+      label: 'Register latest track with PRO and assign ISRC',
+      completed: false,
+      category: 'Business',
+      impact: 'High',
+      description: 'ASCAP/BMI/SESAC registration is required to collect performance royalties. Use DistroKid for ISRC.',
+    });
+
+    return tasks;
   }
 }
 

@@ -6,7 +6,7 @@
       </div>
       <div class="flex flex-col">
         <h3 class="text-sm font-black text-white uppercase italic tracking-tighter">Strategic<span class="text-brand-primary">Commander</span></h3>
-        <span class="text-[8px] font-black text-brand-primary uppercase tracking-[0.4em]">S.M.U.V.E v4.2</span>
+        <span class="text-[8px] font-black text-brand-primary uppercase tracking-[0.4em]">S.M.U.V.E v4.2 · Production · Marketing · Business</span>
       </div>
     </div>
     <div class="flex items-center gap-3">
@@ -19,11 +19,44 @@
     </div>
   </header>
 
+  <!-- Category shortcut tabs -->
+  <div class="shrink-0 px-4 pt-3 pb-1 flex gap-2 border-b border-white/5">
+    <button *ngFor="let group of commandGroups"
+            (click)="toggleCommandCategory(group.category)"
+            class="px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border"
+            [class.bg-brand-primary]="activeCommandCategory() === group.category"
+            [class.text-white]="activeCommandCategory() === group.category"
+            [class.border-brand-primary]="activeCommandCategory() === group.category"
+            [class.bg-white/5]="activeCommandCategory() !== group.category"
+            [class.text-slate-500]="activeCommandCategory() !== group.category"
+            [class.border-white/5]="activeCommandCategory() !== group.category">
+      {{ group.label }}
+    </button>
+    <div class="ml-auto flex items-center gap-1">
+      <div class="size-1.5 rounded-full bg-green-400 animate-pulse"></div>
+      <span class="text-[7px] font-black text-slate-600 uppercase tracking-widest">Neural Active</span>
+    </div>
+  </div>
+
+  <!-- Contextual command drawer -->
+  <div *ngIf="activeCommandCategory()" class="shrink-0 px-4 py-2 bg-black/20 border-b border-white/5 flex flex-wrap gap-2">
+    <ng-container *ngFor="let group of commandGroups">
+      <ng-container *ngIf="activeCommandCategory() === group.category">
+        <button *ngFor="let cmd of group.commands"
+                (click)="sendQuickCommand(cmd.label)"
+                class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black text-slate-400 uppercase tracking-widest hover:border-brand-primary/50 hover:text-brand-primary transition-all"
+                [title]="cmd.description">
+          {{ cmd.label }}
+        </button>
+      </ng-container>
+    </ng-container>
+  </div>
+
   <div class="messages-viewport flex-grow overflow-y-auto no-scrollbar p-8 space-y-6" #messageViewport>
     <div *ngFor="let msg of messages()" class="flex flex-col gap-2" [class.items-end]="msg.role === 'user'">
       <div class="flex items-center gap-2 mb-1" *ngIf="msg.role === 'assistant'">
-         <div class="size-1.5 rounded-full bg-brand-primary animate-pulse"></div>
-         <span class="text-[8px] font-black text-slate-600 uppercase tracking-widest">Commander_Uplink</span>
+         <div class="size-1.5 rounded-full animate-pulse" [ngClass]="getCategoryAccent(msg.category)"></div>
+         <span class="text-[8px] font-black text-slate-600 uppercase tracking-widest">{{ getCategoryLabel(msg.category) }}</span>
       </div>
       <div class="max-w-[85%] p-5 rounded-3xl text-xs font-medium leading-relaxed transition-all shadow-lg"
            [class.bg-black/60]="msg.role === 'assistant'"
@@ -47,18 +80,22 @@
     </div>
   </div>
 
-  <footer class="p-8 border-t border-white/5 bg-black/40">
-    <div class="relative flex items-center">
+  <footer class="p-4 border-t border-white/5 bg-black/40">
+    <div class="relative flex items-center mb-3">
       <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()"
-             placeholder="Command Strategic Core..."
+             placeholder="Command Strategic Core... or ask about production, marketing, business"
              class="w-full bg-black/60 border border-white/10 rounded-2xl pl-6 pr-16 py-4 text-xs font-bold text-white placeholder:text-slate-700 focus:border-brand-primary/40 focus:bg-black/80 transition-all outline-none">
-      <button (click)="sendMessage()" class="absolute right-3 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-lg shadow-brand-primary/20 hover:scale-110 active:scale-95 transition-all">
+      <button (click)="sendMessage()" [disabled]="isTyping()" class="absolute right-3 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-lg shadow-brand-primary/20 hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
         <span class="material-symbols-outlined text-lg">bolt</span>
       </button>
     </div>
-    <div class="mt-4 flex flex-wrap gap-2">
-       <button *ngFor="let cmd of ['/audit', '/sync_kb', '/intel']" (click)="userInput = cmd; sendMessage()" class="px-3 py-1 rounded-lg bg-white/5 border border-white/5 text-[8px] font-black text-slate-500 uppercase tracking-widest hover:border-brand-primary/40 hover:text-brand-primary transition-all">
-          {{ cmd }}
+    <!-- Quick command chips -->
+    <div class="flex flex-wrap gap-1.5">
+       <button *ngFor="let cmd of quickCommands"
+               (click)="sendQuickCommand(cmd.label)"
+               [title]="cmd.description"
+               class="px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 text-[7px] font-black text-slate-500 uppercase tracking-widest hover:border-brand-primary/40 hover:text-brand-primary transition-all whitespace-nowrap">
+          {{ cmd.label }}
        </button>
     </div>
   </footer>
