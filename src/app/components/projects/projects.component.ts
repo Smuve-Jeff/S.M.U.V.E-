@@ -130,16 +130,24 @@ export class ProjectsComponent {
     }
   }
 
+  private static readonly DEFAULT_DEADLINE_DAYS = 90;
+
   addProject(): void {
     const name = window.prompt('Enter project name:');
     if (!name?.trim()) return;
     const newProject: Project = {
-      id: Date.now(),
+      id: parseInt(
+        crypto.randomUUID().replace(/-/g, '').slice(0, 8),
+        16
+      ),
       name: name.trim(),
       description: 'New release cycle',
       status: 'In Progress',
       tasks: [],
-      deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      deadline: new Date(
+        Date.now() +
+          ProjectsComponent.DEFAULT_DEADLINE_DAYS * 24 * 60 * 60 * 1000
+      ),
     };
     this.projects.update((list) => [...list, newProject]);
     this.selectedProject.set(newProject);

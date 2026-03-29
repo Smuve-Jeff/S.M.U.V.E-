@@ -127,12 +127,12 @@ export class SettingsComponent implements OnInit {
         'PROFILE_PURGE',
         'User initiated irreversible profile purge.'
       );
-      this.authService.logout();
       this.notificationService.show(
         'Profile purge complete. All data has been erased.',
         'success',
         4000
       );
+      this.authService.logout();
     } catch {
       this.notificationService.show(
         'Purge failed. Please try again.',
