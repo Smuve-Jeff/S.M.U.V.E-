@@ -49,6 +49,20 @@
   margin: 0 !important;
 }
 
+.shell-icon-button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem;
+  flex-shrink: 0;
+}
+
+.shell-icon-button:focus-visible,
+.mobile-nav-button:focus-visible,
+.nav-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* Mobile bottom navigation bar – fixed so it stays on screen when the
    Android address bar appears / disappears or the virtual keyboard opens */
 .mobile-nav-bar {
@@ -56,20 +70,56 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: var(--mobile-nav-height, 64px);
-  padding-left: var(--mobile-edge-padding, 16px);
-  padding-right: var(--mobile-edge-padding, 16px);
-  /* Respect Android / iOS safe-area (notch / navigation gestures) */
-  padding-bottom: env(safe-area-inset-bottom, 0);
-  z-index: 1000;
+   min-height: calc(
+     var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px)
+   );
+   padding-left: var(--mobile-edge-padding, 16px);
+   padding-right: var(--mobile-edge-padding, 16px);
+   padding-top: 8px;
+   /* Respect Android / iOS safe-area (notch / navigation gestures) */
+   padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+   z-index: 1000;
+   display: flex;
+   align-items: stretch;
+   justify-content: space-between;
+   gap: clamp(4px, 1.8vw, 12px);
+}
+
+.mobile-nav-button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 48px;
+  max-width: 96px;
+  padding: 8px 10px;
+  border-radius: 14px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-around;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.mobile-nav-button .material-symbols-outlined {
+  font-size: 24px;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.mobile-nav-button span:last-child {
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
 }
 
 .content-scroll-container {
   scroll-padding-bottom: calc(
-    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px)
+    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 16px
   );
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -97,6 +147,12 @@
         transform: translateX(-100%);
         transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
+
+    .sidebar.w-full {
+        width: min(22rem, calc(100vw - 1rem));
+        max-width: calc(100vw - 1rem);
+    }
+
     .sidebar.w-full {
         transform: translateX(0);
     }
@@ -105,25 +161,11 @@
        The mobile nav uses --mobile-nav-height plus any safe-area bottom inset. */
     .mobile-content-offset {
         padding-bottom: calc(
-          var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 8px
+          var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 16px
         );
     }
 
-    /* Improved mobile nav bar button spacing and touch targets */
-    .mobile-nav-bar button {
-        min-width: 68px;
-        min-height: 48px;
-        padding: 8px 12px;
-        border-radius: 14px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .mobile-nav-bar button:active {
+    .mobile-nav-button:active {
         transform: scale(0.95);
     }
 
@@ -143,12 +185,37 @@
 @media (max-width: 640px) {
     .mobile-content-offset {
         padding-bottom: calc(
-          var(--mobile-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 8px
+          var(--mobile-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 16px
         );
     }
 
-    .mobile-nav-bar button {
-        min-width: 60px;
+    .app-top-bar {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .mobile-nav-button {
         min-height: 52px;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .mobile-nav-bar {
+        padding-left: 12px;
+        padding-right: 12px;
+        gap: 4px;
+    }
+
+    .mobile-nav-button {
+        max-width: none;
+        min-height: 44px;
+        padding: 6px 4px;
+    }
+
+    .mobile-nav-button span:last-child {
+        font-size: 9px;
+        letter-spacing: 0.08em;
     }
 }

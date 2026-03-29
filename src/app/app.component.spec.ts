@@ -181,4 +181,59 @@ describe('AppComponent', () => {
 
     expect(component.isFullPageMode()).toBe(true);
   });
+
+  it('updates mobile shell state when the viewport changes', async () => {
+    const { component } = await createComponent('/hub');
+    const originalWidth = window.innerWidth;
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 500,
+    });
+    component.onResize();
+
+    expect(component.isMobile()).toBe(true);
+    expect(component.isSidebarOpen()).toBe(false);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1280,
+    });
+    component.onResize();
+
+    expect(component.isMobile()).toBe(false);
+    expect(component.isSidebarOpen()).toBe(true);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: originalWidth,
+    });
+  });
+
+  it('treats studio as full-page on mobile but not on desktop', async () => {
+    const originalWidth = window.innerWidth;
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 500,
+    });
+    const { component } = await createComponent('/studio');
+
+    expect(component.isMobile()).toBe(true);
+    expect(component.isFullPageMode()).toBe(true);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1280,
+    });
+    component.onResize();
+
+    expect(component.isMobile()).toBe(false);
+    expect(component.isFullPageMode()).toBe(false);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: originalWidth,
+    });
+  });
 });

@@ -150,4 +150,19 @@ describe('HubComponent', () => {
 
     expect(navigateSpy).toHaveBeenCalledWith(['/release-pipeline']);
   });
+
+  it('renders major quick actions as accessible buttons', () => {
+    const nativeElement = fixture.nativeElement as HTMLElement;
+
+    expect(
+      nativeElement.querySelectorAll('.hero-actions button').length
+    ).toBeGreaterThanOrEqual(3);
+    expect(nativeElement.querySelectorAll('button.stack-tile')).toHaveLength(3);
+    expect(
+      nativeElement.querySelector('button[aria-label="Previous track"]')
+    ).not.toBeNull();
+    expect(
+      nativeElement.querySelector('button[aria-label="Upload track"]')
+    ).not.toBeNull();
+  });
 });
