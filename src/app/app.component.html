@@ -395,8 +395,10 @@
       [class.full-page]="isFullPageMode()"
     >
       <div
-        class="content-scroll-container relative z-10 p-0 overflow-y-auto no-scrollbar h-full"
+        class="content-scroll-container relative z-10 p-0 h-full overflow-y-auto"
         [class.mobile-content-offset]="isMobile() && !isFullPageMode()"
+        [class.mobile-scroll-smooth]="isMobile()"
+        [class.scroll-smooth]="!uiService.performanceMode()"
       >
         <router-outlet></router-outlet>
       </div>
@@ -421,58 +423,68 @@
     </footer>
   </div>
 
-  <!-- MOBILE BOTTOM NAV -->
-  <nav
+  <!-- MOBILE BOTTOM NAV WITH FOOTER BRANDING -->
+  <div
     *ngIf="!isFullPageMode() && isMobile()"
-    class="mobile-nav-bar border-t border-border glass-v42 z-50"
+    class="mobile-footer-container z-50"
   >
-    <button
-      type="button"
-      (click)="navigateToView('hub')"
-      class="mobile-nav-button"
-      aria-label="Open hub"
-      title="Hub"
-      [class.text-brand-primary]="uiService.mainViewMode() === 'hub'"
-      [class.text-text-dim]="uiService.mainViewMode() !== 'hub'"
-    >
-      <span class="material-symbols-outlined">grid_view</span>
-      <span class="text-[8px] font-bold uppercase">Hub</span>
-    </button>
-    <button
-      type="button"
-      (click)="navigateToView('studio')"
-      class="mobile-nav-button"
-      aria-label="Open studio"
-      title="Studio"
-      [class.text-brand-primary]="uiService.mainViewMode() === 'studio'"
-      [class.text-text-dim]="uiService.mainViewMode() !== 'studio'"
-    >
-      <span class="material-symbols-outlined">token</span>
-      <span class="text-[8px] font-bold uppercase">Studio</span>
-    </button>
-    <button
-      type="button"
-      (click)="navigateToView('strategy')"
-      class="mobile-nav-button"
-      aria-label="Open strategy"
-      title="Intel Lab"
-      [class.text-brand-primary]="uiService.mainViewMode() === 'strategy'"
-      [class.text-text-dim]="uiService.mainViewMode() !== 'strategy'"
-    >
-      <span class="material-symbols-outlined">neurology</span>
-      <span class="text-[8px] font-bold uppercase">Intel</span>
-    </button>
-    <button
-      type="button"
-      (click)="navigateToView('profile')"
-      class="mobile-nav-button"
-      aria-label="Open profile"
-      title="Profile"
-      [class.text-brand-primary]="uiService.mainViewMode() === 'profile'"
-      [class.text-text-dim]="uiService.mainViewMode() !== 'profile'"
-    >
-      <span class="material-symbols-outlined">person</span>
-      <span class="text-[8px] font-bold uppercase">Profile</span>
-    </button>
-  </nav>
+    <!-- Mobile Footer Branding -->
+    <div class="mobile-footer-branding glass-v42 border-t border-border">
+      <span class="text-[8px] uppercase elegant-footer-text cursor-default">
+        &copy; Smuve Jeff Presents
+      </span>
+    </div>
+
+    <!-- Mobile Navigation Bar -->
+    <nav class="mobile-nav-bar border-t border-border glass-v42">
+      <button
+        type="button"
+        (click)="navigateToView('hub')"
+        class="mobile-nav-button"
+        aria-label="Open hub"
+        title="Hub"
+        [class.text-brand-primary]="uiService.mainViewMode() === 'hub'"
+        [class.text-text-dim]="uiService.mainViewMode() !== 'hub'"
+      >
+        <span class="material-symbols-outlined">grid_view</span>
+        <span class="text-[8px] font-bold uppercase">Hub</span>
+      </button>
+      <button
+        type="button"
+        (click)="navigateToView('studio')"
+        class="mobile-nav-button"
+        aria-label="Open studio"
+        title="Studio"
+        [class.text-brand-primary]="uiService.mainViewMode() === 'studio'"
+        [class.text-text-dim]="uiService.mainViewMode() !== 'studio'"
+      >
+        <span class="material-symbols-outlined">token</span>
+        <span class="text-[8px] font-bold uppercase">Studio</span>
+      </button>
+      <button
+        type="button"
+        (click)="navigateToView('strategy')"
+        class="mobile-nav-button"
+        aria-label="Open strategy"
+        title="Intel Lab"
+        [class.text-brand-primary]="uiService.mainViewMode() === 'strategy'"
+        [class.text-text-dim]="uiService.mainViewMode() !== 'strategy'"
+      >
+        <span class="material-symbols-outlined">neurology</span>
+        <span class="text-[8px] font-bold uppercase">Intel</span>
+      </button>
+      <button
+        type="button"
+        (click)="navigateToView('profile')"
+        class="mobile-nav-button"
+        aria-label="Open profile"
+        title="Profile"
+        [class.text-brand-primary]="uiService.mainViewMode() === 'profile'"
+        [class.text-text-dim]="uiService.mainViewMode() !== 'profile'"
+      >
+        <span class="material-symbols-outlined">person</span>
+        <span class="text-[8px] font-bold uppercase">Profile</span>
+      </button>
+    </nav>
+  </div>
 </div>

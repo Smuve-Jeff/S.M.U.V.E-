@@ -65,20 +65,37 @@
 
 /* Mobile bottom navigation bar – fixed so it stays on screen when the
    Android address bar appears / disappears or the virtual keyboard opens */
-.mobile-nav-bar {
+
+/* Mobile footer container - holds both branding and nav */
+.mobile-footer-container {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mobile footer branding strip */
+.mobile-footer-branding {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 16px;
+  min-height: 20px;
+}
+
+.mobile-nav-bar {
+   position: relative;
    min-height: calc(
-     var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px)
+     var(--mobile-nav-height, 64px)
    );
    padding-left: var(--mobile-edge-padding, 16px);
    padding-right: var(--mobile-edge-padding, 16px);
    padding-top: 8px;
    /* Respect Android / iOS safe-area (notch / navigation gestures) */
    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-   z-index: 1000;
    display: flex;
    align-items: stretch;
    justify-content: space-between;
@@ -119,10 +136,16 @@
 
 .content-scroll-container {
   scroll-padding-bottom: calc(
-    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 16px
+    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 36px
   );
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+}
+
+/* Mobile scroll smooth behavior for better visual control */
+.mobile-scroll-smooth {
+  scroll-behavior: smooth;
+  scroll-snap-type: y proximity;
 }
 
 /* Transitions */
@@ -158,10 +181,11 @@
     }
 
     /* Push the main-content area up so nothing hides behind the fixed nav bar.
-       The mobile nav uses --mobile-nav-height plus any safe-area bottom inset. */
+       The mobile nav uses --mobile-nav-height plus any safe-area bottom inset.
+       Added extra 20px for the branding footer strip */
     .mobile-content-offset {
         padding-bottom: calc(
-          var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 16px
+          var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 36px
         );
     }
 
@@ -185,7 +209,7 @@
 @media (max-width: 640px) {
     .mobile-content-offset {
         padding-bottom: calc(
-          var(--mobile-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 16px
+          var(--mobile-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 36px
         );
     }
 
@@ -198,6 +222,11 @@
         min-height: 52px;
         padding-left: 8px;
         padding-right: 8px;
+    }
+
+    .mobile-footer-branding {
+        padding: 3px 12px;
+        min-height: 18px;
     }
 }
 
@@ -217,5 +246,9 @@
     .mobile-nav-button span:last-child {
         font-size: 9px;
         letter-spacing: 0.08em;
+    }
+
+    .mobile-footer-branding {
+        padding: 2px 10px;
     }
 }
