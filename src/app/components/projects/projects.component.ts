@@ -129,4 +129,38 @@ export class ProjectsComponent {
         return 'border-white/10 text-slate-400 bg-white/5';
     }
   }
+
+  private static readonly DEFAULT_DEADLINE_DAYS = 90;
+
+  addProject(): void {
+    const name = window.prompt('Enter project name:');
+    if (!name?.trim()) return;
+    const newProject: Project = {
+      id: parseInt(
+        crypto.randomUUID().replace(/-/g, '').slice(0, 8),
+        16
+      ),
+      name: name.trim(),
+      description: 'New release cycle',
+      status: 'In Progress',
+      tasks: [],
+      deadline: new Date(
+        Date.now() +
+          ProjectsComponent.DEFAULT_DEADLINE_DAYS * 24 * 60 * 60 * 1000
+      ),
+    };
+    this.projects.update((list) => [...list, newProject]);
+    this.selectedProject.set(newProject);
+  }
+
+  finalizeReleaseCycle(): void {
+    const project = this.selectedProject();
+    if (!project) return;
+    this.projects.update((list) =>
+      list.map((p) =>
+        p.id === project.id ? { ...p, status: 'Completed' } : p
+      )
+    );
+    this.selectedProject.set({ ...project, status: 'Completed' });
+  }
 }

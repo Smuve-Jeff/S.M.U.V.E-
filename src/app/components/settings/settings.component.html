@@ -343,7 +343,7 @@
         <div class="mt-8 p-6 bg-red-500/5 border border-red-500/20 rounded-2xl">
            <h4 class="text-red-500 font-bold uppercase text-[10px] tracking-widest mb-2">Danger_Node</h4>
            <p class="text-xs text-text-dim mb-4">Wiping the executive profile is irreversible and deletes all neural sync data.</p>
-           <button class="px-6 py-2 bg-red-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest hover:bg-red-600 transition-colors shadow-sm">
+           <button (click)="purgeProfile()" class="px-6 py-2 bg-red-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest hover:bg-red-600 transition-colors shadow-sm">
               Execute Profile Purge
            </button>
         </div>
