@@ -642,6 +642,35 @@ getUpgradeRecommendations(): UpgradeRecommendation[] {
     return '';
   }
 
+  async getQuestionnaireInsights(profile: UserProfile): Promise<any[]> {
+    const insights = [];
+    if (profile.primaryGenre === "Electronic") {
+      insights.push({
+        title: "Sonic Realignment",
+        content: "Your electronic foundation requires a high-fidelity low-end calibration to compete in the current techno/house landscape."
+      });
+    }
+    if (profile.brandVoices?.includes("Elite")) {
+      insights.push({
+        title: "Executive Presence",
+        content: "An elite brand voice must be backed by a strictly curated visual catalog. Prune all legacy non-conforming assets."
+      });
+    }
+    if (profile.strategicGoals?.includes("Sync Catalog Pumping")) {
+      insights.push({
+        title: "Sync Readiness",
+        content: "Prioritize instrumental-only versions of your top 5 tracks to immediately double your licensing eligibility."
+      });
+    }
+    if (insights.length === 0) {
+      insights.push({
+        title: "General Strategy",
+        content: "Consistency in output is your current primary vector. Ship a new track every 21 days to maintain algorithmic momentum."
+      });
+    }
+    return insights;
+  }
+
   getDynamicChecklist(): StrategicTask[] {
     const profile = this.userProfileService.profile();
     const catalog = profile?.catalog || [];

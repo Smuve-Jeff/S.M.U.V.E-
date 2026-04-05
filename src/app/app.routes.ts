@@ -22,8 +22,8 @@ export const routes: Routes = [
   {
     path: 'profile',
     loadComponent: () =>
-      import('./components/journey/journey.component').then(
-        (m) => m.JourneyComponent
+      import('./components/profile-editor/profile-editor.component').then(
+        (m) => m.ProfileEditorComponent
       ),
   },
   {
