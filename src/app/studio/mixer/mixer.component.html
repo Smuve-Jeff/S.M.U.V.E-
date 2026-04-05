@@ -1,281 +1,193 @@
-<div class="h-full flex flex-col bg-background-dark p-4 md:p-6 overflow-hidden titanium-texture">
-  <!-- Mixer Header -->
-  <header class="flex items-center justify-between mb-8 border-b border-white/5 pb-6">
+<div class="h-full w-full flex flex-col p-4 bg-[#0a0a0a] text-[#d1d1d1] font-sans relative overflow-hidden">
+
+  <!-- MIXER TOP BAR: TRANSPORT & QUICK ACTIONS -->
+  <header class="flex items-center justify-between mb-6 bg-[#121212] p-3 rounded-xl border border-white/5 shadow-2xl">
     <div class="flex items-center gap-4">
-      <div class="w-10 h-10 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary">
-        <span class="material-symbols-outlined">view_carousel</span>
+      <div class="flex items-center bg-black/40 rounded-lg p-1 border border-white/5">
+        <button (click)="togglePlayback()" class="p-2 hover:bg-white/5 rounded transition-colors" [class.text-brand-primary]="isPlaying()">
+          <i class="fas" [class.fa-play]="!isPlaying()" [class.fa-pause]="isPlaying()"></i>
+        </button>
+        <button (click)="stopPlayback()" class="p-2 hover:bg-white/5 rounded transition-colors">
+          <i class="fas fa-stop"></i>
+        </button>
+        <button (click)="toggleRecording()" class="p-2 hover:bg-white/5 rounded transition-colors" [class.text-red-500]="isRecording()">
+          <i class="fas fa-circle"></i>
+        </button>
       </div>
-      <div>
-        <h2 class="text-sm font-black text-white uppercase tracking-[0.2em]">Technical Mixing Console <span class="text-brand-primary ml-2">v4.2</span></h2>
-        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">Precision Signal Path Management</p>
+
+      <div class="h-4 w-px bg-white/10 mx-2"></div>
+
+      <div class="flex gap-2">
+        <button (click)="toggleViewMode()" class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[10px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all">
+          {{ viewMode() === 'compact' ? 'Expanded' : 'Compact' }}
+        </button>
+        <button (click)="toggleVocalSuite()" class="px-3 py-1.5 rounded-lg border border-brand-primary/40 bg-brand-primary/10 text-brand-primary text-[10px] font-bold uppercase tracking-wider hover:bg-brand-primary/20 transition-all flex items-center gap-2">
+          <i class="fas fa-microphone"></i>
+          {{ showVocalSuite() ? 'Hide Vocal Suite' : 'Vocal Suite' }}
+        </button>
+        <button (click)="mixerService.resetAllLevels()" class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[10px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all">
+          Reset All
+        </button>
       </div>
     </div>
 
-    <div class="flex items-center gap-8">
+    <div class="flex items-center gap-4">
        <div class="flex flex-col items-end">
-          <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Global Headroom</span>
-          <span class="text-xs font-mono font-bold text-brand-primary">-4.2 dB</span>
+          <span class="text-[9px] text-slate-500 font-black uppercase">Project Tempo</span>
+          <span class="text-xs font-mono font-bold text-brand-primary">{{ musicManager.engine.tempo() }} BPM</span>
        </div>
-       <div class="h-10 w-px bg-white/5"></div>
-       <div class="flex flex-col items-end">
-          <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Engine Load</span>
-          <span class="text-xs font-mono font-bold text-cyan-400">12.4%</span>
-       </div>
-     </div>
-   </header>
-
-  <section class="grid grid-cols-1 xl:grid-cols-[1.4fr,1fr] gap-4 mb-6">
-    <div class="rounded-3xl border border-white/5 bg-black/30 p-4 flex flex-wrap items-center gap-3">
-      <button
-        (click)="togglePlayback()"
-        class="min-w-28 rounded-2xl border px-4 py-3 text-left transition-all"
-        [class.border-emerald-400/40]="isPlaying() && !isRecording()"
-        [class.bg-emerald-400/10]="isPlaying() && !isRecording()"
-        [class.border-white/10]="!isPlaying() || isRecording()"
-        [class.bg-white/5]="!isPlaying() || isRecording()"
-      >
-        <div class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Playback</div>
-        <div class="mt-1 text-sm font-black uppercase text-white">{{ isPlaying() && !isRecording() ? 'Running' : 'Ready' }}</div>
-      </button>
-      <button
-        (click)="toggleRecording()"
-        class="min-w-28 rounded-2xl border px-4 py-3 text-left transition-all"
-        [class.border-red-500/40]="isRecording()"
-        [class.bg-red-500/10]="isRecording()"
-        [class.border-white/10]="!isRecording()"
-        [class.bg-white/5]="!isRecording()"
-      >
-        <div class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Record</div>
-        <div class="mt-1 text-sm font-black uppercase text-white">{{ isRecording() ? 'Capturing' : 'Standby' }}</div>
-      </button>
-      <button
-        (click)="stopPlayback()"
-        class="min-w-28 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left transition-all hover:border-brand-primary/30 hover:bg-brand-primary/10"
-      >
-        <div class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Transport</div>
-        <div class="mt-1 text-sm font-black uppercase text-white">Stop All</div>
-      </button>
-
-      <div class="h-12 w-px bg-white/5 hidden md:block"></div>
-
-      <div class="flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-widest">
-        <div class="rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
-          <div class="text-slate-500 text-[8px]">Recording inputs</div>
-          <div class="text-white mt-1">{{ armedMicCount() }} armed</div>
-        </div>
-        <div class="rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
-          <div class="text-slate-500 text-[8px]">Isolation</div>
-          <div class="text-white mt-1">{{ soloTrackCount() }} solo bus</div>
-        </div>
-        <div class="rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
-          <div class="text-slate-500 text-[8px]">Mute groups</div>
-          <div class="text-white mt-1">{{ mutedTrackCount() }} muted</div>
-        </div>
-      </div>
     </div>
+  </header>
 
-    <div class="rounded-3xl border border-brand-primary/20 bg-brand-primary/5 p-4">
-      <div class="flex items-center justify-between gap-3">
-        <div>
-          <p class="text-[8px] font-black uppercase tracking-[0.35em] text-brand-primary">Mixer Brain</p>
-          <h3 class="mt-1 text-sm font-black uppercase tracking-[0.2em] text-white">
-            {{ selectedTrack()?.name || 'Awaiting channel focus' }}
-          </h3>
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-right">
-          <p class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Session state</p>
-          <p class="mt-1 text-xs font-mono font-black uppercase text-brand-primary">{{ playbackState() }}</p>
-        </div>
-      </div>
+  <!-- MIXER MAIN AREA: CHANNELS & MASTER -->
+  <div class="flex-grow flex gap-4 overflow-hidden">
 
-      <div class="mt-4 grid grid-cols-2 gap-3 text-[10px] font-black uppercase tracking-widest">
-        <div class="rounded-2xl border border-white/5 bg-black/20 px-3 py-3">
-          <div class="text-slate-500 text-[8px]">Instrument route</div>
-          <div class="mt-1 text-white truncate">{{ selectedTrack()?.instrumentId || 'unassigned' }}</div>
-        </div>
-        <div class="rounded-2xl border border-white/5 bg-black/20 px-3 py-3">
-          <div class="text-slate-500 text-[8px]">Note payload</div>
-          <div class="mt-1 text-white">{{ selectedTrackNoteCount() }} notes</div>
-        </div>
-        <div class="rounded-2xl border border-white/5 bg-black/20 px-3 py-3">
-          <div class="text-slate-500 text-[8px]">Output ready</div>
-          <div class="mt-1 text-white">WAV / WebM export</div>
-        </div>
-        <div class="rounded-2xl border border-white/5 bg-black/20 px-3 py-3">
-          <div class="text-slate-500 text-[8px]">Source ingest</div>
-          <div class="mt-1 text-white">MP3 / WAV import</div>
-        </div>
-      </div>
-    </div>
-  </section>
+    <!-- CHANNEL STRIPS SCROLLABLE AREA -->
+    <div class="flex-grow flex gap-3 overflow-x-auto no-scrollbar pb-4 min-h-0 hidden lg:flex">
 
-  <div class="flex-grow flex flex-col lg:flex-row gap-4 overflow-hidden min-h-0">
-     <div class="flex-grow flex gap-3 overflow-x-auto no-scrollbar pb-6 pr-1 min-h-0">
-        <!-- MICROPHONE INPUTS -->
-        <app-channel-strip *ngFor="let channel of micChannels()" [channel]="channel" class="flex-shrink-0"></app-channel-strip>
+      <!-- MICROPHONE INPUTS -->
+      <app-channel-strip *ngFor="let channel of micChannels()" [channel]="channel" class="flex-shrink-0"></app-channel-strip>
 
-        <!-- TRACK CHANNELS (Brushed Titanium style) -->
-         <div *ngFor="let track of tracks(); let i = index"
-              class="flex-shrink-0 w-36 bg-extreme-titanium/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-4 group hover:bg-extreme-titanium/50 hover:border-brand-primary/20 transition-all shadow-inner relative cursor-pointer"
-             [class.border-brand-primary/40]="isSelected(track)"
-             [class.bg-brand-primary/10]="isSelected(track)"
-             (click)="selectTrack(track.id)">
-          <div class="w-full bg-black/60 rounded p-1.5 mb-2 text-center border border-white/5">
-             <div class="flex items-center justify-between gap-2">
-               <span class="text-[9px] text-slate-400 font-mono font-black uppercase">CH {{ i + micChannels().length + 1 }}</span>
-               <span
-                 class="text-[8px] font-black uppercase tracking-widest"
-                 [class.text-brand-primary]="isSelected(track)"
-                 [class.text-slate-600]="!isSelected(track)"
-               >
-                 {{ isSelected(track) ? 'Focus' : 'Track' }}
-               </span>
+      <!-- TRACK CHANNELS (Modern DAW Style) -->
+      <div *ngFor="let track of tracks(); let i = index"
+           class="flex-shrink-0 w-36 bg-[#161616] border border-white/5 rounded-2xl flex flex-col group transition-all relative cursor-pointer overflow-hidden"
+           [class.border-brand-primary/40]="isSelected(track)"
+           [class.ring-1]="isSelected(track)"
+           [class.ring-brand-primary/20]="isSelected(track)"
+           (click)="selectTrack(track.id)"
+           (dblclick)="resetTrack(track.id)">
+
+        <!-- CHANNEL HEADER -->
+        <div class="p-3 border-b border-white/5 bg-black/20 flex items-center justify-between">
+          <span class="text-[9px] font-mono font-black text-slate-500">CH {{ i + micChannels().length + 1 }}</span>
+          <button (click)="stopTrackSelection($event); suggestTrack(track.id)"
+                  class="size-5 rounded-full bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center text-[8px] text-brand-primary hover:bg-brand-primary/20 transition-all"
+                  title="AI Suggest">
+            <i class="fas fa-robot"></i>
+          </button>
+        </div>
+
+        <!-- EXPANDED VIEW: FX SLOTS & ROUTING -->
+        <div *ngIf="viewMode() === 'expanded'" class="p-3 flex flex-col gap-2 bg-black/10 border-b border-white/5">
+           <div class="text-[8px] font-bold text-slate-600 uppercase mb-1">Inserts</div>
+           <div class="flex flex-col gap-1 min-h-[80px]">
+              <div *ngFor="let fx of track.fxSlots"
+                   class="flex items-center justify-between px-2 py-1 rounded bg-[#1a1a1a] border border-white/5 text-[9px] transition-all"
+                   [class.opacity-40]="!fx.enabled">
+                 <span class="truncate">{{ fx.type }}</span>
+                 <button (click)="stopTrackSelection($event); toggleFxSlot(track.id, fx.id)" class="size-3 rounded-full border border-white/20" [class.bg-brand-primary]="fx.enabled"></button>
+              </div>
+              <div class="h-5 rounded border border-dashed border-white/10 flex items-center justify-center text-[8px] text-slate-700 font-bold uppercase cursor-pointer hover:border-white/20">+ FX</div>
+           </div>
+
+           <div class="mt-2 text-[8px] font-bold text-slate-600 uppercase">Routing</div>
+           <div class="px-2 py-1 rounded bg-brand-primary/5 border border-brand-primary/10 text-[9px] text-brand-primary/80">
+              {{ track.busId || 'Stereo Out' }}
+           </div>
+        </div>
+
+        <!-- VU METER & FADER AREA -->
+        <div class="flex-grow p-4 flex flex-col items-center gap-4">
+          <div class="flex gap-1 h-48 bg-black/60 p-1.5 rounded-lg border border-white/5 shadow-inner">
+             <div class="w-2.5 h-full relative bg-slate-900/50 rounded-sm overflow-hidden">
+                <div class="absolute bottom-0 w-full bg-vu-meter-gradient transition-all duration-75" [style.height.%]="50 + (i*7)%30"></div>
+             </div>
+             <div class="w-2.5 h-full relative bg-slate-900/50 rounded-sm overflow-hidden opacity-70">
+                <div class="absolute bottom-0 w-full bg-vu-meter-gradient transition-all duration-75" [style.height.%]="45 + (i*7)%30"></div>
              </div>
           </div>
 
-          <!-- High-density VU Meter -->
-          <div class="flex gap-1 h-48 mb-2 bg-black/40 p-1.5 rounded-lg border border-white/5 shadow-inner">
-             <div class="w-3 h-full relative bg-slate-900 rounded-sm overflow-hidden">
-                <div class="absolute bottom-0 w-full bg-vu-meter-gradient opacity-90 transition-all duration-100" [style.height.%]="60 + (i*9) % 35"></div>
-             </div>
-             <div class="w-3 h-full relative bg-slate-900 rounded-sm overflow-hidden opacity-80">
-                <div class="absolute bottom-0 w-full bg-vu-meter-gradient opacity-90 transition-all duration-100" [style.height.%]="55 + (i*9) % 35"></div>
-             </div>
-          </div>
-
-          <div class="w-full flex flex-col gap-2">
-             <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-wider">
-                <span class="text-slate-500">Gain</span>
-                <span class="text-brand-primary font-mono">{{ gainPercent(track) }}%</span>
-             </div>
-             <input
-                type="range"
-                min="0"
-                 max="100"
-                 step="1"
-                 [value]="gainPercent(track)"
-                 (input)="updateTrackGain(track.id, +($any($event.target).value))"
-                 (click)="stopTrackSelection($event)"
-                 class="w-full h-1 accent-brand-primary"
-              >
-             <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-wider">
-                <span class="text-slate-500">Pan</span>
+          <div class="w-full flex flex-col gap-1 px-2">
+             <div class="flex items-center justify-between text-[8px] font-black uppercase text-slate-500">
+                <span>Pan</span>
                 <span class="text-cyan-400 font-mono">{{ panPercent(track) }}%</span>
              </div>
-             <input
-                type="range"
-                min="-100"
-                 max="100"
-                 step="1"
-                 [value]="panPercent(track)"
-                 (input)="updateTrackPan(track.id, +($any($event.target).value))"
-                 (click)="stopTrackSelection($event)"
-                 class="w-full h-1 accent-cyan-400"
-               >
-           </div>
+             <input type="range" min="-100" max="100" [value]="panPercent(track)" (input)="updateTrackPan(track.id, +($any($event.target).value))" (click)="stopTrackSelection($event)" class="w-full h-1 accent-cyan-400">
+          </div>
 
-           <div class="w-full grid grid-cols-2 gap-2">
-             <div class="flex flex-col gap-1">
-               <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-wider">
-                 <span class="text-slate-500">FX A</span>
-                 <span class="text-violet-300 font-mono">{{ sendPercent(track, 'sendA') }}%</span>
-               </div>
-               <input
-                 type="range"
-                 min="0"
-                  max="100"
-                  step="1"
-                  [value]="sendPercent(track, 'sendA')"
-                  (input)="updateTrackSend(track.id, 'sendA', +($any($event.target).value))"
-                  (click)="stopTrackSelection($event)"
-                  class="w-full h-1 accent-violet-300"
-                >
-             </div>
-             <div class="flex flex-col gap-1">
-               <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-wider">
-                 <span class="text-slate-500">FX B</span>
-                 <span class="text-fuchsia-300 font-mono">{{ sendPercent(track, 'sendB') }}%</span>
-               </div>
-               <input
-                 type="range"
-                 min="0"
-                  max="100"
-                  step="1"
-                  [value]="sendPercent(track, 'sendB')"
-                  (input)="updateTrackSend(track.id, 'sendB', +($any($event.target).value))"
-                  (click)="stopTrackSelection($event)"
-                  class="w-full h-1 accent-fuchsia-300"
-                >
-             </div>
-           </div>
-
-           <!-- Fader -->
-           <div class="flex-grow w-1.5 bg-black/60 rounded-full relative mb-4 shadow-inner">
-              <div class="absolute top-1/2 -left-3.5 w-8 h-3.5 bg-slate-100 rounded-sm shadow-2xl cursor-pointer border border-slate-400 hover:brightness-110 transition-all"></div>
-           </div>
-
-           <div class="flex gap-2 w-full">
-               <button (click)="stopTrackSelection($event); toggleMute(track.id)"
-                       class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
-                      [class.bg-red-600]="track.mute"
-                      [class.text-white]="track.mute"
-                      [class.bg-black/40]="!track.mute"
-                      [class.text-slate-500]="!track.mute">M</button>
-               <button (click)="stopTrackSelection($event); toggleSolo(track.id)"
-                       class="flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all border border-white/5"
-                      [class.bg-brand-primary]="track.solo"
-                      [class.text-black]="track.solo"
-                      [class.bg-black/40]="!track.solo"
-                      [class.text-slate-500]="!track.solo">S</button>
-           </div>
-
-           <div class="w-full rounded-xl border border-white/5 bg-black/30 px-2 py-2 text-[8px] font-black uppercase tracking-[0.2em] text-slate-500">
-             <div class="flex items-center justify-between">
-               <span>Instrument</span>
-               <span class="text-white truncate max-w-[56px] text-right">{{ track.instrumentId }}</span>
-             </div>
-             <div class="mt-1 flex items-center justify-between">
-               <span>Notes</span>
-               <span class="text-cyan-300">{{ activeNotes(track) }}</span>
-             </div>
-           </div>
-
-           <div class="text-[10px] font-black text-white truncate w-full text-center tracking-tight">{{ track.name }}</div>
+          <div class="flex-grow w-1 bg-black/40 rounded-full relative shadow-inner">
+             <div class="absolute w-10 h-4 bg-slate-100 rounded-sm shadow-2xl border border-slate-300 left-1/2 -translate-x-1/2 cursor-pointer hover:brightness-110"
+                  [style.bottom.%]="gainPercent(track)"></div>
+             <input type="range" min="0" max="100" orient="vertical" [value]="gainPercent(track)" (input)="updateTrackGain(track.id, +($any($event.target).value))" (click)="stopTrackSelection($event)"
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+          </div>
         </div>
-     </div>
+
+        <div class="p-3 bg-black/40 border-t border-white/5 flex flex-col gap-3">
+          <div class="flex gap-1.5">
+             <button (click)="stopTrackSelection($event); toggleMute(track.id)"
+                     class="flex-1 py-1.5 rounded border border-white/5 text-[9px] font-black transition-all"
+                     [class.bg-red-600/20]="track.mute" [class.text-red-500]="track.mute" [class.border-red-600/40]="track.mute">M</button>
+             <button (click)="stopTrackSelection($event); toggleSolo(track.id)"
+                     class="flex-1 py-1.5 rounded border border-white/5 text-[9px] font-black transition-all"
+                     [class.bg-brand-primary/20]="track.solo" [class.text-brand-primary]="track.solo" [class.border-brand-primary/40]="track.solo">S</button>
+          </div>
+          <div class="text-[10px] font-black text-white truncate text-center tracking-tight">{{ track.name }}</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MOBILE VIEW (Vertical Mini-Strips) -->
+    <div class="lg:hidden flex-grow flex flex-col gap-2 overflow-y-auto no-scrollbar">
+       <div *ngFor="let track of tracks(); let i = index"
+            class="flex items-center gap-4 bg-[#161616] border border-white/5 rounded-xl p-3"
+            (click)="selectTrack(track.id)">
+          <div class="size-10 rounded-lg bg-black/40 flex items-center justify-center font-mono text-[10px] text-slate-500">CH{{ i+1 }}</div>
+          <div class="flex-grow">
+             <div class="text-xs font-bold text-white mb-1">{{ track.name }}</div>
+             <input type="range" min="0" max="100" [value]="gainPercent(track)" (input)="updateTrackGain(track.id, +($any($event.target).value))" class="w-full h-1 accent-brand-primary">
+          </div>
+       </div>
+    </div>
 
     <!-- MASTER STRIP -->
-    <div class="w-full lg:w-44 lg:sticky lg:top-0 bg-brand-primary/5 rounded-[32px] border border-brand-primary/20 p-5 flex flex-col items-center gap-6 shadow-2xl relative overflow-hidden self-start">
+    <div class="w-20 lg:w-44 bg-[#1a1a1a] rounded-[32px] border border-brand-primary/30 p-2 lg:p-5 flex flex-col items-center gap-6 shadow-2xl relative overflow-hidden self-start">
        <div class="absolute inset-0 bg-brand-primary/5 blur-[40px] pointer-events-none"></div>
-       <div class="w-full bg-brand-primary/20 rounded p-1.5 mb-2 text-center border border-brand-primary/30 z-10">
+       <div class="w-full bg-brand-primary/20 rounded p-1.5 mb-2 text-center border border-brand-primary/30 z-10 hidden lg:block">
           <span class="text-[10px] text-brand-primary font-mono font-black uppercase tracking-wider">MASTER BUS</span>
        </div>
 
-       <div class="flex-grow flex gap-2 h-full z-10">
-          <div class="w-5 bg-black/60 rounded-lg relative shadow-inner border border-brand-primary/10 overflow-hidden">
+       <div class="flex-grow flex gap-2 h-64 z-10 bg-black/40 p-1 lg:p-2 rounded-xl border border-white/5">
+          <div class="w-3 lg:w-4 h-full relative bg-slate-900 rounded-sm overflow-hidden">
              <div class="absolute bottom-0 left-0 right-0 bg-vu-meter-gradient transition-all" [style.height.%]="masterVolume()"></div>
           </div>
-          <div class="w-5 bg-black/60 rounded-lg relative shadow-inner border border-brand-primary/10 overflow-hidden">
-             <div class="absolute bottom-0 left-0 right-0 bg-vu-meter-gradient transition-all opacity-80" [style.height.%]="masterVolume() - 2"></div>
+          <div class="w-3 lg:w-4 h-full relative bg-slate-900 rounded-sm overflow-hidden opacity-80 hidden lg:block">
+             <div class="absolute bottom-0 left-0 right-0 bg-vu-meter-gradient transition-all" [style.height.%]="masterVolume() * 0.9"></div>
           </div>
        </div>
 
-       <div class="flex gap-3 mb-2 z-10">
-          <div class="size-7 rounded-full border border-brand-primary/40 bg-black flex items-center justify-center text-[10px] font-black text-brand-primary">M</div>
-          <div class="size-7 rounded-full border border-brand-primary/40 bg-black flex items-center justify-center text-[10px] font-black text-brand-primary">S</div>
-       </div>
-
-       <div class="w-2 h-24 bg-black rounded-full relative z-10">
-          <div class="absolute -left-4 w-10 h-4 bg-brand-primary rounded-sm shadow-[0_0_15px_rgba(236,91,19,0.5)] border border-white/20 cursor-pointer"
-               [style.top.%]="100 - masterVolume()"></div>
+       <div class="w-1.5 h-32 bg-black rounded-full relative z-10">
+          <div class="absolute -left-3.5 w-8 lg:w-10 h-4 bg-brand-primary rounded-sm shadow-[0_0_15px_rgba(236,91,19,0.5)] border border-white/20 cursor-pointer"
+               [style.bottom.%]="masterVolume()"></div>
           <input type="range" min="0" max="100" step="1" orient="vertical" [value]="masterVolume()"
                  (input)="updateMasterVolume(+($any($event.target).value))"
                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
        </div>
 
        <div class="text-center z-10">
-          <span class="text-xs font-mono font-black text-brand-primary tracking-widest">{{ masterVolume().toFixed(0) }}%</span>
+          <span class="text-[10px] font-mono font-black text-brand-primary tracking-widest">{{ masterVolume().toFixed(0) }}%</span>
        </div>
     </div>
+
   </div>
+
+  <!-- VOCAL SUITE PANEL (OVERLAY) -->
+  <div *ngIf="showVocalSuite()"
+       class="absolute inset-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-2xl flex flex-col p-8 transition-all duration-500 animate-in slide-in-from-bottom-10 h-full w-full">
+     <div class="flex items-center justify-between mb-8">
+        <div class="flex flex-col">
+           <h2 class="text-3xl font-black tracking-tighter text-white uppercase italic">Vocal Suite <span class="text-brand-primary text-sm not-italic ml-2 tracking-widest">PRO UPGRADE</span></h2>
+           <p class="text-xs text-slate-500 font-bold tracking-[0.3em] uppercase mt-1">Advanced Vocal Processing Engine</p>
+        </div>
+        <button (click)="toggleVocalSuite()" class="size-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xl hover:bg-white/10 transition-all">
+           <i class="fas fa-times"></i>
+        </button>
+     </div>
+
+     <div class="flex-grow overflow-hidden">
+        <app-vocal-suite class="h-full w-full"></app-vocal-suite>
+     </div>
+  </div>
+
 </div>
