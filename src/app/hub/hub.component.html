@@ -1,449 +1,178 @@
-<div class="hub-shell animate-enter overflow-x-hidden">
-  <div class="hub-backdrop"></div>
-  <div class="p-4 md:p-8 max-w-[1500px] mx-auto relative">
-    <!-- HERO -->
-    <section class="hub-hero glass-card">
-      <div class="flex flex-col gap-4">
-        <div class="flex flex-wrap items-center gap-3">
-          <span class="pill pill-live">Indie Label HQ</span>
-          <span class="pill pill-soft">Independent • Chill • Professional</span>
+<div class="hub-wrapper" [class.playing]="playerService.isPlaying()">
+  <!-- Background Reactive Layer -->
+  <div class="hub-ambient-glow"></div>
+  <div class="hub-reactive-grid"></div>
+  <div class="hub-particles"></div>
+
+  <div class="hub-container animate-enter">
+    <!-- Header: Business Intelligence Overview -->
+    <header class="hub-header">
+      <div class="header-left">
+        <p class="brand-eyebrow">S.M.U.V.E 1.0 // EXECUTIVE COMMAND</p>
+        <h1 class="header-title">Welcome Back, {{ profileService.profile().artistName }}</h1>
+      </div>
+      <div class="header-right">
+        <div class="executive-stat">
+          <span class="stat-label">Strategic Health</span>
+          <span class="stat-value text-primary">{{ profileService.profile().knowledgeBase.strategicHealthScore }}%</span>
         </div>
-        <div>
-          <p class="eyebrow">S.M.U.V.E Control Room</p>
-          <h1 class="hero-title">
-            Run the full artist stack from one command hub
-          </h1>
-          <p class="hero-subtitle">
-            Move from production and vocal tracking to visuals, rollout
-            strategy, community play, and release management without leaving the
-            platform.
-          </p>
-        </div>
-        <div class="hero-pillars">
-          <span class="hero-pillar">Production</span>
-          <span class="hero-pillar">AI strategy</span>
-          <span class="hero-pillar">Visual creation</span>
-          <span class="hero-pillar">Release operations</span>
-        </div>
-        <div class="hero-actions">
-          <button
-            type="button"
-            class="btn-primary"
-            (click)="uiService.navigateToView('studio')"
-          >
-            Open Studio
-          </button>
-          <button
-            type="button"
-            class="btn-ghost"
-            (click)="uiService.navigateToView('strategy')"
-          >
-            Release Strategy
-          </button>
-          <button
-            type="button"
-            class="btn-outline"
-            (click)="uiService.navigateToView('profile')"
-          >
-            Artist Identity
-          </button>
+        <div class="executive-stat">
+          <span class="stat-label">Label Level</span>
+          <span class="stat-value text-accent">LVL {{ profileService.profile().level }}</span>
         </div>
       </div>
+    </header>
 
-      <div class="hero-stats">
-        @for (stat of labelStats; track stat.label) {
-          <div class="stat-card">
-            <span class="stat-label">{{ stat.label }}</span>
-            <span
-              class="stat-value"
-              [class.text-emerald-300]="stat.label === 'Momentum'"
-              >{{ stat.value }}</span
-            >
-            <p class="stat-foot">{{ stat.foot }}</p>
-          </div>
-        }
-      </div>
-    </section>
+    <!-- Bento Grid Layout -->
+    <div class="bento-grid">
 
-    <div class="grid grid-cols-12 gap-6 md:gap-8">
-      <!-- Broadcast / Player -->
-      <div class="col-span-12 xl:col-span-7 space-y-6">
-        <div class="hub-card glass-card">
-          <div class="card-head">
-            <div>
-              <p class="eyebrow">Flagship Release</p>
-              <h2 class="card-title">
-                {{ playerService.currentTrack()?.title || 'No Track Loaded' }}
-              </h2>
-              <p class="card-subtitle">
-                {{
-                  playerService.currentTrack()?.artist ||
-                    'Load a track to broadcast across the label'
-                }}
-              </p>
+      <!-- Module 1: S.M.U.V.E Audit (2x2) -->
+      <div class="bento-item bento-2x2 bento-card glass-v42" (click)="uiService.navigateToView('knowledge-base')">
+        <div class="card-overlay"></div>
+        <div class="card-content">
+          <div class="flex justify-between items-start mb-6">
+            <div class="card-icon-box bg-primary/20 text-primary">
+              <span class="material-symbols-outlined">security_update_good</span>
             </div>
-            <span class="pill pill-outline">Broadcast</span>
+            <span class="pill pill-live">AI AUDIT ACTIVE</span>
           </div>
+          <h2 class="card-heading">Executive Intelligence Brief</h2>
+          <p class="card-subtext mb-8">Real-time scanning of your sonic assets and market readiness.</p>
 
-          <div class="flex flex-col md:flex-row gap-6 md:gap-8 items-center">
-            <div class="cover-art">
-              <div class="cover-glow"></div>
-              <div class="cover-core">
-                <span
-                  class="material-symbols-outlined text-3xl text-emerald-200"
-                  >album</span
-                >
-              </div>
+          <div class="audit-scores space-y-4">
+            <div class="score-row">
+              <span class="score-label">Sonic Cohesion</span>
+              <div class="score-bar-track"><div class="score-bar-fill bg-primary" [style.width.%]="85"></div></div>
             </div>
-
-            <div class="flex-1 w-full space-y-5">
-              <div class="progress-meta">
-                <span
-                  >{{
-                    (playerService.progress() / 100) * broadcastDuration
-                      | number: '1.0-1'
-                  }}s</span
-                >
-                <span>{{ broadcastDuration }}s</span>
-              </div>
-              <div class="progress-track">
-                <div
-                  class="progress-fill"
-                  [style.width.%]="playerService.progress()"
-                ></div>
-              </div>
-
-              <div class="flex items-center gap-4 flex-wrap">
-                <button
-                  type="button"
-                  class="circle-btn"
-                  (click)="playerService.previous()"
-                  aria-label="Previous track"
-                  title="Previous track"
-                >
-                  <span class="material-symbols-outlined">skip_previous</span>
-                </button>
-                <button
-                  type="button"
-                  class="play-btn"
-                  (click)="playerService.togglePlay()"
-                  [attr.aria-label]="
-                    playerService.isPlaying() ? 'Pause playback' : 'Play track'
-                  "
-                  [title]="playerService.isPlaying() ? 'Pause playback' : 'Play track'"
-                >
-                  <span class="material-symbols-outlined text-3xl">
-                    {{ playerService.isPlaying() ? 'pause' : 'play_arrow' }}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  class="circle-btn"
-                  (click)="playerService.next()"
-                  aria-label="Next track"
-                  title="Next track"
-                >
-                  <span class="material-symbols-outlined">skip_next</span>
-                </button>
-
-                <div class="flex items-center gap-2 ml-2">
-                  <button
-                    type="button"
-                    class="pill-action"
-                    (click)="playerService.loadExternalTrack()"
-                    aria-label="Upload track"
-                    title="Upload track"
-                  >
-                    <span class="material-symbols-outlined text-base"
-                      >cloud_upload</span
-                    >
-                    Upload Cut
-                  </button>
-                  <button
-                    type="button"
-                    class="pill-action"
-                    (click)="
-                      audioEngine.setOutputMode(
-                        audioEngine.outputMode() === 'speakers'
-                          ? 'headphones'
-                          : 'speakers'
-                      )
-                    "
-                  >
-                    <span class="material-symbols-outlined text-base">
-                      {{
-                        audioEngine.outputMode() === 'speakers'
-                          ? 'headphones'
-                          : 'speaker'
-                      }}
-                    </span>
-                    {{
-                      audioEngine.outputMode() === 'speakers'
-                        ? 'Headphones'
-                        : 'Speakers'
-                    }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="hub-card glass-card">
-          <div class="card-head">
-            <div>
-              <p class="eyebrow">Operating Stack</p>
-              <h3 class="card-title text-lg md:text-xl">
-                Move fast with clear intent
-              </h3>
+            <div class="score-row">
+              <span class="score-label">Market Viability</span>
+              <div class="score-bar-track"><div class="score-bar-fill bg-accent" [style.width.%]="72"></div></div>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              type="button"
-              class="stack-tile"
-              (click)="uiService.navigateToView('studio')"
-            >
-              <span class="tile-icon material-symbols-outlined">tune</span>
-              <div>
-                <p class="tile-title">Studio</p>
-                <p class="tile-copy">Cut records with the in-house chain.</p>
-              </div>
-            </button>
-            <button
-              type="button"
-              class="stack-tile"
-              (click)="uiService.navigateToView('knowledge-base')"
-            >
-              <span class="tile-icon material-symbols-outlined"
-                >inventory_2</span
-              >
-              <div>
-                <p class="tile-title">Vault</p>
-                <p class="tile-copy">Reference stems, deals, and notes.</p>
-              </div>
-            </button>
-            <button
-              type="button"
-              class="stack-tile"
-              (click)="uiService.navigateToView('tha-spot')"
-            >
-              <span class="tile-icon material-symbols-outlined"
-                >sports_esports</span
-              >
-              <div>
-                <p class="tile-title">Gaming Hub</p>
-                <p class="tile-copy">
-                  Enter Tha Spot for arcade floors and matchmaking.
-                </p>
-              </div>
-            </button>
+          <div class="mt-8">
+            <div class="note-ticker">
+              <div class="note-bar bg-primary"></div>
+              <p class="note-text text-sm">"{{ aiService.strategicDecrees()[0] || 'Awaiting leadership directive...' }}"</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Right rail -->
-      <div class="col-span-12 xl:col-span-5 space-y-6">
-        <div class="hub-card glass-card">
-          <div class="card-head">
-            <div>
-              <p class="eyebrow">Roster Intake</p>
-              <h3 class="card-title text-lg md:text-xl">
-                Set the artist profile
-              </h3>
-              <p class="card-subtitle">
-                Keep every release tagged with the right identity before it
-                leaves the vault.
-              </p>
+      <!-- Module 2: Current Project (2x1 Wide) -->
+      <div class="bento-item bento-2x1 bento-card glass-v42 interactive-playback">
+        <div class="card-content flex items-center gap-6">
+          <div class="vinyl-display" [class.spinning]="playerService.isPlaying()">
+            <div class="vinyl-outer"></div>
+            <div class="vinyl-label bg-accent"></div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="eyebrow text-accent">Active Production</p>
+            <h3 class="truncate text-xl font-black">{{ playerService.currentTrack()?.title }}</h3>
+            <p class="text-sm opacity-60">by {{ playerService.currentTrack()?.artist }}</p>
+
+            <div class="mt-4 flex items-center gap-4">
+              <button class="control-btn" (click)="playerService.previous()"><span class="material-symbols-outlined">skip_previous</span></button>
+              <button class="play-main-btn" (click)="playerService.togglePlay()">
+                <span class="material-symbols-outlined">{{ playerService.isPlaying() ? 'pause' : 'play_arrow' }}</span>
+              </button>
+              <button class="control-btn" (click)="playerService.next()"><span class="material-symbols-outlined">skip_next</span></button>
             </div>
           </div>
-
-          <div class="space-y-4">
-            <label class="field">
-              <span>Artist Name</span>
-              <input
-                class="field-input"
-                [value]="quickProfile().artistName"
-                (input)="
-                  updateQuickProfile('artistName', $any($event.target).value)
-                "
-                placeholder="Label-ready alias"
-              />
-            </label>
-            <label class="field">
-              <span>Primary Genre</span>
-              <select
-                class="field-input"
-                [value]="quickProfile().primaryGenre"
-                (change)="
-                  updateQuickProfile('primaryGenre', $any($event.target).value)
-                "
-              >
-                @for (genre of genres; track genre) {
-                  <option [value]="genre">{{ genre }}</option>
-                }
-              </select>
-            </label>
-            <button
-              type="button"
-              class="btn-primary w-full justify-center"
-              (click)="onQuickStart()"
-            >
-              Save Profile
-            </button>
-          </div>
-        </div>
-
-        <div class="hub-card glass-card">
-          <div class="card-head">
-            <div>
-              <p class="eyebrow">Executive Notes</p>
-              <h3 class="card-title text-lg md:text-xl">
-                Keep leadership aligned
-              </h3>
-            </div>
-            <span class="pill pill-outline">A&amp;R</span>
-          </div>
-
-          <div class="space-y-4">
-            @for (
-              decree of aiService.strategicDecrees().slice(0, 3);
-              track decree
-            ) {
-              <div class="note">
-                <div class="note-bar"></div>
-                <div>
-                  <p class="note-label">Directive</p>
-                  <p class="note-body">"{{ decree }}"</p>
-                </div>
-              </div>
-            }
-          </div>
-
-          <button
-            type="button"
-            class="btn-outline w-full mt-5"
-            (click)="uiService.navigateToView('career')"
-          >
-            Open Career Board
-          </button>
-        </div>
-
-        <div class="hub-card glass-card">
-          <div class="card-head">
-            <div>
-              <p class="eyebrow">Market Pulse</p>
-              <h3 class="card-title text-lg md:text-xl">
-                Where the signal is loudest
-              </h3>
-            </div>
-          </div>
-          <div class="pulse-list">
-            @for (item of marketPulse; track item) {
-              <div class="pulse-row">
-                <span class="pulse-dot"></span>
-                <span class="pulse-copy">{{ item }}</span>
-                <span class="pill pill-soft">Live</span>
-              </div>
+          <div class="audio-waves flex items-end gap-1 h-12">
+            @for (v of visualizerData().slice(0, 8); track $index) {
+              <div class="wave-bar bg-primary" [style.height.%]="v"></div>
             }
           </div>
         </div>
       </div>
+
+      <!-- Module 3: Career Trajectory (1x2 Tall) -->
+      <div class="bento-item bento-1x2 bento-card glass-v42" (click)="uiService.navigateToView('career')">
+        <div class="card-content h-full flex flex-col">
+          <div class="card-icon-box bg-secondary/20 text-secondary mb-4">
+            <span class="material-symbols-outlined">insights</span>
+          </div>
+          <h2 class="card-heading">Career Path</h2>
+          <div class="flex-1 mt-6 space-y-6">
+            <div class="progress-circle-container">
+              <div class="level-badge">LVL {{ profileService.profile().level }}</div>
+              <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle text-secondary" [attr.stroke-dasharray]="(profileService.profile().xp % 250 / 2.5) + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+            </div>
+            <div class="text-center">
+              <p class="text-xs uppercase tracking-widest opacity-60">Next Milestone</p>
+              <p class="font-bold text-sm">Regional Takeover</p>
+            </div>
+            <div class="space-y-2">
+              <div class="achievement-pill">
+                <span class="material-symbols-outlined text-xs">verified</span>
+                <span>Billboard Registered</span>
+              </div>
+              <div class="achievement-pill opacity-40">
+                <span class="material-symbols-outlined text-xs">lock</span>
+                <span>Sold Out Tour</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn-pro-outline w-full mt-4">Expand Board</button>
+        </div>
+      </div>
+
+      <!-- Module 4: Tha Spot (1x1) -->
+      <div class="bento-item bento-1x1 bento-card glass-v42 club-module" (click)="uiService.navigateToView('tha-spot')">
+        <div class="card-content flex flex-col items-center justify-center text-center h-full">
+          <div class="club-pulse"></div>
+          <span class="material-symbols-outlined text-4xl mb-2 text-primary">sports_esports</span>
+          <h3 class="font-black text-sm uppercase tracking-tighter">Tha Spot</h3>
+          <p class="text-[10px] opacity-60 uppercase">Go Live</p>
+        </div>
+      </div>
+
+      <!-- Module 5: Video Engine (1x1) -->
+      <div class="bento-item bento-1x1 bento-card glass-v42 cinema-module" (click)="uiService.navigateToView('image-video-lab')">
+        <div class="card-content flex flex-col items-center justify-center text-center h-full">
+          <div class="cinema-scan"></div>
+          <span class="material-symbols-outlined text-4xl mb-2 text-accent">movie</span>
+          <h3 class="font-black text-sm uppercase tracking-tighter">CinemaEngine</h3>
+          <p class="text-[10px] opacity-60 uppercase">Visual Lab</p>
+        </div>
+      </div>
+
+       <!-- Module 6: Studio DAW (1x1) -->
+      <div class="bento-item bento-1x1 bento-card glass-v42 studio-module" (click)="uiService.navigateToView('studio')">
+        <div class="card-content flex flex-col items-center justify-center text-center h-full">
+          <span class="material-symbols-outlined text-4xl mb-2 text-white">tune</span>
+          <h3 class="font-black text-sm uppercase tracking-tighter">Studio</h3>
+          <p class="text-[10px] opacity-60 uppercase">Cut Records</p>
+        </div>
+      </div>
+
+      <!-- Module 7: Market Intel (1x1) -->
+      <div class="bento-item bento-1x1 bento-card glass-v42 intel-module" (click)="uiService.navigateToView('strategy')">
+        <div class="card-content flex flex-col items-center justify-center text-center h-full">
+          <span class="material-symbols-outlined text-4xl mb-2 text-secondary">analytics</span>
+          <h3 class="font-black text-sm uppercase tracking-tighter">Intel Hub</h3>
+          <p class="text-[10px] opacity-60 uppercase">Campaigns</p>
+        </div>
+      </div>
+
     </div>
 
-    <section class="hub-section glass-card">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Platform Tour</p>
-          <h2 class="section-title">
-            Explore the major surfaces inside S.M.U.V.E.
-          </h2>
-          <p class="section-copy">
-            The landing page now maps directly to the app’s real modules, so you
-            can jump into the right workflow faster.
-          </p>
-        </div>
-        <span class="pill pill-outline">6 live modules</span>
-      </div>
-
-      <div class="feature-grid">
-        @for (feature of featureSpotlights; track feature.route) {
-          <button
-            type="button"
-            class="feature-card"
-            (click)="navigateToFeature(feature.route)"
-          >
-            <div class="feature-card-head">
-              <span class="feature-icon material-symbols-outlined">{{
-                feature.icon
-              }}</span>
-              <span class="pill pill-soft">{{ feature.category }}</span>
-            </div>
-            <h3 class="feature-title">{{ feature.title }}</h3>
-            <p class="feature-description">{{ feature.description }}</p>
-            <div class="feature-points">
-              @for (point of feature.points; track point) {
-                <span>{{ point }}</span>
-              }
-            </div>
-          </button>
-        }
-      </div>
-    </section>
-
-    <div class="hub-bottom-grid">
-      <section class="hub-section glass-card">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">Workflow</p>
-            <h2 class="section-title">
-              A simple path from identity to release
-            </h2>
-          </div>
-        </div>
-
-        <div class="workflow-list">
-          @for (stage of workflowStages; track stage.label) {
-            <button
-              type="button"
-              class="workflow-step"
-              (click)="navigateToFeature(stage.route)"
-            >
-              <span class="workflow-index">{{ stage.label }}</span>
-              <div>
-                <h3 class="workflow-title">{{ stage.title }}</h3>
-                <p class="workflow-description">{{ stage.description }}</p>
-              </div>
-            </button>
-          }
-        </div>
-      </section>
-
-      <section class="hub-section glass-card">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">Command Deck</p>
-            <h2 class="section-title">Built for fast navigation</h2>
-            <p class="section-copy">
-              Use the shell shortcuts and settings layer to move between
-              creation, planning, and launch tasks.
-            </p>
-          </div>
-        </div>
-
-        <div class="command-list">
-          @for (item of commandDeck; track item.shortcut) {
-            <div class="command-card">
-              <span class="command-shortcut">{{ item.shortcut }}</span>
-              <div>
-                <h3 class="command-title">{{ item.title }}</h3>
-                <p class="command-description">{{ item.description }}</p>
-              </div>
-            </div>
-          }
-        </div>
-      </section>
+    <!-- Secondary Bottom Actions -->
+    <div class="hub-footer flex flex-wrap gap-4 mt-8">
+      <button class="pill-action" (click)="playerService.loadExternalTrack()">
+        <span class="material-symbols-outlined text-base">cloud_upload</span>
+        Import Asset
+      </button>
+      <button class="pill-action" (click)="uiService.navigateToView('settings')">
+        <span class="material-symbols-outlined text-base">settings</span>
+        Shell Config
+      </button>
+      <div class="flex-1"></div>
+      <p class="elegant-footer-text text-[10px] uppercase">S.M.U.V.E Intelligence Network v1.0.42</p>
     </div>
   </div>
 </div>

@@ -151,18 +151,25 @@ describe('HubComponent', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/release-pipeline']);
   });
 
-  it('renders major quick actions as accessible buttons', () => {
+  it('renders major quick actions as bento modules', () => {
     const nativeElement = fixture.nativeElement as HTMLElement;
 
+    // Check for bento items
     expect(
-      nativeElement.querySelectorAll('.hero-actions button').length
-    ).toBeGreaterThanOrEqual(3);
-    expect(nativeElement.querySelectorAll('button.stack-tile')).toHaveLength(3);
+      nativeElement.querySelectorAll('.bento-item').length
+    ).toBeGreaterThanOrEqual(7);
+
+    // Check for specialized modules by looking for unique text or material icons
+    const text = nativeElement.textContent || '';
+    expect(text).toContain('Executive Intelligence Brief');
+    expect(text).toContain('Active Production');
+    expect(text).toContain('Career Path');
+    expect(text).toContain('Tha Spot');
+    expect(text).toContain('CinemaEngine');
+
+    // Check for upload button (pill-action)
     expect(
-      nativeElement.querySelector('button[aria-label="Previous track"]')
-    ).not.toBeNull();
-    expect(
-      nativeElement.querySelector('button[aria-label="Upload track"]')
+      nativeElement.querySelector('.pill-action')
     ).not.toBeNull();
   });
 });
