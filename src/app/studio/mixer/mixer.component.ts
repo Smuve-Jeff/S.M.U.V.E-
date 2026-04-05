@@ -1,18 +1,21 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioSessionService } from '../audio-session.service';
 import { ChannelStripComponent } from '../channel-strip/channel-strip.component';
+import { VocalSuiteComponent } from '../vocal-suite/vocal-suite.component';
 import {
   MusicManagerService,
   TrackModel,
+  FxSlot
 } from '../../services/music-manager.service';
 import { NeuralMixerService } from '../../services/neural-mixer.service';
+import { MixerService } from '../mixer.service';
 import { Clip } from '../instrument.service';
 
 @Component({
   selector: 'app-mixer',
   standalone: true,
-  imports: [CommonModule, ChannelStripComponent],
+  imports: [CommonModule, ChannelStripComponent, VocalSuiteComponent],
   templateUrl: './mixer.component.html',
   styleUrls: ['./mixer.component.css'],
 })
@@ -20,6 +23,7 @@ export class MixerComponent {
   private readonly audioSession = inject(AudioSessionService);
   public readonly musicManager = inject(MusicManagerService);
   private readonly neuralMixer = inject(NeuralMixerService);
+  public readonly mixerService = inject(MixerService);
 
   @Input() activeClip: Clip | null = null;
 
@@ -31,12 +35,27 @@ export class MixerComponent {
   selectedTrackId = this.musicManager.selectedTrackId;
   tracks = this.musicManager.tracks;
 
+  viewMode = signal<'compact' | 'expanded'>('expanded');
+  showVocalSuite = signal(false);
+
+  toggleViewMode() {
+    this.viewMode.update(v => v === 'compact' ? 'expanded' : 'compact');
+  }
+
+  toggleVocalSuite() {
+    this.showVocalSuite.update(v => !v);
+  }
+
   updateMasterVolume(newVolume: number): void {
     this.audioSession.updateMasterVolume(newVolume);
   }
 
   applyNeuralMix(): void {
     this.neuralMixer.applyNeuralMix();
+  }
+
+  suggestTrack(id: number) {
+    this.neuralMixer.suggestForTrack(id);
   }
 
   stopTrackSelection(event: Event): void {
@@ -83,16 +102,6 @@ export class MixerComponent {
     this.musicManager.engine.updateTrack(id, { pan });
   }
 
-  updateTrackSend(id: number, send: 'sendA' | 'sendB', value: number) {
-    const normalized = Math.max(0, Math.min(1, value / 100));
-    this.musicManager.tracks.update((tracks) =>
-      tracks.map((track) =>
-        track.id === id ? { ...track, [send]: normalized } : track
-      )
-    );
-    this.musicManager.engine.updateTrack(id, { [send]: normalized });
-  }
-
   gainPercent(track: TrackModel): number {
     return Math.round(Math.max(0, Math.min(1, track.gain)) * 100);
   }
@@ -101,36 +110,29 @@ export class MixerComponent {
     return Math.round(Math.max(-1, Math.min(1, track.pan)) * 100);
   }
 
-  sendPercent(track: TrackModel, send: 'sendA' | 'sendB'): number {
-    return Math.round(Math.max(0, Math.min(1, (track as any)[send])) * 100);
-  }
-
   isSelected(track: TrackModel): boolean {
     return this.selectedTrackId() === track.id;
   }
 
-  selectedTrack(): TrackModel | null {
-    return this.tracks().find((track) => this.isSelected(track)) ?? null;
+  toggleFxSlot(trackId: number, slotId: string) {
+    this.musicManager.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return {
+        ...t,
+        fxSlots: t.fxSlots.map(s => s.id === slotId ? { ...s, enabled: !s.enabled } : s)
+      };
+    }));
+    const track = this.musicManager.tracks().find(t => t.id === trackId);
+    if (track) this.musicManager.engine.updateTrack(trackId, { fxSlots: track.fxSlots });
   }
 
-  activeNotes(track: TrackModel): number {
-    return track.notes?.length || 0;
+  resetTrack(id: number) {
+    this.musicManager.tracks.update(ts => ts.map(t => t.id === id ? { ...t, gain: 0.9, pan: 0 } : t));
+    this.musicManager.engine.updateTrack(id, { gain: 0.9, pan: 0 });
   }
 
-  selectedTrackNoteCount(): number {
-    const track = this.selectedTrack();
-    return track ? this.activeNotes(track) : 0;
-  }
-
-  armedMicCount(): number {
-    return this.micChannels().filter((channel) => channel.armed).length;
-  }
-
-  mutedTrackCount(): number {
-    return this.tracks().filter((track) => track.mute).length;
-  }
-
-  soloTrackCount(): number {
-    return this.tracks().filter((track) => track.solo).length;
+  onLongPress(event: Event, trackId: number) {
+    event.preventDefault();
+    console.log("Long press on track", trackId);
   }
 }

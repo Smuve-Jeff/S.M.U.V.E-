@@ -1,0 +1,59 @@
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.bg-vu-meter-gradient {
+  background: linear-gradient(to top, #00ff00 0%, #ffff00 70%, #ff0000 100%);
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Fader Custom Styles */
+input[type="range"][orient="vertical"] {
+  writing-mode: bt-lr; /* Firefox */
+  appearance: slider-vertical; /* Webkit */
+  width: 8px;
+  height: 100%;
+  padding: 0 5px;
+}
+
+/* Mobile Stack View Logic */
+@media (max-width: 768px) {
+  .flex-grow.flex.gap-4 {
+    display: none; /* Hide Desktop view */
+  }
+
+  .mobile-mixer-stack {
+    display: flex !important;
+  }
+
+  /* Each mini strip in mobile */
+  .mobile-mini-strip {
+    background: #121212;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.lg\:hidden {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .lg\:hidden {
+    display: block;
+  }
+}

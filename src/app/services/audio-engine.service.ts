@@ -78,6 +78,7 @@ export class AudioEngineService {
   private crossfaderHamster = false;
 
   private tracks = new Map<number, any>();
+  private busses = new Map<string, GainNode>();
 
   constructor() {
     this.ctx = new (
@@ -542,6 +543,46 @@ export class AudioEngineService {
    */
   setMetronomeVolume(volume: number) {
     this.metronomeVolume.set(Math.max(0, Math.min(1, volume)));
+  }
+
+  getBus(busId: string): GainNode {
+    if (!this.busses.has(busId)) {
+      const bus = this.ctx.createGain();
+      bus.connect(this.masterGain);
+      this.busses.set(busId, bus);
+    }
+    return this.busses.get(busId)!;
+  }
+
+  applyFx(source: AudioNode, fxSlots: any[]): AudioNode {
+    let lastNode = source;
+    fxSlots.filter(s => s.enabled).forEach(slot => {
+      const fx = this.createFxNode(slot.type, slot.params);
+      if (fx) {
+        lastNode.connect(fx);
+        lastNode = fx;
+      }
+    });
+    return lastNode;
+  }
+
+  private createFxNode(type: string, params: any): AudioNode | null {
+    switch (type) {
+      case "filter":
+        const f = this.ctx.createBiquadFilter();
+        f.type = params.type || "lowpass";
+        f.frequency.value = params.frequency || 1000;
+        return f;
+      case "delay":
+        const d = this.ctx.createDelay();
+        d.delayTime.value = params.delayTime || 0.3;
+        return d;
+      case "compressor":
+        const c = this.ctx.createDynamicsCompressor();
+        c.threshold.value = params.threshold || -24;
+        return c;
+      default: return null;
+    }
   }
 
   ensureTrack(track: any) {

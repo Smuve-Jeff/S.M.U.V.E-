@@ -21,6 +21,14 @@ export interface ArrangementClip {
   type: 'midi' | 'audio';
 }
 
+export interface FxSlot {
+  id: string;
+  type: string;
+  params: any;
+  enabled: boolean;
+  mix: number;
+}
+
 export interface TrackModel {
   id: number;
   name: string;
@@ -31,6 +39,8 @@ export interface TrackModel {
   pan: number;
   sendA: number;
   sendB: number;
+  fxSlots: FxSlot[];
+  busId?: string;
   mute: boolean;
   solo: boolean;
   steps: boolean[];
@@ -187,6 +197,7 @@ export class MusicManagerService {
       pan: 0,
       sendA: 0.1,
       sendB: 0.05,
+      fxSlots: [],
       mute: false,
       solo: false,
       steps: new Array(64).fill(false),
