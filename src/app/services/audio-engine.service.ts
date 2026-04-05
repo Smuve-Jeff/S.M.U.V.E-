@@ -31,6 +31,10 @@ interface DeckChannel {
   rate: number;
   stems: Stems | null;
   loopEnabled: boolean;
+  slipEnabled: boolean;
+  slipActive: boolean;
+  slipStartTime: number;
+  slipStartOffset: number;
   hotCues: (number | null)[];
 }
 
@@ -187,6 +191,10 @@ export class AudioEngineService {
       rate: 1.0,
       stems: null,
       loopEnabled: false,
+      slipEnabled: false,
+      slipActive: false,
+      slipStartTime: 0,
+      slipStartOffset: 0,
       hotCues: new Array(8).fill(null),
       sendA: this.ctx.createGain(),
       sendB: this.ctx.createGain(),
@@ -246,10 +254,16 @@ export class AudioEngineService {
   }
 
   playDeck(id: DeckId) {
-    this.resume();
     const deck = this.getDeck(id);
     if (deck.isPlaying) return;
+    if (deck.slipActive) {
+      const elapsedSlip = this.ctx.currentTime - deck.slipStartTime;
+      const newPos = Math.max(0, Math.min(deck.buffer?.duration || 0, deck.slipStartOffset + elapsedSlip * deck.rate));
+      deck.pauseOffset = newPos;
+      deck.slipActive = false;
+    }
     this.startDeckSource(deck, deck.pauseOffset);
+    deck.isPlaying = true;
   }
 
   pauseDeck(id: DeckId) {
@@ -257,7 +271,13 @@ export class AudioEngineService {
     if (!deck.isPlaying) return;
     const elapsed = this.ctx.currentTime - deck.startTime;
     deck.pauseOffset += elapsed * deck.rate;
+    if (deck.slipEnabled) {
+      deck.slipActive = true;
+      deck.slipStartTime = this.ctx.currentTime;
+      deck.slipStartOffset = deck.pauseOffset;
+    }
     this.stopDeckSource(deck);
+    deck.isPlaying = false;
   }
 
   stopDeck(id: DeckId) {
@@ -305,20 +325,55 @@ export class AudioEngineService {
     deck.isPlaying = false;
   }
 
-  setDeckRate(id: DeckId, rate: number) {
+  setDeckRate(id: DeckId, rate: number, smooth = true) {
     const deck = this.getDeck(id);
     deck.rate = rate;
-    ['vocals', 'drums', 'bass', 'melody'].forEach((k: any) => {
-      if ((deck.sources as any)[k]) {
-        (deck.sources as any)[k]!.playbackRate.setTargetAtTime(
-          rate,
-          this.ctx.currentTime,
-          0.05
-        );
+    const rampTime = smooth ? 0.05 : 0.005;
+    Object.values(deck.sources).forEach(s => {
+      if (s) {
+        s.playbackRate.setTargetAtTime(rate, this.ctx.currentTime, rampTime);
       }
     });
   }
 
+
+  brakeDeck(id: DeckId) {
+    const deck = this.getDeck(id);
+    const now = this.ctx.currentTime;
+    const duration = 0.8;
+    Object.values(deck.sources).forEach(s => {
+      if (s) {
+        s.playbackRate.cancelScheduledValues(now);
+        s.playbackRate.setValueAtTime(deck.rate, now);
+        s.playbackRate.linearRampToValueAtTime(0, now + duration);
+      }
+    });
+    setTimeout(() => {
+      this.pauseDeck(id);
+      this.setDeckRate(id, 1.0, true);
+    }, duration * 1000);
+  }
+
+  spinbackDeck(id: DeckId) {
+    const deck = this.getDeck(id);
+    const originalRate = deck.rate;
+    this.setDeckRate(id, -4.0, false);
+    setTimeout(() => {
+      this.setDeckRate(id, originalRate);
+    }, 600);
+  }
+
+  transformDeck(id: DeckId) {
+    const deck = this.getDeck(id);
+    const now = this.ctx.currentTime;
+    const g = deck.gain.gain;
+    const val = g.value || 1.0;
+    g.cancelScheduledValues(now);
+    for (let i = 0; i < 8; i++) {
+      g.setValueAtTime(i % 2 === 0 ? 0 : val, now + i * 0.1);
+    }
+    g.setValueAtTime(val, now + 0.85);
+  }
   setDeckSend(id: DeckId, send: 'A' | 'B', gain: number) {
     const deck = this.getDeck(id);
     const node = send === 'A' ? deck.sendA : deck.sendB;
@@ -395,15 +450,25 @@ export class AudioEngineService {
   getDeckProgress(id: DeckId) {
     const deck = this.getDeck(id);
     const dur = deck.buffer?.duration || 0;
-    if (!deck.buffer) return { position: 0, duration: 0, isPlaying: false };
+    if (!deck.buffer) return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
+
     let pos = deck.pauseOffset;
+    let slipPos = deck.slipStartOffset;
+
     if (deck.isPlaying) {
       const elapsed = this.ctx.currentTime - deck.startTime;
       pos = Math.max(0, Math.min(dur, deck.pauseOffset + elapsed * deck.rate));
     }
-    return { position: pos, duration: dur, isPlaying: deck.isPlaying };
-  }
 
+    if (deck.slipActive) {
+      const elapsedSlip = this.ctx.currentTime - deck.slipStartTime;
+      slipPos = Math.max(0, Math.min(dur, deck.slipStartOffset + elapsedSlip * deck.rate));
+    } else {
+      slipPos = pos;
+    }
+
+    return { position: pos, duration: dur, isPlaying: deck.isPlaying, slipPosition: slipPos };
+  }
   private async loadDefaultImpulse() {
     const rate = this.ctx.sampleRate;
     const len = rate * 1.2;
@@ -660,6 +725,16 @@ export class AudioEngineService {
     for (let i = 0; i < data.length; i++) sum += data[i];
     return sum / data.length / 255;
   }
+  setSlipMode(id: DeckId, enabled: boolean) {
+    const deck = this.getDeck(id);
+    deck.slipEnabled = enabled;
+    if (!enabled) deck.slipActive = false;
+  }
+
+  getSlipActive(id: DeckId): boolean {
+    return this.getDeck(id).slipActive;
+  }
+
   getDeckWaveformData(id: DeckId): Float32Array {
     const deck = this.getDeck(id);
     return deck.buffer ? deck.buffer.getChannelData(0) : new Float32Array(0);

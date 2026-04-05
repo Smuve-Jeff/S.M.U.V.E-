@@ -66,6 +66,7 @@ export interface DeckState {
   hotCues: (number | null)[];
   keyLock: boolean;
   loopLength: number;
+  slip: boolean;
   bpm: number;
   beatGridOffset: number;
   sendA: number;
@@ -94,6 +95,7 @@ export const initialDeckState: DeckState = {
   hotCues: new Array(8).fill(null),
   keyLock: true,
   loopLength: 4,
+  slip: false,
   bpm: 128,
   beatGridOffset: 0,
   sendA: 0,

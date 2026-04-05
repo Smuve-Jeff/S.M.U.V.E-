@@ -1,6 +1,9 @@
-<div class="dj-view-container specialized-view h-full flex flex-col p-3 md:p-8 overflow-hidden relative">
+<div class="dj-view-container specialized-view" [class.flat-view]="deckService.viewMode() === 'flat'" class="h-full flex flex-col p-3 md:p-8 overflow-hidden relative">
   <!-- Top Stats Display (BPM / Key) -->
   <div class="deck-stats flex flex-wrap justify-between items-center gap-3 mb-4 md:mb-6 px-1 md:px-4">
+    <button (click)="deckService.toggleViewMode()" class="mode-chip" [class.active]="deckService.viewMode() === 'flat'">
+      <i class="fas fa-layer-group mr-1"></i> FLAT VIEW
+    </button>
     <div class="deck-info glass-v42 px-4 py-2 rounded-xl border-brand-primary/20">
       <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">DECK A</span>
       <div class="flex items-baseline gap-2">
@@ -38,11 +41,15 @@
         <div class="chassis-gradient gradient-a"></div>
         <div class="flex items-center justify-between mb-3 relative z-10">
           <div class="badge badge-a">Turntable A</div>
+          <button (click)="deckService.toggleSlip('A')" class="status-pill top-[-40px] right-0 border-white/20 text-white" [class.bg-brand-primary]="deckService.deckA().slip">
+            SLIP
+          </button>
           <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.18em]">
             Pitch {{ pitchAPercentage() }} · {{ (deckProgressPercent('A') * 100) | number:'1.0-1' }}%
           </div>
         </div>
         <div class="platter-container relative aspect-square">
+            <div class="reactive-aura" [style.opacity]="getDeckLevel('A') * 0.8" [style.transform]="'scale(' + (1 + getDeckLevel('A') * 0.4) + ')'"></div>
           <div class="platter-glow aura-a"></div>
           <div class="progress-ring" [style.background]="progressRingStyle('A')"></div>
           <div class="platter-reflection"></div>
@@ -128,6 +135,12 @@
     <div class="central-mixer-console glass-v42 p-4 md:p-6 rounded-[30px] md:rounded-[40px] border-white/10 flex flex-col gap-4 md:gap-6 shadow-2xl titanium-texture relative overflow-hidden">
       <div class="chassis-gradient gradient-center"></div>
       <div class="flex items-center justify-between z-10 relative">
+        <div class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Master Saturation</div>
+        <div class="flex items-center gap-3">
+          <input type="range" class="w-24 accent-brand-primary" (input)="setSaturation($any($event.target).value)" min="0" max="100" step="1" value="0">
+        </div>
+      </div>
+      <div class="flex items-center justify-between z-10 relative">
         <div class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Performance Modes</div>
         <div class="flex gap-2">
           <button class="mode-chip" [class.active]="performanceMode() === 'cue'" (click)="performanceMode.set('cue')">Cue</button>
@@ -159,6 +172,23 @@
       </div>
 
       <!-- Crossfader -->
+      <div class="master-fx-group flex justify-around mb-4 mt-2 px-6">
+        <div class="knob-group">
+          <input type="range" class="knob-range vertical-range h-10 accent-white" orient="vertical"
+                 (input)="setSaturation($any($event.target).value)" min="0" max="1" step="0.01" value="0.5">
+          <span class="label text-[7px]">DRIVE</span>
+        </div>
+        <div class="performance-mode-selector flex gap-2">
+          <button (click)="performanceMode.set('cue')" [class.active]="performanceMode() === 'cue'" class="mode-chip">Cue</button>
+          <button (click)="performanceMode.set('roll')" [class.active]="performanceMode() === 'roll'" class="mode-chip">Roll</button>
+          <button (click)="performanceMode.set('sampler')" [class.active]="performanceMode() === 'sampler'" class="mode-chip">Samp</button>
+        </div>
+        <div class="knob-group">
+          <input type="range" class="knob-range vertical-range h-10 accent-white" orient="vertical"
+                 (input)="setMasterVolume($any($event.target).value)" min="0" max="1" step="0.01" value="0.8">
+          <span class="label text-[7px]">VOL</span>
+        </div>
+      </div>
       <div class="crossfader-container px-4">
         <input type="range" class="w-full accent-white h-1 bg-white/10 rounded-full appearance-none"
                (input)="setCrossfade($any($event.target).value)" min="-1" max="1" step="0.01" value="0">
@@ -168,18 +198,11 @@
       </div>
 
       <div class="flex items-center justify-between gap-3">
-        <button
-          (click)="applyScratchFx('A', 'brake')"
-          class="flex-1 text-[8px] font-black uppercase tracking-widest py-2 rounded-lg border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10 transition-all"
-        >
-          Brake A
-        </button>
-        <button
-          (click)="applyScratchFx('A', 'spinback')"
-          class="flex-1 text-[8px] font-black uppercase tracking-widest py-2 rounded-lg border border-white/15 text-slate-300 hover:bg-white/5 transition-all"
-        >
-          Spinback A
-        </button>
+        <div class="fx-panel-3d flex-1 flex gap-2">
+          <button (click)="applyScratchFx('A', 'brake')" class="btn-chrome emphasis flex-1 text-[7px] py-3">BRAKE</button>
+          <button (click)="applyScratchFx('A', 'spinback')" class="btn-chrome flex-1 text-[7px] py-3">SPIN</button>
+          <button (click)="applyScratchFx('A', 'transform')" class="btn-chrome flex-1 text-[7px] py-3">X-FX</button>
+        </div>
       </div>
     </div>
 
@@ -189,10 +212,14 @@
         <div class="chassis-gradient gradient-b"></div>
         <div class="flex items-center justify-between mb-3 relative z-10">
           <div class="badge badge-b">Turntable B</div>
+          <button (click)="deckService.toggleSlip('B')" class="status-pill top-[-40px] right-0 border-white/20 text-white" [class.bg-brand-accent]="deckService.deckB().slip">
+            SLIP
+          </button>
           <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.18em]">
             Pitch {{ pitchBPercentage() }} · {{ (deckProgressPercent('B') * 100) | number:'1.0-1' }}%
           </div>
         </div>
+            <div class="reactive-aura accent" [style.opacity]="getDeckLevel('B') * 0.8" [style.transform]="'scale(' + (1 + getDeckLevel('B') * 0.4) + ')'"></div>
         <div class="platter-container relative aspect-square">
           <div class="platter-glow aura-b"></div>
           <div class="progress-ring" [style.background]="progressRingStyle('B')"></div>
@@ -247,6 +274,12 @@
         </button>
       </div>
 
+      <div class="mt-4 flex gap-2">
+        <button (click)="applyScratchFx('B', 'brake')" class="btn-chrome flex-1 text-[7px] py-3">BRAKE</button>
+        <button (click)="applyScratchFx('B', 'spinback')" class="btn-chrome flex-1 text-[7px] py-3">SPIN</button>
+        <button (click)="applyScratchFx('B', 'transform')" class="btn-chrome flex-1 text-[7px] py-3">X-FX</button>
+      </div>
+
       <div class="mt-4 grid grid-cols-4 gap-2 performance-grid">
         @for (pad of [0,1,2,3,4,5,6,7]; track pad) {
           <button class="pad-btn border-brand-secondary/30 hover:bg-brand-secondary/10"
@@ -286,10 +319,10 @@
 
 <style>
   .deck-chassis {
-    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.03), transparent 45%),
-      radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.05), transparent 45%),
-      #06080f;
-    box-shadow: 0 28px 68px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%), url('https://www.transparenttextures.com/patterns/brushed-alum.png'), url('/assets/circuit_pattern.svg');
+    background-blend-mode: overlay;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 35px 75px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
   .chassis-gradient {
     position: absolute;
@@ -334,6 +367,9 @@
     filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.5));
     z-index: 1;
   }
+  .reactive-aura { position: absolute; inset: -20%; border-radius: 9999px; background: radial-gradient(circle, rgba(16, 185, 129, 0.45) 0%, transparent 75%); z-index: -1; transition: transform 0.1s ease, opacity 0.1s ease; pointer-events: none; filter: blur(20px); }
+  .reactive-aura.accent { background: radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 70%); }
+  .flat-view .deck-a-transform, .flat-view .deck-b-transform, .flat-view .deck-a-transform:hover, .flat-view .deck-b-transform:hover { transform: none !important; }
   .platter-glow {
     position: absolute;
     inset: 6%;
@@ -480,14 +516,17 @@
     z-index: 50;
   }
   .vinyl-platter {
-    background: repeating-radial-gradient(
-      circle at center,
-      #111 0,
-      #111 2px,
-      #1a1a1a 3px,
-      #111 4px
+    background: repeating-radial-gradient(circle at center, #050505 0, #050505 0.5px, #0a0a0a 0.75px, #050505 1px),
+    conic-gradient(
+      from 0deg,
+      rgba(255,255,255,0.05) 0%,
+      transparent 25%,
+      rgba(255,255,255,0.08) 50%,
+      transparent 75%,
+      rgba(255,255,255,0.05) 100%
     );
     cursor: grab;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.6);
   }
   .vinyl-platter:active { cursor: grabbing; }
 
