@@ -50,7 +50,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     { id: 'classics', name: 'Classics', icon: 'history', description: 'Legendary titles that defined generations of gaming.' },
     { id: 'combat', name: 'Combat', icon: 'sports_kabaddi', description: 'High-intensity battle arenas and fighting tournaments.' },
     { id: 'sports', name: 'Sports', icon: 'sports_basketball', description: 'Elite athletic simulations and competitive league play.' },
-    { id: 'arcade', name: 'Arcade', icon: 'joystick', description: 'Fast-paced reflex challenges and high-score chasers.' }
+    { id: 'arcade', name: 'Arcade', icon: 'joystick', description: 'Fast-paced reflex challenges and high-score chasers.' },
+    { id: 'strategy', name: 'Strategy', icon: 'psychology', description: 'Deep tactical challenges and timeless tabletop classics.' }
   ];
 
   activeRoom = signal<string>('all');
@@ -77,6 +78,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
           return genre === 'sports' || tags.includes('basketball') || tags.includes('football');
         case 'arcade':
           return genre === 'racing' || genre === 'rhythm' || tags.includes('arcade') || tags.includes('reflex');
+        case 'strategy':
+          return genre === 'strategy' || genre === 'casino' || tags.includes('logic');
         default:
           return true;
       }
