@@ -335,3 +335,19 @@
     height: 100%;
   }
 }
+
+/* Specialized production touch refinement */
+@media (max-width: 768px) {
+  .vertical-range {
+    width: 32px !important; /* Increase fader width for fingers */
+    margin: 0 4px;
+  }
+  .knob-range {
+    width: 64px !important;
+    height: 64px !important; /* Increase knob touch target */
+  }
+  .fl-mobile-nav-button {
+    min-width: 80px;
+    height: 64px; /* Taller touch targets for Android */
+  }
+}
