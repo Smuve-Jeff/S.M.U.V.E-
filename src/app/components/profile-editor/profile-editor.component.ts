@@ -16,12 +16,9 @@ import {
 } from '../../services/user-profile.service';
 import { AuthService } from '../../services/auth.service';
 import { FormFieldComponent } from './form-field.component';
-import {
-  LegalDocumentEditorComponent,
-  LegalDocument,
-} from '../legal-document-editor/legal-document-editor.component';
 import { CatalogManagerComponent } from '../catalog-manager/catalog-manager.component';
 import { AiService } from '../../services/ai.service';
+import { ArtistQuestionnaireComponent } from '../artist-questionnaire/artist-questionnaire.component';
 
 @Component({
   selector: 'app-profile-editor',
@@ -33,8 +30,8 @@ import { AiService } from '../../services/ai.service';
     CommonModule,
     FormsModule,
     FormFieldComponent,
-    LegalDocumentEditorComponent,
     CatalogManagerComponent,
+    ArtistQuestionnaireComponent,
   ],
 })
 export class ProfileEditorComponent {
@@ -56,8 +53,7 @@ export class ProfileEditorComponent {
   currentUser = this.authService.currentUser;
 
   // UI state
-  showLegalEditor = signal(false);
-  editingDocument = signal<LegalDocument | undefined>(undefined);
+  showQuestionnaire = signal(false);
   syncingWithAi = signal(false);
   optimizationScore = computed(
     () =>
@@ -122,11 +118,7 @@ export class ProfileEditorComponent {
     { id: 'basic', label: 'Identity & Vision', icon: 'fa-user-tie' },
     { id: 'genre-deep-dive', label: 'Genre Intelligence', icon: 'fa-dna' },
     { id: 'touring', label: 'Touring & Live', icon: 'fa-route' },
-    { id: 'publishing', label: 'Sync & Publishing', icon: 'fa-copyright' },
-    { id: 'brand', label: 'Brand & Audience', icon: 'fa-bullseye' },
-    { id: 'team', label: 'Executive Team', icon: 'fa-users-cog' },
     { id: 'catalog', label: 'Catalog Assets', icon: 'fa-database' },
-    { id: 'legal', label: 'Legal Vault', icon: 'fa-file-shield' },
   ];
 
   constructor() {
@@ -165,19 +157,6 @@ export class ProfileEditorComponent {
     this.syncLog.update((logs) => [msg, ...logs].slice(0, 5));
   }
 
-  private calculateScore(): number {
-    const p = this.editableProfile();
-    let score = 50;
-    if (p.artistName) score += 5;
-    if (p.bio?.length > 100) score += 10;
-    if (p.skills?.length > 2) score += 5;
-    if (p.primaryGenre) score += 5;
-    if (p.touringDetails.hasRider) score += 5;
-    if (p.proIpi) score += 10;
-    if (p.team?.length > 0) score += 10;
-    return Math.min(100, score);
-  }
-
   toggleChip(field: string, value: any, nestedPath?: string) {
     this.editableProfile.update((p) => {
       const updated = { ...p };
@@ -187,10 +166,13 @@ export class ProfileEditorComponent {
         const pathParts = nestedPath.split('.');
         let current: any = updated;
         for (let i = 0; i < pathParts.length - 1; i++) {
-          if (!current[pathParts[i]]) current[pathParts[i]] = {};
-          current = current[pathParts[i]];
+          const part = pathParts[i];
+          if (part === '__proto__' || part === 'constructor' || part === 'prototype') continue;
+          if (!current[part]) current[part] = {};
+          current = current[part];
         }
         const lastPart = pathParts[pathParts.length - 1];
+        if (lastPart === '__proto__' || lastPart === 'constructor' || lastPart === 'prototype') return updated;
         if (!Array.isArray(current[lastPart])) current[lastPart] = [];
         target = current[lastPart];
 
@@ -201,6 +183,7 @@ export class ProfileEditorComponent {
         }
       } else {
         const obj = updated as any;
+        if (field === '__proto__' || field === 'constructor' || field === 'prototype') return updated;
         if (!Array.isArray(obj[field])) obj[field] = [];
         target = obj[field];
         if (target.includes(value)) {
@@ -219,67 +202,16 @@ export class ProfileEditorComponent {
       const updated = { ...p };
       let current: any = updated;
       for (let i = 0; i < parts.length - 1; i++) {
-        if (!current[parts[i]]) current[parts[i]] = {};
-        current = current[parts[i]];
+        const part = parts[i];
+        if (part === '__proto__' || part === 'constructor' || part === 'prototype') continue;
+        if (!current[part]) current[part] = {};
+        current = current[part];
       }
-      current[parts[parts.length - 1]] = value;
+      const lastPart = parts[parts.length - 1];
+      if (lastPart !== '__proto__' && lastPart !== 'constructor' && lastPart !== 'prototype') {
+        current[lastPart] = value;
+      }
       return updated;
     });
-  }
-
-  addTeamMember() {
-    this.editableProfile.update((p) => ({
-      ...p,
-      team: [
-        ...(p.team || []),
-        {
-          role: 'Viewer',
-          name: '',
-          contact: '',
-          active: true,
-          permissions: [],
-        },
-      ],
-    }));
-  }
-
-  removeTeamMember(index: number) {
-    this.editableProfile.update((p) => ({
-      ...p,
-      team: p.team.filter((_, i) => i !== index),
-    }));
-  }
-
-  // --- Legal Document Methods ---
-  openNewDocument() {
-    this.editingDocument.set(undefined);
-    this.showLegalEditor.set(true);
-  }
-
-  openEditDocument(doc: LegalDocument) {
-    this.editingDocument.set(doc);
-    this.showLegalEditor.set(true);
-  }
-
-  saveLegalDocument(doc: LegalDocument) {
-    this.editableProfile.update((p) => {
-      const existingDocs = p.legalDocuments || [];
-      const index = existingDocs.findIndex((d) => d.id === doc.id);
-      if (index > -1) {
-        const updatedDocs = [...existingDocs];
-        updatedDocs[index] = doc;
-        return { ...p, legalDocuments: updatedDocs };
-      } else {
-        return { ...p, legalDocuments: [...existingDocs, doc] };
-      }
-    });
-    this.showLegalEditor.set(false);
-  }
-
-  deleteLegalDocument(docId: string) {
-    this.editableProfile.update((p) => ({
-      ...p,
-      legalDocuments: (p.legalDocuments || []).filter((d) => d.id !== docId),
-    }));
   }
 }
