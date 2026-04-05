@@ -1,372 +1,218 @@
-<div
-  class="tha-spot-container min-h-screen bg-black text-white relative overflow-hidden flex flex-col"
-  [ngClass]="qualityModeClass()"
->
-  <div class="theme-ambient-layer"></div>
-  <div class="theme-ambient-noise"></div>
-  <div class="theme-grid-glow"></div>
-
-  <!-- Interactive HUD Header -->
-  <div
-    class="hud-header theme-panel border-b border-white/10 p-4 md:p-6 flex items-center justify-between z-20 sticky top-0 bg-black/80 backdrop-blur-md"
-  >
-    <div class="flex items-center gap-4">
-      <div
-        class="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-brand-primary/50 flex items-center justify-center bg-brand-primary/10 animate-pulse"
-      >
-        <span class="material-symbols-outlined text-brand-primary">bolt</span>
-      </div>
-      <div>
-        <h2 class="text-sm md:text-lg font-black tracking-tighter uppercase italic">
-          Tha Spot
-        </h2>
-        <div class="flex items-center gap-2">
-          <span
-            class="text-[8px] md:text-[10px] text-brand-primary font-bold uppercase tracking-widest"
-            >Neural Link: Active</span
-          >
-          <div class="h-1 w-12 md:w-20 bg-white/10 rounded-full overflow-hidden">
-            <div class="h-full bg-brand-primary w-2/3"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="flex items-center gap-2 md:gap-4">
-      <div class="hidden lg:flex items-center gap-3">
-        <div class="hub-metric">
-          <span class="hub-metric-label">Active Bays</span>
-          <span class="hub-metric-value">{{ hubStats().gameCount }}</span>
-        </div>
-        <div class="hub-metric">
-          <span class="hub-metric-label">Players Online</span>
-          <span class="hub-metric-value">{{ hubStats().playersOnline | number }}</span>
-        </div>
-      </div>
-      <div class="hidden sm:flex flex-col items-end">
-        <span class="text-[8px] font-bold text-white/40 uppercase">Reputation</span>
-        <span class="text-xs font-mono text-brand-primary">42,900 XP</span>
-      </div>
-      <button (click)="uiService.navigateToView('hub')" class="hud-action">
-        <span class="material-symbols-outlined">grid_view</span>
-        <span class="hud-action-label">Command Hub</span>
-      </button>
-      <button
-        (click)="toggleChat()"
-        class="w-10 h-10 rounded-lg border border-white/10 flex items-center justify-center text-white/60 hover:text-brand-primary hover:border-brand-primary transition-all"
-      >
-        <span class="material-symbols-outlined">forum</span>
-      </button>
-      <div class="quality-control flex items-center gap-1 p-1 rounded-lg bg-white/5 border border-white/10">
-        <button
-          *ngFor="let quality of ['Performance', 'Balanced', 'Ultra']"
-          (click)="setVisualQuality(quality)"
-          [class.bg-brand-primary]="visualQuality() === quality"
-          [class.text-black]="visualQuality() === quality"
-          class="px-2 py-1 text-[9px] uppercase font-black tracking-wide rounded-md text-white/70 hover:text-white transition-all"
-        >
-          {{ quality }}
-        </button>
-      </div>
-    </div>
+<div class="gaming-hub-container" [class.dark-mode]="isDarkMode()">
+  <!-- Background Layer -->
+  <div class="hub-background-fx">
+    <div class="scanlines"></div>
+    <div class="energy-grid"></div>
+    <div class="ambient-glow"></div>
   </div>
 
-  <!-- Content Area -->
-  <div class="flex-grow relative flex flex-col lg:flex-row min-h-0">
-    <!-- Sidebar Controls -->
-    <aside
-      class="theme-sidebar w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-white/10 bg-black/40 backdrop-blur-md p-4 md:p-6 flex flex-col gap-6 z-10 shrink-0 overflow-y-auto max-h-[45vh] lg:max-h-none sidebar-scroll"
-    >
-      <section>
-        <h3 class="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">
-          Game Discovery
-        </h3>
-        <div class="grid grid-cols-2 lg:grid-cols-1 gap-2">
-          <button
-            *ngFor="let tab of ['Discover', 'Multiplayer', 'AI Arena', 'Classics']"
-            (click)="setActiveTab(tab)"
-            [class.bg-brand-primary/10]="activeTab() === tab"
-            [class.border-brand-primary/30]="activeTab() === tab"
-            class="tab-btn p-3 rounded-lg border border-white/5 bg-white/5 text-xs font-bold text-left hover:bg-white/10 transition-all flex items-center justify-between"
-          >
-            {{ tab }}
-            <span class="material-symbols-outlined text-xs text-brand-primary"
-              >arrow_forward</span
-            >
-          </button>
-        </div>
-      </section>
-
-      <section *ngIf="spotlightGame() as spotlight" class="spotlight-panel">
-        <div class="spotlight-header">
-          <div>
-            <h3 class="spotlight-title">Hub Spotlight</h3>
-            <p class="spotlight-subtitle">Prime-time challenge in the spotlight.</p>
-          </div>
-          <span class="spotlight-chip">Featured</span>
-        </div>
-        <div class="spotlight-body">
-          <img
-            *ngIf="spotlight.image"
-            [src]="spotlight.image"
-            [alt]="spotlight.name + ' spotlight cover'"
-            class="spotlight-thumb"
-          />
-          <div class="spotlight-meta">
-            <div class="spotlight-name">{{ spotlight.name }}</div>
-            <p class="spotlight-description">
-              {{ spotlight.description || 'Step into the highest-rated arena.' }}
-            </p>
-            <div class="spotlight-stats">
-              <span>{{ spotlight.playersOnline || 0 | number }} online</span>
-              <span>★ {{ spotlight.rating || 0 | number : '1.1-1' }}</span>
-            </div>
-          </div>
-        </div>
-        <button (click)="playGame(spotlight)" class="spotlight-cta">
-          Launch Spotlight
+  <!-- Tactical Navigation Dock (Physical UI Element) -->
+  <nav class="tactical-dock">
+    <div class="dock-inner glass-v42">
+      <div class="dock-segment section-label">
+        <span class="glitch-text" data-text="GAMING HUB">GAMING HUB</span>
+      </div>
+      <div class="dock-divider"></div>
+      <div class="dock-actions">
+        <button
+          *ngFor="let room of gamingRooms"
+          (click)="setActiveRoom(room.id)"
+          [class.active]="activeRoom() === room.id"
+          class="dock-btn"
+          [attr.data-tooltip]="room.name">
+          <span class="material-symbols-outlined">{{ room.icon }}</span>
+          <span class="btn-label">{{ room.name }}</span>
         </button>
-      </section>
+      </div>
+      <div class="dock-divider"></div>
+      <div class="dock-meta">
+        <button class="dock-btn intel-toggle" (click)="toggleIntel()" [class.active]="showIntelPanel()">
+            <span class="material-symbols-outlined">analytics</span>
+            <span class="btn-label">INTEL</span>
+        </button>
+      </div>
+    </div>
+  </nav>
 
-      <section class="space-y-4">
-        <div>
-          <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-2"
-            >Search Games</label
-          >
-          <input
-            [ngModel]="searchQuery()"
-            (ngModelChange)="searchQuery.set($event)"
-            type="text"
-            placeholder="Search by name, genre, tag"
-            class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] text-white focus:border-brand-primary outline-none"
-          />
+  <!-- Immersive Content Area -->
+  <main class="hub-main" [class.room-transitioning]="isTransitioning()" [class.with-intel]="showIntelPanel()">
+
+    <!-- Room Header -->
+    <header class="room-header animate-slide-down">
+      <div class="room-info">
+        <h1 class="room-title">{{ getActiveRoomName() }}</h1>
+        <p class="room-desc text-secondary/70">{{ getActiveRoomDesc() }}</p>
+      </div>
+      <div class="room-stats glass-v42">
+        <div class="stat-item">
+          <span class="stat-label">AVAILABLE</span>
+          <span class="stat-value">{{ filteredGames().length }} TITLES</span>
         </div>
+      </div>
+    </header>
 
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            *ngFor="let mode of ['Popular', 'Rating']"
-            (click)="setSortMode(mode)"
-            [class.bg-white/15]="sortMode() === mode"
-            class="p-2 text-[10px] font-black rounded-md border border-white/10 hover:bg-white/10 transition-all"
-          >
-            Sort: {{ mode }}
-          </button>
-          <button
-            *ngFor="let capability of ['All', 'Multiplayer', 'AI']"
-            (click)="setCapabilityFilter(capability)"
-            [class.bg-brand-primary/20]="capabilityFilter() === capability"
-            class="p-2 text-[10px] font-black rounded-md border border-white/10 hover:bg-white/10 transition-all"
-          >
-            {{ capability }}
-          </button>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            *ngFor="let availability of ['All', 'Offline', 'Online', 'Hybrid']"
-            (click)="setAvailabilityFilter(availability)"
-            [class.bg-brand-secondary/20]="availabilityFilter() === availability"
-            [class.border-brand-secondary/40]="availabilityFilter() === availability"
-            class="p-2 text-[10px] font-black rounded-md border border-white/10 hover:bg-white/10 transition-all"
-          >
-            {{ availability }}
-          </button>
-        </div>
-      </section>
-
-      <section class="hidden lg:block">
-        <h3 class="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">
-          Leaderboard
-        </h3>
-        <div class="space-y-4">
-          <div
-            *ngFor="let p of leaderboard()"
-            class="flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/5"
-          >
-            <div
-              class="w-8 h-8 rounded-md bg-brand-primary/10 flex items-center justify-center text-brand-primary font-black text-[10px]"
-            >
-              #
-            </div>
-            <div class="flex flex-col flex-grow">
-              <span class="text-[10px] font-bold">{{ p.player }}</span>
-              <span class="text-[9px] text-white/40 italic">{{ p.score | number }} XP</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </aside>
-
-    <!-- Main View: Isometric Floor -->
-    <main class="flex-grow relative overflow-hidden flex flex-col bg-black">
-      <div
-        class="floor-viewport h-full w-full relative cursor-move"
-        (mousedown)="onFloorMouseDown($event)"
-        (mousemove)="onFloorMouseMove($event)"
-        (mouseup)="onFloorMouseUp()"
-      >
+    <!-- Game Selection Grid (Scrollable directly) -->
+    <div class="game-library-scroll custom-scrollbar">
+      <div class="game-grid">
         <div
-          class="isometric-floor absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2000px] h-[2000px]"
-          [style.transform]="getFloorTransform()"
-        >
-          <!-- Markers -->
-          <div
-            class="absolute top-[400px] left-[500px] bg-brand-primary/20 border border-brand-primary p-4 rounded-xl cursor-pointer hover:scale-110 transition-transform"
-            (click)="navigateTo('studio')"
-          >
-            <span class="text-xs font-black uppercase">DJ BOOTH</span>
-          </div>
-          <div
-            class="absolute top-[800px] left-[400px] bg-brand-secondary/20 border border-brand-secondary p-4 rounded-xl cursor-pointer hover:scale-110 transition-transform"
-            (click)="navigateTo('profile')"
-          >
-            <span class="text-xs font-black uppercase">VIP LOUNGE</span>
-          </div>
+          *ngFor="let game of filteredGames(); let i = index"
+          class="game-card-wrapper"
+          [style.animation-delay]="i * 0.05 + 's'">
 
-          <!-- Game Stations -->
-          @for (game of filteredGames(); track game.id; let i = $index) {
-            <div
-              class="station-wrapper absolute w-28 h-44"
-              [class.station-spotlight]="i === 0"
-              [ngClass]="getStationPos(i)"
-              [style.top.px]="220 + ((i % 6) * 210)"
-              [style.left.px]="140 + (Math.floor(i / 6) * 230)"
-              (click)="playGame(game)"
-            >
-              <div
-                class="theme-station-card relative w-full h-full bg-black/70 border border-white/15 rounded-xl overflow-hidden group hover:border-brand-primary transition-all shadow-xl"
-              >
-                @if (i === 0) {
-                  <div class="spotlight-badge">Spotlight</div>
-                }
-                <img
-                  *ngIf="game.image"
-                  [src]="game.image"
-                  [alt]="game.name + ' cover art'"
-                  class="w-full h-[45%] object-cover opacity-70 group-hover:opacity-100"
-                />
-                <div class="p-2 space-y-1">
-                  <div class="text-[8px] font-black text-brand-primary uppercase leading-tight">
-                    {{ game.name }}
-                  </div>
-                  <div class="text-[7px] text-white/60 uppercase">{{ game.genre || 'Arcade' }}</div>
-                  <div class="flex flex-wrap gap-1">
-                    @if (game.availability) {
-                      <span
-                        class="px-1.5 py-0.5 rounded bg-brand-secondary/20 text-[6px] font-bold uppercase tracking-wider text-brand-secondary"
-                      >
-                        {{ game.availability }}
-                      </span>
-                    }
-                    <span
-                      *ngFor="let tag of getVisibleTags(game)"
-                      class="px-1.5 py-0.5 rounded bg-white/10 text-[6px] font-bold uppercase tracking-wider"
-                      >{{ tag }}</span
-                    >
-                  </div>
-                  <div class="text-[7px] text-white/80">{{ game.playersOnline || 0 | number }} online</div>
-                </div>
+          <div class="game-card glass-v42" (click)="playGame(game)">
+            <div class="card-media">
+              <img [src]="game.image" [alt]="game.name" class="game-thumb">
+              <div class="card-overlay">
+                <button class="play-action-btn">
+                  <span class="material-symbols-outlined">play_arrow</span>
+                  LAUNCH
+                </button>
+              </div>
+              <div class="availability-badge" [attr.data-type]="game.availability">
+                {{ game.availability }}
+              </div>
+              <div class="ai-support-badge" *ngIf="game.aiSupportLevel && game.aiSupportLevel !== 'None'">
+                <span class="material-symbols-outlined">neurology</span>
+                {{ game.aiSupportLevel }}
               </div>
             </div>
-          }
-        </div>
-      </div>
-    </main>
-  </div>
 
-  <!-- Chat HUD: Adaptive Sidebar -->
-  <aside
-    *ngIf="chatActive()"
-    class="theme-chat fixed top-0 right-0 h-full w-full sm:w-80 bg-black/95 backdrop-blur-2xl border-l border-white/10 z-[100] flex flex-col animate-enter"
-  >
-    <header class="p-6 border-b border-white/10 flex items-center justify-between">
-      <span class="text-[10px] font-black text-white uppercase tracking-[0.2em]">Neural Chat Sync</span>
-      <button (click)="toggleChat()" class="text-white/40 hover:text-white">
-        <span class="material-symbols-outlined text-sm">close</span>
-      </button>
-    </header>
-    <div class="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar">
-      <div *ngFor="let msg of chatMessages()" class="animate-enter">
-        <div class="flex items-center gap-2 mb-1">
-          <span
-            class="text-[8px] font-black"
-            [class.text-brand-primary]="msg.isSystem"
-            [class.text-brand-secondary]="!msg.isSystem"
-            >{{ msg.user }}</span
-          >
-          <span class="text-[7px] text-white/20 font-mono">{{ msg.timestamp | date : 'HH:mm:ss' }}</span>
+            <div class="card-content">
+              <div class="card-header">
+                <h3 class="game-name">{{ game.name }}</h3>
+                <div class="game-rating">
+                  <span class="material-symbols-outlined">star</span>
+                  {{ game.rating }}
+                </div>
+              </div>
+              <p class="game-genre">{{ game.genre }}</p>
+              <div class="game-tags">
+                <span *ngFor="let tag of getVisibleTags(game)" class="tag">{{ tag }}</span>
+              </div>
+            </div>
+          </div>
+
         </div>
-        <p
-          class="text-[9px] text-white/70 leading-relaxed font-medium bg-white/5 p-3 rounded-lg border border-white/5"
-        >
-          {{ msg.text }}
-        </p>
       </div>
     </div>
-    <div class="p-6 border-t border-white/10 flex gap-2">
-      <input
-        [(ngModel)]="newChatMessage"
-        (keyup.enter)="sendChatMessage()"
-        type="text"
-        placeholder="TRANSMIT..."
-        class="flex-grow bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-[10px] text-white focus:border-brand-primary outline-none uppercase font-black tracking-widest"
-      />
-      <button
-        (click)="sendChatMessage()"
-        class="w-10 h-10 rounded-lg bg-brand-primary text-black flex items-center justify-center hover:scale-105 transition-all"
-      >
-        <span class="material-symbols-outlined text-sm">send</span>
-      </button>
+
+  </main>
+
+  <!-- S.M.U.V.E. Gaming Intel Sidebar -->
+  <aside class="intel-sidebar glass-v42" [class.active]="showIntelPanel()">
+    <header class="intel-header">
+        <div class="intel-title">
+            <span class="material-symbols-outlined">neurology</span>
+            GAMING INTEL
+        </div>
+        <div class="neural-score-card">
+            <span class="label">NEURAL SYNC</span>
+            <span class="value">{{ neuralSyncScore() }}%</span>
+            <div class="progress-bar-small">
+                <div class="fill" [style.width.%]="neuralSyncScore()"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="intel-content custom-scrollbar">
+        <div class="intel-section">
+            <h4 class="section-title">STRATEGIC DIRECTIVES</h4>
+            <ul class="directives-list">
+                <li *ngFor="let d of gamingDirectives(); let i = index" [style.animation-delay]="i * 0.1 + 's'">
+                    <span class="material-symbols-outlined">arrow_right</span>
+                    {{ d }}
+                </li>
+            </ul>
+        </div>
+
+        <div class="intel-section">
+            <h4 class="section-title">ADVANTAGE METRICS</h4>
+            <div class="metric-row">
+                <span class="label">TACTICAL EDGE</span>
+                <span class="value">+{{ tacticalAdvantage() }}%</span>
+            </div>
+            <div class="metric-row">
+                <span class="label">REACTION LATENCY</span>
+                <span class="value">12ms</span>
+            </div>
+        </div>
     </div>
   </aside>
 
-  <!-- Matchmaking Overlay -->
-  <div
-    *ngIf="isSearching()"
-    class="theme-overlay fixed inset-0 z-[150] bg-black/98 backdrop-blur-2xl flex items-center justify-center p-8 animate-enter"
-  >
-    <div class="text-center max-w-md w-full">
-      <div class="relative w-40 h-40 mx-auto mb-12 flex items-center justify-center">
-        <div class="absolute inset-0 border-4 border-brand-primary/10 rounded-full"></div>
-        <div class="absolute inset-0 border-4 border-brand-primary rounded-full border-t-transparent animate-spin"></div>
-        <span class="text-3xl font-black text-white italic">{{ searchProgress() }}%</span>
-      </div>
-      <h2 class="text-4xl font-black text-white uppercase italic mb-4">
-        {{ matchFound() ? 'MATCH FOUND' : 'SEARCHING RIVALS' }}
-      </h2>
-      <p class="text-brand-primary text-[14px] font-black uppercase tracking-[0.2em] mb-12 italic">
-        >> {{ matchmakingStep() }}
-      </p>
+  <!-- Neural Matchmaking Overlay -->
+  <div class="matchmaking-overlay" *ngIf="isMatchmaking()" [class.active]="isMatchmaking()">
+    <div class="overlay-backdrop"></div>
+    <div class="matchmaking-container">
+        <div class="scanning-circle">
+            <div class="scan-ring outer"></div>
+            <div class="scan-ring inner"></div>
+            <div class="center-icon">
+                <span class="material-symbols-outlined">satellite_alt</span>
+            </div>
+        </div>
+
+        <div class="matchmaking-info">
+            <h2 class="status-title glitch-text" [attr.data-text]="matchmakingStatus()">{{ matchmakingStatus() }}</h2>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" [style.width.%]="matchmakingProgress()"></div>
+                </div>
+                <span class="progress-pct">{{ matchmakingProgress() }}%</span>
+            </div>
+            <p class="ai-briefing">"{{ aiGamingBriefing() }}"</p>
+        </div>
     </div>
   </div>
 
-  <!-- Game Overlay -->
-  <div
-    *ngIf="currentGame()"
-    class="theme-overlay fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-8 animate-enter"
-  >
-    <div
-      class="w-full h-full max-w-7xl glass-v42 rounded-3xl border-2 border-brand-primary/30 flex flex-col overflow-hidden shadow-2xl"
-    >
-      <header class="p-4 md:p-6 border-b border-white/10 flex items-center justify-between bg-black/60">
-        <div class="flex items-center gap-4">
-          <div class="w-2.5 h-2.5 rounded-full bg-brand-primary animate-pulse"></div>
-          <h2 class="text-xs font-black text-white uppercase tracking-widest">{{ currentGame()?.name }}</h2>
+  <!-- Immersive Game Overlay -->
+  <div class="immersive-overlay" *ngIf="currentGame()" [class.active]="currentGame()">
+    <div class="overlay-backdrop" (click)="closeGame()"></div>
+
+    <div class="game-console-window glass-v42">
+      <header class="console-header">
+        <div class="console-title">
+          <span class="material-symbols-outlined">videogame_asset</span>
+          {{ currentGame()?.name }}
         </div>
-        <button
-          (click)="closeGame()"
-          class="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-500/20"
-        >
-          <span class="material-symbols-outlined">power_settings_new</span>
-        </button>
+        <div class="console-controls">
+          <button class="control-btn" (click)="closeGame()" title="Exit Game">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
       </header>
-      <div class="flex-grow bg-black relative">
+
+      <div class="console-body">
         <iframe
-          *ngIf="currentGame()?.url"
-          [src]="getSafeUrl(currentGame()?.url!)"
-          allow="autoplay; fullscreen; gamepad"
-          class="w-full h-full border-none"
-        ></iframe>
+          #gameIframe
+          [src]="getSafeUrl(currentGame()?.url || '')"
+          frameborder="0"
+          allowfullscreen
+          class="game-frame">
+        </iframe>
       </div>
+
+      <footer class="console-footer">
+        <div class="telemetry-bar">
+          <div class="telemetry-item">
+            <span class="label">STATUS:</span>
+            <span class="value success">EXECUTING</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="label">SIGNAL:</span>
+            <span class="value">STABLE</span>
+          </div>
+          <div class="telemetry-item" *ngIf="neuralSyncScore() > 0">
+            <span class="label">NEURAL SYNC:</span>
+            <span class="value success">{{ neuralSyncScore() }}%</span>
+          </div>
+        </div>
+        <div class="footer-actions">
+          <button class="footer-btn" (click)="closeGame()">
+            <span class="material-symbols-outlined">eject</span>
+            TERMINATE SESSION
+          </button>
+        </div>
+      </footer>
     </div>
   </div>
 </div>

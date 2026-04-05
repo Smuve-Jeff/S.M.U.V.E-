@@ -1,13 +1,13 @@
 import {
   Component,
-  computed,
-  signal,
-  inject,
   OnInit,
   OnDestroy,
-  HostListener,
+  inject,
+  signal,
+  computed,
   ViewChild,
   ElementRef,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -19,25 +19,12 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { MainViewMode } from '../../services/user-context.service';
-import {
-  GameTelemetryEnvelope,
-  GameOverPayload,
-  GameUpdatePayload,
-  AchievementUnlockedPayload,
-} from '../../types/game-telemetry.types';
 
-const MAX_TAGS_WITH_AVAILABILITY = 1;
-const MAX_TAGS_WITHOUT_AVAILABILITY = 2;
-const AVAILABILITY_FILTERS = ['All', 'Offline', 'Online', 'Hybrid'] as const;
-
-type AvailabilityFilter = (typeof AVAILABILITY_FILTERS)[number];
-
-interface ChatMessage {
+interface GamingRoom {
   id: string;
-  user: string;
-  text: string;
-  timestamp: Date;
-  isSystem?: boolean;
+  name: string;
+  icon: string;
+  description: string;
 }
 
 @Component({
@@ -48,7 +35,6 @@ interface ChatMessage {
   styleUrls: ['./tha-spot.component.css'],
 })
 export class ThaSpotComponent implements OnInit, OnDestroy {
-  readonly Math = Math;
   @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
 
   private gameService = inject(GameService);
@@ -58,116 +44,64 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private sanitizer = inject(DomSanitizer);
   private router = inject(Router);
 
-  activeTab = signal<string>('Discover');
+  // Gaming Rooms Definition
+  gamingRooms: GamingRoom[] = [
+    { id: 'all', name: 'All Games', icon: 'grid_view', description: 'Complete tactical library of available titles.' },
+    { id: 'classics', name: 'Classics', icon: 'history', description: 'Legendary titles that defined generations of gaming.' },
+    { id: 'combat', name: 'Combat', icon: 'sports_kabaddi', description: 'High-intensity battle arenas and fighting tournaments.' },
+    { id: 'sports', name: 'Sports', icon: 'sports_basketball', description: 'Elite athletic simulations and competitive league play.' },
+    { id: 'arcade', name: 'Arcade', icon: 'joystick', description: 'Fast-paced reflex challenges and high-score chasers.' },
+    { id: 'strategy', name: 'Strategy', icon: 'psychology', description: 'Deep tactical challenges and timeless tabletop classics.' }
+  ];
+
+  activeRoom = signal<string>('all');
+  isTransitioning = signal(false);
   games = signal<Game[]>([]);
-  searchQuery = signal('');
-  sortMode = signal<'Popular' | 'Rating'>('Popular');
-  capabilityFilter = signal<'All' | 'Multiplayer' | 'AI'>('All');
-  availabilityFilter = signal<AvailabilityFilter>('All');
-  visualQuality = signal<'Performance' | 'Balanced' | 'Ultra'>('Balanced');
-  isSearching = signal(false);
-  matchFound = signal(false);
-  searchProgress = signal(0);
-  opponentName = signal('');
-  matchmakingStep = signal<string>('Initializing');
-
   currentGame = signal<Game | null>(null);
+
+  // S.M.U.V.E. Neural Matchmaking State
+  isMatchmaking = signal(false);
+  matchmakingProgress = signal(0);
+  matchmakingStatus = signal('INITIALIZING UPLINK');
+  matchedOpponent = signal<string | null>(null);
+  aiGamingBriefing = signal<string>('');
+
+  // S.M.U.V.E. Intel Stats
+  neuralSyncScore = signal(85);
+  tacticalAdvantage = signal(0);
+  showIntelPanel = signal(false);
+  gamingDirectives = signal<string[]>([]);
+
   filteredGames = computed(() => {
-    let filtered = [...this.games()];
-    const query = this.searchQuery().trim().toLowerCase();
+    const allGames = this.games();
+    const roomId = this.activeRoom();
 
-    if (query) {
-      filtered = filtered.filter(
-        (g) =>
-          g.name.toLowerCase().includes(query) ||
-          g.description?.toLowerCase().includes(query) ||
-          g.genre?.toLowerCase().includes(query) ||
-          g.tags?.some((tag) => tag.toLowerCase().includes(query))
-      );
-    }
+    if (roomId === 'all') return allGames;
 
-    switch (this.activeTab()) {
-      case 'Multiplayer':
-        filtered = filtered.filter((g) => g.tags?.includes('Multiplayer'));
-        break;
-      case 'AI Arena':
-        filtered = filtered.filter((g) => g.tags?.includes('AI'));
-        break;
-      case 'Classics':
-        filtered = filtered.filter(
-          (g) => g.genre === 'Classic' || g.tags?.includes('Classic')
-        );
-        break;
-    }
+    return allGames.filter(game => {
+      const tags = game.tags?.map(t => t.toLowerCase()) || [];
+      const genre = game.genre?.toLowerCase() || '';
 
-    if (this.capabilityFilter() !== 'All') {
-      filtered = filtered.filter((g) => g.tags?.includes(this.capabilityFilter()));
-    }
-
-    if (this.availabilityFilter() !== 'All') {
-      filtered = filtered.filter((g) => g.availability === this.availabilityFilter());
-    }
-
-    filtered.sort((a, b) =>
-      this.sortMode() === 'Popular'
-        ? (b.playersOnline || 0) - (a.playersOnline || 0)
-        : (b.rating || 0) - (a.rating || 0)
-    );
-
-    return filtered;
+      switch (roomId) {
+        case 'classics':
+          return genre === 'classic' || tags.includes('retro');
+        case 'combat':
+          return genre === 'fighting' || tags.includes('combat') || tags.includes('pvp');
+        case 'sports':
+          return genre === 'sports' || tags.includes('basketball') || tags.includes('football') || tags.includes('soccer') || tags.includes('tennis') || tags.includes('golf');
+        case 'arcade':
+          return genre === 'racing' || genre === 'rhythm' || tags.includes('arcade') || tags.includes('reflex');
+        case 'strategy':
+          return genre === 'strategy' || genre === 'casino' || tags.includes('logic');
+        default:
+          return true;
+      }
+    });
   });
-  spotlightGame = computed(() => this.filteredGames()[0] ?? null);
-  hubStats = computed(() => {
-    const games = this.games();
-    const playersOnline = games.reduce(
-      (total, game) => total + (game.playersOnline || 0),
-      0
-    );
-    return {
-      gameCount: games.length,
-      playersOnline,
-    };
-  });
-
-  leaderboard = signal<{ player: string; score: number }[]>([
-    { player: 'SmuveKing', score: 125000 },
-    { player: 'RhythmQueen', score: 98000 },
-    { player: 'BassLord', score: 85400 },
-  ]);
-
-  chatMessages = signal<ChatMessage[]>([]);
-  newChatMessage = '';
-  isChatOpen = signal(false);
-
-  // Isometric floor state
-  floorRotation = signal({ x: 60, z: -45 });
-  floorScale = signal(1);
-  private isDragging = false;
-  private lastMousePos = { x: 0, y: 0 };
-
-  // Game updates from iframe
-  gameData = signal<any>({});
-
-  private lastAwardedScore = 0;
 
   ngOnInit() {
     this.fetchGames();
-    this.chatMessages.set([
-      {
-        id: '1',
-        user: 'S.M.U.V.E.',
-        text: 'NEURAL CHAT LINK ESTABLISHED. KEEP IT DISCIPLINED.',
-        timestamp: new Date(),
-        isSystem: true,
-      },
-      {
-        id: '2',
-        user: 'SYSTEM',
-        text: 'NEURAL LINK ESTABLISHED. WELCOME TO THA SPOT.',
-        timestamp: new Date(),
-        isSystem: true,
-      },
-    ]);
+    this.generateGamingDirectives(this.gamingRooms[0] as any);
   }
 
   ngOnDestroy() {}
@@ -176,39 +110,86 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.gameService.listGames().subscribe((g) => this.games.set(g));
   }
 
-  navigateToView(mode: string) {
-    this.uiService.navigateToView(mode as MainViewMode);
+  setActiveRoom(roomId: string) {
+    if (this.activeRoom() === roomId) return;
+
+    this.isTransitioning.set(true);
+    setTimeout(() => {
+      this.activeRoom.set(roomId);
+      this.isTransitioning.set(false);
+    }, 300);
   }
 
-  navigateTo(mode: string) {
-    this.uiService.navigateToView(mode as MainViewMode);
+  getActiveRoomName(): string {
+    return this.gamingRooms.find(r => r.id === this.activeRoom())?.name || 'Gaming Hub';
+  }
+
+  getActiveRoomDesc(): string {
+    return this.gamingRooms.find(r => r.id === this.activeRoom())?.description || '';
   }
 
   playGame(game: Game) {
-    if (game.tags?.includes('Multiplayer')) {
-      this.startMatchmaking(game);
+    if (game.multiplayerType === 'Server' || game.tags?.includes('Multiplayer')) {
+      this.startNeuralMatchmaking(game);
     } else {
-      this.currentGame.set(game);
+      this.launchGame(game);
     }
   }
 
-  startMatchmaking(game: Game) {
-    this.isSearching.set(true);
-    this.matchFound.set(false);
-    this.searchProgress.set(0);
-    this.matchmakingStep.set('Scanning Matrix');
+  startNeuralMatchmaking(game: Game) {
+    this.isMatchmaking.set(true);
+    this.matchmakingProgress.set(0);
+    this.matchmakingStatus.set('SCANNING GLOBAL GRID');
+    this.aiGamingBriefing.set(game.aiBriefing || 'Neural engine active.');
 
     const interval = setInterval(() => {
-      this.searchProgress.update((p) => p + 5);
-      if (this.searchProgress() >= 100) {
+      const p = this.matchmakingProgress();
+      if (p < 30) {
+        this.matchmakingStatus.set('LOCATING OPPONENTS');
+      } else if (p < 60) {
+        this.matchmakingStatus.set('ESTABLISHING P2P LINK');
+      } else if (p < 90) {
+        this.matchmakingStatus.set('SYNCING NEURAL PROFILES');
+      }
+
+      this.matchmakingProgress.update(v => v + 5);
+      if (this.matchmakingProgress() >= 100) {
         clearInterval(interval);
-        this.matchFound.set(true);
+        this.matchedOpponent.set('CYBER_EXECUTIVE_' + Math.floor(Math.random() * 999));
         setTimeout(() => {
-          this.isSearching.set(false);
-          this.currentGame.set(game);
+          this.isMatchmaking.set(false);
+          this.launchGame(game);
         }, 1500);
       }
-    }, 100);
+    }, 150);
+  }
+
+  launchGame(game: Game) {
+    this.currentGame.set(game);
+    this.neuralSyncScore.set(75 + Math.floor(Math.random() * 25));
+    this.tacticalAdvantage.set(Math.floor(Math.random() * 15));
+    this.generateGamingDirectives(game);
+  }
+
+  generateGamingDirectives(game: Game) {
+    const directives = [
+      'MAINTAIN NEURAL FOCUS AT ALL TIMES.',
+      'EXPLOIT OPPONENT LATENCY IN TRANSITIONS.',
+      'RHYTHM SYNC ESTABLISHED AT 98.4%.',
+      'TACTICAL SUPERIORITY DETECTED.'
+    ];
+
+    if (game.genre === 'Fighting' || game.id === '14' || game.id === '15') {
+        directives.push('BLOCK HIGH. COUNTER WITH NEURAL PRECISION.');
+    } else if (game.genre === 'Strategy' || game.id === '19') {
+        directives.push('ANALYZE BOARD DEPTH 4 PLIES AHEAD.');
+    }
+
+    this.gamingDirectives.set(directives);
+  }
+
+  toggleIntel() {
+    this.showIntelPanel.update(v => !v);
   }
 
   closeGame() {
@@ -216,191 +197,29 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   getSafeUrl(url: string): SafeResourceUrl {
-    const safeUrl = this.isAllowedGameUrl(url) ? url : 'about:blank';
-    return this.sanitizer.bypassSecurityTrustResourceUrl(safeUrl);
-  }
-
-  toggleChat() {
-    this.isChatOpen.update((v) => !v);
-  }
-
-  chatActive(): boolean {
-    return this.isChatOpen();
-  }
-
-  sendChatMessage() {
-    const text = this.newChatMessage.trim();
-    if (!text) return;
-
-    this.chatMessages.update((msgs) => [
-      ...msgs,
-      {
-        id: Date.now().toString(),
-        user: 'Artist',
-        text,
-        timestamp: new Date(),
-      },
-    ]);
-    this.newChatMessage = '';
-  }
-
-  setActiveTab(tab: string) {
-    this.activeTab.set(tab);
-  }
-
-  setSortMode(mode: string) {
-    if (mode === 'Popular' || mode === 'Rating') {
-      this.sortMode.set(mode);
-    }
-  }
-
-  setCapabilityFilter(filter: string) {
-    if (filter === 'All' || filter === 'Multiplayer' || filter === 'AI') {
-      this.capabilityFilter.set(filter);
-    }
-  }
-
-  setAvailabilityFilter(filter: string) {
-    if ((AVAILABILITY_FILTERS as readonly string[]).includes(filter)) {
-      this.availabilityFilter.set(filter as AvailabilityFilter);
-    }
-  }
-
-  setVisualQuality(quality: string) {
-    if (quality === 'Performance' || quality === 'Balanced' || quality === 'Ultra') {
-      this.visualQuality.set(quality);
-    }
-  }
-
-  qualityModeClass() {
-    switch (this.visualQuality()) {
-      case 'Performance':
-        return 'quality-performance';
-      case 'Ultra':
-        return 'quality-ultra';
-      default:
-        return 'quality-balanced';
-    }
-  }
-
-  getFloorTransform() {
-    return `rotateX(${this.floorRotation().x}deg) rotateZ(${this.floorRotation().z}deg) scale(${this.floorScale()})`;
-  }
-
-  onFloorMouseDown(event: MouseEvent) {
-    this.isDragging = true;
-    this.lastMousePos = { x: event.clientX, y: event.clientY };
-  }
-
-  onFloorMouseMove(event: MouseEvent) {
-    if (!this.isDragging) return;
-    const deltaX = event.clientX - this.lastMousePos.x;
-    const deltaY = event.clientY - this.lastMousePos.y;
-    this.floorRotation.update((r) => ({
-      x: Math.max(30, Math.min(80, r.x - deltaY * 0.5)),
-      z: r.z + deltaX * 0.5,
-    }));
-    this.lastMousePos = { x: event.clientX, y: event.clientY };
-  }
-
-  @HostListener('window:mouseup')
-  onFloorMouseUp() {
-    this.isDragging = false;
-  }
-
-  getStationPos(index: number) {
-    const row = Math.floor(index / 4);
-    const col = index % 4;
-    return `pos-${row}-${col}`;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
   getVisibleTags(game: Game) {
-    return (game.tags || []).slice(
-      0,
-      game.availability ? MAX_TAGS_WITH_AVAILABILITY : MAX_TAGS_WITHOUT_AVAILABILITY
-    );
-  }
-
-  @HostListener('window:message', ['$event'])
-  onMessage(event: MessageEvent) {
-    const data: any = (event as MessageEvent).data;
-    if (!data) return;
-
-    // Accept both legacy {type,payload} and new envelope.
-    const envelope: GameTelemetryEnvelope = {
-      type: data.type,
-      payload: data.payload ?? data.data,
-      gameId: data.gameId,
-      timestamp: data.timestamp,
-    };
-
-    const gameId = envelope.gameId || this.currentGame()?.id || 'unknown';
-
-    switch (envelope.type) {
-      case 'GAME_READY':
-        this.lastAwardedScore = 0;
-        break;
-
-      case 'GAME_UPDATE': {
-        const payload = (envelope.payload || {}) as GameUpdatePayload;
-        this.gameData.update((d: any) => ({ ...d, ...payload }));
-
-        const score = payload.score || 0;
-        if (score - this.lastAwardedScore >= 1000) {
-          this.lastAwardedScore = score;
-          void this.profileService.awardXp(5, `game:${gameId}:score`);
-        }
-
-        if (score > 1000 && score % 5000 < 500) {
-          this.chatMessages.update((msgs) => [
-            ...msgs,
-            {
-              id: Date.now().toString(),
-              user: 'S.M.U.V.E',
-              text: `EXECUTIVE PERFORMANCE DETECTED: ${score} POINTS. STATUS SYNCED.`,
-              timestamp: new Date(),
-              isSystem: true,
-            },
-          ]);
-        }
-        break;
-      }
-
-      case 'GAME_OVER': {
-        const payload = envelope.payload as GameOverPayload;
-        if (!payload || typeof payload.score !== 'number') return;
-
-        void this.profileService.recordGameResult(gameId, payload.score);
-        const xp = 25 + Math.floor(payload.score / 500);
-        void this.profileService.awardXp(xp, `game:${gameId}:over`);
-
-        if (payload.score >= 10000) {
-          void this.profileService.unlockAchievement(`ach-${gameId}-10k`, '10K Score');
-        }
-        break;
-      }
-
-      case 'ACHIEVEMENT_UNLOCKED': {
-        const payload = envelope.payload as AchievementUnlockedPayload;
-        if (!payload?.achievementId || !payload?.title) return;
-        void this.profileService.unlockAchievement(payload.achievementId, payload.title);
-        break;
-      }
-    }
+    return (game.tags || []).slice(0, 3);
   }
 
   navigateToPath(path: string) {
     this.router.navigate([path]);
   }
 
-  private isAllowedGameUrl(url: string): boolean {
-    if (url.startsWith('/assets/games/')) return true;
+  isDarkMode(): boolean {
+    return this.uiService.activeTheme().name === 'Dark';
+  }
 
-    try {
-      const parsedUrl = new URL(url);
-      return parsedUrl.protocol === 'https:';
-    } catch {
-      return false;
+  @HostListener('window:message', [''])
+  onMessage(event: MessageEvent) {
+    const data = event.data;
+    if (!data) return;
+
+    // Handle basic telemetry if needed for internal games
+    if (data.type === 'GAME_OVER' && data.payload?.score) {
+      void this.profileService.awardXp(Math.floor(data.payload.score / 100), 'gaming_session');
     }
   }
 }
