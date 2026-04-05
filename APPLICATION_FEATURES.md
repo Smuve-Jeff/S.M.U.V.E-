@@ -25,7 +25,7 @@
 - **Mastering Suite**: An elite bus processing chain featuring real-time canvas spectrum analysis, soft-clip toggles, and professional-grade limiting.
 - **Live Performance Lab**: A dedicated practice space with executive visual metronomes and categorized rehearsal protocols.
 
-## 🤖 The 'Strategic Commander' AI Persona
+## 🤖 The 'S.M.U.V.E 1.0' AI Persona
 
 - **Omniscient Intelligence**: Powered by **Google Gemini 1.5 Pro** and a specialized **RAG-based knowledge base** for pinpoint accuracy.
 - **Assertive Persona**: An elite, sophisticated, and authoritative AI partner that issues "Strategic Decrees"—actionable orders designed to eliminate career deficits.

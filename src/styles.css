@@ -255,16 +255,16 @@ app-studio .view-nav-container {
 
 /* --- Footer Refinement --- */
 .elegant-footer-text {
-    font-family: var(--font-display);
-    font-weight: 800; /* Bold visual appearance */
-    letter-spacing: 0.15em; /* Tightened from 0.4em to standard professional */
+    font-family: "Cinzel", serif;
+    font-weight: 400; /* Elegant visual appearance */
+    letter-spacing: 0.25em; /* Refined elegant spacing */
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     opacity: 0.7;
 }
 
 .elegant-footer-text:hover {
     opacity: 1;
-    letter-spacing: 0.2em; /* Subtle dynamic "breathing" effect */
+    letter-spacing: 0.3em; /* Elegant breathing effect */
     text-shadow: 0 0 12px var(--color-text-dim);
 }
 

@@ -360,6 +360,7 @@ export class MusicManagerService {
       const buffer = await this.fileLoader.decodeToAudioBuffer(this.engine.ctx, file);
       const id = Math.floor(Math.random() * 1e9);
       const track: TrackModel = {
+        fxSlots: [],
         id,
         name: file.name,
         instrumentId: "audio-clip",
