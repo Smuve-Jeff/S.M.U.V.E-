@@ -1,5 +1,5 @@
 import { LoggingService } from '../../services/logging.service';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   MusicManagerService,
@@ -27,6 +27,9 @@ export class ChannelRackComponent {
 
   steps = new Array(16).fill(0);
 
+  selectedIds = signal<Set<number>>(new Set());
+  draggedIndex = -1;
+
   toggleStep(track: TrackModel, index: number) {
     this.musicManager.toggleStep(track.id, index);
   }
@@ -36,12 +39,46 @@ export class ChannelRackComponent {
     this.musicManager.selectedTrackId.set(track.id);
   }
 
+  toggleSelection(trackId: number, event: Event) {
+    event.stopPropagation();
+    const current = new Set(this.selectedIds());
+    if (current.has(trackId)) current.delete(trackId);
+    else current.add(trackId);
+    this.selectedIds.set(current);
+  }
+
   addTrack() {
     this.musicManager.ensureTrack('synth-lead');
   }
 
+  importAudio() {
+    this.musicManager.importAudioTrack();
+  }
+
   removeTrack(id: number) {
     this.musicManager.removeTrack(id);
+  }
+
+  batchMute(mute: boolean) {
+    const ids = Array.from(this.selectedIds());
+    if (ids.length > 0) {
+      this.musicManager.batchMute(ids, mute);
+    }
+  }
+
+  onDragStart(index: number) {
+    this.draggedIndex = index;
+  }
+
+  onDragOver(event: Event) {
+    event.preventDefault();
+  }
+
+  onDrop(index: number) {
+    if (this.draggedIndex !== -1 && this.draggedIndex !== index) {
+      this.musicManager.reorderTrack(this.draggedIndex, index);
+    }
+    this.draggedIndex = -1;
   }
 
   updateVolume(track: TrackModel, event: any) {

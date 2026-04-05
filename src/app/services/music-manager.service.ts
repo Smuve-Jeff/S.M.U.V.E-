@@ -3,6 +3,7 @@ import { Injectable, signal, effect, inject } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { InstrumentsService } from './instruments.service';
 import { UserProfileService } from './user-profile.service';
+import { FileLoaderService } from "./file-loader.service";
 
 export type TrackNote = {
   id: string;
@@ -25,6 +26,10 @@ export interface TrackModel {
   id: number;
   name: string;
   instrumentId: string;
+  type: "midi" | "audio";
+  color: string;
+  audioUrl?: string;
+  audioBuffer?: AudioBuffer;
   notes: TrackNote[];
   clips: ArrangementClip[];
   gain: number;
@@ -48,29 +53,30 @@ export interface GlobalChord {
   id: string;
   name: string; // e.g. "Am", "F"
   startStep: number;
-  length: number; // in steps (1 bar = 16 steps)
+  length: number;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root',
+})
 export class MusicManagerService {
   private logger = inject(LoggingService);
   public engine = inject(AudioEngineService);
   private instruments = inject(InstrumentsService);
   private profileService = inject(UserProfileService);
+  private fileLoader = inject(FileLoaderService);
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
   currentStep = signal(-1);
-  automationData = signal<Record<string, number[]>>({});
-
-  // Global Harmonic and Structural Intelligence
-  chords = signal<GlobalChord[]>([]);
   structure = signal<SongSection[]>([]);
+  chords = signal<GlobalChord[]>([]);
 
   constructor() {
-    // Initial setup if no tracks exist
+    // Basic initialization
     setTimeout(() => {
-      if (this.tracks().length === 0) {
+      const existing = this.tracks();
+      if (existing.length === 0) {
         this.loadLastSession();
       }
     }, 500);
@@ -80,8 +86,17 @@ export class MusicManagerService {
       this.currentStep.set(stepIndex);
       const dur = stepDur * 0.95;
       const anySolo = this.tracks().some((t) => t.solo);
+
       for (const t of this.tracks()) {
         if (t.mute || (anySolo && !t.solo)) continue;
+
+        if (t.type === "audio" && t.audioBuffer) {
+          if (stepIndex === 0) {
+             this.engine.playBuffer(when, t.audioBuffer, t.audioBuffer.duration, 1.0, t.pan, t.gain);
+          }
+          continue;
+        }
+
         const inst = this.instruments
           .getPresets()
           .find((p) => p.id === t.instrumentId);
@@ -89,39 +104,12 @@ export class MusicManagerService {
         for (const n of t.notes) {
           if (n.step === stepIndex) {
             const freq = this.midiToFreq(n.midi);
-            if (inst.type === 'synth') {
-              this.engine.playSynth(
-                when,
-                freq,
-                dur,
-                n.velocity,
-                t.pan,
-                t.gain,
-                t.sendA,
-                t.sendB,
-                inst.synth as any
-              );
-            } else {
-              // sample fallback
-              this.engine.playSynth(
-                when,
-                freq,
-                dur,
-                n.velocity,
-                t.pan,
-                t.gain,
-                t.sendA,
-                t.sendB,
-                {
-                  type: 'triangle',
-                  attack: 0.002,
-                  decay: 0.08,
-                  sustain: 0.7,
-                  release: 0.1,
-                  cutoff: 7000,
-                  q: 0.8,
-                }
-              );
+            if (inst.type === "synth") {
+              this.engine.playSynth(when, freq, dur, n.velocity, t.pan, t.gain, t.sendA, t.sendB, inst.synth as any);
+            } else if (inst.type === "sample") {
+               this.engine.playSynth(when, freq, dur, n.velocity, t.pan, t.gain, t.sendA, t.sendB, {
+                  type: "triangle", attack: 0.002, decay: 0.08, sustain: 0.7, release: 0.1, cutoff: 7000, q: 0.8
+               });
             }
           }
         }
@@ -146,7 +134,6 @@ export class MusicManagerService {
       this.engine.loopStart.set(lastSession.loopStart || 0);
       this.engine.loopEnd.set(lastSession.loopEnd || 16);
 
-      // Register tracks with engine
       for (const t of lastSession.tracks) {
         this.engine.ensureTrack({
           id: t.id,
@@ -181,6 +168,8 @@ export class MusicManagerService {
       id,
       name: preset.name,
       instrumentId: preset.id,
+      type: "midi",
+      color: "#EC5B13",
       notes: [],
       clips: [],
       gain: 0.9,
@@ -193,7 +182,7 @@ export class MusicManagerService {
     };
     this.tracks.update((v) => [...v, track]);
     this.engine.ensureTrack({
-      id,
+      id: track.id,
       name: track.name,
       instrumentId: track.instrumentId,
       gain: track.gain,
@@ -333,6 +322,52 @@ export class MusicManagerService {
       this.selectedTrackId.set(
         this.tracks().length > 0 ? this.tracks()[0].id : null
       );
+    }
+  }
+
+  reorderTrack(fromIndex: number, toIndex: number) {
+    this.tracks.update(ts => {
+      const result = [...ts];
+      const [removed] = result.splice(fromIndex, 1);
+      result.splice(toIndex, 0, removed);
+      return result;
+    });
+  }
+
+  setTrackColor(id: number, color: string) {
+    this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, color } : t));
+  }
+
+  batchMute(ids: number[], mute: boolean) {
+    this.tracks.update(ts => ts.map(t => ids.includes(t.id) ? { ...t, mute } : t));
+  }
+
+  async importAudioTrack() {
+    const files = await this.fileLoader.pickLocalFiles("audio/*");
+    if (files && files.length > 0) {
+      const file = files[0];
+      const buffer = await this.fileLoader.decodeToAudioBuffer(this.engine.ctx, file);
+      const id = Math.floor(Math.random() * 1e9);
+      const track: TrackModel = {
+        id,
+        name: file.name,
+        instrumentId: "audio-clip",
+        type: "audio",
+        color: "#10B981",
+        audioUrl: URL.createObjectURL(file),
+        audioBuffer: buffer,
+        notes: [],
+        clips: [],
+        gain: 0.8,
+        pan: 0,
+        sendA: 0.1,
+        sendB: 0.05,
+        mute: false,
+        solo: false,
+        steps: new Array(64).fill(false),
+      };
+      this.tracks.update(ts => [...ts, track]);
+      this.selectedTrackId.set(id);
     }
   }
 

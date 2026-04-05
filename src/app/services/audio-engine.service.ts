@@ -490,6 +490,19 @@ export class AudioEngineService {
     osc.stop(when + duration + 2.0);
   }
 
+  playBuffer(when: number, buffer: AudioBuffer, duration: number, velocity = 1, pan = 0, gain = 0.8) {
+    this.resume();
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const vca = this.ctx.createGain();
+    vca.gain.setValueAtTime(velocity * gain, when);
+    const p = this.ctx.createStereoPanner();
+    p.pan.value = pan;
+    src.connect(vca).connect(p).connect(this.masterGain);
+    src.start(when);
+    src.stop(when + duration);
+  }
+
   setMasterOutputLevel(normalized: number) {
     this.masterGain.gain.setTargetAtTime(
       normalized,
