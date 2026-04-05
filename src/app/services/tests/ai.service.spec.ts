@@ -52,7 +52,7 @@ describe('AiService', () => {
         { provide: UserProfileService, useValue: userProfileService },
         { provide: UserContextService, useValue: userContextService },
         { provide: StemSeparationService, useValue: {} },
-        { provide: AudioEngineService, useValue: { resume: jest.fn() } },
+        { provide: AudioEngineService, useValue: { resume: jest.fn(), ensureTrack: jest.fn(), updateTrack: jest.fn() } },
       ],
     });
     service = TestBed.inject(AiService);

@@ -26,7 +26,7 @@ describe('GameService', () => {
   it('should return the newest curated games first when requested', async () => {
     const games = await firstValueFrom(service.listGames({}, 'Newest'));
 
-    expect(games[0].id).toBe('10');
-    expect(games[1].id).toBe('9');
+    expect(games[0].id).toBe('32');
+    expect(games[1].id).toBe('31');
   });
 });

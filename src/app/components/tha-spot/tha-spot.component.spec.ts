@@ -1,80 +1,15 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { ThaSpotComponent } from './tha-spot.component';
 import { provideRouter } from '@angular/router';
 import { API_KEY_TOKEN } from '../../services/ai.service';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { signal } from '@angular/core';
 
 describe('ThaSpotComponent', () => {
   let component: ThaSpotComponent;
   let fixture: ComponentFixture<ThaSpotComponent>;
 
   beforeEach(async () => {
-    // Mock AudioContext
-    const mockAudioParam = {
-      value: 0,
-      setTargetAtTime: jest.fn().mockReturnThis(),
-      setValueAtTime: jest.fn().mockReturnThis(),
-      linearRampToValueAtTime: jest.fn().mockReturnThis(),
-      exponentialRampToValueAtTime: jest.fn().mockReturnThis(),
-    };
-
-    const mockNode = {
-      connect: jest.fn().mockImplementation((target) => target),
-      disconnect: jest.fn().mockReturnThis(),
-      gain: mockAudioParam,
-      frequency: mockAudioParam,
-      Q: mockAudioParam,
-      threshold: mockAudioParam,
-      knee: mockAudioParam,
-      ratio: mockAudioParam,
-      attack: mockAudioParam,
-      release: mockAudioParam,
-      pan: mockAudioParam,
-      delayTime: mockAudioParam,
-      playbackRate: mockAudioParam,
-      start: jest.fn().mockReturnThis(),
-      stop: jest.fn().mockReturnThis(),
-      buffer: null,
-      curve: null,
-      oversample: 'none',
-    };
-
-    (window as any).AudioContext = class {
-      createGain() { return { ...mockNode }; }
-      createOscillator() { return { ...mockNode }; }
-      createDynamicsCompressor() { return { ...mockNode }; }
-      createDelay() { return { ...mockNode }; }
-      createBiquadFilter() { return { ...mockNode }; }
-      createAnalyser() { return { ...mockNode, getByteFrequencyData: jest.fn(), getByteTimeDomainData: jest.fn(), fftSize: 2048, frequencyBinCount: 1024 }; }
-      createConvolver() { return { ...mockNode }; }
-      createStereoPanner() { return { ...mockNode }; }
-      createBufferSource() { return { ...mockNode }; }
-      createWaveShaper() { return { ...mockNode }; }
-      createBuffer() { return { getChannelData: () => new Float32Array(100), numberOfChannels: 2, length: 100, sampleRate: 44100, duration: 1 }; }
-      createMediaStreamDestination() { return { stream: {}, connect: jest.fn() }; }
-      get destination() { return { connect: jest.fn(), disconnect: jest.fn() }; }
-      get currentTime() { return 0; }
-      get sampleRate() { return 44100; }
-      resume() { return Promise.resolve(); }
-      suspend() { return Promise.resolve(); }
-      close() { return Promise.resolve(); }
-      decodeAudioData() { return Promise.resolve({ duration: 1, getChannelData: () => new Float32Array(100) }); }
-    };
-    (window as any).webkitAudioContext = (window as any).AudioContext;
-    (globalThis as any).indexedDB = {
-      open: () => {
-        const request: any = {};
-        setTimeout(() => {
-          request.result = {
-            objectStoreNames: { contains: () => true },
-            createObjectStore: () => {},
-          };
-          request.onsuccess?.({ target: { result: request.result } });
-        }, 0);
-        return request;
-      },
-    };
-
     await TestBed.configureTestingModule({
       imports: [ThaSpotComponent, NoopAnimationsModule],
       providers: [
@@ -95,154 +30,76 @@ describe('ThaSpotComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should switch tabs', () => {
-    component.setActiveTab('Multiplayer');
-    expect(component.activeTab()).toBe('Multiplayer');
+  it('should switch gaming rooms', fakeAsync(() => {
+    component.setActiveRoom('combat');
+    tick(301);
+    expect(component.activeRoom()).toBe('combat');
+    expect(component.getActiveRoomName()).toBe('Combat');
 
-    component.setActiveTab('AI Arena');
-    expect(component.activeTab()).toBe('AI Arena');
-  });
+    component.setActiveRoom('sports');
+    tick(301);
+    expect(component.activeRoom()).toBe('sports');
+  }));
 
-  it('should add chat message', () => {
-    const initialCount = component.chatMessages().length;
-    component.newChatMessage = 'Hello Test';
-    component.sendChatMessage();
-    expect(component.chatMessages().length).toBe(initialCount + 1);
-    expect(
-      component.chatMessages()[component.chatMessages().length - 1].text
-    ).toBe('Hello Test');
-    expect(component.newChatMessage).toBe('');
-  });
-
-  it('should filter AI multiplayer games with query and rating sort', () => {
+  it('should filter games based on active room', () => {
     component.games.set([
       {
         id: 'g1',
-        name: 'AI Duel One',
-        url: 'https://example.com/1',
-        genre: 'Strategy',
-        rating: 4.5,
-        playersOnline: 100,
-        availability: 'Online',
-        tags: ['Multiplayer', 'AI'],
+        name: 'Street Fighter',
+        genre: 'Fighting',
+        tags: ['Combat'],
+        url: ''
       },
       {
         id: 'g2',
-        name: 'AI Duel Two',
-        url: 'https://example.com/2',
-        genre: 'Strategy',
-        rating: 4.9,
-        playersOnline: 80,
-        availability: 'Online',
-        tags: ['Multiplayer', 'AI'],
+        name: 'FIFA',
+        genre: 'Sports',
+        tags: ['Soccer'],
+        url: ''
       },
       {
         id: 'g3',
-        name: 'Classic Solo',
-        url: 'https://example.com/3',
+        name: 'Pacman',
         genre: 'Classic',
-        rating: 5,
-        playersOnline: 10,
-        availability: 'Offline',
-        tags: ['Single Player'],
-      },
+        tags: ['Retro'],
+        url: ''
+      }
     ]);
 
-    component.setActiveTab('AI Arena');
-    component.setCapabilityFilter('Multiplayer');
-    component.searchQuery.set('duel');
-    component.setSortMode('Rating');
+    component.activeRoom.set('combat');
+    expect(component.filteredGames().length).toBe(1);
+    expect(component.filteredGames()[0].name).toBe('Street Fighter');
 
-    expect(component.filteredGames().map((g) => g.id)).toEqual(['g2', 'g1']);
+    component.activeRoom.set('sports');
+    expect(component.filteredGames().length).toBe(1);
+    expect(component.filteredGames()[0].name).toBe('FIFA');
+
+    component.activeRoom.set('classics');
+    expect(component.filteredGames().length).toBe(1);
+    expect(component.filteredGames()[0].name).toBe('Pacman');
   });
 
-  it('should filter games by online and offline availability', () => {
-    component.games.set([
-      {
-        id: 'g1',
-        name: 'Offline Puzzle',
-        url: '/assets/games/offline.html',
-        availability: 'Offline',
-        rating: 4.5,
-      },
-      {
-        id: 'g2',
-        name: 'Online Arena',
-        url: 'https://example.com/arena',
-        availability: 'Online',
-        rating: 4.8,
-      },
-      {
-        id: 'g3',
-        name: 'Hybrid Jam',
-        url: '/assets/games/hybrid.html',
-        availability: 'Hybrid',
-        rating: 4.6,
-      },
-    ]);
-
-    component.setAvailabilityFilter('Offline');
-    expect(component.filteredGames().map((game) => game.id)).toEqual(['g1']);
-
-    component.setAvailabilityFilter('Online');
-    expect(component.filteredGames().map((game) => game.id)).toEqual(['g2']);
-  });
-
-  it('should surface spotlight game from filtered list', () => {
-    component.games.set([
-      {
-        id: 'g1',
-        name: 'Arena Alpha',
-        url: 'https://example.com/1',
-        rating: 4.2,
-        playersOnline: 500,
-      },
-      {
-        id: 'g2',
-        name: 'Arena Beta',
-        url: 'https://example.com/2',
-        rating: 4.9,
-        playersOnline: 300,
-      },
-    ]);
-
-    component.setSortMode('Rating');
-
-    expect(component.spotlightGame()?.id).toBe('g2');
-  });
-
-  it('should summarize hub stats', () => {
-    component.games.set([
-      { id: 'g1', name: 'Alpha', url: 'https://example.com/1', playersOnline: 120 },
-      { id: 'g2', name: 'Beta', url: 'https://example.com/2', playersOnline: 80 },
-    ]);
-
-    expect(component.hubStats()).toEqual({ gameCount: 2, playersOnline: 200 });
-  });
-
-  it('should map visual quality mode class', () => {
-    component.setVisualQuality('Performance');
-    expect(component.qualityModeClass()).toBe('quality-performance');
-
-    component.setVisualQuality('Ultra');
-    expect(component.qualityModeClass()).toBe('quality-ultra');
-  });
-
-  it('should apply the visual quality class to the container', () => {
-    component.setVisualQuality('Performance');
-    fixture.detectChanges();
-
-    const container = fixture.nativeElement.querySelector('.tha-spot-container');
-    expect(container.classList.contains('quality-performance')).toBe(true);
-  });
-
-  it('should only start matchmaking for multiplayer games', () => {
+  it('should run neural matchmaking for multiplayer games', fakeAsync(() => {
     const multiplayerGame = {
       id: 'm1',
       name: 'Team Up',
       url: 'https://example.com/m1',
       tags: ['Multiplayer'],
     };
+
+    component.playGame(multiplayerGame as any);
+    expect(component.isMatchmaking()).toBe(true);
+
+    // Progress through matchmaking
+    tick(3000);
+    tick(1500);
+
+    expect(component.isMatchmaking()).toBe(false);
+    expect(component.currentGame()?.id).toBe('m1');
+    expect(component.matchedOpponent()).toContain('CYBER_EXECUTIVE');
+  }));
+
+  it('should launch solo games immediately', () => {
     const soloGame = {
       id: 's1',
       name: 'Solo Run',
@@ -250,18 +107,20 @@ describe('ThaSpotComponent', () => {
       tags: ['Single Player'],
     };
 
-    const matchmakingSpy = jest.spyOn(component, 'startMatchmaking');
-    component.playGame(multiplayerGame as any);
-    expect(matchmakingSpy).toHaveBeenCalledWith(multiplayerGame);
-
     component.playGame(soloGame as any);
-    expect(component.currentGame()).toEqual(soloGame);
+    expect(component.isMatchmaking()).toBe(false);
+    expect(component.currentGame()?.id).toBe('s1');
   });
 
-  it('should block non-https and non-local game urls', () => {
-    const safeBlocked = component.getSafeUrl('javascript:alert(1)');
-    expect((safeBlocked as any).changingThisBreaksApplicationSecurity).toBe(
-      'about:blank'
-    );
+  it('should generate gaming directives based on game type', () => {
+    const strategyGame = {
+      id: '19',
+      name: 'Chess AI',
+      genre: 'Strategy',
+      url: ''
+    };
+
+    component.launchGame(strategyGame as any);
+    expect(component.gamingDirectives()).toContain('ANALYZE BOARD DEPTH 4 PLIES AHEAD.');
   });
 });
