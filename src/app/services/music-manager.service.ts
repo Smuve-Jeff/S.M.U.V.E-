@@ -1,25 +1,16 @@
+import { Injectable, inject, signal, effect, computed } from '@angular/core';
 import { LoggingService } from './logging.service';
-import { Injectable, signal, effect, inject } from '@angular/core';
-import { AudioEngineService } from './audio-engine.service';
 import { InstrumentsService } from './instruments.service';
+import { AudioEngineService } from './audio-engine.service';
+import { FileLoaderService } from './file-loader.service';
 import { UserProfileService } from './user-profile.service';
-import { FileLoaderService } from "./file-loader.service";
 
-export type TrackNote = {
+export interface TrackNote {
   id: string;
   midi: number;
   step: number;
   length: number;
   velocity: number;
-};
-
-export interface ArrangementClip {
-  id: string;
-  name: string;
-  start: number; // in bars
-  length: number; // in bars
-  color: string;
-  type: 'midi' | 'audio';
 }
 
 export interface FxSlot {
@@ -27,7 +18,38 @@ export interface FxSlot {
   type: string;
   params: any;
   enabled: boolean;
-  mix: number;
+  bypass?: boolean;
+  mix?: number;
+}
+
+export interface GlobalChord {
+  id: string;
+  name: string;
+  midi?: number[];
+  step?: number;
+  duration?: number;
+  startStep?: number;
+  length?: number;
+}
+
+export interface SongSection {
+  id: string;
+  name?: string;
+  start?: number;
+  length: number;
+  color: string;
+  label?: string;
+  startBar?: number;
+}
+
+export interface ArrangementClip {
+  id: string;
+  trackId?: number;
+  start: number;
+  length: number;
+  name?: string;
+  color?: string;
+  type?: string;
 }
 
 export interface TrackModel {
@@ -45,25 +67,9 @@ export interface TrackModel {
   sendA: number;
   sendB: number;
   fxSlots: FxSlot[];
-  busId?: string;
   mute: boolean;
   solo: boolean;
   steps: boolean[];
-}
-
-export interface SongSection {
-  id: string;
-  label: string; // e.g. "Verse", "Chorus"
-  startBar: number;
-  length: number; // in bars
-  color: string;
-}
-
-export interface GlobalChord {
-  id: string;
-  name: string; // e.g. "Am", "F"
-  startStep: number;
-  length: number;
 }
 
 @Injectable({
@@ -71,53 +77,31 @@ export interface GlobalChord {
 })
 export class MusicManagerService {
   private logger = inject(LoggingService);
-  public engine = inject(AudioEngineService);
   private instruments = inject(InstrumentsService);
-  private profileService = inject(UserProfileService);
+  public engine = inject(AudioEngineService);
   private fileLoader = inject(FileLoaderService);
+  private profileService = inject(UserProfileService);
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
-  currentStep = signal(-1);
+  currentStep = signal<number>(-1);
+
   structure = signal<SongSection[]>([]);
   chords = signal<GlobalChord[]>([]);
 
   constructor() {
-    // Basic initialization
-    setTimeout(() => {
-      const existing = this.tracks();
-      if (existing.length === 0) {
-        this.loadLastSession();
-      }
-    }, 500);
+    this.loadLastSession();
 
-    // Bridge engine scheduler to request notes
-    this.engine.onScheduleStep = (stepIndex, when, stepDur) => {
-      this.currentStep.set(stepIndex);
-      const dur = stepDur * 0.95;
-      const anySolo = this.tracks().some((t) => t.solo);
-
+    (this.engine as any).onStep = (step: number, time: number) => {
+      this.currentStep.set(step);
       for (const t of this.tracks()) {
-        if (t.mute || (anySolo && !t.solo)) continue;
+        if (t.mute) continue;
+        if (this.tracks().some((s) => s.solo) && !t.solo) continue;
 
-        if (t.type === "audio" && t.audioBuffer) {
-          if (stepIndex === 0) {
-             this.engine.playBuffer(when, t.audioBuffer, t.audioBuffer.duration, 1.0, t.pan, t.gain);
-          }
-          continue;
-        }
-
-        const inst = this.instruments
-          .getPresets()
-          .find((p) => p.id === t.instrumentId);
-        if (!inst) continue;
-        for (const n of t.notes) {
-          if (n.step === stepIndex) {
-            const freq = this.midiToFreq(n.midi);
-            if (inst.type === "synth") {
-              this.engine.playSynth(when, freq, dur, n.velocity, t.pan, t.gain, t.sendA, t.sendB, inst.synth as any);
-            } else if (inst.type === "sample") {
-               this.engine.playSynth(when, freq, dur, n.velocity, t.pan, t.gain, t.sendA, t.sendB, {
+        if (t.type === 'midi') {
+          for (const n of t.notes) {
+            if (n.step === step) {
+               (this.engine as any).triggerAttack?.(t.id, this.midiToFreq(n.midi), time, n.velocity, n.length, t.gain, t.pan, t.sendA, t.sendB, {
                   type: "triangle", attack: 0.002, decay: 0.08, sustain: 0.7, release: 0.1, cutoff: 7000, q: 0.8
                });
             }
@@ -373,6 +357,7 @@ export class MusicManagerService {
         pan: 0,
         sendA: 0.1,
         sendB: 0.05,
+        fxSlots: [],
         mute: false,
         solo: false,
         steps: new Array(64).fill(false),
