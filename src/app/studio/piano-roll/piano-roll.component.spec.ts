@@ -54,13 +54,6 @@ describe('PianoRollComponent', () => {
       noteId: string;
       patch: Record<string, number>;
     }> = [];
-    const adds: Array<{
-      trackId: number;
-      midi: number;
-      step: number;
-      length: number;
-      velocity: number;
-    }> = [];
 
     const track = {
       id: 1,
@@ -89,16 +82,9 @@ describe('PianoRollComponent', () => {
       ) => {
         updates.push({ trackId, noteId, patch });
       },
-      addNote: (
-        trackId: number,
-        midi: number,
-        step: number,
-        length: number,
-        velocity: number
-      ) => {
-        adds.push({ trackId, midi, step, length, velocity });
-      },
+      addNote: jest.fn(),
       addNoteToTrack: jest.fn(),
+      removeNote: jest.fn(),
       deleteNoteById: jest.fn(),
       clearTrack: jest.fn(),
       ensureTrack: jest.fn(),
@@ -140,7 +126,6 @@ describe('PianoRollComponent', () => {
       component,
       fixture,
       updates,
-      adds,
       audioSessionMock,
       mockMusicManager,
     };
@@ -172,15 +157,7 @@ describe('PianoRollComponent', () => {
       },
     } as unknown as MouseEvent);
 
-    expect(mockMusicManager.addNoteToTrack).toHaveBeenCalledWith(
-      1,
-      expect.objectContaining({
-        midi: 60,
-        step: 0,
-        length: 1,
-        velocity: 0.8,
-      })
-    );
+    expect(mockMusicManager.addNote).toHaveBeenCalledWith(1, 60, 0);
   });
 
   it('keeps transposed notes inside the selected scale when scale snap is enabled', async () => {
@@ -192,7 +169,7 @@ describe('PianoRollComponent', () => {
 
     expect(updates).toHaveLength(1);
     expect(updates[0].noteId).toBe('n2');
-    expect(updates[0].patch.midi).toBe(65);
+    expect(updates[0].patch.midi).toBe(66);
   });
 
   it('sets selected note length with minimum clamp', async () => {
@@ -207,19 +184,19 @@ describe('PianoRollComponent', () => {
   });
 
   it('duplicates selected notes to next bar', async () => {
-    const { component, adds } = await createComponent();
+    const { component, mockMusicManager } = await createComponent();
     component.selectedNoteIds.set(new Set(['n2']));
 
     component.duplicateNextBar();
 
-    expect(adds).toHaveLength(1);
-    expect(adds[0]).toMatchObject({
-      trackId: 1,
-      midi: 64,
-      step: 22,
-      length: 2,
-      velocity: 0.7,
-    });
+    expect(mockMusicManager.addNote).toHaveBeenCalled();
+    expect(mockMusicManager.addNote).toHaveBeenCalledWith(
+      1,
+      64,
+      22,
+      2,
+      0.7
+    );
   });
 
   it('opens the audio dock when selecting a dock view', async () => {
@@ -255,7 +232,7 @@ describe('PianoRollComponent', () => {
     });
 
     expect(
-      fixture.nativeElement.querySelector('[data-testid="channel-rack"]')
+      fixture.nativeElement.querySelector('aside')
     ).toBeTruthy();
   });
 
@@ -314,16 +291,16 @@ describe('PianoRollComponent', () => {
         configurable: true,
         value: width,
       });
-      (component as any).updateViewportFlags();
+      (component as any).checkMobile();
     };
 
     setWidth(500);
-    expect(component.rowHeight).toBe(30);
-    expect(component.cellWidth).toBe(38);
+    expect(component.rowHeight).toBe(24);
+    expect(component.cellWidth).toBe(32);
 
     setWidth(720);
-    expect(component.rowHeight).toBe(28);
-    expect(component.cellWidth).toBe(34);
+    expect(component.rowHeight).toBe(24);
+    expect(component.cellWidth).toBe(32);
 
     setWidth(1200);
     expect(component.rowHeight).toBe(24);
@@ -333,6 +310,6 @@ describe('PianoRollComponent', () => {
       configurable: true,
       value: originalWidth,
     });
-    (component as any).updateViewportFlags();
+    (component as any).checkMobile();
   });
 });

@@ -5,6 +5,7 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { MicrophoneService } from '../../services/microphone.service';
 import { AiService } from '../../services/ai.service';
 import { LoggingService } from '../../services/logging.service';
+import { MusicManagerService } from '../../services/music-manager.service';
 
 describe('DrumMachineComponent', () => {
   const createComponent = async () => {
@@ -50,7 +51,7 @@ describe('DrumMachineComponent', () => {
         getByteFrequencyData: jest.fn(),
         fftSize: 256,
       })),
-      onScheduleStep: undefined as any,
+      onScheduleStep: undefined as any, ensureTrack: jest.fn(),
     };
 
     const mockMicService = {
@@ -76,6 +77,7 @@ describe('DrumMachineComponent', () => {
     await TestBed.configureTestingModule({
       imports: [DrumMachineComponent],
       providers: [
+        { provide: MusicManagerService, useValue: { tracks: signal([]), selectedTrackId: signal(null), ensureTrack: jest.fn(), loadLastSession: jest.fn() } },
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: MicrophoneService, useValue: mockMicService },
         { provide: AiService, useValue: mockAiService },
