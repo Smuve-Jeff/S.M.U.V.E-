@@ -264,8 +264,8 @@
             Pitch {{ pitchBPercentage() }} · {{ (deckProgressPercent('B') * 100) | number:'1.0-1' }}%
           </div>
         </div>
-        <div class="reactive-aura accent" [style.opacity]="getDeckLevel('B') * 0.8" [style.transform]="'scale(' + (1 + getDeckLevel('B') * 0.4) + ')'"></div>
         <div class="platter-container relative aspect-square">
+          <div class="reactive-aura accent" [style.opacity]="getDeckLevel('B') * 0.8" [style.transform]="'scale(' + (1 + getDeckLevel('B') * 0.4) + ')'"></div>
           <div class="tempo-rail tempo-rail-right">
             <span class="tempo-rail-label">Pitch</span>
             <span class="tempo-rail-value">{{ pitchBPercentage() }}</span>
@@ -782,7 +782,7 @@
     transition: transform 0.5s ease;
   }
   .deck-a-transform:hover, .deck-b-transform:hover {
-    transform: rotateY(0) rotateX(0) scale(1.05) translateY(-6px);
+    transform: rotateY(0) rotateX(0) scale(1.05);
     z-index: 50;
   }
   .vinyl-platter {
