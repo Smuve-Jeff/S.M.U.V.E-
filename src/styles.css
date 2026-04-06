@@ -363,3 +363,19 @@ app-studio .view-nav-container {
 body {
   overscroll-behavior-y: none;
 }
+
+/* S.M.U.V.E 1.0 Mobile Command Ticker Animation */
+.animate-ticker {
+  animation: ticker 25s linear infinite;
+}
+
+@keyframes ticker {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.mobile-command-ticker {
+  position: relative;
+  z-index: 1001;
+  pointer-events: none; /* Do not block navigation */
+}

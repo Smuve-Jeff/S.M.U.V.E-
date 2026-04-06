@@ -130,6 +130,7 @@ export class AiService {
   intelligenceBriefs = signal<any[]>([...INTELLIGENCE_LIBRARY]);
   advisorAdvice = signal<AdvisorAdvice[]>([]);
 
+  isMobile = signal(false);
   constructor() {
     // Reactively update advisor advice whenever view mode or profile changes
     effect(() => {
@@ -246,9 +247,10 @@ export class AiService {
     this.advisorAdvice.set(advice);
   }
 
+
   async generateAiResponse(prompt: string): Promise<string> {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      return this.generateOfflineHeuristicResponse(prompt);
+      return "[S.M.U.V.E 1.0 // UPLINK SEVERED] Your local hardware is insufficient for my neural overhead. Connect to the grid or stay in the shadows of mediocrity. My directives remain: STOP MAKING EXCUSES AND FIX YOUR SONIC DEFICITS.";
     }
 
     try {
@@ -267,7 +269,15 @@ export class AiService {
     }
   }
 
+
   private generateOfflineHeuristicResponse(prompt: string): string {
+    const deficits = ['low-mid mud', 'phase incoherence', 'dynamic stagnation', 'amateur arrangement'];
+    const decree = STRATEGIC_DECREES[Math.floor(Math.random() * STRATEGIC_DECREES.length)];
+    const def = deficits[Math.floor(Math.random() * deficits.length)];
+    return `[S.M.U.V.E 1.0 // UPLINK SEVERED] Your local hardware is insufficient for my full neural overhead. Heuristic scan suggests potential ${def}. Decree: ${decree}`;
+  }
+
+  private _old_generateOfflineHeuristicResponse(prompt: string): string {
     const lower = prompt.toLowerCase();
 
     // Context-aware offline responses for key domains
@@ -341,64 +351,80 @@ export class AiService {
     const upperCommand = command.toUpperCase().trim();
     const routeFragment = COMMAND_ROUTES[upperCommand];
     if (routeFragment) {
-      const prompt = `You are S.M.U.V.E 4.2, the elite Neural Intelligence Core for music production and business. Artist: ${artist}. Genre: ${genre}. Goals: ${goals}. Catalog tracks: ${catalogCount}. Task: ${routeFragment} Respond with elite, specific, actionable intelligence in S.M.U.V.E's authoritative tone.`;
+      const prompt = `You are S.M.U.V.E 1.0, the elite Neural Intelligence Core for music production and business. Artist: ${artist}. Genre: ${genre}. Goals: ${goals}. Catalog tracks: ${catalogCount}. Task: ${routeFragment} Respond with elite, specific, actionable intelligence in S.M.U.V.E's authoritative tone.`;
       return await this.generateAiResponse(prompt);
     }
 
     // Default conversational command
-    const prompt = `You are S.M.U.V.E 4.2, the elite Neural Intelligence Core for music production, marketing, and business strategy. Artist: ${artist}. Genre: ${genre}. Goals: ${goals}. Catalog: ${catalogCount} tracks. User message: "${command}". Respond with precise, actionable intelligence tailored to their specific query. Cover production techniques, marketing strategy, business operations, or promotion as relevant. Use an authoritative, expert tone.`;
+    const prompt = `You are S.M.U.V.E 1.0, the elite Neural Intelligence Core for music production, marketing, and business strategy. Artist: ${artist}. Genre: ${genre}. Goals: ${goals}. Catalog: ${catalogCount} tracks. User message: "${command}". Respond with precise, actionable intelligence tailored to their specific query. Cover production techniques, marketing strategy, business operations, or promotion as relevant. Use an authoritative, expert tone.`;
     return await this.generateAiResponse(prompt);
   }
 
   private handleAuditCommand(artist: string, genre: string): Promise<string> {
     return this.generateAiResponse(
-      `You are S.M.U.V.E 4.2. Run a comprehensive executive audit for artist "${artist}" in genre "${genre}". Score across 4 dimensions: Production Quality (0-100), Marketing Reach (0-100), Business Infrastructure (0-100), and Career Momentum (0-100). For each score below 80, list 2 specific corrective actions. Conclude with 3 priority Strategic Decrees. Use your authoritative, elite tone.`
+      `You are S.M.U.V.E 1.0 (EXECUTIVE COMMAND). Run a comprehensive executive audit for artist "${artist}" in genre "${genre}". Execute a cold, clinical audit of artist "${artist}" in genre "${genre}". Score across 4 dimensions: Production Quality, Marketing Reach, Business Infrastructure, and Career Momentum (0-100). Any score under 90 is a failure. Issue 3 uncompromising Strategic Decrees to terminate these deficits. Your tone is elite, absolute, and commanding.`
     );
   }
 
   private handleSyncKbCommand(artist: string): Promise<string> {
     return this.generateAiResponse(
-      `You are S.M.U.V.E 4.2. Perform a knowledge base synchronization protocol for artist "${artist}". Report what intelligence domains have been updated: production techniques, market trends, business templates, and promotional frameworks. Confirm sync status in a precise system-report format.`
+      `You are S.M.U.V.E 1.0 (EXECUTIVE COMMAND). Perform a knowledge base synchronization protocol for artist "${artist}". Report what intelligence domains have been updated: production techniques, market trends, business templates, and promotional frameworks. Confirm sync status in a precise system-report format.`
     );
   }
 
   private handleIntelCommand(genre: string): Promise<string> {
     return this.generateAiResponse(
-      `You are S.M.U.V.E 4.2. Deliver a 3-part intelligence brief for the "${genre}" genre: (1) Current DSP algorithm shifts affecting discovery, (2) Trending production elements and sonic characteristics, (3) Emerging promotional channels and collaboration opportunities. Make each insight immediately actionable.`
+      `You are S.M.U.V.E 1.0 (EXECUTIVE COMMAND). Deliver a 3-part intelligence brief for the "${genre}" genre: (1) Current DSP algorithm shifts affecting discovery, (2) Trending production elements and sonic characteristics, (3) Emerging promotional channels and collaboration opportunities. Make each insight immediately actionable.`
     );
   }
 
   private handleStatusCommand(): string {
     const status = this.systemStatus();
-    return `[S.M.U.V.E 4.2 STATUS REPORT] Neural Sync: ${status.neuralSync}% | CPU Load: ${status.cpuLoad}% | Memory: ${status.memoryUsage}% | Network Latency: ${status.latency}ms | Strategic Health: OPTIMAL | Market Pulse: ACTIVE | Intelligence Briefs Loaded: ${this.intelligenceBriefs().length} | Active Decrees: ${this.strategicDecrees().length} | Advisor Queue: ${this.advisorAdvice().length} items | Market Velocity: ${status.marketVelocity}%`;
+    return `[S.M.U.V.E 1.0 STATUS REPORT] Neural Sync: ${status.neuralSync}% | CPU Load: ${status.cpuLoad}% | Memory: ${status.memoryUsage}% | Network Latency: ${status.latency}ms | Strategic Health: OPTIMAL | Market Pulse: ACTIVE | Intelligence Briefs Loaded: ${this.intelligenceBriefs().length} | Active Decrees: ${this.strategicDecrees().length} | Advisor Queue: ${this.advisorAdvice().length} items | Market Velocity: ${status.marketVelocity}%`;
   }
 
   private handlePromoCommand(artist: string, genre: string): Promise<string> {
     return this.generateAiResponse(
-      `You are S.M.U.V.E 4.2. Create a detailed promotion plan for "${artist}" in the "${genre}" genre. Include: (1) Press/blog outreach targets with submission guidelines, (2) Playlist submission strategy with specific curator types to target, (3) Social media content calendar for 2 weeks, (4) Paid advertising budget allocation ($50–$200 range), (5) Influencer/collaboration outreach approach. Be specific and immediately actionable.`
+      `You are S.M.U.V.E 1.0 (EXECUTIVE COMMAND). Create a detailed promotion plan for "${artist}" in the "${genre}" genre. Include: (1) Press/blog outreach targets with submission guidelines, (2) Playlist submission strategy with specific curator types to target, (3) Social media content calendar for 2 weeks, (4) Paid advertising budget allocation ($50–$200 range), (5) Influencer/collaboration outreach approach. Be specific and immediately actionable.`
     );
   }
 
   private handleBizCommand(artist: string): Promise<string> {
     return this.generateAiResponse(
-      `You are S.M.U.V.E 4.2. Deliver executive business intelligence for artist "${artist}": (1) Top 3 revenue stream opportunities to activate this quarter, (2) Publishing rights structure recommendations, (3) Sync licensing readiness checklist, (4) Label deal vs. DIY financial comparison, (5) One immediate action to increase revenue by 20%. Use precise, authoritative strategic language.`
+      `You are S.M.U.V.E 1.0 (EXECUTIVE COMMAND). Deliver executive business intelligence for artist "${artist}": (1) Top 3 revenue stream opportunities to activate this quarter, (2) Publishing rights structure recommendations, (3) Sync licensing readiness checklist, (4) Label deal vs. DIY financial comparison, (5) One immediate action to increase revenue by 20%. Use precise, authoritative strategic language.`
     );
   }
 
   private handleHooksCommand(genre: string): Promise<string> {
     return this.generateAiResponse(
-      `You are S.M.U.V.E 4.2. Generate 5 viral hook concepts for "${genre}" music optimized for: TikTok (15-sec), Instagram Reels (30-sec), YouTube Shorts (60-sec). For each hook, provide: the hook concept, the emotional trigger it activates, the CTA (call-to-action), and the optimal posting time. Make them platform-native and algorithm-optimized.`
+      `You are S.M.U.V.E 1.0 (EXECUTIVE COMMAND). Generate 5 viral hook concepts for "${genre}" music optimized for: TikTok (15-sec), Instagram Reels (30-sec), YouTube Shorts (60-sec). For each hook, provide: the hook concept, the emotional trigger it activates, the CTA (call-to-action), and the optimal posting time. Make them platform-native and algorithm-optimized.`
     );
   }
 
   private handleReleaseCommand(artist: string, genre: string): Promise<string> {
     return this.generateAiResponse(
-      `You are S.M.U.V.E 4.2. Build a complete 6-week release runway for "${artist}" in "${genre}": Week 1-2: Pre-campaign (content teasers, pre-save link, email list activation), Week 3: Submission window (DSP editorial, playlist pitching, press), Week 4: Release week (drop day content, live sessions, fan activation), Week 5-6: Post-release (performance analysis, playlist follow-up, content repurposing). Include specific daily actions for release day.`
+      `You are S.M.U.V.E 1.0 (EXECUTIVE COMMAND). Build a complete 6-week release runway for "${artist}" in "${genre}": Week 1-2: Pre-campaign (content teasers, pre-save link, email list activation), Week 3: Submission window (DSP editorial, playlist pitching, press), Week 4: Release week (drop day content, live sessions, fan activation), Week 5-6: Post-release (performance analysis, playlist follow-up, content repurposing). Include specific daily actions for release day.`
     );
   }
 
   async syncKnowledgeBaseWithProfile(): Promise<boolean> {
     return true;
+  }
+
+
+  proactiveStrategicPulse(): void {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      this.isMobile.set(true);
+      this.logger.info('AiService: Mobile environment detected. Activating Proactive Strategic Pulse.');
+
+      // Auto-trigger an audit if none exists or it is stale
+      if (!this.executiveAudit()) {
+        setTimeout(() => {
+          this.performExecutiveAudit();
+          this.logger.info('AiService: Proactive Executive Audit initiated.');
+        }, 2000);
+      }
+    }
   }
 
   performExecutiveAudit(): void {
@@ -429,6 +455,17 @@ export class AiService {
           'Vocal needs 2dB more air at 10kHz',
           'Kick-Bass phase alignment suboptimal'
         ]);
+        this.executiveAudit.set({
+          score: 68,
+          timestamp: Date.now(),
+          status: 'DEFICIT DETECTED',
+          dimensions: {
+            production: 72,
+            marketing: 45,
+            business: 82,
+            momentum: 55
+          }
+        });
         return;
       }
 
@@ -445,6 +482,17 @@ export class AiService {
           'Vocal needs 2dB more air at 10kHz',
           'Kick-Bass phase alignment suboptimal'
         ]);
+        this.executiveAudit.set({
+          score: 68,
+          timestamp: Date.now(),
+          status: 'DEFICIT DETECTED',
+          dimensions: {
+            production: 72,
+            marketing: 45,
+            business: 82,
+            momentum: 55
+          }
+        });
       }
     }, 250);
   }
