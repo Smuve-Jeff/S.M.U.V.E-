@@ -243,18 +243,51 @@ export class AiService {
     return `[STATUS] Neural Sync: ${status.neuralSync}% | CPU Load: ${status.cpuLoad}% | Strategic Health: OPTIMAL`;
   }
 
-  async studyTrack(audioBuffer: any, name: string): Promise<void> { void audioBuffer; void name; }
-  async getAutoMixSettings() { return { threshold: -18, ratio: 3.5, ceiling: -0.2 }; }
-  getViralHooks() { return ['Algorithm Shift', 'Tempo Drop']; }
-  getProductionSecrets() { return PRODUCTION_SECRETS; }
-  getIntelligenceBriefs() { return INTELLIGENCE_LIBRARY; }
-  async startAIBassist() { this.isAIBassistActive.set(true); }
-  async stopAIBassist() { this.isAIBassistActive.set(false); }
-  async startAIDrummer() { this.isAIDrummerActive.set(true); }
-  async stopAIDrummer() { this.isAIDrummerActive.set(false); }
-  async startAIKeyboardist() { this.isAIKeyboardistActive.set(true); }
-  async stopAIKeyboardist() { this.isAIKeyboardistActive.set(false); }
-  async generateImage(p: string) { return ''; }
+  private handlePromoCommand(artist: string, genre: string): Promise<string> {
+    return this.generateAiResponse(
+      `Create a release promotion plan for "${artist}" in "${genre}" with tactical weekly actions and channel priorities.`
+    );
+  }
+
+  private handleBizCommand(artist: string): Promise<string> {
+    return this.generateAiResponse(
+      `Provide business strategy for "${artist}" covering revenue streams, rights management, and next-quarter priorities.`
+    );
+  }
+
+  private handleHooksCommand(genre: string): Promise<string> {
+    return this.generateAiResponse(
+      `Generate viral hook concepts for ${genre} with platform-specific execution notes.`
+    );
+  }
+
+  private handleReleaseCommand(artist: string, genre: string): Promise<string> {
+    return this.generateAiResponse(
+      `Build a 6-week release strategy for "${artist}" in "${genre}" with pre-save, content cadence, and post-release optimization.`
+    );
+  }
+
+  private async generateStructure(genre: string): Promise<string> {
+    const sectionPlan = this.regenerateSection({
+      section: 'verse',
+      variation: 0.4,
+      includeChords: true,
+      includeBass: true,
+      includeDrums: true,
+    });
+    return `Song structure generated for ${genre}: ${sectionPlan.section} scaffold ready with harmonic, bass, and drum layers.`;
+  }
+
+  private async generateChords(genre: string): Promise<string> {
+    const progression = this.generateChordProgression({
+      genre,
+      mood: 'neutral',
+      section: 'verse',
+      variation: 0.5,
+      humanize: true,
+    });
+    return `Chord progression generated for ${genre} (${progression.length} blocks).`;
+  }
 
   async syncKnowledgeBaseWithProfile() {
     this.logger.info('AiService: Syncing knowledge base with profile');
@@ -301,6 +334,8 @@ export class AiService {
       return `[GENERATED BIO FOR ${profile.artistName.toUpperCase()}]\n\nForged in the depths of ${profile.primaryGenre.toUpperCase()}, this project represents a strategic anomaly.`;
     }
     return 'Asset generation protocol incomplete.';
+  }
+
   generateChordProgression(input: {
     genre?: string;
     mood?: 'dark' | 'uplift' | 'neutral';
