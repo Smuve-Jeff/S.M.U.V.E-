@@ -238,12 +238,15 @@ export class UserProfileService {
     const current = this.profile();
     const stats = { ...(current.gameStats || {}) };
     const prev = stats[gameId] || {};
+    const now = Date.now();
+    const isNewPlaySession =
+      !prev.lastPlayedAt || now - prev.lastPlayedAt > this.streakWindowMs;
     const nextProgression = this.buildThaSpotProgression(
       current.thaSpotProgression,
       prev,
       {
         ...context,
-        playedAt: Date.now(),
+        playedAt: now,
         score,
       }
     );
@@ -252,8 +255,8 @@ export class UserProfileService {
       ...prev,
       bestScore: Math.max(prev.bestScore || 0, score),
       lastScore: score,
-      plays: prev.plays || 0,
-      lastPlayedAt: Date.now(),
+      plays: (prev.plays || 0) + (isNewPlaySession ? 1 : 0),
+      lastPlayedAt: now,
       currentStreak: nextProgression.currentStreak,
       longestStreak: Math.max(
         prev.longestStreak || 0,

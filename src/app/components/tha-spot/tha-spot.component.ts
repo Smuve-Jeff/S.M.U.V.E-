@@ -32,7 +32,10 @@ import { UIService } from '../../services/ui.service';
 
 const DEFAULT_RECOMMENDATION_ITEMS = 4;
 const MAX_HISTORY_SCORE = 24;
+const HISTORY_SCORE_DIVISOR = 6;
+const FEED_REFRESH_INTERVAL_MS = 300000;
 const EVENT_ENDING_SOON_MS = 1000 * 60 * 60 * 6;
+const MAX_GAME_SCORE = 1_000_000;
 
 @Component({
   selector: 'app-tha-spot',
@@ -339,7 +342,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.loadFeed();
 
     this.clockId = setInterval(() => this.now.set(Date.now()), 15000);
-    this.feedRefreshId = setInterval(() => this.loadFeed(true), 300000);
+    this.feedRefreshId = setInterval(
+      () => this.loadFeed(true),
+      FEED_REFRESH_INTERVAL_MS
+    );
   }
 
   ngOnDestroy() {
@@ -578,7 +584,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
     if (data.type === 'GAME_OVER') {
       const score = Math.min(
-        1_000_000,
+        MAX_GAME_SCORE,
         Math.max(0, Math.floor(Number(data.payload?.score) || 0))
       );
 
@@ -804,7 +810,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       Math.min(game.badgeIds?.length || 0, 3) * (weights.badge || 0);
     const historyScore =
       Math.min(gameStats?.plays || 0, MAX_HISTORY_SCORE) *
-      ((weights.history || 0) / 6);
+      ((weights.history || 0) / HISTORY_SCORE_DIVISOR);
     const crowdScore =
       Math.min((game.playersOnline || 0) / 2500, 8) * (weights.crowd || 0);
     const roomScore =

@@ -356,7 +356,10 @@ export class GameService {
     if (!this.feedCache$ || forceRefresh) {
       this.feedCache$ = this.http.get<ThaSpotFeed>(THA_SPOT_FEED_URL).pipe(
         map((feed) => normalizeFeed(feed)),
-        catchError(() => of(normalizeFeed(THA_SPOT_FALLBACK_FEED))),
+        catchError((error) => {
+          console.warn('GameService: failed to load Tha Spot feed', error);
+          return of(normalizeFeed(THA_SPOT_FALLBACK_FEED));
+        }),
         shareReplay(1)
       );
     }
