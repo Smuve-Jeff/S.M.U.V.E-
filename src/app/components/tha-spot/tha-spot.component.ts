@@ -583,9 +583,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
 
     if (data.type === 'GAME_OVER') {
+      const rawScore = Number(data.payload?.score);
       const score = Math.min(
         MAX_GAME_SCORE,
-        Math.max(0, Math.floor(Number(data.payload?.score) || 0))
+        Math.max(0, Math.floor(Number.isFinite(rawScore) ? rawScore : 0))
       );
 
       void this.profileService.awardXp(
@@ -860,10 +861,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       const duration = Math.max(1, end - start);
       const anchor = new Date(schedule.startAt);
       const todayStart = new Date(anchor);
+      const currentDate = new Date(now);
       todayStart.setUTCFullYear(
-        new Date(now).getUTCFullYear(),
-        new Date(now).getUTCMonth(),
-        new Date(now).getUTCDate()
+        currentDate.getUTCFullYear(),
+        currentDate.getUTCMonth(),
+        currentDate.getUTCDate()
       );
       start = todayStart.getTime();
       end = start + duration;
