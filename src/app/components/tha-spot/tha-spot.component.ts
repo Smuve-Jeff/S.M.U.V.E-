@@ -73,6 +73,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private feedSubscription?: Subscription;
   private hubStartedAt = Date.now();
   private clockId: ReturnType<typeof setInterval> | null = null;
+  private feedRefreshId: ReturnType<typeof setInterval> | null = null;
   private matchmakingTimerId: ReturnType<typeof setInterval> | null = null;
 
   feed = signal<ThaSpotFeed>(THA_SPOT_FALLBACK_FEED);
@@ -289,30 +290,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
-    this.feedSubscription = this.gameService
-      .getThaSpotFeed()
-      .subscribe((feed) => {
-        this.feed.set(feed);
-        this.gamingRooms.set(feed.rooms);
-        this.badges.set(feed.badges);
-        this.liveEvents.set(feed.liveEvents);
-        this.socialPresence.set(feed.socialPresence);
-        this.promotions.set(feed.promotions);
-        this.leaderboards.set(feed.leaderboards);
-        this.games.set(feed.games);
+    this.loadFeed();
 
-        if (!feed.rooms.some((room) => room.id === this.activeRoom())) {
-          this.activeRoom.set(feed.rooms[0]?.id || 'all');
-        }
-      });
-
-    this.clockId = setInterval(() => this.now.set(Date.now()), 60000);
+    this.clockId = setInterval(() => this.now.set(Date.now()), 15000);
+    this.feedRefreshId = setInterval(() => this.loadFeed(true), 300000);
   }
 
   ngOnDestroy() {
     this.feedSubscription?.unsubscribe();
     if (this.clockId) {
       clearInterval(this.clockId);
+    }
+    if (this.feedRefreshId) {
+      clearInterval(this.feedRefreshId);
     }
     if (this.matchmakingTimerId) {
       clearInterval(this.matchmakingTimerId);
@@ -511,7 +501,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
 
     if (data.type === 'GAME_OVER') {
-      const score = Math.max(0, Math.floor(Number(data.payload?.score) || 0));
+      const score = Math.min(
+        1_000_000,
+        Math.max(0, Math.floor(Number(data.payload?.score) || 0))
+      );
 
       void this.profileService.awardXp(
         Math.max(25, Math.floor(score / 100)),
@@ -528,7 +521,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
 
     if (url.startsWith('/assets/games/')) {
-      return true;
+      return this.isApprovedFeedUrl(url);
     }
 
     try {
@@ -539,7 +532,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
           : 'https://smuve.local'
       );
       return (
-        parsed.protocol === 'https:' && TRUSTED_GAME_HOSTS.has(parsed.hostname)
+        this.isApprovedFeedUrl(url) &&
+        parsed.protocol === 'https:' &&
+        TRUSTED_GAME_HOSTS.has(parsed.hostname)
       );
     } catch {
       return false;
@@ -552,7 +547,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
 
     if (game.url.startsWith('/assets/games/')) {
-      return event.origin === window.location.origin;
+      return this.gameIframe?.nativeElement?.contentWindow === event.source;
     }
 
     try {
@@ -633,6 +628,41 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       (a, b) => b[1] - a[1]
     )[0]?.[0];
     return this.gamingRooms().find((room) => room.id === topRoomId);
+  }
+
+  private loadFeed(forceRefresh = false) {
+    this.feedSubscription?.unsubscribe();
+    this.feedSubscription = this.gameService
+      .getThaSpotFeed(forceRefresh)
+      .subscribe((feed) => {
+        this.feed.set(feed);
+        this.gamingRooms.set(feed.rooms);
+        this.badges.set(feed.badges);
+        this.liveEvents.set(feed.liveEvents);
+        this.socialPresence.set(feed.socialPresence);
+        this.promotions.set(feed.promotions);
+        this.leaderboards.set(feed.leaderboards);
+        this.games.set(feed.games);
+
+        if (!feed.rooms.some((room) => room.id === this.activeRoom())) {
+          this.activeRoom.set(feed.rooms[0]?.id || 'all');
+        }
+      });
+  }
+
+  private isApprovedFeedUrl(url: string) {
+    return this.games().some(
+      (game) => this.normalizeGameUrl(game.url) === this.normalizeGameUrl(url)
+    );
+  }
+
+  private normalizeGameUrl(url: string) {
+    return new URL(
+      url,
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : 'https://smuve.local'
+    ).toString();
   }
 
   private formatDuration(durationMs: number) {

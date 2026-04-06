@@ -96,22 +96,25 @@ function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
 })
 export class GameService {
   private http = inject(HttpClient);
+  private feedCache$?: Observable<ThaSpotFeed>;
 
-  private feed$ = this.http.get<ThaSpotFeed>(THA_SPOT_FEED_URL).pipe(
-    map((feed) => normalizeFeed(feed)),
-    catchError(() => of(normalizeFeed(THA_SPOT_FALLBACK_FEED))),
-    shareReplay(1)
-  );
+  getThaSpotFeed(forceRefresh = false): Observable<ThaSpotFeed> {
+    if (!this.feedCache$ || forceRefresh) {
+      this.feedCache$ = this.http.get<ThaSpotFeed>(THA_SPOT_FEED_URL).pipe(
+        map((feed) => normalizeFeed(feed)),
+        catchError(() => of(normalizeFeed(THA_SPOT_FALLBACK_FEED))),
+        shareReplay(1)
+      );
+    }
 
-  getThaSpotFeed(): Observable<ThaSpotFeed> {
-    return this.feed$;
+    return this.feedCache$;
   }
 
   listGames(
     filters: { genre?: string; query?: string } = {},
     sort: 'Popular' | 'Rating' | 'Newest' = 'Popular'
   ): Observable<Game[]> {
-    return this.feed$.pipe(
+    return this.getThaSpotFeed().pipe(
       map((feed) => this.applyFiltersAndSort(feed.games, filters, sort))
     );
   }
@@ -120,7 +123,7 @@ export class GameService {
     roomId: string,
     sort: 'Popular' | 'Rating' | 'Newest' = 'Popular'
   ): Observable<Game[]> {
-    return this.feed$.pipe(
+    return this.getThaSpotFeed().pipe(
       map((feed) => {
         const room = feed.rooms.find((entry) => entry.id === roomId);
         if (!room) {
@@ -142,7 +145,7 @@ export class GameService {
   }
 
   getTrending(): Observable<Game[]> {
-    return this.feed$.pipe(
+    return this.getThaSpotFeed().pipe(
       map((feed) =>
         feed.games
           .filter((game) => game.badgeIds?.includes('trending'))
@@ -152,7 +155,7 @@ export class GameService {
   }
 
   getNew(): Observable<Game[]> {
-    return this.feed$.pipe(
+    return this.getThaSpotFeed().pipe(
       map((feed) =>
         feed.games
           .filter((game) => game.badgeIds?.includes('new-drop'))

@@ -598,7 +598,7 @@
             allowfullscreen
             allow="fullscreen; autoplay"
             referrerpolicy="no-referrer"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
+            sandbox="allow-scripts allow-forms allow-popups allow-pointer-lock"
             class="game-frame"
             (error)="onFrameError()"
           >
@@ -606,7 +606,7 @@
         </ng-container>
 
         <ng-template #untrustedLaunch>
-          <div class="frame-fallback">
+          <div class="frame-fallback" aria-live="polite">
             <span class="material-symbols-outlined">verified_user</span>
             <h3>Protected launch</h3>
             <p>
