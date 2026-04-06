@@ -24,6 +24,11 @@ export interface SequencerTrack {
   solo: boolean;
   notes: SequencerNote[];
   steps: boolean[];
+  stepProbability: number[];
+  ratchets: number[];
+  trackLength: number;
+  velocityCurve: 'flat' | 'ascending' | 'descending' | 'accented';
+  humanize: number;
 }
 
 export interface SequencerPattern {
@@ -31,6 +36,22 @@ export interface SequencerPattern {
   name: string;
   length: number;
   tracks: SequencerTrack[];
+  swing: number;
+  sceneId?: string;
+}
+
+export interface PatternVariation {
+  id: string;
+  patternId: string;
+  name: string;
+  patternSnapshot: SequencerPattern;
+}
+
+export interface PatternScene {
+  id: string;
+  name: string;
+  patternId: string;
+  variationId?: string;
 }
 
 @Injectable({
@@ -40,8 +61,11 @@ export class SequencerService {
   private logger = inject(LoggingService);
   private readonly instrumentsService = inject(InstrumentsService);
   private readonly engine = inject(AudioEngineService);
+  private idCounter = 0;
 
   patterns = signal<SequencerPattern[]>([]);
+  variations = signal<PatternVariation[]>([]);
+  scenes = signal<PatternScene[]>([]);
   activePatternIndex = signal(0);
   selectedTrackId = signal<string | null>(null);
 
@@ -61,6 +85,24 @@ export class SequencerService {
     this.initDefaultPattern();
     this.engine.onScheduleStep = (stepIndex, when, stepDur) => {
       this.scheduleTick(stepIndex, when, stepDur);
+    };
+  }
+
+  private nextId(prefix: string): string {
+    this.idCounter += 1;
+    return `${prefix}-${Date.now().toString(36)}-${this.idCounter.toString(36)}`;
+  }
+
+  private clonePattern(pattern: SequencerPattern): SequencerPattern {
+    return {
+      ...pattern,
+      tracks: pattern.tracks.map((track) => ({
+        ...track,
+        notes: track.notes.map((note) => ({ ...note })),
+        steps: [...track.steps],
+        stepProbability: [...track.stepProbability],
+        ratchets: [...track.ratchets],
+      })),
     };
   }
 
@@ -145,9 +187,11 @@ export class SequencerService {
       name: 'Pattern 1',
       length: 64,
       tracks: defaultTracks,
+      swing: 0,
     };
 
     this.patterns.set([pattern]);
+    this.createScene('Scene 1', pattern.id);
   }
 
   private createTrack(
@@ -160,7 +204,7 @@ export class SequencerService {
     steps.forEach((active, i) => {
       if (active) {
         notes.push({
-          id: Math.random().toString(36).substring(7),
+          id: this.nextId('seq-note'),
           pitch: defaultPitch,
           startTime: i,
           duration: 1,
@@ -175,7 +219,7 @@ export class SequencerService {
     });
 
     return {
-      id: Math.random().toString(36).substring(7),
+      id: this.nextId('seq-track'),
       name,
       instrumentId,
       volume: 80,
@@ -184,6 +228,11 @@ export class SequencerService {
       solo: false,
       notes,
       steps: fullSteps,
+      stepProbability: new Array(64).fill(1),
+      ratchets: new Array(64).fill(1),
+      trackLength: 64,
+      velocityCurve: 'flat',
+      humanize: 0,
     };
   }
 
@@ -196,7 +245,7 @@ export class SequencerService {
         track.steps[stepIndex] = !track.steps[stepIndex];
         if (track.steps[stepIndex]) {
           track.notes.push({
-            id: Math.random().toString(36).substring(7),
+            id: this.nextId('seq-note'),
             pitch: this.getDefaultPitchForTrack(track),
             startTime: stepIndex,
             duration: 1,
@@ -225,6 +274,56 @@ export class SequencerService {
       const pattern = newPs[this.activePatternIndex()];
       pattern.tracks.push(this.createTrack(name, instrumentId, 60, []));
       return newPs;
+    });
+  }
+
+  setSwing(value: number) {
+    const swing = Math.max(0, Math.min(0.5, value));
+    this.patterns.update((ps) => {
+      const next = [...ps];
+      const pattern = next[this.activePatternIndex()];
+      if (pattern) {
+        pattern.swing = swing;
+      }
+      return next;
+    });
+  }
+
+  setTrackHumanize(trackId: string, amount: number) {
+    this.patchTrack(trackId, { humanize: Math.max(0, Math.min(1, amount)) });
+  }
+
+  setTrackLength(trackId: string, trackLength: number) {
+    this.patchTrack(trackId, {
+      trackLength: Math.max(1, Math.min(64, Math.floor(trackLength))),
+    });
+  }
+
+  setVelocityCurve(trackId: string, curve: SequencerTrack['velocityCurve']) {
+    this.patchTrack(trackId, { velocityCurve: curve });
+  }
+
+  setStepProbability(trackId: string, stepIndex: number, probability: number) {
+    this.patterns.update((ps) => {
+      const next = [...ps];
+      const pattern = next[this.activePatternIndex()];
+      const track = pattern?.tracks.find((t) => t.id === trackId);
+      if (track && stepIndex >= 0 && stepIndex < track.stepProbability.length) {
+        track.stepProbability[stepIndex] = Math.max(0, Math.min(1, probability));
+      }
+      return next;
+    });
+  }
+
+  setRatchet(trackId: string, stepIndex: number, repeats: number) {
+    this.patterns.update((ps) => {
+      const next = [...ps];
+      const pattern = next[this.activePatternIndex()];
+      const track = pattern?.tracks.find((t) => t.id === trackId);
+      if (track && stepIndex >= 0 && stepIndex < track.ratchets.length) {
+        track.ratchets[stepIndex] = Math.max(1, Math.min(8, Math.floor(repeats)));
+      }
+      return next;
     });
   }
 
@@ -262,7 +361,7 @@ export class SequencerService {
       if (track) {
         track.notes.push({
           ...note,
-          id: Math.random().toString(36).substring(7),
+          id: this.nextId('seq-note'),
         });
         this.refreshSteps(track);
       }
@@ -301,12 +400,25 @@ export class SequencerService {
   scheduleTick(stepIndex: number, when: number, stepDur: number) {
     const pattern = this.activePattern();
     if (!pattern) return;
+    const activeStep = ((stepIndex % pattern.length) + pattern.length) % pattern.length;
 
     pattern.tracks.forEach((track) => {
       if (track.mute) return;
-      const notesToPlay = track.notes.filter((n) => n.startTime === stepIndex);
+      const localStep =
+        ((activeStep % track.trackLength) + track.trackLength) % track.trackLength;
+      const notesToPlay = track.notes.filter((n) => n.startTime === localStep);
       notesToPlay.forEach((note) => {
-        this.playNote(track, note, when, stepDur);
+        const probability = track.stepProbability[localStep] ?? 1;
+        if (Math.random() > probability) return;
+        const ratchetCount = Math.max(1, track.ratchets[localStep] ?? 1);
+        const ratchetDur = stepDur / ratchetCount;
+        for (let r = 0; r < ratchetCount; r++) {
+          const swingOffset =
+            pattern.swing > 0 && localStep % 2 === 1 ? ratchetDur * pattern.swing : 0;
+          const jitter = (Math.random() - 0.5) * track.humanize * ratchetDur * 0.5;
+          const timeOffset = r * ratchetDur + swingOffset + jitter;
+          this.playNote(track, note, when + timeOffset, ratchetDur, localStep);
+        }
       });
     });
   }
@@ -315,11 +427,13 @@ export class SequencerService {
     track: SequencerTrack,
     note: SequencerNote,
     when: number,
-    stepDur: number
+    stepDur: number,
+    stepIndex = note.startTime
   ) {
     const freq = 440 * Math.pow(2, (note.pitch - 69) / 12);
     const duration = note.duration * stepDur;
-    const velocity = note.velocity * (track.volume / 100);
+    const velocity =
+      note.velocity * (track.volume / 100) * this.getVelocityCurveScale(track, stepIndex);
     const pan = track.pan / 100;
 
     const preset = this.instrumentsService
@@ -341,5 +455,89 @@ export class SequencerService {
     } else {
       this.engine.playSynth(when, freq, duration, velocity, pan);
     }
+  }
+
+  private getVelocityCurveScale(track: SequencerTrack, stepIndex: number) {
+    const ratio = track.trackLength > 1 ? stepIndex / (track.trackLength - 1) : 0;
+    if (track.velocityCurve === 'ascending') return 0.7 + ratio * 0.5;
+    if (track.velocityCurve === 'descending') return 1.2 - ratio * 0.5;
+    if (track.velocityCurve === 'accented') return stepIndex % 4 === 0 ? 1.2 : 0.85;
+    return 1;
+  }
+
+  private patchTrack(trackId: string, patch: Partial<SequencerTrack>) {
+    this.patterns.update((ps) => {
+      const next = [...ps];
+      const pattern = next[this.activePatternIndex()];
+      const idx = pattern?.tracks.findIndex((t) => t.id === trackId) ?? -1;
+      if (pattern && idx >= 0) {
+        pattern.tracks[idx] = { ...pattern.tracks[idx], ...patch };
+      }
+      return next;
+    });
+  }
+
+  createVariation(name: string) {
+    const pattern = this.activePattern();
+    if (!pattern) return null;
+    const variation: PatternVariation = {
+      id: this.nextId('seq-variation'),
+      patternId: pattern.id,
+      name,
+      patternSnapshot: this.clonePattern(pattern),
+    };
+    this.variations.update((vars) => [...vars, variation]);
+    return variation;
+  }
+
+  applyVariation(variationId: string) {
+    const variation = this.variations().find((v) => v.id === variationId);
+    if (!variation) return;
+    this.patterns.update((ps) =>
+      ps.map((pattern, idx) =>
+        idx === this.activePatternIndex() ? this.clonePattern(variation.patternSnapshot) : pattern
+      )
+    );
+  }
+
+  randomizeVariation(variationId: string, intensity = 0.3) {
+    this.variations.update((vars) =>
+      vars.map((variation) => {
+        if (variation.id !== variationId) return variation;
+        const next = this.clonePattern(variation.patternSnapshot);
+        next.tracks.forEach((track) => {
+          track.notes = track.notes.map((note) => ({
+            ...note,
+            velocity: Math.max(
+              0.1,
+              Math.min(1, note.velocity + (Math.random() - 0.5) * intensity)
+            ),
+          }));
+          track.stepProbability = track.stepProbability.map((p) =>
+            Math.max(0.2, Math.min(1, p + (Math.random() - 0.5) * intensity))
+          );
+        });
+        return { ...variation, patternSnapshot: next };
+      })
+    );
+  }
+
+  createScene(name: string, patternId: string, variationId?: string) {
+    const scene: PatternScene = {
+      id: this.nextId('seq-scene'),
+      name,
+      patternId,
+      variationId,
+    };
+    this.scenes.update((items) => [...items, scene]);
+    return scene;
+  }
+
+  triggerScene(sceneId: string) {
+    const scene = this.scenes().find((item) => item.id === sceneId);
+    if (!scene) return;
+    const patternIdx = this.patterns().findIndex((p) => p.id === scene.patternId);
+    if (patternIdx >= 0) this.activePatternIndex.set(patternIdx);
+    if (scene.variationId) this.applyVariation(scene.variationId);
   }
 }

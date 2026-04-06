@@ -145,4 +145,44 @@ describe('AudioEngineService', () => {
     expect(mockAudioContext.createOscillator).toHaveBeenCalled();
     expect(mockAudioContext.createGain).toHaveBeenCalled();
   });
+
+  it('should update adaptive performance tier from cpu load', () => {
+    service.updateAdaptivePerformance(80);
+    expect(service.performanceTier()).toBe('performance');
+
+    service.updateAdaptivePerformance(30);
+    expect(service.performanceTier()).toBe('ultra');
+  });
+
+  it('should support sidechain routing matrix', () => {
+    service.connectSidechain('kick', 'bass');
+    service.connectSidechain('kick', 'pad');
+    expect(service.sidechainEnabled()).toBe(true);
+    expect(service.getSidechainRouting()).toEqual([
+      { triggerTrackId: 'kick', targetTrackIds: ['bass', 'pad'] },
+    ]);
+
+    service.disconnectSidechain('kick', 'pad');
+    expect(service.getSidechainRouting()).toEqual([
+      { triggerTrackId: 'kick', targetTrackIds: ['bass'] },
+    ]);
+  });
+
+  it('should apply production parameters to tracked channels and globals', () => {
+    service.ensureTrack({ id: 101, gain: 0.8, pan: 0 });
+    service.applyProductionParameter('101', 'gain', 1.1);
+    service.applyProductionParameter('101', 'pan', 0.2);
+    service.applyProductionParameter('101', 'sendA', 0.4);
+    service.applyProductionParameter('0', 'tempo', 130);
+
+    expect(service.tempo()).toBe(130);
+  });
+
+  it('should expose mastering targets and apply safe ceiling', () => {
+    service.setMasteringTargets({ lufs: -13, truePeak: -0.2 });
+    const targets = service.getMasteringTargets();
+    expect(targets.lufs).toBe(-13);
+    expect(targets.truePeak).toBe(-0.2);
+    expect(compressorNode.threshold.setTargetAtTime).toHaveBeenCalled();
+  });
 });

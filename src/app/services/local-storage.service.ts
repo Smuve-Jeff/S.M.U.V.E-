@@ -305,4 +305,30 @@ export class LocalStorageService {
       }
     }
   }
+
+  async saveAdvancedProductionState(
+    projectId: string,
+    state: {
+      automation?: unknown;
+      macros?: unknown;
+      routing?: unknown;
+      patternVariants?: unknown;
+    }
+  ): Promise<void> {
+    await this.saveItem('projects', {
+      id: `advanced-production:${projectId}`,
+      ...state,
+      updatedAt: Date.now(),
+    });
+  }
+
+  async getAdvancedProductionState(projectId: string): Promise<{
+    automation?: unknown;
+    macros?: unknown;
+    routing?: unknown;
+    patternVariants?: unknown;
+    updatedAt?: number;
+  } | null> {
+    return this.getItem('projects', `advanced-production:${projectId}`);
+  }
 }

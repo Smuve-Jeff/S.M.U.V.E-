@@ -13,6 +13,25 @@ export interface TrackNote {
   velocity: number;
 }
 
+export interface PatternVersion {
+  id: string;
+  name: string;
+  createdAt: number;
+  notes: TrackNote[];
+  steps: boolean[];
+  stepVelocities: number[];
+}
+
+export interface PatternSlot {
+  id: string;
+  name: string;
+  createdAt: number;
+  notes: TrackNote[];
+  steps: boolean[];
+  stepVelocities: number[];
+  versions: PatternVersion[];
+}
+
 export interface FxSlot {
   id: string;
   type: string;
@@ -57,6 +76,7 @@ export interface TrackModel {
   name: string;
   instrumentId: string;
   type: "midi" | "audio";
+  qualityMode?: 'ultra' | 'performance';
   color: string;
   audioUrl?: string;
   audioBuffer?: AudioBuffer;
@@ -70,6 +90,9 @@ export interface TrackModel {
   mute: boolean;
   solo: boolean;
   steps: boolean[];
+  stepVelocities?: number[];
+  patternSlots?: PatternSlot[];
+  activePatternSlotId?: string | null;
 }
 
 @Injectable({
@@ -99,14 +122,15 @@ export class MusicManagerService {
         if (this.tracks().some((s) => s.solo) && !t.solo) continue;
 
         if (t.type === 'midi') {
-          for (const n of t.notes) {
-            if (n.step === step) {
-               (this.engine as any).triggerAttack?.(t.id, this.midiToFreq(n.midi), time, n.velocity, n.length, t.gain, t.pan, t.sendA, t.sendB, {
+            for (const n of t.notes) {
+              if (n.step === step) {
+               const velocityScale = t.stepVelocities?.[step] ?? 1;
+                (this.engine as any).triggerAttack?.(t.id, this.midiToFreq(n.midi), time, n.velocity, n.length, t.gain, t.pan, t.sendA, t.sendB, {
                   type: "triangle", attack: 0.002, decay: 0.08, sustain: 0.7, release: 0.1, cutoff: 7000, q: 0.8
-               });
+               }, velocityScale);
+              }
             }
           }
-        }
       }
     };
 
@@ -123,7 +147,7 @@ export class MusicManagerService {
 
     if (lastSession && lastSession.tracks && lastSession.tracks.length > 0) {
       this.logger.info('MusicManager: Restoring last session...');
-      this.tracks.set(lastSession.tracks);
+      this.tracks.set(lastSession.tracks.map((track: TrackModel) => this.normalizeTrack(track)));
       this.engine.tempo.set(lastSession.tempo || 120);
       this.engine.loopStart.set(lastSession.loopStart || 0);
       this.engine.loopEnd.set(lastSession.loopEnd || 16);
@@ -163,6 +187,7 @@ export class MusicManagerService {
       name: preset.name,
       instrumentId: preset.id,
       type: "midi",
+      qualityMode: 'ultra',
       color: "#EC5B13",
       notes: [],
       clips: [],
@@ -174,6 +199,9 @@ export class MusicManagerService {
       mute: false,
       solo: false,
       steps: new Array(64).fill(false),
+      stepVelocities: new Array(64).fill(1),
+      patternSlots: [],
+      activePatternSlotId: null,
     };
     this.tracks.update((v) => [...v, track]);
     this.engine.ensureTrack({
@@ -213,6 +241,9 @@ export class MusicManagerService {
               ...t,
               instrumentId: resolvedPreset.id,
               name: resolvedName,
+              fxSlots:
+                (resolvedPreset as any).defaultFx?.map((slot: any) => ({ ...slot })) ??
+                t.fxSlots,
             }
           : t
       )
@@ -220,6 +251,9 @@ export class MusicManagerService {
     this.engine.updateTrack(trackId, {
       instrumentId: resolvedPreset.id,
       name: resolvedName,
+      fxSlots:
+        (resolvedPreset as any).defaultFx?.map((slot: any) => ({ ...slot })) ??
+        currentTrack?.fxSlots,
     });
   }
 
@@ -400,7 +434,12 @@ export class MusicManagerService {
           } else {
             newNotes = newNotes.filter((n) => n.step !== stepIndex);
           }
-          return { ...t, steps: newSteps, notes: newNotes };
+          return {
+            ...t,
+            steps: newSteps,
+            notes: newNotes,
+            stepVelocities: t.stepVelocities ?? new Array(64).fill(1),
+          };
         }
         return t;
       })
@@ -453,6 +492,176 @@ export class MusicManagerService {
     );
   }
 
+  setTrackQualityMode(trackId: number, mode: 'ultra' | 'performance') {
+    this.tracks.update((ts) => ts.map((t) => (t.id === trackId ? { ...t, qualityMode: mode } : t)));
+  }
+
+  setStepVelocity(trackId: number, stepIndex: number, velocity: number) {
+    const clampedStep = Math.max(0, Math.min(63, stepIndex));
+    const clampedVelocity = Math.max(0.1, Math.min(1.5, velocity));
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        const current = t.stepVelocities ? [...t.stepVelocities] : new Array(64).fill(1);
+        current[clampedStep] = clampedVelocity;
+        return { ...t, stepVelocities: current };
+      })
+    );
+  }
+
+  fillPatternLane(trackId: number, density = 0.5) {
+    const normalizedDensity = Math.max(0, Math.min(1, density));
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        const nextSteps = t.steps.map(() => Math.random() < normalizedDensity);
+        const nextNotes = t.notes.filter((n) => n.step >= 64).concat(
+          nextSteps
+            .map((enabled, idx) =>
+              enabled
+                ? {
+                    id: Math.random().toString(36).substring(7),
+                    midi: this.getDefaultPitchForTrack(t),
+                    step: idx,
+                    length: 1,
+                    velocity: (t.stepVelocities?.[idx] ?? 1) * 0.8,
+                  }
+                : null
+            )
+            .filter((n): n is TrackNote => !!n)
+        );
+        return { ...t, steps: nextSteps, notes: nextNotes };
+      })
+    );
+  }
+
+  clearPatternLane(trackId: number) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        return {
+          ...t,
+          steps: new Array(64).fill(false),
+          notes: t.notes.filter((n) => n.step >= 64),
+        };
+      })
+    );
+  }
+
+  rotatePatternLane(trackId: number, shift = 1) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        const len = t.steps.length;
+        if (!len) return t;
+        const normalizedShift = ((shift % len) + len) % len;
+        const nextSteps = t.steps.map((_, idx) => t.steps[(idx - normalizedShift + len) % len]);
+        const nextStepVelocities = (t.stepVelocities ?? new Array(64).fill(1)).map(
+          (_, idx, arr) => arr[(idx - normalizedShift + arr.length) % arr.length]
+        );
+        const nextNotes = t.notes.map((n) => ({
+          ...n,
+          step: n.step < len ? (n.step + normalizedShift) % len : n.step,
+        }));
+        return { ...t, steps: nextSteps, stepVelocities: nextStepVelocities, notes: nextNotes };
+      })
+    );
+  }
+
+  randomizePatternLane(trackId: number, density = 0.35) {
+    this.fillPatternLane(trackId, density);
+  }
+
+  createPatternSlot(trackId: number, name = 'Pattern') {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        const slot: PatternSlot = {
+          id: Math.random().toString(36).substring(2, 9),
+          name,
+          createdAt: Date.now(),
+          notes: t.notes.map((n) => ({ ...n })),
+          steps: [...t.steps],
+          stepVelocities: [...(t.stepVelocities ?? new Array(64).fill(1))],
+          versions: [],
+        };
+        return {
+          ...t,
+          patternSlots: [...(t.patternSlots ?? []), slot],
+          activePatternSlotId: slot.id,
+        };
+      })
+    );
+  }
+
+  duplicatePatternSlot(trackId: number, slotId: string) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        const source = (t.patternSlots ?? []).find((slot) => slot.id === slotId);
+        if (!source) return t;
+        const clone: PatternSlot = {
+          ...source,
+          id: Math.random().toString(36).substring(2, 9),
+          name: `${source.name} Copy`,
+          createdAt: Date.now(),
+          notes: source.notes.map((n) => ({ ...n, id: Math.random().toString(36).substring(7) })),
+          steps: [...source.steps],
+          stepVelocities: [...source.stepVelocities],
+          versions: source.versions.map((v) => ({
+            ...v,
+            notes: v.notes.map((n) => ({ ...n })),
+            steps: [...v.steps],
+            stepVelocities: [...v.stepVelocities],
+          })),
+        };
+        return {
+          ...t,
+          patternSlots: [...(t.patternSlots ?? []), clone],
+          activePatternSlotId: clone.id,
+        };
+      })
+    );
+  }
+
+  snapshotPatternVersion(trackId: number, slotId: string, name = 'Version') {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        const slots = (t.patternSlots ?? []).map((slot) => {
+          if (slot.id !== slotId) return slot;
+          const version: PatternVersion = {
+            id: Math.random().toString(36).substring(2, 9),
+            name,
+            createdAt: Date.now(),
+            notes: slot.notes.map((n) => ({ ...n })),
+            steps: [...slot.steps],
+            stepVelocities: [...slot.stepVelocities],
+          };
+          return { ...slot, versions: [...slot.versions, version] };
+        });
+        return { ...t, patternSlots: slots };
+      })
+    );
+  }
+
+  recallPatternSlot(trackId: number, slotId: string) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        const slot = (t.patternSlots ?? []).find((candidate) => candidate.id === slotId);
+        if (!slot) return t;
+        return {
+          ...t,
+          notes: slot.notes.map((n) => ({ ...n })),
+          steps: [...slot.steps],
+          stepVelocities: [...slot.stepVelocities],
+          activePatternSlotId: slot.id,
+        };
+      })
+    );
+  }
+
   setTempo(bpm: number) {
     this.engine.tempo.set(bpm);
   }
@@ -466,5 +675,16 @@ export class MusicManagerService {
   setLoop(start: number, end: number) {
     this.engine.loopStart.set(start);
     this.engine.loopEnd.set(end);
+  }
+
+  private normalizeTrack(track: TrackModel): TrackModel {
+    return {
+      ...track,
+      qualityMode: track.qualityMode ?? 'ultra',
+      stepVelocities: track.stepVelocities ?? new Array(64).fill(1),
+      patternSlots: track.patternSlots ?? [],
+      activePatternSlotId: track.activePatternSlotId ?? null,
+      steps: track.steps ?? new Array(64).fill(false),
+    };
   }
 }

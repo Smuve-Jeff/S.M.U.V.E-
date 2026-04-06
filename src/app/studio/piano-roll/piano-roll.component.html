@@ -83,6 +83,45 @@
           </div>
         </div>
       </div>
+      <div class="mt-2 rounded-xl border border-white/10 bg-black/25 px-3 py-2">
+        <div class="flex flex-wrap items-center gap-2 text-[8px] font-black uppercase tracking-widest text-slate-400">
+          <span class="text-brand-primary">Precision</span>
+          <button (click)="nudgeSelectedSteps(-1)" class="px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40">← Nudge</button>
+          <button (click)="nudgeSelectedSteps(1)" class="px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40">Nudge →</button>
+          <button (click)="nudgeSelectedOctave(-1)" class="px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40">-12</button>
+          <button (click)="nudgeSelectedOctave(1)" class="px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40">+12</button>
+          <button (click)="adjustSelectedLength(-0.25)" class="px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40">Len-</button>
+          <button (click)="adjustSelectedLength(0.25)" class="px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40">Len+</button>
+          <button (click)="adjustSelectedVelocity(-0.05)" class="px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40">Vel-</button>
+          <button (click)="adjustSelectedVelocity(0.05)" class="px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40">Vel+</button>
+          <button (click)="invertSelectedChord()" class="px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40">Invert</button>
+          <button (click)="spreadSelectedChord()" class="px-2 py-1 rounded border border-white/10 hover:border-brand-primary/40">Spread</button>
+          <label class="flex items-center gap-1 ml-2">
+            <span>Quantize</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              [value]="quantizeStrength()"
+              (input)="quantizeStrength.set(+$any($event.target).value)"
+              class="w-16 accent-brand-primary"
+            />
+          </label>
+          <label class="flex items-center gap-1">
+            <span>Micro</span>
+            <input
+              type="range"
+              min="0.25"
+              max="1"
+              step="0.25"
+              [value]="microNudge()"
+              (input)="microNudge.set(+$any($event.target).value)"
+              class="w-16 accent-brand-primary"
+            />
+          </label>
+        </div>
+      </div>
     </header>
 
     <div class="flex-1 flex overflow-hidden relative">
@@ -156,13 +195,22 @@
                     <div class="absolute top-0 left-1/2 -translate-x-1/2 size-2 bg-brand-primary rounded-full"></div>
                  </div>
                  <ng-container *ngIf="selectedTrack() as track">
-                    <div *ngFor="let note of track.notes" (mousedown)="onNoteMouseDown($event, note)"
-                         class="absolute rounded-sm cursor-move midi-note border border-white/20 flex flex-col justify-center overflow-hidden bg-gradient-to-br"
+                    <div
+                      *ngFor="let ghost of getGhostNotes(track.id)"
+                      class="absolute rounded-sm pointer-events-none border border-slate-300/20 bg-slate-400/10"
+                      [style.left.px]="ghost.step * cellWidth"
+                      [style.top.px]="getDisplayKeys().indexOf(ghost.midi) * rowHeight"
+                      [style.width.px]="ghost.length * cellWidth"
+                      [style.height.px]="rowHeight - 2"
+                    ></div>
+                     <div *ngFor="let note of track.notes" (mousedown)="onNoteMouseDown($event, note)"
+                          class="absolute rounded-sm cursor-move midi-note border border-white/20 flex flex-col justify-center overflow-hidden bg-gradient-to-br"
                          [class.from-brand-primary]="!selectedNoteIds().has(note.id)"
                          [class.to-orange-600]="!selectedNoteIds().has(note.id)"
-                         [class.from-emerald-400]="selectedNoteIds().has(note.id)"
-                         [class.to-emerald-600]="selectedNoteIds().has(note.id)"
-                         [style.left.px]="note.step * cellWidth"
+                          [class.from-emerald-400]="selectedNoteIds().has(note.id)"
+                          [class.to-emerald-600]="selectedNoteIds().has(note.id)"
+                          [class.border-red-400]="hasNoteOverlap(note, track)"
+                          [style.left.px]="note.step * cellWidth"
                          [style.top.px]="getDisplayKeys().indexOf(note.midi) * rowHeight"
                          [style.width.px]="note.length * cellWidth"
                          [style.height.px]="rowHeight - 2">

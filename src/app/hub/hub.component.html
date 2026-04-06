@@ -28,6 +28,8 @@
 
   <!-- Background Reactive Layer -->
   <div class="hub-ambient-glow"></div>
+  <div class="hub-party-lights"></div>
+  <div class="hub-laser-beams"></div>
   <div class="hub-reactive-grid"></div>
   <div class="hub-particles"></div>
 
@@ -35,8 +37,8 @@
     <!-- Header: Business Intelligence Overview -->
     <header class="hub-header">
       <div class="header-left">
-        <p class="brand-eyebrow">S.M.U.V.E 1.0 // EXECUTIVE COMMAND</p>
-        <h1 class="header-title">Welcome Back, {{ profileService.profile().artistName }}</h1>
+        <p class="brand-eyebrow glimmer-text">S.M.U.V.E 1.0 // EXECUTIVE COMMAND</p>
+        <h1 class="header-title glimmer-text">Welcome Back, {{ profileService.profile().artistName }}</h1>
       </div>
       <div class="header-right">
         <div class="executive-stat">
@@ -54,7 +56,7 @@
     <div class="bento-grid">
 
       <!-- Module 1: S.M.U.V.E Audit (2x2) -->
-      <div class="bento-item bento-2x2 bento-card glass-v42" (click)="uiService.navigateToView('knowledge-base')">
+      <div class="bento-item bento-2x2 bento-card glass-v42 audit-module" (click)="uiService.navigateToView('knowledge-base')">
         <div class="card-overlay"></div>
         <div class="card-content">
           <div class="flex justify-between items-start mb-6">
@@ -63,7 +65,7 @@
             </div>
             <span class="pill pill-live">AI AUDIT ACTIVE</span>
           </div>
-          <h2 class="card-heading">Executive Intelligence Brief</h2>
+          <h2 class="card-heading glimmer-text">Executive Intelligence Brief</h2>
           <p class="card-subtext mb-8">Real-time scanning of your sonic assets and market readiness.</p>
 
 
@@ -101,15 +103,15 @@
       </div>
 
       <!-- Module 2: Current Project (2x1 Wide) -->
-      <div class="bento-item bento-2x1 bento-card glass-v42 interactive-playback">
+      <div class="bento-item bento-2x1 bento-card glass-v42 interactive-playback playback-module">
         <div class="card-content flex items-center gap-6">
           <div class="vinyl-display" [class.spinning]="playerService.isPlaying()">
             <div class="vinyl-outer"></div>
             <div class="vinyl-label bg-accent"></div>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="eyebrow text-accent">Active Production</p>
-            <h3 class="truncate text-xl font-black">{{ playerService.currentTrack()?.title }}</h3>
+            <p class="eyebrow text-accent glimmer-text">Active Production</p>
+            <h3 class="truncate text-xl font-black glimmer-text">{{ playerService.currentTrack()?.title }}</h3>
             <p class="text-sm opacity-60">by {{ playerService.currentTrack()?.artist }}</p>
 
             <div class="mt-4 flex items-center gap-4">
@@ -129,12 +131,12 @@
       </div>
 
       <!-- Module 3: Career Trajectory (1x2 Tall) -->
-      <div class="bento-item bento-1x2 bento-card glass-v42" (click)="uiService.navigateToView('career')">
+      <div class="bento-item bento-1x2 bento-card glass-v42 career-module" (click)="uiService.navigateToView('career')">
         <div class="card-content h-full flex flex-col">
           <div class="card-icon-box bg-secondary/20 text-secondary mb-4">
             <span class="material-symbols-outlined">insights</span>
           </div>
-          <h2 class="card-heading">Career Path</h2>
+          <h2 class="card-heading glimmer-text">Career Path</h2>
           <div class="flex-1 mt-6 space-y-6">
             <div class="progress-circle-container">
               <div class="level-badge">LVL {{ profileService.profile().level }}</div>
@@ -167,7 +169,7 @@
         <div class="card-content flex flex-col items-center justify-center text-center h-full">
           <div class="club-pulse"></div>
           <span class="material-symbols-outlined text-4xl mb-2 text-primary">sports_esports</span>
-          <h3 class="font-black text-sm uppercase tracking-tighter">Tha Spot</h3>
+          <h3 class="font-black text-sm uppercase tracking-tighter glimmer-text">Tha Spot</h3>
           <p class="text-[10px] opacity-60 uppercase">Go Live</p>
         </div>
       </div>
@@ -177,7 +179,7 @@
         <div class="card-content flex flex-col items-center justify-center text-center h-full">
           <div class="cinema-scan"></div>
           <span class="material-symbols-outlined text-4xl mb-2 text-accent">movie</span>
-          <h3 class="font-black text-sm uppercase tracking-tighter">CinemaEngine</h3>
+          <h3 class="font-black text-sm uppercase tracking-tighter glimmer-text">CinemaEngine</h3>
           <p class="text-[10px] opacity-60 uppercase">Visual Lab</p>
         </div>
       </div>
@@ -186,7 +188,7 @@
       <div class="bento-item bento-1x1 bento-card glass-v42 studio-module" (click)="uiService.navigateToView('studio')">
         <div class="card-content flex flex-col items-center justify-center text-center h-full">
           <span class="material-symbols-outlined text-4xl mb-2 text-white">tune</span>
-          <h3 class="font-black text-sm uppercase tracking-tighter">Studio</h3>
+          <h3 class="font-black text-sm uppercase tracking-tighter glimmer-text">Studio</h3>
           <p class="text-[10px] opacity-60 uppercase">Cut Records</p>
         </div>
       </div>
@@ -195,7 +197,7 @@
       <div class="bento-item bento-1x1 bento-card glass-v42 intel-module" (click)="uiService.navigateToView('strategy')">
         <div class="card-content flex flex-col items-center justify-center text-center h-full">
           <span class="material-symbols-outlined text-4xl mb-2 text-secondary">analytics</span>
-          <h3 class="font-black text-sm uppercase tracking-tighter">Intel Hub</h3>
+          <h3 class="font-black text-sm uppercase tracking-tighter glimmer-text">Intel Hub</h3>
           <p class="text-[10px] opacity-60 uppercase">Campaigns</p>
         </div>
       </div>

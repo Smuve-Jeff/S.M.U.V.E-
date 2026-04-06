@@ -10,6 +10,7 @@ import { signal } from '@angular/core';
 
 describe('PianoRoll & ChannelRack Upgrades', () => {
   let service: MusicManagerService;
+  let instruments: InstrumentsService;
 
   beforeEach(() => {
     const mockEngine = {
@@ -37,6 +38,7 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
       ]
     });
     service = TestBed.inject(MusicManagerService);
+    instruments = TestBed.inject(InstrumentsService);
   });
 
   it('should support audio tracks and track coloring', () => {
@@ -63,5 +65,39 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
   it('should initialize with signals for structure and chords', () => {
     expect(service.structure()).toEqual([]);
     expect(service.chords()).toEqual([]);
+  });
+
+  it('stores track quality and per-step velocity accents', () => {
+    const id = service.ensureTrack('synth-lead');
+    service.setTrackQualityMode(id, 'performance');
+    service.setStepVelocity(id, 3, 1.2);
+    const track = service.tracks().find((t) => t.id === id);
+    expect(track?.qualityMode).toBe('performance');
+    expect(track?.stepVelocities?.[3]).toBe(1.2);
+  });
+
+  it('creates and recalls pattern slots with version snapshots', () => {
+    const id = service.ensureTrack('synth-lead');
+    service.toggleStep(id, 0);
+    service.createPatternSlot(id, 'Main');
+    const firstSlot = service.tracks().find((t) => t.id === id)?.patternSlots?.[0];
+    expect(firstSlot).toBeTruthy();
+    if (!firstSlot) return;
+
+    service.toggleStep(id, 1);
+    service.snapshotPatternVersion(id, firstSlot.id, 'V1');
+    service.clearPatternLane(id);
+    service.recallPatternSlot(id, firstSlot.id);
+
+    const recalledTrack = service.tracks().find((t) => t.id === id);
+    expect(recalledTrack?.patternSlots?.[0].versions.length).toBe(1);
+    expect(recalledTrack?.steps[0]).toBe(true);
+  });
+
+  it('provides instrument quality metadata and fallback for sample presets', () => {
+    const grandPiano = instruments.getPresets().find((p) => p.id === 'grand-piano');
+    expect(grandPiano?.sampleQuality).toBe('high');
+    expect(grandPiano?.fallbackPresetId).toBe('stage-piano');
+    expect(grandPiano?.zones?.[0]?.velLayers?.length).toBeGreaterThan(0);
   });
 });

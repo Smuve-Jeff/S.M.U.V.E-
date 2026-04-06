@@ -61,6 +61,47 @@
         </div>
       </div>
 
+      <div class="glass-card p-6 rounded-3xl border border-white/5 flex flex-col gap-4">
+        <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Mastering Controls</div>
+        <label class="text-xs text-slate-300">
+          Target LUFS
+          <input
+            type="range"
+            min="-24"
+            max="-8"
+            step="0.1"
+            aria-label="Target LUFS in dB"
+            [value]="targetLufs()"
+            (input)="updateTargetLufs(+$any($event.target).value)"
+            class="w-full"
+          />
+          <span class="text-brand-primary font-mono">{{ targetLufs() }}</span>
+        </label>
+        <label class="text-xs text-slate-300">
+          Safe Ceiling dBFS
+          <input
+            type="range"
+            min="-1.2"
+            max="-0.01"
+            step="0.01"
+            aria-label="Safe Ceiling in dBFS"
+            [value]="safeCeiling()"
+            (input)="updateSafeCeiling(+$any($event.target).value)"
+            class="w-full"
+          />
+          <span class="text-brand-primary font-mono">{{ safeCeiling() }}</span>
+        </label>
+        @if (smartAssistSuggestion()) {
+          <p class="text-xs text-slate-300">{{ smartAssistSuggestion() }}</p>
+        }
+        @if (eqMaskingHint()) {
+          <p class="text-xs text-brand-secondary">{{ eqMaskingHint() }}</p>
+        }
+        @if (isProcessing()) {
+          <p class="text-[10px] text-brand-primary uppercase tracking-widest">Processing...</p>
+        }
+      </div>
+
       <div class="p-6 rounded-3xl bg-brand-primary/5 border border-brand-primary/20 flex flex-col gap-4">
         <div class="flex items-center gap-3">
           <span class="material-symbols-outlined text-brand-primary animate-pulse">shield</span>

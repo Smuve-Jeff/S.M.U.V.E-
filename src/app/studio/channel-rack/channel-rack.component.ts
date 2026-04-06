@@ -29,6 +29,7 @@ export class ChannelRackComponent {
 
   selectedIds = signal<Set<number>>(new Set());
   draggedIndex = -1;
+  selectedPatternSlotId = signal<string | null>(null);
 
   toggleStep(track: TrackModel, index: number) {
     this.musicManager.toggleStep(track.id, index);
@@ -103,5 +104,56 @@ export class ChannelRackComponent {
 
   updateInstrument(track: TrackModel, presetId: string) {
     this.musicManager.setInstrument(track.id, presetId);
+  }
+
+  createPatternSlot(track: TrackModel) {
+    this.musicManager.createPatternSlot(track.id, `${track.name} Pattern`);
+  }
+
+  duplicatePatternSlot(track: TrackModel) {
+    const slotId = track.activePatternSlotId ?? track.patternSlots?.[0]?.id;
+    if (!slotId) return;
+    this.musicManager.duplicatePatternSlot(track.id, slotId);
+  }
+
+  savePatternVersion(track: TrackModel) {
+    const slotId = track.activePatternSlotId ?? track.patternSlots?.[0]?.id;
+    if (!slotId) return;
+    this.musicManager.snapshotPatternVersion(track.id, slotId, `Version ${Date.now()}`);
+  }
+
+  recallPattern(track: TrackModel, slotId: string) {
+    this.musicManager.recallPatternSlot(track.id, slotId);
+  }
+
+  fillPattern(track: TrackModel) {
+    this.musicManager.fillPatternLane(track.id, 0.5);
+  }
+
+  clearPattern(track: TrackModel) {
+    this.musicManager.clearPatternLane(track.id);
+  }
+
+  rotatePattern(track: TrackModel, shift: number) {
+    this.musicManager.rotatePatternLane(track.id, shift);
+  }
+
+  randomizePattern(track: TrackModel) {
+    this.musicManager.randomizePatternLane(track.id, 0.4);
+  }
+
+  setStepAccent(track: TrackModel, index: number, event: Event) {
+    event.stopPropagation();
+    const current = track.stepVelocities?.[index] ?? 1;
+    const next = current >= 1.2 ? 0.8 : current >= 1 ? 1.2 : 1;
+    this.musicManager.setStepVelocity(track.id, index, next);
+  }
+
+  getStepVelocity(track: TrackModel, index: number): number {
+    return track.stepVelocities?.[index] ?? 1;
+  }
+
+  setTrackQuality(track: TrackModel, mode: 'ultra' | 'performance') {
+    this.musicManager.setTrackQualityMode(track.id, mode);
   }
 }

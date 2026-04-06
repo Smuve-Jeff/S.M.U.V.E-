@@ -73,6 +73,8 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   selectedScale = signal(this.scales[0]);
   snapToScale = signal(false);
   editMode = signal<'draw' | 'select' | 'brush' | 'chord'>('draw');
+  quantizeStrength = signal(1);
+  microNudge = signal(0.5);
   snapOptions = [
     { label: '1/4', steps: 4 },
     { label: '1/8', steps: 2 },
@@ -445,6 +447,73 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  nudgeSelectedSteps(delta: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const scaledDelta = delta * this.microNudge();
+    track.notes.forEach((n) => {
+      if (this.selectedNoteIds().has(n.id)) {
+        this.musicManager.updateNote(track.id, n.id, {
+          step: this.clamp(n.step + scaledDelta, 0, this.cells.length - 1),
+        });
+      }
+    });
+  }
+
+  nudgeSelectedOctave(direction: 1 | -1) {
+    this.transposeSelected(12 * direction);
+  }
+
+  adjustSelectedVelocity(delta: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    track.notes.forEach((n) => {
+      if (this.selectedNoteIds().size === 0 || this.selectedNoteIds().has(n.id)) {
+        this.musicManager.updateNote(track.id, n.id, {
+          velocity: this.clamp(n.velocity + delta, 0.1, 1),
+        });
+      }
+    });
+  }
+
+  adjustSelectedLength(delta: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    track.notes.forEach((n) => {
+      if (this.selectedNoteIds().size === 0 || this.selectedNoteIds().has(n.id)) {
+        this.musicManager.updateNote(track.id, n.id, {
+          length: this.clamp(n.length + delta, 1, this.cells.length),
+        });
+      }
+    });
+  }
+
+  invertSelectedChord() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const selected = track.notes
+      .filter((note) => this.selectedNoteIds().has(note.id))
+      .sort((left, right) => left.midi - right.midi);
+    if (selected.length < 2) return;
+    const lowest = selected[0];
+    this.musicManager.updateNote(track.id, lowest.id, {
+      midi: this.clamp(lowest.midi + 12, 0, 127),
+    });
+  }
+
+  spreadSelectedChord() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const selected = track.notes
+      .filter((note) => this.selectedNoteIds().has(note.id))
+      .sort((left, right) => left.midi - right.midi);
+    selected.forEach((note, idx) => {
+      this.musicManager.updateNote(track.id, note.id, {
+        midi: this.clamp(note.midi + idx, 0, 127),
+      });
+    });
+  }
+
   selectTrack(track: TrackModel) {
     this.musicManager.selectedTrackId.set(track.id);
     this.selectedNoteIds.set(new Set());
@@ -466,6 +535,22 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
       (n) => cell >= n.step && cell < n.step + n.length
     );
     return note ? note.velocity * 100 : 0;
+  }
+
+  hasNoteOverlap(note: TrackNote, track: TrackModel): boolean {
+    const noteEnd = note.step + note.length;
+    return track.notes.some((candidate) => {
+      if (candidate.id === note.id || candidate.midi !== note.midi) return false;
+      const candidateEnd = candidate.step + candidate.length;
+      return note.step < candidateEnd && noteEnd > candidate.step;
+    });
+  }
+
+  getGhostNotes(trackId: number): TrackNote[] {
+    return this.musicManager
+      .tracks()
+      .filter((track) => track.id !== trackId)
+      .flatMap((track) => track.notes.map((note) => ({ ...note })));
   }
 
   goStandalone() {
@@ -666,9 +751,14 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     const track = this.selectedTrack();
     if (!track) return;
 
+    const strength = this.clamp(this.quantizeStrength(), 0, 1);
     const affectedNotes = track.notes
       .filter(n => this.selectedNoteIds().size === 0 || this.selectedNoteIds().has(n.id))
-      .map(n => ({ id: n.id, oldStep: n.step, newStep: this.snapStep(n.step) }));
+      .map(n => {
+        const snapped = this.snapStep(n.step);
+        const blended = n.step + (snapped - n.step) * strength;
+        return { id: n.id, oldStep: n.step, newStep: this.clamp(blended, 0, this.cells.length - 1) };
+      });
 
     this.historyService.pushAction({
       description: `Quantize ${affectedNotes.length} note(s)`,

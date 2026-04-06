@@ -2,14 +2,53 @@
   position: relative;
   min-height: 100vh;
   width: 100%;
+  --color-text: #f8fafc;
+  --color-text-dim: #cbd5e1;
+  --glass: rgba(15, 23, 42, 0.54);
+  --glass-border: rgba(255, 255, 255, 0.12);
   background-color: var(--color-bg);
+  background-image:
+    linear-gradient(145deg, rgba(3, 7, 18, 0.88), rgba(2, 6, 23, 0.72)),
+    url('/assets/hub/hub-shell-bg.svg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
   overflow-x: hidden;
   overflow-y: auto;
-  transition: background-color 0.5s ease;
+  transition: background-color 0.5s ease, background-image 0.5s ease;
 }
 
 .hub-wrapper.playing {
   background-color: #050505; /* Deep club mood */
+  background-image:
+    linear-gradient(145deg, rgba(5, 5, 5, 0.7), rgba(2, 6, 23, 0.78)),
+    url('/assets/hub/hub-shell-bg.svg');
+}
+
+.hub-wrapper::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%, transparent 76%, rgba(15, 23, 42, 0.45)),
+    url('/assets/noise_pattern.svg');
+  background-size: auto, 160px 160px;
+  opacity: 0.4;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hub-wrapper::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.1), rgba(2, 6, 23, 0.52));
+  mix-blend-mode: screen;
+  opacity: 0.42;
+  z-index: 0;
+  pointer-events: none;
 }
 
 /* Background Reactive Layers */
@@ -43,6 +82,34 @@
   z-index: 1;
   pointer-events: none;
   mask-image: radial-gradient(circle at center, black, transparent 80%);
+}
+
+.hub-party-lights,
+.hub-laser-beams {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hub-party-lights {
+  z-index: 1;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(16, 185, 129, 0.2), transparent 18%),
+    radial-gradient(circle at 82% 16%, rgba(236, 91, 19, 0.18), transparent 20%),
+    radial-gradient(circle at 50% 10%, rgba(168, 85, 247, 0.16), transparent 22%);
+  filter: blur(38px);
+  opacity: 0.72;
+  animation: party-lights 10s ease-in-out infinite alternate;
+}
+
+.hub-laser-beams {
+  z-index: 2;
+  background:
+    linear-gradient(112deg, transparent 40%, rgba(16, 185, 129, 0.15) 48%, transparent 56%),
+    linear-gradient(72deg, transparent 42%, rgba(236, 91, 19, 0.13) 50%, transparent 58%),
+    linear-gradient(135deg, transparent 45%, rgba(56, 189, 248, 0.1) 52%, transparent 60%);
+  opacity: 0.5;
+  animation: laser-sweep 12s linear infinite;
 }
 
 .playing .hub-reactive-grid {
@@ -116,13 +183,45 @@
   position: relative;
   border-radius: 24px;
   overflow: hidden;
+  isolation: isolate;
   transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
   cursor: pointer;
+}
+
+.bento-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(160deg, rgba(2, 6, 23, 0.26), rgba(2, 6, 23, 0.82)),
+    var(--hub-card-image);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.98;
+  z-index: 0;
+  transition: transform 0.5s ease, opacity 0.3s ease;
+}
+
+.bento-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 26%, transparent 72%, rgba(15, 23, 42, 0.36)),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.08), rgba(2, 6, 23, 0.62));
+  z-index: 1;
+  pointer-events: none;
 }
 
 .bento-item:hover {
   transform: translateY(-4px) scale(1.01);
   box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.bento-item:hover::before {
+  transform: scale(1.04);
 }
 
 /* Bento Module Sizing */
@@ -138,6 +237,67 @@
   height: 100%;
 }
 
+.audit-module {
+  --hub-card-image: url('/assets/hub/hub-audit-card-bg.svg');
+  --module-glow: rgba(16, 185, 129, 0.34);
+}
+
+.playback-module {
+  --hub-card-image: url('/assets/hub/hub-playback-card-bg.svg');
+  --module-glow: rgba(236, 91, 19, 0.34);
+}
+
+.career-module {
+  --hub-card-image: url('/assets/hub/hub-career-card-bg.svg');
+  --module-glow: rgba(99, 102, 241, 0.34);
+}
+
+.intel-module {
+  --hub-card-image: url('/assets/hub/hub-intel-card-bg.svg');
+  --module-glow: rgba(56, 189, 248, 0.34);
+}
+
+.club-module {
+  --hub-card-image: url('/assets/hub/hub-club-card-bg.svg');
+  --module-glow: rgba(16, 185, 129, 0.4);
+}
+
+.cinema-module {
+  --hub-card-image: url('/assets/hub/hub-cinema-card-bg.svg');
+  --module-glow: rgba(236, 91, 19, 0.4);
+}
+
+.studio-module {
+  --hub-card-image: url('/assets/hub/hub-studio-card-bg.svg');
+  --module-glow: rgba(99, 102, 241, 0.38);
+}
+
+.bento-item .glimmer-text {
+  --glimmer-accent: #ffffff;
+}
+
+.audit-module .glimmer-text {
+  --glimmer-accent: #10b981;
+}
+
+.playback-module .glimmer-text,
+.cinema-module .glimmer-text {
+  --glimmer-accent: #ec5b13;
+}
+
+.career-module .glimmer-text,
+.studio-module .glimmer-text {
+  --glimmer-accent: #a855f7;
+}
+
+.club-module .glimmer-text {
+  --glimmer-accent: #10b981;
+}
+
+.intel-module .glimmer-text {
+  --glimmer-accent: #38bdf8;
+}
+
 .card-icon-box {
   width: 48px;
   height: 48px;
@@ -151,6 +311,25 @@
   font-weight: 900;
   letter-spacing: -0.02em;
   margin-top: 12px;
+}
+
+.glimmer-text {
+  background-image: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.76) 0%,
+    #ffffff 20%,
+    var(--glimmer-accent) 44%,
+    #ffffff 66%,
+    rgba(255, 255, 255, 0.84) 100%
+  );
+  background-size: 240% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.06);
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.08));
+  animation: glimmer-text-shift 7s ease-in-out infinite;
 }
 
 .card-subtext {
@@ -204,6 +383,20 @@
 .interactive-playback {
   background: linear-gradient(135deg, rgba(236, 91, 19, 0.1), rgba(168, 85, 247, 0.1));
   border: 1px solid rgba(236, 91, 19, 0.2) !important;
+}
+
+.bento-item {
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.bento-item:hover {
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 0 36px var(--module-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .vinyl-display {
@@ -327,6 +520,13 @@
   100% { transform: scale(2); opacity: 0; }
 }
 
+.club-module::after {
+  background:
+    radial-gradient(circle at top, rgba(16, 185, 129, 0.18), transparent 40%),
+    linear-gradient(180deg, rgba(16, 185, 129, 0.12), rgba(2, 6, 23, 0.56)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 36%);
+}
+
 .cinema-module .cinema-scan {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 2px;
@@ -336,6 +536,48 @@
 }
 
 @keyframes scanline { 0% { top: 0; } 100% { top: 100%; } }
+
+.cinema-module::after {
+  background:
+    radial-gradient(circle at top, rgba(236, 91, 19, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(236, 91, 19, 0.12), rgba(2, 6, 23, 0.56)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 36%);
+}
+
+.studio-module::after {
+  background:
+    radial-gradient(circle at top, rgba(99, 102, 241, 0.18), transparent 40%),
+    linear-gradient(180deg, rgba(99, 102, 241, 0.12), rgba(2, 6, 23, 0.58)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 36%);
+}
+
+.intel-module::after {
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(56, 189, 248, 0.12), rgba(2, 6, 23, 0.56)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 36%);
+}
+
+.audit-module::after {
+  background:
+    radial-gradient(circle at top, rgba(16, 185, 129, 0.18), transparent 38%),
+    linear-gradient(180deg, rgba(16, 185, 129, 0.08), rgba(2, 6, 23, 0.62)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 36%);
+}
+
+.playback-module::after {
+  background:
+    radial-gradient(circle at top, rgba(236, 91, 19, 0.18), transparent 38%),
+    linear-gradient(180deg, rgba(236, 91, 19, 0.08), rgba(2, 6, 23, 0.62)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 36%);
+}
+
+.career-module::after {
+  background:
+    radial-gradient(circle at top, rgba(99, 102, 241, 0.18), transparent 38%),
+    linear-gradient(180deg, rgba(99, 102, 241, 0.08), rgba(2, 6, 23, 0.62)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 36%);
+}
 
 /* Footer */
 .pill-action {
@@ -388,13 +630,9 @@
 
 /* Party / Reactive Effects */
 .hub-wrapper.playing::after {
-  content: '';
-  position: fixed;
-  inset: 0;
   background: radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.05) 0%, transparent 80%);
   animation: pulse-bg 4s ease-in-out infinite;
-  z-index: 2;
-  pointer-events: none;
+  opacity: 0.56;
 }
 
 @keyframes pulse-bg {
@@ -421,6 +659,14 @@
   animation: glow-pulse-green 4s infinite 1s;
 }
 
+.playing .cinema-module,
+.playing .studio-module,
+.playing .intel-module,
+.playing .audit-module,
+.playing .career-module {
+  animation: module-party-pop 4.5s ease-in-out infinite;
+}
+
 @keyframes glow-pulse-green {
   0% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.1); }
   50% { box-shadow: 0 0 50px rgba(16, 185, 129, 0.3); }
@@ -439,6 +685,28 @@
 
 .playing .hub-particles {
   opacity: 1;
+}
+
+@keyframes glimmer-text-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes party-lights {
+  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.58; }
+  50% { transform: translate3d(2%, -1%, 0) scale(1.08); opacity: 0.9; }
+  100% { transform: translate3d(-2%, 1%, 0) scale(1.02); opacity: 0.66; }
+}
+
+@keyframes laser-sweep {
+  0% { transform: translateX(-4%) skewX(0deg); opacity: 0.3; }
+  50% { transform: translateX(4%) skewX(-2deg); opacity: 0.58; }
+  100% { transform: translateX(-4%) skewX(0deg); opacity: 0.3; }
+}
+
+@keyframes module-party-pop {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.008); }
 }
 
 /* S.M.U.V.E 1.0 Mobile Executive HUD */
@@ -510,5 +778,33 @@
   /* Hide non-essential desktop visual layers */
   .hub-particles, .hub-ambient-glow {
     display: none !important;
+  }
+
+  .hub-party-lights,
+  .hub-laser-beams {
+    opacity: 0.35;
+  }
+
+  .hub-wrapper {
+    background-position: center top;
+  }
+
+  .hub-wrapper::before {
+    opacity: 0.24;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glimmer-text,
+  .hub-party-lights,
+  .hub-laser-beams,
+  .playing .interactive-playback,
+  .playing .club-module,
+  .playing .cinema-module,
+  .playing .studio-module,
+  .playing .intel-module,
+  .playing .audit-module,
+  .playing .career-module {
+    animation: none !important;
   }
 }

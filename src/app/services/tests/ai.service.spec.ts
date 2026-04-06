@@ -70,4 +70,55 @@ describe('AiService', () => {
     expect(advice.length).toBeGreaterThan(0);
     expect(advice[0].title).toBe('Visibility Surge Needed');
   }));
+
+  it('generates structured chord progression payloads', () => {
+    const progression = service.generateChordProgression({
+      genre: 'Hip Hop',
+      mood: 'dark',
+      section: 'verse',
+      variation: 0.8,
+      humanize: true,
+    });
+    expect(progression.length).toBe(4);
+    expect(progression[0].midi.length).toBeGreaterThan(0);
+  });
+
+  it('generates bass and drum patterns with humanize option', () => {
+    const bass = service.generateBassline({
+      genre: 'Trap',
+      section: 'hook',
+      variation: 0.6,
+      humanize: true,
+    });
+    const drums = service.generateDrumPattern({
+      style: 'Trap',
+      energy: 0.8,
+      section: 'hook',
+      variation: 0.5,
+      humanize: true,
+    });
+    expect(bass.length).toBeGreaterThan(0);
+    expect(drums.length).toBeGreaterThan(0);
+  });
+
+  it('regenerates section bundles for chords, bass, and drums', () => {
+    const result = service.regenerateSection({
+      section: 'hook',
+      variation: 0.7,
+      includeChords: true,
+      includeBass: true,
+      includeDrums: true,
+    });
+    expect(result.section).toBe('hook');
+    expect(result.chords?.length).toBeGreaterThan(0);
+    expect(result.bass?.length).toBeGreaterThan(0);
+    expect(result.drums?.length).toBeGreaterThan(0);
+  });
+
+  it('handles new generate bass/drums slash commands', async () => {
+    const bassResponse = await service.processCommand('/generate_bass');
+    const drumResponse = await service.processCommand('/generate_drums');
+    expect(bassResponse.toLowerCase()).toContain('generated');
+    expect(drumResponse.toLowerCase()).toContain('generated');
+  });
 });

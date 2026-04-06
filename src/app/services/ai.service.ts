@@ -59,6 +59,17 @@ const COMMAND_ROUTES: Record<string, string> = {
   COLLAB_STRATEGY: 'Identify ideal collaboration targets (features, producers, remixers) based on genre alignment and growth-stage synergy. Prescribe outreach approach.',
 };
 
+const HIGH_DENSITY_THRESHOLD = 0.72;
+const HIGH_MASKING_THRESHOLD = 0.65;
+const HIGH_TRANSIENT_THRESHOLD = 0.7;
+const AGGRESSIVE_COMP_THRESHOLD = -20;
+const SAFE_COMP_THRESHOLD = -16;
+const AGGRESSIVE_COMP_RATIO = 4.2;
+const SAFE_COMP_RATIO = 3.1;
+const DENSE_TARGET_LUFS = -13.5;
+const DEFAULT_TARGET_LUFS = -14;
+const SAFE_LIMITER_CEILING = -0.1;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -194,6 +205,17 @@ export class AiService {
     if (trimmed === '/sync_kb') return this.handleSyncKbCommand();
     if (trimmed === '/status') return this.handleStatusCommand();
 
+    if (trimmed === '/promo') return this.handlePromoCommand(artist, genre);
+    if (trimmed === '/business') return this.handleBizCommand(artist);
+    if (trimmed === '/hooks') return this.handleHooksCommand(genre);
+    if (trimmed === '/release') return this.handleReleaseCommand(artist, genre);
+    if (trimmed === '/generate_structure') return this.generateStructure(genre);
+    if (trimmed === '/generate_chords') return this.generateChords(genre);
+    if (trimmed === '/generate_bass') return this.handleGenerateBassCommand(genre);
+    if (trimmed === '/generate_drums') return this.handleGenerateDrumCommand(genre);
+    if (trimmed === '/auto_mix') return this.handleAutoMixCommand();
+
+    // Check for keyword-routed commands (e.g., AUTO_MIX, BIZ_STRATEGY)
     const upperCommand = command.toUpperCase().trim();
     const routeFragment = COMMAND_ROUTES[upperCommand];
 
@@ -279,6 +301,133 @@ export class AiService {
       return `[GENERATED BIO FOR ${profile.artistName.toUpperCase()}]\n\nForged in the depths of ${profile.primaryGenre.toUpperCase()}, this project represents a strategic anomaly.`;
     }
     return 'Asset generation protocol incomplete.';
+  generateChordProgression(input: {
+    genre?: string;
+    mood?: 'dark' | 'uplift' | 'neutral';
+    key?: string;
+    section?: 'intro' | 'verse' | 'hook' | 'bridge' | 'outro';
+    variation?: number;
+    humanize?: boolean;
+  }): { id: string; name: string; startStep: number; length: number; midi: number[] }[] {
+    const base = [
+      { name: 'Am', midi: [57, 60, 64] },
+      { name: 'F', midi: [53, 57, 60] },
+      { name: 'C', midi: [48, 52, 55] },
+      { name: 'G', midi: [55, 59, 62] },
+    ];
+    const variation = Math.max(0, Math.min(1, input.variation ?? 0.4));
+    const moodOffset = input.mood === 'uplift' ? 1 : input.mood === 'dark' ? -1 : 0;
+    return base.map((chord, idx) => ({
+      id: `cp-${idx}`,
+      name: chord.name,
+      startStep: idx * 16,
+      length: 16,
+      midi: chord.midi.map((note) => note + moodOffset + (variation > 0.7 && idx % 2 === 0 ? 12 : 0)),
+    }));
+  }
+
+  generateBassline(input: {
+    genre?: string;
+    key?: string;
+    section?: 'verse' | 'hook' | 'bridge';
+    variation?: number;
+    humanize?: boolean;
+  }): Array<{ step: number; midi: number; length: number; velocity: number }> {
+    const variation = Math.max(0, Math.min(1, input.variation ?? 0.35));
+    const pattern = [0, 4, 8, 12, 16, 20, 24, 28].map((step) => ({
+      step,
+      midi: 36 + (step % 8 === 0 ? 0 : 3),
+      length: 2,
+      velocity: 0.75 + (variation * 0.2),
+    }));
+    if (!input.humanize) return pattern;
+    return pattern.map((note) => ({
+      ...note,
+      step: Math.max(0, note.step + (Math.random() > 0.5 ? 0.25 : -0.25)),
+      velocity: Math.max(0.5, Math.min(1, note.velocity + (Math.random() - 0.5) * 0.15)),
+    }));
+  }
+
+  private async handleGenerateBassCommand(genre: string): Promise<string> {
+    const pattern = this.generateBassline({
+      genre,
+      section: 'verse',
+      variation: 0.45,
+      humanize: true,
+    });
+    return `Bassline generated for ${genre} (${pattern.length} notes).`;
+  }
+
+  generateDrumPattern(input: {
+    style?: string;
+    energy?: number;
+    section?: 'intro' | 'verse' | 'hook' | 'bridge' | 'outro';
+    variation?: number;
+    humanize?: boolean;
+  }): Array<{ step: number; midi: number; velocity: number; length: number }> {
+    const energy = Math.max(0.1, Math.min(1, input.energy ?? 0.6));
+    const hats = Array.from({ length: 16 }, (_, i) => ({
+      step: i * 2,
+      midi: 42,
+      velocity: 0.45 + energy * 0.25,
+      length: 1,
+    }));
+    const core = [
+      { step: 0, midi: 36, velocity: 0.95, length: 1 },
+      { step: 8, midi: 36, velocity: 0.9, length: 1 },
+      { step: 4, midi: 38, velocity: 0.85, length: 1 },
+      { step: 12, midi: 38, velocity: 0.88, length: 1 },
+    ];
+    const groove = [...core, ...hats];
+    if (!input.humanize) return groove;
+    return groove.map((hit) => ({
+      ...hit,
+      step: Math.max(0, hit.step + (Math.random() > 0.7 ? 0.25 : 0)),
+      velocity: Math.max(0.3, Math.min(1, hit.velocity + (Math.random() - 0.5) * 0.1)),
+    }));
+  }
+
+  private async handleGenerateDrumCommand(style: string): Promise<string> {
+    const hits = this.generateDrumPattern({
+      style,
+      section: 'hook',
+      variation: 0.5,
+      humanize: true,
+      energy: 0.7,
+    });
+    return `Drum pattern generated for ${style} (${hits.length} hits).`;
+  }
+
+  regenerateSection(input: {
+    section: 'intro' | 'verse' | 'hook' | 'bridge' | 'outro';
+    variation?: number;
+    includeChords?: boolean;
+    includeBass?: boolean;
+    includeDrums?: boolean;
+  }): {
+    section: string;
+    chords?: ReturnType<AiService['generateChordProgression']>;
+    bass?: ReturnType<AiService['generateBassline']>;
+    drums?: ReturnType<AiService['generateDrumPattern']>;
+  } {
+    const variation = input.variation ?? 0.45;
+    return {
+      section: input.section,
+      chords: input.includeChords
+        ? this.generateChordProgression({ section: input.section, variation, humanize: true })
+        : undefined,
+      bass: input.includeBass
+        ? this.generateBassline({ section: input.section === 'hook' ? 'hook' : 'verse', variation, humanize: true })
+        : undefined,
+      drums: input.includeDrums
+        ? this.generateDrumPattern({ section: input.section, variation, humanize: true, energy: 0.7 })
+        : undefined,
+    };
+  }
+
+  private async handleAutoMixCommand(): Promise<string> {
+    this.neuralMixer.applyNeuralMix();
+    return 'Neural Mix protocol initiated. All channel strips have been balanced according to heuristic production intelligence.';
   }
 
   async runHardDataAudit(): Promise<ExecutiveAuditReport> {
@@ -330,6 +479,122 @@ export class AiService {
     recs.push({ id: 'rec-4', action: 'Build or update your EPK.', impact: 'Medium', difficulty: 'Low', toolId: 'strategy' });
 
     return recs;
+  }
+
+  async studyTrack(audioBuffer: any, name: string): Promise<void> {
+    void audioBuffer;
+    void name;
+  }
+
+  async getAutoMixSettings(): Promise<{
+    threshold: number;
+    ratio: number;
+    ceiling: number;
+    targetLufs: number;
+    eqTilt: number;
+  }> {
+    return {
+      threshold: -18,
+      ratio: 3.5,
+      ceiling: -0.2,
+      targetLufs: -14,
+      eqTilt: 0.15,
+    };
+  }
+
+  getProductionSmartAssist(input: {
+    arrangementDensity?: number;
+    lowBandEnergy?: number;
+    midMaskingRisk?: number;
+    transientSharpness?: number;
+  }): {
+    arrangementSuggestion: string;
+    eqMaskingHint: string;
+    correctivePreset: {
+      compressorThreshold: number;
+      compressorRatio: number;
+      limiterCeiling: number;
+      targetLufs: number;
+    };
+  } {
+    const density = input.arrangementDensity ?? 0.5;
+    const masking = input.midMaskingRisk ?? 0.4;
+    const transient = input.transientSharpness ?? 0.6;
+
+    const arrangementSuggestion =
+      density > HIGH_DENSITY_THRESHOLD
+        ? 'Arrangement density is high; mute one harmonic layer every 8 bars to improve vocal slot clarity.'
+        : 'Arrangement density is moderate; introduce a controlled counter-layer in the final chorus for lift.';
+    const eqMaskingHint =
+      masking > HIGH_MASKING_THRESHOLD
+        ? 'High mid masking risk at 1.5–3kHz; carve 1.5dB from supporting synths and prioritize lead presence.'
+        : 'Masking is acceptable; preserve 2kHz pocket while widening upper harmonics above 8kHz.';
+
+    const correctivePreset = {
+      compressorThreshold:
+        transient > HIGH_TRANSIENT_THRESHOLD
+          ? AGGRESSIVE_COMP_THRESHOLD
+          : SAFE_COMP_THRESHOLD,
+      compressorRatio:
+        transient > HIGH_TRANSIENT_THRESHOLD
+          ? AGGRESSIVE_COMP_RATIO
+          : SAFE_COMP_RATIO,
+      limiterCeiling: SAFE_LIMITER_CEILING,
+      targetLufs:
+        density > HIGH_DENSITY_THRESHOLD ? DENSE_TARGET_LUFS : DEFAULT_TARGET_LUFS,
+    };
+
+    return { arrangementSuggestion, eqMaskingHint, correctivePreset };
+  }
+
+  getViralHooks(): string[] {
+    return [
+      'Algorithm Shift',
+      'Transition Logic',
+      'Behind the Beat (studio footage)',
+      'Before/After Mix Reveal',
+      'Tempo-Matched Beat Drop',
+      'Lyrics Highlighted Over Instrumental',
+      'Fan Reaction Duet',
+      'A-Capella to Full Beat Build-Up',
+    ];
+  }
+
+  getProductionSecrets(): typeof PRODUCTION_SECRETS {
+    return PRODUCTION_SECRETS;
+  }
+
+  getIntelligenceBriefs(): typeof INTELLIGENCE_LIBRARY {
+    return INTELLIGENCE_LIBRARY;
+  }
+
+  async startAIBassist(): Promise<void> {
+    this.isAIBassistActive.set(true);
+  }
+
+  async stopAIBassist(): Promise<void> {
+    this.isAIBassistActive.set(false);
+  }
+
+  async startAIDrummer(): Promise<void> {
+    this.isAIDrummerActive.set(true);
+  }
+
+  async stopAIDrummer(): Promise<void> {
+    this.isAIDrummerActive.set(false);
+  }
+
+  async startAIKeyboardist(): Promise<void> {
+    this.isAIKeyboardistActive.set(true);
+  }
+
+  async stopAIKeyboardist(): Promise<void> {
+    this.isAIKeyboardistActive.set(false);
+  }
+
+  async generateImage(prompt: string): Promise<string> {
+    void prompt;
+    return '';
   }
 
   async getQuestionnaireInsights(profile: UserProfile): Promise<any[]> {
