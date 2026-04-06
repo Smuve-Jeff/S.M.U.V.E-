@@ -1,0 +1,1072 @@
+{
+  "badges": [
+    {
+      "id": "featured",
+      "label": "Featured",
+      "tone": "primary"
+    },
+    {
+      "id": "trending",
+      "label": "Trending",
+      "tone": "secondary"
+    },
+    {
+      "id": "new-drop",
+      "label": "New Drop",
+      "tone": "warning"
+    },
+    {
+      "id": "tournament-live",
+      "label": "Tournament Live",
+      "tone": "secondary"
+    },
+    {
+      "id": "staff-pick",
+      "label": "Staff Pick",
+      "tone": "accent"
+    }
+  ],
+  "rooms": [
+    {
+      "id": "all",
+      "name": "All Games",
+      "icon": "grid_view",
+      "description": "Dynamic command deck for every active Tha Spot cabinet and live floor."
+    },
+    {
+      "id": "producer-lounge",
+      "name": "Producer Lounge",
+      "icon": "music_note",
+      "description": "Music-first picks for creators moving between beats, sessions, and challenges.",
+      "spotlight": "Best for artists coming straight from Studio.",
+      "rules": {
+        "genres": ["Music Battle", "Rhythm"],
+        "tags": ["Original", "Rhythm", "AI"]
+      }
+    },
+    {
+      "id": "arcade",
+      "name": "Arcade",
+      "icon": "joystick",
+      "description": "Fast rotations, reflex-first play, and short-session score chasing.",
+      "rules": {
+        "tags": ["Arcade", "Reflex", "Retro"]
+      }
+    },
+    {
+      "id": "versus-night",
+      "name": "Versus Night",
+      "icon": "sports_kabaddi",
+      "description": "Competitive rooms with PvP, bracket pressure, and live match queues.",
+      "spotlight": "Queue times update from active multiplayer titles.",
+      "rules": {
+        "tags": ["PvP", "Combat", "Multiplayer", "Versus"],
+        "badgeIds": ["tournament-live"]
+      }
+    },
+    {
+      "id": "sports",
+      "name": "Sports",
+      "icon": "sports_basketball",
+      "description": "Athletic sims, head-to-head runs, and tournament ladders.",
+      "rules": {
+        "genres": ["Sports"],
+        "tags": ["Basketball", "Soccer", "Football"]
+      }
+    },
+    {
+      "id": "strategy",
+      "name": "Strategy",
+      "icon": "psychology",
+      "description": "High-IQ play, puzzle solving, and room-based mind games.",
+      "rules": {
+        "genres": ["Strategy", "Puzzle", "Classic"]
+      }
+    },
+    {
+      "id": "weekend-clash",
+      "name": "Weekend Clash",
+      "icon": "bolt",
+      "description": "Limited-time event room rotating around featured and live tournament games.",
+      "limitedTime": true,
+      "spotlight": "Rotates with live events and staff promotions.",
+      "rules": {
+        "badgeIds": ["featured", "tournament-live"]
+      }
+    }
+  ],
+  "liveEvents": [
+    {
+      "id": "event-1",
+      "title": "Tha Battlefield Friday Bracket",
+      "description": "Live matchmaking ladder with bonus XP for every completed round.",
+      "roomId": "versus-night",
+      "reward": "500 XP + Clash Banner",
+      "status": "live",
+      "windowLabel": "Live now",
+      "featuredGameId": "1",
+      "badgeId": "tournament-live",
+      "schedule": {
+        "startAt": "2026-04-04T20:00:00.000Z",
+        "endAt": "2026-04-07T05:00:00.000Z",
+        "recurrence": "weekend",
+        "eligibilityTags": ["Multiplayer", "PvP"],
+        "rewardType": "cosmetic"
+      }
+    },
+    {
+      "id": "event-2",
+      "title": "Producer Lounge Daily Challenge",
+      "description": "Lock a 30-note streak across rhythm picks to unlock a fresh badge.",
+      "roomId": "producer-lounge",
+      "reward": "200 XP + Studio skin",
+      "status": "upcoming",
+      "windowLabel": "Starts in 2h",
+      "featuredGameId": "2",
+      "badgeId": "new-drop",
+      "schedule": {
+        "startAt": "2026-04-06T20:00:00.000Z",
+        "endAt": "2026-04-07T20:00:00.000Z",
+        "recurrence": "daily",
+        "eligibilityTags": ["Rhythm", "Original"],
+        "rewardType": "xp"
+      }
+    },
+    {
+      "id": "event-3",
+      "title": "Weekend Clash Spotlight",
+      "description": "Staff-curated rotation of featured rooms, promos, and limited cabinet drops.",
+      "roomId": "weekend-clash",
+      "reward": "Weekend tokens",
+      "status": "ending-soon",
+      "windowLabel": "Ends tonight",
+      "featuredGameId": "6",
+      "badgeId": "featured",
+      "schedule": {
+        "startAt": "2026-04-05T00:00:00.000Z",
+        "endAt": "2026-04-07T12:00:00.000Z",
+        "recurrence": "weekend",
+        "eligibilityTags": ["Featured"],
+        "rewardType": "token"
+      }
+    }
+  ],
+  "socialPresence": [
+    {
+      "id": "presence-1",
+      "name": "MixMaven",
+      "status": "hosting",
+      "activity": "Hosting a remix lobby in Tha Battlefield",
+      "roomId": "versus-night",
+      "gameId": "1",
+      "relationship": "party",
+      "joinable": true,
+      "partySize": 3,
+      "cta": "Join party",
+      "alert": "Party chat is live."
+    },
+    {
+      "id": "presence-2",
+      "name": "GridWalker",
+      "status": "queueing",
+      "activity": "Queued for the Friday bracket",
+      "roomId": "versus-night",
+      "gameId": "1",
+      "relationship": "rival",
+      "joinable": true,
+      "cta": "Track rival",
+      "alert": "Bracket rival on a win streak."
+    },
+    {
+      "id": "presence-3",
+      "name": "ChessExecutive",
+      "status": "in-match",
+      "activity": "Closing an endgame on Grandmaster Chess",
+      "roomId": "strategy",
+      "gameId": "11",
+      "relationship": "friend",
+      "joinable": true,
+      "cta": "Watch friend"
+    },
+    {
+      "id": "presence-4",
+      "name": "StudioGhost",
+      "status": "invited",
+      "activity": "Browsing staff picks after a Studio export",
+      "roomId": "producer-lounge",
+      "gameId": "2",
+      "relationship": "invite",
+      "pendingInvite": true,
+      "partySize": 2,
+      "cta": "Accept invite",
+      "alert": "Invite expires in 12m."
+    }
+  ],
+  "promotions": [
+    {
+      "id": "promo-1",
+      "title": "Carry the rhythm into Studio",
+      "description": "Flip a hot streak from Tha Spot into a new session with the DJ deck and sequencer.",
+      "route": "/studio",
+      "icon": "tune",
+      "cta": "Open Studio",
+      "roomIds": ["producer-lounge"],
+      "audienceTags": ["producer", "returning"],
+      "priority": 10,
+      "campaignType": "studio",
+      "gameIds": ["2", "5"]
+    },
+    {
+      "id": "promo-2",
+      "title": "Launch Remix Arena",
+      "description": "Move from gaming collabs into live remix competition without leaving the shell.",
+      "route": "/remix-arena",
+      "icon": "equalizer",
+      "cta": "Go to Remix Arena",
+      "roomIds": ["versus-night", "weekend-clash"],
+      "audienceTags": ["competitive", "social"],
+      "priority": 9,
+      "campaignType": "arena",
+      "gameIds": ["1", "10", "13"]
+    },
+    {
+      "id": "promo-3",
+      "title": "Read the Intel Lab",
+      "description": "Use performance data from Tha Spot to plan the next campaign move.",
+      "route": "/strategy",
+      "icon": "analytics",
+      "cta": "Open Intel",
+      "roomIds": ["strategy", "sports"],
+      "audienceTags": ["competitive", "returning"],
+      "priority": 8,
+      "campaignType": "intel"
+    }
+  ],
+  "leaderboards": [
+    {
+      "id": "board-1",
+      "label": "Tha Battlefield Weekly",
+      "score": "18,200",
+      "roomId": "versus-night",
+      "trend": "+11%"
+    },
+    {
+      "id": "board-2",
+      "label": "Tempo Lockdown Daily",
+      "score": "9,840",
+      "roomId": "producer-lounge",
+      "trend": "+7%"
+    },
+    {
+      "id": "board-3",
+      "label": "Grandmaster Chess ELO",
+      "score": "1825",
+      "roomId": "strategy",
+      "trend": "+4%"
+    }
+  ],
+  "games": [
+    {
+      "id": "1",
+      "name": "Tha Battlefield",
+      "url": "/assets/games/battlefield/battlefield.html",
+      "description": "Executive rap battle arena with live bracket energy and hybrid queue support.",
+      "genre": "Music Battle",
+      "rating": 4.9,
+      "playersOnline": 1250,
+      "availability": "Hybrid",
+      "tags": ["Multiplayer", "Original", "PvP", "Combat"],
+      "multiplayerType": "Server",
+      "aiSupportLevel": "Advanced",
+      "aiBriefing": "Establish dominance in the rap battle arena. Neural sync is tuned for rhythm precision.",
+      "badgeIds": ["featured", "tournament-live"],
+      "queueEstimateMinutes": 3,
+      "sessionObjectives": [
+        "Win two call-and-response rounds",
+        "Hold a perfect timing chain"
+      ],
+      "controlHints": [
+        "Use lane prompts to answer bars",
+        "Save your boost for chorus clashes"
+      ],
+      "launchConfig": {
+        "difficulty": "Competitive",
+        "controls": ["Keyboard lanes", "Space to trigger boosts"],
+        "objectives": [
+          "Finish top 3 in the lobby",
+          "Maintain 90% rhythm accuracy"
+        ],
+        "modes": ["Solo", "Versus", "Tournament"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Hybrid internal cabinet with live bracket telemetry.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "/assets/games/battlefield/battlefield.html",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html",
+        "telemetryMode": "frame-only"
+      },
+      "art": {
+        "eyebrow": "Hybrid",
+        "accentStart": "#10b981",
+        "accentEnd": "#0f766e"
+      }
+    },
+    {
+      "id": "2",
+      "name": "Remix Arena",
+      "url": "/assets/games/remix-arena/remixarena.html",
+      "description": "Collaborative sequencing challenge where crews race to flip stems in real time.",
+      "genre": "Rhythm",
+      "rating": 4.7,
+      "playersOnline": 850,
+      "availability": "Hybrid",
+      "tags": ["Multiplayer", "Original", "Co-op", "Rhythm"],
+      "multiplayerType": "Server",
+      "aiSupportLevel": "Neural",
+      "aiBriefing": "Collaborative remix engine is live. S.M.U.V.E. is balancing the sonic stems.",
+      "badgeIds": ["staff-pick"],
+      "queueEstimateMinutes": 2,
+      "sessionObjectives": ["Land 3 clean transitions", "Chain a team combo"],
+      "controlHints": [
+        "Swap stems before tension peaks",
+        "Watch teammate cue indicators"
+      ],
+      "launchConfig": {
+        "difficulty": "Crew",
+        "controls": ["Keyboard", "Mouse"],
+        "objectives": ["Keep crowd energy above 80%", "Hit one perfect drop"],
+        "modes": ["Co-op", "Versus"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Internal remix cabinet with shared beat telemetry.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "/assets/games/remix-arena/remixarena.html",
+        "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html",
+        "telemetryMode": "frame-only"
+      },
+      "art": {
+        "eyebrow": "Hybrid",
+        "accentStart": "#22c55e",
+        "accentEnd": "#14b8a6"
+      }
+    },
+    {
+      "id": "3",
+      "name": "Neon Drift X",
+      "url": "/assets/games/neon-drift/neon-drift.html",
+      "description": "Precision lane swaps through a neon expressway tuned for instant offline retries.",
+      "genre": "Racing",
+      "rating": 4.8,
+      "playersOnline": 420,
+      "availability": "Offline",
+      "tags": ["Arcade", "Offline", "Reflex"],
+      "badgeIds": ["featured"],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": ["Survive 90 seconds", "Hit a 12x lane streak"],
+      "controlHints": ["Feather turns early", "Stay centered before boosts"],
+      "launchConfig": {
+        "difficulty": "Medium",
+        "controls": ["Arrow keys"],
+        "objectives": [
+          "Finish the first sector clean",
+          "Hold one flawless boost chain"
+        ],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Offline cabinet validated for embedded launch.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html",
+        "telemetryMode": "frame-only"
+      },
+      "art": {
+        "eyebrow": "Offline",
+        "accentStart": "#38bdf8",
+        "accentEnd": "#6366f1"
+      }
+    },
+    {
+      "id": "4",
+      "name": "Vinyl Vault",
+      "url": "/assets/games/vinyl-vault/vinyl-vault.html",
+      "description": "Crate-digging memory board with quick restarts and staff-curated puzzle loops.",
+      "genre": "Puzzle",
+      "rating": 4.7,
+      "playersOnline": 260,
+      "availability": "Offline",
+      "tags": ["Puzzle", "Offline", "Memory"],
+      "badgeIds": ["staff-pick"],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Clear the board in under 2 minutes",
+        "Miss fewer than 3 flips"
+      ],
+      "controlHints": [
+        "Map card clusters before flipping",
+        "Work outer lanes first"
+      ],
+      "launchConfig": {
+        "difficulty": "Accessible",
+        "controls": ["Mouse"],
+        "objectives": ["Land a clean memory cycle", "Beat your best time"],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Offline cabinet with direct local launch.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "/assets/games/vinyl-vault/vinyl-vault.html",
+        "approvedEmbedUrl": "/assets/games/vinyl-vault/vinyl-vault.html",
+        "telemetryMode": "frame-only"
+      },
+      "art": {
+        "eyebrow": "Offline",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#f97316"
+      }
+    },
+    {
+      "id": "5",
+      "name": "Tempo Lockdown",
+      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+      "description": "Responsive rhythm lane built for short focus sprints between sessions.",
+      "genre": "Rhythm",
+      "rating": 4.8,
+      "playersOnline": 390,
+      "availability": "Offline",
+      "tags": ["Rhythm", "Arcade", "Original"],
+      "badgeIds": ["new-drop"],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": ["Lock a 25-note streak", "Stay above 95% timing"],
+      "controlHints": [
+        "Watch the lane color shifts",
+        "Trigger boosts on downbeats"
+      ],
+      "launchConfig": {
+        "difficulty": "Adaptive",
+        "controls": ["Lane keys"],
+        "objectives": [
+          "Keep the pulse meter green",
+          "Finish one perfect chorus"
+        ],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Internal rhythm cabinet with fast recovery.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "telemetryMode": "frame-only"
+      },
+      "art": {
+        "eyebrow": "Offline",
+        "accentStart": "#34d399",
+        "accentEnd": "#059669"
+      }
+    },
+    {
+      "id": "6",
+      "name": "Hextris",
+      "url": "https://hextris.github.io/hextris/",
+      "description": "Trusted online arcade puzzler with premium hex-stack gameplay.",
+      "genre": "Classic",
+      "rating": 4.8,
+      "playersOnline": 5200,
+      "availability": "Online",
+      "tags": ["Classic", "Arcade", "Retro"],
+      "badgeIds": ["trending"],
+      "queueEstimateMinutes": 1,
+      "sessionObjectives": [
+        "Hold the ring for 4 minutes",
+        "Clear one high-speed cycle"
+      ],
+      "controlHints": ["Rotate early", "Keep two lanes open for recovery"],
+      "launchConfig": {
+        "difficulty": "Reflex",
+        "controls": ["Left / Right arrows"],
+        "objectives": ["Beat the daily board", "Stabilize after speed spikes"],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Embedded from an allowlisted partner domain.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://hextris.github.io/hextris/",
+        "approvedEmbedUrl": "https://hextris.github.io/hextris/",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://hextris.github.io"]
+      },
+      "art": {
+        "eyebrow": "Online",
+        "accentStart": "#06b6d4",
+        "accentEnd": "#2563eb"
+      }
+    },
+    {
+      "id": "7",
+      "name": "2048 Championship",
+      "url": "https://play2048.co/",
+      "description": "Reliable number-combo classic for quick logic resets between creative work.",
+      "genre": "Puzzle",
+      "rating": 4.7,
+      "playersOnline": 6300,
+      "availability": "Online",
+      "tags": ["Classic", "AI", "Logic"],
+      "aiSupportLevel": "Neural",
+      "aiBriefing": "S.M.U.V.E. is analyzing the logic matrix for optimal number combination strategies.",
+      "badgeIds": ["staff-pick"],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Hit 2048 in under 10 minutes",
+        "Finish with fewer than 5 dead turns"
+      ],
+      "controlHints": [
+        "Build from one corner",
+        "Avoid vertical resets too early"
+      ],
+      "launchConfig": {
+        "difficulty": "Thinking",
+        "controls": ["Arrow keys"],
+        "objectives": ["Protect one anchor lane", "Finish a clean merge path"],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted logic partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://play2048.co/",
+        "approvedEmbedUrl": "https://play2048.co/",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://play2048.co"]
+      },
+      "art": {
+        "eyebrow": "Online",
+        "accentStart": "#f97316",
+        "accentEnd": "#ea580c"
+      }
+    },
+    {
+      "id": "8",
+      "name": "Beat Runner",
+      "url": "https://htmlgames.com/game/Beat+Runner",
+      "description": "Sprint through glow landscapes synced to the beat with lightweight online launch.",
+      "genre": "Runner",
+      "rating": 4.5,
+      "playersOnline": 2100,
+      "availability": "Online",
+      "tags": ["Arcade", "Reflex", "Rhythm"],
+      "badgeIds": ["featured"],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Hold a clean combo for 60 seconds",
+        "Clear one hazard rush"
+      ],
+      "controlHints": ["Jump on offbeats", "Use slides to reset timing"],
+      "launchConfig": {
+        "difficulty": "Fast",
+        "controls": ["Keyboard"],
+        "objectives": ["Protect your streak", "Stay centered during doubles"],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted arcade partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://htmlgames.com/game/Beat+Runner",
+        "approvedEmbedUrl": "https://htmlgames.com/game/Beat+Runner",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://htmlgames.com"]
+      },
+      "art": {
+        "eyebrow": "Online",
+        "accentStart": "#ec4899",
+        "accentEnd": "#db2777"
+      }
+    },
+    {
+      "id": "9",
+      "name": "Pac-Man Classic",
+      "url": "https://pacman.live/play.html",
+      "description": "Definitive arcade classic for pure cabinet energy and route memorization.",
+      "genre": "Classic",
+      "rating": 4.9,
+      "playersOnline": 15400,
+      "availability": "Online",
+      "tags": ["Classic", "Arcade", "Retro"],
+      "badgeIds": ["trending"],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": ["Clear two boards", "Bank one ghost combo"],
+      "controlHints": [
+        "Use corners for ghost control",
+        "Commit to power-pellet routes"
+      ],
+      "launchConfig": {
+        "difficulty": "Classic",
+        "controls": ["Arrow keys"],
+        "objectives": ["Beat your route time", "Convert a full power cycle"],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted retro partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://pacman.live/play.html",
+        "approvedEmbedUrl": "https://pacman.live/play.html",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://pacman.live"]
+      },
+      "art": {
+        "eyebrow": "Arcade",
+        "accentStart": "#facc15",
+        "accentEnd": "#eab308"
+      }
+    },
+    {
+      "id": "10",
+      "name": "Street Brawler V",
+      "url": "https://www.retrogames.cc/embed/10042-street-fighter-ii-the-world-warrior-world-910522.html",
+      "description": "Master classic combat in the world warrior tournament cabinet.",
+      "genre": "Fighting",
+      "rating": 4.7,
+      "playersOnline": 4500,
+      "availability": "Online",
+      "tags": ["Combat", "Arcade", "Versus"],
+      "badgeIds": ["tournament-live"],
+      "queueEstimateMinutes": 2,
+      "sessionObjectives": [
+        "Win one set without dropping a round",
+        "Land a clean punish combo"
+      ],
+      "controlHints": ["Block low on wake-up", "Buffer inputs during jumps"],
+      "launchConfig": {
+        "difficulty": "Bracket",
+        "controls": ["Keyboard"],
+        "objectives": [
+          "Survive the first bracket round",
+          "Convert one punish cleanly"
+        ],
+        "modes": ["Solo", "Versus"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted retro combat partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/10042-street-fighter-ii-the-world-warrior-world-910522.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10042-street-fighter-ii-the-world-warrior-world-910522.html",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://www.retrogames.cc"]
+      },
+      "art": {
+        "eyebrow": "Combat",
+        "accentStart": "#f97316",
+        "accentEnd": "#c2410c"
+      }
+    },
+    {
+      "id": "11",
+      "name": "Grandmaster Chess",
+      "url": "https://poki.com/en/g/master-chess",
+      "description": "The ultimate strategy board with steady queues and deep tactical play.",
+      "genre": "Strategy",
+      "rating": 4.9,
+      "playersOnline": 32400,
+      "availability": "Online",
+      "tags": ["Strategy", "Logic", "Classic"],
+      "badgeIds": ["trending"],
+      "queueEstimateMinutes": 1,
+      "sessionObjectives": [
+        "Win material by move 15",
+        "Close one endgame cleanly"
+      ],
+      "controlHints": [
+        "Review checks, captures, threats",
+        "Protect your king before expanding"
+      ],
+      "launchConfig": {
+        "difficulty": "Ranked",
+        "controls": ["Mouse"],
+        "objectives": ["Hold tempo", "Convert one structural edge"],
+        "modes": ["Solo", "Versus"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted strategy partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://poki.com/en/g/master-chess",
+        "approvedEmbedUrl": "https://poki.com/en/g/master-chess",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://poki.com"]
+      },
+      "art": {
+        "eyebrow": "Strategy",
+        "accentStart": "#f8fafc",
+        "accentEnd": "#1e293b"
+      }
+    },
+    {
+      "id": "12",
+      "name": "Pro Hoops 2K",
+      "url": "https://poki.com/en/g/basket-bros",
+      "description": "Step onto the court for fast high-energy basketball runs.",
+      "genre": "Sports",
+      "rating": 4.5,
+      "playersOnline": 7800,
+      "availability": "Online",
+      "tags": ["Sports", "Basketball", "Competitive"],
+      "badgeIds": ["featured"],
+      "queueEstimateMinutes": 1,
+      "sessionObjectives": [
+        "Win by 5",
+        "Land three clean possessions in a row"
+      ],
+      "controlHints": ["Save boost for fast breaks", "Defend the paint first"],
+      "launchConfig": {
+        "difficulty": "Competitive",
+        "controls": ["Keyboard"],
+        "objectives": ["Control tempo", "Close the game in the final minute"],
+        "modes": ["Solo", "Versus"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted sports partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://poki.com/en/g/basket-bros",
+        "approvedEmbedUrl": "https://poki.com/en/g/basket-bros",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://poki.com"]
+      },
+      "art": {
+        "eyebrow": "Sports",
+        "accentStart": "#f97316",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
+      "id": "13",
+      "name": "Soccer Stars",
+      "url": "https://poki.com/en/g/soccer-skills-world-cup",
+      "description": "Global tournament energy with high player counts and quick rematches.",
+      "genre": "Sports",
+      "rating": 4.8,
+      "playersOnline": 42000,
+      "availability": "Online",
+      "tags": ["Sports", "Soccer", "Tournament"],
+      "badgeIds": ["tournament-live", "trending"],
+      "queueEstimateMinutes": 2,
+      "sessionObjectives": ["Keep a clean sheet", "Finish two fast breaks"],
+      "controlHints": [
+        "Switch fields early",
+        "Exploit wide channels on counters"
+      ],
+      "launchConfig": {
+        "difficulty": "Tournament",
+        "controls": ["Keyboard"],
+        "objectives": ["Survive extra time", "Hold your lead under pressure"],
+        "modes": ["Solo", "Versus", "Tournament"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted tournament partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://poki.com/en/g/soccer-skills-world-cup",
+        "approvedEmbedUrl": "https://poki.com/en/g/soccer-skills-world-cup",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://poki.com"]
+      },
+      "art": {
+        "eyebrow": "Sports",
+        "accentStart": "#10b981",
+        "accentEnd": "#064e3b"
+      }
+    },
+    {
+      "id": "14",
+      "name": "Executive Solitaire",
+      "url": "https://poki.com/en/g/solitaire",
+      "description": "Classic card patience run for low-pressure recovery between bigger sessions.",
+      "genre": "Strategy",
+      "rating": 4.8,
+      "playersOnline": 45000,
+      "availability": "Online",
+      "tags": ["Cards", "Logic", "Classic"],
+      "badgeIds": ["staff-pick"],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Finish one clean board",
+        "Beat your last completion time"
+      ],
+      "controlHints": [
+        "Expose hidden stacks early",
+        "Save kings for flexible columns"
+      ],
+      "launchConfig": {
+        "difficulty": "Calm",
+        "controls": ["Mouse"],
+        "objectives": ["Finish under par", "Keep the board open"],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted classic partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://poki.com/en/g/solitaire",
+        "approvedEmbedUrl": "https://poki.com/en/g/solitaire",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://poki.com"]
+      },
+      "art": {
+        "eyebrow": "Cards",
+        "accentStart": "#ef4444",
+        "accentEnd": "#b91c1c"
+      }
+    },
+    {
+      "id": "15",
+      "name": "Cipher Surge",
+      "url": "/assets/games/cipher-surge/cipher-surge.html",
+      "description": "Neural pattern-defense cabinet with polished offline AI memory rounds and fast replay loops.",
+      "genre": "Puzzle",
+      "rating": 4.8,
+      "playersOnline": 510,
+      "availability": "Offline",
+      "tags": ["Puzzle", "AI", "Original", "Logic"],
+      "aiSupportLevel": "Advanced",
+      "aiBriefing": "Adaptive sequence logic sharpens each round and rewards clean recall under pressure.",
+      "badgeIds": ["new-drop", "staff-pick"],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Clear five neural rounds",
+        "Finish with at least 70% integrity"
+      ],
+      "controlHints": [
+        "Watch the full sequence before reacting",
+        "Prioritize rhythm over speed on longer chains"
+      ],
+      "launchConfig": {
+        "difficulty": "Adaptive",
+        "controls": ["Mouse or touch"],
+        "objectives": [
+          "Hold integrity above 70%",
+          "Perfect one full pattern chain"
+        ],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Internal AI puzzle cabinet tuned for embedded offline play.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "/assets/games/cipher-surge/cipher-surge.html",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html",
+        "telemetryMode": "frame-only"
+      },
+      "art": {
+        "eyebrow": "AI Puzzle",
+        "accentStart": "#8b5cf6",
+        "accentEnd": "#4c1d95"
+      }
+    },
+    {
+      "id": "16",
+      "name": "Smash Karts X",
+      "url": "https://poki.com/en/g/smash-karts",
+      "description": "High-speed multiplayer kart combat with premium arena flow, powerups, and replay-ready matches.",
+      "genre": "Racing",
+      "rating": 4.8,
+      "playersOnline": 28000,
+      "availability": "Online",
+      "tags": ["Multiplayer", "Versus", "Combat", "Arcade"],
+      "multiplayerType": "Server",
+      "badgeIds": ["featured", "tournament-live"],
+      "queueEstimateMinutes": 2,
+      "sessionObjectives": [
+        "Win one arena set",
+        "Land three clean powerup eliminations"
+      ],
+      "controlHints": [
+        "Save rockets for straightaways",
+        "Drift out of crowded corners early"
+      ],
+      "launchConfig": {
+        "difficulty": "Competitive",
+        "controls": ["Keyboard"],
+        "objectives": [
+          "Stay alive for the full round",
+          "Chain one clean boost finish"
+        ],
+        "modes": ["Solo", "Versus", "Tournament"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted competitive kart partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://poki.com/en/g/smash-karts",
+        "approvedEmbedUrl": "https://poki.com/en/g/smash-karts",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://poki.com"]
+      },
+      "art": {
+        "eyebrow": "Kart Combat",
+        "accentStart": "#fb7185",
+        "accentEnd": "#be123c"
+      }
+    },
+    {
+      "id": "17",
+      "name": "Subway Surfers Live",
+      "url": "https://poki.com/en/g/subway-surfers",
+      "description": "A polished endless runner with top-tier flow, vivid presentation, and instant arcade momentum.",
+      "genre": "Runner",
+      "rating": 4.8,
+      "playersOnline": 47000,
+      "availability": "Online",
+      "tags": ["Arcade", "Reflex", "Trending"],
+      "badgeIds": ["trending"],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Hold one clean streak for 90 seconds",
+        "Recover from a near miss without dropping pace"
+      ],
+      "controlHints": [
+        "Read lane changes early",
+        "Jump late to keep coin lines active"
+      ],
+      "launchConfig": {
+        "difficulty": "Fast",
+        "controls": ["Keyboard"],
+        "objectives": [
+          "Beat your last distance",
+          "Hold a stable combo through traffic spikes"
+        ],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted premium runner partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://poki.com/en/g/subway-surfers",
+        "approvedEmbedUrl": "https://poki.com/en/g/subway-surfers",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://poki.com"]
+      },
+      "art": {
+        "eyebrow": "Runner",
+        "accentStart": "#22c55e",
+        "accentEnd": "#0f766e"
+      }
+    },
+    {
+      "id": "18",
+      "name": "Moto X3M Nitro",
+      "url": "https://poki.com/en/g/moto-x3m",
+      "description": "Precision stunt racing with highly polished track design, strong readability, and fast restart loops.",
+      "genre": "Racing",
+      "rating": 4.8,
+      "playersOnline": 18500,
+      "availability": "Online",
+      "tags": ["Arcade", "Reflex", "Stunts"],
+      "badgeIds": ["featured"],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Clear one stunt run without crashing",
+        "Bank a perfect landing chain"
+      ],
+      "controlHints": [
+        "Feather acceleration before jumps",
+        "Rotate early to set up clean landings"
+      ],
+      "launchConfig": {
+        "difficulty": "Skill",
+        "controls": ["Keyboard"],
+        "objectives": [
+          "Finish clean under par time",
+          "Reset quickly after failed landings"
+        ],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted stunt racing partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://poki.com/en/g/moto-x3m",
+        "approvedEmbedUrl": "https://poki.com/en/g/moto-x3m",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://poki.com"]
+      },
+      "art": {
+        "eyebrow": "Stunt Racing",
+        "accentStart": "#f97316",
+        "accentEnd": "#9a3412"
+      }
+    },
+    {
+      "id": "19",
+      "name": "Temple Run 2 Prime",
+      "url": "https://poki.com/en/g/temple-run-2",
+      "description": "Cinematic chase runner with premium pacing, polished traversal, and elite score-chasing feel.",
+      "genre": "Runner",
+      "rating": 4.7,
+      "playersOnline": 39500,
+      "availability": "Online",
+      "tags": ["Arcade", "Reflex", "Adventure"],
+      "badgeIds": ["staff-pick"],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Survive the opening chase cleanly",
+        "Hold one long coin lane through a hazard section"
+      ],
+      "controlHints": [
+        "Swipe-equivalent inputs work best before corners",
+        "Commit to one lane before bridge gaps"
+      ],
+      "launchConfig": {
+        "difficulty": "Endless",
+        "controls": ["Keyboard"],
+        "objectives": [
+          "Beat your previous run distance",
+          "Keep momentum through one full hazard cycle"
+        ],
+        "modes": ["Solo"],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted endless runner partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://poki.com/en/g/temple-run-2",
+        "approvedEmbedUrl": "https://poki.com/en/g/temple-run-2",
+        "telemetryMode": "origin",
+        "telemetryOrigins": ["https://poki.com"]
+      },
+      "art": {
+        "eyebrow": "Adventure Runner",
+        "accentStart": "#14b8a6",
+        "accentEnd": "#155e75"
+      }
+    }
+  ],
+  "recommendationRails": [
+    {
+      "id": "rail-returning-runs",
+      "title": "Return to your hot cabinets",
+      "subtitle": "History-weighted picks for sessions already in motion.",
+      "audience": {
+        "minPlays": 1,
+        "maxPlays": 999,
+        "rooms": ["all"]
+      },
+      "weights": {
+        "history": 18,
+        "crowd": 5,
+        "badge": 4,
+        "room": 4,
+        "genre": 4,
+        "novelty": 1
+      },
+      "maxItems": 4
+    },
+    {
+      "id": "rail-producer-crossover",
+      "title": "Producer crossover",
+      "subtitle": "Music-first cabinets tuned for artists bouncing out of Studio.",
+      "audience": {
+        "primaryGenres": ["Hip Hop", "R&B", "Pop"],
+        "rooms": ["producer-lounge", "arcade"]
+      },
+      "roomIds": ["producer-lounge", "arcade"],
+      "weights": {
+        "genre": 16,
+        "history": 7,
+        "crowd": 3,
+        "badge": 5,
+        "room": 6,
+        "novelty": 2
+      },
+      "maxItems": 4
+    },
+    {
+      "id": "rail-competitive-push",
+      "title": "Competitive live floor",
+      "subtitle": "High-pressure picks for rivals, parties, and bracket nights.",
+      "audience": {
+        "minPlays": 0,
+        "rooms": ["versus-night", "sports"]
+      },
+      "roomIds": ["versus-night", "sports"],
+      "weights": {
+        "genre": 6,
+        "history": 8,
+        "crowd": 8,
+        "badge": 10,
+        "room": 10,
+        "novelty": 2
+      },
+      "maxItems": 4
+    }
+  ]
+}

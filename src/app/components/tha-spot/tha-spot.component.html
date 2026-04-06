@@ -1,180 +1,614 @@
 <div class="gaming-hub-container" [class.dark-mode]="isDarkMode()">
-  <!-- Background Layer -->
   <div class="hub-background-fx">
     <div class="scanlines"></div>
     <div class="energy-grid"></div>
     <div class="ambient-glow"></div>
   </div>
 
-  <!-- Tactical Navigation Dock (Physical UI Element) -->
   <nav class="tactical-dock">
     <div class="dock-inner glass-v42">
       <div class="dock-segment section-label">
-        <span class="glitch-text" data-text="GAMING HUB">GAMING HUB</span>
+        <span class="glitch-text" data-text="THA SPOT // LIVE"
+          >THA SPOT // LIVE</span
+        >
       </div>
       <div class="dock-divider"></div>
       <div class="dock-actions">
         <button
-          *ngFor="let room of gamingRooms"
+          *ngFor="let room of gamingRooms()"
           (click)="setActiveRoom(room.id)"
           [class.active]="activeRoom() === room.id"
           class="dock-btn"
-          [attr.data-tooltip]="room.name">
+          [class.limited]="room.limitedTime"
+          [attr.data-tooltip]="room.description"
+        >
           <span class="material-symbols-outlined">{{ room.icon }}</span>
           <span class="btn-label">{{ room.name }}</span>
         </button>
       </div>
       <div class="dock-divider"></div>
       <div class="dock-meta">
-        <button class="dock-btn intel-toggle" (click)="toggleIntel()" [class.active]="showIntelPanel()">
-            <span class="material-symbols-outlined">analytics</span>
-            <span class="btn-label">INTEL</span>
+        <button
+          class="dock-btn intel-toggle"
+          (click)="toggleIntel()"
+          [class.active]="showIntelPanel()"
+        >
+          <span class="material-symbols-outlined">analytics</span>
+          <span class="btn-label">INTEL</span>
         </button>
       </div>
     </div>
   </nav>
 
-  <!-- Immersive Content Area -->
-  <main class="hub-main" [class.room-transitioning]="isTransitioning()" [class.with-intel]="showIntelPanel()">
-
-    <!-- Room Header -->
+  <main
+    class="hub-main"
+    [class.room-transitioning]="isTransitioning()"
+    [class.with-intel]="showIntelPanel()"
+  >
     <header class="room-header animate-slide-down">
       <div class="room-info">
+        <p class="eyebrow">Dynamic gaming floor</p>
         <h1 class="room-title">{{ getActiveRoomName() }}</h1>
         <p class="room-desc text-secondary/70">{{ getActiveRoomDesc() }}</p>
+        <p class="room-spotlight" *ngIf="activeRoomConfig()?.spotlight">
+          {{ activeRoomConfig()?.spotlight }}
+        </p>
       </div>
       <div class="room-stats glass-v42">
         <div class="stat-item">
-          <span class="stat-label">AVAILABLE</span>
-          <span class="stat-value">{{ filteredGames().length }} TITLES</span>
+          <span class="stat-label">ROOM PLAYERS</span>
+          <span class="stat-value">{{
+            liveMetrics().roomPlayers | number
+          }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">QUEUE HEALTH</span>
+          <span class="stat-value">{{ liveMetrics().queueHealth }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">UPTIME</span>
+          <span class="stat-value">{{ liveMetrics().uptimeLabel }}</span>
         </div>
       </div>
     </header>
 
-    <!-- Game Selection Grid (Scrollable directly) -->
-    <div class="game-library-scroll custom-scrollbar">
-      <div class="game-grid">
-        <div
-          *ngFor="let game of filteredGames(); let i = index"
-          class="game-card-wrapper"
-          [style.animation-delay]="i * 0.05 + 's'">
+    <section class="hero-grid">
+      <article class="hero-card glass-v42">
+        <div class="hero-copy">
+          <p class="hero-eyebrow">Personalized floor readout</p>
+          <h2>
+            Built for
+            {{
+              uiService.mainViewMode() === 'tha-spot'
+                ? 'your current run'
+                : 'your next session'
+            }}
+          </h2>
+          <p>
+            Recommendations are tuned by the live feed, your Tha Spot history,
+            and the busiest active rooms.
+          </p>
+        </div>
+        <div class="hero-metrics">
+          <div class="metric-chip">
+            <span class="chip-label">Live tournaments</span>
+            <span class="chip-value">{{ liveMetrics().liveTournaments }}</span>
+          </div>
+          <div class="metric-chip">
+            <span class="chip-label">Popularity</span>
+            <span class="chip-value">{{ liveMetrics().popularityShare }}%</span>
+          </div>
+          <div class="metric-chip">
+            <span class="chip-label">Tactical edge</span>
+            <span class="chip-value">+{{ tacticalAdvantage() }}%</span>
+          </div>
+        </div>
+      </article>
 
-          <div class="game-card glass-v42" (click)="playGame(game)">
-            <div class="card-media">
-              <img [src]="game.image" [alt]="game.name" class="game-thumb">
-              <div class="card-overlay">
-                <button class="play-action-btn">
-                  <span class="material-symbols-outlined">play_arrow</span>
-                  LAUNCH
-                </button>
-              </div>
-              <div class="availability-badge" [attr.data-type]="game.availability">
-                {{ game.availability }}
-              </div>
-              <div class="ai-support-badge" *ngIf="game.aiSupportLevel && game.aiSupportLevel !== 'None'">
-                <span class="material-symbols-outlined">neurology</span>
-                {{ game.aiSupportLevel }}
-              </div>
+      <article class="rail-card glass-v42">
+        <div class="section-heading">
+          <h3>{{ activeRecommendationRail()?.title || 'Play next' }}</h3>
+          <span>{{
+            activeRecommendationRail()?.subtitle ||
+              recommendedGames().length + ' tuned picks'
+          }}</span>
+        </div>
+        <div class="mini-rail">
+          <div class="empty-state" *ngIf="!recommendedGames().length">
+            {{
+              activeRecommendationRail()?.emptyState ||
+                'No feed-driven recommendation rail is active right now.'
+            }}
+          </div>
+          <button
+            class="mini-game"
+            *ngFor="let game of recommendedGames()"
+            (click)="previewGame(game)"
+          >
+            <img [src]="game.image" [alt]="game.name" />
+            <div>
+              <p>{{ game.name }}</p>
+              <span
+                >{{ game.genre }} · {{ game.playersOnline | number }} live</span
+              >
             </div>
+          </button>
+        </div>
+      </article>
 
-            <div class="card-content">
-              <div class="card-header">
-                <h3 class="game-name">{{ game.name }}</h3>
-                <div class="game-rating">
-                  <span class="material-symbols-outlined">star</span>
-                  {{ game.rating }}
+      <article class="rail-card glass-v42">
+        <div class="section-heading">
+          <h3>Recent cabinets</h3>
+          <span>{{ recentlyPlayed().length || 0 }} tracked</span>
+        </div>
+        <div class="mini-rail recent">
+          <div class="empty-state" *ngIf="!recentlyPlayed().length">
+            Launch any cabinet to start building your Tha Spot history.
+          </div>
+          <button
+            class="mini-game"
+            *ngFor="let game of recentlyPlayed()"
+            (click)="previewGame(game)"
+          >
+            <img [src]="game.image" [alt]="game.name" />
+            <div>
+              <p>{{ game.name }}</p>
+              <span>Return to session</span>
+            </div>
+          </button>
+        </div>
+      </article>
+    </section>
+
+    <section class="metrics-row">
+      <article class="metric-card glass-v42">
+        <span class="metric-label">Live queue</span>
+        <strong>{{ liveMetrics().averageQueue }} min</strong>
+        <p>Built from room-ready multiplayer cabinets.</p>
+      </article>
+      <article class="metric-card glass-v42">
+        <span class="metric-label">Progression</span>
+        <strong>LVL {{ progressionSummary().level }}</strong>
+        <p>
+          {{ progressionSummary().streakLabel }} ·
+          {{ progressionSummary().achievements }} achievements ·
+          {{ progressionSummary().cosmetics }} cosmetics
+        </p>
+      </article>
+      <article class="metric-card glass-v42">
+        <span class="metric-label">Mastery room</span>
+        <strong>{{ progressionSummary().masteryLabel }}</strong>
+        <p>
+          {{ progressionSummary().totalPlays }} tracked sessions in Tha Spot.
+        </p>
+      </article>
+      <article class="metric-card glass-v42">
+        <span class="metric-label">Neural sync</span>
+        <strong>{{ neuralSyncScore() }}%</strong>
+        <p>Weighted by room demand, live events, and your play history.</p>
+      </article>
+    </section>
+
+    <section class="event-strip">
+      <article
+        class="event-card glass-v42"
+        *ngFor="let event of activeEvents()"
+      >
+        <div class="event-topline">
+          <span class="event-status" [attr.data-status]="event.status">{{
+            event.windowLabel
+          }}</span>
+          <span class="event-reward">{{ event.reward }}</span>
+        </div>
+        <h3>{{ event.title }}</h3>
+        <p>{{ event.description }}</p>
+        <button
+          class="inline-link"
+          *ngIf="getEventGame(event)"
+          (click)="previewGame(getEventGame(event)!)"
+        >
+          Queue featured cabinet
+        </button>
+      </article>
+    </section>
+
+    <div class="content-grid">
+      <section class="library-panel">
+        <div class="library-header">
+          <div>
+            <p class="eyebrow">Dynamic feed</p>
+            <h2>Game library</h2>
+          </div>
+          <div class="library-count">{{ filteredGames().length }} titles</div>
+        </div>
+
+        <div class="game-library-scroll custom-scrollbar">
+          <div class="game-grid">
+            <div
+              *ngFor="let game of filteredGames(); let i = index"
+              class="game-card-wrapper"
+              [style.animation-delay]="i * 0.05 + 's'"
+            >
+              <div class="game-card glass-v42" (click)="previewGame(game)">
+                <div class="card-media">
+                  <img
+                    [src]="game.image"
+                    [alt]="game.name"
+                    class="game-thumb"
+                  />
+                  <div class="card-overlay">
+                    <button class="play-action-btn">
+                      <span class="material-symbols-outlined">play_arrow</span>
+                      PREPARE
+                    </button>
+                  </div>
+                  <div
+                    class="availability-badge"
+                    [attr.data-type]="game.availability"
+                  >
+                    {{ game.availability }}
+                  </div>
+                  <div class="badge-stack">
+                    <span
+                      class="game-badge"
+                      *ngFor="let badge of getGameBadges(game)"
+                      [attr.data-tone]="badge.tone"
+                    >
+                      {{ badge.label }}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <p class="game-genre">{{ game.genre }}</p>
-              <div class="game-tags">
-                <span *ngFor="let tag of getVisibleTags(game)" class="tag">{{ tag }}</span>
+
+                <div class="card-content">
+                  <div class="card-header">
+                    <div>
+                      <h3 class="game-name">{{ game.name }}</h3>
+                      <p class="game-genre">{{ game.genre }}</p>
+                    </div>
+                    <div class="game-rating">
+                      <span class="material-symbols-outlined">star</span>
+                      {{ game.rating }}
+                    </div>
+                  </div>
+
+                  <p class="game-description">{{ game.description }}</p>
+
+                  <div class="game-meta-grid">
+                    <div>
+                      <span class="meta-label">Players</span>
+                      <strong>{{ game.playersOnline | number }}</strong>
+                    </div>
+                    <div>
+                      <span class="meta-label">Queue</span>
+                      <strong>{{ game.queueEstimateMinutes || 0 }} min</strong>
+                    </div>
+                    <div>
+                      <span class="meta-label">Mode</span>
+                      <strong>{{ game.multiplayerType || 'Solo' }}</strong>
+                    </div>
+                  </div>
+
+                  <div class="game-tags">
+                    <span
+                      *ngFor="let tag of getVisibleTags(game)"
+                      class="tag"
+                      >{{ tag }}</span
+                    >
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
         </div>
-      </div>
-    </div>
+      </section>
 
+      <aside class="insight-column">
+        <section class="insight-card glass-v42">
+          <div class="section-heading">
+            <h3>Squad network</h3>
+            <span>{{ socialModules().length }} live actions</span>
+          </div>
+          <div class="social-list">
+            <div class="social-row" *ngFor="let entry of socialModules()">
+              <div class="social-copy">
+                <strong>{{ entry.name }}</strong>
+                <p>{{ entry.activity }}</p>
+                <span class="social-alert" *ngIf="entry.alert">{{
+                  entry.alert
+                }}</span>
+              </div>
+              <div class="social-actions">
+                <span
+                  class="social-pill"
+                  [attr.data-type]="entry.relationship"
+                  >{{ entry.relationship || entry.status }}</span
+                >
+                <button
+                  class="ghost-link"
+                  (click)="handlePresenceAction(entry)"
+                >
+                  {{ getPresenceActionLabel(entry) }}
+                </button>
+              </div>
+            </div>
+            <div class="empty-state" *ngIf="!socialModules().length">
+              No live friend, party, or rival actions in this room yet.
+            </div>
+          </div>
+        </section>
+
+        <section class="insight-card glass-v42">
+          <div class="section-heading">
+            <h3>Leaderboards</h3>
+            <span>{{ activeLeaderboards().length }} boards</span>
+          </div>
+          <div class="leaderboard-list">
+            <div
+              class="leaderboard-row"
+              *ngFor="let entry of activeLeaderboards()"
+            >
+              <div>
+                <strong>{{ entry.label }}</strong>
+                <p>{{ entry.score }}</p>
+              </div>
+              <span class="trend-pill">{{ entry.trend }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="insight-card glass-v42">
+          <div class="section-heading">
+            <h3>Cross-platform moves</h3>
+            <span>Contextual merch</span>
+          </div>
+          <button
+            class="promotion-card"
+            *ngFor="let promotion of contextualPromotions()"
+            (click)="navigateToPath(getPromotionRoute(promotion))"
+          >
+            <span class="material-symbols-outlined">{{ promotion.icon }}</span>
+            <div>
+              <strong>{{ promotion.title }}</strong>
+              <p>{{ promotion.description }}</p>
+              <span>{{ promotion.cta }}</span>
+            </div>
+          </button>
+          <div class="empty-state" *ngIf="!contextualPromotions().length">
+            No contextual promos are targeted to this room yet.
+          </div>
+        </section>
+      </aside>
+    </div>
   </main>
 
-  <!-- S.M.U.V.E. Gaming Intel Sidebar -->
   <aside class="intel-sidebar glass-v42" [class.active]="showIntelPanel()">
     <header class="intel-header">
-        <div class="intel-title">
-            <span class="material-symbols-outlined">neurology</span>
-            GAMING INTEL
+      <div class="intel-title">
+        <span class="material-symbols-outlined">neurology</span>
+        THA SPOT INTEL
+      </div>
+      <div class="neural-score-card">
+        <span class="label">NEURAL SYNC</span>
+        <span class="value">{{ neuralSyncScore() }}%</span>
+        <div class="progress-bar-small">
+          <div class="fill" [style.width.%]="neuralSyncScore()"></div>
         </div>
-        <div class="neural-score-card">
-            <span class="label">NEURAL SYNC</span>
-            <span class="value">{{ neuralSyncScore() }}%</span>
-            <div class="progress-bar-small">
-                <div class="fill" [style.width.%]="neuralSyncScore()"></div>
-            </div>
-        </div>
+      </div>
     </header>
 
     <div class="intel-content custom-scrollbar">
-        <div class="intel-section">
-            <h4 class="section-title">STRATEGIC DIRECTIVES</h4>
-            <ul class="directives-list">
-                <li *ngFor="let d of gamingDirectives(); let i = index" [style.animation-delay]="i * 0.1 + 's'">
-                    <span class="material-symbols-outlined">arrow_right</span>
-                    {{ d }}
-                </li>
-            </ul>
-        </div>
+      <div class="intel-section">
+        <h4 class="section-title">STRATEGIC DIRECTIVES</h4>
+        <ul class="directives-list">
+          <li
+            *ngFor="let d of gamingDirectives(); let i = index"
+            [style.animation-delay]="i * 0.1 + 's'"
+          >
+            <span class="material-symbols-outlined">arrow_right</span>
+            {{ d }}
+          </li>
+        </ul>
+      </div>
 
-        <div class="intel-section">
-            <h4 class="section-title">ADVANTAGE METRICS</h4>
-            <div class="metric-row">
-                <span class="label">TACTICAL EDGE</span>
-                <span class="value">+{{ tacticalAdvantage() }}%</span>
-            </div>
-            <div class="metric-row">
-                <span class="label">REACTION LATENCY</span>
-                <span class="value">12ms</span>
-            </div>
+      <div class="intel-section">
+        <h4 class="section-title">ADVANTAGE METRICS</h4>
+        <div class="metric-row">
+          <span class="label">TACTICAL EDGE</span>
+          <span class="value">+{{ tacticalAdvantage() }}%</span>
         </div>
+        <div class="metric-row">
+          <span class="label">LIVE FLOOR TRAFFIC</span>
+          <span class="value">{{ liveMetrics().roomPlayers | number }}</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">QUEUE HEALTH</span>
+          <span class="value">{{ liveMetrics().queueHealth }}</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">UPTIME</span>
+          <span class="value">{{ liveMetrics().uptimeLabel }}</span>
+        </div>
+      </div>
+
+      <div class="intel-section">
+        <h4 class="section-title">PROGRESSION</h4>
+        <div class="metric-row">
+          <span class="label">LEVEL</span>
+          <span class="value">LVL {{ progressionSummary().level }}</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">TRACKED SESSIONS</span>
+          <span class="value">{{ progressionSummary().totalPlays }}</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">ACHIEVEMENTS</span>
+          <span class="value">{{ progressionSummary().achievements }}</span>
+        </div>
+      </div>
     </div>
   </aside>
 
-  <!-- Neural Matchmaking Overlay -->
-  <div class="matchmaking-overlay" *ngIf="isMatchmaking()" [class.active]="isMatchmaking()">
-    <div class="overlay-backdrop"></div>
-    <div class="matchmaking-container">
-        <div class="scanning-circle">
-            <div class="scan-ring outer"></div>
-            <div class="scan-ring inner"></div>
-            <div class="center-icon">
-                <span class="material-symbols-outlined">satellite_alt</span>
-            </div>
+  <div class="preview-overlay" *ngIf="selectedGame() as selected">
+    <div class="overlay-backdrop" (click)="closePreview()"></div>
+    <div class="preview-card glass-v42">
+      <div class="preview-media">
+        <img [src]="selected.image" [alt]="selected.name" />
+      </div>
+      <div class="preview-copy">
+        <div class="preview-topline">
+          <span
+            class="availability-badge"
+            [attr.data-type]="selected.availability"
+            >{{ selected.availability }}</span
+          >
+          <div class="badge-stack">
+            <span
+              class="game-badge"
+              *ngFor="let badge of getGameBadges(selected)"
+              [attr.data-tone]="badge.tone"
+            >
+              {{ badge.label }}
+            </span>
+          </div>
+        </div>
+        <h2>{{ selected.name }}</h2>
+        <p class="preview-description">{{ selected.description }}</p>
+        <p class="preview-warning" *ngIf="launchWarning()">
+          {{ launchWarning() }}
+        </p>
+
+        <div class="launch-grid">
+          <div class="launch-panel">
+            <span class="meta-label">Difficulty</span>
+            <strong>{{
+              selected.launchConfig?.difficulty || 'Flexible'
+            }}</strong>
+          </div>
+          <div class="launch-panel">
+            <span class="meta-label">Modes</span>
+            <strong>{{
+              selected.launchConfig?.modes?.join(', ') || 'Solo'
+            }}</strong>
+          </div>
+          <div class="launch-panel">
+            <span class="meta-label">Queue</span>
+            <strong>{{ selected.queueEstimateMinutes || 0 }} min</strong>
+          </div>
+          <div class="launch-panel">
+            <span class="meta-label">Embed</span>
+            <strong>{{ selected.launchConfig?.embedMode || 'inline' }}</strong>
+          </div>
         </div>
 
-        <div class="matchmaking-info">
-            <h2 class="status-title glitch-text" [attr.data-text]="matchmakingStatus()">{{ matchmakingStatus() }}</h2>
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress-fill" [style.width.%]="matchmakingProgress()"></div>
-                </div>
-                <span class="progress-pct">{{ matchmakingProgress() }}%</span>
-            </div>
-            <p class="ai-briefing">"{{ aiGamingBriefing() }}"</p>
+        <div class="launch-columns">
+          <div>
+            <h4>Session objectives</h4>
+            <ul>
+              <li
+                *ngFor="
+                  let objective of selected.sessionObjectives ||
+                    selected.launchConfig?.objectives ||
+                    []
+                "
+              >
+                {{ objective }}
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4>Controls</h4>
+            <ul>
+              <li
+                *ngFor="
+                  let control of selected.controlHints ||
+                    selected.launchConfig?.controls ||
+                    []
+                "
+              >
+                {{ control }}
+              </li>
+            </ul>
+          </div>
         </div>
+
+        <div class="preview-actions">
+          <button class="secondary-btn" (click)="openGameInNewTab(selected)">
+            <span class="material-symbols-outlined">open_in_new</span>
+            External launch
+          </button>
+          <button class="primary-btn" (click)="confirmLaunch()">
+            <span class="material-symbols-outlined">play_arrow</span>
+            {{
+              canEmbedInline(selected)
+                ? 'Start inline session'
+                : 'Governed launch'
+            }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Immersive Game Overlay -->
-  <div class="immersive-overlay" *ngIf="currentGame()" [class.active]="currentGame()">
+  <div
+    class="matchmaking-overlay"
+    *ngIf="isMatchmaking()"
+    [class.active]="isMatchmaking()"
+  >
+    <div class="overlay-backdrop"></div>
+    <div class="matchmaking-container">
+      <div class="scanning-circle">
+        <div class="scan-ring outer"></div>
+        <div class="scan-ring inner"></div>
+        <div class="center-icon">
+          <span class="material-symbols-outlined">satellite_alt</span>
+        </div>
+      </div>
+
+      <div class="matchmaking-info">
+        <h2
+          class="status-title glitch-text"
+          [attr.data-text]="matchmakingStatus()"
+        >
+          {{ matchmakingStatus() }}
+        </h2>
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              [style.width.%]="matchmakingProgress()"
+            ></div>
+          </div>
+          <span class="progress-pct">{{ matchmakingProgress() }}%</span>
+        </div>
+        <p class="ai-briefing">
+          Matched floor signal:
+          {{ matchedOpponent() || 'Finding best opponent' }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="immersive-overlay"
+    *ngIf="currentGame() as active"
+    [class.active]="currentGame()"
+  >
     <div class="overlay-backdrop" (click)="closeGame()"></div>
 
     <div class="game-console-window glass-v42">
       <header class="console-header">
         <div class="console-title">
           <span class="material-symbols-outlined">videogame_asset</span>
-          {{ currentGame()?.name }}
+          {{ active.name }}
         </div>
         <div class="console-controls">
+          <button
+            class="control-btn"
+            (click)="openGameInNewTab(active)"
+            title="Open in new tab"
+          >
+            <span class="material-symbols-outlined">open_in_new</span>
+          </button>
           <button class="control-btn" (click)="closeGame()" title="Exit Game">
             <span class="material-symbols-outlined">close</span>
           </button>
@@ -182,13 +616,36 @@
       </header>
 
       <div class="console-body">
-        <iframe
-          #gameIframe
-          [src]="getSafeUrl(currentGame()?.url || '')"
-          frameborder="0"
-          allowfullscreen
-          class="game-frame">
-        </iframe>
+        <ng-container
+          *ngIf="getSafeUrl(active) as safeUrl; else untrustedLaunch"
+        >
+          <iframe
+            #gameIframe
+            [src]="safeUrl"
+            frameborder="0"
+            allowfullscreen
+            allow="fullscreen; autoplay"
+            referrerpolicy="no-referrer"
+            sandbox="allow-scripts allow-forms allow-popups allow-pointer-lock"
+            class="game-frame"
+            (error)="onFrameError()"
+          >
+          </iframe>
+        </ng-container>
+
+        <ng-template #untrustedLaunch>
+          <div class="frame-fallback" aria-live="polite">
+            <span class="material-symbols-outlined">verified_user</span>
+            <h3>Protected launch</h3>
+            <p>
+              This cabinet is not trusted for inline embedding. Launch
+              externally to continue safely.
+            </p>
+            <button class="primary-btn" (click)="openGameInNewTab(active)">
+              Open in new tab
+            </button>
+          </div>
+        </ng-template>
       </div>
 
       <footer class="console-footer">
@@ -199,14 +656,15 @@
           </div>
           <div class="telemetry-item">
             <span class="label">SIGNAL:</span>
-            <span class="value">STABLE</span>
+            <span class="value">{{ liveMetrics().queueHealth }}</span>
           </div>
-          <div class="telemetry-item" *ngIf="neuralSyncScore() > 0">
-            <span class="label">NEURAL SYNC:</span>
-            <span class="value success">{{ neuralSyncScore() }}%</span>
+          <div class="telemetry-item">
+            <span class="label">UPTIME:</span>
+            <span class="value success">{{ liveMetrics().uptimeLabel }}</span>
           </div>
         </div>
         <div class="footer-actions">
+          <p class="frame-error" *ngIf="frameError()">{{ frameError() }}</p>
           <button class="footer-btn" (click)="closeGame()">
             <span class="material-symbols-outlined">eject</span>
             TERMINATE SESSION
