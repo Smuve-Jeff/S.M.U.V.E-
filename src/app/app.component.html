@@ -436,7 +436,17 @@
     </div>
 
     <!-- Mobile Navigation Bar -->
-    <nav class="mobile-nav-bar border-t border-border glass-v42">
+
+      <!-- S.M.U.V.E 1.0 Mobile Command Ticker -->
+      <div class="mobile-command-ticker bg-black/60 border-b border-border py-1 overflow-hidden h-6">
+        <div class="flex items-center gap-6 whitespace-nowrap animate-ticker">
+          <span class="text-[8px] font-black tracking-tighter text-primary">[UPLINK: ACTIVE]</span>
+          <span class="text-[8px] font-black tracking-tighter text-text-dim">STRATEGIC HEALTH: {{ profileService.profile().knowledgeBase.strategicHealthScore }}%</span>
+          <span class="text-[8px] font-black tracking-tighter text-accent">DECREE: {{ aiService.strategicDecrees()[0] }}</span>
+          <span class="text-[8px] font-black tracking-tighter text-primary">[S.M.U.V.E 1.0 EXECUTIVE COMMAND]</span>
+        </div>
+      </div>
+<nav class="mobile-nav-bar border-t border-border glass-v42">
       <button
         type="button"
         (click)="navigateToView('hub')"

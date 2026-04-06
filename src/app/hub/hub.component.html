@@ -1,4 +1,31 @@
 <div class="hub-wrapper" [class.playing]="playerService.isPlaying()">
+  <!-- S.M.U.V.E 1.0 Mobile Executive HUD -->
+  @if (aiService.isMobile() && aiService.isScanning()) {
+    <div class="mobile-executive-hud animate-pulse">
+      <div class="hud-glow"></div>
+      <div class="flex items-center gap-4 px-4 py-3">
+        <span class="material-symbols-outlined text-primary spin">security_update_good</span>
+        <div class="flex-1">
+          <p class="text-[10px] font-black uppercase tracking-tighter text-primary">S.M.U.V.E 1.0 // EXECUTIVE SCANNING</p>
+          <p class="text-xs font-bold">{{ aiService.currentProcessStep() }} ({{ aiService.scanningProgress() }}%)</p>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (aiService.isMobile() && !aiService.isScanning() && aiService.strategicDecrees().length > 0) {
+    <div class="mobile-directive-hud animate-enter" (click)="uiService.navigateToView('knowledge-base')">
+      <div class="flex items-center gap-4 px-4 py-3">
+        <span class="material-symbols-outlined text-accent">priority_high</span>
+        <div class="flex-1">
+          <p class="text-[10px] font-black uppercase tracking-tighter text-accent">STRATEGIC DECREE ISSUED</p>
+          <p class="text-xs italic truncate">"{{ aiService.strategicDecrees()[0] }}"</p>
+        </div>
+        <span class="material-symbols-outlined text-sm opacity-40">chevron_right</span>
+      </div>
+    </div>
+  }
+
   <!-- Background Reactive Layer -->
   <div class="hub-ambient-glow"></div>
   <div class="hub-reactive-grid"></div>
@@ -39,7 +66,21 @@
           <h2 class="card-heading">Executive Intelligence Brief</h2>
           <p class="card-subtext mb-8">Real-time scanning of your sonic assets and market readiness.</p>
 
-          <div class="audit-scores space-y-4">
+
+          <!-- Mobile Explicit Directives -->
+          <div class="mt-6 lg:hidden space-y-3">
+            <p class="text-[9px] font-black uppercase tracking-widest text-accent">Current Executive Directives</p>
+            @for (task of aiService.getDynamicChecklist().slice(0, 2); track task.id) {
+              <div class="directive-item bg-white/5 border border-white/10 rounded-lg p-3 flex gap-3">
+                <span class="material-symbols-outlined text-sm text-accent">bolt</span>
+                <div class="flex-1">
+                  <p class="text-[10px] font-bold uppercase">{{ task.label }}</p>
+                  <p class="text-[9px] opacity-60 leading-tight">{{ task.description }}</p>
+                </div>
+              </div>
+            }
+          </div>
+<div class="audit-scores space-y-4">
             <div class="score-row">
               <span class="score-label">Sonic Cohesion</span>
               <div class="score-bar-track"><div class="score-bar-fill bg-primary" [style.width.%]="85"></div></div>

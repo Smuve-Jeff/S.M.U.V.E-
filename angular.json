@@ -15,7 +15,9 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.json",
-            "polyfills": ["zone.js"],
+            "polyfills": [
+              "zone.js"
+            ],
             "assets": [
               "src/assets",
               "src/manifest.webmanifest"
@@ -26,18 +28,32 @@
             ],
             "scripts": [
               "node_modules/wow.js/dist/wow.min.js"
-            ]
+            ],
+            "optimization": true,
+            "outputHashing": "all",
+            "sourceMap": false,
+            "extractLicenses": true,
+            "buildOptimizer": true
           },
           "configurations": {
             "production": {
               "outputHashing": "all",
-              "optimization": true
+              "optimization": true,
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1mb",
+                  "maximumError": "2mb"
+                }
+              ]
             },
             "ghpages": {
               "outputHashing": "all",
               "optimization": true,
               "baseHref": "./",
-              "assets": ["src/assets"]
+              "assets": [
+                "src/assets"
+              ]
             },
             "development": {
               "optimization": false,

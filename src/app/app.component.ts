@@ -112,6 +112,12 @@ export class AppComponent {
   }
 
   private checkMobile() {
+    if (typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      if (!this.uiService.performanceMode()) {
+        this.uiService.togglePerformanceMode();
+      }
+    }
+
     const isNowMobile = window.innerWidth <= 1024;
     if (isNowMobile !== this.isMobile()) {
       this.isMobile.set(isNowMobile);
