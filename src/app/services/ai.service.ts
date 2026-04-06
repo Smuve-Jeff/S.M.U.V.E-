@@ -600,7 +600,7 @@ export class AiService {
   generateDrumPattern(input: {
     style?: string;
     energy?: number;
-    section?: 'intro' | 'verse' | 'hook' | 'bridge';
+    section?: 'intro' | 'verse' | 'hook' | 'bridge' | 'outro';
     variation?: number;
     humanize?: boolean;
   }): Array<{ step: number; midi: number; velocity: number; length: number }> {
