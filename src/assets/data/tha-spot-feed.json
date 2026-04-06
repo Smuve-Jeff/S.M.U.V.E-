@@ -40,15 +40,8 @@
       "description": "Music-first picks for creators moving between beats, sessions, and challenges.",
       "spotlight": "Best for artists coming straight from Studio.",
       "rules": {
-        "genres": [
-          "Music Battle",
-          "Rhythm"
-        ],
-        "tags": [
-          "Original",
-          "Rhythm",
-          "AI"
-        ]
+        "genres": ["Music Battle", "Rhythm"],
+        "tags": ["Original", "Rhythm", "AI"]
       }
     },
     {
@@ -57,11 +50,7 @@
       "icon": "joystick",
       "description": "Fast rotations, reflex-first play, and short-session score chasing.",
       "rules": {
-        "tags": [
-          "Arcade",
-          "Reflex",
-          "Retro"
-        ]
+        "tags": ["Arcade", "Reflex", "Retro"]
       }
     },
     {
@@ -71,15 +60,8 @@
       "description": "Competitive rooms with PvP, bracket pressure, and live match queues.",
       "spotlight": "Queue times update from active multiplayer titles.",
       "rules": {
-        "tags": [
-          "PvP",
-          "Combat",
-          "Multiplayer",
-          "Versus"
-        ],
-        "badgeIds": [
-          "tournament-live"
-        ]
+        "tags": ["PvP", "Combat", "Multiplayer", "Versus"],
+        "badgeIds": ["tournament-live"]
       }
     },
     {
@@ -88,14 +70,8 @@
       "icon": "sports_basketball",
       "description": "Athletic sims, head-to-head runs, and tournament ladders.",
       "rules": {
-        "genres": [
-          "Sports"
-        ],
-        "tags": [
-          "Basketball",
-          "Soccer",
-          "Football"
-        ]
+        "genres": ["Sports"],
+        "tags": ["Basketball", "Soccer", "Football"]
       }
     },
     {
@@ -104,11 +80,7 @@
       "icon": "psychology",
       "description": "High-IQ play, puzzle solving, and room-based mind games.",
       "rules": {
-        "genres": [
-          "Strategy",
-          "Puzzle",
-          "Classic"
-        ]
+        "genres": ["Strategy", "Puzzle", "Classic"]
       }
     },
     {
@@ -119,10 +91,7 @@
       "limitedTime": true,
       "spotlight": "Rotates with live events and staff promotions.",
       "rules": {
-        "badgeIds": [
-          "featured",
-          "tournament-live"
-        ]
+        "badgeIds": ["featured", "tournament-live"]
       }
     }
   ],
@@ -141,10 +110,7 @@
         "startAt": "2026-04-04T20:00:00.000Z",
         "endAt": "2026-04-07T05:00:00.000Z",
         "recurrence": "weekend",
-        "eligibilityTags": [
-          "Multiplayer",
-          "PvP"
-        ],
+        "eligibilityTags": ["Multiplayer", "PvP"],
         "rewardType": "cosmetic"
       }
     },
@@ -162,10 +128,7 @@
         "startAt": "2026-04-06T20:00:00.000Z",
         "endAt": "2026-04-07T20:00:00.000Z",
         "recurrence": "daily",
-        "eligibilityTags": [
-          "Rhythm",
-          "Original"
-        ],
+        "eligibilityTags": ["Rhythm", "Original"],
         "rewardType": "xp"
       }
     },
@@ -183,9 +146,7 @@
         "startAt": "2026-04-05T00:00:00.000Z",
         "endAt": "2026-04-07T12:00:00.000Z",
         "recurrence": "weekend",
-        "eligibilityTags": [
-          "Featured"
-        ],
+        "eligibilityTags": ["Featured"],
         "rewardType": "token"
       }
     }
@@ -249,19 +210,11 @@
       "route": "/studio",
       "icon": "tune",
       "cta": "Open Studio",
-      "roomIds": [
-        "producer-lounge"
-      ],
-      "audienceTags": [
-        "producer",
-        "returning"
-      ],
+      "roomIds": ["producer-lounge"],
+      "audienceTags": ["producer", "returning"],
       "priority": 10,
       "campaignType": "studio",
-      "gameIds": [
-        "2",
-        "5"
-      ]
+      "gameIds": ["2", "5"]
     },
     {
       "id": "promo-2",
@@ -270,21 +223,11 @@
       "route": "/remix-arena",
       "icon": "equalizer",
       "cta": "Go to Remix Arena",
-      "roomIds": [
-        "versus-night",
-        "weekend-clash"
-      ],
-      "audienceTags": [
-        "competitive",
-        "social"
-      ],
+      "roomIds": ["versus-night", "weekend-clash"],
+      "audienceTags": ["competitive", "social"],
       "priority": 9,
       "campaignType": "arena",
-      "gameIds": [
-        "1",
-        "10",
-        "13"
-      ]
+      "gameIds": ["1", "10", "13"]
     },
     {
       "id": "promo-3",
@@ -293,14 +236,8 @@
       "route": "/strategy",
       "icon": "analytics",
       "cta": "Open Intel",
-      "roomIds": [
-        "strategy",
-        "sports"
-      ],
-      "audienceTags": [
-        "competitive",
-        "returning"
-      ],
+      "roomIds": ["strategy", "sports"],
+      "audienceTags": ["competitive", "returning"],
       "priority": 8,
       "campaignType": "intel"
     }
@@ -338,19 +275,11 @@
       "rating": 4.9,
       "playersOnline": 1250,
       "availability": "Hybrid",
-      "tags": [
-        "Multiplayer",
-        "Original",
-        "PvP",
-        "Combat"
-      ],
+      "tags": ["Multiplayer", "Original", "PvP", "Combat"],
       "multiplayerType": "Server",
       "aiSupportLevel": "Advanced",
       "aiBriefing": "Establish dominance in the rap battle arena. Neural sync is tuned for rhythm precision.",
-      "badgeIds": [
-        "featured",
-        "tournament-live"
-      ],
+      "badgeIds": ["featured", "tournament-live"],
       "queueEstimateMinutes": 3,
       "sessionObjectives": [
         "Win two call-and-response rounds",
@@ -362,19 +291,12 @@
       ],
       "launchConfig": {
         "difficulty": "Competitive",
-        "controls": [
-          "Keyboard lanes",
-          "Space to trigger boosts"
-        ],
+        "controls": ["Keyboard lanes", "Space to trigger boosts"],
         "objectives": [
           "Finish top 3 in the lobby",
           "Maintain 90% rhythm accuracy"
         ],
-        "modes": [
-          "Solo",
-          "Versus",
-          "Tournament"
-        ],
+        "modes": ["Solo", "Versus", "Tournament"],
         "inlinePolicy": "trusted",
         "trustNote": "Hybrid internal cabinet with live bracket telemetry.",
         "embedMode": "inline",
@@ -397,41 +319,22 @@
       "rating": 4.7,
       "playersOnline": 850,
       "availability": "Hybrid",
-      "tags": [
-        "Multiplayer",
-        "Original",
-        "Co-op",
-        "Rhythm"
-      ],
+      "tags": ["Multiplayer", "Original", "Co-op", "Rhythm"],
       "multiplayerType": "Server",
       "aiSupportLevel": "Neural",
       "aiBriefing": "Collaborative remix engine is live. S.M.U.V.E. is balancing the sonic stems.",
-      "badgeIds": [
-        "staff-pick"
-      ],
+      "badgeIds": ["staff-pick"],
       "queueEstimateMinutes": 2,
-      "sessionObjectives": [
-        "Land 3 clean transitions",
-        "Chain a team combo"
-      ],
+      "sessionObjectives": ["Land 3 clean transitions", "Chain a team combo"],
       "controlHints": [
         "Swap stems before tension peaks",
         "Watch teammate cue indicators"
       ],
       "launchConfig": {
         "difficulty": "Crew",
-        "controls": [
-          "Keyboard",
-          "Mouse"
-        ],
-        "objectives": [
-          "Keep crowd energy above 80%",
-          "Hit one perfect drop"
-        ],
-        "modes": [
-          "Co-op",
-          "Versus"
-        ],
+        "controls": ["Keyboard", "Mouse"],
+        "objectives": ["Keep crowd energy above 80%", "Hit one perfect drop"],
+        "modes": ["Co-op", "Versus"],
         "inlinePolicy": "trusted",
         "trustNote": "Internal remix cabinet with shared beat telemetry.",
         "embedMode": "inline",
@@ -454,35 +357,19 @@
       "rating": 4.8,
       "playersOnline": 420,
       "availability": "Offline",
-      "tags": [
-        "Arcade",
-        "Offline",
-        "Reflex"
-      ],
-      "badgeIds": [
-        "featured"
-      ],
+      "tags": ["Arcade", "Offline", "Reflex"],
+      "badgeIds": ["featured"],
       "queueEstimateMinutes": 0,
-      "sessionObjectives": [
-        "Survive 90 seconds",
-        "Hit a 12x lane streak"
-      ],
-      "controlHints": [
-        "Feather turns early",
-        "Stay centered before boosts"
-      ],
+      "sessionObjectives": ["Survive 90 seconds", "Hit a 12x lane streak"],
+      "controlHints": ["Feather turns early", "Stay centered before boosts"],
       "launchConfig": {
         "difficulty": "Medium",
-        "controls": [
-          "Arrow keys"
-        ],
+        "controls": ["Arrow keys"],
         "objectives": [
           "Finish the first sector clean",
           "Hold one flawless boost chain"
         ],
-        "modes": [
-          "Solo"
-        ],
+        "modes": ["Solo"],
         "inlinePolicy": "trusted",
         "trustNote": "Offline cabinet validated for embedded launch.",
         "embedMode": "inline",
@@ -505,14 +392,8 @@
       "rating": 4.7,
       "playersOnline": 260,
       "availability": "Offline",
-      "tags": [
-        "Puzzle",
-        "Offline",
-        "Memory"
-      ],
-      "badgeIds": [
-        "staff-pick"
-      ],
+      "tags": ["Puzzle", "Offline", "Memory"],
+      "badgeIds": ["staff-pick"],
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Clear the board in under 2 minutes",
@@ -524,16 +405,9 @@
       ],
       "launchConfig": {
         "difficulty": "Accessible",
-        "controls": [
-          "Mouse"
-        ],
-        "objectives": [
-          "Land a clean memory cycle",
-          "Beat your best time"
-        ],
-        "modes": [
-          "Solo"
-        ],
+        "controls": ["Mouse"],
+        "objectives": ["Land a clean memory cycle", "Beat your best time"],
+        "modes": ["Solo"],
         "inlinePolicy": "trusted",
         "trustNote": "Offline cabinet with direct local launch.",
         "embedMode": "inline",
@@ -556,35 +430,22 @@
       "rating": 4.8,
       "playersOnline": 390,
       "availability": "Offline",
-      "tags": [
-        "Rhythm",
-        "Arcade",
-        "Original"
-      ],
-      "badgeIds": [
-        "new-drop"
-      ],
+      "tags": ["Rhythm", "Arcade", "Original"],
+      "badgeIds": ["new-drop"],
       "queueEstimateMinutes": 0,
-      "sessionObjectives": [
-        "Lock a 25-note streak",
-        "Stay above 95% timing"
-      ],
+      "sessionObjectives": ["Lock a 25-note streak", "Stay above 95% timing"],
       "controlHints": [
         "Watch the lane color shifts",
         "Trigger boosts on downbeats"
       ],
       "launchConfig": {
         "difficulty": "Adaptive",
-        "controls": [
-          "Lane keys"
-        ],
+        "controls": ["Lane keys"],
         "objectives": [
           "Keep the pulse meter green",
           "Finish one perfect chorus"
         ],
-        "modes": [
-          "Solo"
-        ],
+        "modes": ["Solo"],
         "inlinePolicy": "trusted",
         "trustNote": "Internal rhythm cabinet with fast recovery.",
         "embedMode": "inline",
@@ -607,44 +468,26 @@
       "rating": 4.8,
       "playersOnline": 5200,
       "availability": "Online",
-      "tags": [
-        "Classic",
-        "Arcade",
-        "Retro"
-      ],
-      "badgeIds": [
-        "trending"
-      ],
+      "tags": ["Classic", "Arcade", "Retro"],
+      "badgeIds": ["trending"],
       "queueEstimateMinutes": 1,
       "sessionObjectives": [
         "Hold the ring for 4 minutes",
         "Clear one high-speed cycle"
       ],
-      "controlHints": [
-        "Rotate early",
-        "Keep two lanes open for recovery"
-      ],
+      "controlHints": ["Rotate early", "Keep two lanes open for recovery"],
       "launchConfig": {
         "difficulty": "Reflex",
-        "controls": [
-          "Left / Right arrows"
-        ],
-        "objectives": [
-          "Beat the daily board",
-          "Stabilize after speed spikes"
-        ],
-        "modes": [
-          "Solo"
-        ],
+        "controls": ["Left / Right arrows"],
+        "objectives": ["Beat the daily board", "Stabilize after speed spikes"],
+        "modes": ["Solo"],
         "inlinePolicy": "trusted",
         "trustNote": "Embedded from an allowlisted partner domain.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://hextris.github.io/hextris/",
         "approvedEmbedUrl": "https://hextris.github.io/hextris/",
         "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://hextris.github.io"
-        ]
+        "telemetryOrigins": ["https://hextris.github.io"]
       },
       "art": {
         "eyebrow": "Online",
@@ -661,16 +504,10 @@
       "rating": 4.7,
       "playersOnline": 6300,
       "availability": "Online",
-      "tags": [
-        "Classic",
-        "AI",
-        "Logic"
-      ],
+      "tags": ["Classic", "AI", "Logic"],
       "aiSupportLevel": "Neural",
       "aiBriefing": "S.M.U.V.E. is analyzing the logic matrix for optimal number combination strategies.",
-      "badgeIds": [
-        "staff-pick"
-      ],
+      "badgeIds": ["staff-pick"],
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Hit 2048 in under 10 minutes",
@@ -682,25 +519,16 @@
       ],
       "launchConfig": {
         "difficulty": "Thinking",
-        "controls": [
-          "Arrow keys"
-        ],
-        "objectives": [
-          "Protect one anchor lane",
-          "Finish a clean merge path"
-        ],
-        "modes": [
-          "Solo"
-        ],
+        "controls": ["Arrow keys"],
+        "objectives": ["Protect one anchor lane", "Finish a clean merge path"],
+        "modes": ["Solo"],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted logic partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://play2048.co/",
         "approvedEmbedUrl": "https://play2048.co/",
         "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://play2048.co"
-        ]
+        "telemetryOrigins": ["https://play2048.co"]
       },
       "art": {
         "eyebrow": "Online",
@@ -717,44 +545,26 @@
       "rating": 4.5,
       "playersOnline": 2100,
       "availability": "Online",
-      "tags": [
-        "Arcade",
-        "Reflex",
-        "Rhythm"
-      ],
-      "badgeIds": [
-        "featured"
-      ],
+      "tags": ["Arcade", "Reflex", "Rhythm"],
+      "badgeIds": ["featured"],
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Hold a clean combo for 60 seconds",
         "Clear one hazard rush"
       ],
-      "controlHints": [
-        "Jump on offbeats",
-        "Use slides to reset timing"
-      ],
+      "controlHints": ["Jump on offbeats", "Use slides to reset timing"],
       "launchConfig": {
         "difficulty": "Fast",
-        "controls": [
-          "Keyboard"
-        ],
-        "objectives": [
-          "Protect your streak",
-          "Stay centered during doubles"
-        ],
-        "modes": [
-          "Solo"
-        ],
+        "controls": ["Keyboard"],
+        "objectives": ["Protect your streak", "Stay centered during doubles"],
+        "modes": ["Solo"],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted arcade partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://htmlgames.com/game/Beat+Runner",
         "approvedEmbedUrl": "https://htmlgames.com/game/Beat+Runner",
         "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://htmlgames.com"
-        ]
+        "telemetryOrigins": ["https://htmlgames.com"]
       },
       "art": {
         "eyebrow": "Online",
@@ -771,44 +581,26 @@
       "rating": 4.9,
       "playersOnline": 15400,
       "availability": "Online",
-      "tags": [
-        "Classic",
-        "Arcade",
-        "Retro"
-      ],
-      "badgeIds": [
-        "trending"
-      ],
+      "tags": ["Classic", "Arcade", "Retro"],
+      "badgeIds": ["trending"],
       "queueEstimateMinutes": 0,
-      "sessionObjectives": [
-        "Clear two boards",
-        "Bank one ghost combo"
-      ],
+      "sessionObjectives": ["Clear two boards", "Bank one ghost combo"],
       "controlHints": [
         "Use corners for ghost control",
         "Commit to power-pellet routes"
       ],
       "launchConfig": {
         "difficulty": "Classic",
-        "controls": [
-          "Arrow keys"
-        ],
-        "objectives": [
-          "Beat your route time",
-          "Convert a full power cycle"
-        ],
-        "modes": [
-          "Solo"
-        ],
+        "controls": ["Arrow keys"],
+        "objectives": ["Beat your route time", "Convert a full power cycle"],
+        "modes": ["Solo"],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted retro partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://pacman.live/play.html",
         "approvedEmbedUrl": "https://pacman.live/play.html",
         "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://pacman.live"
-        ]
+        "telemetryOrigins": ["https://pacman.live"]
       },
       "art": {
         "eyebrow": "Arcade",
@@ -825,45 +617,29 @@
       "rating": 4.7,
       "playersOnline": 4500,
       "availability": "Online",
-      "tags": [
-        "Combat",
-        "Arcade",
-        "Versus"
-      ],
-      "badgeIds": [
-        "tournament-live"
-      ],
+      "tags": ["Combat", "Arcade", "Versus"],
+      "badgeIds": ["tournament-live"],
       "queueEstimateMinutes": 2,
       "sessionObjectives": [
         "Win one set without dropping a round",
         "Land a clean punish combo"
       ],
-      "controlHints": [
-        "Block low on wake-up",
-        "Buffer inputs during jumps"
-      ],
+      "controlHints": ["Block low on wake-up", "Buffer inputs during jumps"],
       "launchConfig": {
         "difficulty": "Bracket",
-        "controls": [
-          "Keyboard"
-        ],
+        "controls": ["Keyboard"],
         "objectives": [
           "Survive the first bracket round",
           "Convert one punish cleanly"
         ],
-        "modes": [
-          "Solo",
-          "Versus"
-        ],
+        "modes": ["Solo", "Versus"],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted retro combat partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/10042-street-fighter-ii-the-world-warrior-world-910522.html",
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/10042-street-fighter-ii-the-world-warrior-world-910522.html",
         "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.retrogames.cc"
-        ]
+        "telemetryOrigins": ["https://www.retrogames.cc"]
       },
       "art": {
         "eyebrow": "Combat",
@@ -880,14 +656,8 @@
       "rating": 4.9,
       "playersOnline": 32400,
       "availability": "Online",
-      "tags": [
-        "Strategy",
-        "Logic",
-        "Classic"
-      ],
-      "badgeIds": [
-        "trending"
-      ],
+      "tags": ["Strategy", "Logic", "Classic"],
+      "badgeIds": ["trending"],
       "queueEstimateMinutes": 1,
       "sessionObjectives": [
         "Win material by move 15",
@@ -899,26 +669,16 @@
       ],
       "launchConfig": {
         "difficulty": "Ranked",
-        "controls": [
-          "Mouse"
-        ],
-        "objectives": [
-          "Hold tempo",
-          "Convert one structural edge"
-        ],
-        "modes": [
-          "Solo",
-          "Versus"
-        ],
+        "controls": ["Mouse"],
+        "objectives": ["Hold tempo", "Convert one structural edge"],
+        "modes": ["Solo", "Versus"],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted strategy partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://poki.com/en/g/master-chess",
         "approvedEmbedUrl": "https://poki.com/en/g/master-chess",
         "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://poki.com"
-        ]
+        "telemetryOrigins": ["https://poki.com"]
       },
       "art": {
         "eyebrow": "Strategy",
@@ -935,45 +695,26 @@
       "rating": 4.5,
       "playersOnline": 7800,
       "availability": "Online",
-      "tags": [
-        "Sports",
-        "Basketball",
-        "Competitive"
-      ],
-      "badgeIds": [
-        "featured"
-      ],
+      "tags": ["Sports", "Basketball", "Competitive"],
+      "badgeIds": ["featured"],
       "queueEstimateMinutes": 1,
       "sessionObjectives": [
         "Win by 5",
         "Land three clean possessions in a row"
       ],
-      "controlHints": [
-        "Save boost for fast breaks",
-        "Defend the paint first"
-      ],
+      "controlHints": ["Save boost for fast breaks", "Defend the paint first"],
       "launchConfig": {
         "difficulty": "Competitive",
-        "controls": [
-          "Keyboard"
-        ],
-        "objectives": [
-          "Control tempo",
-          "Close the game in the final minute"
-        ],
-        "modes": [
-          "Solo",
-          "Versus"
-        ],
+        "controls": ["Keyboard"],
+        "objectives": ["Control tempo", "Close the game in the final minute"],
+        "modes": ["Solo", "Versus"],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted sports partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://poki.com/en/g/basket-bros",
         "approvedEmbedUrl": "https://poki.com/en/g/basket-bros",
         "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://poki.com"
-        ]
+        "telemetryOrigins": ["https://poki.com"]
       },
       "art": {
         "eyebrow": "Sports",
@@ -990,47 +731,26 @@
       "rating": 4.8,
       "playersOnline": 42000,
       "availability": "Online",
-      "tags": [
-        "Sports",
-        "Soccer",
-        "Tournament"
-      ],
-      "badgeIds": [
-        "tournament-live",
-        "trending"
-      ],
+      "tags": ["Sports", "Soccer", "Tournament"],
+      "badgeIds": ["tournament-live", "trending"],
       "queueEstimateMinutes": 2,
-      "sessionObjectives": [
-        "Keep a clean sheet",
-        "Finish two fast breaks"
-      ],
+      "sessionObjectives": ["Keep a clean sheet", "Finish two fast breaks"],
       "controlHints": [
         "Switch fields early",
         "Exploit wide channels on counters"
       ],
       "launchConfig": {
         "difficulty": "Tournament",
-        "controls": [
-          "Keyboard"
-        ],
-        "objectives": [
-          "Survive extra time",
-          "Hold your lead under pressure"
-        ],
-        "modes": [
-          "Solo",
-          "Versus",
-          "Tournament"
-        ],
+        "controls": ["Keyboard"],
+        "objectives": ["Survive extra time", "Hold your lead under pressure"],
+        "modes": ["Solo", "Versus", "Tournament"],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted tournament partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://poki.com/en/g/soccer-skills-world-cup",
         "approvedEmbedUrl": "https://poki.com/en/g/soccer-skills-world-cup",
         "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://poki.com"
-        ]
+        "telemetryOrigins": ["https://poki.com"]
       },
       "art": {
         "eyebrow": "Sports",
@@ -1047,14 +767,8 @@
       "rating": 4.8,
       "playersOnline": 45000,
       "availability": "Online",
-      "tags": [
-        "Cards",
-        "Logic",
-        "Classic"
-      ],
-      "badgeIds": [
-        "staff-pick"
-      ],
+      "tags": ["Cards", "Logic", "Classic"],
+      "badgeIds": ["staff-pick"],
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Finish one clean board",
@@ -1066,25 +780,16 @@
       ],
       "launchConfig": {
         "difficulty": "Calm",
-        "controls": [
-          "Mouse"
-        ],
-        "objectives": [
-          "Finish under par",
-          "Keep the board open"
-        ],
-        "modes": [
-          "Solo"
-        ],
+        "controls": ["Mouse"],
+        "objectives": ["Finish under par", "Keep the board open"],
+        "modes": ["Solo"],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted classic partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://poki.com/en/g/solitaire",
         "approvedEmbedUrl": "https://poki.com/en/g/solitaire",
         "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://poki.com"
-        ]
+        "telemetryOrigins": ["https://poki.com"]
       },
       "art": {
         "eyebrow": "Cards",
@@ -1101,9 +806,7 @@
       "audience": {
         "minPlays": 1,
         "maxPlays": 999,
-        "rooms": [
-          "all"
-        ]
+        "rooms": ["all"]
       },
       "weights": {
         "history": 18,
@@ -1120,20 +823,10 @@
       "title": "Producer crossover",
       "subtitle": "Music-first cabinets tuned for artists bouncing out of Studio.",
       "audience": {
-        "primaryGenres": [
-          "Hip Hop",
-          "R&B",
-          "Pop"
-        ],
-        "rooms": [
-          "producer-lounge",
-          "arcade"
-        ]
+        "primaryGenres": ["Hip Hop", "R&B", "Pop"],
+        "rooms": ["producer-lounge", "arcade"]
       },
-      "roomIds": [
-        "producer-lounge",
-        "arcade"
-      ],
+      "roomIds": ["producer-lounge", "arcade"],
       "weights": {
         "genre": 16,
         "history": 7,
@@ -1150,15 +843,9 @@
       "subtitle": "High-pressure picks for rivals, parties, and bracket nights.",
       "audience": {
         "minPlays": 0,
-        "rooms": [
-          "versus-night",
-          "sports"
-        ]
+        "rooms": ["versus-night", "sports"]
       },
-      "roomIds": [
-        "versus-night",
-        "sports"
-      ],
+      "roomIds": ["versus-night", "sports"],
       "weights": {
         "genre": 6,
         "history": 8,

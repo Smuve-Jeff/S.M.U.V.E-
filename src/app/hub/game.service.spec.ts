@@ -39,7 +39,14 @@ const mockFeed: ThaSpotFeed = {
       title: 'Return to your hot cabinets',
       roomIds: ['all'],
       audience: { minPlays: 1, maxPlays: 99 },
-      weights: { history: 16, crowd: 4, badge: 3, room: 3, novelty: 1, genre: 1 },
+      weights: {
+        history: 16,
+        crowd: 4,
+        badge: 3,
+        room: 3,
+        novelty: 1,
+        genre: 1,
+      },
       maxItems: 4,
     },
   ],
@@ -150,9 +157,13 @@ describe('GameService', () => {
     await firstPending;
 
     const secondPending = firstValueFrom(service.getThaSpotFeed(true));
-    httpMock
-      .expectOne('/assets/data/tha-spot-feed.json')
-      .flush({ ...mockFeed, games: [...mockFeed.games, { ...mockFeed.games[0], id: '15', name: 'Reloaded' }] });
+    httpMock.expectOne('/assets/data/tha-spot-feed.json').flush({
+      ...mockFeed,
+      games: [
+        ...mockFeed.games,
+        { ...mockFeed.games[0], id: '15', name: 'Reloaded' },
+      ],
+    });
     const refreshed = await secondPending;
 
     expect(refreshed.games.some((game) => game.id === '15')).toBe(true);

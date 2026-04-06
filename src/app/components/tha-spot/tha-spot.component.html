@@ -57,7 +57,9 @@
       <div class="room-stats glass-v42">
         <div class="stat-item">
           <span class="stat-label">ROOM PLAYERS</span>
-          <span class="stat-value">{{ liveMetrics().roomPlayers | number }}</span>
+          <span class="stat-value">{{
+            liveMetrics().roomPlayers | number
+          }}</span>
         </div>
         <div class="stat-item">
           <span class="stat-label">QUEUE HEALTH</span>
@@ -108,7 +110,7 @@
           <h3>{{ activeRecommendationRail()?.title || 'Play next' }}</h3>
           <span>{{
             activeRecommendationRail()?.subtitle ||
-              (recommendedGames().length + ' tuned picks')
+              recommendedGames().length + ' tuned picks'
           }}</span>
         </div>
         <div class="mini-rail">
@@ -188,7 +190,10 @@
     </section>
 
     <section class="event-strip">
-      <article class="event-card glass-v42" *ngFor="let event of activeEvents()">
+      <article
+        class="event-card glass-v42"
+        *ngFor="let event of activeEvents()"
+      >
         <div class="event-topline">
           <span class="event-status" [attr.data-status]="event.status">{{
             event.windowLabel
@@ -284,9 +289,11 @@
                   </div>
 
                   <div class="game-tags">
-                    <span *ngFor="let tag of getVisibleTags(game)" class="tag">{{
-                      tag
-                    }}</span>
+                    <span
+                      *ngFor="let tag of getVisibleTags(game)"
+                      class="tag"
+                      >{{ tag }}</span
+                    >
                   </div>
                 </div>
               </div>
@@ -311,10 +318,15 @@
                 }}</span>
               </div>
               <div class="social-actions">
-                <span class="social-pill" [attr.data-type]="entry.relationship">{{
-                  entry.relationship || entry.status
-                }}</span>
-                <button class="ghost-link" (click)="handlePresenceAction(entry)">
+                <span
+                  class="social-pill"
+                  [attr.data-type]="entry.relationship"
+                  >{{ entry.relationship || entry.status }}</span
+                >
+                <button
+                  class="ghost-link"
+                  (click)="handlePresenceAction(entry)"
+                >
                   {{ getPresenceActionLabel(entry) }}
                 </button>
               </div>
@@ -526,7 +538,11 @@
           </button>
           <button class="primary-btn" (click)="confirmLaunch()">
             <span class="material-symbols-outlined">play_arrow</span>
-            {{ canEmbedInline(selected) ? 'Start inline session' : 'Governed launch' }}
+            {{
+              canEmbedInline(selected)
+                ? 'Start inline session'
+                : 'Governed launch'
+            }}
           </button>
         </div>
       </div>
@@ -600,7 +616,9 @@
       </header>
 
       <div class="console-body">
-        <ng-container *ngIf="getSafeUrl(active) as safeUrl; else untrustedLaunch">
+        <ng-container
+          *ngIf="getSafeUrl(active) as safeUrl; else untrustedLaunch"
+        >
           <iframe
             #gameIframe
             [src]="safeUrl"

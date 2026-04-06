@@ -79,7 +79,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       id: 'promo-studio',
       title: 'Jump back into Studio',
-      description: 'Carry the energy from Tha Spot into a new production session.',
+      description:
+        'Carry the energy from Tha Spot into a new production session.',
       route: '/studio',
       icon: 'tune',
       cta: 'Open Studio',
@@ -117,7 +118,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       subtitle: 'Use your last sessions to snap back into flow.',
       audience: { minPlays: 1, maxPlays: 999 },
       roomIds: ['all'],
-      weights: { history: 16, crowd: 4, badge: 3, novelty: 1, room: 2, genre: 6 },
+      weights: {
+        history: 16,
+        crowd: 4,
+        badge: 3,
+        novelty: 1,
+        room: 2,
+        genre: 6,
+      },
       maxItems: 4,
     },
     {
@@ -126,7 +134,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       subtitle: 'Rhythm and puzzle cabinets that fit studio downtime.',
       audience: { primaryGenres: ['Hip Hop', 'R&B', 'Pop'] },
       roomIds: ['arcade', 'strategy'],
-      weights: { genre: 14, history: 5, crowd: 3, badge: 4, novelty: 2, room: 4 },
+      weights: {
+        genre: 14,
+        history: 5,
+        crowd: 3,
+        badge: 4,
+        novelty: 2,
+        room: 4,
+      },
       maxItems: 4,
     },
   ],
@@ -143,8 +158,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Arcade', 'Offline', 'Reflex'],
       badgeIds: ['featured'],
       queueEstimateMinutes: 0,
-      sessionObjectives: ['Survive 90 seconds', 'Finish a flawless lane swap chain'],
-      controlHints: ['Arrow keys to weave lanes', 'Stay centered before boosts'],
+      sessionObjectives: [
+        'Survive 90 seconds',
+        'Finish a flawless lane swap chain',
+      ],
+      controlHints: [
+        'Arrow keys to weave lanes',
+        'Stay centered before boosts',
+      ],
       launchConfig: {
         difficulty: 'Medium',
         objectives: ['Survive the first wave', 'Hit a 10x streak'],
@@ -195,7 +216,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       id: '3',
       name: 'Grandmaster Chess',
       url: 'https://poki.com/en/g/master-chess',
-      description: 'Long-form strategy sessions with a steady competitive queue.',
+      description:
+        'Long-form strategy sessions with a steady competitive queue.',
       genre: 'Strategy',
       rating: 4.9,
       playersOnline: 32400,
@@ -203,8 +225,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Strategy', 'Logic', 'Classic'],
       badgeIds: ['trending'],
       queueEstimateMinutes: 1,
-      sessionObjectives: ['Win material by move 15', 'Convert one endgame cleanly'],
-      controlHints: ['Open the center early', 'Review checks, captures, threats'],
+      sessionObjectives: [
+        'Win material by move 15',
+        'Convert one endgame cleanly',
+      ],
+      controlHints: [
+        'Open the center early',
+        'Review checks, captures, threats',
+      ],
       launchConfig: {
         difficulty: 'Ranked',
         objectives: ['Hold tempo', 'Finish with a clean conversion'],

@@ -198,7 +198,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
     return [...this.promotions()]
       .filter(
-        (promotion) => !promotion.roomIds?.length || promotion.roomIds.includes(roomId)
+        (promotion) =>
+          !promotion.roomIds?.length || promotion.roomIds.includes(roomId)
       )
       .filter(
         (promotion) =>
@@ -318,8 +319,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     const progression = profile.thaSpotProgression || {};
     const totalPlays = this.getTotalPlays();
     const masteredRoom =
-      this.gamingRooms().find((room) => room.id === progression.favoriteRoomId) ||
-      this.findMasteredRoom(stats);
+      this.gamingRooms().find(
+        (room) => room.id === progression.favoriteRoomId
+      ) || this.findMasteredRoom(stats);
     const currentStreak = progression.currentStreak || 0;
     return {
       level: profile.level || 1,
@@ -327,7 +329,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       achievements: (profile.achievements || []).length,
       totalPlays,
       masteryLabel: masteredRoom?.name || 'Choose a room',
-      streakLabel: currentStreak > 0 ? `${currentStreak} session streak` : 'No streak yet',
+      streakLabel:
+        currentStreak > 0 ? `${currentStreak} session streak` : 'No streak yet',
       cosmetics: (progression.earnedCosmetics || []).length,
     };
   });
@@ -380,7 +383,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.selectedGame.set(game);
     this.launchWarning.set(
       this.canEmbedInline(game)
-        ? game.launchConfig?.trustNote || 'Exact embed target verified from the live feed.'
+        ? game.launchConfig?.trustNote ||
+            'Exact embed target verified from the live feed.'
         : 'Inline launch blocked because this cabinet requires a governed external launch.'
     );
     this.frameError.set(null);
@@ -464,7 +468,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.currentGame.set(game);
     this.sessionStartedAt.set(Date.now());
     this.frameError.set(null);
-    await this.profileService.recordGameSession(game.id, this.getSessionContext(game));
+    await this.profileService.recordGameSession(
+      game.id,
+      this.getSessionContext(game)
+    );
     await this.unlockProgressionMilestones(game, 0);
   }
 
@@ -793,9 +800,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     const weights = rail.weights || {};
     const gameStats = stats[game.id];
     const activeRoom = this.gamingRooms().find((room) => room.id === roomId);
-    const badgeScore = Math.min(game.badgeIds?.length || 0, 3) * (weights.badge || 0);
-    const historyScore = Math.min(gameStats?.plays || 0, MAX_HISTORY_SCORE) * ((weights.history || 0) / 6);
-    const crowdScore = Math.min((game.playersOnline || 0) / 2500, 8) * (weights.crowd || 0);
+    const badgeScore =
+      Math.min(game.badgeIds?.length || 0, 3) * (weights.badge || 0);
+    const historyScore =
+      Math.min(gameStats?.plays || 0, MAX_HISTORY_SCORE) *
+      ((weights.history || 0) / 6);
+    const crowdScore =
+      Math.min((game.playersOnline || 0) / 2500, 8) * (weights.crowd || 0);
     const roomScore =
       activeRoom && this.gameService.matchesRoom(game, activeRoom)
         ? weights.room || 0
@@ -814,7 +825,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     const noveltyScore = gameStats?.plays ? 0 : weights.novelty || 0;
     const explicitGameBoost = rail.gameIds?.includes(game.id) ? 12 : 0;
 
-    return badgeScore + historyScore + crowdScore + roomScore + genreScore + noveltyScore + explicitGameBoost;
+    return (
+      badgeScore +
+      historyScore +
+      crowdScore +
+      roomScore +
+      genreScore +
+      noveltyScore +
+      explicitGameBoost
+    );
   }
 
   private resolveLiveEvent(event: LiveEvent): LiveEvent | null {

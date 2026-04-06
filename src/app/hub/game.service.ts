@@ -38,7 +38,9 @@ function asNumber(value: unknown, fallback = 0) {
 }
 
 function asStringArray(value: unknown) {
-  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : [];
 }
 
 const COVER_HASH_SEED = 7;
@@ -83,15 +85,25 @@ function buildGameCover(
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
-function normalizeLaunchConfig(config: GameLaunchConfig | undefined, fallbackUrl: string): GameLaunchConfig {
+function normalizeLaunchConfig(
+  config: GameLaunchConfig | undefined,
+  fallbackUrl: string
+): GameLaunchConfig {
   const inlinePolicy = config?.inlinePolicy || 'trusted';
   const embedMode =
-    config?.embedMode || (inlinePolicy === 'external-only' ? 'external-only' : 'inline');
-  const approvedEmbedUrl = config?.approvedEmbedUrl || (embedMode === 'inline' ? fallbackUrl : undefined);
+    config?.embedMode ||
+    (inlinePolicy === 'external-only' ? 'external-only' : 'inline');
+  const approvedEmbedUrl =
+    config?.approvedEmbedUrl ||
+    (embedMode === 'inline' ? fallbackUrl : undefined);
   const approvedExternalUrl = config?.approvedExternalUrl || fallbackUrl;
   const telemetryMode =
     config?.telemetryMode ||
-    (fallbackUrl.startsWith('/assets/games/') ? 'frame-only' : approvedEmbedUrl ? 'origin' : 'none');
+    (fallbackUrl.startsWith('/assets/games/')
+      ? 'frame-only'
+      : approvedEmbedUrl
+        ? 'origin'
+        : 'none');
 
   return {
     ...config,
@@ -109,7 +121,8 @@ function normalizeLaunchConfig(config: GameLaunchConfig | undefined, fallbackUrl
 }
 
 function normalizeGame(game: Game): Game {
-  const eyebrow = game.art?.eyebrow || game.availability || game.genre || 'Tha Spot';
+  const eyebrow =
+    game.art?.eyebrow || game.availability || game.genre || 'Tha Spot';
   const accentStart = game.art?.accentStart || '#10b981';
   const accentEnd = game.art?.accentEnd || '#38bdf8';
 
@@ -122,12 +135,17 @@ function normalizeGame(game: Game): Game {
     genre: asString(game.genre),
     tags: asStringArray(game.tags),
     badgeIds: asStringArray(game.badgeIds),
-    sessionObjectives: asStringArray(game.sessionObjectives || game.launchConfig?.objectives),
-    controlHints: asStringArray(game.controlHints || game.launchConfig?.controls),
+    sessionObjectives: asStringArray(
+      game.sessionObjectives || game.launchConfig?.objectives
+    ),
+    controlHints: asStringArray(
+      game.controlHints || game.launchConfig?.controls
+    ),
     queueEstimateMinutes: Math.max(0, asNumber(game.queueEstimateMinutes)),
     playersOnline: Math.max(0, asNumber(game.playersOnline)),
     rating: Math.max(0, Math.min(5, asNumber(game.rating))),
-    image: game.image || buildGameCover(game.name, eyebrow, accentStart, accentEnd),
+    image:
+      game.image || buildGameCover(game.name, eyebrow, accentStart, accentEnd),
     launchConfig: normalizeLaunchConfig(game.launchConfig, asString(game.url)),
     art: {
       eyebrow,
@@ -178,11 +196,15 @@ function normalizeEvent(event: LiveEvent): LiveEvent {
       ? {
           startAt: asString(event.schedule.startAt),
           endAt: asString(event.schedule.endAt),
-          recurrence: ['once', 'daily', 'weekend'].includes(event.schedule.recurrence || '')
+          recurrence: ['once', 'daily', 'weekend'].includes(
+            event.schedule.recurrence || ''
+          )
             ? event.schedule.recurrence
             : 'once',
           eligibilityTags: asStringArray(event.schedule.eligibilityTags),
-          rewardType: ['xp', 'cosmetic', 'token'].includes(event.schedule.rewardType || '')
+          rewardType: ['xp', 'cosmetic', 'token'].includes(
+            event.schedule.rewardType || ''
+          )
             ? event.schedule.rewardType
             : 'xp',
         }
@@ -195,13 +217,17 @@ function normalizePresence(entry: SocialPresence): SocialPresence {
     ...entry,
     id: asString(entry.id),
     name: asString(entry.name, 'Unknown crew'),
-    status: ['online', 'queueing', 'in-match', 'hosting', 'invited'].includes(entry.status)
+    status: ['online', 'queueing', 'in-match', 'hosting', 'invited'].includes(
+      entry.status
+    )
       ? entry.status
       : 'online',
     activity: asString(entry.activity),
     roomId: asString(entry.roomId, 'all'),
     gameId: asString(entry.gameId),
-    relationship: ['friend', 'rival', 'party', 'invite'].includes(entry.relationship || '')
+    relationship: ['friend', 'rival', 'party', 'invite'].includes(
+      entry.relationship || ''
+    )
       ? entry.relationship
       : 'friend',
     joinable: !!entry.joinable,
@@ -225,7 +251,9 @@ function normalizePromotion(card: PromotionCard): PromotionCard {
     gameIds: asStringArray(card.gameIds),
     audienceTags: asStringArray(card.audienceTags),
     priority: asNumber(card.priority),
-    campaignType: ['studio', 'arena', 'intel', 'community'].includes(card.campaignType || '')
+    campaignType: ['studio', 'arena', 'intel', 'community'].includes(
+      card.campaignType || ''
+    )
       ? card.campaignType
       : 'community',
   };
@@ -251,7 +279,9 @@ function normalizeLeaderboard(entry: LeaderboardEntry): LeaderboardEntry {
   };
 }
 
-function normalizeRecommendationRail(rail: RecommendationRail): RecommendationRail {
+function normalizeRecommendationRail(
+  rail: RecommendationRail
+): RecommendationRail {
   return {
     ...rail,
     id: asString(rail.id),
@@ -266,7 +296,10 @@ function normalizeRecommendationRail(rail: RecommendationRail): RecommendationRa
           primaryGenres: asStringArray(rail.audience.primaryGenres),
           rooms: asStringArray(rail.audience.rooms),
           minPlays: Math.max(0, asNumber(rail.audience.minPlays)),
-          maxPlays: Math.max(0, asNumber(rail.audience.maxPlays, Number.MAX_SAFE_INTEGER)),
+          maxPlays: Math.max(
+            0,
+            asNumber(rail.audience.maxPlays, Number.MAX_SAFE_INTEGER)
+          ),
           requiresAchievements: !!rail.audience.requiresAchievements,
         }
       : undefined,
@@ -282,16 +315,26 @@ function normalizeRecommendationRail(rail: RecommendationRail): RecommendationRa
 }
 
 function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
-  const games = (feed.games || []).map((game) => normalizeGame(game)).filter((game) => !!game.id && !!game.url);
+  const games = (feed.games || [])
+    .map((game) => normalizeGame(game))
+    .filter((game) => !!game.id && !!game.url);
 
   return {
-    badges: (feed.badges || []).map((badge) => normalizeBadge(badge)).filter((badge) => !!badge.id),
-    rooms: (feed.rooms || []).map((room) => normalizeRoom(room)).filter((room) => !!room.id),
-    liveEvents: (feed.liveEvents || []).map((event) => normalizeEvent(event)).filter((event) => !!event.id),
+    badges: (feed.badges || [])
+      .map((badge) => normalizeBadge(badge))
+      .filter((badge) => !!badge.id),
+    rooms: (feed.rooms || [])
+      .map((room) => normalizeRoom(room))
+      .filter((room) => !!room.id),
+    liveEvents: (feed.liveEvents || [])
+      .map((event) => normalizeEvent(event))
+      .filter((event) => !!event.id),
     socialPresence: (feed.socialPresence || [])
       .map((entry) => normalizePresence(entry))
       .filter((entry) => !!entry.id),
-    promotions: (feed.promotions || []).map((card) => normalizePromotion(card)).filter((card) => !!card.id),
+    promotions: (feed.promotions || [])
+      .map((card) => normalizePromotion(card))
+      .filter((card) => !!card.id),
     leaderboards: (feed.leaderboards || [])
       .map((entry) => normalizeLeaderboard(entry))
       .filter((entry) => !!entry.id),
@@ -358,7 +401,9 @@ export class GameService {
   getTrending(): Observable<Game[]> {
     return this.getThaSpotFeed().pipe(
       map((feed) =>
-        feed.games.filter((game) => game.badgeIds?.includes('trending')).slice(0, 5)
+        feed.games
+          .filter((game) => game.badgeIds?.includes('trending'))
+          .slice(0, 5)
       )
     );
   }
@@ -366,7 +411,9 @@ export class GameService {
   getNew(): Observable<Game[]> {
     return this.getThaSpotFeed().pipe(
       map((feed) =>
-        feed.games.filter((game) => game.badgeIds?.includes('new-drop')).slice(0, 5)
+        feed.games
+          .filter((game) => game.badgeIds?.includes('new-drop'))
+          .slice(0, 5)
       )
     );
   }
@@ -382,9 +429,15 @@ export class GameService {
     }
 
     const normalizedTags = (game.tags || []).map((tag) => tag.toLowerCase());
-    const normalizedGenres = (rules.genres || []).map((genre) => genre.toLowerCase());
-    const normalizedRuleTags = (rules.tags || []).map((tag) => tag.toLowerCase());
-    const normalizedBadges = (game.badgeIds || []).map((badge) => badge.toLowerCase());
+    const normalizedGenres = (rules.genres || []).map((genre) =>
+      genre.toLowerCase()
+    );
+    const normalizedRuleTags = (rules.tags || []).map((tag) =>
+      tag.toLowerCase()
+    );
+    const normalizedBadges = (game.badgeIds || []).map((badge) =>
+      badge.toLowerCase()
+    );
 
     const genreMatch =
       !normalizedGenres.length ||
@@ -397,9 +450,13 @@ export class GameService {
       (!!game.availability && rules.availability.includes(game.availability));
     const badgeMatch =
       !rules.badgeIds?.length ||
-      rules.badgeIds.some((badge) => normalizedBadges.includes(badge.toLowerCase()));
-    const featuredMatch = !rules.featuredOnly || !!game.badgeIds?.includes('featured');
-    const gameIdMatch = !rules.gameIds?.length || rules.gameIds.includes(game.id);
+      rules.badgeIds.some((badge) =>
+        normalizedBadges.includes(badge.toLowerCase())
+      );
+    const featuredMatch =
+      !rules.featuredOnly || !!game.badgeIds?.includes('featured');
+    const gameIdMatch =
+      !rules.gameIds?.length || rules.gameIds.includes(game.id);
 
     return (
       genreMatch &&
@@ -433,7 +490,9 @@ export class GameService {
 
     switch (sort) {
       case 'Popular':
-        filtered.sort((a, b) => (b.playersOnline || 0) - (a.playersOnline || 0));
+        filtered.sort(
+          (a, b) => (b.playersOnline || 0) - (a.playersOnline || 0)
+        );
         break;
       case 'Rating':
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));

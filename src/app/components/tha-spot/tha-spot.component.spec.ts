@@ -136,7 +136,14 @@ const mockFeed: ThaSpotFeed = {
       subtitle: 'Music-first feed picks.',
       audience: { primaryGenres: ['Hip Hop'], minPlays: 0, maxPlays: 99 },
       roomIds: ['all', 'producer-lounge'],
-      weights: { genre: 12, history: 8, crowd: 4, badge: 4, room: 6, novelty: 3 },
+      weights: {
+        genre: 12,
+        history: 8,
+        crowd: 4,
+        badge: 4,
+        room: 6,
+        novelty: 3,
+      },
       maxItems: 4,
     },
     {
@@ -145,7 +152,14 @@ const mockFeed: ThaSpotFeed = {
       subtitle: 'History-weighted picks.',
       audience: { minPlays: 1, maxPlays: 99 },
       roomIds: ['all', 'versus-night', 'producer-lounge'],
-      weights: { history: 18, crowd: 3, badge: 2, room: 2, novelty: 1, genre: 1 },
+      weights: {
+        history: 18,
+        crowd: 3,
+        badge: 2,
+        room: 2,
+        novelty: 1,
+        genre: 1,
+      },
       maxItems: 4,
     },
   ],
@@ -302,7 +316,9 @@ describe('ThaSpotComponent', () => {
   }));
 
   it('surfaces feed-driven recommendations and live metrics', () => {
-    expect(component.activeRecommendationRail()?.title).toBe('Producer crossover');
+    expect(component.activeRecommendationRail()?.title).toBe(
+      'Producer crossover'
+    );
     expect(component.recommendedGames().length).toBeGreaterThan(0);
     expect(component.recentlyPlayed()[0].name).toBe('Tempo Lockdown');
     expect(component.liveMetrics().roomPlayers).toBe(1590);
@@ -332,10 +348,15 @@ describe('ThaSpotComponent', () => {
   it('resolves scheduled events from the live feed clock', fakeAsync(() => {
     component.setActiveRoom('producer-lounge');
     tick(241);
-    component.now.set(new Date('2026-04-07T19:30:00.000Z').getTime());
+    component.now.set(new Date('2026-04-06T19:30:00.000Z').getTime());
     fixture.detectChanges();
 
-    expect(component.activeEvents()[0]?.status).toBe('ending-soon');
+    expect(component.activeEvents()[0]?.status).toBe('upcoming');
+
+    component.now.set(new Date('2026-04-06T21:00:00.000Z').getTime());
+    fixture.detectChanges();
+
+    expect(component.activeEvents()[0]?.status).toBe('live');
   }));
 
   it('opens a governed preview before starting a game', () => {
@@ -359,7 +380,7 @@ describe('ThaSpotComponent', () => {
       '1',
       expect.objectContaining({
         roomId: 'all',
-        eventId: undefined,
+        eventId: 'event-1',
       })
     );
   }));

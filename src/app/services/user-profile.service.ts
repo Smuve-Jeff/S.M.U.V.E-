@@ -255,10 +255,16 @@ export class UserProfileService {
       plays: prev.plays || 0,
       lastPlayedAt: Date.now(),
       currentStreak: nextProgression.currentStreak,
-      longestStreak: Math.max(prev.longestStreak || 0, nextProgression.longestStreak || 0),
+      longestStreak: Math.max(
+        prev.longestStreak || 0,
+        nextProgression.longestStreak || 0
+      ),
       lastRoomId: context.roomId || prev.lastRoomId,
       roomPlays: prev.roomPlays || {},
-      earnedCosmetics: this.mergeUniqueStrings(prev.earnedCosmetics, context.cosmetics),
+      earnedCosmetics: this.mergeUniqueStrings(
+        prev.earnedCosmetics,
+        context.cosmetics
+      ),
       eventHistory: this.buildEventHistory(prev.eventHistory, context),
     };
 
@@ -277,10 +283,13 @@ export class UserProfileService {
     const stats = { ...(current.gameStats || {}) };
     const prev = stats[gameId] || {};
     const playedAt = Date.now();
-    const previousPlayedAt = prev.lastPlayedAt || current.thaSpotProgression?.lastSessionAt;
+    const previousPlayedAt =
+      prev.lastPlayedAt || current.thaSpotProgression?.lastSessionAt;
     const currentStreak =
       previousPlayedAt && playedAt - previousPlayedAt <= this.streakWindowMs
-        ? (prev.currentStreak || current.thaSpotProgression?.currentStreak || 0) + 1
+        ? (prev.currentStreak ||
+            current.thaSpotProgression?.currentStreak ||
+            0) + 1
         : 1;
     const roomId = context.roomId || prev.lastRoomId;
     const roomPlays = {
@@ -289,13 +298,17 @@ export class UserProfileService {
         ? { [roomId]: ((prev.roomPlays || {})[roomId] || 0) + 1 }
         : {}),
     };
-    const nextProgression = this.buildThaSpotProgression(current.thaSpotProgression, prev, {
-      ...context,
-      playedAt,
-      roomId,
-      currentStreak,
-      roomPlays,
-    });
+    const nextProgression = this.buildThaSpotProgression(
+      current.thaSpotProgression,
+      prev,
+      {
+        ...context,
+        playedAt,
+        roomId,
+        currentStreak,
+        roomPlays,
+      }
+    );
 
     stats[gameId] = {
       ...prev,
@@ -305,7 +318,10 @@ export class UserProfileService {
       longestStreak: Math.max(prev.longestStreak || 0, currentStreak),
       lastRoomId: roomId,
       roomPlays,
-      earnedCosmetics: this.mergeUniqueStrings(prev.earnedCosmetics, context.cosmetics),
+      earnedCosmetics: this.mergeUniqueStrings(
+        prev.earnedCosmetics,
+        context.cosmetics
+      ),
       eventHistory: this.buildEventHistory(prev.eventHistory, context),
     };
 
@@ -397,7 +413,10 @@ export class UserProfileService {
     ].slice(-this.maxEventHistory);
   }
 
-  private mergeUniqueStrings(existing: string[] | undefined, incoming: string[] | undefined) {
+  private mergeUniqueStrings(
+    existing: string[] | undefined,
+    incoming: string[] | undefined
+  ) {
     return [...new Set([...(existing || []), ...(incoming || [])])];
   }
 }
