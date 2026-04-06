@@ -64,6 +64,22 @@ describe('DeckService', () => {
     expect(service.deckA().isPlaying).toBe(false);
   });
 
+  it('syncs deck progress immediately after toggling playback', () => {
+    mockEngine.getDeckProgress.mockReturnValue({
+      position: 14,
+      duration: 120,
+      isPlaying: true,
+      slipPosition: 14,
+    });
+    mockEngine.getDeck.mockReturnValue({ rate: 1.1 });
+
+    service.togglePlay('A');
+
+    expect(service.deckA().progress).toBe(14);
+    expect(service.deckA().playbackRate).toBe(1.1);
+    expect(service.deckA().isPlaying).toBe(true);
+  });
+
   it('syncs playback rate and progress from the audio engine', () => {
     mockEngine.getDeck.mockReturnValueOnce({ rate: 1.25 });
     mockEngine.getDeckProgress.mockReturnValueOnce({
