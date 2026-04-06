@@ -25,9 +25,9 @@ import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { PlayerService } from '../../services/player.service';
 
-const RECORDING_TIMER_UPDATE_INTERVAL_MS = 250;
-const MIN_ROLL_INTERVAL_MS = 50;
-const MIN_SAMPLER_RETURN_MS = 80;
+const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
+const MIN_ROLL_INTERVAL_MILLIS = 50;
+const MIN_SAMPLER_RETURN_MILLIS = 80;
 
 @Component({
   selector: 'app-dj-deck',
@@ -384,7 +384,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   clearPad(deck: 'A' | 'B', index: number, event: MouseEvent) {
     event.preventDefault();
     if (this.performanceMode() === 'roll') {
-      this.sessionNotice.set('Roll pads are live performance triggers and do not store cues.');
+      this.sessionNotice.set(
+        'Roll pads cannot be cleared - they are live performance triggers without stored state.'
+      );
       return;
     }
 
@@ -702,7 +704,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       if (this.recordingStartedAt) {
         this.recordingElapsedMs.set(Date.now() - this.recordingStartedAt);
       }
-    }, RECORDING_TIMER_UPDATE_INTERVAL_MS);
+    }, RECORDING_TIMER_UPDATE_INTERVAL_MILLIS);
   }
 
   private cleanupRecordingState() {
@@ -768,7 +770,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       if (!state) return;
       this.engine.seekDeck(deck, this.getLoopStart(state.origin, state.loopDuration));
       this.engine.playDeck(deck);
-    }, Math.max(MIN_ROLL_INTERVAL_MS, loopDuration * 1000));
+    }, Math.max(MIN_ROLL_INTERVAL_MILLIS, loopDuration * 1000));
     this.deckService.syncProgress();
     this.sessionNotice.set(
       `Deck ${deck} ${this.rollPadLabels[index]} beat slip roll engaged.`
@@ -835,7 +837,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       }
       this.clearSamplerActivePad(deck);
       this.deckService.syncProgress();
-    }, Math.max(MIN_SAMPLER_RETURN_MS, shotDuration * 1000));
+    }, Math.max(MIN_SAMPLER_RETURN_MILLIS, shotDuration * 1000));
     this.deckService.syncProgress();
     this.sessionNotice.set(
       `Deck ${deck} sampler pad ${index + 1} fired for ${this.formatPadWindow(shotDuration)}.`
