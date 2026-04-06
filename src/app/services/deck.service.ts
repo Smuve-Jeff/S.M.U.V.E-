@@ -73,6 +73,7 @@ export class DeckService {
         track: { ...d.track, name: fileName, url: '' },
         duration: buffer.duration,
         hotCues: new Array(8).fill(null),
+        samplerPads: new Array(8).fill(null),
         progress: 0,
         vinylImageUrl:
           vinylUrl || 'https://picsum.photos/seed/' + fileName + '/200',
@@ -83,6 +84,7 @@ export class DeckService {
         track: { ...d.track, name: fileName, url: '' },
         duration: buffer.duration,
         hotCues: new Array(8).fill(null),
+        samplerPads: new Array(8).fill(null),
         progress: 0,
         vinylImageUrl:
           vinylUrl || 'https://picsum.photos/seed/' + fileName + '/200',
@@ -115,6 +117,25 @@ export class DeckService {
       const cues = [...d.hotCues];
       cues[slot] = null;
       return { ...d, hotCues: cues };
+    });
+  }
+
+  setSamplerPad(deck: DeckId, slot: number, position?: number) {
+    const pos = position ?? this.engine.getDeckProgress(deck).position;
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => {
+      const samplerPads = [...d.samplerPads];
+      samplerPads[slot] = pos;
+      return { ...d, samplerPads };
+    });
+  }
+
+  clearSamplerPad(deck: DeckId, slot: number) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => {
+      const samplerPads = [...d.samplerPads];
+      samplerPads[slot] = null;
+      return { ...d, samplerPads };
     });
   }
 

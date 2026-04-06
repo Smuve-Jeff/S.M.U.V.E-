@@ -64,6 +64,7 @@ export interface DeckState {
   wasPlayingBeforeScratch?: boolean;
   buffer?: AudioBuffer;
   hotCues: (number | null)[];
+  samplerPads: (number | null)[];
   keyLock: boolean;
   loopLength: number;
   slip: boolean;
@@ -93,6 +94,7 @@ export const initialDeckState: DeckState = {
   eqLow: 0,
   wasPlayingBeforeScratch: false,
   hotCues: new Array(8).fill(null),
+  samplerPads: new Array(8).fill(null),
   keyLock: true,
   loopLength: 4,
   slip: false,

@@ -133,8 +133,17 @@
       <div class="mt-4 grid grid-cols-4 gap-2 performance-grid">
         @for (pad of [0,1,2,3,4,5,6,7]; track pad) {
           <button class="pad-btn border-brand-primary/30 hover:bg-brand-primary/10"
+                  [class.pad-roll-active]="isRollPadActive('A', pad)"
+                  [class.pad-sampler-armed]="isSamplerPadSet('A', pad)"
+                  [class.pad-sampler-live]="isSamplerPadActive('A', pad)"
+                  [class.pad-cue-armed]="isCuePadSet('A', pad)"
+                  (mousedown)="handlePadDown('A', pad, $event)"
+                  (touchstart)="handlePadDown('A', pad, $event)"
+                  (mouseup)="handlePadRelease('A', pad)"
+                  (mouseleave)="handlePadRelease('A', pad)"
+                  (touchend)="handlePadRelease('A', pad)"
                   (click)="handlePadPress('A', pad)"
-                  (contextmenu)="clearHotCue('A', pad, $event)">
+                  (contextmenu)="clearPad('A', pad, $event)">
             {{ getPadLabel(pad) }}
           </button>
         }
@@ -371,8 +380,17 @@
       <div class="mt-4 grid grid-cols-4 gap-2 performance-grid">
         @for (pad of [0,1,2,3,4,5,6,7]; track pad) {
           <button class="pad-btn border-brand-secondary/30 hover:bg-brand-secondary/10"
+                  [class.pad-roll-active]="isRollPadActive('B', pad)"
+                  [class.pad-sampler-armed]="isSamplerPadSet('B', pad)"
+                  [class.pad-sampler-live]="isSamplerPadActive('B', pad)"
+                  [class.pad-cue-armed]="isCuePadSet('B', pad)"
+                  (mousedown)="handlePadDown('B', pad, $event)"
+                  (touchstart)="handlePadDown('B', pad, $event)"
+                  (mouseup)="handlePadRelease('B', pad)"
+                  (mouseleave)="handlePadRelease('B', pad)"
+                  (touchend)="handlePadRelease('B', pad)"
                   (click)="handlePadPress('B', pad)"
-                  (contextmenu)="clearHotCue('B', pad, $event)">
+                  (contextmenu)="clearPad('B', pad, $event)">
             {{ getPadLabel(pad) }}
           </button>
         }
@@ -733,6 +751,25 @@
   .performance-grid .pad-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 10px 18px rgba(0, 0, 0, 0.45);
+  }
+  .performance-grid .pad-btn.pad-cue-armed {
+    background: rgba(16, 185, 129, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(16,185,129,0.35), 0 10px 24px rgba(16,185,129,0.12);
+  }
+  .performance-grid .pad-btn.pad-roll-active {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59,130,246,0.55);
+    box-shadow: 0 0 18px rgba(59,130,246,0.28);
+    transform: translateY(-1px) scale(0.98);
+  }
+  .performance-grid .pad-btn.pad-sampler-armed {
+    background: rgba(245, 158, 11, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(245,158,11,0.3), 0 10px 24px rgba(245,158,11,0.12);
+  }
+  .performance-grid .pad-btn.pad-sampler-live {
+    background: rgba(244, 63, 94, 0.2);
+    border-color: rgba(244,63,94,0.55);
+    box-shadow: 0 0 18px rgba(244,63,94,0.28);
   }
   .micro-control {
     background: rgba(255, 255, 255, 0.02);

@@ -121,4 +121,28 @@ describe('DeckService', () => {
     expect(mockEngine.clearHotCue).toHaveBeenCalledWith('A', 0);
     expect(service.deckA().hotCues[0]).toBeNull();
   });
+
+  it('stores sampler pads separately from cue hot cues', () => {
+    service.deckA.update((d) => ({
+      ...d,
+      hotCues: [24, null, null, null, null, null, null, null],
+      samplerPads: new Array(8).fill(null),
+    }));
+    mockEngine.getDeckProgress.mockReturnValueOnce({
+      position: 48,
+      duration: 120,
+      isPlaying: false,
+      slipPosition: 48,
+    });
+
+    service.setSamplerPad('A', 0);
+
+    expect(service.deckA().hotCues[0]).toBe(24);
+    expect(service.deckA().samplerPads[0]).toBe(48);
+
+    service.clearSamplerPad('A', 0);
+
+    expect(service.deckA().hotCues[0]).toBe(24);
+    expect(service.deckA().samplerPads[0]).toBeNull();
+  });
 });

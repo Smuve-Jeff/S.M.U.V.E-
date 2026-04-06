@@ -32,21 +32,26 @@ describe('DjDeckComponent', () => {
         ...initialDeckState,
         track: { name: 'Track A', url: '' },
         hotCues: [12, null, null, null, null, null, null, null],
+        samplerPads: [24, null, null, null, null, null, null, null],
         progress: 16,
         duration: 120,
+        bpm: 120,
       }),
       deckB: signal({
         ...initialDeckState,
         track: { name: 'Track B', url: '' },
         progress: 32,
         duration: 140,
+        bpm: 128,
       }),
       crossfade: signal(0.2),
       viewMode: signal<'functional' | 'flat'>('functional'),
       syncProgress: jest.fn(),
       setHotCue: jest.fn(),
+      setSamplerPad: jest.fn(),
       jumpToHotCue: jest.fn(),
       clearHotCue: jest.fn(),
+      clearSamplerPad: jest.fn(),
       toggleViewMode: jest.fn(),
       toggleSlip: jest.fn(),
       togglePlay: jest.fn(),
@@ -144,6 +149,13 @@ describe('DjDeckComponent', () => {
     expect(blob.size).toBeGreaterThan(0);
   });
 
+  it('includes sampler pads in a saved DJ session snapshot', async () => {
+    await component.saveSessionSnapshot();
+
+    const [, , payload] = mockDatabaseService.saveProject.mock.calls[0];
+    expect(payload.deckA.samplerPads[0]).toBe(24);
+  });
+
   it('clears a hot cue through the deck service', () => {
     const event = { preventDefault: jest.fn() } as unknown as MouseEvent;
 
@@ -157,5 +169,46 @@ describe('DjDeckComponent', () => {
     component.performanceMode.set('roll');
 
     expect(component.getPadLabel(0)).toBe('1/8 Roll');
+  });
+
+  it('starts and releases a BPM-aware slip roll', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    engine.getDeckProgress.mockReturnValue({
+      position: 32,
+      duration: 120,
+      isPlaying: true,
+      slipPosition: 32,
+    });
+
+    component.performanceMode.set('roll');
+    component.handlePadDown('A', 2, { preventDefault: jest.fn() } as unknown as MouseEvent);
+
+    expect(engine.seekDeck).toHaveBeenCalledWith('A', 31.75);
+    expect(engine.playDeck).toHaveBeenCalledWith('A');
+    expect(component.isRollPadActive('A', 2)).toBe(true);
+
+    component.handlePadRelease('A', 2);
+
+    expect(component.isRollPadActive('A', 2)).toBe(false);
+  });
+
+  it('arms and clears sampler pads independently from hot cues', () => {
+    component.performanceMode.set('sampler');
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      samplerPads: new Array(8).fill(null),
+      hotCues: [12, null, null, null, null, null, null, null],
+    }));
+
+    component.handlePadPress('A', 1);
+
+    expect(mockDeckService.setSamplerPad).toHaveBeenCalledWith('A', 1);
+    expect(mockDeckService.setHotCue).not.toHaveBeenCalled();
+
+    const event = { preventDefault: jest.fn() } as unknown as MouseEvent;
+    component.clearPad('A', 1, event);
+
+    expect(mockDeckService.clearSamplerPad).toHaveBeenCalledWith('A', 1);
+    expect(mockDeckService.clearHotCue).not.toHaveBeenCalledWith('A', 1);
   });
 });
