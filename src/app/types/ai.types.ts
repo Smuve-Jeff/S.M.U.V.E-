@@ -71,6 +71,11 @@ export interface ExecutiveAuditReport {
   marketViability: number;
   criticalDeficits: string[];
   technicalRecommendations: string[];
+  catalogAnalysis?: {
+    bpmVariance: number;
+    keyConsistency: number;
+    genreAlignment: number;
+  };
 }
 
 export interface ArtistKnowledgeBase {
@@ -139,10 +144,29 @@ export interface StrategicRecommendation {
   toolId: string;
 }
 
+export type AdvisorPersona = 'EXECUTIVE' | 'AR' | 'PUBLICIST' | 'SYNC';
+
 export interface AdvisorAdvice {
   id: string;
   title: string;
   content: string;
   type: string;
-  priority: string;
+  priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
+  persona: AdvisorPersona;
+}
+
+export type ArtistTier =
+  | 'BEDROOM_PRODUCER'
+  | 'UNDERGROUND_CATALYST'
+  | 'EMERGING_ELITE'
+  | 'STRATEGIC_COMMANDER'
+  | 'GLOBAL_HEGEMON';
+
+export interface CareerMilestone {
+  id: string;
+  tier: ArtistTier;
+  label: string;
+  description: string;
+  requiredXp: number;
+  unlocked: boolean;
 }
