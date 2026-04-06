@@ -273,7 +273,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       ],
       launchConfig: {
         difficulty: 'Adaptive',
-        objectives: ['Hold integrity above 70%', 'Perfect one full pattern chain'],
+        objectives: [
+          'Hold integrity above 70%',
+          'Perfect one full pattern chain',
+        ],
         controls: ['Mouse or touch'],
         modes: ['Solo'],
         embedMode: 'inline',
