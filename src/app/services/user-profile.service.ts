@@ -201,6 +201,23 @@ export class UserProfileService {
     } as any);
   }
 
+  async recordGameSession(gameId: string): Promise<void> {
+    const current = this.profile();
+    const stats = { ...(current.gameStats || {}) };
+    const prev = stats[gameId] || {};
+
+    stats[gameId] = {
+      ...prev,
+      plays: (prev.plays || 0) + 1,
+      lastPlayedAt: Date.now(),
+    };
+
+    await this.updateProfile({
+      ...current,
+      gameStats: stats,
+    } as any);
+  }
+
   async unlockAchievement(id: string, title: string): Promise<void> {
     const current = this.profile();
     const achievements = [...(current.achievements || [])];
