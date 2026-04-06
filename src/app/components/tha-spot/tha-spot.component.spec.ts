@@ -56,6 +56,29 @@ const mockFeed: ThaSpotFeed = {
       windowLabel: 'Live now',
       featuredGameId: '1',
       badgeId: 'tournament-live',
+      schedule: {
+        startAt: '2026-04-04T20:00:00.000Z',
+        endAt: '2026-04-07T05:00:00.000Z',
+        recurrence: 'weekend',
+        rewardType: 'cosmetic',
+      },
+    },
+    {
+      id: 'event-2',
+      title: 'Daily Producer Challenge',
+      description: 'Keep the rhythm line alive.',
+      roomId: 'producer-lounge',
+      reward: 'Studio skin',
+      status: 'upcoming',
+      windowLabel: 'Starts soon',
+      featuredGameId: '2',
+      badgeId: 'staff-pick',
+      schedule: {
+        startAt: '2026-04-06T20:00:00.000Z',
+        endAt: '2026-04-07T20:00:00.000Z',
+        recurrence: 'daily',
+        rewardType: 'xp',
+      },
     },
   ],
   socialPresence: [
@@ -66,6 +89,21 @@ const mockFeed: ThaSpotFeed = {
       activity: 'Hosting in Tha Battlefield',
       roomId: 'versus-night',
       gameId: '1',
+      relationship: 'party',
+      joinable: true,
+      cta: 'Join party',
+    },
+    {
+      id: 'presence-2',
+      name: 'StudioGhost',
+      status: 'invited',
+      activity: 'Invite waiting in Tempo Lockdown',
+      roomId: 'producer-lounge',
+      gameId: '2',
+      relationship: 'invite',
+      pendingInvite: true,
+      cta: 'Accept invite',
+      alert: 'Invite expires soon.',
     },
   ],
   promotions: [
@@ -76,6 +114,10 @@ const mockFeed: ThaSpotFeed = {
       route: '/studio',
       icon: 'tune',
       cta: 'Open Studio',
+      roomIds: ['producer-lounge'],
+      audienceTags: ['producer', 'returning'],
+      priority: 10,
+      campaignType: 'studio',
     },
   ],
   leaderboards: [
@@ -85,6 +127,26 @@ const mockFeed: ThaSpotFeed = {
       score: '12,000',
       roomId: 'versus-night',
       trend: '+8%',
+    },
+  ],
+  recommendationRails: [
+    {
+      id: 'producer-rail',
+      title: 'Producer crossover',
+      subtitle: 'Music-first feed picks.',
+      audience: { primaryGenres: ['Hip Hop'], minPlays: 0, maxPlays: 99 },
+      roomIds: ['all', 'producer-lounge'],
+      weights: { genre: 12, history: 8, crowd: 4, badge: 4, room: 6, novelty: 3 },
+      maxItems: 4,
+    },
+    {
+      id: 'returning-rail',
+      title: 'Return to your hot cabinets',
+      subtitle: 'History-weighted picks.',
+      audience: { minPlays: 1, maxPlays: 99 },
+      roomIds: ['all', 'versus-night', 'producer-lounge'],
+      weights: { history: 18, crowd: 3, badge: 2, room: 2, novelty: 1, genre: 1 },
+      maxItems: 4,
     },
   ],
   games: [
@@ -107,7 +169,10 @@ const mockFeed: ThaSpotFeed = {
         controls: ['Keyboard'],
         objectives: ['Finish top three'],
         modes: ['Tournament'],
-        inlinePolicy: 'trusted',
+        embedMode: 'inline',
+        approvedEmbedUrl: '/assets/games/battlefield/battlefield.html',
+        approvedExternalUrl: '/assets/games/battlefield/battlefield.html',
+        telemetryMode: 'frame-only',
       },
       art: { eyebrow: 'Hybrid', accentStart: '#10b981', accentEnd: '#0f766e' },
     },
@@ -129,7 +194,10 @@ const mockFeed: ThaSpotFeed = {
         controls: ['Lane keys'],
         objectives: ['Finish one perfect chorus'],
         modes: ['Solo'],
-        inlinePolicy: 'trusted',
+        embedMode: 'inline',
+        approvedEmbedUrl: '/assets/games/tempo-lockdown/tempo-lockdown.html',
+        approvedExternalUrl: '/assets/games/tempo-lockdown/tempo-lockdown.html',
+        telemetryMode: 'frame-only',
       },
       art: { eyebrow: 'Offline', accentStart: '#34d399', accentEnd: '#059669' },
     },
@@ -165,7 +233,17 @@ describe('ThaSpotComponent', () => {
       level: 3,
       achievements: [],
       gameStats: {
-        '2': { plays: 2, lastPlayedAt: Date.now() - 5000, bestScore: 900 },
+        '2': {
+          plays: 2,
+          lastPlayedAt: Date.now() - 5000,
+          bestScore: 900,
+          currentStreak: 2,
+        },
+      },
+      thaSpotProgression: {
+        currentStreak: 2,
+        favoriteRoomId: 'producer-lounge',
+        earnedCosmetics: ['Weekend skin'],
       },
     }),
     recordGameSession: jest.fn().mockResolvedValue(undefined),
@@ -181,6 +259,8 @@ describe('ThaSpotComponent', () => {
   };
 
   beforeEach(async () => {
+    jest.restoreAllMocks();
+
     await TestBed.configureTestingModule({
       imports: [ThaSpotComponent, NoopAnimationsModule],
       providers: [
@@ -197,6 +277,7 @@ describe('ThaSpotComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
     httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
+    component.now.set(new Date('2026-04-06T21:00:00.000Z').getTime());
     fixture.detectChanges();
   });
 
@@ -220,21 +301,52 @@ describe('ThaSpotComponent', () => {
     expect(component.getActiveRoomName()).toBe('Producer Lounge');
   }));
 
-  it('surfaces personalized recommendations and live metrics', () => {
+  it('surfaces feed-driven recommendations and live metrics', () => {
+    expect(component.activeRecommendationRail()?.title).toBe('Producer crossover');
     expect(component.recommendedGames().length).toBeGreaterThan(0);
     expect(component.recentlyPlayed()[0].name).toBe('Tempo Lockdown');
     expect(component.liveMetrics().roomPlayers).toBe(1590);
+    expect(component.progressionSummary().masteryLabel).toBe('Producer Lounge');
   });
 
-  it('opens a prelaunch preview before starting a game', () => {
+  it('changes recommendation rails when the profile type changes', () => {
+    profileServiceMock.profile.update((profile) => ({
+      ...profile,
+      primaryGenre: 'Classical',
+      gameStats: {
+        ...profile.gameStats,
+        '1': { plays: 5, lastPlayedAt: Date.now() },
+      },
+      thaSpotProgression: {
+        ...profile.thaSpotProgression,
+        currentStreak: 4,
+      },
+    }));
+    fixture.detectChanges();
+
+    expect(component.activeRecommendationRail()?.title).toBe(
+      'Return to your hot cabinets'
+    );
+  });
+
+  it('resolves scheduled events from the live feed clock', fakeAsync(() => {
+    component.setActiveRoom('producer-lounge');
+    tick(241);
+    component.now.set(new Date('2026-04-07T19:30:00.000Z').getTime());
+    fixture.detectChanges();
+
+    expect(component.activeEvents()[0]?.status).toBe('ending-soon');
+  }));
+
+  it('opens a governed preview before starting a game', () => {
     component.previewGame(mockFeed.games[0]!);
 
     expect(component.selectedGame()?.name).toBe('Tha Battlefield');
-    expect(component.launchWarning()).toContain('Trusted source');
+    expect(component.launchWarning()).toContain('Exact embed target verified');
   });
 
   it('runs matchmaking for multiplayer games before launch', fakeAsync(() => {
-    component.previewGame(mockFeed.games[0]!);
+    component.previewGame(component.games()[0]!);
     component.confirmLaunch();
 
     expect(component.isMatchmaking()).toBe(true);
@@ -243,14 +355,64 @@ describe('ThaSpotComponent', () => {
 
     expect(component.isMatchmaking()).toBe(false);
     expect(component.currentGame()?.id).toBe('1');
-    expect(profileServiceMock.recordGameSession).toHaveBeenCalledWith('1');
+    expect(profileServiceMock.recordGameSession).toHaveBeenCalledWith(
+      '1',
+      expect.objectContaining({
+        roomId: 'all',
+        eventId: undefined,
+      })
+    );
   }));
 
   it('launches solo games immediately from the preview flow', async () => {
-    component.previewGame(mockFeed.games[1]!);
+    component.previewGame(component.games()[1]!);
     component.confirmLaunch();
 
     expect(component.currentGame()?.id).toBe('2');
-    expect(profileServiceMock.recordGameSession).toHaveBeenCalledWith('2');
+    expect(profileServiceMock.recordGameSession).toHaveBeenCalledWith(
+      '2',
+      expect.objectContaining({
+        roomId: 'all',
+      })
+    );
+  });
+
+  it('blocks inline launch when a cabinet requires external governance', () => {
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    const game = {
+      ...component.games()[0]!,
+      launchConfig: {
+        ...component.games()[0]!.launchConfig,
+        embedMode: 'external-only' as const,
+      },
+    };
+
+    component.previewGame(game);
+    component.confirmLaunch();
+
+    expect(openSpy).toHaveBeenCalled();
+    expect(component.currentGame()).toBeNull();
+  });
+
+  it('caps posted scores before persisting results', () => {
+    const sourceWindow = {} as Window;
+    component.currentGame.set(component.games()[0]!);
+    (component as any).gameIframe = {
+      nativeElement: { contentWindow: sourceWindow },
+    };
+
+    component.onMessage({
+      data: { type: 'GAME_OVER', payload: { score: 999999999 } },
+      origin: 'http://localhost',
+      source: sourceWindow,
+    } as MessageEvent);
+
+    expect(profileServiceMock.recordGameResult).toHaveBeenCalledWith(
+      '1',
+      1_000_000,
+      expect.objectContaining({
+        roomId: 'all',
+      })
+    );
   });
 });

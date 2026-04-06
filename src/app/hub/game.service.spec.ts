@@ -33,6 +33,16 @@ const mockFeed: ThaSpotFeed = {
   socialPresence: [],
   promotions: [],
   leaderboards: [],
+  recommendationRails: [
+    {
+      id: 'returning',
+      title: 'Return to your hot cabinets',
+      roomIds: ['all'],
+      audience: { minPlays: 1, maxPlays: 99 },
+      weights: { history: 16, crowd: 4, badge: 3, room: 3, novelty: 1, genre: 1 },
+      maxItems: 4,
+    },
+  ],
   games: [
     {
       id: '12',
@@ -45,6 +55,12 @@ const mockFeed: ThaSpotFeed = {
       tags: ['Arcade', 'Retro'],
       badgeIds: ['featured'],
       art: { eyebrow: 'Online', accentStart: '#06b6d4', accentEnd: '#2563eb' },
+      launchConfig: {
+        approvedEmbedUrl: 'https://hextris.github.io/hextris/',
+        approvedExternalUrl: 'https://hextris.github.io/hextris/',
+        telemetryMode: 'origin',
+        telemetryOrigins: ['https://hextris.github.io'],
+      },
     },
     {
       id: '13',
@@ -57,6 +73,10 @@ const mockFeed: ThaSpotFeed = {
       tags: ['Combat', 'Multiplayer'],
       badgeIds: ['featured', 'tournament-live'],
       art: { eyebrow: 'Hybrid', accentStart: '#10b981', accentEnd: '#0f766e' },
+      launchConfig: {
+        approvedEmbedUrl: '/assets/games/battlefield/battlefield.html',
+        approvedExternalUrl: '/assets/games/battlefield/battlefield.html',
+      },
     },
     {
       id: '14',
@@ -69,6 +89,10 @@ const mockFeed: ThaSpotFeed = {
       tags: ['Rhythm'],
       badgeIds: ['new-drop'],
       art: { eyebrow: 'Offline', accentStart: '#34d399', accentEnd: '#059669' },
+      launchConfig: {
+        approvedEmbedUrl: '/assets/games/tempo-lockdown/tempo-lockdown.html',
+        approvedExternalUrl: '/assets/games/tempo-lockdown/tempo-lockdown.html',
+      },
     },
   ],
 };
@@ -100,6 +124,7 @@ describe('GameService', () => {
     expect(games.some((game) => game.availability === 'Online')).toBe(true);
     expect(games.some((game) => game.name === 'Hextris')).toBe(true);
     expect(games.every((game) => typeof game.image === 'string')).toBe(true);
+    expect(games[0]?.launchConfig?.telemetryMode).toBeDefined();
   });
 
   it('filters games through data-driven room rules', async () => {
@@ -117,5 +142,19 @@ describe('GameService', () => {
 
     expect(games[0].id).toBe('14');
     expect(games[1].id).toBe('13');
+  });
+
+  it('refreshes the feed when forced', async () => {
+    const firstPending = firstValueFrom(service.getThaSpotFeed());
+    httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
+    await firstPending;
+
+    const secondPending = firstValueFrom(service.getThaSpotFeed(true));
+    httpMock
+      .expectOne('/assets/data/tha-spot-feed.json')
+      .flush({ ...mockFeed, games: [...mockFeed.games, { ...mockFeed.games[0], id: '15', name: 'Reloaded' }] });
+    const refreshed = await secondPending;
+
+    expect(refreshed.games.some((game) => game.id === '15')).toBe(true);
   });
 });

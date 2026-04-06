@@ -740,6 +740,56 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.social-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.social-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.social-alert {
+  font-size: 11px;
+  color: #93c5fd;
+}
+
+.social-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.social-pill[data-type='friend'] {
+  color: #86efac;
+  background: rgba(16, 185, 129, 0.16);
+}
+
+.social-pill[data-type='party'] {
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.18);
+}
+
+.social-pill[data-type='rival'] {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.18);
+}
+
+.social-pill[data-type='invite'] {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.16);
+}
+
 .promotion-card .material-symbols-outlined {
   font-size: 28px;
   color: var(--hub-accent);

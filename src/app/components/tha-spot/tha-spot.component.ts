@@ -22,6 +22,7 @@ import {
   LeaderboardEntry,
   LiveEvent,
   PromotionCard,
+  RecommendationRail,
   SocialPresence,
   ThaSpotFeed,
 } from '../../hub/game';
@@ -29,30 +30,9 @@ import { THA_SPOT_FALLBACK_FEED } from '../../hub/tha-spot-feed.fallback';
 import { UserProfileService } from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
 
-const TRUSTED_GAME_HOSTS = new Set([
-  'hextris.github.io',
-  'play2048.co',
-  'htmlgames.com',
-  'html5.gamedistribution.com',
-  'pacman.live',
-  'www.retrogames.cc',
-  'retrogames.cc',
-  'poki.com',
-  'supermarioplay.com',
-]);
-
-const PROFILE_AFFINITIES: Record<string, string[]> = {
-  'hip hop': ['music battle', 'rhythm', 'arcade', 'original'],
-  'r&b': ['rhythm', 'logic', 'puzzle'],
-  pop: ['rhythm', 'arcade', 'sports'],
-  electronic: ['rhythm', 'reflex', 'arcade'],
-  rock: ['combat', 'versus', 'arcade'],
-  jazz: ['strategy', 'puzzle', 'logic'],
-  classical: ['strategy', 'classic', 'logic'],
-};
-
-const HISTORY_WEIGHT_PER_PLAY = 6;
+const DEFAULT_RECOMMENDATION_ITEMS = 4;
 const MAX_HISTORY_SCORE = 24;
+const EVENT_ENDING_SOON_MS = 1000 * 60 * 60 * 6;
 
 @Component({
   selector: 'app-tha-spot',
@@ -88,6 +68,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     THA_SPOT_FALLBACK_FEED.leaderboards
   );
   games = signal<Game[]>(THA_SPOT_FALLBACK_FEED.games);
+  recommendationRails = signal<RecommendationRail[]>(
+    THA_SPOT_FALLBACK_FEED.recommendationRails
+  );
 
   activeRoom = signal<string>('all');
   isTransitioning = signal(false);
@@ -127,9 +110,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   activeEvents = computed(() => {
     const roomId = this.activeRoom();
-    return this.liveEvents().filter(
-      (event) => roomId === 'all' || event.roomId === roomId
-    );
+    return this.liveEvents()
+      .map((event) => this.resolveLiveEvent(event))
+      .filter((event): event is LiveEvent => !!event)
+      .filter((event) => roomId === 'all' || event.roomId === roomId);
   });
 
   roomPresence = computed(() => {
@@ -146,37 +130,89 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     );
   });
 
+  matchingRecommendationRails = computed(() =>
+    this.recommendationRails()
+      .filter((rail) => this.matchesRecommendationAudience(rail))
+      .sort((a, b) => {
+        const aRoom = a.roomIds?.includes(this.activeRoom()) ? 1 : 0;
+        const bRoom = b.roomIds?.includes(this.activeRoom()) ? 1 : 0;
+        return bRoom - aRoom;
+      })
+  );
+
+  activeRecommendationRail = computed(
+    () => this.matchingRecommendationRails()[0] || null
+  );
+
   recommendedGames = computed(() => {
-    const profile = this.profileService.profile();
-    const stats = profile.gameStats || {};
-    const affinity =
-      PROFILE_AFFINITIES[(profile.primaryGenre || '').toLowerCase()] || [];
+    const rail = this.activeRecommendationRail();
+    if (!rail) {
+      return [];
+    }
+
+    const stats = this.profileService.profile().gameStats || {};
+    const roomId = this.activeRoom();
 
     return [...this.games()]
-      .map((game) => {
-        const gameStats = stats[game.id];
-        const haystack =
-          `${game.genre || ''} ${(game.tags || []).join(' ')}`.toLowerCase();
-        const affinityScore = affinity.some((token) => haystack.includes(token))
-          ? 18
-          : 0;
-        const historyScore = Math.min(
-          (gameStats?.plays || 0) * HISTORY_WEIGHT_PER_PLAY,
-          MAX_HISTORY_SCORE
-        );
-        const badgeScore =
-          (game.badgeIds?.includes('featured') ? 8 : 0) +
-          (game.badgeIds?.includes('staff-pick') ? 6 : 0) +
-          (game.badgeIds?.includes('trending') ? 4 : 0);
-        const crowdScore = Math.min((game.playersOnline || 0) / 2500, 16);
-        return {
-          game,
-          score: affinityScore + historyScore + badgeScore + crowdScore,
-        };
-      })
+      .filter((game) => this.matchesRecommendationRail(game, rail))
+      .map((game) => ({
+        game,
+        score: this.scoreRecommendation(game, rail, stats, roomId),
+      }))
       .sort((a, b) => b.score - a.score)
-      .slice(0, 4)
+      .slice(0, rail.maxItems || DEFAULT_RECOMMENDATION_ITEMS)
       .map((entry) => entry.game);
+  });
+
+  socialModules = computed(() =>
+    this.roomPresence().sort((a, b) => {
+      const rank = (entry: SocialPresence) => {
+        if (entry.pendingInvite) {
+          return 4;
+        }
+        switch (entry.relationship) {
+          case 'party':
+            return 3;
+          case 'rival':
+            return 2;
+          case 'friend':
+            return 1;
+          default:
+            return 0;
+        }
+      };
+
+      return rank(b) - rank(a);
+    })
+  );
+
+  contextualPromotions = computed(() => {
+    const profile = this.profileService.profile();
+    const roomId = this.activeRoom();
+    const audienceTags = this.getPromotionAudienceTags(profile);
+    const activeGameIds = [
+      this.selectedGame()?.id,
+      this.currentGame()?.id,
+      this.recentlyPlayed()[0]?.id,
+    ].filter((id): id is string => !!id);
+
+    return [...this.promotions()]
+      .filter(
+        (promotion) => !promotion.roomIds?.length || promotion.roomIds.includes(roomId)
+      )
+      .filter(
+        (promotion) =>
+          !promotion.gameIds?.length ||
+          !activeGameIds.length ||
+          promotion.gameIds.some((gameId) => activeGameIds.includes(gameId))
+      )
+      .filter(
+        (promotion) =>
+          !promotion.audienceTags?.length ||
+          promotion.audienceTags.some((tag) => audienceTags.includes(tag))
+      )
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+      .slice(0, 3);
   });
 
   recentlyPlayed = computed(() => {
@@ -255,10 +291,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       `${this.activeEvents().length} event lanes are active for ${profile.artistName}.`,
     ];
 
+    const recommendationRail = this.activeRecommendationRail();
     const topRecommendation = this.recommendedGames()[0];
+    if (recommendationRail?.subtitle) {
+      directives.push(recommendationRail.subtitle);
+    }
+
     if (topRecommendation) {
       directives.push(
-        `Recommended next cabinet: ${topRecommendation.name} based on ${profile.primaryGenre} affinity.`
+        `Recommended next cabinet: ${topRecommendation.name} from the ${recommendationRail?.title || 'live'} rail.`
       );
     }
 
@@ -274,18 +315,20 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   progressionSummary = computed(() => {
     const profile = this.profileService.profile();
     const stats = profile.gameStats || {};
+    const progression = profile.thaSpotProgression || {};
     const totalPlays = this.getTotalPlays();
-    const masteredRoom = this.findMasteredRoom(stats);
+    const masteredRoom =
+      this.gamingRooms().find((room) => room.id === progression.favoriteRoomId) ||
+      this.findMasteredRoom(stats);
+    const currentStreak = progression.currentStreak || 0;
     return {
       level: profile.level || 1,
       xp: profile.xp || 0,
       achievements: (profile.achievements || []).length,
       totalPlays,
       masteryLabel: masteredRoom?.name || 'Choose a room',
-      streakLabel:
-        totalPlays > 0
-          ? `${Math.min(totalPlays, 7)} session streak`
-          : 'No streak yet',
+      streakLabel: currentStreak > 0 ? `${currentStreak} session streak` : 'No streak yet',
+      cosmetics: (progression.earnedCosmetics || []).length,
     };
   });
 
@@ -336,9 +379,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   previewGame(game: Game) {
     this.selectedGame.set(game);
     this.launchWarning.set(
-      this.isTrustedGameUrl(game.url)
-        ? game.launchConfig?.trustNote || 'Trusted source verified for launch.'
-        : 'Inline launch blocked because the source is not on the trusted embed allowlist.'
+      this.canEmbedInline(game)
+        ? game.launchConfig?.trustNote || 'Exact embed target verified from the live feed.'
+        : 'Inline launch blocked because this cabinet requires a governed external launch.'
     );
     this.frameError.set(null);
   }
@@ -360,10 +403,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
     this.selectedGame.set(null);
 
-    if (
-      !this.isTrustedGameUrl(game.url) ||
-      game.launchConfig?.inlinePolicy === 'external-only'
-    ) {
+    if (!this.canEmbedInline(game)) {
       this.openGameInNewTab(game);
       return;
     }
@@ -424,7 +464,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.currentGame.set(game);
     this.sessionStartedAt.set(Date.now());
     this.frameError.set(null);
-    await this.profileService.recordGameSession(game.id);
+    await this.profileService.recordGameSession(game.id, this.getSessionContext(game));
     await this.unlockProgressionMilestones(game, 0);
   }
 
@@ -436,16 +476,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   openGameInNewTab(game: Game) {
     if (typeof window !== 'undefined') {
-      window.open(game.url, '_blank', 'noopener,noreferrer');
+      const externalUrl = game.launchConfig?.approvedExternalUrl || game.url;
+      window.open(externalUrl, '_blank', 'noopener,noreferrer');
     }
   }
 
-  getSafeUrl(url: string): SafeResourceUrl | null {
-    if (!this.isTrustedGameUrl(url)) {
+  getSafeUrl(game: Game): SafeResourceUrl | null {
+    if (!this.canEmbedInline(game)) {
       return null;
     }
 
-    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      game.launchConfig?.approvedEmbedUrl || game.url
+    );
   }
 
   getVisibleTags(game: Game) {
@@ -466,6 +509,32 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   getPresenceGame(entry: SocialPresence) {
     return this.games().find((game) => game.id === entry.gameId) || null;
+  }
+
+  getPresenceActionLabel(entry: SocialPresence) {
+    return (
+      entry.cta ||
+      (entry.pendingInvite
+        ? 'Accept invite'
+        : entry.relationship === 'party'
+          ? 'Join party'
+          : entry.relationship === 'rival'
+            ? 'Track rival'
+            : 'Join friend')
+    );
+  }
+
+  handlePresenceAction(entry: SocialPresence) {
+    this.setActiveRoom(entry.roomId);
+    const game = this.getPresenceGame(entry);
+    if (game) {
+      this.previewGame(game);
+      return;
+    }
+
+    if (entry.relationship === 'rival' && !this.showIntelPanel()) {
+      this.toggleIntel();
+    }
   }
 
   getPromotionRoute(promotion: PromotionCard) {
@@ -510,55 +579,38 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         Math.max(25, Math.floor(score / 100)),
         'gaming_session'
       );
-      void this.profileService.recordGameResult(currentGame.id, score);
+      void this.profileService.recordGameResult(
+        currentGame.id,
+        score,
+        this.getSessionContext(currentGame, score)
+      );
       void this.unlockProgressionMilestones(currentGame, score);
     }
   }
 
-  private isTrustedGameUrl(url: string): boolean {
-    if (!url) {
+  canEmbedInline(game: Game): boolean {
+    if (game.launchConfig?.embedMode === 'external-only') {
       return false;
     }
 
-    if (url.startsWith('/assets/games/')) {
-      return this.isApprovedFeedUrl(url);
-    }
-
-    try {
-      const parsed = new URL(
-        url,
-        typeof window !== 'undefined'
-          ? window.location.origin
-          : 'https://smuve.local'
-      );
-      return (
-        this.isApprovedFeedUrl(url) &&
-        parsed.protocol === 'https:' &&
-        TRUSTED_GAME_HOSTS.has(parsed.hostname)
-      );
-    } catch {
-      return false;
-    }
+    const approvedUrl = game.launchConfig?.approvedEmbedUrl || game.url;
+    return this.isApprovedFeedUrl(approvedUrl);
   }
 
   private isTrustedTelemetryEvent(event: MessageEvent, game: Game): boolean {
-    if (typeof window === 'undefined') {
+    const telemetryMode = game.launchConfig?.telemetryMode || 'none';
+    if (typeof window === 'undefined' || telemetryMode === 'none') {
       return false;
     }
 
-    if (game.url.startsWith('/assets/games/')) {
+    if (telemetryMode === 'frame-only') {
       return this.gameIframe?.nativeElement?.contentWindow === event.source;
     }
 
-    try {
-      const parsed = new URL(game.url);
-      return (
-        event.origin === parsed.origin &&
-        TRUSTED_GAME_HOSTS.has(parsed.hostname)
-      );
-    } catch {
-      return false;
-    }
+    return (
+      this.gameIframe?.nativeElement?.contentWindow === event.source &&
+      !!game.launchConfig?.telemetryOrigins?.includes(event.origin)
+    );
   }
 
   private async unlockProgressionMilestones(game: Game, score: number) {
@@ -642,6 +694,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         this.socialPresence.set(feed.socialPresence);
         this.promotions.set(feed.promotions);
         this.leaderboards.set(feed.leaderboards);
+        this.recommendationRails.set(feed.recommendationRails);
         this.games.set(feed.games);
 
         if (!feed.rooms.some((room) => room.id === this.activeRoom())) {
@@ -651,9 +704,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   private isApprovedFeedUrl(url: string) {
-    return this.games().some(
-      (game) => this.normalizeGameUrl(game.url) === this.normalizeGameUrl(url)
-    );
+    try {
+      const normalizedUrl = this.normalizeGameUrl(url);
+      return this.games().some((game) => {
+        const approvedUrl = game.launchConfig?.approvedEmbedUrl || game.url;
+        return this.normalizeGameUrl(approvedUrl) === normalizedUrl;
+      });
+    } catch {
+      return false;
+    }
   }
 
   private normalizeGameUrl(url: string) {
@@ -663,6 +722,200 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         ? window.location.origin
         : 'https://smuve.local'
     ).toString();
+  }
+
+  private matchesRecommendationAudience(rail: RecommendationRail) {
+    const audience = rail.audience;
+    if (!audience) {
+      return true;
+    }
+
+    const profile = this.profileService.profile();
+    const totalPlays = this.getTotalPlays();
+    const activeRoom = this.activeRoom();
+
+    if (
+      audience.primaryGenres?.length &&
+      !audience.primaryGenres.some(
+        (genre) =>
+          genre.toLowerCase() === (profile.primaryGenre || '').toLowerCase()
+      )
+    ) {
+      return false;
+    }
+
+    if (audience.rooms?.length && !audience.rooms.includes(activeRoom)) {
+      return false;
+    }
+
+    if (
+      typeof audience.minPlays === 'number' &&
+      totalPlays < audience.minPlays
+    ) {
+      return false;
+    }
+
+    if (
+      typeof audience.maxPlays === 'number' &&
+      totalPlays > audience.maxPlays
+    ) {
+      return false;
+    }
+
+    if (
+      audience.requiresAchievements &&
+      !(this.profileService.profile().achievements || []).length
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private matchesRecommendationRail(game: Game, rail: RecommendationRail) {
+    const gameMatches = !rail.gameIds?.length || rail.gameIds.includes(game.id);
+    const roomMatches =
+      !rail.roomIds?.length ||
+      rail.roomIds.some((roomId) => {
+        const room = this.gamingRooms().find((entry) => entry.id === roomId);
+        return room ? this.gameService.matchesRoom(game, room) : false;
+      });
+
+    return gameMatches && roomMatches;
+  }
+
+  private scoreRecommendation(
+    game: Game,
+    rail: RecommendationRail,
+    stats: Record<string, { plays?: number }>,
+    roomId: string
+  ) {
+    const weights = rail.weights || {};
+    const gameStats = stats[game.id];
+    const activeRoom = this.gamingRooms().find((room) => room.id === roomId);
+    const badgeScore = Math.min(game.badgeIds?.length || 0, 3) * (weights.badge || 0);
+    const historyScore = Math.min(gameStats?.plays || 0, MAX_HISTORY_SCORE) * ((weights.history || 0) / 6);
+    const crowdScore = Math.min((game.playersOnline || 0) / 2500, 8) * (weights.crowd || 0);
+    const roomScore =
+      activeRoom && this.gameService.matchesRoom(game, activeRoom)
+        ? weights.room || 0
+        : 0;
+    const genreScore =
+      rail.audience?.primaryGenres?.some(
+        (genre) =>
+          genre.toLowerCase() ===
+          (this.profileService.profile().primaryGenre || '').toLowerCase()
+      ) &&
+      ['Rhythm', 'Music Battle', 'Strategy', 'Sports', 'Classic'].includes(
+        game.genre || ''
+      )
+        ? weights.genre || 0
+        : 0;
+    const noveltyScore = gameStats?.plays ? 0 : weights.novelty || 0;
+    const explicitGameBoost = rail.gameIds?.includes(game.id) ? 12 : 0;
+
+    return badgeScore + historyScore + crowdScore + roomScore + genreScore + noveltyScore + explicitGameBoost;
+  }
+
+  private resolveLiveEvent(event: LiveEvent): LiveEvent | null {
+    const schedule = event.schedule;
+    if (!schedule?.startAt || !schedule?.endAt) {
+      return event;
+    }
+
+    let start = new Date(schedule.startAt).getTime();
+    let end = new Date(schedule.endAt).getTime();
+    const now = this.now();
+
+    if (!Number.isFinite(start) || !Number.isFinite(end)) {
+      return event;
+    }
+
+    if (schedule.recurrence === 'daily') {
+      const duration = Math.max(1, end - start);
+      const anchor = new Date(schedule.startAt);
+      const todayStart = new Date(anchor);
+      todayStart.setUTCFullYear(
+        new Date(now).getUTCFullYear(),
+        new Date(now).getUTCMonth(),
+        new Date(now).getUTCDate()
+      );
+      start = todayStart.getTime();
+      end = start + duration;
+      if (now > end) {
+        start += 24 * 60 * 60 * 1000;
+        end += 24 * 60 * 60 * 1000;
+      }
+    }
+
+    if (schedule.recurrence === 'weekend') {
+      const duration = Math.max(1, end - start);
+      while (now > end) {
+        start += 7 * 24 * 60 * 60 * 1000;
+        end = start + duration;
+      }
+    }
+
+    const status =
+      now < start
+        ? 'upcoming'
+        : now >= end - EVENT_ENDING_SOON_MS
+          ? 'ending-soon'
+          : 'live';
+
+    if (status === 'upcoming' && schedule.recurrence === 'once' && now > end) {
+      return null;
+    }
+
+    return {
+      ...event,
+      status,
+      windowLabel:
+        status === 'live'
+          ? 'Live now'
+          : status === 'ending-soon'
+            ? 'Ending soon'
+            : `Starts ${this.formatDuration(start - now)} from now`,
+    };
+  }
+
+  private getPromotionAudienceTags(profile: {
+    primaryGenre?: string;
+    achievements?: { id: string }[];
+    thaSpotProgression?: { currentStreak?: number };
+  }) {
+    const tags = ['returning'];
+    const genre = (profile.primaryGenre || '').toLowerCase();
+
+    if (['hip hop', 'r&b', 'pop', 'electronic'].includes(genre)) {
+      tags.push('producer');
+    }
+    if ((profile.thaSpotProgression?.currentStreak || 0) >= 3) {
+      tags.push('competitive');
+    }
+    if ((profile.achievements || []).length > 0) {
+      tags.push('social');
+    }
+
+    return tags;
+  }
+
+  private getSessionContext(game: Game, score?: number) {
+    const activeEvent = this.activeEvents().find(
+      (event) => event.featuredGameId === game.id
+    );
+    const cosmetics =
+      score && activeEvent?.schedule?.rewardType === 'cosmetic'
+        ? [activeEvent.reward]
+        : [];
+
+    return {
+      roomId: this.activeRoom(),
+      eventId: activeEvent?.id,
+      reward: activeEvent?.reward,
+      rewardType: activeEvent?.schedule?.rewardType,
+      cosmetics,
+    };
   }
 
   private formatDuration(durationMs: number) {

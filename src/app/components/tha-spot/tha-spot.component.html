@@ -57,9 +57,7 @@
       <div class="room-stats glass-v42">
         <div class="stat-item">
           <span class="stat-label">ROOM PLAYERS</span>
-          <span class="stat-value">{{
-            liveMetrics().roomPlayers | number
-          }}</span>
+          <span class="stat-value">{{ liveMetrics().roomPlayers | number }}</span>
         </div>
         <div class="stat-item">
           <span class="stat-label">QUEUE HEALTH</span>
@@ -85,9 +83,8 @@
             }}
           </h2>
           <p>
-            Recommendations are tuned to
-            {{ profileService.profile().primaryGenre }}, recent cabinet history,
-            and the busiest live rooms.
+            Recommendations are tuned by the live feed, your Tha Spot history,
+            and the busiest active rooms.
           </p>
         </div>
         <div class="hero-metrics">
@@ -108,10 +105,19 @@
 
       <article class="rail-card glass-v42">
         <div class="section-heading">
-          <h3>Play next</h3>
-          <span>{{ recommendedGames().length }} tuned picks</span>
+          <h3>{{ activeRecommendationRail()?.title || 'Play next' }}</h3>
+          <span>{{
+            activeRecommendationRail()?.subtitle ||
+              (recommendedGames().length + ' tuned picks')
+          }}</span>
         </div>
         <div class="mini-rail">
+          <div class="empty-state" *ngIf="!recommendedGames().length">
+            {{
+              activeRecommendationRail()?.emptyState ||
+                'No feed-driven recommendation rail is active right now.'
+            }}
+          </div>
           <button
             class="mini-game"
             *ngFor="let game of recommendedGames()"
@@ -163,7 +169,8 @@
         <strong>LVL {{ progressionSummary().level }}</strong>
         <p>
           {{ progressionSummary().streakLabel }} ·
-          {{ progressionSummary().achievements }} achievements
+          {{ progressionSummary().achievements }} achievements ·
+          {{ progressionSummary().cosmetics }} cosmetics
         </p>
       </article>
       <article class="metric-card glass-v42">
@@ -181,10 +188,7 @@
     </section>
 
     <section class="event-strip">
-      <article
-        class="event-card glass-v42"
-        *ngFor="let event of activeEvents()"
-      >
+      <article class="event-card glass-v42" *ngFor="let event of activeEvents()">
         <div class="event-topline">
           <span class="event-status" [attr.data-status]="event.status">{{
             event.windowLabel
@@ -280,11 +284,9 @@
                   </div>
 
                   <div class="game-tags">
-                    <span
-                      *ngFor="let tag of getVisibleTags(game)"
-                      class="tag"
-                      >{{ tag }}</span
-                    >
+                    <span *ngFor="let tag of getVisibleTags(game)" class="tag">{{
+                      tag
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -296,22 +298,29 @@
       <aside class="insight-column">
         <section class="insight-card glass-v42">
           <div class="section-heading">
-            <h3>Social pulse</h3>
-            <span>{{ roomPresence().length }} on floor</span>
+            <h3>Squad network</h3>
+            <span>{{ socialModules().length }} live actions</span>
           </div>
           <div class="social-list">
-            <div class="social-row" *ngFor="let entry of roomPresence()">
-              <div>
+            <div class="social-row" *ngFor="let entry of socialModules()">
+              <div class="social-copy">
                 <strong>{{ entry.name }}</strong>
                 <p>{{ entry.activity }}</p>
+                <span class="social-alert" *ngIf="entry.alert">{{
+                  entry.alert
+                }}</span>
               </div>
-              <button
-                class="ghost-link"
-                *ngIf="getPresenceGame(entry)"
-                (click)="previewGame(getPresenceGame(entry)!)"
-              >
-                {{ entry.status }}
-              </button>
+              <div class="social-actions">
+                <span class="social-pill" [attr.data-type]="entry.relationship">{{
+                  entry.relationship || entry.status
+                }}</span>
+                <button class="ghost-link" (click)="handlePresenceAction(entry)">
+                  {{ getPresenceActionLabel(entry) }}
+                </button>
+              </div>
+            </div>
+            <div class="empty-state" *ngIf="!socialModules().length">
+              No live friend, party, or rival actions in this room yet.
             </div>
           </div>
         </section>
@@ -338,11 +347,11 @@
         <section class="insight-card glass-v42">
           <div class="section-heading">
             <h3>Cross-platform moves</h3>
-            <span>Merch + promotion</span>
+            <span>Contextual merch</span>
           </div>
           <button
             class="promotion-card"
-            *ngFor="let promotion of promotions()"
+            *ngFor="let promotion of contextualPromotions()"
             (click)="navigateToPath(getPromotionRoute(promotion))"
           >
             <span class="material-symbols-outlined">{{ promotion.icon }}</span>
@@ -352,6 +361,9 @@
               <span>{{ promotion.cta }}</span>
             </div>
           </button>
+          <div class="empty-state" *ngIf="!contextualPromotions().length">
+            No contextual promos are targeted to this room yet.
+          </div>
         </section>
       </aside>
     </div>
@@ -471,8 +483,8 @@
             <strong>{{ selected.queueEstimateMinutes || 0 }} min</strong>
           </div>
           <div class="launch-panel">
-            <span class="meta-label">AI Assist</span>
-            <strong>{{ selected.aiSupportLevel || 'Standard' }}</strong>
+            <span class="meta-label">Embed</span>
+            <strong>{{ selected.launchConfig?.embedMode || 'inline' }}</strong>
           </div>
         </div>
 
@@ -514,7 +526,7 @@
           </button>
           <button class="primary-btn" (click)="confirmLaunch()">
             <span class="material-symbols-outlined">play_arrow</span>
-            Start session
+            {{ canEmbedInline(selected) ? 'Start inline session' : 'Governed launch' }}
           </button>
         </div>
       </div>
@@ -588,9 +600,7 @@
       </header>
 
       <div class="console-body">
-        <ng-container
-          *ngIf="getSafeUrl(active.url) as safeUrl; else untrustedLaunch"
-        >
+        <ng-container *ngIf="getSafeUrl(active) as safeUrl; else untrustedLaunch">
           <iframe
             #gameIframe
             [src]="safeUrl"

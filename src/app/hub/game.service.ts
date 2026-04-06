@@ -2,7 +2,18 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError, map, shareReplay } from 'rxjs/operators';
-import { Game, GameRoom, ThaSpotFeed } from './game';
+import {
+  Game,
+  GameBadge,
+  GameLaunchConfig,
+  GameRoom,
+  LeaderboardEntry,
+  LiveEvent,
+  PromotionCard,
+  RecommendationRail,
+  SocialPresence,
+  ThaSpotFeed,
+} from './game';
 import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
 
 function escapeSvgText(value: string) {
@@ -16,6 +27,18 @@ function escapeSvgText(value: string) {
 
 function sanitizeSvgColor(value: string) {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : '#10b981';
+}
+
+function asString(value: unknown, fallback = '') {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback = 0) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function asStringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 }
 
 const COVER_HASH_SEED = 7;
@@ -60,34 +83,222 @@ function buildGameCover(
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
+function normalizeLaunchConfig(config: GameLaunchConfig | undefined, fallbackUrl: string): GameLaunchConfig {
+  const inlinePolicy = config?.inlinePolicy || 'trusted';
+  const embedMode =
+    config?.embedMode || (inlinePolicy === 'external-only' ? 'external-only' : 'inline');
+  const approvedEmbedUrl = config?.approvedEmbedUrl || (embedMode === 'inline' ? fallbackUrl : undefined);
+  const approvedExternalUrl = config?.approvedExternalUrl || fallbackUrl;
+  const telemetryMode =
+    config?.telemetryMode ||
+    (fallbackUrl.startsWith('/assets/games/') ? 'frame-only' : approvedEmbedUrl ? 'origin' : 'none');
+
+  return {
+    ...config,
+    inlinePolicy,
+    embedMode,
+    approvedEmbedUrl,
+    approvedExternalUrl,
+    telemetryMode,
+    telemetryOrigins: asStringArray(config?.telemetryOrigins),
+    controls: asStringArray(config?.controls),
+    objectives: asStringArray(config?.objectives),
+    modes: asStringArray(config?.modes),
+    trustNote: asString(config?.trustNote),
+  };
+}
+
 function normalizeGame(game: Game): Game {
-  const eyebrow =
-    game.art?.eyebrow || game.availability || game.genre || 'Tha Spot';
+  const eyebrow = game.art?.eyebrow || game.availability || game.genre || 'Tha Spot';
   const accentStart = game.art?.accentStart || '#10b981';
   const accentEnd = game.art?.accentEnd || '#38bdf8';
 
   return {
     ...game,
-    image:
-      game.image || buildGameCover(game.name, eyebrow, accentStart, accentEnd),
-    badgeIds: game.badgeIds || [],
-    sessionObjectives:
-      game.sessionObjectives || game.launchConfig?.objectives || [],
-    controlHints: game.controlHints || game.launchConfig?.controls || [],
-    queueEstimateMinutes: game.queueEstimateMinutes ?? 0,
+    id: asString(game.id),
+    name: asString(game.name, 'Unknown cabinet'),
+    url: asString(game.url),
+    description: asString(game.description),
+    genre: asString(game.genre),
+    tags: asStringArray(game.tags),
+    badgeIds: asStringArray(game.badgeIds),
+    sessionObjectives: asStringArray(game.sessionObjectives || game.launchConfig?.objectives),
+    controlHints: asStringArray(game.controlHints || game.launchConfig?.controls),
+    queueEstimateMinutes: Math.max(0, asNumber(game.queueEstimateMinutes)),
+    playersOnline: Math.max(0, asNumber(game.playersOnline)),
+    rating: Math.max(0, Math.min(5, asNumber(game.rating))),
+    image: game.image || buildGameCover(game.name, eyebrow, accentStart, accentEnd),
+    launchConfig: normalizeLaunchConfig(game.launchConfig, asString(game.url)),
+    art: {
+      eyebrow,
+      accentStart: sanitizeSvgColor(accentStart),
+      accentEnd: sanitizeSvgColor(accentEnd),
+    },
+  };
+}
+
+function normalizeRoom(room: GameRoom): GameRoom {
+  return {
+    ...room,
+    id: asString(room.id),
+    name: asString(room.name, 'Untitled room'),
+    icon: asString(room.icon, 'grid_view'),
+    description: asString(room.description),
+    spotlight: asString(room.spotlight),
+    rules: room.rules
+      ? {
+          genres: asStringArray(room.rules.genres),
+          tags: asStringArray(room.rules.tags),
+          availability: Array.isArray(room.rules.availability)
+            ? room.rules.availability.filter(Boolean)
+            : [],
+          badgeIds: asStringArray(room.rules.badgeIds),
+          featuredOnly: !!room.rules.featuredOnly,
+          gameIds: asStringArray(room.rules.gameIds),
+        }
+      : undefined,
+  };
+}
+
+function normalizeEvent(event: LiveEvent): LiveEvent {
+  return {
+    ...event,
+    id: asString(event.id),
+    title: asString(event.title, 'Live event'),
+    description: asString(event.description),
+    roomId: asString(event.roomId, 'all'),
+    reward: asString(event.reward),
+    status: ['live', 'upcoming', 'ending-soon'].includes(event.status)
+      ? event.status
+      : 'upcoming',
+    windowLabel: asString(event.windowLabel),
+    featuredGameId: asString(event.featuredGameId),
+    badgeId: asString(event.badgeId),
+    schedule: event.schedule
+      ? {
+          startAt: asString(event.schedule.startAt),
+          endAt: asString(event.schedule.endAt),
+          recurrence: ['once', 'daily', 'weekend'].includes(event.schedule.recurrence || '')
+            ? event.schedule.recurrence
+            : 'once',
+          eligibilityTags: asStringArray(event.schedule.eligibilityTags),
+          rewardType: ['xp', 'cosmetic', 'token'].includes(event.schedule.rewardType || '')
+            ? event.schedule.rewardType
+            : 'xp',
+        }
+      : undefined,
+  };
+}
+
+function normalizePresence(entry: SocialPresence): SocialPresence {
+  return {
+    ...entry,
+    id: asString(entry.id),
+    name: asString(entry.name, 'Unknown crew'),
+    status: ['online', 'queueing', 'in-match', 'hosting', 'invited'].includes(entry.status)
+      ? entry.status
+      : 'online',
+    activity: asString(entry.activity),
+    roomId: asString(entry.roomId, 'all'),
+    gameId: asString(entry.gameId),
+    relationship: ['friend', 'rival', 'party', 'invite'].includes(entry.relationship || '')
+      ? entry.relationship
+      : 'friend',
+    joinable: !!entry.joinable,
+    pendingInvite: !!entry.pendingInvite,
+    partySize: Math.max(0, asNumber(entry.partySize)),
+    cta: asString(entry.cta),
+    alert: asString(entry.alert),
+  };
+}
+
+function normalizePromotion(card: PromotionCard): PromotionCard {
+  return {
+    ...card,
+    id: asString(card.id),
+    title: asString(card.title, 'Promotion'),
+    description: asString(card.description),
+    route: asString(card.route, '/tha-spot'),
+    icon: asString(card.icon, 'bolt'),
+    cta: asString(card.cta, 'Open'),
+    roomIds: asStringArray(card.roomIds),
+    gameIds: asStringArray(card.gameIds),
+    audienceTags: asStringArray(card.audienceTags),
+    priority: asNumber(card.priority),
+    campaignType: ['studio', 'arena', 'intel', 'community'].includes(card.campaignType || '')
+      ? card.campaignType
+      : 'community',
+  };
+}
+
+function normalizeBadge(badge: GameBadge): GameBadge {
+  return {
+    id: asString(badge.id),
+    label: asString(badge.label, 'Badge'),
+    tone: ['primary', 'secondary', 'accent', 'warning'].includes(badge.tone)
+      ? badge.tone
+      : 'primary',
+  };
+}
+
+function normalizeLeaderboard(entry: LeaderboardEntry): LeaderboardEntry {
+  return {
+    id: asString(entry.id),
+    label: asString(entry.label, 'Leaderboard'),
+    score: asString(entry.score, '0'),
+    roomId: asString(entry.roomId, 'all'),
+    trend: asString(entry.trend),
+  };
+}
+
+function normalizeRecommendationRail(rail: RecommendationRail): RecommendationRail {
+  return {
+    ...rail,
+    id: asString(rail.id),
+    title: asString(rail.title, 'Recommended'),
+    subtitle: asString(rail.subtitle),
+    emptyState: asString(rail.emptyState, 'No live picks available right now.'),
+    gameIds: asStringArray(rail.gameIds),
+    roomIds: asStringArray(rail.roomIds),
+    maxItems: Math.max(1, asNumber(rail.maxItems, 4)),
+    audience: rail.audience
+      ? {
+          primaryGenres: asStringArray(rail.audience.primaryGenres),
+          rooms: asStringArray(rail.audience.rooms),
+          minPlays: Math.max(0, asNumber(rail.audience.minPlays)),
+          maxPlays: Math.max(0, asNumber(rail.audience.maxPlays, Number.MAX_SAFE_INTEGER)),
+          requiresAchievements: !!rail.audience.requiresAchievements,
+        }
+      : undefined,
+    weights: {
+      genre: Math.max(0, asNumber(rail.weights?.genre, 12)),
+      history: Math.max(0, asNumber(rail.weights?.history, 8)),
+      crowd: Math.max(0, asNumber(rail.weights?.crowd, 6)),
+      badge: Math.max(0, asNumber(rail.weights?.badge, 5)),
+      room: Math.max(0, asNumber(rail.weights?.room, 7)),
+      novelty: Math.max(0, asNumber(rail.weights?.novelty, 4)),
+    },
   };
 }
 
 function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
+  const games = (feed.games || []).map((game) => normalizeGame(game)).filter((game) => !!game.id && !!game.url);
+
   return {
-    ...feed,
-    badges: feed.badges || [],
-    rooms: feed.rooms || [],
-    liveEvents: feed.liveEvents || [],
-    socialPresence: feed.socialPresence || [],
-    promotions: feed.promotions || [],
-    leaderboards: feed.leaderboards || [],
-    games: (feed.games || []).map((game) => normalizeGame(game)),
+    badges: (feed.badges || []).map((badge) => normalizeBadge(badge)).filter((badge) => !!badge.id),
+    rooms: (feed.rooms || []).map((room) => normalizeRoom(room)).filter((room) => !!room.id),
+    liveEvents: (feed.liveEvents || []).map((event) => normalizeEvent(event)).filter((event) => !!event.id),
+    socialPresence: (feed.socialPresence || [])
+      .map((entry) => normalizePresence(entry))
+      .filter((entry) => !!entry.id),
+    promotions: (feed.promotions || []).map((card) => normalizePromotion(card)).filter((card) => !!card.id),
+    leaderboards: (feed.leaderboards || [])
+      .map((entry) => normalizeLeaderboard(entry))
+      .filter((entry) => !!entry.id),
+    recommendationRails: (feed.recommendationRails || [])
+      .map((rail) => normalizeRecommendationRail(rail))
+      .filter((rail) => !!rail.id),
+    games,
   };
 }
 
@@ -140,16 +351,14 @@ export class GameService {
 
   getGame(id: string): Observable<Game | undefined> {
     return this.listGames({}).pipe(
-      map((games) => games.find((g) => g.id === id))
+      map((games) => games.find((game) => game.id === id))
     );
   }
 
   getTrending(): Observable<Game[]> {
     return this.getThaSpotFeed().pipe(
       map((feed) =>
-        feed.games
-          .filter((game) => game.badgeIds?.includes('trending'))
-          .slice(0, 5)
+        feed.games.filter((game) => game.badgeIds?.includes('trending')).slice(0, 5)
       )
     );
   }
@@ -157,9 +366,7 @@ export class GameService {
   getNew(): Observable<Game[]> {
     return this.getThaSpotFeed().pipe(
       map((feed) =>
-        feed.games
-          .filter((game) => game.badgeIds?.includes('new-drop'))
-          .slice(0, 5)
+        feed.games.filter((game) => game.badgeIds?.includes('new-drop')).slice(0, 5)
       )
     );
   }
@@ -175,15 +382,9 @@ export class GameService {
     }
 
     const normalizedTags = (game.tags || []).map((tag) => tag.toLowerCase());
-    const normalizedGenres = (rules.genres || []).map((genre) =>
-      genre.toLowerCase()
-    );
-    const normalizedRuleTags = (rules.tags || []).map((tag) =>
-      tag.toLowerCase()
-    );
-    const normalizedBadges = (game.badgeIds || []).map((badge) =>
-      badge.toLowerCase()
-    );
+    const normalizedGenres = (rules.genres || []).map((genre) => genre.toLowerCase());
+    const normalizedRuleTags = (rules.tags || []).map((tag) => tag.toLowerCase());
+    const normalizedBadges = (game.badgeIds || []).map((badge) => badge.toLowerCase());
 
     const genreMatch =
       !normalizedGenres.length ||
@@ -196,14 +397,17 @@ export class GameService {
       (!!game.availability && rules.availability.includes(game.availability));
     const badgeMatch =
       !rules.badgeIds?.length ||
-      rules.badgeIds.some((badge) =>
-        normalizedBadges.includes(badge.toLowerCase())
-      );
-    const featuredMatch =
-      !rules.featuredOnly || !!game.badgeIds?.includes('featured');
+      rules.badgeIds.some((badge) => normalizedBadges.includes(badge.toLowerCase()));
+    const featuredMatch = !rules.featuredOnly || !!game.badgeIds?.includes('featured');
+    const gameIdMatch = !rules.gameIds?.length || rules.gameIds.includes(game.id);
 
     return (
-      genreMatch && tagMatch && availabilityMatch && badgeMatch && featuredMatch
+      genreMatch &&
+      tagMatch &&
+      availabilityMatch &&
+      badgeMatch &&
+      featuredMatch &&
+      gameIdMatch
     );
   }
 
@@ -215,23 +419,21 @@ export class GameService {
     let filtered = [...games];
 
     if (filters.genre) {
-      filtered = filtered.filter((g) => g.genre === filters.genre);
+      filtered = filtered.filter((game) => game.genre === filters.genre);
     }
 
     if (filters.query) {
-      const q = filters.query.toLowerCase();
+      const query = filters.query.toLowerCase();
       filtered = filtered.filter(
-        (g) =>
-          g.name.toLowerCase().includes(q) ||
-          g.description?.toLowerCase().includes(q)
+        (game) =>
+          game.name.toLowerCase().includes(query) ||
+          game.description?.toLowerCase().includes(query)
       );
     }
 
     switch (sort) {
       case 'Popular':
-        filtered.sort(
-          (a, b) => (b.playersOnline || 0) - (a.playersOnline || 0)
-        );
+        filtered.sort((a, b) => (b.playersOnline || 0) - (a.playersOnline || 0));
         break;
       case 'Rating':
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -240,7 +442,9 @@ export class GameService {
         filtered.sort((a, b) => {
           const idA = parseInt(a.id, 10);
           const idB = parseInt(b.id, 10);
-          if (isNaN(idA) || isNaN(idB)) return 0;
+          if (isNaN(idA) || isNaN(idB)) {
+            return 0;
+          }
           return idB - idA;
         });
         break;
