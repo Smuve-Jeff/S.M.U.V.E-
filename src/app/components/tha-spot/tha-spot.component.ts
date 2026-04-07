@@ -26,7 +26,11 @@ import {
   ThaSpotFeed,
 } from '../../hub/game';
 import { THA_SPOT_FALLBACK_FEED } from '../../hub/tha-spot-feed.fallback';
-import { UserProfileService } from '../../services/user-profile.service';
+import {
+  UserProfileService,
+  ThaSpotSessionContext,
+  UserProfile,
+} from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
 
 const DEFAULT_RECOMMENDATION_ITEMS = 4;
@@ -304,20 +308,26 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     return directives.slice(0, 4);
   });
 
-  progressionSummary = computed(() => {
+  activitySummary = computed(() => {
     const profile = this.profileService.profile();
     const stats = profile.gameStats || {};
     const progression = profile.thaSpotProgression || {};
     const totalPlays = this.getTotalPlays();
-    const masteredRoom =
+    const favoriteRoom =
       this.gamingRooms().find(
         (room) => room.id === progression.favoriteRoomId
       ) || this.findMasteredRoom(stats);
-    const lastPlayedGame = this.recentlyPlayed()[0];
+    const latestRoom =
+      this.gamingRooms().find((room) => room.id === progression.lastRoomId) ||
+      favoriteRoom;
     return {
       totalPlays,
-      masteryLabel: masteredRoom?.name || 'Choose a room',
-      recentLabel: lastPlayedGame?.name || 'No recent cabinet',
+      favoriteRoomLabel: favoriteRoom?.name || 'Choose a room',
+      latestRoomLabel: latestRoom?.name || 'No sessions yet',
+      sessionLabel:
+        totalPlays > 0
+          ? `${totalPlays} tracked sessions`
+          : 'Start with any cabinet',
       cosmetics: (progression.earnedCosmetics || []).length,
     };
   });
@@ -375,7 +385,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       this.canEmbedInline(game)
         ? game.launchConfig?.trustNote ||
             'Exact embed target verified from the live feed.'
-        : 'Inline launch is unavailable for this cabinet. Open it in a new tab to continue.'
+        : 'Inline launch is unavailable for this cabinet, so it will open in a new tab.'
     );
     this.frameError.set(null);
   }
@@ -431,7 +441,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         } else if (progress < 70) {
           this.matchmakingStatus.set('MATCHING ROOM PRESENCE');
         } else {
-          this.matchmakingStatus.set('FINALIZING LIVE MATCH');
+          this.matchmakingStatus.set('CONFIRMING OPPONENT PROFILE');
         }
 
         this.matchmakingProgress.update((value) => Math.min(100, value + 10));
@@ -566,10 +576,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
 
     if (data.type === 'GAME_OVER') {
-      void this.profileService.recordGameResult(
-        currentGame.id,
-        this.getSessionContext(currentGame)
-      );
+      return;
     }
   }
 
@@ -832,45 +839,42 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     };
   }
 
-  private getPromotionAudienceTags(profile: {
-    primaryGenre?: string;
-    gameStats?: Record<string, { plays?: number }>;
-  }) {
+  private getPromotionAudienceTags(profile: UserProfile) {
     const tags = ['returning'];
     const genre = (profile.primaryGenre || '').toLowerCase();
-    const totalPlays = Object.values(profile.gameStats || {}).reduce(
-      (total, stat) => total + (stat?.plays || 0),
-      0
-    );
+    const currentStreak = (
+      profile.thaSpotProgression as { currentStreak?: number } | undefined
+    )?.currentStreak;
 
     if (['hip hop', 'r&b', 'pop', 'electronic'].includes(genre)) {
       tags.push('producer');
     }
-    if (totalPlays >= 3) {
+    if ((currentStreak || 0) >= 3) {
       tags.push('competitive');
     }
-    if (totalPlays > 0) {
+    if (Object.keys(profile.gameStats || {}).length > 0) {
       tags.push('social');
     }
 
     return tags;
   }
 
-  private getSessionContext(game: Game) {
+  private getSessionContext(game: Game): ThaSpotSessionContext {
     const activeEvent = this.activeEvents().find(
       (event) => event.featuredGameId === game.id
     );
-    const cosmetics =
-      activeEvent?.schedule?.rewardType === 'cosmetic'
-        ? [activeEvent.reward]
-        : [];
+    const rawRewardType = activeEvent?.schedule?.rewardType;
+    const rewardType: ThaSpotSessionContext['rewardType'] =
+      rawRewardType === 'cosmetic' || rawRewardType === 'token'
+        ? rawRewardType
+        : undefined;
 
     return {
       roomId: this.activeRoom(),
       eventId: activeEvent?.id,
       reward: activeEvent?.reward,
-      rewardType: activeEvent?.schedule?.rewardType,
-      cosmetics,
+      rewardType,
+      cosmetics: [],
     };
   }
 
