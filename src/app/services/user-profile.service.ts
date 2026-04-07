@@ -5,6 +5,7 @@ import {
   RecommendationHistoryEntry,
   UpgradeRecommendation,
 } from '../types/ai.types';
+import {
   ArtistIdentityState,
   createInitialArtistIdentity,
   ensureArtistIdentityState,
@@ -42,7 +43,6 @@ export interface ThaSpotEventHistoryEntry {
   eventId: string;
   roomId?: string;
   reward?: string;
-  rewardType?: 'cosmetic' | 'token';
   rewardType?: 'access' | 'cosmetic' | 'token';
   participatedAt: number;
 }
@@ -74,7 +74,6 @@ export interface ThaSpotSessionContext {
   roomId?: string;
   eventId?: string;
   reward?: string;
-  rewardType?: 'cosmetic' | 'token';
   rewardType?: 'access' | 'cosmetic' | 'token';
   cosmetics?: string[];
 }
@@ -166,28 +165,6 @@ export class UserProfileService {
     try {
       const userProfile = await this.databaseService.loadUserProfile(userId);
       if (userProfile) {
-        const {
-          xp: _xp,
-          level: _level,
-          achievements: _achievements,
-          lastXpReason: _lastXpReason,
-          lastXpAt: _lastXpAt,
-          ...profileWithoutGamification
-        } = userProfile as UserProfile & Record<string, any>;
-        const normalizedProfile = {
-          ...profileWithoutGamification,
-          artistIdentity: ensureArtistIdentityState(
-            userProfile.artistName,
-            userProfile.primaryGenre,
-            userProfile.artistIdentity
-          ),
-          gameStats: this.sanitizeGameStats(userProfile.gameStats),
-          thaSpotProgression: this.sanitizeThaSpotProgression(
-            userProfile.thaSpotProgression
-          ),
-        };
-        this.profile.set(normalizedProfile);
-        this.profile$.set(normalizedProfile);
         const sanitizedProfile = this.sanitizeProfile(userProfile);
         this.profile.set(sanitizedProfile);
         this.profile$.set(sanitizedProfile);
@@ -200,29 +177,6 @@ export class UserProfileService {
   async updateProfile(newProfile: UserProfile, userId?: string): Promise<void> {
     try {
       const id = userId || 'anonymous';
-      const {
-        xp: _xp,
-        level: _level,
-        achievements: _achievements,
-        lastXpReason: _lastXpReason,
-        lastXpAt: _lastXpAt,
-        ...profileWithoutGamification
-      } = newProfile as UserProfile & Record<string, any>;
-      const normalizedProfile = {
-        ...profileWithoutGamification,
-        artistIdentity: ensureArtistIdentityState(
-          newProfile.artistName,
-          newProfile.primaryGenre,
-          newProfile.artistIdentity
-        ),
-        gameStats: this.sanitizeGameStats(newProfile.gameStats),
-        thaSpotProgression: this.sanitizeThaSpotProgression(
-          newProfile.thaSpotProgression
-        ),
-      };
-      await this.databaseService.saveUserProfile(normalizedProfile, id);
-      this.profile.set(normalizedProfile);
-      this.profile$.set(normalizedProfile);
       const sanitizedProfile = this.sanitizeProfile(newProfile);
       await this.databaseService.saveUserProfile(sanitizedProfile, id);
       this.profile.set(sanitizedProfile);
@@ -297,57 +251,19 @@ export class UserProfileService {
     const stats = { ...(current.gameStats || {}) };
     const prev = stats[gameId] || {};
     const now = Date.now();
+    
+    const roomId = context.roomId || prev.lastRoomId;
+    const roomPlays = {
+      ...(prev.roomPlays || {}),
+      ...(roomId ? { [roomId]: ((prev.roomPlays || {})[roomId] || 0) + 1 } : {}),
+    };
+
     const nextProgression = this.buildThaSpotProgression(
       current.thaSpotProgression,
       prev,
       {
         ...context,
         playedAt: now,
-      }
-    );
-
-    stats[gameId] = {
-      ...prev,
-      plays: (prev.plays || 0) + 1,
-      lastPlayedAt: now,
-      lastRoomId: context.roomId || prev.lastRoomId,
-      roomPlays: prev.roomPlays || {},
-      earnedCosmetics: this.mergeUniqueStrings(
-        prev.earnedCosmetics,
-        context.cosmetics
-      ),
-      eventHistory: this.buildEventHistory(prev.eventHistory, context),
-    };
-
-    await this.updateProfile({
-      ...current,
-      gameStats: stats,
-      thaSpotProgression: nextProgression,
-    } as any);
-  }
-
-  async recordGameLaunch(
-  async recordGameSession(
-    gameId: string,
-    context: ThaSpotSessionContext = {}
-  ): Promise<void> {
-    const current = this.profile();
-    const stats = { ...(current.gameStats || {}) };
-    const prev = stats[gameId] || {};
-    const playedAt = Date.now();
-    const roomId = context.roomId || prev.lastRoomId;
-    const roomPlays = {
-      ...(prev.roomPlays || {}),
-      ...(roomId
-        ? { [roomId]: ((prev.roomPlays || {})[roomId] || 0) + 1 }
-        : {}),
-    };
-    const nextProgression = this.buildThaSpotProgression(
-      current.thaSpotProgression,
-      prev,
-      {
-        ...context,
-        playedAt,
         roomId,
         roomPlays,
       }
@@ -356,7 +272,7 @@ export class UserProfileService {
     stats[gameId] = {
       ...prev,
       plays: (prev.plays || 0) + 1,
-      lastPlayedAt: playedAt,
+      lastPlayedAt: now,
       lastRoomId: roomId,
       roomPlays,
       earnedCosmetics: this.mergeUniqueStrings(
@@ -371,6 +287,11 @@ export class UserProfileService {
       gameStats: stats,
       thaSpotProgression: nextProgression,
     } as any);
+  }
+
+  async recordGameLaunch(gameId: string, context: ThaSpotSessionContext = {}) {
+     // For now, recordGameLaunch redirects to recording a result update or session start
+     await this.recordGameResult(gameId, context);
   }
 
   private buildThaSpotProgression(
@@ -391,7 +312,6 @@ export class UserProfileService {
           existingRoom.plays || 0,
           (context.roomPlays || {})[roomId] || 0
         ),
-        plays: (existingRoom.plays || 0) + sessionIncrement,
         lastPlayedAt: context.playedAt,
       };
     }
@@ -434,8 +354,22 @@ export class UserProfileService {
   }
 
   private sanitizeProfile(profile: UserProfile): UserProfile {
+    const {
+      xp: _xp,
+      level: _level,
+      achievements: _achievements,
+      lastXpReason: _lastXpReason,
+      lastXpAt: _lastXpAt,
+      ...cleanProfile
+    } = profile as any;
+
     return {
-      ...profile,
+      ...cleanProfile,
+      artistIdentity: ensureArtistIdentityState(
+        profile.artistName,
+        profile.primaryGenre,
+        profile.artistIdentity
+      ),
       equipment: [...(profile.equipment || [])],
       daw: [...(profile.daw || [])],
       services: [...(profile.services || [])],
@@ -454,7 +388,7 @@ export class UserProfileService {
         )
       ),
       recommendationHistory: (profile.recommendationHistory || [])
-        .map((entry) => ({
+        .map((entry: any) => ({
           recommendationId: entry.recommendationId,
           title: entry.title || entry.recommendationId,
           type: entry.type || 'Service',
@@ -463,7 +397,7 @@ export class UserProfileService {
         }))
         .slice(-30),
       gameStats: this.sanitizeGameStats(profile.gameStats),
-      thaSpotProgression: this.sanitizeProgression(profile.thaSpotProgression),
+      thaSpotProgression: this.sanitizeThaSpotProgression(profile.thaSpotProgression),
     };
   }
 
@@ -492,42 +426,33 @@ export class UserProfileService {
     };
 
     if (upgrade.type === 'Gear') {
-      if (!next.equipment.includes(title)) {
-        next.equipment.push(title);
-      }
+      if (!next.equipment.includes(title)) next.equipment.push(title);
     } else if (upgrade.type === 'Software') {
-      if (!next.daw.includes(title)) {
-        next.daw.push(title);
-      }
+      if (!next.daw.includes(title)) next.daw.push(title);
     } else if (upgrade.type === 'Service') {
-      if (!next.services.includes(title)) {
-        next.services.push(title);
-      }
+      if (!next.services.includes(title)) next.services.push(title);
     } else {
       return null;
     }
 
-    if (!upgrade.recommendationId) {
-      return next;
-    }
-
-    const preference =
-      next.recommendationPreferences?.[upgrade.recommendationId] || undefined;
-    next.recommendationPreferences[upgrade.recommendationId] = {
-      state,
-      updatedAt: Date.now(),
-      actionCount: (preference?.actionCount || 0) + 1,
-    };
-    next.recommendationHistory = this.appendRecommendationHistory(
-      next.recommendationHistory,
-      {
-        recommendationId: upgrade.recommendationId,
-        title,
-        type: this.normalizeRecommendationType(upgrade.type),
+    if (upgrade.recommendationId) {
+      const preference = next.recommendationPreferences[upgrade.recommendationId];
+      next.recommendationPreferences[upgrade.recommendationId] = {
         state,
         updatedAt: Date.now(),
-      }
-    );
+        actionCount: (preference?.actionCount || 0) + 1,
+      };
+      next.recommendationHistory = this.appendRecommendationHistory(
+        next.recommendationHistory,
+        {
+          recommendationId: upgrade.recommendationId,
+          title,
+          type: this.normalizeRecommendationType(upgrade.type),
+          state,
+          updatedAt: Date.now(),
+        }
+      );
+    }
 
     return next;
   }
@@ -560,8 +485,6 @@ export class UserProfileService {
         {
           plays: stat?.plays || 0,
           lastPlayedAt: stat?.lastPlayedAt,
-          currentStreak: stat?.currentStreak || 0,
-          longestStreak: stat?.longestStreak || 0,
           lastRoomId: stat?.lastRoomId,
           roomPlays: { ...(stat?.roomPlays || {}) },
           earnedCosmetics: [...(stat?.earnedCosmetics || [])],
@@ -571,12 +494,10 @@ export class UserProfileService {
     );
   }
 
-  private sanitizeProgression(
+  private sanitizeThaSpotProgression(
     progression: ThaSpotProgression | undefined
   ): ThaSpotProgression {
     return {
-      currentStreak: progression?.currentStreak || 0,
-      longestStreak: progression?.longestStreak || 0,
       lastSessionAt: progression?.lastSessionAt,
       lastRoomId: progression?.lastRoomId,
       favoriteRoomId: progression?.favoriteRoomId,
@@ -610,11 +531,10 @@ export class UserProfileService {
     rewardType: string | undefined
   ): ThaSpotEventHistoryEntry['rewardType'] {
     switch (rewardType) {
+      case 'access':
       case 'cosmetic':
       case 'token':
         return rewardType;
-      case 'xp':
-        return 'access';
       default:
         return undefined;
     }
@@ -625,44 +545,5 @@ export class UserProfileService {
     incoming: string[] | undefined
   ) {
     return [...new Set([...(existing || []), ...(incoming || [])])];
-  }
-
-  private sanitizeGameStats(
-    stats: Record<string, ThaSpotGameStat> | undefined
-  ): Record<string, ThaSpotGameStat> {
-    return Object.fromEntries(
-      Object.entries(stats || {}).map(([gameId, stat]) => [
-        gameId,
-        {
-          plays: stat?.plays || 0,
-          lastPlayedAt: stat?.lastPlayedAt,
-          lastRoomId: stat?.lastRoomId,
-          roomPlays: stat?.roomPlays || {},
-          earnedCosmetics: stat?.earnedCosmetics || [],
-          eventHistory: stat?.eventHistory || [],
-        },
-      ])
-    );
-  }
-
-  private sanitizeThaSpotProgression(
-    progression: ThaSpotProgression | undefined
-  ): ThaSpotProgression {
-    return {
-      lastSessionAt: progression?.lastSessionAt,
-      lastRoomId: progression?.lastRoomId,
-      favoriteRoomId: progression?.favoriteRoomId,
-      roomStats: Object.fromEntries(
-        Object.entries(progression?.roomStats || {}).map(([roomId, stat]) => [
-          roomId,
-          {
-            plays: stat?.plays || 0,
-            lastPlayedAt: stat?.lastPlayedAt,
-          },
-        ])
-      ),
-      earnedCosmetics: progression?.earnedCosmetics || [],
-      eventHistory: progression?.eventHistory || [],
-    };
   }
 }
