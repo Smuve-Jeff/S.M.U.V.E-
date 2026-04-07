@@ -32,6 +32,24 @@
   <div class="hub-laser-beams"></div>
   <div class="hub-reactive-grid"></div>
   <div class="hub-particles"></div>
+  <div class="hub-media-montage" aria-hidden="true">
+    @for (panel of homeBackdropMedia; track panel.title) {
+      <figure class="media-panel" [ngClass]="panel.layoutClass">
+        <img
+          class="media-shot"
+          [src]="panel.src"
+          [attr.alt]="panel.title"
+          loading="eager"
+          decoding="async"
+        />
+        <div class="media-sheen"></div>
+        <figcaption class="media-caption">
+          <span class="media-label">{{ panel.label }}</span>
+          <strong class="media-title">{{ panel.title }}</strong>
+        </figcaption>
+      </figure>
+    }
+  </div>
 
   <div class="hub-container animate-enter">
     <!-- Header: Business Intelligence Overview -->

@@ -30,6 +30,13 @@ interface WorkflowStage {
   description: string;
 }
 
+interface HomeBackdropMedia {
+  src: string;
+  label: string;
+  title: string;
+  layoutClass: string;
+}
+
 @Component({
   selector: 'app-hub',
   standalone: true,
@@ -155,6 +162,32 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
       title: 'Launch and track momentum',
       description:
         'Use the release pipeline, analytics, and project views to manage rollout readiness and follow-through.',
+    },
+  ];
+  homeBackdropMedia: HomeBackdropMedia[] = [
+    {
+      src: 'assets/hub/home-backdrop-studio.png',
+      label: 'Production Suite',
+      title: 'Studio performance view',
+      layoutClass: 'panel-studio',
+    },
+    {
+      src: 'assets/hub/home-backdrop-command.png',
+      label: 'Executive Layout',
+      title: 'Command surface overview',
+      layoutClass: 'panel-command',
+    },
+    {
+      src: 'assets/hub/home-backdrop-intel.png',
+      label: 'Intel Brief',
+      title: 'Strategy signal board',
+      layoutClass: 'panel-intel',
+    },
+    {
+      src: 'assets/hub/home-backdrop-cinema.png',
+      label: 'Cinema Engine',
+      title: 'Mobile visual direction',
+      layoutClass: 'panel-cinema',
     },
   ];
   commandDeck = [

@@ -138,6 +138,29 @@ describe('HubComponent', () => {
       'image-video-lab',
       'release-pipeline',
     ]);
+    expect(component.homeBackdropMedia).toHaveLength(4);
+    expect(component.homeBackdropMedia.map((panel) => panel.src)).toEqual(
+      expect.arrayContaining([
+        'assets/hub/home-backdrop-studio.png',
+        'assets/hub/home-backdrop-command.png',
+        'assets/hub/home-backdrop-intel.png',
+        'assets/hub/home-backdrop-cinema.png',
+      ])
+    );
+    expect(component.homeBackdropMedia).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'Production Suite',
+          title: 'Studio performance view',
+          layoutClass: 'panel-studio',
+        }),
+        expect.objectContaining({
+          label: 'Executive Layout',
+          title: 'Command surface overview',
+          layoutClass: 'panel-command',
+        }),
+      ])
+    );
   });
 
   it('navigates to spotlight routes from the landing page', async () => {
@@ -169,5 +192,8 @@ describe('HubComponent', () => {
 
     // Check for upload button (pill-action)
     expect(nativeElement.querySelector('.pill-action')).not.toBeNull();
+    expect(nativeElement.querySelectorAll('.media-panel').length).toBe(
+      component.homeBackdropMedia.length
+    );
   });
 });
