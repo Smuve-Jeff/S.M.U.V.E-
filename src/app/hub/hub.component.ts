@@ -186,7 +186,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   visualizerData = signal<number[]>(new Array(24).fill(20));
 
   ngOnInit() {
-    if (typeof window !== "undefined" && window.innerWidth <= 768) {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
       this.aiService.proactiveStrategicPulse();
     }
   }

@@ -20,7 +20,7 @@ import {
 import { MixerComponent } from '../mixer/mixer.component';
 import { DrumMachineComponent } from '../drum-machine/drum-machine.component';
 import { MasteringSuiteComponent } from '../mastering-suite/mastering-suite.component';
-import { fromEvent } from "rxjs";
+import { fromEvent } from 'rxjs';
 import { SoundBrowserComponent } from '../sound-browser/sound-browser.component';
 import { AudioSessionService } from '../audio-session.service';
 import { AiService } from '../../services/ai.service';
@@ -262,7 +262,8 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     const newSelection = new Set<string>();
 
     track.notes.forEach((note) => {
-      const noteX = gridRect.left + note.step * this.cellWidth - scrollLeft + 64; // Adjust for piano keys
+      const noteX =
+        gridRect.left + note.step * this.cellWidth - scrollLeft + 64; // Adjust for piano keys
       const noteY =
         gridRect.top +
         this.getDisplayKeys().indexOf(note.midi) * this.rowHeight -
@@ -468,7 +469,10 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     const track = this.selectedTrack();
     if (!track) return;
     track.notes.forEach((n) => {
-      if (this.selectedNoteIds().size === 0 || this.selectedNoteIds().has(n.id)) {
+      if (
+        this.selectedNoteIds().size === 0 ||
+        this.selectedNoteIds().has(n.id)
+      ) {
         this.musicManager.updateNote(track.id, n.id, {
           velocity: this.clamp(n.velocity + delta, 0.1, 1),
         });
@@ -480,7 +484,10 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     const track = this.selectedTrack();
     if (!track) return;
     track.notes.forEach((n) => {
-      if (this.selectedNoteIds().size === 0 || this.selectedNoteIds().has(n.id)) {
+      if (
+        this.selectedNoteIds().size === 0 ||
+        this.selectedNoteIds().has(n.id)
+      ) {
         this.musicManager.updateNote(track.id, n.id, {
           length: this.clamp(n.length + delta, 1, this.cells.length),
         });
@@ -540,7 +547,8 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   hasNoteOverlap(note: TrackNote, track: TrackModel): boolean {
     const noteEnd = note.step + note.length;
     return track.notes.some((candidate) => {
-      if (candidate.id === note.id || candidate.midi !== note.midi) return false;
+      if (candidate.id === note.id || candidate.midi !== note.midi)
+        return false;
       const candidateEnd = candidate.step + candidate.length;
       return note.step < candidateEnd && noteEnd > candidate.step;
     });
@@ -588,11 +596,11 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   }
 
   toggleTrackSidebar() {
-    this.showTrackSidebar.update(v => !v);
+    this.showTrackSidebar.update((v) => !v);
   }
 
   toggleSoundBrowser() {
-    this.soundBrowserOpen.update(v => !v);
+    this.soundBrowserOpen.update((v) => !v);
   }
 
   @HostListener('window:keydown', [''])
@@ -605,12 +613,19 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
 
     // Undo/Redo
-    if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      event.key === 'z' &&
+      !event.shiftKey
+    ) {
       event.preventDefault();
       this.historyService.undo();
       return;
     }
-    if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || (event.key === 'z' && event.shiftKey))) {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      (event.key === 'y' || (event.key === 'z' && event.shiftKey))
+    ) {
       event.preventDefault();
       this.historyService.redo();
       return;
@@ -628,7 +643,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     // Select all notes (Ctrl+A)
     if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
       event.preventDefault();
-      const allNoteIds = new Set(track.notes.map(n => n.id));
+      const allNoteIds = new Set(track.notes.map((n) => n.id));
       this.selectedNoteIds.set(allNoteIds);
       return;
     }
@@ -668,13 +683,15 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     const track = this.selectedTrack();
     if (!track) return;
 
-    const notesToDelete = track.notes.filter(n => this.selectedNoteIds().has(n.id));
-    const deletedNotes = notesToDelete.map(n => ({ ...n })); // Deep copy
+    const notesToDelete = track.notes.filter((n) =>
+      this.selectedNoteIds().has(n.id)
+    );
+    const deletedNotes = notesToDelete.map((n) => ({ ...n })); // Deep copy
 
     this.historyService.pushAction({
       description: `Delete ${deletedNotes.length} note(s)`,
       undo: () => {
-        deletedNotes.forEach(note => {
+        deletedNotes.forEach((note) => {
           this.musicManager.addNoteToTrack(track.id, {
             midi: note.midi,
             step: note.step,
@@ -684,7 +701,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
         });
       },
       redo: () => {
-        notesToDelete.forEach(n => {
+        notesToDelete.forEach((n) => {
           this.musicManager.deleteNoteById(track.id, n.id);
         });
       },
@@ -698,8 +715,12 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     if (!track) return;
 
     const affectedNotes = track.notes
-      .filter(n => this.selectedNoteIds().has(n.id))
-      .map(n => ({ id: n.id, oldMidi: n.midi, newMidi: this.clamp(n.midi + semitones, 0, 127) }));
+      .filter((n) => this.selectedNoteIds().has(n.id))
+      .map((n) => ({
+        id: n.id,
+        oldMidi: n.midi,
+        newMidi: this.clamp(n.midi + semitones, 0, 127),
+      }));
 
     this.historyService.pushAction({
       description: `Transpose ${affectedNotes.length} note(s) ${semitones > 0 ? 'up' : 'down'}`,
@@ -722,24 +743,36 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
     const track = this.selectedTrack();
     if (!track) return;
 
-    const notesToDup = track.notes.filter(n => this.selectedNoteIds().has(n.id));
+    const notesToDup = track.notes.filter((n) =>
+      this.selectedNoteIds().has(n.id)
+    );
     const beforeCount = track.notes.length;
 
     this.historyService.pushAction({
       description: `Duplicate ${notesToDup.length} note(s)`,
       undo: () => {
         // Remove the duplicated notes by removing the last N notes added
-        const currentTrack = this.musicManager.tracks().find(t => t.id === track.id);
+        const currentTrack = this.musicManager
+          .tracks()
+          .find((t) => t.id === track.id);
         if (currentTrack) {
-          const addedNoteIds = currentTrack.notes.slice(beforeCount).map(n => n.id);
-          addedNoteIds.forEach(id => {
+          const addedNoteIds = currentTrack.notes
+            .slice(beforeCount)
+            .map((n) => n.id);
+          addedNoteIds.forEach((id) => {
             this.musicManager.deleteNoteById(track.id, id);
           });
         }
       },
       redo: () => {
-        notesToDup.forEach(n => {
-          this.musicManager.addNote(track.id, n.midi, n.step + 16, n.length, n.velocity);
+        notesToDup.forEach((n) => {
+          this.musicManager.addNote(
+            track.id,
+            n.midi,
+            n.step + 16,
+            n.length,
+            n.velocity
+          );
         });
       },
     });
@@ -753,11 +786,18 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
 
     const strength = this.clamp(this.quantizeStrength(), 0, 1);
     const affectedNotes = track.notes
-      .filter(n => this.selectedNoteIds().size === 0 || this.selectedNoteIds().has(n.id))
-      .map(n => {
+      .filter(
+        (n) =>
+          this.selectedNoteIds().size === 0 || this.selectedNoteIds().has(n.id)
+      )
+      .map((n) => {
         const snapped = this.snapStep(n.step);
         const blended = n.step + (snapped - n.step) * strength;
-        return { id: n.id, oldStep: n.step, newStep: this.clamp(blended, 0, this.cells.length - 1) };
+        return {
+          id: n.id,
+          oldStep: n.step,
+          newStep: this.clamp(blended, 0, this.cells.length - 1),
+        };
       });
 
     this.historyService.pushAction({
@@ -801,12 +841,11 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
           )
         )
       )
-    )
-      .sort((left, right) => {
-        const distanceDelta =
-          Math.abs(left - clampedMidi) - Math.abs(right - clampedMidi);
-        return distanceDelta === 0 ? left - right : distanceDelta;
-      });
+    ).sort((left, right) => {
+      const distanceDelta =
+        Math.abs(left - clampedMidi) - Math.abs(right - clampedMidi);
+      return distanceDelta === 0 ? left - right : distanceDelta;
+    });
 
     return candidates[0] ?? clampedMidi;
   }

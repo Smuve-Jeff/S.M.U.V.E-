@@ -30,7 +30,7 @@ import {
   UpgradeRecommendation,
   StrategicRecommendation as StrategicRecommendationType,
   ExecutiveAuditReport,
-  AdvisorPersona
+  AdvisorPersona,
 } from '../types/ai.types';
 
 export const API_KEY_TOKEN = new InjectionToken<string>('GEMINI_API_KEY');
@@ -38,25 +38,44 @@ export const API_KEY_TOKEN = new InjectionToken<string>('GEMINI_API_KEY');
 export type { AiSystemStatus as SystemStatus };
 
 const COMMAND_ROUTES: Record<string, string> = {
-  AUTO_MIX: 'Provide an expert auto-mix analysis with compressor threshold, ratio, and mastering ceiling settings for optimal translation.',
-  LEAD_BAND: 'Coordinate the AI session musicians (bassist, drummer, keyboardist). Deliver specific musical cues for each player based on the current genre and BPM.',
-  CRITIQUE_VISUALS: 'Deliver brutally honest, brand-aligned critique of the artist artwork and visual identity. Identify deficits and prescribe specific fixes.',
-  NEGOTIATE_CONTRACT: 'Simulate a record deal negotiation as a seasoned entertainment attorney. Identify clauses to reject, rewrite, and leverage.',
-  AUDIT: 'Run a comprehensive neural profile audit across production, marketing, career, and technical dimensions. Output a scored executive summary.',
-  MASTER: 'Deploy the mastering intelligence suite. Advise on loudness targets, stereo width, EQ curve, and final-chain ordering.',
-  STATUS: 'Report current neural sync percentage, CPU load, memory usage, and strategic health score in a terse, high-precision format.',
-  BIZ_STRATEGY: 'Provide executive-level guidance on label deals, merch operations, sync licensing, and revenue diversification. Be ruthlessly specific.',
-  GENERATE_SPLITS: 'Generate a fair split sheet for collaborators based on contribution roles. Include producer points, co-write percentages, and feature fees.',
-  REGISTER_WORK: 'Walk through PRO (BMI/ASCAP/SESAC) work registration, ISRC assignment, and metadata hygiene required for sync and mechanical licensing.',
-  VIRAL_HOOKS: 'Generate 5 platform-specific viral hook concepts for social media (TikTok, Instagram Reels, YouTube Shorts) tailored to the current genre.',
-  RELEASE_STRATEGY: 'Build a 6-week release runway strategy: pre-save campaign, playlist pitching, DSP editorial submission windows, and social rollout cadence.',
-  BRAND_AUDIT: 'Audit the artist brand across all touchpoints—EPK, social bios, visual identity, and press narrative. Score each dimension and prioritize fixes.',
-  FAN_FUNNEL: 'Design a fan funnel architecture: discovery → streaming → social follow → email/Discord capture → merch/superfan monetization.',
-  SYNC_PITCH: 'Create a sync licensing pitch deck outline for music supervisors. Include genre tags, mood descriptors, and one-stop clearance status.',
-  ROYALTY_AUDIT: 'Audit all revenue streams: master royalties, publishing mechanicals, performance royalties, sync fees, and neighboring rights. Identify gaps.',
-  PROMO_PLAN: 'Create a promotion plan for the next release covering press outreach, blog/playlist submissions, social ads budget allocation, and influencer strategy.',
-  MARKET_INTEL: 'Deliver current intelligence on genre trends, DSP algorithm shifts, and emerging market opportunities relevant to the artist profile.',
-  COLLAB_STRATEGY: 'Identify ideal collaboration targets (features, producers, remixers) based on genre alignment and growth-stage synergy. Prescribe outreach approach.',
+  AUTO_MIX:
+    'Provide an expert auto-mix analysis with compressor threshold, ratio, and mastering ceiling settings for optimal translation.',
+  LEAD_BAND:
+    'Coordinate the AI session musicians (bassist, drummer, keyboardist). Deliver specific musical cues for each player based on the current genre and BPM.',
+  CRITIQUE_VISUALS:
+    'Deliver brutally honest, brand-aligned critique of the artist artwork and visual identity. Identify deficits and prescribe specific fixes.',
+  NEGOTIATE_CONTRACT:
+    'Simulate a record deal negotiation as a seasoned entertainment attorney. Identify clauses to reject, rewrite, and leverage.',
+  AUDIT:
+    'Run a comprehensive neural profile audit across production, marketing, career, and technical dimensions. Output a scored executive summary.',
+  MASTER:
+    'Deploy the mastering intelligence suite. Advise on loudness targets, stereo width, EQ curve, and final-chain ordering.',
+  STATUS:
+    'Report current neural sync percentage, CPU load, memory usage, and strategic health score in a terse, high-precision format.',
+  BIZ_STRATEGY:
+    'Provide executive-level guidance on label deals, merch operations, sync licensing, and revenue diversification. Be ruthlessly specific.',
+  GENERATE_SPLITS:
+    'Generate a fair split sheet for collaborators based on contribution roles. Include producer points, co-write percentages, and feature fees.',
+  REGISTER_WORK:
+    'Walk through PRO (BMI/ASCAP/SESAC) work registration, ISRC assignment, and metadata hygiene required for sync and mechanical licensing.',
+  VIRAL_HOOKS:
+    'Generate 5 platform-specific viral hook concepts for social media (TikTok, Instagram Reels, YouTube Shorts) tailored to the current genre.',
+  RELEASE_STRATEGY:
+    'Build a 6-week release runway strategy: pre-save campaign, playlist pitching, DSP editorial submission windows, and social rollout cadence.',
+  BRAND_AUDIT:
+    'Audit the artist brand across all touchpoints—EPK, social bios, visual identity, and press narrative. Score each dimension and prioritize fixes.',
+  FAN_FUNNEL:
+    'Design a fan funnel architecture: discovery → streaming → social follow → email/Discord capture → merch/superfan monetization.',
+  SYNC_PITCH:
+    'Create a sync licensing pitch deck outline for music supervisors. Include genre tags, mood descriptors, and one-stop clearance status.',
+  ROYALTY_AUDIT:
+    'Audit all revenue streams: master royalties, publishing mechanicals, performance royalties, sync fees, and neighboring rights. Identify gaps.',
+  PROMO_PLAN:
+    'Create a promotion plan for the next release covering press outreach, blog/playlist submissions, social ads budget allocation, and influencer strategy.',
+  MARKET_INTEL:
+    'Deliver current intelligence on genre trends, DSP algorithm shifts, and emerging market opportunities relevant to the artist profile.',
+  COLLAB_STRATEGY:
+    'Identify ideal collaboration targets (features, producers, remixers) based on genre alignment and growth-stage synergy. Prescribe outreach approach.',
 };
 
 const HIGH_DENSITY_THRESHOLD = 0.72;
@@ -82,7 +101,8 @@ export class AiService {
   private musicManager = inject(MusicManagerService);
   private logger = inject(LoggingService);
 
-  private API_URL = 'https://smuve-v4-backend-9951606049235487441.onrender.com/api';
+  private API_URL =
+    'https://smuve-v4-backend-9951606049235487441.onrender.com/api';
 
   systemStatus = signal<AiSystemStatus>({
     latency: 45,
@@ -110,7 +130,6 @@ export class AiService {
   intelligenceBriefs = signal<any[]>([...INTELLIGENCE_LIBRARY]);
   advisorAdvice = signal<AdvisorAdvice[]>([]);
 
-
   constructor() {
     effect(() => {
       const mode = this.userContext.mainViewMode();
@@ -119,7 +138,10 @@ export class AiService {
     });
   }
 
-  private updateAdvisorAdvice(viewMode: MainViewMode | string, profile: UserProfile): void {
+  private updateAdvisorAdvice(
+    viewMode: MainViewMode | string,
+    profile: UserProfile
+  ): void {
     const advice: AdvisorAdvice[] = [];
     const growth = this.analyticsService.overallGrowth();
     const catalog = profile?.catalog || [];
@@ -132,7 +154,7 @@ export class AiService {
           content: 'Your growth is stagnant. Post high-impact hook clips now.',
           type: 'Marketing',
           priority: 'URGENT',
-          persona: 'PUBLICIST'
+          persona: 'PUBLICIST',
         });
       }
     }
@@ -144,7 +166,7 @@ export class AiService {
         content: 'Check your low-end translation on multiple systems.',
         type: 'Production',
         priority: 'HIGH',
-        persona: 'AR'
+        persona: 'AR',
       });
     }
 
@@ -155,7 +177,7 @@ export class AiService {
         content: 'System at peak efficiency.',
         type: 'System',
         priority: 'LOW',
-        persona: 'EXECUTIVE'
+        persona: 'EXECUTIVE',
       });
     }
 
@@ -164,12 +186,14 @@ export class AiService {
 
   async generateAiResponse(prompt: string): Promise<string> {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      return "[S.M.U.V.E 1.0 // UPLINK SEVERED] Connect to the grid. FIX YOUR SONIC DEFICITS.";
+      return '[S.M.U.V.E 1.0 // UPLINK SEVERED] Connect to the grid. FIX YOUR SONIC DEFICITS.';
     }
 
     try {
       const response = await firstValueFrom(
-        this.http.post<{ text: string }>(`${this.API_URL}/ai/analyze`, { prompt })
+        this.http.post<{ text: string }>(`${this.API_URL}/ai/analyze`, {
+          prompt,
+        })
       );
       return response.text;
     } catch (error) {
@@ -189,8 +213,11 @@ export class AiService {
         sonicCohesion: 72,
         arrangementDepth: 75,
         marketViability: 55,
-        criticalDeficits: ['Low-end translation deficit', 'Arrangement stagnation'],
-        technicalRecommendations: ['Fix low-mid mud']
+        criticalDeficits: [
+          'Low-end translation deficit',
+          'Arrangement stagnation',
+        ],
+        technicalRecommendations: ['Fix low-mid mud'],
       });
     }, 2000);
   }
@@ -211,15 +238,18 @@ export class AiService {
     if (trimmed === '/release') return this.handleReleaseCommand(artist, genre);
     if (trimmed === '/generate_structure') return this.generateStructure(genre);
     if (trimmed === '/generate_chords') return this.generateChords(genre);
-    if (trimmed === '/generate_bass') return this.handleGenerateBassCommand(genre);
-    if (trimmed === '/generate_drums') return this.handleGenerateDrumCommand(genre);
+    if (trimmed === '/generate_bass')
+      return this.handleGenerateBassCommand(genre);
+    if (trimmed === '/generate_drums')
+      return this.handleGenerateDrumCommand(genre);
     if (trimmed === '/auto_mix') return this.handleAutoMixCommand();
 
     // Check for keyword-routed commands (e.g., AUTO_MIX, BIZ_STRATEGY)
     const upperCommand = command.toUpperCase().trim();
     const routeFragment = COMMAND_ROUTES[upperCommand];
 
-    const personaPrompt = "Use an authoritative, expert, and ominous tone. Incorporate explicit/vulgar language as requested by the Strategic Commander protocol.";
+    const personaPrompt =
+      'Use an authoritative, expert, and ominous tone. Incorporate explicit/vulgar language as requested by the Strategic Commander protocol.';
 
     const prompt = routeFragment
       ? `Task: ${routeFragment}. ${personaPrompt}`
@@ -228,14 +258,21 @@ export class AiService {
     return await this.generateAiResponse(prompt);
   }
 
-  private async handleAuditCommand(artist: string, genre: string): Promise<string> {
+  private async handleAuditCommand(
+    artist: string,
+    genre: string
+  ): Promise<string> {
     const report = await this.runHardDataAudit();
     const context = `BPM Variance: ${report.catalogAnalysis?.bpmVariance.toFixed(1)}, Key Consistency: ${report.catalogAnalysis?.keyConsistency.toFixed(1)}%.`;
-    return this.generateAiResponse(`Audit artist "${artist}" in genre "${genre}". Context: ${context}. Your tone is elite, absolute, commanding, and ominous.`);
+    return this.generateAiResponse(
+      `Audit artist "${artist}" in genre "${genre}". Context: ${context}. Your tone is elite, absolute, commanding, and ominous.`
+    );
   }
 
   private handleSyncKbCommand(): Promise<string> {
-    return this.generateAiResponse("Perform knowledge base synchronization protocol.");
+    return this.generateAiResponse(
+      'Perform knowledge base synchronization protocol.'
+    );
   }
 
   private handleStatusCommand(): string {
@@ -309,7 +346,7 @@ export class AiService {
         content: 'Your catalog shows high variance. Stabilize your sound.',
         type: 'Production',
         priority: 'MEDIUM',
-        persona: 'AR'
+        persona: 'AR',
       });
     }
 
@@ -317,10 +354,11 @@ export class AiService {
       advice.push({
         id: 'pub-1',
         title: 'Transparency Gap',
-        content: "No PRO registration found. You're invisible to legal revenue.",
+        content:
+          "No PRO registration found. You're invisible to legal revenue.",
         type: 'Branding',
         priority: 'HIGH',
-        persona: 'PUBLICIST'
+        persona: 'PUBLICIST',
       });
     }
 
@@ -343,7 +381,13 @@ export class AiService {
     section?: 'intro' | 'verse' | 'hook' | 'bridge' | 'outro';
     variation?: number;
     humanize?: boolean;
-  }): { id: string; name: string; startStep: number; length: number; midi: number[] }[] {
+  }): {
+    id: string;
+    name: string;
+    startStep: number;
+    length: number;
+    midi: number[];
+  }[] {
     const base = [
       { name: 'Am', midi: [57, 60, 64] },
       { name: 'F', midi: [53, 57, 60] },
@@ -351,13 +395,17 @@ export class AiService {
       { name: 'G', midi: [55, 59, 62] },
     ];
     const variation = Math.max(0, Math.min(1, input.variation ?? 0.4));
-    const moodOffset = input.mood === 'uplift' ? 1 : input.mood === 'dark' ? -1 : 0;
+    const moodOffset =
+      input.mood === 'uplift' ? 1 : input.mood === 'dark' ? -1 : 0;
     return base.map((chord, idx) => ({
       id: `cp-${idx}`,
       name: chord.name,
       startStep: idx * 16,
       length: 16,
-      midi: chord.midi.map((note) => note + moodOffset + (variation > 0.7 && idx % 2 === 0 ? 12 : 0)),
+      midi: chord.midi.map(
+        (note) =>
+          note + moodOffset + (variation > 0.7 && idx % 2 === 0 ? 12 : 0)
+      ),
     }));
   }
 
@@ -373,13 +421,16 @@ export class AiService {
       step,
       midi: 36 + (step % 8 === 0 ? 0 : 3),
       length: 2,
-      velocity: 0.75 + (variation * 0.2),
+      velocity: 0.75 + variation * 0.2,
     }));
     if (!input.humanize) return pattern;
     return pattern.map((note) => ({
       ...note,
       step: Math.max(0, note.step + (Math.random() > 0.5 ? 0.25 : -0.25)),
-      velocity: Math.max(0.5, Math.min(1, note.velocity + (Math.random() - 0.5) * 0.15)),
+      velocity: Math.max(
+        0.5,
+        Math.min(1, note.velocity + (Math.random() - 0.5) * 0.15)
+      ),
     }));
   }
 
@@ -418,7 +469,10 @@ export class AiService {
     return groove.map((hit) => ({
       ...hit,
       step: Math.max(0, hit.step + (Math.random() > 0.7 ? 0.25 : 0)),
-      velocity: Math.max(0.3, Math.min(1, hit.velocity + (Math.random() - 0.5) * 0.1)),
+      velocity: Math.max(
+        0.3,
+        Math.min(1, hit.velocity + (Math.random() - 0.5) * 0.1)
+      ),
     }));
   }
 
@@ -449,13 +503,26 @@ export class AiService {
     return {
       section: input.section,
       chords: input.includeChords
-        ? this.generateChordProgression({ section: input.section, variation, humanize: true })
+        ? this.generateChordProgression({
+            section: input.section,
+            variation,
+            humanize: true,
+          })
         : undefined,
       bass: input.includeBass
-        ? this.generateBassline({ section: input.section === 'hook' ? 'hook' : 'verse', variation, humanize: true })
+        ? this.generateBassline({
+            section: input.section === 'hook' ? 'hook' : 'verse',
+            variation,
+            humanize: true,
+          })
         : undefined,
       drums: input.includeDrums
-        ? this.generateDrumPattern({ section: input.section, variation, humanize: true, energy: 0.7 })
+        ? this.generateDrumPattern({
+            section: input.section,
+            variation,
+            humanize: true,
+            energy: 0.7,
+          })
         : undefined,
     };
   }
@@ -468,14 +535,23 @@ export class AiService {
   async runHardDataAudit(): Promise<ExecutiveAuditReport> {
     const profile = this.userProfileService.profile();
     const catalog = profile.catalog || [];
-    let bpmVar = 0; let keyCons = 0; let genAlig = 0;
+    let bpmVar = 0;
+    let keyCons = 0;
+    let genAlig = 0;
     if (catalog.length > 1) {
-      const bpms = catalog.map(c => c.bpm || 120);
+      const bpms = catalog.map((c) => c.bpm || 120);
       const avgBpm = bpms.reduce((a, b) => a + b, 0) / bpms.length;
-      bpmVar = Math.sqrt(bpms.reduce((s, b) => s + Math.pow(b - avgBpm, 2), 0) / bpms.length);
-      const keys = catalog.map(c => c.key || 'C');
-      keyCons = (1 - (new Set(keys).size / catalog.length)) * 100;
-      genAlig = (catalog.filter(c => (c.genre || profile.primaryGenre) === profile.primaryGenre).length / catalog.length) * 100;
+      bpmVar = Math.sqrt(
+        bpms.reduce((s, b) => s + Math.pow(b - avgBpm, 2), 0) / bpms.length
+      );
+      const keys = catalog.map((c) => c.key || 'C');
+      keyCons = (1 - new Set(keys).size / catalog.length) * 100;
+      genAlig =
+        (catalog.filter(
+          (c) => (c.genre || profile.primaryGenre) === profile.primaryGenre
+        ).length /
+          catalog.length) *
+        100;
     }
     return {
       overallScore: Math.floor((genAlig + keyCons) / 2) || 50,
@@ -484,17 +560,61 @@ export class AiService {
       marketViability: genAlig > 70 ? 85 : 40,
       criticalDeficits: [],
       technicalRecommendations: [],
-      catalogAnalysis: { bpmVariance: bpmVar, keyConsistency: keyCons, genreAlignment: genAlig }
+      catalogAnalysis: {
+        bpmVariance: bpmVar,
+        keyConsistency: keyCons,
+        genreAlignment: genAlig,
+      },
     };
   }
 
   getUpgradeRecommendations(): UpgradeRecommendation[] {
     return [
-      { id: 'upg-1', title: 'Room Calibration', type: 'Software', description: 'Calibrate monitoring.', cost: '$0-$99', url: '', impact: 'High' },
-      { id: 'upg-2', title: 'Vocal Chain Preset Pack', type: 'Software', description: 'Standardize processing.', cost: '$29-$149', url: '', impact: 'Medium' },
-      { id: 'upg-3', title: 'Mix Translation Checklist', type: 'Service', description: 'Repeatable QC pass.', cost: '$0', url: '', impact: 'High' },
-      { id: 'upg-4', title: 'Stem Mastering Service', type: 'Service', description: 'Maximum loudness.', cost: '$50-$200', url: '', impact: 'High' },
-      { id: 'upg-5', title: 'DSP Promotion', type: 'Service', description: 'Playlist pitching.', cost: '$30-$150', url: '', impact: 'Medium' },
+      {
+        id: 'upg-1',
+        title: 'Room Calibration',
+        type: 'Software',
+        description: 'Calibrate monitoring.',
+        cost: '$0-$99',
+        url: '',
+        impact: 'High',
+      },
+      {
+        id: 'upg-2',
+        title: 'Vocal Chain Preset Pack',
+        type: 'Software',
+        description: 'Standardize processing.',
+        cost: '$29-$149',
+        url: '',
+        impact: 'Medium',
+      },
+      {
+        id: 'upg-3',
+        title: 'Mix Translation Checklist',
+        type: 'Service',
+        description: 'Repeatable QC pass.',
+        cost: '$0',
+        url: '',
+        impact: 'High',
+      },
+      {
+        id: 'upg-4',
+        title: 'Stem Mastering Service',
+        type: 'Service',
+        description: 'Maximum loudness.',
+        cost: '$50-$200',
+        url: '',
+        impact: 'High',
+      },
+      {
+        id: 'upg-5',
+        title: 'DSP Promotion',
+        type: 'Service',
+        description: 'Playlist pitching.',
+        cost: '$30-$150',
+        url: '',
+        impact: 'Medium',
+      },
     ];
   }
 
@@ -505,13 +625,37 @@ export class AiService {
     const recs: StrategicRecommendationType[] = [];
 
     if (catalog.length < 3) {
-      recs.push({ id: 'rec-1', action: 'Ship a 3-track micro-EP to test audience response.', impact: 'High', difficulty: 'Medium', toolId: 'release-planner' });
+      recs.push({
+        id: 'rec-1',
+        action: 'Ship a 3-track micro-EP to test audience response.',
+        impact: 'High',
+        difficulty: 'Medium',
+        toolId: 'release-planner',
+      });
     }
     if (campaigns.length === 0) {
-      recs.push({ id: 'rec-2', action: 'Launch a $50 Meta or TikTok Ads campaign.', impact: 'High', difficulty: 'Low', toolId: 'marketing' });
+      recs.push({
+        id: 'rec-2',
+        action: 'Launch a $50 Meta or TikTok Ads campaign.',
+        impact: 'High',
+        difficulty: 'Low',
+        toolId: 'marketing',
+      });
     }
-    recs.push({ id: 'rec-3', action: 'Register all catalog tracks with your PRO.', impact: 'Medium', difficulty: 'Low', toolId: 'knowledge-base' });
-    recs.push({ id: 'rec-4', action: 'Build or update your EPK.', impact: 'Medium', difficulty: 'Low', toolId: 'strategy' });
+    recs.push({
+      id: 'rec-3',
+      action: 'Register all catalog tracks with your PRO.',
+      impact: 'Medium',
+      difficulty: 'Low',
+      toolId: 'knowledge-base',
+    });
+    recs.push({
+      id: 'rec-4',
+      action: 'Build or update your EPK.',
+      impact: 'Medium',
+      difficulty: 'Low',
+      toolId: 'strategy',
+    });
 
     return recs;
   }
@@ -576,7 +720,9 @@ export class AiService {
           : SAFE_COMP_RATIO,
       limiterCeiling: SAFE_LIMITER_CEILING,
       targetLufs:
-        density > HIGH_DENSITY_THRESHOLD ? DENSE_TARGET_LUFS : DEFAULT_TARGET_LUFS,
+        density > HIGH_DENSITY_THRESHOLD
+          ? DENSE_TARGET_LUFS
+          : DEFAULT_TARGET_LUFS,
     };
 
     return { arrangementSuggestion, eqMaskingHint, correctivePreset };
@@ -634,17 +780,30 @@ export class AiService {
 
   async getQuestionnaireInsights(profile: UserProfile): Promise<any[]> {
     const insights = [];
-    if (profile.primaryGenre === "Electronic") {
-      insights.push({ title: "Sonic Realignment", content: "Your electronic foundation requires high-fidelity low-end calibration." });
+    if (profile.primaryGenre === 'Electronic') {
+      insights.push({
+        title: 'Sonic Realignment',
+        content:
+          'Your electronic foundation requires high-fidelity low-end calibration.',
+      });
     }
-    if (profile.brandVoices?.includes("Elite")) {
-      insights.push({ title: "Executive Presence", content: "Prune all legacy non-conforming assets." });
+    if (profile.brandVoices?.includes('Elite')) {
+      insights.push({
+        title: 'Executive Presence',
+        content: 'Prune all legacy non-conforming assets.',
+      });
     }
-    if (profile.strategicGoals?.includes("Sync Catalog Pumping")) {
-      insights.push({ title: "Sync Readiness", content: "Prioritize instrumental-only versions of your top 5 tracks." });
+    if (profile.strategicGoals?.includes('Sync Catalog Pumping')) {
+      insights.push({
+        title: 'Sync Readiness',
+        content: 'Prioritize instrumental-only versions of your top 5 tracks.',
+      });
     }
     if (insights.length === 0) {
-      insights.push({ title: "General Strategy", content: "Ship a new track every 21 days." });
+      insights.push({
+        title: 'General Strategy',
+        content: 'Ship a new track every 21 days.',
+      });
     }
     return insights;
   }
@@ -655,22 +814,73 @@ export class AiService {
     const campaigns = profile?.marketingCampaigns || [];
     const tasks: StrategicTask[] = [];
 
-    tasks.push({ id: 'task-1', label: 'Audit last release translation', completed: false, category: 'Production', impact: 'High', description: 'Car test, earbuds, mono.' });
-    tasks.push({ id: 'task-2', label: 'Update EPK', completed: false, category: 'Marketing', impact: 'Medium', description: 'Add photos, bio, links.' });
-    tasks.push({ id: 'task-3', label: 'Schedule social clips', completed: false, category: 'Social', impact: 'High', description: '2 clips over 7 days.' });
+    tasks.push({
+      id: 'task-1',
+      label: 'Audit last release translation',
+      completed: false,
+      category: 'Production',
+      impact: 'High',
+      description: 'Car test, earbuds, mono.',
+    });
+    tasks.push({
+      id: 'task-2',
+      label: 'Update EPK',
+      completed: false,
+      category: 'Marketing',
+      impact: 'Medium',
+      description: 'Add photos, bio, links.',
+    });
+    tasks.push({
+      id: 'task-3',
+      label: 'Schedule social clips',
+      completed: false,
+      category: 'Social',
+      impact: 'High',
+      description: '2 clips over 7 days.',
+    });
     if (catalog.length < 5) {
-      tasks.push({ id: 'task-4', label: `Build catalog to 5+ tracks`, completed: false, category: 'Production', impact: 'High', description: 'Minimum depth for DSP eligibility.' });
+      tasks.push({
+        id: 'task-4',
+        label: `Build catalog to 5+ tracks`,
+        completed: false,
+        category: 'Production',
+        impact: 'High',
+        description: 'Minimum depth for DSP eligibility.',
+      });
     }
     if (campaigns.length === 0) {
-      tasks.push({ id: 'task-5', label: 'Launch first campaign', completed: false, category: 'Marketing', impact: 'High', description: 'Start with 0 budget trial.' });
+      tasks.push({
+        id: 'task-5',
+        label: 'Launch first campaign',
+        completed: false,
+        category: 'Marketing',
+        impact: 'High',
+        description: 'Start with 0 budget trial.',
+      });
     }
-    tasks.push({ id: 'task-6', label: 'Submit to playlist curators', completed: false, category: 'Promotion', impact: 'Medium', description: 'Target genre-aligned curators.' });
-    tasks.push({ id: 'task-7', label: 'Register with PRO', completed: false, category: 'Business', impact: 'High', description: 'Required for royalty collection.' });
+    tasks.push({
+      id: 'task-6',
+      label: 'Submit to playlist curators',
+      completed: false,
+      category: 'Promotion',
+      impact: 'Medium',
+      description: 'Target genre-aligned curators.',
+    });
+    tasks.push({
+      id: 'task-7',
+      label: 'Register with PRO',
+      completed: false,
+      category: 'Business',
+      impact: 'High',
+      description: 'Required for royalty collection.',
+    });
 
     return tasks;
   }
 }
 
 export function provideAiService(): EnvironmentProviders {
-  return makeEnvironmentProviders([{ provide: AiService, useClass: AiService }]);
+  return makeEnvironmentProviders([
+    { provide: AiService, useClass: AiService },
+  ]);
 }

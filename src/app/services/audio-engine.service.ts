@@ -288,7 +288,13 @@ export class AudioEngineService {
     if (deck.isPlaying) return;
     if (deck.slipActive) {
       const elapsedSlip = this.ctx.currentTime - deck.slipStartTime;
-      const newPos = Math.max(0, Math.min(deck.buffer?.duration || 0, deck.slipStartOffset + elapsedSlip * deck.rate));
+      const newPos = Math.max(
+        0,
+        Math.min(
+          deck.buffer?.duration || 0,
+          deck.slipStartOffset + elapsedSlip * deck.rate
+        )
+      );
       deck.pauseOffset = newPos;
       deck.slipActive = false;
     }
@@ -359,19 +365,18 @@ export class AudioEngineService {
     const deck = this.getDeck(id);
     deck.rate = rate;
     const rampTime = smooth ? 0.05 : 0.005;
-    Object.values(deck.sources).forEach(s => {
+    Object.values(deck.sources).forEach((s) => {
       if (s) {
         s.playbackRate.setTargetAtTime(rate, this.ctx.currentTime, rampTime);
       }
     });
   }
 
-
   brakeDeck(id: DeckId) {
     const deck = this.getDeck(id);
     const now = this.ctx.currentTime;
     const duration = 0.8;
-    Object.values(deck.sources).forEach(s => {
+    Object.values(deck.sources).forEach((s) => {
       if (s) {
         s.playbackRate.cancelScheduledValues(now);
         s.playbackRate.setValueAtTime(deck.rate, now);
@@ -480,7 +485,8 @@ export class AudioEngineService {
   getDeckProgress(id: DeckId) {
     const deck = this.getDeck(id);
     const dur = deck.buffer?.duration || 0;
-    if (!deck.buffer) return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
+    if (!deck.buffer)
+      return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
 
     let pos = deck.pauseOffset;
     let slipPos = deck.slipStartOffset;
@@ -492,12 +498,20 @@ export class AudioEngineService {
 
     if (deck.slipActive) {
       const elapsedSlip = this.ctx.currentTime - deck.slipStartTime;
-      slipPos = Math.max(0, Math.min(dur, deck.slipStartOffset + elapsedSlip * deck.rate));
+      slipPos = Math.max(
+        0,
+        Math.min(dur, deck.slipStartOffset + elapsedSlip * deck.rate)
+      );
     } else {
       slipPos = pos;
     }
 
-    return { position: pos, duration: dur, isPlaying: deck.isPlaying, slipPosition: slipPos };
+    return {
+      position: pos,
+      duration: dur,
+      isPlaying: deck.isPlaying,
+      slipPosition: slipPos,
+    };
   }
   private async loadDefaultImpulse() {
     const rate = this.ctx.sampleRate;
@@ -537,13 +551,13 @@ export class AudioEngineService {
     const stepDur = spb / this.stepsPerBeat();
     while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
       const stepIndex = this.currentBeat();
-      
+
       // Play metronome click on each beat (every stepsPerBeat steps)
       if (stepIndex % this.stepsPerBeat() === 0) {
         const beatInBar = Math.floor(stepIndex / this.stepsPerBeat()) % 4;
         this.playMetronomeClick(this.nextNoteTime, beatInBar === 0);
       }
-      
+
       this.onScheduleStep?.(stepIndex, this.nextNoteTime, stepDur);
       const next = (stepIndex + 1) % this.loopEnd();
       this.currentBeat.set(next);
@@ -578,9 +592,15 @@ export class AudioEngineService {
     const s = params?.sustain ?? 0.7;
     const r = params?.release ?? 0.15;
     vca.gain.setValueAtTime(0, when);
-    const scaledVelocity = Math.max(0.1, Math.min(1.8, velocity * velocityScale));
+    const scaledVelocity = Math.max(
+      0.1,
+      Math.min(1.8, velocity * velocityScale)
+    );
     vca.gain.linearRampToValueAtTime(scaledVelocity * outGain, when + a);
-    vca.gain.linearRampToValueAtTime(scaledVelocity * outGain * s, when + a + d);
+    vca.gain.linearRampToValueAtTime(
+      scaledVelocity * outGain * s,
+      when + a + d
+    );
     vca.gain.setTargetAtTime(0, when + duration, r);
     osc.frequency.value = freq;
     osc.connect(filter).connect(vca).connect(p).connect(this.masterGain);
@@ -588,7 +608,14 @@ export class AudioEngineService {
     osc.stop(when + duration + 2.0);
   }
 
-  playBuffer(when: number, buffer: AudioBuffer, duration: number, velocity = 1, pan = 0, gain = 0.8) {
+  playBuffer(
+    when: number,
+    buffer: AudioBuffer,
+    duration: number,
+    velocity = 1,
+    pan = 0,
+    gain = 0.8
+  ) {
     this.resume();
     const src = this.ctx.createBufferSource();
     src.buffer = buffer;
@@ -600,7 +627,11 @@ export class AudioEngineService {
     const stopAt = Math.max(when + attack + releaseTail, when + duration);
     vca.gain.setValueAtTime(0, when);
     vca.gain.linearRampToValueAtTime(safeVelocity * safeGain, when + attack);
-    vca.gain.setTargetAtTime(0, Math.max(when + duration - releaseTail, when + attack), releaseTail);
+    vca.gain.setTargetAtTime(
+      0,
+      Math.max(when + duration - releaseTail, when + attack),
+      releaseTail
+    );
     const p = this.ctx.createStereoPanner();
     p.pan.value = pan;
     src.connect(vca).connect(p).connect(this.masterGain);
@@ -624,23 +655,23 @@ export class AudioEngineService {
   playMetronomeClick(when: number, isDownbeat: boolean = false) {
     if (!this.metronomeEnabled()) return;
     this.resume();
-    
+
     const osc = this.ctx.createOscillator();
     const vca = this.ctx.createGain();
-    
+
     // Higher pitch for downbeat, lower for regular beats
     const frequency = isDownbeat ? 1200 : 800;
     const duration = 0.03;
     const volume = this.metronomeVolume();
-    
+
     osc.type = 'sine';
     osc.frequency.value = frequency;
-    
+
     // Sharp attack and quick decay for click sound
     vca.gain.setValueAtTime(0, when);
     vca.gain.linearRampToValueAtTime(volume, when + 0.002);
     vca.gain.exponentialRampToValueAtTime(0.001, when + duration);
-    
+
     osc.connect(vca).connect(this.masterGain);
     osc.start(when);
     osc.stop(when + duration + 0.01);
@@ -673,32 +704,35 @@ export class AudioEngineService {
 
   applyFx(source: AudioNode, fxSlots: any[]): AudioNode {
     let lastNode = source;
-    fxSlots.filter(s => s.enabled).forEach(slot => {
-      const fx = this.createFxNode(slot.type, slot.params);
-      if (fx) {
-        lastNode.connect(fx);
-        lastNode = fx;
-      }
-    });
+    fxSlots
+      .filter((s) => s.enabled)
+      .forEach((slot) => {
+        const fx = this.createFxNode(slot.type, slot.params);
+        if (fx) {
+          lastNode.connect(fx);
+          lastNode = fx;
+        }
+      });
     return lastNode;
   }
 
   private createFxNode(type: string, params: any): AudioNode | null {
     switch (type) {
-      case "filter":
+      case 'filter':
         const f = this.ctx.createBiquadFilter();
-        f.type = params.type || "lowpass";
+        f.type = params.type || 'lowpass';
         f.frequency.value = params.frequency || 1000;
         return f;
-      case "delay":
+      case 'delay':
         const d = this.ctx.createDelay();
         d.delayTime.value = params.delayTime || 0.3;
         return d;
-      case "compressor":
+      case 'compressor':
         const c = this.ctx.createDynamicsCompressor();
         c.threshold.value = params.threshold || -24;
         return c;
-      default: return null;
+      default:
+        return null;
     }
   }
 
@@ -747,7 +781,8 @@ export class AudioEngineService {
   }
 
   setMasteringTargets(params: { lufs?: number; truePeak?: number }) {
-    if (typeof params.lufs === 'number') this.masteringTargets.lufs = params.lufs;
+    if (typeof params.lufs === 'number')
+      this.masteringTargets.lufs = params.lufs;
     if (typeof params.truePeak === 'number') {
       this.masteringTargets.truePeak = params.truePeak;
       this.configureLimiter({ ceiling: params.truePeak });
@@ -780,10 +815,12 @@ export class AudioEngineService {
   }
 
   getSidechainRouting() {
-    return Array.from(this.sidechainMatrix.entries()).map(([trigger, targets]) => ({
-      triggerTrackId: trigger,
-      targetTrackIds: Array.from(targets),
-    }));
+    return Array.from(this.sidechainMatrix.entries()).map(
+      ([trigger, targets]) => ({
+        triggerTrackId: trigger,
+        targetTrackIds: Array.from(targets),
+      })
+    );
   }
 
   applyProductionParameter(
@@ -796,7 +833,9 @@ export class AudioEngineService {
     const isNumericTrackId =
       AudioEngineService.INTEGER_TRACK_ID_PATTERN.test(trimmedTrackId);
     const numericTrackId = isNumericTrackId ? Number(trimmedTrackId) : NaN;
-    const track = isNumericTrackId ? this.tracks.get(numericTrackId) : undefined;
+    const track = isNumericTrackId
+      ? this.tracks.get(numericTrackId)
+      : undefined;
     const now = this.ctx.currentTime;
     const tau = Math.max(0.001, duration);
 

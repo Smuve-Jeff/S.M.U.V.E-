@@ -9,7 +9,7 @@
     "start": "serve -s Build/browser",
     "preview": "ng serve --configuration=production",
     "test": "jest",
-    "lint": "eslint .",
+    "lint": "eslint src setup-jest.ts",
     "format": "prettier --write .",
     "deploy": "ng build --configuration=ghpages && cp Build/index.html Build/404.html && npx angular-cli-ghpages --dir=Build"
   },

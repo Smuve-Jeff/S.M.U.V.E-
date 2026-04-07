@@ -56,9 +56,13 @@ export class LocalStorageService {
         db.createObjectStore('sync_dead_letter', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('cache_metadata')) {
-        const metaStore = db.createObjectStore('cache_metadata', { keyPath: 'key' });
+        const metaStore = db.createObjectStore('cache_metadata', {
+          keyPath: 'key',
+        });
         metaStore.createIndex('expiresAt', 'expiresAt', { unique: false });
-        metaStore.createIndex('lastAccessedAt', 'lastAccessedAt', { unique: false });
+        metaStore.createIndex('lastAccessedAt', 'lastAccessedAt', {
+          unique: false,
+        });
       }
       if (!db.objectStoreNames.contains('offline_assets')) {
         db.createObjectStore('offline_assets', { keyPath: 'url' });
@@ -201,7 +205,10 @@ export class LocalStorageService {
     }
   }
 
-  private async touchCacheMetadata(storeName: string, id: string): Promise<void> {
+  private async touchCacheMetadata(
+    storeName: string,
+    id: string
+  ): Promise<void> {
     if (!this.db) return;
 
     const key = `${storeName}:${id}`;

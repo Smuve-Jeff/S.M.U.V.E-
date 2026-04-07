@@ -109,7 +109,9 @@ describe('VocalSuiteComponent', () => {
         },
       ],
     })
-      .overrideComponent(VocalSuiteComponent, { set: { template: '<div></div>' } })
+      .overrideComponent(VocalSuiteComponent, {
+        set: { template: '<div></div>' },
+      })
       .compileComponents();
 
     fixture = TestBed.createComponent(VocalSuiteComponent);

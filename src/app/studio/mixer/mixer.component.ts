@@ -6,7 +6,7 @@ import { VocalSuiteComponent } from '../vocal-suite/vocal-suite.component';
 import {
   MusicManagerService,
   TrackModel,
-  FxSlot
+  FxSlot,
 } from '../../services/music-manager.service';
 import { NeuralMixerService } from '../../services/neural-mixer.service';
 import { MixerService } from '../mixer.service';
@@ -39,11 +39,11 @@ export class MixerComponent {
   showVocalSuite = signal(false);
 
   toggleViewMode() {
-    this.viewMode.update(v => v === 'compact' ? 'expanded' : 'compact');
+    this.viewMode.update((v) => (v === 'compact' ? 'expanded' : 'compact'));
   }
 
   toggleVocalSuite() {
-    this.showVocalSuite.update(v => !v);
+    this.showVocalSuite.update((v) => !v);
   }
 
   updateMasterVolume(newVolume: number): void {
@@ -115,24 +115,31 @@ export class MixerComponent {
   }
 
   toggleFxSlot(trackId: number, slotId: string) {
-    this.musicManager.tracks.update(ts => ts.map(t => {
-      if (t.id !== trackId) return t;
-      return {
-        ...t,
-        fxSlots: t.fxSlots.map(s => s.id === slotId ? { ...s, enabled: !s.enabled } : s)
-      };
-    }));
-    const track = this.musicManager.tracks().find(t => t.id === trackId);
-    if (track) this.musicManager.engine.updateTrack(trackId, { fxSlots: track.fxSlots });
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        return {
+          ...t,
+          fxSlots: t.fxSlots.map((s) =>
+            s.id === slotId ? { ...s, enabled: !s.enabled } : s
+          ),
+        };
+      })
+    );
+    const track = this.musicManager.tracks().find((t) => t.id === trackId);
+    if (track)
+      this.musicManager.engine.updateTrack(trackId, { fxSlots: track.fxSlots });
   }
 
   resetTrack(id: number) {
-    this.musicManager.tracks.update(ts => ts.map(t => t.id === id ? { ...t, gain: 0.9, pan: 0 } : t));
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) => (t.id === id ? { ...t, gain: 0.9, pan: 0 } : t))
+    );
     this.musicManager.engine.updateTrack(id, { gain: 0.9, pan: 0 });
   }
 
   onLongPress(event: Event, trackId: number) {
     event.preventDefault();
-    console.log("Long press on track", trackId);
+    console.log('Long press on track', trackId);
   }
 }

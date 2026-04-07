@@ -298,7 +298,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   applyEnhancementsToActiveClips() {
-    const activeClips = this.videoEngine.getActiveClips(this.videoEngine.currentTime());
+    const activeClips = this.videoEngine.getActiveClips(
+      this.videoEngine.currentTime()
+    );
     if (!activeClips.length) {
       this.aiFeedback.set(
         'NO ACTIVE CLIPS ON THE PLAYHEAD. MOVE THE PLAYHEAD OVER A CLIP TO APPLY FILTER/TRANSITION/TRIM.'

@@ -51,7 +51,9 @@ describe('MicrophoneInterfaceComponent', () => {
       isRecording: signal(false),
       isPaused: signal(false),
       initialize: jest.fn().mockResolvedValue(undefined),
-      getAnalyserNode: jest.fn().mockReturnValue({ getByteTimeDomainData: jest.fn(), fftSize: 32 }),
+      getAnalyserNode: jest
+        .fn()
+        .mockReturnValue({ getByteTimeDomainData: jest.fn(), fftSize: 32 }),
       startRecording: jest.fn(),
       stopRecording: jest.fn(),
       pauseRecording: jest.fn(),

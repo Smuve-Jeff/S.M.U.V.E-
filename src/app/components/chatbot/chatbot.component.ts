@@ -12,9 +12,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
 import { UserProfileService } from '../../services/user-profile.service';
-import {
-  UserContextService,
-} from '../../services/user-context.service';
+import { UserContextService } from '../../services/user-context.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 import { LoggingService } from '../../services/logging.service';
@@ -141,20 +139,75 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   }
 
   toggleCommandCategory(category: CommandCategory) {
-    this.activeCommandCategory.update((c) => (c === category ? null : category));
+    this.activeCommandCategory.update((c) =>
+      c === category ? null : category
+    );
   }
 
-  private readonly CATEGORY_KEYWORDS: Record<ChatMessage['category'] & string, string[]> = {
-    production: ['mix', 'master', 'produc', 'beat', 'vocal', 'record', 'eq', 'compress', 'synth'],
-    marketing: ['market', 'promo', 'hook', 'brand', 'fan', 'social', 'release', 'viral', 'campaign', 'influenc'],
-    business: ['business', 'deal', 'contract', 'royalt', 'split', 'sync', 'legal', 'publish', 'license'],
+  private readonly CATEGORY_KEYWORDS: Record<
+    ChatMessage['category'] & string,
+    string[]
+  > = {
+    production: [
+      'mix',
+      'master',
+      'produc',
+      'beat',
+      'vocal',
+      'record',
+      'eq',
+      'compress',
+      'synth',
+    ],
+    marketing: [
+      'market',
+      'promo',
+      'hook',
+      'brand',
+      'fan',
+      'social',
+      'release',
+      'viral',
+      'campaign',
+      'influenc',
+    ],
+    business: [
+      'business',
+      'deal',
+      'contract',
+      'royalt',
+      'split',
+      'sync',
+      'legal',
+      'publish',
+      'license',
+    ],
     system: [],
   };
 
-  private readonly CATEGORY_COMMANDS: Record<ChatMessage['category'] & string, string[]> = {
+  private readonly CATEGORY_COMMANDS: Record<
+    ChatMessage['category'] & string,
+    string[]
+  > = {
     production: ['AUTO_MIX', 'MASTER', 'LEAD_BAND'],
-    marketing: ['VIRAL_HOOKS', 'PROMO_PLAN', 'RELEASE_STRATEGY', 'BRAND_AUDIT', 'FAN_FUNNEL', 'CRITIQUE_VISUALS', 'COLLAB_STRATEGY'],
-    business: ['BIZ_STRATEGY', 'NEGOTIATE_CONTRACT', 'GENERATE_SPLITS', 'REGISTER_WORK', 'ROYALTY_AUDIT', 'SYNC_PITCH', 'MARKET_INTEL'],
+    marketing: [
+      'VIRAL_HOOKS',
+      'PROMO_PLAN',
+      'RELEASE_STRATEGY',
+      'BRAND_AUDIT',
+      'FAN_FUNNEL',
+      'CRITIQUE_VISUALS',
+      'COLLAB_STRATEGY',
+    ],
+    business: [
+      'BIZ_STRATEGY',
+      'NEGOTIATE_CONTRACT',
+      'GENERATE_SPLITS',
+      'REGISTER_WORK',
+      'ROYALTY_AUDIT',
+      'SYNC_PITCH',
+      'MARKET_INTEL',
+    ],
     system: ['AUDIT', 'STATUS'],
   };
 
@@ -162,7 +215,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     const lower = text.toLowerCase();
     const upper = text.toUpperCase().trim();
     for (const category of ['production', 'marketing', 'business'] as const) {
-      const matchesKeyword = this.CATEGORY_KEYWORDS[category].some((kw) => lower.includes(kw));
+      const matchesKeyword = this.CATEGORY_KEYWORDS[category].some((kw) =>
+        lower.includes(kw)
+      );
       const matchesCommand = this.CATEGORY_COMMANDS[category].includes(upper);
       if (matchesKeyword || matchesCommand) return category;
     }
@@ -182,19 +237,27 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
 
   getCategoryAccent(category?: ChatMessage['category']): string {
     switch (category) {
-      case 'production': return 'text-cyan-400';
-      case 'marketing': return 'text-purple-400';
-      case 'business': return 'text-amber-400';
-      default: return 'text-brand-primary';
+      case 'production':
+        return 'text-cyan-400';
+      case 'marketing':
+        return 'text-purple-400';
+      case 'business':
+        return 'text-amber-400';
+      default:
+        return 'text-brand-primary';
     }
   }
 
   getCategoryLabel(category?: ChatMessage['category']): string {
     switch (category) {
-      case 'production': return 'Production';
-      case 'marketing': return 'Marketing';
-      case 'business': return 'Business';
-      default: return 'Commander_Uplink';
+      case 'production':
+        return 'Production';
+      case 'marketing':
+        return 'Marketing';
+      case 'business':
+        return 'Business';
+      default:
+        return 'Commander_Uplink';
     }
   }
 

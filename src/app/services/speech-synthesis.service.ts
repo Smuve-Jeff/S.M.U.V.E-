@@ -136,9 +136,12 @@ export class SpeechSynthesisService {
     const previousIndex =
       forceChange && this.lastProfileIndex !== null
         ? this.lastProfileIndex
-        : this.conversationProfileIndex ?? this.lastProfileIndex;
+        : (this.conversationProfileIndex ?? this.lastProfileIndex);
 
-    const index = this.pickRandomIndex(this.voiceProfiles.length, previousIndex);
+    const index = this.pickRandomIndex(
+      this.voiceProfiles.length,
+      previousIndex
+    );
     this.conversationProfileIndex = index;
     return index;
   }

@@ -62,7 +62,11 @@ describe('SequencerService advanced features', () => {
     expect(variation).toBeTruthy();
     service.randomizeVariation(variation!.id, 0.2);
     service.applyVariation(variation!.id);
-    const scene = service.createScene('Drop', service.activePattern()!.id, variation!.id);
+    const scene = service.createScene(
+      'Drop',
+      service.activePattern()!.id,
+      variation!.id
+    );
     service.triggerScene(scene.id);
     expect(service.scenes().length).toBeGreaterThan(0);
   });

@@ -27,7 +27,10 @@ export class BusinessPipelineService {
     }
   }
 
-  async initializeModule(type: BusinessPipelineType, name: string): Promise<string> {
+  async initializeModule(
+    type: BusinessPipelineType,
+    name: string
+  ): Promise<string> {
     const newPipeline: BusinessPipeline = {
       id: `biz-${Date.now()}`,
       type,
@@ -63,7 +66,9 @@ export class BusinessPipelineService {
           step.id === stepId ? { ...step, status } : step
         );
 
-        const allStepsDone = updatedSteps.every((st) => st.status === 'Completed');
+        const allStepsDone = updatedSteps.every(
+          (st) => st.status === 'Completed'
+        );
         return {
           ...s,
           steps: updatedSteps,
@@ -123,9 +128,11 @@ export class BusinessPipelineService {
               {
                 id: 'step-2',
                 title: 'Style Selection',
-                description: 'Choose between Oversized, Vintage, or Tech-Noir aesthetics.',
+                description:
+                  'Choose between Oversized, Vintage, or Tech-Noir aesthetics.',
                 status: 'Pending',
-                aiGuidance: 'Market trends favor High-Voltage neons this quarter. Choose wisely.',
+                aiGuidance:
+                  'Market trends favor High-Voltage neons this quarter. Choose wisely.',
               },
             ],
           },
@@ -137,7 +144,8 @@ export class BusinessPipelineService {
               {
                 id: 'step-3',
                 title: 'AI Mockups',
-                description: 'Generate high-fidelity designs using S.M.U.V.E. Lab.',
+                description:
+                  'Generate high-fidelity designs using S.M.U.V.E. Lab.',
                 status: 'Pending',
                 aiGuidance:
                   'I will generate 3 options based on your sonic profile. Pick the one that screams "Iconic".',
@@ -153,7 +161,8 @@ export class BusinessPipelineService {
               {
                 id: 'step-4',
                 title: 'Vendor Setup',
-                description: 'Connect with Print-on-Demand or bulk manufacturers.',
+                description:
+                  'Connect with Print-on-Demand or bulk manufacturers.',
                 status: 'Pending',
                 aiGuidance:
                   'Efficiency is king. I recommend starting with POD to test the market.',
@@ -174,14 +183,16 @@ export class BusinessPipelineService {
                 title: 'Brand Mission',
                 description: 'Define what your label stands for.',
                 status: 'Pending',
-                aiGuidance: 'A label is a promise. What are you promising your future roster?',
+                aiGuidance:
+                  'A label is a promise. What are you promising your future roster?',
               },
               {
                 id: 'step-2',
                 title: 'Visual Identity',
                 description: 'Logo and official assets.',
                 status: 'Pending',
-                aiGuidance: 'Keep it clean, keep it authoritarian. The label logo should command respect.',
+                aiGuidance:
+                  'Keep it clean, keep it authoritarian. The label logo should command respect.',
               },
             ],
           },
@@ -195,7 +206,8 @@ export class BusinessPipelineService {
                 title: 'Business Structure',
                 description: 'Form an LLC or Corp.',
                 status: 'Pending',
-                aiGuidance: 'Protect your assets. An LLC is the bare minimum for a S.M.U.V.E 1.0.',
+                aiGuidance:
+                  'Protect your assets. An LLC is the bare minimum for a S.M.U.V.E 1.0.',
                 actionType: 'External',
               },
               {
@@ -252,7 +264,8 @@ export class BusinessPipelineService {
                 title: 'Works Registration',
                 description: 'Register your catalog.',
                 status: 'Pending',
-                aiGuidance: 'Unregistered songs are unpaid songs. Register everything.',
+                aiGuidance:
+                  'Unregistered songs are unpaid songs. Register everything.',
               },
             ],
           },
@@ -270,14 +283,16 @@ export class BusinessPipelineService {
                 title: 'Domain Selection',
                 description: 'Claim your .com or .io territory.',
                 status: 'Pending',
-                aiGuidance: 'Your domain name is your digital flag. Avoid dashes if possible.',
+                aiGuidance:
+                  'Your domain name is your digital flag. Avoid dashes if possible.',
               },
               {
                 id: 'step-2',
                 title: 'Hosting Setup',
                 description: 'Secure high-performance hosting.',
                 status: 'Pending',
-                aiGuidance: 'Elite sites require zero latency. I suggest a CDN-backed hosting provider.',
+                aiGuidance:
+                  'Elite sites require zero latency. I suggest a CDN-backed hosting provider.',
               },
             ],
           },

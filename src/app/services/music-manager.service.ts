@@ -75,7 +75,7 @@ export interface TrackModel {
   id: number;
   name: string;
   instrumentId: string;
-  type: "midi" | "audio";
+  type: 'midi' | 'audio';
   qualityMode?: 'ultra' | 'performance';
   color: string;
   audioUrl?: string;
@@ -122,15 +122,33 @@ export class MusicManagerService {
         if (this.tracks().some((s) => s.solo) && !t.solo) continue;
 
         if (t.type === 'midi') {
-            for (const n of t.notes) {
-              if (n.step === step) {
-               const velocityScale = t.stepVelocities?.[step] ?? 1;
-                (this.engine as any).triggerAttack?.(t.id, this.midiToFreq(n.midi), time, n.velocity, n.length, t.gain, t.pan, t.sendA, t.sendB, {
-                  type: "triangle", attack: 0.002, decay: 0.08, sustain: 0.7, release: 0.1, cutoff: 7000, q: 0.8
-               }, velocityScale);
-              }
+          for (const n of t.notes) {
+            if (n.step === step) {
+              const velocityScale = t.stepVelocities?.[step] ?? 1;
+              (this.engine as any).triggerAttack?.(
+                t.id,
+                this.midiToFreq(n.midi),
+                time,
+                n.velocity,
+                n.length,
+                t.gain,
+                t.pan,
+                t.sendA,
+                t.sendB,
+                {
+                  type: 'triangle',
+                  attack: 0.002,
+                  decay: 0.08,
+                  sustain: 0.7,
+                  release: 0.1,
+                  cutoff: 7000,
+                  q: 0.8,
+                },
+                velocityScale
+              );
             }
           }
+        }
       }
     };
 
@@ -147,7 +165,11 @@ export class MusicManagerService {
 
     if (lastSession && lastSession.tracks && lastSession.tracks.length > 0) {
       this.logger.info('MusicManager: Restoring last session...');
-      this.tracks.set(lastSession.tracks.map((track: TrackModel) => this.normalizeTrack(track)));
+      this.tracks.set(
+        lastSession.tracks.map((track: TrackModel) =>
+          this.normalizeTrack(track)
+        )
+      );
       this.engine.tempo.set(lastSession.tempo || 120);
       this.engine.loopStart.set(lastSession.loopStart || 0);
       this.engine.loopEnd.set(lastSession.loopEnd || 16);
@@ -186,9 +208,9 @@ export class MusicManagerService {
       id,
       name: preset.name,
       instrumentId: preset.id,
-      type: "midi",
+      type: 'midi',
       qualityMode: 'ultra',
-      color: "#EC5B13",
+      color: '#EC5B13',
       notes: [],
       clips: [],
       gain: 0.9,
@@ -233,7 +255,7 @@ export class MusicManagerService {
       !currentTrack?.name || currentTrack.name === currentPresetName;
     const resolvedName = shouldRename
       ? resolvedPreset.name
-      : currentTrack?.name ?? resolvedPreset.name;
+      : (currentTrack?.name ?? resolvedPreset.name);
     this.tracks.update((ts) =>
       ts.map((t) =>
         t.id === trackId
@@ -242,8 +264,9 @@ export class MusicManagerService {
               instrumentId: resolvedPreset.id,
               name: resolvedName,
               fxSlots:
-                (resolvedPreset as any).defaultFx?.map((slot: any) => ({ ...slot })) ??
-                t.fxSlots,
+                (resolvedPreset as any).defaultFx?.map((slot: any) => ({
+                  ...slot,
+                })) ?? t.fxSlots,
             }
           : t
       )
@@ -355,7 +378,7 @@ export class MusicManagerService {
   }
 
   reorderTrack(fromIndex: number, toIndex: number) {
-    this.tracks.update(ts => {
+    this.tracks.update((ts) => {
       const result = [...ts];
       const [removed] = result.splice(fromIndex, 1);
       result.splice(toIndex, 0, removed);
@@ -364,25 +387,32 @@ export class MusicManagerService {
   }
 
   setTrackColor(id: number, color: string) {
-    this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, color } : t));
+    this.tracks.update((ts) =>
+      ts.map((t) => (t.id === id ? { ...t, color } : t))
+    );
   }
 
   batchMute(ids: number[], mute: boolean) {
-    this.tracks.update(ts => ts.map(t => ids.includes(t.id) ? { ...t, mute } : t));
+    this.tracks.update((ts) =>
+      ts.map((t) => (ids.includes(t.id) ? { ...t, mute } : t))
+    );
   }
 
   async importAudioTrack() {
-    const files = await this.fileLoader.pickLocalFiles("audio/*");
+    const files = await this.fileLoader.pickLocalFiles('audio/*');
     if (files && files.length > 0) {
       const file = files[0];
-      const buffer = await this.fileLoader.decodeToAudioBuffer(this.engine.ctx, file);
+      const buffer = await this.fileLoader.decodeToAudioBuffer(
+        this.engine.ctx,
+        file
+      );
       const id = Math.floor(Math.random() * 1e9);
       const track: TrackModel = {
         id,
         name: file.name,
-        instrumentId: "audio-clip",
-        type: "audio",
-        color: "#10B981",
+        instrumentId: 'audio-clip',
+        type: 'audio',
+        color: '#10B981',
         audioUrl: URL.createObjectURL(file),
         audioBuffer: buffer,
         notes: [],
@@ -396,7 +426,7 @@ export class MusicManagerService {
         solo: false,
         steps: new Array(64).fill(false),
       };
-      this.tracks.update(ts => [...ts, track]);
+      this.tracks.update((ts) => [...ts, track]);
       this.selectedTrackId.set(id);
     }
   }
@@ -493,7 +523,9 @@ export class MusicManagerService {
   }
 
   setTrackQualityMode(trackId: number, mode: 'ultra' | 'performance') {
-    this.tracks.update((ts) => ts.map((t) => (t.id === trackId ? { ...t, qualityMode: mode } : t)));
+    this.tracks.update((ts) =>
+      ts.map((t) => (t.id === trackId ? { ...t, qualityMode: mode } : t))
+    );
   }
 
   setStepVelocity(trackId: number, stepIndex: number, velocity: number) {
@@ -502,7 +534,9 @@ export class MusicManagerService {
     this.tracks.update((ts) =>
       ts.map((t) => {
         if (t.id !== trackId) return t;
-        const current = t.stepVelocities ? [...t.stepVelocities] : new Array(64).fill(1);
+        const current = t.stepVelocities
+          ? [...t.stepVelocities]
+          : new Array(64).fill(1);
         current[clampedStep] = clampedVelocity;
         return { ...t, stepVelocities: current };
       })
@@ -515,21 +549,23 @@ export class MusicManagerService {
       ts.map((t) => {
         if (t.id !== trackId) return t;
         const nextSteps = t.steps.map(() => Math.random() < normalizedDensity);
-        const nextNotes = t.notes.filter((n) => n.step >= 64).concat(
-          nextSteps
-            .map((enabled, idx) =>
-              enabled
-                ? {
-                    id: Math.random().toString(36).substring(7),
-                    midi: this.getDefaultPitchForTrack(t),
-                    step: idx,
-                    length: 1,
-                    velocity: (t.stepVelocities?.[idx] ?? 1) * 0.8,
-                  }
-                : null
-            )
-            .filter((n): n is TrackNote => !!n)
-        );
+        const nextNotes = t.notes
+          .filter((n) => n.step >= 64)
+          .concat(
+            nextSteps
+              .map((enabled, idx) =>
+                enabled
+                  ? {
+                      id: Math.random().toString(36).substring(7),
+                      midi: this.getDefaultPitchForTrack(t),
+                      step: idx,
+                      length: 1,
+                      velocity: (t.stepVelocities?.[idx] ?? 1) * 0.8,
+                    }
+                  : null
+              )
+              .filter((n): n is TrackNote => !!n)
+          );
         return { ...t, steps: nextSteps, notes: nextNotes };
       })
     );
@@ -555,15 +591,25 @@ export class MusicManagerService {
         const len = t.steps.length;
         if (!len) return t;
         const normalizedShift = ((shift % len) + len) % len;
-        const nextSteps = t.steps.map((_, idx) => t.steps[(idx - normalizedShift + len) % len]);
-        const nextStepVelocities = (t.stepVelocities ?? new Array(64).fill(1)).map(
-          (_, idx, arr) => arr[(idx - normalizedShift + arr.length) % arr.length]
+        const nextSteps = t.steps.map(
+          (_, idx) => t.steps[(idx - normalizedShift + len) % len]
+        );
+        const nextStepVelocities = (
+          t.stepVelocities ?? new Array(64).fill(1)
+        ).map(
+          (_, idx, arr) =>
+            arr[(idx - normalizedShift + arr.length) % arr.length]
         );
         const nextNotes = t.notes.map((n) => ({
           ...n,
           step: n.step < len ? (n.step + normalizedShift) % len : n.step,
         }));
-        return { ...t, steps: nextSteps, stepVelocities: nextStepVelocities, notes: nextNotes };
+        return {
+          ...t,
+          steps: nextSteps,
+          stepVelocities: nextStepVelocities,
+          notes: nextNotes,
+        };
       })
     );
   }
@@ -598,14 +644,19 @@ export class MusicManagerService {
     this.tracks.update((ts) =>
       ts.map((t) => {
         if (t.id !== trackId) return t;
-        const source = (t.patternSlots ?? []).find((slot) => slot.id === slotId);
+        const source = (t.patternSlots ?? []).find(
+          (slot) => slot.id === slotId
+        );
         if (!source) return t;
         const clone: PatternSlot = {
           ...source,
           id: Math.random().toString(36).substring(2, 9),
           name: `${source.name} Copy`,
           createdAt: Date.now(),
-          notes: source.notes.map((n) => ({ ...n, id: Math.random().toString(36).substring(7) })),
+          notes: source.notes.map((n) => ({
+            ...n,
+            id: Math.random().toString(36).substring(7),
+          })),
           steps: [...source.steps],
           stepVelocities: [...source.stepVelocities],
           versions: source.versions.map((v) => ({
@@ -649,7 +700,9 @@ export class MusicManagerService {
     this.tracks.update((ts) =>
       ts.map((t) => {
         if (t.id !== trackId) return t;
-        const slot = (t.patternSlots ?? []).find((candidate) => candidate.id === slotId);
+        const slot = (t.patternSlots ?? []).find(
+          (candidate) => candidate.id === slotId
+        );
         if (!slot) return t;
         return {
           ...t,

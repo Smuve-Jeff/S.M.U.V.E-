@@ -122,11 +122,11 @@ describe('AudioEngineService', () => {
   it('should set metronome volume within bounds', () => {
     service.setMetronomeVolume(0.75);
     expect(service.metronomeVolume()).toBe(0.75);
-    
+
     // Test clamping
     service.setMetronomeVolume(1.5);
     expect(service.metronomeVolume()).toBe(1);
-    
+
     service.setMetronomeVolume(-0.5);
     expect(service.metronomeVolume()).toBe(0);
   });

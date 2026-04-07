@@ -50,7 +50,9 @@ export class MicrophoneService implements OnDestroy {
     this.updateAvailableDevices();
   }
 
-  describeDevice(device: Pick<MediaDeviceInfo, 'deviceId' | 'label'>): AudioInputDevice {
+  describeDevice(
+    device: Pick<MediaDeviceInfo, 'deviceId' | 'label'>
+  ): AudioInputDevice {
     const label = device.label || `Microphone ${device.deviceId.slice(0, 5)}`;
     const lowerLabel = label.toLowerCase();
     const type = this.resolveDeviceType(lowerLabel);

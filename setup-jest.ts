@@ -67,7 +67,10 @@ class MockAudioContext {
     stream: {},
     connect: jest.fn(),
   });
-  decodeAudioData = jest.fn().mockResolvedValue({ duration: 1, getChannelData: () => new Float32Array(100) });
+  decodeAudioData = jest.fn().mockResolvedValue({
+    duration: 1,
+    getChannelData: () => new Float32Array(100),
+  });
   resume = jest.fn().mockResolvedValue(undefined);
   suspend = jest.fn().mockResolvedValue(undefined);
   close = jest.fn().mockResolvedValue(undefined);
@@ -83,5 +86,7 @@ class MockAudioContext {
   addEventListener() {}
   removeEventListener() {}
   state = 'inactive';
-  static isTypeSupported() { return true; }
+  static isTypeSupported() {
+    return true;
+  }
 };

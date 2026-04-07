@@ -88,14 +88,18 @@ describe('MixerComponent', () => {
     const { component, musicManagerMock } = await createComponent();
     component.updateTrackGain(1, 110);
     expect(component.tracks()[0].gain).toBe(1);
-    expect(musicManagerMock.engine.updateTrack).toHaveBeenCalledWith(1, { gain: 1 });
+    expect(musicManagerMock.engine.updateTrack).toHaveBeenCalledWith(1, {
+      gain: 1,
+    });
   });
 
   it('updates and clamps track pan', async () => {
     const { component, musicManagerMock } = await createComponent();
     component.updateTrackPan(1, -110);
     expect(component.tracks()[0].pan).toBe(-1);
-    expect(musicManagerMock.engine.updateTrack).toHaveBeenCalledWith(1, { pan: -1 });
+    expect(musicManagerMock.engine.updateTrack).toHaveBeenCalledWith(1, {
+      pan: -1,
+    });
   });
 
   it('delegates transport controls to the audio session', async () => {

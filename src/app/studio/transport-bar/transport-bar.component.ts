@@ -38,7 +38,10 @@ export class TransportBarComponent {
   }
 
   nudgeTempo(delta: number): void {
-    const clamped = Math.min(300, Math.max(20, this.audioEngine.tempo() + delta));
+    const clamped = Math.min(
+      300,
+      Math.max(20, this.audioEngine.tempo() + delta)
+    );
     this.audioEngine.tempo.set(clamped);
   }
 

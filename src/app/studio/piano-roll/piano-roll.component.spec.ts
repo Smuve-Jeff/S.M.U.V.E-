@@ -190,13 +190,7 @@ describe('PianoRollComponent', () => {
     component.duplicateNextBar();
 
     expect(mockMusicManager.addNote).toHaveBeenCalled();
-    expect(mockMusicManager.addNote).toHaveBeenCalledWith(
-      1,
-      64,
-      22,
-      2,
-      0.7
-    );
+    expect(mockMusicManager.addNote).toHaveBeenCalledWith(1, 64, 22, 2, 0.7);
   });
 
   it('opens the audio dock when selecting a dock view', async () => {
@@ -231,9 +225,7 @@ describe('PianoRollComponent', () => {
       compact: false,
     });
 
-    expect(
-      fixture.nativeElement.querySelector('aside')
-    ).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('aside')).toBeTruthy();
   });
 
   it('renders the selected audio dock module', async () => {

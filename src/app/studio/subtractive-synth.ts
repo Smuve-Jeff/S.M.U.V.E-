@@ -57,9 +57,10 @@ export class SubtractiveSynth extends Instrument {
       oscillator.frequency.value = frequency;
 
       // Spread detune symmetrically around center
-      const detuneOffset = this.numOscillators > 1
-        ? (i - (this.numOscillators - 1) / 2) * this.detune
-        : 0;
+      const detuneOffset =
+        this.numOscillators > 1
+          ? (i - (this.numOscillators - 1) / 2) * this.detune
+          : 0;
       oscillator.detune.value = detuneOffset;
 
       oscillators.push(oscillator);
@@ -83,18 +84,28 @@ export class SubtractiveSynth extends Instrument {
     filterGain.gain.value = 1.0;
 
     const gain = this.audioContext.createGain();
-    gain.gain.value = 1.0 / (this.numOscillators + (subOscillator ? this.subOscillatorLevel : 0));
+    gain.gain.value =
+      1.0 /
+      (this.numOscillators + (subOscillator ? this.subOscillatorLevel : 0));
 
     // Apply amplitude envelope
     this.envelope.apply(gain, velocity);
 
     // Apply filter envelope
     const filterMin = this.filterCutoff;
-    const filterMax = Math.min(this.filterCutoff + this.filterEnvelopeAmount, 20000);
-    this.filterEnvelope.applyToParam(voiceFilter.frequency, velocity, filterMin, filterMax);
+    const filterMax = Math.min(
+      this.filterCutoff + this.filterEnvelopeAmount,
+      20000
+    );
+    this.filterEnvelope.applyToParam(
+      voiceFilter.frequency,
+      velocity,
+      filterMin,
+      filterMax
+    );
 
     // Connect oscillators
-    oscillators.forEach(osc => {
+    oscillators.forEach((osc) => {
       osc.connect(gain);
       osc.start();
     });
@@ -113,17 +124,26 @@ export class SubtractiveSynth extends Instrument {
     voiceFilter.connect(filterGain);
     filterGain.connect(this.masterFilter);
 
-    this.voices.set(note, { oscillators, subOscillator, gain, filter: voiceFilter, filterGain });
+    this.voices.set(note, {
+      oscillators,
+      subOscillator,
+      gain,
+      filter: voiceFilter,
+      filterGain,
+    });
   }
 
   stop(note: number): void {
     const voice = this.voices.get(note);
     if (voice) {
       this.envelope.releaseEnvelope(voice.gain);
-      this.filterEnvelope.releaseParam(voice.filter.frequency, this.filterCutoff);
+      this.filterEnvelope.releaseParam(
+        voice.filter.frequency,
+        this.filterCutoff
+      );
 
       const stopTime = this.audioContext.currentTime + 0.5;
-      voice.oscillators.forEach(osc => osc.stop(stopTime));
+      voice.oscillators.forEach((osc) => osc.stop(stopTime));
       if (voice.subOscillator) {
         voice.subOscillator.stop(stopTime);
       }

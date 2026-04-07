@@ -122,7 +122,10 @@ export class AuthService {
 
   private saveSession(user: AuthUser): void {
     try {
-      localStorage.setItem('smuve_auth_session', this.encrypt(JSON.stringify(user)));
+      localStorage.setItem(
+        'smuve_auth_session',
+        this.encrypt(JSON.stringify(user))
+      );
       this.securityService.refreshSession();
     } catch (error) {
       this.logger.error('Failed to save session:', error);
@@ -174,11 +177,14 @@ export class AuthService {
     try {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      const existingUser = localStorage.getItem(`smuve_user_${credentials.email}`);
+      const existingUser = localStorage.getItem(
+        `smuve_user_${credentials.email}`
+      );
       if (existingUser) {
         return {
           success: false,
-          message: 'An artist with this email already exists in the S.M.U.V.E 4.2 system.',
+          message:
+            'An artist with this email already exists in the S.M.U.V.E 4.2 system.',
         };
       }
 
@@ -219,11 +225,16 @@ export class AuthService {
         artistName: this.securityService.sanitizeInput(artistName),
       } as any);
 
-      await this.securityService.logEvent('ACCOUNT_CREATED', 'New artist account registered.', newUser.id);
+      await this.securityService.logEvent(
+        'ACCOUNT_CREATED',
+        'New artist account registered.',
+        newUser.id
+      );
 
       return {
         success: true,
-        message: 'Welcome to S.M.U.V.E 4.2. Your journey to greatness begins now.',
+        message:
+          'Welcome to S.M.U.V.E 4.2. Your journey to greatness begins now.',
       };
     } catch {
       return {
@@ -257,11 +268,14 @@ export class AuthService {
     try {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      const encryptedUserData = localStorage.getItem(`smuve_user_${credentials.email}`);
+      const encryptedUserData = localStorage.getItem(
+        `smuve_user_${credentials.email}`
+      );
       if (!encryptedUserData) {
         return {
           success: false,
-          message: 'No artist found with this email. Register to begin your journey.',
+          message:
+            'No artist found with this email. Register to begin your journey.',
         };
       }
 
@@ -290,7 +304,11 @@ export class AuthService {
         this.hashPassword(credentials.password) === passwordHash;
 
       if (!isValidPassword) {
-        await this.securityService.logEvent('LOGIN_FAILURE', `Failed login attempt for ${credentials.email}`, user.id);
+        await this.securityService.logEvent(
+          'LOGIN_FAILURE',
+          `Failed login attempt for ${credentials.email}`,
+          user.id
+        );
         return {
           success: false,
           message: `Incorrect password. Access denied. ${rateResult.remainingAttempts} attempts remaining.`,
@@ -299,7 +317,10 @@ export class AuthService {
 
       // Mock 2FA check based on profile settings.
       const profile = this.profileService.profile() || (initialProfile as any);
-      if (profile?.settings?.security?.twoFactorEnabled && !credentials.twoFactorCode) {
+      if (
+        profile?.settings?.security?.twoFactorEnabled &&
+        !credentials.twoFactorCode
+      ) {
         return {
           success: false,
           message: 'Two-Factor Authentication required.',
@@ -311,7 +332,11 @@ export class AuthService {
         credentials.twoFactorCode &&
         credentials.twoFactorCode !== '123456'
       ) {
-        await this.securityService.logEvent('2FA_FAILURE', 'Invalid 2FA code entered.', user.id);
+        await this.securityService.logEvent(
+          '2FA_FAILURE',
+          'Invalid 2FA code entered.',
+          user.id
+        );
         return {
           success: false,
           message: 'Invalid 2FA code. Access denied.',
@@ -333,7 +358,11 @@ export class AuthService {
       const sessionId = this.generateSecureId('sess');
       void sessionId;
 
-      await this.securityService.logEvent('LOGIN_SUCCESS', `Artist ${user.artistName} logged in successfully.`, user.id);
+      await this.securityService.logEvent(
+        'LOGIN_SUCCESS',
+        `Artist ${user.artistName} logged in successfully.`,
+        user.id
+      );
       await this.profileService.loadProfile(user.id);
 
       return {
@@ -351,7 +380,11 @@ export class AuthService {
   logout(): void {
     const user = this._currentUser();
     if (user) {
-      void this.securityService.logEvent('LOGOUT', `Artist ${user.artistName} logged out.`, user.id);
+      void this.securityService.logEvent(
+        'LOGOUT',
+        `Artist ${user.artistName} logged out.`,
+        user.id
+      );
     }
     this._currentUser.set(null);
     this._isAuthenticated.set(false);

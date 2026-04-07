@@ -12,7 +12,13 @@ describe('PracticeSpaceComponent', () => {
     const mockNode = {
       connect: jest.fn().mockReturnThis(),
       disconnect: jest.fn(),
-      gain: { value: 0, setTargetAtTime: jest.fn(), setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+      gain: {
+        value: 0,
+        setTargetAtTime: jest.fn(),
+        setValueAtTime: jest.fn(),
+        linearRampToValueAtTime: jest.fn(),
+        exponentialRampToValueAtTime: jest.fn(),
+      },
       frequency: { value: 0, setTargetAtTime: jest.fn() },
       threshold: { value: 0, setTargetAtTime: jest.fn() },
       ratio: { value: 0, setTargetAtTime: jest.fn() },
@@ -132,7 +138,7 @@ describe('PracticeSpaceComponent', () => {
     component.updateBpm(lowEvent);
     expect(component.metronomeBpm()).toBe(120); // Should remain unchanged (30 is below 40)
 
-    // Test upper bound  
+    // Test upper bound
     const highEvent = { target: { value: '250' } } as any;
     component.updateBpm(highEvent);
     expect(component.metronomeBpm()).toBe(120); // Should remain unchanged (250 is above 240)

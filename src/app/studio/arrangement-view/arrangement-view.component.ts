@@ -1,10 +1,20 @@
 import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MusicManagerService, TrackModel, ArrangementClip } from '../../services/music-manager.service';
+import {
+  MusicManagerService,
+  TrackModel,
+  ArrangementClip,
+} from '../../services/music-manager.service';
 
 const TRACK_COLORS = [
-  '#10b981', '#8b5cf6', '#f59e0b', '#3b82f6',
-  '#ef4444', '#ec4899', '#06b6d4', '#84cc16',
+  '#10b981',
+  '#8b5cf6',
+  '#f59e0b',
+  '#3b82f6',
+  '#ef4444',
+  '#ec4899',
+  '#06b6d4',
+  '#84cc16',
 ];
 
 @Component({
@@ -60,7 +70,7 @@ export class ArrangementViewComponent {
   }
 
   addClip(trackId: number): void {
-    const track = this.tracks().find(t => t.id === trackId);
+    const track = this.tracks().find((t) => t.id === trackId);
     if (!track) return;
 
     const colorIndex = this.tracks().indexOf(track);
@@ -72,17 +82,23 @@ export class ArrangementViewComponent {
       start: 0,
       length: 4,
       color,
-      type: 'midi'
+      type: 'midi',
     };
 
-    this.musicManager.tracks.update(ts =>
-      ts.map(t => t.id === trackId ? { ...t, clips: [...(t.clips || []), newClip] } : t)
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === trackId ? { ...t, clips: [...(t.clips || []), newClip] } : t
+      )
     );
   }
 
   removeClip(trackId: number, clipId: string): void {
-    this.musicManager.tracks.update(ts =>
-      ts.map(t => t.id === trackId ? { ...t, clips: (t.clips || []).filter(c => c.id !== clipId) } : t)
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === trackId
+          ? { ...t, clips: (t.clips || []).filter((c) => c.id !== clipId) }
+          : t
+      )
     );
     if (this.selectedClipId() === clipId) {
       this.selectedClipId.set(null);

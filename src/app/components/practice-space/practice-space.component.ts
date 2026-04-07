@@ -81,26 +81,28 @@ export class PracticeSpaceComponent implements OnDestroy {
 
   private playMetronomeClick(isDownbeat: boolean) {
     if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.audioContext = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )();
     }
-    
+
     const ctx = this.audioContext;
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
-    
+
     const osc = ctx.createOscillator();
     const vca = ctx.createGain();
-    
+
     // Higher pitch for downbeat
     osc.frequency.value = isDownbeat ? 1200 : 800;
     osc.type = 'sine';
-    
+
     const now = ctx.currentTime;
     vca.gain.setValueAtTime(0, now);
     vca.gain.linearRampToValueAtTime(0.5, now + 0.002);
     vca.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-    
+
     osc.connect(vca).connect(ctx.destination);
     osc.start(now);
     osc.stop(now + 0.04);

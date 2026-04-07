@@ -33,25 +33,55 @@ describe('StrategyHubComponent', () => {
     marketAlerts: signal([]),
     advisorAdvice: signal([]),
     getDynamicChecklist: jest.fn().mockReturnValue([
-      { id: 'task-1', label: 'Test Task', completed: false, category: 'Production', impact: 'High', description: 'Do something' },
+      {
+        id: 'task-1',
+        label: 'Test Task',
+        completed: false,
+        category: 'Production',
+        impact: 'High',
+        description: 'Do something',
+      },
     ]),
     getViralHooks: jest.fn().mockReturnValue(['Hook 1', 'Hook 2']),
     getUpgradeRecommendations: jest.fn().mockReturnValue([
-      { id: 'upg-1', title: 'Test Upgrade', type: 'Software', description: 'Desc', cost: '$0', url: '', impact: 'High' },
+      {
+        id: 'upg-1',
+        title: 'Test Upgrade',
+        type: 'Software',
+        description: 'Desc',
+        cost: '$0',
+        url: '',
+        impact: 'High',
+      },
     ]),
   };
 
   const mockMarketingService = {
     campaigns: signal([]),
     socialData: signal([
-      { platform: 'Instagram', followers: 12500, engagementRate: 4.2, topPosts: [], lastUpdated: Date.now() },
+      {
+        platform: 'Instagram',
+        followers: 12500,
+        engagementRate: 4.2,
+        topPosts: [],
+        lastUpdated: Date.now(),
+      },
     ]),
     streamingData: signal([
-      { platform: 'Spotify', monthlyListeners: 85000, totalStreams: 1200000, topTracks: [], playlistAdds: 1250, lastUpdated: Date.now() },
+      {
+        platform: 'Spotify',
+        monthlyListeners: 85000,
+        totalStreams: 1200000,
+        topTracks: [],
+        playlistAdds: 1250,
+        lastUpdated: Date.now(),
+      },
     ]),
     createCampaign: jest.fn().mockResolvedValue(undefined),
     deleteCampaign: jest.fn().mockResolvedValue(undefined),
-    getProjections: jest.fn().mockReturnValue({ reach: 1500, conversions: 15, engagement: 50 }),
+    getProjections: jest
+      .fn()
+      .mockReturnValue({ reach: 1500, conversions: 15, engagement: 50 }),
   };
 
   const mockProfileService = {
@@ -137,17 +167,29 @@ describe('StrategyHubComponent', () => {
 
   it('should call deleteCampaign on service', async () => {
     await component.deleteCampaign('camp-123');
-    expect(mockMarketingService.deleteCampaign).toHaveBeenCalledWith('camp-123');
+    expect(mockMarketingService.deleteCampaign).toHaveBeenCalledWith(
+      'camp-123'
+    );
   });
 
   it('should not save campaign if name is empty', async () => {
-    component.newCampaign.set({ name: '', budget: 0, platforms: ['Instagram'], strategyLevel: 'Modern Professional' });
+    component.newCampaign.set({
+      name: '',
+      budget: 0,
+      platforms: ['Instagram'],
+      strategyLevel: 'Modern Professional',
+    });
     await component.saveCampaign();
     expect(mockMarketingService.createCampaign).not.toHaveBeenCalled();
   });
 
   it('should save campaign and reset form when name is provided', async () => {
-    component.newCampaign.set({ name: 'Test Campaign', budget: 500, platforms: ['TikTok'], strategyLevel: 'Aggressive High Energy' });
+    component.newCampaign.set({
+      name: 'Test Campaign',
+      budget: 500,
+      platforms: ['TikTok'],
+      strategyLevel: 'Aggressive High Energy',
+    });
     component.showCampaignForm.set(true);
     await component.saveCampaign();
     expect(mockMarketingService.createCampaign).toHaveBeenCalled();
@@ -163,7 +205,9 @@ describe('StrategyHubComponent', () => {
   });
 
   it('should return correct campaign status classes', () => {
-    expect(component.getCampaignStatusClass('Active')).toContain('brand-primary');
+    expect(component.getCampaignStatusClass('Active')).toContain(
+      'brand-primary'
+    );
     expect(component.getCampaignStatusClass('Paused')).toContain('yellow-400');
     expect(component.getCampaignStatusClass('Completed')).toContain('blue-400');
     expect(component.getCampaignStatusClass('Draft')).toContain('silver-dim');

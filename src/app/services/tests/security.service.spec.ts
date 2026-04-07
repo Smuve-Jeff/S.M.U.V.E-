@@ -149,18 +149,21 @@ describe('SecurityService', () => {
     it('should log events locally', () => {
       // Directly test local logging without async HTTP call
       const initialLogCount = service.logs().length;
-      
+
       // Manually update logs as the async HTTP call would
-      service.logs.update((current) => [{
-        log_id: Date.now(),
-        user_id: 'test',
-        event_type: 'TEST_EVENT',
-        description: 'Test description',
-        ip_address: '127.0.0.1',
-        user_agent: 'test',
-        created_at: new Date().toISOString(),
-      }, ...current]);
-      
+      service.logs.update((current) => [
+        {
+          log_id: Date.now(),
+          user_id: 'test',
+          event_type: 'TEST_EVENT',
+          description: 'Test description',
+          ip_address: '127.0.0.1',
+          user_agent: 'test',
+          created_at: new Date().toISOString(),
+        },
+        ...current,
+      ]);
+
       const logs = service.logs();
       expect(logs.length).toBeGreaterThan(initialLogCount);
       expect(logs[0].event_type).toBe('TEST_EVENT');

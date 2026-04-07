@@ -22,8 +22,12 @@ describe('HistoryService', () => {
     let value = 0;
     service.pushAction({
       description: 'Increment',
-      undo: () => { value--; },
-      redo: () => { value++; }
+      undo: () => {
+        value--;
+      },
+      redo: () => {
+        value++;
+      },
     });
 
     expect(service.canUndo()).toBe(true);
@@ -34,8 +38,12 @@ describe('HistoryService', () => {
     let value = 0;
     service.pushAction({
       description: 'Increment',
-      undo: () => { value = 5; },
-      redo: () => { value = 10; }
+      undo: () => {
+        value = 5;
+      },
+      redo: () => {
+        value = 10;
+      },
     });
 
     value = 10; // Simulate the action having been performed
@@ -50,8 +58,12 @@ describe('HistoryService', () => {
     let value = 0;
     service.pushAction({
       description: 'Increment',
-      undo: () => { value = 5; },
-      redo: () => { value = 10; }
+      undo: () => {
+        value = 5;
+      },
+      redo: () => {
+        value = 10;
+      },
     });
 
     value = 10;
@@ -69,8 +81,12 @@ describe('HistoryService', () => {
 
     service.pushAction({
       description: 'Action 1',
-      undo: () => { value--; },
-      redo: () => { value++; }
+      undo: () => {
+        value--;
+      },
+      redo: () => {
+        value++;
+      },
     });
 
     value++;
@@ -81,8 +97,12 @@ describe('HistoryService', () => {
 
     service.pushAction({
       description: 'Action 2',
-      undo: () => { value -= 2; },
-      redo: () => { value += 2; }
+      undo: () => {
+        value -= 2;
+      },
+      redo: () => {
+        value += 2;
+      },
     });
 
     expect(service.canRedo()).toBe(false);
@@ -93,15 +113,23 @@ describe('HistoryService', () => {
 
     service.pushAction({
       description: 'Add 5',
-      undo: () => { value -= 5; },
-      redo: () => { value += 5; }
+      undo: () => {
+        value -= 5;
+      },
+      redo: () => {
+        value += 5;
+      },
     });
     value += 5;
 
     service.pushAction({
       description: 'Add 3',
-      undo: () => { value -= 3; },
-      redo: () => { value += 3; }
+      undo: () => {
+        value -= 3;
+      },
+      redo: () => {
+        value += 3;
+      },
     });
     value += 3;
 
@@ -125,8 +153,12 @@ describe('HistoryService', () => {
 
     service.pushAction({
       description: 'Action',
-      undo: () => { value = 0; },
-      redo: () => { value = 1; }
+      undo: () => {
+        value = 0;
+      },
+      redo: () => {
+        value = 1;
+      },
     });
 
     expect(service.canUndo()).toBe(true);
@@ -141,7 +173,7 @@ describe('HistoryService', () => {
     service.pushAction({
       description: 'Test Action',
       undo: () => {},
-      redo: () => {}
+      redo: () => {},
     });
 
     expect(service.getUndoDescription()).toBe('Test Action');
@@ -160,8 +192,12 @@ describe('HistoryService', () => {
     for (let i = 0; i < 150; i++) {
       service.pushAction({
         description: `Action ${i}`,
-        undo: () => { value--; },
-        redo: () => { value++; }
+        undo: () => {
+          value--;
+        },
+        redo: () => {
+          value++;
+        },
       });
     }
 

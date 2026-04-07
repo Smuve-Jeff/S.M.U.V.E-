@@ -19,12 +19,27 @@ export interface InstrumentPreset {
   id: string;
   name: string;
   type: 'sample' | 'synth';
-  category?: 'piano' | 'bass' | 'drum' | 'keys' | 'lead' | 'pad' | 'guitar' | 'strings' | 'other';
+  category?:
+    | 'piano'
+    | 'bass'
+    | 'drum'
+    | 'keys'
+    | 'lead'
+    | 'pad'
+    | 'guitar'
+    | 'strings'
+    | 'other';
   sampleQuality?: 'standard' | 'high';
   fallbackPresetId?: string;
   articulation?: InstrumentArticulation;
   zones?: SampleZone[]; // for sample-based instruments
-  defaultFx?: { id: string; type: string; params: any; enabled: boolean; mix?: number }[];
+  defaultFx?: {
+    id: string;
+    type: string;
+    params: any;
+    enabled: boolean;
+    mix?: number;
+  }[];
   synth?: {
     type: OscillatorType;
     attack: number;
@@ -67,8 +82,19 @@ export class InstrumentsService {
         },
       ],
       defaultFx: [
-        { id: 'eq', type: 'filter', params: { type: 'highpass', frequency: 30 }, enabled: true },
-        { id: 'comp', type: 'compressor', params: { threshold: -22 }, enabled: true, mix: 0.3 },
+        {
+          id: 'eq',
+          type: 'filter',
+          params: { type: 'highpass', frequency: 30 },
+          enabled: true,
+        },
+        {
+          id: 'comp',
+          type: 'compressor',
+          params: { threshold: -22 },
+          enabled: true,
+          mix: 0.3,
+        },
       ],
     },
     {

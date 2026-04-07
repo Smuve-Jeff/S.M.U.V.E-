@@ -34,7 +34,8 @@ export const CHATBOT_COMMANDS = [
   },
   {
     command: 'BRAND_AUDIT',
-    description: 'Score and prioritize your brand identity across all touchpoints.',
+    description:
+      'Score and prioritize your brand identity across all touchpoints.',
     category: 'Marketing',
   },
   {
@@ -86,7 +87,8 @@ export const CHATBOT_COMMANDS = [
   },
   {
     command: 'MARKET_INTEL',
-    description: 'Current intelligence on genre trends and DSP algorithm shifts.',
+    description:
+      'Current intelligence on genre trends and DSP algorithm shifts.',
     category: 'Business',
   },
 

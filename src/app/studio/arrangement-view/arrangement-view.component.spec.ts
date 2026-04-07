@@ -23,9 +23,7 @@ describe('ArrangementViewComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [ArrangementViewComponent],
-      providers: [
-        { provide: MusicManagerService, useValue: mockMusicManager }
-      ]
+      providers: [{ provide: MusicManagerService, useValue: mockMusicManager }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ArrangementViewComponent);

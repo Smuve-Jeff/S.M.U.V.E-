@@ -103,7 +103,9 @@ export class ProjectsComponent {
     }
 
     const totalTasks = project.tasks.length;
-    const completedTasks = project.tasks.filter((task) => task.completed).length;
+    const completedTasks = project.tasks.filter(
+      (task) => task.completed
+    ).length;
     const progress = completedTasks / totalTasks;
 
     return this.playbookTemplate.map((phase, index) => {
@@ -136,10 +138,7 @@ export class ProjectsComponent {
     const name = window.prompt('Enter project name:');
     if (!name?.trim()) return;
     const newProject: Project = {
-      id: parseInt(
-        crypto.randomUUID().replace(/-/g, '').slice(0, 8),
-        16
-      ),
+      id: parseInt(crypto.randomUUID().replace(/-/g, '').slice(0, 8), 16),
       name: name.trim(),
       description: 'New release cycle',
       status: 'In Progress',
@@ -157,9 +156,7 @@ export class ProjectsComponent {
     const project = this.selectedProject();
     if (!project) return;
     this.projects.update((list) =>
-      list.map((p) =>
-        p.id === project.id ? { ...p, status: 'Completed' } : p
-      )
+      list.map((p) => (p.id === project.id ? { ...p, status: 'Completed' } : p))
     );
     this.selectedProject.set({ ...project, status: 'Completed' });
   }

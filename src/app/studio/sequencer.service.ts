@@ -309,7 +309,10 @@ export class SequencerService {
       const pattern = next[this.activePatternIndex()];
       const track = pattern?.tracks.find((t) => t.id === trackId);
       if (track && stepIndex >= 0 && stepIndex < track.stepProbability.length) {
-        track.stepProbability[stepIndex] = Math.max(0, Math.min(1, probability));
+        track.stepProbability[stepIndex] = Math.max(
+          0,
+          Math.min(1, probability)
+        );
       }
       return next;
     });
@@ -321,7 +324,10 @@ export class SequencerService {
       const pattern = next[this.activePatternIndex()];
       const track = pattern?.tracks.find((t) => t.id === trackId);
       if (track && stepIndex >= 0 && stepIndex < track.ratchets.length) {
-        track.ratchets[stepIndex] = Math.max(1, Math.min(8, Math.floor(repeats)));
+        track.ratchets[stepIndex] = Math.max(
+          1,
+          Math.min(8, Math.floor(repeats))
+        );
       }
       return next;
     });
@@ -400,12 +406,14 @@ export class SequencerService {
   scheduleTick(stepIndex: number, when: number, stepDur: number) {
     const pattern = this.activePattern();
     if (!pattern) return;
-    const activeStep = ((stepIndex % pattern.length) + pattern.length) % pattern.length;
+    const activeStep =
+      ((stepIndex % pattern.length) + pattern.length) % pattern.length;
 
     pattern.tracks.forEach((track) => {
       if (track.mute) return;
       const localStep =
-        ((activeStep % track.trackLength) + track.trackLength) % track.trackLength;
+        ((activeStep % track.trackLength) + track.trackLength) %
+        track.trackLength;
       const notesToPlay = track.notes.filter((n) => n.startTime === localStep);
       notesToPlay.forEach((note) => {
         const probability = track.stepProbability[localStep] ?? 1;
@@ -414,8 +422,11 @@ export class SequencerService {
         const ratchetDur = stepDur / ratchetCount;
         for (let r = 0; r < ratchetCount; r++) {
           const swingOffset =
-            pattern.swing > 0 && localStep % 2 === 1 ? ratchetDur * pattern.swing : 0;
-          const jitter = (Math.random() - 0.5) * track.humanize * ratchetDur * 0.5;
+            pattern.swing > 0 && localStep % 2 === 1
+              ? ratchetDur * pattern.swing
+              : 0;
+          const jitter =
+            (Math.random() - 0.5) * track.humanize * ratchetDur * 0.5;
           const timeOffset = r * ratchetDur + swingOffset + jitter;
           this.playNote(track, note, when + timeOffset, ratchetDur, localStep);
         }
@@ -433,7 +444,9 @@ export class SequencerService {
     const freq = 440 * Math.pow(2, (note.pitch - 69) / 12);
     const duration = note.duration * stepDur;
     const velocity =
-      note.velocity * (track.volume / 100) * this.getVelocityCurveScale(track, stepIndex);
+      note.velocity *
+      (track.volume / 100) *
+      this.getVelocityCurveScale(track, stepIndex);
     const pan = track.pan / 100;
 
     const preset = this.instrumentsService
@@ -458,10 +471,12 @@ export class SequencerService {
   }
 
   private getVelocityCurveScale(track: SequencerTrack, stepIndex: number) {
-    const ratio = track.trackLength > 1 ? stepIndex / (track.trackLength - 1) : 0;
+    const ratio =
+      track.trackLength > 1 ? stepIndex / (track.trackLength - 1) : 0;
     if (track.velocityCurve === 'ascending') return 0.7 + ratio * 0.5;
     if (track.velocityCurve === 'descending') return 1.2 - ratio * 0.5;
-    if (track.velocityCurve === 'accented') return stepIndex % 4 === 0 ? 1.2 : 0.85;
+    if (track.velocityCurve === 'accented')
+      return stepIndex % 4 === 0 ? 1.2 : 0.85;
     return 1;
   }
 
@@ -495,7 +510,9 @@ export class SequencerService {
     if (!variation) return;
     this.patterns.update((ps) =>
       ps.map((pattern, idx) =>
-        idx === this.activePatternIndex() ? this.clonePattern(variation.patternSnapshot) : pattern
+        idx === this.activePatternIndex()
+          ? this.clonePattern(variation.patternSnapshot)
+          : pattern
       )
     );
   }
@@ -536,7 +553,9 @@ export class SequencerService {
   triggerScene(sceneId: string) {
     const scene = this.scenes().find((item) => item.id === sceneId);
     if (!scene) return;
-    const patternIdx = this.patterns().findIndex((p) => p.id === scene.patternId);
+    const patternIdx = this.patterns().findIndex(
+      (p) => p.id === scene.patternId
+    );
     if (patternIdx >= 0) this.activePatternIndex.set(patternIdx);
     if (scene.variationId) this.applyVariation(scene.variationId);
   }

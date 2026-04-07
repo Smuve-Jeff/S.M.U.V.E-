@@ -8,8 +8,20 @@ describe('DeckService', () => {
 
   beforeEach(() => {
     const deckState = {
-      A: { isPlaying: false, rate: 1, position: 0, duration: 120, hotCues: new Array(8).fill(null) },
-      B: { isPlaying: false, rate: 1, position: 0, duration: 120, hotCues: new Array(8).fill(null) },
+      A: {
+        isPlaying: false,
+        rate: 1,
+        position: 0,
+        duration: 120,
+        hotCues: new Array(8).fill(null),
+      },
+      B: {
+        isPlaying: false,
+        rate: 1,
+        position: 0,
+        duration: 120,
+        hotCues: new Array(8).fill(null),
+      },
     };
 
     mockEngine = {
@@ -112,10 +124,22 @@ describe('DeckService', () => {
   it('updates deck progress after jumping to a hot cue', () => {
     mockEngine.getDeck.mockImplementation((deck: 'A' | 'B') => {
       if (deck === 'A') {
-        return { isPlaying: false, rate: 1, position: 48, duration: 120, hotCues: [48, null, null, null, null, null, null, null] };
+        return {
+          isPlaying: false,
+          rate: 1,
+          position: 48,
+          duration: 120,
+          hotCues: [48, null, null, null, null, null, null, null],
+        };
       }
 
-      return { isPlaying: false, rate: 1, position: 0, duration: 120, hotCues: new Array(8).fill(null) };
+      return {
+        isPlaying: false,
+        rate: 1,
+        position: 0,
+        duration: 120,
+        hotCues: new Array(8).fill(null),
+      };
     });
     mockEngine.getDeckProgress.mockImplementation((deck: 'A' | 'B') => ({
       position: deck === 'A' ? 48 : 0,
@@ -130,7 +154,10 @@ describe('DeckService', () => {
   });
 
   it('clears a hot cue slot in state and engine', () => {
-    service.deckA.update((d) => ({ ...d, hotCues: [12, null, null, null, null, null, null, null] }));
+    service.deckA.update((d) => ({
+      ...d,
+      hotCues: [12, null, null, null, null, null, null, null],
+    }));
 
     service.clearHotCue('A', 0);
 

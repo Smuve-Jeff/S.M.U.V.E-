@@ -145,17 +145,25 @@ export class OfflineSyncService {
       throw new Error(`Sync failed with status ${response.status}`);
     }
 
-    this.logger.info(`OfflineSync: Successfully synced ${item.action} to ${item.endpoint}`);
+    this.logger.info(
+      `OfflineSync: Successfully synced ${item.action} to ${item.endpoint}`
+    );
   }
 
-  private async handleSyncError(item: SyncQueueItem, error: any): Promise<void> {
+  private async handleSyncError(
+    item: SyncQueueItem,
+    error: any
+  ): Promise<void> {
     const updatedItem: SyncQueueItem = {
       ...item,
       retryCount: item.retryCount + 1,
     };
 
     if (updatedItem.retryCount >= item.maxRetries) {
-      this.logger.error(`OfflineSync: Max retries exceeded for ${item.id}`, error);
+      this.logger.error(
+        `OfflineSync: Max retries exceeded for ${item.id}`,
+        error
+      );
       await this.moveToDeadLetter(item);
     } else {
       await this.localStorage.saveItem(this.SYNC_STORE, updatedItem);

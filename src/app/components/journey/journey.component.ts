@@ -33,8 +33,19 @@ export class JourneyComponent {
 
   // Genre options
   readonly genres = [
-    'Hip Hop', 'R&B', 'Pop', 'Electronic', 'Rock', 'Jazz',
-    'Classical', 'Country', 'Latin', 'Afrobeats', 'Metal', 'Folk', 'Reggae'
+    'Hip Hop',
+    'R&B',
+    'Pop',
+    'Electronic',
+    'Rock',
+    'Jazz',
+    'Classical',
+    'Country',
+    'Latin',
+    'Afrobeats',
+    'Metal',
+    'Folk',
+    'Reggae',
   ];
 
   // BPM range presets
@@ -43,20 +54,37 @@ export class JourneyComponent {
     { label: 'Mid-Tempo (90-120 BPM)', value: '90-120' },
     { label: 'Upbeat (120-140 BPM)', value: '120-140' },
     { label: 'High Energy (140-180 BPM)', value: '140-180' },
-    { label: 'Variable / All Tempos', value: 'variable' }
+    { label: 'Variable / All Tempos', value: 'variable' },
   ];
 
   // Production style options
   readonly productionStyles = [
-    'Minimalist', 'Layered/Complex', 'Live Instrumentation', 
-    'Sample-Heavy', 'Synthesizer-Driven', 'Hybrid/Mixed'
+    'Minimalist',
+    'Layered/Complex',
+    'Live Instrumentation',
+    'Sample-Heavy',
+    'Synthesizer-Driven',
+    'Hybrid/Mixed',
   ];
 
   // Experience levels
-  readonly experienceLevels = ['Beginner', 'Intermediate', 'Advanced', 'Professional'];
+  readonly experienceLevels = [
+    'Beginner',
+    'Intermediate',
+    'Advanced',
+    'Professional',
+  ];
 
   // Skills
-  readonly availableSkills = ['Vocalist', 'Producer', 'Songwriter', 'DJ', 'Engineer', 'Musician', 'Manager'];
+  readonly availableSkills = [
+    'Vocalist',
+    'Producer',
+    'Songwriter',
+    'DJ',
+    'Engineer',
+    'Musician',
+    'Manager',
+  ];
 
   constructor() {
     effect(() => {
@@ -77,11 +105,11 @@ export class JourneyComponent {
   }
 
   toggleSkill(skill: string) {
-    this.profile.update(p => {
+    this.profile.update((p) => {
       const skills = p.skills || [];
       const index = skills.indexOf(skill);
       if (index > -1) {
-        return { ...p, skills: skills.filter(s => s !== skill) };
+        return { ...p, skills: skills.filter((s) => s !== skill) };
       } else {
         return { ...p, skills: [...skills, skill] };
       }
@@ -93,11 +121,11 @@ export class JourneyComponent {
   }
 
   toggleProductionStyle(style: string) {
-    this.profile.update(p => {
+    this.profile.update((p) => {
       const styles = p.productionStyles || [];
       const index = styles.indexOf(style);
       if (index > -1) {
-        return { ...p, productionStyles: styles.filter(s => s !== style) };
+        return { ...p, productionStyles: styles.filter((s) => s !== style) };
       } else {
         return { ...p, productionStyles: [...styles, style] };
       }

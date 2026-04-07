@@ -69,7 +69,10 @@ export class SecurityService {
   sessionExpiresAt = signal<number | null>(null);
   lastActivity = signal<number>(Date.now());
 
-  private rateLimitCache = new Map<string, { attempts: number[]; blockedUntil: number }>();
+  private rateLimitCache = new Map<
+    string,
+    { attempts: number[]; blockedUntil: number }
+  >();
   private rateLimitConfig = DEFAULT_RATE_LIMIT;
   private securityConfig = DEFAULT_SECURITY_CONFIG;
   private activityCheckInterval: ReturnType<typeof setInterval> | null = null;
@@ -121,8 +124,13 @@ export class SecurityService {
     if (inactiveMs > this.securityConfig.inactivityTimeoutMs) {
       this.ngZone.run(() => {
         this.isSessionValid.set(false);
-        this.logger.warn('SecurityService: Session invalidated due to inactivity');
-        void this.logEvent('SESSION_TIMEOUT', 'Session expired due to inactivity');
+        this.logger.warn(
+          'SecurityService: Session invalidated due to inactivity'
+        );
+        void this.logEvent(
+          'SESSION_TIMEOUT',
+          'Session expired due to inactivity'
+        );
       });
     }
   }
@@ -152,7 +160,11 @@ export class SecurityService {
   /**
    * Records an attempt for rate limiting.
    */
-  recordAttempt(key: string): { allowed: boolean; remainingAttempts: number; blockedUntil?: number } {
+  recordAttempt(key: string): {
+    allowed: boolean;
+    remainingAttempts: number;
+    blockedUntil?: number;
+  } {
     const now = Date.now();
     let entry = this.rateLimitCache.get(key);
 
@@ -182,7 +194,10 @@ export class SecurityService {
     if (entry.attempts.length >= this.rateLimitConfig.maxAttempts) {
       entry.blockedUntil = now + this.rateLimitConfig.blockDurationMs;
       this.logger.warn(`SecurityService: Rate limit exceeded for key: ${key}`);
-      void this.logEvent('RATE_LIMIT_EXCEEDED', `Rate limit triggered for: ${key}`);
+      void this.logEvent(
+        'RATE_LIMIT_EXCEEDED',
+        `Rate limit triggered for: ${key}`
+      );
       return {
         allowed: false,
         remainingAttempts: 0,
@@ -192,7 +207,8 @@ export class SecurityService {
 
     return {
       allowed: true,
-      remainingAttempts: this.rateLimitConfig.maxAttempts - entry.attempts.length,
+      remainingAttempts:
+        this.rateLimitConfig.maxAttempts - entry.attempts.length,
     };
   }
 
@@ -287,7 +303,8 @@ export class SecurityService {
       event_type: eventType,
       description,
       ip_address: '127.0.0.1',
-      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      user_agent:
+        typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
       created_at: new Date().toISOString(),
     };
 
@@ -300,7 +317,8 @@ export class SecurityService {
           eventType,
           description,
           ipAddress: '127.0.0.1',
-          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+          userAgent:
+            typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
         })
       );
     } catch (error) {
@@ -323,7 +341,9 @@ export class SecurityService {
   async fetchSessions(userId: string = 'anonymous'): Promise<void> {
     try {
       const data = await firstValueFrom(
-        this.http.get<UserSession[]>(`${this.API_URL}/security/sessions/${userId}`)
+        this.http.get<UserSession[]>(
+          `${this.API_URL}/security/sessions/${userId}`
+        )
       );
       this.sessions.set(data);
     } catch (error) {
@@ -331,13 +351,20 @@ export class SecurityService {
     }
   }
 
-  async revokeSession(sessionId: string, userId: string = 'anonymous'): Promise<void> {
+  async revokeSession(
+    sessionId: string,
+    userId: string = 'anonymous'
+  ): Promise<void> {
     try {
       await firstValueFrom(
         this.http.delete(`${this.API_URL}/security/session/${sessionId}`)
       );
       await this.fetchSessions(userId);
-      await this.logEvent('SESSION_REVOKED', `Revoked session ${sessionId}`, userId);
+      await this.logEvent(
+        'SESSION_REVOKED',
+        `Revoked session ${sessionId}`,
+        userId
+      );
     } catch (error) {
       this.logger.error('Failed to revoke session', error);
     }

@@ -8,24 +8,34 @@ export class MixerService {
   private audioSession = inject(AudioSessionService);
 
   muteAll() {
-    this.musicManager.tracks.update(ts => ts.map(t => ({ ...t, mute: true })));
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) => ({ ...t, mute: true }))
+    );
   }
 
   unmuteAll() {
-    this.musicManager.tracks.update(ts => ts.map(t => ({ ...t, mute: false })));
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) => ({ ...t, mute: false }))
+    );
   }
 
   soloAll() {
-    this.musicManager.tracks.update(ts => ts.map(t => ({ ...t, solo: true })));
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) => ({ ...t, solo: true }))
+    );
   }
 
   clearSolo() {
-    this.musicManager.tracks.update(ts => ts.map(t => ({ ...t, solo: false })));
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) => ({ ...t, solo: false }))
+    );
   }
 
   resetAllLevels() {
-    this.musicManager.tracks.update(ts => ts.map(t => ({ ...t, gain: 0.9, pan: 0 })));
-    this.musicManager.tracks().forEach(t => {
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) => ({ ...t, gain: 0.9, pan: 0 }))
+    );
+    this.musicManager.tracks().forEach((t) => {
       this.musicManager.engine.updateTrack(t.id, { gain: 0.9, pan: 0 });
     });
   }

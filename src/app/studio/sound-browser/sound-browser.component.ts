@@ -1,7 +1,10 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { InstrumentsService, InstrumentPreset } from '../../services/instruments.service';
+import {
+  InstrumentsService,
+  InstrumentPreset,
+} from '../../services/instruments.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 
 @Component({
@@ -9,7 +12,7 @@ import { MusicManagerService } from '../../services/music-manager.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './sound-browser.component.html',
-  styleUrls: ['./sound-browser.component.css']
+  styleUrls: ['./sound-browser.component.css'],
 })
 export class SoundBrowserComponent {
   private instruments = inject(InstrumentsService);
@@ -21,8 +24,10 @@ export class SoundBrowserComponent {
   presets = computed(() => {
     const query = this.searchQuery().toLowerCase();
     const cat = this.selectedCategory();
-    return this.instruments.getPresets().filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(query) || p.id.toLowerCase().includes(query);
+    return this.instruments.getPresets().filter((p) => {
+      const matchesSearch =
+        p.name.toLowerCase().includes(query) ||
+        p.id.toLowerCase().includes(query);
       const matchesCat = cat === 'all' || p.type === cat;
       return matchesSearch && matchesCat;
     });
@@ -31,7 +36,7 @@ export class SoundBrowserComponent {
   categories = [
     { id: 'all', label: 'All Sounds', icon: 'grid_view' },
     { id: 'synth', label: 'Synths', icon: 'settings_input_component' },
-    { id: 'sample', label: 'Samples', icon: 'audio_file' }
+    { id: 'sample', label: 'Samples', icon: 'audio_file' },
   ];
 
   selectPreset(preset: InstrumentPreset) {

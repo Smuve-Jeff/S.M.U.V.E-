@@ -168,8 +168,6 @@ describe('HubComponent', () => {
     expect(text).toContain('CinemaEngine');
 
     // Check for upload button (pill-action)
-    expect(
-      nativeElement.querySelector('.pill-action')
-    ).not.toBeNull();
+    expect(nativeElement.querySelector('.pill-action')).not.toBeNull();
   });
 });

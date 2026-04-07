@@ -14,7 +14,10 @@ describe('StudioComponent', () => {
   const createComponent = async () => {
     const routeUrl$ = new Subject<any[]>();
     const queryParamMap$ = new Subject<any>();
-    const uiServiceMock = { navigateToView: jest.fn(), performanceMode: signal(false) };
+    const uiServiceMock = {
+      navigateToView: jest.fn(),
+      performanceMode: signal(false),
+    };
     const routerMock = {
       navigate: jest.fn().mockResolvedValue(true),
     };

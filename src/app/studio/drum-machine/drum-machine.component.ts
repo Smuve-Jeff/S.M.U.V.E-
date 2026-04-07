@@ -25,7 +25,19 @@ interface DrumStep {
 interface DrumPad {
   id: string;
   name: string;
-  type: 'kick' | 'snare' | 'hihat' | 'bass' | 'clap' | 'tom' | 'rim' | 'crash' | 'cowbell' | 'shaker' | 'tambourine' | 'ride';
+  type:
+    | 'kick'
+    | 'snare'
+    | 'hihat'
+    | 'bass'
+    | 'clap'
+    | 'tom'
+    | 'rim'
+    | 'crash'
+    | 'cowbell'
+    | 'shaker'
+    | 'tambourine'
+    | 'ride';
   color: string;
   active: boolean;
   params: any;
@@ -52,64 +64,166 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   pads = signal<DrumPad[]>([
     {
-      id: 'p1', name: 'KICK', type: 'kick', color: '#ec5b13', active: false,
+      id: 'p1',
+      name: 'KICK',
+      type: 'kick',
+      color: '#ec5b13',
+      active: false,
       params: { pitch: 150, decay: 0.5, gain: 1.0, punch: 0.5, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
     {
-      id: 'p2', name: 'SNARE', type: 'snare', color: '#a855f7', active: false,
+      id: 'p2',
+      name: 'SNARE',
+      type: 'snare',
+      color: '#a855f7',
+      active: false,
       params: { frequency: 250, decay: 0.2, gain: 0.8, snap: 0.6, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
     {
-      id: 'p3', name: 'HI-HAT (C)', type: 'hihat', color: '#10b981', active: false,
-      params: { frequency: 10000, decay: 0.1, gain: 0.5, crispness: 0.8, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      id: 'p3',
+      name: 'HI-HAT (C)',
+      type: 'hihat',
+      color: '#10b981',
+      active: false,
+      params: {
+        frequency: 10000,
+        decay: 0.1,
+        gain: 0.5,
+        crispness: 0.8,
+        semitone: 0,
+      },
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
     {
-      id: 'p4', name: 'HI-HAT (O)', type: 'hihat', color: '#06b6d4', active: false,
-      params: { frequency: 9000, decay: 0.6, gain: 0.45, crispness: 0.6, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      id: 'p4',
+      name: 'HI-HAT (O)',
+      type: 'hihat',
+      color: '#06b6d4',
+      active: false,
+      params: {
+        frequency: 9000,
+        decay: 0.6,
+        gain: 0.45,
+        crispness: 0.6,
+        semitone: 0,
+      },
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
     {
-      id: 'p5', name: 'CLAP', type: 'clap', color: '#ec5b13', active: false,
-      params: { frequency: 1200, decay: 0.15, gain: 0.7, width: 0.5, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      id: 'p5',
+      name: 'CLAP',
+      type: 'clap',
+      color: '#ec5b13',
+      active: false,
+      params: {
+        frequency: 1200,
+        decay: 0.15,
+        gain: 0.7,
+        width: 0.5,
+        semitone: 0,
+      },
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
     {
-      id: 'p6', name: 'TOM HI', type: 'tom', color: '#a855f7', active: false,
+      id: 'p6',
+      name: 'TOM HI',
+      type: 'tom',
+      color: '#a855f7',
+      active: false,
       params: { pitch: 100, decay: 0.4, gain: 0.8, thump: 0.4, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
     {
-      id: 'p7', name: 'TOM LO', type: 'tom', color: '#8b5cf6', active: false,
+      id: 'p7',
+      name: 'TOM LO',
+      type: 'tom',
+      color: '#8b5cf6',
+      active: false,
       params: { pitch: 70, decay: 0.5, gain: 0.8, thump: 0.5, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
     {
-      id: 'p8', name: 'RIM', type: 'rim', color: '#10b981', active: false,
-      params: { frequency: 5000, decay: 0.05, gain: 0.6, click: 0.9, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      id: 'p8',
+      name: 'RIM',
+      type: 'rim',
+      color: '#10b981',
+      active: false,
+      params: {
+        frequency: 5000,
+        decay: 0.05,
+        gain: 0.6,
+        click: 0.9,
+        semitone: 0,
+      },
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
     {
-      id: 'p9', name: 'CRASH', type: 'crash', color: '#d946ef', active: false,
-      params: { frequency: 8000, decay: 1.5, gain: 0.4, shimmer: 0.6, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      id: 'p9',
+      name: 'CRASH',
+      type: 'crash',
+      color: '#d946ef',
+      active: false,
+      params: {
+        frequency: 8000,
+        decay: 1.5,
+        gain: 0.4,
+        shimmer: 0.6,
+        semitone: 0,
+      },
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
     {
-      id: 'p10', name: 'RIDE', type: 'ride', color: '#f59e0b', active: false,
-      params: { frequency: 6500, decay: 0.8, gain: 0.4, shimmer: 0.4, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      id: 'p10',
+      name: 'RIDE',
+      type: 'ride',
+      color: '#f59e0b',
+      active: false,
+      params: {
+        frequency: 6500,
+        decay: 0.8,
+        gain: 0.4,
+        shimmer: 0.4,
+        semitone: 0,
+      },
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
     {
-      id: 'p11', name: 'COWBELL', type: 'cowbell', color: '#ef4444', active: false,
+      id: 'p11',
+      name: 'COWBELL',
+      type: 'cowbell',
+      color: '#ef4444',
+      active: false,
       params: { pitch: 562, decay: 0.7, gain: 0.5, tone: 0.6, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
     {
-      id: 'p12', name: 'SHAKER', type: 'shaker', color: '#84cc16', active: false,
-      params: { frequency: 6000, decay: 0.12, gain: 0.4, rattle: 0.7, semitone: 0 },
-      steps: DEFAULT_STEPS(), sampledBuffer: null,
+      id: 'p12',
+      name: 'SHAKER',
+      type: 'shaker',
+      color: '#84cc16',
+      active: false,
+      params: {
+        frequency: 6000,
+        decay: 0.12,
+        gain: 0.4,
+        rattle: 0.7,
+        semitone: 0,
+      },
+      steps: DEFAULT_STEPS(),
+      sampledBuffer: null,
     },
   ]);
 
@@ -130,7 +244,9 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   @ViewChild('visualizer') visualizerRef!: ElementRef<HTMLCanvasElement>;
 
-  private prevSchedulerHook: ((si: number, when: number, sd: number) => void) | undefined;
+  private prevSchedulerHook:
+    | ((si: number, when: number, sd: number) => void)
+    | undefined;
   private animationId: number | null = null;
 
   constructor() {
@@ -178,32 +294,40 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   }
 
   toggleStep(pad: DrumPad, stepIdx: number) {
-    this.pads.update(pads =>
-      pads.map(p => {
+    this.pads.update((pads) =>
+      pads.map((p) => {
         if (p.id !== pad.id) return p;
         const newSteps = [...p.steps];
-        newSteps[stepIdx] = { ...newSteps[stepIdx], active: !newSteps[stepIdx].active };
+        newSteps[stepIdx] = {
+          ...newSteps[stepIdx],
+          active: !newSteps[stepIdx].active,
+        };
         return { ...p, steps: newSteps };
       })
     );
     // Keep selectedPad in sync
     if (this.selectedPad()?.id === pad.id) {
-      this.selectedPad.set(this.pads().find(p => p.id === pad.id) ?? null);
+      this.selectedPad.set(this.pads().find((p) => p.id === pad.id) ?? null);
     }
 
     // Sync with MusicManagerService
-    const track = this.musicManager.tracks().find(t => t.name.toLowerCase().includes(pad.name.toLowerCase()));
+    const track = this.musicManager
+      .tracks()
+      .find((t) => t.name.toLowerCase().includes(pad.name.toLowerCase()));
     if (track) {
       this.musicManager.toggleStep(track.id, stepIdx);
     }
   }
 
   setStepVelocity(pad: DrumPad, stepIdx: number, velocity: number) {
-    this.pads.update(pads =>
-      pads.map(p => {
+    this.pads.update((pads) =>
+      pads.map((p) => {
         if (p.id !== pad.id) return p;
         const newSteps = [...p.steps];
-        newSteps[stepIdx] = { ...newSteps[stepIdx], velocity: Math.max(0.05, Math.min(1, velocity)) };
+        newSteps[stepIdx] = {
+          ...newSteps[stepIdx],
+          velocity: Math.max(0.05, Math.min(1, velocity)),
+        };
         return { ...p, steps: newSteps };
       })
     );
@@ -276,7 +400,10 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       osc.type = 'triangle';
       osc.connect(oscGain);
       oscGain.connect(dest);
-      osc.frequency.setValueAtTime(Math.max(10, (p.frequency || 250) * semitoneRatio), when);
+      osc.frequency.setValueAtTime(
+        Math.max(10, (p.frequency || 250) * semitoneRatio),
+        when
+      );
       oscGain.gain.setValueAtTime(p.gain * velocity * 0.5, when);
       oscGain.gain.exponentialRampToValueAtTime(0.01, when + p.decay);
       osc.start(when);
@@ -328,7 +455,8 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       const buffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate);
       for (let c = 0; c < 2; c++) {
         const data = buffer.getChannelData(c);
-        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 0.5);
+        for (let i = 0; i < bufferSize; i++)
+          data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 0.5);
       }
       const noise = ctx.createBufferSource();
       noise.buffer = buffer;
@@ -374,7 +502,10 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
         hp.frequency.value = (p.frequency || 6000) * semitoneRatio;
         const gn = ctx.createGain();
         src.connect(hp).connect(gn).connect(dest);
-        gn.gain.setValueAtTime(p.gain * velocity * (p.rattle || 0.7), when + offset);
+        gn.gain.setValueAtTime(
+          p.gain * velocity * (p.rattle || 0.7),
+          when + offset
+        );
         gn.gain.exponentialRampToValueAtTime(0.001, when + offset + 0.02);
         src.start(when + offset);
       }
@@ -391,7 +522,12 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private playSampledBuffer(buffer: AudioBuffer, when: number, velocity: number, params: any) {
+  private playSampledBuffer(
+    buffer: AudioBuffer,
+    when: number,
+    velocity: number,
+    params: any
+  ) {
     const ctx = this.audioEngine.ctx;
     const src = ctx.createBufferSource();
     src.buffer = buffer;
@@ -425,7 +561,10 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       const resp = await this.aiService.generateAiResponse(
         'Name ONE beat pattern style in one word (e.g. "trap", "boom-bap", "house", "reggaeton", "drill", "afrobeats"). Only the style name, nothing else.'
       );
-      const word = resp.trim().toLowerCase().replace(/[^a-z-]/g, '');
+      const word = resp
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z-]/g, '');
       return word || 'standard';
     } catch {
       return 'standard';
@@ -436,43 +575,43 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     // Pre-defined patterns indexed by pad type
     const patterns: Record<string, Record<string, number[]>> = {
       standard: {
-        kick:  [0, 8],
+        kick: [0, 8],
         snare: [4, 12],
         'hi-hat (c)': [0, 2, 4, 6, 8, 10, 12, 14],
         'hi-hat (o)': [6, 14],
       },
       trap: {
-        kick:  [0, 3, 6, 10],
+        kick: [0, 3, 6, 10],
         snare: [4, 12],
         'hi-hat (c)': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
         'hi-hat (o)': [7],
       },
       'boom-bap': {
-        kick:  [0, 6, 10],
+        kick: [0, 6, 10],
         snare: [4, 12],
         'hi-hat (c)': [0, 2, 4, 6, 8, 10, 12, 14],
         clap: [4, 12],
       },
       house: {
-        kick:  [0, 4, 8, 12],
+        kick: [0, 4, 8, 12],
         snare: [4, 12],
         'hi-hat (c)': [2, 6, 10, 14],
         'hi-hat (o)': [2, 10],
       },
       drill: {
-        kick:  [0, 5, 8, 11],
+        kick: [0, 5, 8, 11],
         snare: [4, 12],
         'hi-hat (c)': [0, 2, 4, 6, 8, 10, 12, 14],
         'hi-hat (o)': [6],
       },
       reggaeton: {
-        kick:  [0, 3, 8, 11],
+        kick: [0, 3, 8, 11],
         snare: [4, 12],
         'hi-hat (c)': [0, 4, 8, 12],
         clap: [2, 6, 10, 14],
       },
       afrobeats: {
-        kick:  [0, 6, 10],
+        kick: [0, 6, 10],
         snare: [4, 8, 12],
         'hi-hat (c)': [0, 2, 4, 6, 8, 10, 12, 14],
         shaker: [1, 3, 5, 7, 9, 11, 13, 15],
@@ -481,10 +620,12 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
     const chosen = patterns[style] || patterns['standard'];
 
-    this.pads.update(pads =>
-      pads.map(pad => {
+    this.pads.update((pads) =>
+      pads.map((pad) => {
         const padNameKey = pad.name.toLowerCase();
-        const matchKey = Object.keys(chosen).find(k => padNameKey.includes(k));
+        const matchKey = Object.keys(chosen).find((k) =>
+          padNameKey.includes(k)
+        );
         const activeSteps = matchKey ? chosen[matchKey] : [];
         // Randomize slightly
         const newSteps = DEFAULT_STEPS();
@@ -506,8 +647,8 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   }
 
   clearPattern() {
-    this.pads.update(pads =>
-      pads.map(pad => ({ ...pad, steps: DEFAULT_STEPS() }))
+    this.pads.update((pads) =>
+      pads.map((pad) => ({ ...pad, steps: DEFAULT_STEPS() }))
     );
   }
 
@@ -547,20 +688,25 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   private async finishMicRecording(pad: DrumPad) {
     this.micService.stopRecording();
     // Wait for blob
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 300));
     const blob = this.micService.recordedBlob();
     if (blob) {
       const arrayBuffer = await blob.arrayBuffer();
       try {
         const decoded = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
-        this.pads.update(pads =>
-          pads.map(p => p.id === pad.id ? { ...p, sampledBuffer: decoded } : p)
+        this.pads.update((pads) =>
+          pads.map((p) =>
+            p.id === pad.id ? { ...p, sampledBuffer: decoded } : p
+          )
         );
         if (this.selectedPad()?.id === pad.id) {
-          const updated = this.pads().find(p => p.id === pad.id);
+          const updated = this.pads().find((p) => p.id === pad.id);
           this.selectedPad.set(updated ?? null);
         }
-        this.logger.info('DrumMachine: Microphone sample loaded for pad', pad.name);
+        this.logger.info(
+          'DrumMachine: Microphone sample loaded for pad',
+          pad.name
+        );
       } catch (e) {
         this.logger.error('DrumMachine: Failed to decode mic sample', e);
       }
@@ -577,11 +723,11 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   }
 
   clearPadSample(pad: DrumPad) {
-    this.pads.update(pads =>
-      pads.map(p => p.id === pad.id ? { ...p, sampledBuffer: null } : p)
+    this.pads.update((pads) =>
+      pads.map((p) => (p.id === pad.id ? { ...p, sampledBuffer: null } : p))
     );
     if (this.selectedPad()?.id === pad.id) {
-      const updated = this.pads().find(p => p.id === pad.id);
+      const updated = this.pads().find((p) => p.id === pad.id);
       this.selectedPad.set(updated ?? null);
     }
   }

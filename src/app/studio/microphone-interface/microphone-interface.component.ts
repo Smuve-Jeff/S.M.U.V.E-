@@ -41,7 +41,9 @@ export class MicrophoneInterfaceComponent implements OnDestroy {
 
   currentChannel = computed(
     () =>
-      this.channels().find((channel) => channel.id === this.selectedChannelId()) ??
+      this.channels().find(
+        (channel) => channel.id === this.selectedChannelId()
+      ) ??
       this.channels()[0] ??
       null
   );
@@ -68,7 +70,9 @@ export class MicrophoneInterfaceComponent implements OnDestroy {
     const presence = Math.max(0, params.eq.mid + 12);
     const exciter = params.exciter.amount * 100;
     const deesser = Math.max(0, (-params.deesser.threshold - 10) * 2);
-    return Math.round(Math.min(100, 45 + airLift + presence + exciter + deesser));
+    return Math.round(
+      Math.min(100, 45 + airLift + presence + exciter + deesser)
+    );
   });
 
   constructor() {

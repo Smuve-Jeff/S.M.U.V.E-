@@ -6,9 +6,7 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { MarketingService } from '../../services/marketing.service';
 import { AiService } from '../../services/ai.service';
 import { MarketingCampaign } from '../../types/marketing.types';
-import {
-  StrategicTask,
-} from '../../types/ai.types';
+import { StrategicTask } from '../../types/ai.types';
 
 type StrategyTab =
   | 'overview'
@@ -83,8 +81,8 @@ export class StrategyHubComponent implements OnInit {
   }
 
   toggleTask(id: string) {
-    this.strategicTasks.update(tasks =>
-      tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t)
+    this.strategicTasks.update((tasks) =>
+      tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
     );
   }
 
@@ -98,7 +96,8 @@ export class StrategyHubComponent implements OnInit {
         targetAudience: 'Global Listeners',
         goals: ['Brand Awareness'],
         platforms: this.newCampaign().platforms || ['Instagram'],
-        strategyLevel: this.newCampaign().strategyLevel || 'Modern Professional',
+        strategyLevel:
+          this.newCampaign().strategyLevel || 'Modern Professional',
         metrics: {
           reach: 0,
           impressions: 0,
@@ -169,7 +168,13 @@ export class StrategyHubComponent implements OnInit {
   }
 
   setTab(tab: string) {
-    const validTabs: StrategyTab[] = ['overview', 'campaigns', 'analytics', 'outreach', 'social'];
+    const validTabs: StrategyTab[] = [
+      'overview',
+      'campaigns',
+      'analytics',
+      'outreach',
+      'social',
+    ];
     if (validTabs.includes(tab as StrategyTab)) {
       this.activeHubTab.set(tab as StrategyTab);
     }

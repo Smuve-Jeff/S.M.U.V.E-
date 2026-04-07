@@ -119,7 +119,11 @@ export class ChannelRackComponent {
   savePatternVersion(track: TrackModel) {
     const slotId = track.activePatternSlotId ?? track.patternSlots?.[0]?.id;
     if (!slotId) return;
-    this.musicManager.snapshotPatternVersion(track.id, slotId, `Version ${Date.now()}`);
+    this.musicManager.snapshotPatternVersion(
+      track.id,
+      slotId,
+      `Version ${Date.now()}`
+    );
   }
 
   recallPattern(track: TrackModel, slotId: string) {

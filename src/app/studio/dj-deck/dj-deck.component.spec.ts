@@ -66,7 +66,13 @@ describe('DjDeckComponent', () => {
     TestBed.configureTestingModule({
       imports: [DjDeckComponent],
       providers: [
-        { provide: FileLoaderService, useValue: { pickLocalFiles: jest.fn(), decodeToAudioBuffer: jest.fn() } },
+        {
+          provide: FileLoaderService,
+          useValue: {
+            pickLocalFiles: jest.fn(),
+            decodeToAudioBuffer: jest.fn(),
+          },
+        },
         { provide: ExportService, useValue: mockExportService },
         { provide: LibraryService, useValue: {} },
         { provide: DeckService, useValue: mockDeckService },
@@ -181,7 +187,9 @@ describe('DjDeckComponent', () => {
     });
 
     component.performanceMode.set('roll');
-    component.handlePadDown('A', 2, { preventDefault: jest.fn() } as unknown as MouseEvent);
+    component.handlePadDown('A', 2, {
+      preventDefault: jest.fn(),
+    } as unknown as MouseEvent);
 
     expect(engine.seekDeck).toHaveBeenCalledWith('A', 31.75);
     expect(engine.playDeck).toHaveBeenCalledWith('A');

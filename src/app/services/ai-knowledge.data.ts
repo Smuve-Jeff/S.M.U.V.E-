@@ -40,7 +40,7 @@ export const INTELLIGENCE_LIBRARY: IntelligenceBrief[] = [
     title: 'TikTok Discovery Mode Strategy',
     category: 'Fan Engagement',
     content:
-      'TikTok\'s algorithm prioritizes completion rate over like count. Create 15-second hooks with a visual twist at 10s to maximize rewatch loops. Post at 6–9am or 7–9pm local time for maximum reach.',
+      "TikTok's algorithm prioritizes completion rate over like count. Create 15-second hooks with a visual twist at 10s to maximize rewatch loops. Post at 6–9am or 7–9pm local time for maximum reach.",
     relevanceScore: 94,
     actionable: true,
     impact: 'High',

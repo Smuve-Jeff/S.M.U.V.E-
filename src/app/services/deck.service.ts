@@ -12,7 +12,7 @@ export class DeckService {
   crossfade = signal(0);
   xfCurve = signal<'linear' | 'power' | 'exp' | 'cut'>('linear');
   hamster = signal(false);
-  viewMode = signal<"functional" | "flat">("functional");
+  viewMode = signal<'functional' | 'flat'>('functional');
 
   constructor(private engine: AudioEngineService) {
     effect(() => {
@@ -31,19 +31,19 @@ export class DeckService {
   }
 
   toggleSlip(deck: DeckId) {
-    if (deck === "A") {
+    if (deck === 'A') {
       const newState = !this.deckA().slip;
-      this.deckA.update(d => ({ ...d, slip: newState }));
-      this.engine.setSlipMode("A", newState);
+      this.deckA.update((d) => ({ ...d, slip: newState }));
+      this.engine.setSlipMode('A', newState);
     } else {
       const newState = !this.deckB().slip;
-      this.deckB.update(d => ({ ...d, slip: newState }));
-      this.engine.setSlipMode("B", newState);
+      this.deckB.update((d) => ({ ...d, slip: newState }));
+      this.engine.setSlipMode('B', newState);
     }
   }
 
   toggleViewMode() {
-    this.viewMode.update(m => m === "functional" ? "flat" : "functional");
+    this.viewMode.update((m) => (m === 'functional' ? 'flat' : 'functional'));
   }
 
   togglePlay(deck: DeckId) {

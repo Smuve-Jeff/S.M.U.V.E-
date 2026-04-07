@@ -18,16 +18,25 @@ describe('DrumMachineComponent', () => {
         sampleRate: 44100,
         createOscillator: jest.fn(() => ({
           connect: jest.fn().mockReturnThis(),
-          frequency: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+          frequency: {
+            setValueAtTime: jest.fn(),
+            exponentialRampToValueAtTime: jest.fn(),
+          },
           start: jest.fn(),
           stop: jest.fn(),
           type: 'sine',
         })),
         createGain: jest.fn(() => ({
           connect: jest.fn().mockReturnThis(),
-          gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn(), value: 1 },
+          gain: {
+            setValueAtTime: jest.fn(),
+            exponentialRampToValueAtTime: jest.fn(),
+            value: 1,
+          },
         })),
-        createBuffer: jest.fn(() => ({ getChannelData: jest.fn(() => new Float32Array(100)) })),
+        createBuffer: jest.fn(() => ({
+          getChannelData: jest.fn(() => new Float32Array(100)),
+        })),
         createBufferSource: jest.fn(() => ({
           connect: jest.fn().mockReturnThis(),
           buffer: null,
@@ -37,7 +46,11 @@ describe('DrumMachineComponent', () => {
         createBiquadFilter: jest.fn(() => ({
           connect: jest.fn().mockReturnThis(),
           type: 'lowpass',
-          frequency: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn(), value: 1000 },
+          frequency: {
+            setValueAtTime: jest.fn(),
+            exponentialRampToValueAtTime: jest.fn(),
+            value: 1000,
+          },
           Q: { value: 1 },
         })),
         decodeAudioData: jest.fn().mockResolvedValue(null),
@@ -51,7 +64,8 @@ describe('DrumMachineComponent', () => {
         getByteFrequencyData: jest.fn(),
         fftSize: 256,
       })),
-      onScheduleStep: undefined as any, ensureTrack: jest.fn(),
+      onScheduleStep: undefined as any,
+      ensureTrack: jest.fn(),
     };
 
     const mockMicService = {
@@ -77,21 +91,37 @@ describe('DrumMachineComponent', () => {
     await TestBed.configureTestingModule({
       imports: [DrumMachineComponent],
       providers: [
-        { provide: MusicManagerService, useValue: { tracks: signal([]), selectedTrackId: signal(null), ensureTrack: jest.fn(), loadLastSession: jest.fn() } },
+        {
+          provide: MusicManagerService,
+          useValue: {
+            tracks: signal([]),
+            selectedTrackId: signal(null),
+            ensureTrack: jest.fn(),
+            loadLastSession: jest.fn(),
+          },
+        },
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: MicrophoneService, useValue: mockMicService },
         { provide: AiService, useValue: mockAiService },
         { provide: LoggingService, useValue: mockLogger },
       ],
     })
-      .overrideComponent(DrumMachineComponent, { set: { template: '<div></div>' } })
+      .overrideComponent(DrumMachineComponent, {
+        set: { template: '<div></div>' },
+      })
       .compileComponents();
 
     const fixture = TestBed.createComponent(DrumMachineComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
 
-    return { component, fixture, mockAudioEngine, mockMicService, mockAiService };
+    return {
+      component,
+      fixture,
+      mockAudioEngine,
+      mockMicService,
+      mockAiService,
+    };
   };
 
   it('initializes with 12 pads', async () => {
@@ -142,7 +172,7 @@ describe('DrumMachineComponent', () => {
 
   it('pads include expanded sound types: cowbell, shaker, ride', async () => {
     const { component } = await createComponent();
-    const types = component.pads().map(p => p.type);
+    const types = component.pads().map((p) => p.type);
     expect(types).toContain('cowbell');
     expect(types).toContain('shaker');
     expect(types).toContain('ride');
@@ -172,7 +202,7 @@ describe('DrumMachineComponent', () => {
 
     await component.generateAiPattern();
 
-    const kick = component.pads().find(p => p.name === 'KICK')!;
+    const kick = component.pads().find((p) => p.name === 'KICK')!;
     expect(kick.steps[0].active).toBe(true);
     expect(kick.steps[4].active).toBe(true);
     expect(kick.steps[8].active).toBe(true);

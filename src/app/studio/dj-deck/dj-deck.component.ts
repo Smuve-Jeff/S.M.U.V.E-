@@ -86,16 +86,15 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private wasPlaying: Record<'A' | 'B', boolean> = { A: false, B: false };
   private rollState: Record<
     'A' | 'B',
-    | {
-        padIndex: number;
-        origin: number;
-        duration: number;
-        loopDuration: number;
-        startedAt: number;
-        playbackRate: number;
-        wasPlaying: boolean;
-      }
-    | null
+    {
+      padIndex: number;
+      origin: number;
+      duration: number;
+      loopDuration: number;
+      startedAt: number;
+      playbackRate: number;
+      wasPlaying: boolean;
+    } | null
   > = { A: null, B: null };
   private rollIntervals: Record<'A' | 'B', any> = { A: null, B: null };
   private samplerReturnTimers: Record<'A' | 'B', any> = { A: null, B: null };
@@ -233,7 +232,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     ctx.stroke();
 
     const prog = this.engine.getDeckProgress(id);
-    const slipX = ((prog.slipPosition - (deck.progress - windowSize / 2)) / windowSize) * canvas.width;
+    const slipX =
+      ((prog.slipPosition - (deck.progress - windowSize / 2)) / windowSize) *
+      canvas.width;
 
     if (prog.slipPosition !== prog.position) {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
@@ -285,7 +286,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   deckProgressPercent(deck: 'A' | 'B') {
-    const d = deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+    const d =
+      deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
     if (!d.duration) return 0;
     return Math.max(0, Math.min(1, d.progress / d.duration));
   }
@@ -339,7 +341,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   handlePadRelease(deck: 'A' | 'B', index: number) {
     if (this.performanceMode() !== 'roll') return;
-    const activePad = deck === 'A' ? this.activeRollPadA() : this.activeRollPadB();
+    const activePad =
+      deck === 'A' ? this.activeRollPadA() : this.activeRollPadB();
     if (activePad !== index) return;
     this.stopRoll(deck);
   }
@@ -371,11 +374,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.triggerSamplerPad(deck, index);
   }
 
-  clearHotCue(
-    deck: 'A' | 'B',
-    index: number,
-    event: MouseEvent
-  ) {
+  clearHotCue(deck: 'A' | 'B', index: number, event: MouseEvent) {
     event.preventDefault();
     this.deckService.clearHotCue(deck, index);
     this.sessionNotice.set(`Deck ${deck} hot cue ${index + 1} cleared.`);
@@ -416,12 +415,15 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   isRollPadActive(deck: 'A' | 'B', index: number) {
-    return (deck === 'A' ? this.activeRollPadA() : this.activeRollPadB()) === index;
+    return (
+      (deck === 'A' ? this.activeRollPadA() : this.activeRollPadB()) === index
+    );
   }
 
   isSamplerPadActive(deck: 'A' | 'B', index: number) {
     return (
-      (deck === 'A' ? this.activeSamplerPadA() : this.activeSamplerPadB()) === index
+      (deck === 'A' ? this.activeSamplerPadA() : this.activeSamplerPadB()) ===
+      index
     );
   }
 
@@ -479,23 +481,27 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       this.cleanupRecordingState();
     };
 
-    result.then((blob) => {
-      const extension = blob.type.includes('ogg')
-        ? 'ogg'
-        : blob.type.includes('wav')
-          ? 'wav'
-          : 'webm';
-      return this.exportService.downloadBlob(blob, `mix-${Date.now()}.${extension}`);
-    })
-    .then(() => {
-      this.sessionNotice.set('Live mix exported successfully.');
-    })
-    .catch(() => {
-      this.sessionNotice.set('Live mix export failed.');
-    })
-    .finally(() => {
-      this.cleanupRecordingState();
-    });
+    result
+      .then((blob) => {
+        const extension = blob.type.includes('ogg')
+          ? 'ogg'
+          : blob.type.includes('wav')
+            ? 'wav'
+            : 'webm';
+        return this.exportService.downloadBlob(
+          blob,
+          `mix-${Date.now()}.${extension}`
+        );
+      })
+      .then(() => {
+        this.sessionNotice.set('Live mix exported successfully.');
+      })
+      .catch(() => {
+        this.sessionNotice.set('Live mix export failed.');
+      })
+      .finally(() => {
+        this.cleanupRecordingState();
+      });
   }
 
   sync(deck: 'A' | 'B') {
@@ -583,7 +589,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const progress = this.engine.getDeckProgress(deck).position;
     const duration = this.engine.getDeckProgress(deck).duration;
-    let scrub = delta * 0.5;
+    const scrub = delta * 0.5;
     let newPos = progress + scrub;
     if (newPos < 0) newPos = 0;
     if (duration) newPos = Math.min(duration, newPos);
@@ -610,7 +616,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       const touch = event.touches[0];
       return { x: touch.clientX, y: touch.clientY };
     }
-    return { x: (event as MouseEvent).clientX, y: (event as MouseEvent).clientY };
+    return {
+      x: (event as MouseEvent).clientX,
+      y: (event as MouseEvent).clientY,
+    };
   }
 
   private getEventTargetCenter(event: MouseEvent | TouchEvent) {
@@ -765,12 +774,18 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.engine.seekDeck(deck, loopStart);
     this.engine.playDeck(deck);
     this.clearRollInterval(deck);
-    this.rollIntervals[deck] = setInterval(() => {
-      const state = this.rollState[deck];
-      if (!state) return;
-      this.engine.seekDeck(deck, this.getLoopStart(state.origin, state.loopDuration));
-      this.engine.playDeck(deck);
-    }, Math.max(MIN_ROLL_INTERVAL_MILLIS, loopDuration * 1000));
+    this.rollIntervals[deck] = setInterval(
+      () => {
+        const state = this.rollState[deck];
+        if (!state) return;
+        this.engine.seekDeck(
+          deck,
+          this.getLoopStart(state.origin, state.loopDuration)
+        );
+        this.engine.playDeck(deck);
+      },
+      Math.max(MIN_ROLL_INTERVAL_MILLIS, loopDuration * 1000)
+    );
     this.deckService.syncProgress();
     this.sessionNotice.set(
       `Deck ${deck} ${this.rollPadLabels[index]} beat slip roll engaged.`
@@ -823,21 +838,24 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.setActiveSamplerPad(deck, index);
     this.engine.seekDeck(deck, cuePosition);
     this.engine.playDeck(deck);
-    this.samplerReturnTimers[deck] = setTimeout(() => {
-      if (wasPlaying) {
-        const resumePosition = Math.max(
-          0,
-          Math.min(duration, origin + shotDuration * playbackRate)
-        );
-        this.engine.seekDeck(deck, resumePosition);
-        this.engine.playDeck(deck);
-      } else {
-        this.engine.pauseDeck(deck);
-        this.engine.seekDeck(deck, cuePosition);
-      }
-      this.clearSamplerActivePad(deck);
-      this.deckService.syncProgress();
-    }, Math.max(MIN_SAMPLER_RETURN_MILLIS, shotDuration * 1000));
+    this.samplerReturnTimers[deck] = setTimeout(
+      () => {
+        if (wasPlaying) {
+          const resumePosition = Math.max(
+            0,
+            Math.min(duration, origin + shotDuration * playbackRate)
+          );
+          this.engine.seekDeck(deck, resumePosition);
+          this.engine.playDeck(deck);
+        } else {
+          this.engine.pauseDeck(deck);
+          this.engine.seekDeck(deck, cuePosition);
+        }
+        this.clearSamplerActivePad(deck);
+        this.deckService.syncProgress();
+      },
+      Math.max(MIN_SAMPLER_RETURN_MILLIS, shotDuration * 1000)
+    );
     this.deckService.syncProgress();
     this.sessionNotice.set(
       `Deck ${deck} sampler pad ${index + 1} fired for ${this.formatPadWindow(shotDuration)}.`

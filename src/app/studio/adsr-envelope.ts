@@ -33,7 +33,12 @@ export class ADSREnvelope {
     }
   }
 
-  applyToParam(param: AudioParam, velocity: number, min: number, max: number): void {
+  applyToParam(
+    param: AudioParam,
+    velocity: number,
+    min: number,
+    max: number
+  ): void {
     const now = this.audioContext.currentTime;
     const range = max - min;
     const targetValue = min + (range * velocity) / 127;
@@ -76,7 +81,11 @@ export class ADSREnvelope {
     param.cancelScheduledValues(now);
     param.setValueAtTime(param.value, now);
 
-    if (this.useExponential && param.value > minValue && targetValue > minValue) {
+    if (
+      this.useExponential &&
+      param.value > minValue &&
+      targetValue > minValue
+    ) {
       param.exponentialRampToValueAtTime(targetValue, now + this.release);
     } else {
       param.linearRampToValueAtTime(targetValue, now + this.release);

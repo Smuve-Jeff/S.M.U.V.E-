@@ -299,7 +299,10 @@ export class AutomationService {
     return macro.value * mapping.depth;
   }
 
-  private getModulationContribution(lane: AutomationLane, time: number): number {
+  private getModulationContribution(
+    lane: AutomationLane,
+    time: number
+  ): number {
     let total = 0;
     for (const source of this.modulationSources()) {
       if (!source.enabled || !source.mappedLaneIds.includes(lane.id)) continue;

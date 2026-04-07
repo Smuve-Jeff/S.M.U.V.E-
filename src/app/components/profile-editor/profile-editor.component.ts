@@ -167,12 +167,22 @@ export class ProfileEditorComponent {
         let current: any = updated;
         for (let i = 0; i < pathParts.length - 1; i++) {
           const part = pathParts[i];
-          if (part === '__proto__' || part === 'constructor' || part === 'prototype') continue;
+          if (
+            part === '__proto__' ||
+            part === 'constructor' ||
+            part === 'prototype'
+          )
+            continue;
           if (!current[part]) current[part] = {};
           current = current[part];
         }
         const lastPart = pathParts[pathParts.length - 1];
-        if (lastPart === '__proto__' || lastPart === 'constructor' || lastPart === 'prototype') return updated;
+        if (
+          lastPart === '__proto__' ||
+          lastPart === 'constructor' ||
+          lastPart === 'prototype'
+        )
+          return updated;
         if (!Array.isArray(current[lastPart])) current[lastPart] = [];
         target = current[lastPart];
 
@@ -183,7 +193,12 @@ export class ProfileEditorComponent {
         }
       } else {
         const obj = updated as any;
-        if (field === '__proto__' || field === 'constructor' || field === 'prototype') return updated;
+        if (
+          field === '__proto__' ||
+          field === 'constructor' ||
+          field === 'prototype'
+        )
+          return updated;
         if (!Array.isArray(obj[field])) obj[field] = [];
         target = obj[field];
         if (target.includes(value)) {
@@ -203,12 +218,21 @@ export class ProfileEditorComponent {
       let current: any = updated;
       for (let i = 0; i < parts.length - 1; i++) {
         const part = parts[i];
-        if (part === '__proto__' || part === 'constructor' || part === 'prototype') continue;
+        if (
+          part === '__proto__' ||
+          part === 'constructor' ||
+          part === 'prototype'
+        )
+          continue;
         if (!current[part]) current[part] = {};
         current = current[part];
       }
       const lastPart = parts[parts.length - 1];
-      if (lastPart !== '__proto__' && lastPart !== 'constructor' && lastPart !== 'prototype') {
+      if (
+        lastPart !== '__proto__' &&
+        lastPart !== 'constructor' &&
+        lastPart !== 'prototype'
+      ) {
         current[lastPart] = value;
       }
       return updated;

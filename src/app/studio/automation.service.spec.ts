@@ -41,7 +41,10 @@ describe('AutomationService', () => {
     service.addPoint(lane.id, 0, 0);
     service.addPoint(lane.id, 1, 0.5);
 
-    const lfo = service.createModulationSource('lfo', { amount: 0.2, rateHz: 2 });
+    const lfo = service.createModulationSource('lfo', {
+      amount: 0.2,
+      rateHz: 2,
+    });
     service.mapModulationToLane(lfo.id, lane.id);
 
     const macro = service.createMacro('Build');
