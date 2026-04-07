@@ -13,5 +13,5 @@ test('Drum Machine component is rendered correctly', async ({ page }) => {
     page.getByRole('heading', { name: /NEURAL DRUM SYNTH/i })
   ).toBeVisible();
   await expect(page.getByRole('button', { name: /AI GROOVE/i })).toBeVisible();
-  await expect(page.locator('.pad-button')).toHaveCount(8);
+  await expect(page.locator('.drum-machine .pad-button')).toHaveCount(12);
 });

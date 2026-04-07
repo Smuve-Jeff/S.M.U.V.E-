@@ -31,7 +31,9 @@ export const appConfig: ApplicationConfig = {
         const logger = inject(LoggingService);
         const autoSave = inject(AutoSaveService);
         return () => {
-          logger.system('S.M.U.V.E 2.0 Strategic Music Utility Virtual Enterprise Initialized');
+          logger.system(
+            'S.M.U.V.E 2.0 Strategic Music Utility Virtual Enterprise Initialized'
+          );
           logger.info('Auto-Save Service Initialized');
         };
       },

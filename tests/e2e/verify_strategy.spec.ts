@@ -11,7 +11,7 @@ test('Strategy Hub Dynamic Features', async ({ page }) => {
     page.getByRole('heading', { name: /Executive Intelligence Briefs/i })
   ).toBeVisible();
 
-  await page.getByRole('button', { name: 'social' }).click();
+  await page.getByRole('button', { name: /^social$/i }).click();
   await expect(
     page.getByRole('heading', { name: /Social Presence Engine/i })
   ).toBeVisible();
