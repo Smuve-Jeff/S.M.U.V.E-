@@ -50,4 +50,23 @@ describe('OfflineSyncService', () => {
     const lastSync = service.lastSyncAttempt();
     expect(lastSync === null || typeof lastSync === 'number').toBe(true);
   });
+
+  it('queues connector sync operations with connector metadata', async () => {
+    const id = await service.queueConnectorSync(
+      'Spotify',
+      'https://example.com/connectors/spotify',
+      { artistName: 'Nova Flux' },
+      'artist-1'
+    );
+
+    expect(id).toContain('sync_');
+    expect(localStorageMock.saveItem).toHaveBeenCalledWith(
+      'sync_queue',
+      expect.objectContaining({
+        channel: 'connector',
+        connectorId: 'Spotify',
+        userId: 'artist-1',
+      })
+    );
+  });
 });

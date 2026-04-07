@@ -5,6 +5,10 @@ import {
   RecommendationHistoryEntry,
   UpgradeRecommendation,
 } from '../types/ai.types';
+  ArtistIdentityState,
+  createInitialArtistIdentity,
+  ensureArtistIdentityState,
+} from '../types/artist-identity.types';
 
 export interface AppSettings {
   ui: {
@@ -38,6 +42,7 @@ export interface ThaSpotEventHistoryEntry {
   eventId: string;
   roomId?: string;
   reward?: string;
+  rewardType?: 'cosmetic' | 'token';
   rewardType?: 'access' | 'cosmetic' | 'token';
   participatedAt: number;
 }
@@ -50,8 +55,6 @@ export interface ThaSpotRoomStat {
 export interface ThaSpotGameStat {
   plays?: number;
   lastPlayedAt?: number;
-  currentStreak?: number;
-  longestStreak?: number;
   lastRoomId?: string;
   roomPlays?: Record<string, number>;
   earnedCosmetics?: string[];
@@ -59,8 +62,6 @@ export interface ThaSpotGameStat {
 }
 
 export interface ThaSpotProgression {
-  currentStreak?: number;
-  longestStreak?: number;
   lastSessionAt?: number;
   lastRoomId?: string;
   favoriteRoomId?: string;
@@ -73,6 +74,7 @@ export interface ThaSpotSessionContext {
   roomId?: string;
   eventId?: string;
   reward?: string;
+  rewardType?: 'cosmetic' | 'token';
   rewardType?: 'access' | 'cosmetic' | 'token';
   cosmetics?: string[];
 }
@@ -87,6 +89,7 @@ export interface UserProfile {
   id?: string;
   artistName: string;
   primaryGenre: string;
+  website?: string;
   settings: AppSettings;
   knowledgeBase: any;
   careerGoals: string[];
@@ -101,7 +104,9 @@ export interface UserProfile {
   proName?: string;
   proIpi?: string;
   catalog: CatalogItem[];
+  artistIdentity?: ArtistIdentityState;
 
+  // Gameplay progression
   gameStats?: Record<string, ThaSpotGameStat>;
   thaSpotProgression?: ThaSpotProgression;
 
@@ -137,6 +142,7 @@ export const initialProfile: UserProfile = {
   recommendationHistory: [],
   marketingCampaigns: [],
   catalog: [],
+  artistIdentity: createInitialArtistIdentity('New Artist', 'Hip Hop'),
   gameStats: {},
   thaSpotProgression: {
     roomStats: {},
@@ -151,7 +157,6 @@ export const initialProfile: UserProfile = {
 export class UserProfileService {
   private logger = inject(LoggingService);
   private databaseService = inject(DatabaseService);
-  private readonly streakWindowMs = 1000 * 60 * 60 * 18;
   private readonly maxEventHistory = 20;
 
   profile = signal<UserProfile>(initialProfile);
@@ -161,6 +166,28 @@ export class UserProfileService {
     try {
       const userProfile = await this.databaseService.loadUserProfile(userId);
       if (userProfile) {
+        const {
+          xp: _xp,
+          level: _level,
+          achievements: _achievements,
+          lastXpReason: _lastXpReason,
+          lastXpAt: _lastXpAt,
+          ...profileWithoutGamification
+        } = userProfile as UserProfile & Record<string, any>;
+        const normalizedProfile = {
+          ...profileWithoutGamification,
+          artistIdentity: ensureArtistIdentityState(
+            userProfile.artistName,
+            userProfile.primaryGenre,
+            userProfile.artistIdentity
+          ),
+          gameStats: this.sanitizeGameStats(userProfile.gameStats),
+          thaSpotProgression: this.sanitizeThaSpotProgression(
+            userProfile.thaSpotProgression
+          ),
+        };
+        this.profile.set(normalizedProfile);
+        this.profile$.set(normalizedProfile);
         const sanitizedProfile = this.sanitizeProfile(userProfile);
         this.profile.set(sanitizedProfile);
         this.profile$.set(sanitizedProfile);
@@ -173,6 +200,29 @@ export class UserProfileService {
   async updateProfile(newProfile: UserProfile, userId?: string): Promise<void> {
     try {
       const id = userId || 'anonymous';
+      const {
+        xp: _xp,
+        level: _level,
+        achievements: _achievements,
+        lastXpReason: _lastXpReason,
+        lastXpAt: _lastXpAt,
+        ...profileWithoutGamification
+      } = newProfile as UserProfile & Record<string, any>;
+      const normalizedProfile = {
+        ...profileWithoutGamification,
+        artistIdentity: ensureArtistIdentityState(
+          newProfile.artistName,
+          newProfile.primaryGenre,
+          newProfile.artistIdentity
+        ),
+        gameStats: this.sanitizeGameStats(newProfile.gameStats),
+        thaSpotProgression: this.sanitizeThaSpotProgression(
+          newProfile.thaSpotProgression
+        ),
+      };
+      await this.databaseService.saveUserProfile(normalizedProfile, id);
+      this.profile.set(normalizedProfile);
+      this.profile$.set(normalizedProfile);
       const sanitizedProfile = this.sanitizeProfile(newProfile);
       await this.databaseService.saveUserProfile(sanitizedProfile, id);
       this.profile.set(sanitizedProfile);
@@ -242,6 +292,41 @@ export class UserProfileService {
     });
   }
 
+  async recordGameResult(gameId: string, context: ThaSpotSessionContext = {}) {
+    const current = this.profile();
+    const stats = { ...(current.gameStats || {}) };
+    const prev = stats[gameId] || {};
+    const now = Date.now();
+    const nextProgression = this.buildThaSpotProgression(
+      current.thaSpotProgression,
+      prev,
+      {
+        ...context,
+        playedAt: now,
+      }
+    );
+
+    stats[gameId] = {
+      ...prev,
+      plays: (prev.plays || 0) + 1,
+      lastPlayedAt: now,
+      lastRoomId: context.roomId || prev.lastRoomId,
+      roomPlays: prev.roomPlays || {},
+      earnedCosmetics: this.mergeUniqueStrings(
+        prev.earnedCosmetics,
+        context.cosmetics
+      ),
+      eventHistory: this.buildEventHistory(prev.eventHistory, context),
+    };
+
+    await this.updateProfile({
+      ...current,
+      gameStats: stats,
+      thaSpotProgression: nextProgression,
+    } as any);
+  }
+
+  async recordGameLaunch(
   async recordGameSession(
     gameId: string,
     context: ThaSpotSessionContext = {}
@@ -250,14 +335,6 @@ export class UserProfileService {
     const stats = { ...(current.gameStats || {}) };
     const prev = stats[gameId] || {};
     const playedAt = Date.now();
-    const previousPlayedAt =
-      prev.lastPlayedAt || current.thaSpotProgression?.lastSessionAt;
-    const currentStreak =
-      previousPlayedAt && playedAt - previousPlayedAt <= this.streakWindowMs
-        ? (prev.currentStreak ||
-            current.thaSpotProgression?.currentStreak ||
-            0) + 1
-        : 1;
     const roomId = context.roomId || prev.lastRoomId;
     const roomPlays = {
       ...(prev.roomPlays || {}),
@@ -272,7 +349,6 @@ export class UserProfileService {
         ...context,
         playedAt,
         roomId,
-        currentStreak,
         roomPlays,
       }
     );
@@ -281,8 +357,6 @@ export class UserProfileService {
       ...prev,
       plays: (prev.plays || 0) + 1,
       lastPlayedAt: playedAt,
-      currentStreak,
-      longestStreak: Math.max(prev.longestStreak || 0, currentStreak),
       lastRoomId: roomId,
       roomPlays,
       earnedCosmetics: this.mergeUniqueStrings(
@@ -304,8 +378,6 @@ export class UserProfileService {
     previousGameStats: ThaSpotGameStat,
     context: ThaSpotSessionContext & {
       playedAt: number;
-      score?: number;
-      currentStreak?: number;
       roomPlays?: Record<string, number>;
     }
   ): ThaSpotProgression {
@@ -314,8 +386,11 @@ export class UserProfileService {
 
     if (roomId) {
       const existingRoom = roomStats[roomId] || {};
-      const sessionIncrement = context.currentStreak ? 1 : 0;
       roomStats[roomId] = {
+        plays: Math.max(
+          existingRoom.plays || 0,
+          (context.roomPlays || {})[roomId] || 0
+        ),
         plays: (existingRoom.plays || 0) + sessionIncrement,
         lastPlayedAt: context.playedAt,
       };
@@ -326,11 +401,6 @@ export class UserProfileService {
     )[0]?.[0];
 
     return {
-      currentStreak: context.currentStreak || progression?.currentStreak || 1,
-      longestStreak: Math.max(
-        progression?.longestStreak || 0,
-        context.currentStreak || 0
-      ),
       lastSessionAt: context.playedAt,
       lastRoomId: roomId,
       favoriteRoomId,
@@ -555,5 +625,44 @@ export class UserProfileService {
     incoming: string[] | undefined
   ) {
     return [...new Set([...(existing || []), ...(incoming || [])])];
+  }
+
+  private sanitizeGameStats(
+    stats: Record<string, ThaSpotGameStat> | undefined
+  ): Record<string, ThaSpotGameStat> {
+    return Object.fromEntries(
+      Object.entries(stats || {}).map(([gameId, stat]) => [
+        gameId,
+        {
+          plays: stat?.plays || 0,
+          lastPlayedAt: stat?.lastPlayedAt,
+          lastRoomId: stat?.lastRoomId,
+          roomPlays: stat?.roomPlays || {},
+          earnedCosmetics: stat?.earnedCosmetics || [],
+          eventHistory: stat?.eventHistory || [],
+        },
+      ])
+    );
+  }
+
+  private sanitizeThaSpotProgression(
+    progression: ThaSpotProgression | undefined
+  ): ThaSpotProgression {
+    return {
+      lastSessionAt: progression?.lastSessionAt,
+      lastRoomId: progression?.lastRoomId,
+      favoriteRoomId: progression?.favoriteRoomId,
+      roomStats: Object.fromEntries(
+        Object.entries(progression?.roomStats || {}).map(([roomId, stat]) => [
+          roomId,
+          {
+            plays: stat?.plays || 0,
+            lastPlayedAt: stat?.lastPlayedAt,
+          },
+        ])
+      ),
+      earnedCosmetics: progression?.earnedCosmetics || [],
+      eventHistory: progression?.eventHistory || [],
+    };
   }
 }

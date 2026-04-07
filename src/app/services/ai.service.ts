@@ -20,6 +20,7 @@ import {
 import { LoggingService } from './logging.service';
 import { AnalyticsService } from './analytics.service';
 import { UserContextService, MainViewMode } from './user-context.service';
+import { ArtistIdentityService } from './artist-identity.service';
 import {
   INTELLIGENCE_LIBRARY,
   MARKET_ALERTS,
@@ -493,6 +494,7 @@ export class AiService {
   private userContext = inject(UserContextService);
   private neuralMixer = inject(NeuralMixerService);
   private musicManager = inject(MusicManagerService);
+  private artistIdentityService = inject(ArtistIdentityService);
   private logger = inject(LoggingService);
 
   private API_URL =
@@ -536,6 +538,8 @@ export class AiService {
   private updateAdvisorAdvice(viewMode: MainViewMode | string): void {
     const advice: AdvisorAdvice[] = [];
     const growth = this.analyticsService.overallGrowth();
+    const catalog = profile?.catalog || [];
+    const identity = this.artistIdentityService.buildIdentitySnapshot(profile);
 
     if (viewMode === 'hub' || viewMode === 'analytics') {
       if (growth < 5) {
@@ -548,6 +552,17 @@ export class AiService {
           persona: 'PUBLICIST',
         });
       }
+
+      if (identity.fingerprint.trustScore < 75) {
+        advice.push({
+          id: 'adv-hub-identity',
+          title: 'Identity Trust Gap',
+          content: `Fingerprint trust is ${identity.fingerprint.trustScore}%. Resolve connector review items before scaling spend.`,
+          type: 'Identity',
+          priority: 'HIGH',
+          persona: 'SYNC',
+        });
+      }
     }
 
     if (viewMode === 'studio' || viewMode === 'piano-roll') {
@@ -558,6 +573,18 @@ export class AiService {
         type: 'Production',
         priority: 'HIGH',
         persona: 'AR',
+      });
+    }
+
+    if (catalog.length < 3) {
+      advice.push({
+        id: 'adv-catalog-depth',
+        title: 'Catalog Depth Constraint',
+        content:
+          'Release depth is still light. Expand the graph to at least 3 works before full-funnel campaigns.',
+        type: 'Release',
+        priority: 'MEDIUM',
+        persona: 'EXECUTIVE',
       });
     }
 
@@ -1139,6 +1166,7 @@ export class AiService {
     const profile = this.userProfileService.profile();
     const catalog = profile?.catalog || [];
     const campaigns = profile?.marketingCampaigns || [];
+    const identity = this.artistIdentityService.buildIdentitySnapshot(profile);
     const recs: StrategicRecommendationType[] = [];
 
     if (catalog.length < 3) {
@@ -1172,6 +1200,31 @@ export class AiService {
       impact: 'Medium',
       difficulty: 'Low',
       toolId: 'strategy',
+    });
+
+    identity.recommendations.slice(0, 3).forEach((recommendation, index) => {
+      recs.push({
+        id: `identity-rec-${index + 1}`,
+        action: recommendation.title,
+        impact:
+          recommendation.impactScore >= 90
+            ? 'Extreme'
+            : recommendation.impactScore >= 80
+              ? 'High'
+              : 'Medium',
+        difficulty:
+          recommendation.confidenceScore >= 85
+            ? 'Low'
+            : recommendation.confidenceScore >= 75
+              ? 'Medium'
+              : 'High',
+        toolId:
+          recommendation.category === 'sync'
+            ? 'profile'
+            : recommendation.category === 'growth'
+              ? 'marketing'
+              : 'strategy',
+      });
     });
 
     return recs;
@@ -1329,6 +1382,7 @@ export class AiService {
     const profile = this.userProfileService.profile();
     const catalog = profile?.catalog || [];
     const campaigns = profile?.marketingCampaigns || [];
+    const identity = this.artistIdentityService.buildIdentitySnapshot(profile);
     const tasks: StrategicTask[] = [];
 
     tasks.push({
@@ -1391,6 +1445,31 @@ export class AiService {
       impact: 'High',
       description: 'Required for royalty collection.',
     });
+
+    if (
+      identity.sync.queueDepth > 0 ||
+      identity.resolution.manualReviewRequired
+    ) {
+      tasks.push({
+        id: 'task-identity-review',
+        label: 'Review connector trust queue',
+        completed: false,
+        category: 'Identity',
+        impact: 'High',
+        description: `${identity.sync.queueDepth} queued sync jobs · trust score ${identity.fingerprint.trustScore}%.`,
+      });
+    }
+
+    if (identity.fingerprint.riskFlags.length > 0) {
+      tasks.push({
+        id: 'task-identity-risk',
+        label: 'Resolve fingerprint risk flags',
+        completed: false,
+        category: 'Risk',
+        impact: 'High',
+        description: identity.fingerprint.riskFlags[0],
+      });
+    }
 
     return tasks;
   }

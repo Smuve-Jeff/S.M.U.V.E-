@@ -66,8 +66,28 @@ const initDb = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
       );
+
+      CREATE TABLE IF NOT EXISTS artist_identities (
+        user_id VARCHAR(255) PRIMARY KEY,
+        identity_data JSONB NOT NULL,
+        profile_snapshot JSONB,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS connector_jobs (
+        job_id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        connector_id VARCHAR(80) NOT NULL,
+        status VARCHAR(20) NOT NULL,
+        trigger_type VARCHAR(20) NOT NULL,
+        payload JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
+      );
     `);
-    console.log('Database initialized with Security and Project support');
+    console.log('Database initialized with security, project, and identity support');
   } catch (err) {
     console.error('Error initializing database', err);
   }
@@ -202,6 +222,78 @@ app.post('/api/projects', async (req, res) => {
       [projectId, userId, title, JSON.stringify(projectData)]
     );
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Artist Identity Endpoints
+app.get('/api/identity/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { rows } = await pool.query(
+      'SELECT identity_data, profile_snapshot, updated_at FROM artist_identities WHERE user_id = $1',
+      [userId]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Artist identity not found' });
+    }
+
+    return res.json({
+      identity: rows[0].identity_data,
+      profileSnapshot: rows[0].profile_snapshot,
+      updatedAt: rows[0].updated_at,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/identity', async (req, res) => {
+  try {
+    const { userId, identity, profileData } = req.body;
+    await pool.query(
+      'INSERT INTO artist_identities (user_id, identity_data, profile_snapshot, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP) ON CONFLICT (user_id) DO UPDATE SET identity_data = $2, profile_snapshot = $3, updated_at = CURRENT_TIMESTAMP',
+      [userId, JSON.stringify(identity), JSON.stringify(profileData || null)]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/identity/:userId/connectors', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { rows } = await pool.query(
+      'SELECT * FROM connector_jobs WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 50',
+      [userId]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/identity/:userId/connectors/:connectorId/sync', async (req, res) => {
+  try {
+    const { userId, connectorId } = req.params;
+    const { trigger = 'manual', payload = {} } = req.body || {};
+    const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    await pool.query(
+      'INSERT INTO connector_jobs (job_id, user_id, connector_id, status, trigger_type, payload, updated_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)',
+      [
+        jobId,
+        userId,
+        connectorId,
+        'queued',
+        trigger,
+        JSON.stringify(payload),
+      ]
+    );
+
+    res.json({ success: true, jobId, status: 'queued' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -316,6 +316,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       this.gamingRooms().find(
         (room) => room.id === progression.favoriteRoomId
       ) || this.findMasteredRoom(stats);
+    const lastPlayedGame = this.recentlyPlayed()[0];
+    return {
+      totalPlays,
+      masteryLabel: masteredRoom?.name || 'Choose a room',
+      recentLabel: lastPlayedGame?.name || 'No recent cabinet',
     const latestRoom =
       this.gamingRooms().find((room) => room.id === progression.lastRoomId) ||
       favoriteRoom;
@@ -384,6 +389,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       this.canEmbedInline(game)
         ? game.launchConfig?.trustNote ||
             'Exact embed target verified from the live feed.'
+        : 'Inline launch is unavailable for this cabinet. Open it in a new tab to continue.'
         : 'Inline launch is unavailable for this cabinet, so it will open in a new tab.'
     );
     this.frameError.set(null);
@@ -440,6 +446,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         } else if (progress < 70) {
           this.matchmakingStatus.set('MATCHING ROOM PRESENCE');
         } else {
+          this.matchmakingStatus.set('FINALIZING LIVE MATCH');
           this.matchmakingStatus.set('CONFIRMING OPPONENT PROFILE');
         }
 
@@ -467,7 +474,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.currentGame.set(game);
     this.sessionStartedAt.set(Date.now());
     this.frameError.set(null);
-    await this.profileService.recordGameSession(
+    await this.profileService.recordGameLaunch(
       game.id,
       this.getSessionContext(game)
     );
@@ -575,6 +582,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
 
     if (data.type === 'GAME_OVER') {
+      void this.profileService.recordGameResult(
+        currentGame.id,
+        this.getSessionContext(currentGame)
+      );
       return;
     }
   }
@@ -845,13 +856,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }) {
     const tags = ['returning'];
     const genre = (profile.primaryGenre || '').toLowerCase();
+    const totalPlays = Object.values(profile.gameStats || {}).reduce(
+      (total, stat) => total + (stat?.plays || 0),
+      0
+    );
 
     if (['hip hop', 'r&b', 'pop', 'electronic'].includes(genre)) {
       tags.push('producer');
     }
-    if ((profile.thaSpotProgression?.currentStreak || 0) >= 3) {
+    if (totalPlays >= 3) {
       tags.push('competitive');
     }
+    if (totalPlays > 0) {
     if (Object.keys(profile.gameStats || {}).length > 0) {
       tags.push('social');
     }
@@ -859,6 +875,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     return tags;
   }
 
+  private getSessionContext(game: Game) {
+    const activeEvent = this.activeEvents().find(
+      (event) => event.featuredGameId === game.id
+    );
+    const cosmetics =
+      activeEvent?.schedule?.rewardType === 'cosmetic'
+        ? [activeEvent.reward]
+        : [];
   private getSessionContext(game: Game): ThaSpotSessionContext {
     const activeEvent = this.activeEvents().find(
       (event) => event.featuredGameId === game.id

@@ -19,6 +19,8 @@ import { FormFieldComponent } from './form-field.component';
 import { CatalogManagerComponent } from '../catalog-manager/catalog-manager.component';
 import { AiService } from '../../services/ai.service';
 import { ArtistQuestionnaireComponent } from '../artist-questionnaire/artist-questionnaire.component';
+import { ArtistIdentityService } from '../../services/artist-identity.service';
+import { ConnectorPlatform } from '../../types/artist-identity.types';
 
 @Component({
   selector: 'app-profile-editor',
@@ -47,6 +49,7 @@ export class ProfileEditorComponent {
   private userProfileService = inject(UserProfileService);
   private authService = inject(AuthService);
   private aiService = inject(AiService);
+  private artistIdentityService = inject(ArtistIdentityService);
 
   // Auth state
   isAuthenticated = this.authService.isAuthenticated;
@@ -61,6 +64,15 @@ export class ProfileEditorComponent {
   );
   syncLog = signal<string[]>([]);
   intelligenceBriefs = this.aiService.intelligenceBriefs;
+  identityPreview = computed(() =>
+    this.artistIdentityService.buildIdentitySnapshot(this.editableProfile())
+  );
+  connectorMatrix = computed(() =>
+    this.artistIdentityService.getConnectorMatrix(this.identityPreview())
+  );
+  topIdentityActions = computed(() =>
+    this.identityPreview().recommendations.slice(0, 3)
+  );
 
   // Profile editing
   editableProfile = signal<UserProfile>({
@@ -116,6 +128,11 @@ export class ProfileEditorComponent {
 
   sections = [
     { id: 'basic', label: 'Identity & Vision', icon: 'fa-user-tie' },
+    {
+      id: 'identity-console',
+      label: 'Identity Console',
+      icon: 'fa-project-diagram',
+    },
     { id: 'genre-deep-dive', label: 'Genre Intelligence', icon: 'fa-dna' },
     { id: 'touring', label: 'Touring & Live', icon: 'fa-route' },
     { id: 'catalog', label: 'Catalog Assets', icon: 'fa-database' },
@@ -134,7 +151,13 @@ export class ProfileEditorComponent {
     this.saveStatus.set('saving');
     this.addLog('INITIALIZING GLOBAL DATA SYNC...');
 
-    await this.userProfileService.updateProfile(this.editableProfile());
+    const refreshedProfile =
+      await this.artistIdentityService.refreshIdentityGraph(
+        this.editableProfile()
+      );
+    this.editableProfile.set(refreshedProfile);
+
+    await this.userProfileService.updateProfile(refreshedProfile);
 
     this.syncingWithAi.set(true);
     this.addLog('NEURAL LINK ESTABLISHED. ANALYZING VECTORS...');
@@ -142,7 +165,7 @@ export class ProfileEditorComponent {
     try {
       await this.aiService.syncKnowledgeBaseWithProfile();
       this.addLog('EXTRACTION COMPLETE. NEURAL VAULT UPDATED.');
-    } catch (e) {
+    } catch (_error) {
       this.addLog('SYNC ERROR: REVERTING TO LOCAL CACHE.');
     } finally {
       setTimeout(() => {
@@ -151,6 +174,15 @@ export class ProfileEditorComponent {
         setTimeout(() => this.saveStatus.set('idle'), 3000);
       }, 1000);
     }
+  }
+
+  async queueConnectorRefresh(connectorId: ConnectorPlatform): Promise<void> {
+    this.addLog(`QUEUEING ${connectorId.toUpperCase()} CONNECTOR REFRESH...`);
+    const updated = await this.artistIdentityService.queueConnectorRefresh(
+      connectorId,
+      this.editableProfile()
+    );
+    this.editableProfile.set(updated);
   }
 
   private addLog(msg: string) {

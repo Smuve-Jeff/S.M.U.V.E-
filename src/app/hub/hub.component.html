@@ -4,24 +4,49 @@
     <div class="mobile-executive-hud animate-pulse">
       <div class="hud-glow"></div>
       <div class="flex items-center gap-4 px-4 py-3">
-        <span class="material-symbols-outlined text-primary spin">security_update_good</span>
+        <span class="material-symbols-outlined text-primary spin"
+          >security_update_good</span
+        >
         <div class="flex-1">
-          <p class="text-[10px] font-black uppercase tracking-tighter text-primary">S.M.U.V.E 2.0 // EXECUTIVE SCANNING</p>
-          <p class="text-xs font-bold">{{ aiService.currentProcessStep() }} ({{ aiService.scanningProgress() }}%)</p>
+          <p
+            class="text-[10px] font-black uppercase tracking-tighter text-primary"
+          >
+            S.M.U.V.E 2.0 // EXECUTIVE SCANNING
+          </p>
+          <p class="text-xs font-bold">
+            {{ aiService.currentProcessStep() }} ({{
+              aiService.scanningProgress()
+            }}%)
+          </p>
         </div>
       </div>
     </div>
   }
 
-  @if (aiService.isMobile() && !aiService.isScanning() && aiService.strategicDecrees().length > 0) {
-    <div class="mobile-directive-hud animate-enter" (click)="uiService.navigateToView('knowledge-base')">
+  @if (
+    aiService.isMobile() &&
+    !aiService.isScanning() &&
+    aiService.strategicDecrees().length > 0
+  ) {
+    <div
+      class="mobile-directive-hud animate-enter"
+      (click)="uiService.navigateToView('knowledge-base')"
+    >
       <div class="flex items-center gap-4 px-4 py-3">
         <span class="material-symbols-outlined text-accent">priority_high</span>
         <div class="flex-1">
-          <p class="text-[10px] font-black uppercase tracking-tighter text-accent">STRATEGIC DECREE ISSUED</p>
-          <p class="text-xs italic truncate">"{{ aiService.strategicDecrees()[0] }}"</p>
+          <p
+            class="text-[10px] font-black uppercase tracking-tighter text-accent"
+          >
+            STRATEGIC DECREE ISSUED
+          </p>
+          <p class="text-xs italic truncate">
+            "{{ aiService.strategicDecrees()[0] }}"
+          </p>
         </div>
-        <span class="material-symbols-outlined text-sm opacity-40">chevron_right</span>
+        <span class="material-symbols-outlined text-sm opacity-40"
+          >chevron_right</span
+        >
       </div>
     </div>
   }
@@ -55,15 +80,27 @@
     <!-- Header: Business Intelligence Overview -->
     <header class="hub-header">
       <div class="header-left">
-        <p class="brand-eyebrow glimmer-text">S.M.U.V.E 2.0 // EXECUTIVE COMMAND</p>
-        <h1 class="header-title glimmer-text">Welcome Back, {{ profileService.profile().artistName }}</h1>
+        <p class="brand-eyebrow glimmer-text">
+          S.M.U.V.E 2.0 // EXECUTIVE COMMAND
+        </p>
+        <h1 class="header-title glimmer-text">
+          Welcome Back, {{ profileService.profile().artistName }}
+        </h1>
       </div>
       <div class="header-right">
         <div class="executive-stat">
           <span class="stat-label">Strategic Health</span>
-          <span class="stat-value text-primary">{{ profileService.profile().knowledgeBase.strategicHealthScore }}%</span>
+          <span class="stat-value text-primary"
+            >{{
+              profileService.profile().knowledgeBase.strategicHealthScore
+            }}%</span
+          >
         </div>
         <div class="executive-stat">
+          <span class="stat-label">Catalog Depth</span>
+          <span class="stat-value text-accent">{{
+            profileService.profile().catalog.length
+          }}</span>
           <span class="stat-label">Workspace Access</span>
           <span class="stat-value text-accent">OPEN</span>
         </div>
@@ -72,72 +109,127 @@
 
     <!-- Bento Grid Layout -->
     <div class="bento-grid">
-
       <!-- Module 1: S.M.U.V.E Audit (2x2) -->
-      <div class="bento-item bento-2x2 bento-card glass-v42 audit-module" (click)="uiService.navigateToView('knowledge-base')">
+      <div
+        class="bento-item bento-2x2 bento-card glass-v42 audit-module"
+        (click)="uiService.navigateToView('knowledge-base')"
+      >
         <div class="card-overlay"></div>
         <div class="card-content">
           <div class="flex justify-between items-start mb-6">
             <div class="card-icon-box bg-primary/20 text-primary">
-              <span class="material-symbols-outlined">security_update_good</span>
+              <span class="material-symbols-outlined"
+                >security_update_good</span
+              >
             </div>
             <span class="pill pill-live">AI AUDIT ACTIVE</span>
           </div>
-          <h2 class="card-heading glimmer-text">Executive Intelligence Brief</h2>
-          <p class="card-subtext mb-8">Real-time scanning of your sonic assets and market readiness.</p>
-
+          <h2 class="card-heading glimmer-text">
+            Executive Intelligence Brief
+          </h2>
+          <p class="card-subtext mb-8">
+            Real-time scanning of your sonic assets and market readiness.
+          </p>
 
           <!-- Mobile Explicit Directives -->
           <div class="mt-6 lg:hidden space-y-3">
-            <p class="text-[9px] font-black uppercase tracking-widest text-accent">Current Executive Directives</p>
-            @for (task of aiService.getDynamicChecklist().slice(0, 2); track task.id) {
-              <div class="directive-item bg-white/5 border border-white/10 rounded-lg p-3 flex gap-3">
-                <span class="material-symbols-outlined text-sm text-accent">bolt</span>
+            <p
+              class="text-[9px] font-black uppercase tracking-widest text-accent"
+            >
+              Current Executive Directives
+            </p>
+            @for (
+              task of aiService.getDynamicChecklist().slice(0, 2);
+              track task.id
+            ) {
+              <div
+                class="directive-item bg-white/5 border border-white/10 rounded-lg p-3 flex gap-3"
+              >
+                <span class="material-symbols-outlined text-sm text-accent"
+                  >bolt</span
+                >
                 <div class="flex-1">
-                  <p class="text-[10px] font-bold uppercase">{{ task.label }}</p>
-                  <p class="text-[9px] opacity-60 leading-tight">{{ task.description }}</p>
+                  <p class="text-[10px] font-bold uppercase">
+                    {{ task.label }}
+                  </p>
+                  <p class="text-[9px] opacity-60 leading-tight">
+                    {{ task.description }}
+                  </p>
                 </div>
               </div>
             }
           </div>
-<div class="audit-scores space-y-4">
+          <div class="audit-scores space-y-4">
             <div class="score-row">
               <span class="score-label">Sonic Cohesion</span>
-              <div class="score-bar-track"><div class="score-bar-fill bg-primary" [style.width.%]="85"></div></div>
+              <div class="score-bar-track">
+                <div
+                  class="score-bar-fill bg-primary"
+                  [style.width.%]="85"
+                ></div>
+              </div>
             </div>
             <div class="score-row">
               <span class="score-label">Market Viability</span>
-              <div class="score-bar-track"><div class="score-bar-fill bg-accent" [style.width.%]="72"></div></div>
+              <div class="score-bar-track">
+                <div
+                  class="score-bar-fill bg-accent"
+                  [style.width.%]="72"
+                ></div>
+              </div>
             </div>
           </div>
 
           <div class="mt-8">
             <div class="note-ticker">
               <div class="note-bar bg-primary"></div>
-              <p class="note-text text-sm">"{{ aiService.strategicDecrees()[0] || 'Awaiting leadership directive...' }}"</p>
+              <p class="note-text text-sm">
+                "{{
+                  aiService.strategicDecrees()[0] ||
+                    'Awaiting leadership directive...'
+                }}"
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Module 2: Current Project (2x1 Wide) -->
-      <div class="bento-item bento-2x1 bento-card glass-v42 interactive-playback playback-module">
+      <div
+        class="bento-item bento-2x1 bento-card glass-v42 interactive-playback playback-module"
+      >
         <div class="card-content flex items-center gap-6">
-          <div class="vinyl-display" [class.spinning]="playerService.isPlaying()">
+          <div
+            class="vinyl-display"
+            [class.spinning]="playerService.isPlaying()"
+          >
             <div class="vinyl-outer"></div>
             <div class="vinyl-label bg-accent"></div>
           </div>
           <div class="flex-1 min-w-0">
             <p class="eyebrow text-accent glimmer-text">Active Production</p>
-            <h3 class="truncate text-xl font-black glimmer-text">{{ playerService.currentTrack()?.title }}</h3>
-            <p class="text-sm opacity-60">by {{ playerService.currentTrack()?.artist }}</p>
+            <h3 class="truncate text-xl font-black glimmer-text">
+              {{ playerService.currentTrack()?.title }}
+            </h3>
+            <p class="text-sm opacity-60">
+              by {{ playerService.currentTrack()?.artist }}
+            </p>
 
             <div class="mt-4 flex items-center gap-4">
-              <button class="control-btn" (click)="playerService.previous()"><span class="material-symbols-outlined">skip_previous</span></button>
-              <button class="play-main-btn" (click)="playerService.togglePlay()">
-                <span class="material-symbols-outlined">{{ playerService.isPlaying() ? 'pause' : 'play_arrow' }}</span>
+              <button class="control-btn" (click)="playerService.previous()">
+                <span class="material-symbols-outlined">skip_previous</span>
               </button>
-              <button class="control-btn" (click)="playerService.next()"><span class="material-symbols-outlined">skip_next</span></button>
+              <button
+                class="play-main-btn"
+                (click)="playerService.togglePlay()"
+              >
+                <span class="material-symbols-outlined">{{
+                  playerService.isPlaying() ? 'pause' : 'play_arrow'
+                }}</span>
+              </button>
+              <button class="control-btn" (click)="playerService.next()">
+                <span class="material-symbols-outlined">skip_next</span>
+              </button>
             </div>
           </div>
           <div class="audio-waves flex items-end gap-1 h-12">
@@ -149,7 +241,10 @@
       </div>
 
       <!-- Module 3: Career Trajectory (1x2 Tall) -->
-      <div class="bento-item bento-1x2 bento-card glass-v42 career-module" (click)="uiService.navigateToView('career')">
+      <div
+        class="bento-item bento-1x2 bento-card glass-v42 career-module"
+        (click)="uiService.navigateToView('career')"
+      >
         <div class="card-content h-full flex flex-col">
           <div class="card-icon-box bg-secondary/20 text-secondary mb-4">
             <span class="material-symbols-outlined">insights</span>
@@ -157,6 +252,31 @@
           <h2 class="card-heading glimmer-text">Career Path</h2>
           <div class="flex-1 mt-6 space-y-6">
             <div class="progress-circle-container">
+              <div class="level-badge">
+                {{ profileService.profile().catalog.length }} tracks
+              </div>
+              <svg viewBox="0 0 36 36" class="circular-chart">
+                <path
+                  class="circle-bg"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  class="circle text-secondary"
+                  [attr.stroke-dasharray]="getCareerFocusProgress() + ', 100'"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+              </svg>
+            </div>
+            <div class="text-center">
+              <p class="text-xs uppercase tracking-widest opacity-60">
+                Active Focus
+              </p>
+              <p class="font-bold text-sm">
+                {{
+                  profileService.profile().careerGoals[0] ||
+                    'Shape next release'
+                }}
+              </p>
               <div class="level-badge">OPEN</div>
               <svg viewBox="0 0 36 36" class="circular-chart">
                 <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -170,6 +290,11 @@
             <div class="space-y-2">
               <div class="achievement-pill">
                 <span class="material-symbols-outlined text-xs">verified</span>
+                <span>Catalog ready</span>
+              </div>
+              <div class="achievement-pill">
+                <span class="material-symbols-outlined text-xs">tune</span>
+                <span>{{ profileService.profile().primaryGenre }}</span>
                 <span>Artist profile committed</span>
               </div>
               <div class="achievement-pill">
@@ -183,43 +308,86 @@
       </div>
 
       <!-- Module 4: Tha Spot (1x1) -->
-      <div class="bento-item bento-1x1 bento-card glass-v42 club-module" (click)="uiService.navigateToView('tha-spot')">
-        <div class="card-content flex flex-col items-center justify-center text-center h-full">
+      <div
+        class="bento-item bento-1x1 bento-card glass-v42 club-module"
+        (click)="uiService.navigateToView('tha-spot')"
+      >
+        <div
+          class="card-content flex flex-col items-center justify-center text-center h-full"
+        >
           <div class="club-pulse"></div>
-          <span class="material-symbols-outlined text-4xl mb-2 text-primary">sports_esports</span>
-          <h3 class="font-black text-sm uppercase tracking-tighter glimmer-text">Tha Spot</h3>
+          <span class="material-symbols-outlined text-4xl mb-2 text-primary"
+            >sports_esports</span
+          >
+          <h3
+            class="font-black text-sm uppercase tracking-tighter glimmer-text"
+          >
+            Tha Spot
+          </h3>
           <p class="text-[10px] opacity-60 uppercase">Go Live</p>
         </div>
       </div>
 
       <!-- Module 5: Video Engine (1x1) -->
-      <div class="bento-item bento-1x1 bento-card glass-v42 cinema-module" (click)="uiService.navigateToView('image-video-lab')">
-        <div class="card-content flex flex-col items-center justify-center text-center h-full">
+      <div
+        class="bento-item bento-1x1 bento-card glass-v42 cinema-module"
+        (click)="uiService.navigateToView('image-video-lab')"
+      >
+        <div
+          class="card-content flex flex-col items-center justify-center text-center h-full"
+        >
           <div class="cinema-scan"></div>
-          <span class="material-symbols-outlined text-4xl mb-2 text-accent">movie</span>
-          <h3 class="font-black text-sm uppercase tracking-tighter glimmer-text">CinemaEngine</h3>
+          <span class="material-symbols-outlined text-4xl mb-2 text-accent"
+            >movie</span
+          >
+          <h3
+            class="font-black text-sm uppercase tracking-tighter glimmer-text"
+          >
+            CinemaEngine
+          </h3>
           <p class="text-[10px] opacity-60 uppercase">Visual Lab</p>
         </div>
       </div>
 
-       <!-- Module 6: Studio DAW (1x1) -->
-      <div class="bento-item bento-1x1 bento-card glass-v42 studio-module" (click)="uiService.navigateToView('studio')">
-        <div class="card-content flex flex-col items-center justify-center text-center h-full">
-          <span class="material-symbols-outlined text-4xl mb-2 text-white">tune</span>
-          <h3 class="font-black text-sm uppercase tracking-tighter glimmer-text">Studio</h3>
+      <!-- Module 6: Studio DAW (1x1) -->
+      <div
+        class="bento-item bento-1x1 bento-card glass-v42 studio-module"
+        (click)="uiService.navigateToView('studio')"
+      >
+        <div
+          class="card-content flex flex-col items-center justify-center text-center h-full"
+        >
+          <span class="material-symbols-outlined text-4xl mb-2 text-white"
+            >tune</span
+          >
+          <h3
+            class="font-black text-sm uppercase tracking-tighter glimmer-text"
+          >
+            Studio
+          </h3>
           <p class="text-[10px] opacity-60 uppercase">Cut Records</p>
         </div>
       </div>
 
       <!-- Module 7: Market Intel (1x1) -->
-      <div class="bento-item bento-1x1 bento-card glass-v42 intel-module" (click)="uiService.navigateToView('strategy')">
-        <div class="card-content flex flex-col items-center justify-center text-center h-full">
-          <span class="material-symbols-outlined text-4xl mb-2 text-secondary">analytics</span>
-          <h3 class="font-black text-sm uppercase tracking-tighter glimmer-text">Intel Hub</h3>
+      <div
+        class="bento-item bento-1x1 bento-card glass-v42 intel-module"
+        (click)="uiService.navigateToView('strategy')"
+      >
+        <div
+          class="card-content flex flex-col items-center justify-center text-center h-full"
+        >
+          <span class="material-symbols-outlined text-4xl mb-2 text-secondary"
+            >analytics</span
+          >
+          <h3
+            class="font-black text-sm uppercase tracking-tighter glimmer-text"
+          >
+            Intel Hub
+          </h3>
           <p class="text-[10px] opacity-60 uppercase">Campaigns</p>
         </div>
       </div>
-
     </div>
 
     <!-- Secondary Bottom Actions -->
@@ -228,12 +396,17 @@
         <span class="material-symbols-outlined text-base">cloud_upload</span>
         Import Asset
       </button>
-      <button class="pill-action" (click)="uiService.navigateToView('settings')">
+      <button
+        class="pill-action"
+        (click)="uiService.navigateToView('settings')"
+      >
         <span class="material-symbols-outlined text-base">settings</span>
         Shell Config
       </button>
       <div class="flex-1"></div>
-      <p class="elegant-footer-text text-[10px] uppercase">S.M.U.V.E Intelligence Network v2.0</p>
+      <p class="elegant-footer-text text-[10px] uppercase">
+        S.M.U.V.E Intelligence Network v2.0
+      </p>
     </div>
   </div>
 </div>

@@ -7,7 +7,6 @@ import {
   GameBadge,
   GameLaunchConfig,
   GameRoom,
-  LeaderboardEntry,
   LiveEvent,
   PromotionCard,
   RecommendationRail,
@@ -202,11 +201,11 @@ function normalizeEvent(event: LiveEvent): LiveEvent {
             ? event.schedule.recurrence
             : 'once',
           eligibilityTags: asStringArray(event.schedule.eligibilityTags),
-          rewardType: ['xp', 'cosmetic', 'token'].includes(
+          rewardType: ['cosmetic', 'token'].includes(
             event.schedule.rewardType || ''
           )
             ? event.schedule.rewardType
-            : 'xp',
+            : 'cosmetic',
         }
       : undefined,
   };
@@ -269,16 +268,6 @@ function normalizeBadge(badge: GameBadge): GameBadge {
   };
 }
 
-function normalizeLeaderboard(entry: LeaderboardEntry): LeaderboardEntry {
-  return {
-    id: asString(entry.id),
-    label: asString(entry.label, 'Leaderboard'),
-    score: asString(entry.score, '0'),
-    roomId: asString(entry.roomId, 'all'),
-    trend: asString(entry.trend),
-  };
-}
-
 function normalizeRecommendationRail(
   rail: RecommendationRail
 ): RecommendationRail {
@@ -300,7 +289,6 @@ function normalizeRecommendationRail(
             0,
             asNumber(rail.audience.maxPlays, Number.MAX_SAFE_INTEGER)
           ),
-          requiresAchievements: !!rail.audience.requiresAchievements,
         }
       : undefined,
     weights: {
@@ -335,9 +323,6 @@ function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
     promotions: (feed.promotions || [])
       .map((card) => normalizePromotion(card))
       .filter((card) => !!card.id),
-    leaderboards: (feed.leaderboards || [])
-      .map((entry) => normalizeLeaderboard(entry))
-      .filter((entry) => !!entry.id),
     recommendationRails: (feed.recommendationRails || [])
       .map((rail) => normalizeRecommendationRail(rail))
       .filter((rail) => !!rail.id),
