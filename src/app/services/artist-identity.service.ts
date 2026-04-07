@@ -410,8 +410,7 @@ export class ArtistIdentityService {
           existing?.externalId ||
           `${connector.id.toLowerCase().replace(/\s+/g, '-')}_${normalizedHandle}_${catalogDepth}`,
         profileUrl:
-          existing?.profileUrl ||
-          `${connector.website}${connector.id === 'Apple Music' ? normalizedHandle : normalizedHandle}`,
+          existing?.profileUrl || `${connector.website}${normalizedHandle}`,
         verificationTier:
           status === 'linked' && hasProMetadata
             ? 'TRUSTED'
