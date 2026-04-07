@@ -88,10 +88,7 @@ const DENSE_TARGET_LUFS = -13.5;
 const DEFAULT_TARGET_LUFS = -14;
 const SAFE_LIMITER_CEILING = -0.1;
 
-type UpgradeBlueprint = Omit<
-  UpgradeRecommendation,
-  'state' | 'genres'
-> & {
+type UpgradeBlueprint = Omit<UpgradeRecommendation, 'state' | 'genres'> & {
   preferredViews?: MainViewMode[];
   rank: (input: {
     profile: UserProfile;
@@ -114,7 +111,9 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
       'Your monitoring chain is the fastest leverage point for cleaner decisions across studio and practice sessions.',
     targetArea: 'Production',
     priority: 'Critical',
-    prerequisites: ['Reference your last bounce on at least two playback systems'],
+    prerequisites: [
+      'Reference your last bounce on at least two playback systems',
+    ],
     actionLabel: 'Open Studio',
     toolId: 'studio',
     outcomeMetric: {
@@ -143,7 +142,9 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
       'A saved vocal chain reduces setup friction and keeps your voice sitting in front of dense arrangements.',
     targetArea: 'Practice',
     priority: 'High',
-    prerequisites: ['Record one dry rehearsal pass to compare before and after'],
+    prerequisites: [
+      'Record one dry rehearsal pass to compare before and after',
+    ],
     actionLabel: 'Open Practice Space',
     toolId: 'practice',
     outcomeMetric: {
@@ -152,7 +153,9 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
     },
     preferredViews: ['practice', 'vocal-suite'],
     rank: ({ profile, viewMode }) => {
-      const hasPresetPack = (profile.daw || []).includes('Vocal Chain Preset Pack');
+      const hasPresetPack = (profile.daw || []).includes(
+        'Vocal Chain Preset Pack'
+      );
       if (hasPresetPack) {
         return 16;
       }
@@ -216,7 +219,9 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
     },
     preferredViews: ['release-pipeline', 'studio'],
     rank: ({ profile, viewMode }) => {
-      const hasService = (profile.services || []).includes('Stem Mastering Service');
+      const hasService = (profile.services || []).includes(
+        'Stem Mastering Service'
+      );
       if (hasService) {
         return 20;
       }
@@ -255,8 +260,8 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
       }
       const campaigns = profile.marketingCampaigns?.length || 0;
       const catalogDepth = profile.catalog?.length || 0;
-      const needsActivation = campaigns === 0 ? 42 : 16;
-      const catalogScore = catalogDepth < 3 ? 4 : 18;
+      const needsActivation = campaigns === 0 ? 64 : 16;
+      const catalogScore = catalogDepth < 3 ? 12 : 18;
       const growthPressure = growth < 5 ? 18 : 8;
       const workspaceBoost = ['strategy', 'hub', 'analytics'].includes(viewMode)
         ? 10
@@ -286,7 +291,9 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
     },
     preferredViews: ['strategy', 'business-suite', 'knowledge-base'],
     rank: ({ profile, viewMode }) => {
-      const hasService = (profile.services || []).includes('PRO Registration Sprint');
+      const hasService = (profile.services || []).includes(
+        'PRO Registration Sprint'
+      );
       if (hasService) {
         return 18;
       }
@@ -295,9 +302,11 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
       if (hasPro) {
         return 24;
       }
-      const workspaceBoost = ['strategy', 'business-suite', 'knowledge-base'].includes(
-        viewMode
-      )
+      const workspaceBoost = [
+        'strategy',
+        'business-suite',
+        'knowledge-base',
+      ].includes(viewMode)
         ? 10
         : 0;
       return (catalogDepth > 0 ? 72 : 44) + workspaceBoost;
@@ -349,15 +358,13 @@ export class AiService {
   constructor() {
     effect(() => {
       const mode = this.userContext.mainViewMode();
-      const profile = this.userProfileService.profile();
-      this.updateAdvisorAdvice(mode, profile);
+      // Read the profile signal so this effect re-runs when artist context changes.
+      this.userProfileService.profile();
+      this.updateAdvisorAdvice(mode);
     });
   }
 
-  private updateAdvisorAdvice(
-    viewMode: MainViewMode | string,
-    profile: UserProfile
-  ): void {
+  private updateAdvisorAdvice(viewMode: MainViewMode | string): void {
     const advice: AdvisorAdvice[] = [];
     const growth = this.analyticsService.overallGrowth();
 
@@ -793,9 +800,11 @@ export class AiService {
       const acquired = this.isUpgradeAcquired(profile, blueprint);
       const state = acquired
         ? 'acquired'
-        : preference?.state || this.getDefaultRecommendationState(blueprint);
+        : preference?.state || this.getDefaultRecommendationState();
 
-      const workspaceBoost = blueprint.preferredViews?.includes(viewMode) ? 4 : 0;
+      const workspaceBoost = blueprint.preferredViews?.includes(viewMode)
+        ? 4
+        : 0;
 
       return {
         ...blueprint,
@@ -809,11 +818,13 @@ export class AiService {
           }) + workspaceBoost,
       };
     })
-      .filter((recommendation) =>
-        !['dismissed', 'not-relevant'].includes(recommendation.state || '')
+      .filter(
+        (recommendation) =>
+          !['dismissed', 'not-relevant'].includes(recommendation.state || '')
       )
       .sort((a, b) => {
-        const stateWeight = this.getRecommendationStateWeight(a.state) -
+        const stateWeight =
+          this.getRecommendationStateWeight(a.state) -
           this.getRecommendationStateWeight(b.state);
         if (stateWeight !== 0) {
           return stateWeight;
@@ -822,8 +833,22 @@ export class AiService {
       });
 
     return Array.from(
-      new Map(recommendations.map((recommendation) => [recommendation.id, recommendation])).values()
-    ).map(({ rankScore, preferredViews, rank, ...recommendation }) => recommendation);
+      new Map(
+        recommendations.map((recommendation) => [
+          recommendation.id,
+          recommendation,
+        ])
+      ).values()
+    ).map((recommendation) => {
+      const {
+        rankScore: _rankScore,
+        preferredViews: _preferredViews,
+        rank: _rank,
+        ...cleanRecommendation
+      } = recommendation;
+
+      return cleanRecommendation;
+    });
   }
 
   private isUpgradeAcquired(
@@ -839,10 +864,9 @@ export class AiService {
     return (profile.services || []).includes(recommendation.title);
   }
 
-  private getDefaultRecommendationState(
-    recommendation: UpgradeRecommendation
-  ): NonNullable<UpgradeRecommendation['state']> {
-    void recommendation;
+  private getDefaultRecommendationState(): NonNullable<
+    UpgradeRecommendation['state']
+  > {
     return 'suggested';
   }
 

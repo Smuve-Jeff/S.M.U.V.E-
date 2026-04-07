@@ -164,7 +164,9 @@ describe('AiService', () => {
 
     const recommendations = service.getUpgradeRecommendations();
     expect(
-      recommendations.find((recommendation) => recommendation.id === 'upg-dsp-promotion')
+      recommendations.find(
+        (recommendation) => recommendation.id === 'upg-dsp-promotion'
+      )
     ).toBeUndefined();
   });
 

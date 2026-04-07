@@ -49,7 +49,9 @@ describe('UserProfileService - Acquire Upgrade', () => {
     };
     await service.acquireUpgrade(upgrade);
     expect(service.profile().services).toContain('DistroKid');
-    expect(service.profile().recommendationPreferences?.['upg-service']).toEqual(
+    expect(
+      service.profile().recommendationPreferences?.['upg-service']
+    ).toEqual(
       expect.objectContaining({
         state: 'acquired',
       })

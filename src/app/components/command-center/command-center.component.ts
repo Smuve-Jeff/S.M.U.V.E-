@@ -36,7 +36,10 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   recommendations = computed(() =>
     this.aiService
       .getUpgradeRecommendations()
-      .filter((recommendation) => !['dismissed', 'not-relevant'].includes(recommendation.state || ''))
+      .filter(
+        (recommendation) =>
+          !['dismissed', 'not-relevant'].includes(recommendation.state || '')
+      )
       .slice(0, 2)
   );
   strategicRecs = signal<StrategicRecommendation[]>([]);

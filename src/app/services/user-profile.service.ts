@@ -189,7 +189,9 @@ export class UserProfileService {
       equipment: [...(current.equipment || [])],
       daw: [...(current.daw || [])],
       services: [...(current.services || [])],
-      recommendationPreferences: { ...(current.recommendationPreferences || {}) },
+      recommendationPreferences: {
+        ...(current.recommendationPreferences || {}),
+      },
     };
 
     if (!title) {
@@ -206,11 +208,13 @@ export class UserProfileService {
         return;
       }
       next.daw.push(title);
-    } else {
+    } else if (upgrade.type === 'Service') {
       if (next.services.includes(title)) {
         return;
       }
       next.services.push(title);
+    } else {
+      return;
     }
 
     if (upgrade.recommendationId) {

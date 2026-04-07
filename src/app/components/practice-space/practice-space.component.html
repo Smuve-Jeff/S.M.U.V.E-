@@ -1,131 +1,227 @@
 <div class="p-8 max-w-[1400px] mx-auto animate-enter">
-  <header class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 border-b border-white/10 pb-8">
+  <header
+    class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 border-b border-white/10 pb-8"
+  >
     <div class="flex flex-col">
-       <div class="flex items-center gap-3 mb-2">
-          <div class="w-1.5 h-1.5 rounded-full bg-brand-primary"></div>
-          <span class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em]">Performance Lab</span>
-       </div>
-       <h1 class="text-4xl font-black tracking-tighter text-white uppercase italic leading-none">PRACTICE<span class="text-brand-primary">SPACE</span></h1>
-       <p class="text-sm text-silver-dim mt-3 font-medium max-w-xl">Hone your craft in a controlled, high-fidelity environment designed for technical mastery.</p>
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-1.5 h-1.5 rounded-full bg-brand-primary"></div>
+        <span
+          class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em]"
+          >Performance Lab</span
+        >
+      </div>
+      <h1
+        class="text-4xl font-black tracking-tighter text-white uppercase italic leading-none"
+      >
+        PRACTICE<span class="text-brand-primary">SPACE</span>
+      </h1>
+      <p class="text-sm text-silver-dim mt-3 font-medium max-w-xl">
+        Hone your craft in a controlled, high-fidelity environment designed for
+        technical mastery.
+      </p>
     </div>
 
     <div class="flex items-center gap-6">
-       <!-- BPM Control -->
-       <div class="flex flex-col items-end">
-          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">BPM</span>
-          <div class="flex items-center gap-2">
-             <input type="number" 
-                    [value]="metronomeBpm()" 
-                    (change)="updateBpm($event)"
-                    min="40" max="240"
-                    class="w-16 bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-center text-sm font-black text-brand-primary focus:border-brand-primary outline-none">
-          </div>
-       </div>
-       
-       <!-- Audio Toggle -->
-       <div class="flex flex-col items-center">
-          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">Audio</span>
-          <button (click)="toggleMetronomeAudio()" 
-                  class="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                  [class.bg-brand-primary]="metronomeAudioEnabled()" 
-                  [class.text-black]="metronomeAudioEnabled()"
-                  [class.bg-brand-surface-light]="!metronomeAudioEnabled()" 
-                  [class.text-silver-dim]="!metronomeAudioEnabled()">
-             <i class="fas" [class.fa-volume-up]="metronomeAudioEnabled()" [class.fa-volume-mute]="!metronomeAudioEnabled()"></i>
-          </button>
-       </div>
+      <!-- BPM Control -->
+      <div class="flex flex-col items-end">
+        <span
+          class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1"
+          >BPM</span
+        >
+        <div class="flex items-center gap-2">
+          <input
+            type="number"
+            [value]="metronomeBpm()"
+            (change)="updateBpm($event)"
+            min="40"
+            max="240"
+            class="w-16 bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-center text-sm font-black text-brand-primary focus:border-brand-primary outline-none"
+          />
+        </div>
+      </div>
 
-       <!-- Visual Metronome (Elegant) -->
-       <div class="flex flex-col items-end">
-          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">Visual Metronome</span>
-          <div class="flex gap-2">
-             @for (i of [1,2,3,4]; track i) {
-                <div class="w-8 h-2 rounded-full transition-all duration-200"
-                     [class.bg-brand-primary]="(currentTick() % 4) + 1 === i"
-                     [class.shadow-[0_0_10px_#10b981]]="(currentTick() % 4) + 1 === i"
-                     [class.bg-white/5]="(currentTick() % 4) + 1 !== i"></div>
-             }
-          </div>
-       </div>
-       <button (click)="toggleMetronome()" class="w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-lg"
-               [class.bg-brand-primary]="metronomeActive()" [class.text-black]="metronomeActive()"
-               [class.bg-brand-surface-light]="!metronomeActive()" [class.text-brand-primary]="!metronomeActive()">
-          <i class="fas" [class.fa-stop]="metronomeActive()" [class.fa-play]="!metronomeActive()"></i>
-       </button>
+      <!-- Audio Toggle -->
+      <div class="flex flex-col items-center">
+        <span
+          class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1"
+          >Audio</span
+        >
+        <button
+          (click)="toggleMetronomeAudio()"
+          class="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+          [class.bg-brand-primary]="metronomeAudioEnabled()"
+          [class.text-black]="metronomeAudioEnabled()"
+          [class.bg-brand-surface-light]="!metronomeAudioEnabled()"
+          [class.text-silver-dim]="!metronomeAudioEnabled()"
+        >
+          <i
+            class="fas"
+            [class.fa-volume-up]="metronomeAudioEnabled()"
+            [class.fa-volume-mute]="!metronomeAudioEnabled()"
+          ></i>
+        </button>
+      </div>
+
+      <!-- Visual Metronome (Elegant) -->
+      <div class="flex flex-col items-end">
+        <span
+          class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1"
+          >Visual Metronome</span
+        >
+        <div class="flex gap-2">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <div
+              class="w-8 h-2 rounded-full transition-all duration-200"
+              [class.bg-brand-primary]="(currentTick() % 4) + 1 === i"
+              [class.shadow-[0_0_10px_#10b981]]="(currentTick() % 4) + 1 === i"
+              [class.bg-white/5]="(currentTick() % 4) + 1 !== i"
+            ></div>
+          }
+        </div>
+      </div>
+      <button
+        (click)="toggleMetronome()"
+        class="w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-lg"
+        [class.bg-brand-primary]="metronomeActive()"
+        [class.text-black]="metronomeActive()"
+        [class.bg-brand-surface-light]="!metronomeActive()"
+        [class.text-brand-primary]="!metronomeActive()"
+      >
+        <i
+          class="fas"
+          [class.fa-stop]="metronomeActive()"
+          [class.fa-play]="!metronomeActive()"
+        ></i>
+      </button>
     </div>
   </header>
 
   <div class="grid grid-cols-12 gap-8">
     <!-- REHEARSAL PROTOCOLS -->
     <div class="col-span-12 lg:col-span-8 space-y-8">
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          @for (protocol of protocols(); track protocol.id) {
-             <div class="card-elegant p-8 group cursor-pointer border-white/10 hover:border-brand-brand-primary/20">
-                <div class="flex justify-between items-start mb-6">
-                   <div class="w-12 h-12 rounded-2xl bg-brand-brand-primary/10 border border-brand-brand-primary/20 flex items-center justify-center text-brand-primary group-hover:scale-110 transition-transform">
-                      <i class="fas {{ protocol.icon }}"></i>
-                   </div>
-                   <span class="text-[9px] font-black text-silver-dim bg-white/5 px-2 py-1 rounded">{{ protocol.difficulty }}</span>
-                </div>
-                <h3 class="text-xl font-bold text-white uppercase tracking-tight mb-2">{{ protocol.title }}</h3>
-                <p class="text-xs text-silver-dim leading-relaxed mb-6">{{ protocol.description }}</p>
-                <div class="flex items-center justify-between pt-6 border-t border-white/10">
-                   <span class="text-[10px] font-black text-brand-primary uppercase">{{ protocol.category }}</span>
-                   <button class="text-[10px] font-black text-white hover:text-brand-primary transition-colors uppercase tracking-widest">Begin Session</button>
-                </div>
-             </div>
-          }
-       </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        @for (protocol of protocols(); track protocol.id) {
+          <div
+            class="card-elegant p-8 group cursor-pointer border-white/10 hover:border-brand-brand-primary/20"
+          >
+            <div class="flex justify-between items-start mb-6">
+              <div
+                class="w-12 h-12 rounded-2xl bg-brand-brand-primary/10 border border-brand-brand-primary/20 flex items-center justify-center text-brand-primary group-hover:scale-110 transition-transform"
+              >
+                <i class="fas {{ protocol.icon }}"></i>
+              </div>
+              <span
+                class="text-[9px] font-black text-silver-dim bg-white/5 px-2 py-1 rounded"
+                >{{ protocol.difficulty }}</span
+              >
+            </div>
+            <h3
+              class="text-xl font-bold text-white uppercase tracking-tight mb-2"
+            >
+              {{ protocol.title }}
+            </h3>
+            <p class="text-xs text-silver-dim leading-relaxed mb-6">
+              {{ protocol.description }}
+            </p>
+            <div
+              class="flex items-center justify-between pt-6 border-t border-white/10"
+            >
+              <span
+                class="text-[10px] font-black text-brand-primary uppercase"
+                >{{ protocol.category }}</span
+              >
+              <button
+                class="text-[10px] font-black text-white hover:text-brand-primary transition-colors uppercase tracking-widest"
+              >
+                Begin Session
+              </button>
+            </div>
+          </div>
+        }
+      </div>
     </div>
 
     <!-- SIDEBAR: Strategic Upgrades -->
     <aside class="col-span-12 lg:col-span-4 space-y-8">
-       <div class="glass-panel rounded-3xl p-8 border border-white/10">
-          <h2 class="text-sm font-black text-white uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
-             <i class="fas fa-microchip text-brand-primary"></i> Practice Infrastructure
-          </h2>
-          <div class="space-y-6">
-              @for (upgrade of recommendedUpgrades(); track upgrade.id) {
-                <div class="p-4 rounded-2xl bg-black/20 border border-white/10 group hover:border-brand-brand-primary/30 transition-all">
-                   <div class="flex justify-between items-start mb-2">
-                      <h4 class="text-xs font-bold text-white">{{ upgrade.title }}</h4>
-                      <span class="text-[9px] font-mono text-[11px] tracking-tight text-brand-primary">{{ upgrade.cost }}</span>
-                    </div>
-                   <p class="text-[10px] text-silver-dim leading-relaxed mb-2">{{ upgrade.description }}</p>
-                   <p class="text-[10px] text-white/80 leading-relaxed mb-3">{{ upgrade.rationale }}</p>
-                   <div class="flex flex-wrap gap-2 mb-4">
-                      <span class="text-[8px] font-black text-brand-primary uppercase">Impact: {{ upgrade.impact }}</span>
-                      <span class="text-[8px] font-black text-white/60 uppercase">{{ upgrade.priority }}</span>
-                      <span class="text-[8px] font-black text-white/60 uppercase">{{ upgrade.targetArea }}</span>
-                   </div>
-                   <p class="text-[9px] text-silver-dim leading-relaxed mb-4" *ngIf="upgrade.prerequisites.length">
-                     Next prerequisite: {{ upgrade.prerequisites[0] }}
-                   </p>
-                   <div class="flex flex-wrap gap-2">
-                     <button class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-brand-primary text-black"
-                             (click)="focusRecommendation(upgrade)">
-                       {{ upgrade.actionLabel }}
-                     </button>
-                     <button class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary"
-                             (click)="acquireUpgrade(upgrade)">
-                       Mark Acquired
-                     </button>
-                     <button class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-white/80"
-                             (click)="saveRecommendation(upgrade)">
-                       Save
-                     </button>
-                     <button class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-silver-dim"
-                             (click)="dismissRecommendation(upgrade)">
-                       Dismiss
-                     </button>
-                   </div>
-                </div>
-             }
-           </div>
-          <button (click)="uiService.navigateToView('career')" class="w-full mt-10 btn-elegant btn-elegant-outline text-[10px] font-black uppercase tracking-widest">
-             Full Gear Catalog
-          </button>
-       </div>
+      <div class="glass-panel rounded-3xl p-8 border border-white/10">
+        <h2
+          class="text-sm font-black text-white uppercase tracking-[0.2em] mb-8 flex items-center gap-3"
+        >
+          <i class="fas fa-microchip text-brand-primary"></i> Practice
+          Infrastructure
+        </h2>
+        <div class="space-y-6">
+          @for (upgrade of recommendedUpgrades(); track upgrade.id) {
+            <div
+              class="p-4 rounded-2xl bg-black/20 border border-white/10 group hover:border-brand-brand-primary/30 transition-all"
+            >
+              <div class="flex justify-between items-start mb-2">
+                <h4 class="text-xs font-bold text-white">
+                  {{ upgrade.title }}
+                </h4>
+                <span
+                  class="text-[9px] font-mono text-[11px] tracking-tight text-brand-primary"
+                  >{{ upgrade.cost }}</span
+                >
+              </div>
+              <p class="text-[10px] text-silver-dim leading-relaxed mb-2">
+                {{ upgrade.description }}
+              </p>
+              <p class="text-[10px] text-white/80 leading-relaxed mb-3">
+                {{ upgrade.rationale }}
+              </p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="text-[8px] font-black text-brand-primary uppercase"
+                  >Impact: {{ upgrade.impact }}</span
+                >
+                <span class="text-[8px] font-black text-white/60 uppercase">{{
+                  upgrade.priority
+                }}</span>
+                <span class="text-[8px] font-black text-white/60 uppercase">{{
+                  upgrade.targetArea
+                }}</span>
+              </div>
+              @if (upgrade.prerequisites?.length) {
+                <p class="text-[9px] text-silver-dim leading-relaxed mb-4">
+                  Next prerequisite: {{ upgrade.prerequisites[0] }}
+                </p>
+              }
+              <div class="flex flex-wrap gap-2">
+                <button
+                  class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-brand-primary text-black"
+                  (click)="focusRecommendation(upgrade)"
+                >
+                  {{ upgrade.actionLabel }}
+                </button>
+                <button
+                  class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary"
+                  (click)="acquireUpgrade(upgrade)"
+                >
+                  Mark Acquired
+                </button>
+                <button
+                  class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-white/80"
+                  (click)="saveRecommendation(upgrade)"
+                >
+                  Save
+                </button>
+                <button
+                  class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-silver-dim"
+                  (click)="dismissRecommendation(upgrade)"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+        <button
+          (click)="uiService.navigateToView('career')"
+          class="w-full mt-10 btn-elegant btn-elegant-outline text-[10px] font-black uppercase tracking-widest"
+        >
+          Full Gear Catalog
+        </button>
+      </div>
     </aside>
   </div>
 </div>

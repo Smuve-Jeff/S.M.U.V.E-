@@ -30,7 +30,10 @@ export class PracticeSpaceComponent implements OnDestroy {
   recommendedUpgrades = computed(() =>
     this.aiService
       .getUpgradeRecommendations()
-      .filter((recommendation) => !['acquired', 'completed'].includes(recommendation.state || ''))
+      .filter(
+        (recommendation) =>
+          !['acquired', 'completed'].includes(recommendation.state || '')
+      )
       .slice(0, 3)
   );
 
@@ -141,7 +144,10 @@ export class PracticeSpaceComponent implements OnDestroy {
   }
 
   async dismissRecommendation(upgrade: UpgradeRecommendation) {
-    await this.profileService.setRecommendationState(upgrade.id, 'not-relevant');
+    await this.profileService.setRecommendationState(
+      upgrade.id,
+      'not-relevant'
+    );
   }
 
   focusRecommendation(upgrade: UpgradeRecommendation) {
