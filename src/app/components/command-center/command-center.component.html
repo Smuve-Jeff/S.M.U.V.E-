@@ -112,42 +112,104 @@
         <div class="space-y-3">
            <h3 class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2">Upgrade Directives</h3>
            <div class="grid grid-cols-2 gap-4">
-              @for (rec of recommendations(); track rec.id) {
-                 <div class="bg-black/30 rounded-2xl border border-white/10 p-5 flex flex-col gap-3">
-                    <div class="flex items-start justify-between gap-3">
-                       <div>
-                          <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{ rec.priority }}</span>
-                          <h4 class="text-[11px] font-black text-white uppercase mt-2">{{ rec.title }}</h4>
+               @for (rec of recommendations(); track rec.id) {
+                  <div class="bg-black/30 rounded-2xl border border-white/10 p-5 flex flex-col gap-3"
+                       [attr.data-testid]="'command-rec-' + rec.id">
+                     <div class="flex items-start justify-between gap-3">
+                        <div>
+                           <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{ rec.priority }}</span>
+                           <h4 class="text-[11px] font-black text-white uppercase mt-2">{{ rec.title }}</h4>
+                        </div>
+                        <span class="text-[8px] font-black text-silver-dim uppercase">{{ rec.cost }}</span>
+                     </div>
+                     <p class="text-[9px] text-silver-dim leading-relaxed">{{ rec.rationale }}</p>
+                     <div class="grid grid-cols-1 gap-2 text-[8px]">
+                        <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                           <span class="block text-silver-dim uppercase mb-1">Why now</span>
+                           <span class="text-white/80">{{ rec.whyNow }}</span>
+                        </div>
+                        <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                           <span class="block text-silver-dim uppercase mb-1">Next step</span>
+                           <span class="text-white/80">{{ rec.nextStep }}</span>
+                        </div>
+                        <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                           <span class="block text-silver-dim uppercase mb-1">Benefit</span>
+                           <span class="text-white/80">{{ rec.expectedBenefit }}</span>
+                        </div>
+                     </div>
+                     @if (rec.outcomeMetric) {
+                       <span class="text-[8px] font-black uppercase text-brand-accent">{{ rec.outcomeMetric.label }}: {{ rec.outcomeMetric.value }}</span>
+                     }
+                     @if (rec.progressSignals?.length) {
+                       @for (signal of rec.progressSignals; track signal.label) {
+                         <div class="rounded-xl border border-white/10 bg-black/20 p-3 text-[8px]">
+                            <span class="block text-silver-dim uppercase mb-1">{{ signal.label }}</span>
+                            <div class="grid grid-cols-2 gap-2 text-white/70">
+                               <div><span class="block text-silver-dim uppercase mb-1">Before</span>{{ signal.before }}</div>
+                               <div><span class="block text-silver-dim uppercase mb-1">After</span>{{ signal.after }}</div>
+                            </div>
+                         </div>
+                       }
+                     }
+                     @if (rec.evidence?.length) {
+                       <div class="flex flex-wrap gap-2">
+                         @for (item of rec.evidence; track item) {
+                           <span class="text-[7px] font-black uppercase text-white/60">{{ item }}</span>
+                         }
                        </div>
-                       <span class="text-[8px] font-black text-silver-dim uppercase">{{ rec.cost }}</span>
+                     }
+                     <div class="flex flex-wrap gap-2 pt-1">
+                        <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-brand-primary text-black"
+                                (click)="focusRecommendation(rec)"
+                                [attr.data-testid]="'command-focus-' + rec.id">
+                           {{ rec.actionLabel }}
+                        </button>
+                        @if (rec.state !== 'completed') {
+                          <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary"
+                                  (click)="acquireUpgrade(rec)"
+                                  [attr.data-testid]="'command-acquire-' + rec.id">
+                             Acquire
+                          </button>
+                        }
+                        <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-white/80"
+                                (click)="saveRecommendation(rec)"
+                                [attr.data-testid]="'command-save-' + rec.id">
+                           Save
+                        </button>
+                        <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-silver-dim"
+                                (click)="dismissRecommendation(rec)"
+                                [attr.data-testid]="'command-dismiss-' + rec.id">
+                           Dismiss
+                        </button>
+                        @if (rec.state === 'acquired') {
+                          <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-blue-400/20 text-blue-400"
+                                  (click)="completeRecommendation(rec)"
+                                  [attr.data-testid]="'command-complete-' + rec.id">
+                             Complete
+                          </button>
+                        }
+                     </div>
+                  </div>
+               }
+            </div>
+         </div>
+         @if (recommendationHistory().length) {
+           <div class="space-y-3">
+              <h3 class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2">Directive History</h3>
+              <div class="space-y-2">
+                 @for (entry of recommendationHistory(); track entry.updatedAt) {
+                    <div class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-[8px]"
+                         data-testid="command-history-entry">
+                       <div class="flex items-center justify-between gap-2">
+                          <span class="text-white font-black uppercase">{{ entry.title }}</span>
+                          <span class="text-silver-dim uppercase">{{ entry.state }}</span>
+                       </div>
                     </div>
-                    <p class="text-[9px] text-silver-dim leading-relaxed">{{ rec.rationale }}</p>
-                    @if (rec.outcomeMetric) {
-                      <span class="text-[8px] font-black uppercase text-brand-accent">{{ rec.outcomeMetric.label }}: {{ rec.outcomeMetric.value }}</span>
-                    }
-                    <div class="flex flex-wrap gap-2 pt-1">
-                       <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-brand-primary text-black"
-                               (click)="focusRecommendation(rec)">
-                          {{ rec.actionLabel }}
-                       </button>
-                       <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary"
-                               (click)="acquireUpgrade(rec)">
-                          Acquire
-                       </button>
-                       <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-white/80"
-                               (click)="saveRecommendation(rec)">
-                          Save
-                       </button>
-                       <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-silver-dim"
-                               (click)="dismissRecommendation(rec)">
-                          Dismiss
-                       </button>
-                    </div>
-                 </div>
-              }
+                 }
+              </div>
            </div>
-        </div>
-     </div>
+         }
+      </div>
 
     <!-- RIGHT PANEL: AUDIT & ALERTS -->
     <div class="col-span-4 flex flex-col gap-6 overflow-hidden">

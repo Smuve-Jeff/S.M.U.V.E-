@@ -42,6 +42,12 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
       )
       .slice(0, 2)
   );
+  recommendationHistory = computed(() =>
+    [...(this.profileService.profile().recommendationHistory || [])]
+      .slice()
+      .reverse()
+      .slice(0, 4)
+  );
   strategicRecs = signal<StrategicRecommendation[]>([]);
   isPoweringUp = signal(false);
 
@@ -145,11 +151,19 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   }
 
   async saveRecommendation(rec: UpgradeRecommendation) {
-    await this.profileService.setRecommendationState(rec.id, 'saved');
+    await this.profileService.setRecommendationState(rec.id, 'saved', rec);
   }
 
   async dismissRecommendation(rec: UpgradeRecommendation) {
-    await this.profileService.setRecommendationState(rec.id, 'not-relevant');
+    await this.profileService.setRecommendationState(rec.id, 'not-relevant', rec);
+  }
+
+  async completeRecommendation(rec: UpgradeRecommendation) {
+    await this.profileService.completeUpgrade({
+      title: rec.title,
+      type: rec.type,
+      recommendationId: rec.id,
+    });
   }
 
   focusRecommendation(rec: UpgradeRecommendation) {

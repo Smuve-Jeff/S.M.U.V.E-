@@ -154,6 +154,7 @@
           @for (upgrade of recommendedUpgrades(); track upgrade.id) {
             <div
               class="p-4 rounded-2xl bg-black/20 border border-white/10 group hover:border-brand-brand-primary/30 transition-all"
+              [attr.data-testid]="'practice-rec-' + upgrade.id"
             >
               <div class="flex justify-between items-start mb-2">
                 <h4 class="text-xs font-bold text-white">
@@ -170,6 +171,26 @@
               <p class="text-[10px] text-white/80 leading-relaxed mb-3">
                 {{ upgrade.rationale }}
               </p>
+              <div class="grid grid-cols-1 gap-2 mb-3 text-[9px]">
+                <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <span class="block text-silver-dim uppercase mb-1"
+                    >Why now</span
+                  >
+                  <span class="text-white/80">{{ upgrade.whyNow }}</span>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <span class="block text-silver-dim uppercase mb-1"
+                    >Next step</span
+                  >
+                  <span class="text-white/80">{{ upgrade.nextStep }}</span>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <span class="block text-silver-dim uppercase mb-1"
+                    >Benefit</span
+                  >
+                  <span class="text-white/80">{{ upgrade.expectedBenefit }}</span>
+                </div>
+              </div>
               <div class="flex flex-wrap gap-2 mb-4">
                 <span class="text-[8px] font-black text-brand-primary uppercase"
                   >Impact: {{ upgrade.impact }}</span
@@ -181,6 +202,42 @@
                   upgrade.targetArea
                 }}</span>
               </div>
+              @if (upgrade.progressSignals?.length) {
+                <div class="space-y-2 mb-4">
+                  @for (signal of upgrade.progressSignals; track signal.label) {
+                    <div
+                      class="rounded-2xl border border-white/10 bg-black/20 p-3 text-[9px]"
+                    >
+                      <span class="block text-silver-dim uppercase mb-2">{{
+                        signal.label
+                      }}</span>
+                      <div class="grid grid-cols-2 gap-3 text-white/70">
+                        <div>
+                          <span class="block text-silver-dim uppercase mb-1"
+                            >Before</span
+                          >
+                          {{ signal.before }}
+                        </div>
+                        <div>
+                          <span class="block text-silver-dim uppercase mb-1"
+                            >After</span
+                          >
+                          {{ signal.after }}
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+              @if (upgrade.evidence?.length) {
+                <div class="flex flex-wrap gap-2 mb-4">
+                  @for (item of upgrade.evidence; track item) {
+                    <span class="text-[8px] font-black text-white/60 uppercase">{{
+                      item
+                    }}</span>
+                  }
+                </div>
+              }
               @if (upgrade.prerequisites?.length) {
                 <p class="text-[9px] text-silver-dim leading-relaxed mb-4">
                   Next prerequisite: {{ upgrade.prerequisites[0] }}
@@ -190,24 +247,28 @@
                 <button
                   class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-brand-primary text-black"
                   (click)="focusRecommendation(upgrade)"
+                  [attr.data-testid]="'practice-focus-' + upgrade.id"
                 >
                   {{ upgrade.actionLabel }}
                 </button>
                 <button
                   class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary"
                   (click)="acquireUpgrade(upgrade)"
+                  [attr.data-testid]="'practice-acquire-' + upgrade.id"
                 >
                   Mark Acquired
                 </button>
                 <button
                   class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-white/80"
                   (click)="saveRecommendation(upgrade)"
+                  [attr.data-testid]="'practice-save-' + upgrade.id"
                 >
                   Save
                 </button>
                 <button
                   class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-silver-dim"
                   (click)="dismissRecommendation(upgrade)"
+                  [attr.data-testid]="'practice-dismiss-' + upgrade.id"
                 >
                   Dismiss
                 </button>
@@ -215,6 +276,32 @@
             </div>
           }
         </div>
+        @if (recommendationHistory().length) {
+          <div class="mt-8 rounded-3xl border border-white/10 bg-black/20 p-6">
+            <h3
+              class="text-[10px] font-black text-white uppercase tracking-[0.2em] mb-4"
+            >
+              Directive Log
+            </h3>
+            <div class="space-y-2">
+              @for (entry of recommendationHistory(); track entry.updatedAt) {
+                <div
+                  class="rounded-2xl border border-white/10 px-4 py-3 text-[9px]"
+                  data-testid="practice-history-entry"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-white font-black uppercase">{{
+                      entry.title
+                    }}</span>
+                    <span class="text-silver-dim uppercase">{{
+                      entry.state
+                    }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
         <button
           (click)="uiService.navigateToView('career')"
           class="w-full mt-10 btn-elegant btn-elegant-outline text-[10px] font-black uppercase tracking-widest"

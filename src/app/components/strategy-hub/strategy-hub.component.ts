@@ -42,6 +42,12 @@ export class StrategyHubComponent implements OnInit {
   viralHooks = this.aiService.getViralHooks();
 
   upgradeRecs = computed(() => this.aiService.getUpgradeRecommendations());
+  recommendationInbox = computed(() =>
+    [...(this.profile().recommendationHistory || [])]
+      .slice()
+      .reverse()
+      .slice(0, 6)
+  );
 
   totalFollowers = computed(() =>
     this.socialStats().reduce((sum, s) => sum + s.followers, 0)
@@ -135,11 +141,19 @@ export class StrategyHubComponent implements OnInit {
   }
 
   async saveRecommendation(rec: UpgradeRecommendation) {
-    await this.profileService.setRecommendationState(rec.id, 'saved');
+    await this.profileService.setRecommendationState(rec.id, 'saved', rec);
   }
 
   async dismissRecommendation(rec: UpgradeRecommendation) {
-    await this.profileService.setRecommendationState(rec.id, 'not-relevant');
+    await this.profileService.setRecommendationState(rec.id, 'not-relevant', rec);
+  }
+
+  async completeRecommendation(rec: UpgradeRecommendation) {
+    await this.profileService.completeUpgrade({
+      title: rec.title,
+      type: rec.type,
+      recommendationId: rec.id,
+    });
   }
 
   focusRecommendation(rec: UpgradeRecommendation) {
@@ -183,6 +197,10 @@ export class StrategyHubComponent implements OnInit {
       default:
         return 'Suggested';
     }
+  }
+
+  getHistoryStateLabel(state: string): string {
+    return state.replace('-', ' ');
   }
 
   getSeverityClass(severity: string): string {

@@ -57,8 +57,20 @@ describe('CommandCenterComponent', () => {
     };
 
     mockProfileService = {
+      profile: signal({
+        recommendationHistory: [
+          {
+            recommendationId: 'upg-room-calibration',
+            title: 'Room Calibration',
+            type: 'Software',
+            state: 'saved',
+            updatedAt: Date.now(),
+          },
+        ],
+      }),
       acquireUpgrade: jest.fn().mockResolvedValue(undefined),
       setRecommendationState: jest.fn().mockResolvedValue(undefined),
+      completeUpgrade: jest.fn().mockResolvedValue(undefined),
     };
 
     mockUiService = {
@@ -106,6 +118,18 @@ describe('CommandCenterComponent', () => {
   it('marks upgrades as acquired with their recommendation id', async () => {
     await component.acquireUpgrade(recommendation as any);
     expect(mockProfileService.acquireUpgrade).toHaveBeenCalledWith({
+      title: 'Room Calibration',
+      type: 'Software',
+      recommendationId: 'upg-room-calibration',
+    });
+  });
+
+  it('marks acquired directives as completed', async () => {
+    await component.completeRecommendation({
+      ...recommendation,
+      state: 'acquired',
+    } as any);
+    expect(mockProfileService.completeUpgrade).toHaveBeenCalledWith({
       title: 'Room Calibration',
       type: 'Software',
       recommendationId: 'upg-room-calibration',

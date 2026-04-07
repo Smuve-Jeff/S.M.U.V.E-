@@ -857,6 +857,7 @@
           @for (rec of upgradeRecs(); track rec.id) {
             <div
               class="flex items-start gap-4 bg-brand-surface/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group"
+              [attr.data-testid]="'strategy-rec-' + rec.id"
             >
               <div
                 class="w-8 h-8 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0 mt-0.5"
@@ -895,6 +896,28 @@
                 <p class="text-[10px] text-white/80 leading-relaxed mb-3">
                   {{ rec.rationale }}
                 </p>
+                <div
+                  class="grid grid-cols-1 md:grid-cols-3 gap-3 text-[9px] mb-3"
+                >
+                  <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+                    <span class="block text-silver-dim uppercase mb-1"
+                      >Why now</span
+                    >
+                    <span class="text-white/80">{{ rec.whyNow }}</span>
+                  </div>
+                  <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+                    <span class="block text-silver-dim uppercase mb-1"
+                      >Next step</span
+                    >
+                    <span class="text-white/80">{{ rec.nextStep }}</span>
+                  </div>
+                  <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+                    <span class="block text-silver-dim uppercase mb-1"
+                      >Benefit</span
+                    >
+                    <span class="text-white/80">{{ rec.expectedBenefit }}</span>
+                  </div>
+                </div>
                 <div class="flex flex-wrap gap-2 mb-3">
                   <span
                     class="text-[8px] font-black uppercase px-2 py-1 rounded-full border border-white/10 text-white/70"
@@ -912,7 +935,54 @@
                       {{ rec.outcomeMetric.value }}
                     </span>
                   }
+                  @if (rec.historySummary) {
+                    <span
+                      class="text-[8px] font-black uppercase px-2 py-1 rounded-full border border-white/10 text-white/60"
+                    >
+                      {{ rec.historySummary }}
+                    </span>
+                  }
                 </div>
+                @if (rec.progressSignals?.length) {
+                  <div class="space-y-2 mb-3">
+                    @for (signal of rec.progressSignals; track signal.label) {
+                      <div
+                        class="rounded-2xl border border-white/10 bg-black/20 p-3 text-[9px]"
+                      >
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                          <span class="uppercase text-silver-dim">{{
+                            signal.label
+                          }}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 text-white/70">
+                          <div>
+                            <span class="block text-silver-dim uppercase mb-1"
+                              >Before</span
+                            >
+                            {{ signal.before }}
+                          </div>
+                          <div>
+                            <span class="block text-silver-dim uppercase mb-1"
+                              >After</span
+                            >
+                            {{ signal.after }}
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+                @if (rec.evidence?.length) {
+                  <div class="flex flex-wrap gap-2 mb-3">
+                    @for (item of rec.evidence; track item) {
+                      <span
+                        class="text-[8px] font-black uppercase px-2 py-1 rounded-full border border-white/10 text-white/60"
+                      >
+                        {{ item }}
+                      </span>
+                    }
+                  </div>
+                }
                 @if (rec.prerequisites?.length) {
                   <p class="text-[9px] text-silver-dim leading-relaxed mb-3">
                     Next prerequisite: {{ rec.prerequisites[0] }}
@@ -922,25 +992,38 @@
                   <button
                     class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-brand-primary text-black hover:scale-[1.02] transition-all"
                     (click)="focusRecommendation(rec)"
+                    [attr.data-testid]="'strategy-focus-' + rec.id"
                   >
                     {{ rec.actionLabel }}
                   </button>
                   <button
                     class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-white hover:border-brand-primary/40 transition-all"
                     (click)="saveRecommendation(rec)"
+                    [attr.data-testid]="'strategy-save-' + rec.id"
                   >
                     Save
                   </button>
                   <button
                     class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-silver-dim hover:text-white transition-all"
                     (click)="dismissRecommendation(rec)"
+                    [attr.data-testid]="'strategy-dismiss-' + rec.id"
                   >
                     Not Relevant
                   </button>
-                  @if (rec.state !== 'acquired') {
+                  @if (rec.state === 'acquired') {
+                    <button
+                      class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-blue-400/20 text-blue-400 hover:bg-blue-400/10 transition-all"
+                      (click)="completeRecommendation(rec)"
+                      [attr.data-testid]="'strategy-complete-' + rec.id"
+                    >
+                      Mark Completed
+                    </button>
+                  }
+                  @if (rec.state !== 'acquired' && rec.state !== 'completed') {
                     <button
                       class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary hover:bg-brand-primary/10 transition-all"
                       (click)="acquireUpgrade(rec)"
+                      [attr.data-testid]="'strategy-acquire-' + rec.id"
                     >
                       Mark Acquired
                     </button>
@@ -954,6 +1037,38 @@
             </div>
           }
         </div>
+        @if (recommendationInbox().length) {
+          <div class="mt-6 rounded-3xl border border-white/10 bg-black/20 p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="text-[10px] font-black text-white uppercase tracking-[0.2em]">
+                Recommendation Inbox
+              </h4>
+              <span class="text-[8px] font-black text-silver-dim uppercase">
+                Recent actions
+              </span>
+            </div>
+            <div class="space-y-2">
+              @for (entry of recommendationInbox(); track entry.updatedAt) {
+                <div
+                  class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3 text-[9px]"
+                  data-testid="strategy-inbox-entry"
+                >
+                  <div>
+                    <span class="block text-white font-black uppercase">{{
+                      entry.title
+                    }}</span>
+                    <span class="text-silver-dim uppercase">{{
+                      getHistoryStateLabel(entry.state)
+                    }}</span>
+                  </div>
+                  <span class="text-white/50 uppercase">{{
+                    entry.updatedAt | date: 'short'
+                  }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </section>
     </div>
 

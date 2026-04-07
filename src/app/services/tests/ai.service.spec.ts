@@ -23,6 +23,7 @@ describe('AiService', () => {
         services: [],
         marketingCampaigns: [],
         recommendationPreferences: {},
+        recommendationHistory: [],
         primaryGenre: 'Hip-Hop',
         tasks: [],
         skills: [],
@@ -149,6 +150,10 @@ describe('AiService', () => {
     expect(recommendations[0].id).toBe('upg-dsp-promotion');
     expect(recommendations[0].priority).toBe('Critical');
     expect(recommendations[0].toolId).toBe('strategy');
+    expect(recommendations[0].whyNow).toContain('campaign');
+    expect(recommendations[0].progressSignals?.[0]?.label).toBe(
+      'Campaign reach'
+    );
   });
 
   it('filters recommendations marked as not relevant', () => {
@@ -181,5 +186,26 @@ describe('AiService', () => {
       .find((recommendation) => recommendation.id === 'upg-dsp-promotion');
 
     expect(promotionRecommendation?.state).toBe('acquired');
+  });
+
+  it('keeps completed recommendations distinct from acquired ones', () => {
+    userProfileService.profile.set({
+      ...userProfileService.profile(),
+      services: ['DSP Promotion'],
+      recommendationPreferences: {
+        'upg-dsp-promotion': {
+          state: 'completed',
+          updatedAt: Date.now(),
+          actionCount: 2,
+        },
+      },
+    });
+
+    const promotionRecommendation = service
+      .getUpgradeRecommendations()
+      .find((recommendation) => recommendation.id === 'upg-dsp-promotion');
+
+    expect(promotionRecommendation?.state).toBe('completed');
+    expect(promotionRecommendation?.historySummary).toContain('completed');
   });
 });

@@ -67,4 +67,29 @@ describe('UserProfileService - Acquire Upgrade', () => {
       .equipment.filter((e) => e === 'Duplicate Item').length;
     expect(count).toBe(1);
   });
+
+  it('marks completed upgrades separately from acquired state', async () => {
+    const upgrade = {
+      title: 'Mix Translation Checklist',
+      type: 'Service',
+      recommendationId: 'upg-translation-checklist',
+    };
+
+    await service.completeUpgrade(upgrade);
+
+    expect(service.profile().services).toContain('Mix Translation Checklist');
+    expect(
+      service.profile().recommendationPreferences?.['upg-translation-checklist']
+    ).toEqual(
+      expect.objectContaining({
+        state: 'completed',
+      })
+    );
+    expect(service.profile().recommendationHistory?.at(-1)).toEqual(
+      expect.objectContaining({
+        recommendationId: 'upg-translation-checklist',
+        state: 'completed',
+      })
+    );
+  });
 });

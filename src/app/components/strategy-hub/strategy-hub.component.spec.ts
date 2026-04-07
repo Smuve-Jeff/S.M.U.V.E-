@@ -18,6 +18,15 @@ describe('StrategyHubComponent', () => {
     careerGoals: ['Streaming Growth'],
     catalog: [],
     marketingCampaigns: [],
+    recommendationHistory: [
+      {
+        recommendationId: 'upg-1',
+        title: 'Test Upgrade',
+        type: 'Software',
+        state: 'saved',
+        updatedAt: Date.now(),
+      },
+    ],
   };
 
   const mockAiService = {
@@ -98,6 +107,9 @@ describe('StrategyHubComponent', () => {
   const mockProfileService = {
     profile: signal(mockProfile),
     updateProfile: jest.fn().mockResolvedValue(undefined),
+    setRecommendationState: jest.fn().mockResolvedValue(undefined),
+    completeUpgrade: jest.fn().mockResolvedValue(undefined),
+    acquireUpgrade: jest.fn().mockResolvedValue(undefined),
   };
 
   beforeEach(async () => {
@@ -230,5 +242,10 @@ describe('StrategyHubComponent', () => {
 
   it('should load upgrade recommendations from AI service', () => {
     expect(component.upgradeRecs().length).toBe(1);
+  });
+
+  it('should expose recommendation inbox history from the profile', () => {
+    expect(component.recommendationInbox().length).toBe(1);
+    expect(component.recommendationInbox()[0].state).toBe('saved');
   });
 });

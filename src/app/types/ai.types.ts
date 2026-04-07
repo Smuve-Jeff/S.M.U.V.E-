@@ -44,6 +44,10 @@ export interface UpgradeRecommendation {
   prerequisites: string[];
   actionLabel: string;
   toolId?: string;
+  whyNow?: string;
+  nextStep?: string;
+  expectedBenefit?: string;
+  evidence?: string[];
   state?:
     | 'suggested'
     | 'saved'
@@ -55,7 +59,21 @@ export interface UpgradeRecommendation {
     label: string;
     value: string;
   };
+  progressSignals?: Array<{
+    label: string;
+    before: string;
+    after: string;
+  }>;
+  historySummary?: string;
   genres?: string[];
+}
+
+export interface RecommendationHistoryEntry {
+  recommendationId: string;
+  title: string;
+  type: UpgradeRecommendation['type'];
+  state: NonNullable<UpgradeRecommendation['state']>;
+  updatedAt: number;
 }
 
 export interface ProfileAuditResult {

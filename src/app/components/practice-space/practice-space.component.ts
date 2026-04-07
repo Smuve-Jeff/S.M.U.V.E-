@@ -36,6 +36,12 @@ export class PracticeSpaceComponent implements OnDestroy {
       )
       .slice(0, 3)
   );
+  recommendationHistory = computed(() =>
+    [...(this.profileService.profile().recommendationHistory || [])]
+      .slice()
+      .reverse()
+      .slice(0, 4)
+  );
 
   protocols = signal<any[]>([
     {
@@ -132,7 +138,7 @@ export class PracticeSpaceComponent implements OnDestroy {
   }
 
   acquireUpgrade(upgrade: UpgradeRecommendation) {
-    this.profileService.acquireUpgrade({
+    return this.profileService.acquireUpgrade({
       title: upgrade.title,
       type: upgrade.type,
       recommendationId: upgrade.id,
@@ -140,13 +146,14 @@ export class PracticeSpaceComponent implements OnDestroy {
   }
 
   async saveRecommendation(upgrade: UpgradeRecommendation) {
-    await this.profileService.setRecommendationState(upgrade.id, 'saved');
+    await this.profileService.setRecommendationState(upgrade.id, 'saved', upgrade);
   }
 
   async dismissRecommendation(upgrade: UpgradeRecommendation) {
     await this.profileService.setRecommendationState(
       upgrade.id,
-      'not-relevant'
+      'not-relevant',
+      upgrade
     );
   }
 
