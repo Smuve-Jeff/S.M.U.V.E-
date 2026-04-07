@@ -228,6 +228,8 @@ describe('AiService', () => {
 
     expect(promotionRecommendation?.state).toBe('completed');
     expect(promotionRecommendation?.historySummary).toContain('completed');
+  });
+
   it('adds identity-backed checklist items and recommendations', async () => {
     const recommendations = await service.getStrategicRecommendations();
     const checklist = service.getDynamicChecklist();

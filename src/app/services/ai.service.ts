@@ -538,6 +538,7 @@ export class AiService {
   private updateAdvisorAdvice(viewMode: MainViewMode | string): void {
     const advice: AdvisorAdvice[] = [];
     const growth = this.analyticsService.overallGrowth();
+    const profile = this.userProfileService.profile();
     const catalog = profile?.catalog || [];
     const identity = this.artistIdentityService.buildIdentitySnapshot(profile);
 

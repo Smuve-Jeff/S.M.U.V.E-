@@ -251,11 +251,13 @@ export class UserProfileService {
     const stats = { ...(current.gameStats || {}) };
     const prev = stats[gameId] || {};
     const now = Date.now();
-    
+
     const roomId = context.roomId || prev.lastRoomId;
     const roomPlays = {
       ...(prev.roomPlays || {}),
-      ...(roomId ? { [roomId]: ((prev.roomPlays || {})[roomId] || 0) + 1 } : {}),
+      ...(roomId
+        ? { [roomId]: ((prev.roomPlays || {})[roomId] || 0) + 1 }
+        : {}),
     };
 
     const nextProgression = this.buildThaSpotProgression(
@@ -290,8 +292,8 @@ export class UserProfileService {
   }
 
   async recordGameLaunch(gameId: string, context: ThaSpotSessionContext = {}) {
-     // For now, recordGameLaunch redirects to recording a result update or session start
-     await this.recordGameResult(gameId, context);
+    // For now, recordGameLaunch redirects to recording a result update or session start
+    await this.recordGameResult(gameId, context);
   }
 
   private buildThaSpotProgression(
@@ -397,7 +399,9 @@ export class UserProfileService {
         }))
         .slice(-30),
       gameStats: this.sanitizeGameStats(profile.gameStats),
-      thaSpotProgression: this.sanitizeThaSpotProgression(profile.thaSpotProgression),
+      thaSpotProgression: this.sanitizeThaSpotProgression(
+        profile.thaSpotProgression
+      ),
     };
   }
 
@@ -436,7 +440,8 @@ export class UserProfileService {
     }
 
     if (upgrade.recommendationId) {
-      const preference = next.recommendationPreferences[upgrade.recommendationId];
+      const preference =
+        next.recommendationPreferences[upgrade.recommendationId];
       next.recommendationPreferences[upgrade.recommendationId] = {
         state,
         updatedAt: Date.now(),

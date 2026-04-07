@@ -37,7 +37,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Queue up while Tha Spot refreshes the live schedule.',
       roomId: 'arcade',
       reward: 'Featured cosmetic',
-      reward: 'Studio skin drop',
       status: 'live',
       windowLabel: 'Live now',
       badgeId: 'tournament-live',
@@ -103,7 +102,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       campaignType: 'intel',
     },
   ],
-  leaderboards: [],
   recommendationRails: [
     {
       id: 'fallback-returning',
@@ -188,7 +186,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['staff-pick'],
       queueEstimateMinutes: 0,
       sessionObjectives: ['Hold a clean note chain', 'Stay above 95% timing'],
-      sessionObjectives: ['Hold a clean 25-note run', 'Stay above 95% timing'],
       controlHints: ['Use the displayed lane keys', 'Anticipate sync shifts'],
       launchConfig: {
         difficulty: 'Adaptive',

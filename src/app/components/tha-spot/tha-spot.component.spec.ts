@@ -400,7 +400,6 @@ describe('ThaSpotComponent', () => {
   });
 
   it('records game completion without persisting gameplay scores', () => {
-  it('ignores posted scores when sessions end', () => {
     const sourceWindow = {} as Window;
     const sessionCallCount =
       profileServiceMock.recordGameSession.mock.calls.length;
@@ -420,6 +419,7 @@ describe('ThaSpotComponent', () => {
       expect.objectContaining({
         roomId: 'all',
       })
+    );
     expect(profileServiceMock.recordGameSession.mock.calls).toHaveLength(
       sessionCallCount
     );
