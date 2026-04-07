@@ -146,7 +146,11 @@ export class PracticeSpaceComponent implements OnDestroy {
   }
 
   async saveRecommendation(upgrade: UpgradeRecommendation) {
-    await this.profileService.setRecommendationState(upgrade.id, 'saved', upgrade);
+    await this.profileService.setRecommendationState(
+      upgrade.id,
+      'saved',
+      upgrade
+    );
   }
 
   async dismissRecommendation(upgrade: UpgradeRecommendation) {

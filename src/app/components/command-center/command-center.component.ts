@@ -155,7 +155,11 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   }
 
   async dismissRecommendation(rec: UpgradeRecommendation) {
-    await this.profileService.setRecommendationState(rec.id, 'not-relevant', rec);
+    await this.profileService.setRecommendationState(
+      rec.id,
+      'not-relevant',
+      rec
+    );
   }
 
   async completeRecommendation(rec: UpgradeRecommendation) {

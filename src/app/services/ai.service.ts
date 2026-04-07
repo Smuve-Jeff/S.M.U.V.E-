@@ -273,9 +273,11 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
         return 14;
       }
       const baseScore = context.catalogDepth > 0 ? 78 : 54;
-      const workspaceBoost = ['studio', 'release-pipeline', 'knowledge-base'].includes(
-        viewMode
-      )
+      const workspaceBoost = [
+        'studio',
+        'release-pipeline',
+        'knowledge-base',
+      ].includes(viewMode)
         ? 10
         : 0;
       return baseScore + workspaceBoost + context.releaseReadyCount * 3;
@@ -445,9 +447,11 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
       if (context.hasProRegistration) {
         return 24;
       }
-      const workspaceBoost = ['strategy', 'business-suite', 'knowledge-base'].includes(
-        viewMode
-      )
+      const workspaceBoost = [
+        'strategy',
+        'business-suite',
+        'knowledge-base',
+      ].includes(viewMode)
         ? 12
         : 0;
       return (
@@ -457,10 +461,9 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
       );
     },
     buildDetails: ({ context }) => ({
-      whyNow:
-        context.hasProRegistration
-          ? 'Your royalty identity is partially set up, so the next gain comes from finishing the registration workflow.'
-          : 'Your business infrastructure is lagging behind your release activity, which risks missed royalty collection.',
+      whyNow: context.hasProRegistration
+        ? 'Your royalty identity is partially set up, so the next gain comes from finishing the registration workflow.'
+        : 'Your business infrastructure is lagging behind your release activity, which risks missed royalty collection.',
       nextStep:
         'Collect writer splits, IPI details, and release metadata in one session, then register every active song in the same sprint.',
       expectedBenefit:

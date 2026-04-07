@@ -1,29 +1,49 @@
 <div class="h-full bg-black/90 p-6 flex flex-col gap-6 animate-enter">
-
   <!-- TOP BAR: SYSTEM STATUS -->
-  <header class="flex flex-wrap items-center justify-between gap-6 pb-6 border-b border-white/5">
+  <header
+    class="flex flex-wrap items-center justify-between gap-6 pb-6 border-b border-white/5"
+  >
     <div class="flex items-center gap-4">
-       <div class="w-10 h-10 rounded-full bg-brand-brand-primary/10 border border-brand-brand-primary/30 flex items-center justify-center">
-          <i class="fas fa-terminal text-brand-primary animate-pulse-subtle"></i>
-       </div>
-       <div class="flex flex-col">
-          <h1 class="digital-readout text-xl font-black text-white italic tracking-tighter">CENTRAL_COMMAND_v2.0</h1>
-          <div class="flex items-center gap-2">
-             <div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div>
-             <span class="text-[8px] font-black text-brand-primary uppercase tracking-[0.3em]">Neural Link: Synchronized</span>
-          </div>
-       </div>
+      <div
+        class="w-10 h-10 rounded-full bg-brand-brand-primary/10 border border-brand-brand-primary/30 flex items-center justify-center"
+      >
+        <i class="fas fa-terminal text-brand-primary animate-pulse-subtle"></i>
+      </div>
+      <div class="flex flex-col">
+        <h1
+          class="digital-readout text-xl font-black text-white italic tracking-tighter"
+        >
+          CENTRAL_COMMAND_v2.0
+        </h1>
+        <div class="flex items-center gap-2">
+          <div
+            class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"
+          ></div>
+          <span
+            class="text-[8px] font-black text-brand-primary uppercase tracking-[0.3em]"
+            >Neural Link: Synchronized</span
+          >
+        </div>
+      </div>
     </div>
 
     <!-- MARKET TICKER (NEW) -->
     <div class="flex-grow max-w-2xl px-8 overflow-hidden">
       @if (aiService.marketAlerts().length > 0) {
-        <div class="flex items-center gap-4 animate-slide-left whitespace-nowrap">
+        <div
+          class="flex items-center gap-4 animate-slide-left whitespace-nowrap"
+        >
           @for (alert of aiService.marketAlerts(); track alert.id) {
             <div class="flex items-center gap-2">
-              <span class="text-[8px] font-black text-brand-accent uppercase">[MARKET_ALERT]</span>
-              <span class="text-[9px] font-bold text-white uppercase">{{ alert.title }}:</span>
-              <span class="text-[9px] text-silver-dim uppercase">{{ alert.message }}</span>
+              <span class="text-[8px] font-black text-brand-accent uppercase"
+                >[MARKET_ALERT]</span
+              >
+              <span class="text-[9px] font-bold text-white uppercase"
+                >{{ alert.title }}:</span
+              >
+              <span class="text-[9px] text-silver-dim uppercase">{{
+                alert.message
+              }}</span>
               <span class="text-white/20 mx-4">|</span>
             </div>
           }
@@ -32,283 +52,512 @@
     </div>
 
     <div class="flex gap-4 items-center">
-       <!-- RELEASE PIPELINE BUTTON (PROMINENT) -->
-       <button (click)="uiService.navigateToView('release-pipeline')" class="bg-brand-primary text-black font-black uppercase tracking-tighter italic text-[10px] py-2 px-6 rounded-lg hover:scale-105 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-          Initialize Release Pipeline
-       </button>
+      <!-- RELEASE PIPELINE BUTTON (PROMINENT) -->
+      <button
+        (click)="uiService.navigateToView('release-pipeline')"
+        class="bg-brand-primary text-black font-black uppercase tracking-tighter italic text-[10px] py-2 px-6 rounded-lg hover:scale-105 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+      >
+        Initialize Release Pipeline
+      </button>
 
-       <div class="flex gap-8 ml-4">
-          @for (metric of ['cpuLoad', 'neuralSync', 'memoryUsage', 'latency']; track metric) {
-             <div class="flex flex-col items-end">
-                <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1">{{ metric }}</span>
-                <span class="digital-readout text-xs font-bold text-brand-primary">{{ aiService.systemStatus()[metric] }}{{ metric === 'latency' ? 'ms' : '%' }}</span>
-             </div>
-          }
-       </div>
+      <div class="flex gap-8 ml-4">
+        @for (
+          metric of ['cpuLoad', 'neuralSync', 'memoryUsage', 'latency'];
+          track metric
+        ) {
+          <div class="flex flex-col items-end">
+            <span
+              class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-1"
+              >{{ metric }}</span
+            >
+            <span class="digital-readout text-xs font-bold text-brand-primary"
+              >{{ aiService.systemStatus()[metric]
+              }}{{ metric === 'latency' ? 'ms' : '%' }}</span
+            >
+          </div>
+        }
+      </div>
     </div>
   </header>
 
   <!-- DECREE BANNER -->
-  <div class="bg-brand-brand-primary/10 border-y border-brand-brand-primary/20 py-3 overflow-hidden">
-     <div class="flex gap-12 animate-slide-left whitespace-nowrap">
-        @for (decree of aiService.strategicDecrees(); track decree) {
-           <span class="text-[10px] font-black text-brand-primary italic tracking-[0.1em] uppercase">{{ decree }}</span>
-        }
-     </div>
+  <div
+    class="bg-brand-brand-primary/10 border-y border-brand-brand-primary/20 py-3 overflow-hidden"
+  >
+    <div class="flex gap-12 animate-slide-left whitespace-nowrap">
+      @for (decree of aiService.strategicDecrees(); track decree) {
+        <span
+          class="text-[10px] font-black text-brand-primary italic tracking-[0.1em] uppercase"
+          >{{ decree }}</span
+        >
+      }
+    </div>
   </div>
 
   <div class="flex-grow grid grid-cols-12 gap-6 overflow-hidden">
     <!-- LEFT PANEL: TERMINAL & RECS -->
     <div class="col-span-8 flex flex-col gap-6 overflow-hidden">
+      <!-- HUD TERMINAL -->
+      <div
+        class="flex-grow bg-brand-surface/30 rounded-2xl p-6 border border-white/10 flex flex-col gap-4 overflow-hidden relative group"
+      >
+        <div
+          class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity"
+        >
+          <span class="text-[8px] font-mono text-brand-primary"
+            >ROOT@SMUVE_v2.0:~$</span
+          >
+        </div>
 
-       <!-- HUD TERMINAL -->
-       <div class="flex-grow bg-brand-surface/30 rounded-2xl p-6 border border-white/10 flex flex-col gap-4 overflow-hidden relative group">
-          <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity">
-             <span class="text-[8px] font-mono text-brand-primary">ROOT@SMUVE_v2.0:~$</span>
-          </div>
-
-          <div class="flex-grow overflow-y-auto font-mono text-[10px] space-y-2 no-scrollbar pr-4">
-             @for (log of terminalLogs(); track log.timestamp) {
-                <div class="flex gap-4 animate-enter">
-                   <span class="text-slate-600">[{{ log.timestamp | date:'HH:mm:ss' }}]</span>
-                   <span [ngClass]="{
-                      'text-brand-primary font-bold': log.type === 'command',
-                      'text-silver-dim': log.type === 'system',
-                      'text-brand-accent': log.type === 'response'
-                   }">{{ log.type === 'command' ? '>' : log.type === 'response' ? 'AI:' : 'SYS:' }} {{ log.message }}</span>
-                </div>
-             }
-          </div>
-
-          <div class="relative mt-4">
-             <input #cmdInput (keyup.enter)="handleCommand(cmdInput.value); cmdInput.value = ''"
-                    type="text" placeholder="Execute Strategic Command..."
-                    class="w-full bg-black/40 border border-white/10 rounded-xl px-6 py-4 text-xs font-mono text-brand-primary placeholder:text-slate-700 focus:border-brand-brand-primary/50 outline-none transition-all">
-             <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black text-slate-700 uppercase tracking-widest pointer-events-none">Press Enter to Commit</div>
-          </div>
-       </div>
-
-       <!-- STRATEGIC RECOMMENDATIONS (BENTO) -->
-       <div class="grid grid-cols-2 gap-4 h-64">
-          @for (rec of strategicRecs().slice(0, 2); track rec.action) {
-             <div class="bg-brand-surface/20 rounded-2xl p-6 border border-white/5 hover:border-brand-brand-primary/30 transition-all cursor-pointer group flex flex-col justify-between"
-                  (click)="initializeOperation(rec)">
-                <div>
-                   <div class="flex justify-between items-start mb-2">
-                      <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Operation</span>
-                      <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Operation: Ready</span>
-                   </div>
-                   <h3 class="text-sm font-black text-white uppercase italic tracking-tight mb-2">{{ rec.action }}</h3>
-                   <p class="text-[9px] text-slate-500 line-clamp-2 leading-relaxed">Strategic maneuver detected by neural array. Initialize to gain market advantage.</p>
-                </div>
-                <div class="flex justify-between items-center">
-                   <span class="text-[8px] font-black uppercase tracking-widest" [ngClass]="getImpactColor(rec.impact)">Impact: {{ rec.impact }}</span>
-                   <span class="material-symbols-outlined text-sm text-brand-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                </div>
-             </div>
+        <div
+          class="flex-grow overflow-y-auto font-mono text-[10px] space-y-2 no-scrollbar pr-4"
+        >
+          @for (log of terminalLogs(); track log.timestamp) {
+            <div class="flex gap-4 animate-enter">
+              <span class="text-slate-600"
+                >[{{ log.timestamp | date: 'HH:mm:ss' }}]</span
+              >
+              <span
+                [ngClass]="{
+                  'text-brand-primary font-bold': log.type === 'command',
+                  'text-silver-dim': log.type === 'system',
+                  'text-brand-accent': log.type === 'response',
+                }"
+                >{{
+                  log.type === 'command'
+                    ? '>'
+                    : log.type === 'response'
+                      ? 'AI:'
+                      : 'SYS:'
+                }}
+                {{ log.message }}</span
+              >
+            </div>
           }
         </div>
 
-        <div class="space-y-3">
-           <h3 class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2">Upgrade Directives</h3>
-           <div class="grid grid-cols-2 gap-4">
-               @for (rec of recommendations(); track rec.id) {
-                  <div class="bg-black/30 rounded-2xl border border-white/10 p-5 flex flex-col gap-3"
-                       [attr.data-testid]="'command-rec-' + rec.id">
-                     <div class="flex items-start justify-between gap-3">
-                        <div>
-                           <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">{{ rec.priority }}</span>
-                           <h4 class="text-[11px] font-black text-white uppercase mt-2">{{ rec.title }}</h4>
-                        </div>
-                        <span class="text-[8px] font-black text-silver-dim uppercase">{{ rec.cost }}</span>
-                     </div>
-                     <p class="text-[9px] text-silver-dim leading-relaxed">{{ rec.rationale }}</p>
-                     <div class="grid grid-cols-1 gap-2 text-[8px]">
-                        <div class="rounded-xl border border-white/10 bg-black/20 p-3">
-                           <span class="block text-silver-dim uppercase mb-1">Why now</span>
-                           <span class="text-white/80">{{ rec.whyNow }}</span>
-                        </div>
-                        <div class="rounded-xl border border-white/10 bg-black/20 p-3">
-                           <span class="block text-silver-dim uppercase mb-1">Next step</span>
-                           <span class="text-white/80">{{ rec.nextStep }}</span>
-                        </div>
-                        <div class="rounded-xl border border-white/10 bg-black/20 p-3">
-                           <span class="block text-silver-dim uppercase mb-1">Benefit</span>
-                           <span class="text-white/80">{{ rec.expectedBenefit }}</span>
-                        </div>
-                     </div>
-                     @if (rec.outcomeMetric) {
-                       <span class="text-[8px] font-black uppercase text-brand-accent">{{ rec.outcomeMetric.label }}: {{ rec.outcomeMetric.value }}</span>
-                     }
-                     @if (rec.progressSignals?.length) {
-                       @for (signal of rec.progressSignals; track signal.label) {
-                         <div class="rounded-xl border border-white/10 bg-black/20 p-3 text-[8px]">
-                            <span class="block text-silver-dim uppercase mb-1">{{ signal.label }}</span>
-                            <div class="grid grid-cols-2 gap-2 text-white/70">
-                               <div><span class="block text-silver-dim uppercase mb-1">Before</span>{{ signal.before }}</div>
-                               <div><span class="block text-silver-dim uppercase mb-1">After</span>{{ signal.after }}</div>
-                            </div>
-                         </div>
-                       }
-                     }
-                     @if (rec.evidence?.length) {
-                       <div class="flex flex-wrap gap-2">
-                         @for (item of rec.evidence; track item) {
-                           <span class="text-[7px] font-black uppercase text-white/60">{{ item }}</span>
-                         }
-                       </div>
-                     }
-                     <div class="flex flex-wrap gap-2 pt-1">
-                        <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-brand-primary text-black"
-                                (click)="focusRecommendation(rec)"
-                                [attr.data-testid]="'command-focus-' + rec.id">
-                           {{ rec.actionLabel }}
-                        </button>
-                        @if (rec.state !== 'completed') {
-                          <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary"
-                                  (click)="acquireUpgrade(rec)"
-                                  [attr.data-testid]="'command-acquire-' + rec.id">
-                             Acquire
-                          </button>
-                        }
-                        <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-white/80"
-                                (click)="saveRecommendation(rec)"
-                                [attr.data-testid]="'command-save-' + rec.id">
-                           Save
-                        </button>
-                        <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-silver-dim"
-                                (click)="dismissRecommendation(rec)"
-                                [attr.data-testid]="'command-dismiss-' + rec.id">
-                           Dismiss
-                        </button>
-                        @if (rec.state === 'acquired') {
-                          <button class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-blue-400/20 text-blue-400"
-                                  (click)="completeRecommendation(rec)"
-                                  [attr.data-testid]="'command-complete-' + rec.id">
-                             Complete
-                          </button>
-                        }
-                     </div>
-                  </div>
-               }
-            </div>
-         </div>
-         @if (recommendationHistory().length) {
-           <div class="space-y-3">
-              <h3 class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2">Directive History</h3>
-              <div class="space-y-2">
-                 @for (entry of recommendationHistory(); track entry.updatedAt) {
-                    <div class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-[8px]"
-                         data-testid="command-history-entry">
-                       <div class="flex items-center justify-between gap-2">
-                          <span class="text-white font-black uppercase">{{ entry.title }}</span>
-                          <span class="text-silver-dim uppercase">{{ entry.state }}</span>
-                       </div>
-                    </div>
-                 }
-              </div>
-           </div>
-         }
+        <div class="relative mt-4">
+          <input
+            #cmdInput
+            (keyup.enter)="handleCommand(cmdInput.value); cmdInput.value = ''"
+            type="text"
+            placeholder="Execute Strategic Command..."
+            class="w-full bg-black/40 border border-white/10 rounded-xl px-6 py-4 text-xs font-mono text-brand-primary placeholder:text-slate-700 focus:border-brand-brand-primary/50 outline-none transition-all"
+          />
+          <div
+            class="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black text-slate-700 uppercase tracking-widest pointer-events-none"
+          >
+            Press Enter to Commit
+          </div>
+        </div>
       </div>
+
+      <!-- STRATEGIC RECOMMENDATIONS (BENTO) -->
+      <div class="grid grid-cols-2 gap-4 h-64">
+        @for (rec of strategicRecs().slice(0, 2); track rec.action) {
+          <div
+            class="bg-brand-surface/20 rounded-2xl p-6 border border-white/5 hover:border-brand-brand-primary/30 transition-all cursor-pointer group flex flex-col justify-between"
+            (click)="initializeOperation(rec)"
+          >
+            <div>
+              <div class="flex justify-between items-start mb-2">
+                <span
+                  class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+                  >Operation</span
+                >
+                <span
+                  class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+                  >Operation: Ready</span
+                >
+              </div>
+              <h3
+                class="text-sm font-black text-white uppercase italic tracking-tight mb-2"
+              >
+                {{ rec.action }}
+              </h3>
+              <p class="text-[9px] text-slate-500 line-clamp-2 leading-relaxed">
+                Strategic maneuver detected by neural array. Initialize to gain
+                market advantage.
+              </p>
+            </div>
+            <div class="flex justify-between items-center">
+              <span
+                class="text-[8px] font-black uppercase tracking-widest"
+                [ngClass]="getImpactColor(rec.impact)"
+                >Impact: {{ rec.impact }}</span
+              >
+              <span
+                class="material-symbols-outlined text-sm text-brand-primary group-hover:translate-x-1 transition-transform"
+                >arrow_forward</span
+              >
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="space-y-3">
+        <h3
+          class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2"
+        >
+          Upgrade Directives
+        </h3>
+        <div class="grid grid-cols-2 gap-4">
+          @for (rec of recommendations(); track rec.id) {
+            <div
+              class="bg-black/30 rounded-2xl border border-white/10 p-5 flex flex-col gap-3"
+              [attr.data-testid]="'command-rec-' + rec.id"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <span
+                    class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+                    >{{ rec.priority }}</span
+                  >
+                  <h4 class="text-[11px] font-black text-white uppercase mt-2">
+                    {{ rec.title }}
+                  </h4>
+                </div>
+                <span class="text-[8px] font-black text-silver-dim uppercase">{{
+                  rec.cost
+                }}</span>
+              </div>
+              <p class="text-[9px] text-silver-dim leading-relaxed">
+                {{ rec.rationale }}
+              </p>
+              <div class="grid grid-cols-1 gap-2 text-[8px]">
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <span class="block text-silver-dim uppercase mb-1"
+                    >Why now</span
+                  >
+                  <span class="text-white/80">{{ rec.whyNow }}</span>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <span class="block text-silver-dim uppercase mb-1"
+                    >Next step</span
+                  >
+                  <span class="text-white/80">{{ rec.nextStep }}</span>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <span class="block text-silver-dim uppercase mb-1"
+                    >Benefit</span
+                  >
+                  <span class="text-white/80">{{ rec.expectedBenefit }}</span>
+                </div>
+              </div>
+              @if (rec.outcomeMetric) {
+                <span class="text-[8px] font-black uppercase text-brand-accent"
+                  >{{ rec.outcomeMetric.label }}:
+                  {{ rec.outcomeMetric.value }}</span
+                >
+              }
+              @if (rec.progressSignals?.length) {
+                @for (signal of rec.progressSignals; track signal.label) {
+                  <div
+                    class="rounded-xl border border-white/10 bg-black/20 p-3 text-[8px]"
+                  >
+                    <span class="block text-silver-dim uppercase mb-1">{{
+                      signal.label
+                    }}</span>
+                    <div class="grid grid-cols-2 gap-2 text-white/70">
+                      <div>
+                        <span class="block text-silver-dim uppercase mb-1"
+                          >Before</span
+                        >{{ signal.before }}
+                      </div>
+                      <div>
+                        <span class="block text-silver-dim uppercase mb-1"
+                          >After</span
+                        >{{ signal.after }}
+                      </div>
+                    </div>
+                  </div>
+                }
+              }
+              @if (rec.evidence?.length) {
+                <div class="flex flex-wrap gap-2">
+                  @for (item of rec.evidence; track item) {
+                    <span
+                      class="text-[7px] font-black uppercase text-white/60"
+                      >{{ item }}</span
+                    >
+                  }
+                </div>
+              }
+              <div class="flex flex-wrap gap-2 pt-1">
+                <button
+                  class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-brand-primary text-black"
+                  (click)="focusRecommendation(rec)"
+                  [attr.data-testid]="'command-focus-' + rec.id"
+                >
+                  {{ rec.actionLabel }}
+                </button>
+                @if (rec.state !== 'completed') {
+                  <button
+                    class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary"
+                    (click)="acquireUpgrade(rec)"
+                    [attr.data-testid]="'command-acquire-' + rec.id"
+                  >
+                    Acquire
+                  </button>
+                }
+                <button
+                  class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-white/80"
+                  (click)="saveRecommendation(rec)"
+                  [attr.data-testid]="'command-save-' + rec.id"
+                >
+                  Save
+                </button>
+                <button
+                  class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-silver-dim"
+                  (click)="dismissRecommendation(rec)"
+                  [attr.data-testid]="'command-dismiss-' + rec.id"
+                >
+                  Dismiss
+                </button>
+                @if (rec.state === 'acquired') {
+                  <button
+                    class="text-[8px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-blue-400/20 text-blue-400"
+                    (click)="completeRecommendation(rec)"
+                    [attr.data-testid]="'command-complete-' + rec.id"
+                  >
+                    Complete
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+      @if (recommendationHistory().length) {
+        <div class="space-y-3">
+          <h3
+            class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2"
+          >
+            Directive History
+          </h3>
+          <div class="space-y-2">
+            @for (entry of recommendationHistory(); track entry.updatedAt) {
+              <div
+                class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-[8px]"
+                data-testid="command-history-entry"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-white font-black uppercase">{{
+                    entry.title
+                  }}</span>
+                  <span class="text-silver-dim uppercase">{{
+                    entry.state
+                  }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
 
     <!-- RIGHT PANEL: AUDIT & ALERTS -->
     <div class="col-span-4 flex flex-col gap-6 overflow-hidden">
+      <!-- EXECUTIVE AUDIT SUMMARY -->
+      <div
+        class="bg-brand-surface/30 rounded-2xl p-6 border border-white/10 flex flex-col gap-4"
+      >
+        <div class="flex justify-between items-center mb-2">
+          <h3
+            class="digital-readout text-[10px] font-black uppercase tracking-[0.3em]"
+          >
+            Executive_Audit
+          </h3>
+          <span
+            class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+            >LIVE_DATA</span
+          >
+        </div>
 
-       <!-- EXECUTIVE AUDIT SUMMARY -->
-       <div class="bg-brand-surface/30 rounded-2xl p-6 border border-white/10 flex flex-col gap-4">
-          <div class="flex justify-between items-center mb-2">
-             <h3 class="digital-readout text-[10px] font-black uppercase tracking-[0.3em]">Executive_Audit</h3>
-             <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">LIVE_DATA</span>
+        @if (aiService.executiveAudit(); as audit) {
+          <div class="space-y-4">
+            <div class="flex items-center gap-6">
+              <div class="relative size-20">
+                <svg viewBox="0 0 36 36" class="size-full -rotate-90">
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.05)"
+                    stroke-width="3"
+                  />
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#ec5b13"
+                    [attr.stroke-dasharray]="audit.overallScore + ', 100'"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                <div
+                  class="absolute inset-0 flex flex-col items-center justify-center"
+                >
+                  <span class="text-xl font-black text-white italic">{{
+                    audit.overallScore
+                  }}</span>
+                </div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <span
+                  class="text-[10px] font-black text-white uppercase italic tracking-tighter"
+                  >Current Readiness</span
+                >
+                <span class="text-[8px] font-bold text-slate-500 uppercase"
+                  >{{ audit.criticalDeficits.length }} Critical Deficits</span
+                >
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                <div
+                  class="flex justify-between text-[8px] font-black uppercase tracking-widest mb-1"
+                >
+                  <span class="text-slate-500">Cohesion</span>
+                  <span class="text-brand-primary"
+                    >{{ audit.sonicCohesion }}%</span
+                  >
+                </div>
+                <div
+                  class="w-full h-0.5 bg-white/5 rounded-full overflow-hidden"
+                >
+                  <div
+                    class="h-full bg-brand-primary"
+                    [style.width.%]="audit.sonicCohesion"
+                  ></div>
+                </div>
+              </div>
+              <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                <div
+                  class="flex justify-between text-[8px] font-black uppercase tracking-widest mb-1"
+                >
+                  <span class="text-slate-500">Viability</span>
+                  <span class="text-brand-primary"
+                    >{{ audit.marketViability }}%</span
+                  >
+                </div>
+                <div
+                  class="w-full h-0.5 bg-white/5 rounded-full overflow-hidden"
+                >
+                  <div
+                    class="h-full bg-brand-primary"
+                    [style.width.%]="audit.marketViability"
+                  ></div>
+                </div>
+              </div>
+            </div>
           </div>
+        } @else if (aiService.isScanning()) {
+          <div
+            class="flex flex-col items-center justify-center py-12 text-center"
+          >
+            <div class="relative size-16 mb-4">
+              <div
+                class="absolute inset-0 border-2 border-brand-primary/20 rounded-full"
+              ></div>
+              <div
+                class="absolute inset-0 border-2 border-brand-primary border-t-transparent rounded-full animate-spin"
+              ></div>
+            </div>
+            <p
+              class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] animate-pulse"
+            >
+              {{ aiService.currentProcessStep() }}
+            </p>
+            <div class="w-32 h-1 bg-white/5 rounded-full mt-4 overflow-hidden">
+              <div
+                class="h-full bg-brand-primary transition-all duration-300"
+                [style.width.%]="aiService.scanningProgress()"
+              ></div>
+            </div>
+          </div>
+        } @else {
+          <div
+            class="flex flex-col items-center justify-center py-12 text-center group cursor-pointer"
+            (click)="aiService.performExecutiveAudit()"
+          >
+            <i
+              class="fas fa-microscope text-brand-brand-primary/40 text-3xl mb-4 group-hover:scale-110 group-hover:text-brand-primary transition-all"
+            ></i>
+            <p
+              class="text-[10px] font-black text-silver-dim uppercase tracking-widest"
+            >
+              Initialization Required
+            </p>
+            <button
+              class="mt-4 digital-readout text-[9px] border border-brand-brand-primary/20 px-4 py-2 rounded uppercase hover:bg-brand-brand-primary/10 transition-all"
+            >
+              Run Profile Audit
+            </button>
+          </div>
+        }
+      </div>
 
-          @if (aiService.executiveAudit(); as audit) {
-             <div class="space-y-4">
-                <div class="flex items-center gap-6">
-                   <div class="relative size-20">
-                      <svg viewBox="0 0 36 36" class="size-full -rotate-90">
-                         <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="3" />
-                         <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ec5b13" [attr.stroke-dasharray]="audit.overallScore + ', 100'" stroke-width="3" stroke-linecap="round" />
-                      </svg>
-                      <div class="absolute inset-0 flex flex-col items-center justify-center">
-                         <span class="text-xl font-black text-white italic">{{ audit.overallScore }}</span>
-                      </div>
-                   </div>
-                   <div class="flex flex-col gap-1">
-                      <span class="text-[10px] font-black text-white uppercase italic tracking-tighter">Current Readiness</span>
-                      <span class="text-[8px] font-bold text-slate-500 uppercase">{{ audit.criticalDeficits.length }} Critical Deficits</span>
-                   </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                   <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                      <div class="flex justify-between text-[8px] font-black uppercase tracking-widest mb-1">
-                         <span class="text-slate-500">Cohesion</span>
-                         <span class="text-brand-primary">{{ audit.sonicCohesion }}%</span>
-                      </div>
-                      <div class="w-full h-0.5 bg-white/5 rounded-full overflow-hidden">
-                         <div class="h-full bg-brand-primary" [style.width.%]="audit.sonicCohesion"></div>
-                      </div>
-                   </div>
-                   <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                      <div class="flex justify-between text-[8px] font-black uppercase tracking-widest mb-1">
-                         <span class="text-slate-500">Viability</span>
-                         <span class="text-brand-primary">{{ audit.marketViability }}%</span>
-                      </div>
-                      <div class="w-full h-0.5 bg-white/5 rounded-full overflow-hidden">
-                         <div class="h-full bg-brand-primary" [style.width.%]="audit.marketViability"></div>
-                      </div>
-                   </div>
-                </div>
-             </div>
-          } @else if (aiService.isScanning()) {
-             <div class="flex flex-col items-center justify-center py-12 text-center">
-                <div class="relative size-16 mb-4">
-                   <div class="absolute inset-0 border-2 border-brand-primary/20 rounded-full"></div>
-                   <div class="absolute inset-0 border-2 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
-                </div>
-                <p class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] animate-pulse">{{ aiService.currentProcessStep() }}</p>
-                <div class="w-32 h-1 bg-white/5 rounded-full mt-4 overflow-hidden">
-                   <div class="h-full bg-brand-primary transition-all duration-300" [style.width.%]="aiService.scanningProgress()"></div>
-                </div>
-             </div>
-          } @else {
-             <div class="flex flex-col items-center justify-center py-12 text-center group cursor-pointer" (click)="aiService.performExecutiveAudit()">
-                <i class="fas fa-microscope text-brand-brand-primary/40 text-3xl mb-4 group-hover:scale-110 group-hover:text-brand-primary transition-all"></i>
-                <p class="text-[10px] font-black text-silver-dim uppercase tracking-widest">Initialization Required</p>
-                <button class="mt-4 digital-readout text-[9px] border border-brand-brand-primary/20 px-4 py-2 rounded uppercase hover:bg-brand-brand-primary/10 transition-all">Run Profile Audit</button>
-             </div>
+      <!-- STRATEGIC OPERATIONS (LATEST INTEL) -->
+      <div class="space-y-4">
+        <h3
+          class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2"
+        >
+          High-Priority Intel
+        </h3>
+        <div class="space-y-3">
+          @for (
+            brief of aiService.intelligenceBriefs().slice(0, 2);
+            track brief.id
+          ) {
+            <div
+              class="hud-border p-5 bg-black/40 hover:bg-black/60 transition-all group border-white/5 hover:border-brand-brand-accent/30"
+            >
+              <div class="flex justify-between items-start mb-3">
+                <h4
+                  class="text-[11px] font-black text-white uppercase tracking-tight"
+                >
+                  {{ brief.title }}
+                </h4>
+                <span
+                  class="text-[7px] font-black px-1.5 py-0.5 rounded bg-brand-brand-accent/10 text-brand-accent uppercase border border-brand-brand-accent/20"
+                  >{{ brief.impact }}</span
+                >
+              </div>
+              <p
+                class="text-[9px] text-silver-dim leading-relaxed line-clamp-2 mb-3"
+              >
+                {{ brief.content }}
+              </p>
+              <button
+                (click)="handleCommand('/intel')"
+                class="w-full digital-readout text-[8px] border border-white/10 hover:border-brand-accent hover:bg-brand-brand-accent/5 py-2 transition-all uppercase tracking-widest"
+              >
+                View Briefing
+              </button>
+            </div>
           }
-       </div>
-
-       <!-- STRATEGIC OPERATIONS (LATEST INTEL) -->
-       <div class="space-y-4">
-          <h3 class="digital-readout text-[10px] font-black uppercase tracking-[0.3em] px-2">High-Priority Intel</h3>
-          <div class="space-y-3">
-             @for (brief of aiService.intelligenceBriefs().slice(0, 2); track brief.id) {
-                <div class="hud-border p-5 bg-black/40 hover:bg-black/60 transition-all group border-white/5 hover:border-brand-brand-accent/30">
-                   <div class="flex justify-between items-start mb-3">
-                      <h4 class="text-[11px] font-black text-white uppercase tracking-tight">{{ brief.title }}</h4>
-                      <span class="text-[7px] font-black px-1.5 py-0.5 rounded bg-brand-brand-accent/10 text-brand-accent uppercase border border-brand-brand-accent/20">{{ brief.impact }}</span>
-                   </div>
-                   <p class="text-[9px] text-silver-dim leading-relaxed line-clamp-2 mb-3">{{ brief.content }}</p>
-                   <button (click)="handleCommand('/intel')" class="w-full digital-readout text-[8px] border border-white/10 hover:border-brand-accent hover:bg-brand-brand-accent/5 py-2 transition-all uppercase tracking-widest">
-                      View Briefing
-                   </button>
-                </div>
-             }
-          </div>
-       </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- ACQUISITION OVERLAY -->
   @if (isPoweringUp()) {
-     <div class="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
-        <div class="power-up-flash absolute inset-0"></div>
-        <div class="relative flex flex-col items-center animate-enter scale-150">
-           <span class="digital-readout text-4xl font-black italic tracking-tighter mb-4 text-white drop-shadow-[0_0_20px_#10b981]">SYSTEM UPGRADED</span>
-           <span class="text-brand-primary font-black uppercase tracking-[0.5em] text-xs">Integrating Neural Components...</span>
-        </div>
-     </div>
+    <div
+      class="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
+    >
+      <div class="power-up-flash absolute inset-0"></div>
+      <div class="relative flex flex-col items-center animate-enter scale-150">
+        <span
+          class="digital-readout text-4xl font-black italic tracking-tighter mb-4 text-white drop-shadow-[0_0_20px_#10b981]"
+          >SYSTEM UPGRADED</span
+        >
+        <span
+          class="text-brand-primary font-black uppercase tracking-[0.5em] text-xs"
+          >Integrating Neural Components...</span
+        >
+      </div>
+    </div>
   }
 </div>

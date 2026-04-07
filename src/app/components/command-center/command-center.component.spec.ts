@@ -111,7 +111,8 @@ describe('CommandCenterComponent', () => {
     await component.saveRecommendation(recommendation as any);
     expect(mockProfileService.setRecommendationState).toHaveBeenCalledWith(
       'upg-room-calibration',
-      'saved'
+      'saved',
+      recommendation
     );
   });
 

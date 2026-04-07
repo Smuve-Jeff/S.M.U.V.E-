@@ -188,7 +188,9 @@
                   <span class="block text-silver-dim uppercase mb-1"
                     >Benefit</span
                   >
-                  <span class="text-white/80">{{ upgrade.expectedBenefit }}</span>
+                  <span class="text-white/80">{{
+                    upgrade.expectedBenefit
+                  }}</span>
                 </div>
               </div>
               <div class="flex flex-wrap gap-2 mb-4">
@@ -232,9 +234,10 @@
               @if (upgrade.evidence?.length) {
                 <div class="flex flex-wrap gap-2 mb-4">
                   @for (item of upgrade.evidence; track item) {
-                    <span class="text-[8px] font-black text-white/60 uppercase">{{
-                      item
-                    }}</span>
+                    <span
+                      class="text-[8px] font-black text-white/60 uppercase"
+                      >{{ item }}</span
+                    >
                   }
                 </div>
               }
