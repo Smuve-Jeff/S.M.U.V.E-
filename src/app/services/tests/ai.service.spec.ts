@@ -7,12 +7,14 @@ import { UserContextService } from '../user-context.service';
 import { StemSeparationService } from '../stem-separation.service';
 import { AudioEngineService } from '../audio-engine.service';
 import { signal } from '@angular/core';
+import { ArtistIdentityService } from '../artist-identity.service';
 
 describe('AiService', () => {
   let service: AiService;
   let userProfileService: any;
   let userContextService: any;
   let analyticsService: any;
+  let artistIdentityService: any;
 
   beforeEach(() => {
     userProfileService = {
@@ -39,6 +41,24 @@ describe('AiService', () => {
       engagement: signal({ trend: -1 }),
       streams: signal({ value: 1000 }),
     };
+    artistIdentityService = {
+      buildIdentitySnapshot: jest.fn().mockReturnValue({
+        fingerprint: {
+          trustScore: 68,
+          riskFlags: ['One or more connectors are stale'],
+        },
+        sync: { queueDepth: 2 },
+        resolution: { manualReviewRequired: true },
+        recommendations: [
+          {
+            title: 'Resolve pending connector approvals',
+            impactScore: 90,
+            confidenceScore: 82,
+            category: 'sync',
+          },
+        ],
+      }),
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -51,6 +71,7 @@ describe('AiService', () => {
         },
         { provide: UserProfileService, useValue: userProfileService },
         { provide: UserContextService, useValue: userContextService },
+        { provide: ArtistIdentityService, useValue: artistIdentityService },
         { provide: StemSeparationService, useValue: {} },
         {
           provide: AudioEngineService,
@@ -127,5 +148,15 @@ describe('AiService', () => {
     const drumResponse = await service.processCommand('/generate_drums');
     expect(bassResponse.toLowerCase()).toContain('generated');
     expect(drumResponse.toLowerCase()).toContain('generated');
+  });
+
+  it('adds identity-backed checklist items and recommendations', async () => {
+    const recommendations = await service.getStrategicRecommendations();
+    const checklist = service.getDynamicChecklist();
+
+    expect(
+      recommendations.some((item) => item.action.includes('connector'))
+    ).toBe(true);
+    expect(checklist.some((item) => item.category === 'Identity')).toBe(true);
   });
 });

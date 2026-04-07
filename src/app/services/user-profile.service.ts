@@ -1,6 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { LoggingService } from './logging.service';
 import { DatabaseService } from './database.service';
+import {
+  ArtistIdentityState,
+  createInitialArtistIdentity,
+  ensureArtistIdentityState,
+} from '../types/artist-identity.types';
 
 export interface AppSettings {
   ui: {
@@ -81,6 +86,7 @@ export interface UserProfile {
   id?: string;
   artistName: string;
   primaryGenre: string;
+  website?: string;
   settings: AppSettings;
   knowledgeBase: any;
   careerGoals: string[];
@@ -92,6 +98,7 @@ export interface UserProfile {
   proName?: string;
   proIpi?: string;
   catalog: CatalogItem[];
+  artistIdentity?: ArtistIdentityState;
 
   // Gameplay progression
   xp?: number;
@@ -129,6 +136,7 @@ export const initialProfile: UserProfile = {
   daw: [],
   marketingCampaigns: [],
   catalog: [],
+  artistIdentity: createInitialArtistIdentity('New Artist', 'Hip Hop'),
 
   xp: 0,
   level: 1,
@@ -157,8 +165,16 @@ export class UserProfileService {
     try {
       const userProfile = await this.databaseService.loadUserProfile(userId);
       if (userProfile) {
-        this.profile.set(userProfile);
-        this.profile$.set(userProfile);
+        const normalizedProfile = {
+          ...userProfile,
+          artistIdentity: ensureArtistIdentityState(
+            userProfile.artistName,
+            userProfile.primaryGenre,
+            userProfile.artistIdentity
+          ),
+        };
+        this.profile.set(normalizedProfile);
+        this.profile$.set(normalizedProfile);
       }
     } catch (error) {
       this.logger.error('UserProfileService: Failed to load profile', error);
@@ -168,9 +184,17 @@ export class UserProfileService {
   async updateProfile(newProfile: UserProfile, userId?: string): Promise<void> {
     try {
       const id = userId || 'anonymous';
-      await this.databaseService.saveUserProfile(newProfile, id);
-      this.profile.set(newProfile);
-      this.profile$.set(newProfile);
+      const normalizedProfile = {
+        ...newProfile,
+        artistIdentity: ensureArtistIdentityState(
+          newProfile.artistName,
+          newProfile.primaryGenre,
+          newProfile.artistIdentity
+        ),
+      };
+      await this.databaseService.saveUserProfile(normalizedProfile, id);
+      this.profile.set(normalizedProfile);
+      this.profile$.set(normalizedProfile);
     } catch (error) {
       this.logger.error('UserProfileService: Failed to save profile', error);
     }

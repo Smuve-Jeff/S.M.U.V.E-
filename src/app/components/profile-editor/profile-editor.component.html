@@ -1,105 +1,357 @@
-<div class="profile-editor-view bg-black/95 min-h-screen text-slate-100 font-mono relative overflow-x-hidden">
-
+<div
+  class="profile-editor-view bg-black/95 min-h-screen text-slate-100 font-mono relative overflow-x-hidden"
+>
   <div class="absolute inset-0 pointer-events-none overflow-hidden">
-    <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-brand-primary/5 to-transparent"></div>
-    <div class="absolute -top-24 -right-24 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px]"></div>
+    <div
+      class="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-brand-primary/5 to-transparent"
+    ></div>
+    <div
+      class="absolute -top-24 -right-24 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px]"
+    ></div>
   </div>
 
-  <header class="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5 p-6 flex justify-between items-center">
+  <header
+    class="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5 p-6 flex justify-between items-center"
+  >
     <div class="flex items-center gap-6">
-      <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-primary to-emerald-600 flex items-center justify-center shadow-lg shadow-brand-primary/20">
+      <div
+        class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-primary to-emerald-600 flex items-center justify-center shadow-lg shadow-brand-primary/20"
+      >
         <i class="fas fa-user-shield text-white text-xl"></i>
       </div>
       <div>
-        <h1 class="text-2xl font-black tracking-tighter uppercase italic text-white">Executive Artist Profile</h1>
-        <div class="flex items-center gap-4 text-[10px] text-slate-500 font-bold uppercase mt-1">
+        <h1
+          class="text-2xl font-black tracking-tighter uppercase italic text-white"
+        >
+          Executive Artist Profile
+        </h1>
+        <div
+          class="flex items-center gap-4 text-[10px] text-slate-500 font-bold uppercase mt-1"
+        >
           <span [class.text-brand-primary]="saveStatus() === 'saved'">
-            {{ saveStatus() === 'saving' ? 'SYNCING...' : 'VAULT_STATUS: READY' }}
+            {{
+              saveStatus() === 'saving' ? 'SYNCING...' : 'VAULT_STATUS: READY'
+            }}
           </span>
           <span class="opacity-20">|</span>
-          <span class="text-brand-primary">NEURAL STRENGTH: {{ optimizationScore() }}%</span>
+          <span class="text-brand-primary"
+            >NEURAL STRENGTH: {{ optimizationScore() }}%</span
+          >
         </div>
       </div>
     </div>
 
     <div class="flex items-center gap-4">
-      <button (click)="saveProfile()"
-              [disabled]="saveStatus() === 'saving'"
-              class="px-8 py-3 bg-brand-primary hover:bg-emerald-400 disabled:opacity-50 text-black font-black uppercase text-xs rounded-full tracking-[0.2em] transition-all shadow-lg shadow-brand-primary/30">
+      <button
+        (click)="saveProfile()"
+        [disabled]="saveStatus() === 'saving'"
+        class="px-8 py-3 bg-brand-primary hover:bg-emerald-400 disabled:opacity-50 text-black font-black uppercase text-xs rounded-full tracking-[0.2em] transition-all shadow-lg shadow-brand-primary/30"
+      >
         Commit Neural Protocol
       </button>
     </div>
   </header>
 
-  <div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 p-8 relative z-10">
-
+  <div
+    class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 p-8 relative z-10"
+  >
     <aside class="w-full lg:w-72 space-y-6">
-      <nav class="bg-white/5 border border-white/5 rounded-3xl p-4 overflow-hidden">
-        <button *ngFor="let section of sections"
-                (click)="activeSection.set(section.id)"
-                [class.active-nav]="activeSection() === section.id"
-                class="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-          <i class="fas {{section.icon}} text-lg" [class.text-brand-primary]="activeSection() === section.id"></i>
-          {{section.label}}
+      <nav
+        class="bg-white/5 border border-white/5 rounded-3xl p-4 overflow-hidden"
+      >
+        <button
+          *ngFor="let section of sections"
+          (click)="activeSection.set(section.id)"
+          [class.active-nav]="activeSection() === section.id"
+          class="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+        >
+          <i
+            class="fas {{ section.icon }} text-lg"
+            [class.text-brand-primary]="activeSection() === section.id"
+          ></i>
+          {{ section.label }}
         </button>
       </nav>
 
-      <div class="p-8 bg-brand-primary/5 border border-brand-primary/10 rounded-3xl">
-        <h4 class="text-[9px] font-black uppercase text-brand-primary tracking-[0.3em] mb-4">Strategic Intel</h4>
+      <div
+        class="p-8 bg-brand-primary/5 border border-brand-primary/10 rounded-3xl"
+      >
+        <h4
+          class="text-[9px] font-black uppercase text-brand-primary tracking-[0.3em] mb-4"
+        >
+          Strategic Intel
+        </h4>
         <div class="space-y-4">
-          <div *ngFor="let brief of intelligenceBriefs().slice(0, 2)" class="space-y-1">
-            <h5 class="text-[10px] font-black text-white uppercase">{{brief.title}}</h5>
-            <p class="text-[9px] text-slate-500 uppercase leading-relaxed">{{brief.content}}</p>
+          <div
+            *ngFor="let brief of intelligenceBriefs().slice(0, 2)"
+            class="space-y-1"
+          >
+            <h5 class="text-[10px] font-black text-white uppercase">
+              {{ brief.title }}
+            </h5>
+            <p class="text-[9px] text-slate-500 uppercase leading-relaxed">
+              {{ brief.content }}
+            </p>
           </div>
         </div>
       </div>
     </aside>
 
-    <main class="flex-1 bg-white/5 rounded-[2.5rem] border border-white/5 p-10 backdrop-blur-md relative min-h-[70vh]">
-
+    <main
+      class="flex-1 bg-white/5 rounded-[2.5rem] border border-white/5 p-10 backdrop-blur-md relative min-h-[70vh]"
+    >
       <div [ngSwitch]="activeSection()" class="relative z-10 space-y-12">
-
         <div *ngSwitchCase="'basic'" class="space-y-10 animate-fade-in">
           <header class="border-b border-white/5 pb-6">
-            <h2 class="text-3xl font-black italic uppercase text-brand-primary">Identity & Vision</h2>
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Identity & Vision
+            </h2>
           </header>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <app-form-field label="Artist / Stage Name">
-              <input type="text" [(ngModel)]="editableProfile().artistName" class="executive-input">
+              <input
+                type="text"
+                [(ngModel)]="editableProfile().artistName"
+                class="executive-input"
+              />
             </app-form-field>
             <app-form-field label="Primary Genre">
-              <select [(ngModel)]="editableProfile().primaryGenre" class="executive-input">
-                <option *ngFor="let g of allGenres" [value]="g">{{g}}</option>
+              <select
+                [(ngModel)]="editableProfile().primaryGenre"
+                class="executive-input"
+              >
+                <option *ngFor="let g of allGenres" [value]="g">{{ g }}</option>
               </select>
+            </app-form-field>
+            <app-form-field label="Official Website">
+              <input
+                type="text"
+                [(ngModel)]="editableProfile().website"
+                class="executive-input"
+                placeholder="https://yourartistdomain.com"
+              />
+            </app-form-field>
+            <app-form-field label="PRO / IPI">
+              <input
+                type="text"
+                [(ngModel)]="editableProfile().proIpi"
+                class="executive-input"
+                placeholder="IPI / CAE number"
+              />
             </app-form-field>
           </div>
 
           <section class="space-y-4">
-            <label class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Core Expertise</label>
+            <label
+              class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]"
+              >Core Expertise</label
+            >
             <div class="flex flex-wrap gap-2">
-              <button *ngFor="let skill of skillsList"
-                      (click)="toggleChip('skills', skill)"
-                      [class.chip-active]="editableProfile().skills?.includes(skill)"
-                      class="chip">
-                {{skill}}
+              <button
+                *ngFor="let skill of skillsList"
+                (click)="toggleChip('skills', skill)"
+                [class.chip-active]="editableProfile().skills?.includes(skill)"
+                class="chip"
+              >
+                {{ skill }}
               </button>
             </div>
           </section>
         </div>
 
-        <div *ngSwitchCase="'genre-deep-dive'" class="space-y-10 animate-fade-in">
+        <div
+          *ngSwitchCase="'identity-console'"
+          class="space-y-10 animate-fade-in"
+        >
           <header class="border-b border-white/5 pb-6">
-            <h2 class="text-3xl font-black italic uppercase text-brand-primary">Genre Intelligence</h2>
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Artist Identity Console
+            </h2>
+            <p
+              class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-2"
+            >
+              Unified connector telemetry, fingerprint scoring, and review
+              actions.
+            </p>
+          </header>
+
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <article class="identity-card">
+              <span class="identity-label">Trust Score</span>
+              <strong class="identity-score"
+                >{{ identityPreview().fingerprint.trustScore }}%</strong
+              >
+              <p class="identity-copy">
+                {{ identityPreview().fingerprint.changeSummary[0] }}
+              </p>
+            </article>
+            <article class="identity-card">
+              <span class="identity-label">Resolution Confidence</span>
+              <strong class="identity-score"
+                >{{ identityPreview().resolution.confidenceScore }}%</strong
+              >
+              <p class="identity-copy">
+                {{ identityPreview().resolution.explainability[0] }}
+              </p>
+            </article>
+            <article class="identity-card">
+              <span class="identity-label">Review Queue</span>
+              <strong class="identity-score">{{
+                identityPreview().sync.queueDepth
+              }}</strong>
+              <p class="identity-copy">
+                Pending connector refresh jobs and manual reviews.
+              </p>
+            </article>
+          </div>
+
+          <section class="identity-panel">
+            <div
+              class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6"
+            >
+              <div>
+                <h3 class="text-lg font-black uppercase text-white">
+                  Connector Matrix
+                </h3>
+                <p
+                  class="text-[10px] uppercase tracking-[0.2em] text-slate-500 mt-1"
+                >
+                  Official vs unofficial presence across launch connectors
+                </p>
+              </div>
+              <button
+                (click)="saveProfile()"
+                [disabled]="saveStatus() === 'saving'"
+                class="px-6 py-3 bg-brand-primary text-black rounded-full text-[10px] font-black uppercase tracking-[0.2em] disabled:opacity-50"
+              >
+                Refresh Full Identity Graph
+              </button>
+            </div>
+
+            <div class="space-y-3">
+              <article
+                *ngFor="let connector of connectorMatrix()"
+                class="connector-row"
+              >
+                <div>
+                  <div class="flex items-center gap-3">
+                    <h4 class="text-sm font-black uppercase text-white">
+                      {{ connector.connector }}
+                    </h4>
+                    <span
+                      class="connector-pill"
+                      [class.connector-pill--good]="connector.official"
+                    >
+                      {{ connector.verification }}
+                    </span>
+                  </div>
+                  <p
+                    class="text-[10px] uppercase tracking-[0.16em] text-slate-500 mt-2"
+                  >
+                    STATUS: {{ connector.status }} · HEALTH:
+                    {{ connector.health }} · AUDIENCE:
+                    {{ connector.followersOrListeners | number }}
+                  </p>
+                </div>
+                <button
+                  (click)="queueConnectorRefresh(connector.connector)"
+                  class="connector-action"
+                >
+                  Queue Refresh
+                </button>
+              </article>
+            </div>
+          </section>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <section class="identity-panel">
+              <h3 class="text-lg font-black uppercase text-white mb-6">
+                Fingerprint Risk Flags
+              </h3>
+              <div class="space-y-3">
+                <div
+                  *ngFor="
+                    let risk of identityPreview().fingerprint.riskFlags;
+                    track risk
+                  "
+                  class="risk-row"
+                >
+                  <i class="fas fa-triangle-exclamation text-brand-primary"></i>
+                  <span>{{ risk }}</span>
+                </div>
+                <p
+                  *ngIf="identityPreview().fingerprint.riskFlags.length === 0"
+                  class="text-[10px] uppercase tracking-[0.16em] text-slate-500"
+                >
+                  No active risk flags. Identity graph is aligned for
+                  automation.
+                </p>
+              </div>
+            </section>
+
+            <section class="identity-panel">
+              <h3 class="text-lg font-black uppercase text-white mb-6">
+                Next Best Actions
+              </h3>
+              <div class="space-y-4">
+                <article
+                  *ngFor="let action of topIdentityActions()"
+                  class="action-row"
+                >
+                  <div class="flex items-center justify-between gap-4">
+                    <h4 class="text-sm font-black uppercase text-white">
+                      {{ action.title }}
+                    </h4>
+                    <span
+                      class="text-[10px] text-brand-primary font-black uppercase"
+                    >
+                      {{ action.impactScore }} / {{ action.confidenceScore }}
+                    </span>
+                  </div>
+                  <p class="text-[11px] text-slate-300 leading-relaxed">
+                    {{ action.description }}
+                  </p>
+                  <p
+                    class="text-[9px] uppercase tracking-[0.16em] text-slate-500"
+                  >
+                    {{ action.actionLabel }} · {{ action.evidence[0] }}
+                  </p>
+                </article>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div
+          *ngSwitchCase="'genre-deep-dive'"
+          class="space-y-10 animate-fade-in"
+        >
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Genre Intelligence
+            </h2>
           </header>
 
           <div class="protocol-tile">
-            <div class="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center animate-pulse mx-auto mb-6">
+            <div
+              class="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center animate-pulse mx-auto mb-6"
+            >
               <i class="fas fa-brain text-brand-primary text-3xl"></i>
             </div>
-            <h3 class="text-xl font-black uppercase text-white italic mb-2">Neural Fine-Tune Protocol</h3>
-            <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-8">Initialize conversational deep-dive to calibrate your sonic trajectory.</p>
-            <button (click)="showQuestionnaire.set(true)" class="px-10 py-4 bg-brand-primary text-black text-xs font-black uppercase tracking-[0.2em] rounded-full hover:scale-105 transition-all shadow-xl shadow-brand-primary/20">
+            <h3 class="text-xl font-black uppercase text-white italic mb-2">
+              Neural Fine-Tune Protocol
+            </h3>
+            <p
+              class="text-[10px] text-slate-400 uppercase tracking-widest mb-8"
+            >
+              Initialize conversational deep-dive to calibrate your sonic
+              trajectory.
+            </p>
+            <button
+              (click)="showQuestionnaire.set(true)"
+              class="px-10 py-4 bg-brand-primary text-black text-xs font-black uppercase tracking-[0.2em] rounded-full hover:scale-105 transition-all shadow-xl shadow-brand-primary/20"
+            >
               Launch Protocol v2.0
             </button>
           </div>
@@ -110,12 +362,17 @@
         </div>
 
         <div *ngSwitchCase="'touring'" class="space-y-10 animate-fade-in">
-           <header class="border-b border-white/5 pb-6">
-            <h2 class="text-3xl font-black italic uppercase text-brand-primary">Touring & Live</h2>
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Touring & Live
+            </h2>
           </header>
           <div class="grid grid-cols-2 gap-8">
             <app-form-field label="Frequency">
-              <select [(ngModel)]="editableProfile().performancesPerYear" class="executive-input">
+              <select
+                [(ngModel)]="editableProfile().performancesPerYear"
+                class="executive-input"
+              >
                 <option value="None">None</option>
                 <option value="1-5">1-5</option>
                 <option value="6-20">6-20</option>
@@ -124,24 +381,31 @@
               </select>
             </app-form-field>
             <app-form-field label="Travel">
-              <select [(ngModel)]="editableProfile().touringDetails.travelPreference" class="executive-input">
-                <option *ngFor="let opt of travelOptions" [value]="opt">{{opt}}</option>
+              <select
+                [(ngModel)]="editableProfile().touringDetails.travelPreference"
+                class="executive-input"
+              >
+                <option *ngFor="let opt of travelOptions" [value]="opt">
+                  {{ opt }}
+                </option>
               </select>
             </app-form-field>
           </div>
         </div>
 
         <div *ngSwitchDefault class="py-20 text-center">
-          <p class="text-slate-600 uppercase text-xs tracking-[0.3em] italic">Section encrypted or under construction.</p>
+          <p class="text-slate-600 uppercase text-xs tracking-[0.3em] italic">
+            Section encrypted or under construction.
+          </p>
         </div>
-
       </div>
 
-      <app-artist-questionnaire *ngIf="showQuestionnaire()"
+      <app-artist-questionnaire
+        *ngIf="showQuestionnaire()"
         (close)="showQuestionnaire.set(false)"
-        (complete)="editableProfile.set($event)">
+        (complete)="editableProfile.set($event)"
+      >
       </app-artist-questionnaire>
-
     </main>
   </div>
 </div>
