@@ -12,19 +12,15 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { TransportBarComponent } from './transport-bar/transport-bar.component';
 import { MixerComponent } from './mixer/mixer.component';
-import { MasterControlsComponent } from './master-controls/master-controls.component';
 import { DjDeckComponent } from './dj-deck/dj-deck.component';
-import { ChannelRackComponent } from './channel-rack/channel-rack.component';
 import { ArrangementViewComponent } from './arrangement-view/arrangement-view.component';
 import { PianoRollComponent } from './piano-roll/piano-roll.component';
-import { WaveformRendererComponent } from './waveform-renderer/waveform-renderer.component';
 import { MasteringSuiteComponent } from './mastering-suite/mastering-suite.component';
 import { AudioSessionService } from './audio-session.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { AiService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
-import { SynthesizerComponent } from './synthesizer/synthesizer.component';
 import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
 
@@ -35,13 +31,9 @@ import { DrumMachineComponent } from './drum-machine/drum-machine.component';
     CommonModule,
     TransportBarComponent,
     MixerComponent,
-    MasterControlsComponent,
     DjDeckComponent,
-    ChannelRackComponent,
     ArrangementViewComponent,
     PianoRollComponent,
-    WaveformRendererComponent,
-    SynthesizerComponent,
     MasteringSuiteComponent,
     VocalSuiteComponent,
     DrumMachineComponent,

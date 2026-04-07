@@ -14,6 +14,7 @@ import {
   NavigationEnd,
 } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { AuthService } from './services/auth.service';
 import { UIService } from './services/ui.service';
 import { ChatbotComponent } from './components/chatbot/chatbot.component';
@@ -60,6 +61,7 @@ export class AppComponent {
   databaseService = inject(DatabaseService);
   autoSaveService = inject(AutoSaveService);
   commandPalette = inject(CommandPaletteService);
+  swUpdate = inject(SwUpdate, { optional: true });
   router = inject(Router);
 
   isSidebarOpen = signal(true);
@@ -82,6 +84,7 @@ export class AppComponent {
 
   constructor() {
     this.checkMobile();
+    this.setupAppUpdateNotifications();
     this.updateFullPageMode(this.router.url);
 
     this.router.events
@@ -112,7 +115,10 @@ export class AppComponent {
   }
 
   private checkMobile() {
-    if (typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    if (
+      typeof navigator !== 'undefined' &&
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    ) {
       if (!this.uiService.performanceMode()) {
         this.uiService.togglePerformanceMode();
       }
@@ -133,6 +139,37 @@ export class AppComponent {
       ['piano-roll', 'tha-spot', 'networking'].includes(path) ||
         (path === 'studio' && this.isMobile())
     );
+  }
+
+  private isVersionReadyEvent(event: unknown): event is VersionReadyEvent {
+    return (
+      !!event &&
+      typeof event === 'object' &&
+      'type' in event &&
+      (event as { type?: unknown }).type === 'VERSION_READY'
+    );
+  }
+
+  private setupAppUpdateNotifications() {
+    if (!this.swUpdate?.isEnabled) return;
+
+    this.swUpdate?.versionUpdates
+      .pipe(filter((event) => this.isVersionReadyEvent(event)))
+      .subscribe(() => {
+        const shouldRefresh = window.confirm(
+          'A new version of S.M.U.V.E is available. Refresh now to update?'
+        );
+        if (shouldRefresh) {
+          window.location.reload();
+          return;
+        }
+
+        this.notificationService.show(
+          'Update available. Refresh when ready.',
+          'info',
+          8000
+        );
+      });
   }
 
   private getPrimaryRoute(url: string): string {
