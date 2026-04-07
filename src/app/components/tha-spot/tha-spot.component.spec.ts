@@ -120,15 +120,6 @@ const mockFeed: ThaSpotFeed = {
       campaignType: 'studio',
     },
   ],
-  leaderboards: [
-    {
-      id: 'board-1',
-      label: 'Weekly bracket',
-      score: '12,000',
-      roomId: 'versus-night',
-      trend: '+8%',
-    },
-  ],
   recommendationRails: [
     {
       id: 'producer-rail',
@@ -251,11 +242,12 @@ describe('ThaSpotComponent', () => {
         },
       },
       thaSpotProgression: {
-        currentStreak: 2,
         favoriteRoomId: 'producer-lounge',
         earnedCosmetics: ['Weekend skin'],
       },
     }),
+    recordGameLaunch: jest.fn().mockResolvedValue(undefined),
+    recordGameResult: jest.fn().mockResolvedValue(undefined),
     recordGameSession: jest.fn().mockResolvedValue(undefined),
   };
 
@@ -329,10 +321,6 @@ describe('ThaSpotComponent', () => {
         ...profile.gameStats,
         '1': { plays: 5, lastPlayedAt: Date.now() },
       },
-      thaSpotProgression: {
-        ...profile.thaSpotProgression,
-        currentStreak: 4,
-      },
     }));
     fixture.detectChanges();
 
@@ -355,7 +343,7 @@ describe('ThaSpotComponent', () => {
     expect(component.activeEvents()[0]?.status).toBe('live');
   }));
 
-  it('opens a governed preview before starting a game', () => {
+  it('opens a preview before starting a game', () => {
     component.previewGame(mockFeed.games[0]!);
 
     expect(component.selectedGame()?.name).toBe('Tha Battlefield');
@@ -372,7 +360,7 @@ describe('ThaSpotComponent', () => {
 
     expect(component.isMatchmaking()).toBe(false);
     expect(component.currentGame()?.id).toBe('1');
-    expect(profileServiceMock.recordGameSession).toHaveBeenCalledWith(
+    expect(profileServiceMock.recordGameLaunch).toHaveBeenCalledWith(
       '1',
       expect.objectContaining({
         roomId: 'all',
@@ -386,7 +374,7 @@ describe('ThaSpotComponent', () => {
     component.confirmLaunch();
 
     expect(component.currentGame()?.id).toBe('2');
-    expect(profileServiceMock.recordGameSession).toHaveBeenCalledWith(
+    expect(profileServiceMock.recordGameLaunch).toHaveBeenCalledWith(
       '2',
       expect.objectContaining({
         roomId: 'all',
@@ -394,7 +382,7 @@ describe('ThaSpotComponent', () => {
     );
   });
 
-  it('blocks inline launch when a cabinet requires external governance', () => {
+  it('opens a new tab when a cabinet is external-only', () => {
     const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
     const game = {
       ...component.games()[0]!,
@@ -411,6 +399,7 @@ describe('ThaSpotComponent', () => {
     expect(component.currentGame()).toBeNull();
   });
 
+  it('records game completion without persisting gameplay scores', () => {
   it('ignores posted scores when sessions end', () => {
     const sourceWindow = {} as Window;
     const sessionCallCount =
@@ -426,6 +415,11 @@ describe('ThaSpotComponent', () => {
       source: sourceWindow,
     } as MessageEvent);
 
+    expect(profileServiceMock.recordGameResult).toHaveBeenCalledWith(
+      '1',
+      expect.objectContaining({
+        roomId: 'all',
+      })
     expect(profileServiceMock.recordGameSession.mock.calls).toHaveLength(
       sessionCallCount
     );

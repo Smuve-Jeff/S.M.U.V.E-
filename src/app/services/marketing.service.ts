@@ -1,5 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
+import { ArtistIdentityService } from './artist-identity.service';
 import {
   MarketingCampaign,
   SocialPlatformData,
@@ -11,12 +12,13 @@ import {
 })
 export class MarketingService {
   private profileService = inject(UserProfileService);
+  private artistIdentityService = inject(ArtistIdentityService);
 
   campaigns = computed(
     () => this.profileService.profile().marketingCampaigns || []
   );
 
-  socialData = signal<SocialPlatformData[]>([
+  private fallbackSocialData = signal<SocialPlatformData[]>([
     {
       platform: 'Instagram',
       followers: 12500,
@@ -39,7 +41,7 @@ export class MarketingService {
     },
   ]);
 
-  streamingData = signal<StreamingData[]>([
+  private fallbackStreamingData = signal<StreamingData[]>([
     {
       platform: 'Spotify',
       monthlyListeners: 85000,
@@ -60,6 +62,16 @@ export class MarketingService {
       lastUpdated: Date.now(),
     },
   ]);
+
+  socialData = computed(() => {
+    const social = this.artistIdentityService.getSocialPlatformData();
+    return social.length > 0 ? social : this.fallbackSocialData();
+  });
+
+  streamingData = computed(() => {
+    const streaming = this.artistIdentityService.getStreamingPlatformData();
+    return streaming.length > 0 ? streaming : this.fallbackStreamingData();
+  });
 
   async createCampaign(campaign: Omit<MarketingCampaign, 'id'>): Promise<void> {
     const newCampaign: MarketingCampaign = {

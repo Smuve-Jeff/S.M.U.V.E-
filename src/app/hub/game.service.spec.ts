@@ -32,7 +32,6 @@ const mockFeed: ThaSpotFeed = {
   liveEvents: [],
   socialPresence: [],
   promotions: [],
-  leaderboards: [],
   recommendationRails: [
     {
       id: 'returning',

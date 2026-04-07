@@ -209,6 +209,13 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     },
   ];
 
+  getCareerFocusProgress(): number {
+    return Math.min(
+      100,
+      this.profileService.profile().careerGoals.length * 20 || 20
+    );
+  }
+
   updateQuickProfile(field: string, value: string) {
     this.quickProfile.update((p) => ({ ...p, [field]: value }));
   }

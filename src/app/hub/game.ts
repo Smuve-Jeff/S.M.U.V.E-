@@ -74,7 +74,7 @@ export interface LiveEventSchedule {
   endAt?: string;
   recurrence?: 'once' | 'daily' | 'weekend';
   eligibilityTags?: string[];
-  rewardType?: 'xp' | 'cosmetic' | 'token';
+  rewardType?: 'cosmetic' | 'token';
 }
 
 export interface LiveEvent {
@@ -119,20 +119,11 @@ export interface PromotionCard {
   campaignType?: 'studio' | 'arena' | 'intel' | 'community';
 }
 
-export interface LeaderboardEntry {
-  id: string;
-  label: string;
-  score: string;
-  roomId: string;
-  trend: string;
-}
-
 export interface RecommendationAudience {
   primaryGenres?: string[];
   rooms?: string[];
   minPlays?: number;
   maxPlays?: number;
-  requiresAchievements?: boolean;
 }
 
 export interface RecommendationWeights {
@@ -162,7 +153,6 @@ export interface ThaSpotFeed {
   liveEvents: LiveEvent[];
   socialPresence: SocialPresence[];
   promotions: PromotionCard[];
-  leaderboards: LeaderboardEntry[];
   recommendationRails: RecommendationRail[];
   games: Game[];
 }

@@ -10,6 +10,9 @@ export interface SyncQueueItem {
   timestamp: number;
   retryCount: number;
   maxRetries: number;
+  channel?: 'default' | 'connector' | 'webhook';
+  connectorId?: string;
+  userId?: string;
 }
 
 @Injectable({
@@ -63,7 +66,8 @@ export class OfflineSyncService {
   async queueOperation(
     action: SyncQueueItem['action'],
     endpoint: string,
-    payload: any
+    payload: any,
+    metadata: Pick<SyncQueueItem, 'channel' | 'connectorId' | 'userId'> = {}
   ): Promise<string> {
     const item: SyncQueueItem = {
       id: `sync_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
@@ -73,6 +77,9 @@ export class OfflineSyncService {
       timestamp: Date.now(),
       retryCount: 0,
       maxRetries: this.MAX_RETRIES,
+      channel: metadata.channel || 'default',
+      connectorId: metadata.connectorId,
+      userId: metadata.userId,
     };
 
     await this.localStorage.saveItem(this.SYNC_STORE, item);
@@ -86,6 +93,19 @@ export class OfflineSyncService {
     }
 
     return item.id;
+  }
+
+  async queueConnectorSync(
+    connectorId: string,
+    endpoint: string,
+    payload: any,
+    userId?: string
+  ): Promise<string> {
+    return this.queueOperation('UPDATE', endpoint, payload, {
+      channel: 'connector',
+      connectorId,
+      userId,
+    });
   }
 
   /**
@@ -200,6 +220,7 @@ export class OfflineSyncService {
   async getQueueStatus(): Promise<{
     pending: number;
     deadLetter: number;
+    connectorPending: number;
     isOnline: boolean;
     lastSync: number | null;
   }> {
@@ -209,6 +230,8 @@ export class OfflineSyncService {
     return {
       pending: pending.length,
       deadLetter: deadLetter.length,
+      connectorPending: pending.filter((item) => item.channel === 'connector')
+        .length,
       isOnline: this.networkStatus() === 'online',
       lastSync: this.lastSyncAttempt(),
     };

@@ -36,6 +36,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       title: 'Fallback Floor Challenge',
       description: 'Queue up while Tha Spot refreshes the live schedule.',
       roomId: 'arcade',
+      reward: 'Featured cosmetic',
       reward: 'Studio skin drop',
       status: 'live',
       windowLabel: 'Live now',
@@ -160,7 +161,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       ],
       launchConfig: {
         difficulty: 'Medium',
-        objectives: ['Survive the first wave', 'Hit a 10x streak'],
+        objectives: ['Survive the first wave', 'Keep a clean run going'],
         controls: ['Arrow keys'],
         modes: ['Solo'],
         embedMode: 'inline',
@@ -186,6 +187,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Rhythm', 'Arcade', 'Original'],
       badgeIds: ['staff-pick'],
       queueEstimateMinutes: 0,
+      sessionObjectives: ['Hold a clean note chain', 'Stay above 95% timing'],
       sessionObjectives: ['Hold a clean 25-note run', 'Stay above 95% timing'],
       controlHints: ['Use the displayed lane keys', 'Anticipate sync shifts'],
       launchConfig: {
