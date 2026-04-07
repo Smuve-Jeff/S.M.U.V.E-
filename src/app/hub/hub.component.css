@@ -949,8 +949,7 @@
 
   .panel-studio,
   .panel-command,
-  .panel-intel,
-  .panel-cinema {
+  .panel-intel {
     transform: none;
   }
 }
