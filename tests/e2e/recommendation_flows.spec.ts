@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test('recommendation actions persist across strategy, practice, and command surfaces', async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    localStorage.clear();
-  });
+  await page.addInitScript(() => localStorage.clear());
 
   await page.goto('/practice');
 
@@ -23,12 +23,12 @@ test('recommendation actions persist across strategy, practice, and command surf
   await page.goto('/strategy');
   await page.getByRole('button', { name: /^outreach$/i }).click();
   await expect(
-    page.getByTestId('strategy-rec-upg-dsp-promotion')
+    page.getByTestId('strategy-recommendation-upg-dsp-promotion')
   ).toBeVisible();
   await page.getByTestId('strategy-dismiss-upg-dsp-promotion').click();
-  await expect(page.getByTestId('strategy-rec-upg-dsp-promotion')).toHaveCount(
-    0
-  );
+  await expect(
+    page.getByTestId('strategy-recommendation-upg-dsp-promotion')
+  ).toHaveCount(0);
   await expect(page.getByTestId('strategy-inbox-entry').first()).toBeVisible();
 
   await page.goto('/career');

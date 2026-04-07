@@ -1112,7 +1112,7 @@ export class AiService {
       return undefined;
     }
 
-    const stateLabel = preference.state.replace('-', ' ');
+    const stateLabel = preference.state.replaceAll('-', ' ');
     return `Last action: ${stateLabel} • ${new Date(
       preference.updatedAt
     ).toLocaleDateString()}`;

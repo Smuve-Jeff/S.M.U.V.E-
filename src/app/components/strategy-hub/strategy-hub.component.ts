@@ -41,7 +41,9 @@ export class StrategyHubComponent implements OnInit {
 
   viralHooks = this.aiService.getViralHooks();
 
-  upgradeRecs = computed(() => this.aiService.getUpgradeRecommendations());
+  upgradeRecs = computed(() =>
+    this.aiService.getUpgradeRecommendations().slice(0, 5)
+  );
   recommendationInbox = computed(() =>
     [...(this.profile().recommendationHistory || [])]
       .slice()
@@ -204,7 +206,7 @@ export class StrategyHubComponent implements OnInit {
   }
 
   getHistoryStateLabel(state: string): string {
-    return state.replace('-', ' ');
+    return state.replaceAll('-', ' ');
   }
 
   getSeverityClass(severity: string): string {

@@ -216,6 +216,9 @@ export class UserProfileService {
     }
 
     const current = this.profile();
+    const currentPreference = (current.recommendationPreferences || {})[
+      recommendationId
+    ];
     await this.updateProfile({
       ...current,
       recommendationPreferences: {
@@ -223,9 +226,7 @@ export class UserProfileService {
         [recommendationId]: {
           state,
           updatedAt: Date.now(),
-          actionCount:
-            ((current.recommendationPreferences || {})[recommendationId]
-              ?.actionCount || 0) + 1,
+          actionCount: (currentPreference?.actionCount || 0) + 1,
         },
       },
       recommendationHistory: this.appendRecommendationHistory(
