@@ -221,13 +221,18 @@ export class ArtistIdentityService {
     connectorId: ConnectorPlatform,
     profile: UserProfile
   ): Promise<UserProfile> {
+    const userId = profile.id || 'anonymous';
     const taskId = await this.offlineSync.queueConnectorSync(
       connectorId,
-      `${this.database.apiUrl}/identity/${profile.id || 'anonymous'}/connectors/${encodeURIComponent(connectorId)}/sync`,
+      `${this.database.apiUrl}/identity/${userId}/connectors/${encodeURIComponent(connectorId)}/sync`,
       {
-        artistName: profile.artistName,
-        requestedAt: Date.now(),
-      }
+        trigger: 'manual',
+        payload: {
+          artistName: profile.artistName,
+          requestedAt: Date.now(),
+        },
+      },
+      userId
     );
 
     const identity = this.buildIdentitySnapshot(profile);
