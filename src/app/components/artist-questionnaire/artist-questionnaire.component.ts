@@ -288,8 +288,13 @@ export class ArtistQuestionnaireComponent {
   }
 
   applyChanges() {
-    this.userProfileService.updateProfile(this.profileDraft());
-    this.complete.emit(this.profileDraft());
+    const completedProfile = {
+      ...this.profileDraft(),
+      profileSetupCompleted: true,
+      profileSetupCompletedAt: Date.now(),
+    };
+    this.userProfileService.updateProfile(completedProfile);
+    this.complete.emit(completedProfile);
     this.close.emit();
   }
 }

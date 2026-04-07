@@ -36,7 +36,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       title: 'Fallback Floor Challenge',
       description: 'Queue up while Tha Spot refreshes the live schedule.',
       roomId: 'arcade',
-      reward: '200 XP',
+      reward: 'Studio skin drop',
       status: 'live',
       windowLabel: 'Live now',
       badgeId: 'tournament-live',
@@ -45,7 +45,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         startAt: '2026-04-01T18:00:00.000Z',
         endAt: '2026-04-30T23:59:59.000Z',
         recurrence: 'once',
-        rewardType: 'xp',
+        rewardType: 'cosmetic',
       },
     },
   ],
@@ -102,15 +102,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       campaignType: 'intel',
     },
   ],
-  leaderboards: [
-    {
-      id: 'fallback-board-1',
-      label: 'Cipher Surge Daily',
-      score: '9,840',
-      roomId: 'strategy',
-      trend: '+12%',
-    },
-  ],
+  leaderboards: [],
   recommendationRails: [
     {
       id: 'fallback-returning',
@@ -194,7 +186,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Rhythm', 'Arcade', 'Original'],
       badgeIds: ['staff-pick'],
       queueEstimateMinutes: 0,
-      sessionObjectives: ['Lock a 25-note streak', 'Stay above 95% timing'],
+       sessionObjectives: ['Hold a clean 25-note run', 'Stay above 95% timing'],
       controlHints: ['Use the displayed lane keys', 'Anticipate sync shifts'],
       launchConfig: {
         difficulty: 'Adaptive',

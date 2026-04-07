@@ -19,7 +19,6 @@ import {
   Game,
   GameBadge,
   GameRoom,
-  LeaderboardEntry,
   LiveEvent,
   PromotionCard,
   RecommendationRail,
@@ -35,7 +34,6 @@ const MAX_HISTORY_SCORE = 24;
 const HISTORY_SCORE_DIVISOR = 6;
 const FEED_REFRESH_INTERVAL_MS = 300000;
 const EVENT_ENDING_SOON_MS = 1000 * 60 * 60 * 6;
-const MAX_GAME_SCORE = 1_000_000;
 
 @Component({
   selector: 'app-tha-spot',
@@ -67,9 +65,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     THA_SPOT_FALLBACK_FEED.socialPresence
   );
   promotions = signal<PromotionCard[]>(THA_SPOT_FALLBACK_FEED.promotions);
-  leaderboards = signal<LeaderboardEntry[]>(
-    THA_SPOT_FALLBACK_FEED.leaderboards
-  );
   games = signal<Game[]>(THA_SPOT_FALLBACK_FEED.games);
   recommendationRails = signal<RecommendationRail[]>(
     THA_SPOT_FALLBACK_FEED.recommendationRails
@@ -122,13 +117,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   roomPresence = computed(() => {
     const roomId = this.activeRoom();
     return this.socialPresence().filter(
-      (entry) => roomId === 'all' || entry.roomId === roomId
-    );
-  });
-
-  activeLeaderboards = computed(() => {
-    const roomId = this.activeRoom();
-    return this.leaderboards().filter(
       (entry) => roomId === 'all' || entry.roomId === roomId
     );
   });
@@ -316,24 +304,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     return directives.slice(0, 4);
   });
 
-  progressionSummary = computed(() => {
+  activitySummary = computed(() => {
     const profile = this.profileService.profile();
     const stats = profile.gameStats || {};
     const progression = profile.thaSpotProgression || {};
     const totalPlays = this.getTotalPlays();
-    const masteredRoom =
+    const favoriteRoom =
       this.gamingRooms().find(
         (room) => room.id === progression.favoriteRoomId
       ) || this.findMasteredRoom(stats);
-    const currentStreak = progression.currentStreak || 0;
+    const latestRoom =
+      this.gamingRooms().find((room) => room.id === progression.lastRoomId) ||
+      favoriteRoom;
     return {
-      level: profile.level || 1,
-      xp: profile.xp || 0,
-      achievements: (profile.achievements || []).length,
       totalPlays,
-      masteryLabel: masteredRoom?.name || 'Choose a room',
-      streakLabel:
-        currentStreak > 0 ? `${currentStreak} session streak` : 'No streak yet',
+      favoriteRoomLabel: favoriteRoom?.name || 'Choose a room',
+      latestRoomLabel: latestRoom?.name || 'No sessions yet',
+      sessionLabel:
+        totalPlays > 0 ? `${totalPlays} tracked sessions` : 'Start with any cabinet',
       cosmetics: (progression.earnedCosmetics || []).length,
     };
   });
@@ -391,7 +379,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       this.canEmbedInline(game)
         ? game.launchConfig?.trustNote ||
             'Exact embed target verified from the live feed.'
-        : 'Inline launch blocked because this cabinet requires a governed external launch.'
+        : 'Inline launch is unavailable for this cabinet, so it will open in a new tab.'
     );
     this.frameError.set(null);
   }
@@ -447,7 +435,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         } else if (progress < 70) {
           this.matchmakingStatus.set('MATCHING ROOM PRESENCE');
         } else {
-          this.matchmakingStatus.set('LOCKING OPPONENT PROFILE');
+          this.matchmakingStatus.set('CONFIRMING OPPONENT PROFILE');
         }
 
         this.matchmakingProgress.update((value) => Math.min(100, value + 10));
@@ -478,7 +466,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       game.id,
       this.getSessionContext(game)
     );
-    await this.unlockProgressionMilestones(game, 0);
   }
 
   closeGame() {
@@ -583,22 +570,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
 
     if (data.type === 'GAME_OVER') {
-      const rawScore = Number(data.payload?.score);
-      const score = Math.min(
-        MAX_GAME_SCORE,
-        Math.max(0, Math.floor(Number.isFinite(rawScore) ? rawScore : 0))
-      );
-
-      void this.profileService.awardXp(
-        Math.max(25, Math.floor(score / 100)),
-        'gaming_session'
-      );
-      void this.profileService.recordGameResult(
-        currentGame.id,
-        score,
-        this.getSessionContext(currentGame, score)
-      );
-      void this.unlockProgressionMilestones(currentGame, score);
+      return;
     }
   }
 
@@ -625,43 +597,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       this.gameIframe?.nativeElement?.contentWindow === event.source &&
       !!game.launchConfig?.telemetryOrigins?.includes(event.origin)
     );
-  }
-
-  private async unlockProgressionMilestones(game: Game, score: number) {
-    const profile = this.profileService.profile();
-    const totalPlays = this.getTotalPlays();
-    const distinctGames = Object.keys(profile.gameStats || {}).length;
-
-    if (totalPlays >= 1) {
-      await this.profileService.unlockAchievement(
-        'tha-spot-first-run',
-        'Tha Spot First Run'
-      );
-    }
-    if (totalPlays >= 10) {
-      await this.profileService.unlockAchievement(
-        'tha-spot-regular',
-        'Tha Spot Regular'
-      );
-    }
-    if (distinctGames >= 5) {
-      await this.profileService.unlockAchievement(
-        'tha-spot-explorer',
-        'Tha Spot Explorer'
-      );
-    }
-    if (score >= 1000) {
-      await this.profileService.unlockAchievement(
-        'tha-spot-high-score',
-        'Tha Spot High Score'
-      );
-    }
-    if (game.badgeIds?.includes('tournament-live')) {
-      await this.profileService.unlockAchievement(
-        'tha-spot-bracket',
-        'Bracket Ready'
-      );
-    }
   }
 
   private getTotalPlays() {
@@ -707,7 +642,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         this.liveEvents.set(feed.liveEvents);
         this.socialPresence.set(feed.socialPresence);
         this.promotions.set(feed.promotions);
-        this.leaderboards.set(feed.leaderboards);
         this.recommendationRails.set(feed.recommendationRails);
         this.games.set(feed.games);
 
@@ -778,7 +712,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
     if (
       audience.requiresAchievements &&
-      !(this.profileService.profile().achievements || []).length
+      totalPlays === 0
     ) {
       return false;
     }
@@ -908,8 +842,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   private getPromotionAudienceTags(profile: {
     primaryGenre?: string;
-    achievements?: { id: string }[];
     thaSpotProgression?: { currentStreak?: number };
+    gameStats?: Record<string, { plays?: number }>;
   }) {
     const tags = ['returning'];
     const genre = (profile.primaryGenre || '').toLowerCase();
@@ -920,28 +854,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     if ((profile.thaSpotProgression?.currentStreak || 0) >= 3) {
       tags.push('competitive');
     }
-    if ((profile.achievements || []).length > 0) {
+    if (Object.keys(profile.gameStats || {}).length > 0) {
       tags.push('social');
     }
 
     return tags;
   }
 
-  private getSessionContext(game: Game, score?: number) {
+  private getSessionContext(game: Game) {
     const activeEvent = this.activeEvents().find(
       (event) => event.featuredGameId === game.id
     );
-    const cosmetics =
-      score && activeEvent?.schedule?.rewardType === 'cosmetic'
-        ? [activeEvent.reward]
-        : [];
 
     return {
       roomId: this.activeRoom(),
       eventId: activeEvent?.id,
       reward: activeEvent?.reward,
       rewardType: activeEvent?.schedule?.rewardType,
-      cosmetics,
+      cosmetics: [],
     };
   }
 

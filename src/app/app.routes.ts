@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './services/auth.guard';
 
 export const routes: Routes = [
   {
@@ -11,8 +10,6 @@ export const routes: Routes = [
     path: 'studio',
     loadComponent: () =>
       import('./studio/studio.component').then((m) => m.StudioComponent),
-    canActivate: [authGuard],
-    data: { permission: 'PRODUCE_MUSIC' },
   },
   {
     path: 'vocal-suite',
@@ -51,8 +48,6 @@ export const routes: Routes = [
       import('./components/analytics-dashboard/analytics-dashboard.component').then(
         (m) => m.AnalyticsDashboardComponent
       ),
-    canActivate: [authGuard],
-    data: { permission: 'MANAGE_CATALOG' },
   },
   {
     path: 'strategy',
@@ -74,8 +69,6 @@ export const routes: Routes = [
       import('./components/projects/projects.component').then(
         (m) => m.ProjectsComponent
       ),
-    canActivate: [authGuard],
-    data: { permission: 'MANAGE_CATALOG' },
   },
   {
     path: 'release-pipeline',
@@ -90,8 +83,6 @@ export const routes: Routes = [
       import('./components/business-suite/business-suite.component').then(
         (m) => m.BusinessSuiteComponent
       ),
-    canActivate: [authGuard],
-    data: { permission: 'MANAGE_BUSINESS' },
   },
   {
     path: 'business-pipeline/:id',
@@ -106,8 +97,6 @@ export const routes: Routes = [
       import('./components/knowledge-base/knowledge-base.component').then(
         (m) => m.KnowledgeBaseComponent
       ),
-    canActivate: [authGuard],
-    data: { permission: 'AI_STRATEGY' },
   },
   {
     path: 'lyric-editor',
@@ -136,8 +125,6 @@ export const routes: Routes = [
       import('./components/settings/settings.component').then(
         (m) => m.SettingsComponent
       ),
-    canActivate: [authGuard],
-    data: { permission: 'MANAGE_SETTINGS' },
   },
   {
     path: 'login',

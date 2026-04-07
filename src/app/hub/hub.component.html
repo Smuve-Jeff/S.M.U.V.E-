@@ -64,8 +64,8 @@
           <span class="stat-value text-primary">{{ profileService.profile().knowledgeBase.strategicHealthScore }}%</span>
         </div>
         <div class="executive-stat">
-          <span class="stat-label">Label Level</span>
-          <span class="stat-value text-accent">LVL {{ profileService.profile().level }}</span>
+          <span class="stat-label">Workspace Access</span>
+          <span class="stat-value text-accent">OPEN</span>
         </div>
       </div>
     </header>
@@ -157,28 +157,28 @@
           <h2 class="card-heading glimmer-text">Career Path</h2>
           <div class="flex-1 mt-6 space-y-6">
             <div class="progress-circle-container">
-              <div class="level-badge">LVL {{ profileService.profile().level }}</div>
+              <div class="level-badge">OPEN</div>
               <svg viewBox="0 0 36 36" class="circular-chart">
                 <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <path class="circle text-secondary" [attr.stroke-dasharray]="(profileService.profile().xp % 250 / 2.5) + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle text-secondary" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
               </svg>
             </div>
             <div class="text-center">
-              <p class="text-xs uppercase tracking-widest opacity-60">Next Milestone</p>
-              <p class="font-bold text-sm">Regional Takeover</p>
+              <p class="text-xs uppercase tracking-widest opacity-60">Profile Complete</p>
+              <p class="font-bold text-sm">Every workspace is ready to use.</p>
             </div>
             <div class="space-y-2">
               <div class="achievement-pill">
                 <span class="material-symbols-outlined text-xs">verified</span>
-                <span>Billboard Registered</span>
+                <span>Artist profile committed</span>
               </div>
-              <div class="achievement-pill opacity-40">
-                <span class="material-symbols-outlined text-xs">lock</span>
-                <span>Sold Out Tour</span>
+              <div class="achievement-pill">
+                <span class="material-symbols-outlined text-xs">apps</span>
+                <span>Studio, visuals, strategy, and release tools are open</span>
               </div>
             </div>
           </div>
-          <button class="btn-pro-outline w-full mt-4">Expand Board</button>
+          <button class="btn-pro-outline w-full mt-4">Open Workspace Board</button>
         </div>
       </div>
 

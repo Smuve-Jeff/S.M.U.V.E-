@@ -51,7 +51,7 @@ const mockFeed: ThaSpotFeed = {
       title: 'Live Bracket',
       description: 'Queue into the main event.',
       roomId: 'versus-night',
-      reward: '500 XP',
+      reward: 'Clash Banner',
       status: 'live',
       windowLabel: 'Live now',
       featuredGameId: '1',
@@ -77,7 +77,7 @@ const mockFeed: ThaSpotFeed = {
         startAt: '2026-04-06T20:00:00.000Z',
         endAt: '2026-04-07T20:00:00.000Z',
         recurrence: 'daily',
-        rewardType: 'xp',
+        rewardType: 'cosmetic',
       },
     },
   ],
@@ -243,14 +243,10 @@ describe('ThaSpotComponent', () => {
       equipment: [],
       daw: [],
       catalog: [],
-      xp: 320,
-      level: 3,
-      achievements: [],
       gameStats: {
         '2': {
           plays: 2,
           lastPlayedAt: Date.now() - 5000,
-          bestScore: 900,
           currentStreak: 2,
         },
       },
@@ -261,9 +257,6 @@ describe('ThaSpotComponent', () => {
       },
     }),
     recordGameSession: jest.fn().mockResolvedValue(undefined),
-    recordGameResult: jest.fn().mockResolvedValue(undefined),
-    awardXp: jest.fn().mockResolvedValue(undefined),
-    unlockAchievement: jest.fn().mockResolvedValue(undefined),
   };
 
   const uiServiceMock = {
@@ -322,7 +315,9 @@ describe('ThaSpotComponent', () => {
     expect(component.recommendedGames().length).toBeGreaterThan(0);
     expect(component.recentlyPlayed()[0].name).toBe('Tempo Lockdown');
     expect(component.liveMetrics().roomPlayers).toBe(1590);
-    expect(component.progressionSummary().masteryLabel).toBe('Producer Lounge');
+    expect(component.activitySummary().favoriteRoomLabel).toBe(
+      'Producer Lounge'
+    );
   });
 
   it('changes recommendation rails when the profile type changes', () => {
@@ -415,7 +410,7 @@ describe('ThaSpotComponent', () => {
     expect(component.currentGame()).toBeNull();
   });
 
-  it('caps posted scores before persisting results', () => {
+  it('ignores posted scores when sessions end', () => {
     const sourceWindow = {} as Window;
     component.currentGame.set(component.games()[0]!);
     (component as any).gameIframe = {
@@ -428,11 +423,11 @@ describe('ThaSpotComponent', () => {
       source: sourceWindow,
     } as MessageEvent);
 
-    expect(profileServiceMock.recordGameResult).toHaveBeenCalledWith(
+    expect(profileServiceMock.recordGameSession).not.toHaveBeenCalledWith(
       '1',
-      1_000_000,
       expect.objectContaining({
         roomId: 'all',
+        score: expect.anything(),
       })
     );
   });
