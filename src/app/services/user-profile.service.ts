@@ -2,6 +2,9 @@ import { Injectable, inject, signal } from '@angular/core';
 import { LoggingService } from './logging.service';
 import { DatabaseService } from './database.service';
 import {
+  RecommendationHistoryEntry,
+  UpgradeRecommendation,
+} from '../types/ai.types';
   ArtistIdentityState,
   createInitialArtistIdentity,
   ensureArtistIdentityState,
@@ -76,6 +79,12 @@ export interface ThaSpotSessionContext {
   cosmetics?: string[];
 }
 
+export interface RecommendationPreference {
+  state: NonNullable<UpgradeRecommendation['state']>;
+  updatedAt: number;
+  actionCount?: number;
+}
+
 export interface UserProfile {
   id?: string;
   artistName: string;
@@ -86,6 +95,9 @@ export interface UserProfile {
   careerGoals: string[];
   equipment: string[];
   daw: string[];
+  services?: string[];
+  recommendationPreferences?: Record<string, RecommendationPreference>;
+  recommendationHistory?: RecommendationHistoryEntry[];
   expertise?: any;
   team?: any[];
   marketingCampaigns?: any[];
@@ -125,6 +137,9 @@ export const initialProfile: UserProfile = {
   careerGoals: [],
   equipment: [],
   daw: [],
+  services: [],
+  recommendationPreferences: {},
+  recommendationHistory: [],
   marketingCampaigns: [],
   catalog: [],
   artistIdentity: createInitialArtistIdentity('New Artist', 'Hip Hop'),
@@ -217,32 +232,64 @@ export class UserProfileService {
     }
   }
 
-  async acquireUpgrade(upgrade: { title: string; type: string }) {
-    const current = this.profile();
-    const title = upgrade.title?.trim() || '';
-    const next: UserProfile = {
-      ...current,
-      equipment: [...(current.equipment || [])],
-      daw: [...(current.daw || [])],
-    };
+  async acquireUpgrade(upgrade: {
+    title: string;
+    type: string;
+    recommendationId?: string;
+  }) {
+    const next = this.buildUpgradeState(this.profile(), upgrade, 'acquired');
+    if (!next) {
+      return;
+    }
+    await this.updateProfile(next);
+  }
 
-    if (!title) {
+  async completeUpgrade(upgrade: {
+    title: string;
+    type: string;
+    recommendationId?: string;
+  }) {
+    const next = this.buildUpgradeState(this.profile(), upgrade, 'completed');
+    if (!next) {
+      return;
+    }
+    await this.updateProfile(next);
+  }
+
+  async setRecommendationState(
+    recommendationId: string,
+    state: NonNullable<UpgradeRecommendation['state']>,
+    recommendation?: Pick<UpgradeRecommendation, 'title' | 'type'>
+  ) {
+    if (!recommendationId) {
       return;
     }
 
-    if (upgrade.type === 'Gear') {
-      if (next.equipment.includes(title)) {
-        return;
-      }
-      next.equipment.push(title);
-    } else {
-      if (next.daw.includes(title)) {
-        return;
-      }
-      next.daw.push(title);
-    }
-
-    await this.updateProfile(next);
+    const current = this.profile();
+    const currentPreference = (current.recommendationPreferences || {})[
+      recommendationId
+    ];
+    await this.updateProfile({
+      ...current,
+      recommendationPreferences: {
+        ...(current.recommendationPreferences || {}),
+        [recommendationId]: {
+          state,
+          updatedAt: Date.now(),
+          actionCount: (currentPreference?.actionCount || 0) + 1,
+        },
+      },
+      recommendationHistory: this.appendRecommendationHistory(
+        current.recommendationHistory,
+        {
+          recommendationId,
+          title: recommendation?.title || recommendationId,
+          type: recommendation?.type || 'Service',
+          state,
+          updatedAt: Date.now(),
+        }
+      ),
+    });
   }
 
   async recordGameResult(gameId: string, context: ThaSpotSessionContext = {}) {
@@ -389,9 +436,119 @@ export class UserProfileService {
   private sanitizeProfile(profile: UserProfile): UserProfile {
     return {
       ...profile,
+      equipment: [...(profile.equipment || [])],
+      daw: [...(profile.daw || [])],
+      services: [...(profile.services || [])],
+      marketingCampaigns: [...(profile.marketingCampaigns || [])],
+      catalog: [...(profile.catalog || [])],
+      recommendationPreferences: Object.fromEntries(
+        Object.entries(profile.recommendationPreferences || {}).map(
+          ([recommendationId, preference]) => [
+            recommendationId,
+            {
+              state: preference?.state || 'suggested',
+              updatedAt: preference?.updatedAt || Date.now(),
+              actionCount: preference?.actionCount || 0,
+            },
+          ]
+        )
+      ),
+      recommendationHistory: (profile.recommendationHistory || [])
+        .map((entry) => ({
+          recommendationId: entry.recommendationId,
+          title: entry.title || entry.recommendationId,
+          type: entry.type || 'Service',
+          state: entry.state || 'suggested',
+          updatedAt: entry.updatedAt || Date.now(),
+        }))
+        .slice(-30),
       gameStats: this.sanitizeGameStats(profile.gameStats),
       thaSpotProgression: this.sanitizeProgression(profile.thaSpotProgression),
     };
+  }
+
+  private buildUpgradeState(
+    current: UserProfile,
+    upgrade: { title: string; type: string; recommendationId?: string },
+    state: Extract<
+      NonNullable<UpgradeRecommendation['state']>,
+      'acquired' | 'completed'
+    >
+  ): UserProfile | null {
+    const title = upgrade.title?.trim() || '';
+    if (!title) {
+      return null;
+    }
+
+    const next: UserProfile = {
+      ...current,
+      equipment: [...(current.equipment || [])],
+      daw: [...(current.daw || [])],
+      services: [...(current.services || [])],
+      recommendationPreferences: {
+        ...(current.recommendationPreferences || {}),
+      },
+      recommendationHistory: [...(current.recommendationHistory || [])],
+    };
+
+    if (upgrade.type === 'Gear') {
+      if (!next.equipment.includes(title)) {
+        next.equipment.push(title);
+      }
+    } else if (upgrade.type === 'Software') {
+      if (!next.daw.includes(title)) {
+        next.daw.push(title);
+      }
+    } else if (upgrade.type === 'Service') {
+      if (!next.services.includes(title)) {
+        next.services.push(title);
+      }
+    } else {
+      return null;
+    }
+
+    if (!upgrade.recommendationId) {
+      return next;
+    }
+
+    const preference =
+      next.recommendationPreferences?.[upgrade.recommendationId] || undefined;
+    next.recommendationPreferences[upgrade.recommendationId] = {
+      state,
+      updatedAt: Date.now(),
+      actionCount: (preference?.actionCount || 0) + 1,
+    };
+    next.recommendationHistory = this.appendRecommendationHistory(
+      next.recommendationHistory,
+      {
+        recommendationId: upgrade.recommendationId,
+        title,
+        type: this.normalizeRecommendationType(upgrade.type),
+        state,
+        updatedAt: Date.now(),
+      }
+    );
+
+    return next;
+  }
+
+  private appendRecommendationHistory(
+    history: RecommendationHistoryEntry[] | undefined,
+    entry: RecommendationHistoryEntry
+  ): RecommendationHistoryEntry[] {
+    return [...(history || []), entry].slice(-30);
+  }
+
+  private normalizeRecommendationType(
+    type: string
+  ): UpgradeRecommendation['type'] {
+    switch (type) {
+      case 'Gear':
+      case 'Software':
+        return type;
+      default:
+        return 'Service';
+    }
   }
 
   private sanitizeGameStats(

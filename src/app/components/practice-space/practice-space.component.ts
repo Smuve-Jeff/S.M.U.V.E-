@@ -5,6 +5,7 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { UpgradeRecommendation } from '../../types/ai.types';
 
 @Component({
   selector: 'app-practice-space',
@@ -27,7 +28,19 @@ export class PracticeSpaceComponent implements OnDestroy {
   private audioContext: AudioContext | null = null;
 
   recommendedUpgrades = computed(() =>
-    this.aiService.getUpgradeRecommendations().slice(0, 3)
+    this.aiService
+      .getUpgradeRecommendations()
+      .filter(
+        (recommendation) =>
+          !['acquired', 'completed'].includes(recommendation.state || '')
+      )
+      .slice(0, 3)
+  );
+  recommendationHistory = computed(() =>
+    [...(this.profileService.profile().recommendationHistory || [])]
+      .slice()
+      .reverse()
+      .slice(0, 4)
   );
 
   protocols = signal<any[]>([
@@ -124,11 +137,34 @@ export class PracticeSpaceComponent implements OnDestroy {
     this.metronomeAudioEnabled.update((v) => !v);
   }
 
-  acquireUpgrade(upgrade: any) {
-    this.profileService.acquireUpgrade({
+  acquireUpgrade(upgrade: UpgradeRecommendation) {
+    return this.profileService.acquireUpgrade({
       title: upgrade.title,
       type: upgrade.type,
+      recommendationId: upgrade.id,
     });
+  }
+
+  async saveRecommendation(upgrade: UpgradeRecommendation) {
+    await this.profileService.setRecommendationState(
+      upgrade.id,
+      'saved',
+      upgrade
+    );
+  }
+
+  async dismissRecommendation(upgrade: UpgradeRecommendation) {
+    await this.profileService.setRecommendationState(
+      upgrade.id,
+      'not-relevant',
+      upgrade
+    );
+  }
+
+  focusRecommendation(upgrade: UpgradeRecommendation) {
+    if (upgrade.toolId) {
+      this.uiService.navigateToView(upgrade.toolId as any);
+    }
   }
 
   ngOnDestroy() {

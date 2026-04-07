@@ -12,7 +12,11 @@ import { firstValueFrom } from 'rxjs';
 
 import { NeuralMixerService } from './neural-mixer.service';
 import { MusicManagerService } from './music-manager.service';
-import { UserProfileService, UserProfile } from './user-profile.service';
+import {
+  RecommendationPreference,
+  UserProfileService,
+  UserProfile,
+} from './user-profile.service';
 import { LoggingService } from './logging.service';
 import { AnalyticsService } from './analytics.service';
 import { UserContextService, MainViewMode } from './user-context.service';
@@ -89,6 +93,397 @@ const DENSE_TARGET_LUFS = -13.5;
 const DEFAULT_TARGET_LUFS = -14;
 const SAFE_LIMITER_CEILING = -0.1;
 
+type RecommendationContext = {
+  catalogDepth: number;
+  releaseReadyCount: number;
+  campaignCount: number;
+  hasProRegistration: boolean;
+  businessReadiness: number;
+  preference?: RecommendationPreference;
+};
+
+type UpgradeBlueprint = Omit<
+  UpgradeRecommendation,
+  | 'state'
+  | 'genres'
+  | 'whyNow'
+  | 'nextStep'
+  | 'expectedBenefit'
+  | 'evidence'
+  | 'progressSignals'
+  | 'historySummary'
+> & {
+  preferredViews?: MainViewMode[];
+  rank: (input: {
+    profile: UserProfile;
+    viewMode: MainViewMode;
+    growth: number;
+    context: RecommendationContext;
+  }) => number;
+  buildDetails: (input: {
+    profile: UserProfile;
+    growth: number;
+    context: RecommendationContext;
+  }) => Pick<
+    UpgradeRecommendation,
+    'whyNow' | 'nextStep' | 'expectedBenefit' | 'evidence' | 'progressSignals'
+  >;
+};
+
+const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
+  {
+    id: 'upg-room-calibration',
+    title: 'Room Calibration',
+    type: 'Software',
+    description:
+      'Dial in speaker translation before the next mix revision and lock in a repeatable reference chain.',
+    cost: '$0-$99',
+    url: '',
+    impact: 'High',
+    rationale:
+      'Your monitoring chain is the fastest leverage point for cleaner decisions across studio and practice sessions.',
+    targetArea: 'Production',
+    priority: 'Critical',
+    prerequisites: [
+      'Reference your last bounce on at least two playback systems',
+    ],
+    actionLabel: 'Open Studio',
+    toolId: 'studio',
+    outcomeMetric: {
+      label: 'Expected gain',
+      value: 'Cleaner low-end translation',
+    },
+    preferredViews: ['studio', 'practice', 'piano-roll'],
+    rank: ({ profile, viewMode, context }) => {
+      const hasCalibration = (profile.daw || []).includes('Room Calibration');
+      if (hasCalibration) {
+        return 18;
+      }
+      const workspaceBoost = ['studio', 'practice', 'piano-roll'].includes(
+        viewMode
+      )
+        ? 12
+        : 0;
+      return 74 + workspaceBoost + Math.max(0, 4 - context.releaseReadyCount);
+    },
+    buildDetails: ({ context }) => ({
+      whyNow:
+        context.releaseReadyCount > 0
+          ? 'You already have release-ready material, so translation mistakes are now expensive.'
+          : 'Your studio workflow is active enough that fixing translation upstream will remove avoidable second-guessing.',
+      nextStep:
+        'Compare one recent bounce on monitors, earbuds, and a phone speaker before changing any mix decisions.',
+      expectedBenefit:
+        'Make faster low-end and vocal balance decisions with fewer mix revisions.',
+      evidence: [
+        `Catalog depth: ${context.catalogDepth} tracked release${context.catalogDepth === 1 ? '' : 's'}`,
+        `Release-ready songs: ${context.releaseReadyCount}`,
+      ],
+      progressSignals: [
+        {
+          label: 'Mix translation',
+          before: 'Playback checks happen inconsistently',
+          after: 'Reference chain is calibrated before every revision',
+        },
+      ],
+    }),
+  },
+  {
+    id: 'upg-vocal-chain',
+    title: 'Vocal Chain Preset Pack',
+    type: 'Software',
+    description:
+      'Standardize your vocal cleanup, compression, and polish so every take starts closer to release-ready.',
+    cost: '$29-$149',
+    url: '',
+    impact: 'Medium',
+    rationale:
+      'A saved vocal chain reduces setup friction and keeps your voice sitting in front of dense arrangements.',
+    targetArea: 'Practice',
+    priority: 'High',
+    prerequisites: [
+      'Record one dry rehearsal pass to compare before and after',
+    ],
+    actionLabel: 'Open Practice Space',
+    toolId: 'practice',
+    outcomeMetric: {
+      label: 'Expected gain',
+      value: 'Faster rehearsal-to-demo workflow',
+    },
+    preferredViews: ['practice', 'vocal-suite'],
+    rank: ({ profile, viewMode, context }) => {
+      const hasPresetPack = (profile.daw || []).includes(
+        'Vocal Chain Preset Pack'
+      );
+      if (hasPresetPack) {
+        return 16;
+      }
+      const workspaceBoost = ['practice', 'vocal-suite'].includes(viewMode)
+        ? 14
+        : 0;
+      return 62 + workspaceBoost + Math.max(0, 3 - context.catalogDepth) * 2;
+    },
+    buildDetails: ({ profile }) => ({
+      whyNow:
+        (profile.careerGoals || []).length > 0
+          ? 'Your active goals suggest you need faster practice turnarounds, not more blank-session setup time.'
+          : 'Practice speed is still a leverage point because your vocal workflow resets from scratch too often.',
+      nextStep:
+        'Track one clean rehearsal pass, then save your baseline EQ, compression, and de-essing into a reusable preset.',
+      expectedBenefit:
+        'Spend more time performing and less time rebuilding the same vocal chain.',
+      evidence: [
+        `Career goals on file: ${(profile.careerGoals || []).length}`,
+        `Primary genre focus: ${profile.primaryGenre || 'Unknown'}`,
+      ],
+      progressSignals: [
+        {
+          label: 'Rehearsal speed',
+          before: 'Every session starts with fresh vocal cleanup',
+          after: 'Your best starting chain loads instantly',
+        },
+      ],
+    }),
+  },
+  {
+    id: 'upg-translation-checklist',
+    title: 'Mix Translation Checklist',
+    type: 'Service',
+    description:
+      'Run a fixed pre-release quality-control pass covering mono, earbuds, car, and phone playback.',
+    cost: '$0',
+    url: '',
+    impact: 'High',
+    rationale:
+      'Structured translation checks catch avoidable release defects before mastering or distribution spend.',
+    targetArea: 'Production',
+    priority: 'High',
+    prerequisites: ['Bounce the latest mix candidate'],
+    actionLabel: 'Open Knowledge Base',
+    toolId: 'knowledge-base',
+    outcomeMetric: {
+      label: 'Expected gain',
+      value: 'Fewer revision cycles',
+    },
+    preferredViews: ['studio', 'release-pipeline', 'knowledge-base'],
+    rank: ({ profile, viewMode, context }) => {
+      const hasChecklist = (profile.services || []).includes(
+        'Mix Translation Checklist'
+      );
+      if (hasChecklist) {
+        return 14;
+      }
+      const baseScore = context.catalogDepth > 0 ? 78 : 54;
+      const workspaceBoost = [
+        'studio',
+        'release-pipeline',
+        'knowledge-base',
+      ].includes(viewMode)
+        ? 10
+        : 0;
+      return baseScore + workspaceBoost + context.releaseReadyCount * 3;
+    },
+    buildDetails: ({ context }) => ({
+      whyNow:
+        context.catalogDepth > 0
+          ? 'You have enough active catalog to justify a repeatable release-quality gate.'
+          : 'Adding a checklist now will keep your next release from shipping with preventable playback issues.',
+      nextStep:
+        'Use your latest bounce and score mono, earbuds, car, and phone playback before you master or distribute.',
+      expectedBenefit:
+        'Catch translation issues before they create more revisions or waste promotion spend.',
+      evidence: [
+        `Catalog depth: ${context.catalogDepth}`,
+        `Release-ready songs: ${context.releaseReadyCount}`,
+      ],
+      progressSignals: [
+        {
+          label: 'Release readiness',
+          before: 'QC depends on memory and taste',
+          after: 'Every bounce clears the same translation checklist',
+        },
+      ],
+    }),
+  },
+  {
+    id: 'upg-stem-mastering',
+    title: 'Stem Mastering Service',
+    type: 'Service',
+    description:
+      'Use stem-based mastering when you need louder, cleaner delivery without sacrificing punch or vocal focus.',
+    cost: '$50-$200',
+    url: '',
+    impact: 'High',
+    rationale:
+      'Stem mastering becomes valuable once you have active releases and need to protect clarity while chasing competitive loudness.',
+    targetArea: 'Production',
+    priority: 'High',
+    prerequisites: ['Finish arrangement and mix notes first'],
+    actionLabel: 'Open Release Pipeline',
+    toolId: 'release-pipeline',
+    outcomeMetric: {
+      label: 'Expected gain',
+      value: 'Stronger release readiness',
+    },
+    preferredViews: ['release-pipeline', 'studio'],
+    rank: ({ profile, viewMode, context }) => {
+      const hasService = (profile.services || []).includes(
+        'Stem Mastering Service'
+      );
+      if (hasService) {
+        return 20;
+      }
+      const baseScore = context.catalogDepth >= 3 ? 80 : 50;
+      const workspaceBoost = ['release-pipeline', 'studio'].includes(viewMode)
+        ? 12
+        : 0;
+      return baseScore + workspaceBoost + context.releaseReadyCount * 4;
+    },
+    buildDetails: ({ context }) => ({
+      whyNow:
+        context.releaseReadyCount >= 2
+          ? 'Multiple near-finished tracks make mastering consistency more valuable than one-off loudness fixes.'
+          : 'You are close enough to release mode that mastering clarity now affects the whole rollout.',
+      nextStep:
+        'Freeze your arrangement notes first, then send stems only after vocal, low-end, and transient priorities are written down.',
+      expectedBenefit:
+        'Increase release consistency without losing punch or lead-vocal focus.',
+      evidence: [
+        `Catalog depth: ${context.catalogDepth}`,
+        `Release-ready songs: ${context.releaseReadyCount}`,
+      ],
+      progressSignals: [
+        {
+          label: 'Master delivery',
+          before: 'Final loudness trades off against clarity',
+          after: 'Mastering adjustments stay surgical across stems',
+        },
+      ],
+    }),
+  },
+  {
+    id: 'upg-dsp-promotion',
+    title: 'DSP Promotion',
+    type: 'Service',
+    description:
+      'Activate a lightweight campaign and playlist outreach loop once you have enough catalog depth to convert attention.',
+    cost: '$30-$150',
+    url: '',
+    impact: 'Medium',
+    rationale:
+      'Promotion spend compounds once there is a real release runway instead of a single isolated track.',
+    targetArea: 'Marketing',
+    priority: 'Critical',
+    prerequisites: ['Have at least one upcoming or recent release to push'],
+    actionLabel: 'Open Strategy Hub',
+    toolId: 'strategy',
+    outcomeMetric: {
+      label: 'Expected gain',
+      value: 'Higher campaign reach',
+    },
+    preferredViews: ['strategy', 'hub', 'analytics'],
+    rank: ({ profile, viewMode, growth, context }) => {
+      const hasService = (profile.services || []).includes('DSP Promotion');
+      if (hasService) {
+        return 12;
+      }
+      const needsActivation = context.campaignCount === 0 ? 64 : 24;
+      const catalogScore = context.catalogDepth < 3 ? 12 : 22;
+      const growthPressure = growth < 5 ? 18 : 8;
+      const workspaceBoost = ['strategy', 'hub', 'analytics'].includes(viewMode)
+        ? 12
+        : 0;
+      return needsActivation + catalogScore + growthPressure + workspaceBoost;
+    },
+    buildDetails: ({ growth, context }) => ({
+      whyNow:
+        context.campaignCount === 0
+          ? 'You have catalog to promote but no active campaign loop capturing that demand yet.'
+          : 'Your current campaign footprint is still thin enough that a tighter DSP loop can raise reach quickly.',
+      nextStep:
+        'Pair one release with playlist outreach, pre-save messaging, and a small paid test instead of spreading effort across every track.',
+      expectedBenefit:
+        'Turn catalog depth into measurable reach instead of waiting for organic spikes.',
+      evidence: [
+        `Campaigns tracked: ${context.campaignCount}`,
+        `Overall growth signal: ${growth.toFixed(1)}`,
+      ],
+      progressSignals: [
+        {
+          label: 'Campaign reach',
+          before: 'Release activity is mostly organic',
+          after: 'Promotion follows a repeatable DSP and outreach loop',
+        },
+      ],
+    }),
+  },
+  {
+    id: 'upg-pro-registration',
+    title: 'PRO Registration Sprint',
+    type: 'Service',
+    description:
+      'Formalize royalty collection by registering works, metadata, and rights admin before growth compounds.',
+    cost: '$0-$99',
+    url: '',
+    impact: 'High',
+    rationale:
+      'Business infrastructure gaps delay royalty capture and weaken your release system when momentum arrives.',
+    targetArea: 'Business',
+    priority: 'High',
+    prerequisites: ['Gather writer, producer, and split metadata'],
+    actionLabel: 'Open Knowledge Base',
+    toolId: 'knowledge-base',
+    outcomeMetric: {
+      label: 'Expected gain',
+      value: 'Faster royalty readiness',
+    },
+    preferredViews: ['strategy', 'business-suite', 'knowledge-base'],
+    rank: ({ profile, viewMode, context }) => {
+      const hasService = (profile.services || []).includes(
+        'PRO Registration Sprint'
+      );
+      if (hasService) {
+        return 18;
+      }
+      if (context.hasProRegistration) {
+        return 24;
+      }
+      const workspaceBoost = [
+        'strategy',
+        'business-suite',
+        'knowledge-base',
+      ].includes(viewMode)
+        ? 12
+        : 0;
+      return (
+        (context.catalogDepth > 0 ? 72 : 44) +
+        workspaceBoost +
+        Math.max(0, 4 - context.businessReadiness) * 5
+      );
+    },
+    buildDetails: ({ context }) => ({
+      whyNow: context.hasProRegistration
+        ? 'Your royalty identity is partially set up, so the next gain comes from finishing the registration workflow.'
+        : 'Your business infrastructure is lagging behind your release activity, which risks missed royalty collection.',
+      nextStep:
+        'Collect writer splits, IPI details, and release metadata in one session, then register every active song in the same sprint.',
+      expectedBenefit:
+        'Move from scattered metadata to a royalty-ready catalog that can scale with growth.',
+      evidence: [
+        `Business readiness score: ${context.businessReadiness}/5`,
+        `PRO registered: ${context.hasProRegistration ? 'Yes' : 'No'}`,
+      ],
+      progressSignals: [
+        {
+          label: 'Royalty readiness',
+          before: 'Rights data is fragmented or missing',
+          after: 'Works, splits, and IPI details are registration-ready',
+        },
+      ],
+    }),
+  },
+];
+
 @Injectable({
   providedIn: 'root',
 })
@@ -134,15 +529,13 @@ export class AiService {
   constructor() {
     effect(() => {
       const mode = this.userContext.mainViewMode();
-      const profile = this.userProfileService.profile();
-      this.updateAdvisorAdvice(mode, profile);
+      // Read the profile signal so this effect re-runs when artist context changes.
+      this.userProfileService.profile();
+      this.updateAdvisorAdvice(mode);
     });
   }
 
-  private updateAdvisorAdvice(
-    viewMode: MainViewMode | string,
-    profile: UserProfile
-  ): void {
+  private updateAdvisorAdvice(viewMode: MainViewMode | string): void {
     const advice: AdvisorAdvice[] = [];
     const growth = this.analyticsService.overallGrowth();
     const catalog = profile?.catalog || [];
@@ -594,53 +987,179 @@ export class AiService {
   }
 
   getUpgradeRecommendations(): UpgradeRecommendation[] {
-    return [
-      {
-        id: 'upg-1',
-        title: 'Room Calibration',
-        type: 'Software',
-        description: 'Calibrate monitoring.',
-        cost: '$0-$99',
-        url: '',
-        impact: 'High',
-      },
-      {
-        id: 'upg-2',
-        title: 'Vocal Chain Preset Pack',
-        type: 'Software',
-        description: 'Standardize processing.',
-        cost: '$29-$149',
-        url: '',
-        impact: 'Medium',
-      },
-      {
-        id: 'upg-3',
-        title: 'Mix Translation Checklist',
-        type: 'Service',
-        description: 'Repeatable QC pass.',
-        cost: '$0',
-        url: '',
-        impact: 'High',
-      },
-      {
-        id: 'upg-4',
-        title: 'Stem Mastering Service',
-        type: 'Service',
-        description: 'Maximum loudness.',
-        cost: '$50-$200',
-        url: '',
-        impact: 'High',
-      },
-      {
-        id: 'upg-5',
-        title: 'DSP Promotion',
-        type: 'Service',
-        description: 'Playlist pitching.',
-        cost: '$30-$150',
-        url: '',
-        impact: 'Medium',
-      },
+    const profile = this.userProfileService.profile();
+    const viewMode = this.userContext.mainViewMode();
+    const growth = this.analyticsService.overallGrowth();
+    const preferences = profile.recommendationPreferences || {};
+    const context = this.buildRecommendationContext(profile);
+    const recommendations = UPGRADE_BLUEPRINTS.map((blueprint) => {
+      const preference = preferences[blueprint.id];
+      const acquired = this.isUpgradeAcquired(profile, blueprint);
+      const state =
+        preference?.state === 'completed'
+          ? 'completed'
+          : acquired
+            ? 'acquired'
+            : preference?.state || this.getDefaultRecommendationState();
+
+      const workspaceBoost = blueprint.preferredViews?.includes(viewMode)
+        ? 4
+        : 0;
+      const details = blueprint.buildDetails({
+        profile,
+        growth,
+        context: {
+          ...context,
+          preference,
+        },
+      });
+      const rankScore =
+        blueprint.rank({
+          profile,
+          viewMode,
+          growth,
+          context: {
+            ...context,
+            preference,
+          },
+        }) +
+        workspaceBoost -
+        this.getRecommendationDecay(preference);
+
+      return {
+        ...blueprint,
+        ...details,
+        state,
+        genres: profile.primaryGenre ? [profile.primaryGenre] : [],
+        historySummary: this.getRecommendationHistorySummary(preference),
+        rankScore,
+      };
+    })
+      .filter(
+        (recommendation) =>
+          !['dismissed', 'not-relevant'].includes(recommendation.state || '')
+      )
+      .sort((a, b) => {
+        const stateWeight =
+          this.getRecommendationStateWeight(a.state) -
+          this.getRecommendationStateWeight(b.state);
+        if (stateWeight !== 0) {
+          return stateWeight;
+        }
+        return b.rankScore - a.rankScore;
+      });
+
+    return Array.from(
+      new Map(
+        recommendations.map((recommendation) => [
+          recommendation.id,
+          recommendation,
+        ])
+      ).values()
+    ).map((recommendation) => {
+      const {
+        rankScore: _rankScore,
+        preferredViews: _preferredViews,
+        rank: _rank,
+        ...cleanRecommendation
+      } = recommendation;
+
+      return cleanRecommendation;
+    });
+  }
+
+  private isUpgradeAcquired(
+    profile: UserProfile,
+    recommendation: Pick<UpgradeRecommendation, 'title' | 'type'>
+  ): boolean {
+    if (recommendation.type === 'Gear') {
+      return (profile.equipment || []).includes(recommendation.title);
+    }
+    if (recommendation.type === 'Software') {
+      return (profile.daw || []).includes(recommendation.title);
+    }
+    return (profile.services || []).includes(recommendation.title);
+  }
+
+  private getDefaultRecommendationState(): NonNullable<
+    UpgradeRecommendation['state']
+  > {
+    return 'suggested';
+  }
+
+  private buildRecommendationContext(
+    profile: UserProfile
+  ): Omit<RecommendationContext, 'preference'> {
+    const catalog = profile.catalog || [];
+    const campaignCount = profile.marketingCampaigns?.length || 0;
+    const releaseReadyCount = catalog.filter((item) =>
+      ['ready', 'scheduled', 'released'].includes(
+        String(item.status || '').toLowerCase()
+      )
+    ).length;
+    const businessReadinessSignals = [
+      Boolean(profile.proName || profile.proIpi),
+      (profile.services || []).length > 0,
+      catalog.length > 0,
+      campaignCount > 0,
+      (profile.careerGoals || []).length > 0,
     ];
+
+    return {
+      catalogDepth: catalog.length,
+      releaseReadyCount,
+      campaignCount,
+      hasProRegistration: Boolean(profile.proName || profile.proIpi),
+      businessReadiness: businessReadinessSignals.filter(Boolean).length,
+    };
+  }
+
+  private getRecommendationDecay(
+    preference: RecommendationPreference | undefined
+  ): number {
+    if (!preference) {
+      return 0;
+    }
+
+    switch (preference.state) {
+      case 'saved':
+        return 0;
+      case 'acquired':
+      case 'completed':
+        return 18;
+      default:
+        return Math.min((preference.actionCount || 0) * 4, 12);
+    }
+  }
+
+  private getRecommendationHistorySummary(
+    preference: RecommendationPreference | undefined
+  ): string | undefined {
+    if (!preference) {
+      return undefined;
+    }
+
+    const stateLabel = preference.state.replaceAll('-', ' ');
+    return `Last action: ${stateLabel} • ${new Date(
+      preference.updatedAt
+    ).toLocaleDateString()}`;
+  }
+
+  private getRecommendationStateWeight(
+    state: UpgradeRecommendation['state']
+  ): number {
+    switch (state) {
+      case 'saved':
+        return 0;
+      case 'suggested':
+        return 1;
+      case 'completed':
+        return 2;
+      case 'acquired':
+        return 3;
+      default:
+        return 4;
+    }
   }
 
   async getStrategicRecommendations(): Promise<StrategicRecommendationType[]> {

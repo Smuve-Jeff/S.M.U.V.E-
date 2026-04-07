@@ -33,7 +33,21 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   public profileService = inject(UserProfileService);
   public uiService = inject(UIService);
 
-  recommendations = computed(() => this.aiService.getUpgradeRecommendations());
+  recommendations = computed(() =>
+    this.aiService
+      .getUpgradeRecommendations()
+      .filter(
+        (recommendation) =>
+          !['dismissed', 'not-relevant'].includes(recommendation.state || '')
+      )
+      .slice(0, 2)
+  );
+  recommendationHistory = computed(() =>
+    [...(this.profileService.profile().recommendationHistory || [])]
+      .slice()
+      .reverse()
+      .slice(0, 4)
+  );
   strategicRecs = signal<StrategicRecommendation[]>([]);
   isPoweringUp = signal(false);
 
@@ -116,6 +130,7 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
     await this.profileService.acquireUpgrade({
       title: rec.title,
       type: rec.type,
+      recommendationId: rec.id,
     });
 
     this.terminalLogs.update((logs) => [
@@ -133,6 +148,32 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
         window.open(rec.url, '_blank');
       }
     }, 1200);
+  }
+
+  async saveRecommendation(rec: UpgradeRecommendation) {
+    await this.profileService.setRecommendationState(rec.id, 'saved', rec);
+  }
+
+  async dismissRecommendation(rec: UpgradeRecommendation) {
+    await this.profileService.setRecommendationState(
+      rec.id,
+      'not-relevant',
+      rec
+    );
+  }
+
+  async completeRecommendation(rec: UpgradeRecommendation) {
+    await this.profileService.completeUpgrade({
+      title: rec.title,
+      type: rec.type,
+      recommendationId: rec.id,
+    });
+  }
+
+  focusRecommendation(rec: UpgradeRecommendation) {
+    if (rec.toolId) {
+      this.uiService.navigateToView(rec.toolId as any);
+    }
   }
 
   initializeOperation(srec: StrategicRecommendation) {

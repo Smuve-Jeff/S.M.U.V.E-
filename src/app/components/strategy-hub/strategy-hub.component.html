@@ -1,225 +1,410 @@
 <div class="p-4 md:p-8 max-w-[1600px] mx-auto animate-enter overflow-x-hidden">
   <!-- HUB HEADER -->
-  <header class="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8 mb-10 md:mb-16">
+  <header
+    class="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8 mb-10 md:mb-16"
+  >
     <div class="flex flex-col">
-       <div class="flex items-center gap-3 mb-2">
-          <div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse-subtle"></div>
-          <span class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase tracking-[0.3em] md:tracking-[0.4em]">Strategic Synthesis Matrix</span>
-       </div>
-       <h1 class="text-3xl md:text-5xl font-black tracking-tighter text-white uppercase italic leading-none">STRATEGY<span class="text-brand-primary">HUB</span></h1>
-       <p class="text-xs md:text-sm text-silver-dim mt-3 font-medium max-w-xl">High-fidelity intelligence mapping for professional career trajectories and market positioning.</p>
+      <div class="flex items-center gap-3 mb-2">
+        <div
+          class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse-subtle"
+        ></div>
+        <span
+          class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase tracking-[0.3em] md:tracking-[0.4em]"
+          >Strategic Synthesis Matrix</span
+        >
+      </div>
+      <h1
+        class="text-3xl md:text-5xl font-black tracking-tighter text-white uppercase italic leading-none"
+      >
+        STRATEGY<span class="text-brand-primary">HUB</span>
+      </h1>
+      <p class="text-xs md:text-sm text-silver-dim mt-3 font-medium max-w-xl">
+        High-fidelity intelligence mapping for professional career trajectories
+        and market positioning.
+      </p>
     </div>
 
     <!-- Tab Container with horizontal scroll on mobile -->
-    <div class="flex items-center gap-1 p-1 overflow-x-auto no-scrollbar bg-brand-surface/40 rounded-2xl border border-white/10 max-w-full">
-       @for (tab of ['overview', 'campaigns', 'analytics', 'outreach', 'social']; track tab) {
-          <button (click)="setTab(tab)"
-                  class="px-4 md:px-6 py-2 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap"
-                  [class.bg-brand-primary]="activeHubTab() === tab"
-                  [class.text-black]="activeHubTab() === tab"
-                  [class.text-silver-dim]="activeHubTab() !== tab"
-                  [class.hover:text-white]="activeHubTab() !== tab">
-             {{ tab }}
-          </button>
-       }
+    <div
+      class="flex items-center gap-1 p-1 overflow-x-auto no-scrollbar bg-brand-surface/40 rounded-2xl border border-white/10 max-w-full"
+    >
+      @for (
+        tab of ['overview', 'campaigns', 'analytics', 'outreach', 'social'];
+        track tab
+      ) {
+        <button
+          (click)="setTab(tab)"
+          class="px-4 md:px-6 py-2 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap"
+          [class.bg-brand-primary]="activeHubTab() === tab"
+          [class.text-black]="activeHubTab() === tab"
+          [class.text-silver-dim]="activeHubTab() !== tab"
+          [class.hover:text-white]="activeHubTab() !== tab"
+        >
+          {{ tab }}
+        </button>
+      }
     </div>
   </header>
 
   <div [ngSwitch]="activeHubTab()" class="min-h-[400px] md:min-h-[600px]">
     <!-- OVERVIEW TAB -->
     <div *ngSwitchCase="'overview'" class="grid grid-cols-12 gap-6 md:gap-8">
-       <div class="col-span-12 lg:col-span-8 space-y-6 md:space-y-8">
-          <!-- MARKET ALERTS BANNER -->
-          @if (marketAlerts().length > 0) {
-            <section class="space-y-4">
-              <h2 class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Real-Time Market Intelligence</h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                @for (alert of marketAlerts(); track alert.id) {
-                  <div class="p-4 rounded-2xl border flex flex-col gap-2 transition-all hover:scale-[1.02]" [ngClass]="getSeverityClass(alert.severity)">
-                    <div class="flex justify-between items-center">
-                      <span class="text-[8px] font-black uppercase tracking-widest">{{ alert.category }}</span>
-                      <span class="text-[8px] opacity-60">{{ alert.timestamp | date:'shortTime' }}</span>
-                    </div>
-                    <h3 class="text-xs font-black uppercase italic tracking-tight">{{ alert.title }}</h3>
-                    <p class="text-[10px] leading-relaxed font-medium">{{ alert.message }}</p>
+      <div class="col-span-12 lg:col-span-8 space-y-6 md:space-y-8">
+        <!-- MARKET ALERTS BANNER -->
+        @if (marketAlerts().length > 0) {
+          <section class="space-y-4">
+            <h2
+              class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4"
+            >
+              Real-Time Market Intelligence
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              @for (alert of marketAlerts(); track alert.id) {
+                <div
+                  class="p-4 rounded-2xl border flex flex-col gap-2 transition-all hover:scale-[1.02]"
+                  [ngClass]="getSeverityClass(alert.severity)"
+                >
+                  <div class="flex justify-between items-center">
+                    <span
+                      class="text-[8px] font-black uppercase tracking-widest"
+                      >{{ alert.category }}</span
+                    >
+                    <span class="text-[8px] opacity-60">{{
+                      alert.timestamp | date: 'shortTime'
+                    }}</span>
                   </div>
+                  <h3
+                    class="text-xs font-black uppercase italic tracking-tight"
+                  >
+                    {{ alert.title }}
+                  </h3>
+                  <p class="text-[10px] leading-relaxed font-medium">
+                    {{ alert.message }}
+                  </p>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <!-- INTELLIGENCE BRIEFS -->
+        <section
+          class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10"
+        >
+          <div class="flex justify-between items-center mb-8">
+            <h2
+              class="text-base md:text-lg font-bold text-white uppercase tracking-tight"
+            >
+              Executive Intelligence Briefs
+            </h2>
+            <span
+              class="text-[9px] md:text-[10px] font-black text-brand-primary uppercase tracking-widest"
+              >{{ intelligenceBriefs().length }} ANALYZED</span
+            >
+          </div>
+          <div class="grid gap-6">
+            @for (brief of intelligenceBriefs(); track brief.id) {
+              <div
+                class="group relative bg-black/40 rounded-2xl border border-white/5 p-6 hover:border-brand-brand-primary/30 transition-all"
+              >
+                <div class="flex justify-between items-start mb-4">
+                  <div class="flex flex-wrap items-center gap-3">
+                    <span
+                      class="px-2 py-1 rounded bg-white/5 text-[8px] font-black text-silver-dim uppercase"
+                      >{{ brief.category }}</span
+                    >
+                    <span
+                      class="text-[8px] font-black uppercase tracking-widest"
+                      [ngClass]="getImpactColor(brief.impact)"
+                      >{{ brief.impact }} IMPACT</span
+                    >
+                  </div>
+                  <div class="hidden sm:flex items-center gap-1">
+                    <span class="text-[10px] font-black text-white/20 uppercase"
+                      >RELEVANCE</span
+                    >
+                    <span class="text-xs font-black text-brand-primary italic"
+                      >{{ brief.relevanceScore }}%</span
+                    >
+                  </div>
+                </div>
+                <h3
+                  class="text-sm font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors"
+                >
+                  {{ brief.title }}
+                </h3>
+                <p
+                  class="text-[11px] md:text-xs text-silver-dim leading-relaxed mb-6 font-medium"
+                >
+                  {{ brief.content }}
+                </p>
+
+                @if (brief.actionable) {
+                  <button
+                    class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all"
+                  >
+                    Initiate Counter-Strategy <i class="fas fa-arrow-right"></i>
+                  </button>
                 }
               </div>
-            </section>
-          }
+            }
+          </div>
+        </section>
 
-          <!-- INTELLIGENCE BRIEFS -->
-          <section class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
-             <div class="flex justify-between items-center mb-8">
-               <h2 class="text-base md:text-lg font-bold text-white uppercase tracking-tight">Executive Intelligence Briefs</h2>
-               <span class="text-[9px] md:text-[10px] font-black text-brand-primary uppercase tracking-widest">{{ intelligenceBriefs().length }} ANALYZED</span>
-             </div>
-             <div class="grid gap-6">
-                @for (brief of intelligenceBriefs(); track brief.id) {
-                   <div class="group relative bg-black/40 rounded-2xl border border-white/5 p-6 hover:border-brand-brand-primary/30 transition-all">
-                      <div class="flex justify-between items-start mb-4">
-                        <div class="flex flex-wrap items-center gap-3">
-                          <span class="px-2 py-1 rounded bg-white/5 text-[8px] font-black text-silver-dim uppercase">{{ brief.category }}</span>
-                          <span class="text-[8px] font-black uppercase tracking-widest" [ngClass]="getImpactColor(brief.impact)">{{ brief.impact }} IMPACT</span>
-                        </div>
-                        <div class="hidden sm:flex items-center gap-1">
-                          <span class="text-[10px] font-black text-white/20 uppercase">RELEVANCE</span>
-                          <span class="text-xs font-black text-brand-primary italic">{{ brief.relevanceScore }}%</span>
-                        </div>
-                      </div>
-                      <h3 class="text-sm font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">{{ brief.title }}</h3>
-                      <p class="text-[11px] md:text-xs text-silver-dim leading-relaxed mb-6 font-medium">{{ brief.content }}</p>
-
-                      @if (brief.actionable) {
-                        <button class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all">
-                          Initiate Counter-Strategy <i class="fas fa-arrow-right"></i>
-                        </button>
-                      }
-                   </div>
-                }
-             </div>
-          </section>
-
-          <section class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
-             <div class="flex justify-between items-center mb-8">
-               <h2 class="text-base md:text-lg font-bold text-white uppercase tracking-tight">Strategic Protocol Checklist</h2>
-               <button (click)="refreshStrategicIntelligence()" class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all">
-                 Refresh <i class="fas fa-sync-alt"></i>
-               </button>
-             </div>
-             <div class="space-y-3">
-                @for (item of strategicTasks(); track item.id) {
-                   <button (click)="toggleTask(item.id)"
-                           class="w-full flex items-center gap-4 p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-brand-primary/30 transition-all text-left group">
-                      <div class="w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all shrink-0"
-                           [class.border-brand-primary]="item.completed"
-                           [class.bg-brand-primary]="item.completed"
-                           [class.border-white/10]="!item.completed">
-                         <i class="fas fa-check text-[10px] text-black" *ngIf="item.completed"></i>
-                      </div>
-                      <div class="flex-grow">
-                         <div class="flex justify-between items-center">
-                            <span class="text-[13px] md:text-sm font-bold transition-all" [class.text-silver-dim]="item.completed" [class.line-through]="item.completed">{{ item.label }}</span>
-                            <span class="hidden sm:block text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded bg-brand-brand-primary/10 text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                               {{ item.impact }} IMPACT
-                            </span>
-                         </div>
-                         <p *ngIf="item.description && !item.completed" class="text-[10px] text-silver-dim mt-1">{{ item.description }}</p>
-                      </div>
-                   </button>
-                }
-             </div>
-          </section>
-       </div>
-
-       <div class="col-span-12 lg:col-span-4 space-y-6 md:space-y-8">
-          <div class="bg-brand-surface/40 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
-             <h2 class="text-[11px] md:text-sm font-black text-white uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                <i class="fas fa-id-badge text-brand-primary"></i> EPK Snapshot
-             </h2>
-             <div class="space-y-4">
-                <div class="flex justify-between border-b border-white/10 pb-3">
-                   <span class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase">Artist</span>
-                   <span class="text-[11px] md:text-xs font-bold text-white truncate max-w-[120px]">{{ profile().artistName }}</span>
+        <section
+          class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10"
+        >
+          <div class="flex justify-between items-center mb-8">
+            <h2
+              class="text-base md:text-lg font-bold text-white uppercase tracking-tight"
+            >
+              Strategic Protocol Checklist
+            </h2>
+            <button
+              (click)="refreshStrategicIntelligence()"
+              class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] flex items-center gap-2 hover:gap-3 transition-all"
+            >
+              Refresh <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+          <div class="space-y-3">
+            @for (item of strategicTasks(); track item.id) {
+              <button
+                (click)="toggleTask(item.id)"
+                class="w-full flex items-center gap-4 p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-brand-primary/30 transition-all text-left group"
+              >
+                <div
+                  class="w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all shrink-0"
+                  [class.border-brand-primary]="item.completed"
+                  [class.bg-brand-primary]="item.completed"
+                  [class.border-white/10]="!item.completed"
+                >
+                  <i
+                    class="fas fa-check text-[10px] text-black"
+                    *ngIf="item.completed"
+                  ></i>
                 </div>
-                <div class="flex justify-between border-b border-white/10 pb-3">
-                   <span class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase">Genre</span>
-                   <span class="text-[11px] md:text-xs font-bold text-brand-primary">{{ profile().primaryGenre }}</span>
-                </div>
-                <div class="flex flex-col gap-3 pt-4">
-                  <span class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase">Active Goals</span>
-                  <div class="flex flex-wrap gap-2">
-                    @for (goal of profile().careerGoals; track goal) {
-                      <span class="px-2 py-1 rounded bg-brand-brand-primary/10 border border-brand-brand-primary/20 text-[8px] font-black text-brand-primary uppercase">{{ goal }}</span>
-                    }
+                <div class="flex-grow">
+                  <div class="flex justify-between items-center">
+                    <span
+                      class="text-[13px] md:text-sm font-bold transition-all"
+                      [class.text-silver-dim]="item.completed"
+                      [class.line-through]="item.completed"
+                      >{{ item.label }}</span
+                    >
+                    <span
+                      class="hidden sm:block text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded bg-brand-brand-primary/10 text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      {{ item.impact }} IMPACT
+                    </span>
                   </div>
+                  <p
+                    *ngIf="item.description && !item.completed"
+                    class="text-[10px] text-silver-dim mt-1"
+                  >
+                    {{ item.description }}
+                  </p>
                 </div>
-                <button class="w-full mt-4 btn-elegant btn-elegant-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3">
-                   Generate Public Link
-                </button>
-             </div>
+              </button>
+            }
           </div>
+        </section>
+      </div>
 
-          <div class="bg-black/60 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-brand-brand-accent/20">
-             <h3 class="digital-readout text-[11px] font-black text-brand-accent uppercase tracking-[0.3em] mb-6">Neural Sync Status</h3>
-             <div class="space-y-6">
-                <div class="flex flex-col gap-2">
-                   <div class="flex justify-between text-[8px] font-black uppercase">
-                      <span class="text-silver-dim">Strategic Alignment</span>
-                      <span class="text-brand-accent">{{ aiService.systemStatus().neuralSync }}%</span>
-                   </div>
-                   <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                      <div class="h-full bg-brand-accent animate-pulse-subtle" [style.width.%]="aiService.systemStatus().neuralSync"></div>
-                   </div>
-                </div>
-                <p class="text-[9px] text-silver-dim leading-relaxed italic">Intelligence briefs are synchronized with your active career goals and market velocity.</p>
-             </div>
+      <div class="col-span-12 lg:col-span-4 space-y-6 md:space-y-8">
+        <div
+          class="bg-brand-surface/40 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10"
+        >
+          <h2
+            class="text-[11px] md:text-sm font-black text-white uppercase tracking-[0.2em] mb-6 flex items-center gap-3"
+          >
+            <i class="fas fa-id-badge text-brand-primary"></i> EPK Snapshot
+          </h2>
+          <div class="space-y-4">
+            <div class="flex justify-between border-b border-white/10 pb-3">
+              <span
+                class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase"
+                >Artist</span
+              >
+              <span
+                class="text-[11px] md:text-xs font-bold text-white truncate max-w-[120px]"
+                >{{ profile().artistName }}</span
+              >
+            </div>
+            <div class="flex justify-between border-b border-white/10 pb-3">
+              <span
+                class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase"
+                >Genre</span
+              >
+              <span
+                class="text-[11px] md:text-xs font-bold text-brand-primary"
+                >{{ profile().primaryGenre }}</span
+              >
+            </div>
+            <div class="flex flex-col gap-3 pt-4">
+              <span
+                class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase"
+                >Active Goals</span
+              >
+              <div class="flex flex-wrap gap-2">
+                @for (goal of profile().careerGoals; track goal) {
+                  <span
+                    class="px-2 py-1 rounded bg-brand-brand-primary/10 border border-brand-brand-primary/20 text-[8px] font-black text-brand-primary uppercase"
+                    >{{ goal }}</span
+                  >
+                }
+              </div>
+            </div>
+            <button
+              class="w-full mt-4 btn-elegant btn-elegant-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3"
+            >
+              Generate Public Link
+            </button>
           </div>
-       </div>
+        </div>
+
+        <div
+          class="bg-black/60 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-brand-brand-accent/20"
+        >
+          <h3
+            class="digital-readout text-[11px] font-black text-brand-accent uppercase tracking-[0.3em] mb-6"
+          >
+            Neural Sync Status
+          </h3>
+          <div class="space-y-6">
+            <div class="flex flex-col gap-2">
+              <div class="flex justify-between text-[8px] font-black uppercase">
+                <span class="text-silver-dim">Strategic Alignment</span>
+                <span class="text-brand-accent"
+                  >{{ aiService.systemStatus().neuralSync }}%</span
+                >
+              </div>
+              <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-brand-accent animate-pulse-subtle"
+                  [style.width.%]="aiService.systemStatus().neuralSync"
+                ></div>
+              </div>
+            </div>
+            <p class="text-[9px] text-silver-dim leading-relaxed italic">
+              Intelligence briefs are synchronized with your active career goals
+              and market velocity.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- CAMPAIGNS TAB -->
     <div *ngSwitchCase="'campaigns'" class="space-y-8">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
         <div>
-          <h2 class="text-lg md:text-xl font-black text-white uppercase tracking-tight">Marketing Campaigns</h2>
-          <p class="text-[11px] text-silver-dim mt-1">{{ campaigns().length }} campaign(s) active in your pipeline</p>
+          <h2
+            class="text-lg md:text-xl font-black text-white uppercase tracking-tight"
+          >
+            Marketing Campaigns
+          </h2>
+          <p class="text-[11px] text-silver-dim mt-1">
+            {{ campaigns().length }} campaign(s) active in your pipeline
+          </p>
         </div>
-        <button (click)="showCampaignForm.set(!showCampaignForm())"
-                class="btn-elegant btn-elegant-primary text-[9px] font-black uppercase tracking-widest px-6 py-3 flex items-center gap-2">
+        <button
+          (click)="showCampaignForm.set(!showCampaignForm())"
+          class="btn-elegant btn-elegant-primary text-[9px] font-black uppercase tracking-widest px-6 py-3 flex items-center gap-2"
+        >
           <i class="fas fa-plus"></i> New Campaign
         </button>
       </div>
 
       <!-- Create Campaign Form -->
       @if (showCampaignForm()) {
-        <div class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-brand-primary/30">
-          <h3 class="text-sm font-black text-brand-primary uppercase tracking-widest mb-6">Launch New Campaign</h3>
+        <div
+          class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-brand-primary/30"
+        >
+          <h3
+            class="text-sm font-black text-brand-primary uppercase tracking-widest mb-6"
+          >
+            Launch New Campaign
+          </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="flex flex-col gap-2">
-              <label class="text-[9px] font-black text-silver-dim uppercase tracking-widest">Campaign Name</label>
-              <input type="text"
-                     [value]="newCampaign().name"
-                     (input)="newCampaign.update(c => ({...c, name: $any($event.target).value}))"
-                     placeholder="e.g. Summer Drop Push"
-                     class="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder:text-silver-dim/40 focus:outline-none focus:border-brand-primary/50 transition-colors" />
+              <label
+                class="text-[9px] font-black text-silver-dim uppercase tracking-widest"
+                >Campaign Name</label
+              >
+              <input
+                type="text"
+                [value]="newCampaign().name"
+                (input)="newCampaign.update(c => ({...c, name: $any($event.target).value}))"
+                placeholder="e.g. Summer Drop Push"
+                class="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder:text-silver-dim/40 focus:outline-none focus:border-brand-primary/50 transition-colors"
+              />
             </div>
             <div class="flex flex-col gap-2">
-              <label class="text-[9px] font-black text-silver-dim uppercase tracking-widest">Budget ($)</label>
-              <input type="number"
-                     [value]="newCampaign().budget"
-                     (input)="newCampaign.update(c => ({...c, budget: +$any($event.target).value}))"
-                     placeholder="500"
-                     class="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder:text-silver-dim/40 focus:outline-none focus:border-brand-primary/50 transition-colors" />
+              <label
+                class="text-[9px] font-black text-silver-dim uppercase tracking-widest"
+                >Budget ($)</label
+              >
+              <input
+                type="number"
+                [value]="newCampaign().budget"
+                (input)="newCampaign.update(c => ({...c, budget: +$any($event.target).value}))"
+                placeholder="500"
+                class="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder:text-silver-dim/40 focus:outline-none focus:border-brand-primary/50 transition-colors"
+              />
             </div>
             <div class="flex flex-col gap-2">
-              <label class="text-[9px] font-black text-silver-dim uppercase tracking-widest">Strategy Level</label>
-              <select [value]="newCampaign().strategyLevel"
-                      (change)="newCampaign.update(c => ({...c, strategyLevel: $any($event.target).value}))"
-                      class="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-brand-primary/50 transition-colors">
+              <label
+                class="text-[9px] font-black text-silver-dim uppercase tracking-widest"
+                >Strategy Level</label
+              >
+              <select
+                [value]="newCampaign().strategyLevel"
+                (change)="newCampaign.update(c => ({...c, strategyLevel: $any($event.target).value}))"
+                class="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-brand-primary/50 transition-colors"
+              >
                 <option value="Modern Professional">Modern Professional</option>
-                <option value="Aggressive High Energy">Aggressive High Energy</option>
+                <option value="Aggressive High Energy">
+                  Aggressive High Energy
+                </option>
               </select>
             </div>
             <div class="flex flex-col gap-2">
-              <label class="text-[9px] font-black text-silver-dim uppercase tracking-widest">Ad Spend Projection ($)</label>
-              <input type="range" min="50" max="2000" step="50"
-                     [value]="adSpend()"
-                     (input)="adSpend.set(+$any($event.target).value)"
-                     class="w-full accent-brand-primary" />
+              <label
+                class="text-[9px] font-black text-silver-dim uppercase tracking-widest"
+                >Ad Spend Projection ($)</label
+              >
+              <input
+                type="range"
+                min="50"
+                max="2000"
+                step="50"
+                [value]="adSpend()"
+                (input)="adSpend.set(+$any($event.target).value)"
+                class="w-full accent-brand-primary"
+              />
               <div class="flex justify-between text-[9px] text-silver-dim">
                 <span>${{ adSpend() }}</span>
-                <span class="text-brand-primary">~{{ formatNumber(adProjections().reach) }} reach · {{ adProjections().conversions }} conversions</span>
+                <span class="text-brand-primary"
+                  >~{{ formatNumber(adProjections().reach) }} reach ·
+                  {{ adProjections().conversions }} conversions</span
+                >
               </div>
             </div>
           </div>
           <div class="flex gap-4 mt-8">
-            <button (click)="saveCampaign()"
-                    class="btn-elegant btn-elegant-primary text-[9px] font-black uppercase tracking-widest px-8 py-3 flex items-center gap-2">
+            <button
+              (click)="saveCampaign()"
+              class="btn-elegant btn-elegant-primary text-[9px] font-black uppercase tracking-widest px-8 py-3 flex items-center gap-2"
+            >
               <i class="fas fa-rocket"></i> Launch Campaign
             </button>
-            <button (click)="showCampaignForm.set(false)"
-                    class="text-[9px] font-black text-silver-dim uppercase tracking-widest px-6 py-3 rounded-xl border border-white/10 hover:border-white/20 transition-colors">
+            <button
+              (click)="showCampaignForm.set(false)"
+              class="text-[9px] font-black text-silver-dim uppercase tracking-widest px-6 py-3 rounded-xl border border-white/10 hover:border-white/20 transition-colors"
+            >
               Cancel
             </button>
           </div>
@@ -230,28 +415,51 @@
       @if (campaigns().length > 0) {
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           @for (campaign of campaigns(); track campaign.id) {
-            <div class="campaign-card bg-brand-surface/40 rounded-2xl border border-white/10 p-6 hover:border-brand-primary/30 transition-all group">
+            <div
+              class="campaign-card bg-brand-surface/40 rounded-2xl border border-white/10 p-6 hover:border-brand-primary/30 transition-all group"
+            >
               <div class="flex justify-between items-start mb-4">
-                <h3 class="text-sm font-black text-white uppercase leading-tight group-hover:text-brand-primary transition-colors">{{ campaign.name }}</h3>
-                <span class="px-2 py-1 rounded border text-[8px] font-black uppercase ml-2 shrink-0" [ngClass]="getCampaignStatusClass(campaign.status)">{{ campaign.status }}</span>
+                <h3
+                  class="text-sm font-black text-white uppercase leading-tight group-hover:text-brand-primary transition-colors"
+                >
+                  {{ campaign.name }}
+                </h3>
+                <span
+                  class="px-2 py-1 rounded border text-[8px] font-black uppercase ml-2 shrink-0"
+                  [ngClass]="getCampaignStatusClass(campaign.status)"
+                  >{{ campaign.status }}</span
+                >
               </div>
               <div class="space-y-2 mb-4">
                 <div class="flex justify-between text-[10px]">
                   <span class="text-silver-dim uppercase">Budget</span>
-                  <span class="text-white font-bold">${{ campaign.budget | number }}</span>
+                  <span class="text-white font-bold"
+                    >${{ campaign.budget | number }}</span
+                  >
                 </div>
                 <div class="flex justify-between text-[10px]">
                   <span class="text-silver-dim uppercase">Strategy</span>
-                  <span class="text-brand-primary font-bold">{{ campaign.strategyLevel }}</span>
+                  <span class="text-brand-primary font-bold">{{
+                    campaign.strategyLevel
+                  }}</span>
                 </div>
                 <div class="flex justify-between text-[10px]">
                   <span class="text-silver-dim uppercase">Platforms</span>
-                  <span class="text-white font-bold">{{ campaign.platforms.join(', ') }}</span>
+                  <span class="text-white font-bold">{{
+                    campaign.platforms.join(', ')
+                  }}</span>
                 </div>
               </div>
-              <div class="flex justify-between items-center mt-4 pt-4 border-t border-white/5">
-                <span class="text-[8px] text-silver-dim">{{ campaign.startDate | date:'mediumDate' }}</span>
-                <button (click)="deleteCampaign(campaign.id)" class="text-[8px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 transition-colors">
+              <div
+                class="flex justify-between items-center mt-4 pt-4 border-t border-white/5"
+              >
+                <span class="text-[8px] text-silver-dim">{{
+                  campaign.startDate | date: 'mediumDate'
+                }}</span>
+                <button
+                  (click)="deleteCampaign(campaign.id)"
+                  class="text-[8px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 transition-colors"
+                >
                   Delete
                 </button>
               </div>
@@ -261,12 +469,24 @@
       } @else {
         <div class="flex items-center justify-center py-20 text-center">
           <div class="max-w-xs">
-            <div class="w-14 h-14 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6">
+            <div
+              class="w-14 h-14 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6"
+            >
               <i class="fas fa-bullhorn text-2xl"></i>
             </div>
-            <h3 class="text-sm font-bold text-white uppercase tracking-widest mb-3">No Campaigns Yet</h3>
-            <p class="text-[11px] text-silver-dim leading-relaxed mb-6">Launch your first campaign to start building audience and driving streams.</p>
-            <button (click)="showCampaignForm.set(true)" class="btn-elegant btn-elegant-primary text-[9px] font-black uppercase tracking-widest px-6 py-3">
+            <h3
+              class="text-sm font-bold text-white uppercase tracking-widest mb-3"
+            >
+              No Campaigns Yet
+            </h3>
+            <p class="text-[11px] text-silver-dim leading-relaxed mb-6">
+              Launch your first campaign to start building audience and driving
+              streams.
+            </p>
+            <button
+              (click)="showCampaignForm.set(true)"
+              class="btn-elegant btn-elegant-primary text-[9px] font-black uppercase tracking-widest px-6 py-3"
+            >
               Create First Campaign
             </button>
           </div>
@@ -277,58 +497,125 @@
     <!-- ANALYTICS TAB -->
     <div *ngSwitchCase="'analytics'" class="space-y-8">
       <div>
-        <h2 class="text-lg md:text-xl font-black text-white uppercase tracking-tight mb-1">Performance Analytics</h2>
-        <p class="text-[11px] text-silver-dim">Real-time data across all platforms and channels</p>
+        <h2
+          class="text-lg md:text-xl font-black text-white uppercase tracking-tight mb-1"
+        >
+          Performance Analytics
+        </h2>
+        <p class="text-[11px] text-silver-dim">
+          Real-time data across all platforms and channels
+        </p>
       </div>
 
       <!-- Aggregate Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2">
-          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Total Followers</span>
-          <span class="text-2xl font-black text-white">{{ formatNumber(totalFollowers()) }}</span>
-          <span class="text-[8px] text-brand-primary uppercase">Across {{ socialStats().length }} platforms</span>
+        <div
+          class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
+        >
+          <span
+            class="text-[8px] font-black text-silver-dim uppercase tracking-widest"
+            >Total Followers</span
+          >
+          <span class="text-2xl font-black text-white">{{
+            formatNumber(totalFollowers())
+          }}</span>
+          <span class="text-[8px] text-brand-primary uppercase"
+            >Across {{ socialStats().length }} platforms</span
+          >
         </div>
-        <div class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2">
-          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Total Streams</span>
-          <span class="text-2xl font-black text-white">{{ formatNumber(totalStreams()) }}</span>
+        <div
+          class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
+        >
+          <span
+            class="text-[8px] font-black text-silver-dim uppercase tracking-widest"
+            >Total Streams</span
+          >
+          <span class="text-2xl font-black text-white">{{
+            formatNumber(totalStreams())
+          }}</span>
           <span class="text-[8px] text-brand-primary uppercase">All-time</span>
         </div>
-        <div class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2">
-          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Monthly Listeners</span>
-          <span class="text-2xl font-black text-white">{{ formatNumber(totalMonthlyListeners()) }}</span>
-          <span class="text-[8px] text-brand-primary uppercase">This month</span>
+        <div
+          class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
+        >
+          <span
+            class="text-[8px] font-black text-silver-dim uppercase tracking-widest"
+            >Monthly Listeners</span
+          >
+          <span class="text-2xl font-black text-white">{{
+            formatNumber(totalMonthlyListeners())
+          }}</span>
+          <span class="text-[8px] text-brand-primary uppercase"
+            >This month</span
+          >
         </div>
-        <div class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2">
-          <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">Campaigns</span>
-          <span class="text-2xl font-black text-white">{{ campaigns().length }}</span>
-          <span class="text-[8px] text-brand-primary uppercase">Active pipeline</span>
+        <div
+          class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
+        >
+          <span
+            class="text-[8px] font-black text-silver-dim uppercase tracking-widest"
+            >Campaigns</span
+          >
+          <span class="text-2xl font-black text-white">{{
+            campaigns().length
+          }}</span>
+          <span class="text-[8px] text-brand-primary uppercase"
+            >Active pipeline</span
+          >
         </div>
       </div>
 
       <!-- Social Platform Data -->
       <section>
-        <h3 class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Social Presence</h3>
+        <h3
+          class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4"
+        >
+          Social Presence
+        </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           @for (platform of socialStats(); track platform.platform) {
             <div class="glass-panel rounded-2xl border border-white/10 p-6">
               <div class="flex justify-between items-center mb-5">
-                <h4 class="text-sm font-black text-white uppercase">{{ platform.platform }}</h4>
-                <span class="text-[10px] font-black text-brand-primary">{{ formatNumber(platform.followers) }} followers</span>
+                <h4 class="text-sm font-black text-white uppercase">
+                  {{ platform.platform }}
+                </h4>
+                <span class="text-[10px] font-black text-brand-primary"
+                  >{{ formatNumber(platform.followers) }} followers</span
+                >
               </div>
               <div class="space-y-3 mb-4">
                 <div class="flex justify-between text-[10px]">
                   <span class="text-silver-dim uppercase">Engagement Rate</span>
-                  <span class="font-bold" [class.text-brand-primary]="platform.engagementRate >= 5" [class.text-yellow-400]="platform.engagementRate < 5">{{ platform.engagementRate }}%</span>
+                  <span
+                    class="font-bold"
+                    [class.text-brand-primary]="platform.engagementRate >= 5"
+                    [class.text-yellow-400]="platform.engagementRate < 5"
+                    >{{ platform.engagementRate }}%</span
+                  >
                 </div>
               </div>
               <div>
-                <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-2 block">Top Posts</span>
+                <span
+                  class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-2 block"
+                  >Top Posts</span
+                >
                 <div class="space-y-2">
                   @for (post of platform.topPosts; track post.id) {
-                    <div class="flex gap-4 text-[10px] bg-black/30 rounded-xl p-3">
-                      <span class="text-silver-dim flex items-center gap-1"><i class="fas fa-heart text-[8px]"></i> {{ formatNumber(post.likes) }}</span>
-                      <span class="text-silver-dim flex items-center gap-1"><i class="fas fa-share text-[8px]"></i> {{ formatNumber(post.shares) }}</span>
-                      <span class="text-silver-dim flex items-center gap-1"><i class="fas fa-comment text-[8px]"></i> {{ formatNumber(post.comments) }}</span>
+                    <div
+                      class="flex gap-4 text-[10px] bg-black/30 rounded-xl p-3"
+                    >
+                      <span class="text-silver-dim flex items-center gap-1"
+                        ><i class="fas fa-heart text-[8px]"></i>
+                        {{ formatNumber(post.likes) }}</span
+                      >
+                      <span class="text-silver-dim flex items-center gap-1"
+                        ><i class="fas fa-share text-[8px]"></i>
+                        {{ formatNumber(post.shares) }}</span
+                      >
+                      <span class="text-silver-dim flex items-center gap-1"
+                        ><i class="fas fa-comment text-[8px]"></i>
+                        {{ formatNumber(post.comments) }}</span
+                      >
                     </div>
                   }
                 </div>
@@ -340,31 +627,57 @@
 
       <!-- Streaming Data -->
       <section>
-        <h3 class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Streaming Platforms</h3>
+        <h3
+          class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4"
+        >
+          Streaming Platforms
+        </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           @for (platform of streamingStats(); track platform.platform) {
             <div class="glass-panel rounded-2xl border border-white/10 p-6">
               <div class="flex justify-between items-center mb-5">
-                <h4 class="text-sm font-black text-white uppercase">{{ platform.platform }}</h4>
-                <span class="text-[10px] font-black text-brand-primary">{{ formatNumber(platform.monthlyListeners) }} listeners/mo</span>
+                <h4 class="text-sm font-black text-white uppercase">
+                  {{ platform.platform }}
+                </h4>
+                <span class="text-[10px] font-black text-brand-primary"
+                  >{{
+                    formatNumber(platform.monthlyListeners)
+                  }}
+                  listeners/mo</span
+                >
               </div>
               <div class="space-y-3 mb-4">
                 <div class="flex justify-between text-[10px]">
                   <span class="text-silver-dim uppercase">Total Streams</span>
-                  <span class="text-white font-bold">{{ formatNumber(platform.totalStreams) }}</span>
+                  <span class="text-white font-bold">{{
+                    formatNumber(platform.totalStreams)
+                  }}</span>
                 </div>
                 <div class="flex justify-between text-[10px]">
                   <span class="text-silver-dim uppercase">Playlist Adds</span>
-                  <span class="text-brand-primary font-bold">{{ formatNumber(platform.playlistAdds) }}</span>
+                  <span class="text-brand-primary font-bold">{{
+                    formatNumber(platform.playlistAdds)
+                  }}</span>
                 </div>
               </div>
               <div>
-                <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-2 block">Top Tracks</span>
+                <span
+                  class="text-[8px] font-black text-silver-dim uppercase tracking-widest mb-2 block"
+                  >Top Tracks</span
+                >
                 <div class="space-y-2">
                   @for (track of platform.topTracks; track track.id) {
-                    <div class="flex justify-between items-center bg-black/30 rounded-xl p-3 text-[10px]">
-                      <span class="text-white font-medium truncate max-w-[160px]">{{ track.title }}</span>
-                      <span class="text-brand-primary font-black ml-2 shrink-0">{{ formatNumber(track.streams) }}</span>
+                    <div
+                      class="flex justify-between items-center bg-black/30 rounded-xl p-3 text-[10px]"
+                    >
+                      <span
+                        class="text-white font-medium truncate max-w-[160px]"
+                        >{{ track.title }}</span
+                      >
+                      <span
+                        class="text-brand-primary font-black ml-2 shrink-0"
+                        >{{ formatNumber(track.streams) }}</span
+                      >
                     </div>
                   }
                 </div>
@@ -378,123 +691,463 @@
     <!-- OUTREACH TAB -->
     <div *ngSwitchCase="'outreach'" class="space-y-8">
       <div>
-        <h2 class="text-lg md:text-xl font-black text-white uppercase tracking-tight mb-1">Outreach Command Center</h2>
-        <p class="text-[11px] text-silver-dim">AI-driven outreach protocols and promotion intelligence</p>
+        <h2
+          class="text-lg md:text-xl font-black text-white uppercase tracking-tight mb-1"
+        >
+          Outreach Command Center
+        </h2>
+        <p class="text-[11px] text-silver-dim">
+          AI-driven outreach protocols and promotion intelligence
+        </p>
       </div>
 
       <!-- Quick AI Commands -->
-      <section class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
-        <h3 class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-6">S.M.U.V.E Outreach Modules</h3>
+      <section
+        class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10"
+      >
+        <h3
+          class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-6"
+        >
+          S.M.U.V.E Outreach Modules
+        </h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+          <div
+            class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group"
+          >
+            <div
+              class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4"
+            >
               <i class="fas fa-newspaper text-brand-primary"></i>
             </div>
-            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Press & Blog Outreach</h4>
-            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Target music blogs, editorial sites, and press outlets in your genre. Personalized pitch templates included.</p>
-            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use /promo in Command Center →</span>
+            <h4
+              class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors"
+            >
+              Press & Blog Outreach
+            </h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">
+              Target music blogs, editorial sites, and press outlets in your
+              genre. Personalized pitch templates included.
+            </p>
+            <span
+              class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+              >Use /promo in Command Center →</span
+            >
           </div>
-          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+          <div
+            class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group"
+          >
+            <div
+              class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4"
+            >
               <i class="fas fa-music text-brand-primary"></i>
             </div>
-            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Playlist Pitching</h4>
-            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Submit to curated playlists via Groover and SubmitHub. Target curators with 10K–100K followers for 15–30% acceptance rates.</p>
-            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use /release in Command Center →</span>
+            <h4
+              class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors"
+            >
+              Playlist Pitching
+            </h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">
+              Submit to curated playlists via Groover and SubmitHub. Target
+              curators with 10K–100K followers for 15–30% acceptance rates.
+            </p>
+            <span
+              class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+              >Use /release in Command Center →</span
+            >
           </div>
-          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+          <div
+            class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group"
+          >
+            <div
+              class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4"
+            >
               <i class="fas fa-handshake text-brand-primary"></i>
             </div>
-            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Collaboration Outreach</h4>
-            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Identify ideal collaboration targets—features, producers, and remixers—based on genre alignment and growth-stage synergy.</p>
-            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use COLLAB_STRATEGY in Command Center →</span>
+            <h4
+              class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors"
+            >
+              Collaboration Outreach
+            </h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">
+              Identify ideal collaboration targets—features, producers, and
+              remixers—based on genre alignment and growth-stage synergy.
+            </p>
+            <span
+              class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+              >Use COLLAB_STRATEGY in Command Center →</span
+            >
           </div>
-          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+          <div
+            class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group"
+          >
+            <div
+              class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4"
+            >
               <i class="fas fa-film text-brand-primary"></i>
             </div>
-            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Sync Licensing Pitch</h4>
-            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Create pitch materials for music supervisors. Include genre tags, mood descriptors, and one-stop clearance status.</p>
-            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use SYNC_PITCH in Command Center →</span>
+            <h4
+              class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors"
+            >
+              Sync Licensing Pitch
+            </h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">
+              Create pitch materials for music supervisors. Include genre tags,
+              mood descriptors, and one-stop clearance status.
+            </p>
+            <span
+              class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+              >Use SYNC_PITCH in Command Center →</span
+            >
           </div>
-          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+          <div
+            class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group"
+          >
+            <div
+              class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4"
+            >
               <i class="fas fa-envelope text-brand-primary"></i>
             </div>
-            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Email List Activation</h4>
-            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Deploy a 72-hour pre-save email sequence. Personalized subject lines increase open rates by 26%. Drive saves—not just plays.</p>
-            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use /promo in Command Center →</span>
+            <h4
+              class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors"
+            >
+              Email List Activation
+            </h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">
+              Deploy a 72-hour pre-save email sequence. Personalized subject
+              lines increase open rates by 26%. Drive saves—not just plays.
+            </p>
+            <span
+              class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+              >Use /promo in Command Center →</span
+            >
           </div>
-          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4">
+          <div
+            class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group"
+          >
+            <div
+              class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mb-4"
+            >
               <i class="fas fa-bullseye text-brand-primary"></i>
             </div>
-            <h4 class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors">Fan Funnel Architecture</h4>
-            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">Design a fan acquisition pipeline: discovery → streaming → social → email capture → merch and superfan monetization.</p>
-            <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Use FAN_FUNNEL in Command Center →</span>
+            <h4
+              class="text-xs font-black text-white uppercase mb-2 group-hover:text-brand-primary transition-colors"
+            >
+              Fan Funnel Architecture
+            </h4>
+            <p class="text-[10px] text-silver-dim leading-relaxed mb-4">
+              Design a fan acquisition pipeline: discovery → streaming → social
+              → email capture → merch and superfan monetization.
+            </p>
+            <span
+              class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+              >Use FAN_FUNNEL in Command Center →</span
+            >
           </div>
         </div>
       </section>
 
       <!-- Upgrade Recommendations -->
       <section>
-        <h3 class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Strategic Upgrade Targets</h3>
+        <h3
+          class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4"
+        >
+          Strategic Upgrade Targets
+        </h3>
         <div class="space-y-3">
-          @for (rec of upgradeRecs; track rec.id) {
-            <div class="flex items-start gap-4 bg-brand-surface/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group">
-              <div class="w-8 h-8 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+          @for (rec of upgradeRecs(); track rec.id) {
+            <div
+              class="flex items-start gap-4 bg-brand-surface/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group"
+              [attr.data-testid]="'strategy-recommendation-' + rec.id"
+            >
+              <div
+                class="w-8 h-8 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0 mt-0.5"
+              >
                 <i class="fas fa-arrow-up text-brand-primary text-[10px]"></i>
               </div>
               <div class="flex-grow min-w-0">
-                <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
-                  <h4 class="text-xs font-black text-white uppercase group-hover:text-brand-primary transition-colors">{{ rec.title }}</h4>
+                <div
+                  class="flex flex-wrap justify-between items-center gap-2 mb-1"
+                >
+                  <h4
+                    class="text-xs font-black text-white uppercase group-hover:text-brand-primary transition-colors"
+                  >
+                    {{ rec.title }}
+                  </h4>
                   <div class="flex items-center gap-2">
-                    <span class="text-[8px] font-black text-silver-dim uppercase">{{ rec.type }}</span>
-                    <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded" [ngClass]="getImpactColor(rec.impact)">{{ rec.impact }}</span>
+                    <span
+                      class="text-[8px] font-black text-silver-dim uppercase"
+                      >{{ rec.type }}</span
+                    >
+                    <span
+                      class="text-[8px] font-black uppercase px-2 py-0.5 rounded border"
+                      [ngClass]="getPriorityClass(rec.priority)"
+                      >{{ rec.priority }}</span
+                    >
+                    <span
+                      class="text-[8px] font-black uppercase px-2 py-0.5 rounded"
+                      [ngClass]="getImpactColor(rec.impact)"
+                      >{{ rec.impact }}</span
+                    >
                   </div>
                 </div>
-                <p class="text-[10px] text-silver-dim leading-relaxed">{{ rec.description }}</p>
+                <p class="text-[10px] text-silver-dim leading-relaxed mb-2">
+                  {{ rec.description }}
+                </p>
+                <p class="text-[10px] text-white/80 leading-relaxed mb-3">
+                  {{ rec.rationale }}
+                </p>
+                <div
+                  class="grid grid-cols-1 md:grid-cols-3 gap-3 text-[9px] mb-3"
+                >
+                  <div
+                    class="rounded-2xl border border-white/10 bg-black/20 p-3"
+                  >
+                    <span class="block text-silver-dim uppercase mb-1"
+                      >Why now</span
+                    >
+                    <span class="text-white/80">{{ rec.whyNow }}</span>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-white/10 bg-black/20 p-3"
+                  >
+                    <span class="block text-silver-dim uppercase mb-1"
+                      >Next step</span
+                    >
+                    <span class="text-white/80">{{ rec.nextStep }}</span>
+                  </div>
+                  <div
+                    class="rounded-2xl border border-white/10 bg-black/20 p-3"
+                  >
+                    <span class="block text-silver-dim uppercase mb-1"
+                      >Benefit</span
+                    >
+                    <span class="text-white/80">{{ rec.expectedBenefit }}</span>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-2 mb-3">
+                  <span
+                    class="text-[8px] font-black uppercase px-2 py-1 rounded-full border border-white/10 text-white/70"
+                    >{{ rec.targetArea }}</span
+                  >
+                  <span
+                    class="text-[8px] font-black uppercase px-2 py-1 rounded-full border border-white/10 text-white/70"
+                    >{{ getRecommendationStateLabel(rec.state) }}</span
+                  >
+                  @if (rec.outcomeMetric) {
+                    <span
+                      class="text-[8px] font-black uppercase px-2 py-1 rounded-full border border-brand-primary/20 text-brand-primary"
+                    >
+                      {{ rec.outcomeMetric.label }}:
+                      {{ rec.outcomeMetric.value }}
+                    </span>
+                  }
+                  @if (rec.historySummary) {
+                    <span
+                      class="text-[8px] font-black uppercase px-2 py-1 rounded-full border border-white/10 text-white/60"
+                    >
+                      {{ rec.historySummary }}
+                    </span>
+                  }
+                </div>
+                @if (rec.progressSignals?.length) {
+                  <div class="space-y-2 mb-3">
+                    @for (signal of rec.progressSignals; track signal.label) {
+                      <div
+                        class="rounded-2xl border border-white/10 bg-black/20 p-3 text-[9px]"
+                      >
+                        <div
+                          class="flex items-center justify-between gap-2 mb-1"
+                        >
+                          <span class="uppercase text-silver-dim">{{
+                            signal.label
+                          }}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 text-white/70">
+                          <div>
+                            <span class="block text-silver-dim uppercase mb-1"
+                              >Before</span
+                            >
+                            {{ signal.before }}
+                          </div>
+                          <div>
+                            <span class="block text-silver-dim uppercase mb-1"
+                              >After</span
+                            >
+                            {{ signal.after }}
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+                @if (rec.evidence?.length) {
+                  <div class="flex flex-wrap gap-2 mb-3">
+                    @for (item of rec.evidence; track item) {
+                      <span
+                        class="text-[8px] font-black uppercase px-2 py-1 rounded-full border border-white/10 text-white/60"
+                      >
+                        {{ item }}
+                      </span>
+                    }
+                  </div>
+                }
+                @if (rec.prerequisites?.length) {
+                  <p class="text-[9px] text-silver-dim leading-relaxed mb-3">
+                    Next prerequisite: {{ rec.prerequisites[0] }}
+                  </p>
+                }
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-brand-primary text-black hover:scale-[1.02] transition-all"
+                    (click)="focusRecommendation(rec)"
+                    [attr.data-testid]="'strategy-focus-' + rec.id"
+                  >
+                    {{ rec.actionLabel }}
+                  </button>
+                  <button
+                    class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-white hover:border-brand-primary/40 transition-all"
+                    (click)="saveRecommendation(rec)"
+                    [attr.data-testid]="'strategy-save-' + rec.id"
+                  >
+                    Save
+                  </button>
+                  <button
+                    class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 text-silver-dim hover:text-white transition-all"
+                    (click)="dismissRecommendation(rec)"
+                    [attr.data-testid]="'strategy-dismiss-' + rec.id"
+                  >
+                    Not Relevant
+                  </button>
+                  @if (rec.state === 'acquired') {
+                    <button
+                      class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-blue-400/20 text-blue-400 hover:bg-blue-400/10 transition-all"
+                      (click)="completeRecommendation(rec)"
+                      [attr.data-testid]="'strategy-complete-' + rec.id"
+                    >
+                      Mark Completed
+                    </button>
+                  }
+                  @if (rec.state !== 'acquired' && rec.state !== 'completed') {
+                    <button
+                      class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary hover:bg-brand-primary/10 transition-all"
+                      (click)="acquireUpgrade(rec)"
+                      [attr.data-testid]="'strategy-acquire-' + rec.id"
+                    >
+                      Mark Acquired
+                    </button>
+                  }
+                </div>
               </div>
-              <span class="text-[10px] font-black text-brand-primary shrink-0 hidden sm:block">{{ rec.cost }}</span>
+              <span
+                class="text-[10px] font-black text-brand-primary shrink-0 hidden sm:block"
+                >{{ rec.cost }}</span
+              >
             </div>
           }
         </div>
+        @if (recommendationInbox().length) {
+          <div class="mt-6 rounded-3xl border border-white/10 bg-black/20 p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h4
+                class="text-[10px] font-black text-white uppercase tracking-[0.2em]"
+              >
+                Recommendation Inbox
+              </h4>
+              <span class="text-[8px] font-black text-silver-dim uppercase">
+                Recent actions
+              </span>
+            </div>
+            <div class="space-y-2">
+              @for (entry of recommendationInbox(); track entry.updatedAt) {
+                <div
+                  class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3 text-[9px]"
+                  data-testid="strategy-inbox-entry"
+                >
+                  <div>
+                    <span class="block text-white font-black uppercase">{{
+                      entry.title
+                    }}</span>
+                    <span class="text-silver-dim uppercase">{{
+                      getHistoryStateLabel(entry.state)
+                    }}</span>
+                  </div>
+                  <span class="text-white/50 uppercase">{{
+                    entry.updatedAt | date: 'short'
+                  }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </section>
     </div>
 
     <!-- SOCIAL TAB -->
     <div *ngSwitchCase="'social'" class="space-y-8">
       <div>
-        <h2 class="text-lg md:text-xl font-black text-white uppercase tracking-tight mb-1">Social Presence Engine</h2>
-        <p class="text-[11px] text-silver-dim">Platform analytics, content intelligence, and viral hook strategies</p>
+        <h2
+          class="text-lg md:text-xl font-black text-white uppercase tracking-tight mb-1"
+        >
+          Social Presence Engine
+        </h2>
+        <p class="text-[11px] text-silver-dim">
+          Platform analytics, content intelligence, and viral hook strategies
+        </p>
       </div>
 
       <!-- Social Stats Summary -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         @for (platform of socialStats(); track platform.platform) {
-          <div class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2">
-            <span class="text-[8px] font-black text-silver-dim uppercase tracking-widest">{{ platform.platform }}</span>
-            <span class="text-xl font-black text-white">{{ formatNumber(platform.followers) }}</span>
+          <div
+            class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
+          >
+            <span
+              class="text-[8px] font-black text-silver-dim uppercase tracking-widest"
+              >{{ platform.platform }}</span
+            >
+            <span class="text-xl font-black text-white">{{
+              formatNumber(platform.followers)
+            }}</span>
             <div class="flex justify-between items-center">
               <span class="text-[8px] text-silver-dim">Engagement</span>
-              <span class="text-[10px] font-black" [class.text-brand-primary]="platform.engagementRate >= 5" [class.text-yellow-400]="platform.engagementRate < 5">{{ platform.engagementRate }}%</span>
+              <span
+                class="text-[10px] font-black"
+                [class.text-brand-primary]="platform.engagementRate >= 5"
+                [class.text-yellow-400]="platform.engagementRate < 5"
+                >{{ platform.engagementRate }}%</span
+              >
             </div>
           </div>
         }
       </div>
 
       <!-- Viral Hooks -->
-      <section class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
+      <section
+        class="glass-panel rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10"
+      >
         <div class="flex justify-between items-center mb-6">
-          <h3 class="text-base font-black text-white uppercase tracking-tight">Viral Hook Library</h3>
-          <span class="text-[9px] font-black text-brand-primary uppercase tracking-widest">{{ viralHooks.length }} HOOKS</span>
+          <h3 class="text-base font-black text-white uppercase tracking-tight">
+            Viral Hook Library
+          </h3>
+          <span
+            class="text-[9px] font-black text-brand-primary uppercase tracking-widest"
+            >{{ viralHooks.length }} HOOKS</span
+          >
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           @for (hook of viralHooks; track hook; let i = $index) {
-            <div class="flex items-start gap-3 bg-black/30 rounded-xl p-4 hover:bg-black/50 transition-all group">
-              <div class="w-7 h-7 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary text-[10px] font-black shrink-0">{{ i + 1 }}</div>
-              <span class="text-xs text-white font-medium group-hover:text-brand-primary transition-colors leading-snug">{{ hook }}</span>
+            <div
+              class="flex items-start gap-3 bg-black/30 rounded-xl p-4 hover:bg-black/50 transition-all group"
+            >
+              <div
+                class="w-7 h-7 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary text-[10px] font-black shrink-0"
+              >
+                {{ i + 1 }}
+              </div>
+              <span
+                class="text-xs text-white font-medium group-hover:text-brand-primary transition-colors leading-snug"
+                >{{ hook }}</span
+              >
             </div>
           }
         </div>
@@ -502,39 +1155,116 @@
 
       <!-- Content Strategy Tips -->
       <section>
-        <h3 class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4">Platform-Native Content Protocols</h3>
+        <h3
+          class="text-[9px] font-black text-silver-dim uppercase tracking-[0.3em] mb-4"
+        >
+          Platform-Native Content Protocols
+        </h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all">
-            <h4 class="text-xs font-black text-white uppercase mb-3 flex items-center gap-2">
+          <div
+            class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all"
+          >
+            <h4
+              class="text-xs font-black text-white uppercase mb-3 flex items-center gap-2"
+            >
               <i class="fab fa-tiktok text-brand-primary"></i> TikTok Protocol
             </h4>
             <ul class="space-y-2 text-[10px] text-silver-dim">
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Post 15–30 second hook clips daily for 7 days</li>
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Use trending audio overlays on instrumental cuts</li>
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Drive saves—saves trigger the algorithm, not just views</li>
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Best posting times: 7–9 AM and 7–10 PM local</li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Post 15–30 second hook clips daily for 7 days
+              </li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Use trending audio overlays on instrumental cuts
+              </li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Drive saves—saves trigger the algorithm, not just views
+              </li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Best posting times: 7–9 AM and 7–10 PM local
+              </li>
             </ul>
           </div>
-          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all">
-            <h4 class="text-xs font-black text-white uppercase mb-3 flex items-center gap-2">
-              <i class="fab fa-instagram text-brand-primary"></i> Instagram Protocol
+          <div
+            class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all"
+          >
+            <h4
+              class="text-xs font-black text-white uppercase mb-3 flex items-center gap-2"
+            >
+              <i class="fab fa-instagram text-brand-primary"></i> Instagram
+              Protocol
             </h4>
             <ul class="space-y-2 text-[10px] text-silver-dim">
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Reels perform 3× better than static posts in reach</li>
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Use Stories for behind-the-scenes studio content</li>
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Tag collaborators and producers to multiply reach</li>
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Link Spotify pre-save in bio during release window</li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Reels perform 3× better than static posts in reach
+              </li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Use Stories for behind-the-scenes studio content
+              </li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Tag collaborators and producers to multiply reach
+              </li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Link Spotify pre-save in bio during release window
+              </li>
             </ul>
           </div>
-          <div class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all">
-            <h4 class="text-xs font-black text-white uppercase mb-3 flex items-center gap-2">
+          <div
+            class="bg-black/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all"
+          >
+            <h4
+              class="text-xs font-black text-white uppercase mb-3 flex items-center gap-2"
+            >
               <i class="fab fa-youtube text-brand-primary"></i> YouTube Protocol
             </h4>
             <ul class="space-y-2 text-[10px] text-silver-dim">
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Upload Shorts version of every release (60 sec max)</li>
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Full music video drives long-term search discovery</li>
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Optimize titles with genre keywords for SEO</li>
-              <li class="flex items-start gap-2"><i class="fas fa-check text-brand-primary mt-0.5 text-[8px]"></i> Enable monetization to capture YouTube Music streams</li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Upload Shorts version of every release (60 sec max)
+              </li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Full music video drives long-term search discovery
+              </li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Optimize titles with genre keywords for SEO
+              </li>
+              <li class="flex items-start gap-2">
+                <i
+                  class="fas fa-check text-brand-primary mt-0.5 text-[8px]"
+                ></i>
+                Enable monetization to capture YouTube Music streams
+              </li>
             </ul>
           </div>
         </div>

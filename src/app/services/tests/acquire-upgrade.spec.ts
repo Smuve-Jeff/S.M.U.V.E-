@@ -41,10 +41,21 @@ describe('UserProfileService - Acquire Upgrade', () => {
     expect(service.profile().daw).toContain('New Synth');
   });
 
-  it('should add "Service" to daw list', async () => {
-    const upgrade = { title: 'DistroKid', type: 'Service' };
+  it('should add "Service" to services list', async () => {
+    const upgrade = {
+      title: 'DistroKid',
+      type: 'Service',
+      recommendationId: 'upg-service',
+    };
     await service.acquireUpgrade(upgrade);
-    expect(service.profile().daw).toContain('DistroKid');
+    expect(service.profile().services).toContain('DistroKid');
+    expect(
+      service.profile().recommendationPreferences?.['upg-service']
+    ).toEqual(
+      expect.objectContaining({
+        state: 'acquired',
+      })
+    );
   });
 
   it('should not add duplicate items', async () => {
@@ -55,5 +66,30 @@ describe('UserProfileService - Acquire Upgrade', () => {
       .profile()
       .equipment.filter((e) => e === 'Duplicate Item').length;
     expect(count).toBe(1);
+  });
+
+  it('marks completed upgrades separately from acquired state', async () => {
+    const upgrade = {
+      title: 'Mix Translation Checklist',
+      type: 'Service',
+      recommendationId: 'upg-translation-checklist',
+    };
+
+    await service.completeUpgrade(upgrade);
+
+    expect(service.profile().services).toContain('Mix Translation Checklist');
+    expect(
+      service.profile().recommendationPreferences?.['upg-translation-checklist']
+    ).toEqual(
+      expect.objectContaining({
+        state: 'completed',
+      })
+    );
+    expect(service.profile().recommendationHistory?.at(-1)).toEqual(
+      expect.objectContaining({
+        recommendationId: 'upg-translation-checklist',
+        state: 'completed',
+      })
+    );
   });
 });

@@ -5,8 +5,9 @@ import { RouterModule } from '@angular/router';
 import { UserProfileService } from '../../services/user-profile.service';
 import { MarketingService } from '../../services/marketing.service';
 import { AiService } from '../../services/ai.service';
+import { UIService } from '../../services/ui.service';
 import { MarketingCampaign } from '../../types/marketing.types';
-import { StrategicTask } from '../../types/ai.types';
+import { StrategicTask, UpgradeRecommendation } from '../../types/ai.types';
 
 type StrategyTab =
   | 'overview'
@@ -25,6 +26,7 @@ type StrategyTab =
 export class StrategyHubComponent implements OnInit {
   private profileService = inject(UserProfileService);
   private marketingService = inject(MarketingService);
+  private uiService = inject(UIService);
   public aiService = inject(AiService);
 
   profile = this.profileService.profile;
@@ -39,7 +41,15 @@ export class StrategyHubComponent implements OnInit {
 
   viralHooks = this.aiService.getViralHooks();
 
-  upgradeRecs = this.aiService.getUpgradeRecommendations();
+  upgradeRecs = computed(() =>
+    this.aiService.getUpgradeRecommendations().slice(0, 5)
+  );
+  recommendationInbox = computed(() =>
+    [...(this.profile().recommendationHistory || [])]
+      .slice()
+      .reverse()
+      .slice(0, 6)
+  );
 
   totalFollowers = computed(() =>
     this.socialStats().reduce((sum, s) => sum + s.followers, 0)
@@ -124,6 +134,40 @@ export class StrategyHubComponent implements OnInit {
     await this.marketingService.deleteCampaign(id);
   }
 
+  async acquireUpgrade(rec: UpgradeRecommendation) {
+    await this.profileService.acquireUpgrade({
+      title: rec.title,
+      type: rec.type,
+      recommendationId: rec.id,
+    });
+  }
+
+  async saveRecommendation(rec: UpgradeRecommendation) {
+    await this.profileService.setRecommendationState(rec.id, 'saved', rec);
+  }
+
+  async dismissRecommendation(rec: UpgradeRecommendation) {
+    await this.profileService.setRecommendationState(
+      rec.id,
+      'not-relevant',
+      rec
+    );
+  }
+
+  async completeRecommendation(rec: UpgradeRecommendation) {
+    await this.profileService.completeUpgrade({
+      title: rec.title,
+      type: rec.type,
+      recommendationId: rec.id,
+    });
+  }
+
+  focusRecommendation(rec: UpgradeRecommendation) {
+    if (rec.toolId) {
+      this.uiService.navigateToView(rec.toolId as any);
+    }
+  }
+
   getImpactColor(impact: string): string {
     switch (impact) {
       case 'Extreme':
@@ -135,6 +179,34 @@ export class StrategyHubComponent implements OnInit {
       default:
         return 'text-white';
     }
+  }
+
+  getPriorityClass(priority: string): string {
+    switch (priority) {
+      case 'Critical':
+        return 'bg-brand-primary/20 text-brand-primary border-brand-primary/30';
+      case 'High':
+        return 'bg-yellow-400/10 text-yellow-400 border-yellow-400/20';
+      default:
+        return 'bg-blue-400/10 text-blue-400 border-blue-400/20';
+    }
+  }
+
+  getRecommendationStateLabel(state?: string): string {
+    switch (state) {
+      case 'saved':
+        return 'Saved';
+      case 'acquired':
+        return 'Acquired';
+      case 'completed':
+        return 'Completed';
+      default:
+        return 'Suggested';
+    }
+  }
+
+  getHistoryStateLabel(state: string): string {
+    return state.replaceAll('-', ' ');
   }
 
   getSeverityClass(severity: string): string {
