@@ -5,7 +5,9 @@ import {
   signal,
   HostListener,
   computed,
+  DestroyRef,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
   RouterLink,
@@ -72,6 +74,7 @@ export class AppComponent {
   dialog = inject(InteractionDialogService);
   swUpdate = inject(SwUpdate, { optional: true });
   router = inject(Router);
+  destroyRef = inject(DestroyRef);
 
   isSidebarOpen = signal(true);
   isFullPageMode = signal(false);
@@ -123,7 +126,10 @@ export class AppComponent {
     this.updateShellFromUrl(this.router.url);
 
     this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe(() => {
         this.updateShellFromUrl(this.router.url);
       });
@@ -199,7 +205,10 @@ export class AppComponent {
     if (!this.swUpdate?.isEnabled) return;
 
     this.swUpdate.versionUpdates
-      .pipe(filter((event) => this.isVersionReadyEvent(event)))
+      .pipe(
+        filter((event) => this.isVersionReadyEvent(event)),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe(() => {
         void this.dialog
           .confirm({

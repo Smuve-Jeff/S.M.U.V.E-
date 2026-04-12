@@ -1,4 +1,11 @@
-import { Injectable, signal, inject, effect, computed } from '@angular/core';
+import {
+  Injectable,
+  signal,
+  inject,
+  effect,
+  computed,
+  DestroyRef,
+} from '@angular/core';
 import { Router } from '@angular/router';
 
 import { MainViewMode, AppTheme } from './user-context.service';
@@ -40,8 +47,11 @@ const MAX_PINNED_WORKSPACES = 6;
 export class UIService {
   private router = inject(Router);
   private profileService = inject(UserProfileService);
+  private destroyRef = inject(DestroyRef);
   private readonly pinnedKey = 'smuve_pinned_workspaces';
   private readonly recentKey = 'smuve_recent_workspaces';
+  private readonly handleOnline = () => this.updateOnlineStatus(true);
+  private readonly handleOffline = () => this.updateOnlineStatus(false);
 
   mainViewMode = signal<MainViewMode>('hub');
   activeTheme = signal<AppTheme>(THEMES[0]);
@@ -68,8 +78,12 @@ export class UIService {
   constructor() {
     if (typeof window !== 'undefined') {
       this.isOnline.set(navigator.onLine);
-      window.addEventListener('online', () => this.updateOnlineStatus(true));
-      window.addEventListener('offline', () => this.updateOnlineStatus(false));
+      window.addEventListener('online', this.handleOnline);
+      window.addEventListener('offline', this.handleOffline);
+      this.destroyRef.onDestroy(() => {
+        window.removeEventListener('online', this.handleOnline);
+        window.removeEventListener('offline', this.handleOffline);
+      });
 
       effect(() => {
         const profile = this.profileService.profile();

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 
 import { AppComponent } from './app.component';
@@ -163,7 +163,7 @@ describe('AppComponent', () => {
     const component = fixture.componentInstance;
     fixture.detectChanges();
 
-    return { component, uiService, commandPalette };
+    return { component, uiService, commandPalette, routerEvents$ };
   };
 
   it('should create the app', async () => {
@@ -264,6 +264,17 @@ describe('AppComponent', () => {
       configurable: true,
       value: originalWidth,
     });
+  });
+
+  it('stops reacting to router events after the shell is destroyed', async () => {
+    const { uiService, routerEvents$ } = await createComponent('/hub');
+
+    uiService.setActiveViewFromRoute.mockClear();
+
+    TestBed.resetTestingModule();
+    routerEvents$.next(new NavigationEnd(1, '/strategy', '/strategy'));
+
+    expect(uiService.setActiveViewFromRoute).not.toHaveBeenCalled();
   });
 
   it('treats studio as full-page on mobile but not on desktop', async () => {

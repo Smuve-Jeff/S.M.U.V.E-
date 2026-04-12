@@ -48,4 +48,39 @@ describe('UIService Performance Mode', () => {
     TestBed.flushEffects();
     expect(service.activeTheme().name).toBe('Dark');
   });
+
+  it('cleans up online status listeners when destroyed', () => {
+    const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+    const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
+
+    TestBed.resetTestingModule();
+
+    TestBed.configureTestingModule({
+      providers: [
+        UIService,
+        { provide: Router, useValue: { navigate: jest.fn() } },
+        { provide: UserProfileService, useValue: profileServiceMock },
+      ],
+    });
+
+    TestBed.inject(UIService);
+
+    const onlineHandler = addEventListenerSpy.mock.calls.find(
+      ([eventName]) => eventName === 'online'
+    )?.[1];
+    const offlineHandler = addEventListenerSpy.mock.calls.find(
+      ([eventName]) => eventName === 'offline'
+    )?.[1];
+
+    expect(onlineHandler).toEqual(expect.any(Function));
+    expect(offlineHandler).toEqual(expect.any(Function));
+
+    TestBed.resetTestingModule();
+
+    expect(removeEventListenerSpy).toHaveBeenCalledWith('online', onlineHandler);
+    expect(removeEventListenerSpy).toHaveBeenCalledWith(
+      'offline',
+      offlineHandler
+    );
+  });
 });
