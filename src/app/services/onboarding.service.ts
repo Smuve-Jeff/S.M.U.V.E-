@@ -77,7 +77,7 @@ export class OnboardingService {
         description:
           'Visit Studio, Piano Roll, or Vocal Suite to establish your first production trail.',
         route: 'studio',
-        cta: 'Open studio',
+        cta: 'Launch studio',
         complete: visitedCreative,
       },
       {

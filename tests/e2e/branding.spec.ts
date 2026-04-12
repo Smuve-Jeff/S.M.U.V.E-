@@ -14,7 +14,7 @@ test('S.M.U.V.E 2.0 branding and navigation check', async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open Studio' })).toBeVisible();
   await expect(
-    page.getByRole('button', { name: 'Open Gaming Hub' })
+    page.getByRole('button', { name: 'Open Tha Spot' })
   ).toBeVisible();
   await expect(page.getByText('©️ Smuve Jeff Presents')).toBeVisible();
 });

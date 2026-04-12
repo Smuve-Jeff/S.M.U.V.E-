@@ -189,6 +189,7 @@
             *ngIf="!step.complete"
             (click)="openOnboardingStep(step)"
             class="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary"
+            [attr.aria-label]="'Continue onboarding: ' + step.cta"
           >
             {{ step.cta }}
           </button>
