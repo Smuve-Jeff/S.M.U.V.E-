@@ -50,7 +50,10 @@ const STEPS_PER_BAR = 16;
 const TOTAL_STEPS = DRUM_MACHINE_BARS * STEPS_PER_BAR;
 
 const DEFAULT_STEPS = (): DrumStep[] =>
-  Array.from({ length: TOTAL_STEPS }, () => ({ active: false, velocity: 0.85 }));
+  Array.from({ length: TOTAL_STEPS }, () => ({
+    active: false,
+    velocity: 0.85,
+  }));
 
 @Component({
   selector: 'app-drum-machine',
