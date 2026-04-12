@@ -1630,6 +1630,8 @@
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
         "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
+        "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
