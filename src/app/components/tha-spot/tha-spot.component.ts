@@ -474,6 +474,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     );
   }
 
+  reloadGame() {
+    const game = this.currentGame();
+    if (game) {
+      this.closeGame();
+      setTimeout(() => this.launchGame(game), 100);
+    }
+  }
+
   closeGame() {
     this.currentGame.set(null);
     this.sessionStartedAt.set(null);

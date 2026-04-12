@@ -55,7 +55,6 @@
       "id": "arcade",
       "name": "Arcade",
       "icon": "joystick",
-      "description": "Fast rotations, reflex-first play, and short-session cabinet runs.",
       "description": "Fast rotations, reflex-first play, and short-session focus runs.",
       "rules": {
         "tags": [
@@ -131,9 +130,6 @@
     {
       "id": "event-1",
       "title": "Tha Battlefield Friday Bracket",
-      "description": "Live matchmaking ladder with featured cosmetics for every completed round.",
-      "roomId": "versus-night",
-      "reward": "Clash Banner",
       "description": "Live matchmaking ladder with featured room drops for every completed round.",
       "roomId": "versus-night",
       "reward": "Clash Banner Drop",
@@ -155,9 +151,6 @@
     {
       "id": "event-2",
       "title": "Producer Lounge Daily Challenge",
-      "description": "Hold a clean 30-note chain across rhythm picks to earn a fresh badge.",
-      "roomId": "producer-lounge",
-      "reward": "Studio skin",
       "description": "Hold a clean 30-note run across rhythm picks to secure a fresh badge.",
       "roomId": "producer-lounge",
       "reward": "Studio skin drop",
@@ -169,7 +162,6 @@
         "startAt": "2026-04-06T20:00:00.000Z",
         "endAt": "2026-04-07T20:00:00.000Z",
         "recurrence": "daily",
-        "eligibilityTags": ["Rhythm", "Original"],
         "eligibilityTags": [
           "Rhythm",
           "Original"
@@ -697,7 +689,7 @@
     {
       "id": "8",
       "name": "Beat Runner",
-      "url": "https://htmlgames.com/game/Beat+Runner",
+      "url": "https://www.gamepix.com/play/music-rush",
       "description": "Sprint through glow landscapes synced to the beat with lightweight online launch.",
       "genre": "Runner",
       "rating": 4.5,
@@ -736,10 +728,10 @@
         "trustNote": "Allowlisted arcade partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://htmlgames.com/game/Beat+Runner",
-        "approvedEmbedUrl": "https://htmlgames.com/game/Beat+Runner",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/music-rush",
         "telemetryMode": "origin",
         "telemetryOrigins": [
-          "https://htmlgames.com"
+          "https://www.gamepix.com"
         ]
       },
       "art": {
@@ -805,7 +797,7 @@
     {
       "id": "10",
       "name": "Street Brawler V",
-      "url": "https://www.retrogames.cc/embed/10042-street-fighter-ii-the-world-warrior-world-910522.html",
+      "url": "https://www.gamepix.com/play/street-fight",
       "description": "Master classic combat in the world warrior tournament cabinet.",
       "genre": "Fighting",
       "rating": 4.7,
@@ -845,10 +837,10 @@
         "trustNote": "Allowlisted retro combat partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/10042-street-fighter-ii-the-world-warrior-world-910522.html",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10042-street-fighter-ii-the-world-warrior-world-910522.html",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/street-fight",
         "telemetryMode": "origin",
         "telemetryOrigins": [
-          "https://www.retrogames.cc"
+          "https://www.gamepix.com"
         ]
       },
       "art": {
@@ -860,7 +852,7 @@
     {
       "id": "11",
       "name": "Grandmaster Chess",
-      "url": "https://poki.com/en/g/master-chess",
+      "url": "https://www.gamepix.com/play/chess-classic",
       "description": "The ultimate strategy board with steady queues and deep tactical play.",
       "genre": "Strategy",
       "rating": 4.9,
@@ -899,11 +891,11 @@
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted strategy partner.",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://poki.com/en/g/master-chess",
-        "approvedEmbedUrl": "https://poki.com/en/g/master-chess",
+        "approvedExternalUrl": "https://www.gamepix.com/play/chess-classic",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/chess-classic",
         "telemetryMode": "origin",
         "telemetryOrigins": [
-          "https://poki.com"
+          "https://www.gamepix.com"
         ]
       },
       "art": {
@@ -915,7 +907,7 @@
     {
       "id": "12",
       "name": "Pro Hoops 2K",
-      "url": "https://poki.com/en/g/basket-bros",
+      "url": "https://www.gamepix.com/play/basket-random",
       "description": "Step onto the court for fast high-energy basketball runs.",
       "genre": "Sports",
       "rating": 4.5,
@@ -954,11 +946,11 @@
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted sports partner.",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://poki.com/en/g/basket-bros",
-        "approvedEmbedUrl": "https://poki.com/en/g/basket-bros",
+        "approvedExternalUrl": "https://www.gamepix.com/play/basket-random",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/basket-random",
         "telemetryMode": "origin",
         "telemetryOrigins": [
-          "https://poki.com"
+          "https://www.gamepix.com"
         ]
       },
       "art": {
@@ -970,7 +962,7 @@
     {
       "id": "13",
       "name": "Soccer Stars",
-      "url": "https://poki.com/en/g/soccer-skills-world-cup",
+      "url": "https://www.gamepix.com/play/soccer-random",
       "description": "Global tournament energy with high player counts and quick rematches.",
       "genre": "Sports",
       "rating": 4.8,
@@ -1011,11 +1003,11 @@
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted tournament partner.",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://poki.com/en/g/soccer-skills-world-cup",
-        "approvedEmbedUrl": "https://poki.com/en/g/soccer-skills-world-cup",
+        "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
         "telemetryMode": "origin",
         "telemetryOrigins": [
-          "https://poki.com"
+          "https://www.gamepix.com"
         ]
       },
       "art": {
@@ -1027,7 +1019,7 @@
     {
       "id": "14",
       "name": "Executive Solitaire",
-      "url": "https://poki.com/en/g/solitaire",
+      "url": "https://www.gamepix.com/play/solitaire-classic",
       "description": "Classic card patience run for low-pressure recovery between bigger sessions.",
       "genre": "Strategy",
       "rating": 4.8,
@@ -1065,11 +1057,11 @@
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted classic partner.",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://poki.com/en/g/solitaire",
-        "approvedEmbedUrl": "https://poki.com/en/g/solitaire",
+        "approvedExternalUrl": "https://www.gamepix.com/play/solitaire-classic",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
         "telemetryMode": "origin",
         "telemetryOrigins": [
-          "https://poki.com"
+          "https://www.gamepix.com"
         ]
       },
       "art": {
@@ -1136,7 +1128,7 @@
     {
       "id": "16",
       "name": "Smash Karts X",
-      "url": "https://poki.com/en/g/smash-karts",
+      "url": "https://www.gamepix.com/play/kart-fight",
       "description": "High-speed multiplayer kart combat with premium arena flow, powerups, and replay-ready matches.",
       "genre": "Racing",
       "rating": 4.8,
@@ -1179,11 +1171,11 @@
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted competitive kart partner.",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://poki.com/en/g/smash-karts",
-        "approvedEmbedUrl": "https://poki.com/en/g/smash-karts",
+        "approvedExternalUrl": "https://www.gamepix.com/play/kart-fight",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/kart-fight",
         "telemetryMode": "origin",
         "telemetryOrigins": [
-          "https://poki.com"
+          "https://www.gamepix.com"
         ]
       },
       "art": {
@@ -1195,7 +1187,7 @@
     {
       "id": "17",
       "name": "Subway Surfers Live",
-      "url": "https://poki.com/en/g/subway-surfers",
+      "url": "https://www.gamepix.com/play/rail-surfers",
       "description": "A polished endless runner with top-tier flow, vivid presentation, and instant arcade momentum.",
       "genre": "Runner",
       "rating": 4.8,
@@ -1233,11 +1225,11 @@
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted premium runner partner.",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://poki.com/en/g/subway-surfers",
-        "approvedEmbedUrl": "https://poki.com/en/g/subway-surfers",
+        "approvedExternalUrl": "https://www.gamepix.com/play/rail-surfers",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/rail-surfers",
         "telemetryMode": "origin",
         "telemetryOrigins": [
-          "https://poki.com"
+          "https://www.gamepix.com"
         ]
       },
       "art": {
@@ -1249,7 +1241,7 @@
     {
       "id": "18",
       "name": "Moto X3M Nitro",
-      "url": "https://poki.com/en/g/moto-x3m",
+      "url": "https://www.gamepix.com/play/moto-x3m",
       "description": "Precision stunt racing with highly polished track design, strong readability, and fast restart loops.",
       "genre": "Racing",
       "rating": 4.8,
@@ -1287,11 +1279,11 @@
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted stunt racing partner.",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://poki.com/en/g/moto-x3m",
-        "approvedEmbedUrl": "https://poki.com/en/g/moto-x3m",
+        "approvedExternalUrl": "https://www.gamepix.com/play/moto-x3m",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m",
         "telemetryMode": "origin",
         "telemetryOrigins": [
-          "https://poki.com"
+          "https://www.gamepix.com"
         ]
       },
       "art": {
@@ -1303,8 +1295,7 @@
     {
       "id": "19",
       "name": "Temple Run 2 Prime",
-      "url": "https://poki.com/en/g/temple-run-2",
-      "description": "Cinematic chase runner with premium pacing, polished traversal, and elite arcade feel.",
+      "url": "https://www.gamepix.com/play/tomb-runner",
       "description": "Cinematic chase runner with premium pacing, polished traversal, and repeat-play flow.",
       "genre": "Runner",
       "rating": 4.7,
@@ -1342,17 +1333,620 @@
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted endless runner partner.",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://poki.com/en/g/temple-run-2",
-        "approvedEmbedUrl": "https://poki.com/en/g/temple-run-2",
+        "approvedExternalUrl": "https://www.gamepix.com/play/tomb-runner",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tomb-runner",
         "telemetryMode": "origin",
         "telemetryOrigins": [
-          "https://poki.com"
+          "https://www.gamepix.com"
         ]
       },
       "art": {
         "eyebrow": "Adventure Runner",
         "accentStart": "#14b8a6",
         "accentEnd": "#155e75"
+      }
+    },
+    {
+      "id": "23",
+      "name": "Tactical Squad",
+      "url": "https://www.gamepix.com/play/tactical-squad",
+      "description": "Elite first-person shooting precision with high-stakes tactical deployments.",
+      "genre": "Shooting",
+      "rating": 4.8,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "Shooting",
+        "Action",
+        "Tactical",
+        "Multiplayer"
+      ],
+      "badgeIds": [
+        "featured"
+      ],
+      "launchConfig": {
+        "difficulty": "Hard",
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tactical-squad",
+        "approvedExternalUrl": "https://www.gamepix.com/play/tactical-squad",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "24",
+      "name": "Quest of Heroes",
+      "url": "https://www.gamepix.com/play/hero-adventure",
+      "description": "Deep RPG adventure with character progression and elite boss encounters.",
+      "genre": "Adventure",
+      "rating": 4.7,
+      "playersOnline": 9200,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Adventure",
+        "Progressive",
+        "Solo"
+      ],
+      "badgeIds": [
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/hero-adventure",
+        "approvedExternalUrl": "https://www.gamepix.com/play/hero-adventure",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "25",
+      "name": "Classic Tank Wars",
+      "url": "https://www.gamepix.com/play/tank-wars",
+      "description": "Vintage arcade combat with strategic positioning and explosive rounds.",
+      "genre": "Classic",
+      "rating": 4.5,
+      "playersOnline": 6800,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Shooting",
+        "Co-op",
+        "Multiplayer"
+      ],
+      "launchConfig": {
+        "difficulty": "Easy",
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tank-wars",
+        "approvedExternalUrl": "https://www.gamepix.com/play/tank-wars",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "26",
+      "name": "Super Bowling Pro",
+      "url": "https://www.gamepix.com/play/classic-bowling",
+      "description": "Elite sports simulation with realistic physics and tournament brackets.",
+      "genre": "Sports",
+      "rating": 4.6,
+      "playersOnline": 4200,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Bowling",
+        "Competitive"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/classic-bowling",
+        "approvedExternalUrl": "https://www.gamepix.com/play/classic-bowling",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "27",
+      "name": "Dungeon Crawler X",
+      "url": "https://www.gamepix.com/play/dungeon-fury",
+      "description": "Fast-paced action RPG through procedurally generated lethal corridors.",
+      "genre": "RPG",
+      "rating": 4.7,
+      "playersOnline": 11000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Action",
+        "Adventure",
+        "Solo"
+      ],
+      "badgeIds": [
+        "trending"
+      ],
+      "launchConfig": {
+        "difficulty": "Hard",
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/dungeon-fury",
+        "approvedExternalUrl": "https://www.gamepix.com/play/dungeon-fury",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "28",
+      "name": "Strike Force",
+      "url": "https://www.gamepix.com/play/special-strike",
+      "description": "Multiplayer shooting arena with customized loadouts and team-based objectives.",
+      "genre": "Shooting",
+      "rating": 4.8,
+      "playersOnline": 22000,
+      "availability": "Online",
+      "tags": [
+        "Shooting",
+        "Multiplayer",
+        "Co-op",
+        "Action"
+      ],
+      "badgeIds": [
+        "featured"
+      ],
+      "launchConfig": {
+        "difficulty": "Competitive",
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/special-strike",
+        "approvedExternalUrl": "https://www.gamepix.com/play/special-strike",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "29",
+      "name": "Retro Space Invaders",
+      "url": "https://www.gamepix.com/play/space-invaders",
+      "description": "Authentic classic arcade shooter with escalating wave intensity.",
+      "genre": "Classic",
+      "rating": 4.5,
+      "playersOnline": 5400,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Shooting",
+        "Arcade",
+        "Solo"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/space-invaders",
+        "approvedExternalUrl": "https://www.gamepix.com/play/space-invaders",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "30",
+      "name": "Basketball Master",
+      "url": "https://www.gamepix.com/play/basketball-master",
+      "description": "Precision shooting sports challenge with global leaderboards.",
+      "genre": "Sports",
+      "rating": 4.6,
+      "playersOnline": 7200,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Basketball",
+        "Solo",
+        "Competitive"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/basketball-master",
+        "approvedExternalUrl": "https://www.gamepix.com/play/basketball-master",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "31",
+      "name": "Soccer Random X",
+      "url": "https://www.gamepix.com/play/soccer-random",
+      "description": "High-stakes physics-based soccer with online co-op support.",
+      "genre": "Sports",
+      "rating": 4.8,
+      "playersOnline": 18000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Soccer",
+        "Co-op",
+        "Multiplayer"
+      ],
+      "launchConfig": {
+        "difficulty": "Easy",
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
+        "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "32",
+      "name": "Cyber Adventure RPG",
+      "url": "https://www.gamepix.com/play/cyber-adventure",
+      "description": "Epic cyberpunk adventure with deep RPG mechanics and offline-first persistence.",
+      "genre": "Adventure",
+      "rating": 4.9,
+      "playersOnline": 12000,
+      "availability": "Hybrid",
+      "tags": [
+        "RPG",
+        "Adventure",
+        "Cyberpunk",
+        "Solo"
+      ],
+      "launchConfig": {
+        "difficulty": "Hard",
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
+        "approvedExternalUrl": "https://www.gamepix.com/play/cyber-adventure",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "20",
+      "name": "Game 20",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "launchConfig": {
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "21",
+      "name": "Game 21",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "launchConfig": {
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "22",
+      "name": "Game 22",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "launchConfig": {
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "23",
+      "name": "Game 23",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "launchConfig": {
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "24",
+      "name": "Game 24",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "launchConfig": {
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "25",
+      "name": "Game 25",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "launchConfig": {
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "26",
+      "name": "Game 26",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "launchConfig": {
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "27",
+      "name": "Game 27",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "launchConfig": {
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "28",
+      "name": "Game 28",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "launchConfig": {
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "29",
+      "name": "Game 29",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "launchConfig": {
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "30",
+      "name": "Game 30",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "launchConfig": {
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "33",
+      "name": "Elite Sniper",
+      "url": "https://www.gamepix.com/play/sniper-mission",
+      "description": "Long-range tactical shooting missions with elite ballistics.",
+      "genre": "Shooting",
+      "rating": 4.7,
+      "playersOnline": 8000,
+      "availability": "Online",
+      "tags": [
+        "Shooting",
+        "Action",
+        "Tactical"
+      ],
+      "launchConfig": {
+        "difficulty": "Hard",
+        "controls": [
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/sniper-mission",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "34",
+      "name": "Kingdom Defense",
+      "url": "https://www.gamepix.com/play/tower-defense",
+      "description": "Strategic RPG defense with hero management and spell casting.",
+      "genre": "RPG",
+      "rating": 4.8,
+      "playersOnline": 14000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Strategy",
+        "Adventure"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-defense",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "35",
+      "name": "Classic Solitaire",
+      "url": "https://www.gamepix.com/play/solitaire-classic",
+      "description": "The definitive classic card run for elite focus training.",
+      "genre": "Classic",
+      "rating": 4.9,
+      "playersOnline": 50000,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Strategy",
+        "Solo"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "36",
+      "name": "Multiplayer Ludo",
+      "url": "https://www.gamepix.com/play/ludo-legend",
+      "description": "Global board battle with real-time multiplayer and co-op social play.",
+      "genre": "Classic",
+      "rating": 4.6,
+      "playersOnline": 25000,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Multiplayer",
+        "Co-op",
+        "Strategy"
+      ],
+      "launchConfig": {
+        "difficulty": "Easy",
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/ludo-legend",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      }
+    },
+    {
+      "id": "37",
+      "name": "Zombie Survival",
+      "url": "https://www.gamepix.com/play/zombie-idle-defense",
+      "description": "Intense shooting defense RPG with survivor squads and tech upgrades.",
+      "genre": "Shooting",
+      "rating": 4.7,
+      "playersOnline": 19000,
+      "availability": "Online",
+      "tags": [
+        "Shooting",
+        "RPG",
+        "Action",
+        "Multiplayer"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/zombie-idle-defense",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
       }
     }
   ],
