@@ -31,6 +31,34 @@ export class SettingsComponent implements OnInit {
   dialog = inject(InteractionDialogService);
 
   settings = computed(() => this.profileService.profile().settings);
+  themeOptions = computed(() => this.uiService.getAvailableThemes());
+  appearanceSummary = computed(() => {
+    const ui = this.settings().ui;
+    return [
+      {
+        label: 'Theme',
+        value: `${ui.theme} Mode`,
+        detail:
+          ui.theme === 'Dark'
+            ? 'High-contrast command surfaces'
+            : 'Bright editorial production layout',
+      },
+      {
+        label: 'Performance',
+        value: ui.performanceMode ? 'Optimized' : 'Standard',
+        detail: ui.performanceMode
+          ? 'Reduced motion and lower visual overhead'
+          : 'Full motion, blur, and shell transitions',
+      },
+      {
+        label: 'HUD Overlay',
+        value: ui.showScanlines ? 'Enabled' : 'Disabled',
+        detail: ui.showScanlines
+          ? 'Legacy scanlines layered over the shell'
+          : 'Clean glass surfaces and uncluttered panels',
+      },
+    ];
+  });
   activeTab = signal<'ui' | 'audio' | 'ai' | 'studio' | 'security'>('ui');
   audioInputDevices = this.microphoneService.availableDevices;
   selectedAudioInputId = this.microphoneService.selectedDeviceId;

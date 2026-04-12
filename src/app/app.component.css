@@ -63,6 +63,36 @@
   outline-offset: 2px;
 }
 
+.shell-appearance-status {
+  display: flex;
+  flex-direction: column;
+  min-width: 11rem;
+}
+
+.shell-appearance-label {
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+.shell-appearance-value {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.shell-appearance-detail {
+  margin-top: 0.15rem;
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: var(--color-text-dim);
+}
+
 /* Mobile bottom navigation bar – fixed so it stays on screen when the
    Android address bar appears / disappears or the virtual keyboard opens */
 

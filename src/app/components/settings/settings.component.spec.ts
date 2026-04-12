@@ -97,6 +97,26 @@ describe('SettingsComponent', () => {
             performanceMode: signal(false),
             togglePerformanceMode: jest.fn(),
             navigateToView: jest.fn(),
+            getAvailableThemes: jest.fn().mockReturnValue([
+              {
+                name: 'Light',
+                primary: '#10b981',
+                accent: '#f59e0b',
+                neutral: '#f8fafc',
+                purple: '#6366f1',
+                red: '#ef4444',
+                blue: '#3b82f6',
+              },
+              {
+                name: 'Dark',
+                primary: '#10b981',
+                accent: '#38bdf8',
+                neutral: '#020617',
+                purple: '#6366f1',
+                red: '#f43f5e',
+                blue: '#3b82f6',
+              },
+            ]),
           },
         },
         { provide: NotificationService, useValue: { show: jest.fn() } },
@@ -151,6 +171,17 @@ describe('SettingsComponent', () => {
 
     expect(securityServiceMock.fetchLogs).toHaveBeenCalled();
     expect(securityServiceMock.fetchSessions).toHaveBeenCalled();
+  });
+
+  it('syncs theme changes through the shared UI service', async () => {
+    const { component } = await createComponent();
+    const uiService = TestBed.inject(UIService) as {
+      setTheme: jest.Mock;
+    };
+
+    await component.updateSetting('ui' as any, 'theme', 'Light');
+
+    expect(uiService.setTheme).toHaveBeenCalledWith('Light');
   });
 
   it('purgeProfile logs the event and calls logout when confirmed', async () => {

@@ -1347,6 +1347,171 @@
       }
     },
     {
+      "id": "20",
+      "name": "Tower Build",
+      "url": "https://www.gamepix.com/play/tower-build",
+      "description": "Physics-first skyline builder with quick retries and steady score-chasing loops.",
+      "genre": "Puzzle",
+      "rating": 4.6,
+      "playersOnline": 9600,
+      "availability": "Online",
+      "tags": [
+        "Puzzle",
+        "Arcade",
+        "Physics"
+      ],
+      "badgeIds": [
+        "staff-pick"
+      ],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Hold a balanced tower through 12 drops",
+        "Beat your highest skyline height"
+      ],
+      "controlHints": [
+        "Release blocks late to reduce drift",
+        "Build a stable center before chasing width"
+      ],
+      "launchConfig": {
+        "difficulty": "Focus",
+        "controls": [
+          "Mouse or touch"
+        ],
+        "objectives": [
+          "Finish one clean tower run",
+          "Recover after one risky placement"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted arcade builder partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.gamepix.com/play/tower-build",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      },
+      "art": {
+        "eyebrow": "Skyline Builder",
+        "accentStart": "#38bdf8",
+        "accentEnd": "#0f172a"
+      }
+    },
+    {
+      "id": "21",
+      "name": "8-Ball Billiards Classic",
+      "url": "https://www.gamepix.com/play/8-ball-billiards-classic",
+      "description": "Precision cue-sport cabinet with smooth pacing, clean bank shots, and quick rematches.",
+      "genre": "Sports",
+      "rating": 4.7,
+      "playersOnline": 12800,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Pool",
+        "Precision",
+        "Classic"
+      ],
+      "badgeIds": [
+        "featured"
+      ],
+      "queueEstimateMinutes": 1,
+      "sessionObjectives": [
+        "Clear solids or stripes without a scratch",
+        "Close one rack with a clean 8-ball finish"
+      ],
+      "controlHints": [
+        "Feather power on long bank attempts",
+        "Set up the next ball before calling the pocket"
+      ],
+      "launchConfig": {
+        "difficulty": "Competitive",
+        "controls": [
+          "Mouse"
+        ],
+        "objectives": [
+          "Win one full rack",
+          "Protect cue-ball position after contact"
+        ],
+        "modes": [
+          "Solo",
+          "Versus"
+        ],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted precision sports partner.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      },
+      "art": {
+        "eyebrow": "Cue Sports",
+        "accentStart": "#14b8a6",
+        "accentEnd": "#164e63"
+      }
+    },
+    {
+      "id": "22",
+      "name": "Mahjong Classic",
+      "url": "https://www.gamepix.com/play/mahjong-classic",
+      "description": "Late-night tile strategy with clean board readability and calm focus-session pacing.",
+      "genre": "Puzzle",
+      "rating": 4.7,
+      "playersOnline": 8400,
+      "availability": "Online",
+      "tags": [
+        "Puzzle",
+        "Classic",
+        "Logic",
+        "Strategy"
+      ],
+      "badgeIds": [
+        "staff-pick"
+      ],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Clear the outer rows first",
+        "Finish a board without using hints"
+      ],
+      "controlHints": [
+        "Expose stacked matches early",
+        "Track duplicate tiles before opening the center"
+      ],
+      "launchConfig": {
+        "difficulty": "Thinking",
+        "controls": [
+          "Mouse or touch"
+        ],
+        "objectives": [
+          "Finish one clean board",
+          "Keep two match options available"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "trustNote": "Allowlisted puzzle partner with inline launch support.",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.gamepix.com/play/mahjong-classic",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/mahjong-classic",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+      },
+      "art": {
+        "eyebrow": "Logic Tiles",
+        "accentStart": "#a855f7",
+        "accentEnd": "#312e81"
+      }
+    },
+    {
       "id": "23",
       "name": "Tactical Squad",
       "url": "https://www.gamepix.com/play/tactical-squad",
@@ -1662,159 +1827,6 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
         "approvedExternalUrl": "https://www.gamepix.com/play/cyber-adventure",
         "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      }
-    },
-    {
-      "id": "20",
-      "name": "Game 20",
-      "url": "https://www.gamepix.com/play/tower-build",
-      "launchConfig": {
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      }
-    },
-    {
-      "id": "21",
-      "name": "Game 21",
-      "url": "https://www.gamepix.com/play/tower-build",
-      "launchConfig": {
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      }
-    },
-    {
-      "id": "22",
-      "name": "Game 22",
-      "url": "https://www.gamepix.com/play/tower-build",
-      "launchConfig": {
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      }
-    },
-    {
-      "id": "23",
-      "name": "Game 23",
-      "url": "https://www.gamepix.com/play/tower-build",
-      "launchConfig": {
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      }
-    },
-    {
-      "id": "24",
-      "name": "Game 24",
-      "url": "https://www.gamepix.com/play/tower-build",
-      "launchConfig": {
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      }
-    },
-    {
-      "id": "25",
-      "name": "Game 25",
-      "url": "https://www.gamepix.com/play/tower-build",
-      "launchConfig": {
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      }
-    },
-    {
-      "id": "26",
-      "name": "Game 26",
-      "url": "https://www.gamepix.com/play/tower-build",
-      "launchConfig": {
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      }
-    },
-    {
-      "id": "27",
-      "name": "Game 27",
-      "url": "https://www.gamepix.com/play/tower-build",
-      "launchConfig": {
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      }
-    },
-    {
-      "id": "28",
-      "name": "Game 28",
-      "url": "https://www.gamepix.com/play/tower-build",
-      "launchConfig": {
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      }
-    },
-    {
-      "id": "29",
-      "name": "Game 29",
-      "url": "https://www.gamepix.com/play/tower-build",
-      "launchConfig": {
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      }
-    },
-    {
-      "id": "30",
-      "name": "Game 30",
-      "url": "https://www.gamepix.com/play/tower-build",
-      "launchConfig": {
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]

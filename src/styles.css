@@ -20,8 +20,11 @@
 
   /* Default: S.M.U.V.E 2.0 Light Palette */
   --color-bg: #f8fafc;
+  --color-bg-rgb: 248, 250, 252;
   --color-bg-alt: #f1f5f9;
+  --color-bg-alt-rgb: 241, 245, 249;
   --color-surface: #ffffff;
+  --color-surface-rgb: 255, 255, 255;
   --color-surface-bright: #ffffff;
   --color-border: rgba(0, 0, 0, 0.08);
   --color-border-bright: rgba(0, 0, 0, 0.12);
@@ -55,8 +58,11 @@
   --color-secondary: #a855f7;
   --color-border-bright: rgba(236, 91, 19, 0.25);
   --color-bg: #020617;
+  --color-bg-rgb: 2, 6, 23;
   --color-bg-alt: #0f172a;
+  --color-bg-alt-rgb: 15, 23, 42;
   --color-surface: #0f172a;
+  --color-surface-rgb: 15, 23, 42;
   --color-surface-bright: #1e293b;
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-bright: rgba(255, 255, 255, 0.15);
