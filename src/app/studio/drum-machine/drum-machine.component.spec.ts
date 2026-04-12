@@ -129,10 +129,10 @@ describe('DrumMachineComponent', () => {
     expect(component.pads().length).toBe(12);
   });
 
-  it('each pad has 16 steps initialized to inactive', async () => {
+  it('each pad has a 4-bar pattern initialized to inactive', async () => {
     const { component } = await createComponent();
     for (const pad of component.pads()) {
-      expect(pad.steps.length).toBe(16);
+      expect(pad.steps.length).toBe(64);
       for (const step of pad.steps) {
         expect(step.active).toBe(false);
         expect(step.velocity).toBeGreaterThan(0);
@@ -207,6 +207,8 @@ describe('DrumMachineComponent', () => {
     expect(kick.steps[4].active).toBe(true);
     expect(kick.steps[8].active).toBe(true);
     expect(kick.steps[12].active).toBe(true);
+    expect(kick.steps[16].active).toBe(true);
+    expect(kick.steps[20].active).toBe(true);
   });
 
   it('isSequencerRunning reflects audioEngine.isPlaying', async () => {
@@ -216,11 +218,11 @@ describe('DrumMachineComponent', () => {
     expect(component.isSequencerRunning()).toBe(true);
   });
 
-  it('hooks into audioEngine.onScheduleStep and updates currentStep', async () => {
+  it('hooks into audioEngine.onScheduleStep and updates currentStep across all bars', async () => {
     const { component, mockAudioEngine } = await createComponent();
     expect(typeof mockAudioEngine.onScheduleStep).toBe('function');
-    mockAudioEngine.onScheduleStep!(4, 0, 0.1);
-    expect(component.currentStep()).toBe(4);
+    mockAudioEngine.onScheduleStep!(20, 0, 0.1);
+    expect(component.currentStep()).toBe(20);
   });
 
   it('scheduler triggers pad sounds for active steps', async () => {
@@ -237,8 +239,9 @@ describe('DrumMachineComponent', () => {
     expect(component.micStatus()).toBe('idle');
   });
 
-  it('stepRange has 16 elements', async () => {
+  it('stepRange spans 4 bars', async () => {
     const { component } = await createComponent();
-    expect(component.stepRange.length).toBe(16);
+    expect(component.patternBars).toBe(4);
+    expect(component.stepRange.length).toBe(64);
   });
 });

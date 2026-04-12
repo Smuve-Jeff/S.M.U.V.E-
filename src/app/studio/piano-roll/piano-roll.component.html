@@ -129,39 +129,64 @@
       <aside *ngIf="showTrackSidebar()" class="w-48 bg-slate-900/50 border-r border-white/10 flex-shrink-0 flex flex-col z-20">
         <div class="p-2 border-b border-white/10 bg-black/20 flex items-center justify-between">
           <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Project Tracks</span>
-          <button (click)="musicManager.ensureTrack('synth-lead')" class="text-brand-primary hover:text-white transition-all">
-            <span class="material-symbols-outlined text-sm">add_box</span>
-          </button>
+          <div class="flex items-center gap-2">
+            <select
+              [value]="newTrackPresetId()"
+              (click)="$event.stopPropagation()"
+              (change)="newTrackPresetId.set($any($event.target).value)"
+              class="max-w-28 rounded border border-white/10 bg-black/60 px-2 py-1 text-[7px] font-black uppercase tracking-widest text-slate-300"
+            >
+              <option *ngFor="let preset of availablePresets" [value]="preset.id">
+                {{ preset.name }}
+              </option>
+            </select>
+            <button (click)="addTrack()" class="text-brand-primary hover:text-white transition-all">
+              <span class="material-symbols-outlined text-sm">add_box</span>
+            </button>
+          </div>
         </div>
         <div class="flex-1 overflow-y-auto custom-scrollbar">
-          <div *ngFor="let track of musicManager.tracks()"
-               (click)="selectTrack(track)"
-               [style.border-left-color]="track.color"
+           <div *ngFor="let track of musicManager.tracks()"
+                (click)="selectTrack(track)"
+                [style.border-left-color]="track.color"
                class="p-3 border-l-4 mb-px cursor-pointer transition-all hover:bg-white/5 relative group"
                [class.bg-brand-primary/10]="musicManager.selectedTrackId() === track.id"
                [class.border-l-brand-primary]="musicManager.selectedTrackId() === track.id">
 
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-[10px] font-black uppercase truncate text-slate-200 tracking-wider">{{track.name}}</span>
-              <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button (click)="$event.stopPropagation(); musicManager.toggleMute(track.id)"
-                        [class.text-yellow-500]="track.mute" class="text-[8px] font-black hover:text-brand-primary">M</button>
-                <button (click)="$event.stopPropagation(); musicManager.toggleSolo(track.id)"
-                        [class.text-blue-400]="track.solo" class="text-[8px] font-black hover:text-brand-primary">S</button>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-               <div class="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div class="h-full bg-brand-primary/40" [style.width.%]="track.gain * 100"></div>
+             <div class="flex items-center justify-between mb-1">
+               <span class="text-[10px] font-black uppercase truncate text-slate-200 tracking-wider">{{track.name}}</span>
+               <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <button (click)="$event.stopPropagation(); musicManager.toggleMute(track.id)"
+                         [class.text-yellow-500]="track.mute" class="text-[8px] font-black hover:text-brand-primary">M</button>
+                 <button (click)="$event.stopPropagation(); musicManager.toggleSolo(track.id)"
+                         [class.text-blue-400]="track.solo" class="text-[8px] font-black hover:text-brand-primary">S</button>
+                 <button (click)="$event.stopPropagation(); removeTrack(track.id)"
+                         class="text-[8px] font-black text-red-400 hover:text-red-300">D</button>
                </div>
-               <span class="material-symbols-outlined text-[10px] text-slate-600">
-                 {{ track.type === 'audio' ? 'audio_file' : 'piano' }}
-               </span>
-            </div>
-          </div>
-        </div>
-      </aside>
+             </div>
+
+             <div class="flex items-center gap-2">
+                <div class="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
+                   <div class="h-full bg-brand-primary/40" [style.width.%]="track.gain * 100"></div>
+                </div>
+                <span class="material-symbols-outlined text-[10px] text-slate-600">
+                  {{ track.type === 'audio' ? 'audio_file' : 'piano' }}
+                </span>
+             </div>
+             <select
+               *ngIf="track.type === 'midi'"
+               [value]="track.instrumentId"
+               (click)="$event.stopPropagation()"
+               (change)="replaceTrackInstrument(track, $any($event.target).value)"
+               class="mt-2 w-full rounded border border-white/10 bg-black/40 px-2 py-1 text-[7px] font-black uppercase tracking-widest text-slate-300"
+             >
+               <option *ngFor="let preset of availablePresets" [value]="preset.id">
+                 {{ preset.name }}
+               </option>
+             </select>
+           </div>
+         </div>
+       </aside>
 
       <!-- Main Piano Grid -->
       <main class="flex-1 flex flex-col min-w-0 relative">

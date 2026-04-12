@@ -45,8 +45,12 @@ interface DrumPad {
   sampledBuffer: AudioBuffer | null;
 }
 
+const DRUM_MACHINE_BARS = 4;
+const STEPS_PER_BAR = 16;
+const TOTAL_STEPS = DRUM_MACHINE_BARS * STEPS_PER_BAR;
+
 const DEFAULT_STEPS = (): DrumStep[] =>
-  Array.from({ length: 16 }, () => ({ active: false, velocity: 0.85 }));
+  Array.from({ length: TOTAL_STEPS }, () => ({ active: false, velocity: 0.85 }));
 
 @Component({
   selector: 'app-drum-machine',
@@ -248,6 +252,9 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     | ((si: number, when: number, sd: number) => void)
     | undefined;
   private animationId: number | null = null;
+  readonly patternBars = DRUM_MACHINE_BARS;
+  readonly stepsPerBar = STEPS_PER_BAR;
+  readonly stepRange = Array.from({ length: TOTAL_STEPS }, (_, i) => i);
 
   constructor() {
     // Wire into the audio engine scheduler to trigger steps
@@ -262,8 +269,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     const origHook = this.prevSchedulerHook;
     this.audioEngine.onScheduleStep = (stepIndex, when, stepDur) => {
       origHook?.(stepIndex, when, stepDur);
-      // Only handle steps 0-15 for the drum machine
-      const drumStep = stepIndex % 16;
+      const drumStep = stepIndex % this.stepRange.length;
       this.currentStep.set(drumStep);
       for (const pad of this.pads()) {
         const step = pad.steps[drumStep];
@@ -627,17 +633,18 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
           padNameKey.includes(k)
         );
         const activeSteps = matchKey ? chosen[matchKey] : [];
-        // Randomize slightly
         const newSteps = DEFAULT_STEPS();
-        for (const s of activeSteps) {
-          if (s < 16) {
-            newSteps[s].active = true;
-            newSteps[s].velocity = 0.7 + Math.random() * 0.3;
+        for (let bar = 0; bar < this.patternBars; bar++) {
+          for (const s of activeSteps) {
+            const stepIndex = s + bar * this.stepsPerBar;
+            if (stepIndex < this.stepRange.length) {
+              newSteps[stepIndex].active = true;
+              newSteps[stepIndex].velocity = 0.7 + Math.random() * 0.3;
+            }
           }
         }
-        // 20% chance to add one extra random hit per pad
         if (activeSteps.length > 0 && Math.random() > 0.8) {
-          const rnd = Math.floor(Math.random() * 16);
+          const rnd = Math.floor(Math.random() * this.stepRange.length);
           newSteps[rnd].active = true;
           newSteps[rnd].velocity = 0.5 + Math.random() * 0.3;
         }
@@ -764,8 +771,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
-
-  stepRange = Array.from({ length: 16 }, (_, i) => i);
 
   getStepColor(pad: DrumPad, stepIdx: number): string {
     const step = pad.steps[stepIdx];

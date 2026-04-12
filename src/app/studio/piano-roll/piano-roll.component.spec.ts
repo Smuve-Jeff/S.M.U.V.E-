@@ -88,6 +88,8 @@ describe('PianoRollComponent', () => {
       deleteNoteById: jest.fn(),
       clearTrack: jest.fn(),
       ensureTrack: jest.fn(),
+      setInstrument: jest.fn(),
+      removeTrack: jest.fn(),
       toggleMute: jest.fn(),
       engine: { tempo: signal(120) },
       currentStep: signal(0),
@@ -273,6 +275,35 @@ describe('PianoRollComponent', () => {
     expect(bars.length).toBe(component.numMeasures);
     expect(bars[0].noteCount).toBe(2);
     expect(bars[1].noteCount).toBe(0);
+  });
+
+  it('adds a track with the selected preset and selects it', async () => {
+    const { component, mockMusicManager } = await createComponent();
+    mockMusicManager.ensureTrack.mockReturnValue(99);
+    component.newTrackPresetId.set('grand-piano');
+
+    component.addTrack();
+
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('grand-piano');
+    expect(mockMusicManager.selectedTrackId()).toBe(99);
+  });
+
+  it('replaces the selected track instrument from the project track list', async () => {
+    const { component, mockMusicManager } = await createComponent();
+
+    component.replaceTrackInstrument(mockMusicManager.tracks()[0], 'synth-pad');
+
+    expect(mockMusicManager.setInstrument).toHaveBeenCalledWith(1, 'synth-pad');
+  });
+
+  it('removes a project track and clears note selection', async () => {
+    const { component, mockMusicManager } = await createComponent();
+    component.selectedNoteIds.set(new Set(['n1']));
+
+    component.removeTrack(1);
+
+    expect(mockMusicManager.removeTrack).toHaveBeenCalledWith(1);
+    expect(component.selectedNoteIds().size).toBe(0);
   });
 
   it('widens grid sizing for narrow and compact viewports', async () => {

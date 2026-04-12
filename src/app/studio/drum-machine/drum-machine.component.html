@@ -6,7 +6,7 @@
       <span class="material-symbols-outlined text-4xl text-brand-primary animate-pulse">grid_view</span>
       <div>
         <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">NEURAL DRUM <span class="text-brand-primary">SYNTH v5</span></h2>
-        <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest">16-Step Sequencer · AI Groove · Mic Sampler</p>
+        <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{{ stepRange.length }}-Step Sequencer · {{ patternBars }}-Bar Pattern · AI Groove · Mic Sampler</p>
       </div>
     </div>
 
@@ -100,15 +100,16 @@
       </div>
 
       <!-- Step Sequencer Grid -->
-      <div class="flex-grow overflow-y-auto custom-scrollbar min-h-0">
-        <div class="flex flex-col gap-1.5 pb-2">
+      <div class="flex-grow overflow-auto custom-scrollbar min-h-0">
+        <div class="flex min-w-max flex-col gap-1.5 pb-2">
           <!-- Beat number header -->
           <div class="flex items-center gap-1 pl-[76px] pr-1">
             @for (step of stepRange; track step) {
-              <div class="flex-1 text-center text-[8px] font-black tracking-widest"
-                   [class.text-brand-primary]="step % 4 === 0"
+              <div class="w-7 shrink-0 text-center text-[8px] font-black tracking-widest md:w-8"
+                   [class.text-brand-primary]="step % stepsPerBar === 0"
+                   [class.text-slate-500]="step % 4 === 0 && step % stepsPerBar !== 0"
                    [class.text-slate-700]="step % 4 !== 0">
-                {{ step % 4 === 0 ? (step / 4 + 1) : '·' }}
+                {{ step % stepsPerBar === 0 ? 'B' + (step / stepsPerBar + 1) : (step % 4 === 0 ? (step % stepsPerBar) / 4 + 1 : '·') }}
               </div>
             }
           </div>
@@ -130,10 +131,10 @@
               <!-- Steps -->
               @for (step of stepRange; track step) {
                 <button
-                  class="step-cell flex-1 min-w-0 rounded transition-all relative group"
+                  class="step-cell relative w-7 shrink-0 rounded transition-all group md:w-8"
                   [class.is-current]="isSequencerRunning() && currentStep() === step"
                   [style.background]="getStepColor(pad, step)"
-                  [style.border-color]="step % 4 === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)'"
+                  [style.border-color]="step % stepsPerBar === 0 ? 'rgba(236,91,19,0.35)' : (step % 4 === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)')"
                   (click)="toggleStep(pad, step)"
                   [title]="pad.name + ' step ' + (step + 1) + ' – vel: ' + (pad.steps[step].velocity | number:'1.0-0')">
 

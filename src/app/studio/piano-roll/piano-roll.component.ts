@@ -27,6 +27,7 @@ import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { Router } from '@angular/router';
 import { HistoryService } from '../../services/history.service';
+import { InstrumentsService } from '../../services/instruments.service';
 
 @Component({
   selector: 'app-piano-roll',
@@ -49,9 +50,11 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
   uiService = inject(UIService);
   router = inject(Router);
   historyService = inject(HistoryService);
+  instrumentsService = inject(InstrumentsService);
 
   showTrackSidebar = signal(true);
   soundBrowserOpen = signal(false);
+  newTrackPresetId = signal('synth-lead');
 
   @ViewChild('scrollContainer') scrollContainer!: ElementRef;
 
@@ -60,6 +63,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
       .tracks()
       .find((t) => t.id === this.musicManager.selectedTrackId())
   );
+  availablePresets = this.instrumentsService.getPresets();
 
   scales = [
     { name: 'C Major', notes: [0, 2, 4, 5, 7, 9, 11] },
@@ -523,6 +527,21 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
 
   selectTrack(track: TrackModel) {
     this.musicManager.selectedTrackId.set(track.id);
+    this.selectedNoteIds.set(new Set());
+  }
+
+  addTrack() {
+    const trackId = this.musicManager.ensureTrack(this.newTrackPresetId());
+    this.musicManager.selectedTrackId.set(trackId);
+    this.selectedNoteIds.set(new Set());
+  }
+
+  replaceTrackInstrument(track: TrackModel, presetId: string) {
+    this.musicManager.setInstrument(track.id, presetId);
+  }
+
+  removeTrack(trackId: number) {
+    this.musicManager.removeTrack(trackId);
     this.selectedNoteIds.set(new Set());
   }
 
