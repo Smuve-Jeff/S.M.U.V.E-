@@ -21,6 +21,7 @@ import { MusicManagerService } from '../services/music-manager.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { AiService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
+import { NotificationService } from '../services/notification.service';
 import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
 
@@ -46,6 +47,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly audioEngine = inject(AudioEngineService);
   public readonly aiService = inject(AiService);
   public readonly uiService = inject(UIService);
+  private readonly notificationService = inject(NotificationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   public readonly musicManager = inject(MusicManagerService);
@@ -116,7 +118,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const selectedId = this.musicManager.selectedTrackId();
       if (selectedId) {
         if (this.activeView() !== 'dj') {
-          this.showPianoRoll.set(true);
+          if (this.uiService.autoPianoRoll()) {
+            this.showPianoRoll.set(true);
+          } else if (!this.showPianoRoll()) {
+            this.notificationService.show(
+              'Track selected. Piano Roll is ready.',
+              'info',
+              3000
+            );
+          }
         }
       }
     });

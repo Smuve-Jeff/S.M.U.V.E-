@@ -49,6 +49,7 @@ export class UIService {
   isOnline = signal(true);
   performanceMode = signal(false);
   showScanlines = signal(false);
+  autoPianoRoll = signal(false);
 
   // Derived signals for UI state
   isLowPower = computed(() => this.performanceMode());
@@ -141,6 +142,7 @@ export class UIService {
           const settings = profile.settings.ui;
           this.performanceMode.set(settings.performanceMode || false);
           this.showScanlines.set(settings.showScanlines || false);
+          this.autoPianoRoll.set(settings.autoPianoRoll !== undefined ? settings.autoPianoRoll : false);
           this.setTheme(settings.theme || 'Dark');
         }
       });
@@ -173,6 +175,11 @@ export class UIService {
   toggleTheme() {
     const nextTheme = this.activeTheme().name === 'Light' ? 'Dark' : 'Light';
     this.updateSetting('theme', nextTheme);
+  }
+
+  toggleAutoPianoRoll() {
+    const nextValue = !this.autoPianoRoll();
+    this.updateSetting('autoPianoRoll', nextValue);
   }
 
   toggleScanlines() {
