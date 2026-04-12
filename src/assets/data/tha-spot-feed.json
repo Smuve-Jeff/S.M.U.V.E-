@@ -1630,6 +1630,7 @@
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
         "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1660,6 +1661,7 @@
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
         "approvedExternalUrl": "https://www.gamepix.com/play/cyber-adventure",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1673,6 +1675,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1686,6 +1689,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1699,6 +1703,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1712,6 +1717,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1725,6 +1731,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1738,6 +1745,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1751,6 +1759,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1764,6 +1773,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1777,6 +1787,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1790,6 +1801,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]

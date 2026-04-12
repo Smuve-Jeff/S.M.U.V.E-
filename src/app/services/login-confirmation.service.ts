@@ -15,17 +15,21 @@ export class LoginConfirmationService {
   private logger = inject(LoggingService);
 
   async sendLoginConfirmation(user: AuthUser): Promise<void> {
-    if (!user?.email) {
+    if (!user?.email || !user.lastLogin) {
       return;
     }
 
     try {
+      const loginAt =
+        user.lastLogin instanceof Date
+          ? user.lastLogin.toISOString()
+          : new Date(user.lastLogin).toISOString();
       await firstValueFrom(
         this.http.post(`${this.database.apiUrl}/auth/login-email`, {
           userId: user.id,
           email: user.email,
           artistName: user.artistName,
-          loginAt: user.lastLogin.toISOString(),
+          loginAt,
           userAgent:
             typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
         })

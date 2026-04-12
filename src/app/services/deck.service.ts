@@ -30,6 +30,13 @@ export class DeckService {
     });
   }
 
+  toggleLoop(deck: DeckId) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    const newState = !target().loop;
+    target.update((d) => ({ ...d, loop: newState }));
+    this.engine.setDeckLoop(deck, newState);
+  }
+
   toggleSlip(deck: DeckId) {
     if (deck === 'A') {
       const newState = !this.deckA().slip;

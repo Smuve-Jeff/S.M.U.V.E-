@@ -59,7 +59,7 @@ export class LoginComponent implements OnInit {
       } else {
         this.isError.set(true);
       }
-    } catch {
+    } catch (_err) {
       this.isError.set(true);
       this.message.set('An unexpected error occurred. System offline.');
     } finally {

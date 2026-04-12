@@ -415,7 +415,7 @@
       <!-- AI BACKDROP (Mobile) -->
       <div
         *ngIf="uiService.isChatbotOpen() && !isAuthRoute()"
-        (click)="uiService.toggleChatbot()"
+        (click)="toggleChatbot()"
         class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden animate-in fade-in duration-300"
       ></div>
       <!-- AI SIDEBAR -->

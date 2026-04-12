@@ -246,6 +246,56 @@
         </div>
       </div>
 
+
+      <!-- FX & CUSTOMIZATION CONSOLE -->
+      <div class="fx-custom-console bg-black/40 rounded-2xl border border-white/5 p-4 mt-2">
+        <div class="flex justify-between items-center mb-3">
+          <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em]">Neural FX Rack</span>
+          <div class="flex gap-2">
+            <button (click)="toggleLoop('A')"
+                    [class.bg-brand-primary]="deckService.deckA().loop"
+                    class="px-2 py-1 rounded border border-white/10 text-[8px] font-black uppercase transition-all">
+              Loop A
+            </button>
+            <button (click)="toggleLoop('B')"
+                    [class.bg-brand-secondary]="deckService.deckB().loop"
+                    class="px-2 py-1 rounded border border-white/10 text-[8px] font-black uppercase transition-all">
+              Loop B
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Advanced FX Deck A -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-[7px] font-bold text-slate-500 uppercase">Filters</span>
+              <span class="text-[7px] font-mono text-brand-primary">{{ deckService.deckA().filterFreq | number:'1.0-0' }}Hz</span>
+            </div>
+            <input type="range" (input)="setFilter('A', $any($event.target).value)"
+                   [value]="deckService.deckA().filterFreq" min="20" max="20000"
+                   class="w-full h-1 bg-white/10 rounded-full appearance-none accent-brand-primary">
+          </div>
+
+          <!-- Advanced FX Deck B -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-[7px] font-bold text-slate-500 uppercase">Filters</span>
+              <span class="text-[7px] font-mono text-brand-secondary">{{ deckService.deckB().filterFreq | number:'1.0-0' }}Hz</span>
+            </div>
+            <input type="range" (input)="setFilter('B', $any($event.target).value)"
+                   [value]="deckService.deckB().filterFreq" min="20" max="20000"
+                   class="w-full h-1 bg-white/10 rounded-full appearance-none accent-brand-secondary">
+          </div>
+        </div>
+
+        <!-- Custom FX Row -->
+        <div class="flex gap-2 mt-4">
+          <button (click)="applyScratchFx('A', 'transform')" class="flex-1 py-1.5 bg-white/5 border border-white/10 rounded text-[7px] font-black uppercase hover:bg-brand-primary/20 transition-all">Chop A</button>
+          <button (click)="applyScratchFx('B', 'transform')" class="flex-1 py-1.5 bg-white/5 border border-white/10 rounded text-[7px] font-black uppercase hover:bg-brand-secondary/20 transition-all">Chop B</button>
+        </div>
+      </div>
+
       <div class="session-status-bar">
         <div class="session-status-copy">
           <span class="session-status-dot" [class.live]="recording()"></span>
