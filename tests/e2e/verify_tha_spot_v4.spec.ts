@@ -5,7 +5,7 @@ test('Verify Tha Spot live intelligence experience', async ({ page }) => {
   await seedAuthenticatedSession(page);
   await page.goto('/tha-spot');
 
-  await page.getByRole('button', { name: /INTEL/i }).click();
+  await page.locator('.intel-toggle').click();
   await expect(page.getByText('THA SPOT INTEL')).toBeVisible();
   await expect(page.getByText('STRATEGIC DIRECTIVES')).toBeVisible();
   await expect(page.getByText('ADVANTAGE METRICS')).toBeVisible();
