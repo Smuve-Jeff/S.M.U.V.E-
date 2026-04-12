@@ -20,6 +20,14 @@ const apiLimiter = rateLimit({
 
 app.use('/api/', apiLimiter);
 
+const loginEmailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests. Try again later.' },
+});
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -281,14 +289,42 @@ app.delete('/api/security/sessions/:userId', async (req, res) => {
   }
 });
 
-app.post('/api/auth/login-email', async (req, res) => {
+app.post('/api/auth/login-email', loginEmailLimiter, async (req, res) => {
   try {
-    const { email, artistName, loginAt, userAgent, ipAddress } = req.body || {};
+    const { userId, email, artistName, loginAt } = req.body || {};
 
-    if (!isValidEmail(email)) {
+    // Require userId and a syntactically valid email from the request body.
+    if (!userId || !isValidEmail(email)) {
       return res.status(400).json({
         success: false,
-        error: 'A valid recipient email is required.',
+        error: 'A valid userId and recipient email are required.',
+      });
+    }
+
+    // Verify the userId exists in the database and that the stored email
+    // matches the requested recipient address.  This prevents any caller from
+    // triggering a notification email to an address they do not own.
+    const { rows } = await pool.query(
+      'SELECT profile_data FROM user_profiles WHERE user_id = $1',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized.',
+      });
+    }
+
+    const storedEmail =
+      rows[0].profile_data && rows[0].profile_data.email
+        ? String(rows[0].profile_data.email).trim().toLowerCase()
+        : null;
+
+    if (!storedEmail || storedEmail !== String(email).trim().toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized.',
       });
     }
 
@@ -301,27 +337,29 @@ app.post('/api/auth/login-email', async (req, res) => {
       });
     }
 
+    // Use server-derived metadata instead of client-supplied values.
+    const serverUserAgent = req.get('User-Agent') || 'unknown';
+    const serverIpAddress = req.ip || 'unknown';
+
     const safeArtistName = escapeHtml(artistName || 'Artist');
     const timestamp = formatLoginTimestamp(loginAt);
     const subjectPrefix = process.env.SMTP_SUBJECT_PREFIX || 'S.M.U.V.E 2.0';
 
     await transport.sendMail({
       from: process.env.SMTP_FROM,
-      to: String(email).trim(),
+      to: storedEmail,
       subject: `${subjectPrefix} login confirmation`,
       text: [
-        `Hi ${artistName || 'Artist'},`,
+        `Hi ${safeArtistName},`,
         '',
         'We detected a successful login to your S.M.U.V.E 2.0 account.',
         `Login time: ${timestamp}`,
-        userAgent ? `Device: ${userAgent}` : null,
-        ipAddress ? `IP address: ${ipAddress}` : null,
+        `Device: ${serverUserAgent}`,
+        `IP address: ${serverIpAddress}`,
         '',
         'If this was you, no action is required.',
         'If this was not you, please secure your account immediately.',
-      ]
-        .filter(Boolean)
-        .join('\n'),
+      ].join('\n'),
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
           <h2 style="margin-bottom: 12px;">S.M.U.V.E 2.0 Login Confirmation</h2>
@@ -329,16 +367,8 @@ app.post('/api/auth/login-email', async (req, res) => {
           <p>We detected a successful login to your S.M.U.V.E 2.0 account.</p>
           <ul>
             <li><strong>Login time:</strong> ${escapeHtml(timestamp)}</li>
-            ${
-              userAgent
-                ? `<li><strong>Device:</strong> ${escapeHtml(userAgent)}</li>`
-                : ''
-            }
-            ${
-              ipAddress
-                ? `<li><strong>IP address:</strong> ${escapeHtml(ipAddress)}</li>`
-                : ''
-            }
+            <li><strong>Device:</strong> ${escapeHtml(serverUserAgent)}</li>
+            <li><strong>IP address:</strong> ${escapeHtml(serverIpAddress)}</li>
           </ul>
           <p>If this was you, no action is required.</p>
           <p>If this was not you, please secure your account immediately.</p>
