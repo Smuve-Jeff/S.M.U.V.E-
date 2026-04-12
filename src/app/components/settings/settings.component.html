@@ -20,13 +20,45 @@
       <div *ngIf="activeTab() === 'ui'" class="flex flex-col gap-6 animate-enter">
         <div class="setting-group">
           <label class="setting-label">Active Theme Mode</label>
-          <div class="grid grid-cols-2 gap-3 mt-2">
-            <button *ngFor="let t of ['Light', 'Dark']"
-              (click)="updateSetting('ui', 'theme', t)"
-              [class.theme-active]="settings().ui.theme === t"
-              class="theme-btn">
-              {{t}} Mode
+          <p class="text-xs text-text-dim">
+            Keep the shell, settings surfaces, and workspace chrome aligned to the same appearance profile.
+          </p>
+          <div class="grid gap-3 mt-2 md:grid-cols-2">
+            <button *ngFor="let theme of themeOptions()"
+              (click)="updateSetting('ui', 'theme', theme.name)"
+              [class.theme-active]="settings().ui.theme === theme.name"
+              class="theme-btn theme-card">
+              <span class="theme-card-topline">
+                <span class="theme-name">{{ theme.name }} Mode</span>
+                <span class="theme-current" *ngIf="settings().ui.theme === theme.name">
+                  Active
+                </span>
+              </span>
+              <span class="theme-card-preview" aria-hidden="true">
+                <span class="theme-swatch" [style.background]="theme.primary"></span>
+                <span class="theme-swatch" [style.background]="theme.accent"></span>
+                <span class="theme-swatch" [style.background]="theme.blue"></span>
+                <span class="theme-swatch" [style.background]="theme.neutral"></span>
+              </span>
+              <span class="theme-description">
+                {{
+                  theme.name === 'Dark'
+                    ? 'Executive night palette with high-contrast glass panels.'
+                    : 'Bright control surface with clean editorial contrast.'
+                }}
+              </span>
             </button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Appearance Snapshot</label>
+          <div class="grid gap-3 md:grid-cols-3 mt-2">
+            <div *ngFor="let item of appearanceSummary()" class="appearance-summary-card">
+              <span class="appearance-summary-label">{{ item.label }}</span>
+              <strong class="appearance-summary-value">{{ item.value }}</strong>
+              <p class="appearance-summary-detail">{{ item.detail }}</p>
+            </div>
           </div>
         </div>
 
