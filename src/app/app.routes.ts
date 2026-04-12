@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './services/auth.guard';
 
 export const routes: Routes = [
   {
@@ -174,3 +175,11 @@ export const routes: Routes = [
   { path: '', redirectTo: 'hub', pathMatch: 'full' },
   { path: '**', redirectTo: 'hub' },
 ];
+
+for (const route of routes) {
+  if (!route.path || route.path === 'login' || route.redirectTo) {
+    continue;
+  }
+
+  route.canActivate = [authGuard];
+}

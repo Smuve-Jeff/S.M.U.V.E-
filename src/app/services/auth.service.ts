@@ -44,6 +44,22 @@ export class AuthService {
     void this.loadSession();
   }
 
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
+  private getUserStorageKey(email: string): string {
+    return `smuve_user_${this.normalizeEmail(email)}`;
+  }
+
+  private hydrateUser(user: AuthUser): AuthUser {
+    return {
+      ...user,
+      createdAt: new Date(user.createdAt),
+      lastLogin: new Date(user.lastLogin),
+    };
+  }
+
   private async deriveKey(password: string, salt: string): Promise<string> {
     if (typeof crypto?.subtle === 'undefined') {
       // Fallback for environments without SubtleCrypto
@@ -102,7 +118,7 @@ export class AuthService {
       const sessionData = this.decrypt(encryptedSession);
       if (!sessionData) return;
 
-      const user = JSON.parse(sessionData) as AuthUser;
+      const user = this.hydrateUser(JSON.parse(sessionData) as AuthUser);
 
       // Validate session with security service
       if (!this.securityService.validateSession()) {
@@ -160,8 +176,16 @@ export class AuthService {
     credentials: AuthCredentials,
     artistName: string
   ): Promise<{ success: boolean; message: string }> {
+    const normalizedEmail = this.normalizeEmail(credentials.email);
+    if (!normalizedEmail || !credentials.password) {
+      return {
+        success: false,
+        message: 'Email and password are required to register.',
+      };
+    }
+
     // Check rate limiting
-    const rateLimitKey = `register_${credentials.email}`;
+    const rateLimitKey = `register_${normalizedEmail}`;
     const rateResult = this.securityService.recordAttempt(rateLimitKey);
 
     if (!rateResult.allowed) {
@@ -178,7 +202,7 @@ export class AuthService {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       const existingUser = localStorage.getItem(
-        `smuve_user_${credentials.email}`
+        this.getUserStorageKey(normalizedEmail)
       );
       if (existingUser) {
         return {
@@ -191,12 +215,12 @@ export class AuthService {
       // Derive secure password hash using PBKDF2
       const passwordHash = await this.deriveKey(
         credentials.password,
-        `${credentials.email}_${APP_SECURITY_CONFIG.auth_salt}`
+        `${normalizedEmail}_${APP_SECURITY_CONFIG.auth_salt}`
       );
 
       const newUser: AuthUser = {
         id: this.generateUserId(),
-        email: credentials.email,
+        email: normalizedEmail,
         artistName: this.securityService.sanitizeInput(artistName),
         role: 'Admin',
         permissions: ['ALL_ACCESS'],
@@ -206,7 +230,7 @@ export class AuthService {
       };
 
       localStorage.setItem(
-        `smuve_user_${credentials.email}`,
+        this.getUserStorageKey(normalizedEmail),
         this.encrypt(
           JSON.stringify({
             user: newUser,
@@ -220,10 +244,14 @@ export class AuthService {
       this.saveSession(newUser);
       this.securityService.clearRateLimit(rateLimitKey);
 
-      await this.profileService.updateProfile({
-        ...initialProfile,
-        artistName: this.securityService.sanitizeInput(artistName),
-      } as any);
+      await this.profileService.updateProfile(
+        {
+          ...initialProfile,
+          id: newUser.id,
+          artistName: this.securityService.sanitizeInput(artistName),
+        } as any,
+        newUser.id
+      );
 
       await this.securityService.logEvent(
         'ACCOUNT_CREATED',
@@ -247,8 +275,16 @@ export class AuthService {
   async login(
     credentials: AuthCredentials
   ): Promise<{ success: boolean; message: string; requires2FA?: boolean }> {
+    const normalizedEmail = this.normalizeEmail(credentials.email);
+    if (!normalizedEmail || !credentials.password) {
+      return {
+        success: false,
+        message: 'Enter your email and password to continue.',
+      };
+    }
+
     // Check rate limiting
-    const rateLimitKey = `login_${credentials.email}`;
+    const rateLimitKey = `login_${normalizedEmail}`;
     const rateResult = this.securityService.recordAttempt(rateLimitKey);
 
     if (!rateResult.allowed) {
@@ -257,7 +293,7 @@ export class AuthService {
       );
       await this.securityService.logEvent(
         'LOGIN_BLOCKED',
-        `Login blocked due to rate limiting for ${credentials.email}`
+        `Login blocked due to rate limiting for ${normalizedEmail}`
       );
       return {
         success: false,
@@ -269,7 +305,7 @@ export class AuthService {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       const encryptedUserData = localStorage.getItem(
-        `smuve_user_${credentials.email}`
+        this.getUserStorageKey(normalizedEmail)
       );
       if (!encryptedUserData) {
         return {
@@ -287,15 +323,16 @@ export class AuthService {
         };
       }
 
-      const { user, passwordHash } = JSON.parse(userData) as {
+      const { user: storedUser, passwordHash } = JSON.parse(userData) as {
         user: AuthUser;
         passwordHash: string;
       };
+      const user = this.hydrateUser(storedUser);
 
       // Verify password using PBKDF2 derivation
       const inputHash = await this.deriveKey(
         credentials.password,
-        `${credentials.email}_${APP_SECURITY_CONFIG.auth_salt}`
+        `${normalizedEmail}_${APP_SECURITY_CONFIG.auth_salt}`
       );
 
       // Support both legacy and new hash formats
@@ -306,7 +343,7 @@ export class AuthService {
       if (!isValidPassword) {
         await this.securityService.logEvent(
           'LOGIN_FAILURE',
-          `Failed login attempt for ${credentials.email}`,
+          `Failed login attempt for ${normalizedEmail}`,
           user.id
         );
         return {
@@ -315,7 +352,7 @@ export class AuthService {
         };
       }
 
-      // Mock 2FA check based on profile settings.
+      await this.profileService.loadProfile(user.id);
       const profile = this.profileService.profile() || (initialProfile as any);
       if (
         profile?.settings?.security?.twoFactorEnabled &&
@@ -351,7 +388,7 @@ export class AuthService {
       this.securityService.clearRateLimit(rateLimitKey);
 
       localStorage.setItem(
-        `smuve_user_${credentials.email}`,
+        this.getUserStorageKey(normalizedEmail),
         this.encrypt(JSON.stringify({ user, passwordHash }))
       );
 
@@ -363,7 +400,6 @@ export class AuthService {
         `Artist ${user.artistName} logged in successfully.`,
         user.id
       );
-      await this.profileService.loadProfile(user.id);
 
       return {
         success: true,

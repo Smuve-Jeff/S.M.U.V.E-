@@ -166,11 +166,14 @@ export class UserProfileService {
   async loadProfile(userId: string): Promise<void> {
     try {
       const userProfile = await this.databaseService.loadUserProfile(userId);
-      if (userProfile) {
-        const sanitizedProfile = this.sanitizeProfile(userProfile);
-        this.profile.set(sanitizedProfile);
-        this.profile$.set(sanitizedProfile);
-      }
+      const sanitizedProfile = this.sanitizeProfile(
+        userProfile || {
+          ...initialProfile,
+          id: userId,
+        }
+      );
+      this.profile.set(sanitizedProfile);
+      this.profile$.set(sanitizedProfile);
     } catch (error) {
       this.logger.error('UserProfileService: Failed to load profile', error);
     }
@@ -178,7 +181,7 @@ export class UserProfileService {
 
   async updateProfile(newProfile: UserProfile, userId?: string): Promise<void> {
     try {
-      const id = userId || 'anonymous';
+      const id = userId || newProfile.id || this.profile().id || 'anonymous';
       const sanitizedProfile = this.sanitizeProfile(newProfile);
       await this.databaseService.saveUserProfile(sanitizedProfile, id);
       this.profile.set(sanitizedProfile);

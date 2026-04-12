@@ -1,8 +1,9 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService, AuthCredentials } from '../../services/auth.service';
-import { UIService } from '../../services/ui.service';
+import { SecurityService } from '../../services/security.service';
 
 @Component({
   selector: 'app-login',
@@ -11,9 +12,11 @@ import { UIService } from '../../services/ui.service';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private authService = inject(AuthService);
-  private uiService = inject(UIService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private securityService = inject(SecurityService);
 
   isRegistering = signal(false);
   isLoading = signal(false);
@@ -25,6 +28,12 @@ export class LoginComponent {
     password: '',
   };
   artistName = '';
+
+  ngOnInit() {
+    if (this.authService.isAuthenticated()) {
+      void this.navigateAfterAuth();
+    }
+  }
 
   async onSubmit() {
     this.isLoading.set(true);
@@ -45,12 +54,12 @@ export class LoginComponent {
       this.message.set(result.message);
       if (result.success) {
         setTimeout(() => {
-          this.uiService.navigateToView('hub');
+          void this.navigateAfterAuth();
         }, 1500);
       } else {
         this.isError.set(true);
       }
-    } catch (err) {
+    } catch {
       this.isError.set(true);
       this.message.set('A executive error occurred. System offline.');
     } finally {
@@ -61,5 +70,15 @@ export class LoginComponent {
   toggleMode() {
     this.isRegistering.update((v) => !v);
     this.message.set('');
+  }
+
+  private async navigateAfterAuth(): Promise<void> {
+    const requestedUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    const nextUrl =
+      requestedUrl && this.securityService.isValidRedirectUrl(requestedUrl)
+        ? requestedUrl
+        : '/hub';
+
+    await this.router.navigateByUrl(nextUrl);
   }
 }

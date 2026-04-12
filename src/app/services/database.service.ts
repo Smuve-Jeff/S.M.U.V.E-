@@ -23,8 +23,17 @@ export class DatabaseService {
   isSyncing = signal(false);
   lastSyncTime = signal<number | null>(null);
 
+  private getProfileBackupKey(userId?: string): string {
+    return userId
+      ? `smuve_user_profile_backup_${userId}`
+      : 'smuve_user_profile_backup';
+  }
+
   async saveUserProfile(profile: UserProfile, userId: string): Promise<void> {
-    localStorage.setItem('smuve_user_profile_backup', JSON.stringify(profile));
+    localStorage.setItem(
+      this.getProfileBackupKey(userId),
+      JSON.stringify(profile)
+    );
 
     if (userId && navigator.onLine) {
       this.isSyncing.set(true);
@@ -52,7 +61,7 @@ export class DatabaseService {
         );
         if (profile) {
           localStorage.setItem(
-            'smuve_user_profile_backup',
+            this.getProfileBackupKey(userId),
             JSON.stringify(profile)
           );
           return profile;
@@ -62,7 +71,9 @@ export class DatabaseService {
       }
     }
 
-    const backup = localStorage.getItem('smuve_user_profile_backup');
+    const backup =
+      localStorage.getItem(this.getProfileBackupKey(userId)) ||
+      localStorage.getItem(this.getProfileBackupKey());
     return backup ? JSON.parse(backup) : null;
   }
 

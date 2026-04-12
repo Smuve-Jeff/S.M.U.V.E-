@@ -67,6 +67,7 @@ export class AppComponent {
   isSidebarOpen = signal(true);
   isFullPageMode = signal(false);
   isMobile = signal(false);
+  isAuthRoute = signal(false);
   navigationGroups: NavigationGroup[] = this.buildNavigationGroups();
   activeViewConfig = computed(
     () =>
@@ -135,8 +136,10 @@ export class AppComponent {
 
   private updateFullPageMode(url: string) {
     const path = this.getPrimaryRoute(url);
+    this.isAuthRoute.set(path === 'login');
     this.isFullPageMode.set(
-      ['piano-roll', 'tha-spot', 'networking'].includes(path) ||
+      this.isAuthRoute() ||
+        ['piano-roll', 'tha-spot', 'networking'].includes(path) ||
         (path === 'studio' && this.isMobile())
     );
   }

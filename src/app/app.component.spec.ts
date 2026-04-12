@@ -182,6 +182,13 @@ describe('AppComponent', () => {
     expect(component.isFullPageMode()).toBe(true);
   });
 
+  it('treats login as an auth-only full-page route', async () => {
+    const { component } = await createComponent('/login');
+
+    expect(component.isAuthRoute()).toBe(true);
+    expect(component.isFullPageMode()).toBe(true);
+  });
+
   it('updates mobile shell state when the viewport changes', async () => {
     const { component } = await createComponent('/hub');
     const originalWidth = window.innerWidth;
