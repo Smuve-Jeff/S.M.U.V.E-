@@ -86,7 +86,7 @@
       </div>
     </header>
 
-    <section class="discovery-shell glass-v42">
+    <section class="discovery-shell glass-v42" data-testid="discovery-library">
       <div class="discovery-header">
         <div>
           <p class="eyebrow">Catalog-first gaming hub</p>
@@ -214,7 +214,7 @@
           <div class="section-heading">
             <div>
               <p class="hero-eyebrow">Arena spotlight</p>
-              <h2>{{ spotlight.name }}</h2>
+              <h2 data-testid="arena-spotlight-title">{{ spotlight.name }}</h2>
             </div>
             <span
               >{{ spotlight.genre }} ·
@@ -328,7 +328,7 @@
     </section>
 
     <div class="content-grid">
-      <section class="library-panel glass-v42">
+      <section class="library-panel glass-v42" data-testid="library-panel">
         <div class="library-header">
           <div>
             <p class="eyebrow">Dynamic feed</p>
@@ -454,7 +454,7 @@
                   </div>
 
                   <div class="card-actions">
-                    <button class="primary-btn" (click)="previewGame(game); $event.stopPropagation()">
+                    <button class="primary-btn" type="button">
                       <span class="material-symbols-outlined">joystick</span>
                       Open
                     </button>
