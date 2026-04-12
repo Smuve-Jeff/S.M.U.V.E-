@@ -29,7 +29,7 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: () => {
         const logger = inject(LoggingService);
-        inject(AutoSaveService); //  inject(AutoSaveService);
+        inject(AutoSaveService);
         return () => {
           logger.system(
             'S.M.U.V.E 2.0 Strategic Music Utility Virtual Enterprise Initialized'
