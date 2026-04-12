@@ -17,6 +17,7 @@ export interface AppSettings {
     performanceMode: boolean;
     showScanlines: boolean;
     animationsEnabled: boolean;
+    autoPianoRoll: boolean;
   };
   audio: { masterVolume: number; autoSaveEnabled: boolean };
   ai: { kbWriteAccess: boolean; commanderPersona: string };
@@ -119,6 +120,7 @@ export const initialProfile: UserProfile = {
       performanceMode: false,
       showScanlines: false,
       animationsEnabled: true,
+      autoPianoRoll: false,
     },
     audio: { masterVolume: 0.8, autoSaveEnabled: true },
     ai: { kbWriteAccess: true, commanderPersona: 'Elite' },

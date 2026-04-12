@@ -104,6 +104,18 @@
       </div>
       <div class="hidden sm:flex gap-4 ml-4">
         <button
+          (click)="uiService.toggleAutoPianoRoll()"
+          class="text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+          [class.text-brand-primary]="uiService.autoPianoRoll()"
+          [class.text-slate-500]="!uiService.autoPianoRoll()"
+          title="Toggle Auto-Open Piano Roll on Track Selection"
+        >
+          <span class="material-symbols-outlined text-[14px]">
+            {{ uiService.autoPianoRoll() ? 'auto_mode' : 'auto_mode' }}
+          </span>
+          Auto-Open
+        </button>
+        <button
           (click)="showMixer.set(!showMixer())"
           class="text-[10px] font-black uppercase tracking-widest transition-all"
           [class.text-brand-primary]="showMixer()"
@@ -248,6 +260,15 @@
           <div class="flex items-center gap-3">
             <span class="material-symbols-outlined text-emerald-400 text-sm">grid_on</span>
             <span class="text-[10px] font-black text-white uppercase tracking-widest">Piano Roll</span>
+            <button
+              (click)="uiService.toggleAutoPianoRoll()"
+              class="ml-4 px-2 py-0.5 rounded border border-white/5 text-[8px] font-black uppercase tracking-widest transition-all"
+              [class.bg-brand-primary/20]="uiService.autoPianoRoll()"
+              [class.text-brand-primary]="uiService.autoPianoRoll()"
+              [class.text-slate-500]="!uiService.autoPianoRoll()"
+            >
+              Auto-Open: {{ uiService.autoPianoRoll() ? 'ON' : 'OFF' }}
+            </button>
           </div>
           <button (click)="showPianoRoll.set(false)" class="text-slate-500 hover:text-white transition-colors">
             <span class="material-symbols-outlined text-sm">close</span>
