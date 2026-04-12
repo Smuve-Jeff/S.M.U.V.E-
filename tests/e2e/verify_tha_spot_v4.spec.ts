@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { seedAuthenticatedSession } from './helpers';
 
 test('Verify Tha Spot live intelligence experience', async ({ page }) => {
+  await seedAuthenticatedSession(page);
   await page.goto('/tha-spot');
 
   await page.getByRole('button', { name: /INTEL/i }).click();

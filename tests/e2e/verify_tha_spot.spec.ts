@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { seedAuthenticatedSession } from './helpers';
 
 test('Verify Tha Spot Gaming Hub and Filters', async ({ page }) => {
+  await seedAuthenticatedSession(page);
   await page.goto('/tha-spot');
 
   await expect(page.getByRole('heading', { name: 'All Games' })).toBeVisible();

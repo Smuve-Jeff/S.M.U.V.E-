@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { seedAuthenticatedSession } from './helpers';
 
 test('S.M.U.V.E 2.0 branding and navigation check', async ({ page }) => {
+  await seedAuthenticatedSession(page);
   await page.goto('/hub');
 
   await expect(page).toHaveTitle(/S\.M\.U\.V\.E 2\.0/i);
@@ -8,7 +10,7 @@ test('S.M.U.V.E 2.0 branding and navigation check', async ({ page }) => {
     page.getByText('S.M.U.V.E 2.0 // EXECUTIVE COMMAND')
   ).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: /Welcome Back, New Artist/i })
+    page.getByRole('heading', { name: /Welcome Back, Executive Artist/i })
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open Studio' })).toBeVisible();
   await expect(

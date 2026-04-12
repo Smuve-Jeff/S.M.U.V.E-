@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { seedAuthenticatedSession } from './helpers';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test('recommendation actions persist across strategy, practice, and command surfaces', async ({
   page,
 }) => {
-  await page.addInitScript(() => localStorage.clear());
+  await seedAuthenticatedSession(page);
 
   await page.goto('/practice');
 

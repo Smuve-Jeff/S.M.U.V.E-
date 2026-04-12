@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { seedAuthenticatedSession } from './helpers';
 
 test('Strategy Hub Dynamic Features', async ({ page }) => {
+  await seedAuthenticatedSession(page);
   await page.goto('/strategy');
 
   await expect(page.getByRole('heading', { name: 'STRATEGYHUB' })).toBeVisible();

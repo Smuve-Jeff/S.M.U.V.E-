@@ -934,7 +934,7 @@ export class AudioEngineService {
     const deck = this.getDeck(id);
     deck.loopEnabled = enabled;
     if (deck.isPlaying) {
-      Object.values(deck.sources).forEach(src => {
+      Object.values(deck.sources).forEach((src) => {
         if (src) src.loop = enabled;
       });
     }

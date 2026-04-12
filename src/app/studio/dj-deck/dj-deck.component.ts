@@ -581,7 +581,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-    private processScratch(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {
+  private processScratch(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {
     event.preventDefault();
     const angle = this.getAngle(event, deck);
     const lastAngle = deck === 'A' ? this.lastAngleA : this.lastAngleB;
@@ -609,10 +609,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.engine.setDeckRate(deck, velocity, false);
 
     if (deck === 'A') {
-      this.rotationA.update(r => r + delta * (180/Math.PI));
+      this.rotationA.update((r) => r + delta * (180 / Math.PI));
       this.lastAngleA = angle;
     } else {
-      this.rotationB.update(r => r + delta * (180/Math.PI));
+      this.rotationB.update((r) => r + delta * (180 / Math.PI));
       this.lastAngleB = angle;
     }
   }

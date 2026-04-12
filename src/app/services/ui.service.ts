@@ -142,7 +142,11 @@ export class UIService {
           const settings = profile.settings.ui;
           this.performanceMode.set(settings.performanceMode || false);
           this.showScanlines.set(settings.showScanlines || false);
-          this.autoPianoRoll.set(settings.autoPianoRoll !== undefined ? settings.autoPianoRoll : false);
+          this.autoPianoRoll.set(
+            settings.autoPianoRoll !== undefined
+              ? settings.autoPianoRoll
+              : false
+          );
           this.setTheme(settings.theme || 'Dark');
         }
       });
