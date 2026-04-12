@@ -183,8 +183,8 @@ describe('GameService', () => {
     httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
     const games = await pending;
 
-    expect(games[0].id).toBe('14');
-    expect(games[1].id).toBe('13');
+    expect(games[0].id).toBe('15');
+    expect(games[1].id).toBe('14');
   });
 
   it('refreshes the feed when forced', async () => {
