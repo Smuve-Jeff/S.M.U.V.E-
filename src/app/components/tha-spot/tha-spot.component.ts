@@ -14,7 +14,7 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { GameService } from '../../hub/game.service';
+import { GameService, GameSortMode } from '../../hub/game.service';
 import {
   Game,
   GameBadge,
@@ -38,6 +38,14 @@ const MAX_HISTORY_SCORE = 24;
 const HISTORY_SCORE_DIVISOR = 6;
 const FEED_REFRESH_INTERVAL_MS = 300000;
 const EVENT_ENDING_SOON_MS = 1000 * 60 * 60 * 6;
+type LibraryViewMode = 'grid' | 'compact';
+type QuickFilter = 'featured' | 'multiplayer' | 'instant' | 'online';
+const QUICK_FILTERS: QuickFilter[] = [
+  'featured',
+  'multiplayer',
+  'instant',
+  'online',
+];
 
 @Component({
   selector: 'app-tha-spot',
@@ -48,6 +56,7 @@ const EVENT_ENDING_SOON_MS = 1000 * 60 * 60 * 6;
 })
 export class ThaSpotComponent implements OnInit, OnDestroy {
   @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
+  readonly quickFilterOptions = QUICK_FILTERS;
 
   private gameService = inject(GameService);
   public profileService = inject(UserProfileService);
@@ -75,6 +84,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   );
 
   activeRoom = signal<string>('all');
+  searchQuery = signal('');
+  sortMode = signal<GameSortMode>('Popular');
+  libraryView = signal<LibraryViewMode>('grid');
+  quickFilters = signal<QuickFilter[]>([]);
   isTransitioning = signal(false);
   showIntelPanel = signal(false);
   now = signal(Date.now());
@@ -99,7 +112,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       this.gamingRooms()[0]
   );
 
-  filteredGames = computed(() => {
+  roomFilteredGames = computed(() => {
     const room = this.activeRoomConfig();
     if (!room) {
       return this.games();
@@ -107,6 +120,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
     return this.games().filter((game) =>
       this.gameService.matchesRoom(game, room)
+    );
+  });
+
+  filteredGames = computed(() => {
+    const quickFilters = this.quickFilters();
+    const scopedGames = this.roomFilteredGames().filter((game) =>
+      quickFilters.every((filter) => this.matchesQuickFilter(game, filter))
+    );
+
+    return this.gameService.filterAndSortGames(
+      scopedGames,
+      { query: this.searchQuery().trim() },
+      this.sortMode()
     );
   });
 
@@ -156,6 +182,27 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       : this.filteredGames()
     ).slice(0, 3)
   );
+
+  discoverySummary = computed(() => {
+    const visibleCount = this.filteredGames().length;
+    const totalCount = this.games().length;
+    const filters = this.quickFilters();
+    const query = this.searchQuery().trim();
+    const hasRefinements =
+      this.activeRoom() !== 'all' || !!query || filters.length > 0;
+
+    return {
+      visibleCount,
+      totalCount,
+      query,
+      hasRefinements,
+      filterCount: filters.length + (query ? 1 : 0) + (this.activeRoom() !== 'all' ? 1 : 0),
+      highlightLabel:
+        visibleCount === totalCount && !hasRefinements
+          ? 'Full catalog online'
+          : `${visibleCount} of ${totalCount} cabinets ready`,
+    };
+  });
 
   recommendedGames = computed(() => {
     const rail = this.activeRecommendationRail();
@@ -239,7 +286,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   });
 
   liveMetrics = computed(() => {
-    const visibleGames = this.filteredGames();
+    const visibleGames = this.roomFilteredGames();
     const roomPlayers = visibleGames.reduce(
       (total, game) => total + (game.playersOnline || 0),
       0
@@ -385,6 +432,38 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }, 240);
   }
 
+  setSearchQuery(value: string) {
+    this.searchQuery.set(value);
+  }
+
+  setSortMode(value: GameSortMode) {
+    this.sortMode.set(value);
+  }
+
+  setLibraryView(view: LibraryViewMode) {
+    this.libraryView.set(view);
+  }
+
+  toggleQuickFilter(filter: QuickFilter) {
+    this.quickFilters.update((filters) =>
+      filters.includes(filter)
+        ? filters.filter((entry) => entry !== filter)
+        : [...filters, filter]
+    );
+  }
+
+  hasQuickFilter(filter: QuickFilter) {
+    return this.quickFilters().includes(filter);
+  }
+
+  clearDiscoveryControls() {
+    this.activeRoom.set('all');
+    this.searchQuery.set('');
+    this.sortMode.set('Popular');
+    this.libraryView.set('grid');
+    this.quickFilters.set([]);
+  }
+
   getActiveRoomName(): string {
     return this.activeRoomConfig()?.name || 'Gaming Hub';
   }
@@ -527,6 +606,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     return (game.tags || []).slice(0, 3);
   }
 
+  getQuickFilterLabel(filter: QuickFilter) {
+    switch (filter) {
+      case 'featured':
+        return 'Featured';
+      case 'multiplayer':
+        return 'Multiplayer';
+      case 'instant':
+        return 'Instant play';
+      case 'online':
+        return 'Online ready';
+    }
+  }
+
   getGameBadges(game: Game): GameBadge[] {
     return (game.badgeIds || [])
       .map((badgeId) => this.badgeMap().get(badgeId))
@@ -615,6 +707,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     return this.isApprovedFeedUrl(approvedUrl);
   }
 
+  getGameRoomLabels(game: Game) {
+    return this.gamingRooms()
+      .filter((room) => room.id !== 'all' && this.gameService.matchesRoom(game, room))
+      .slice(0, 2)
+      .map((room) => room.name);
+  }
+
+  getLaunchModeLabel(game: Game) {
+    return this.canEmbedInline(game) ? 'Inline ready' : 'External launch';
+  }
+
   private isTrustedTelemetryEvent(event: MessageEvent, game: Game): boolean {
     const telemetryMode = game.launchConfig?.telemetryMode || 'none';
     if (typeof window === 'undefined' || telemetryMode === 'none') {
@@ -681,6 +784,31 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
           this.activeRoom.set(feed.rooms[0]?.id || 'all');
         }
       });
+  }
+
+  private matchesQuickFilter(game: Game, filter: QuickFilter) {
+    switch (filter) {
+      case 'featured':
+        return !!game.badgeIds?.some((badge) =>
+          ['featured', 'staff-pick', 'trending', 'tournament-live'].includes(
+            badge
+          )
+        );
+      case 'multiplayer':
+        return (
+          game.multiplayerType === 'Server' ||
+          game.multiplayerType === 'P2P' ||
+          !!game.tags?.some((tag) =>
+            ['multiplayer', 'co-op', 'versus', 'pvp'].includes(
+              tag.toLowerCase()
+            )
+          )
+        );
+      case 'instant':
+        return (game.queueEstimateMinutes || 0) <= 1;
+      case 'online':
+        return game.availability === 'Online' || game.availability === 'Hybrid';
+    }
   }
 
   private isApprovedFeedUrl(url: string) {

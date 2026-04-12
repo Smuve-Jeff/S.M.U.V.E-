@@ -44,6 +44,7 @@ function asStringArray(value: unknown) {
 
 const COVER_HASH_SEED = 7;
 const THA_SPOT_FEED_URL = '/assets/data/tha-spot-feed.json';
+export type GameSortMode = 'Popular' | 'Rating' | 'Newest' | 'Name' | 'Queue';
 
 function buildGameCover(
   title: string,
@@ -354,24 +355,24 @@ export class GameService {
 
   listGames(
     filters: { genre?: string; query?: string } = {},
-    sort: 'Popular' | 'Rating' | 'Newest' = 'Popular'
+    sort: GameSortMode = 'Popular'
   ): Observable<Game[]> {
     return this.getThaSpotFeed().pipe(
-      map((feed) => this.applyFiltersAndSort(feed.games, filters, sort))
+      map((feed) => this.filterAndSortGames(feed.games, filters, sort))
     );
   }
 
   getGamesForRoom(
     roomId: string,
-    sort: 'Popular' | 'Rating' | 'Newest' = 'Popular'
+    sort: GameSortMode = 'Popular'
   ): Observable<Game[]> {
     return this.getThaSpotFeed().pipe(
       map((feed) => {
         const room = feed.rooms.find((entry) => entry.id === roomId);
         if (!room) {
-          return this.applyFiltersAndSort(feed.games, {}, sort);
+          return this.filterAndSortGames(feed.games, {}, sort);
         }
-        return this.applyFiltersAndSort(
+        return this.filterAndSortGames(
           feed.games.filter((game) => this.matchesRoom(game, room)),
           {},
           sort
@@ -456,10 +457,10 @@ export class GameService {
     );
   }
 
-  private applyFiltersAndSort(
+  filterAndSortGames(
     games: Game[],
     filters: { genre?: string; query?: string },
-    sort: 'Popular' | 'Rating' | 'Newest'
+    sort: GameSortMode
   ): Game[] {
     let filtered = [...games];
 
@@ -484,6 +485,15 @@ export class GameService {
         break;
       case 'Rating':
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'Name':
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'Queue':
+        filtered.sort(
+          (a, b) =>
+            (a.queueEstimateMinutes || 0) - (b.queueEstimateMinutes || 0)
+        );
         break;
       case 'Newest':
         filtered.sort((a, b) => {

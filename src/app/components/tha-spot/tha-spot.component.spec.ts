@@ -309,6 +309,34 @@ describe('ThaSpotComponent', () => {
     expect(component.getActiveRoomName()).toBe('Producer Lounge');
   }));
 
+  it('supports search, quick filters, sort changes, and reset for catalog browsing', () => {
+    component.setSearchQuery('tempo');
+    expect(component.filteredGames().map((game) => game.name)).toEqual([
+      'Tempo Lockdown',
+    ]);
+
+    component.setSearchQuery('');
+    component.toggleQuickFilter('multiplayer');
+    expect(component.filteredGames().map((game) => game.name)).toEqual([
+      'Tha Battlefield',
+    ]);
+
+    component.toggleQuickFilter('multiplayer');
+    component.setSortMode('Name');
+    expect(component.filteredGames().map((game) => game.name)).toEqual([
+      'Tempo Lockdown',
+      'Tha Battlefield',
+    ]);
+
+    component.setActiveRoom('producer-lounge');
+    component.clearDiscoveryControls();
+
+    expect(component.activeRoom()).toBe('all');
+    expect(component.searchQuery()).toBe('');
+    expect(component.sortMode()).toBe('Popular');
+    expect(component.quickFilters()).toEqual([]);
+  });
+
   it('surfaces feed-driven recommendations and live metrics', () => {
     expect(component.activeRecommendationRail()?.title).toBe(
       'Producer crossover'
@@ -327,6 +355,8 @@ describe('ThaSpotComponent', () => {
     expect(text).toContain('Arena spotlight');
     expect(text).toContain('Producer crossover');
     expect(text).toContain('Live directive');
+    expect(text).toContain('Search cabinets');
+    expect(text).toContain('Game library');
   });
 
   it('changes recommendation rails when the profile type changes', () => {

@@ -86,7 +86,101 @@
       </div>
     </header>
 
-    <section class="command-grid">
+    <section class="discovery-shell glass-v42">
+      <div class="discovery-header">
+        <div>
+          <p class="eyebrow">Catalog-first gaming hub</p>
+          <h2>Game library</h2>
+          <p class="room-desc">
+            Search, sort, and launch every Tha Spot cabinet without losing the
+            live floor context.
+          </p>
+        </div>
+        <div class="discovery-status">
+          <span class="signal-pill">{{ discoverySummary().highlightLabel }}</span>
+          <button
+            class="secondary-btn discovery-clear"
+            *ngIf="discoverySummary().hasRefinements"
+            (click)="clearDiscoveryControls()"
+          >
+            Reset filters
+          </button>
+        </div>
+      </div>
+
+      <div class="discovery-controls">
+        <label class="control-field search-field">
+          <span class="control-label">Search cabinets</span>
+          <span class="material-symbols-outlined">search</span>
+          <input
+            type="search"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="setSearchQuery($event)"
+            placeholder="Search by title, description, or mode"
+            aria-label="Search cabinets"
+          />
+        </label>
+
+        <label class="control-field">
+          <span class="control-label">Sort by</span>
+          <select
+            [ngModel]="sortMode()"
+            (ngModelChange)="setSortMode($event)"
+            aria-label="Sort games"
+          >
+            <option value="Popular">Most popular</option>
+            <option value="Rating">Top rated</option>
+            <option value="Queue">Fastest launch</option>
+            <option value="Name">A to Z</option>
+            <option value="Newest">Newest additions</option>
+          </select>
+        </label>
+
+        <div class="control-field">
+          <span class="control-label">View mode</span>
+          <div class="view-toggle">
+            <button
+              class="dock-btn"
+              [class.active]="libraryView() === 'grid'"
+              (click)="setLibraryView('grid')"
+            >
+              <span class="material-symbols-outlined">grid_view</span>
+              <span class="btn-label">Grid</span>
+            </button>
+            <button
+              class="dock-btn"
+              [class.active]="libraryView() === 'compact'"
+              (click)="setLibraryView('compact')"
+            >
+              <span class="material-symbols-outlined">view_agenda</span>
+              <span class="btn-label">Compact</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-strip">
+        <button
+          class="filter-chip"
+          *ngFor="let filter of quickFilters()"
+          (click)="toggleQuickFilter(filter)"
+        >
+          {{ getQuickFilterLabel(filter) }}
+          <span class="material-symbols-outlined">close</span>
+        </button>
+        <button
+          class="filter-chip filter-chip-ghost"
+          *ngFor="let filter of quickFilterOptions"
+          [class.is-active]="hasQuickFilter(filter)"
+          [hidden]="hasQuickFilter(filter)"
+          (click)="toggleQuickFilter(filter)"
+        >
+          {{ getQuickFilterLabel(filter) }}
+        </button>
+      </div>
+    </section>
+
+    <section class="top-shelf">
       <article
         class="spotlight-stage glass-v42"
         *ngIf="featuredGame() as spotlight"
@@ -146,8 +240,8 @@
               <strong>{{ spotlight.rating }}</strong>
             </div>
             <div class="spotlight-stat">
-              <span class="chip-label">Tactical edge</span>
-              <strong>+{{ tacticalAdvantage() }}%</strong>
+              <span class="chip-label">Launch</span>
+              <strong>{{ getLaunchModeLabel(spotlight) }}</strong>
             </div>
           </div>
 
@@ -233,75 +327,57 @@
       </div>
     </section>
 
-    <section class="metrics-row">
-      <article class="metric-card glass-v42">
-        <span class="metric-label">Live queue</span>
-        <strong>{{ liveMetrics().averageQueue }} min</strong>
-        <p>Built from room-ready multiplayer cabinets.</p>
-      </article>
-      <article class="metric-card glass-v42">
-        <span class="metric-label">Session tracking</span>
-        <strong>{{ activitySummary().sessionLabel }}</strong>
-        <p>
-          Favorite room: {{ activitySummary().favoriteRoomLabel }} ·
-          {{ activitySummary().cosmetics }} saved visuals
-        </p>
-      </article>
-      <article class="metric-card glass-v42">
-        <span class="metric-label">Return lane</span>
-        <strong>{{ activitySummary().latestRoomLabel }}</strong>
-        <p>
-          {{ activeEvents().length }} live moments currently in view.
-        </p>
-      </article>
-      <article class="metric-card glass-v42">
-        <span class="metric-label">Neural sync</span>
-        <strong>{{ neuralSyncScore() }}%</strong>
-        <p>Weighted by room demand, live events, and your play history.</p>
-      </article>
-    </section>
-
-    <section class="event-strip">
-      <article
-        class="event-card glass-v42"
-        *ngFor="let event of featuredEvents()"
-      >
-        <div class="event-topline">
-          <span class="event-status" [attr.data-status]="event.status">{{
-            event.windowLabel
-          }}</span>
-          <span class="event-reward">{{ event.reward }}</span>
-        </div>
-        <h3>{{ event.title }}</h3>
-        <p>{{ event.description }}</p>
-        <button
-          class="inline-link"
-          *ngIf="getEventGame(event)"
-          (click)="previewGame(getEventGame(event)!)"
-        >
-          Queue featured cabinet
-        </button>
-      </article>
-    </section>
-
     <div class="content-grid">
-      <section class="library-panel">
+      <section class="library-panel glass-v42">
         <div class="library-header">
           <div>
             <p class="eyebrow">Dynamic feed</p>
             <h2>Game library</h2>
           </div>
-          <div class="library-count">{{ filteredGames().length }} titles</div>
+          <div class="library-meta">
+            <div class="library-count">{{ filteredGames().length }} titles</div>
+            <span class="library-subcount">{{
+              activeRoom() === 'all'
+                ? 'All Games'
+                : getActiveRoomName()
+            }}</span>
+          </div>
+        </div>
+
+        <div class="catalog-quick-stats">
+          <article class="metric-chip">
+            <span class="metric-label">Visible now</span>
+            <strong>{{ discoverySummary().visibleCount }}</strong>
+            <span>{{ discoverySummary().highlightLabel }}</span>
+          </article>
+          <article class="metric-chip">
+            <span class="metric-label">Live queue</span>
+            <strong>{{ liveMetrics().averageQueue }} min</strong>
+            <span>{{ liveMetrics().queueHealth }} launch window</span>
+          </article>
+          <article class="metric-chip">
+            <span class="metric-label">Session tracking</span>
+            <strong>{{ activitySummary().sessionLabel }}</strong>
+            <span>{{ activitySummary().favoriteRoomLabel }}</span>
+          </article>
         </div>
 
         <div class="game-library-scroll custom-scrollbar">
-          <div class="game-grid">
+          <div
+            class="game-grid"
+            [class.compact]="libraryView() === 'compact'"
+            *ngIf="filteredGames().length; else noGamesState"
+          >
             <div
               *ngFor="let game of filteredGames(); let i = index"
               class="game-card-wrapper"
-              [style.animation-delay]="i * 0.05 + 's'"
+              [style.animation-delay]="i * 0.03 + 's'"
             >
-              <div class="game-card glass-v42" (click)="previewGame(game)">
+              <div
+                class="game-card glass-v42"
+                [class.compact]="libraryView() === 'compact'"
+                (click)="previewGame(game)"
+              >
                 <div class="card-media">
                   <img
                     [src]="game.image"
@@ -355,8 +431,17 @@
                       <strong>{{ game.queueEstimateMinutes || 0 }} min</strong>
                     </div>
                     <div>
-                      <span class="meta-label">Mode</span>
-                      <strong>{{ game.multiplayerType || 'Solo' }}</strong>
+                      <span class="meta-label">Launch</span>
+                      <strong>{{ getLaunchModeLabel(game) }}</strong>
+                    </div>
+                  </div>
+
+                  <div class="game-room-row" *ngIf="getGameRoomLabels(game).length">
+                    <span class="meta-label">Rooms</span>
+                    <div class="game-room-tags">
+                      <span class="tag room-tag" *ngFor="let room of getGameRoomLabels(game)">
+                        {{ room }}
+                      </span>
                     </div>
                   </div>
 
@@ -367,14 +452,71 @@
                       >{{ tag }}</span
                     >
                   </div>
+
+                  <div class="card-actions">
+                    <button class="primary-btn" (click)="previewGame(game); $event.stopPropagation()">
+                      <span class="material-symbols-outlined">joystick</span>
+                      Open
+                    </button>
+                    <button
+                      class="secondary-btn"
+                      (click)="openGameInNewTab(game); $event.stopPropagation()"
+                    >
+                      <span class="material-symbols-outlined">open_in_new</span>
+                      External
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <ng-template #noGamesState>
+            <div class="empty-library glass-v42">
+              <span class="material-symbols-outlined">videogame_asset_off</span>
+              <h3>No cabinets match the current discovery filters</h3>
+              <p>
+                Reset the room, quick filters, or search to reopen the full Tha
+                Spot catalog.
+              </p>
+              <button class="primary-btn" (click)="clearDiscoveryControls()">
+                Show all games
+              </button>
+            </div>
+          </ng-template>
         </div>
       </section>
 
       <aside class="insight-column">
+        <section class="insight-card glass-v42">
+          <div class="section-heading">
+            <h3>Live ops</h3>
+            <span>{{ featuredEvents().length }} highlighted</span>
+          </div>
+          <div class="mini-rail">
+            <article class="event-card glass-v42" *ngFor="let event of featuredEvents()">
+              <div class="event-topline">
+                <span class="event-status" [attr.data-status]="event.status">{{
+                  event.windowLabel
+                }}</span>
+                <span class="event-reward">{{ event.reward }}</span>
+              </div>
+              <h3>{{ event.title }}</h3>
+              <p>{{ event.description }}</p>
+              <button
+                class="inline-link"
+                *ngIf="getEventGame(event)"
+                (click)="previewGame(getEventGame(event)!)"
+              >
+                Queue featured cabinet
+              </button>
+            </article>
+            <div class="empty-state" *ngIf="!featuredEvents().length">
+              No live ops are active in this room right now.
+            </div>
+          </div>
+        </section>
+
         <section class="insight-card glass-v42">
           <div class="section-heading">
             <h3>Squad network</h3>
@@ -432,6 +574,31 @@
         </section>
       </aside>
     </div>
+
+    <section class="metrics-row">
+      <article class="metric-card glass-v42">
+        <span class="metric-label">Active room</span>
+        <strong>{{ getActiveRoomName() }}</strong>
+        <p>{{ getActiveRoomDesc() }}</p>
+      </article>
+      <article class="metric-card glass-v42">
+        <span class="metric-label">Return lane</span>
+        <strong>{{ activitySummary().latestRoomLabel }}</strong>
+        <p>
+          {{ activeEvents().length }} live moments currently in view.
+        </p>
+      </article>
+      <article class="metric-card glass-v42">
+        <span class="metric-label">Neural sync</span>
+        <strong>{{ neuralSyncScore() }}%</strong>
+        <p>Weighted by room demand, live events, and your play history.</p>
+      </article>
+      <article class="metric-card glass-v42">
+        <span class="metric-label">Tactical edge</span>
+        <strong>+{{ tacticalAdvantage() }}%</strong>
+        <p>Recommendation boost generated from live rails and session signals.</p>
+      </article>
+    </section>
   </main>
 
   <aside class="intel-sidebar glass-v42" [class.active]="showIntelPanel()">
