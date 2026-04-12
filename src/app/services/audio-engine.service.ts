@@ -440,7 +440,7 @@ export class AudioEngineService {
     deck.eqLow.gain.setTargetAtTime(low, this.ctx.currentTime, 0.01);
   }
 
-  setDeckFilter(id: DeckId, freq: number, type: any = 'lowpass') {
+  setDeckFilter(id: DeckId, freq: number, type: BiquadFilterType = 'lowpass') {
     const deck = this.getDeck(id);
     deck.filter.type = type;
     deck.filter.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.02);
