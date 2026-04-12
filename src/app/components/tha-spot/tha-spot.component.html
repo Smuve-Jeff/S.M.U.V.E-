@@ -53,6 +53,15 @@
         <p class="room-spotlight" *ngIf="activeRoomConfig()?.spotlight">
           {{ activeRoomConfig()?.spotlight }}
         </p>
+        <div class="room-signal-strip">
+          <span class="signal-pill">
+            {{ activeEvents().length }} live ops active
+          </span>
+          <span class="signal-pill">
+            {{ socialModules().length }} squad signals
+          </span>
+          <span class="signal-pill">Neural sync {{ neuralSyncScore() }}%</span>
+        </div>
       </div>
       <div class="room-stats glass-v42">
         <div class="stat-item">
@@ -69,95 +78,157 @@
           <span class="stat-label">UPTIME</span>
           <span class="stat-value">{{ liveMetrics().uptimeLabel }}</span>
         </div>
+        <div class="stat-item">
+          <span class="stat-label">LIVE OPS</span>
+          <span class="stat-value">{{ liveMetrics().liveTournaments }}</span>
+        </div>
       </div>
     </header>
 
-    <section class="hero-grid">
-      <article class="hero-card glass-v42">
-        <div class="hero-copy">
-          <p class="hero-eyebrow">Personalized floor readout</p>
-          <h2>
-            Built for
-            {{
-              uiService.mainViewMode() === 'tha-spot'
-                ? 'your current run'
-                : 'your next session'
-            }}
-          </h2>
-          <p>
-            Recommendations are tuned by the live feed, your Tha Spot history,
-            and the busiest active rooms.
+    <section class="command-grid">
+      <article
+        class="spotlight-stage glass-v42"
+        *ngIf="featuredGame() as spotlight"
+      >
+        <div
+          class="spotlight-media"
+          [style.--spotlight-start]="spotlight.art?.accentStart || '#10b981'"
+          [style.--spotlight-end]="spotlight.art?.accentEnd || '#3b82f6'"
+        >
+          <img [src]="spotlight.image" [alt]="spotlight.name" />
+          <div class="spotlight-shade"></div>
+          <div class="spotlight-badges">
+            <span
+              class="availability-badge inline-badge"
+              [attr.data-type]="spotlight.availability"
+            >
+              {{ spotlight.availability }}
+            </span>
+            <span
+              class="game-badge"
+              *ngFor="let badge of getGameBadges(spotlight)"
+              [attr.data-tone]="badge.tone"
+            >
+              {{ badge.label }}
+            </span>
+          </div>
+        </div>
+
+        <div class="spotlight-copy">
+          <div class="section-heading">
+            <div>
+              <p class="hero-eyebrow">Arena spotlight</p>
+              <h2>{{ spotlight.name }}</h2>
+            </div>
+            <span
+              >{{ spotlight.genre }} ·
+              {{ spotlight.playersOnline | number }} live</span
+            >
+          </div>
+
+          <p class="spotlight-description">
+            {{ spotlight.description }}
           </p>
-        </div>
-        <div class="hero-metrics">
-          <div class="metric-chip">
-            <span class="chip-label">Live tournaments</span>
-            <span class="chip-value">{{ liveMetrics().liveTournaments }}</span>
+
+          <div class="spotlight-stat-grid">
+            <div class="spotlight-stat">
+              <span class="chip-label">Queue</span>
+              <strong>{{ spotlight.queueEstimateMinutes || 0 }} min</strong>
+            </div>
+            <div class="spotlight-stat">
+              <span class="chip-label">Mode</span>
+              <strong>{{ spotlight.multiplayerType || 'Solo' }}</strong>
+            </div>
+            <div class="spotlight-stat">
+              <span class="chip-label">Rating</span>
+              <strong>{{ spotlight.rating }}</strong>
+            </div>
+            <div class="spotlight-stat">
+              <span class="chip-label">Tactical edge</span>
+              <strong>+{{ tacticalAdvantage() }}%</strong>
+            </div>
           </div>
-          <div class="metric-chip">
-            <span class="chip-label">Popularity</span>
-            <span class="chip-value">{{ liveMetrics().popularityShare }}%</span>
+
+          <div class="spotlight-tag-row">
+            <span class="tag" *ngFor="let tag of getVisibleTags(spotlight)">
+              {{ tag }}
+            </span>
           </div>
-          <div class="metric-chip">
-            <span class="chip-label">Tactical edge</span>
-            <span class="chip-value">+{{ tacticalAdvantage() }}%</span>
+
+          <div class="spotlight-actions">
+            <button class="primary-btn" (click)="previewGame(spotlight)">
+              <span class="material-symbols-outlined">joystick</span>
+              Launch cabinet
+            </button>
+            <button class="secondary-btn" (click)="toggleIntel()">
+              <span class="material-symbols-outlined">analytics</span>
+              Open intel
+            </button>
+          </div>
+
+          <div class="directive-banner">
+            <span class="directive-label">Live directive</span>
+            <strong>{{ gamingDirectives()[0] }}</strong>
           </div>
         </div>
       </article>
 
-      <article class="rail-card glass-v42">
-        <div class="section-heading">
-          <h3>{{ activeRecommendationRail()?.title || 'Play next' }}</h3>
-          <span>{{
-            activeRecommendationRail()?.subtitle ||
-              recommendedGames().length + ' tuned picks'
-          }}</span>
-        </div>
-        <div class="mini-rail">
-          <div class="empty-state" *ngIf="!recommendedGames().length">
-            {{
-              activeRecommendationRail()?.emptyState ||
-                'No feed-driven recommendation rail is active right now.'
-            }}
+      <div class="command-stack">
+        <article class="rail-card glass-v42">
+          <div class="section-heading">
+            <h3>{{ activeRecommendationRail()?.title || 'Play next' }}</h3>
+            <span>{{
+              activeRecommendationRail()?.subtitle ||
+                commandDeckGames().length + ' tuned picks'
+            }}</span>
           </div>
-          <button
-            class="mini-game"
-            *ngFor="let game of recommendedGames()"
-            (click)="previewGame(game)"
-          >
-            <img [src]="game.image" [alt]="game.name" />
-            <div>
-              <p>{{ game.name }}</p>
-              <span
-                >{{ game.genre }} · {{ game.playersOnline | number }} live</span
-              >
+          <div class="mini-rail">
+            <div class="empty-state" *ngIf="!commandDeckGames().length">
+              {{
+                activeRecommendationRail()?.emptyState ||
+                  'No feed-driven recommendation rail is active right now.'
+              }}
             </div>
-          </button>
-        </div>
-      </article>
+            <button
+              class="mini-game tactical-mini-game"
+              *ngFor="let game of commandDeckGames()"
+              (click)="previewGame(game)"
+            >
+              <img [src]="game.image" [alt]="game.name" />
+              <div>
+                <p>{{ game.name }}</p>
+                <span
+                  >{{ game.genre }} · {{ game.playersOnline | number }}
+                  live</span
+                >
+              </div>
+            </button>
+          </div>
+        </article>
 
-      <article class="rail-card glass-v42">
-        <div class="section-heading">
-          <h3>Recent cabinets</h3>
-          <span>{{ recentlyPlayed().length || 0 }} tracked</span>
-        </div>
-        <div class="mini-rail recent">
-          <div class="empty-state" *ngIf="!recentlyPlayed().length">
-            Launch any cabinet to start building your Tha Spot history.
+        <article class="rail-card glass-v42">
+          <div class="section-heading">
+            <h3>Recent cabinets</h3>
+            <span>{{ recentlyPlayed().length || 0 }} tracked</span>
           </div>
-          <button
-            class="mini-game"
-            *ngFor="let game of recentlyPlayed()"
-            (click)="previewGame(game)"
-          >
-            <img [src]="game.image" [alt]="game.name" />
-            <div>
-              <p>{{ game.name }}</p>
-              <span>Return to session</span>
+          <div class="mini-rail recent">
+            <div class="empty-state" *ngIf="!recentlyPlayed().length">
+              Launch any cabinet to start building your Tha Spot history.
             </div>
-          </button>
-        </div>
-      </article>
+            <button
+              class="mini-game tactical-mini-game"
+              *ngFor="let game of recentlyPlayed()"
+              (click)="previewGame(game)"
+            >
+              <img [src]="game.image" [alt]="game.name" />
+              <div>
+                <p>{{ game.name }}</p>
+                <span>Return to session</span>
+              </div>
+            </button>
+          </div>
+        </article>
+      </div>
     </section>
 
     <section class="metrics-row">
@@ -191,7 +262,7 @@
     <section class="event-strip">
       <article
         class="event-card glass-v42"
-        *ngFor="let event of activeEvents()"
+        *ngFor="let event of featuredEvents()"
       >
         <div class="event-topline">
           <span class="event-status" [attr.data-status]="event.status">{{

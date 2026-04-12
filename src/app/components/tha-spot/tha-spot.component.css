@@ -262,7 +262,7 @@
 
 .room-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(110px, 1fr));
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
   gap: 16px;
   padding: 16px 18px;
   border-radius: 18px;
@@ -284,9 +284,30 @@
   font-weight: 900;
 }
 
-.hero-grid {
+.room-signal-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.signal-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.command-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1.75fr) minmax(320px, 0.95fr);
   gap: 20px;
 }
 
@@ -305,24 +326,138 @@
   border-radius: 24px;
 }
 
-.hero-card {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 24px;
-}
-
-.hero-card h2 {
-  margin: 10px 0 12px;
-  font-size: 28px;
-  line-height: 1.1;
-}
-
-.hero-metrics {
+.spotlight-stage {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(3, minmax(110px, 1fr));
-  gap: 14px;
-  min-width: 340px;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.15fr);
+  overflow: hidden;
+  min-height: 380px;
+}
+
+.spotlight-media {
+  position: relative;
+  min-height: 100%;
+  background:
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--spotlight-start) 28%, transparent),
+      transparent 58%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--spotlight-start) 50%, #020617),
+      color-mix(in srgb, var(--spotlight-end) 45%, #020617)
+    );
+}
+
+.spotlight-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: screen;
+  opacity: 0.88;
+}
+
+.spotlight-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(2, 6, 23, 0.08), rgba(2, 6, 23, 0.6)),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.22), transparent 35%);
+}
+
+.spotlight-badges {
+  position: absolute;
+  inset: 18px 18px auto 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  z-index: 1;
+}
+
+.inline-badge {
+  position: static;
+}
+
+.spotlight-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.7), rgba(2, 6, 23, 0.92)),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 35%);
+}
+
+.spotlight-copy h2 {
+  margin: 8px 0 0;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 0.98;
+}
+
+.spotlight-description {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.spotlight-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.spotlight-stat {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.spotlight-stat strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 18px;
+}
+
+.spotlight-tag-row,
+.spotlight-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.directive-banner {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.14);
+}
+
+.directive-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(147, 197, 253, 0.72);
+}
+
+.directive-banner strong {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.command-stack {
+  display: grid;
+  gap: 20px;
+}
+
+.tactical-mini-game {
+  align-items: center;
+  min-height: 88px;
 }
 
 .metric-chip {
@@ -425,6 +560,9 @@
 
 .event-card {
   padding: 18px 20px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(2, 6, 23, 0.92)),
+    radial-gradient(circle at top left, rgba(16, 185, 129, 0.08), transparent 45%);
 }
 
 .event-topline {
@@ -721,6 +859,9 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: sticky;
+  top: 36px;
+  align-self: start;
 }
 
 .social-list,
@@ -1301,7 +1442,7 @@
 }
 
 @media (max-width: 1280px) {
-  .hero-grid,
+  .command-grid,
   .metrics-row,
   .content-grid,
   .launch-grid,
@@ -1309,14 +1450,17 @@
     grid-template-columns: 1fr;
   }
 
-  .hero-card {
-    flex-direction: column;
+  .spotlight-stage {
+    grid-template-columns: 1fr;
   }
 
-  .hero-metrics,
+  .spotlight-media {
+    min-height: 260px;
+  }
+
+  .spotlight-stat-grid,
   .room-stats {
-    min-width: 0;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .hub-main.with-intel {
@@ -1366,9 +1510,17 @@
     display: none;
   }
 
-  .hero-metrics,
+  .spotlight-stat-grid,
   .room-stats {
     grid-template-columns: 1fr;
+  }
+
+  .spotlight-copy {
+    padding: 22px 18px;
+  }
+
+  .insight-column {
+    position: static;
   }
 
   .preview-overlay,

@@ -139,6 +139,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     () => this.matchingRecommendationRails()[0] || null
   );
 
+  featuredGame = computed(
+    () =>
+      this.recommendedGames()[0] ||
+      this.recentlyPlayed()[0] ||
+      this.filteredGames()[0] ||
+      this.games()[0] ||
+      null
+  );
+
+  featuredEvents = computed(() => this.activeEvents().slice(0, 3));
+
+  commandDeckGames = computed(() =>
+    (this.recommendedGames().length
+      ? this.recommendedGames()
+      : this.filteredGames()
+    ).slice(0, 3)
+  );
+
   recommendedGames = computed(() => {
     const rail = this.activeRecommendationRail();
     if (!rail) {
