@@ -37,8 +37,35 @@ const escapeHtml = (value = '') =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-const isValidEmail = (email = '') =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
+const isValidEmail = (email = '') => {
+  const normalized = String(email).trim();
+  if (!normalized || normalized.length > 254 || normalized.includes(' ')) {
+    return false;
+  }
+
+  const atIndex = normalized.indexOf('@');
+  if (
+    atIndex <= 0 ||
+    atIndex !== normalized.lastIndexOf('@') ||
+    atIndex === normalized.length - 1
+  ) {
+    return false;
+  }
+
+  const localPart = normalized.slice(0, atIndex);
+  const domainPart = normalized.slice(atIndex + 1);
+  const domainLabels = domainPart.split('.');
+
+  if (
+    !localPart ||
+    domainLabels.length < 2 ||
+    domainLabels.some((label) => !label.length)
+  ) {
+    return false;
+  }
+
+  return true;
+};
 
 const parseBoolean = (value, fallback = false) => {
   if (value === undefined) {
