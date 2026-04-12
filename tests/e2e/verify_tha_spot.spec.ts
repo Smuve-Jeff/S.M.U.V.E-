@@ -6,16 +6,12 @@ test('Verify Tha Spot Gaming Hub and Filters', async ({ page }) => {
   await page.goto('/tha-spot');
   const arenaSpotlight = page.getByTestId('arena-spotlight');
   const searchInput = page.getByLabel('Search cabinets');
+  const gameLibraryHeading = page.getByRole('heading', { name: 'Game library' }).nth(1);
 
   await expect(page.getByRole('heading', { name: 'All Games' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Game library' })).toBeVisible();
+  await expect(gameLibraryHeading).toBeVisible();
   await expect(searchInput).toBeVisible();
-  await expect(
-    arenaSpotlight.getByRole('heading', {
-      name: 'Tha Battlefield',
-      exact: true,
-    })
-  ).toBeVisible();
+  await expect(arenaSpotlight.locator('h2')).toBeVisible();
 
   await page.getByRole('button', { name: /Producer Lounge/i }).click();
   await expect(

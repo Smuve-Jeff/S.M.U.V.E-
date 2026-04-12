@@ -196,7 +196,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       totalCount,
       query,
       hasRefinements,
-      filterCount: filters.length + (query ? 1 : 0) + (this.activeRoom() !== 'all' ? 1 : 0),
+      filterCount:
+        filters.length +
+        (query ? 1 : 0) +
+        (this.activeRoom() !== 'all' ? 1 : 0),
       highlightLabel:
         visibleCount === totalCount && !hasRefinements
           ? 'Full catalog online'
@@ -709,7 +712,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   getGameRoomLabels(game: Game) {
     return this.gamingRooms()
-      .filter((room) => room.id !== 'all' && this.gameService.matchesRoom(game, room))
+      .filter(
+        (room) => room.id !== 'all' && this.gameService.matchesRoom(game, room)
+      )
       .slice(0, 2)
       .map((room) => room.name);
   }
