@@ -305,9 +305,125 @@
   letter-spacing: 0.04em;
 }
 
-.command-grid {
+.discovery-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1.75fr) minmax(320px, 0.95fr);
+  gap: 18px;
+  padding: 22px 24px;
+  border-radius: 24px;
+}
+
+.discovery-header,
+.discovery-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.discovery-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.discovery-controls {
+  align-items: stretch;
+}
+
+.control-field {
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.control-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.46);
+}
+
+.search-field {
+  position: relative;
+  flex: 1 1 320px;
+}
+
+.search-field .material-symbols-outlined {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.46);
+}
+
+.control-field input,
+.control-field select {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  padding: 0 14px;
+  font: inherit;
+}
+
+.search-field input {
+  padding-left: 44px;
+}
+
+.control-field select {
+  appearance: none;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  background: rgba(16, 185, 129, 0.12);
+  color: #d1fae5;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.filter-chip-ghost {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.filter-chip-ghost.is-active {
+  border-color: rgba(16, 185, 129, 0.24);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.discovery-clear {
+  min-height: 40px;
+}
+
+.top-shelf {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.9fr);
   gap: 20px;
 }
 
@@ -486,7 +602,8 @@
 }
 
 .section-heading span,
-.library-count {
+.library-count,
+.library-subcount {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.55);
 }
@@ -629,7 +746,7 @@
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 20px;
   min-height: 0;
   flex: 1;
@@ -639,6 +756,9 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding: 22px;
+  border-radius: 24px;
+  overflow: hidden;
 }
 
 .library-header {
@@ -646,6 +766,13 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+}
+
+.library-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
 }
 
 .game-library-scroll {
@@ -658,6 +785,17 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 18px;
+}
+
+.game-grid.compact {
+  grid-template-columns: 1fr;
+}
+
+.catalog-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .game-card-wrapper {
@@ -687,6 +825,20 @@
   transition:
     transform 0.25s ease,
     box-shadow 0.25s ease;
+}
+
+.game-card.compact {
+  flex-direction: row;
+}
+
+.game-card.compact .card-media {
+  width: 240px;
+  min-width: 240px;
+  aspect-ratio: auto;
+}
+
+.game-card.compact .card-content {
+  justify-content: space-between;
 }
 
 .game-card:hover {
@@ -843,6 +995,42 @@
   flex-wrap: wrap;
   gap: 6px;
   margin-top: auto;
+}
+
+.game-room-row {
+  display: grid;
+  gap: 8px;
+}
+
+.game-room-tags,
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.room-tag {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.card-actions {
+  margin-top: 4px;
+}
+
+.empty-library {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  min-height: 260px;
+  padding: 32px;
+  text-align: center;
+  border-radius: 24px;
+}
+
+.empty-library .material-symbols-outlined {
+  font-size: 42px;
+  color: var(--hub-accent);
 }
 
 .tag {
@@ -1442,12 +1630,18 @@
 }
 
 @media (max-width: 1280px) {
-  .command-grid,
+  .top-shelf,
   .metrics-row,
   .content-grid,
+  .catalog-quick-stats,
   .launch-grid,
   .launch-columns {
     grid-template-columns: 1fr;
+  }
+
+  .discovery-header,
+  .discovery-controls {
+    align-items: stretch;
   }
 
   .spotlight-stage {
@@ -1492,6 +1686,11 @@
     align-items: stretch;
   }
 
+  .discovery-shell,
+  .library-panel {
+    padding: 18px;
+  }
+
   .tactical-dock {
     width: calc(100vw - 16px);
     bottom: 14px;
@@ -1511,12 +1710,22 @@
   }
 
   .spotlight-stat-grid,
-  .room-stats {
+  .room-stats,
+  .game-meta-grid {
     grid-template-columns: 1fr;
   }
 
   .spotlight-copy {
     padding: 22px 18px;
+  }
+
+  .game-card.compact {
+    flex-direction: column;
+  }
+
+  .game-card.compact .card-media {
+    width: 100%;
+    min-width: 0;
   }
 
   .insight-column {
