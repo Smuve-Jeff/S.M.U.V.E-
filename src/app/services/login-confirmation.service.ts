@@ -22,6 +22,10 @@ export class LoginConfirmationService {
     if (!user?.email || !user.lastLogin) {
       return;
     }
+  async sendLoginConfirmation(user: AuthUser): Promise<void> {
+    if (!user?.email || !user.lastLogin) {
+      return;
+    }
 
     try {
       const loginAt =
