@@ -1787,6 +1787,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
@@ -1800,6 +1801,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+        "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ]
