@@ -10,15 +10,14 @@
   <app-notification-toast></app-notification-toast>
   <app-smuve-advisor *ngIf="!isAuthRoute()"></app-smuve-advisor>
   <app-command-palette *ngIf="!isAuthRoute()"></app-command-palette>
+  <app-interaction-dialog></app-interaction-dialog>
 
-  <!-- Mobile sidebar backdrop -->
   <div
     *ngIf="isMobile() && isSidebarOpen() && !isFullPageMode() && !isAuthRoute()"
     class="sidebar-backdrop"
     (click)="toggleSidebar()"
   ></div>
 
-  <!-- SIDEBAR: Executive Control -->
   <aside
     *ngIf="!isFullPageMode() && !isAuthRoute()"
     class="sidebar glass-v42 z-50 transition-all duration-500 flex flex-col border-r border-border"
@@ -29,7 +28,7 @@
     [class.left-0]="isMobile()"
     [class.w-full]="isMobile() && isSidebarOpen()"
   >
-    <div class="p-6 border-b border-border bg-background-alt/20">
+    <div class="p-6 border-b border-border bg-background-alt/20 space-y-5">
       <div class="flex items-center gap-4">
         <div
           class="w-12 h-12 rounded-xl bg-brand-primary flex items-center justify-center text-white shadow-v42-md"
@@ -42,39 +41,52 @@
         >
           <span
             class="text-xl font-bold tracking-tight text-text-main leading-tight uppercase"
-            >S.M.U.V.E<span class="text-brand-primary">2.0</span></span
           >
+            S.M.U.V.E<span class="text-brand-primary">2.0</span>
+          </span>
           <span
             class="text-[9px] font-bold text-text-dim tracking-[0.2em] uppercase"
-            >Strategic Music Utility Virtual Enterprise</span
           >
+            Strategic Music Utility Virtual Enterprise
+          </span>
         </div>
       </div>
 
       <div
         *ngIf="isSidebarOpen() || isMobile()"
-        class="mt-5 rounded-2xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-4 space-y-4"
+        class="rounded-2xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-4 space-y-4"
       >
         <div class="flex items-start justify-between gap-3">
           <div>
             <div
               class="text-[9px] font-bold uppercase tracking-[0.3em] text-brand-primary"
             >
-              AI Persona Active
+              Current Surface
             </div>
             <div class="text-sm font-semibold text-text-main mt-2">
-              Executive guidance stays live across every surface.
+              {{ activeViewConfig().label }}
             </div>
             <div class="text-[11px] text-text-dim mt-2 leading-relaxed">
-              Preserve the full S.M.U.V.E workflow while surfacing quicker
-              actions, context tips, and live command shortcuts.
+              {{ activeViewConfig().description }}
             </div>
           </div>
-          <span
-            class="px-2.5 py-1 rounded-full border border-brand-primary/20 text-[9px] font-bold uppercase tracking-[0.2em] text-brand-primary whitespace-nowrap"
+          <button
+            type="button"
+            class="px-2.5 py-1 rounded-full border text-[9px] font-bold uppercase tracking-[0.2em] whitespace-nowrap"
+            [class.border-brand-primary/20]="
+              !uiService.isPinned(activeViewConfig().mode)
+            "
+            [class.text-brand-primary]="
+              !uiService.isPinned(activeViewConfig().mode)
+            "
+            [class.border-amber-400/30]="
+              uiService.isPinned(activeViewConfig().mode)
+            "
+            [class.text-amber-300]="uiService.isPinned(activeViewConfig().mode)"
+            (click)="togglePinnedView(activeViewConfig().mode)"
           >
-            {{ uiService.isOnline() ? 'online' : 'offline' }}
-          </span>
+            {{ uiService.isPinned(activeViewConfig().mode) ? 'Pinned' : 'Pin' }}
+          </button>
         </div>
 
         <div class="flex flex-wrap gap-2">
@@ -90,13 +102,83 @@
           >
             Interaction Guide
           </button>
+          <button
+            (click)="toggleSyncCenter()"
+            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+          >
+            Sync Center
+          </button>
         </div>
       </div>
     </div>
 
     <nav
-      class="sidebar-nav px-4 flex-grow overflow-y-auto space-y-1 no-scrollbar"
+      class="sidebar-nav px-4 flex-grow overflow-y-auto space-y-6 no-scrollbar py-4"
     >
+      <section
+        *ngIf="pinnedViews().length && (isSidebarOpen() || isMobile())"
+        class="space-y-2"
+      >
+        <div class="px-4">
+          <div
+            class="text-[10px] font-bold text-text-dim uppercase tracking-[0.2em]"
+          >
+            Pinned Workspaces
+          </div>
+        </div>
+        <button
+          *ngFor="let view of pinnedViews()"
+          type="button"
+          (click)="navigateToView(view.mode)"
+          class="nav-item group flex w-full items-center px-4 py-3 rounded-2xl transition-all duration-200 cursor-pointer border border-transparent bg-transparent text-left text-text-dim hover:bg-background-alt hover:text-text-main"
+        >
+          <div class="w-8 flex justify-center">
+            <span class="material-symbols-outlined text-xl text-amber-300"
+              >keep</span
+            >
+          </div>
+          <div class="ml-4 min-w-0 flex-1">
+            <div class="font-bold text-[12px] uppercase tracking-wide">
+              {{ view.label }}
+            </div>
+            <div class="text-[10px] text-text-dim mt-1 leading-relaxed">
+              {{ view.description }}
+            </div>
+          </div>
+        </button>
+      </section>
+
+      <section
+        *ngIf="recentViews().length && (isSidebarOpen() || isMobile())"
+        class="space-y-2"
+      >
+        <div class="px-4">
+          <div
+            class="text-[10px] font-bold text-text-dim uppercase tracking-[0.2em]"
+          >
+            Recent Workspaces
+          </div>
+        </div>
+        <button
+          *ngFor="let view of recentViews()"
+          type="button"
+          (click)="navigateToView(view.mode)"
+          class="nav-item group flex w-full items-center px-4 py-3 rounded-2xl transition-all duration-200 cursor-pointer border border-transparent bg-transparent text-left text-text-dim hover:bg-background-alt hover:text-text-main"
+        >
+          <div class="w-8 flex justify-center">
+            <span class="material-symbols-outlined text-xl">history</span>
+          </div>
+          <div class="ml-4 min-w-0 flex-1">
+            <div class="font-bold text-[12px] uppercase tracking-wide">
+              {{ view.label }}
+            </div>
+            <div class="text-[10px] text-text-dim mt-1 leading-relaxed">
+              {{ view.description }}
+            </div>
+          </div>
+        </button>
+      </section>
+
       <section *ngFor="let group of navigationGroups" class="pb-3">
         <div
           *ngIf="isSidebarOpen() || isMobile()"
@@ -133,8 +215,9 @@
           <div class="w-8 flex justify-center">
             <span
               class="material-symbols-outlined text-xl transition-transform group-hover:scale-110"
-              >{{ view.icon }}</span
             >
+              {{ view.icon }}
+            </span>
           </div>
           <div
             class="ml-4 min-w-0 flex-1"
@@ -151,41 +234,50 @@
       </section>
     </nav>
 
-    <div class="p-6 border-t border-border bg-background-alt/30">
-      <div class="flex items-center gap-4">
+    <div class="p-6 border-t border-border bg-background-alt/30 space-y-3">
+      <div class="flex items-center justify-between gap-3">
         <div
-          class="w-10 h-10 rounded-full border border-brand-primary/30 p-0.5 overflow-hidden"
+          class="text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim"
         >
-          <img
-            src="assets/avatar.jpg"
-            class="w-full h-full rounded-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
-          />
+          Sync Health
         </div>
-        <div
-          class="flex flex-col overflow-hidden"
-          *ngIf="isSidebarOpen() || isMobile()"
+        <span
+          class="px-2 py-1 rounded-full border text-[9px] uppercase tracking-[0.2em]"
+          [class.border-red-500/20]="syncSummary().offline"
+          [class.text-red-400]="syncSummary().offline"
+          [class.border-brand-primary/20]="!syncSummary().offline"
+          [class.text-brand-primary]="!syncSummary().offline"
         >
-          <span
-            class="text-xs font-bold text-text-main uppercase tracking-tight"
-            >Executive Artist</span
-          >
-          <span
-            class="text-[8px] font-medium text-text-dim uppercase tracking-widest"
-            >Neural Sync: v2.0</span
-          >
+          {{ syncSummary().offline ? 'Offline' : 'Online' }}
+        </span>
+      </div>
+      <div class="grid grid-cols-2 gap-3 text-[10px] text-text-dim">
+        <div class="rounded-2xl border border-border px-3 py-3">
+          <div class="font-bold uppercase tracking-[0.2em]">Queued</div>
+          <div class="text-lg text-text-main mt-1">
+            {{ syncSummary().pending }}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-border px-3 py-3">
+          <div class="font-bold uppercase tracking-[0.2em]">Saved</div>
+          <div class="text-[11px] text-text-main mt-1">
+            {{
+              syncSummary().lastSavedAt
+                ? (syncSummary().lastSavedAt | date: 'shortTime')
+                : 'Pending'
+            }}
+          </div>
         </div>
       </div>
     </div>
   </aside>
 
-  <!-- MAIN AREA -->
   <div class="flex-grow flex flex-col overflow-hidden min-w-0">
-    <!-- TOP BAR -->
     <header
       *ngIf="!isFullPageMode() && !isAuthRoute()"
-      class="app-top-bar glass-v42 px-4 md:px-6 lg:px-10 flex items-center justify-between z-40 border-b border-border h-14 md:h-16"
+      class="app-top-bar glass-v42 px-4 md:px-6 lg:px-10 flex items-center justify-between z-40 border-b border-border min-h-16 py-3"
     >
-      <div class="flex items-center gap-2 md:gap-4 min-w-0">
+      <div class="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
         <button
           type="button"
           (click)="toggleSidebar()"
@@ -193,30 +285,28 @@
           [attr.aria-label]="
             isSidebarOpen() ? 'Close navigation menu' : 'Open navigation menu'
           "
-          [title]="
-            isSidebarOpen() ? 'Close navigation menu' : 'Open navigation menu'
-          "
         >
-          <span class="material-symbols-outlined text-2xl">{{
-            isSidebarOpen() ? 'menu_open' : 'menu'
-          }}</span>
+          <span class="material-symbols-outlined text-2xl">
+            {{ isSidebarOpen() ? 'menu_open' : 'menu' }}
+          </span>
         </button>
         <div class="h-6 w-px bg-border mx-1 md:mx-2 hidden sm:block"></div>
         <div
-          class="hidden md:flex items-center gap-3 md:gap-4 rounded-2xl border border-border bg-background-alt/40 px-3 md:px-4 py-2 min-w-0"
+          class="flex items-center gap-3 md:gap-4 rounded-2xl border border-border bg-background-alt/40 px-3 md:px-4 py-2 min-w-0"
         >
           <div
             class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0"
           >
-            <span class="material-symbols-outlined text-xl md:text-2xl">{{
-              activeViewConfig().icon
-            }}</span>
+            <span class="material-symbols-outlined text-xl md:text-2xl">
+              {{ activeViewConfig().icon }}
+            </span>
           </div>
           <div class="flex flex-col min-w-0">
             <span
               class="text-[8px] font-bold text-text-dim uppercase tracking-widest leading-none mb-1"
-              >Live Surface</span
             >
+              Live Surface
+            </span>
             <h2
               class="text-xs font-bold tracking-widest text-text-main uppercase truncate"
             >
@@ -227,21 +317,9 @@
             </span>
           </div>
         </div>
-        <div class="flex flex-col md:hidden min-w-0">
-          <span
-            class="text-[8px] font-bold text-text-dim uppercase tracking-widest leading-none mb-1"
-            >Navigation</span
-          >
-          <h2
-            class="text-xs font-bold tracking-widest text-text-main uppercase truncate max-w-[120px]"
-          >
-            {{ uiService.getViewLabel(uiService.mainViewMode()) }}
-          </h2>
-        </div>
       </div>
 
       <div class="flex items-center gap-2 md:gap-3 lg:gap-4 shrink-0">
-        <!-- Status Indicators -->
         <div
           class="hidden sm:flex items-center gap-3 md:gap-4 bg-background-alt/50 rounded-lg px-3 md:px-4 py-1.5 border border-border"
         >
@@ -254,18 +332,20 @@
             <span
               class="text-[9px] font-bold tracking-widest uppercase text-text-dim hidden md:inline"
             >
-              {{ uiService.isOnline() ? 'STABLE' : 'OFFLINE' }}
+              {{ uiService.isOnline() ? 'Stable' : 'Offline' }}
             </span>
           </div>
           <div class="h-4 w-px bg-border hidden md:block"></div>
-          <div class="flex flex-col items-end hidden md:flex">
+          <div class="flex flex-col items-end">
             <span
               class="text-[10px] font-mono font-medium text-text-main tracking-tighter"
             >
               {{
-                uiService.performanceMode()
-                  ? '0.0ms'
-                  : (aiService.systemStatus().latency | number: '1.1-1') + 'ms'
+                syncSummary().autoSaveBusy || syncSummary().isCloudSyncing
+                  ? 'SYNCING'
+                  : syncSummary().lastSavedAt
+                    ? (syncSummary().lastSavedAt | date: 'shortTime')
+                    : 'IDLE'
               }}
             </span>
           </div>
@@ -273,21 +353,36 @@
 
         <button
           type="button"
+          (click)="toggleSyncCenter()"
+          class="shell-icon-button w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group"
+          aria-label="Toggle sync center"
+        >
+          <span class="material-symbols-outlined text-xl md:text-2xl">
+            {{
+              syncSummary().offline
+                ? 'cloud_off'
+                : syncSummary().pending
+                  ? 'sync'
+                  : 'cloud_done'
+            }}
+          </span>
+        </button>
+
+        <button
+          type="button"
           (click)="uiService.togglePerformanceMode()"
           class="shell-icon-button w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group"
-          [title]="'Toggle High-Voltage Performance'"
           aria-label="Toggle performance mode"
         >
-          <span class="material-symbols-outlined text-xl md:text-2xl">{{
-            uiService.performanceMode() ? 'speed' : 'bolt'
-          }}</span>
+          <span class="material-symbols-outlined text-xl md:text-2xl">
+            {{ uiService.performanceMode() ? 'speed' : 'bolt' }}
+          </span>
         </button>
 
         <button
           type="button"
           (click)="commandPalette.togglePalette()"
           class="shell-icon-button w-10 h-10 rounded-lg border border-border items-center justify-center text-text-dim hover:text-brand-primary transition-all group hidden sm:flex"
-          [title]="'Open Command Palette (Ctrl + K)'"
           aria-label="Open command palette"
         >
           <span class="material-symbols-outlined text-xl md:text-2xl"
@@ -297,18 +392,8 @@
 
         <button
           type="button"
-          (click)="openInteractionGuide()"
-          class="hidden lg:flex px-3 h-10 rounded-xl border border-border items-center justify-center text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim hover:text-brand-primary hover:border-brand-primary transition-all"
-          title="Open Interaction Guide"
-        >
-          Guide
-        </button>
-
-        <button
-          type="button"
           (click)="uiService.toggleTheme()"
           class="hidden lg:flex px-3 h-10 rounded-xl border border-border items-center justify-center text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim hover:text-brand-primary hover:border-brand-primary transition-all"
-          title="Shift theme"
         >
           Theme
         </button>
@@ -318,7 +403,6 @@
           (click)="toggleChatbot()"
           class="shell-icon-button relative group"
           aria-label="Toggle S.M.U.V.E advisor"
-          title="Toggle S.M.U.V.E advisor"
         >
           <div
             class="w-10 h-10 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all"
@@ -333,8 +417,6 @@
           ></div>
         </button>
 
-        <div class="h-6 w-px bg-border mx-1 md:mx-2 hidden md:block"></div>
-
         <button
           *ngIf="!authService.isAuthenticated()"
           routerLink="/login"
@@ -348,12 +430,35 @@
           (click)="authService.logout()"
           class="shell-icon-button w-10 h-10 rounded-lg border border-red-500/20 flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all"
           aria-label="Log out"
-          title="Log out"
         >
           <span class="material-symbols-outlined">power_settings_new</span>
         </button>
       </div>
     </header>
+
+    <section
+      *ngIf="!isFullPageMode() && !isAuthRoute()"
+      class="border-b border-border glass-v42 px-4 md:px-8 py-3 hidden sm:block"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2 text-brand-primary">
+          <span class="material-symbols-outlined text-sm">route</span>
+          <span class="text-[9px] font-bold uppercase tracking-[0.3em]">
+            Next Best Moves
+          </span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            *ngFor="let related of relatedViews()"
+            type="button"
+            (click)="navigateToView(related.mode)"
+            class="px-3 py-1.5 rounded-xl border border-border text-[9px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+          >
+            {{ related.label }}
+          </button>
+        </div>
+      </div>
+    </section>
 
     <section
       *ngIf="!isFullPageMode() && !isAuthRoute()"
@@ -397,7 +502,6 @@
       </div>
     </section>
 
-    <!-- CONTENT -->
     <main
       class="app-content relative overflow-hidden flex-grow"
       [class.full-page]="isFullPageMode()"
@@ -411,14 +515,129 @@
         <router-outlet></router-outlet>
       </div>
 
+      <div
+        *ngIf="isSyncCenterOpen() && !isAuthRoute()"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30"
+        (click)="toggleSyncCenter()"
+      ></div>
 
-      <!-- AI BACKDROP (Mobile) -->
+      <aside
+        *ngIf="isSyncCenterOpen() && !isAuthRoute()"
+        class="fixed top-0 right-0 h-full w-full md:w-[26rem] glass-v42 border-l border-border shadow-2xl z-40 p-6 space-y-5"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p
+              class="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-primary"
+            >
+              Sync Center
+            </p>
+            <h3 class="text-lg font-black uppercase text-text-main mt-2">
+              Workspace Confidence
+            </h3>
+          </div>
+          <button
+            type="button"
+            class="w-10 h-10 rounded-xl border border-border text-text-dim hover:text-text-main transition-all"
+            (click)="toggleSyncCenter()"
+          >
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div
+            class="rounded-2xl border border-border bg-background-alt/40 px-4 py-4"
+          >
+            <div
+              class="text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim"
+            >
+              Auto-save
+            </div>
+            <div class="text-sm font-semibold text-text-main mt-2">
+              {{ syncSummary().autoSaveBusy ? 'Saving…' : 'Ready' }}
+            </div>
+          </div>
+          <div
+            class="rounded-2xl border border-border bg-background-alt/40 px-4 py-4"
+          >
+            <div
+              class="text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim"
+            >
+              Pending Queue
+            </div>
+            <div class="text-sm font-semibold text-text-main mt-2">
+              {{ syncSummary().pending }}
+            </div>
+          </div>
+          <div
+            class="rounded-2xl border border-border bg-background-alt/40 px-4 py-4"
+          >
+            <div
+              class="text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim"
+            >
+              Dead Letters
+            </div>
+            <div class="text-sm font-semibold text-text-main mt-2">
+              {{ syncSummary().deadLetter }}
+            </div>
+          </div>
+          <div
+            class="rounded-2xl border border-border bg-background-alt/40 px-4 py-4"
+          >
+            <div
+              class="text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim"
+            >
+              Cloud Sync
+            </div>
+            <div class="text-sm font-semibold text-text-main mt-2">
+              {{
+                syncSummary().isCloudSyncing
+                  ? 'Syncing…'
+                  : syncSummary().lastCloudSync
+                    ? (syncSummary().lastCloudSync | date: 'shortTime')
+                    : 'Not yet'
+              }}
+            </div>
+          </div>
+        </div>
+
+        <div
+          *ngIf="syncSummary().lastError"
+          class="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-4 text-sm text-red-400"
+        >
+          {{ syncSummary().lastError }}
+        </div>
+
+        <div
+          class="rounded-3xl border border-border bg-background-alt/30 p-5 space-y-4"
+        >
+          <div
+            class="text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim"
+          >
+            Latest Save
+          </div>
+          <div class="text-sm text-text-main">
+            {{
+              syncSummary().lastSavedAt
+                ? 'Auto-saved at ' + (syncSummary().lastSavedAt | date: 'short')
+                : 'No auto-save recorded yet.'
+            }}
+          </div>
+          <div class="text-sm text-text-main">
+            {{
+              syncSummary().offline
+                ? 'You are offline. Changes stay local and will queue for sync.'
+                : 'Network is online. Local changes will sync to the cloud when available.'
+            }}
+          </div>
+        </div>
+      </aside>
       <div
         *ngIf="uiService.isChatbotOpen() && !isAuthRoute()"
         (click)="toggleChatbot()"
         class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden animate-in fade-in duration-300"
       ></div>
-      <!-- AI SIDEBAR -->
       <aside
         *ngIf="uiService.isChatbotOpen() && !isAuthRoute()"
         class="ai-drawer glass-v42 border-l border-border transition-all duration-500 z-40 fixed top-0 right-0 h-full w-full md:w-96 shadow-2xl"
@@ -427,101 +646,101 @@
       </aside>
     </main>
 
-    <!-- FOOTER: Simplified v2.0 -->
     <footer
       *ngIf="!isFullPageMode() && !isMobile() && !isAuthRoute()"
       class="h-8 glass-v42 border-t border-border flex items-center justify-center px-10"
     >
-      <span class="text-[9px] uppercase elegant-footer-text cursor-default">
-        ©️ Smuve Jeff Presents
-      </span>
+      <span class="text-[9px] uppercase elegant-footer-text cursor-default"
+        >©️ Smuve Jeff Presents</span
+      >
     </footer>
   </div>
 
-  <!-- MOBILE BOTTOM NAV WITH FOOTER BRANDING -->
   <div
     *ngIf="!isFullPageMode() && isMobile() && !isAuthRoute()"
     class="mobile-footer-container z-50"
   >
-    <!-- Mobile Footer Branding -->
-    <div class="mobile-footer-branding glass-v42 border-t border-border">
-      <span class="text-[8px] uppercase elegant-footer-text cursor-default">
-        ©️ Smuve Jeff Presents
-      </span>
-    </div>
-
-    <!-- Mobile Navigation Bar -->
-
-    <!-- S.M.U.V.E 2.0 Mobile Command Ticker -->
     <div
-      class="mobile-command-ticker bg-black/60 border-b border-border py-1 overflow-hidden h-6"
+      *ngIf="isMobileWorkspaceTrayOpen()"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+      (click)="toggleMobileWorkspaceTray()"
+    ></div>
+
+    <div
+      *ngIf="isMobileWorkspaceTrayOpen()"
+      class="fixed inset-x-4 bottom-24 z-50 rounded-3xl border border-border bg-surface/95 shadow-v42-xl p-4 max-h-[55vh] overflow-y-auto"
     >
-      <div class="flex items-center gap-6 whitespace-nowrap animate-ticker">
-        <span class="text-[8px] font-black tracking-tighter text-primary"
-          >[UPLINK: ACTIVE]</span
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <p
+            class="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-primary"
+          >
+            More Workspaces
+          </p>
+          <h3 class="text-sm font-black uppercase text-text-main mt-2">
+            Jump anywhere
+          </h3>
+        </div>
+        <button
+          class="w-9 h-9 rounded-xl border border-border"
+          (click)="toggleMobileWorkspaceTray()"
         >
-        <span class="text-[8px] font-black tracking-tighter text-text-dim"
-          >STRATEGIC HEALTH:
-          {{
-            profileService.profile().knowledgeBase.strategicHealthScore
-          }}%</span
+          <span class="material-symbols-outlined text-text-main">close</span>
+        </button>
+      </div>
+      <div class="space-y-2">
+        <button
+          *ngFor="let workspace of mobileOverflowViews()"
+          type="button"
+          (click)="navigateToView(workspace.mode)"
+          class="flex w-full items-center gap-3 rounded-2xl border border-border px-4 py-3 text-left"
         >
-        <span class="text-[8px] font-black tracking-tighter text-accent"
-          >DECREE: {{ aiService.strategicDecrees()[0] }}</span
-        >
-        <span class="text-[8px] font-black tracking-tighter text-primary"
-          >[S.M.U.V.E 2.0 EXECUTIVE COMMAND]</span
-        >
+          <span class="material-symbols-outlined text-brand-primary">{{
+            workspace.icon
+          }}</span>
+          <div>
+            <div
+              class="text-[11px] font-bold uppercase tracking-[0.2em] text-text-main"
+            >
+              {{ workspace.label }}
+            </div>
+            <div class="text-[10px] text-text-dim mt-1">
+              {{ workspace.description }}
+            </div>
+          </div>
+        </button>
       </div>
     </div>
+
+    <div class="mobile-footer-branding glass-v42 border-t border-border">
+      <span class="text-[8px] uppercase elegant-footer-text cursor-default"
+        >©️ Smuve Jeff Presents</span
+      >
+    </div>
+
     <nav class="mobile-nav-bar border-t border-border glass-v42">
       <button
+        *ngFor="let view of mobilePrimaryViews()"
         type="button"
-        (click)="navigateToView('hub')"
+        (click)="navigateToView(view.mode)"
         class="mobile-nav-button"
-        aria-label="Open hub"
-        title="Hub"
-        [class.text-brand-primary]="uiService.mainViewMode() === 'hub'"
-        [class.text-text-dim]="uiService.mainViewMode() !== 'hub'"
+        [attr.aria-label]="'Open ' + view.label"
+        [class.text-brand-primary]="uiService.mainViewMode() === view.mode"
+        [class.text-text-dim]="uiService.mainViewMode() !== view.mode"
       >
-        <span class="material-symbols-outlined">grid_view</span>
-        <span class="text-[8px] font-bold uppercase">Hub</span>
+        <span class="material-symbols-outlined">{{ view.icon }}</span>
+        <span class="text-[8px] font-bold uppercase">{{ view.label }}</span>
       </button>
       <button
         type="button"
-        (click)="navigateToView('studio')"
+        (click)="toggleMobileWorkspaceTray()"
         class="mobile-nav-button"
-        aria-label="Open studio"
-        title="Studio"
-        [class.text-brand-primary]="uiService.mainViewMode() === 'studio'"
-        [class.text-text-dim]="uiService.mainViewMode() !== 'studio'"
+        aria-label="Open more workspaces"
+        [class.text-brand-primary]="isMobileWorkspaceTrayOpen()"
+        [class.text-text-dim]="!isMobileWorkspaceTrayOpen()"
       >
-        <span class="material-symbols-outlined">token</span>
-        <span class="text-[8px] font-bold uppercase">Studio</span>
-      </button>
-      <button
-        type="button"
-        (click)="navigateToView('strategy')"
-        class="mobile-nav-button"
-        aria-label="Open strategy"
-        title="Intel Lab"
-        [class.text-brand-primary]="uiService.mainViewMode() === 'strategy'"
-        [class.text-text-dim]="uiService.mainViewMode() !== 'strategy'"
-      >
-        <span class="material-symbols-outlined">neurology</span>
-        <span class="text-[8px] font-bold uppercase">Intel</span>
-      </button>
-      <button
-        type="button"
-        (click)="navigateToView('profile')"
-        class="mobile-nav-button"
-        aria-label="Open profile"
-        title="Profile"
-        [class.text-brand-primary]="uiService.mainViewMode() === 'profile'"
-        [class.text-text-dim]="uiService.mainViewMode() !== 'profile'"
-      >
-        <span class="material-symbols-outlined">person</span>
-        <span class="text-[8px] font-bold uppercase">Profile</span>
+        <span class="material-symbols-outlined">more_horiz</span>
+        <span class="text-[8px] font-bold uppercase">More</span>
       </button>
     </nav>
   </div>

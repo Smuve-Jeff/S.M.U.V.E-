@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
 interface Task {
   id: number;
@@ -34,6 +35,7 @@ interface PlaybookStep extends PlaybookPhase {
   styleUrl: './projects.component.css',
 })
 export class ProjectsComponent {
+  private dialog = inject(InteractionDialogService);
   projects = signal<Project[]>([]);
   selectedProject = signal<Project | null>(null);
   private playbookTemplate: PlaybookPhase[] = [
@@ -134,8 +136,16 @@ export class ProjectsComponent {
 
   private static readonly DEFAULT_DEADLINE_DAYS = 90;
 
-  addProject(): void {
-    const name = window.prompt('Enter project name:');
+  async addProject(): Promise<void> {
+    const name = await this.dialog.prompt({
+      title: 'Create Release Project',
+      message:
+        'Name the release cycle so it appears in projects, playbooks, and launch workflows.',
+      confirmLabel: 'Create project',
+      cancelLabel: 'Cancel',
+      initialValue: '',
+      placeholder: 'Aurora EP Release',
+    });
     if (!name?.trim()) return;
     const newProject: Project = {
       id: parseInt(crypto.randomUUID().replace(/-/g, '').slice(0, 8), 16),

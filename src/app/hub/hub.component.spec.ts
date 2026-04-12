@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HubComponent } from './hub.component';
 import { provideRouter, Router } from '@angular/router';
+import { signal } from '@angular/core';
 import { API_KEY_TOKEN } from '../services/ai.service';
+import { OnboardingService } from '../services/onboarding.service';
 
 describe('HubComponent', () => {
   let component: HubComponent;
@@ -108,6 +110,15 @@ describe('HubComponent', () => {
         {
           provide: API_KEY_TOKEN,
           useValue: 'MOCK_API_KEY_LONG_ENOUGH_FOR_TESTING',
+        },
+        {
+          provide: OnboardingService,
+          useValue: {
+            shouldShow: signal(false),
+            progress: signal(0),
+            steps: signal([]),
+            nextStep: signal(null),
+          },
         },
       ],
     }).compileComponents();

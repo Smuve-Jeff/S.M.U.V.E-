@@ -28,6 +28,7 @@ export class OfflineSyncService {
 
   isSyncing = signal(false);
   pendingCount = signal(0);
+  deadLetterCount = signal(0);
   lastSyncAttempt = signal<number | null>(null);
   networkStatus = signal<'online' | 'offline'>('online');
 
@@ -208,9 +209,13 @@ export class OfflineSyncService {
   private async updatePendingCount(): Promise<void> {
     try {
       const items = await this.localStorage.getAllItems(this.SYNC_STORE);
+      const deadLetter =
+        await this.localStorage.getAllItems('sync_dead_letter');
       this.pendingCount.set(items.length);
+      this.deadLetterCount.set(deadLetter.length);
     } catch {
       this.pendingCount.set(0);
+      this.deadLetterCount.set(0);
     }
   }
 

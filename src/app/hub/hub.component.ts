@@ -13,6 +13,8 @@ import { AfterViewInit } from '@angular/core';
 import { NotificationService } from '../services/notification.service';
 import { PlayerService } from '../services/player.service';
 import { MainViewMode } from '../services/user-context.service';
+import { OnboardingService } from '../services/onboarding.service';
+import { OnboardingStep } from '../services/onboarding.service';
 
 interface LandingFeature {
   route: MainViewMode;
@@ -55,6 +57,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   public audioEngine = inject(AudioEngineService);
   private notificationService = inject(NotificationService);
   public playerService = inject(PlayerService);
+  public onboarding = inject(OnboardingService);
 
   // Quick Start Form
   quickProfile = signal({
@@ -328,5 +331,27 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
 
   navigateToFeature(route: MainViewMode) {
     this.router.navigate(['/' + route]);
+  }
+
+  continueOnboarding() {
+    const next = this.onboarding.nextStep();
+    if (!next) {
+      return;
+    }
+
+    this.router.navigate(['/' + next.route], {
+      queryParams: next.queryParams,
+    });
+  }
+
+  resumeWorkspace() {
+    const recent = this.uiService.getRecentViewConfigs()[0];
+    this.uiService.navigateToView(recent?.mode || 'studio');
+  }
+
+  openOnboardingStep(step: OnboardingStep) {
+    this.router.navigate(['/' + step.route], {
+      queryParams: step.queryParams,
+    });
   }
 }

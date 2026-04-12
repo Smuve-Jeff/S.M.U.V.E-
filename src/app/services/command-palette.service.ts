@@ -103,6 +103,22 @@ export class CommandPaletteService {
       ],
       run: () => this.uiService.navigateToView(view.mode),
     }));
+    const recentActions = this.uiService.getRecentViewConfigs().map((view) => ({
+      id: `recent-${view.mode}`,
+      label: `Resume ${view.label}`,
+      description: `Return to ${view.label.toLowerCase()} from your recent workflow trail.`,
+      category: 'Recent',
+      keywords: [view.mode, 'recent', 'resume'],
+      run: () => this.uiService.navigateToView(view.mode),
+    }));
+    const pinnedActions = this.uiService.getPinnedViewConfigs().map((view) => ({
+      id: `pinned-${view.mode}`,
+      label: `Pinned ${view.label}`,
+      description: `Jump back to pinned workspace ${view.label}.`,
+      category: 'Pinned',
+      keywords: [view.mode, 'pinned', 'favorite'],
+      run: () => this.uiService.navigateToView(view.mode),
+    }));
 
     return [
       {
@@ -199,6 +215,8 @@ export class CommandPaletteService {
         keepOpen: true,
         run: () => this.openGuide(),
       },
+      ...recentActions,
+      ...pinnedActions,
       ...navigationActions,
     ];
   });

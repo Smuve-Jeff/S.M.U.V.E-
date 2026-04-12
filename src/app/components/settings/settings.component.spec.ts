@@ -8,6 +8,7 @@ import { SecurityService } from '../../services/security.service';
 import { MicrophoneService } from '../../services/microphone.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { AuthService } from '../../services/auth.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
 describe('SettingsComponent', () => {
   const createComponent = async () => {
@@ -81,6 +82,10 @@ describe('SettingsComponent', () => {
       logout: jest.fn(),
     };
 
+    const dialogMock = {
+      confirm: jest.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [SettingsComponent],
       providers: [
@@ -99,6 +104,7 @@ describe('SettingsComponent', () => {
         { provide: MicrophoneService, useValue: microphoneServiceMock },
         { provide: AudioEngineService, useValue: audioEngineMock },
         { provide: AuthService, useValue: authServiceMock },
+        { provide: InteractionDialogService, useValue: dialogMock },
       ],
     }).compileComponents();
 
@@ -112,6 +118,7 @@ describe('SettingsComponent', () => {
       audioEngineMock,
       securityServiceMock,
       authServiceMock,
+      dialogMock,
     };
   };
 
@@ -147,10 +154,10 @@ describe('SettingsComponent', () => {
   });
 
   it('purgeProfile logs the event and calls logout when confirmed', async () => {
-    const { component, securityServiceMock, authServiceMock } =
+    const { component, securityServiceMock, authServiceMock, dialogMock } =
       await createComponent();
 
-    jest.spyOn(window, 'confirm').mockReturnValue(true);
+    dialogMock.confirm.mockResolvedValue(true);
 
     await component.purgeProfile();
 
@@ -162,10 +169,10 @@ describe('SettingsComponent', () => {
   });
 
   it('purgeProfile does nothing when user cancels the confirmation', async () => {
-    const { component, securityServiceMock, authServiceMock } =
+    const { component, securityServiceMock, authServiceMock, dialogMock } =
       await createComponent();
 
-    jest.spyOn(window, 'confirm').mockReturnValue(false);
+    dialogMock.confirm.mockResolvedValue(false);
 
     await component.purgeProfile();
 

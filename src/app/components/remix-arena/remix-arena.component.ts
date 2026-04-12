@@ -7,6 +7,7 @@ import { SampleLibraryComponent } from '../../studio/sample-library/sample-libra
 import { MusicManagerService } from '../../services/music-manager.service';
 import { LibraryService } from '../../services/library.service';
 import { AuthService } from '../../services/auth.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
 @Component({
   selector: 'app-remix-arena',
@@ -25,6 +26,7 @@ export class RemixArenaComponent implements OnInit {
   musicManager = inject(MusicManagerService);
   libraryService = inject(LibraryService);
   authService = inject(AuthService);
+  dialog = inject(InteractionDialogService);
 
   code = signal(
     '// S.M.U.V.E 2.0 REMIX ENGINE\n// Start writing your logic here...\n\nfunction onBeat(step) {\n  if (step % 4 === 0) {\n    playKick();\n  }\n}'
@@ -65,7 +67,14 @@ export class RemixArenaComponent implements OnInit {
 
   async joinSession() {
     const user = this.authService.currentUser();
-    const id = prompt('Enter Session ID:');
+    const id = await this.dialog.prompt({
+      title: 'Join Remix Session',
+      message:
+        'Paste the session ID shared by your collaborator to establish the P2P remix link.',
+      confirmLabel: 'Join session',
+      cancelLabel: 'Cancel',
+      placeholder: 'sess_abc123',
+    });
     if (user && id) {
       await this.collaborationService.joinSession(id, user);
       this.sessionId.set(id);

@@ -1,26 +1,32 @@
 import { TestBed } from '@angular/core/testing';
 import { ProjectsComponent } from './projects.component';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
 describe('ProjectsComponent', () => {
   const createComponent = async () => {
+    const dialogMock = {
+      prompt: jest.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ProjectsComponent],
+      providers: [{ provide: InteractionDialogService, useValue: dialogMock }],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(ProjectsComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
-    return { component, fixture };
+    return { component, fixture, dialogMock };
   };
 
   describe('addProject', () => {
     it('creates a new project and selects it when a name is provided', async () => {
-      const { component } = await createComponent();
+      const { component, dialogMock } = await createComponent();
       const initialCount = component.projects().length;
 
-      jest.spyOn(window, 'prompt').mockReturnValue('New Test Project');
+      dialogMock.prompt.mockResolvedValue('New Test Project');
 
-      component.addProject();
+      await component.addProject();
 
       expect(component.projects().length).toBe(initialCount + 1);
       const newProject = component.projects().at(-1)!;
@@ -31,23 +37,23 @@ describe('ProjectsComponent', () => {
     });
 
     it('does not add a project when the user cancels the prompt', async () => {
-      const { component } = await createComponent();
+      const { component, dialogMock } = await createComponent();
       const initialCount = component.projects().length;
 
-      jest.spyOn(window, 'prompt').mockReturnValue(null);
+      dialogMock.prompt.mockResolvedValue(null);
 
-      component.addProject();
+      await component.addProject();
 
       expect(component.projects().length).toBe(initialCount);
     });
 
     it('does not add a project when the name is blank', async () => {
-      const { component } = await createComponent();
+      const { component, dialogMock } = await createComponent();
       const initialCount = component.projects().length;
 
-      jest.spyOn(window, 'prompt').mockReturnValue('   ');
+      dialogMock.prompt.mockResolvedValue('   ');
 
-      component.addProject();
+      await component.addProject();
 
       expect(component.projects().length).toBe(initialCount);
     });
@@ -55,10 +61,10 @@ describe('ProjectsComponent', () => {
 
   describe('finalizeReleaseCycle', () => {
     it('marks the selected project as Completed in both signals', async () => {
-      const { component } = await createComponent();
+      const { component, dialogMock } = await createComponent();
 
-      jest.spyOn(window, 'prompt').mockReturnValue('Test Release');
-      component.addProject();
+      dialogMock.prompt.mockResolvedValue('Test Release');
+      await component.addProject();
       const created = component.selectedProject()!;
       expect(created.status).toBe('In Progress');
 

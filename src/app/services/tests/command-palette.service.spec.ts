@@ -26,6 +26,8 @@ describe('CommandPaletteService', () => {
           category: 'CORE',
         },
       ]),
+      getRecentViewConfigs: jest.fn().mockReturnValue([]),
+      getPinnedViewConfigs: jest.fn().mockReturnValue([]),
       navigateToView: jest.fn(),
       togglePerformanceMode: jest.fn(),
       toggleTheme: jest.fn(),

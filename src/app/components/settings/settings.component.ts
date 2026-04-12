@@ -11,6 +11,7 @@ import { SecurityService } from '../../services/security.service';
 import { MicrophoneService } from '../../services/microphone.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { AuthService } from '../../services/auth.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
 @Component({
   selector: 'app-settings',
@@ -27,6 +28,7 @@ export class SettingsComponent implements OnInit {
   microphoneService = inject(MicrophoneService);
   audioEngine = inject(AudioEngineService);
   authService = inject(AuthService);
+  dialog = inject(InteractionDialogService);
 
   settings = computed(() => this.profileService.profile().settings);
   activeTab = signal<'ui' | 'audio' | 'ai' | 'studio' | 'security'>('ui');
@@ -117,9 +119,14 @@ export class SettingsComponent implements OnInit {
   }
 
   async purgeProfile() {
-    const confirmed = window.confirm(
-      'DANGER: This will permanently delete your executive profile and all neural sync data. This action is irreversible. Proceed?'
-    );
+    const confirmed = await this.dialog.confirm({
+      title: 'Execute Profile Purge',
+      message:
+        'This permanently deletes your executive profile and synced neural data. This action cannot be undone.',
+      confirmLabel: 'Purge profile',
+      cancelLabel: 'Keep profile',
+      tone: 'danger',
+    });
     if (!confirmed) return;
 
     try {

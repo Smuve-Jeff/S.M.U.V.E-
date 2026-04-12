@@ -107,6 +107,95 @@
       </div>
     </header>
 
+    <section
+      *ngIf="onboarding.shouldShow()"
+      class="mb-8 rounded-[2rem] border border-brand-primary/20 bg-black/35 backdrop-blur-xl p-6 md:p-8"
+    >
+      <div
+        class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6"
+      >
+        <div class="max-w-2xl">
+          <p
+            class="text-[10px] font-black uppercase tracking-[0.35em] text-brand-primary"
+          >
+            Guided Launch Flow
+          </p>
+          <h2
+            class="text-2xl md:text-3xl font-black italic uppercase text-white tracking-tight mt-3"
+          >
+            Build the first-session path without leaving the hub
+          </h2>
+          <p class="text-sm text-slate-400 leading-relaxed mt-3">
+            We detected setup gaps and recent activity so you can finish
+            identity, answer the onboarding questionnaire, and jump straight
+            back into the right workspace.
+          </p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button
+            (click)="continueOnboarding()"
+            class="px-5 py-3 rounded-2xl bg-brand-primary text-black text-[11px] font-black uppercase tracking-[0.2em]"
+          >
+            Continue setup
+          </button>
+          <button
+            (click)="resumeWorkspace()"
+            class="px-5 py-3 rounded-2xl border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white"
+          >
+            Resume workspace
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-6 h-2 rounded-full bg-white/5 overflow-hidden">
+        <div
+          class="h-full bg-gradient-to-r from-brand-primary via-emerald-400 to-sky-400"
+          [style.width.%]="onboarding.progress()"
+        ></div>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mt-6">
+        <article
+          *ngFor="let step of onboarding.steps()"
+          class="rounded-2xl border p-4 transition-all"
+          [class.border-brand-primary/30]="step.complete"
+          [class.bg-brand-primary/10]="step.complete"
+          [class.border-white/10]="!step.complete"
+          [class.bg-white/5]="!step.complete"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div
+                class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400"
+              >
+                {{ step.complete ? 'Complete' : 'Next Step' }}
+              </div>
+              <h3 class="text-sm font-black uppercase text-white mt-2">
+                {{ step.title }}
+              </h3>
+            </div>
+            <span
+              class="material-symbols-outlined"
+              [class.text-brand-primary]="step.complete"
+            >
+              {{ step.complete ? 'check_circle' : 'arrow_forward' }}
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed mt-3">
+            {{ step.description }}
+          </p>
+          <button
+            *ngIf="!step.complete"
+            (click)="openOnboardingStep(step)"
+            class="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary"
+          >
+            {{ step.cta }}
+          </button>
+        </article>
+      </div>
+    </section>
+
     <!-- Bento Grid Layout -->
     <div class="bento-grid">
       <!-- Module 1: S.M.U.V.E Audit (2x2) -->
@@ -279,12 +368,21 @@
               </p>
               <div class="level-badge">OPEN</div>
               <svg viewBox="0 0 36 36" class="circular-chart">
-                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <path class="circle text-secondary" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path
+                  class="circle-bg"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  class="circle text-secondary"
+                  stroke-dasharray="100, 100"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
               </svg>
             </div>
             <div class="text-center">
-              <p class="text-xs uppercase tracking-widest opacity-60">Profile Complete</p>
+              <p class="text-xs uppercase tracking-widest opacity-60">
+                Profile Complete
+              </p>
               <p class="font-bold text-sm">Every workspace is ready to use.</p>
             </div>
             <div class="space-y-2">
@@ -299,11 +397,15 @@
               </div>
               <div class="achievement-pill">
                 <span class="material-symbols-outlined text-xs">apps</span>
-                <span>Studio, visuals, strategy, and release tools are open</span>
+                <span
+                  >Studio, visuals, strategy, and release tools are open</span
+                >
               </div>
             </div>
           </div>
-          <button class="btn-pro-outline w-full mt-4">Open Workspace Board</button>
+          <button class="btn-pro-outline w-full mt-4">
+            Open Workspace Board
+          </button>
         </div>
       </div>
 

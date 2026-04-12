@@ -1,7 +1,14 @@
 import { Injectable, signal, inject, effect, computed } from '@angular/core';
 import { Router } from '@angular/router';
+
 import { MainViewMode, AppTheme } from './user-context.service';
 import { UserProfileService } from './user-profile.service';
+import {
+  ViewConfig,
+  WorkspaceConfig,
+  WORKSPACE_INDEX,
+  WORKSPACE_REGISTRY,
+} from './workspace-registry';
 
 const THEMES: AppTheme[] = [
   {
@@ -24,20 +31,14 @@ const THEMES: AppTheme[] = [
   },
 ];
 
-export interface ViewConfig {
-  mode: MainViewMode;
-  label: string;
-  description: string;
-  icon: string;
-  category: 'CORE' | 'STRATEGY' | 'CREATIVE' | 'COMMUNITY' | 'UTILITY';
-}
-
 @Injectable({
   providedIn: 'root',
 })
 export class UIService {
   private router = inject(Router);
   private profileService = inject(UserProfileService);
+  private readonly pinnedKey = 'smuve_pinned_workspaces';
+  private readonly recentKey = 'smuve_recent_workspaces';
 
   mainViewMode = signal<MainViewMode>('hub');
   activeTheme = signal<AppTheme>(THEMES[0]);
@@ -50,84 +51,16 @@ export class UIService {
   performanceMode = signal(false);
   showScanlines = signal(false);
   autoPianoRoll = signal(false);
+  recentViewModes = signal<MainViewMode[]>(this.readModes(this.recentKey));
+  pinnedViewModes = signal<MainViewMode[]>(this.readModes(this.pinnedKey));
 
   // Derived signals for UI state
   isLowPower = computed(() => this.performanceMode());
   isUplinkActive = computed(() => this.isOnline());
 
-  private viewConfigs: ViewConfig[] = [
-    {
-      mode: 'hub',
-      label: 'Label Hub',
-      description:
-        'Coordinate releases, assets, and day-to-day executive moves.',
-      icon: 'grid_view',
-      category: 'CORE',
-    },
-    {
-      mode: 'studio',
-      label: 'Studio',
-      description:
-        'Build, mix, and refine production sessions with live control.',
-      icon: 'token',
-      category: 'CORE',
-    },
-    {
-      mode: 'piano-roll',
-      label: 'Piano Roll',
-      description:
-        'Compose, edit, and route arrangements with the full rack and mix dock.',
-      icon: 'piano',
-      category: 'CORE',
-    },
-    {
-      mode: 'vocal-suite',
-      label: 'Vocal Suite',
-      description:
-        'Record, edit, and polish vocal performances through each stage.',
-      icon: 'neurology',
-      category: 'CORE',
-    },
-    {
-      mode: 'strategy',
-      label: 'Intel Lab',
-      description:
-        'Activate AI strategy, market intelligence, and audit flows.',
-      icon: 'analytics',
-      category: 'STRATEGY',
-    },
-    {
-      mode: 'career',
-      label: 'Career Board',
-      description:
-        'Track opportunities, growth priorities, and business momentum.',
-      icon: 'business_center',
-      category: 'STRATEGY',
-    },
-    {
-      mode: 'profile',
-      label: 'Profile',
-      description:
-        'Manage artist identity, preferences, and personalized settings.',
-      icon: 'person',
-      category: 'CORE',
-    },
-    {
-      mode: 'tha-spot',
-      label: 'Gaming Hub',
-      description:
-        'Step into Tha Spot for arcade floors, matchmaking, and community play.',
-      icon: 'sports_esports',
-      category: 'COMMUNITY',
-    },
-    {
-      mode: 'settings',
-      label: 'Settings',
-      description: 'Tune performance, visuals, and command-deck behavior.',
-      icon: 'settings',
-      category: 'UTILITY',
-    },
-  ];
+  private viewConfigs: ViewConfig[] = WORKSPACE_REGISTRY.filter(
+    (workspace) => !workspace.hidden && !workspace.aliasOf
+  );
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -135,7 +68,6 @@ export class UIService {
       window.addEventListener('online', () => this.updateOnlineStatus(true));
       window.addEventListener('offline', () => this.updateOnlineStatus(false));
 
-      // Sync from Profile Settings
       effect(() => {
         const profile = this.profileService.profile();
         if (profile && profile.settings) {
@@ -208,16 +140,45 @@ export class UIService {
     this.isOnline.set(status);
   }
 
+  private readModes(key: string): MainViewMode[] {
+    if (typeof window === 'undefined') {
+      return [];
+    }
+
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) {
+        return [];
+      }
+      const parsed = JSON.parse(raw) as MainViewMode[];
+      return parsed.filter((mode) => !!WORKSPACE_INDEX.get(mode));
+    } catch {
+      return [];
+    }
+  }
+
+  private writeModes(key: string, modes: MainViewMode[]): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    localStorage.setItem(key, JSON.stringify(modes));
+  }
+
+  normalizeMode(mode: MainViewMode): MainViewMode {
+    const workspace = WORKSPACE_INDEX.get(mode);
+    return workspace?.aliasOf ?? mode;
+  }
+
   getViewConfigs(): ViewConfig[] {
     return [...this.viewConfigs];
   }
 
   getViewModes(): MainViewMode[] {
-    return this.viewConfigs.map((v) => v.mode);
+    return WORKSPACE_REGISTRY.map((workspace) => workspace.mode);
   }
 
-  getViewConfig(mode: MainViewMode): ViewConfig | undefined {
-    return this.viewConfigs.find((v) => v.mode === mode);
+  getViewConfig(mode: MainViewMode): WorkspaceConfig | undefined {
+    return WORKSPACE_INDEX.get(this.normalizeMode(mode));
   }
 
   getViewLabel(mode: MainViewMode): string {
@@ -236,9 +197,86 @@ export class UIService {
   }
 
   navigateToView(mode: MainViewMode) {
-    this.mainViewMode.set(mode);
-    const route = '/' + mode;
-    this.router.navigate([route]);
+    const normalizedMode = this.normalizeMode(mode);
+    const workspace = this.getViewConfig(normalizedMode);
+    this.mainViewMode.set(normalizedMode);
+    this.recordRecentView(normalizedMode);
+    this.router.navigateByUrl(workspace?.routePath || '/' + normalizedMode);
+  }
+
+  setActiveViewFromRoute(mode: MainViewMode) {
+    const normalizedMode = this.normalizeMode(mode);
+    this.mainViewMode.set(normalizedMode);
+    this.recordRecentView(normalizedMode);
+  }
+
+  recordRecentView(mode: MainViewMode): void {
+    const workspace = this.getViewConfig(mode);
+    if (!workspace || workspace.mode === 'login') {
+      return;
+    }
+
+    this.recentViewModes.update((current) => {
+      const next = [
+        workspace.mode,
+        ...current.filter((item) => item !== workspace.mode),
+      ].slice(0, 6);
+      this.writeModes(this.recentKey, next);
+      return next;
+    });
+  }
+
+  togglePinnedView(mode: MainViewMode): void {
+    const workspace = this.getViewConfig(mode);
+    if (!workspace) {
+      return;
+    }
+
+    this.pinnedViewModes.update((current) => {
+      const next = current.includes(workspace.mode)
+        ? current.filter((item) => item !== workspace.mode)
+        : [...current, workspace.mode].slice(0, 6);
+      this.writeModes(this.pinnedKey, next);
+      return next;
+    });
+  }
+
+  isPinned(mode: MainViewMode): boolean {
+    return this.pinnedViewModes().includes(this.normalizeMode(mode));
+  }
+
+  getPinnedViewConfigs(): WorkspaceConfig[] {
+    return this.pinnedViewModes()
+      .map((mode) => this.getViewConfig(mode))
+      .filter((value): value is WorkspaceConfig => Boolean(value));
+  }
+
+  getRecentViewConfigs(): WorkspaceConfig[] {
+    return this.recentViewModes()
+      .map((mode) => this.getViewConfig(mode))
+      .filter((value): value is WorkspaceConfig => Boolean(value));
+  }
+
+  getPrimaryMobileViewConfigs(): ViewConfig[] {
+    return WORKSPACE_REGISTRY.filter(
+      (workspace) => workspace.mobilePrimary && !workspace.hidden
+    );
+  }
+
+  getOverflowMobileViewConfigs(): ViewConfig[] {
+    const primaryModes = new Set(
+      this.getPrimaryMobileViewConfigs().map((workspace) => workspace.mode)
+    );
+    return this.getViewConfigs().filter(
+      (workspace) => !primaryModes.has(workspace.mode)
+    );
+  }
+
+  getRelatedViewConfigs(mode: MainViewMode): WorkspaceConfig[] {
+    const workspace = WORKSPACE_INDEX.get(this.normalizeMode(mode));
+    return (workspace?.related || [])
+      .map((relatedMode) => this.getViewConfig(relatedMode))
+      .filter((value): value is WorkspaceConfig => Boolean(value));
   }
 
   toggleChatbot() {

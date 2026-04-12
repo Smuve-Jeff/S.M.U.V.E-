@@ -6,6 +6,7 @@ import { BusinessStep } from '../../types/business.types';
 import { MerchDesignLabComponent } from '../business-modules/merch-design-lab.component';
 import { LegalTemplateComponent } from '../business-modules/legal-template.component';
 import { UserContextService } from '../../services/user-context.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
 @Component({
   selector: 'app-business-pipeline-detail',
@@ -23,6 +24,7 @@ export class BusinessPipelineDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private bizService = inject(BusinessPipelineService);
   private userContext = inject(UserContextService);
+  private dialog = inject(InteractionDialogService);
 
   pipelineId = signal<string | null>(null);
   activeModuleAction = signal<'Design' | 'Template' | null>(null);
@@ -62,7 +64,12 @@ export class BusinessPipelineDetailComponent implements OnInit {
     } else if (step.actionType === 'Template') {
       this.activeModuleAction.set('Template');
     } else {
-      alert(`Action: ${step.actionType} initializing...`);
+      void this.dialog.alert({
+        title: `${step.actionType} Queued`,
+        message:
+          'This business action is being prepared. Keep moving through the pipeline while we connect the relevant module.',
+        confirmLabel: 'Got it',
+      });
     }
   }
 

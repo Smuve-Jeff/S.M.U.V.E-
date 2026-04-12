@@ -12,6 +12,9 @@ import { SettingsIntegrationService } from './services/settings-integration.serv
 import { DatabaseService } from './services/database.service';
 import { AutoSaveService } from './services/auto-save.service';
 import { CommandPaletteService } from './services/command-palette.service';
+import { UserProfileService } from './services/user-profile.service';
+import { OfflineSyncService } from './services/offline-sync.service';
+import { InteractionDialogService } from './services/interaction-dialog.service';
 
 describe('AppComponent', () => {
   const createComponent = async (routerUrl = '/hub') => {
@@ -53,6 +56,23 @@ describe('AppComponent', () => {
           ? 'Activate AI strategy, market intelligence, and audit flows.'
           : 'Coordinate releases, assets, and day-to-day executive moves.'
       ),
+      getRelatedViewConfigs: jest.fn().mockReturnValue([]),
+      getPrimaryMobileViewConfigs: jest.fn().mockReturnValue([
+        {
+          mode: 'hub',
+          label: 'Label Hub',
+          description:
+            'Coordinate releases, assets, and day-to-day executive moves.',
+          icon: 'grid_view',
+          category: 'CORE',
+        },
+      ]),
+      getOverflowMobileViewConfigs: jest.fn().mockReturnValue([]),
+      getPinnedViewConfigs: jest.fn().mockReturnValue([]),
+      getRecentViewConfigs: jest.fn().mockReturnValue([]),
+      setActiveViewFromRoute: jest.fn(),
+      togglePinnedView: jest.fn(),
+      isPinned: jest.fn().mockReturnValue(false),
       navigateToView: jest.fn(),
       toggleChatbot: jest.fn(),
       toggleTheme: jest.fn(),
@@ -95,14 +115,43 @@ describe('AppComponent', () => {
           },
         },
         { provide: SettingsIntegrationService, useValue: {} },
-        { provide: DatabaseService, useValue: {} },
-        { provide: AutoSaveService, useValue: {} },
+        {
+          provide: DatabaseService,
+          useValue: { isSyncing: signal(false), lastSyncTime: signal(null) },
+        },
+        {
+          provide: AutoSaveService,
+          useValue: {
+            isSaving: signal(false),
+            lastSavedAt: signal(null),
+            lastError: signal(null),
+          },
+        },
         { provide: CommandPaletteService, useValue: commandPalette },
+        {
+          provide: UserProfileService,
+          useValue: {
+            profile: signal({ knowledgeBase: { strategicHealthScore: 0 } }),
+          },
+        },
+        {
+          provide: OfflineSyncService,
+          useValue: {
+            pendingCount: signal(0),
+            deadLetterCount: signal(0),
+            networkStatus: signal<'online' | 'offline'>('online'),
+          },
+        },
+        {
+          provide: InteractionDialogService,
+          useValue: { confirm: jest.fn().mockResolvedValue(false) },
+        },
         {
           provide: Router,
           useValue: {
             url: routerUrl,
             events: routerEvents$.asObservable(),
+            navigateByUrl: jest.fn(),
           },
         },
       ],

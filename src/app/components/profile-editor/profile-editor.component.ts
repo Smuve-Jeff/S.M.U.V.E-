@@ -6,9 +6,11 @@ import {
   input,
   effect,
   computed,
+  OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { AppTheme } from '../../services/user-context.service';
 import {
   UserProfileService,
@@ -21,6 +23,7 @@ import { AiService } from '../../services/ai.service';
 import { ArtistQuestionnaireComponent } from '../artist-questionnaire/artist-questionnaire.component';
 import { ArtistIdentityService } from '../../services/artist-identity.service';
 import { ConnectorPlatform } from '../../types/artist-identity.types';
+import { OnboardingService } from '../../services/onboarding.service';
 
 @Component({
   selector: 'app-profile-editor',
@@ -36,7 +39,7 @@ import { ConnectorPlatform } from '../../types/artist-identity.types';
     ArtistQuestionnaireComponent,
   ],
 })
-export class ProfileEditorComponent {
+export class ProfileEditorComponent implements OnInit {
   theme = input<AppTheme | any>({
     name: 'default',
     primary: '#10b981',
@@ -50,6 +53,8 @@ export class ProfileEditorComponent {
   private authService = inject(AuthService);
   private aiService = inject(AiService);
   private artistIdentityService = inject(ArtistIdentityService);
+  private route = inject(ActivatedRoute);
+  onboarding = inject(OnboardingService);
 
   // Auth state
   isAuthenticated = this.authService.isAuthenticated;
@@ -145,6 +150,12 @@ export class ProfileEditorComponent {
         this.editableProfile.set({ ...p });
       }
     });
+  }
+
+  ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('questionnaire') === '1') {
+      this.showQuestionnaire.set(true);
+    }
   }
 
   async saveProfile(): Promise<void> {

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService, AuthCredentials } from '../../services/auth.service';
 import { SecurityService } from '../../services/security.service';
+import { OnboardingService } from '../../services/onboarding.service';
 
 @Component({
   selector: 'app-login',
@@ -17,6 +18,7 @@ export class LoginComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private securityService = inject(SecurityService);
+  private onboarding = inject(OnboardingService);
 
   isRegistering = signal(false);
   isLoading = signal(false);
@@ -74,11 +76,18 @@ export class LoginComponent implements OnInit {
 
   private async navigateAfterAuth(): Promise<void> {
     const requestedUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-    const nextUrl =
-      requestedUrl && this.securityService.isValidRedirectUrl(requestedUrl)
-        ? requestedUrl
-        : '/hub';
+    if (requestedUrl && this.securityService.isValidRedirectUrl(requestedUrl)) {
+      await this.router.navigateByUrl(requestedUrl);
+      return;
+    }
 
-    await this.router.navigateByUrl(nextUrl);
+    if (this.onboarding.shouldShow()) {
+      await this.router.navigate(['/hub'], {
+        queryParams: { onboarding: '1' },
+      });
+      return;
+    }
+
+    await this.router.navigateByUrl('/hub');
   }
 }

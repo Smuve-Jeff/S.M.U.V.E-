@@ -15,6 +15,7 @@ import {
 } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
+
 import { AuthService } from './services/auth.service';
 import { UIService } from './services/ui.service';
 import { ChatbotComponent } from './components/chatbot/chatbot.component';
@@ -28,7 +29,11 @@ import { DatabaseService } from './services/database.service';
 import { AutoSaveService } from './services/auto-save.service';
 import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
 import { CommandPaletteService } from './services/command-palette.service';
-import { ViewConfig } from './services/ui.service';
+import { UserProfileService } from './services/user-profile.service';
+import { OfflineSyncService } from './services/offline-sync.service';
+import { InteractionDialogComponent } from './components/interaction-dialog/interaction-dialog.component';
+import { InteractionDialogService } from './services/interaction-dialog.service';
+import { ViewConfig } from './services/workspace-registry';
 
 interface NavigationGroup {
   category: ViewConfig['category'];
@@ -48,6 +53,7 @@ interface NavigationGroup {
     NotificationToastComponent,
     SmuveAdvisorComponent,
     CommandPaletteComponent,
+    InteractionDialogComponent,
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
@@ -61,6 +67,9 @@ export class AppComponent {
   databaseService = inject(DatabaseService);
   autoSaveService = inject(AutoSaveService);
   commandPalette = inject(CommandPaletteService);
+  profileService = inject(UserProfileService);
+  offlineSync = inject(OfflineSyncService);
+  dialog = inject(InteractionDialogService);
   swUpdate = inject(SwUpdate, { optional: true });
   router = inject(Router);
 
@@ -68,6 +77,8 @@ export class AppComponent {
   isFullPageMode = signal(false);
   isMobile = signal(false);
   isAuthRoute = signal(false);
+  isSyncCenterOpen = signal(false);
+  isMobileWorkspaceTrayOpen = signal(false);
   navigationGroups: NavigationGroup[] = this.buildNavigationGroups();
   activeViewConfig = computed(
     () =>
@@ -81,21 +92,40 @@ export class AppComponent {
         category: 'CORE' as const,
       }
   );
+  pinnedViews = computed(() => this.uiService.getPinnedViewConfigs());
+  recentViews = computed(() => this.uiService.getRecentViewConfigs());
+  relatedViews = computed(() =>
+    this.uiService
+      .getRelatedViewConfigs(this.uiService.mainViewMode())
+      .slice(0, 4)
+  );
+  mobilePrimaryViews = computed(() =>
+    this.uiService.getPrimaryMobileViewConfigs()
+  );
+  mobileOverflowViews = computed(() =>
+    this.uiService.getOverflowMobileViewConfigs()
+  );
   spotlightTips = computed(() => this.commandPalette.activeTips().slice(0, 3));
+  syncSummary = computed(() => ({
+    autoSaveBusy: this.autoSaveService.isSaving(),
+    lastSavedAt: this.autoSaveService.lastSavedAt(),
+    lastError: this.autoSaveService.lastError(),
+    isCloudSyncing: this.databaseService.isSyncing(),
+    lastCloudSync: this.databaseService.lastSyncTime(),
+    pending: this.offlineSync.pendingCount(),
+    deadLetter: this.offlineSync.deadLetterCount(),
+    offline: this.offlineSync.networkStatus() === 'offline',
+  }));
 
   constructor() {
     this.checkMobile();
     this.setupAppUpdateNotifications();
-    this.updateFullPageMode(this.router.url);
+    this.updateShellFromUrl(this.router.url);
 
     this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe(() => {
-        const path = this.router.url.split('/')[1];
-        if (path && this.uiService.getViewModes().includes(path as any)) {
-          this.uiService.mainViewMode.set(path as any);
-        }
-        this.updateFullPageMode(this.router.url);
+        this.updateShellFromUrl(this.router.url);
       });
 
     effect(() => {
@@ -128,10 +158,22 @@ export class AppComponent {
     const isNowMobile = window.innerWidth <= 1024;
     if (isNowMobile !== this.isMobile()) {
       this.isMobile.set(isNowMobile);
-      if (isNowMobile) this.isSidebarOpen.set(false);
-      else this.isSidebarOpen.set(true);
+      if (isNowMobile) {
+        this.isSidebarOpen.set(false);
+      } else {
+        this.isSidebarOpen.set(true);
+        this.isMobileWorkspaceTrayOpen.set(false);
+      }
     }
     this.updateFullPageMode(this.router.url);
+  }
+
+  private updateShellFromUrl(url: string) {
+    const path = this.getPrimaryRoute(url);
+    if (path && this.uiService.getViewModes().includes(path as MainViewMode)) {
+      this.uiService.setActiveViewFromRoute(path as MainViewMode);
+    }
+    this.updateFullPageMode(url);
   }
 
   private updateFullPageMode(url: string) {
@@ -156,22 +198,29 @@ export class AppComponent {
   private setupAppUpdateNotifications() {
     if (!this.swUpdate?.isEnabled) return;
 
-    this.swUpdate?.versionUpdates
+    this.swUpdate.versionUpdates
       .pipe(filter((event) => this.isVersionReadyEvent(event)))
       .subscribe(() => {
-        const shouldRefresh = window.confirm(
-          'A new version of S.M.U.V.E is available. Refresh now to update?'
-        );
-        if (shouldRefresh) {
-          window.location.reload();
-          return;
-        }
+        void this.dialog
+          .confirm({
+            title: 'Update Ready',
+            message:
+              'A new version of S.M.U.V.E. is available. Refresh now to load the latest workspace updates?',
+            confirmLabel: 'Refresh now',
+            cancelLabel: 'Later',
+          })
+          .then((shouldRefresh) => {
+            if (shouldRefresh) {
+              window.location.reload();
+              return;
+            }
 
-        this.notificationService.show(
-          'Update available. Refresh when ready.',
-          'info',
-          8000
-        );
+            this.notificationService.show(
+              'Update staged. Refresh when ready.',
+              'info',
+              8000
+            );
+          });
       });
   }
 
@@ -183,12 +232,25 @@ export class AppComponent {
   toggleSidebar() {
     this.isSidebarOpen.update((v) => !v);
   }
+
   toggleChatbot() {
     this.uiService.toggleChatbot();
   }
 
   openInteractionGuide() {
     this.commandPalette.openGuide();
+  }
+
+  toggleSyncCenter() {
+    this.isSyncCenterOpen.update((value) => !value);
+  }
+
+  toggleMobileWorkspaceTray() {
+    this.isMobileWorkspaceTrayOpen.update((value) => !value);
+  }
+
+  togglePinnedView(mode: MainViewMode) {
+    this.uiService.togglePinnedView(mode);
   }
 
   private buildNavigationGroups(): NavigationGroup[] {
@@ -235,6 +297,9 @@ export class AppComponent {
   navigateToView(mode: MainViewMode) {
     if (!mode) return;
     this.uiService.navigateToView(mode);
-    if (this.isMobile()) this.isSidebarOpen.set(false);
+    if (this.isMobile()) {
+      this.isSidebarOpen.set(false);
+      this.isMobileWorkspaceTrayOpen.set(false);
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, inject, effect } from '@angular/core';
+import { Injectable, inject, effect, signal } from '@angular/core';
 import { MusicManagerService } from './music-manager.service';
 import { DatabaseService } from './database.service';
 import { UserProfileService } from './user-profile.service';
@@ -14,6 +14,9 @@ export class AutoSaveService {
   private logger = inject(LoggingService);
 
   private lastProjectHash = '';
+  readonly isSaving = signal(false);
+  readonly lastSavedAt = signal<number | null>(null);
+  readonly lastError = signal<string | null>(null);
 
   constructor() {
     effect(() => {
@@ -35,11 +38,22 @@ export class AutoSaveService {
     const projectId = 'project_v4_auto';
     const projectTitle = 'Auto-Sync Session';
 
-    await this.databaseService.saveProject(
-      projectId,
-      projectTitle,
-      { tracks },
-      userId
-    );
+    this.isSaving.set(true);
+    this.lastError.set(null);
+
+    try {
+      await this.databaseService.saveProject(
+        projectId,
+        projectTitle,
+        { tracks },
+        userId
+      );
+      this.lastSavedAt.set(Date.now());
+    } catch (error) {
+      this.lastError.set('Auto-save failed. Changes remain local until retry.');
+      this.logger.error('AutoSaveService: Failed to sync project', error);
+    } finally {
+      this.isSaving.set(false);
+    }
   }
 }
