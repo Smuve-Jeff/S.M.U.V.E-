@@ -321,6 +321,14 @@ describe('ThaSpotComponent', () => {
     );
   });
 
+  it('renders the arena spotlight command layout', () => {
+    const text = fixture.nativeElement.textContent;
+
+    expect(text).toContain('Arena spotlight');
+    expect(text).toContain('Producer crossover');
+    expect(text).toContain('Live directive');
+  });
+
   it('changes recommendation rails when the profile type changes', () => {
     profileServiceMock.profile.update((profile) => ({
       ...profile,
