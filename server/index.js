@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -27,6 +28,57 @@ const pool = new Pool({
 });
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const escapeHtml = (value = '') =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const isValidEmail = (email = '') =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
+
+const parseBoolean = (value, fallback = false) => {
+  if (value === undefined) {
+    return fallback;
+  }
+  return String(value).toLowerCase() === 'true';
+};
+
+const createEmailTransport = () => {
+  const host = process.env.SMTP_HOST;
+  const from = process.env.SMTP_FROM;
+
+  if (!host || !from) {
+    return null;
+  }
+
+  const port = Number(process.env.SMTP_PORT || 587);
+  const secure = parseBoolean(process.env.SMTP_SECURE, port === 465);
+  const auth =
+    process.env.SMTP_USER && process.env.SMTP_PASS
+      ? {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        }
+      : undefined;
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth,
+  });
+};
+
+const formatLoginTimestamp = (input) => {
+  const parsed = input ? new Date(input) : new Date();
+  return Number.isNaN(parsed.getTime())
+    ? new Date().toISOString()
+    : parsed.toISOString();
+};
 
 const initDb = async () => {
   try {
@@ -87,7 +139,9 @@ const initDb = async () => {
         FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
       );
     `);
-    console.log('Database initialized with security, project, and identity support');
+    console.log(
+      'Database initialized with security, project, and identity support'
+    );
   } catch (err) {
     console.error('Error initializing database', err);
   }
@@ -200,6 +254,81 @@ app.delete('/api/security/sessions/:userId', async (req, res) => {
   }
 });
 
+app.post('/api/auth/login-email', async (req, res) => {
+  try {
+    const { email, artistName, loginAt, userAgent, ipAddress } = req.body || {};
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'A valid recipient email is required.',
+      });
+    }
+
+    const transport = createEmailTransport();
+    if (!transport) {
+      return res.status(202).json({
+        success: false,
+        skipped: true,
+        message: 'SMTP transport is not configured.',
+      });
+    }
+
+    const safeArtistName = escapeHtml(artistName || 'Artist');
+    const timestamp = formatLoginTimestamp(loginAt);
+    const subjectPrefix = process.env.SMTP_SUBJECT_PREFIX || 'S.M.U.V.E 2.0';
+
+    await transport.sendMail({
+      from: process.env.SMTP_FROM,
+      to: String(email).trim(),
+      subject: `${subjectPrefix} login confirmation`,
+      text: [
+        `Hi ${artistName || 'Artist'},`,
+        '',
+        'We detected a successful login to your S.M.U.V.E 2.0 account.',
+        `Login time: ${timestamp}`,
+        userAgent ? `Device: ${userAgent}` : null,
+        ipAddress ? `IP address: ${ipAddress}` : null,
+        '',
+        'If this was you, no action is required.',
+        'If this was not you, please secure your account immediately.',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+          <h2 style="margin-bottom: 12px;">S.M.U.V.E 2.0 Login Confirmation</h2>
+          <p>Hi ${safeArtistName},</p>
+          <p>We detected a successful login to your S.M.U.V.E 2.0 account.</p>
+          <ul>
+            <li><strong>Login time:</strong> ${escapeHtml(timestamp)}</li>
+            ${
+              userAgent
+                ? `<li><strong>Device:</strong> ${escapeHtml(userAgent)}</li>`
+                : ''
+            }
+            ${
+              ipAddress
+                ? `<li><strong>IP address:</strong> ${escapeHtml(ipAddress)}</li>`
+                : ''
+            }
+          </ul>
+          <p>If this was you, no action is required.</p>
+          <p>If this was not you, please secure your account immediately.</p>
+        </div>
+      `,
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to send login confirmation email', err);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to send login confirmation email.',
+    });
+  }
+});
+
 // Project Endpoints (Cloud Sync)
 app.get('/api/projects/:userId', async (req, res) => {
   try {
@@ -275,29 +404,25 @@ app.get('/api/identity/:userId/connectors', async (req, res) => {
   }
 });
 
-app.post('/api/identity/:userId/connectors/:connectorId/sync', async (req, res) => {
-  try {
-    const { userId, connectorId } = req.params;
-    const { trigger = 'manual', payload = {} } = req.body || {};
-    const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+app.post(
+  '/api/identity/:userId/connectors/:connectorId/sync',
+  async (req, res) => {
+    try {
+      const { userId, connectorId } = req.params;
+      const { trigger = 'manual', payload = {} } = req.body || {};
+      const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    await pool.query(
-      'INSERT INTO connector_jobs (job_id, user_id, connector_id, status, trigger_type, payload, updated_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)',
-      [
-        jobId,
-        userId,
-        connectorId,
-        'queued',
-        trigger,
-        JSON.stringify(payload),
-      ]
-    );
+      await pool.query(
+        'INSERT INTO connector_jobs (job_id, user_id, connector_id, status, trigger_type, payload, updated_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)',
+        [jobId, userId, connectorId, 'queued', trigger, JSON.stringify(payload)]
+      );
 
-    res.json({ success: true, jobId, status: 'queued' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+      res.json({ success: true, jobId, status: 'queued' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
-});
+);
 
 // AI Analyze Proxy
 app.post('/api/ai/analyze', async (req, res) => {

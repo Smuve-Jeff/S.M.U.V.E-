@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { SecurityService } from './security.service';
 import { LoggingService } from './logging.service';
 import { UserProfileService, initialProfile } from './user-profile.service';
+import { LoginConfirmationService } from './login-confirmation.service';
 
 const APP_SECURITY_CONFIG = {
   auth_salt: 'smuve_v2_executive_secure_link',
@@ -33,6 +34,7 @@ export class AuthService {
   private logger = inject(LoggingService);
   private securityService = inject(SecurityService);
   private profileService = inject(UserProfileService);
+  private loginConfirmationService = inject(LoginConfirmationService);
 
   private _isAuthenticated = signal(false);
   private _currentUser = signal<AuthUser | null>(null);
@@ -400,6 +402,7 @@ export class AuthService {
         `Artist ${user.artistName} logged in successfully.`,
         user.id
       );
+      void this.loginConfirmationService.sendLoginConfirmation(user);
 
       return {
         success: true,

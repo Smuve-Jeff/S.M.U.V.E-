@@ -7,6 +7,7 @@ import { AuthService } from '../auth.service';
 import { SecurityService } from '../security.service';
 import { LoggingService } from '../logging.service';
 import { UserProfileService, initialProfile } from '../user-profile.service';
+import { LoginConfirmationService } from '../login-confirmation.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -22,6 +23,9 @@ describe('AuthService', () => {
     profile: ReturnType<typeof signal>;
     loadProfile: jest.Mock;
     updateProfile: jest.Mock;
+  };
+  let loginConfirmationServiceMock: {
+    sendLoginConfirmation: jest.Mock;
   };
 
   beforeEach(() => {
@@ -56,6 +60,9 @@ describe('AuthService', () => {
       }),
       updateProfile: jest.fn().mockResolvedValue(undefined),
     };
+    loginConfirmationServiceMock = {
+      sendLoginConfirmation: jest.fn().mockResolvedValue(undefined),
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -68,6 +75,10 @@ describe('AuthService', () => {
           useValue: { error: jest.fn(), warn: jest.fn() },
         },
         { provide: UserProfileService, useValue: profileServiceMock },
+        {
+          provide: LoginConfirmationService,
+          useValue: loginConfirmationServiceMock,
+        },
       ],
     });
 
@@ -109,5 +120,27 @@ describe('AuthService', () => {
       expect.any(String)
     );
     expect(service.currentUser()?.email).toBe('artist@example.com');
+    expect(
+      loginConfirmationServiceMock.sendLoginConfirmation
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'artist@example.com' })
+    );
+  });
+
+  it('does not send a confirmation email when login fails', async () => {
+    await service.register(
+      { email: 'artist@example.com', password: 'secret-pass' },
+      'Test Artist'
+    );
+
+    const result = await service.login({
+      email: 'artist@example.com',
+      password: 'wrong-pass',
+    });
+
+    expect(result.success).toBe(false);
+    expect(
+      loginConfirmationServiceMock.sendLoginConfirmation
+    ).not.toHaveBeenCalled();
   });
 });
