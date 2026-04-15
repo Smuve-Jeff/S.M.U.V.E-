@@ -152,4 +152,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       replaceUrl: true,
     });
   }
+  updateMetronomeVolume(event: Event) {
+    const vol = (event.target as HTMLInputElement).valueAsNumber;
+    this.audioEngine.setMetronomeVolume(vol);
+  }
 }
