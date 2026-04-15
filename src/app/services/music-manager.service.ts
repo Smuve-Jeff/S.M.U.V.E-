@@ -129,11 +129,6 @@ export class MusicManagerService {
         const newClip: ArrangementClip = {
           id: rec.id,
           name: armedTrack.name + ' Rec',
-      const armedTrack = this.tracks().find(t => t.armed);
-      if (armedTrack) {
-        const newClip: ArrangementClip = {
-          id: rec.id,
-          name: armedTrack.name + ' Rec',
           start: this.currentStep() / 16, // Rough start alignment
           length: 4, // Default length, should be calculated
           color: armedTrack.color,
