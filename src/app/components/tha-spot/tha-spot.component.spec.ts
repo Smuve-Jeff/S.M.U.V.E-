@@ -349,14 +349,14 @@ describe('ThaSpotComponent', () => {
     );
   });
 
-  it('renders the arena spotlight command layout', () => {
+  it('renders the executive gaming hub layout', () => {
     const text = fixture.nativeElement.textContent;
 
-    expect(text).toContain('Arena spotlight');
-    expect(text).toContain('Producer crossover');
-    expect(text).toContain('Live directive');
-    expect(text).toContain('Search cabinets');
-    expect(text).toContain('Game library');
+    expect(text).toContain('EXECUTIVE GAMING HUB');
+    expect(text).toContain('INTEL');
+    expect(text).toContain('STRATEGIC INTEL');
+    expect(text).toContain('NEURAL SYNC');
+    expect(text).toContain('DIRECTIVES');
   });
 
   it('changes recommendation rails when the profile type changes', () => {

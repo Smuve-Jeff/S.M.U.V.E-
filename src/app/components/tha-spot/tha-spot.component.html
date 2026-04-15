@@ -11,7 +11,7 @@
     <div class="header-actions">
       <div class="search-executive">
         <span class="material-symbols-outlined">search</span>
-        <input type="text" placeholder="QUERY SIGNAL..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" />
+        <input type="text" aria-label="Search" placeholder="QUERY SIGNAL..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" />
       </div>
       <button class="intel-toggle" [class.active]="showIntelPanel()" (click)="showIntelPanel.set(!showIntelPanel())">
         <span class="material-symbols-outlined">analytics</span>
@@ -193,12 +193,27 @@
        <header class="console-header">
         <div class="console-title">{{ active.name }}</div>
         <div class="console-actions">
-           <button class="icon-btn" (click)="reloadGame()"><span class="material-symbols-outlined">refresh</span></button>
-           <button class="icon-btn" (click)="closeGame()"><span class="material-symbols-outlined">close</span></button>
+           <button class="icon-btn" aria-label="Refresh game" (click)="reloadGame()"><span class="material-symbols-outlined">refresh</span></button>
+           <button class="icon-btn" aria-label="Close game" (click)="closeGame()"><span class="material-symbols-outlined">close</span></button>
         </div>
       </header>
       <div class="console-body">
-        <iframe #gameIframe [src]="getSafeUrl(active)" class="game-frame" allowfullscreen></iframe>
+        <iframe
+          *ngIf="getSafeUrl(active) as safeUrl; else nonEmbeddableGame"
+          #gameIframe
+          [src]="safeUrl"
+          class="game-frame"
+          sandbox="allow-scripts allow-pointer-lock allow-popups"
+          referrerpolicy="no-referrer"
+          allow="fullscreen; autoplay; gamepad"
+          allowfullscreen
+        ></iframe>
+        <ng-template #nonEmbeddableGame>
+          <div class="game-frame non-embeddable-state">
+            <p>THIS TITLE CANNOT BE EMBEDDED IN THE CURRENT SESSION.</p>
+            <button class="secondary-btn" (click)="closeGame()">RETURN TO HUB</button>
+          </div>
+        </ng-template>
       </div>
       <footer class="console-footer">
          <div class="telemetry">STATUS: <span class="success">EXECUTING</span> | SIGNAL: <span>{{ liveMetrics().queueHealth }}</span></div>

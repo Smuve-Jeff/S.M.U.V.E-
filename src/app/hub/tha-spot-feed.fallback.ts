@@ -79,9 +79,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
           "Multiplayer",
           "Versus"
         ],
-        "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
-      "badgeIds": [
+        "badgeIds": [
           "tournament-live"
         ]
       }
@@ -171,9 +169,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "limitedTime": true,
       "spotlight": "Rotates with live events and staff promotions.",
       "rules": {
-        "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
-      "badgeIds": [
+        "badgeIds": [
           "featured",
           "tournament-live"
         ]

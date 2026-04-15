@@ -1,4 +1,4 @@
-import { AudioRecorderService } from "../studio/audio-recorder.service";
+import { AudioRecorderService } from '../studio/audio-recorder.service';
 import { LoggingService } from './logging.service';
 import { Injectable, signal, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
@@ -533,10 +533,31 @@ export class AudioEngineService {
     this.reverbConvolver.buffer = impulse;
   }
 
-  startRecording() { this.resume(); if (this.isPlaying()) return; this.isRecording.set(true); this.recorder.startRecording(this.getMasterStream().stream); this.start(); }
+  async startRecording() {
+    this.resume();
+    if (this.isPlaying()) return;
 
-  toggleRecording() { if (this.isRecording()) { if (this.isRecording()) this.recorder.stopRecording(); this.isRecording.set(false); this.stop(); } else { this.startRecording(); } }
+    this.isRecording.set(true);
 
+    try {
+      await this.recorder.startRecording(this.getMasterStream().stream);
+      this.start();
+    } catch (error) {
+      this.isRecording.set(false);
+      throw error;
+    }
+  }
+
+  async toggleRecording() {
+    if (this.isRecording()) {
+      this.recorder.stopRecording();
+      this.isRecording.set(false);
+      this.stop();
+      return;
+    }
+
+    await this.startRecording();
+  }
   start() {
     this.resume();
     if (this.isPlaying()) return;
@@ -591,7 +612,7 @@ export class AudioEngineService {
     velocityScale = 1
   ) {
     this.resume();
-    if (this.isRecording()) { this.recorder.pendingMidi.push({ pitch: 69 + 12 * Math.log2(freq / 440), startTime: this.currentBeat(), duration, velocity }); }
+    if (this.isRecording()) { this.recorder.pendingMidi.push({ pitch: 69 + 12 * Math.log2(freq / 440), startTime: when, duration, velocity }); }
     const osc = this.ctx.createOscillator();
     osc.type = params?.type || 'sawtooth';
     const vca = this.ctx.createGain();

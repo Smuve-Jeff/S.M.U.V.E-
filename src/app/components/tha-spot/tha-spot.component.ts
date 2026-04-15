@@ -94,14 +94,29 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   );
 
   activeRoom = signal<string>('all');
-  featuredGame = computed(() => this.games().find(g => g.badgeIds?.includes("featured")) || this.games()[0]);
   trendingGames = computed(() => this.games().filter(g => g.badgeIds?.includes("trending")));
   newGames = computed(() => this.games().filter(g => g.badgeIds?.includes("new-drop")));
   genreRails = computed(() => {
-    const genres = [...new Set(this.games().map(g => g.genre).filter(Boolean))];
-    return genres.map(genre => ({
-      title: genre,
-      games: this.games().filter(g => g.genre === genre)
+    const games = this.games();
+    const genreMap = new Map<string, Game[]>();
+
+    for (const game of games) {
+      const genre = game.genre;
+      if (!genre) {
+        continue;
+      }
+
+      const existingGames = genreMap.get(genre);
+      if (existingGames) {
+        existingGames.push(game);
+      } else {
+        genreMap.set(genre, [game]);
+      }
+    }
+
+    return Array.from(genreMap.entries(), ([title, games]) => ({
+      title,
+      games,
     }));
   });
   searchQuery = signal('');
@@ -500,7 +515,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   onGameClick(game: Game) {
-    this.launchGame(game);
+    this.openPreview(game);
   }
 
   isPlaying() {
@@ -520,6 +535,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         : 'Inline launch is unavailable for this cabinet, so it will open in a new tab.'
     );
     this.frameError.set(null);
+  }
+
+  previewGame(game: Game) {
+    this.openPreview(game);
   }
 
   closePreview() {
@@ -692,15 +711,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
 
     if (entry.relationship === 'rival' && !this.showIntelPanel()) {
-      this.onGameClick(game: Game) {
-    this.launchGame(game);
-  }
-
-  isPlaying() {
-    return !!this.currentGame();
-  }
-
-  toggleIntel();
+      this.toggleIntel();
     }
   }
 

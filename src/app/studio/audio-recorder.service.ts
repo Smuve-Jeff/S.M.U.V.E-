@@ -1,4 +1,4 @@
-import { Subject } from "rxjs";
+import { Subject } from 'rxjs';
 import { Injectable, inject, signal } from '@angular/core';
 import { LocalStorageService } from '../services/local-storage.service';
 import { LoggingService } from '../services/logging.service';

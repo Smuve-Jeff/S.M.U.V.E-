@@ -133,18 +133,18 @@
                   class="material-symbols-outlined text-3xl text-brand-primary hover:scale-110 active:scale-95 transition-all drop-shadow-[0_0_8px_rgba(236,91,19,0.4)]"
                   title="Play (Space)">play_arrow</button>
 
-          <button (click)="audioEngine.stop()" *ngIf="audioEngine.isPlaying()"
-                  class="material-symbols-outlined text-3xl text-brand-primary hover:scale-110 active:scale-95 transition-all drop-shadow-[0_0_8px_rgba(236,91,19,0.4)]"
-                  title="Pause (Space)">pause</button>
-
           <button (click)="audioEngine.toggleRecording()"
                   [class.recording-active]="audioEngine.isRecording()"
+                  [attr.aria-pressed]="audioEngine.isRecording()"
+                  aria-label="Record"
                   class="material-symbols-outlined text-xl text-slate-500 hover:text-red-500 transition-all hover:scale-110 active:scale-95"
                   title="Record (R)">fiber_manual_record</button>
         </div>
         <div class="metronome-console flex items-center gap-3 px-4 py-1.5 bg-black/40 rounded-xl border border-white/5 backdrop-blur-md">
           <button (click)="audioEngine.toggleMetronome()"
                   [class.metronome-active]="audioEngine.metronomeEnabled()"
+                  [attr.aria-pressed]="audioEngine.metronomeEnabled()"
+                  aria-label="Metronome"
                   class="material-symbols-outlined text-lg text-slate-500 hover:text-brand-primary transition-all"
                   title="Metronome">metronome</button>
           <div class="flex flex-col gap-1">
