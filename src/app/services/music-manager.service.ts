@@ -126,11 +126,16 @@ export class MusicManagerService {
     recorder.recordingFinished$.subscribe(rec => {
       const armedTrack = this.tracks().find(t => t.armed);
       if (armedTrack) {
+        const recordingEndStep = this.currentStep() >= 0
+          ? this.currentStep()
+          : this.recordingStartStep;
+        const clipStartStep = Math.max(0, this.recordingStartStep);
+        const clipLengthSteps = Math.max(1, recordingEndStep - clipStartStep + 1);
         const newClip: ArrangementClip = {
           id: rec.id,
           name: armedTrack.name + ' Rec',
-          start: this.currentStep() / 16, // Rough start alignment
-          length: 4, // Default length, should be calculated
+          start: clipStartStep / 16,
+          length: clipLengthSteps / 16,
           color: armedTrack.color,
           audioUrl: rec.url
         };
