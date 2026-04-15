@@ -1,4 +1,12 @@
 <div class="storefront-wrapper dark-mode" [class.playing]="isPlaying()">
+  <!-- Global Action Background -->
+  <div class="global-video-container">
+    <video autoplay muted loop playsinline class="global-action-video">
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-top-view-of-a-dj-playing-on-his-turntable-24543-large.mp4" type="video/mp4">
+    </video>
+    <div class="global-video-overlay"></div>
+  </div>
+
   <div class="ambient-background" [style.background]="featuredGame()?.art?.accentStart"></div>
 
   <!-- High-End Executive Header -->
@@ -22,7 +30,7 @@
 
   <main class="storefront-main custom-scrollbar">
     <!-- Cinematic Hero Section -->
-    <section class="hero-section" *ngIf="featuredGame() as hero">
+    <section class="hero-section storefront-hero" *ngIf="featuredGame() as hero">
       <div class="hero-media">
         <img [src]="hero.bannerImage || hero.image" [alt]="hero.name" class="hero-bg" />
         <div class="hero-overlay"></div>
@@ -30,12 +38,23 @@
       </div>
 
       <div class="hero-content">
-        <div class="hero-eyebrow">{{ hero.art?.eyebrow || 'FEATURED UPGRADE' }}</div>
+        <div class="hero-meta">
+          <span class="hero-badge" *ngIf="hero.badgeIds?.includes('featured')">FEATURED</span>
+          <span class="hero-genre">{{ hero.genre | uppercase }}</span>
+          <span class="hero-publisher" *ngIf="hero.art?.eyebrow">{{ hero.art.eyebrow }}</span>
+        </div>
         <h2 class="hero-title">{{ hero.name }}</h2>
         <p class="hero-description">{{ hero.description }}</p>
 
+        <div class="hero-storefront-details">
+          <div class="detail-item">
+            <span class="label">UPLINKS</span>
+            <span class="value">{{ hero.playersOnline | number }} LIVE</span>
+          </div>
+        </div>
+
         <div class="hero-actions">
-          <button class="hero-btn-primary" (click)="onGameClick(hero)">
+          <button class="hero-btn-primary action-pulse" (click)="onGameClick(hero)">
             <span class="material-symbols-outlined">play_arrow</span>
             INITIALIZE SESSION
           </button>
@@ -49,49 +68,47 @@
 
     <!-- Category Rails -->
     <div class="rails-container">
-      <!-- Trending Rail -->
-      <section class="storefront-rail" *ngIf="trendingGames().length > 0">
-        <h3 class="rail-title">TRENDING SIGNALS</h3>
+      <!-- Custom Recommendation Rails (Includes Retro Masters & Deep Play) -->
+      <section class="storefront-rail" *ngFor="let rail of matchingRecommendationRails()">
+        <div class="rail-header">
+          <div class="rail-titles">
+            <h3 class="rail-title">{{ rail.title | uppercase }}</h3>
+            <p class="rail-subtitle" *ngIf="rail.subtitle">{{ rail.subtitle }}</p>
+          </div>
+          <button class="rail-view-all">VIEW SECTOR</button>
+        </div>
+
         <div class="rail-scroll custom-scrollbar">
-          <div class="game-card-v2 holographic-depth" *ngFor="let game of trendingGames()" (click)="onGameClick(game)">
+          <!-- Game cards for this rail -->
+          <div class="game-card-v2 storefront-card holographic-depth" *ngFor="let game of getGamesForRail(rail)" (click)="onGameClick(game)">
             <div class="card-art">
               <img [src]="game.image" [alt]="game.name" />
               <div class="card-ambient-glow" [style.background]="game.art?.accentStart"></div>
               <div class="video-preview-hitbox" *ngIf="game.previewVideo">
                  <video [src]="game.previewVideo" muted loop class="card-video"></video>
               </div>
+              <div class="card-badge" *ngIf="game.badgeIds?.includes('new-drop')">NEW</div>
+              <div class="card-badge staff" *ngIf="game.badgeIds?.includes('staff-pick')">STAFF</div>
             </div>
             <div class="card-info">
-              <span class="genre">{{ game.genre }}</span>
+              <div class="card-meta">
+                <span class="genre">{{ game.genre }}</span>
+              </div>
               <h4>{{ game.name }}</h4>
+              <div class="card-stats">
+                <span class="players">{{ game.playersOnline | number }} online</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- New Drops Rail -->
-      <section class="storefront-rail" *ngIf="newGames().length > 0">
-        <h3 class="rail-title">NEW UPLINKS</h3>
+      <!-- Fallback / Static Rails if needed -->
+      <section class="storefront-rail" *ngIf="trendingGames().length > 0 && !hasRail('rail-trending')">
+        <h3 class="rail-title">TRENDING SIGNALS</h3>
         <div class="rail-scroll custom-scrollbar">
-          <div class="game-card-v2 holographic-depth" *ngFor="let game of newGames()" (click)="onGameClick(game)">
-             <div class="card-art">
-              <img [src]="game.image" [alt]="game.name" />
-              <div class="card-ambient-glow" [style.background]="game.art?.accentStart"></div>
-            </div>
-            <div class="card-info">
-              <span class="genre">{{ game.genre }}</span>
-              <h4>{{ game.name }}</h4>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Genre Specific Rails -->
-      <section class="storefront-rail" *ngFor="let rail of genreRails()">
-        <h3 class="rail-title">{{ rail.title | uppercase }} SECTOR</h3>
-        <div class="rail-scroll custom-scrollbar">
-          <div class="game-card-v2 holographic-depth" *ngFor="let game of rail.games" (click)="onGameClick(game)">
-             <div class="card-art">
+          <div class="game-card-v2 storefront-card holographic-depth" *ngFor="let game of trendingGames()" (click)="onGameClick(game)">
+            <div class="card-art">
               <img [src]="game.image" [alt]="game.name" />
               <div class="card-ambient-glow" [style.background]="game.art?.accentStart"></div>
             </div>
