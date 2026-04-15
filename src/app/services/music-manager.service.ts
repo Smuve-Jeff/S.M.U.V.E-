@@ -775,7 +775,7 @@ export class MusicManagerService {
     const track = this.tracks().find(t => t.id === trackId);
     if (track) {
       const clip: ArrangementClip = {
-        id: 'clip_' + Math.random().toString(36).substr(2, 9),
+        id: 'clip_' + crypto.randomUUID(),
         name: 'Pattern',
         start,
         length: 4,
