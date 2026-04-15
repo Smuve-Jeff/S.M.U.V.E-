@@ -135,7 +135,7 @@
 
           <button (click)="audioEngine.stop()" *ngIf="audioEngine.isPlaying()"
                   class="material-symbols-outlined text-3xl text-brand-primary hover:scale-110 active:scale-95 transition-all drop-shadow-[0_0_8px_rgba(236,91,19,0.4)]"
-                  title="Pause (Space)">pause</button>
+                  title="Stop (Space)">stop</button>
 
           <button (click)="audioEngine.toggleRecording()"
                   [class.recording-active]="audioEngine.isRecording()"
