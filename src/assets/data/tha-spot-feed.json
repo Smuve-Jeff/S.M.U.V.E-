@@ -29,6 +29,11 @@
       "id": "elite",
       "label": "ELITE TIER",
       "tone": "accent"
+    },
+    {
+      "id": "classic",
+      "label": "Classic",
+      "tone": "primary"
     }
   ],
   "rooms": [
@@ -1705,7 +1710,8 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
       "queueEstimateMinutes": 3,
@@ -1716,7 +1722,12 @@
       "controlHints": [
         "Slice corners before crossing open lanes",
         "Reload on cover transitions"
-      ]
+      ],
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "24",
@@ -1750,7 +1761,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -1782,9 +1799,15 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
-      "multiplayerType": "Server"
+      "multiplayerType": "Server",
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "26",
@@ -1814,7 +1837,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -1849,7 +1878,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -1884,7 +1919,8 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
       "queueEstimateMinutes": 4,
@@ -1895,7 +1931,12 @@
       "controlHints": [
         "Rotate with team pings before flanks collapse",
         "Build around one reliable mid-range weapon"
-      ]
+      ],
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "29",
@@ -1926,7 +1967,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -1958,7 +2005,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -1990,9 +2043,15 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
-      "multiplayerType": "Server"
+      "multiplayerType": "Server",
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "32",
@@ -2023,7 +2082,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -2051,7 +2116,13 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/sniper-mission",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -2080,7 +2151,13 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-defense",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -2109,7 +2186,13 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -2139,9 +2222,15 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/ludo-legend",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
-      "multiplayerType": "Server"
+      "multiplayerType": "Server",
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "37",
@@ -2170,7 +2259,8 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/zombie-idle-defense",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
       "queueEstimateMinutes": 3,
@@ -2181,7 +2271,12 @@
       "controlHints": [
         "Balance barricade repairs with tech upgrades",
         "Keep ranged units behind your tank lane"
-      ]
+      ],
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "38",
@@ -2673,11 +2768,20 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/sonic-racing",
-        "telemetryMode": "none"
+        "telemetryMode": "none",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "tags": [
         "station-pod"
-      ]
+      ],
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "doom-classic",
@@ -2694,11 +2798,20 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "external-only"
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "tags": [
         "station-pod"
-      ]
+      ],
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "mario-classic",
@@ -2722,7 +2835,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Nintendo Elite",
@@ -2752,7 +2869,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "external-only"
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Rockstar Legacy",
@@ -2785,7 +2906,11 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Pro League",
@@ -2818,7 +2943,11 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Gridiron Elite",
@@ -2848,7 +2977,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Saiyan Saga",
@@ -2881,7 +3014,11 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "UNSC Command",
@@ -2914,7 +3051,11 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Main Event",
@@ -2946,7 +3087,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40238-tekken-3.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Namco Elite",
@@ -2977,7 +3122,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Nintendo Elite",
@@ -3008,7 +3157,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Grand Prix Elite",
@@ -3037,7 +3190,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Naughty Dog Legacy",
@@ -3067,7 +3224,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Hyrule Command",
@@ -3098,7 +3259,16 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -3124,7 +3294,16 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -3150,7 +3329,16 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -3176,7 +3364,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "MI6 Command",
@@ -3206,7 +3398,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Neversoft Legacy",
@@ -3235,7 +3431,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40662-parappa-the-rapper.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Rhythm Elite",
@@ -3265,7 +3465,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Sega Speed",
@@ -3294,7 +3498,16 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "external-only"
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -3320,7 +3533,16 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -3345,7 +3567,16 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18814-tetris-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -3371,7 +3602,16 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     }
   ],

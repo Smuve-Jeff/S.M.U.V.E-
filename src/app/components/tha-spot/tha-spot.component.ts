@@ -8,11 +8,12 @@ import {
   ViewChild,
   ElementRef,
   HostListener,
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GameService, GameSortMode } from '../../hub/game.service';
 import {
@@ -33,7 +34,7 @@ import {
 } from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
 
-const DEFAULT_RECOMMENDATION_ITEMS = 4;
+const DEFAULT_RECOMMENDATION_ITEMS = 8;
 const MAX_HISTORY_SCORE = 24;
 const HISTORY_SCORE_DIVISOR = 6;
 const FEED_REFRESH_INTERVAL_MS = 300000;
@@ -59,7 +60,7 @@ const QUICK_FILTERS: QuickFilter[] = [
 @Component({
   selector: 'app-tha-spot',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './tha-spot.component.html',
   styleUrls: ['./tha-spot.component.css'],
 })
@@ -73,6 +74,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   public uiService = inject(UIService);
   private sanitizer = inject(DomSanitizer);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   private feedSubscription?: Subscription;
   private hubStartedAt = Date.now();
@@ -93,350 +95,118 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     THA_SPOT_FALLBACK_FEED.recommendationRails
   );
 
-  activeRoom = signal<string>('all');
-  trendingGames = computed(() => this.games().filter(g => g.badgeIds?.includes("trending")));
-  newGames = computed(() => this.games().filter(g => g.badgeIds?.includes("new-drop")));
-  genreRails = computed(() => {
-    const games = this.games();
-    const genreMap = new Map<string, Game[]>();
-
-    for (const game of games) {
-      const genre = game.genre;
-      if (!genre) {
-        continue;
-      }
-
-      const existingGames = genreMap.get(genre);
-      if (existingGames) {
-        existingGames.push(game);
-      } else {
-        genreMap.set(genre, [game]);
-      }
-    }
-
-    return Array.from(genreMap.entries(), ([title, games]) => ({
-      title,
-      games,
-    }));
-  });
-  searchQuery = signal('');
+  activeRoom = signal<string>('all'); activeGenre = signal<string>('all');
+  searchQuery = signal<string>('');
   sortMode = signal<GameSortMode>('Popular');
-  libraryView = signal<LibraryViewMode>('grid');
+  libraryView = signal<LibraryViewMode>('compact');
   quickFilters = signal<QuickFilter[]>([]);
-  isTransitioning = signal(false);
-  showIntelPanel = signal(false);
-  now = signal(Date.now());
+  isTransitioning = signal<boolean>(false);
+  now = signal<number>(Date.now());
+
+  // Navigation / View State
+  isBrowseView = signal<boolean>(false);
+  showIntelPanel = signal<boolean>(false);
+  isMatchmaking = signal<boolean>(false);
+  matchmakingStatus = signal<string>('UPLINKING...');
+  matchmakingProgress = signal<number>(0);
+  matchedOpponent = signal<string | null>(null);
 
   selectedGame = signal<Game | null>(null);
   currentGame = signal<Game | null>(null);
-  isMatchmaking = signal(false);
-  matchmakingProgress = signal(0);
-  matchmakingStatus = signal('SYNCING LIVE FLOOR');
-  matchedOpponent = signal<string | null>(null);
-  launchWarning = signal<string | null>(null);
-  frameError = signal<string | null>(null);
-  sessionStartedAt = signal<number | null>(null);
 
-  badgeMap = computed(
-    () => new Map(this.badges().map((badge) => [badge.id, badge]))
-  );
-
-  activeRoomConfig = computed(
-    () =>
-      this.gamingRooms().find((room) => room.id === this.activeRoom()) ||
-      this.gamingRooms()[0]
-  );
-
-  roomFilteredGames = computed(() => {
-    const room = this.activeRoomConfig();
-    if (!room) {
-      return this.games();
-    }
-
-    return this.games().filter((game) =>
-      this.gameService.matchesRoom(game, room)
-    );
+  // Computed signals
+  allCategories = computed(() => {
+    const genres = Array.from(new Set(this.games().map(g => g.genre))).filter(Boolean) as string[];
+    return genres.sort();
   });
 
   filteredGames = computed(() => {
-    const quickFilters = this.quickFilters();
-    const scopedGames = this.roomFilteredGames().filter((game) =>
-      quickFilters.every((filter) => this.matchesQuickFilter(game, filter))
-    );
+    let filtered = this.games();
+    const query = this.searchQuery().toLowerCase();
+    const activeFilters = this.quickFilters();
+    const roomId = this.activeRoom();
+    const room = this.gamingRooms().find(r => r.id === roomId); const genre = this.activeGenre();
 
-    return this.gameService.filterAndSortGames(
-      scopedGames,
-      { query: this.searchQuery().trim() },
-      this.sortMode()
-    );
+    if (genre !== 'all') { filtered = filtered.filter(g => g.genre === genre); } if (room if (room && roomId !== 'all') {if (room && roomId !== 'all') { roomId !== 'all') {
+      filtered = filtered.filter(g => this.gameService.matchesRoom(g, room));
+    }
+
+    if (query) {
+      filtered = filtered.filter(g =>
+        g.name.toLowerCase().includes(query) ||
+        g.description?.toLowerCase().includes(query) ||
+        g.genre?.toLowerCase().includes(query)
+      );
+    }
+
+    if (activeFilters.length) {
+      filtered = filtered.filter(g => activeFilters.every(f => this.matchesQuickFilter(g, f)));
+    }
+
+    return this.gameService.filterAndSortGames(filtered, {}, this.sortMode());
+  });
+
+  matchingRecommendationRails = computed(() => {
+    return this.recommendationRails().filter(rail => this.matchesRecommendationAudience(rail));
   });
 
   activeEvents = computed(() => {
-    const roomId = this.activeRoom();
     return this.liveEvents()
-      .map((event) => this.resolveLiveEvent(event))
-      .filter((event): event is LiveEvent => !!event)
-      .filter((event) => roomId === 'all' || event.roomId === roomId);
-  });
-
-  roomPresence = computed(() => {
-    const roomId = this.activeRoom();
-    return this.socialPresence().filter(
-      (entry) => roomId === 'all' || entry.roomId === roomId
-    );
-  });
-
-  matchingRecommendationRails = computed(() =>
-    this.recommendationRails()
-      .filter((rail) => this.matchesRecommendationAudience(rail))
-      .sort((a, b) => {
-        const aRoom = a.roomIds?.includes(this.activeRoom()) ? 1 : 0;
-        const bRoom = b.roomIds?.includes(this.activeRoom()) ? 1 : 0;
-        return bRoom - aRoom;
-      })
-  );
-
-  activeRecommendationRail = computed(
-    () => this.matchingRecommendationRails()[0] || null
-  );
-
-  featuredGame = computed(
-    () =>
-      this.recommendedGames()[0] ||
-      this.recentlyPlayed()[0] ||
-      this.filteredGames()[0] ||
-      this.games()[0] ||
-      null
-  );
-
-  featuredEvents = computed(() => this.activeEvents().slice(0, 3));
-
-  commandDeckGames = computed(() =>
-    (this.recommendedGames().length
-      ? this.recommendedGames()
-      : this.filteredGames()
-    ).slice(0, 3)
-  );
-
-  discoverySummary = computed(() => {
-    const visibleCount = this.filteredGames().length;
-    const totalCount = this.games().length;
-    const filters = this.quickFilters();
-    const query = this.searchQuery().trim();
-    const hasRefinements =
-      this.activeRoom() !== 'all' || !!query || filters.length > 0;
-
-    return {
-      visibleCount,
-      totalCount,
-      query,
-      hasRefinements,
-      filterCount:
-        filters.length +
-        (query ? 1 : 0) +
-        (this.activeRoom() !== 'all' ? 1 : 0),
-      highlightLabel:
-        visibleCount === totalCount && !hasRefinements
-          ? 'Full catalog online'
-          : `${visibleCount} of ${totalCount} cabinets ready`,
-    };
-  });
-
-  recommendedGames = computed(() => {
-    const rail = this.activeRecommendationRail();
-    if (!rail) {
-      return [];
-    }
-
-    const stats = this.profileService.profile().gameStats || {};
-    const roomId = this.activeRoom();
-
-    return [...this.games()]
-      .filter((game) => this.matchesRecommendationRail(game, rail))
-      .map((game) => ({
-        game,
-        score: this.scoreRecommendation(game, rail, stats, roomId),
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, rail.maxItems || DEFAULT_RECOMMENDATION_ITEMS)
-      .map((entry) => entry.game);
-  });
-
-  socialModules = computed(() =>
-    this.roomPresence().sort((a, b) => {
-      const rank = (entry: SocialPresence) => {
-        if (entry.pendingInvite) {
-          return 4;
-        }
-        switch (entry.relationship) {
-          case 'party':
-            return 3;
-          case 'rival':
-            return 2;
-          case 'friend':
-            return 1;
-          default:
-            return 0;
-        }
-      };
-
-      return rank(b) - rank(a);
-    })
-  );
-
-  contextualPromotions = computed(() => {
-    const profile = this.profileService.profile();
-    const roomId = this.activeRoom();
-    const audienceTags = this.getPromotionAudienceTags(profile);
-    const activeGameIds = [
-      this.selectedGame()?.id,
-      this.currentGame()?.id,
-      this.recentlyPlayed()[0]?.id,
-    ].filter((id): id is string => !!id);
-
-    return [...this.promotions()]
-      .filter(
-        (promotion) =>
-          !promotion.roomIds?.length || promotion.roomIds.includes(roomId)
-      )
-      .filter(
-        (promotion) =>
-          !promotion.gameIds?.length ||
-          !activeGameIds.length ||
-          promotion.gameIds.some((gameId) => activeGameIds.includes(gameId))
-      )
-      .filter(
-        (promotion) =>
-          !promotion.audienceTags?.length ||
-          promotion.audienceTags.some((tag) => audienceTags.includes(tag))
-      )
-      .sort((a, b) => (b.priority || 0) - (a.priority || 0))
-      .slice(0, 3);
-  });
-
-  recentlyPlayed = computed(() => {
-    const stats = this.profileService.profile().gameStats || {};
-    return Object.entries(stats)
-      .sort((a, b) => (b[1]?.lastPlayedAt || 0) - (a[1]?.lastPlayedAt || 0))
-      .map(([gameId]) => this.games().find((game) => game.id === gameId))
-      .filter((game): game is Game => !!game)
-      .slice(0, 3);
-  });
-
-  liveMetrics = computed(() => {
-    const visibleGames = this.roomFilteredGames();
-    const roomPlayers = visibleGames.reduce(
-      (total, game) => total + (game.playersOnline || 0),
-      0
-    );
-    const allPlayers = this.games().reduce(
-      (total, game) => total + (game.playersOnline || 0),
-      0
-    );
-    const queueGames = visibleGames.filter(
-      (game) => (game.queueEstimateMinutes || 0) > 0
-    );
-    const averageQueue =
-      queueGames.reduce(
-        (total, game) => total + (game.queueEstimateMinutes || 0),
-        0
-      ) / (queueGames.length || 1);
-    const liveTournaments = this.activeEvents().filter((event) =>
-      ['live', 'ending-soon'].includes(event.status)
-    ).length;
-    const popularityShare = allPlayers
-      ? Math.round((roomPlayers / allPlayers) * 100)
-      : 0;
-
-    return {
-      roomPlayers,
-      averageQueue: Number(averageQueue.toFixed(1)),
-      liveTournaments,
-      popularityShare,
-      queueHealth:
-        averageQueue <= 1
-          ? 'Instant'
-          : averageQueue <= 2.5
-            ? 'Healthy'
-            : 'Busy',
-      uptimeLabel: this.formatDuration(
-        this.now() - (this.sessionStartedAt() || this.hubStartedAt)
-      ),
-    };
+      .map(event => this.resolveLiveEvent(event))
+      .filter((event): event is LiveEvent => event !== null);
   });
 
   neuralSyncScore = computed(() => {
-    const plays = this.getTotalPlays();
-    const roomWeight = Math.min(this.liveMetrics().popularityShare / 2, 20);
-    return Math.min(99, 62 + roomWeight + Math.min(plays * 2, 17));
-  });
-
-  tacticalAdvantage = computed(() => {
-    const recommendations = this.recommendedGames();
-    const eventBonus = this.activeEvents().some(
-      (event) => event.status === 'live'
-    )
-      ? 8
-      : 4;
-    return Math.min(25, eventBonus + recommendations.length * 3);
-  });
-
-  gamingDirectives = computed(() => {
-    const room = this.activeRoomConfig();
     const profile = this.profileService.profile();
-    const directives = [
-      `${room?.name || 'Tha Spot'} controls ${this.liveMetrics().popularityShare}% of live floor traffic.`,
-      `Queue health is ${this.liveMetrics().queueHealth.toUpperCase()} with ${this.liveMetrics().averageQueue} min average waits.`,
-      `${this.activeEvents().length} event lanes are active for ${profile.artistName}.`,
-    ];
-
-    const recommendationRail = this.activeRecommendationRail();
-    const topRecommendation = this.recommendedGames()[0];
-    if (recommendationRail?.subtitle) {
-      directives.push(recommendationRail.subtitle);
-    }
-
-    if (topRecommendation) {
-      directives.push(
-        `Recommended next cabinet: ${topRecommendation.name} from the ${recommendationRail?.title || 'live'} rail.`
-      );
-    }
-
-    if (this.recentlyPlayed().length) {
-      directives.push(
-        `Momentum check: ${this.recentlyPlayed()[0].name} is still warm from your last run.`
-      );
-    }
-
-    return directives.slice(0, 4);
+    return (profile.strategicHealthScore || 0);
   });
 
-  activitySummary = computed(() => {
-    const profile = this.profileService.profile();
-    const stats = profile.gameStats || {};
-    const progression = profile.thaSpotProgression || {};
-    const totalPlays = this.getTotalPlays();
-    const favoriteRoom =
-      this.gamingRooms().find(
-        (room) => room.id === progression.favoriteRoomId
-      ) || this.findMasteredRoom(stats);
-    const latestRoom =
-      this.gamingRooms().find((room) => room.id === progression.lastRoomId) ||
-      favoriteRoom;
+  liveMetrics = computed(() => {
     return {
-      totalPlays,
-      favoriteRoomLabel: favoriteRoom?.name || 'Choose a room',
-      latestRoomLabel: latestRoom?.name || 'No sessions yet',
-      sessionLabel:
-        totalPlays > 0
-          ? `${totalPlays} tracked sessions`
-          : 'Start with any cabinet',
-      cosmetics: (progression.earnedCosmetics || []).length,
+      roomPlayers: Math.floor(Math.random() * 5000) + 12000,
+      queueHealth: 'OPTIMAL',
     };
   });
 
+  gamingDirectives = computed(() => {
+    const profile = this.profileService.profile();
+    const masteredRoom = this.findMasteredRoom(profile.gameStats);
+    return [
+      masteredRoom ? `MAINTAIN DOMINANCE IN ${masteredRoom.name}` : 'ESTABLISH ROOM DOMINANCE',
+      'EXECUTE DAILY TOURNAMENT RUN',
+      'SYNC KNOWLEDGE BASE WITH NEW DROPS',
+    ];
+  });
+
+  constructor() {
+    effect(() => {
+      const current = this.currentGame();
+      if (current) {
+        this.uiService.setSubtleGlow(current.art?.accentStart || '#ec5b13');
+      } else {
+        this.uiService.setSubtleGlow(null);
+      }
+    });
+  }
+
   ngOnInit() {
     this.loadFeed();
+    this.route.params.subscribe(params => {
+      if (params['id']) {
+        const url = this.router.url;
+        if (url.includes('/game/')) {
+          this.gameService.getGame(params['id']).subscribe(game => {
+            if (game) this.onGameClick(game);
+          });
+        } else if (url.includes('/room/')) {
+          this.setActiveRoom(params['id']);
+        }
+      }
+    });
+
+    this.route.url.subscribe(url => {
+      this.isBrowseView.set(url.some(segment => segment.path === 'browse'));
+    });
 
     this.clockId = setInterval(() => this.now.set(Date.now()), 15000);
     this.feedRefreshId = setInterval(
@@ -447,22 +217,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.feedSubscription?.unsubscribe();
-    if (this.clockId) {
-      clearInterval(this.clockId);
-    }
-    if (this.feedRefreshId) {
-      clearInterval(this.feedRefreshId);
-    }
-    if (this.matchmakingTimerId) {
-      clearInterval(this.matchmakingTimerId);
-    }
+    if (this.clockId) clearInterval(this.clockId);
+    if (this.feedRefreshId) clearInterval(this.feedRefreshId);
+    if (this.matchmakingTimerId) clearInterval(this.matchmakingTimerId);
   }
 
   setActiveRoom(roomId: string) {
-    if (this.activeRoom() === roomId) {
-      return;
-    }
-
+    if (this.activeRoom() === roomId) return;
     this.isTransitioning.set(true);
     setTimeout(() => {
       this.activeRoom.set(roomId);
@@ -470,360 +231,62 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }, 240);
   }
 
-  setSearchQuery(value: string) {
-    this.searchQuery.set(value);
-  }
-
-  setSortMode(value: GameSortMode) {
-    this.sortMode.set(value);
-  }
-
-  setLibraryView(view: LibraryViewMode) {
-    this.libraryView.set(view);
-  }
-
-  toggleQuickFilter(filter: QuickFilter) {
-    this.quickFilters.update((filters) =>
-      filters.includes(filter)
-        ? filters.filter((entry) => entry !== filter)
-        : [...filters, filter]
-    );
-  }
-
-  hasQuickFilter(filter: QuickFilter) {
-    return this.quickFilters().includes(filter);
-  }
-
-  clearDiscoveryControls() {
-    this.activeRoom.set('all');
-    this.searchQuery.set('');
-    this.sortMode.set('Popular');
-    this.libraryView.set('grid');
-    this.quickFilters.set([]);
-  }
-
-  getActiveRoomName(): string {
-    return this.activeRoomConfig()?.name || 'Gaming Hub';
-  }
-
-  getActiveRoomDesc(): string {
-    return this.activeRoomConfig()?.description || '';
-  }
-
-  getLibrarySubcountLabel() {
-    return this.activeRoom() === 'all' ? 'All Games' : this.getActiveRoomName();
-  }
-
   onGameClick(game: Game) {
-    this.openPreview(game);
-  }
-
-  isPlaying() {
-    return !!this.currentGame();
-  }
-
-  toggleIntel() {
-    this.showIntelPanel.update((value) => !value);
+    this.selectedGame.set(game);
   }
 
   openPreview(game: Game) {
     this.selectedGame.set(game);
-    this.launchWarning.set(
-      this.canEmbedInline(game)
-        ? game.launchConfig?.trustNote ||
-            'Exact embed target verified from the live feed.'
-        : 'Inline launch is unavailable for this cabinet, so it will open in a new tab.'
-    );
-    this.frameError.set(null);
-  }
-
-  previewGame(game: Game) {
-    this.openPreview(game);
   }
 
   closePreview() {
     this.selectedGame.set(null);
-    this.launchWarning.set(null);
-  }
-
-  playGame(game: Game) {
-    this.previewGame(game);
   }
 
   confirmLaunch() {
     const game = this.selectedGame();
-    if (!game) {
-      return;
-    }
+    if (!game) return;
 
-    this.selectedGame.set(null);
-
-    if (!this.canEmbedInline(game)) {
-      this.openGameInNewTab(game);
-      return;
-    }
-
-    if (
-      game.multiplayerType === 'Server' ||
-      game.tags?.includes('Multiplayer')
-    ) {
-      this.startNeuralMatchmaking(game);
-      return;
-    }
-
-    void this.launchGame(game);
-  }
-
-  startNeuralMatchmaking(game: Game) {
+    this.closePreview();
     this.isMatchmaking.set(true);
+    this.matchmakingStatus.set('UPLINKING...');
     this.matchmakingProgress.set(0);
-    this.matchedOpponent.set(null);
-    this.matchmakingStatus.set('SCANNING LIVE FLOOR');
 
-    if (this.matchmakingTimerId) {
-      clearInterval(this.matchmakingTimerId);
-    }
-
-    this.matchmakingTimerId = setInterval(
-      () => {
-        const progress = this.matchmakingProgress();
-        if (progress < 35) {
-          this.matchmakingStatus.set('LOCATING COMPETITIVE SIGNALS');
-        } else if (progress < 70) {
-          this.matchmakingStatus.set('MATCHING ROOM PRESENCE');
-        } else {
-          this.matchmakingStatus.set('CONFIRMING OPPONENT PROFILE');
-        }
-
-        this.matchmakingProgress.update((value) => Math.min(100, value + 10));
-
-        if (this.matchmakingProgress() >= 100) {
-          if (this.matchmakingTimerId) {
-            clearInterval(this.matchmakingTimerId);
-          }
-          this.matchedOpponent.set(
-            this.roomPresence()[0]?.name ||
-              `GRID_${Math.floor(Math.random() * 900 + 100)}`
-          );
-          setTimeout(() => {
-            this.isMatchmaking.set(false);
-            void this.launchGame(game);
-          }, 600);
-        }
-      },
-      Math.max(120, (game.queueEstimateMinutes || 1) * 120)
-    );
-  }
-
-  async launchGame(game: Game) {
-    this.currentGame.set(game);
-    this.sessionStartedAt.set(Date.now());
-    this.frameError.set(null);
-    await this.profileService.recordGameLaunch(
-      game.id,
-      this.getSessionContext(game)
-    );
-  }
-
-  reloadGame() {
-    const game = this.currentGame();
-    if (game) {
-      this.closeGame();
-      setTimeout(() => this.launchGame(game), 100);
-    }
+    let p = 0;
+    this.matchmakingTimerId = setInterval(() => {
+      p += Math.random() * 15;
+      this.matchmakingProgress.set(p);
+      if (p >= 100) {
+        if (this.matchmakingTimerId) clearInterval(this.matchmakingTimerId);
+        this.isMatchmaking.set(false);
+        this.currentGame.set(game);
+        // Tracking
+        this.profileService.updateGameStats(game.id, { plays: 1 });
+      }
+    }, 150);
   }
 
   closeGame() {
     this.currentGame.set(null);
-    this.sessionStartedAt.set(null);
-    this.frameError.set(null);
   }
 
-  openGameInNewTab(game: Game) {
-    if (typeof window !== 'undefined') {
-      const externalUrl = game.launchConfig?.approvedExternalUrl || game.url;
-      window.open(externalUrl, '_blank', 'noopener,noreferrer');
-    }
+  reloadGame() {
+    const game = this.currentGame();
+    this.currentGame.set(null);
+    setTimeout(() => this.currentGame.set(game), 10);
   }
 
   getSafeUrl(game: Game): SafeResourceUrl | null {
-    if (!this.canEmbedInline(game)) {
-      return null;
-    }
-
-    return this.sanitizer.bypassSecurityTrustResourceUrl(
-      game.launchConfig?.approvedEmbedUrl || game.url
-    );
+    const url = game.launchConfig?.approvedEmbedUrl || game.url;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
-  getVisibleTags(game: Game) {
-    return (game.tags || []).slice(0, 3);
+  toggleIntel() {
+    this.showIntelPanel.update(v => !v);
   }
 
-  getQuickFilterLabel(filter: QuickFilter) {
-    switch (filter) {
-      case 'featured':
-        return 'Featured';
-      case 'multiplayer':
-        return 'Multiplayer';
-      case 'instant':
-        return 'Instant play';
-      case 'online':
-        return 'Online ready';
-    }
-  }
-
-  getGameBadges(game: Game): GameBadge[] {
-    return (game.badgeIds || [])
-      .map((badgeId) => this.badgeMap().get(badgeId))
-      .filter((badge): badge is GameBadge => !!badge);
-  }
-
-  getEventGame(event: LiveEvent) {
-    return (
-      this.games().find((game) => game.id === event.featuredGameId) || null
-    );
-  }
-
-  getPresenceGame(entry: SocialPresence) {
-    return this.games().find((game) => game.id === entry.gameId) || null;
-  }
-
-  getPresenceActionLabel(entry: SocialPresence) {
-    return (
-      entry.cta ||
-      (entry.pendingInvite
-        ? 'Accept invite'
-        : entry.relationship === 'party'
-          ? 'Join party'
-          : entry.relationship === 'rival'
-            ? 'Track rival'
-            : 'Join friend')
-    );
-  }
-
-  handlePresenceAction(entry: SocialPresence) {
-    this.setActiveRoom(entry.roomId);
-    const game = this.getPresenceGame(entry);
-    if (game) {
-      this.previewGame(game);
-      return;
-    }
-
-    if (entry.relationship === 'rival' && !this.showIntelPanel()) {
-      this.toggleIntel();
-    }
-  }
-
-  getPromotionRoute(promotion: PromotionCard) {
-    return promotion.route.startsWith('/')
-      ? promotion.route
-      : `/${promotion.route}`;
-  }
-
-  navigateToPath(path: string) {
-    this.router.navigate([path]);
-  }
-
-  isDarkMode(): boolean {
-    return this.uiService.activeTheme().name === 'Dark';
-  }
-
-  onFrameError() {
-    this.frameError.set(
-      'The cabinet refused the embedded session. Open it in a new tab to continue.'
-    );
-  }
-
-  @HostListener('window:message', ['$event'])
-  onMessage(event: MessageEvent) {
-    const currentGame = this.currentGame();
-    if (!currentGame || !this.isTrustedTelemetryEvent(event, currentGame)) {
-      return;
-    }
-
-    const data = event.data;
-    if (!data || typeof data !== 'object') {
-      return;
-    }
-
-    if (data.type === 'GAME_OVER') {
-      return;
-    }
-  }
-
-  canEmbedInline(game: Game): boolean {
-    if (game.launchConfig?.embedMode === 'external-only') {
-      return false;
-    }
-
-    const approvedUrl = game.launchConfig?.approvedEmbedUrl || game.url;
-    return this.isApprovedFeedUrl(approvedUrl);
-  }
-
-  getGameRoomLabels(game: Game) {
-    return this.gamingRooms()
-      .filter(
-        (room) => room.id !== 'all' && this.gameService.matchesRoom(game, room)
-      )
-      .slice(0, 2)
-      .map((room) => room.name);
-  }
-
-  getLaunchModeLabel(game: Game) {
-    return this.canEmbedInline(game) ? 'Inline ready' : 'External launch';
-  }
-
-  getCardAnimationDelay(index: number) {
-    return `${index * this.cardAnimationDelayIncrement}s`;
-  }
-
-  private isTrustedTelemetryEvent(event: MessageEvent, game: Game): boolean {
-    const telemetryMode = game.launchConfig?.telemetryMode || 'none';
-    if (typeof window === 'undefined' || telemetryMode === 'none') {
-      return false;
-    }
-
-    if (telemetryMode === 'frame-only') {
-      return this.gameIframe?.nativeElement?.contentWindow === event.source;
-    }
-
-    return (
-      this.gameIframe?.nativeElement?.contentWindow === event.source &&
-      !!game.launchConfig?.telemetryOrigins?.includes(event.origin)
-    );
-  }
-
-  private getTotalPlays() {
-    return Object.values(this.profileService.profile().gameStats || {}).reduce(
-      (total, stat) => total + (stat?.plays || 0),
-      0
-    );
-  }
-
-  private findMasteredRoom(stats: Record<string, { plays?: number }> = {}) {
-    const roomScores = new Map<string, number>();
-
-    for (const [gameId, stat] of Object.entries(stats)) {
-      const game = this.games().find((entry) => entry.id === gameId);
-      if (!game) {
-        continue;
-      }
-
-      for (const room of this.gamingRooms()) {
-        if (this.gameService.matchesRoom(game, room)) {
-          roomScores.set(
-            room.id,
-            (roomScores.get(room.id) || 0) + (stat.plays || 0)
-          );
-        }
-      }
-    }
-
-    const topRoomId = [...roomScores.entries()].sort(
-      (a, b) => b[1] - a[1]
-    )[0]?.[0];
-    return this.gamingRooms().find((room) => room.id === topRoomId);
+  toggleBrowse() {
+    this.isBrowseView.update(v => !v);
   }
 
   private loadFeed(forceRefresh = false) {
@@ -849,17 +312,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private matchesQuickFilter(game: Game, filter: QuickFilter) {
     switch (filter) {
       case 'featured':
-        return !!game.badgeIds?.some((badge) =>
-          FEATURED_BADGE_ID_SET.has(badge)
-        );
+        return !!game.badgeIds?.some((badge) => FEATURED_BADGE_ID_SET.has(badge));
       case 'multiplayer':
-        return (
-          game.multiplayerType === 'Server' ||
-          game.multiplayerType === 'P2P' ||
-          !!game.tags?.some((tag) =>
-            MULTIPLAYER_TAG_KEYWORDS.includes(tag.toLowerCase())
-          )
-        );
+        return game.multiplayerType === 'Server' || game.multiplayerType === 'P2P' ||
+               !!game.tags?.some((tag) => MULTIPLAYER_TAG_KEYWORDS.includes(tag.toLowerCase()));
       case 'instant':
         return (game.queueEstimateMinutes || 0) <= 1;
       case 'online':
@@ -867,258 +323,86 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
   }
 
-  private isApprovedFeedUrl(url: string) {
-    try {
-      const normalizedUrl = this.normalizeGameUrl(url);
-      return this.games().some((game) => {
-        const approvedUrl = game.launchConfig?.approvedEmbedUrl || game.url;
-        return this.normalizeGameUrl(approvedUrl) === normalizedUrl;
-      });
-    } catch {
-      return false;
+  private findMasteredRoom(stats: Record<string, { plays?: number }> = {}) {
+    const roomScores = new Map<string, number>();
+    for (const [gameId, stat] of Object.entries(stats)) {
+      const game = this.games().find((entry) => entry.id === gameId);
+      if (!game) continue;
+      for (const room of this.gamingRooms()) {
+        if (this.gameService.matchesRoom(game, room)) {
+          roomScores.set(room.id, (roomScores.get(room.id) || 0) + (stat.plays || 0));
+        }
+      }
     }
-  }
-
-  private normalizeGameUrl(url: string) {
-    return new URL(
-      url,
-      typeof window !== 'undefined'
-        ? window.location.origin
-        : 'https://smuve.local'
-    ).toString();
+    const topRoomId = [...roomScores.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    return this.gamingRooms().find((room) => room.id === topRoomId);
   }
 
   private matchesRecommendationAudience(rail: RecommendationRail) {
     const audience = rail.audience;
-    if (!audience) {
-      return true;
-    }
-
+    if (!audience) return true;
     const profile = this.profileService.profile();
     const totalPlays = this.getTotalPlays();
-    const activeRoom = this.activeRoom();
-
-    if (
-      audience.primaryGenres?.length &&
-      !audience.primaryGenres.some(
-        (genre) =>
-          genre.toLowerCase() === (profile.primaryGenre || '').toLowerCase()
-      )
-    ) {
-      return false;
-    }
-
-    if (audience.rooms?.length && !audience.rooms.includes(activeRoom)) {
-      return false;
-    }
-
-    if (
-      typeof audience.minPlays === 'number' &&
-      totalPlays < audience.minPlays
-    ) {
-      return false;
-    }
-
-    if (
-      typeof audience.maxPlays === 'number' &&
-      totalPlays > audience.maxPlays
-    ) {
-      return false;
-    }
-
+    if (audience.primaryGenres?.length && !audience.primaryGenres.some(g => g.toLowerCase() === (profile.primaryGenre || '').toLowerCase())) return false;
+    if (audience.rooms?.length && !audience.rooms.includes(this.activeRoom())) return false;
+    if (typeof audience.minPlays === 'number' && totalPlays < audience.minPlays) return false;
+    if (typeof audience.maxPlays === 'number' && totalPlays > audience.maxPlays) return false;
     return true;
   }
 
   private matchesRecommendationRail(game: Game, rail: RecommendationRail) {
     const gameMatches = !rail.gameIds?.length || rail.gameIds.includes(game.id);
-    const roomMatches =
-      !rail.roomIds?.length ||
-      rail.roomIds.some((roomId) => {
+    const roomMatches = !rail.roomIds?.length || rail.roomIds.some((roomId) => {
         const room = this.gamingRooms().find((entry) => entry.id === roomId);
         return room ? this.gameService.matchesRoom(game, room) : false;
       });
-
     return gameMatches && roomMatches;
   }
 
-  private scoreRecommendation(
-    game: Game,
-    rail: RecommendationRail,
-    stats: Record<string, { plays?: number }>,
-    roomId: string
-  ) {
+  private scoreRecommendation(game: Game, rail: RecommendationRail, stats: Record<string, { plays?: number }>, roomId: string) {
     const weights = rail.weights || {};
     const gameStats = stats[game.id];
     const activeRoom = this.gamingRooms().find((room) => room.id === roomId);
-    const badgeScore =
-      Math.min(game.badgeIds?.length || 0, 3) * (weights.badge || 0);
-    const historyScore =
-      Math.min(gameStats?.plays || 0, MAX_HISTORY_SCORE) *
-      ((weights.history || 0) / HISTORY_SCORE_DIVISOR);
-    const crowdScore =
-      Math.min((game.playersOnline || 0) / 2500, 8) * (weights.crowd || 0);
-    const roomScore =
-      activeRoom && this.gameService.matchesRoom(game, activeRoom)
-        ? weights.room || 0
-        : 0;
-    const genreScore =
-      rail.audience?.primaryGenres?.some(
-        (genre) =>
-          genre.toLowerCase() ===
-          (this.profileService.profile().primaryGenre || '').toLowerCase()
-      ) &&
-      ['Rhythm', 'Music Battle', 'Strategy', 'Sports', 'Classic'].includes(
-        game.genre || ''
-      )
-        ? weights.genre || 0
-        : 0;
+    const badgeScore = Math.min(game.badgeIds?.length || 0, 3) * (weights.badge || 0);
+    const historyScore = Math.min(gameStats?.plays || 0, MAX_HISTORY_SCORE) * ((weights.history || 0) / HISTORY_SCORE_DIVISOR);
+    const crowdScore = Math.min((game.playersOnline || 0) / 2500, 8) * (weights.crowd || 0);
+    const roomScore = activeRoom && this.gameService.matchesRoom(game, activeRoom) ? weights.room || 0 : 0;
+    const genreScore = rail.audience?.primaryGenres?.some(g => g.toLowerCase() === (this.profileService.profile().primaryGenre || '').toLowerCase()) &&
+                       ['Rhythm', 'Music Battle', 'Strategy', 'Sports', 'Classic'].includes(game.genre || '') ? weights.genre || 0 : 0;
     const noveltyScore = gameStats?.plays ? 0 : weights.novelty || 0;
-    const explicitGameBoost = rail.gameIds?.includes(game.id) ? 12 : 0;
-
-    return (
-      badgeScore +
-      historyScore +
-      crowdScore +
-      roomScore +
-      genreScore +
-      noveltyScore +
-      explicitGameBoost
-    );
+    return badgeScore + historyScore + crowdScore + roomScore + genreScore + noveltyScore + (rail.gameIds?.includes(game.id) ? 12 : 0);
   }
 
   private resolveLiveEvent(event: LiveEvent): LiveEvent | null {
     const schedule = event.schedule;
-    if (!schedule?.startAt || !schedule?.endAt) {
-      return event;
-    }
-
+    if (!schedule?.startAt || !schedule?.endAt) return event;
     let start = new Date(schedule.startAt).getTime();
     let end = new Date(schedule.endAt).getTime();
     const now = this.now();
-
-    if (!Number.isFinite(start) || !Number.isFinite(end)) {
-      return event;
-    }
-
-    if (schedule.recurrence === 'daily') {
-      const duration = Math.max(1, end - start);
-      const anchor = new Date(schedule.startAt);
-      const todayStart = new Date(anchor);
-      const currentDate = new Date(now);
-      todayStart.setUTCFullYear(
-        currentDate.getUTCFullYear(),
-        currentDate.getUTCMonth(),
-        currentDate.getUTCDate()
-      );
-      start = todayStart.getTime();
-      end = start + duration;
-      if (now > end) {
-        start += 24 * 60 * 60 * 1000;
-        end += 24 * 60 * 60 * 1000;
-      }
-    }
-
-    if (schedule.recurrence === 'weekend') {
-      const duration = Math.max(1, end - start);
-      while (now > end) {
-        start += 7 * 24 * 60 * 60 * 1000;
-        end = start + duration;
-      }
-    }
-
-    const status =
-      now < start
-        ? 'upcoming'
-        : now >= end - EVENT_ENDING_SOON_MS
-          ? 'ending-soon'
-          : 'live';
-
-    if (status === 'upcoming' && schedule.recurrence === 'once' && now > end) {
-      return null;
-    }
-
-    return {
-      ...event,
-      status,
-      windowLabel:
-        status === 'live'
-          ? 'Live now'
-          : status === 'ending-soon'
-            ? 'Ending soon'
-            : `Starts ${this.formatDuration(start - now)} from now`,
-    };
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return event;
+    const status = now < start ? 'upcoming' : now >= end - EVENT_ENDING_SOON_MS ? 'ending-soon' : 'live';
+    return { ...event, status };
   }
 
-  private getPromotionAudienceTags(profile: UserProfile) {
-    const tags = ['returning'];
-    const genre = (profile.primaryGenre || '').toLowerCase();
-    const currentStreak = (
-      profile.thaSpotProgression as { currentStreak?: number } | undefined
-    )?.currentStreak;
-
-    if (['hip hop', 'r&b', 'pop', 'electronic'].includes(genre)) {
-      tags.push('producer');
-    }
-    if ((currentStreak || 0) >= 3) {
-      tags.push('competitive');
-    }
-    if (Object.keys(profile.gameStats || {}).length > 0) {
-      tags.push('social');
-    }
-
-    return tags;
-  }
-
-  private getSessionContext(game: Game): ThaSpotSessionContext {
-    const activeEvent = this.activeEvents().find(
-      (event) => event.featuredGameId === game.id
-    );
-    const rawRewardType = activeEvent?.schedule?.rewardType;
-    const rewardType: ThaSpotSessionContext['rewardType'] =
-      rawRewardType === 'cosmetic' || rawRewardType === 'token'
-        ? rawRewardType
-        : undefined;
-
-    return {
-      roomId: this.activeRoom(),
-      eventId: activeEvent?.id,
-      reward: activeEvent?.reward,
-      rewardType,
-      cosmetics: [],
-    };
-  }
-
-  hasRail(railId: string): boolean {
-    return this.recommendationRails().some(r => r.id === railId);
-  }
-  private formatDuration(durationMs: number) {
-    const totalMinutes = Math.max(0, Math.floor(durationMs / 60000));
-    if (totalMinutes === 0) {
-      return '<1m';
-    }
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
+  private getTotalPlays() {
+    return Object.values(this.profileService.profile().gameStats || {}).reduce((total, stat) => total + (stat?.plays || 0), 0);
   }
 
   getGamesForRail(rail: RecommendationRail): Game[] {
     const allGames = this.games();
     const stats = this.profileService.profile().gameStats || {};
-    const activeRoom = this.activeRoom();
-
-    return allGames
-      .filter((game) => this.matchesRecommendationRail(game, rail))
-      .map((game) => ({
-        game,
-        score: this.scoreRecommendation(game, rail, stats, activeRoom),
-      }))
+    return allGames.filter(g => this.matchesRecommendationRail(g, rail))
+      .map(game => ({ game, score: this.scoreRecommendation(game, rail, stats, this.activeRoom()) }))
       .sort((a, b) => b.score - a.score)
       .slice(0, rail.maxItems || DEFAULT_RECOMMENDATION_ITEMS)
-      .map((entry) => entry.game);
+      .map(entry => entry.game);
   }
 
+  hasRail(railId: string): boolean {
+    return this.recommendationRails().some(r => r.id === railId);
+  }
+
+  setSearchQuery(q: string) { this.searchQuery.set(q); }
+  setSortMode(m: GameSortMode) { this.sortMode.set(m); }
+  setActiveGenre(g: string) { this.activeGenre.set(g); } toggleQuickFilter(f: QuickFilter) { this.quickFilters.update(fs => fs.includes(f) ? fs.filter(e => e !== f) : [...fs, f]); }
 }
