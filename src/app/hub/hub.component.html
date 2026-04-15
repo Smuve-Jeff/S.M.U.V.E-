@@ -309,7 +309,9 @@
             [class.spinning]="playerService.isPlaying()"
           >
             <div class="vinyl-outer"></div>
-            <div class="vinyl-label bg-accent"></div>
+            <div class="vinyl-label bg-accent overflow-hidden">
+              <img *ngIf="profileService.profile().avatarImage" [src]="profileService.profile().avatarImage" class="w-full h-full object-cover" />
+            </div>
           </div>
           <div class="flex-1 min-w-0">
             <p class="eyebrow text-accent glimmer-text">Active Production</p>

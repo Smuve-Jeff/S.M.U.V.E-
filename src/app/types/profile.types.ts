@@ -179,6 +179,9 @@ export interface UserProfile {
   proIpi?: string;
   catalog: CatalogItem[];
   artistIdentity: ArtistIdentityState;
+  avatarImage?: string;
+  headerImage?: string;
+  pressGallery?: string[];
 
   // AI Audit Support
   strategicHealthScore: number;

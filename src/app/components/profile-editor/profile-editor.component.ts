@@ -165,6 +165,38 @@ export class ProfileEditorComponent implements OnInit {
     }
   }
 
+  addToGallery(event: any) {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.editableProfile.update(p => ({
+          ...p,
+          pressGallery: [...(p.pressGallery || []), e.target.result]
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  removeFromGallery(index: number) {
+    this.editableProfile.update(p => ({
+      ...p,
+      pressGallery: (p.pressGallery || []).filter((_, i) => i !== index)
+    }));
+  }
+
+  onImageSelected(event: any, target: "avatarImage" | "headerImage") {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.updateProfileField(target, e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
   async saveProfile(): Promise<void> {
     this.showUplink.set(true);
     await this.uplinkService.initiateUplink(this.editableProfile());

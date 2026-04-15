@@ -10,6 +10,10 @@
     ></div>
   </div>
 
+  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
+    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
+  </div>
   <header
     class="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5 p-6 flex justify-between items-center"
   >
@@ -130,6 +134,10 @@
 
       <div [ngSwitch]="activeSection()" class="relative z-10 space-y-12">
         <div *ngSwitchCase="'basic'" class="space-y-10 animate-fade-in">
+  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
+    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
+  </div>
           <header class="border-b border-white/5 pb-6">
             <h2 class="text-3xl font-black italic uppercase text-brand-primary">
               Identity & Vision
@@ -170,6 +178,72 @@
             </app-form-field>
           </div>
 
+          <section *ngIf="editableProfile().profileSetupCompleted" class="space-y-8 animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="identity-panel flex flex-col items-center gap-6 p-10">
+                <h3 class="text-sm font-black uppercase text-white tracking-widest">Artist Avatar</h3>
+                <div class="relative group cursor-pointer" (click)="avatarUpload.click()">
+                  <div class="w-32 h-32 rounded-3xl overflow-hidden border-2 border-white/10 group-hover:border-brand-primary transition-all shadow-2xl">
+                    <img *ngIf="editableProfile().avatarImage" [src]="editableProfile().avatarImage" class="w-full h-full object-cover" />
+                    <div *ngIf="!editableProfile().avatarImage" class="w-full h-full bg-white/5 flex items-center justify-center">
+                      <i class="fas fa-camera text-3xl text-slate-700"></i>
+                    </div>
+                  </div>
+                  <div class="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-3xl">
+                    <span class="text-[10px] font-black uppercase text-white">Upload</span>
+                  </div>
+                  <input #avatarUpload type="file" class="hidden" (change)="onImageSelected($event, 'avatarImage')" accept="image/*" />
+                </div>
+                <p class="text-[9px] text-slate-500 uppercase tracking-widest text-center">Recommended: 1024x1024 PNG/JPG</p>
+              </div>
+
+              <div class="identity-panel flex flex-col items-center gap-6 p-10">
+                <h3 class="text-sm font-black uppercase text-white tracking-widest">Header Backdrop</h3>
+                <div class="relative group cursor-pointer w-full" (click)="headerUpload.click()">
+                  <div class="w-full h-32 rounded-3xl overflow-hidden border-2 border-white/10 group-hover:border-brand-primary transition-all shadow-2xl">
+                    <img *ngIf="editableProfile().headerImage" [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
+                    <div *ngIf="!editableProfile().headerImage" class="w-full h-full bg-white/5 flex items-center justify-center">
+                      <i class="fas fa-image text-3xl text-slate-700"></i>
+                    </div>
+                  </div>
+                  <div class="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-3xl">
+                    <span class="text-[10px] font-black uppercase text-white">Upload</span>
+                  </div>
+                  <input #headerUpload type="file" class="hidden" (change)="onImageSelected($event, 'headerImage')" accept="image/*" />
+                </div>
+                <p class="text-[9px] text-slate-500 uppercase tracking-widest text-center">Recommended: 1920x600 Cinematic Aspect</p>
+              </div>
+            </div>
+
+            <div class="identity-panel p-10">
+              <div class="flex items-center justify-between mb-8">
+                <div>
+                  <h3 class="text-sm font-black uppercase text-white tracking-widest">Press Gallery</h3>
+                  <p class="text-[9px] text-slate-500 uppercase tracking-widest mt-1">Managed visual assets for media & promoters</p>
+                </div>
+                <button (click)="galleryUpload.click()" class="connector-action">
+                  Deploy New Asset
+                </button>
+                <input #galleryUpload type="file" class="hidden" (change)="addToGallery($event)" accept="image/*" />
+              </div>
+
+              <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div *ngFor="let img of editableProfile().pressGallery; let i = index" class="relative group aspect-square rounded-2xl overflow-hidden border border-white/10">
+                  <img [src]="img" class="w-full h-full object-cover" />
+                  <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                    <button (click)="removeFromGallery(i)" class="w-8 h-8 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+                      <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+                <div *ngIf="!editableProfile().pressGallery || editableProfile().pressGallery.length === 0"
+                     class="col-span-full py-12 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-3">
+                  <i class="fas fa-images text-slate-800 text-3xl"></i>
+                  <span class="text-[9px] font-black uppercase tracking-widest text-slate-600">No assets deployed to gallery</span>
+                </div>
+              </div>
+            </div>
+          </section>
           <section class="space-y-4">
             <label
               class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]"
@@ -192,6 +266,10 @@
           *ngSwitchCase="'identity-console'"
           class="space-y-10 animate-fade-in"
         >
+  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
+    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
+  </div>
           <header class="border-b border-white/5 pb-6">
             <h2 class="text-3xl font-black italic uppercase text-brand-primary">
               Artist Identity Console
@@ -355,6 +433,10 @@
           *ngSwitchCase="'genre-deep-dive'"
           class="space-y-10 animate-fade-in"
         >
+  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
+    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
+  </div>
           <header class="border-b border-white/5 pb-6">
             <h2 class="text-3xl font-black italic uppercase text-brand-primary">
               Genre Intelligence
@@ -390,6 +472,10 @@
         </div>
 
         <div *ngSwitchCase="'touring'" class="space-y-10 animate-fade-in">
+  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
+    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
+  </div>
           <header class="border-b border-white/5 pb-6">
             <h2 class="text-3xl font-black italic uppercase text-brand-primary">
               Touring & Live
@@ -422,6 +508,10 @@
         </div>
 
         <div *ngSwitchCase="'business'" class="space-y-10 animate-fade-in">
+  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
+    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
+  </div>
           <header class="border-b border-white/5 pb-6">
             <h2 class="text-3xl font-black italic uppercase text-brand-primary">Business & Financials</h2>
           </header>
@@ -453,6 +543,10 @@
         </div>
 
         <div *ngSwitchCase="'team'" class="space-y-10 animate-fade-in">
+  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
+    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
+  </div>
           <header class="border-b border-white/5 pb-6">
             <h2 class="text-3xl font-black italic uppercase text-brand-primary">Professional Team</h2>
           </header>

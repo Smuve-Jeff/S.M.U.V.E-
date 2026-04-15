@@ -1,3 +1,4 @@
+import { UserProfileService } from "../services/user-profile.service";
 import {
   Component,
   inject,
@@ -51,6 +52,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   public readonly musicManager = inject(MusicManagerService);
+  public readonly profileService = inject(UserProfileService);
 
   activeView = signal<
     | 'dj'

@@ -36,7 +36,8 @@
     <header class="fl-top-bar px-4 flex items-center justify-between shrink-0 relative z-50">
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2 text-brand-primary">
-          <span class="material-symbols-outlined text-xl">token</span>
+          <img *ngIf="profileService.profile().avatarImage" [src]="profileService.profile().avatarImage" class="w-5 h-5 object-cover rounded shadow-lg" />
+          <span *ngIf="!profileService.profile().avatarImage" class="material-symbols-outlined text-xl">token</span>
           <h2 class="text-slate-100 text-xs font-black tracking-tight uppercase italic leading-none">
             <span class="studio-title-desktop">STUDIO PRO </span>
             <span class="studio-title-desktop studio-title-accent">v2.0</span>
