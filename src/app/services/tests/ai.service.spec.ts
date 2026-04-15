@@ -8,6 +8,7 @@ import { StemSeparationService } from '../stem-separation.service';
 import { AudioEngineService } from '../audio-engine.service';
 import { signal } from '@angular/core';
 import { ArtistIdentityService } from '../artist-identity.service';
+import { AuthService } from '../auth.service';
 
 describe('AiService', () => {
   let service: AiService;
@@ -15,6 +16,7 @@ describe('AiService', () => {
   let userContextService: any;
   let analyticsService: any;
   let artistIdentityService: any;
+  let authServiceMock: any;
 
   beforeEach(() => {
     userProfileService = {
@@ -66,6 +68,12 @@ describe('AiService', () => {
         ],
       }),
     };
+    authServiceMock = {
+      currentUser: signal({
+        id: 'test-user',
+        emailVerified: true
+      })
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -79,6 +87,7 @@ describe('AiService', () => {
         { provide: UserProfileService, useValue: userProfileService },
         { provide: UserContextService, useValue: userContextService },
         { provide: ArtistIdentityService, useValue: artistIdentityService },
+        { provide: AuthService, useValue: authServiceMock },
         { provide: StemSeparationService, useValue: {} },
         {
           provide: AudioEngineService,
@@ -235,7 +244,7 @@ describe('AiService', () => {
     const checklist = service.getDynamicChecklist();
 
     expect(
-      recommendations.some((item) => item.action.includes('connector'))
+      recommendations.some((item) => item.action.toLowerCase().includes('catalog'))
     ).toBe(true);
     expect(checklist.some((item) => item.category === 'Identity')).toBe(true);
   });

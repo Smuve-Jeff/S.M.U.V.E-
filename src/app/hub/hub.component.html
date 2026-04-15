@@ -198,6 +198,21 @@
     </section>
 
     <!-- Bento Grid Layout -->
+    @if (securityService.getSecurityAudit().score < 80) {
+      <div class="col-span-full mb-6 glass-v42 border-l-4 border-brand-danger p-6 animate-enter" (click)="uiService.navigateToView('profile')">
+        <div class="flex items-center gap-6">
+          <div class="w-12 h-12 rounded-full bg-brand-danger/10 flex items-center justify-center text-brand-danger">
+            <span class="material-symbols-outlined text-3xl">gpp_maybe</span>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-sm font-black uppercase tracking-widest text-brand-danger">Security Deficit Detected</h3>
+            <p class="text-xs text-silver-dim mt-1 font-bold">Your artist identity is vulnerable. {{ securityService.getSecurityAudit().alerts[0] }}</p>
+          </div>
+          <button class="btn-elegant btn-elegant-danger h-10 px-6 text-[10px] font-black uppercase tracking-widest">Verify Identity</button>
+        </div>
+      </div>
+    }
+
     <div class="bento-grid">
       <!-- Module 1: S.M.U.V.E Audit (2x2) -->
       <div
