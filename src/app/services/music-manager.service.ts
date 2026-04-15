@@ -781,8 +781,13 @@ export class MusicManagerService {
         length: 4,
         color: track.color
       };
-      track.clips.push(clip);
-      this.tracks.set([...this.tracks()]);
+      this.tracks.update(tracks =>
+        tracks.map(existingTrack =>
+          existingTrack.id === trackId
+            ? { ...existingTrack, clips: [...existingTrack.clips, clip] }
+            : existingTrack
+        )
+      );
     }
   }
 }
