@@ -351,3 +351,37 @@
     height: 64px; /* Taller touch targets for Android */
   }
 }
+
+/* Transport & Metronome Refinement */
+.transport-console {
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.recording-active {
+  color: #ef4444 !important;
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
+  animation: transport-blink 1s ease-in-out infinite;
+}
+
+.metronome-active {
+  color: var(--fl-accent) !important;
+  filter: drop-shadow(0 0 6px rgba(255, 140, 0, 0.4));
+}
+
+@keyframes transport-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+.metronome-console input[type=range]::-webkit-slider-thumb {
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  background: var(--fl-accent);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 5px var(--fl-accent);
+}

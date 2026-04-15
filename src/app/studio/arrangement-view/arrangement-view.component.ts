@@ -124,4 +124,10 @@ export class ArrangementViewComponent {
   isClipSelected(clipId: string): boolean {
     return this.selectedClipId() === clipId;
   }
+  toggleArm(id: number) {
+    this.tracks().forEach(t => {
+      if (t.id === id) t.armed = !t.armed;
+      else t.armed = false;
+    });
+  }
 }
