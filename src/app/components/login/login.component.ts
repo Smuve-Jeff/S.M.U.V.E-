@@ -24,6 +24,8 @@ export class LoginComponent implements OnInit {
   isLoading = signal(false);
   message = signal('');
   isError = signal(false);
+  isVerifying = signal(false);
+  verificationCode = "";
 
   credentials: AuthCredentials = {
     email: '',
@@ -44,7 +46,9 @@ export class LoginComponent implements OnInit {
 
     try {
       let result;
-      if (this.isRegistering()) {
+      if (this.isVerifying()) {
+        result = await this.authService.verifyEmail(this.verificationCode);
+      } else if (this.isRegistering()) {
         result = await this.authService.register(
           this.credentials,
           this.artistName
@@ -55,6 +59,11 @@ export class LoginComponent implements OnInit {
 
       this.message.set(result.message);
       if (result.success) {
+        if (this.isRegistering() && !this.isVerifying()) {
+          this.isVerifying.set(true);
+          this.isLoading.set(false);
+          return;
+        }
         setTimeout(() => {
           void this.navigateAfterAuth();
         }, 1500);
@@ -69,8 +78,20 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  async onResendCode() {
+    this.isLoading.set(true);
+    try {
+      const result = await this.authService.resendVerificationCode();
+      this.message.set(result.message);
+      this.isError.set(!result.success);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
   toggleMode() {
     this.isRegistering.update((v) => !v);
+    this.isVerifying.set(false);
     this.message.set('');
   }
 

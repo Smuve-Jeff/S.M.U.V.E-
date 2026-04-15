@@ -1,3 +1,4 @@
+import { SecurityService } from '../services/security.service';
 import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -58,6 +59,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   private notificationService = inject(NotificationService);
   public playerService = inject(PlayerService);
   public onboarding = inject(OnboardingService);
+  public securityService = inject(SecurityService);
 
   // Quick Start Form
   quickProfile = signal({

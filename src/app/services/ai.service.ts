@@ -1,3 +1,4 @@
+import { AuthService } from './auth.service';
 import {
   Injectable,
   inject,
@@ -487,7 +488,9 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
 @Injectable({
   providedIn: 'root',
 })
+
 export class AiService {
+  private authService = inject(AuthService);
   private http = inject(HttpClient);
   private userProfileService = inject(UserProfileService);
   private analyticsService = inject(AnalyticsService);
@@ -1165,43 +1168,49 @@ export class AiService {
 
   async getStrategicRecommendations(): Promise<StrategicRecommendationType[]> {
     const profile = this.userProfileService.profile();
+    const user = this.authService.currentUser();
     const catalog = profile?.catalog || [];
     const campaigns = profile?.marketingCampaigns || [];
     const identity = this.artistIdentityService.buildIdentitySnapshot(profile);
+
+    const scores = {
+      security: user?.emailVerified ? 100 : 20,
+      production: catalog.length >= 5 ? 100 : catalog.length * 20,
+      marketing: campaigns.length > 0 ? 100 : 10,
+      brand: (profile?.artistName && profile?.primaryGenre) ? 100 : 30
+    };
+
     const recs: StrategicRecommendationType[] = [];
 
-    if (catalog.length < 3) {
+    if (!user?.emailVerified) {
       recs.push({
-        id: 'rec-1',
-        action: 'Ship a 3-track micro-EP to test audience response.',
-        impact: 'High',
-        difficulty: 'Medium',
-        toolId: 'release-planner',
+        id: "sec-rec-1",
+        action: "Establish Secure Channel: Verify your email to protect personal data.",
+        impact: "Extreme",
+        difficulty: "Low",
+        toolId: "profile"
       });
     }
-    if (campaigns.length === 0) {
+
+    if (scores.production < 80) {
       recs.push({
-        id: 'rec-2',
-        action: 'Launch a $50 Meta or TikTok Ads campaign.',
-        impact: 'High',
-        difficulty: 'Low',
-        toolId: 'marketing',
+        id: "prod-rec-1",
+        action: `Expand catalog depth (Current: ${catalog.length}/5). Ship more tracks.`,
+        impact: "High",
+        difficulty: "Medium",
+        toolId: "release-planner"
       });
     }
-    recs.push({
-      id: 'rec-3',
-      action: 'Register all catalog tracks with your PRO.',
-      impact: 'Medium',
-      difficulty: 'Low',
-      toolId: 'knowledge-base',
-    });
-    recs.push({
-      id: 'rec-4',
-      action: 'Build or update your EPK.',
-      impact: 'Medium',
-      difficulty: 'Low',
-      toolId: 'strategy',
-    });
+
+    if (scores.marketing < 50) {
+      recs.push({
+        id: "mark-rec-1",
+        action: "Initialize marketing protocols. Launch a test campaign.",
+        impact: "High",
+        difficulty: "Low",
+        toolId: "marketing"
+      });
+    }
 
     identity.recommendations.slice(0, 3).forEach((recommendation, index) => {
       recs.push({

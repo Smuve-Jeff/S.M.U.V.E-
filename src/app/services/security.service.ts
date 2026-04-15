@@ -1,8 +1,15 @@
-import { Injectable, inject, signal, NgZone } from '@angular/core';
+import { AuthService } from './auth.service';
+import {
+  Injectable,
+  inject,
+  signal,
+  NgZone,
+} from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+
 import { LoggingService } from './logging.service';
 import { UserProfileService } from './user-profile.service';
-import { firstValueFrom } from 'rxjs';
 
 export interface SecurityLog {
   log_id: number;
@@ -20,13 +27,7 @@ export interface UserSession {
   device_name: string;
   location: string;
   last_active: string;
-  created_at: string;
-}
-
-export interface RateLimitConfig {
-  maxAttempts: number;
-  windowMs: number;
-  blockDurationMs: number;
+  is_current: boolean;
 }
 
 export interface SecurityConfig {
@@ -35,6 +36,12 @@ export interface SecurityConfig {
   requireReauthForSensitive: boolean;
   maxConcurrentSessions: number;
   csrfEnabled: boolean;
+}
+
+export interface RateLimitConfig {
+  maxAttempts: number;
+  windowMs: number;
+  blockDurationMs: number;
 }
 
 const DEFAULT_RATE_LIMIT: RateLimitConfig = {
@@ -402,6 +409,36 @@ export class SecurityService {
    */
   updateSecurityConfig(config: Partial<SecurityConfig>): void {
     this.securityConfig = { ...this.securityConfig, ...config };
+  }
+
+  getSecurityAudit(): { score: number; status: string; alerts: string[] } {
+    const authService = inject(AuthService);
+    const profile = this.profileService.profile();
+    const user = authService.currentUser();
+
+    let score = 100;
+    const alerts: string[] = [];
+
+    if (!user?.emailVerified) {
+      score -= 40;
+      alerts.push("CRITICAL: Secure channel unverified. Identity at risk.");
+    }
+
+    if (!profile?.settings?.security?.twoFactorEnabled) {
+      score -= 30;
+      alerts.push("WARNING: Multi-factor authentication disabled.");
+    }
+
+    if (!this.validateSession()) {
+      score -= 20;
+      alerts.push("NOTICE: Session integrity compromised.");
+    }
+
+    return {
+      score: Math.max(0, score),
+      status: score >= 90 ? "FORTIFIED" : score >= 70 ? "VULNERABLE" : "COMPROMISED",
+      alerts
+    };
   }
 
   /**

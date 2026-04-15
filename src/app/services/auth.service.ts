@@ -25,6 +25,8 @@ export interface AuthUser {
   createdAt: Date;
   lastLogin: Date;
   profileCompleteness: number;
+  emailVerified: boolean;
+  verificationCode?: string;
 }
 
 @Injectable({
@@ -229,6 +231,8 @@ export class AuthService {
         createdAt: new Date(),
         lastLogin: new Date(),
         profileCompleteness: 0,
+        emailVerified: false,
+        verificationCode: Math.floor(100000 + Math.random() * 900000).toString(),
       };
 
       localStorage.setItem(
@@ -255,12 +259,8 @@ export class AuthService {
         newUser.id
       );
 
-      await this.securityService.logEvent(
-        'ACCOUNT_CREATED',
-        'New artist account registered.',
-        newUser.id
-      );
-
+      this.logger.info(`[MOCK EMAIL] Welcome to SMUVE 2.0. Your verification code is: ${newUser.verificationCode}`);
+      await this.securityService.logEvent('ACCOUNT_CREATED', 'New artist account registered.', newUser.id);
       return {
         success: true,
         message:
@@ -414,6 +414,59 @@ export class AuthService {
         message: 'Login failed. The system encountered an error.',
       };
     }
+  }
+
+  async verifyEmail(code: string): Promise<{ success: boolean; message: string }> {
+    const user = this._currentUser();
+    if (!user) return { success: false, message: "No active session." };
+
+    if (user.emailVerified) return { success: true, message: "Email already verified." };
+
+    if (user.verificationCode === code) {
+      user.emailVerified = true;
+      delete user.verificationCode;
+
+      this._currentUser.set({ ...user });
+      this.saveSession(user);
+
+      // Update stored user data
+      const encryptedUserData = localStorage.getItem(this.getUserStorageKey(user.email));
+      if (encryptedUserData) {
+        const userData = this.decrypt(encryptedUserData);
+        if (userData) {
+          const parsed = JSON.parse(userData);
+          parsed.user = user;
+          localStorage.setItem(this.getUserStorageKey(user.email), this.encrypt(JSON.stringify(parsed)));
+        }
+      }
+
+      await this.securityService.logEvent("EMAIL_VERIFIED", "User email verified successfully.", user.id);
+      return { success: true, message: "Email verified. Secure channel established." };
+    }
+
+    return { success: false, message: "Invalid verification code." };
+  }
+
+  async resendVerificationCode(): Promise<{ success: boolean; message: string }> {
+    const user = this._currentUser();
+    if (!user) return { success: false, message: "No active session." };
+
+    user.verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    this._currentUser.set({ ...user });
+
+    // Update stored user data
+    const encryptedUserData = localStorage.getItem(this.getUserStorageKey(user.email));
+    if (encryptedUserData) {
+      const userData = this.decrypt(encryptedUserData);
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        parsed.user = user;
+        localStorage.setItem(this.getUserStorageKey(user.email), this.encrypt(JSON.stringify(parsed)));
+      }
+    }
+
+    this.logger.info(`[MOCK EMAIL] Verification code for ${user.email}: ${user.verificationCode}`);
+    return { success: true, message: "New verification code transmitted." };
   }
 
   logout(): void {

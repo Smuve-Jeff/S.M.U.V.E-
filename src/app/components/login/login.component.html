@@ -33,69 +33,107 @@
         <p
           class="text-[9px] font-black uppercase tracking-[0.3em] text-brand-primary"
         >
-          Guided Activation
+          {{ isVerifying() ? 'Secure Channel Verification' : 'Guided Activation' }}
         </p>
         <p class="text-[11px] text-silver-dim mt-2 leading-relaxed">
-          New and returning artists now continue into a guided launch flow with
-          profile setup, onboarding questionnaire, and resume-ready workspace
-          suggestions.
+          {{ isVerifying()
+            ? 'A transmission has been sent to your secure channel. Enter the 6-digit authorization cipher to establish the link.'
+            : 'New and returning artists now continue into a guided launch flow with profile setup, onboarding questionnaire, and resume-ready workspace suggestions.'
+          }}
         </p>
       </div>
 
-      @if (isRegistering()) {
+      @if (isVerifying()) {
         <div class="space-y-2">
           <label
             class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
-            >Artist Designation</label
+            >Authorization Cipher</label
           >
           <input
             type="text"
-            [(ngModel)]="artistName"
-            name="artistName"
+            [(ngModel)]="verificationCode"
+            name="verificationCode"
             required
-            placeholder="STAGE NAME"
+            maxlength="6"
+            placeholder="000000"
+            class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-center text-2xl font-black tracking-[0.5em] focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/20 text-brand-primary"
+          />
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="isLoading() || verificationCode.length !== 6"
+          class="w-full mt-4 btn-elegant btn-elegant-primary h-14 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-brand-brand-primary/10"
+        >
+          Verify Channel
+        </button>
+
+        <div class="text-center mt-4">
+          <button
+            type="button"
+            (click)="onResendCode()"
+            [disabled]="isLoading()"
+            class="text-[9px] font-black text-silver-dim hover:text-brand-primary uppercase tracking-[0.2em] transition-all"
+          >
+            Resend Transmission
+          </button>
+        </div>
+      } @else {
+        @if (isRegistering()) {
+          <div class="space-y-2">
+            <label
+              class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+              >Artist Designation</label
+            >
+            <input
+              type="text"
+              [(ngModel)]="artistName"
+              name="artistName"
+              required
+              placeholder="STAGE NAME"
+              class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim uppercase"
+            />
+          </div>
+        }
+
+        <div class="space-y-2">
+          <label
+            class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+            >Secure Channel</label
+          >
+          <input
+            type="email"
+            [(ngModel)]="credentials.email"
+            name="email"
+            required
+            placeholder="EMAIL ADDRESS"
             class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim uppercase"
           />
         </div>
+
+        <div class="space-y-2">
+          <label
+            class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+            >Access Cipher</label
+          >
+          <input
+            type="password"
+            [(ngModel)]="credentials.password"
+            name="password"
+            required
+            placeholder="PASSWORD"
+            class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim"
+          />
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="isLoading() || !loginForm.form.valid"
+          class="w-full mt-4 btn-elegant btn-elegant-primary h-14 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-brand-brand-primary/10"
+        >
+          {{ isRegistering() ? 'Initialize Genesis' : 'Authorize Access' }}
+        </button>
       }
-
-      <div class="space-y-2">
-        <label
-          class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
-          >Secure Channel</label
-        >
-        <input
-          type="email"
-          [(ngModel)]="credentials.email"
-          name="email"
-          required
-          placeholder="EMAIL ADDRESS"
-          class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim uppercase"
-        />
-      </div>
-
-      <div class="space-y-2">
-        <label
-          class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
-          >Access Cipher</label
-        >
-        <input
-          type="password"
-          [(ngModel)]="credentials.password"
-          name="password"
-          required
-          placeholder="PASSWORD"
-          class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim"
-        />
-      </div>
-
-      <button
-        type="submit"
-        [disabled]="isLoading() || !loginForm.form.valid"
-        class="w-full mt-4 btn-elegant btn-elegant-primary h-14 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-brand-brand-primary/10"
-      >
-        {{ isRegistering() ? 'Initialize Genesis' : 'Authorize Access' }}
-      </button>
     </form>
 
     <div

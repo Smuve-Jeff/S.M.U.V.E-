@@ -14,9 +14,17 @@ export const authGuard: CanActivateFn = (route, state) => {
     return false;
   }
 
+  const user = authService.currentUser();
+
+  // Enforce email verification for strategic/sensitive routes
+  const isSensitive = state.url.includes('business') || state.url.includes('release');
+  if (isSensitive && user && !user.emailVerified) {
+    router.navigate(['/hub']);
+    return false;
+  }
+
   const requiredPermission = route.data['permission'] as string;
   if (requiredPermission) {
-    const user = authService.currentUser();
     if (
       !user ||
       (!user.permissions.includes(requiredPermission) &&

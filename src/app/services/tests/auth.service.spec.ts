@@ -72,7 +72,7 @@ describe('AuthService', () => {
         { provide: SecurityService, useValue: securityServiceMock },
         {
           provide: LoggingService,
-          useValue: { error: jest.fn(), warn: jest.fn() },
+          useValue: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
         },
         { provide: UserProfileService, useValue: profileServiceMock },
         {
