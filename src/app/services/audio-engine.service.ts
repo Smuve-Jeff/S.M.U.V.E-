@@ -533,10 +533,31 @@ export class AudioEngineService {
     this.reverbConvolver.buffer = impulse;
   }
 
-  startRecording() { this.resume(); if (this.isPlaying()) return; this.isRecording.set(true); this.recorder.startRecording(this.getMasterStream().stream); this.start(); }
+  async startRecording() {
+    this.resume();
+    if (this.isPlaying()) return;
 
-  toggleRecording() { if (this.isRecording()) { if (this.isRecording()) this.recorder.stopRecording(); this.isRecording.set(false); this.stop(); } else { this.startRecording(); } }
+    this.isRecording.set(true);
 
+    try {
+      await this.recorder.startRecording(this.getMasterStream().stream);
+      this.start();
+    } catch (error) {
+      this.isRecording.set(false);
+      throw error;
+    }
+  }
+
+  async toggleRecording() {
+    if (this.isRecording()) {
+      this.recorder.stopRecording();
+      this.isRecording.set(false);
+      this.stop();
+      return;
+    }
+
+    await this.startRecording();
+  }
   start() {
     this.resume();
     if (this.isPlaying()) return;
