@@ -2694,6 +2694,228 @@
       "tags": [
         "station-pod"
       ]
+    },
+    {
+      "id": "mario-classic",
+      "name": "Super Mario: Classic World",
+      "url": "https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html",
+      "genre": "Classic",
+      "description": "The definitive platformer experience. Run, jump, and save the kingdom in this high-fidelity retro emulation.",
+      "availability": "Online",
+      "playersOnline": 25400,
+      "rating": 5.0,
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Classic",
+        "Platformer",
+        "Retro",
+        "station-cabinet"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html",
+        "telemetryMode": "none",
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "Nintendo Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      }
+    },
+    {
+      "id": "gta-legacy",
+      "name": "GTA: Legacy City",
+      "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1",
+      "genre": "Action",
+      "description": "Top-down urban chaos. High-speed chases and tactical missions in the original open-world criminal simulator.",
+      "availability": "Online",
+      "playersOnline": 12800,
+      "rating": 4.9,
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Action",
+        "Open World",
+        "Retro",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1",
+        "telemetryMode": "none",
+        "embedMode": "external-only"
+      },
+      "art": {
+        "eyebrow": "Rockstar Legacy",
+        "accentStart": "#facc15",
+        "accentEnd": "#713f12"
+      }
+    },
+    {
+      "id": "nba-pro-3d",
+      "name": "NBA: Pro Basketball 3D",
+      "url": "https://www.gamepix.com/play/basketball-stars",
+      "genre": "Sports",
+      "description": "Elite WebGL basketball with fluid 3D animations, shot timing, and competitive street-ball mechanics.",
+      "availability": "Online",
+      "playersOnline": 45000,
+      "rating": 4.8,
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Sports",
+        "Basketball",
+        "3D",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/basketball-stars",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "Pro League",
+        "accentStart": "#ea580c",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
+      "id": "nfl-redzone-rush",
+      "name": "NFL: Redzone Rush",
+      "url": "https://www.gamepix.com/play/touchdown-rush",
+      "genre": "Sports",
+      "description": "High-intensity gridiron action. Manage the clock and execute perfect plays in this premium football simulator.",
+      "availability": "Online",
+      "playersOnline": 32000,
+      "rating": 4.7,
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Sports",
+        "Football",
+        "Action",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/touchdown-rush",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "Gridiron Elite",
+        "accentStart": "#2563eb",
+        "accentEnd": "#1e3a8a"
+      }
+    },
+    {
+      "id": "dbz-retro-combat",
+      "name": "DBZ: Retro Combat",
+      "url": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
+      "genre": "Fighting",
+      "description": "Legendary Saiyan combat. High-speed martial arts and energy blasts in this classic fighting emulation.",
+      "availability": "Online",
+      "playersOnline": 18500,
+      "rating": 4.9,
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Fighting",
+        "Anime",
+        "Retro",
+        "station-cabinet"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
+        "telemetryMode": "none",
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "Saiyan Saga",
+        "accentStart": "#f97316",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
+      "id": "halo-tribute",
+      "name": "Halo: Spartan Strike",
+      "url": "https://www.gamepix.com/play/cyber-adventure",
+      "genre": "Shooting",
+      "description": "Tactical 2.5D sci-fi combat. Lead your squad through hostile zones in this elite futuristic shooter tribute.",
+      "availability": "Online",
+      "playersOnline": 15000,
+      "rating": 4.6,
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Shooting",
+        "Sci-Fi",
+        "Action",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "UNSC Command",
+        "accentStart": "#16a34a",
+        "accentEnd": "#14532d"
+      }
+    },
+    {
+      "id": "boxing-heavyweight",
+      "name": "Boxing: Heavyweight Champion",
+      "url": "https://www.gamepix.com/play/boxing-stars",
+      "genre": "Fighting",
+      "description": "Elite heavyweight boxing. Master the sweet science with realistic 3D WebGL physics and career depth.",
+      "availability": "Online",
+      "playersOnline": 21000,
+      "rating": 4.8,
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Fighting",
+        "Sports",
+        "3D",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/boxing-stars",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "Main Event",
+        "accentStart": "#dc2626",
+        "accentEnd": "#7f1d1d"
+      }
     }
   ],
   "recommendationRails": [
