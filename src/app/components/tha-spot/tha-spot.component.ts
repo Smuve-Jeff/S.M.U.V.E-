@@ -97,10 +97,26 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   trendingGames = computed(() => this.games().filter(g => g.badgeIds?.includes("trending")));
   newGames = computed(() => this.games().filter(g => g.badgeIds?.includes("new-drop")));
   genreRails = computed(() => {
-    const genres = [...new Set(this.games().map(g => g.genre).filter(Boolean))];
-    return genres.map(genre => ({
-      title: genre,
-      games: this.games().filter(g => g.genre === genre)
+    const games = this.games();
+    const genreMap = new Map<string, Game[]>();
+
+    for (const game of games) {
+      const genre = game.genre;
+      if (!genre) {
+        continue;
+      }
+
+      const existingGames = genreMap.get(genre);
+      if (existingGames) {
+        existingGames.push(game);
+      } else {
+        genreMap.set(genre, [game]);
+      }
+    }
+
+    return Array.from(genreMap.entries(), ([title, games]) => ({
+      title,
+      games,
     }));
   });
   searchQuery = signal('');
