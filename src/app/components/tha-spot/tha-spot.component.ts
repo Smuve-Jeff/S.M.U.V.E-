@@ -1104,4 +1104,21 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
     return `${minutes}m`;
   }
+
+  getGamesForRail(rail: RecommendationRail): Game[] {
+    const allGames = this.games();
+    const stats = this.profileService.profile().gameStats || {};
+    const activeRoom = this.activeRoom();
+
+    return allGames
+      .filter((game) => this.matchesRecommendationRail(game, rail))
+      .map((game) => ({
+        game,
+        score: this.scoreRecommendation(game, rail, stats, activeRoom),
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, rail.maxItems || DEFAULT_RECOMMENDATION_ITEMS)
+      .map((entry) => entry.game);
+  }
+
 }

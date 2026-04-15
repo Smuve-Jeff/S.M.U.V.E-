@@ -80,7 +80,7 @@
 
         <div class="rail-scroll custom-scrollbar">
           <!-- Game cards for this rail -->
-          <div class="game-card-v2 storefront-card holographic-depth" *ngFor="let game of getGamesForRail(rail)" (click)="onGameClick(game)">
+          <div class="game-card-v2 storefront-card holographic-depth" [class.elite-tier]="game.badgeIds?.includes('elite')" *ngFor="let game of getGamesForRail(rail)" (click)="onGameClick(game)">
             <div class="card-art">
               <img [src]="game.image" [alt]="game.name" />
               <div class="card-ambient-glow" [style.background]="game.art?.accentStart"></div>
@@ -89,12 +89,24 @@
               </div>
               <div class="card-badge" *ngIf="game.badgeIds?.includes('new-drop')">NEW</div>
               <div class="card-badge staff" *ngIf="game.badgeIds?.includes('staff-pick')">STAFF</div>
+              <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
             </div>
             <div class="card-info">
               <div class="card-meta">
                 <span class="genre">{{ game.genre }}</span>
               </div>
               <h4>{{ game.name }}</h4>
+              <div class="connection-badges">
+                <div class="conn-badge multiplayer" *ngIf="game.tags?.includes('Multiplayer')">
+                  <span class="material-symbols-outlined small">groups</span>
+                </div>
+                <div class="conn-badge controller" *ngIf="game.tags?.includes('Controller')">
+                  <span class="material-symbols-outlined small">sports_esports</span>
+                </div>
+                <div class="conn-badge high-res" *ngIf="game.badgeIds?.includes('elite')">
+                  <span class="material-symbols-outlined small">high_definition</span>
+                </div>
+              </div>
               <div class="card-stats">
                 <span class="players">{{ game.playersOnline | number }} online</span>
               </div>
@@ -107,7 +119,7 @@
       <section class="storefront-rail" *ngIf="trendingGames().length > 0 && !hasRail('rail-trending')">
         <h3 class="rail-title">TRENDING SIGNALS</h3>
         <div class="rail-scroll custom-scrollbar">
-          <div class="game-card-v2 storefront-card holographic-depth" *ngFor="let game of trendingGames()" (click)="onGameClick(game)">
+          <div class="game-card-v2 storefront-card holographic-depth" [class.elite-tier]="game.badgeIds?.includes('elite')" *ngFor="let game of trendingGames()" (click)="onGameClick(game)">
             <div class="card-art">
               <img [src]="game.image" [alt]="game.name" />
               <div class="card-ambient-glow" [style.background]="game.art?.accentStart"></div>
@@ -115,6 +127,17 @@
             <div class="card-info">
               <span class="genre">{{ game.genre }}</span>
               <h4>{{ game.name }}</h4>
+              <div class="connection-badges">
+                <div class="conn-badge multiplayer" *ngIf="game.tags?.includes('Multiplayer')">
+                  <span class="material-symbols-outlined small">groups</span>
+                </div>
+                <div class="conn-badge controller" *ngIf="game.tags?.includes('Controller')">
+                  <span class="material-symbols-outlined small">sports_esports</span>
+                </div>
+                <div class="conn-badge high-res" *ngIf="game.badgeIds?.includes('elite')">
+                  <span class="material-symbols-outlined small">high_definition</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

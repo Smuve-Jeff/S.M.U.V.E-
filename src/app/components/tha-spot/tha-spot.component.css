@@ -782,3 +782,58 @@
   }
   .preview-copy { padding: 2rem; }
 }
+
+/* Elite Tier Styling */
+.game-card-v2.elite-tier {
+  border: 1px solid rgba(236, 91, 19, 0.3);
+  background: rgba(236, 91, 19, 0.05);
+  padding: 0.5rem;
+  border-radius: 1.5rem;
+}
+
+.game-card-v2.elite-tier .card-art {
+  box-shadow: 0 0 30px rgba(236, 91, 19, 0.2);
+}
+
+.game-card-v2.elite-tier .card-badge.elite {
+  background: linear-gradient(45deg, #ec5b13, #facc15);
+  color: white;
+  font-weight: 900;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.game-card-v2.elite-tier .card-info h4 {
+  color: #ec5b13;
+  text-shadow: 0 0 10px rgba(236, 91, 19, 0.3);
+}
+
+.game-card-v2.elite-tier:hover {
+  border-color: #ec5b13;
+  box-shadow: 0 0 40px rgba(236, 91, 19, 0.4);
+}
+
+/* Gameplay Connection Indicators */
+.connection-badges {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.conn-badge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.conn-badge.multiplayer { color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+.conn-badge.controller { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+.conn-badge.high-res { color: #facc15; background: rgba(250, 204, 21, 0.1); }
+
+.material-symbols-outlined.small {
+  font-size: 0.8rem;
+}
