@@ -1,3 +1,4 @@
+import { AudioRecorderService } from "../studio/audio-recorder.service";
 import { Injectable, inject, signal, effect } from '@angular/core';
 import { LoggingService } from './logging.service';
 import { InstrumentsService } from './instruments.service';
@@ -69,6 +70,7 @@ export interface ArrangementClip {
   name?: string;
   color?: string;
   type?: string;
+  audioUrl?: string;
 }
 
 export interface TrackModel {
@@ -87,6 +89,7 @@ export interface TrackModel {
   sendA: number;
   sendB: number;
   fxSlots: FxSlot[];
+  armed?: boolean;
   mute: boolean;
   solo: boolean;
   steps: boolean[];
@@ -108,11 +111,33 @@ export class MusicManagerService {
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
   currentStep = signal<number>(-1);
+  recordingStartStep = 0;
 
   structure = signal<SongSection[]>([]);
   chords = signal<GlobalChord[]>([]);
 
   constructor() {
+    effect(() => {
+      if (this.engine.isRecording()) {
+        this.recordingStartStep = Math.max(0, this.currentStep());
+      }
+    });
+    const recorder = inject(AudioRecorderService);
+    recorder.recordingFinished$.subscribe(rec => {
+      const armedTrack = this.tracks().find(t => t.armed);
+      if (armedTrack) {
+        const newClip: ArrangementClip = {
+          id: rec.id,
+          name: armedTrack.name + ' Rec',
+          start: this.currentStep() / 16, // Rough start alignment
+          length: 4, // Default length, should be calculated
+          color: armedTrack.color,
+          audioUrl: rec.url
+        };
+        armedTrack.clips.push(newClip);
+        this.tracks.set([...this.tracks()]);
+      }
+    });
     this.loadLastSession();
 
     (this.engine as any).onStep = (step: number, time: number) => {
@@ -739,5 +764,20 @@ export class MusicManagerService {
       activePatternSlotId: track.activePatternSlotId ?? null,
       steps: track.steps ?? new Array(64).fill(false),
     };
+  }
+
+  commitPatternToArrangement(trackId: number, slotId: string, start: number) {
+    const track = this.tracks().find(t => t.id === trackId);
+    if (track) {
+      const clip: ArrangementClip = {
+        id: 'clip_' + Math.random().toString(36).substr(2, 9),
+        name: 'Pattern',
+        start,
+        length: 4,
+        color: track.color
+      };
+      track.clips.push(clip);
+      this.tracks.set([...this.tracks()]);
+    }
   }
 }

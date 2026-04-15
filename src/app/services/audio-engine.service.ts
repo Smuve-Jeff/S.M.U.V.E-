@@ -1,3 +1,4 @@
+import { AudioRecorderService } from "../studio/audio-recorder.service";
 import { LoggingService } from './logging.service';
 import { Injectable, signal, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
@@ -48,6 +49,7 @@ export class AudioEngineService {
   public sidechainEnabled = signal(false);
   private logger = inject(LoggingService);
   private stemSeparationService = inject(StemSeparationService);
+  public recorder = inject(AudioRecorderService);
   public ctx: AudioContext;
   public masterGain: GainNode;
   public compressor: DynamicsCompressorNode;
@@ -67,6 +69,9 @@ export class AudioEngineService {
   private deckB!: DeckChannel;
 
   public isPlaying = signal(false);
+  public isRecording = signal(false);
+  public countInEnabled = signal(false);
+  public countInBars = signal(1);
   public tempo = signal(124);
   public currentBeat = signal(0);
   public stepsPerBeat = signal(4);
@@ -528,6 +533,10 @@ export class AudioEngineService {
     this.reverbConvolver.buffer = impulse;
   }
 
+  startRecording() { this.resume(); if (this.isPlaying()) return; this.isRecording.set(true); this.recorder.startRecording(this.getMasterStream().stream); this.start(); }
+
+  toggleRecording() { if (this.isRecording()) { if (this.isRecording()) this.recorder.stopRecording(); this.isRecording.set(false); this.stop(); } else { this.startRecording(); } }
+
   start() {
     this.resume();
     if (this.isPlaying()) return;
@@ -582,6 +591,7 @@ export class AudioEngineService {
     velocityScale = 1
   ) {
     this.resume();
+    if (this.isRecording()) { this.recorder.pendingMidi.push({ pitch: 69 + 12 * Math.log2(freq / 440), startTime: this.currentBeat(), duration, velocity }); }
     const osc = this.ctx.createOscillator();
     osc.type = params?.type || 'sawtooth';
     const vca = this.ctx.createGain();

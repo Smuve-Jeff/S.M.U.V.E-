@@ -1,3 +1,4 @@
+import { Subject } from "rxjs";
 import { Injectable, inject, signal } from '@angular/core';
 import { LocalStorageService } from '../services/local-storage.service';
 import { LoggingService } from '../services/logging.service';
@@ -11,6 +12,9 @@ export class AudioRecorderService {
 
   isRecording = signal(false);
   recordedBlobs: Blob[] = [];
+  pendingMidi: any[] = [];
+  recordingFinished$ = new Subject<{ id: string, blob: Blob, url: string, midi?: any[] }>();
+
   mediaRecorder: MediaRecorder | null = null;
 
   async startRecording(stream: MediaStream) {
@@ -28,7 +32,6 @@ export class AudioRecorderService {
       const blob = new Blob(this.recordedBlobs, { type: 'audio/webm' });
       const id = `rec_${Date.now()}`;
 
-      // High-fidelity local save
       await this.localStorageService.saveItem('audio_blobs', {
         id,
         blob,
@@ -37,9 +40,10 @@ export class AudioRecorderService {
         settings: { gain: 1.0, trimmed: false },
       });
 
-      this.logger.info(
-        `Recording ${id} saved to high-fidelity offline storage.`
-      );
+      this.logger.info(`Recording ${id} saved.`);
+      const url = URL.createObjectURL(blob);
+      this.recordingFinished$.next({ id, blob, url, midi: [...this.pendingMidi] });
+      this.pendingMidi = [];
     };
 
     this.mediaRecorder.start();
