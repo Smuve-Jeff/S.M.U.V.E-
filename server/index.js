@@ -14,6 +14,12 @@ if (typeof JWT_SECRET !== 'string' || JWT_SECRET.trim().length === 0) {
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({ error: 'Invalid JSON payload.' });
+  }
+  return next(err);
+});
 
 // Rate Limiting
 // Authentication Middleware
@@ -38,8 +44,14 @@ const isNonEmptyString = (val) => typeof val === "string" && val.trim().length >
 const isObject = (val) => typeof val === "object" && val !== null;
 
 const authorizeUser = (req, res, next) => {
+  const authenticatedUserId = req.user && req.user.userId;
   const requestedUserId = req.params.userId || req.body.userId;
-  if (req.user.userId !== requestedUserId) {
+
+  if (!isNonEmptyString(authenticatedUserId)) {
+    return res.status(401).json({ error: "Authentication required." });
+  }
+
+  if (!isNonEmptyString(requestedUserId) || authenticatedUserId !== requestedUserId) {
     return res.status(403).json({ error: "Access denied. Strategic breach detected." });
   }
   next();
@@ -215,7 +227,6 @@ const initDb = async () => {
     console.error('Error initializing database', err);
   }
 };
-initDb();
 
 // Profile Endpoints
 app.get('/api/profile/:userId', authenticateToken, authorizeUser, async (req, res) => {
@@ -574,7 +585,18 @@ app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`S.M.U.V.E 2.0 Backend running on port ${PORT}`);
-});
+const startServer = async (port = process.env.PORT || 3000) => {
+  await initDb();
+  return app.listen(port, () => {
+    console.log(`S.M.U.V.E 2.0 Backend running on port ${port}`);
+  });
+};
+
+if (require.main === module) {
+  void startServer();
+}
+
+module.exports = {
+  app,
+  startServer,
+};
