@@ -183,8 +183,27 @@ export class AuthService {
     localStorage.removeItem('smuve_auth_session');
   }
 
+  private secureRandomHex(byteLength: number): string {
+    const bytes = new Uint8Array(byteLength);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  private secureRandomInt(maxExclusive: number): number {
+    if (!Number.isInteger(maxExclusive) || maxExclusive <= 0) {
+      throw new Error('maxExclusive must be a positive integer');
+    }
+    const maxUint32 = 0x100000000;
+    const limit = maxUint32 - (maxUint32 % maxExclusive);
+    const buffer = new Uint32Array(1);
+    do {
+      crypto.getRandomValues(buffer);
+    } while (buffer[0] >= limit);
+    return buffer[0] % maxExclusive;
+  }
+
   private generateUserId(): string {
-    return `user_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    return `user_${Date.now()}_${this.secureRandomHex(8)}`;
   }
 
   private hashPassword(password: string): string {
@@ -259,7 +278,7 @@ export class AuthService {
         lastLogin: new Date(),
         profileCompleteness: 0,
         emailVerified: false,
-        verificationCode: Math.floor(100000 + Math.random() * 900000).toString(),
+        verificationCode: (100000 + this.secureRandomInt(900000)).toString(),
       };
 
       localStorage.setItem(
