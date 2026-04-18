@@ -59,6 +59,7 @@ export class UIService {
   showChatbot = signal(false);
   isChatbotOpen = signal(false);
   visualIntensity = signal(0);
+  isCompactMobile = signal(false);
 
   isOnline = signal(true);
   performanceMode = signal(false);
@@ -78,6 +79,8 @@ export class UIService {
   constructor() {
     if (typeof window !== 'undefined') {
       this.isOnline.set(navigator.onLine);
+      this.isCompactMobile.set(window.innerWidth <= 768);
+      window.addEventListener('resize', () => this.isCompactMobile.set(window.innerWidth <= 768));
       window.addEventListener('online', this.handleOnline);
       window.addEventListener('offline', this.handleOffline);
       this.destroyRef.onDestroy(() => {
