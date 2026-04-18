@@ -1,6 +1,6 @@
 import { MarketingService } from '../marketing.service';
 import { AnalyticsService } from '../analytics.service';
-import { TestBed, fakeAsync } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { AiService, API_KEY_TOKEN } from '../ai.service';
 import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
@@ -106,14 +106,14 @@ describe('AiService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should generate advisor advice when state changes', fakeAsync(() => {
-    // Manually call the private update method if effects aren't triggering in Jest/fakeAsync
+  it('should generate advisor advice when state changes', () => {
+    // Manually call the private update method
     (service as any).updateAdvisorAdvice('hub', userProfileService.profile());
 
     const advice = service.advisorAdvice();
     expect(advice.length).toBeGreaterThan(0);
     expect(advice[0].title).toBe('Visibility Surge Needed');
-  }));
+  });
 
   it('generates structured chord progression payloads', () => {
     const progression = service.generateChordProgression({
