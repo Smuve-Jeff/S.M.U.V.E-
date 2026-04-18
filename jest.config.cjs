@@ -1,5 +1,10 @@
+const { createCjsPreset } = require('jest-preset-angular/presets');
+
 module.exports = {
-  preset: 'jest-preset-angular',
+  ...createCjsPreset({
+    tsconfig: '<rootDir>/tsconfig.spec.json',
+    stringifyContentPathRegex: '\\.html$',
+  }),
   setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
@@ -7,10 +12,4 @@ module.exports = {
     '<rootDir>/src/test.ts',
     '<rootDir>/tests/',
   ],
-  globals: {
-    'ts-jest': {
-      tsconfig: '<rootDir>/tsconfig.spec.json',
-      stringifyContentPathRegex: '\\.html$',
-    },
-  },
 };
