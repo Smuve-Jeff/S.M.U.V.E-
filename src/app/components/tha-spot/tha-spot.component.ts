@@ -5,6 +5,7 @@ import {
   inject,
   signal,
   computed,
+  effect,
   ViewChild,
   ElementRef,
 } from '@angular/core';
@@ -161,6 +162,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     if (this.clockId) clearInterval(this.clockId);
     if (this.feedRefreshId) clearInterval(this.feedRefreshId);
     if (this.matchmakingTimerId) clearInterval(this.matchmakingTimerId);
+    this.feedSubscription?.unsubscribe();
   }
 
   setActiveRoom(roomId: string) {
@@ -212,7 +214,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   private loadFeed() {
-    this.gameService.getThaSpotFeed().subscribe(feed => {
+    this.feedSubscription?.unsubscribe();
+    this.feedSubscription = this.gameService.getThaSpotFeed().subscribe((feed) => {
       this.feed.set(feed);
       this.games.set(feed.games);
       this.gamingRooms.set(feed.rooms);
@@ -231,17 +234,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.activeGenre.set(genre);
   }
 
-  toggleQuickFilter(filter: string): void {
+  toggleQuickFilter(filter: QuickFilter): void {
     const activeFilters = this.quickFilters();
     this.quickFilters.set(
       activeFilters.includes(filter)
-        ? activeFilters.filter(activeFilter => activeFilter !== filter)
+        ? activeFilters.filter((activeFilter) => activeFilter !== filter)
         : [...activeFilters, filter]
     );
-  setSearchQuery(q: string) { this.searchQuery.set(q); }
-  setSortMode(m: GameSortMode) { this.sortMode.set(m); }
-  setActiveGenre(g: string) { this.activeGenre.set(g); }
-  toggleQuickFilter(f: QuickFilter) {
-    this.quickFilters.update(fs => fs.includes(f) ? fs.filter(e => e !== f) : [...fs, f]);
   }
 }

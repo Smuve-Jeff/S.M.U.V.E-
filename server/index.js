@@ -320,17 +320,36 @@ app.post('/api/security/session', authenticateToken, authorizeUser, async (req, 
   }
 });
 
-app.delete('/api/security/session/:sessionId', authenticateToken, async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    await pool.query('DELETE FROM user_sessions WHERE session_id = $1', [
-      sessionId,
-    ]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
+app.delete(
+  '/api/security/session/:sessionId',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { rows } = await pool.query(
+        'SELECT user_id FROM user_sessions WHERE session_id = $1',
+        [sessionId]
+      );
+
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'Session not found.' });
+      }
+
+      if (rows[0].user_id !== req.user.userId) {
+        return res
+          .status(403)
+          .json({ error: 'Access denied. Strategic breach detected.' });
+      }
+
+      await pool.query('DELETE FROM user_sessions WHERE session_id = $1', [
+        sessionId,
+      ]);
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
+    }
   }
-});
+);
 
 app.delete('/api/security/sessions/:userId', authenticateToken, authorizeUser, async (req, res) => {
   try {
@@ -519,6 +538,8 @@ app.get('/api/identity/:userId/connectors', authenticateToken, authorizeUser, as
 
 app.post(
   '/api/identity/:userId/connectors/:connectorId/sync',
+  authenticateToken,
+  authorizeUser,
   async (req, res) => {
     try {
       const { userId, connectorId } = req.params;
