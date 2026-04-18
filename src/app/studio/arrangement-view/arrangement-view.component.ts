@@ -85,7 +85,7 @@ export class ArrangementViewComponent {
       type: 'midi',
     };
 
-    this.musicManager.tracks.update((ts) =>
+    this.musicManager.updateTracks((ts) =>
       ts.map((t) =>
         t.id === trackId ? { ...t, clips: [...(t.clips || []), newClip] } : t
       )
@@ -93,7 +93,7 @@ export class ArrangementViewComponent {
   }
 
   removeClip(trackId: number, clipId: string): void {
-    this.musicManager.tracks.update((ts) =>
+    this.musicManager.updateTracks((ts) =>
       ts.map((t) =>
         t.id === trackId
           ? { ...t, clips: (t.clips || []).filter((c) => c.id !== clipId) }

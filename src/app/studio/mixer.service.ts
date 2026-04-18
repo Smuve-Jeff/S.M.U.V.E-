@@ -8,31 +8,31 @@ export class MixerService {
   private audioSession = inject(AudioSessionService);
 
   muteAll() {
-    this.musicManager.tracks.update((ts) =>
+    this.musicManager.updateTracks((ts) =>
       ts.map((t) => ({ ...t, mute: true }))
     );
   }
 
   unmuteAll() {
-    this.musicManager.tracks.update((ts) =>
+    this.musicManager.updateTracks((ts) =>
       ts.map((t) => ({ ...t, mute: false }))
     );
   }
 
   soloAll() {
-    this.musicManager.tracks.update((ts) =>
+    this.musicManager.updateTracks((ts) =>
       ts.map((t) => ({ ...t, solo: true }))
     );
   }
 
   clearSolo() {
-    this.musicManager.tracks.update((ts) =>
+    this.musicManager.updateTracks((ts) =>
       ts.map((t) => ({ ...t, solo: false }))
     );
   }
 
   resetAllLevels() {
-    this.musicManager.tracks.update((ts) =>
+    this.musicManager.updateTracks((ts) =>
       ts.map((t) => ({ ...t, gain: 0.9, pan: 0 }))
     );
     this.musicManager.tracks().forEach((t) => {

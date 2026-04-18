@@ -83,7 +83,7 @@ export class ChannelRackComponent {
   }
 
   updateVolume(track: TrackModel, event: any) {
-    this.musicManager.tracks.update((ts) =>
+    this.musicManager.updateTracks((ts) =>
       ts.map((t) =>
         t.id === track.id ? { ...t, gain: +event.target.value / 100 } : t
       )
@@ -91,7 +91,7 @@ export class ChannelRackComponent {
   }
 
   updatePan(track: TrackModel, event: any) {
-    this.musicManager.tracks.update((ts) =>
+    this.musicManager.updateTracks((ts) =>
       ts.map((t) =>
         t.id === track.id ? { ...t, pan: +event.target.value / 100 } : t
       )

@@ -10,7 +10,7 @@ export class NeuralMixerService {
   private musicManager = inject(MusicManagerService);
 
   suggestForTrack(trackId: number) {
-    this.musicManager.tracks.update((ts) =>
+    this.musicManager.updateTracks((ts) =>
       ts.map((t) => {
         if (t.id !== trackId) return t;
 
@@ -31,7 +31,7 @@ export class NeuralMixerService {
   }
 
   applyNeuralMix() {
-    this.musicManager.tracks.update((ts) =>
+    this.musicManager.updateTracks((ts) =>
       ts.map((t) => {
         const suggestion = this.getHeuristicSuggestion(t);
         return { ...t, ...suggestion };

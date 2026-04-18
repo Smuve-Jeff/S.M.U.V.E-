@@ -79,8 +79,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
           "Multiplayer",
           "Versus"
         ],
-        "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
+        // // // "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
+      // // "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
       "badgeIds": [
           "tournament-live"
         ]
@@ -171,8 +171,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "limitedTime": true,
       "spotlight": "Rotates with live events and staff promotions.",
       "rules": {
-        "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
+        // // // "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
+      // // "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
       "badgeIds": [
           "featured",
           "tournament-live"
@@ -618,8 +618,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "multiplayerType": "Server",
       "aiSupportLevel": "Advanced",
       "aiBriefing": "Establish dominance in the rap battle arena. Neural sync is tuned for rhythm precision.",
-      "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
+      // // // "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
+      // // "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
       "badgeIds": [
         "featured",
         "tournament-live"
@@ -679,8 +679,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "multiplayerType": "Server",
       "aiSupportLevel": "Neural",
       "aiBriefing": "Collaborative remix engine is live. S.M.U.V.E. is balancing the sonic stems.",
-      "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
+      // // // "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
+      // // "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
       "badgeIds": [
         "staff-pick"
       ],
@@ -734,8 +734,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Offline",
         "Reflex"
       ],
-      "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
+      // // // "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
+      // // "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
       "badgeIds": [
         "featured"
       ],
@@ -787,8 +787,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Offline",
         "Memory"
       ],
-      "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
+      // // // "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
+      // // "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
       "badgeIds": [
         "staff-pick"
       ],
@@ -840,8 +840,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Arcade",
         "Original"
       ],
-      "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
+      // // // "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
+      // // "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
       "badgeIds": [
         "new-drop"
       ],
@@ -893,8 +893,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Arcade",
         "Retro"
       ],
-      "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
+      // // // "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
+      // // "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
       "badgeIds": [
         "trending"
       ],
@@ -951,8 +951,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       ],
       "aiSupportLevel": "Neural",
       "aiBriefing": "S.M.U.V.E. is analyzing the logic matrix for optimal number combination strategies.",
-      "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
+      // // // "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
+      // // "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
       "badgeIds": [
         "staff-pick"
       ],
@@ -1007,8 +1007,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Reflex",
         "Rhythm"
       ],
-      "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
-      "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
+      // // // "previewVideo": "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-dj-playing-at-a-club-24545-large.mp4",
+      // // "bannerImage": "https://images.unsplash.com/photo-1514525253361-bee243870eb2?auto=format&fit=crop&w=1200&q=80",
       "badgeIds": [
         "featured"
       ],

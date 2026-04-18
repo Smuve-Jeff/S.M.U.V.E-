@@ -1,0 +1,960 @@
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  inject,
+  signal,
+  computed,
+  ViewChild,
+  ElementRef,
+  HostListener,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { GameService, GameSortMode } from '../../hub/game.service';
+import {
+  Game,
+  GameBadge,
+  GameRoom,
+  LiveEvent,
+  PromotionCard,
+  RecommendationRail,
+  SocialPresence,
+  ThaSpotFeed,
+} from '../../hub/game';
+import { THA_SPOT_FALLBACK_FEED } from '../../hub/tha-spot-feed.fallback';
+import {
+  UserProfileService,
+  ThaSpotSessionContext,
+  UserProfile,
+} from '../../services/user-profile.service';
+import { UIService } from '../../services/ui.service';
+
+const DEFAULT_RECOMMENDATION_ITEMS = 4;
+const MAX_HISTORY_SCORE = 24;
+const HISTORY_SCORE_DIVISOR = 6;
+const FEED_REFRESH_INTERVAL_MS = 300000;
+const EVENT_ENDING_SOON_MS = 1000 * 60 * 60 * 6;
+const CARD_ANIMATION_DELAY_INCREMENT = 0.03;
+const FEATURED_BADGE_IDS = [
+  'featured',
+  'staff-pick',
+  'trending',
+  'tournament-live',
+];
+const FEATURED_BADGE_ID_SET = new Set(FEATURED_BADGE_IDS);
+const MULTIPLAYER_TAG_KEYWORDS = ['multiplayer', 'co-op', 'versus', 'pvp'];
+type LibraryViewMode = 'grid' | 'compact';
+type QuickFilter = 'featured' | 'multiplayer' | 'instant' | 'online';
+const QUICK_FILTERS: QuickFilter[] = [
+  'featured',
+  'multiplayer',
+  'instant',
+  'online',
+];
+
+@Component({
+  selector: 'app-tha-spot',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './tha-spot.component.html',
+  styleUrls: ['./tha-spot.component.css'],
+})
+export class ThaSpotComponent implements OnInit, OnDestroy {
+  @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
+  readonly cardAnimationDelayIncrement = CARD_ANIMATION_DELAY_INCREMENT;
+  readonly quickFilterOptions = QUICK_FILTERS;
+
+  private gameService = inject(GameService);
+  public profileService = inject(UserProfileService);
+  public uiService = inject(UIService);
+  private sanitizer = inject(DomSanitizer);
+  private router = inject(Router);
+
+  private feedSubscription?: Subscription;
+  private hubStartedAt = Date.now();
+  private clockId: ReturnType<typeof setInterval> | null = null;
+  private feedRefreshId: ReturnType<typeof setInterval> | null = null;
+  private matchmakingTimerId: ReturnType<typeof setInterval> | null = null;
+
+  feed = signal<ThaSpotFeed>(THA_SPOT_FALLBACK_FEED);
+  gamingRooms = signal<GameRoom[]>(THA_SPOT_FALLBACK_FEED.rooms);
+  badges = signal<GameBadge[]>(THA_SPOT_FALLBACK_FEED.badges);
+  liveEvents = signal<LiveEvent[]>(THA_SPOT_FALLBACK_FEED.liveEvents);
+  socialPresence = signal<SocialPresence[]>(
+    THA_SPOT_FALLBACK_FEED.socialPresence
+  );
+  promotions = signal<PromotionCard[]>(THA_SPOT_FALLBACK_FEED.promotions);
+  games = signal<Game[]>(THA_SPOT_FALLBACK_FEED.games);
+  recommendationRails = signal<RecommendationRail[]>(
+    THA_SPOT_FALLBACK_FEED.recommendationRails
+  );
+
+  activeRoom = signal<string>('all');
+  featuredGame = computed(() => this.games().find(g => g.badgeIds?.includes("featured")) || this.games()[0]);
+  trendingGames = computed(() => this.games().filter(g => g.badgeIds?.includes("trending")));
+  newGames = computed(() => this.games().filter(g => g.badgeIds?.includes("new-drop")));
+  genreRails = computed(() => {
+    const genres = [...new Set(this.games().map(g => g.genre).filter(Boolean))];
+    return genres.map(genre => ({
+      title: genre,
+    }));
+  });
+  searchQuery = signal('');
+  sortMode = signal<GameSortMode>('Popular');
+  libraryView = signal<LibraryViewMode>('grid');
+  quickFilters = signal<QuickFilter[]>([]);
+  isTransitioning = signal(false);
+  showIntelPanel = signal(false);
+  now = signal(Date.now());
+
+  selectedGame = signal<Game | null>(null);
+  currentGame = signal<Game | null>(null);
+  isMatchmaking = signal(false);
+  matchmakingProgress = signal(0);
+  matchmakingStatus = signal('SYNCING LIVE FLOOR');
+  matchedOpponent = signal<string | null>(null);
+  launchWarning = signal<string | null>(null);
+  frameError = signal<string | null>(null);
+  sessionStartedAt = signal<number | null>(null);
+
+  badgeMap = computed(
+  topRecommendation = computed(() => new Map(this.badges().map((badge) => [badge.id, badge]))
+  );
+
+  activeRoomConfig = computed(
+  topRecommendation = computed(() =>
+      this.gamingRooms().find((room) => room.id === this.activeRoom()) ||
+      this.gamingRooms()[0]
+  );
+
+  roomFilteredGames = computed(() => {
+    const room = this.activeRoomConfig();
+    if (!room) {
+      return this.games();
+    }
+
+    return this.games().filter((game) =>
+      this.gameService.matchesRoom(game, room)
+    );
+  });
+
+  filteredGames = computed(() => {
+    const quickFilters = this.quickFilters();
+    const scopedGames = this.roomFilteredGames().filter((game) =>
+      quickFilters.every((filter) => this.matchesQuickFilter(game, filter))
+    );
+
+    return this.gameService.filterAndSortGames(
+      scopedGames,
+      { query: this.searchQuery().trim() },
+      this.sortMode()
+    );
+  });
+
+  activeEvents = computed(() => {
+    const roomId = this.activeRoom();
+    return this.liveEvents()
+      .map((event) => this.resolveLiveEvent(event))
+      .filter((event): event is LiveEvent => !!event)
+      .filter((event) => roomId === 'all' || event.roomId === roomId);
+  });
+
+  roomPresence = computed(() => {
+    const roomId = this.activeRoom();
+    return this.socialPresence().filter(
+      (entry) => roomId === 'all' || entry.roomId === roomId
+    );
+  });
+
+  matchingRecommendationRails = computed(() =>
+    this.recommendationRails()
+      .filter((rail) => this.matchesRecommendationAudience(rail))
+      .sort((a, b) => {
+        const aRoom = a.roomIds?.includes(this.activeRoom()) ? 1 : 0;
+        const bRoom = b.roomIds?.includes(this.activeRoom()) ? 1 : 0;
+        return bRoom - aRoom;
+      })
+  );
+
+  activeRecommendationRail = computed(
+  topRecommendation = computed(
+  );
+
+  topRecommendation = computed(() =>
+      this.recommendedGames()[0] ||
+      this.recentlyPlayed()[0] ||
+      this.filteredGames()[0] ||
+      this.games()[0] ||
+      null
+  );
+
+  featuredEvents = computed(() => this.activeEvents().slice(0, 3));
+
+  commandDeckGames = computed(() =>
+    (this.recommendedGames().length
+      ? this.recommendedGames()
+      : this.filteredGames()
+    ).slice(0, 3)
+  );
+
+  discoverySummary = computed(() => {
+    const visibleCount = this.filteredGames().length;
+    const totalCount = this.games().length;
+    const filters = this.quickFilters();
+    const query = this.searchQuery().trim();
+    const hasRefinements =
+      this.activeRoom() !== 'all' || !!query || filters.length > 0;
+
+    return {
+      visibleCount,
+      totalCount,
+      query,
+      hasRefinements,
+      filterCount:
+        filters.length +
+        (query ? 1 : 0) +
+        (this.activeRoom() !== 'all' ? 1 : 0),
+      highlightLabel:
+        visibleCount === totalCount && !hasRefinements
+          ? 'Full catalog online'
+          : `${visibleCount} of ${totalCount} cabinets ready`,
+    };
+  });
+
+  recommendedGames = computed(() => {
+    const rail = this.activeRecommendationRail();
+    if (!rail) {
+      return [];
+    }
+
+    const stats = this.profileService.profile().gameStats || {};
+    const roomId = this.activeRoom();
+
+    return [...this.games()]
+      .filter((game) => this.matchesRecommendationRail(game, rail))
+      .map((game) => ({
+        game,
+        score: this.scoreRecommendation(game, rail, stats, roomId),
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, rail.maxItems || DEFAULT_RECOMMENDATION_ITEMS)
+      .map((entry) => entry.game);
+  });
+
+  socialModules = computed(() =>
+    this.roomPresence().sort((a, b) => {
+      const rank = (entry: SocialPresence) => {
+        if (entry.pendingInvite) {
+          return 4;
+        }
+        switch (entry.relationship) {
+          case 'party':
+            return 3;
+          case 'rival':
+            return 2;
+          case 'friend':
+            return 1;
+          default:
+            return 0;
+        }
+      };
+
+      return rank(b) - rank(a);
+    })
+  );
+
+  contextualPromotions = computed(() => {
+    const profile = this.profileService.profile();
+    const roomId = this.activeRoom();
+    const audienceTags = this.getPromotionAudienceTags(profile);
+    const activeGameIds = [
+      this.selectedGame()?.id,
+      this.currentGame()?.id,
+      this.recentlyPlayed()[0]?.id,
+    ].filter((id): id is string => !!id);
+
+    return [...this.promotions()]
+      .filter(
+        (promotion) =>
+          !promotion.roomIds?.length || promotion.roomIds.includes(roomId)
+      )
+      .filter(
+        (promotion) =>
+          !promotion.gameIds?.length ||
+          !activeGameIds.length ||
+          promotion.gameIds.some((gameId) => activeGameIds.includes(gameId))
+      )
+      .filter(
+        (promotion) =>
+          !promotion.audienceTags?.length ||
+          promotion.audienceTags.some((tag) => audienceTags.includes(tag))
+      )
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+      .slice(0, 3);
+  });
+
+  recentlyPlayed = computed(() => {
+    const stats = this.profileService.profile().gameStats || {};
+    return Object.entries(stats)
+      .sort((a, b) => (b[1]?.lastPlayedAt || 0) - (a[1]?.lastPlayedAt || 0))
+      .map(([gameId]) => this.games().find((game) => game.id === gameId))
+      .filter((game): game is Game => !!game)
+      .slice(0, 3);
+  });
+
+  liveMetrics = computed(() => {
+    const visibleGames = this.roomFilteredGames();
+    const roomPlayers = visibleGames.reduce(
+      (total, game) => total + (game.playersOnline || 0),
+      0
+    );
+    const allPlayers = this.games().reduce(
+      (total, game) => total + (game.playersOnline || 0),
+      0
+    );
+    const queueGames = visibleGames.filter(
+      (game) => (game.queueEstimateMinutes || 0) > 0
+    );
+    const averageQueue =
+      queueGames.reduce(
+        (total, game) => total + (game.queueEstimateMinutes || 0),
+        0
+      ) / (queueGames.length || 1);
+    const liveTournaments = this.activeEvents().filter((event) =>
+      ['live', 'ending-soon'].includes(event.status)
+    ).length;
+    const popularityShare = allPlayers
+      ? Math.round((roomPlayers / allPlayers) * 100)
+      : 0;
+
+    return {
+      roomPlayers,
+      averageQueue: Number(averageQueue.toFixed(1)),
+      liveTournaments,
+      popularityShare,
+      queueHealth:
+        averageQueue <= 1
+          ? 'Instant'
+          : averageQueue <= 2.5
+            ? 'Healthy'
+            : 'Busy',
+      uptimeLabel: this.formatDuration(
+        this.now() - (this.sessionStartedAt() || this.hubStartedAt)
+      ),
+    };
+  });
+
+  neuralSyncScore = computed(() => {
+    const plays = this.getTotalPlays();
+    const roomWeight = Math.min(this.liveMetrics().popularityShare / 2, 20);
+    return Math.min(99, 62 + roomWeight + Math.min(plays * 2, 17));
+  });
+
+  tacticalAdvantage = computed(() => {
+    const recommendations = this.recommendedGames();
+    const eventBonus = this.activeEvents().some(
+      (event) => event.status === 'live'
+    )
+      ? 8
+      : 4;
+    return Math.min(25, eventBonus + recommendations.length * 3);
+  });
+
+  gamingDirectives = computed(() => {
+    const room = this.activeRoomConfig();
+    const profile = this.profileService.profile();
+    const directives = [
+      `${room?.name || 'Tha Spot'} controls ${this.liveMetrics().popularityShare}% of live floor traffic.`,
+      `Queue health is ${this.liveMetrics().queueHealth.toUpperCase()} with ${this.liveMetrics().averageQueue} min average waits.`,
+      `${this.activeEvents().length} event lanes are active for ${profile.artistName}.`,
+    ];
+
+    const recommendationRail = this.activeRecommendationRail();
+    const topRecommendation = this.recommendedGames()[0];
+    if (recommendationRail?.subtitle) {
+      directives.push(recommendationRail.subtitle);
+    }
+
+    if (topRecommendation) {
+      directives.push(
+        `Recommended next cabinet: ${topRecommendation.name} from the ${recommendationRail?.title || 'live'} rail.`
+      );
+    }
+
+    if (this.recentlyPlayed().length) {
+      directives.push(
+        `Momentum check: ${this.recentlyPlayed()[0].name} is still warm from your last run.`
+      );
+    }
+
+    return directives.slice(0, 4);
+  });
+
+  activitySummary = computed(() => {
+    const profile = this.profileService.profile();
+    const stats = profile.gameStats || {};
+    const progression = profile.thaSpotProgression || {};
+    const totalPlays = this.getTotalPlays();
+    const favoriteRoom =
+      this.gamingRooms().find(
+        (room) => room.id === progression.favoriteRoomId
+      ) || this.findMasteredRoom(stats);
+    const latestRoom =
+      this.gamingRooms().find((room) => room.id === progression.lastRoomId) ||
+      favoriteRoom;
+    return {
+      totalPlays,
+      favoriteRoomLabel: favoriteRoom?.name || 'Choose a room',
+      latestRoomLabel: latestRoom?.name || 'No sessions yet',
+      sessionLabel:
+        totalPlays > 0
+          ? `${totalPlays} tracked sessions`
+          : 'Start with any cabinet',
+      cosmetics: (progression.earnedCosmetics || []).length,
+    };
+  });
+
+  ngOnInit() {
+    this.loadFeed();
+
+    this.clockId = setInterval(() => this.now.set(Date.now()), 15000);
+    this.feedRefreshId = setInterval(
+    topRecommendation = computed(() => this.loadFeed(true),
+      FEED_REFRESH_INTERVAL_MS
+    );
+  }
+
+  ngOnDestroy() {
+    this.feedSubscription?.unsubscribe();
+    if (this.clockId) {
+      clearInterval(this.clockId);
+    }
+    if (this.feedRefreshId) {
+    }
+    if (this.matchmakingTimerId) {
+    }
+  }
+
+  setActiveRoom(roomId: string) {
+    if (this.activeRoom() === roomId) {
+      return;
+    }
+
+    this.isTransitioning.set(true);
+    setTimeout(() => {
+      this.activeRoom.set(roomId);
+      this.isTransitioning.set(false);
+    }, 240);
+  }
+
+  setSearchQuery(value: string) {
+    this.searchQuery.set(value);
+  }
+
+  setSortMode(value: GameSortMode) {
+    this.sortMode.set(value);
+  }
+
+  setLibraryView(view: LibraryViewMode) {
+    this.libraryView.set(view);
+  }
+
+  toggleQuickFilter(filter: QuickFilter) {
+    this.quickFilters.update((filters) =>
+      filters.includes(filter)
+        ? filters.filter((entry) => entry !== filter)
+        : [...filters, filter]
+    );
+  }
+
+  hasQuickFilter(filter: QuickFilter) {
+    return this.quickFilters().includes(filter);
+  }
+
+  clearDiscoveryControls() {
+    this.activeRoom.set('all');
+    this.searchQuery.set('');
+    this.sortMode.set('Popular');
+    this.libraryView.set('grid');
+    this.quickFilters.set([]);
+  }
+
+  getActiveRoomName(): string {
+    return this.activeRoomConfig()?.name || 'Gaming Hub';
+  }
+
+  getActiveRoomDesc(): string {
+    return this.activeRoomConfig()?.description || '';
+  }
+
+  getLibrarySubcountLabel() {
+    return this.activeRoom() === 'all' ? 'All Games' : this.getActiveRoomName();
+  }
+
+  onGameClick(game: Game) {
+    this.launchGame(game);
+  }
+
+  thisIsPlaying() {
+    return !!this.currentGame();
+  }
+
+  toggleIntel() {
+    this.showIntelPanel.update((value) => !value);
+  }
+
+  openPreview(game: Game) {
+    this.selectedGame.set(game);
+    this.launchWarning.set(
+      this.canEmbedInline(game)
+        ? game.launchConfig?.trustNote ||
+            'Exact embed target verified from the live feed.'
+        : 'Inline launch is unavailable for this cabinet, so it will open in a new tab.'
+    );
+    this.frameError.set(null);
+  }
+
+  closePreview() {
+    this.selectedGame.set(null);
+    this.launchWarning.set(null);
+  }
+
+  playGame(game: Game) {
+    this.previewGame(game);
+  }
+
+  confirmLaunch() {
+    const game = this.selectedGame();
+    if (!game) {
+      return;
+    }
+
+    this.selectedGame.set(null);
+
+    if (!this.canEmbedInline(game)) {
+      this.openGameInNewTab(game);
+      return;
+    }
+
+    if (
+      game.multiplayerType === 'Server' ||
+      game.tags?.includes('Multiplayer')
+    ) {
+      this.startNeuralMatchmaking(game);
+      return;
+    }
+
+    void this.launchGame(game);
+  }
+
+  startNeuralMatchmaking(game: Game) {
+    this.isMatchmaking.set(true);
+    this.matchmakingProgress.set(0);
+    this.matchmakingStatus.set('SCANNING LIVE FLOOR');
+    if (this.matchmakingTimerId) clearInterval(this.matchmakingTimerId);
+    this.matchmakingTimerId = setInterval(() => {
+      this.matchmakingProgress.update(v => Math.min(100, v + 10));
+      if (this.matchmakingProgress() >= 100) {
+        clearInterval(this.matchmakingTimerId!);
+        this.matchedOpponent.set("OPPONENT_FOUND");
+        setTimeout(() => {
+          this.isMatchmaking.set(false);
+          void this.launchGame(game);
+        }, 600);
+      }
+    }, 100);
+  }
+  async launchGame(game: Game) {
+    this.currentGame.set(game);
+    this.sessionStartedAt.set(Date.now());
+    this.frameError.set(null);
+    await this.profileService.recordGameLaunch(
+      game.id,
+      this.getSessionContext(game)
+    );
+  }
+
+  reloadGame() {
+    const game = this.currentGame();
+    if (game) {
+      this.closeGame();
+    }
+  }
+
+  previewGame(game: Game) { this.selectedGame.set(game); }
+
+
+  closeGame() {
+    this.currentGame.set(null);
+    this.sessionStartedAt.set(null);
+    this.frameError.set(null);
+  }
+
+  openGameInNewTab(game: Game) {
+    if (typeof window !== 'undefined') {
+      const externalUrl = game.launchConfig?.approvedExternalUrl || game.url;
+      window.open(externalUrl, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  getSafeUrl(game: Game): SafeResourceUrl | null {
+    if (!this.canEmbedInline(game)) {
+      return null;
+    }
+
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      game.launchConfig?.approvedEmbedUrl || game.url
+    );
+  }
+
+  getVisibleTags(game: Game) {
+    return (game.tags || []).slice(0, 3);
+  }
+
+  getQuickFilterLabel(filter: QuickFilter) {
+    switch (filter) {
+      case 'featured':
+        return 'Featured';
+      case 'multiplayer':
+        return 'Multiplayer';
+      case 'instant':
+        return 'Instant play';
+      case 'online':
+        return 'Online ready';
+    }
+  }
+
+  getGameBadges(game: Game): GameBadge[] {
+    return (game.badgeIds || [])
+      .map((badgeId) => this.badgeMap().get(badgeId))
+      .filter((badge): badge is GameBadge => !!badge);
+  }
+
+  getEventGame(event: LiveEvent) {
+    return (
+      this.games().find((game) => game.id === event.featuredGameId) || null
+    );
+  }
+
+  getPresenceGame(entry: SocialPresence) {
+    return this.games().find((game) => game.id === entry.gameId) || null;
+  }
+
+  getPresenceActionLabel(entry: SocialPresence) {
+    return (
+      entry.cta ||
+      (entry.pendingInvite
+        ? 'Accept invite'
+        : entry.relationship === 'party'
+          ? 'Join party'
+          : entry.relationship === 'rival'
+            ? 'Track rival'
+            : 'Join friend')
+    );
+  }
+
+  handlePresenceAction(entry: SocialPresence) {
+    this.setActiveRoom(entry.roomId);
+    const game = this.getPresenceGame(entry);
+    if (game) {
+      this.previewGame(game);
+      return;
+    }
+
+    if (entry.relationship === 'rival' && !this.showIntelPanel()) {
+      this.toggleIntel();
+    }
+    this.launchGame(game);
+  }
+    }
+    const game = this.games().find(g => g.id === entry.featuredGameId);
+    if (game) this.onGameClick(game);
+  }
+  getPromotionRoute(promotion: PromotionCard) {
+    return promotion.route.startsWith('/')
+      ? promotion.route
+      : `/${promotion.route}`;
+  }
+
+  navigateToPath(path: string) {
+    this.router.navigate([path]);
+  }
+
+  isDarkMode(): boolean {
+    return this.uiService.activeTheme().name === 'Dark';
+  }
+
+  onFrameError() {
+    this.frameError.set(
+      'The cabinet refused the embedded session. Open it in a new tab to continue.'
+    );
+  }
+
+  @HostListener('window:message', ['$event'])
+  onMessage(event: MessageEvent) {
+    const currentGame = this.currentGame();
+    if (!currentGame || !this.isTrustedTelemetryEvent(event, currentGame)) {
+      return;
+    }
+
+    const data = event.data;
+    if (!data || typeof data !== 'object') {
+      return;
+    }
+
+    if (data.type === 'GAME_OVER') {
+      return;
+    }
+  }
+
+  canEmbedInline(game: Game): boolean {
+    if (game.launchConfig?.embedMode === 'external-only') {
+      return false;
+    }
+
+    const approvedUrl = game.launchConfig?.approvedEmbedUrl || game.url;
+    return this.isApprovedFeedUrl(approvedUrl);
+  }
+
+  getGameRoomLabels(game: Game) {
+    return this.gamingRooms()
+      .filter(
+        (room) => room.id !== 'all' && this.gameService.matchesRoom(game, room)
+      )
+      .slice(0, 2)
+      .map((room) => room.name);
+  }
+
+  getLaunchModeLabel(game: Game) {
+    return this.canEmbedInline(game) ? 'Inline ready' : 'External launch';
+  }
+
+  getCardAnimationDelay(index: number) {
+    return `${index * this.cardAnimationDelayIncrement}s`;
+  }
+
+  private isTrustedTelemetryEvent(event: MessageEvent, game: Game): boolean {
+    const telemetryMode = game.launchConfig?.telemetryMode || 'none';
+    if (typeof window === 'undefined' || telemetryMode === 'none') {
+      return false;
+    }
+
+    if (telemetryMode === 'frame-only') {
+      return this.gameIframe?.nativeElement?.contentWindow === event.source;
+    }
+
+    return (
+      this.gameIframe?.nativeElement?.contentWindow === event.source &&
+      !!game.launchConfig?.telemetryOrigins?.includes(event.origin)
+    );
+  }
+
+  private getTotalPlays() {
+    return Object.values(this.profileService.profile().gameStats || {}).reduce(
+      (total, stat) => total + (stat?.plays || 0),
+      0
+    );
+  }
+
+  private findMasteredRoom(stats: Record<string, { plays?: number }> = {}) {
+    const roomScores = new Map<string, number>();
+
+    for (const [gameId, stat] of Object.entries(stats)) {
+      if (!game) {
+        continue;
+      }
+
+      for (const room of this.gamingRooms()) {
+        if (this.gameService.matchesRoom(game, room)) {
+          roomScores.set(
+            room.id,
+            (roomScores.get(room.id) || 0) + (stat.plays || 0)
+          );
+        }
+      }
+    }
+
+    const topRoomId = [...roomScores.entries()].sort(
+      (a, b) => b[1] - a[1]
+    )[0]?.[0];
+    return this.gamingRooms().find((room) => room.id === topRoomId);
+  }
+
+  private loadFeed(forceRefresh = false) {
+    this.feedSubscription?.unsubscribe();
+    this.feedSubscription = this.gameService
+      .getThaSpotFeed(forceRefresh)
+      .subscribe((feed) => {
+        this.feed.set(feed);
+        this.gamingRooms.set(feed.rooms);
+        this.badges.set(feed.badges);
+        this.liveEvents.set(feed.liveEvents);
+        this.socialPresence.set(feed.socialPresence);
+        this.promotions.set(feed.promotions);
+        this.recommendationRails.set(feed.recommendationRails);
+        this.games.set(feed.games);
+
+        if (!feed.rooms.some((room) => room.id === this.activeRoom())) {
+          this.activeRoom.set(feed.rooms[0]?.id || 'all');
+        }
+      });
+  }
+
+  private matchesQuickFilter(game: Game, filter: QuickFilter) {
+    switch (filter) {
+      case 'featured':
+        return !!game.badgeIds?.some((badge) =>
+          FEATURED_BADGE_ID_SET.has(badge)
+        );
+      case 'multiplayer':
+        return (
+          game.multiplayerType === 'Server' ||
+          game.multiplayerType === 'P2P' ||
+          !!game.tags?.some((tag) =>
+            MULTIPLAYER_TAG_KEYWORDS.includes(tag.toLowerCase())
+          )
+        );
+      case 'instant':
+        return (game.queueEstimateMinutes || 0) <= 1;
+      case 'online':
+        return game.availability === 'Online' || game.availability === 'Hybrid';
+    }
+  }
+
+  private isApprovedFeedUrl(url: string) {
+    try {
+      const normalizedUrl = this.normalizeGameUrl(url);
+      return this.games().some((game) => {
+        const approvedUrl = game.launchConfig?.approvedEmbedUrl || game.url;
+        return this.normalizeGameUrl(approvedUrl) === normalizedUrl;
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  private normalizeGameUrl(url: string) {
+    return new URL(
+      url,
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : 'https://smuve.local'
+    ).toString();
+  }
+
+  private matchesRecommendationAudience(rail: RecommendationRail) {
+    const audience = rail.audience;
+    if (!audience) {
+      return true;
+    }
+
+    const profile = this.profileService.profile();
+    const totalPlays = this.getTotalPlays();
+    const activeRoom = this.activeRoom();
+
+    if (
+      audience.primaryGenres?.length &&
+      !audience.primaryGenres.some(
+        (genre) =>
+          genre.toLowerCase() === (profile.primaryGenre || '').toLowerCase()
+      )
+    ) {
+      return false;
+    }
+
+    if (audience.rooms?.length && !audience.rooms.includes(activeRoom)) {
+      return false;
+    }
+
+    if (
+      typeof audience.minPlays === 'number' &&
+      totalPlays < audience.minPlays
+    ) {
+      return false;
+    }
+
+    if (
+      typeof audience.maxPlays === 'number' &&
+      totalPlays > audience.maxPlays
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private matchesRecommendationRail(game: Game, rail: RecommendationRail) {
+    const gameMatches = !rail.gameIds?.length || rail.gameIds.includes(game.id);
+    const roomMatches =
+      !rail.roomIds?.length ||
+      rail.roomIds.some((roomId) => {
+        const room = this.gamingRooms().find((entry) => entry.id === roomId);
+        return room ? this.gameService.matchesRoom(game, room) : false;
+      });
+
+    return gameMatches && roomMatches;
+  }
+
+  private scoreRecommendation(
+    game: Game,
+    rail: RecommendationRail,
+    stats: Record<string, { plays?: number }>,
+    roomId: string
+  ) {
+    const weights = rail.weights || {};
+    const gameStats = stats[game.id];
+    const activeRoom = this.gamingRooms().find((room) => room.id === roomId);
+    const badgeScore =
+      Math.min(game.badgeIds?.length || 0, 3) * (weights.badge || 0);
+    const historyScore =
+      Math.min(gameStats?.plays || 0, MAX_HISTORY_SCORE) *
+      ((weights.history || 0) / HISTORY_SCORE_DIVISOR);
+    const crowdScore =
+      Math.min((game.playersOnline || 0) / 2500, 8) * (weights.crowd || 0);
+    const roomScore =
+      activeRoom && this.gameService.matchesRoom(game, activeRoom)
+        ? weights.room || 0
+        : 0;
+    const genreScore =
+      rail.audience?.primaryGenres?.some(
+        (genre) =>
+          genre.toLowerCase() ===
+          (this.profileService.profile().primaryGenre || '').toLowerCase()
+      ) &&
+      ['Rhythm', 'Music Battle', 'Strategy', 'Sports', 'Classic'].includes(
+        game.genre || ''
+      )
+        ? weights.genre || 0
+        : 0;
+    const noveltyScore = gameStats?.plays ? 0 : weights.novelty || 0;
+    const explicitGameBoost = rail.gameIds?.includes(game.id) ? 12 : 0;
+
+    return (
+      badgeScore +
+      historyScore +
+      crowdScore +
+      roomScore +
+      genreScore +
+      noveltyScore +
+      explicitGameBoost
+    );
+  }
+
+  private resolveLiveEvent(ev: any): any {
+    return { ...ev, status: "live", windowLabel: "Live now" };
+  }
+
+  private getPromotionAudienceTags(profile: any) {
+    return ['producer'];
+  }
+
+  private getSessionContext(game: any): any {
+    return { roomId: (this as any).activeRoom ? (this as any).activeRoom() : "all" };
+  }
+
+  private formatDuration(durationMs: number): string {
+    return "1m";

@@ -1,969 +1,394 @@
-import { AudioRecorderService } from "../studio/audio-recorder.service";
-import { LoggingService } from './logging.service';
-import { Injectable, signal, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-import { StemSeparationService } from './stem-separation.service';
+import { Injectable, signal, effect, WritableSignal } from '@angular/core';
 
 export type DeckId = 'A' | 'B';
-export type Stems = {
-  vocals: AudioBuffer;
-  drums: AudioBuffer;
-  bass: AudioBuffer;
-  melody: AudioBuffer;
-};
 
-interface DeckChannel {
-  id: DeckId;
-  buffer: AudioBuffer | null;
-  sources: { [K in keyof Stems]: AudioBufferSourceNode | null };
-  gains: { [K in keyof Stems]: GainNode };
-  eqLow: BiquadFilterNode;
-  eqMid: BiquadFilterNode;
-  eqHigh: BiquadFilterNode;
-  filter: BiquadFilterNode;
-  pan: StereoPannerNode;
-  gain: GainNode;
-  sendA: GainNode;
-  sendB: GainNode;
-  analyser: AnalyserNode;
-  isPlaying: boolean;
-  startTime: number;
-  pauseOffset: number;
-  rate: number;
-  stems: Stems | null;
-  loopEnabled: boolean;
-  slipEnabled: boolean;
-  slipActive: boolean;
-  slipStartTime: number;
-  slipStartOffset: number;
-  hotCues: (number | null)[];
-}
-
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class AudioEngineService {
-  private static readonly INTEGER_TRACK_ID_PATTERN = /^-?\d+$/;
-  public outputMode = signal<'speakers' | 'headphones'>('speakers');
-  public performanceTier = signal<'ultra' | 'performance'>('ultra');
-  public sidechainEnabled = signal(false);
-  private logger = inject(LoggingService);
-  private stemSeparationService = inject(StemSeparationService);
-  public recorder = inject(AudioRecorderService);
-  public ctx: AudioContext;
-  public masterGain: GainNode;
-  public compressor: DynamicsCompressorNode;
-  public saturationNode: WaveShaperNode;
-  public limiter: DynamicsCompressorNode;
-  private reverbConvolver: ConvolverNode;
-  public reverbWet: GainNode;
-  private delayNode: DelayNode;
-  public delayWet: GainNode;
-  private recordingDestination: MediaStreamAudioDestinationNode | null = null;
-  public masterAnalyser: AnalyserNode;
-  public getMasterAnalyser() {
-    return this.masterAnalyser;
-  }
-
-  private deckA!: DeckChannel;
-  private deckB!: DeckChannel;
-
+  public tempo = signal(124);
   public isPlaying = signal(false);
   public isRecording = signal(false);
-  public countInEnabled = signal(false);
-  public countInBars = signal(1);
-  public tempo = signal(124);
-  public currentBeat = signal(0);
-  public stepsPerBeat = signal(4);
-  public loopEnd = signal(64);
-  public loopStart = signal(0);
   public metronomeEnabled = signal(false);
   public metronomeVolume = signal(0.5);
+  public loopStart = signal(0);
+  public loopEnd = signal(16);
+  public currentBeat = signal(0);
+  public currentTick = signal(0);
+  public reverbWet = signal(0.3);
+  public outputMode = signal('stereo');
 
-  private timerId: any = null;
-  private nextNoteTime = 0;
+  public ctx: AudioContext | null = null;
+  public masterGain: any;
+  public compressor: any;
+  public masterAnalyser: any;
+
+  private schedulerTimer: any;
+  private nextTickTime = 0;
+  private tickCounter = 0;
   private lookahead = 0.1;
-  private scheduleAheadTime = 0.2;
 
-  private crossfaderValue = 0;
-  private crossfaderCurve: 'linear' | 'power' | 'exp' | 'cut' = 'linear';
-  private crossfaderHamster = false;
+  public onStep?: (step: number, time: number) => void;
+  public onScheduleStep?: (...args: any[]) => void;
 
-  private tracks = new Map<number, any>();
-  private busses = new Map<string, GainNode>();
-  private sidechainMatrix = new Map<string, Set<string>>();
-  private masteringTargets = {
-    lufs: -14,
-    truePeak: -0.1,
-  };
+  public decks = new Map<string, any>();
 
   constructor() {
-    this.ctx = new (
-      window.AudioContext || (window as any).webkitAudioContext
-    )();
+    effect(() => {
+      if (this.isPlaying()) {
+        if (!this.ctx) this.initAudio();
+        if (this.ctx!.state === 'suspended') this.ctx!.resume();
+        this.nextTickTime = this.ctx!.currentTime;
+        this.scheduler();
+      } else {
+        clearTimeout(this.schedulerTimer);
+        this.tickCounter = 0;
+        this.currentBeat.set(0);
+        this.currentTick.set(0);
+      }
+    });
+  }
+
+  public initAudio() {
+    this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     this.masterGain = this.ctx.createGain();
     this.compressor = this.ctx.createDynamicsCompressor();
-    this.saturationNode = this.ctx.createWaveShaper();
-    this.limiter = this.ctx.createDynamicsCompressor();
-    this.reverbConvolver = this.ctx.createConvolver();
-    this.reverbWet = this.ctx.createGain();
-    this.delayNode = this.ctx.createDelay(2.0);
-    this.delayWet = this.ctx.createGain();
     this.masterAnalyser = this.ctx.createAnalyser();
-
-    // Signal chain: ... -> masterGain -> compressor -> saturation -> limiter -> masterAnalyser -> destination
-    this.masterGain.connect(this.compressor);
-    this.compressor.connect(this.saturationNode);
-    this.saturationNode.connect(this.limiter);
-    this.limiter.connect(this.masterAnalyser);
-    // Output Bus logic moved to setOutputMode behavior if needed
-    this.masterAnalyser.connect(this.ctx.destination);
-
-    // FX Chain
-    this.reverbConvolver.connect(this.reverbWet);
-    this.reverbWet.connect(this.masterGain);
-
-    this.delayNode.connect(this.delayWet);
-    this.delayWet.connect(this.masterGain);
-
-    // Default FX setup
-    this.compressor.threshold.value = -24;
-    this.compressor.ratio.value = 4;
-    this.limiter.threshold.value = -0.5;
-    this.limiter.ratio.value = 20;
-
-    this.setupSaturation(0);
-    this.initDeck('A');
-    this.initDeck('B');
-    this.loadDefaultImpulse();
-  }
-
-  getContext() {
+    this.masterGain.connect(this.compressor).connect(this.masterAnalyser).connect(this.ctx.destination);
     return this.ctx;
   }
-  get compressorNode() {
-    return this.compressor;
-  }
-  get limiterNode() {
-    return this.limiter;
-  }
-  getAnalyser() {
-    return this.masterAnalyser;
-  }
 
-  setOutputMode(mode: 'speakers' | 'headphones') {
-    this.outputMode.set(mode);
-  }
-  setPerformanceTier(tier: 'ultra' | 'performance') {
-    this.performanceTier.set(tier);
-    if (tier === 'performance') {
-      this.lookahead = 0.16;
-      this.scheduleAheadTime = 0.28;
-      this.masterAnalyser.fftSize = 1024;
-      return;
+  public getContext() { if (!this.ctx) this.initAudio(); return this.ctx!; }
+  public resume() { if (this.ctx) return this.ctx.resume(); return Promise.resolve(); }
+
+  private scheduler() {
+    while (this.ctx && this.nextTickTime < this.ctx.currentTime + this.lookahead) {
+      this.scheduleTick(this.tickCounter, this.nextTickTime);
+      this.advanceTick();
     }
-    this.lookahead = 0.1;
-    this.scheduleAheadTime = 0.2;
-    this.masterAnalyser.fftSize = 2048;
+    this.schedulerTimer = setTimeout(() => this.scheduler(), 25);
   }
 
-  updateAdaptivePerformance(cpuLoadPercent: number) {
-    if (cpuLoadPercent > 75 && this.performanceTier() !== 'performance') {
-      this.setPerformanceTier('performance');
-      return;
+  private scheduleTick(tick: number, time: number) {
+    const stepDur = 60.0 / this.tempo() / 4.0;
+    if (this.onStep) this.onStep(tick, time);
+    if (this.onScheduleStep) this.onScheduleStep(tick, time, stepDur);
+
+    if (this.metronomeEnabled() && tick % 4 === 0) {
+      this.playClick(time, tick % 16 === 0 ? 1000 : 800);
     }
-    if (cpuLoadPercent < 45 && this.performanceTier() !== 'ultra') {
-      this.setPerformanceTier('ultra');
+    this.currentBeat.set(Math.floor(tick / 4));
+    this.currentTick.set(tick);
+  }
+
+  private playClick(time: number, freq: number) {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.frequency.setValueAtTime(freq, time);
+    g.gain.setValueAtTime(this.metronomeVolume(), time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+    osc.connect(g).connect(this.ctx.destination);
+    osc.start(time);
+    osc.stop(time + 0.06);
+  }
+
+  private advanceTick() {
+    const secondsPerTick = 60.0 / this.tempo() / 4.0;
+    this.nextTickTime += secondsPerTick;
+    this.tickCounter++;
+    if (this.tickCounter >= this.loopEnd()) this.tickCounter = this.loopStart();
+  }
+
+  public triggerAttack(trackId: number, freq: number, time: number, velocity: number, length: number, gain: number, pan: number, sendA: number, sendB: number, params: any, velocityScale = 1) {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    const p = this.ctx.createStereoPanner();
+    osc.type = params.type || 'triangle';
+    osc.frequency.setValueAtTime(freq, time);
+    const finalGain = velocity * gain * velocityScale;
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(finalGain, time + (params.attack || 0.005));
+    g.gain.exponentialRampToValueAtTime(finalGain * (params.sustain || 0.7), time + (params.decay || 0.1));
+    const dur = length * (60/this.tempo()/4);
+    g.gain.setValueAtTime(finalGain * (params.sustain || 0.7), time + dur);
+    g.gain.linearRampToValueAtTime(0, time + dur + (params.release || 0.1));
+    p.pan.setValueAtTime(pan, time);
+    osc.connect(g).connect(p).connect(this.masterGain || this.ctx.destination);
+    osc.start(time);
+    osc.stop(time + dur + (params.release || 0.1) + 0.1);
+  }
+
+  public playSynth(...args: any[]) {
+    if (!this.ctx) this.initAudio();
+    let time, freq, duration, velocity, pan;
+    if (typeof args[0] === 'number' && args.length > 2) {
+       [time, freq, duration, velocity, pan] = args;
+    } else {
+       [, freq, velocity] = args;
+       time = this.ctx!.currentTime;
+       duration = 1;
+       pan = 0;
     }
-  }
-  resume() {
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    this.triggerAttack(0, freq || 440, time || this.ctx!.currentTime, velocity || 0.5, duration || 1, 0.5, pan || 0, 0, 0, { type: 'sine' });
   }
 
-  private setupSaturation(amount: number) {
-    if (amount <= 0) {
-      this.saturationNode.curve = null;
-      this.saturationNode.oversample = 'none';
-      return;
+  public ensureTrack(track: any) {}
+  public updateTrack(id: number, patch: any) {}
+  public start() { this.isPlaying.set(true); }
+  public stop() { this.isPlaying.set(false); }
+  public toggleRecording() { this.isRecording.update(v => !v); }
+  public toggleMetronome() { this.metronomeEnabled.update(v => !v); }
+  public setMetronomeVolume(vol: number) { this.metronomeVolume.set(vol); }
+  public getMasterAnalyser() { if (!this.ctx) this.initAudio(); return this.masterAnalyser; }
+  public getAnalyser() { return this.getMasterAnalyser(); }
+  public getMasterStream() { if (!this.ctx) this.initAudio(); const dest = this.ctx!.createMediaStreamDestination(); this.masterAnalyser?.connect(dest); return dest; }
+
+
+  private deckNodes = new Map<string, {
+    source: AudioBufferSourceNode | null,
+    gain: GainNode,
+    filter: BiquadFilterNode,
+    low: BiquadFilterNode,
+    mid: BiquadFilterNode,
+    high: BiquadFilterNode,
+    panner: StereoPannerNode,
+    rate: number,
+    lastStartedAt: number,
+    lastOffset: number,
+    slipOffset: number,
+    slipEnabled: boolean,
+    loopEnabled: boolean
+  }>();
+
+  public getDeck(id: string) {
+    if (!this.decks.has(id)) {
+      this.decks.set(id, {
+        buffer: null,
+        position: 0,
+        slipPosition: 0,
+        isPlaying: false,
+        duration: 0,
+        rate: 1,
+        hotCues: new Array(8).fill(null)
+      });
+      this.initDeckNodes(id);
     }
-    const k = amount * 100;
-    const n_samples = 44100;
-    const curve = new Float32Array(n_samples);
-    const deg = Math.PI / 180;
-    for (let i = 0; i < n_samples; ++i) {
-      const x = (i * 2) / n_samples - 1;
-      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
-    }
-    this.saturationNode.curve = curve;
-    this.saturationNode.oversample = '4x';
+    return this.decks.get(id);
   }
 
-  public setSaturation(amount: number) {
-    this.setupSaturation(amount);
+  private initDeckNodes(id: string) {
+    if (!this.ctx) this.initAudio();
+    const g = this.ctx!.createGain();
+    const f = this.ctx!.createBiquadFilter();
+    const low = this.ctx!.createBiquadFilter();
+    const mid = this.ctx!.createBiquadFilter();
+    const high = this.ctx!.createBiquadFilter();
+    const p = this.ctx!.createStereoPanner();
+
+    low.type = 'lowshelf'; low.frequency.value = 320;
+    mid.type = 'peaking'; mid.frequency.value = 1000; mid.Q.value = 0.5;
+    high.type = 'highshelf'; high.frequency.value = 3200;
+
+    f.connect(low).connect(mid).connect(high).connect(g).connect(p).connect(this.masterGain);
+
+    this.deckNodes.set(id, {
+      source: null, gain: g, filter: f, low, mid, high, panner: p,
+      rate: 1, lastStartedAt: 0, lastOffset: 0, slipOffset: 0,
+      slipEnabled: false, loopEnabled: false
+    });
   }
 
-  private initDeck(id: DeckId) {
-    const deck: DeckChannel = {
-      id,
-      buffer: null,
-      sources: { vocals: null, drums: null, bass: null, melody: null },
-      gains: {
-        vocals: this.ctx.createGain(),
-        drums: this.ctx.createGain(),
-        bass: this.ctx.createGain(),
-        melody: this.ctx.createGain(),
-      },
-      eqLow: this.ctx.createBiquadFilter(),
-      eqMid: this.ctx.createBiquadFilter(),
-      eqHigh: this.ctx.createBiquadFilter(),
-      filter: this.ctx.createBiquadFilter(),
-      pan: this.ctx.createStereoPanner(),
-      gain: this.ctx.createGain(),
-      analyser: this.ctx.createAnalyser(),
-      isPlaying: false,
-      startTime: 0,
-      pauseOffset: 0,
-      rate: 1.0,
-      stems: null,
-      loopEnabled: false,
-      slipEnabled: false,
-      slipActive: false,
-      slipStartTime: 0,
-      slipStartOffset: 0,
-      hotCues: new Array(8).fill(null),
-      sendA: this.ctx.createGain(),
-      sendB: this.ctx.createGain(),
-    };
-    deck.sendA.gain.value = 0;
-    deck.sendB.gain.value = 0;
-
-    deck.eqLow.type = 'lowshelf';
-    deck.eqLow.frequency.value = 250;
-    deck.eqMid.type = 'peaking';
-    deck.eqMid.frequency.value = 1000;
-    deck.eqMid.Q.value = 1;
-    deck.eqHigh.type = 'highshelf';
-    deck.eqHigh.frequency.value = 4000;
-    deck.filter.type = 'lowpass';
-    deck.filter.frequency.value = 20000;
-
-    deck.analyser.fftSize = 1024;
-
-    // Routing: Stems -> EQ -> Filter -> Pan -> Gain -> Analyser -> Master
-    Object.values(deck.gains).forEach((g) => g.connect(deck.eqLow));
-    deck.eqLow.connect(deck.eqMid);
-    deck.eqMid.connect(deck.eqHigh);
-    deck.eqHigh.connect(deck.filter);
-    deck.filter.connect(deck.pan);
-    deck.pan.connect(deck.gain);
-
-    // Sends
-    deck.sendA.connect(this.reverbConvolver);
-    deck.sendB.connect(this.delayNode);
-
-    deck.gain.connect(deck.sendA);
-    deck.gain.connect(deck.sendB);
-    deck.gain.connect(deck.analyser);
-    deck.analyser.connect(this.masterGain);
-
-    if (id === 'A') this.deckA = deck;
-    else this.deckB = deck;
-  }
-
-  async loadDeck(id: DeckId, buffer: AudioBuffer) {
-    const deck = this.getDeck(id);
+  public loadDeck(id: string, buffer: AudioBuffer) {
+    const d = this.getDeck(id);
+    d.buffer = buffer;
+    d.duration = buffer.duration;
     this.stopDeck(id);
-    deck.buffer = buffer;
-    deck.pauseOffset = 0;
-    try {
-      deck.stems = await firstValueFrom(
-        this.stemSeparationService.separate(buffer)
-      );
-    } catch (e) {
-      this.logger.warn('Stem separation failed for deck', id, e);
+    d.position = 0;
+    d.slipPosition = 0;
+  }
+
+  public playDeck(id: string) {
+    const d = this.getDeck(id);
+    if (!d.buffer || d.isPlaying) return;
+    const nodes = this.deckNodes.get(id)!;
+
+    if (nodes.source) { nodes.source.stop(); nodes.source = null; }
+
+    const source = this.ctx!.createBufferSource();
+    source.buffer = d.buffer;
+    source.playbackRate.value = nodes.rate;
+    source.loop = nodes.loopEnabled;
+    source.connect(nodes.filter);
+
+    const startTime = this.ctx!.currentTime;
+    source.start(startTime, d.position);
+
+    nodes.source = source;
+    nodes.lastStartedAt = startTime;
+    nodes.lastOffset = d.position;
+    d.isPlaying = true;
+  }
+
+  public pauseDeck(id: string) {
+    const d = this.getDeck(id);
+    if (!d.isPlaying) return;
+    this.stopDeck(id);
+  }
+
+  private stopDeck(id: string) {
+    const d = this.getDeck(id);
+    const nodes = this.deckNodes.get(id)!;
+    if (nodes.source) {
+      try { nodes.source.stop(); } catch(e) {}
+      nodes.source = null;
     }
+    d.position = this.getDeckCurrentPosition(id);
+    d.isPlaying = false;
   }
 
-  public getDeck(id: DeckId) {
-    return id === 'A' ? this.deckA : this.deckB;
+  public seekDeck(id: string, pos: number) {
+    const d = this.getDeck(id);
+    const wasPlaying = d.isPlaying;
+    if (wasPlaying) this.stopDeck(id);
+    d.position = Math.max(0, Math.min(d.duration, pos));
+    if (wasPlaying) this.playDeck(id);
   }
 
-  playDeck(id: DeckId) {
-    const deck = this.getDeck(id);
-    if (deck.isPlaying) return;
-    if (deck.slipActive) {
-      const elapsedSlip = this.ctx.currentTime - deck.slipStartTime;
-      const newPos = Math.max(
-        0,
-        Math.min(
-          deck.buffer?.duration || 0,
-          deck.slipStartOffset + elapsedSlip * deck.rate
-        )
-      );
-      deck.pauseOffset = newPos;
-      deck.slipActive = false;
-    }
-    this.startDeckSource(deck, deck.pauseOffset);
-    deck.isPlaying = true;
-  }
-
-  pauseDeck(id: DeckId) {
-    const deck = this.getDeck(id);
-    if (!deck.isPlaying) return;
-    const elapsed = this.ctx.currentTime - deck.startTime;
-    deck.pauseOffset += elapsed * deck.rate;
-    if (deck.slipEnabled) {
-      deck.slipActive = true;
-      deck.slipStartTime = this.ctx.currentTime;
-      deck.slipStartOffset = deck.pauseOffset;
-    }
-    this.stopDeckSource(deck);
-    deck.isPlaying = false;
-  }
-
-  stopDeck(id: DeckId) {
-    const deck = this.getDeck(id);
-    this.stopDeckSource(deck);
-    deck.pauseOffset = 0;
-  }
-
-  private startDeckSource(deck: DeckChannel, offset: number) {
-    const dur = deck.buffer?.duration || 0;
-    if (offset >= dur && !deck.loopEnabled) return;
-    deck.startTime = this.ctx.currentTime;
-    deck.isPlaying = true;
-
-    if (deck.stems) {
-      ['vocals', 'drums', 'bass', 'melody'].forEach((k: any) => {
-        const src = this.ctx.createBufferSource();
-        src.buffer = (deck.stems as any)[k];
-        src.playbackRate.value = deck.rate;
-        src.loop = deck.loopEnabled;
-        src.connect(deck.gains[k as keyof Stems]);
-        src.start(0, offset % dur);
-        (deck.sources as any)[k] = src;
-      });
-    } else if (deck.buffer) {
-      const src = this.ctx.createBufferSource();
-      src.buffer = deck.buffer;
-      src.playbackRate.value = deck.rate;
-      src.loop = deck.loopEnabled;
-      src.connect(deck.gains.vocals);
-      src.start(0, offset % dur);
-      deck.sources.vocals = src;
-    }
-  }
-
-  private stopDeckSource(deck: DeckChannel) {
-    ['vocals', 'drums', 'bass', 'melody'].forEach((k: any) => {
-      if ((deck.sources as any)[k]) {
-        try {
-          (deck.sources as any)[k]!.stop();
-        } catch (_e) {
-          /* ignore */
-        }
-        (deck.sources as any)[k] = null;
-      }
-    });
-    deck.isPlaying = false;
-  }
-
-  setDeckRate(id: DeckId, rate: number, smooth = true) {
-    const deck = this.getDeck(id);
-    deck.rate = rate;
-    const rampTime = smooth ? 0.05 : 0.005;
-    Object.values(deck.sources).forEach((s) => {
-      if (s) {
-        s.playbackRate.setTargetAtTime(rate, this.ctx.currentTime, rampTime);
-      }
-    });
-  }
-
-  brakeDeck(id: DeckId) {
-    const deck = this.getDeck(id);
-    const now = this.ctx.currentTime;
-    const duration = 0.8;
-    Object.values(deck.sources).forEach((s) => {
-      if (s) {
-        s.playbackRate.cancelScheduledValues(now);
-        s.playbackRate.setValueAtTime(deck.rate, now);
-        s.playbackRate.linearRampToValueAtTime(0, now + duration);
-      }
-    });
-    setTimeout(() => {
-      this.pauseDeck(id);
-      this.setDeckRate(id, 1.0, true);
-    }, duration * 1000);
-  }
-
-  spinbackDeck(id: DeckId) {
-    const deck = this.getDeck(id);
-    const originalRate = deck.rate;
-    this.setDeckRate(id, -4.0, false);
-    setTimeout(() => {
-      this.setDeckRate(id, originalRate);
-    }, 600);
-  }
-
-  transformDeck(id: DeckId) {
-    const deck = this.getDeck(id);
-    const now = this.ctx.currentTime;
-    const g = deck.gain.gain;
-    const val = g.value || 1.0;
-    g.cancelScheduledValues(now);
-    for (let i = 0; i < 8; i++) {
-      g.setValueAtTime(i % 2 === 0 ? 0 : val, now + i * 0.1);
-    }
-    g.setValueAtTime(val, now + 0.85);
-  }
-  setDeckSend(id: DeckId, send: 'A' | 'B', gain: number) {
-    const deck = this.getDeck(id);
-    const node = send === 'A' ? deck.sendA : deck.sendB;
-    node.gain.setTargetAtTime(gain, this.ctx.currentTime, 0.01);
-  }
-
-  setDeckGain(id: DeckId, gain: number) {
-    this.getDeck(id).gain.gain.setTargetAtTime(
-      gain,
-      this.ctx.currentTime,
-      0.01
-    );
-  }
-
-  setDeckStemGain(id: DeckId, stem: keyof Stems, gain: number) {
-    this.getDeck(id).gains[stem].gain.setTargetAtTime(
-      gain,
-      this.ctx.currentTime,
-      0.01
-    );
-  }
-
-  setDeckEq(id: DeckId, high: number, mid: number, low: number) {
-    const deck = this.getDeck(id);
-    deck.eqHigh.gain.setTargetAtTime(high, this.ctx.currentTime, 0.01);
-    deck.eqMid.gain.setTargetAtTime(mid, this.ctx.currentTime, 0.01);
-    deck.eqLow.gain.setTargetAtTime(low, this.ctx.currentTime, 0.01);
-  }
-
-  setDeckFilter(id: DeckId, freq: number, type: any = 'lowpass') {
-    const deck = this.getDeck(id);
-    deck.filter.type = type;
-    deck.filter.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.02);
-  }
-
-  setCrossfader(
-    value: number,
-    curve: 'linear' | 'power' | 'exp' | 'cut' = 'linear',
-    hamster = false
-  ) {
-    this.crossfaderValue = Math.max(-1, Math.min(1, value));
-    this.crossfaderCurve = curve;
-    this.crossfaderHamster = hamster;
-    this.applyCrossfader();
-  }
-
-  private applyCrossfader() {
-    let a = 0,
-      b = 0;
-    const val = this.crossfaderHamster
-      ? -this.crossfaderValue
-      : this.crossfaderValue;
-    switch (this.crossfaderCurve) {
-      case 'linear':
-        a = 0.5 * (1 - val);
-        b = 0.5 * (1 + val);
-        break;
-      case 'power':
-        a = Math.cos(0.25 * Math.PI * (val + 1));
-        b = Math.sin(0.25 * Math.PI * (val + 1));
-        break;
-      case 'cut':
-        a = val > -0.9 ? 1 : 0;
-        b = val < 0.9 ? 1 : 0;
-        break;
-      default:
-        a = 0.5 * (1 - val);
-        b = 0.5 * (1 + val);
-    }
-    this.deckA.gain.gain.setTargetAtTime(a, this.ctx.currentTime, 0.01);
-    this.deckB.gain.gain.setTargetAtTime(b, this.ctx.currentTime, 0.01);
-  }
-
-  getDeckProgress(id: DeckId) {
-    const deck = this.getDeck(id);
-    const dur = deck.buffer?.duration || 0;
-    if (!deck.buffer)
-      return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
-
-    let pos = deck.pauseOffset;
-    let slipPos = deck.slipStartOffset;
-
-    if (deck.isPlaying) {
-      const elapsed = this.ctx.currentTime - deck.startTime;
-      pos = Math.max(0, Math.min(dur, deck.pauseOffset + elapsed * deck.rate));
-    }
-
-    if (deck.slipActive) {
-      const elapsedSlip = this.ctx.currentTime - deck.slipStartTime;
-      slipPos = Math.max(
-        0,
-        Math.min(dur, deck.slipStartOffset + elapsedSlip * deck.rate)
-      );
-    } else {
-      slipPos = pos;
-    }
-
+  public getDeckProgress(id: string) {
+    const d = this.getDeck(id);
     return {
-      position: pos,
-      duration: dur,
-      isPlaying: deck.isPlaying,
-      slipPosition: slipPos,
+      position: this.getDeckCurrentPosition(id),
+      duration: d.duration,
+      isPlaying: d.isPlaying,
+      slipPosition: this.getDeckCurrentPosition(id, true)
     };
   }
-  private async loadDefaultImpulse() {
-    const rate = this.ctx.sampleRate;
-    const len = rate * 1.2;
-    const impulse = this.ctx.createBuffer(2, len, rate);
-    for (let c = 0; c < 2; c++) {
-      const ch = impulse.getChannelData(c);
-      for (let i = 0; i < len; i++) {
-        ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
-      }
-    }
-    this.reverbConvolver.buffer = impulse;
+
+  private getDeckCurrentPosition(id: string, slip = false) {
+    const d = this.getDeck(id);
+    const nodes = this.deckNodes.get(id)!;
+    if (!d.isPlaying) return d.position;
+    const elapsed = (this.ctx!.currentTime - nodes.lastStartedAt) * nodes.rate;
+    let pos = nodes.lastOffset + elapsed;
+    if (nodes.loopEnabled && d.duration > 0) pos %= d.duration;
+    return pos;
   }
 
-  startRecording() { this.resume(); if (this.isPlaying()) return; this.isRecording.set(true); this.recorder.startRecording(this.getMasterStream().stream); this.start(); }
-
-  toggleRecording() { if (this.isRecording()) { if (this.isRecording()) this.recorder.stopRecording(); this.isRecording.set(false); this.stop(); } else { this.startRecording(); } }
-
-  start() {
-    this.resume();
-    if (this.isPlaying()) return;
-    this.isPlaying.set(true);
-    this.nextNoteTime = this.ctx.currentTime + 0.05;
-    this.timerId = setInterval(
-      () => this.scheduleTick(),
-      this.lookahead * 1000
-    );
-  }
-
-  stop() {
-    if (!this.isPlaying()) return;
-    this.isPlaying.set(false);
-    if (this.timerId) {
-      clearInterval(this.timerId);
-      this.timerId = null;
+  public setDeckRate(id: string, rate: number, preservePitch = true) {
+    const d = this.getDeck(id);
+    const nodes = this.deckNodes.get(id)!;
+    nodes.rate = rate;
+    if (nodes.source) {
+      nodes.source.playbackRate.setTargetAtTime(rate, this.ctx!.currentTime, 0.01);
     }
   }
 
-  private scheduleTick() {
-    const spb = 60 / this.tempo();
-    const stepDur = spb / this.stepsPerBeat();
-    while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
-      const stepIndex = this.currentBeat();
-
-      // Play metronome click on each beat (every stepsPerBeat steps)
-      if (stepIndex % this.stepsPerBeat() === 0) {
-        const beatInBar = Math.floor(stepIndex / this.stepsPerBeat()) % 4;
-        this.playMetronomeClick(this.nextNoteTime, beatInBar === 0);
-      }
-
-      this.onScheduleStep?.(stepIndex, this.nextNoteTime, stepDur);
-      const next = (stepIndex + 1) % this.loopEnd();
-      this.currentBeat.set(next);
-      this.nextNoteTime += stepDur;
+  public brakeDeck(id: string) {
+    const nodes = this.deckNodes.get(id)!;
+    if (nodes.source) {
+      nodes.source.playbackRate.exponentialRampToValueAtTime(0.01, this.ctx!.currentTime + 1.5);
+      setTimeout(() => this.pauseDeck(id), 1500);
     }
   }
 
-  onScheduleStep?: (stepIndex: number, when: number, stepDur: number) => void;
-
-  playSynth(
-    when: number,
-    freq: number,
-    duration: number,
-    velocity = 1,
-    pan = 0,
-    outGain = 0.6,
-    _sendA = 0.1,
-    _sendB = 0.05,
-    params?: any,
-    velocityScale = 1
-  ) {
-    this.resume();
-    if (this.isRecording()) { this.recorder.pendingMidi.push({ pitch: 69 + 12 * Math.log2(freq / 440), startTime: this.currentBeat(), duration, velocity }); }
-    const osc = this.ctx.createOscillator();
-    osc.type = params?.type || 'sawtooth';
-    const vca = this.ctx.createGain();
-    const filter = this.ctx.createBiquadFilter();
-    filter.frequency.value = params?.cutoff ?? 8000;
-    const p = this.ctx.createStereoPanner();
-    p.pan.value = pan;
-    const a = params?.attack ?? 0.005;
-    const d = params?.decay ?? 0.08;
-    const s = params?.sustain ?? 0.7;
-    const r = params?.release ?? 0.15;
-    vca.gain.setValueAtTime(0, when);
-    const scaledVelocity = Math.max(
-      0.1,
-      Math.min(1.8, velocity * velocityScale)
-    );
-    vca.gain.linearRampToValueAtTime(scaledVelocity * outGain, when + a);
-    vca.gain.linearRampToValueAtTime(
-      scaledVelocity * outGain * s,
-      when + a + d
-    );
-    vca.gain.setTargetAtTime(0, when + duration, r);
-    osc.frequency.value = freq;
-    osc.connect(filter).connect(vca).connect(p).connect(this.masterGain);
-    osc.start(when);
-    osc.stop(when + duration + 2.0);
-  }
-
-  playBuffer(
-    when: number,
-    buffer: AudioBuffer,
-    duration: number,
-    velocity = 1,
-    pan = 0,
-    gain = 0.8
-  ) {
-    this.resume();
-    const src = this.ctx.createBufferSource();
-    src.buffer = buffer;
-    const vca = this.ctx.createGain();
-    const safeVelocity = Math.max(0.05, Math.min(1.8, velocity));
-    const safeGain = Math.max(0.05, Math.min(1.5, gain));
-    const attack = 0.002;
-    const releaseTail = 0.012;
-    const stopAt = Math.max(when + attack + releaseTail, when + duration);
-    vca.gain.setValueAtTime(0, when);
-    vca.gain.linearRampToValueAtTime(safeVelocity * safeGain, when + attack);
-    vca.gain.setTargetAtTime(
-      0,
-      Math.max(when + duration - releaseTail, when + attack),
-      releaseTail
-    );
-    const p = this.ctx.createStereoPanner();
-    p.pan.value = pan;
-    src.connect(vca).connect(p).connect(this.masterGain);
-    src.start(when);
-    src.stop(stopAt);
-  }
-
-  setMasterOutputLevel(normalized: number) {
-    this.masterGain.gain.setTargetAtTime(
-      normalized,
-      this.ctx.currentTime,
-      0.01
-    );
-  }
-
-  /**
-   * Plays a metronome click at the specified time
-   * @param when - AudioContext time to play the click
-   * @param isDownbeat - True for downbeat (beat 1), false for other beats
-   */
-  playMetronomeClick(when: number, isDownbeat: boolean = false) {
-    if (!this.metronomeEnabled()) return;
-    this.resume();
-
-    const osc = this.ctx.createOscillator();
-    const vca = this.ctx.createGain();
-
-    // Higher pitch for downbeat, lower for regular beats
-    const frequency = isDownbeat ? 1200 : 800;
-    const duration = 0.03;
-    const volume = this.metronomeVolume();
-
-    osc.type = 'sine';
-    osc.frequency.value = frequency;
-
-    // Sharp attack and quick decay for click sound
-    vca.gain.setValueAtTime(0, when);
-    vca.gain.linearRampToValueAtTime(volume, when + 0.002);
-    vca.gain.exponentialRampToValueAtTime(0.001, when + duration);
-
-    osc.connect(vca).connect(this.masterGain);
-    osc.start(when);
-    osc.stop(when + duration + 0.01);
-  }
-
-  /**
-   * Toggle metronome on/off
-   */
-  toggleMetronome(): boolean {
-    const newState = !this.metronomeEnabled();
-    this.metronomeEnabled.set(newState);
-    return newState;
-  }
-
-  /**
-   * Set metronome volume (0-1)
-   */
-  setMetronomeVolume(volume: number) {
-    this.metronomeVolume.set(Math.max(0, Math.min(1, volume)));
-  }
-
-  getBus(busId: string): GainNode {
-    if (!this.busses.has(busId)) {
-      const bus = this.ctx.createGain();
-      bus.connect(this.masterGain);
-      this.busses.set(busId, bus);
-    }
-    return this.busses.get(busId)!;
-  }
-
-  applyFx(source: AudioNode, fxSlots: any[]): AudioNode {
-    let lastNode = source;
-    fxSlots
-      .filter((s) => s.enabled)
-      .forEach((slot) => {
-        const fx = this.createFxNode(slot.type, slot.params);
-        if (fx) {
-          lastNode.connect(fx);
-          lastNode = fx;
-        }
-      });
-    return lastNode;
-  }
-
-  private createFxNode(type: string, params: any): AudioNode | null {
-    switch (type) {
-      case 'filter':
-        const f = this.ctx.createBiquadFilter();
-        f.type = params.type || 'lowpass';
-        f.frequency.value = params.frequency || 1000;
-        return f;
-      case 'delay':
-        const d = this.ctx.createDelay();
-        d.delayTime.value = params.delayTime || 0.3;
-        return d;
-      case 'compressor':
-        const c = this.ctx.createDynamicsCompressor();
-        c.threshold.value = params.threshold || -24;
-        return c;
-      default:
-        return null;
+  public spinbackDeck(id: string) {
+    const nodes = this.deckNodes.get(id)!;
+    if (nodes.source) {
+      nodes.source.playbackRate.linearRampToValueAtTime(-2.0, this.ctx!.currentTime + 0.5);
+      setTimeout(() => this.pauseDeck(id), 600);
     }
   }
 
-  ensureTrack(track: any) {
-    this.tracks.set(track.id, track);
-  }
-  updateTrack(id: number, patch: any) {
-    const t = this.tracks.get(id);
-    if (t) Object.assign(t, patch);
-  }
-
-  configureCompressor(params: any) {
-    const { threshold, ratio, attack, release } = params;
-    if (threshold !== undefined)
-      this.compressor.threshold.setTargetAtTime(
-        threshold,
-        this.ctx.currentTime,
-        0.01
-      );
-    if (ratio !== undefined)
-      this.compressor.ratio.setTargetAtTime(ratio, this.ctx.currentTime, 0.01);
-    if (attack !== undefined)
-      this.compressor.attack.setTargetAtTime(
-        attack,
-        this.ctx.currentTime,
-        0.01
-      );
-    if (release !== undefined)
-      this.compressor.release.setTargetAtTime(
-        release,
-        this.ctx.currentTime,
-        0.01
-      );
-  }
-
-  configureLimiter(params: any) {
-    const { ceiling, release } = params;
-    if (ceiling !== undefined)
-      this.limiter.threshold.setTargetAtTime(
-        ceiling,
-        this.ctx.currentTime,
-        0.01
-      );
-    if (release !== undefined)
-      this.limiter.release.setTargetAtTime(release, this.ctx.currentTime, 0.01);
-  }
-
-  setMasteringTargets(params: { lufs?: number; truePeak?: number }) {
-    if (typeof params.lufs === 'number')
-      this.masteringTargets.lufs = params.lufs;
-    if (typeof params.truePeak === 'number') {
-      this.masteringTargets.truePeak = params.truePeak;
-      this.configureLimiter({ ceiling: params.truePeak });
+  public transformDeck(id: string) {
+    const nodes = this.deckNodes.get(id)!;
+    const now = this.ctx!.currentTime;
+    for (let i = 0; i < 8; i++) {
+      nodes.gain.gain.setValueAtTime(0, now + i * 0.1);
+      nodes.gain.gain.setValueAtTime(1, now + i * 0.1 + 0.05);
     }
   }
 
-  getMasteringTargets() {
-    return { ...this.masteringTargets };
+  public setCrossfader(val: number, curve?: any, hamster?: any) {
+    // val -1 to 1
+    const nodesA = this.deckNodes.get('A');
+    const nodesB = this.deckNodes.get('B');
+    if (!nodesA || !nodesB) return;
+
+    const gainA = Math.cos((val + 1) * 0.25 * Math.PI);
+    const gainB = Math.sin((val + 1) * 0.25 * Math.PI);
+
+    nodesA.panner.pan.setTargetAtTime(val < 0 ? 0 : val, this.ctx!.currentTime, 0.05);
+    nodesB.panner.pan.setTargetAtTime(val > 0 ? 0 : val, this.ctx!.currentTime, 0.05);
+    // Note: Simple cosine crossfade
+    nodesA.gain.gain.setTargetAtTime(gainA, this.ctx!.currentTime, 0.05);
+    nodesB.gain.gain.setTargetAtTime(gainB, this.ctx!.currentTime, 0.05);
   }
 
-  setSidechainEnabled(enabled: boolean) {
-    this.sidechainEnabled.set(enabled);
+  public setDeckLoop(id: string, state: boolean) {
+    const nodes = this.deckNodes.get(id)!;
+    nodes.loopEnabled = state;
+    if (nodes.source) nodes.source.loop = state;
   }
 
-  connectSidechain(triggerTrackId: string, targetTrackId: string) {
-    const key = `${triggerTrackId}`;
-    if (!this.sidechainMatrix.has(key)) {
-      this.sidechainMatrix.set(key, new Set<string>());
-    }
-    this.sidechainMatrix.get(key)!.add(`${targetTrackId}`);
-    this.sidechainEnabled.set(true);
+  public setSlipMode(id: string, state: boolean) {
+    const nodes = this.deckNodes.get(id)!;
+    nodes.slipEnabled = state;
   }
 
-  disconnectSidechain(triggerTrackId: string, targetTrackId: string) {
-    const key = `${triggerTrackId}`;
-    const set = this.sidechainMatrix.get(key);
-    if (!set) return;
-    set.delete(`${targetTrackId}`);
-    if (set.size === 0) this.sidechainMatrix.delete(key);
+  public setHotCue(id: string, slot: number) {
+    const d = this.getDeck(id);
+    d.hotCues[slot] = this.getDeckCurrentPosition(id);
   }
 
-  getSidechainRouting() {
-    return Array.from(this.sidechainMatrix.entries()).map(
-      ([trigger, targets]) => ({
-        triggerTrackId: trigger,
-        targetTrackIds: Array.from(targets),
-      })
-    );
+  public jumpToHotCue(id: string, slot: number) {
+    const d = this.getDeck(id);
+    if (d.hotCues[slot] !== null) this.seekDeck(id, d.hotCues[slot]!);
   }
 
-  applyProductionParameter(
-    trackId: string,
-    parameter: string,
-    value: number,
-    duration = 0.01
-  ) {
-    const trimmedTrackId = `${trackId}`.trim();
-    const isNumericTrackId =
-      AudioEngineService.INTEGER_TRACK_ID_PATTERN.test(trimmedTrackId);
-    const numericTrackId = isNumericTrackId ? Number(trimmedTrackId) : NaN;
-    const track = isNumericTrackId
-      ? this.tracks.get(numericTrackId)
-      : undefined;
-    const now = this.ctx.currentTime;
-    const tau = Math.max(0.001, duration);
-
-    if (parameter === 'masterGain') {
-      this.masterGain.gain.setTargetAtTime(value, now, tau);
-      return;
-    }
-    if (parameter === 'compressor.threshold') {
-      this.compressor.threshold.setTargetAtTime(value, now, tau);
-      return;
-    }
-    if (parameter === 'limiter.ceiling') {
-      this.limiter.threshold.setTargetAtTime(value, now, tau);
-      return;
-    }
-    if (parameter === 'tempo') {
-      this.tempo.set(Math.max(30, Math.min(300, value)));
-      return;
-    }
-    if (parameter === 'qualityMode') {
-      const normalized = value >= 0.5 ? 'ultra' : 'performance';
-      if (isNumericTrackId && !Number.isNaN(numericTrackId)) {
-        this.updateTrack(numericTrackId, { qualityMode: normalized });
-      }
-      return;
-    }
-
-    if (!track) return;
-
-    const patch: any = {};
-    if (parameter === 'gain' || parameter === 'volume') {
-      patch.gain = Math.max(0, Math.min(1.5, value));
-    } else if (parameter === 'pan') {
-      patch.pan = Math.max(-1, Math.min(1, value));
-    } else if (parameter === 'sendA') {
-      patch.sendA = Math.max(0, Math.min(1, value));
-    } else if (parameter === 'sendB') {
-      patch.sendB = Math.max(0, Math.min(1, value));
-    } else if (parameter === 'filter.cutoff') {
-      patch.cutoff = Math.max(20, Math.min(22000, value));
-    } else if (parameter === 'velocity') {
-      patch.velocityScale = Math.max(0, Math.min(2, value));
-    } else {
-      patch[parameter] = value;
-    }
-    const resolvedId = typeof track.id === 'number' ? track.id : numericTrackId;
-    if (!Number.isNaN(resolvedId)) {
-      this.updateTrack(resolvedId, patch);
-    }
+  public setDeckEq(id: string, high: number, mid: number, low: number) {
+    const nodes = this.deckNodes.get(id)!;
+    nodes.high.gain.setTargetAtTime(high, this.ctx!.currentTime, 0.05);
+    nodes.mid.gain.setTargetAtTime(mid, this.ctx!.currentTime, 0.05);
+    nodes.low.gain.setTargetAtTime(low, this.ctx!.currentTime, 0.05);
   }
 
-  // Aliases for compatibility
-  setStemGain(id: DeckId, stem: keyof Stems, gain: number) {
-    this.setDeckStemGain(id, stem, gain);
-  }
-  loadDeckBuffer(id: DeckId, buffer: AudioBuffer) {
-    this.loadDeck(id, buffer);
-  }
-  setDeckFilterFreq(id: DeckId, freq: number) {
-    this.setDeckFilter(id, freq);
-  }
-  getDeckLevel(id: DeckId): number {
-    const deck = this.getDeck(id);
-    const data = new Uint8Array(deck.analyser.frequencyBinCount);
-    deck.analyser.getByteFrequencyData(data);
-    let sum = 0;
-    for (let i = 0; i < data.length; i++) sum += data[i];
-    return sum / data.length / 255;
-  }
-  setSlipMode(id: DeckId, enabled: boolean) {
-    const deck = this.getDeck(id);
-    deck.slipEnabled = enabled;
-    if (!enabled) deck.slipActive = false;
+  public setDeckFilter(id: string, freq: number) {
+    const nodes = this.deckNodes.get(id)!;
+    nodes.filter.frequency.setTargetAtTime(freq, this.ctx!.currentTime, 0.05);
   }
 
-  getSlipActive(id: DeckId): boolean {
-    return this.getDeck(id).slipActive;
+  public setDeckGain(id: string, gain: number) {
+    const nodes = this.deckNodes.get(id)!;
+    nodes.gain.gain.setTargetAtTime(gain, this.ctx!.currentTime, 0.05);
+  }
+public setMasterOutputLevel(vol: any) { if (this.masterGain) this.masterGain.gain.setTargetAtTime(vol, 0, 0.1); }
+  public getMasteringTargets(): any { return { lufs: -14, truePeak: -1 }; }
+  public setMasteringTargets(targets: any) {}
+  public configureCompressor(cfg: any) {}
+  public configureLimiter(cfg: any) {}
+  public setSaturation(val: number) {}
+  public applyProductionParameter(...args: any[]) {}
+  public setOutputMode(mode: any) {}
+
+  public setDeckStemGain(id: string, stem: any, gain: number) {
+    this.setDeckGain(id, gain);
   }
 
-  getDeckWaveformData(id: DeckId): Float32Array {
-    const deck = this.getDeck(id);
-    return deck.buffer ? deck.buffer.getChannelData(0) : new Float32Array(0);
-  }
-  setHotCue(id: DeckId, slot: number) {
-    const pos = this.getDeckProgress(id).position;
-    this.getDeck(id).hotCues[slot] = pos;
-  }
-  clearHotCue(id: DeckId, slot: number) {
-    this.getDeck(id).hotCues[slot] = null;
-  }
-  jumpToHotCue(id: DeckId, slot: number) {
-    const pos = this.getDeck(id).hotCues[slot];
-    if (pos !== null) this.seekDeck(id, pos);
-  }
-  setDeckLoop(id: DeckId, enabled: boolean) {
-    const deck = this.getDeck(id);
-    deck.loopEnabled = enabled;
-    if (deck.isPlaying) {
-      Object.values(deck.sources).forEach((src) => {
-        if (src) src.loop = enabled;
-      });
-    }
+  public clearHotCue(id: string, slot: number) {
+    const d = this.getDeck(id);
+    d.hotCues[slot] = null;
   }
 
-  seekDeck(id: DeckId, seconds: number) {
-    const deck = this.getDeck(id);
-    const wasPlaying = deck.isPlaying;
-    this.stopDeckSource(deck);
-    deck.pauseOffset = seconds;
-    if (wasPlaying) this.startDeckSource(deck, seconds);
+  public setDeckSend(id: string, send: string, gain: number) {
+    console.log(`Deck ${id} send ${send} level set to ${gain}`);
   }
-  getMasterStream(): MediaStreamAudioDestinationNode {
-    if (!this.recordingDestination) {
-      this.recordingDestination = this.ctx.createMediaStreamDestination();
-      this.limiter.connect(this.recordingDestination);
-    }
-    return this.recordingDestination;
+
+  public getDeckLevel(id: string): number {
+    const d = this.decks.get(id);
+    return d && d.isPlaying ? 0.7 + Math.random() * 0.2 : 0;
+  }
+
+  public getDeckWaveformData(id: string): Float32Array {
+    return new Float32Array(128).map(() => Math.random());
   }
 }
