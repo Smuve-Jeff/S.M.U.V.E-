@@ -5,6 +5,7 @@ import {
   TrackModel,
   ArrangementClip,
 } from '../../services/music-manager.service';
+import { AutomationService } from '../automation.service';
 
 const TRACK_COLORS = [
   '#10b981',
@@ -26,6 +27,7 @@ const TRACK_COLORS = [
 })
 export class ArrangementViewComponent {
   private musicManager = inject(MusicManagerService);
+  private automationService = inject(AutomationService);
 
   bars = Array.from({ length: 64 }, (_, i) => i);
   barWidth = 100;
@@ -39,10 +41,12 @@ export class ArrangementViewComponent {
 
   selectedTrackId = computed(() => this.musicManager.selectedTrackId());
   selectedClipId = signal<string | null>(null);
+  viewMode = signal<'arrangement' | 'automation'>('arrangement');
 
   tracks = this.musicManager.tracks;
   structure = this.musicManager.structure;
   chords = this.musicManager.chords;
+  lanes = this.automationService.lanes;
 
   trackCount = computed(() => this.tracks().length);
   clipCount = computed(() =>
@@ -103,6 +107,17 @@ export class ArrangementViewComponent {
     if (this.selectedClipId() === clipId) {
       this.selectedClipId.set(null);
     }
+  }
+
+  getPointsPath(laneId: string): string {
+    const lane = this.lanes().find(l => l.id === laneId);
+    if (!lane || lane.points.length === 0) return "";
+    const points = lane.points.map(p => `${p.time * this.barWidth},${(1 - p.value) * 112}`);
+    return `M ${points.join(" L ")}`;
+  }
+
+  toggleViewMode(mode: 'arrangement' | 'automation') {
+    this.viewMode.set(mode);
   }
 
   selectClip(clipId: string, event: Event): void {
