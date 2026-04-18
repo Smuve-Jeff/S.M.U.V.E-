@@ -7,7 +7,7 @@ import { ExpertiseLevels } from '../../types/profile.types';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './radar-chart.component.html',
-  styleUrls: ['./radar-chart.component.css']
+  styleUrls: ['./radar-chart.component.css'],
 })
 export class RadarChartComponent {
   @Input() set expertise(value: ExpertiseLevels) {
@@ -22,7 +22,7 @@ export class RadarChartComponent {
     { key: 'marketing', label: 'Marketing' },
     { key: 'business', label: 'Business' },
     { key: 'legal', label: 'Legal' },
-    { key: 'performance', label: 'Performance' }
+    { key: 'performance', label: 'Performance' },
   ];
 
   points = computed(() => {
@@ -33,13 +33,17 @@ export class RadarChartComponent {
     const radius = 80;
     const angleStep = (Math.PI * 2) / this.labels.length;
 
-    return this.labels.map((l, i) => {
-      const val = (data as any)[l.key] || 0;
-      const normalizedVal = (val / 10) * radius;
-      const x = center + normalizedVal * Math.cos(i * angleStep - Math.PI / 2);
-      const y = center + normalizedVal * Math.sin(i * angleStep - Math.PI / 2);
-      return `${x},${y}`;
-    }).join(' ');
+    return this.labels
+      .map((l, i) => {
+        const val = (data as any)[l.key] || 0;
+        const normalizedVal = (val / 10) * radius;
+        const x =
+          center + normalizedVal * Math.cos(i * angleStep - Math.PI / 2);
+        const y =
+          center + normalizedVal * Math.sin(i * angleStep - Math.PI / 2);
+        return `${x},${y}`;
+      })
+      .join(' ');
   });
 
   gridCircles = [20, 40, 60, 80];

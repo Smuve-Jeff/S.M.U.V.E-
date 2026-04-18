@@ -26,6 +26,7 @@ import { ArtistQuestionnaireComponent } from '../artist-questionnaire/artist-que
 import { ArtistIdentityService } from '../../services/artist-identity.service';
 import { ConnectorPlatform } from '../../types/artist-identity.types';
 import { OnboardingService } from '../../services/onboarding.service';
+import { RadarChartComponent } from '../radar-chart/radar-chart.component';
 
 @Component({
   selector: 'app-profile-editor',
@@ -40,6 +41,7 @@ import { OnboardingService } from '../../services/onboarding.service';
     CatalogManagerComponent,
     ArtistQuestionnaireComponent,
     UplinkConsoleComponent,
+    RadarChartComponent,
   ],
 })
 export class ProfileEditorComponent implements OnInit {

@@ -9,19 +9,21 @@
           [attr.x2]="line.x2" [attr.y2]="line.y2"
           stroke="rgba(255,255,255,0.05)" stroke-width="0.5" />
 
-    <!-- Data Polygon -->
-    <polygon [attr.points]="points()"
-             fill="rgba(168, 85, 247, 0.2)"
-             stroke="var(--color-secondary)"
-             stroke-width="1.5"
-             class="transition-all duration-700 ease-out shadow-[0_0_15px_rgba(168,85,247,0.3)]" />
+    <!-- Data Polygon (only render when data exists) -->
+    <ng-container *ngIf="points()">
+      <polygon [attr.points]="points()"
+               fill="rgba(168, 85, 247, 0.2)"
+               stroke="var(--color-secondary)"
+               stroke-width="1.5"
+               class="transition-all duration-700 ease-out shadow-[0_0_15px_rgba(168,85,247,0.3)]" />
 
-    <!-- Data Points -->
-    <circle *ngFor="let point of points().split(' ')"
-            [attr.cx]="point.split(',')[0]"
-            [attr.cy]="point.split(',')[1]"
-            r="2"
-            fill="var(--color-secondary)" />
+      <!-- Data Points -->
+      <circle *ngFor="let point of points().split(' ')"
+              [attr.cx]="point.split(',')[0]"
+              [attr.cy]="point.split(',')[1]"
+              r="2"
+              fill="var(--color-secondary)" />
+    </ng-container>
 
     <!-- Labels -->
     <text *ngFor="let pos of labelPositions()"

@@ -67,6 +67,14 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     primaryGenre: 'Hip Hop',
   });
 
+  globalStudioPulse = signal<string[]>([
+    'Session active — monitoring mix bus',
+    'Neural sync calibrated',
+    'Mastering chain online',
+  ]);
+  currentBeat = signal(0);
+  private pulseInterval: ReturnType<typeof setInterval> | null = null;
+
   genres = ['Hip Hop', 'R&B', 'Pop', 'Electronic', 'Rock', 'Jazz', 'Classical'];
   labelStats = [
     {
@@ -234,6 +242,9 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     if (typeof window !== 'undefined' && window.innerWidth <= 768) {
       this.aiService.proactiveStrategicPulse();
     }
+    this.pulseInterval = setInterval(() => {
+      this.currentBeat.update((v) => v + 1);
+    }, 3000);
   }
 
   ngAfterViewInit() {
@@ -274,6 +285,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnDestroy() {
     if (this.animFrame) cancelAnimationFrame(this.animFrame);
+    if (this.pulseInterval) clearInterval(this.pulseInterval);
   }
 
   // Quick Start Actions
