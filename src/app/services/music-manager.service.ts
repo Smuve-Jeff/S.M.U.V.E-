@@ -343,8 +343,12 @@ export class MusicManagerService {
   private loadLastSession() {
     const saved = localStorage.getItem('SMUVE_LAST_SESSION');
     if (saved) {
-      const session = JSON.parse(saved);
-      session.tracks?.forEach((t: any) => { this.trackSignals.set(t.id, signal(this.normalizeTrack(t))); this.trackIds.update(ids => [...ids, t.id]); this.engine.ensureTrack(t); });
+      try {
+        const session = JSON.parse(saved);
+        session.tracks?.forEach((t: any) => { this.trackSignals.set(t.id, signal(this.normalizeTrack(t))); this.trackIds.update(ids => [...ids, t.id]); this.engine.ensureTrack(t); });
+      } catch {
+        this.ensureTrack('grand-piano');
+      }
     } else { this.ensureTrack('grand-piano'); }
   }
 
