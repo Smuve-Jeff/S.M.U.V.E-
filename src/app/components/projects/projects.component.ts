@@ -1,9 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
-import { UplinkService } from "../../services/uplink.service";
-import { UplinkConsoleComponent } from "../uplink-console/uplink-console.component";
-import { UserProfileService } from "../../services/user-profile.service";
+import { UplinkService } from '../../services/uplink.service';
+import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
+import { UserProfileService } from '../../services/user-profile.service';
 
 interface Task {
   id: number;
@@ -172,13 +172,17 @@ export class ProjectsComponent {
     if (!project) return;
 
     this.showUplink.set(true);
-    const success = await this.uplinkService.initiateUplink(this.profileService.profile());
+    const success = await this.uplinkService.initiateUplink(
+      this.profileService.profile()
+    );
 
     if (success) {
       this.projects.update((list) =>
-        list.map((p) => (p.id === project.id ? { ...p, status: "Completed" } : p))
+        list.map((p) =>
+          p.id === project.id ? { ...p, status: 'Completed' } : p
+        )
       );
-      this.selectedProject.set({ ...project, status: "Completed" });
+      this.selectedProject.set({ ...project, status: 'Completed' });
     }
   }
 }

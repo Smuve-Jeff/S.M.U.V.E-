@@ -1,4 +1,18 @@
-import { Component, inject, signal, computed, effect, ViewChild, ElementRef, AfterViewInit, OnDestroy, HostListener, Input, Output, EventEmitter } from "@angular/core";
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  effect,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+  OnDestroy,
+  HostListener,
+  Input,
+  Output,
+  EventEmitter,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -110,7 +124,7 @@ export class PianoRollComponent implements AfterViewInit, OnDestroy {
 
   selectionBox = signal({ active: false, x: 0, y: 0, w: 0, h: 0 });
 
-  isStandalone = computed(() => this.router.url === "/piano-roll");
+  isStandalone = computed(() => this.router.url === '/piano-roll');
   @Input() isStudioOverlay = false;
   @Output() closeOverlay = new EventEmitter<void>();
 

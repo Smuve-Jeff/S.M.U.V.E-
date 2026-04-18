@@ -17,7 +17,7 @@ export class LoginConfirmationService {
   private logger = inject(LoggingService);
   private getHeaders() {
     const token = this.injector.get(AuthService).jwtToken();
-    return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
+    return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
   }
 
   private injector = inject(Injector);
@@ -33,14 +33,20 @@ export class LoginConfirmationService {
           ? user.lastLogin.toISOString()
           : new Date(user.lastLogin).toISOString();
       await firstValueFrom(
-        this.http.post(`${this.database.apiUrl}/auth/login-email`, {
-          userId: user.id,
-          email: user.email,
-          artistName: user.artistName,
-          loginAt,
-          userAgent:
-            typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-        }, this.getHeaders())
+        this.http.post(
+          `${this.database.apiUrl}/auth/login-email`,
+          {
+            userId: user.id,
+            email: user.email,
+            artistName: user.artistName,
+            loginAt,
+            userAgent:
+              typeof navigator !== 'undefined'
+                ? navigator.userAgent
+                : 'unknown',
+          },
+          this.getHeaders()
+        )
       );
     } catch (error) {
       this.logger.warn(

@@ -25,7 +25,7 @@ export class LoginComponent implements OnInit {
   message = signal('');
   isError = signal(false);
   isVerifying = signal(false);
-  verificationCode = "";
+  verificationCode = '';
 
   credentials: AuthCredentials = {
     email: '',

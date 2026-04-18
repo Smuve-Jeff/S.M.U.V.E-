@@ -24,7 +24,7 @@ import {
 import { LoggingService } from './logging.service';
 import { AnalyticsService } from './analytics.service';
 import { UserContextService, MainViewMode } from './user-context.service';
-import { AiAuditService } from "./ai-audit.service";
+import { AiAuditService } from './ai-audit.service';
 import { ArtistIdentityService } from './artist-identity.service';
 import {
   INTELLIGENCE_LIBRARY,
@@ -492,7 +492,6 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
 @Injectable({
   providedIn: 'root',
 })
-
 export class AiService {
   private http = inject(HttpClient);
   private injector = inject(Injector);
@@ -505,10 +504,9 @@ export class AiService {
   private aiAuditService = inject(AiAuditService);
   private logger = inject(LoggingService);
 
-
   private getHeaders() {
     const token = this.injector.get(AuthService).jwtToken();
-    return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
+    return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
   }
 
   private API_URL = APP_SECURITY_CONFIG.api_url;
@@ -623,9 +621,13 @@ export class AiService {
 
     try {
       const response = await firstValueFrom(
-        this.http.post<{ text: string }>(`${this.API_URL}/ai/analyze`, {
-          prompt,
-        }, this.getHeaders())
+        this.http.post<{ text: string }>(
+          `${this.API_URL}/ai/analyze`,
+          {
+            prompt,
+          },
+          this.getHeaders()
+        )
       );
       return response.text;
     } catch (_error) {
@@ -762,7 +764,7 @@ export class AiService {
     const profile = this.userProfileService.profile();
     const audit = this.aiAuditService.calculateStrategicHealth(profile);
     await this.userProfileService.recordAudit(audit);
-    this.logger.info("AiService: Syncing knowledge base with profile");
+    this.logger.info('AiService: Syncing knowledge base with profile');
   }
 
   proactiveStrategicPulse() {
@@ -1190,38 +1192,39 @@ export class AiService {
       security: user?.emailVerified ? 100 : 20,
       production: catalog.length >= 5 ? 100 : catalog.length * 20,
       marketing: campaigns.length > 0 ? 100 : 10,
-      brand: (profile?.artistName && profile?.primaryGenre) ? 100 : 30
+      brand: profile?.artistName && profile?.primaryGenre ? 100 : 30,
     };
 
     const recs: StrategicRecommendationType[] = [];
 
     if (!user?.emailVerified) {
       recs.push({
-        id: "sec-rec-1",
-        action: "Establish Secure Channel: Verify your email to protect personal data.",
-        impact: "Extreme",
-        difficulty: "Low",
-        toolId: "profile"
+        id: 'sec-rec-1',
+        action:
+          'Establish Secure Channel: Verify your email to protect personal data.',
+        impact: 'Extreme',
+        difficulty: 'Low',
+        toolId: 'profile',
       });
     }
 
     if (scores.production < 80) {
       recs.push({
-        id: "prod-rec-1",
+        id: 'prod-rec-1',
         action: `Expand catalog depth (Current: ${catalog.length}/5). Ship more tracks.`,
-        impact: "High",
-        difficulty: "Medium",
-        toolId: "release-planner"
+        impact: 'High',
+        difficulty: 'Medium',
+        toolId: 'release-planner',
       });
     }
 
     if (scores.marketing < 50) {
       recs.push({
-        id: "mark-rec-1",
-        action: "Initialize marketing protocols. Launch a test campaign.",
-        impact: "High",
-        difficulty: "Low",
-        toolId: "marketing"
+        id: 'mark-rec-1',
+        action: 'Initialize marketing protocols. Launch a test campaign.',
+        impact: 'High',
+        difficulty: 'Low',
+        toolId: 'marketing',
       });
     }
 

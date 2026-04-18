@@ -26,9 +26,7 @@ import {
   ThaSpotFeed,
 } from '../../hub/game';
 import { THA_SPOT_FALLBACK_FEED } from '../../hub/tha-spot-feed.fallback';
-import {
-  UserProfileService,
-} from '../../services/user-profile.service';
+import { UserProfileService } from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
 
 const DEFAULT_RECOMMENDATION_ITEMS = 8;
@@ -135,11 +133,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       );
     }
 
-    return this.gameService.filterAndSortGames(
-      filtered,
-      {},
-      this.sortMode()
-    );
+    return this.gameService.filterAndSortGames(filtered, {}, this.sortMode());
   });
 
   matchingRecommendationRails = computed(() => {
@@ -165,7 +159,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   });
 
   neuralSyncScore = computed(() => {
-    return (this.profileService.profile()?.strategicHealthScore || 0);
+    return this.profileService.profile()?.strategicHealthScore || 0;
   });
 
   gamingDirectives = computed(() => {
@@ -295,8 +289,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     if (this.isMatchmaking()) return;
 
     if (game.launchConfig?.embedMode === 'external-only') {
-      const launchUrl =
-        game.launchConfig.approvedExternalUrl || game.url || '';
+      const launchUrl = game.launchConfig.approvedExternalUrl || game.url || '';
       if (launchUrl) {
         window.open(launchUrl, '_blank', 'noopener');
       }
@@ -352,8 +345,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   getActiveRoomName(): string {
     const roomId = this.activeRoom();
     return (
-      this.gamingRooms().find((room) => room.id === roomId)?.name ||
-      'All Games'
+      this.gamingRooms().find((room) => room.id === roomId)?.name || 'All Games'
     );
   }
 
@@ -370,7 +362,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
     if (rail.gameIds?.length) {
       const lookup = new Map(games.map((game) => [game.id, game]));
-      games = rail.gameIds.map((id) => lookup.get(id)).filter(Boolean) as Game[];
+      games = rail.gameIds
+        .map((id) => lookup.get(id))
+        .filter(Boolean) as Game[];
     } else if (rail.roomIds?.length) {
       const rooms = this.gamingRooms().filter((room) =>
         rail.roomIds?.includes(room.id)
@@ -409,16 +403,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   private loadFeed() {
     this.feedSubscription?.unsubscribe();
-    this.feedSubscription = this.gameService.getThaSpotFeed().subscribe((feed) => {
-      this.feed.set(feed);
-      this.games.set(feed.games);
-      this.gamingRooms.set(feed.rooms);
-      this.badges.set(feed.badges);
-      this.liveEvents.set(feed.liveEvents);
-      this.socialPresence.set(feed.socialPresence);
-      this.promotions.set(feed.promotions);
-      this.recommendationRails.set(feed.recommendationRails);
-    });
+    this.feedSubscription = this.gameService
+      .getThaSpotFeed()
+      .subscribe((feed) => {
+        this.feed.set(feed);
+        this.games.set(feed.games);
+        this.gamingRooms.set(feed.rooms);
+        this.badges.set(feed.badges);
+        this.liveEvents.set(feed.liveEvents);
+        this.socialPresence.set(feed.socialPresence);
+        this.promotions.set(feed.promotions);
+        this.recommendationRails.set(feed.recommendationRails);
+      });
   }
 
   setSearchQuery(query: string): void {
@@ -457,7 +453,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         case 'instant':
           return (game.queueEstimateMinutes || 0) === 0;
         case 'online':
-          return game.availability === 'Online' || game.availability === 'Hybrid';
+          return (
+            game.availability === 'Online' || game.availability === 'Hybrid'
+          );
         default:
           return true;
       }

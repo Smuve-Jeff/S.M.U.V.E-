@@ -23,7 +23,7 @@ export interface UplinkStatus {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UplinkService {
   private profileService = inject(UserProfileService);
@@ -35,7 +35,7 @@ export class UplinkService {
     stage: 'idle',
     progress: 0,
     message: 'System Ready',
-    logs: []
+    logs: [],
   });
 
   status = computed(() => this._status());
@@ -46,44 +46,62 @@ export class UplinkService {
 
     try {
       // 1. Identity Refresh
-      await this.updateStage('identity_refresh', 10, 'Refreshing Identity Graph...');
+      await this.updateStage(
+        'identity_refresh',
+        10,
+        'Refreshing Identity Graph...'
+      );
       this.addLog('SCANNING EXTERNAL SURFACES...');
-      const identityProfile = await this.identityService.refreshIdentityGraph(profile);
+      const identityProfile =
+        await this.identityService.refreshIdentityGraph(profile);
       this.addLog('IDENTITY CONSTELLATION ALIGNED.');
 
       // 2. Profile Commit
-      await this.updateStage('profile_commit', 40, 'Committing Core Vectors...');
+      await this.updateStage(
+        'profile_commit',
+        40,
+        'Committing Core Vectors...'
+      );
       this.addLog('WRITING TO DISTRIBUTED LEDGER...');
       await this.profileService.updateProfile(identityProfile);
       this.addLog('LOCAL STORAGE PERSISTED.');
 
       // 3. Strategic Audit
-      await this.updateStage('strategic_audit', 70, 'Running Executive Audit...');
+      await this.updateStage(
+        'strategic_audit',
+        70,
+        'Running Executive Audit...'
+      );
       this.addLog('ANALYZING SONIC DEFICITS...');
       await this.aiService.syncKnowledgeBaseWithProfile();
       this.addLog('MISSION PARAMETERS CALCULATED.');
 
       // 4. Neural Sync
-      await this.updateStage('neural_sync', 90, 'Synchronizing Neural Vault...');
+      await this.updateStage(
+        'neural_sync',
+        90,
+        'Synchronizing Neural Vault...'
+      );
       this.addLog('UPLOADING VECTORS TO COMMANDER...');
       await firstValueFrom(timer(800));
       this.addLog('NEURAL SYNC 100%');
 
       // 5. Complete
       const finalAudit = this.profileService.profile().auditHistory[0];
-      const scoreMsg = finalAudit ? `Transmission Secure: ${finalAudit.score}% Strength` : "Transmission Secure";
+      const scoreMsg = finalAudit
+        ? `Transmission Secure: ${finalAudit.score}% Strength`
+        : 'Transmission Secure';
 
       await this.updateStage('complete', 100, scoreMsg);
       this.addLog('UPLINK ESTABLISHED. EXECUTIVE COMMAND ACTIVE.');
       return true;
-
     } catch (err) {
       this.logger.error('Uplink: Transmission Failed', err);
-      this._status.update(s => ({
+      this._status.update((s) => ({
         ...s,
         stage: 'failed',
         error: String(err),
-        message: 'TRANSMISSION SEVERED'
+        message: 'TRANSMISSION SEVERED',
       }));
       this.addLog('ERROR: CONNECTION REFUSED BY COMMANDER.');
       return false;
@@ -95,19 +113,23 @@ export class UplinkService {
       stage: 'idle',
       progress: 0,
       message: 'System Ready',
-      logs: []
+      logs: [],
     });
   }
 
-  private async updateStage(stage: UplinkStage, progress: number, message: string) {
-    this._status.update(s => ({ ...s, stage, progress, message }));
+  private async updateStage(
+    stage: UplinkStage,
+    progress: number,
+    message: string
+  ) {
+    this._status.update((s) => ({ ...s, stage, progress, message }));
     await firstValueFrom(timer(600));
   }
 
   private addLog(log: string) {
-    this._status.update(s => ({
+    this._status.update((s) => ({
       ...s,
-      logs: [log, ...s.logs].slice(0, 10)
+      logs: [log, ...s.logs].slice(0, 10),
     }));
   }
 }

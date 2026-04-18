@@ -13,7 +13,12 @@ export class AudioRecorderService {
   isRecording = signal(false);
   recordedBlobs: Blob[] = [];
   pendingMidi: any[] = [];
-  recordingFinished$ = new Subject<{ id: string, blob: Blob, url: string, midi?: any[] }>();
+  recordingFinished$ = new Subject<{
+    id: string;
+    blob: Blob;
+    url: string;
+    midi?: any[];
+  }>();
 
   mediaRecorder: MediaRecorder | null = null;
 
@@ -42,7 +47,12 @@ export class AudioRecorderService {
 
       this.logger.info(`Recording ${id} saved.`);
       const url = URL.createObjectURL(blob);
-      this.recordingFinished$.next({ id, blob, url, midi: [...this.pendingMidi] });
+      this.recordingFinished$.next({
+        id,
+        blob,
+        url,
+        midi: [...this.pendingMidi],
+      });
       this.pendingMidi = [];
     };
 

@@ -15,9 +15,9 @@ import { MicrophoneService } from '../../services/microphone.service';
 import { VocalMasteringService } from '../../services/vocal-mastering.service';
 import { VocalAiService } from '../../services/vocal-ai.service';
 import { AiService } from '../../services/ai.service';
-import { UplinkService } from "../../services/uplink.service";
-import { UserProfileService } from "../../services/user-profile.service";
-import { UplinkConsoleComponent } from "../../components/uplink-console/uplink-console.component";
+import { UplinkService } from '../../services/uplink.service';
+import { UserProfileService } from '../../services/user-profile.service';
+import { UplinkConsoleComponent } from '../../components/uplink-console/uplink-console.component';
 import { FormsModule } from '@angular/forms';
 import { MicrophoneInterfaceComponent } from '../microphone-interface/microphone-interface.component';
 
@@ -27,7 +27,12 @@ type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
 @Component({
   selector: 'app-vocal-suite',
   standalone: true,
-  imports: [CommonModule, FormsModule, MicrophoneInterfaceComponent, UplinkConsoleComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MicrophoneInterfaceComponent,
+    UplinkConsoleComponent,
+  ],
   templateUrl: './vocal-suite.component.html',
   styleUrls: ['./vocal-suite.component.css'],
 })
@@ -201,11 +206,13 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     const blob = this.micService.recordedBlob();
     if (blob) {
       this.showUplink.set(true);
-      const success = await this.uplinkService.initiateUplink(this.profileService.profile());
+      const success = await this.uplinkService.initiateUplink(
+        this.profileService.profile()
+      );
 
       if (success) {
         const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
+        const a = document.createElement('a');
         a.href = url;
         a.download = `SMUVE_Vocal_${Date.now()}.webm`;
         a.click();

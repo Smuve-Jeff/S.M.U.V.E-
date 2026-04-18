@@ -2,12 +2,7 @@ import { APP_SECURITY_CONFIG } from '../app.security';
 import { AuthService } from './auth.service';
 import { Injector } from '@angular/core';
 
-import {
-  Injectable,
-  inject,
-  signal,
-  NgZone,
-} from '@angular/core';
+import { Injectable, inject, signal, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
@@ -294,9 +289,15 @@ export class SecurityService {
   /**
    * Validates URL to prevent open redirect vulnerabilities.
    */
-  encrypt(data: string): string { return btoa(data); }
-  decrypt(data: string): string { return atob(data); }
-  incrementRateLimit(key: string): void { this.recordAttempt(key); }
+  encrypt(data: string): string {
+    return btoa(data);
+  }
+  decrypt(data: string): string {
+    return atob(data);
+  }
+  incrementRateLimit(key: string): void {
+    this.recordAttempt(key);
+  }
   isValidRedirectUrl(url: string): boolean {
     if (!url) return false;
 
@@ -334,14 +335,20 @@ export class SecurityService {
 
     try {
       await firstValueFrom(
-        this.http.post(`${this.API_URL}/security/log`, {
-          userId: resolvedUserId,
-          eventType,
-          description,
-          ipAddress: '127.0.0.1',
-          userAgent:
-            typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-        }, this.getHeaders())
+        this.http.post(
+          `${this.API_URL}/security/log`,
+          {
+            userId: resolvedUserId,
+            eventType,
+            description,
+            ipAddress: '127.0.0.1',
+            userAgent:
+              typeof navigator !== 'undefined'
+                ? navigator.userAgent
+                : 'unknown',
+          },
+          this.getHeaders()
+        )
       );
     } catch (error) {
       // Logging should never break the app.
@@ -352,7 +359,10 @@ export class SecurityService {
   async fetchLogs(userId: string = 'anonymous'): Promise<void> {
     try {
       const data = await firstValueFrom(
-        this.http.get<SecurityLog[]>(`${this.API_URL}/security/logs/${userId}`, this.getHeaders())
+        this.http.get<SecurityLog[]>(
+          `${this.API_URL}/security/logs/${userId}`,
+          this.getHeaders()
+        )
       );
       this.logs.set(data);
     } catch (error) {
@@ -364,7 +374,8 @@ export class SecurityService {
     try {
       const data = await firstValueFrom(
         this.http.get<UserSession[]>(
-          `${this.API_URL}/security/sessions/${userId}`, this.getHeaders()
+          `${this.API_URL}/security/sessions/${userId}`,
+          this.getHeaders()
         )
       );
       this.sessions.set(data);
@@ -379,7 +390,10 @@ export class SecurityService {
   ): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.delete(`${this.API_URL}/security/session/${sessionId}`, this.getHeaders())
+        this.http.delete(
+          `${this.API_URL}/security/session/${sessionId}`,
+          this.getHeaders()
+        )
       );
       await this.fetchSessions(userId);
       await this.logEvent(
@@ -400,12 +414,16 @@ export class SecurityService {
   ): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.post(`${this.API_URL}/security/session`, {
-          sessionId,
-          userId,
-          deviceName,
-          location,
-        }, this.getHeaders())
+        this.http.post(
+          `${this.API_URL}/security/session`,
+          {
+            sessionId,
+            userId,
+            deviceName,
+            location,
+          },
+          this.getHeaders()
+        )
       );
     } catch (error) {
       this.logger.error('Failed to register session', error);
@@ -436,23 +454,24 @@ export class SecurityService {
 
     if (!user?.emailVerified) {
       score -= 40;
-      alerts.push("CRITICAL: Secure channel unverified. Identity at risk.");
+      alerts.push('CRITICAL: Secure channel unverified. Identity at risk.');
     }
 
     if (!profile?.settings?.security?.twoFactorEnabled) {
       score -= 30;
-      alerts.push("WARNING: Multi-factor authentication disabled.");
+      alerts.push('WARNING: Multi-factor authentication disabled.');
     }
 
     if (!this.validateSession()) {
       score -= 20;
-      alerts.push("NOTICE: Session integrity compromised.");
+      alerts.push('NOTICE: Session integrity compromised.');
     }
 
     return {
       score: Math.max(0, score),
-      status: score >= 90 ? "FORTIFIED" : score >= 70 ? "VULNERABLE" : "COMPROMISED",
-      alerts
+      status:
+        score >= 90 ? 'FORTIFIED' : score >= 70 ? 'VULNERABLE' : 'COMPROMISED',
+      alerts,
     };
   }
 

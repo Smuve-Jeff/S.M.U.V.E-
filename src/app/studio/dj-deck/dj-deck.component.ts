@@ -52,17 +52,22 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   hotCueMarkersA = computed(() => {
     const deck = this.deckService.deckA();
     if (!deck.duration) return [];
-    return deck.hotCues.map((pos, i) => pos !== null ? { pos, i } : null).filter((c): c is {pos: number, i: number} => c !== null);
+    return deck.hotCues
+      .map((pos, i) => (pos !== null ? { pos, i } : null))
+      .filter((c): c is { pos: number; i: number } => c !== null);
   });
 
   hotCueMarkersB = computed(() => {
     const deck = this.deckService.deckB();
     if (!deck.duration) return [];
-    return deck.hotCues.map((pos, i) => pos !== null ? { pos, i } : null).filter((c): c is {pos: number, i: number} => c !== null);
+    return deck.hotCues
+      .map((pos, i) => (pos !== null ? { pos, i } : null))
+      .filter((c): c is { pos: number; i: number } => c !== null);
   });
 
   getHotCueMarkerStyle(deckId: 'A' | 'B', pos: number) {
-    const deck = deckId === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+    const deck =
+      deckId === 'A' ? this.deckService.deckA() : this.deckService.deckB();
     if (!deck.duration) return {};
 
     // Calculate angle based on position in track
@@ -70,7 +75,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const angle = (pos / 1.8) * 360;
     return {
       transform: `rotate(${angle}deg)`,
-      '--cue-color': `var(--color-hotcue-${pos % 8})`
+      '--cue-color': `var(--color-hotcue-${pos % 8})`,
     };
   }
 
@@ -112,13 +117,13 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!deck.slip) return 0;
     // We need to know where the playback would be if not scratching/looping
     // For now we'll just use the rotation signal plus an offset
-    return (this.rotationA() % 360);
+    return this.rotationA() % 360;
   });
 
   slipProgressB = computed(() => {
     const deck = this.deckService.deckB();
     if (!deck.slip) return 0;
-    return (this.rotationB() % 360);
+    return this.rotationB() % 360;
   });
   activeRollPadA = signal<number | null>(null);
   activeRollPadB = signal<number | null>(null);
@@ -575,7 +580,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
     let touchId: number | null = null;
     if ('touches' in event && (event as TouchEvent).touches.length) {
-      const touch = (event as TouchEvent).changedTouches[0] || (event as TouchEvent).touches[0];
+      const touch =
+        (event as TouchEvent).changedTouches[0] ||
+        (event as TouchEvent).touches[0];
       touchId = touch.identifier;
     }
 
@@ -696,7 +703,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private getPointerPosition(event: MouseEvent | TouchEvent, deck?: 'A' | 'B') {
     if ('touches' in event && (event as TouchEvent).touches.length) {
       const targetId = deck === 'A' ? this.activeTouchA : this.activeTouchB;
-      let touch = Array.from((event as TouchEvent).touches).find(t => t.identifier === targetId);
+      let touch = Array.from((event as TouchEvent).touches).find(
+        (t) => t.identifier === targetId
+      );
       if (!touch) touch = (event as TouchEvent).touches[0];
       return { x: touch.clientX, y: touch.clientY };
     }

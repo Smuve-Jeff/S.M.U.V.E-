@@ -13,13 +13,19 @@ import { animate, style, transition, trigger } from '@angular/animations';
     trigger('fadeScale', [
       transition(':enter', [
         style({ opacity: 0, transform: 'scale(0.95) translateY(10px)' }),
-        animate('300ms ease-out', style({ opacity: 1, transform: 'scale(1) translateY(0)' }))
+        animate(
+          '300ms ease-out',
+          style({ opacity: 1, transform: 'scale(1) translateY(0)' })
+        ),
       ]),
       transition(':leave', [
-        animate('200ms ease-in', style({ opacity: 0, transform: 'scale(0.95) translateY(10px)' }))
-      ])
-    ])
-  ]
+        animate(
+          '200ms ease-in',
+          style({ opacity: 0, transform: 'scale(0.95) translateY(10px)' })
+        ),
+      ]),
+    ]),
+  ],
 })
 export class UplinkConsoleComponent {
   uplink = inject(UplinkService);
@@ -28,7 +34,10 @@ export class UplinkConsoleComponent {
   status = this.uplink.status;
 
   onComplete() {
-    if (this.status().stage === 'complete' || this.status().stage === 'failed') {
+    if (
+      this.status().stage === 'complete' ||
+      this.status().stage === 'failed'
+    ) {
       this.close.emit();
     }
   }

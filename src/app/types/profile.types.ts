@@ -1,5 +1,9 @@
 import { ArtistIdentityState } from './artist-identity.types';
-import { ArtistKnowledgeBase, RecommendationHistoryEntry, UpgradeRecommendation } from './ai.types';
+import {
+  ArtistKnowledgeBase,
+  RecommendationHistoryEntry,
+  UpgradeRecommendation,
+} from './ai.types';
 import { MarketingCampaign } from './marketing.types';
 
 export interface AppSettings {
@@ -90,7 +94,14 @@ export interface ExpertiseLevels {
 export interface TeamMember {
   id: string;
   name: string;
-  role: 'Manager' | 'Producer' | 'Engineer' | 'Publicist' | 'Lawyer' | 'Agent' | 'Assistant';
+  role:
+    | 'Manager'
+    | 'Producer'
+    | 'Engineer'
+    | 'Publicist'
+    | 'Lawyer'
+    | 'Agent'
+    | 'Assistant';
   email?: string;
   phone?: string;
   contractUrl?: string;
@@ -119,7 +130,14 @@ export interface SplitSheet {
 
 export interface RevenueStream {
   id: string;
-  source: 'Streaming' | 'Sync' | 'Performance' | 'Merch' | 'Publishing' | 'Mechanicals' | 'Other';
+  source:
+    | 'Streaming'
+    | 'Sync'
+    | 'Performance'
+    | 'Merch'
+    | 'Publishing'
+    | 'Mechanicals'
+    | 'Other';
   amount: number;
   currency: string;
   period: string;
@@ -129,7 +147,16 @@ export interface RevenueStream {
 
 export interface FinancialAccount {
   id: string;
-  provider: 'DistroKid' | 'TuneCore' | 'ASCAP' | 'BMI' | 'SoundExchange' | 'AdSense' | 'PayPal' | 'Stripe' | 'Other';
+  provider:
+    | 'DistroKid'
+    | 'TuneCore'
+    | 'ASCAP'
+    | 'BMI'
+    | 'SoundExchange'
+    | 'AdSense'
+    | 'PayPal'
+    | 'Stripe'
+    | 'Other';
   accountName: string;
   balance: number;
   currency: string;

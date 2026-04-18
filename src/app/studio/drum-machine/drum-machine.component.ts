@@ -1,4 +1,17 @@
-import { Component, inject, signal, effect, ElementRef, ViewChild, AfterViewInit, OnDestroy, computed, Input, Output, EventEmitter } from "@angular/core";
+import {
+  Component,
+  inject,
+  signal,
+  effect,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  OnDestroy,
+  computed,
+  Input,
+  Output,
+  EventEmitter,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MusicManagerService } from '../../services/music-manager.service';
@@ -236,7 +249,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   // AI generation state
   isGeneratingPattern = signal(false);
   @Input() isStudioOverlay = false;
-  activeTab = signal<"sequencer" | "pads" | "params">("sequencer");
+  activeTab = signal<'sequencer' | 'pads' | 'params'>('sequencer');
   @Output() closeOverlay = new EventEmitter<void>();
 
   velocityDragStep = signal<{ padId: string; stepIdx: number } | null>(null);

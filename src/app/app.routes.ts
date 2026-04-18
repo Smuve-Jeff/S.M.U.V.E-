@@ -31,10 +31,28 @@ export const routes: Routes = [
         (m) => m.ThaSpotComponent
       ),
     children: [
-      { path: 'browse', loadComponent: () => import('./components/tha-spot/tha-spot.component').then(m => m.ThaSpotComponent) },
-      { path: 'room/:id', loadComponent: () => import('./components/tha-spot/tha-spot.component').then(m => m.ThaSpotComponent) },
-      { path: 'game/:id', loadComponent: () => import('./components/tha-spot/tha-spot.component').then(m => m.ThaSpotComponent) }
-    ]
+      {
+        path: 'browse',
+        loadComponent: () =>
+          import('./components/tha-spot/tha-spot.component').then(
+            (m) => m.ThaSpotComponent
+          ),
+      },
+      {
+        path: 'room/:id',
+        loadComponent: () =>
+          import('./components/tha-spot/tha-spot.component').then(
+            (m) => m.ThaSpotComponent
+          ),
+      },
+      {
+        path: 'game/:id',
+        loadComponent: () =>
+          import('./components/tha-spot/tha-spot.component').then(
+            (m) => m.ThaSpotComponent
+          ),
+      },
+    ],
   },
   {
     path: 'gaming-hub',

@@ -123,27 +123,29 @@ export class MusicManagerService {
       }
     });
     const recorder = inject(AudioRecorderService);
-    recorder.recordingFinished$.subscribe(rec => {
-      const armedTrack = this.tracks().find(t => t.armed);
+    recorder.recordingFinished$.subscribe((rec) => {
+      const armedTrack = this.tracks().find((t) => t.armed);
       if (armedTrack) {
-        const recordingEndStep = this.currentStep() >= 0
-          ? this.currentStep()
-          : this.recordingStartStep;
+        const recordingEndStep =
+          this.currentStep() >= 0
+            ? this.currentStep()
+            : this.recordingStartStep;
         const clipStartStep = Math.max(0, this.recordingStartStep);
-        const clipLengthSteps = Math.max(1, recordingEndStep - clipStartStep + 1);
+        const clipLengthSteps = Math.max(
+          1,
+          recordingEndStep - clipStartStep + 1
+        );
         const newClip: ArrangementClip = {
           id: rec.id,
           name: armedTrack.name + ' Rec',
           start: clipStartStep / 16,
           length: clipLengthSteps / 16,
           color: armedTrack.color,
-          audioUrl: rec.url
+          audioUrl: rec.url,
         };
-        this.tracks.update(tracks =>
-          tracks.map(t =>
-            t.id === armedTrack.id
-              ? { ...t, clips: [...t.clips, newClip] }
-              : t
+        this.tracks.update((tracks) =>
+          tracks.map((t) =>
+            t.id === armedTrack.id ? { ...t, clips: [...t.clips, newClip] } : t
           )
         );
       }
@@ -777,17 +779,17 @@ export class MusicManagerService {
   }
 
   commitPatternToArrangement(trackId: number, slotId: string, start: number) {
-    const track = this.tracks().find(t => t.id === trackId);
+    const track = this.tracks().find((t) => t.id === trackId);
     if (track) {
       const clip: ArrangementClip = {
         id: 'clip_' + crypto.randomUUID(),
         name: 'Pattern',
         start,
         length: 4,
-        color: track.color
+        color: track.color,
       };
-      this.tracks.update(tracks =>
-        tracks.map(existingTrack =>
+      this.tracks.update((tracks) =>
+        tracks.map((existingTrack) =>
           existingTrack.id === trackId
             ? { ...existingTrack, clips: [...existingTrack.clips, clip] }
             : existingTrack

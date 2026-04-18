@@ -71,8 +71,8 @@ describe('AiService', () => {
     authServiceMock = {
       currentUser: signal({
         id: 'test-user',
-        emailVerified: true
-      })
+        emailVerified: true,
+      }),
     };
 
     TestBed.configureTestingModule({
@@ -244,7 +244,9 @@ describe('AiService', () => {
     const checklist = service.getDynamicChecklist();
 
     expect(
-      recommendations.some((item) => item.action.toLowerCase().includes('catalog'))
+      recommendations.some((item) =>
+        item.action.toLowerCase().includes('catalog')
+      )
     ).toBe(true);
     expect(checklist.some((item) => item.category === 'Identity')).toBe(true);
   });

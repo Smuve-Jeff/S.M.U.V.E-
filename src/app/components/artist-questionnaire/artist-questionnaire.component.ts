@@ -6,8 +6,8 @@ import {
   UserProfile,
 } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
-import { UplinkService } from "../../services/uplink.service";
-import { UplinkConsoleComponent } from "../uplink-console/uplink-console.component";
+import { UplinkService } from '../../services/uplink.service';
+import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { animate, style, transition, trigger } from '@angular/animations';
 
 interface Question {

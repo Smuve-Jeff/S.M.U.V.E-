@@ -1,4 +1,4 @@
-import { UserProfileService } from "../services/user-profile.service";
+import { UserProfileService } from '../services/user-profile.service';
 import {
   Component,
   inject,
@@ -122,24 +122,29 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     effect(() => {
       const selectedId = this.musicManager.selectedTrackId();
       if (selectedId) {
-        const track = this.musicManager.tracks().find(t => t.id === selectedId);
-        const isDrumTrack = track?.instrumentId.toLowerCase().includes('kit') || track?.name.toLowerCase().includes('drum');
-        const targetEditor: 'piano-roll' | 'drum-machine' = isDrumTrack ? 'drum-machine' : 'piano-roll';
+        const track = this.musicManager
+          .tracks()
+          .find((t) => t.id === selectedId);
+        const isDrumTrack =
+          track?.instrumentId.toLowerCase().includes('kit') ||
+          track?.name.toLowerCase().includes('drum');
+        const targetEditor: 'piano-roll' | 'drum-machine' = isDrumTrack
+          ? 'drum-machine'
+          : 'piano-roll';
 
         if (!this.focusLocked()) {
           this.activeEditor.set(targetEditor);
         }
 
-        if (true) { // Auto-focus on editors regardless of view
-          if (this.uiService.autoPianoRoll() || this.uiService.isCompactMobile()) {
-            this.showPianoRoll.set(true);
-          } else if (!this.showPianoRoll()) {
-            this.notificationService.show(
-              `Track selected. ${isDrumTrack ? 'Drum Machine' : 'Piano Roll'} is ready.`,
-              'info',
-              3000
-            );
-          }
+        // Auto-focus on editors regardless of view
+        if (this.uiService.autoPianoRoll() || this.uiService.isCompactMobile()) {
+          this.showPianoRoll.set(true);
+        } else if (!this.showPianoRoll()) {
+          this.notificationService.show(
+            `Track selected. ${isDrumTrack ? 'Drum Machine' : 'Piano Roll'} is ready.`,
+            'info',
+            3000
+          );
         }
       }
     });
@@ -171,6 +176,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   toggleFocusLock() {
-    this.focusLocked.update(v => !v);
+    this.focusLocked.update((v) => !v);
   }
 }

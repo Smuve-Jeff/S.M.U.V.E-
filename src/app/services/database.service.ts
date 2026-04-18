@@ -51,10 +51,14 @@ export class DatabaseService {
       this.isSyncing.set(true);
       try {
         await firstValueFrom(
-          this.http.post(`${this.API_URL}/profile`, {
-            userId,
-            profileData: profile,
-          }, this.getHeaders())
+          this.http.post(
+            `${this.API_URL}/profile`,
+            {
+              userId,
+              profileData: profile,
+            },
+            this.getHeaders()
+          )
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -69,7 +73,10 @@ export class DatabaseService {
     if (userId && navigator.onLine) {
       try {
         const profile = await firstValueFrom(
-          this.http.get<UserProfile>(`${this.API_URL}/profile/${userId}`, this.getHeaders())
+          this.http.get<UserProfile>(
+            `${this.API_URL}/profile/${userId}`,
+            this.getHeaders()
+          )
         );
         if (profile) {
           localStorage.setItem(
@@ -107,12 +114,16 @@ export class DatabaseService {
       this.isSyncing.set(true);
       try {
         await firstValueFrom(
-          this.http.post(`${this.API_URL}/projects`, {
-            projectId,
-            userId,
-            title,
-            projectData,
-          }, this.getHeaders())
+          this.http.post(
+            `${this.API_URL}/projects`,
+            {
+              projectId,
+              userId,
+              title,
+              projectData,
+            },
+            this.getHeaders()
+          )
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -129,7 +140,10 @@ export class DatabaseService {
     if (userId && navigator.onLine) {
       try {
         return await firstValueFrom(
-          this.http.get<any[]>(`${this.API_URL}/projects/${userId}`, this.getHeaders())
+          this.http.get<any[]>(
+            `${this.API_URL}/projects/${userId}`,
+            this.getHeaders()
+          )
         );
       } catch (error) {
         this.logger.error('Failed to list projects from cloud', error);
@@ -155,11 +169,15 @@ export class DatabaseService {
       this.isSyncing.set(true);
       try {
         await firstValueFrom(
-          this.http.post(`${this.API_URL}/identity`, {
-            userId,
-            identity,
-            profileData: profile,
-          }, this.getHeaders())
+          this.http.post(
+            `${this.API_URL}/identity`,
+            {
+              userId,
+              identity,
+              profileData: profile,
+            },
+            this.getHeaders()
+          )
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -177,7 +195,8 @@ export class DatabaseService {
       try {
         const response = await firstValueFrom(
           this.http.get<{ identity: ArtistIdentityState }>(
-            `${this.API_URL}/identity/${userId}`, this.getHeaders()
+            `${this.API_URL}/identity/${userId}`,
+            this.getHeaders()
           )
         );
         if (response?.identity) {
@@ -199,7 +218,10 @@ export class DatabaseService {
     if (userId && navigator.onLine) {
       try {
         return await firstValueFrom(
-          this.http.get<any[]>(`${this.API_URL}/identity/${userId}/connectors`, this.getHeaders())
+          this.http.get<any[]>(
+            `${this.API_URL}/identity/${userId}/connectors`,
+            this.getHeaders()
+          )
         );
       } catch (error) {
         this.logger.error('Failed to list connector jobs from cloud', error);

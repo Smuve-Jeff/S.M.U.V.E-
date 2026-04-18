@@ -612,7 +612,14 @@ export class AudioEngineService {
     velocityScale = 1
   ) {
     this.resume();
-    if (this.isRecording()) { this.recorder.pendingMidi.push({ pitch: 69 + 12 * Math.log2(freq / 440), startTime: when, duration, velocity }); }
+    if (this.isRecording()) {
+      this.recorder.pendingMidi.push({
+        pitch: 69 + 12 * Math.log2(freq / 440),
+        startTime: when,
+        duration,
+        velocity,
+      });
+    }
     const osc = this.ctx.createOscillator();
     osc.type = params?.type || 'sawtooth';
     const vca = this.ctx.createGain();

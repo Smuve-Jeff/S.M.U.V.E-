@@ -12,8 +12,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { AppTheme } from '../../services/user-context.service';
-import { UplinkService } from "../../services/uplink.service";
-import { UplinkConsoleComponent } from "../uplink-console/uplink-console.component";
+import { UplinkService } from '../../services/uplink.service';
+import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import {
   UserProfileService,
   UserProfile,
@@ -69,8 +69,7 @@ export class ProfileEditorComponent implements OnInit {
   syncingWithAi = signal(false);
   showUplink = signal(false);
   optimizationScore = computed(
-    () =>
-      this.userProfileService.profile().strategicHealthScore || 0
+    () => this.userProfileService.profile().strategicHealthScore || 0
   );
   syncLog = signal<string[]>([]);
   intelligenceBriefs = this.aiService.intelligenceBriefs;
@@ -170,9 +169,9 @@ export class ProfileEditorComponent implements OnInit {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e: any) => {
-        this.editableProfile.update(p => ({
+        this.editableProfile.update((p) => ({
           ...p,
-          pressGallery: [...(p.pressGallery || []), e.target.result]
+          pressGallery: [...(p.pressGallery || []), e.target.result],
         }));
       };
       reader.readAsDataURL(file);
@@ -180,13 +179,13 @@ export class ProfileEditorComponent implements OnInit {
   }
 
   removeFromGallery(index: number) {
-    this.editableProfile.update(p => ({
+    this.editableProfile.update((p) => ({
       ...p,
-      pressGallery: (p.pressGallery || []).filter((_, i) => i !== index)
+      pressGallery: (p.pressGallery || []).filter((_, i) => i !== index),
     }));
   }
 
-  onImageSelected(event: any, target: "avatarImage" | "headerImage") {
+  onImageSelected(event: any, target: 'avatarImage' | 'headerImage') {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
