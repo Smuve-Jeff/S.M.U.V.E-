@@ -170,7 +170,9 @@ export class MusicManagerService {
   setStepVelocity(trackId: number, stepIndex: number, velocity: number) {
     this.getTrackSignal(trackId).update((t) => {
       const current = t.stepVelocities ? [...t.stepVelocities] : new Array(64).fill(1);
-      current[stepIndex] = velocity;
+      const clampedStepIndex = Math.max(0, Math.min(63, stepIndex));
+      const clampedVelocity = Math.max(0, Math.min(1, velocity));
+      current[clampedStepIndex] = clampedVelocity;
       return { ...t, stepVelocities: current };
     });
   }
