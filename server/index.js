@@ -6,8 +6,11 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
-const JWT_SECRET = process.env.JWT_SECRET || 'smuve_v2_fallback_secret_jwt';
 
+const JWT_SECRET = process.env.JWT_SECRET;
+if (typeof JWT_SECRET !== 'string' || JWT_SECRET.trim().length === 0) {
+  throw new Error('Missing required environment variable: JWT_SECRET');
+}
 const app = express();
 app.use(cors());
 app.use(express.json());
