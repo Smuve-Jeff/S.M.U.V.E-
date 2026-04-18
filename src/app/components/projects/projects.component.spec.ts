@@ -1,22 +1,40 @@
 import { TestBed } from '@angular/core/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { signal } from '@angular/core';
 import { ProjectsComponent } from './projects.component';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
+import { UplinkService } from '../../services/uplink.service';
+import {
+  UserProfileService,
+  initialProfile,
+} from '../../services/user-profile.service';
 
 describe('ProjectsComponent', () => {
   const createComponent = async () => {
     const dialogMock = {
       prompt: jest.fn(),
     };
+    const uplinkMock = {
+      initiateUplink: jest.fn().mockResolvedValue(true),
+    };
+    const profileServiceMock = {
+      profile: signal(initialProfile),
+    };
 
     await TestBed.configureTestingModule({
       imports: [ProjectsComponent],
-      providers: [{ provide: InteractionDialogService, useValue: dialogMock }],
+      providers: [
+        provideNoopAnimations(),
+        { provide: InteractionDialogService, useValue: dialogMock },
+        { provide: UplinkService, useValue: uplinkMock },
+        { provide: UserProfileService, useValue: profileServiceMock },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(ProjectsComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
-    return { component, fixture, dialogMock };
+    return { component, fixture, dialogMock, uplinkMock };
   };
 
   describe('addProject', () => {
@@ -48,7 +66,7 @@ describe('ProjectsComponent', () => {
     });
 
     it('does not add a project when the name is blank', async () => {
-      const { component, dialogMock } = await createComponent();
+      const { component, dialogMock, uplinkMock } = await createComponent();
       const initialCount = component.projects().length;
 
       dialogMock.prompt.mockResolvedValue('   ');
@@ -61,15 +79,16 @@ describe('ProjectsComponent', () => {
 
   describe('finalizeReleaseCycle', () => {
     it('marks the selected project as Completed in both signals', async () => {
-      const { component, dialogMock } = await createComponent();
+      const { component, dialogMock, uplinkMock } = await createComponent();
 
       dialogMock.prompt.mockResolvedValue('Test Release');
       await component.addProject();
       const created = component.selectedProject()!;
       expect(created.status).toBe('In Progress');
 
-      component.finalizeReleaseCycle();
+      await component.finalizeReleaseCycle();
 
+      expect(uplinkMock.initiateUplink).toHaveBeenCalledTimes(1);
       expect(component.selectedProject()!.status).toBe('Completed');
       const inList = component.projects().find((p) => p.id === created.id)!;
       expect(inList.status).toBe('Completed');
@@ -79,7 +98,7 @@ describe('ProjectsComponent', () => {
       const { component } = await createComponent();
       component['selectedProject'].set(null);
 
-      expect(() => component.finalizeReleaseCycle()).not.toThrow();
+      await expect(component.finalizeReleaseCycle()).resolves.toBeUndefined();
     });
   });
 });

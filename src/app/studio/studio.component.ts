@@ -1,3 +1,4 @@
+import { UserProfileService } from '../services/user-profile.service';
 import {
   Component,
   inject,
@@ -51,6 +52,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   public readonly musicManager = inject(MusicManagerService);
+  public readonly profileService = inject(UserProfileService);
 
   activeView = signal<
     | 'dj'
@@ -64,6 +66,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showMixer = signal(true);
   showRack = signal(true);
   showPianoRoll = signal(false);
+  activeEditor = signal<'piano-roll' | 'drum-machine'>('piano-roll');
+  focusLocked = signal(false);
+
   studioQualityClass = computed(() =>
     this.uiService.performanceMode()
       ? 'studio-quality-performance'
@@ -117,16 +122,32 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     effect(() => {
       const selectedId = this.musicManager.selectedTrackId();
       if (selectedId) {
-        if (this.activeView() !== 'dj') {
-          if (this.uiService.autoPianoRoll()) {
-            this.showPianoRoll.set(true);
-          } else if (!this.showPianoRoll()) {
-            this.notificationService.show(
-              'Track selected. Piano Roll is ready.',
-              'info',
-              3000
-            );
-          }
+        const track = this.musicManager
+          .tracks()
+          .find((t) => t.id === selectedId);
+        const isDrumTrack =
+          track?.instrumentId.toLowerCase().includes('kit') ||
+          track?.name.toLowerCase().includes('drum');
+        const targetEditor: 'piano-roll' | 'drum-machine' = isDrumTrack
+          ? 'drum-machine'
+          : 'piano-roll';
+
+        if (!this.focusLocked()) {
+          this.activeEditor.set(targetEditor);
+        }
+
+        // Auto-focus on editors regardless of view
+        if (
+          this.uiService.autoPianoRoll() ||
+          this.uiService.isCompactMobile()
+        ) {
+          this.showPianoRoll.set(true);
+        } else if (!this.showPianoRoll()) {
+          this.notificationService.show(
+            `Track selected. ${isDrumTrack ? 'Drum Machine' : 'Piano Roll'} is ready.`,
+            'info',
+            3000
+          );
         }
       }
     });
@@ -155,5 +176,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   updateMetronomeVolume(event: Event) {
     const vol = (event.target as HTMLInputElement).valueAsNumber;
     this.audioEngine.setMetronomeVolume(vol);
+  }
+
+  toggleFocusLock() {
+    this.focusLocked.update((v) => !v);
   }
 }

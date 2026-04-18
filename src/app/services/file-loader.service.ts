@@ -23,8 +23,9 @@ export class FileLoaderService {
     if (!Ctor) {
       throw new Error('AudioContext constructor not found');
     }
-    this.audioContext = new Ctor();
-    return this.audioContext;
+    const audioContext = new Ctor() as AudioContext;
+    this.audioContext = audioContext;
+    return audioContext;
   }
 
   async loadAudio(

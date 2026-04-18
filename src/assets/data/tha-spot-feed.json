@@ -24,6 +24,16 @@
       "id": "staff-pick",
       "label": "Staff Pick",
       "tone": "accent"
+    },
+    {
+      "id": "elite",
+      "label": "ELITE TIER",
+      "tone": "accent"
+    },
+    {
+      "id": "classic",
+      "label": "Classic",
+      "tone": "primary"
     }
   ],
   "rooms": [
@@ -1700,7 +1710,8 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
       "queueEstimateMinutes": 3,
@@ -1711,7 +1722,12 @@
       "controlHints": [
         "Slice corners before crossing open lanes",
         "Reload on cover transitions"
-      ]
+      ],
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "24",
@@ -1745,7 +1761,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -1777,9 +1799,15 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
-      "multiplayerType": "Server"
+      "multiplayerType": "Server",
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "26",
@@ -1809,7 +1837,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -1844,7 +1878,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -1879,7 +1919,8 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
       "queueEstimateMinutes": 4,
@@ -1890,7 +1931,12 @@
       "controlHints": [
         "Rotate with team pings before flanks collapse",
         "Build around one reliable mid-range weapon"
-      ]
+      ],
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "29",
@@ -1921,7 +1967,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -1953,7 +2005,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -1985,9 +2043,15 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
-      "multiplayerType": "Server"
+      "multiplayerType": "Server",
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "32",
@@ -2018,7 +2082,13 @@
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -2046,7 +2116,13 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/sniper-mission",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -2075,7 +2151,13 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-defense",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -2104,7 +2186,13 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
       }
     },
     {
@@ -2134,9 +2222,15 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/ludo-legend",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
-      "multiplayerType": "Server"
+      "multiplayerType": "Server",
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "37",
@@ -2165,7 +2259,8 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/zombie-idle-defense",
         "telemetryOrigins": [
           "https://www.gamepix.com"
-        ]
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
       "queueEstimateMinutes": 3,
@@ -2176,7 +2271,12 @@
       "controlHints": [
         "Balance barricade repairs with tech upgrades",
         "Keep ranged units behind your tank lane"
-      ]
+      ],
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "38",
@@ -2668,11 +2768,20 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/sonic-racing",
-        "telemetryMode": "none"
+        "telemetryMode": "none",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "tags": [
         "station-pod"
-      ]
+      ],
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "doom-classic",
@@ -2689,11 +2798,20 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "external-only"
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "tags": [
         "station-pod"
-      ]
+      ],
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     },
     {
       "id": "mario-classic",
@@ -2717,7 +2835,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Nintendo Elite",
@@ -2747,7 +2869,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "external-only"
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Rockstar Legacy",
@@ -2780,7 +2906,11 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Pro League",
@@ -2813,7 +2943,11 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Gridiron Elite",
@@ -2843,7 +2977,11 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
         "telemetryMode": "none",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Saiyan Saga",
@@ -2876,7 +3014,11 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "UNSC Command",
@@ -2909,16 +3051,592 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Main Event",
         "accentStart": "#dc2626",
         "accentEnd": "#7f1d1d"
       }
+    },
+    {
+      "id": "tekken-3-elite",
+      "name": "Tekken 3: Iron Fist",
+      "url": "https://www.retrogames.cc/embed/40238-tekken-3.html",
+      "genre": "Fighting",
+      "description": "The king of iron fist tournament. High-fidelity PS1 emulation with buttery smooth 60fps combat.",
+      "availability": "Online",
+      "playersOnline": 15600,
+      "rating": 5.0,
+      "badgeIds": [
+        "featured",
+        "staff-pick",
+        "elite"
+      ],
+      "tags": [
+        "Fighting",
+        "Retro",
+        "PS1",
+        "Multiplayer",
+        "Controller"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40238-tekken-3.html",
+        "telemetryMode": "none",
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Namco Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      }
+    },
+    {
+      "id": "smash-bros-elite",
+      "name": "Super Smash Bros. 64",
+      "url": "https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html",
+      "genre": "Fighting",
+      "description": "Original N64 crossover chaos. Pixel-perfect emulation with enhanced controller mapping.",
+      "availability": "Online",
+      "playersOnline": 22400,
+      "rating": 5.0,
+      "badgeIds": [
+        "featured",
+        "elite"
+      ],
+      "tags": [
+        "Fighting",
+        "Retro",
+        "N64",
+        "Multiplayer",
+        "Controller"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html",
+        "telemetryMode": "none",
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Nintendo Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1e3a8a"
+      }
+    },
+    {
+      "id": "mario-kart-64-elite",
+      "name": "Mario Kart 64: Pro",
+      "url": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
+      "genre": "Racing",
+      "description": "Drift through nostalgia. N64 racing legend with stable multiplayer performance.",
+      "availability": "Online",
+      "playersOnline": 18900,
+      "rating": 4.9,
+      "badgeIds": [
+        "trending",
+        "elite"
+      ],
+      "tags": [
+        "Racing",
+        "Retro",
+        "N64",
+        "Multiplayer",
+        "Controller"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
+        "telemetryMode": "none",
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Grand Prix Elite",
+        "accentStart": "#22c55e",
+        "accentEnd": "#14532d"
+      }
+    },
+    {
+      "id": "ctr-ps1-elite",
+      "name": "Crash Team Racing",
+      "url": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
+      "genre": "Racing",
+      "description": "High-octane marsupial racing. Elite PS1 speed with precision touch controls.",
+      "availability": "Online",
+      "playersOnline": 14200,
+      "rating": 4.9,
+      "badgeIds": [
+        "elite"
+      ],
+      "tags": [
+        "Racing",
+        "Retro",
+        "PS1",
+        "Controller"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
+        "telemetryMode": "none",
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Naughty Dog Legacy",
+        "accentStart": "#f97316",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
+      "id": "zelda-oot-elite",
+      "name": "Zelda: Ocarina of Time",
+      "url": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
+      "genre": "RPG",
+      "description": "The masterpiece redefined. N64 RPG excellence with saved-state cloud sync support.",
+      "availability": "Online",
+      "playersOnline": 31000,
+      "rating": 5.0,
+      "badgeIds": [
+        "featured",
+        "elite"
+      ],
+      "tags": [
+        "RPG",
+        "Retro",
+        "N64",
+        "Adventure"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
+        "telemetryMode": "none",
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Hyrule Command",
+        "accentStart": "#16a34a",
+        "accentEnd": "#14532d"
+      }
+    },
+    {
+      "id": "street-fighter-3d",
+      "name": "Street Fighter: Arena",
+      "url": "https://www.gamepix.com/play/street-fighter-2",
+      "genre": "Fighting",
+      "description": "Classic combat, modern engine. Optimized WebGL fighting with low-latency netcode.",
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.7,
+      "badgeIds": [
+        "new-drop"
+      ],
+      "tags": [
+        "Fighting",
+        "Action",
+        "Multiplayer"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/street-fighter-2",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
+    },
+    {
+      "id": "moto-x3m-3d",
+      "name": "Moto X3M: Pool Party",
+      "url": "https://www.gamepix.com/play/moto-x3m-pool-party",
+      "genre": "Racing",
+      "description": "High-fidelity bike stunts with fluid 60fps physics and responsive touch zones.",
+      "availability": "Online",
+      "playersOnline": 52000,
+      "rating": 4.8,
+      "badgeIds": [
+        "trending"
+      ],
+      "tags": [
+        "Racing",
+        "Sports",
+        "Action"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m-pool-party",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
+    },
+    {
+      "id": "3d-chess-elite",
+      "name": "Grandmaster Chess 3D",
+      "url": "https://www.gamepix.com/play/chess-grandmaster",
+      "genre": "Strategy",
+      "description": "Elite tactical intelligence. Advanced AI opponents in a high-fidelity 3D environment.",
+      "availability": "Online",
+      "playersOnline": 8500,
+      "rating": 4.9,
+      "badgeIds": [
+        "staff-pick"
+      ],
+      "tags": [
+        "Strategy",
+        "Puzzle",
+        "3D"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/chess-grandmaster",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
+    },
+    {
+      "id": "goldeneye-007-elite",
+      "name": "GoldenEye 007",
+      "url": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
+      "genre": "Shooting",
+      "description": "The definitive N64 shooter. High-fidelity emulation with optimized mouse/touch mapping for elite runs.",
+      "availability": "Online",
+      "playersOnline": 28400,
+      "rating": 5.0,
+      "badgeIds": [
+        "featured",
+        "elite"
+      ],
+      "tags": [
+        "Shooting",
+        "Retro",
+        "N64",
+        "Multiplayer",
+        "Controller"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
+        "telemetryMode": "none",
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "MI6 Command",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#92400e"
+      }
+    },
+    {
+      "id": "thps2-ps1-elite",
+      "name": "Tony Hawk's Pro Skater 2",
+      "url": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
+      "genre": "Sports",
+      "description": "Elite skating excellence. PS1 legend with stabilized frame rates and high-fidelity textures.",
+      "availability": "Online",
+      "playersOnline": 19500,
+      "rating": 5.0,
+      "badgeIds": [
+        "staff-pick",
+        "elite"
+      ],
+      "tags": [
+        "Sports",
+        "Retro",
+        "PS1",
+        "Controller"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
+        "telemetryMode": "none",
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Neversoft Legacy",
+        "accentStart": "#8b5cf6",
+        "accentEnd": "#4c1d95"
+      }
+    },
+    {
+      "id": "parappa-ps1-elite",
+      "name": "PaRappa the Rapper",
+      "url": "https://www.retrogames.cc/embed/40662-parappa-the-rapper.html",
+      "genre": "Rhythm",
+      "description": "I gotta believe! Original PS1 rhythm mastery with low-latency audio sync.",
+      "availability": "Online",
+      "playersOnline": 11000,
+      "rating": 4.8,
+      "badgeIds": [
+        "elite"
+      ],
+      "tags": [
+        "Rhythm",
+        "Retro",
+        "PS1",
+        "Music"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40662-parappa-the-rapper.html",
+        "telemetryMode": "none",
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Rhythm Elite",
+        "accentStart": "#ec4899",
+        "accentEnd": "#831843"
+      }
+    },
+    {
+      "id": "sonic-genesis-elite",
+      "name": "Sonic the Hedgehog",
+      "url": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
+      "genre": "Classic",
+      "description": "The Blue Blur at his best. High-speed Genesis emulation with perfect touch responsiveness.",
+      "availability": "Online",
+      "playersOnline": 34000,
+      "rating": 4.9,
+      "badgeIds": [
+        "trending",
+        "elite"
+      ],
+      "tags": [
+        "Classic",
+        "Platformer",
+        "Retro",
+        "Genesis"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
+        "telemetryMode": "none",
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Sega Speed",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1e3a8a"
+      }
+    },
+    {
+      "id": "doom-elite",
+      "name": "DOOM: Ultimate",
+      "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
+      "genre": "Shooting",
+      "description": "Original FPS carnage. Stabilized DOS emulation with enhanced web execution.",
+      "availability": "Online",
+      "playersOnline": 15000,
+      "rating": 4.9,
+      "badgeIds": [
+        "elite"
+      ],
+      "tags": [
+        "Shooting",
+        "Action",
+        "Retro",
+        "DOS"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
+        "telemetryMode": "none",
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
+    },
+    {
+      "id": "fnf-music-battle",
+      "name": "Rhythm Legends: Funkin",
+      "url": "https://www.gamepix.com/play/friday-night-funkin",
+      "genre": "Music Battle",
+      "description": "High-intensity rap battles with precision timing and elite soundtrack depth.",
+      "availability": "Online",
+      "playersOnline": 42000,
+      "rating": 4.8,
+      "badgeIds": [
+        "trending"
+      ],
+      "tags": [
+        "Music Battle",
+        "Rhythm",
+        "Multiplayer"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/friday-night-funkin",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
+    },
+    {
+      "id": "tetris-classic-elite",
+      "name": "Tetris: Grand Master",
+      "url": "https://www.retrogames.cc/embed/18814-tetris-usa.html",
+      "genre": "Puzzle",
+      "description": "The definitive puzzle experience. Classic NES logic with elite-tier responsive input.",
+      "availability": "Online",
+      "playersOnline": 28000,
+      "rating": 5.0,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Puzzle",
+        "Classic",
+        "Retro",
+        "NES"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18814-tetris-usa.html",
+        "telemetryMode": "none",
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
+    },
+    {
+      "id": "tomb-runner-elite",
+      "name": "Tomb Runner: Elite",
+      "url": "https://www.gamepix.com/play/tomb-runner",
+      "genre": "Runner",
+      "description": "High-speed tactical running. Fluid WebGL animations and precise touch-based navigation.",
+      "availability": "Online",
+      "playersOnline": 65000,
+      "rating": 4.7,
+      "badgeIds": [
+        "trending"
+      ],
+      "tags": [
+        "Runner",
+        "Action",
+        "3D"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tomb-runner",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "art": {
+        "eyebrow": "Executive Cabinet",
+        "accentStart": "#ec5b13",
+        "accentEnd": "#a855f7"
+      }
     }
   ],
   "recommendationRails": [
+    {
+      "id": "rail-elite-tier",
+      "title": "Elite PS1 & N64 Emulation",
+      "subtitle": "High-fidelity retro runs with stabilized controller links.",
+      "audience": {
+        "minPlays": 0,
+        "rooms": [
+          "all"
+        ]
+      },
+      "weights": {
+        "badge": 15,
+        "novelty": 5,
+        "genre": 5,
+        "history": 5,
+        "crowd": 5,
+        "room": 5
+      },
+      "maxItems": 6,
+      "badgeId": "elite"
+    },
     {
       "id": "rail-returning-runs",
       "title": "Return to your hot cabinets",

@@ -85,7 +85,7 @@ export class ArrangementViewComponent {
       type: 'midi',
     };
 
-    this.musicManager.updateTracks((ts) =>
+    this.musicManager.tracks.update((ts) =>
       ts.map((t) =>
         t.id === trackId ? { ...t, clips: [...(t.clips || []), newClip] } : t
       )
@@ -93,7 +93,7 @@ export class ArrangementViewComponent {
   }
 
   removeClip(trackId: number, clipId: string): void {
-    this.musicManager.updateTracks((ts) =>
+    this.musicManager.tracks.update((ts) =>
       ts.map((t) =>
         t.id === trackId
           ? { ...t, clips: (t.clips || []).filter((c) => c.id !== clipId) }
@@ -123,11 +123,5 @@ export class ArrangementViewComponent {
 
   isClipSelected(clipId: string): boolean {
     return this.selectedClipId() === clipId;
-  }
-  toggleArm(id: number) {
-    this.tracks().forEach(t => {
-      if (t.id === id) t.armed = !t.armed;
-      else t.armed = false;
-    });
   }
 }

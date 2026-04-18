@@ -75,16 +75,17 @@ export class ExportService {
   public audioBufferToWav(buffer: AudioBuffer): ArrayBuffer {
     const numOfChan = buffer.numberOfChannels;
     const sampleRate = buffer.sampleRate;
-    const length = buffer.length * numOfChan * 4 + 44;
+    const bytesPerSample = 2; // 16-bit PCM
+    const length = buffer.length * numOfChan * bytesPerSample + 44;
     const bufferOut = new ArrayBuffer(length);
     const view = new DataView(bufferOut);
-    const writeString = (v, o, s) => {
+    const writeString = (v: DataView, o: number, s: string) => {
       for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i));
     };
     let offset = 0;
     writeString(view, offset, 'RIFF');
     offset += 4;
-    view.setUint32(offset, 36 + buffer.length * numOfChan * 4, true);
+    view.setUint32(offset, length - 8, true);
     offset += 4;
     writeString(view, offset, 'WAVE');
     offset += 4;
@@ -92,26 +93,34 @@ export class ExportService {
     offset += 4;
     view.setUint32(offset, 16, true);
     offset += 4;
-    view.setUint16(offset, 3, true);
+    view.setUint16(offset, 1, true); // PCM format
     offset += 2;
     view.setUint16(offset, numOfChan, true);
     offset += 2;
     view.setUint32(offset, sampleRate, true);
     offset += 4;
-    view.setUint32(offset, sampleRate * numOfChan * 4, true);
+    view.setUint32(offset, sampleRate * numOfChan * bytesPerSample, true); // byte rate
     offset += 4;
-    view.setUint16(offset, numOfChan * 4, true);
+    view.setUint16(offset, numOfChan * bytesPerSample, true); // block align
     offset += 2;
-    view.setUint16(offset, 32, true);
+    view.setUint16(offset, 16, true); // bits per sample
     offset += 2;
     writeString(view, offset, 'data');
     offset += 4;
-    view.setUint32(offset, buffer.length * numOfChan * 4, true);
+    view.setUint32(offset, buffer.length * numOfChan * bytesPerSample, true);
     offset += 4;
     for (let i = 0; i < buffer.length; i++) {
       for (let channel = 0; channel < numOfChan; channel++) {
-        view.setFloat32(offset, buffer.getChannelData(channel)[i], true);
-        offset += 4;
+        const sample = Math.max(
+          -1,
+          Math.min(1, buffer.getChannelData(channel)[i])
+        );
+        view.setInt16(
+          offset,
+          sample < 0 ? sample * 0x8000 : sample * 0x7fff,
+          true
+        );
+        offset += 2;
       }
     }
     return bufferOut;

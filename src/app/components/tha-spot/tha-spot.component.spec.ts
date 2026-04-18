@@ -1,9 +1,4 @@
-import {
-  ComponentFixture,
-  TestBed,
-  fakeAsync,
-  tick,
-} from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
@@ -298,16 +293,17 @@ describe('ThaSpotComponent', () => {
     expect(component.gamingRooms().length).toBe(3);
   });
 
-  it('should switch to dynamic rooms and filter games', fakeAsync(() => {
+  it('should switch to dynamic rooms and filter games', async () => {
     component.setActiveRoom('producer-lounge');
-    tick(241);
+    // Wait for any async operations
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     expect(component.activeRoom()).toBe('producer-lounge');
     expect(component.filteredGames().map((game) => game.name)).toEqual([
       'Tempo Lockdown',
     ]);
     expect(component.getActiveRoomName()).toBe('Producer Lounge');
-  }));
+  });
 
   it('supports search, quick filters, sort changes, and reset for catalog browsing', () => {
     component.setSearchQuery('tempo');
@@ -349,14 +345,14 @@ describe('ThaSpotComponent', () => {
     );
   });
 
-  it('renders the arena spotlight command layout', () => {
+  it('renders the executive gaming hub layout', () => {
     const text = fixture.nativeElement.textContent;
 
-    expect(text).toContain('Arena spotlight');
-    expect(text).toContain('Producer crossover');
-    expect(text).toContain('Live directive');
-    expect(text).toContain('Search cabinets');
-    expect(text).toContain('Game library');
+    expect(text).toContain('EXECUTIVE GAMING HUB');
+    expect(text).toContain('INTEL');
+    expect(text).toContain('STRATEGIC INTEL');
+    expect(text).toContain('NEURAL SYNC');
+    expect(text).toContain('DIRECTIVES');
   });
 
   it('changes recommendation rails when the profile type changes', () => {
@@ -379,9 +375,9 @@ describe('ThaSpotComponent', () => {
     );
   });
 
-  it('resolves scheduled events from the live feed clock', fakeAsync(() => {
+  it('resolves scheduled events from the live feed clock', async () => {
     component.setActiveRoom('producer-lounge');
-    tick(241);
+    await new Promise((resolve) => setTimeout(resolve, 300));
     component.now.set(new Date('2026-04-06T19:30:00.000Z').getTime());
     fixture.detectChanges();
 
@@ -391,7 +387,7 @@ describe('ThaSpotComponent', () => {
     fixture.detectChanges();
 
     expect(component.activeEvents()[0]?.status).toBe('live');
-  }));
+  });
 
   it('opens a governed preview before starting a game', () => {
     component.previewGame(mockFeed.games[0]!);
@@ -400,13 +396,12 @@ describe('ThaSpotComponent', () => {
     expect(component.launchWarning()).toContain('Exact embed target verified');
   });
 
-  it('runs matchmaking for multiplayer games before launch', fakeAsync(() => {
+  it('runs matchmaking for multiplayer games before launch', async () => {
     component.previewGame(component.games()[0]!);
     component.confirmLaunch();
 
     expect(component.isMatchmaking()).toBe(true);
-    tick(4000);
-    tick(700);
+    await new Promise((resolve) => setTimeout(resolve, 4800));
 
     expect(component.isMatchmaking()).toBe(false);
     expect(component.currentGame()?.id).toBe('1');
@@ -417,7 +412,7 @@ describe('ThaSpotComponent', () => {
         eventId: 'event-1',
       })
     );
-  }));
+  }, 6000);
 
   it('launches solo games immediately from the preview flow', async () => {
     component.previewGame(component.games()[1]!);

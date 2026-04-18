@@ -188,4 +188,24 @@ describe('DeckService', () => {
     expect(service.deckA().hotCues[0]).toBe(24);
     expect(service.deckA().samplerPads[0]).toBeNull();
   });
+
+  it('loads deck buffers and resets progress-sensitive state', () => {
+    const buffer = { duration: 245 } as AudioBuffer;
+    service.deckA.update((d) => ({
+      ...d,
+      progress: 32,
+      hotCues: [12, 24, null, null, null, null, null, null],
+      samplerPads: [4, null, null, null, null, null, null, null],
+    }));
+
+    service.loadDeckBuffer('A', buffer, 'anthem.wav', 'vinyl://anthem');
+
+    expect(mockEngine.loadDeck).toHaveBeenCalledWith('A', buffer);
+    expect(service.deckA().track.name).toBe('anthem.wav');
+    expect(service.deckA().duration).toBe(245);
+    expect(service.deckA().progress).toBe(0);
+    expect(service.deckA().hotCues).toEqual(new Array(8).fill(null));
+    expect(service.deckA().samplerPads).toEqual(new Array(8).fill(null));
+    expect(service.deckA().vinylImageUrl).toBe('vinyl://anthem');
+  });
 });

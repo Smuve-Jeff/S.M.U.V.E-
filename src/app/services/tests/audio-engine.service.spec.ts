@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { AudioEngineService } from '../audio-engine.service';
 import { StemSeparationService } from '../stem-separation.service';
+import { AudioRecorderService } from '../../studio/audio-recorder.service';
 
 describe('AudioEngineService', () => {
   let service: AudioEngineService;
@@ -24,6 +25,13 @@ describe('AudioEngineService', () => {
       ratio: { value: 0, setTargetAtTime: jest.fn() },
       attack: { value: 0, setTargetAtTime: jest.fn() },
       release: { value: 0, setTargetAtTime: jest.fn() },
+      playbackRate: {
+        value: 1,
+        setTargetAtTime: jest.fn(),
+        cancelScheduledValues: jest.fn(),
+        setValueAtTime: jest.fn(),
+        linearRampToValueAtTime: jest.fn(),
+      },
       knee: { value: 0 },
       curve: null,
       oversample: 'none',
@@ -47,6 +55,7 @@ describe('AudioEngineService', () => {
       createConvolver: jest.fn().mockImplementation(createMockNode),
       createStereoPanner: jest.fn().mockImplementation(createMockNode),
       createWaveShaper: jest.fn().mockImplementation(createMockNode),
+      createBufferSource: jest.fn().mockImplementation(createMockNode),
       createBuffer: jest.fn().mockReturnValue({
         getChannelData: jest.fn().mockReturnValue(new Float32Array(100)),
         numberOfChannels: 2,
@@ -72,9 +81,22 @@ describe('AudioEngineService', () => {
       providers: [
         AudioEngineService,
         { provide: StemSeparationService, useValue: {} },
+        {
+          provide: AudioRecorderService,
+          useValue: {
+            pendingMidi: [],
+            startRecording: jest.fn(),
+            stopRecording: jest.fn(),
+          },
+        },
       ],
     });
     service = TestBed.inject(AudioEngineService);
+    mockAudioContext.createOscillator.mockClear();
+    mockAudioContext.createGain.mockClear();
+    mockAudioContext.createBiquadFilter.mockClear();
+    mockAudioContext.createStereoPanner.mockClear();
+    mockAudioContext.createBufferSource.mockClear();
   });
 
   it('should be created', () => {
@@ -144,6 +166,112 @@ describe('AudioEngineService', () => {
     expect(mockAudioContext.resume).toHaveBeenCalled();
     expect(mockAudioContext.createOscillator).toHaveBeenCalled();
     expect(mockAudioContext.createGain).toHaveBeenCalled();
+  });
+
+  it('should shape synth notes and capture midi when recording', () => {
+    service.isRecording.set(true);
+    service.recorder.pendingMidi = [];
+
+    service.playSynth(
+      1.25,
+      440,
+      0.5,
+      2,
+      -0.25,
+      0.4,
+      0.1,
+      0.05,
+      {
+        type: 'square',
+        cutoff: 2400,
+        attack: 0.02,
+        decay: 0.1,
+        sustain: 0.6,
+        release: 0.3,
+      },
+      2
+    );
+
+    const osc = mockAudioContext.createOscillator.mock.results.at(-1)?.value;
+    const filter =
+      mockAudioContext.createBiquadFilter.mock.results.at(-1)?.value;
+    const vca = mockAudioContext.createGain.mock.results.at(-1)?.value;
+    const panner =
+      mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
+
+    expect(osc.type).toBe('square');
+    expect(osc.frequency.value).toBe(440);
+    expect(filter.frequency.value).toBe(2400);
+    expect(panner.pan.value).toBe(-0.25);
+    expect(vca.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(
+      1,
+      expect.closeTo(0.72, 5),
+      1.27
+    );
+    expect(vca.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(
+      2,
+      expect.closeTo(0.432, 5),
+      1.37
+    );
+    expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(0, 1.75, 0.3);
+    expect(osc.start).toHaveBeenCalledWith(1.25);
+    expect(osc.stop).toHaveBeenCalledWith(3.25);
+    expect(service.recorder.pendingMidi).toEqual([
+      {
+        pitch: 69,
+        startTime: 1.25,
+        duration: 0.5,
+        velocity: 2,
+      },
+    ]);
+  });
+
+  it('should clamp buffer playback gain and velocity envelopes', () => {
+    const buffer = {} as AudioBuffer;
+
+    service.playBuffer(2, buffer, 0.004, 3, 0.4, 2);
+
+    const source =
+      mockAudioContext.createBufferSource.mock.results.at(-1)?.value;
+    const vca = mockAudioContext.createGain.mock.results.at(-1)?.value;
+    const panner =
+      mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
+
+    expect(source.buffer).toBe(buffer);
+    expect(panner.pan.value).toBe(0.4);
+    expect(vca.gain.linearRampToValueAtTime).toHaveBeenCalledWith(2.7, 2.002);
+    expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(0, 2.002, 0.012);
+    expect(source.start).toHaveBeenCalledWith(2);
+    expect(source.stop).toHaveBeenCalledWith(2.014);
+  });
+
+  it('should schedule metronome and step callbacks with lookahead timing', () => {
+    service.metronomeEnabled.set(true);
+    const scheduled = jest.fn();
+    service.onScheduleStep = scheduled;
+    service.tempo.set(120);
+    (service as any).nextNoteTime = 0.05;
+    mockAudioContext.currentTime = 0;
+
+    (service as any).scheduleTick();
+
+    expect(scheduled).toHaveBeenNthCalledWith(1, 0, 0.05, 0.125);
+    expect(scheduled).toHaveBeenNthCalledWith(2, 1, 0.175, 0.125);
+    expect(service.currentBeat()).toBe(2);
+
+    const osc = mockAudioContext.createOscillator.mock.results.at(-1)?.value;
+    expect(osc.frequency.value).toBe(1200);
+  });
+
+  it('should use the performance lookahead interval when starting playback', () => {
+    const setIntervalSpy = jest.spyOn(globalThis, 'setInterval');
+    service.setPerformanceTier('performance');
+
+    service.start();
+
+    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 160);
+    setIntervalSpy.mockRestore();
+    service.stop();
   });
 
   it('should update adaptive performance tier from cpu load', () => {

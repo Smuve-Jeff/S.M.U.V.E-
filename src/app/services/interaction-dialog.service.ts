@@ -27,10 +27,25 @@ export type InteractionDialogRequest =
   | PromptDialogRequest
   | AlertDialogRequest;
 
-type ActiveDialog = InteractionDialogRequest & {
+type ConfirmActiveDialog = ConfirmDialogRequest & {
   id: number;
-  resolve: (value: unknown) => void;
+  resolve: (value: boolean) => void;
 };
+
+type PromptActiveDialog = PromptDialogRequest & {
+  id: number;
+  resolve: (value: string | null) => void;
+};
+
+type AlertActiveDialog = AlertDialogRequest & {
+  id: number;
+  resolve: () => void;
+};
+
+type ActiveDialog =
+  | ConfirmActiveDialog
+  | PromptActiveDialog
+  | AlertActiveDialog;
 
 @Injectable({
   providedIn: 'root',
@@ -45,7 +60,7 @@ export class InteractionDialogService {
         ...request,
         type: 'confirm',
         id: ++this.nextId,
-        resolve,
+        resolve: (value) => resolve(Boolean(value)),
       });
     });
   }
@@ -56,7 +71,7 @@ export class InteractionDialogService {
         ...request,
         type: 'prompt',
         id: ++this.nextId,
-        resolve,
+        resolve: (value) => resolve(typeof value === 'string' ? value : null),
       });
     });
   }
@@ -67,7 +82,7 @@ export class InteractionDialogService {
         ...request,
         type: 'alert',
         id: ++this.nextId,
-        resolve,
+        resolve: () => resolve(),
       });
     });
   }
@@ -79,7 +94,17 @@ export class InteractionDialogService {
     }
 
     this.activeDialog.set(null);
-    dialog.resolve(result);
+    if (dialog.type === 'confirm') {
+      dialog.resolve(Boolean(result));
+      return;
+    }
+
+    if (dialog.type === 'prompt') {
+      dialog.resolve(typeof result === 'string' ? result : null);
+      return;
+    }
+
+    dialog.resolve();
   }
 
   cancel(): void {
@@ -89,6 +114,16 @@ export class InteractionDialogService {
     }
 
     this.activeDialog.set(null);
-    dialog.resolve(dialog.type === 'confirm' ? false : null);
+    if (dialog.type === 'confirm') {
+      dialog.resolve(false);
+      return;
+    }
+
+    if (dialog.type === 'prompt') {
+      dialog.resolve(null);
+      return;
+    }
+
+    dialog.resolve();
   }
 }

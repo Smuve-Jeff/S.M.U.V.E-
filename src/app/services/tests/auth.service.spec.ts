@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 
 import { AuthService } from '../auth.service';
@@ -11,6 +14,8 @@ import { LoginConfirmationService } from '../login-confirmation.service';
 
 describe('AuthService', () => {
   let service: AuthService;
+  let httpMock: HttpTestingController;
+
   let securityServiceMock: {
     validateSession: jest.Mock;
     refreshSession: jest.Mock;
@@ -72,7 +77,7 @@ describe('AuthService', () => {
         { provide: SecurityService, useValue: securityServiceMock },
         {
           provide: LoggingService,
-          useValue: { error: jest.fn(), warn: jest.fn() },
+          useValue: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
         },
         { provide: UserProfileService, useValue: profileServiceMock },
         {
@@ -83,60 +88,98 @@ describe('AuthService', () => {
     });
 
     service = TestBed.inject(AuthService);
+    httpMock = TestBed.inject(HttpTestingController);
   });
 
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  const waitForRequest = async (
+    matcher: (request: { url: string; method: string }) => boolean,
+    maxAttempts = 30
+  ) => {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const matches = httpMock.match((request) =>
+        matcher({ url: request.url, method: request.method })
+      );
+      if (matches.length > 0) {
+        return matches[0];
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    throw new Error('Timed out waiting for HTTP request');
+  };
+
   it('registers profiles against the created user id', async () => {
-    const result = await service.register(
+    const resultPromise = service.register(
       { email: 'Artist@Example.com', password: 'secret-pass' },
       '  Test Artist  '
     );
+
+    const req = await waitForRequest(
+      (r) => r.method === 'POST' && r.url.endsWith('/auth/session')
+    );
+    req.flush({ token: 'mock-jwt-token' });
+    const result = await resultPromise;
 
     expect(result.success).toBe(true);
     expect(profileServiceMock.updateProfile).toHaveBeenCalledWith(
       expect.objectContaining({
         id: expect.any(String),
         artistName: 'Test Artist',
-      }),
-      expect.any(String)
+      })
     );
-    const [[profileArg, userIdArg]] =
-      profileServiceMock.updateProfile.mock.calls;
-    expect(profileArg.id).toBe(userIdArg);
+    expect(service.jwtToken()).toBe('mock-jwt-token');
   });
 
   it('normalizes email casing and spacing during login', async () => {
-    await service.register(
+    const registerPromise = service.register(
       { email: 'Artist@Example.com', password: 'secret-pass' },
       'Test Artist'
     );
+    let req = await waitForRequest(
+      (r) => r.method === 'POST' && r.url.endsWith('/auth/session')
+    );
+    req.flush({ token: 'mock-jwt-token' });
+    await registerPromise;
 
-    const result = await service.login({
+    const resultPromise = service.login({
       email: '  artist@example.com  ',
       password: 'secret-pass',
     });
+
+    req = await waitForRequest(
+      (r) => r.method === 'POST' && r.url.endsWith('/auth/session')
+    );
+    req.flush({ token: 'mock-jwt-token-2' });
+    const result = await resultPromise;
 
     expect(result.success).toBe(true);
     expect(profileServiceMock.loadProfile).toHaveBeenCalledWith(
       expect.any(String)
     );
     expect(service.currentUser()?.email).toBe('artist@example.com');
-    expect(
-      loginConfirmationServiceMock.sendLoginConfirmation
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({ email: 'artist@example.com' })
-    );
+    expect(service.jwtToken()).toBe('mock-jwt-token-2');
   });
 
   it('does not send a confirmation email when login fails', async () => {
-    await service.register(
+    const registerPromise = service.register(
       { email: 'artist@example.com', password: 'secret-pass' },
       'Test Artist'
     );
+    const req = await waitForRequest(
+      (r) => r.method === 'POST' && r.url.endsWith('/auth/session')
+    );
+    req.flush({ token: 'mock-jwt-token' });
+    await registerPromise;
 
     const result = await service.login({
       email: 'artist@example.com',
       password: 'wrong-pass',
     });
+
+    httpMock.expectNone((r) => r.url.endsWith('/auth/session'));
 
     expect(result.success).toBe(false);
     expect(

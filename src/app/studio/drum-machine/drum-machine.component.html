@@ -1,6 +1,31 @@
-<div class="drum-machine hardware-surface p-10 rounded-3xl border border-white/10 shadow-2xl flex flex-col gap-6 overflow-hidden">
+<div class="drum-machine hardware-surface p-10 rounded-3xl border border-white/10 shadow-2xl flex flex-col gap-6 overflow-hidden" [class.compact-mode]="isStudioOverlay">
+  <div *ngIf="isStudioOverlay" class="absolute top-2 left-2 z-[100] md:hidden">
+    <button (click)="closeOverlay.emit()" class="p-2 rounded-full bg-brand-primary/20 border border-brand-primary/40 text-brand-primary backdrop-blur-md">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+  </div>
 
   <!-- Header -->
+
+  <!-- Mobile Tab Navigation -->
+  <div class="flex md:hidden bg-black/40 rounded-xl p-1 mb-4 border border-white/5">
+    <button (click)="activeTab.set('sequencer')"
+            class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
+            [class.bg-brand-primary]="activeTab() === 'sequencer'"
+            [class.text-black]="activeTab() === 'sequencer'"
+            [class.text-slate-500]="activeTab() !== 'sequencer'">SEQ</button>
+    <button (click)="activeTab.set('pads')"
+            class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
+            [class.bg-brand-primary]="activeTab() === 'pads'"
+            [class.text-black]="activeTab() === 'pads'"
+            [class.text-slate-500]="activeTab() !== 'pads'">PADS</button>
+    <button (click)="activeTab.set('params')"
+            class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
+            [class.bg-brand-primary]="activeTab() === 'params'"
+            [class.text-black]="activeTab() === 'params'"
+            [class.text-slate-500]="activeTab() !== 'params'">PRM</button>
+  </div>
+
   <div class="flex items-center justify-between flex-shrink-0">
     <div class="flex items-center gap-4">
       <span class="material-symbols-outlined text-4xl text-brand-primary animate-pulse">grid_view</span>

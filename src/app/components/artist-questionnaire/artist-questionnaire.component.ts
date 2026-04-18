@@ -6,6 +6,8 @@ import {
   UserProfile,
 } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
+import { UplinkService } from '../../services/uplink.service';
+import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { animate, style, transition, trigger } from '@angular/animations';
 
 interface Question {
@@ -21,7 +23,7 @@ interface Question {
 @Component({
   selector: 'app-artist-questionnaire',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, UplinkConsoleComponent],
   templateUrl: './artist-questionnaire.component.html',
   styleUrls: ['./artist-questionnaire.component.css'],
   animations: [
@@ -45,6 +47,7 @@ interface Question {
 export class ArtistQuestionnaireComponent {
   private userProfileService = inject(UserProfileService);
   private aiService = inject(AiService);
+  private uplinkService = inject(UplinkService);
 
   close = output<void>();
   complete = output<UserProfile>();
@@ -54,12 +57,13 @@ export class ArtistQuestionnaireComponent {
     ...this.userProfileService.profile(),
     genreSpecificData:
       this.userProfileService.profile().genreSpecificData || {},
-    expertise: this.userProfileService.profile().expertise || {},
+    expertise: this.userProfileService.profile().expertise,
     strategicGoals: this.userProfileService.profile().strategicGoals || [],
   });
 
   isAnalyzing = signal(false);
   analysisResult = signal<any>(null);
+  showUplink = signal(false);
 
   questions: Question[] = [
     {
@@ -282,19 +286,22 @@ export class ArtistQuestionnaireComponent {
     if (p.primaryGenre) score += 5;
     if (p.strategicGoals && p.strategicGoals.length > 0) score += 10;
     if (p.brandVoices && p.brandVoices.length > 1) score += 5;
-    if (p.expertise && p.expertise.technical_mastery > 7) score += 10;
-    if (p.expertise && p.expertise.catalyst) score += 5;
+    if ((p.expertise?.technical_mastery || 0) > 7) score += 10;
+    if (p.expertise?.catalyst) score += 5;
     return Math.min(100, score);
   }
 
-  applyChanges() {
+  async applyChanges() {
+    this.showUplink.set(true);
     const completedProfile = {
       ...this.profileDraft(),
       profileSetupCompleted: true,
       profileSetupCompletedAt: Date.now(),
     };
-    this.userProfileService.updateProfile(completedProfile);
-    this.complete.emit(completedProfile);
-    this.close.emit();
+
+    const success = await this.uplinkService.initiateUplink(completedProfile);
+    if (success) {
+      this.complete.emit(completedProfile);
+    }
   }
 }

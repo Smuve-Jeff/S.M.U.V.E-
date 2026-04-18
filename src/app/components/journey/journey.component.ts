@@ -122,7 +122,7 @@ export class JourneyComponent {
 
   toggleProductionStyle(style: string) {
     this.profile.update((p) => {
-      const styles = p.productionStyles || [];
+      const styles: string[] = p.productionStyles || [];
       const index = styles.indexOf(style);
       if (index > -1) {
         return { ...p, productionStyles: styles.filter((s) => s !== style) };

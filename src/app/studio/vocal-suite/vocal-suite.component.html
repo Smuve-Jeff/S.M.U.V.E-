@@ -324,3 +324,4 @@
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(157,0,255,0.2); border-radius: 2px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(157,0,255,0.4); }
 </style>
+<app-uplink-console *ngIf="showUplink()" (close)="showUplink.set(false)"></app-uplink-console>

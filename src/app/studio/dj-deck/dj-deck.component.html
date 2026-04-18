@@ -1,1215 +1,374 @@
-<div class="dj-view-container specialized-view" [class.flat-view]="deckService.viewMode() === 'flat'" class="h-full flex flex-col p-3 md:p-8 overflow-hidden relative">
-  <!-- Top Stats Display (BPM / Key) -->
-  <div class="deck-stats flex flex-wrap justify-between items-center gap-3 mb-4 md:mb-6 px-1 md:px-4">
-    <button (click)="deckService.toggleViewMode()" class="mode-chip" [class.active]="deckService.viewMode() === 'flat'">
-      <i class="fas fa-layer-group mr-1"></i> FLAT VIEW
-    </button>
-    <div class="deck-info glass-v42 px-6 py-3 rounded-2xl border-brand-primary/30 shadow-v42-lg relative overflow-hidden group">
-      <div class="absolute inset-0 bg-brand-primary/5 group-hover:bg-brand-primary/10 transition-colors"></div>
-      <span class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] relative z-10">DECK A</span>
-      <div class="flex items-baseline gap-2 relative z-10">
-        <span class="text-3xl font-black text-white font-mono tracking-tighter">{{ deckService.deckA().bpm | number:'1.0-1' }}</span>
-        <span class="text-[10px] font-bold text-slate-500 uppercase">BPM</span>
+<div class="dj-hud-container h-full flex flex-col overflow-hidden select-none">
+  <!-- TOP STATUS HEADER -->
+  <div class="flex items-center justify-between px-6 py-4 bg-black/40 border-b border-white/5 backdrop-blur-xl">
+    <div class="flex items-center gap-8">
+      <div class="flex flex-col">
+        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">System Status</span>
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>
+          <span class="text-xs font-bold text-white uppercase tracking-tighter">Uplink Active</span>
+        </div>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Master Tempo</span>
+        <div class="flex items-baseline gap-1">
+          <span class="text-xl font-black text-white font-mono">{{ (deckService.deckA().bpm + deckService.deckB().bpm) / 2 | number:'1.0-1' }}</span>
+          <span class="text-[8px] font-bold text-slate-500">BPM</span>
+        </div>
       </div>
     </div>
 
-    <div class="sync-hub flex flex-col items-center">
-      <button (click)="sync('A'); sync('B')" class="btn-pro btn-pro-primary px-8 py-2 text-xs font-black tracking-[0.3em] uppercase animate-pulse">
-        MASTER SYNC
+    <div class="flex items-center gap-4">
+      <button (click)="toggleRecording()"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg border transition-all"
+              [class.bg-red-500/20]="recording()" [class.border-red-500/40]="recording()"
+              [class.border-white/10]="!recording()" [class.hover:bg-white/5]="!recording()">
+        <div class="w-2 h-2 rounded-full" [class.bg-red-500]="recording()" [class.animate-pulse]="recording()" [class.bg-slate-500]="!recording()"></div>
+        <span class="text-[10px] font-black uppercase tracking-widest" [class.text-red-500]="recording()" [class.text-slate-300]="!recording()">
+          {{ recording() ? 'Recording: ' + formatDuration(recordingElapsedMs()) : 'Record Session' }}
+        </span>
       </button>
-      <div class="mt-2 flex flex-col items-center gap-1">
-        <div class="flex gap-1">
-          @for (i of [1,2,3,4,5,6,7,8]; track i) {
-            <div class="w-2 h-1 rounded-full bg-slate-800" [class.bg-brand-primary]="(currentBeat() % 8) + 1 >= i"></div>
-          }
-        </div>
-        <!-- Phase Meter -->
-        <div class="phase-meter w-32 h-1.5 bg-black/40 rounded-full mt-1 relative overflow-hidden border border-white/5">
-          <div class="phase-indicator absolute top-0 w-1 h-full bg-brand-primary shadow-[0_0_8px_var(--brand-primary)]"
-               [style.left.%]="phasePosition()"></div>
-          <div class="absolute left-1/2 top-0 w-0.5 h-full bg-white/20 -translate-x-1/2"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="deck-info glass-v42 px-6 py-3 rounded-2xl border-brand-secondary/30 text-right shadow-v42-lg relative overflow-hidden group">
-      <div class="absolute inset-0 bg-brand-secondary/5 group-hover:bg-brand-secondary/10 transition-colors"></div>
-      <span class="text-[10px] font-black text-brand-secondary uppercase tracking-[0.3em] relative z-10">DECK B</span>
-      <div class="flex items-baseline gap-2 justify-end relative z-10">
-        <span class="text-3xl font-black text-white font-mono tracking-tighter">{{ deckService.deckB().bpm | number:'1.0-1' }}</span>
-        <span class="text-[10px] font-bold text-slate-500 uppercase">BPM</span>
+      <div class="flex items-center gap-2">
+        <button (click)="saveSessionSnapshot()" class="p-2 text-slate-400 hover:text-white transition-colors" title="Save Snapshot">
+          <i class="fas fa-save"></i>
+        </button>
+        <button (click)="exportSessionSnapshot()" class="p-2 text-slate-400 hover:text-white transition-colors" title="Export JSON">
+          <i class="fas fa-file-export"></i>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- THE 3D DECKS GRID -->
-  <div class="decks-grid-3d flex-grow grid grid-cols-1 lg:grid-cols-[1fr_300px_1fr] gap-4 md:gap-8 items-center perspective-container overflow-y-auto pb-24 md:pb-0">
+  <!-- MAIN HUD GRID -->
+  <div class="deck-view-grid flex-grow overflow-hidden">
 
-    <!-- DECK A (3D TRANSFORMED) -->
-    <div class="deck-3d-wrapper deck-a-transform">
-      <div class="deck-chassis glass-v42 p-4 md:p-6 rounded-[30px] border border-white/10 backdrop-blur relative overflow-hidden">
-        <div class="chassis-gradient gradient-a"></div>
-        <div class="metal-rail metal-rail-top"></div>
-        <div class="metal-rail metal-rail-bottom"></div>
-        <div class="corner-bolt bolt-tl"></div>
-        <div class="corner-bolt bolt-tr"></div>
-        <div class="corner-bolt bolt-bl"></div>
-        <div class="corner-bolt bolt-br"></div>
-        <div class="flex items-center justify-between mb-3 relative z-10">
-          <div class="badge badge-a">Turntable A</div>
-          <button (click)="deckService.toggleSlip('A')" class="status-pill top-[-40px] right-0 border-white/20 text-white" [class.bg-brand-primary]="deckService.deckA().slip">
-            SLIP
-          </button>
-          <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.18em]">
-            Pitch {{ pitchAPercentage() }} · {{ (deckProgressPercent('A') * 100) | number:'1.0-1' }}%
-          </div>
-        </div>
-        <div class="platter-container relative aspect-square">
-          <div class="reactive-aura" [style.opacity]="getDeckLevel('A') * 0.8" [style.transform]="'scale(' + (1 + getDeckLevel('A') * 0.4) + ')'"></div>
-          <div class="tempo-rail tempo-rail-left">
-            <span class="tempo-rail-label">Pitch</span>
-            <span class="tempo-rail-value">{{ pitchAPercentage() }}</span>
-          </div>
-          <div class="platter-glow aura-a"></div>
-          <div class="progress-ring" [style.background]="progressRingStyle('A')"></div>
-          <div class="strobe-ring"></div>
-          <div class="platter-reflection"></div>
-          <div
-            class="vinyl-platter absolute inset-0 rounded-full shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-[10px] border-[#0f1116] touch-none"
-            [class.animate-spin-vinyl]="deckService.deckA().isPlaying && !isScratchingA()"
-            [class.scratch-active]="isScratchingA()"
-            (mousedown)="onPlatterDown('A', $event)"
-            (touchstart)="onPlatterDown('A', $event)"
-          >
-            <div class="absolute inset-0 rounded-full bg-gradient-to-br from-black via-slate-900 to-black opacity-90"></div>
-            <div class="absolute inset-[8%] rounded-full border border-white/5 opacity-30"></div>
-            <div class="absolute inset-[16%] rounded-full border border-white/5 opacity-20"></div>
-            <div class="absolute inset-[24%] rounded-full border border-white/5 opacity-10"></div>
-            <div class="absolute inset-[32%] rounded-full bg-brand-primary/15 flex flex-col items-center justify-center overflow-hidden border border-brand-primary/40 text-center px-3">
-              <span class="text-[10px] font-black text-white uppercase leading-tight max-h-[2.6em] overflow-hidden">
-                {{ deckService.deckA().track?.name || 'No Track Loaded' }}
-              </span>
-              <span class="text-[9px] font-black text-brand-primary/80 mt-1">BPM {{ deckService.deckA().bpm }}</span>
-            </div>
-
-            <!-- Hot Cue Markers on Vinyl -->
-            <div class="hot-cue-markers absolute inset-0 pointer-events-none">
-              @for (cue of hotCueMarkersA(); track cue.i) {
-                <div class="hot-cue-marker-wrap absolute inset-0" [ngStyle]="getHotCueMarkerStyle('A', cue.pos)">
-                  <div class="hot-cue-line"></div>
-                </div>
-              }
-            </div>
-
-            <div class="platter-center-pin"></div>
-          </div>
-          <div class="status-pill left-4 bottom-4 bg-brand-primary/10 text-brand-primary border-brand-primary/30">
-            {{ isScratchingA() ? 'Scratch Hold' : 'Live Play' }}
-          </div>
-          <!-- Slip Mode Ghost Playhead -->
-          @if (deckService.deckA().slip) {
-            <div class="absolute inset-0 rounded-full border-2 border-brand-primary/20 pointer-events-none animate-pulse"></div>
-          }
-
-          <!-- Slip Mode Ghost Playhead -->
-          @if (deckService.deckB().slip) {
-            <div class="absolute inset-0 rounded-full border-2 border-brand-secondary/20 pointer-events-none animate-pulse"></div>
-          }
-
-          <div class="tone-arm absolute top-0 right-0 w-8 h-48 origin-top pointer-events-none transition-transform duration-1000"
-               [style.transform]="deckService.deckA().isPlaying ? 'rotate(12deg)' : 'rotate(-15deg)'">
-            <div class="w-1.5 h-full bg-gradient-to-r from-slate-400 to-slate-600 rounded-full shadow-lg"></div>
-            <div class="w-4 h-8 bg-slate-800 absolute bottom-0 left-[-6px] rounded-sm border border-white/10"></div>
-          </div>
-        </div>
-        <div class="deck-console-strip mt-4 relative z-10">
-          <div class="console-module">
-            <span class="console-caption">FX Bank</span>
-            <div class="console-led-group">
-              <span class="console-led active"></span>
-              <span class="console-led active"></span>
-              <span class="console-led"></span>
-            </div>
-          </div>
-          <div class="console-module text-right">
-            <span class="console-caption">Sync Lock</span>
-            <div class="console-digits text-brand-primary">{{ deckService.deckA().isPlaying ? 'ON' : 'IDLE' }}</div>
-          </div>
-        </div>
-        <div class="deck-readouts mt-4 grid grid-cols-2 gap-3 relative z-10">
-          <div class="readout-card">
-            <div class="label">Position</div>
-            <div class="value text-brand-primary">{{ (deckProgressPercent('A') * 100) | number:'1.0-1' }}%</div>
-          </div>
-          <div class="readout-card text-right">
-            <div class="label">Pitch</div>
-            <div class="value text-white">{{ pitchAPercentage() }}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-6 flex justify-center gap-4 flex-wrap">
-        <button (click)="loadTrackFor('A')" class="btn-chrome text-brand-primary border-brand-primary/50">
-          <i class="fas fa-plus"></i> Add Track
-        </button>
-        <button (click)="tapBpm('A')" class="btn-chrome text-slate-200 border-white/20">
-          <span class="tracking-[0.3em] text-[10px] font-black">Tap BPM</span>
-        </button>
-        <button (click)="deckService.togglePlay('A')" class="btn-chrome emphasis text-brand-primary border-brand-primary/50">
-          <i class="fas" [class.fa-play]="!deckService.deckA().isPlaying" [class.fa-pause]="deckService.deckA().isPlaying"></i>
-        </button>
-      </div>
-
-      <div class="mt-4 grid grid-cols-4 gap-2 performance-grid">
-        @for (pad of [0,1,2,3,4,5,6,7]; track pad) {
-          <button class="pad-btn border-brand-primary/30 hover:bg-brand-primary/10"
-                  [class.pad-roll-active]="isRollPadActive('A', pad)"
-                  [class.pad-sampler-armed]="isSamplerPadSet('A', pad)"
-                  [class.pad-sampler-live]="isSamplerPadActive('A', pad)"
-                  [class.pad-cue-armed]="isCuePadSet('A', pad)"
-                  (mousedown)="handlePadDown('A', pad, $event)"
-                  (touchstart)="handlePadDown('A', pad, $event)"
-                  (mouseup)="handlePadRelease('A', pad)"
-                  (mouseleave)="handlePadRelease('A', pad)"
-                  (touchend)="handlePadRelease('A', pad)"
-                  (click)="handlePadPress('A', pad)"
-                  (contextmenu)="clearPad('A', pad, $event)">
-            {{ getPadLabel(pad) }}
-          </button>
-        }
-      </div>
-
-      <!-- Stem Separation Controls -->
-      <div class="mt-4 p-3 glass-v42 rounded-xl border border-white/5 space-y-3">
-        <div class="flex justify-between items-center">
-          <span class="text-[8px] font-black text-brand-primary uppercase tracking-[0.2em]">Stem Deconstruction</span>
-          <span class="text-[7px] font-bold text-slate-500 uppercase">AI Isolated</span>
-        </div>
-        <div class="grid grid-cols-4 gap-2">
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'vocals', $any($event.target).value)" class="w-1.5 h-12 accent-brand-primary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">VOX</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'drums', $any($event.target).value)" class="w-1.5 h-12 accent-brand-primary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">DRM</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'bass', $any($event.target).value)" class="w-1.5 h-12 accent-brand-primary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">BAS</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'melody', $any($event.target).value)" class="w-1.5 h-12 accent-brand-primary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">MLD</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Stem Separation Controls -->
-      <div class="mt-4 p-3 glass-v42 rounded-xl border border-white/5 space-y-3">
-        <div class="flex justify-between items-center">
-          <span class="text-[8px] font-black text-brand-secondary uppercase tracking-[0.2em]">Stem Deconstruction</span>
-          <span class="text-[7px] font-bold text-slate-500 uppercase">AI Isolated</span>
-        </div>
-        <div class="grid grid-cols-4 gap-2">
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'vocals', $any($event.target).value)" class="w-1.5 h-12 accent-brand-secondary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">VOX</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'drums', $any($event.target).value)" class="w-1.5 h-12 accent-brand-secondary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">DRM</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'bass', $any($event.target).value)" class="w-1.5 h-12 accent-brand-secondary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">BAS</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'melody', $any($event.target).value)" class="w-1.5 h-12 accent-brand-secondary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">MLD</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-4 grid grid-cols-2 gap-3">
-        <div class="micro-control">
-          <div class="micro-label">Pitch Bend</div>
-          <input type="range" min="0.5" max="1.5" step="0.01"
-                 [value]="deckService.deckA().playbackRate"
-                 (input)="setPlaybackRate('A', $any($event.target).value)"
-                 class="micro-slider accent-brand-primary">
-        </div>
-        <div class="micro-control">
-          <div class="micro-label">Filter Sweep</div>
-          <input type="range" min="200" max="20000" step="100"
-                 [value]="deckService.deckA().filterFreq"
-                 (input)="setFilter('A', $any($event.target).value)"
-                 class="micro-slider accent-brand-primary">
-        </div>
-      </div>
-    </div>
-
-    <!-- CENTRAL MIXER (The DiscDj Style) -->
-      <div class="central-mixer-console glass-v42 p-4 md:p-6 rounded-[30px] md:rounded-[40px] border-white/10 flex flex-col gap-4 md:gap-6 shadow-2xl titanium-texture relative overflow-hidden">
-        <div class="chassis-gradient gradient-center"></div>
-        <div class="mixer-side-rail rail-left"></div>
-        <div class="mixer-side-rail rail-right"></div>
-        <div class="mixer-display-panel z-10 relative">
-          <div>
-            <div class="mixer-display-caption">Disc 3D Mix</div>
-            <div class="mixer-display-value">{{ performanceMode() | uppercase }}</div>
-          </div>
-          <div class="mixer-vu-mini">
-            @for (cell of [0,1,2,3,4,5,6,7]; track cell) {
-              <span class="vu-cell" [class.active]="(currentBeat() % 8) >= cell"></span>
-            }
-          </div>
-        </div>
-        <div class="flex items-center justify-between z-10 relative">
-          <div class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Master Saturation</div>
+    <!-- DECK A -->
+    <div class="flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
+      <!-- Deck A Header -->
+      <div class="hud-module p-4 flex justify-between items-center border-l-4 border-l-brand-primary">
+        <div class="flex flex-col gap-1">
+          <span class="hud-label">Deck A · {{ deckService.deckA().track?.name || 'Empty' }}</span>
           <div class="flex items-center gap-3">
-            <input type="range" class="w-24 accent-brand-primary" (input)="setSaturation($any($event.target).value)" min="0" max="100" step="1" value="0">
+            <span class="text-2xl font-black text-white font-mono tracking-tighter">{{ deckService.deckA().bpm | number:'1.0-1' }} <span class="text-[10px] text-slate-500">BPM</span></span>
+            <div class="px-2 py-0.5 rounded bg-brand-primary/20 text-brand-primary text-[8px] font-black uppercase tracking-widest border border-brand-primary/30">
+              {{ deckService.deckA().isPlaying ? 'Playing' : 'Stopped' }}
+            </div>
           </div>
-      </div>
-      <div class="flex items-center justify-between z-10 relative">
-        <div class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Performance Modes</div>
+        </div>
         <div class="flex gap-2">
-          <button class="mode-chip" [class.active]="performanceMode() === 'cue'" (click)="performanceMode.set('cue')">Cue</button>
-          <button class="mode-chip" [class.active]="performanceMode() === 'roll'" (click)="performanceMode.set('roll')">Roll</button>
-          <button class="mode-chip" [class.active]="performanceMode() === 'sampler'" (click)="performanceMode.set('sampler')">Sampler</button>
-        </div>
-      </div>
-      <!-- High/Mid/Low Knobs -->
-      <div class="mixer-strips flex justify-around">
-        <div class="eq-strip flex flex-col gap-4">
-          <div class="knob-group"><input type="range" class="knob-range vertical-range h-12 accent-brand-primary" orient="vertical" (input)="setEq('A', 'high', $any($event.target).value)" min="0" max="2" step="0.01" value="1"><span class="label">HI</span></div>
-          <div class="knob-group"><input type="range" class="knob-range vertical-range h-12 accent-brand-primary" orient="vertical" (input)="setEq('A', 'mid', $any($event.target).value)" min="0" max="2" step="0.01" value="1"><span class="label">MID</span></div>
-          <div class="knob-group"><input type="range" class="knob-range vertical-range h-12 accent-brand-primary" orient="vertical" (input)="setEq('A', 'low', $any($event.target).value)" min="0" max="2" step="0.01" value="1"><span class="label">LOW</span></div>
-        </div>
-        <div class="eq-strip flex flex-col gap-4">
-          <div class="knob-group"><input type="range" class="knob-range vertical-range h-12 accent-brand-secondary" orient="vertical" (input)="setEq('B', 'high', $any($event.target).value)" min="0" max="2" step="0.01" value="1"><span class="label">HI</span></div>
-          <div class="knob-group"><input type="range" class="knob-range vertical-range h-12 accent-brand-secondary" orient="vertical" (input)="setEq('B', 'mid', $any($event.target).value)" min="0" max="2" step="0.01" value="1"><span class="label">MID</span></div>
-          <div class="knob-group"><input type="range" class="knob-range vertical-range h-12 accent-brand-secondary" orient="vertical" (input)="setEq('B', 'low', $any($event.target).value)" min="0" max="2" step="0.01" value="1"><span class="label">LOW</span></div>
+          <button (click)="loadTrackFor('A')" class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+            <i class="fas fa-plus"></i>
+          </button>
+          <button (click)="deckService.togglePlay('A')" class="w-12 h-10 rounded-lg bg-brand-primary/20 border border-brand-primary/40 flex items-center justify-center text-brand-primary hover:bg-brand-primary/30 transition-all">
+            <i class="fas" [class.fa-play]="!deckService.deckA().isPlaying" [class.fa-pause]="deckService.deckA().isPlaying"></i>
+          </button>
         </div>
       </div>
 
-      <!-- Volume Faders -->
-      <div class="volume-faders flex justify-around items-end h-32 md:h-40 pb-2 md:pb-4">
-        <div class="fader-wrapper"><input type="range" class="vertical-range h-32 accent-brand-primary" orient="vertical" (input)="setGain('A', $any($event.target).value)" min="0" max="1" step="0.01" value="0.8"></div>
-        <div class="master-meter w-8 bg-black/40 rounded-full relative overflow-hidden h-full border border-white/5">
-           <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-emerald-500 via-yellow-400 to-red-500 transition-all duration-100" [style.height.%]="getDeckLevel('A') * 100"></div>
+      <!-- Platter & Pitch Module -->
+      <div class="grid grid-cols-[1fr_auto] gap-4">
+        <div class="hud-module p-8 flex items-center justify-center relative overflow-hidden group">
+          <div class="strobe-platter w-full aspect-square max-w-[400px] relative">
+            <div class="strobe-dots" [class.strobe-dots-active]="deckService.deckA().isPlaying"></div>
+            <div class="vinyl-platter absolute inset-2 rounded-full border-[8px] border-black/40 touch-none flex items-center justify-center overflow-hidden"
+                 [class.animate-spin-vinyl]="deckService.deckA().isPlaying && !isScratchingA()"
+                 (mousedown)="onPlatterDown('A', $event)"
+                 (touchstart)="onPlatterDown('A', $event)">
+              <div class="absolute inset-0 bg-gradient-to-br from-black via-slate-900 to-black opacity-90"></div>
+              <div class="absolute inset-0 opacity-20" style="background: repeating-radial-gradient(circle at center, transparent 0, transparent 2px, rgba(255,255,255,0.1) 3px);"></div>
+
+              <div class="absolute inset-[30%] rounded-full bg-brand-primary/10 border border-brand-primary/30 backdrop-blur-md flex flex-col items-center justify-center text-center p-4">
+                <span class="text-[9px] font-black text-white uppercase leading-tight line-clamp-2">{{ deckService.deckA().track?.name || 'Ready' }}</span>
+                <div class="mt-2 w-1.5 h-1.5 rounded-full bg-brand-primary shadow-[0_0_10px_var(--color-primary)]"></div>
+              </div>
+            </div>
+          </div>
+          <div class="absolute top-4 left-4 hud-label opacity-40">High-Fidelity</div>
+          <div class="absolute bottom-4 right-4 hud-label opacity-40">HUD Protocol v4.2</div>
         </div>
-        <div class="fader-wrapper"><input type="range" class="vertical-range h-32 accent-brand-secondary" orient="vertical" (input)="setGain('B', $any($event.target).value)" min="0" max="1" step="0.01" value="0.8"></div>
+
+        <div class="hud-module p-4 flex flex-col items-center justify-between">
+          <span class="hud-label [writing-mode:vertical-lr] rotate-180">Tempo Control</span>
+          <div class="flex-grow my-4 py-2">
+            <input type="range" min="0.8" max="1.2" step="0.001" [value]="deckService.deckA().playbackRate"
+                   (input)="deckService.deckA.update(d => ({...d, playbackRate: $any($event.target).value}))"
+                   class="hud-slider-vertical h-full appearance-none">
+          </div>
+          <span class="text-[10px] font-bold text-white font-mono">{{ pitchAPercentage() }}</span>
+        </div>
       </div>
 
-      <!-- Crossfader -->
-      <div class="master-fx-group flex justify-around mb-4 mt-2 px-6">
-        <div class="knob-group">
-          <input type="range" class="knob-range vertical-range h-10 accent-white" orient="vertical"
-                 (input)="setSaturation($any($event.target).value)" min="0" max="1" step="0.01" value="0.5">
-          <span class="label text-[7px]">DRIVE</span>
+      <!-- Deck A Controls Grid -->
+      <div class="grid grid-cols-2 gap-4">
+        <!-- EQ/Filter Module -->
+        <div class="hud-module">
+          <div class="hud-module-header">
+            <span class="hud-label">Spectrum Engine</span>
+          </div>
+          <div class="p-4 grid grid-cols-4 gap-2">
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckA().eqHigh" (input)="updateEq('A', 'high', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-primary">
+              <span class="hud-label !text-[7px]">HI</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckA().eqMid" (input)="updateEq('A', 'mid', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-primary">
+              <span class="hud-label !text-[7px]">MID</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckA().eqLow" (input)="updateEq('A', 'low', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-primary">
+              <span class="hud-label !text-[7px]">LOW</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="50" max="15000" step="1" [value]="deckService.deckA().filterFreq" (input)="updateFilter('A', $any($event.target).value)" class="hud-slider-vertical h-24 accent-white">
+              <span class="hud-label !text-[7px]">FIL</span>
+            </div>
+          </div>
         </div>
-        <div class="performance-mode-selector flex gap-2">
-          <button (click)="performanceMode.set('cue')" [class.active]="performanceMode() === 'cue'" class="mode-chip">Cue</button>
-          <button (click)="performanceMode.set('roll')" [class.active]="performanceMode() === 'roll'" class="mode-chip">Roll</button>
-          <button (click)="performanceMode.set('sampler')" [class.active]="performanceMode() === 'sampler'" class="mode-chip">Samp</button>
-        </div>
-        <div class="knob-group">
-          <input type="range" class="knob-range vertical-range h-10 accent-white" orient="vertical"
-                 (input)="setMasterVolume($any($event.target).value)" min="0" max="1" step="0.01" value="0.8">
-          <span class="label text-[7px]">VOL</span>
-        </div>
-      </div>
-      <div class="crossfader-container px-4">
-        <input type="range" class="w-full accent-white h-1 bg-white/10 rounded-full appearance-none"
-               (input)="setCrossfade($any($event.target).value)" min="-1" max="1" step="0.01" value="0">
-        <div class="flex justify-between mt-2 text-[8px] font-black text-slate-500">
-          <span>A</span><span>CENTER</span><span>B</span>
+
+        <!-- Stem Deconstruction -->
+        <div class="hud-module">
+          <div class="hud-module-header">
+            <span class="hud-label">Stem Isolation</span>
+          </div>
+          <div class="p-4 grid grid-cols-4 gap-2">
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'vocals', $any($event.target).value)" class="hud-slider-vertical h-24 accent-emerald-500">
+              <span class="hud-label !text-[7px]">VOX</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'drums', $any($event.target).value)" class="hud-slider-vertical h-24 accent-emerald-500">
+              <span class="hud-label !text-[7px]">DRM</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'bass', $any($event.target).value)" class="hud-slider-vertical h-24 accent-emerald-500">
+              <span class="hud-label !text-[7px]">BAS</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'other', $any($event.target).value)" class="hud-slider-vertical h-24 accent-emerald-500">
+              <span class="hud-label !text-[7px]">OTH</span>
+            </div>
+          </div>
         </div>
       </div>
 
-
-      <!-- FX & CUSTOMIZATION CONSOLE -->
-      <div class="fx-custom-console glass-v42 rounded-2xl border border-white/10 p-4 mt-2 shadow-2xl relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent pointer-events-none"></div>
-        <div class="flex justify-between items-center mb-3 relative z-10">
-          <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.4em] glimmer-text">Neural FX Rack</span>
+      <!-- Performance Pads -->
+      <div class="hud-module p-4">
+        <div class="flex justify-between items-center mb-4">
+          <span class="hud-label">Performance Matrix</span>
           <div class="flex gap-2">
-            <button (click)="toggleLoop('A')"
-                    [class.bg-brand-primary]="deckService.deckA().loop"
-                    class="px-2 py-1 rounded border border-white/10 text-[8px] font-black uppercase transition-all">
-              Loop A
+            <button class="px-3 py-1 rounded bg-brand-primary/10 border border-brand-primary/20 text-[8px] font-black text-brand-primary uppercase">CUES</button>
+            <button class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[8px] font-black text-slate-500 uppercase">ROLL</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+          @for (pad of [0,1,2,3,4,5,6,7]; track pad) {
+            <button class="h-16 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all hover:bg-white/10 active:scale-95"
+                    [class.border-brand-primary/40]="isCuePadSet('A', pad)"
+                    [class.bg-brand-primary/20]="isCuePadSet('A', pad)"
+                    (click)="handlePadPress('A', pad)">
+              <span class="text-[8px] font-black text-slate-500">{{ pad + 1 }}</span>
+              <span class="text-[10px] font-bold text-white uppercase">{{ isCuePadSet('A', pad) ? 'CUE' : 'SET' }}</span>
             </button>
-            <button (click)="toggleLoop('B')"
-                    [class.bg-brand-secondary]="deckService.deckB().loop"
-                    class="px-2 py-1 rounded border border-white/10 text-[8px] font-black uppercase transition-all">
-              Loop B
-            </button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <!-- Advanced FX Deck A -->
-          <div class="space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="text-[7px] font-bold text-slate-500 uppercase">Filters</span>
-              <span class="text-[7px] font-mono text-brand-primary">{{ deckService.deckA().filterFreq | number:'1.0-0' }}Hz</span>
-            </div>
-            <input type="range" (input)="setFilter('A', $any($event.target).value)"
-                   [value]="deckService.deckA().filterFreq" min="20" max="20000"
-                   class="w-full h-1 bg-white/10 rounded-full appearance-none accent-brand-primary">
-          </div>
-
-          <!-- Advanced FX Deck B -->
-          <div class="space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="text-[7px] font-bold text-slate-500 uppercase">Filters</span>
-              <span class="text-[7px] font-mono text-brand-secondary">{{ deckService.deckB().filterFreq | number:'1.0-0' }}Hz</span>
-            </div>
-            <input type="range" (input)="setFilter('B', $any($event.target).value)"
-                   [value]="deckService.deckB().filterFreq" min="20" max="20000"
-                   class="w-full h-1 bg-white/10 rounded-full appearance-none accent-brand-secondary">
-          </div>
-        </div>
-
-        <!-- Custom FX Row -->
-        <div class="flex gap-2 mt-4 relative z-10">
-          <button (click)="applyScratchFx('A', 'transform')" class="btn-pro flex-1 py-2 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black uppercase hover:bg-brand-primary/20 hover:border-brand-primary/40 transition-all">
-            <i class="fas fa-scissors mr-1"></i> Chop A
-          </button>
-          <button (click)="applyScratchFx('B', 'transform')" class="btn-pro flex-1 py-2 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black uppercase hover:bg-brand-secondary/20 hover:border-brand-secondary/40 transition-all">
-            <i class="fas fa-scissors mr-1"></i> Chop B
-          </button>
-        </div>
-      </div>
-
-      <div class="session-status-bar">
-        <div class="session-status-copy">
-          <span class="session-status-dot" [class.live]="recording()"></span>
-          <span>{{ recording() ? 'REC ' + recordingDurationLabel() : sessionNotice() }}</span>
-        </div>
-        <div class="session-status-copy text-right">
-          <span>{{ isMobile() ? 'Mobile Optimized' : 'Full Speed' }}</span>
-        </div>
-      </div>
-
-      <div class="session-tools-grid">
-        <button (click)="startStopRecording()" class="btn-chrome emphasis text-[9px] py-3">
-          {{ recording() ? 'Stop Rec' : 'Record Mix' }}
-        </button>
-        <button (click)="saveSessionSnapshot()" class="btn-chrome text-[9px] py-3">
-          Save Set
-        </button>
-        <button (click)="exportSessionSnapshot()" class="btn-chrome text-[9px] py-3">
-          Export JSON
-        </button>
-      </div>
-
-      <div class="flex items-center justify-between gap-3">
-        <div class="fx-panel-3d flex-1 flex gap-2">
-          <button (click)="applyScratchFx('A', 'brake')" class="btn-chrome emphasis flex-1 text-[7px] py-3">BRAKE</button>
-          <button (click)="applyScratchFx('A', 'spinback')" class="btn-chrome flex-1 text-[7px] py-3">SPIN</button>
-          <button (click)="applyScratchFx('A', 'transform')" class="btn-chrome flex-1 text-[7px] py-3">X-FX</button>
+          }
         </div>
       </div>
     </div>
 
-    <!-- DECK B (3D TRANSFORMED) -->
-    <div class="deck-3d-wrapper deck-b-transform">
-      <div class="deck-chassis glass-v42 p-4 md:p-6 rounded-[30px] border border-white/10 backdrop-blur relative overflow-hidden">
-        <div class="chassis-gradient gradient-b"></div>
-        <div class="metal-rail metal-rail-top"></div>
-        <div class="metal-rail metal-rail-bottom"></div>
-        <div class="corner-bolt bolt-tl"></div>
-        <div class="corner-bolt bolt-tr"></div>
-        <div class="corner-bolt bolt-bl"></div>
-        <div class="corner-bolt bolt-br"></div>
-        <div class="flex items-center justify-between mb-3 relative z-10">
-          <div class="badge badge-b">Turntable B</div>
-          <button (click)="deckService.toggleSlip('B')" class="status-pill top-[-40px] right-0 border-white/20 text-white" [class.bg-brand-accent]="deckService.deckB().slip">
-            SLIP
+    <!-- CENTRAL CONSOLE -->
+    <div class="flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+      <!-- Master Level HUD -->
+      <div class="hud-module p-6 flex flex-col items-center gap-4">
+        <span class="hud-label">Output Velocity</span>
+        <div class="flex gap-4 items-end h-48 py-4">
+          @for (bar of [0,1,2,3,4,5,6,7]; track bar) {
+            <div class="w-4 bg-white/5 rounded-full relative overflow-hidden">
+              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-brand-primary via-brand-secondary to-white transition-all duration-75"
+                   [style.height.%]="(getDeckLevel('A') * 100) + (bar * 5)"></div>
+            </div>
+          }
+        </div>
+        <div class="w-full flex flex-col gap-2">
+          <div class="flex justify-between items-center px-1">
+            <span class="hud-label !text-[7px]">Master Gain</span>
+            <span class="text-[10px] font-bold text-white font-mono">{{ masterVolume() }}%</span>
+          </div>
+          <input type="range" min="0" max="100" [value]="masterVolume()" (input)="masterVolume.set($any($event.target).value)"
+                 class="w-full h-1.5 appearance-none bg-white/10 rounded-full accent-white">
+        </div>
+      </div>
+
+      <!-- Crossfader HUD -->
+      <div class="hud-module p-8 flex flex-col items-center gap-6">
+        <div class="flex justify-between w-full">
+          <span class="hud-label neon-accent-primary">DECK A</span>
+          <span class="hud-label neon-accent-secondary">DECK B</span>
+        </div>
+        <div class="w-full relative h-12 bg-black/40 rounded-xl border border-white/5 flex items-center px-4 overflow-hidden">
+          <div class="absolute inset-y-0 left-1/2 w-0.5 bg-white/10"></div>
+          <input type="range" min="-1" max="1" step="0.01" [value]="deckService.crossfade()" (input)="deckService.crossfade.set($any($event.target).value)"
+                 class="w-full h-full appearance-none bg-transparent relative z-10 cursor-ew-resize">
+          <!-- Crossfader Visual Handle -->
+          <div class="absolute top-1 bottom-1 w-12 bg-white/10 border border-white/20 rounded-lg pointer-events-none transition-all duration-75"
+               [style.left.%]="((deckService.crossfade() + 1) / 2) * 85 + 2.5">
+            <div class="absolute inset-y-2 left-1/2 w-0.5 bg-white/40"></div>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <button (click)="deckService.hamster.set(!deckService.hamster())"
+                  class="px-4 py-2 rounded bg-white/5 border border-white/10 text-[8px] font-black uppercase tracking-widest transition-all"
+                  [class.text-brand-primary]="deckService.hamster()" [class.border-brand-primary/40]="deckService.hamster()">
+            Hamster: {{ deckService.hamster() ? 'ON' : 'OFF' }}
           </button>
-          <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.18em]">
-            Pitch {{ pitchBPercentage() }} · {{ (deckProgressPercent('B') * 100) | number:'1.0-1' }}%
-          </div>
-        </div>
-        <div class="platter-container relative aspect-square">
-          <div class="reactive-aura accent" [style.opacity]="getDeckLevel('B') * 0.8" [style.transform]="'scale(' + (1 + getDeckLevel('B') * 0.4) + ')'"></div>
-          <div class="tempo-rail tempo-rail-right">
-            <span class="tempo-rail-label">Pitch</span>
-            <span class="tempo-rail-value">{{ pitchBPercentage() }}</span>
-          </div>
-          <div class="platter-glow aura-b"></div>
-          <div class="progress-ring" [style.background]="progressRingStyle('B')"></div>
-          <div class="strobe-ring"></div>
-          <div class="platter-reflection"></div>
-          <div
-            class="vinyl-platter absolute inset-0 rounded-full shadow-[0_30px_60px_rgba(0,0,0,0.8)] border-[10px] border-[#0f1116] touch-none"
-            [class.animate-spin-vinyl]="deckService.deckB().isPlaying && !isScratchingB()"
-            [class.scratch-active]="isScratchingB()"
-            (mousedown)="onPlatterDown('B', $event)"
-            (touchstart)="onPlatterDown('B', $event)"
-          >
-            <div class="absolute inset-0 rounded-full bg-gradient-to-br from-black via-slate-900 to-black opacity-90"></div>
-            <div class="absolute inset-[8%] rounded-full border border-white/5 opacity-30"></div>
-            <div class="absolute inset-[16%] rounded-full border border-white/5 opacity-20"></div>
-            <div class="absolute inset-[24%] rounded-full border border-white/5 opacity-10"></div>
-            <div class="absolute inset-[32%] rounded-full bg-brand-secondary/15 flex flex-col items-center justify-center overflow-hidden border border-brand-secondary/40 text-center px-3">
-              <span class="text-[10px] font-black text-white uppercase leading-tight max-h-[2.6em] overflow-hidden">
-                {{ deckService.deckB().track?.name || 'No Track Loaded' }}
-              </span>
-              <span class="text-[9px] font-black text-brand-secondary/80 mt-1">BPM {{ deckService.deckB().bpm }}</span>
-            </div>
-
-            <!-- Hot Cue Markers on Vinyl -->
-            <div class="hot-cue-markers absolute inset-0 pointer-events-none">
-              @for (cue of hotCueMarkersB(); track cue.i) {
-                <div class="hot-cue-marker-wrap absolute inset-0" [ngStyle]="getHotCueMarkerStyle('B', cue.pos)">
-                  <div class="hot-cue-line secondary"></div>
-                </div>
-              }
-            </div>
-
-            <div class="platter-center-pin"></div>
-          </div>
-          <div class="status-pill right-4 bottom-4 bg-brand-secondary/10 text-brand-secondary border-brand-secondary/30">
-            {{ isScratchingB() ? 'Scratch Hold' : 'Live Play' }}
-          </div>
-          <div class="tone-arm absolute top-0 left-0 w-8 h-48 origin-top pointer-events-none transition-transform duration-1000 scale-x-[-1]"
-               [style.transform]="deckService.deckB().isPlaying ? 'rotate(-12deg)' : 'rotate(15deg)'">
-            <div class="w-1.5 h-full bg-gradient-to-r from-slate-400 to-slate-600 rounded-full shadow-lg"></div>
-            <div class="w-4 h-8 bg-slate-800 absolute bottom-0 left-[-6px] rounded-sm border border-white/10"></div>
-          </div>
-        </div>
-        <div class="deck-console-strip mt-4 relative z-10">
-          <div class="console-module">
-            <span class="console-caption">FX Bank</span>
-            <div class="console-led-group">
-              <span class="console-led active amber"></span>
-              <span class="console-led active amber"></span>
-              <span class="console-led amber"></span>
-            </div>
-          </div>
-          <div class="console-module text-right">
-            <span class="console-caption">Sync Lock</span>
-            <div class="console-digits text-brand-secondary">{{ deckService.deckB().isPlaying ? 'ON' : 'IDLE' }}</div>
-          </div>
-        </div>
-        <div class="deck-readouts mt-4 grid grid-cols-2 gap-3 relative z-10">
-          <div class="readout-card">
-            <div class="label">Position</div>
-            <div class="value text-brand-secondary">{{ (deckProgressPercent('B') * 100) | number:'1.0-1' }}%</div>
-          </div>
-          <div class="readout-card text-right">
-            <div class="label">Pitch</div>
-            <div class="value text-white">{{ pitchBPercentage() }}</div>
-          </div>
-        </div>
-      </div>
-      <div class="mt-6 flex justify-center gap-4 flex-wrap">
-        <button (click)="loadTrackFor('B')" class="btn-chrome text-brand-secondary border-brand-secondary/50">
-          <i class="fas fa-plus"></i> Add Track
-        </button>
-        <button (click)="tapBpm('B')" class="btn-chrome text-slate-200 border-white/20">
-          <span class="tracking-[0.3em] text-[10px] font-black">Tap BPM</span>
-        </button>
-        <button (click)="deckService.togglePlay('B')" class="btn-chrome emphasis text-brand-secondary border-brand-secondary/50">
-          <i class="fas" [class.fa-play]="!deckService.deckB().isPlaying" [class.fa-pause]="deckService.deckB().isPlaying"></i>
-        </button>
-      </div>
-
-      <div class="mt-4 flex gap-2">
-        <button (click)="applyScratchFx('B', 'brake')" class="btn-chrome flex-1 text-[7px] py-3">BRAKE</button>
-        <button (click)="applyScratchFx('B', 'spinback')" class="btn-chrome flex-1 text-[7px] py-3">SPIN</button>
-        <button (click)="applyScratchFx('B', 'transform')" class="btn-chrome flex-1 text-[7px] py-3">X-FX</button>
-      </div>
-
-      <div class="mt-4 grid grid-cols-4 gap-2 performance-grid">
-        @for (pad of [0,1,2,3,4,5,6,7]; track pad) {
-          <button class="pad-btn border-brand-secondary/30 hover:bg-brand-secondary/10"
-                  [class.pad-roll-active]="isRollPadActive('B', pad)"
-                  [class.pad-sampler-armed]="isSamplerPadSet('B', pad)"
-                  [class.pad-sampler-live]="isSamplerPadActive('B', pad)"
-                  [class.pad-cue-armed]="isCuePadSet('B', pad)"
-                  (mousedown)="handlePadDown('B', pad, $event)"
-                  (touchstart)="handlePadDown('B', pad, $event)"
-                  (mouseup)="handlePadRelease('B', pad)"
-                  (mouseleave)="handlePadRelease('B', pad)"
-                  (touchend)="handlePadRelease('B', pad)"
-                  (click)="handlePadPress('B', pad)"
-                  (contextmenu)="clearPad('B', pad, $event)">
-            {{ getPadLabel(pad) }}
-          </button>
-        }
-      </div>
-
-      <!-- Stem Separation Controls -->
-      <div class="mt-4 p-3 glass-v42 rounded-xl border border-white/5 space-y-3">
-        <div class="flex justify-between items-center">
-          <span class="text-[8px] font-black text-brand-primary uppercase tracking-[0.2em]">Stem Deconstruction</span>
-          <span class="text-[7px] font-bold text-slate-500 uppercase">AI Isolated</span>
-        </div>
-        <div class="grid grid-cols-4 gap-2">
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'vocals', $any($event.target).value)" class="w-1.5 h-12 accent-brand-primary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">VOX</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'drums', $any($event.target).value)" class="w-1.5 h-12 accent-brand-primary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">DRM</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'bass', $any($event.target).value)" class="w-1.5 h-12 accent-brand-primary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">BAS</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'melody', $any($event.target).value)" class="w-1.5 h-12 accent-brand-primary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">MLD</span>
-          </div>
         </div>
       </div>
 
-      <!-- Stem Separation Controls -->
-      <div class="mt-4 p-3 glass-v42 rounded-xl border border-white/5 space-y-3">
-        <div class="flex justify-between items-center">
-          <span class="text-[8px] font-black text-brand-secondary uppercase tracking-[0.2em]">Stem Deconstruction</span>
-          <span class="text-[7px] font-bold text-slate-500 uppercase">AI Isolated</span>
-        </div>
-        <div class="grid grid-cols-4 gap-2">
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'vocals', $any($event.target).value)" class="w-1.5 h-12 accent-brand-secondary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">VOX</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'drums', $any($event.target).value)" class="w-1.5 h-12 accent-brand-secondary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">DRM</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'bass', $any($event.target).value)" class="w-1.5 h-12 accent-brand-secondary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">BAS</span>
-          </div>
-          <div class="flex flex-col items-center gap-1">
-            <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'melody', $any($event.target).value)" class="w-1.5 h-12 accent-brand-secondary appearance-none bg-white/10 rounded-full vertical-range">
-            <span class="text-[7px] font-black text-slate-400 uppercase">MLD</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-4 grid grid-cols-2 gap-3">
-        <div class="micro-control">
-          <div class="micro-label">Pitch Bend</div>
-          <input type="range" min="0.5" max="1.5" step="0.01"
-                 [value]="deckService.deckB().playbackRate"
-                 (input)="setPlaybackRate('B', $any($event.target).value)"
-                 class="micro-slider accent-brand-secondary">
-        </div>
-        <div class="micro-control">
-          <div class="micro-label">Filter Sweep</div>
-          <input type="range" min="200" max="20000" step="100"
-                 [value]="deckService.deckB().filterFreq"
-                 (input)="setFilter('B', $any($event.target).value)"
-                 class="micro-slider accent-brand-secondary">
+      <!-- Session Intelligence -->
+      <div class="hud-module p-4 flex flex-col gap-3">
+        <span class="hud-label">Strategic Intelligence</span>
+        <div class="p-3 bg-brand-primary/5 border border-brand-primary/20 rounded-lg">
+          <p class="text-[10px] font-bold text-brand-primary leading-relaxed uppercase tracking-tight italic">
+            "{{ sessionNotice() || 'Uplink established. Awaiting tactical maneuvers.' }}"
+          </p>
         </div>
       </div>
     </div>
 
+    <!-- DECK B -->
+    <div class="flex flex-col gap-6 overflow-y-auto pl-2 custom-scrollbar">
+      <!-- Deck B Header -->
+      <div class="hud-module p-4 flex justify-between items-center border-r-4 border-r-brand-secondary">
+        <div class="flex gap-2">
+          <button (click)="deckService.togglePlay('B')" class="w-12 h-10 rounded-lg bg-brand-secondary/20 border border-brand-secondary/40 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary/30 transition-all">
+            <i class="fas" [class.fa-play]="!deckService.deckB().isPlaying" [class.fa-pause]="deckService.deckB().isPlaying"></i>
+          </button>
+          <button (click)="loadTrackFor('B')" class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+        <div class="flex flex-col gap-1 text-right">
+          <span class="hud-label">{{ deckService.deckB().track?.name || 'Empty' }} · Deck B</span>
+          <div class="flex items-center gap-3 justify-end">
+            <div class="px-2 py-0.5 rounded bg-brand-secondary/20 text-brand-secondary text-[8px] font-black uppercase tracking-widest border border-brand-secondary/30">
+              {{ deckService.deckB().isPlaying ? 'Playing' : 'Stopped' }}
+            </div>
+            <span class="text-2xl font-black text-white font-mono tracking-tighter">{{ deckService.deckB().bpm | number:'1.0-1' }} <span class="text-[10px] text-slate-500">BPM</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Platter & Pitch Module -->
+      <div class="grid grid-cols-[auto_1fr] gap-4">
+        <div class="hud-module p-4 flex flex-col items-center justify-between">
+          <span class="hud-label [writing-mode:vertical-lr]">Tempo Control</span>
+          <div class="flex-grow my-4 py-2">
+            <input type="range" min="0.8" max="1.2" step="0.001" [value]="deckService.deckB().playbackRate"
+                   (input)="deckService.deckB.update(d => ({...d, playbackRate: $any($event.target).value}))"
+                   class="hud-slider-vertical h-full appearance-none">
+          </div>
+          <span class="text-[10px] font-bold text-white font-mono">{{ pitchBPercentage() }}</span>
+        </div>
+
+        <div class="hud-module p-8 flex items-center justify-center relative overflow-hidden group">
+          <div class="strobe-platter w-full aspect-square max-w-[400px] relative">
+            <div class="strobe-dots strobe-dots-active" [class.strobe-dots-active]="deckService.deckB().isPlaying"></div>
+            <div class="vinyl-platter absolute inset-2 rounded-full border-[8px] border-black/40 touch-none flex items-center justify-center overflow-hidden"
+                 [class.animate-spin-vinyl]="deckService.deckB().isPlaying && !isScratchingB()"
+                 (mousedown)="onPlatterDown('B', $event)"
+                 (touchstart)="onPlatterDown('B', $event)">
+              <div class="absolute inset-0 bg-gradient-to-br from-black via-slate-900 to-black opacity-90"></div>
+              <div class="absolute inset-0 opacity-20" style="background: repeating-radial-gradient(circle at center, transparent 0, transparent 2px, rgba(255,255,255,0.1) 3px);"></div>
+
+              <div class="absolute inset-[30%] rounded-full bg-brand-secondary/10 border border-brand-secondary/30 backdrop-blur-md flex flex-col items-center justify-center text-center p-4">
+                <span class="text-[9px] font-black text-white uppercase leading-tight line-clamp-2">{{ deckService.deckB().track?.name || 'Ready' }}</span>
+                <div class="mt-2 w-1.5 h-1.5 rounded-full bg-brand-secondary shadow-[0_0_10px_var(--brand-secondary)]"></div>
+              </div>
+            </div>
+          </div>
+          <div class="absolute top-4 right-4 hud-label opacity-40">High-Fidelity</div>
+          <div class="absolute bottom-4 left-4 hud-label opacity-40">HUD Protocol v4.2</div>
+        </div>
+      </div>
+
+      <!-- Deck B Controls Grid -->
+      <div class="grid grid-cols-2 gap-4">
+        <!-- Stem Deconstruction -->
+        <div class="hud-module">
+          <div class="hud-module-header">
+            <span class="hud-label">Stem Isolation</span>
+          </div>
+          <div class="p-4 grid grid-cols-4 gap-2">
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'vocals', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <span class="hud-label !text-[7px]">VOX</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'drums', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <span class="hud-label !text-[7px]">DRM</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'bass', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <span class="hud-label !text-[7px]">BAS</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'other', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <span class="hud-label !text-[7px]">OTH</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- EQ/Filter Module -->
+        <div class="hud-module">
+          <div class="hud-module-header">
+            <span class="hud-label">Spectrum Engine</span>
+          </div>
+          <div class="p-4 grid grid-cols-4 gap-2">
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckB().eqHigh" (input)="updateEq('B', 'high', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <span class="hud-label !text-[7px]">HI</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckB().eqMid" (input)="updateEq('B', 'mid', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <span class="hud-label !text-[7px]">MID</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckB().eqLow" (input)="updateEq('B', 'low', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <span class="hud-label !text-[7px]">LOW</span>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <input type="range" min="50" max="15000" step="1" [value]="deckService.deckB().filterFreq" (input)="updateFilter('B', $any($event.target).value)" class="hud-slider-vertical h-24 accent-white">
+              <span class="hud-label !text-[7px]">FIL</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Pads -->
+      <div class="hud-module p-4">
+        <div class="flex justify-between items-center mb-4">
+          <span class="hud-label">Performance Matrix</span>
+          <div class="flex gap-2">
+            <button class="px-3 py-1 rounded bg-brand-secondary/10 border border-brand-secondary/20 text-[8px] font-black text-brand-secondary uppercase">CUES</button>
+            <button class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[8px] font-black text-slate-500 uppercase">ROLL</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+          @for (pad of [0,1,2,3,4,5,6,7]; track pad) {
+            <button class="h-16 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all hover:bg-white/10 active:scale-95"
+                    [class.border-brand-secondary/40]="isCuePadSet('B', pad)"
+                    [class.bg-brand-secondary/20]="isCuePadSet('B', pad)"
+                    (click)="handlePadPress('B', pad)">
+              <span class="text-[8px] font-black text-slate-500">{{ pad + 1 }}</span>
+              <span class="text-[10px] font-bold text-white uppercase">{{ isCuePadSet('B', pad) ? 'CUE' : 'SET' }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- BOTTOM WAVEFORMS (MINI MAP) -->
-  <div class="dj-waveform-bar fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 w-[94%] md:w-[90%] max-w-5xl h-14 md:h-16 bg-black/60 rounded-2xl border border-white/10 backdrop-blur-md flex overflow-hidden z-30">
-    <canvas #waveformA class="flex-grow h-full opacity-50"></canvas>
-    <div class="w-px bg-white/20"></div>
-    <canvas #waveformB class="flex-grow h-full opacity-50 scale-x-[-1]"></canvas>
+  <!-- FOOTER MINI MAP / PROGRESS -->
+  <div class="grid grid-cols-2 h-1 bg-white/5">
+    <div class="h-full bg-brand-primary transition-all duration-300" [style.width.%]="deckProgressPercent('A') * 100"></div>
+    <div class="h-full bg-brand-secondary transition-all duration-300 self-end ml-auto" [style.width.%]="deckProgressPercent('B') * 100"></div>
   </div>
 </div>
-
-<style>
-  .deck-chassis {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%), url('https://www.transparenttextures.com/patterns/brushed-alum.png'), url('/assets/circuit_pattern.svg');
-    background-blend-mode: overlay;
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: 0 35px 75px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  }
-  .deck-chassis::before,
-  .central-mixer-console::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent 24%, transparent 76%, rgba(255,255,255,0.03));
-    pointer-events: none;
-  }
-  .metal-rail {
-    position: absolute;
-    left: 14px;
-    right: 14px;
-    height: 8px;
-    border-radius: 9999px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.2), rgba(71,85,105,0.15));
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 6px 18px rgba(0,0,0,0.25);
-    opacity: 0.65;
-    z-index: 1;
-  }
-  .metal-rail-top { top: 12px; }
-  .metal-rail-bottom { bottom: 12px; }
-  .corner-bolt {
-    position: absolute;
-    width: 14px;
-    height: 14px;
-    border-radius: 9999px;
-    background: radial-gradient(circle at 30% 30%, #dbe4ee, #6b7280 70%);
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.25), 0 2px 4px rgba(0,0,0,0.5);
-    z-index: 2;
-  }
-  .corner-bolt::after {
-    content: '';
-    position: absolute;
-    inset: 5px 2px;
-    border-top: 1px solid rgba(15,23,42,0.8);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    transform: rotate(45deg);
-  }
-  .bolt-tl { top: 16px; left: 16px; }
-  .bolt-tr { top: 16px; right: 16px; }
-  .bolt-bl { bottom: 16px; left: 16px; }
-  .bolt-br { bottom: 16px; right: 16px; }
-  .chassis-gradient {
-    position: absolute;
-    inset: -40%;
-    filter: blur(80px);
-    opacity: 0.35;
-    pointer-events: none;
-  }
-  .gradient-a {
-    background: radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.35), transparent 40%);
-  }
-  .gradient-b {
-    background: radial-gradient(circle at 70% 30%, rgba(245, 158, 11, 0.35), transparent 40%);
-  }
-  .gradient-center {
-    background: radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.08), transparent 40%);
-  }
-  .badge {
-    padding: 6px 12px;
-    border-radius: 9999px;
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(6px);
-  }
-  .badge-a {
-    color: #10b981;
-    border-color: rgba(16, 185, 129, 0.4);
-  }
-  .badge-b {
-    color: #f59e0b;
-    border-color: rgba(245, 158, 11, 0.4);
-  }
-  .progress-ring {
-    position: absolute;
-    inset: -6%;
-    border-radius: 9999px;
-    opacity: 0.9;
-    filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.5));
-    z-index: 1;
-  }
-  .strobe-ring {
-    position: absolute;
-    inset: 2%;
-    border-radius: 9999px;
-    z-index: 1;
-    background:
-      radial-gradient(circle at center, transparent 67%, rgba(255,255,255,0.06) 67.5%, transparent 69%),
-      repeating-conic-gradient(from 0deg, rgba(255,255,255,0.28) 0deg 2deg, transparent 2deg 8deg);
-    mask: radial-gradient(circle at center, transparent 59%, #000 60%, #000 72%, transparent 73%);
-    opacity: 0.28;
-    pointer-events: none;
-  }
-  .reactive-aura { position: absolute; inset: -20%; border-radius: 9999px; background: radial-gradient(circle, rgba(16, 185, 129, 0.45) 0%, transparent 75%); z-index: -1; transition: transform 0.1s ease, opacity 0.1s ease; pointer-events: none; filter: blur(20px); }
-  .reactive-aura.accent { background: radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 70%); }
-  .flat-view .deck-a-transform, .flat-view .deck-b-transform, .flat-view .deck-a-transform:hover, .flat-view .deck-b-transform:hover { transform: none !important; }
-  .tempo-rail {
-    position: absolute;
-    top: 18%;
-    bottom: 18%;
-    width: 44px;
-    border-radius: 9999px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 0;
-    background: linear-gradient(180deg, rgba(15,23,42,0.9), rgba(2,6,23,0.85));
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 40px rgba(0,0,0,0.35);
-    z-index: 3;
-  }
-  .tempo-rail-left { left: -10px; }
-  .tempo-rail-right { right: -10px; }
-  .tempo-rail-label {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: #94a3b8;
-  }
-  .tempo-rail-value {
-    font-size: 9px;
-    font-weight: 900;
-    color: #e2e8f0;
-    letter-spacing: 0.12em;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-  }
-  .platter-glow {
-    position: absolute;
-    inset: 6%;
-    border-radius: 9999px;
-    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.65);
-    z-index: 0;
-  }
-  .platter-reflection {
-    position: absolute;
-    inset: 18%;
-    border-radius: 9999px;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.05), transparent 55%);
-    filter: blur(12px);
-    z-index: 1;
-  }
-  .vinyl-platter {
-    z-index: 2;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
-  }
-  .platter-center-pin {
-    position: absolute;
-    inset: 46%;
-    border-radius: 9999px;
-    background: radial-gradient(circle at 35% 35%, #f8fafc, #64748b 72%);
-    box-shadow: 0 0 0 3px rgba(15,23,42,0.9), 0 4px 12px rgba(0,0,0,0.55);
-  }
-  .vinyl-platter.scratch-active {
-    box-shadow: 0 36px 80px rgba(16, 185, 129, 0.25);
-    filter: brightness(1.1);
-  }
-  .status-pill {
-    position: absolute;
-    padding: 6px 12px;
-    border-radius: 9999px;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    border-width: 1px;
-    border-style: solid;
-    z-index: 5;
-  }
-  .deck-readouts .readout-card {
-    background: #0b0f1a;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 14px;
-    padding: 10px 12px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  }
-  .deck-readouts .label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    color: #94a3b8;
-    font-weight: 800;
-  }
-  .deck-readouts .value {
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-  }
-  .deck-console-strip {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .console-module {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px 14px;
-    border-radius: 18px;
-    background: linear-gradient(180deg, #1e293b, #0f172a);
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.1),
-      0 4px 12px rgba(0,0,0,0.5);
-    position: relative;
-    overflow: hidden;
-  }
-  .console-module::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.03), transparent);
-    pointer-events: none;
-  }
-  .console-caption {
-    font-size: 9px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: #94a3b8;
-    font-weight: 900;
-  }
-  .console-led-group {
-    display: flex;
-    gap: 6px;
-  }
-  .console-led {
-    width: 10px;
-    height: 10px;
-    border-radius: 9999px;
-    background: rgba(30,41,59,0.9);
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.08);
-  }
-  .console-led.active {
-    background: radial-gradient(circle, #6ee7b7, #10b981 70%);
-    box-shadow: 0 0 10px rgba(16,185,129,0.6);
-  }
-  .console-led.amber.active {
-    background: radial-gradient(circle, #fcd34d, #f59e0b 70%);
-    box-shadow: 0 0 10px rgba(245,158,11,0.5);
-  }
-  .console-led.amber {
-    border-color: rgba(245,158,11,0.15);
-  }
-  .console-digits {
-    font-size: 14px;
-    font-weight: 900;
-    letter-spacing: 0.18em;
-    font-family: 'Space Grotesk', ui-monospace, monospace;
-  }
-  .session-status-bar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 12px;
-    align-items: center;
-    padding: 10px 12px;
-    border-radius: 14px;
-    background: linear-gradient(180deg, rgba(2,6,23,0.88), rgba(15,23,42,0.82));
-    border: 1px solid rgba(255,255,255,0.08);
-  }
-  .session-status-copy {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #cbd5e1;
-  }
-  .session-status-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 9999px;
-    background: rgba(100,116,139,0.9);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
-    flex-shrink: 0;
-  }
-  .session-status-dot.live {
-    background: radial-gradient(circle, #fda4af, #ef4444 70%);
-    box-shadow: 0 0 12px rgba(239,68,68,0.5);
-  }
-  .session-tools-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-  }
-  .btn-chrome {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    font-weight: 800;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(5, 8, 20, 0.9));
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
-  }
-  .btn-chrome:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.5);
-    background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
-  }
-  .btn-chrome.emphasis {
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(21, 94, 239, 0.1));
-  }
-  .performance-grid .pad-btn {
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    padding: 12px 10px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.02);
-    transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.2s ease;
-  }
-  .performance-grid .pad-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.45);
-  }
-  .performance-grid .pad-btn.pad-cue-armed {
-    background: rgba(16, 185, 129, 0.14);
-    box-shadow: inset 0 0 0 1px rgba(16,185,129,0.35), 0 10px 24px rgba(16,185,129,0.12);
-  }
-  .performance-grid .pad-btn.pad-roll-active {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59,130,246,0.55);
-    box-shadow: 0 0 18px rgba(59,130,246,0.28);
-    transform: translateY(-1px) scale(0.98);
-  }
-  .performance-grid .pad-btn.pad-sampler-armed {
-    background: rgba(245, 158, 11, 0.14);
-    box-shadow: inset 0 0 0 1px rgba(245,158,11,0.3), 0 10px 24px rgba(245,158,11,0.12);
-  }
-  .performance-grid .pad-btn.pad-sampler-live {
-    background: rgba(244, 63, 94, 0.2);
-    border-color: rgba(244,63,94,0.55);
-    box-shadow: 0 0 18px rgba(244,63,94,0.28);
-  }
-  .micro-control {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 10px 12px;
-  }
-  .micro-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    color: #94a3b8;
-    font-weight: 800;
-    margin-bottom: 6px;
-  }
-  .micro-slider {
-    width: 100%;
-    accent-color: #22c55e;
-  }
-  .micro-slider.accent-brand-secondary {
-    accent-color: #f59e0b;
-  }
-  .mode-chip {
-    padding: 6px 12px;
-    border-radius: 9999px;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.04);
-    color: #e2e8f0;
-    transition: all 0.15s ease;
-  }
-  .mode-chip.active {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.15));
-    border-color: rgba(16, 185, 129, 0.4);
-    color: #fff;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
-  }
-  .central-mixer-console {
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.06), transparent 18%),
-      linear-gradient(180deg, rgba(30,41,59,0.96), rgba(2,6,23,0.96));
-  }
-  .mixer-side-rail {
-    position: absolute;
-    top: 22px;
-    bottom: 22px;
-    width: 10px;
-    border-radius: 9999px;
-    background: linear-gradient(180deg, rgba(226,232,240,0.3), rgba(71,85,105,0.18));
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 10px 20px rgba(0,0,0,0.3);
-  }
-  .rail-left { left: 14px; }
-  .rail-right { right: 14px; }
-  .mixer-display-panel {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    border-radius: 20px;
-    padding: 14px 20px;
-    background: #020617;
-    border: 1px solid #1e293b;
-    box-shadow:
-      inset 0 2px 4px rgba(0,0,0,0.8),
-      0 1px 0 rgba(255,255,255,0.05);
-    position: relative;
-  }
-  .mixer-display-panel::before {
-    content: '';
-    position: absolute;
-    inset: 1px;
-    border-radius: 19px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
-    pointer-events: none;
-  }
-  .mixer-display-caption {
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    color: #94a3b8;
-    margin-bottom: 4px;
-    font-family: 'Space Grotesk', sans-serif;
-  }
-  .mixer-display-value {
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: 0.22em;
-    color: #e2e8f0;
-  }
-  .mixer-vu-mini {
-    display: flex;
-    gap: 4px;
-    align-items: flex-end;
-  }
-  .vu-cell {
-    width: 8px;
-    height: 16px;
-    border-radius: 9999px;
-    background: rgba(51,65,85,0.8);
-    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-  }
-  .vu-cell.active {
-    background: linear-gradient(180deg, #86efac, #eab308, #ef4444);
-    box-shadow: 0 0 12px rgba(234,179,8,0.35);
-    transform: translateY(-2px);
-  }
-  .perspective-container {
-    perspective: 1200px;
-  }
-  .deck-a-transform {
-    transform: rotateY(28deg) rotateX(12deg);
-    transition: transform 0.5s ease;
-  }
-  .deck-b-transform {
-    transform: rotateY(-28deg) rotateX(12deg);
-    transition: transform 0.5s ease;
-  }
-  .deck-a-transform:hover, .deck-b-transform:hover {
-    transform: rotateY(0) rotateX(0) scale(1.05);
-    z-index: 50;
-  }
-  .vinyl-platter {
-    background: repeating-radial-gradient(circle at center, #050505 0, #050505 0.5px, #0a0a0a 0.75px, #050505 1px),
-    conic-gradient(
-      from 0deg,
-      rgba(255,255,255,0.05) 0%,
-      transparent 25%,
-      rgba(255,255,255,0.08) 50%,
-      transparent 75%,
-      rgba(255,255,255,0.05) 100%
-    );
-    cursor: grab;
-    box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.6);
-  }
-  .vinyl-platter:active { cursor: grabbing; }
-
-  .hot-cue-markers {
-    z-index: 5;
-  }
-  .hot-cue-marker-wrap {
-    transition: transform 0.1s linear;
-  }
-  .hot-cue-line {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 3px;
-    height: 32%;
-    background: var(--color-primary);
-    transform: translateX(-50%);
-    box-shadow: 0 0 10px var(--color-primary);
-    border-radius: 0 0 4px 4px;
-  }
-  .hot-cue-line.secondary {
-    background: var(--brand-secondary);
-    box-shadow: 0 0 10px var(--brand-secondary);
-  }
-
-  @keyframes spin-vinyl {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  .animate-spin-vinyl {
-    animation: spin-vinyl 1.8s linear infinite;
-  }
-
-  .knob-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-  .knob-group .label {
-    font-size: 7px;
-    font-weight: 900;
-    color: #475569;
-    letter-spacing: 1px;
-  }
-  .knob-range {
-    width: 30px !important;
-    height: 30px !important;
-    border-radius: 50% !important;
-    background: #0f172a !important;
-    border: 2px solid #1e293b !important;
-  }
-  .vertical-range {
-    appearance: none;
-    background: #020617;
-    border-radius: 4px;
-    width: 4px;
-  }
-  .vertical-range::-webkit-slider-thumb {
-    appearance: none;
-    width: 48px;
-    height: 24px;
-    background: linear-gradient(180deg, #e2e8f0, #94a3b8);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-    cursor: ns-resize;
-  }
-
-  @media (max-width: 1024px) {
-    .deck-a-transform,
-    .deck-b-transform,
-    .deck-a-transform:hover,
-    .deck-b-transform:hover {
-      transform: none;
-    }
-
-    .deck-3d-wrapper .platter-container {
-      max-width: 78vw;
-      margin: 0 auto;
-    }
-
-    .tempo-rail {
-      display: none;
-    }
-
-    .central-mixer-console {
-      order: 3;
-    }
-
-    .session-status-bar,
-    .session-tools-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>

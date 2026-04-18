@@ -4,114 +4,42 @@ import { DatabaseService } from './database.service';
 import {
   RecommendationHistoryEntry,
   UpgradeRecommendation,
+  ArtistKnowledgeBase,
 } from '../types/ai.types';
 import {
   ArtistIdentityState,
   createInitialArtistIdentity,
   ensureArtistIdentityState,
 } from '../types/artist-identity.types';
+import {
+  UserProfile,
+  AppSettings,
+  CatalogItem,
+  ThaSpotGameStat,
+  ThaSpotProgression,
+  RecommendationPreference,
+  ThaSpotEventHistoryEntry,
+  ThaSpotSessionContext,
+  ExpertiseLevels,
+  TeamMember,
+  ProfessionalFinancials,
+  ProfileAuditLog,
+} from '../types/profile.types';
 
-export interface AppSettings {
-  ui: {
-    theme: string;
-    performanceMode: boolean;
-    showScanlines: boolean;
-    animationsEnabled: boolean;
-    autoPianoRoll: boolean;
-  };
-  audio: { masterVolume: number; autoSaveEnabled: boolean };
-  ai: { kbWriteAccess: boolean; commanderPersona: string };
-  security: { twoFactorEnabled: boolean };
-}
-
-export interface CatalogItem {
-  id: string;
-  title: string;
-  artist?: string;
-  genre?: string;
-  status?: string;
-  category?: string;
-  bpm?: number;
-  key?: string;
-  duration?: number;
-  url?: string;
-  metadata?: any;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface ThaSpotEventHistoryEntry {
-  eventId: string;
-  roomId?: string;
-  reward?: string;
-  rewardType?: 'access' | 'cosmetic' | 'token';
-  participatedAt: number;
-}
-
-export interface ThaSpotRoomStat {
-  plays?: number;
-  lastPlayedAt?: number;
-}
-
-export interface ThaSpotGameStat {
-  plays?: number;
-  lastPlayedAt?: number;
-  lastRoomId?: string;
-  roomPlays?: Record<string, number>;
-  earnedCosmetics?: string[];
-  eventHistory?: ThaSpotEventHistoryEntry[];
-}
-
-export interface ThaSpotProgression {
-  lastSessionAt?: number;
-  lastRoomId?: string;
-  favoriteRoomId?: string;
-  roomStats?: Record<string, ThaSpotRoomStat>;
-  earnedCosmetics?: string[];
-  eventHistory?: ThaSpotEventHistoryEntry[];
-}
-
-export interface ThaSpotSessionContext {
-  roomId?: string;
-  eventId?: string;
-  reward?: string;
-  rewardType?: 'access' | 'cosmetic' | 'token';
-  cosmetics?: string[];
-}
-
-export interface RecommendationPreference {
-  state: NonNullable<UpgradeRecommendation['state']>;
-  updatedAt: number;
-  actionCount?: number;
-}
-
-export interface UserProfile {
-  id?: string;
-  artistName: string;
-  primaryGenre: string;
-  website?: string;
-  settings: AppSettings;
-  knowledgeBase: any;
-  careerGoals: string[];
-  equipment: string[];
-  daw: string[];
-  services?: string[];
-  recommendationPreferences?: Record<string, RecommendationPreference>;
-  recommendationHistory?: RecommendationHistoryEntry[];
-  expertise?: any;
-  team?: any[];
-  marketingCampaigns?: any[];
-  proName?: string;
-  proIpi?: string;
-  catalog: CatalogItem[];
-  artistIdentity?: ArtistIdentityState;
-
-  // Gameplay progression
-  gameStats?: Record<string, ThaSpotGameStat>;
-  thaSpotProgression?: ThaSpotProgression;
-
-  [key: string]: any;
-}
+export type {
+  UserProfile,
+  AppSettings,
+  CatalogItem,
+  ThaSpotGameStat,
+  ThaSpotProgression,
+  RecommendationPreference,
+  ThaSpotEventHistoryEntry,
+  ThaSpotSessionContext,
+  ExpertiseLevels,
+  TeamMember,
+  ProfessionalFinancials,
+  ProfileAuditLog,
+};
 
 export const initialProfile: UserProfile = {
   settings: {
@@ -129,10 +57,16 @@ export const initialProfile: UserProfile = {
   artistName: 'New Artist',
   primaryGenre: 'Hip Hop',
   knowledgeBase: {
+    id: 'kb-initial',
+    artistId: 'new-artist',
+    dataPoints: [],
     learnedStyles: [],
     productionSecrets: [],
+    coreTrends: [],
     strategicDirectives: [],
+    marketIntel: [],
     genreAnalysis: {},
+    brandStatus: {},
     strategicHealthScore: 0,
   },
   careerGoals: [],
@@ -141,9 +75,45 @@ export const initialProfile: UserProfile = {
   services: [],
   recommendationPreferences: {},
   recommendationHistory: [],
+  expertise: {
+    production: 0,
+    songwriting: 0,
+    marketing: 0,
+    business: 0,
+    legal: 0,
+    performance: 0,
+    catalyst: 0,
+  },
+  team: [],
   marketingCampaigns: [],
+  financials: {
+    accounts: [],
+    totalRevenue: 0,
+    pendingPayouts: 0,
+    splitSheets: [],
+    revenueHistory: [],
+  },
   catalog: [],
   artistIdentity: createInitialArtistIdentity('New Artist', 'Hip Hop'),
+  avatarImage: undefined,
+  headerImage: undefined,
+  pressGallery: [],
+  strategicHealthScore: 0,
+  criticalDeficits: [],
+  auditHistory: [],
+
+  // Onboarding & UI specific fields
+  skills: [],
+  productionStyles: [],
+  brandVoices: [],
+  strategicGoals: [],
+  performancesPerYear: 'None',
+  touringDetails: {
+    travelPreference: 'Van',
+    regions: [],
+  },
+  genreSpecificData: {},
+
   gameStats: {},
   thaSpotProgression: {
     roomStats: {},
@@ -156,38 +126,39 @@ export const initialProfile: UserProfile = {
   providedIn: 'root',
 })
 export class UserProfileService {
+  private db = inject(DatabaseService);
   private logger = inject(LoggingService);
-  private databaseService = inject(DatabaseService);
-  private readonly maxEventHistory = 20;
 
   profile = signal<UserProfile>(initialProfile);
-  profile$ = signal<UserProfile>(initialProfile);
+  private maxEventHistory = 50;
 
-  async loadProfile(userId: string): Promise<void> {
-    try {
-      const userProfile = await this.databaseService.loadUserProfile(userId);
-      const sanitizedProfile = this.sanitizeProfile(
-        userProfile || {
-          ...initialProfile,
-          id: userId,
-        }
-      );
-      this.profile.set(sanitizedProfile);
-      this.profile$.set(sanitizedProfile);
-    } catch (error) {
-      this.logger.error('UserProfileService: Failed to load profile', error);
+  constructor() {
+    if (!(typeof process !== 'undefined' && !!process.env.JEST_WORKER_ID)) {
+      void this.loadProfile();
     }
   }
 
-  async updateProfile(newProfile: UserProfile, userId?: string): Promise<void> {
+  async loadProfile(userId: string = 'current') {
     try {
-      const id = userId || newProfile.id || this.profile().id || 'anonymous';
-      const sanitizedProfile = this.sanitizeProfile(newProfile);
-      await this.databaseService.saveUserProfile(sanitizedProfile, id);
-      this.profile.set(sanitizedProfile);
-      this.profile$.set(sanitizedProfile);
-    } catch (error) {
-      this.logger.error('UserProfileService: Failed to save profile', error);
+      const saved = await this.db.loadUserProfile(userId);
+      if (saved) {
+        this.profile.set(this.sanitizeProfile(saved));
+      } else if (userId === 'current') {
+        await this.updateProfile(initialProfile);
+      }
+    } catch (err) {
+      this.logger.error('Failed to load profile', err);
+    }
+  }
+
+  async updateProfile(profile: Partial<UserProfile>) {
+    const current = this.profile();
+    const next = this.sanitizeProfile({ ...current, ...profile });
+    this.profile.set(next);
+    try {
+      await this.db.saveUserProfile(next, 'current');
+    } catch (err) {
+      this.logger.error('Failed to save profile', err);
     }
   }
 
@@ -197,10 +168,9 @@ export class UserProfileService {
     recommendationId?: string;
   }) {
     const next = this.buildUpgradeState(this.profile(), upgrade, 'acquired');
-    if (!next) {
-      return;
+    if (next) {
+      await this.updateProfile(next);
     }
-    await this.updateProfile(next);
   }
 
   async completeUpgrade(upgrade: {
@@ -209,10 +179,72 @@ export class UserProfileService {
     recommendationId?: string;
   }) {
     const next = this.buildUpgradeState(this.profile(), upgrade, 'completed');
-    if (!next) {
-      return;
+    if (next) {
+      await this.updateProfile(next);
     }
-    await this.updateProfile(next);
+  }
+
+  async updateExpertise(update: Partial<ExpertiseLevels>) {
+    const current = this.profile();
+    await this.updateProfile({
+      expertise: {
+        ...current.expertise,
+        ...update,
+      },
+    });
+  }
+
+  async addTeamMember(member: Omit<TeamMember, 'id'>) {
+    const current = this.profile();
+    const newMember: TeamMember = {
+      ...member,
+      id: `team-${Date.now()}`,
+    };
+    await this.updateProfile({
+      team: [...(current.team || []), newMember],
+    });
+  }
+
+  async updateFinancials(update: Partial<ProfessionalFinancials>) {
+    const current = this.profile();
+    await this.updateProfile({
+      financials: {
+        ...current.financials,
+        ...update,
+      },
+    });
+  }
+
+  async recordAudit(log: ProfileAuditLog) {
+    const current = this.profile();
+    await this.updateProfile({
+      strategicHealthScore: log.score,
+      criticalDeficits: log.deficits,
+      auditHistory: [log, ...(current.auditHistory || [])].slice(0, 20),
+    });
+  }
+
+  async addCatalogItem(item: Omit<CatalogItem, 'id'>) {
+    const current = this.profile();
+    const newItem: CatalogItem = {
+      ...item,
+      id: `cat-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await this.updateProfile({
+      catalog: [...(current.catalog || []), newItem],
+    });
+  }
+
+  async updateCatalogItem(id: string, update: Partial<CatalogItem>) {
+    const current = this.profile();
+    const next = (current.catalog || []).map((item) =>
+      item.id === id
+        ? { ...item, ...update, updatedAt: new Date().toISOString() }
+        : item
+    );
+    await this.updateProfile({ catalog: next });
   }
 
   async setRecommendationState(
@@ -297,7 +329,6 @@ export class UserProfileService {
   }
 
   async recordGameLaunch(gameId: string, context: ThaSpotSessionContext = {}) {
-    // For now, recordGameLaunch redirects to recording a result update or session start
     await this.recordGameResult(gameId, context);
   }
 
@@ -377,11 +408,36 @@ export class UserProfileService {
         profile.primaryGenre,
         profile.artistIdentity
       ),
+      knowledgeBase: profile.knowledgeBase || initialProfile.knowledgeBase,
+      expertise: profile.expertise || initialProfile.expertise,
+      team: profile.team || [],
+      marketingCampaigns: profile.marketingCampaigns || [],
+      financials: {
+        ...initialProfile.financials,
+        ...(profile.financials || {}),
+      },
       equipment: [...(profile.equipment || [])],
       daw: [...(profile.daw || [])],
       services: [...(profile.services || [])],
-      marketingCampaigns: [...(profile.marketingCampaigns || [])],
       catalog: [...(profile.catalog || [])],
+      avatarImage: profile.avatarImage,
+      headerImage: profile.headerImage,
+      pressGallery: profile.pressGallery || [],
+      strategicHealthScore: profile.strategicHealthScore || 0,
+      criticalDeficits: profile.criticalDeficits || [],
+      auditHistory: (profile.auditHistory || []).map((log: any) => ({
+        ...log,
+        auditType: log.auditType || 'Full',
+      })),
+
+      // Onboarding & UI specific fields
+      skills: profile.skills || [],
+      brandVoices: profile.brandVoices || [],
+      strategicGoals: profile.strategicGoals || [],
+      performancesPerYear: profile.performancesPerYear || 'None',
+      touringDetails: profile.touringDetails || initialProfile.touringDetails,
+      genreSpecificData: profile.genreSpecificData || {},
+
       recommendationPreferences: Object.fromEntries(
         Object.entries(profile.recommendationPreferences || {}).map(
           ([recommendationId, preference]) => [
@@ -467,25 +523,6 @@ export class UserProfileService {
     return next;
   }
 
-  private appendRecommendationHistory(
-    history: RecommendationHistoryEntry[] | undefined,
-    entry: RecommendationHistoryEntry
-  ): RecommendationHistoryEntry[] {
-    return [...(history || []), entry].slice(-30);
-  }
-
-  private normalizeRecommendationType(
-    type: string
-  ): UpgradeRecommendation['type'] {
-    switch (type) {
-      case 'Gear':
-      case 'Software':
-        return type;
-      default:
-        return 'Service';
-    }
-  }
-
   private sanitizeGameStats(
     stats: Record<string, ThaSpotGameStat> | undefined
   ): Record<string, ThaSpotGameStat> {
@@ -555,5 +592,24 @@ export class UserProfileService {
     incoming: string[] | undefined
   ) {
     return [...new Set([...(existing || []), ...(incoming || [])])];
+  }
+
+  private appendRecommendationHistory(
+    history: RecommendationHistoryEntry[] | undefined,
+    entry: RecommendationHistoryEntry
+  ): RecommendationHistoryEntry[] {
+    return [...(history || []), entry].slice(-30);
+  }
+
+  private normalizeRecommendationType(
+    type: string
+  ): UpgradeRecommendation['type'] {
+    switch (type) {
+      case 'Gear':
+      case 'Software':
+        return type;
+      default:
+        return 'Service';
+    }
   }
 }

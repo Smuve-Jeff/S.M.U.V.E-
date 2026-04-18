@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CollaborationService } from '../../services/collaboration.service';
@@ -21,7 +21,7 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
   templateUrl: './remix-arena.component.html',
   styleUrls: ['./remix-arena.component.scss'],
 })
-export class RemixArenaComponent implements OnInit {
+export class RemixArenaComponent implements OnInit, OnDestroy {
   collaborationService = inject(CollaborationService);
   musicManager = inject(MusicManagerService);
   libraryService = inject(LibraryService);
@@ -47,6 +47,12 @@ export class RemixArenaComponent implements OnInit {
   sessionId = signal('');
 
   ngOnInit() {}
+
+  ngOnDestroy() {
+    if (this.sessionId()) {
+      this.collaborationService.leaveSession(this.sessionId());
+    }
+  }
 
   async startSession() {
     const user = this.authService.currentUser();

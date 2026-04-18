@@ -8,6 +8,9 @@ import {
   AfterViewInit,
   OnDestroy,
   computed,
+  Input,
+  Output,
+  EventEmitter,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -245,8 +248,10 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   // AI generation state
   isGeneratingPattern = signal(false);
+  @Input() isStudioOverlay = false;
+  activeTab = signal<'sequencer' | 'pads' | 'params'>('sequencer');
+  @Output() closeOverlay = new EventEmitter<void>();
 
-  // Velocity drag editing
   velocityDragStep = signal<{ padId: string; stepIdx: number } | null>(null);
 
   @ViewChild('visualizer') visualizerRef!: ElementRef<HTMLCanvasElement>;
@@ -792,6 +797,13 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       return `${(step % this.stepsPerBar) / 4 + 1}`;
     }
     return '·';
+  }
+
+  hexToRgb(hex: string): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `${r}, ${g}, ${b}`;
   }
 
   private hexWithAlpha(hex: string, alpha: number): string {

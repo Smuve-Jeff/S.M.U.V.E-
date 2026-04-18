@@ -42,7 +42,7 @@ export class MasterControlsComponent {
 
   private activeRecorder: any = null;
 
-  @HostListener('document:click', [''])
+  @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     if (!this.elementRef.nativeElement.contains(event.target)) {
       this.isDropdownOpen.set(false);

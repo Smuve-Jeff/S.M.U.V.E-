@@ -43,7 +43,7 @@ export class StemSeparationService {
 
   private async applyFilter(
     buffer: AudioBuffer,
-    type: any,
+    type: BiquadFilterType,
     freq: number,
     q: number = 1.0,
     gain: number = 0

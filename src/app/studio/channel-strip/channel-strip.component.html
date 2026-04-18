@@ -17,7 +17,7 @@
   <!-- Spectrum Mini-View -->
   <div class="w-full h-12 bg-black/40 rounded-xl border border-white/10 overflow-hidden flex items-end gap-[1px] px-1 pb-1">
      <div *ngFor="let height of visualizerHeights()"
-          class="flex-grow bg-brand-brand-primary/30 rounded-t-[1px] transition-all duration-100"
+          class="flex-grow bg-brand-primary/30 rounded-t-[1px] transition-all duration-100"
           [style.height.%]="height"></div>
   </div>
 
@@ -26,7 +26,7 @@
      <div class="absolute left-2 top-2 bottom-2 w-px bg-white/5"></div>
 
      <div class="fader-track h-40 w-8 bg-black/60 rounded-full flex justify-center py-2 border border-white/10 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-        <div class="absolute bottom-2 left-1 right-1 bg-gradient-to-t from-brand-brand-primary/60 to-brand-brand-primary/20 rounded-full transition-all" [style.height.%]="channel.level"></div>
+        <div class="absolute bottom-2 left-1 right-1 bg-gradient-to-t from-brand-primary/60 to-brand-primary/20 rounded-full transition-all" [style.height.%]="channel.level"></div>
 
         <input
           type="range"

@@ -153,7 +153,6 @@ export class DeckService {
 
   setDeckEq(deck: DeckId, high: number, mid: number, low: number) {
     this.engine.setDeckEq(deck, high, mid, low);
-    this.engine.setDeckEq(deck, high, mid, low);
     if (deck === 'A')
       this.deckA.update((d) => ({
         ...d,

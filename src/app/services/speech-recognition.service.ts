@@ -18,9 +18,10 @@ export class SpeechRecognitionService {
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
-      this.speechRecognition = new SpeechRecognition();
-      this.speechRecognition.continuous = false;
-      this.speechRecognition.interimResults = false;
+      const speechRecognition = new SpeechRecognition() as SpeechRecognition;
+      speechRecognition.continuous = false;
+      speechRecognition.interimResults = false;
+      this.speechRecognition = speechRecognition;
     } else {
       this.logger.error('Speech recognition not supported in this browser.');
     }

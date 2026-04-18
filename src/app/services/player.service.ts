@@ -112,9 +112,10 @@ export class PlayerService implements OnDestroy {
       this.deckService.loadDeckBuffer('A', track.buffer, track.title);
       if (!this.isPlaying()) this.togglePlay();
     } else if (track.url) {
+      const trackUrl = track.url;
       void (async () => {
         try {
-          const res = await fetch(track.url);
+          const res = await fetch(trackUrl);
           if (!res.ok) throw new Error(`Failed to fetch track: ${res.status}`);
           const arrayBuffer = await res.arrayBuffer();
           const buffer = await this.audioEngine

@@ -5,7 +5,7 @@
   >
     <div class="flex items-center gap-4">
       <div
-        class="w-10 h-10 rounded-full bg-brand-brand-primary/10 border border-brand-brand-primary/30 flex items-center justify-center"
+        class="w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center"
       >
         <i class="fas fa-terminal text-brand-primary animate-pulse-subtle"></i>
       </div>
@@ -82,7 +82,7 @@
 
   <!-- DECREE BANNER -->
   <div
-    class="bg-brand-brand-primary/10 border-y border-brand-brand-primary/20 py-3 overflow-hidden"
+    class="bg-brand-primary/10 border-y border-brand-primary/20 py-3 overflow-hidden"
   >
     <div class="flex gap-12 animate-slide-left whitespace-nowrap">
       @for (decree of aiService.strategicDecrees(); track decree) {
@@ -142,7 +142,7 @@
             (keyup.enter)="handleCommand(cmdInput.value); cmdInput.value = ''"
             type="text"
             placeholder="Execute Strategic Command..."
-            class="w-full bg-black/40 border border-white/10 rounded-xl px-6 py-4 text-xs font-mono text-brand-primary placeholder:text-slate-700 focus:border-brand-brand-primary/50 outline-none transition-all"
+            class="w-full bg-black/40 border border-white/10 rounded-xl px-6 py-4 text-xs font-mono text-brand-primary placeholder:text-slate-700 focus:border-brand-primary/50 outline-none transition-all"
           />
           <div
             class="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black text-slate-700 uppercase tracking-widest pointer-events-none"
@@ -156,7 +156,7 @@
       <div class="grid grid-cols-2 gap-4 h-64">
         @for (rec of strategicRecs().slice(0, 2); track rec.action) {
           <div
-            class="bg-brand-surface/20 rounded-2xl p-6 border border-white/5 hover:border-brand-brand-primary/30 transition-all cursor-pointer group flex flex-col justify-between"
+            class="bg-brand-surface/20 rounded-2xl p-6 border border-white/5 hover:border-brand-primary/30 transition-all cursor-pointer group flex flex-col justify-between"
             (click)="initializeOperation(rec)"
           >
             <div>
@@ -482,7 +482,7 @@
             (click)="aiService.performExecutiveAudit()"
           >
             <i
-              class="fas fa-microscope text-brand-brand-primary/40 text-3xl mb-4 group-hover:scale-110 group-hover:text-brand-primary transition-all"
+              class="fas fa-microscope text-brand-primary/40 text-3xl mb-4 group-hover:scale-110 group-hover:text-brand-primary transition-all"
             ></i>
             <p
               class="text-[10px] font-black text-silver-dim uppercase tracking-widest"
@@ -490,7 +490,7 @@
               Initialization Required
             </p>
             <button
-              class="mt-4 digital-readout text-[9px] border border-brand-brand-primary/20 px-4 py-2 rounded uppercase hover:bg-brand-brand-primary/10 transition-all"
+              class="mt-4 digital-readout text-[9px] border border-brand-primary/20 px-4 py-2 rounded uppercase hover:bg-brand-primary/10 transition-all"
             >
               Run Profile Audit
             </button>

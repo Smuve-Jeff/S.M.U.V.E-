@@ -105,7 +105,7 @@
           <div class="grid gap-6">
             @for (brief of intelligenceBriefs(); track brief.id) {
               <div
-                class="group relative bg-black/40 rounded-2xl border border-white/5 p-6 hover:border-brand-brand-primary/30 transition-all"
+                class="group relative bg-black/40 rounded-2xl border border-white/5 p-6 hover:border-brand-primary/30 transition-all"
               >
                 <div class="flex justify-between items-start mb-4">
                   <div class="flex flex-wrap items-center gap-3">
@@ -171,7 +171,7 @@
             @for (item of strategicTasks(); track item.id) {
               <button
                 (click)="toggleTask(item.id)"
-                class="w-full flex items-center gap-4 p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-brand-primary/30 transition-all text-left group"
+                class="w-full flex items-center gap-4 p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all text-left group"
               >
                 <div
                   class="w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all shrink-0"
@@ -193,7 +193,7 @@
                       >{{ item.label }}</span
                     >
                     <span
-                      class="hidden sm:block text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded bg-brand-brand-primary/10 text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                      class="hidden sm:block text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded bg-brand-primary/10 text-brand-primary opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       {{ item.impact }} IMPACT
                     </span>
@@ -249,7 +249,7 @@
               <div class="flex flex-wrap gap-2">
                 @for (goal of profile().careerGoals; track goal) {
                   <span
-                    class="px-2 py-1 rounded bg-brand-brand-primary/10 border border-brand-brand-primary/20 text-[8px] font-black text-brand-primary uppercase"
+                    class="px-2 py-1 rounded bg-brand-primary/10 border border-brand-primary/20 text-[8px] font-black text-brand-primary uppercase"
                     >{{ goal }}</span
                   >
                 }

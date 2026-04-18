@@ -146,6 +146,15 @@ export class OfflineSyncService {
     }
   }
 
+  private getAuthHeader(): Record<string, string> {
+    if (typeof window === 'undefined') {
+      return {};
+    }
+
+    const token = localStorage.getItem('smuve_jwt_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
   private async executeSync(item: SyncQueueItem): Promise<void> {
     const method =
       item.action === 'DELETE'
@@ -158,6 +167,7 @@ export class OfflineSyncService {
       method,
       headers: {
         'Content-Type': 'application/json',
+        ...this.getAuthHeader(),
       },
       body: item.action !== 'DELETE' ? JSON.stringify(item.payload) : undefined,
     });

@@ -12,6 +12,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { AppTheme } from '../../services/user-context.service';
+import { UplinkService } from '../../services/uplink.service';
+import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import {
   UserProfileService,
   UserProfile,
@@ -37,6 +39,7 @@ import { OnboardingService } from '../../services/onboarding.service';
     FormFieldComponent,
     CatalogManagerComponent,
     ArtistQuestionnaireComponent,
+    UplinkConsoleComponent,
   ],
 })
 export class ProfileEditorComponent implements OnInit {
@@ -55,6 +58,7 @@ export class ProfileEditorComponent implements OnInit {
   private artistIdentityService = inject(ArtistIdentityService);
   private route = inject(ActivatedRoute);
   onboarding = inject(OnboardingService);
+  private uplinkService = inject(UplinkService);
 
   // Auth state
   isAuthenticated = this.authService.isAuthenticated;
@@ -63,9 +67,9 @@ export class ProfileEditorComponent implements OnInit {
   // UI state
   showQuestionnaire = signal(false);
   syncingWithAi = signal(false);
+  showUplink = signal(false);
   optimizationScore = computed(
-    () =>
-      this.userProfileService.profile().knowledgeBase.strategicHealthScore || 0
+    () => this.userProfileService.profile().strategicHealthScore || 0
   );
   syncLog = signal<string[]>([]);
   intelligenceBriefs = this.aiService.intelligenceBriefs;
@@ -141,6 +145,8 @@ export class ProfileEditorComponent implements OnInit {
     { id: 'genre-deep-dive', label: 'Genre Intelligence', icon: 'fa-dna' },
     { id: 'touring', label: 'Touring & Live', icon: 'fa-route' },
     { id: 'catalog', label: 'Catalog Assets', icon: 'fa-database' },
+    { id: 'business', label: 'Business & Financials', icon: 'fa-briefcase' },
+    { id: 'team', label: 'Professional Team', icon: 'fa-users-gear' },
   ];
 
   constructor() {
@@ -158,33 +164,41 @@ export class ProfileEditorComponent implements OnInit {
     }
   }
 
-  async saveProfile(): Promise<void> {
-    this.saveStatus.set('saving');
-    this.addLog('INITIALIZING GLOBAL DATA SYNC...');
-
-    const refreshedProfile =
-      await this.artistIdentityService.refreshIdentityGraph(
-        this.editableProfile()
-      );
-    this.editableProfile.set(refreshedProfile);
-
-    await this.userProfileService.updateProfile(refreshedProfile);
-
-    this.syncingWithAi.set(true);
-    this.addLog('NEURAL LINK ESTABLISHED. ANALYZING VECTORS...');
-
-    try {
-      await this.aiService.syncKnowledgeBaseWithProfile();
-      this.addLog('EXTRACTION COMPLETE. NEURAL VAULT UPDATED.');
-    } catch (_error) {
-      this.addLog('SYNC ERROR: REVERTING TO LOCAL CACHE.');
-    } finally {
-      setTimeout(() => {
-        this.saveStatus.set('saved');
-        this.syncingWithAi.set(false);
-        setTimeout(() => this.saveStatus.set('idle'), 3000);
-      }, 1000);
+  addToGallery(event: any) {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.editableProfile.update((p) => ({
+          ...p,
+          pressGallery: [...(p.pressGallery || []), e.target.result],
+        }));
+      };
+      reader.readAsDataURL(file);
     }
+  }
+
+  removeFromGallery(index: number) {
+    this.editableProfile.update((p) => ({
+      ...p,
+      pressGallery: (p.pressGallery || []).filter((_, i) => i !== index),
+    }));
+  }
+
+  onImageSelected(event: any, target: 'avatarImage' | 'headerImage') {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.updateProfileField(target, e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async saveProfile(): Promise<void> {
+    this.showUplink.set(true);
+    await this.uplinkService.initiateUplink(this.editableProfile());
   }
 
   async queueConnectorRefresh(connectorId: ConnectorPlatform): Promise<void> {

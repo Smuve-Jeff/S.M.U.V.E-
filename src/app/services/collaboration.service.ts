@@ -34,6 +34,25 @@ export class CollaborationService {
     }
   }
 
+  leaveSession(sessionId: string): void {
+    const channel = this.dataChannels[sessionId];
+    if (channel) {
+      try {
+        channel.close();
+      } catch (_e) {
+        /* ignore */
+      }
+      delete this.dataChannels[sessionId];
+    }
+    const peer = this.peers[sessionId];
+    if (peer) {
+      peer.close();
+      delete this.peers[sessionId];
+    }
+    this.currentSession.set(null);
+    this.logger.system(`LEFT P2P SESSION: ${sessionId}`);
+  }
+
   private generateSecureId(): string {
     const array = new Uint32Array(4);
     window.crypto.getRandomValues(array);

@@ -102,11 +102,11 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         @for (protocol of protocols(); track protocol.id) {
           <div
-            class="card-elegant p-8 group cursor-pointer border-white/10 hover:border-brand-brand-primary/20"
+            class="card-elegant p-8 group cursor-pointer border-white/10 hover:border-brand-primary/20"
           >
             <div class="flex justify-between items-start mb-6">
               <div
-                class="w-12 h-12 rounded-2xl bg-brand-brand-primary/10 border border-brand-brand-primary/20 flex items-center justify-center text-brand-primary group-hover:scale-110 transition-transform"
+                class="w-12 h-12 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary group-hover:scale-110 transition-transform"
               >
                 <i class="fas {{ protocol.icon }}"></i>
               </div>
@@ -153,7 +153,7 @@
         <div class="space-y-6">
           @for (upgrade of recommendedUpgrades(); track upgrade.id) {
             <div
-              class="p-4 rounded-2xl bg-black/20 border border-white/10 group hover:border-brand-brand-primary/30 transition-all"
+              class="p-4 rounded-2xl bg-black/20 border border-white/10 group hover:border-brand-primary/30 transition-all"
               [attr.data-testid]="'practice-rec-' + upgrade.id"
             >
               <div class="flex justify-between items-start mb-2">

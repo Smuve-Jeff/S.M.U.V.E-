@@ -88,7 +88,7 @@ export class MixerComponent {
 
   updateTrackGain(id: number, value: number) {
     const gain = Math.max(0, Math.min(1, value / 100));
-    this.musicManager.updateTracks((tracks) =>
+    this.musicManager.tracks.update((tracks) =>
       tracks.map((track) => (track.id === id ? { ...track, gain } : track))
     );
     this.musicManager.engine.updateTrack(id, { gain });
@@ -96,7 +96,7 @@ export class MixerComponent {
 
   updateTrackPan(id: number, value: number) {
     const pan = Math.max(-1, Math.min(1, value / 100));
-    this.musicManager.updateTracks((tracks) =>
+    this.musicManager.tracks.update((tracks) =>
       tracks.map((track) => (track.id === id ? { ...track, pan } : track))
     );
     this.musicManager.engine.updateTrack(id, { pan });
@@ -115,7 +115,7 @@ export class MixerComponent {
   }
 
   toggleFxSlot(trackId: number, slotId: string) {
-    this.musicManager.updateTracks((ts) =>
+    this.musicManager.tracks.update((ts) =>
       ts.map((t) => {
         if (t.id !== trackId) return t;
         return {
@@ -132,7 +132,7 @@ export class MixerComponent {
   }
 
   resetTrack(id: number) {
-    this.musicManager.updateTracks((ts) =>
+    this.musicManager.tracks.update((ts) =>
       ts.map((t) => (t.id === id ? { ...t, gain: 0.9, pan: 0 } : t))
     );
     this.musicManager.engine.updateTrack(id, { gain: 0.9, pan: 0 });

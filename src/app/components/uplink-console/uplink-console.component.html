@@ -1,0 +1,64 @@
+<div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md" @fadeScale>
+  <div class="w-full max-w-xl glass-v42 border border-brand-primary/20 rounded-[2.5rem] p-10 shadow-v42-xl relative overflow-hidden">
+
+    <!-- Pulse Background Effect -->
+    <div class="absolute inset-0 pointer-events-none opacity-20">
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-brand-primary/10 blur-[100px] rounded-full animate-pulse"></div>
+    </div>
+
+    <header class="relative z-10 text-center space-y-2 mb-10">
+      <div class="w-16 h-16 bg-brand-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-brand-primary/30 transmission-glow">
+        <span class="material-symbols-outlined text-brand-primary text-3xl animate-pulse">
+          {{ status().stage === 'failed' ? 'error' : 'uplink' }}
+        </span>
+      </div>
+      <h2 class="text-3xl font-black italic uppercase text-white tracking-tighter">
+        {{ status().message }}
+      </h2>
+      <p class="text-[10px] font-bold text-brand-primary uppercase tracking-[0.4em] opacity-80">
+        {{ status().stage === 'complete' ? 'Transmission Secure' : 'Active Data Stream' }}
+      </p>
+    </header>
+
+    <main class="relative z-10 space-y-8">
+      <!-- Progress Bar -->
+      <div class="space-y-3">
+        <div class="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-500">
+          <span>Uplink Vector: {{ status().stage }}</span>
+          <span>{{ status().progress }}%</span>
+        </div>
+        <div class="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 p-[1px]">
+          <div class="h-full bg-gradient-to-r from-brand-primary to-emerald-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+               [style.width.%]="status().progress">
+          </div>
+        </div>
+      </div>
+
+      <!-- Logs -->
+      <div class="bg-black/40 rounded-3xl p-6 border border-white/5 font-mono text-[10px] h-32 overflow-y-auto custom-scroll space-y-2">
+        <div *ngFor="let log of status().logs" class="flex gap-3 text-slate-400">
+          <span class="text-brand-primary shrink-0">>></span>
+          <span class="uppercase tracking-wider">{{ log }}</span>
+        </div>
+      </div>
+    </main>
+
+    <footer class="relative z-10 mt-10">
+      <button
+        (click)="onComplete()"
+        [disabled]="status().stage !== 'complete' && status().stage !== 'failed'"
+        class="w-full py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] transition-all
+               {{ status().stage === 'failed' ? 'bg-red-500 text-white shadow-red-500/20' : 'bg-white text-black shadow-white/10' }}
+               disabled:opacity-20 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]">
+        {{ status().stage === 'failed' ? 'RETRY_UPLINK' : (status().stage === 'complete' ? 'RETURN_TO_COMMAND' : 'TRANSMITTING...') }}
+      </button>
+    </footer>
+
+    <!-- Error Detail -->
+    <div *ngIf="status().error" class="mt-4 text-center">
+      <p class="text-[9px] text-red-400/60 font-bold uppercase tracking-widest">
+        DIAGNOSTIC: {{ status().error }}
+      </p>
+    </div>
+  </div>
+</div>

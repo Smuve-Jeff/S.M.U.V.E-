@@ -10,6 +10,8 @@ describe('PlayerService', () => {
   let service: PlayerService;
   let mockDeckService: any;
   let mockAudioEngine: any;
+  let originalFetch: typeof globalThis.fetch | undefined;
+  let fetchMock: jest.Mock;
 
   beforeEach(() => {
     mockDeckService = {
@@ -24,6 +26,9 @@ describe('PlayerService', () => {
       }),
       getDeck: jest.fn().mockReturnValue({ buffer: {} }),
     };
+    originalFetch = globalThis.fetch;
+    fetchMock = jest.fn();
+    (globalThis as any).fetch = fetchMock;
 
     TestBed.configureTestingModule({
       providers: [
@@ -35,6 +40,14 @@ describe('PlayerService', () => {
       ],
     });
     service = TestBed.inject(PlayerService);
+  });
+
+  afterEach(() => {
+    if (originalFetch) {
+      globalThis.fetch = originalFetch;
+    } else {
+      delete (globalThis as any).fetch;
+    }
   });
 
   it('should be created', () => {
@@ -74,5 +87,53 @@ describe('PlayerService', () => {
     const initial = service.isRepeat();
     service.toggleRepeat();
     expect(service.isRepeat()).toBe(!initial);
+  });
+
+  it('auto-loads the current buffered track when repeating', () => {
+    const buffer = { duration: 64 } as AudioBuffer;
+    service.playlist.set([
+      { id: 'repeat-1', title: 'Loop', artist: 'S.M.U.V.E', buffer },
+    ]);
+    service.isRepeat.set(true);
+
+    service.next();
+
+    expect(mockDeckService.loadDeckBuffer).toHaveBeenCalledWith(
+      'A',
+      buffer,
+      'Loop'
+    );
+    expect(mockDeckService.togglePlay).toHaveBeenCalledWith('A');
+  });
+
+  it('fetches, decodes, and loads url-backed tracks when advancing', async () => {
+    const decodedBuffer = { duration: 128 } as AudioBuffer;
+    const arrayBuffer = new ArrayBuffer(16);
+    fetchMock.mockResolvedValue({
+      ok: true,
+      arrayBuffer: jest.fn().mockResolvedValue(arrayBuffer),
+    } as any);
+    mockAudioEngine
+      .getContext()
+      .decodeAudioData.mockResolvedValue(decodedBuffer);
+    service.playlist.set([
+      { id: 'track-1', title: 'Current', artist: 'A' },
+      { id: 'track-2', title: 'Remote', artist: 'B', url: '/audio/remote.wav' },
+    ]);
+
+    service.next();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(fetchMock).toHaveBeenCalledWith('/audio/remote.wav');
+    expect(mockAudioEngine.getContext().decodeAudioData).toHaveBeenCalledWith(
+      arrayBuffer
+    );
+    expect(mockDeckService.loadDeckBuffer).toHaveBeenCalledWith(
+      'A',
+      decodedBuffer,
+      'Remote'
+    );
+    expect(mockDeckService.togglePlay).toHaveBeenCalledWith('A');
+    expect(service.playlist()[1].buffer).toBe(decodedBuffer);
   });
 });

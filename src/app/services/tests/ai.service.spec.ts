@@ -1,6 +1,6 @@
 import { MarketingService } from '../marketing.service';
 import { AnalyticsService } from '../analytics.service';
-import { TestBed, fakeAsync } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { AiService, API_KEY_TOKEN } from '../ai.service';
 import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
@@ -8,6 +8,7 @@ import { StemSeparationService } from '../stem-separation.service';
 import { AudioEngineService } from '../audio-engine.service';
 import { signal } from '@angular/core';
 import { ArtistIdentityService } from '../artist-identity.service';
+import { AuthService } from '../auth.service';
 
 describe('AiService', () => {
   let service: AiService;
@@ -15,6 +16,7 @@ describe('AiService', () => {
   let userContextService: any;
   let analyticsService: any;
   let artistIdentityService: any;
+  let authServiceMock: any;
 
   beforeEach(() => {
     userProfileService = {
@@ -66,6 +68,12 @@ describe('AiService', () => {
         ],
       }),
     };
+    authServiceMock = {
+      currentUser: signal({
+        id: 'test-user',
+        emailVerified: true,
+      }),
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -79,6 +87,7 @@ describe('AiService', () => {
         { provide: UserProfileService, useValue: userProfileService },
         { provide: UserContextService, useValue: userContextService },
         { provide: ArtistIdentityService, useValue: artistIdentityService },
+        { provide: AuthService, useValue: authServiceMock },
         { provide: StemSeparationService, useValue: {} },
         {
           provide: AudioEngineService,
@@ -97,14 +106,14 @@ describe('AiService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should generate advisor advice when state changes', fakeAsync(() => {
-    // Manually call the private update method if effects aren't triggering in Jest/fakeAsync
+  it('should generate advisor advice when state changes', () => {
+    // Manually call the private update method
     (service as any).updateAdvisorAdvice('hub', userProfileService.profile());
 
     const advice = service.advisorAdvice();
     expect(advice.length).toBeGreaterThan(0);
     expect(advice[0].title).toBe('Visibility Surge Needed');
-  }));
+  });
 
   it('generates structured chord progression payloads', () => {
     const progression = service.generateChordProgression({
@@ -235,7 +244,9 @@ describe('AiService', () => {
     const checklist = service.getDynamicChecklist();
 
     expect(
-      recommendations.some((item) => item.action.includes('connector'))
+      recommendations.some((item) =>
+        item.action.toLowerCase().includes('catalog')
+      )
     ).toBe(true);
     expect(checklist.some((item) => item.category === 'Identity')).toBe(true);
   });
