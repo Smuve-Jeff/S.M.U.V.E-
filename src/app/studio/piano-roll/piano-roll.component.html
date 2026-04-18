@@ -1,4 +1,9 @@
 <div class="daw-workspace flex h-screen w-full bg-slate-950 overflow-hidden font-sans">
+  <div *ngIf="isStudioOverlay" class="absolute top-2 left-2 z-[100] md:hidden">
+    <button (click)="closeOverlay.emit()" class="p-2 rounded-full bg-brand-primary/20 border border-brand-primary/40 text-brand-primary backdrop-blur-md">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+  </div>
 
   <!-- Left Sound Browser Sidebar -->
   <aside *ngIf="soundBrowserOpen()" class="w-64 flex-shrink-0 z-50 animate__animated animate__slideInLeft animate__faster border-r border-white/10">
@@ -53,7 +58,7 @@
                <span class="material-symbols-outlined text-sm">tune</span>
              </button>
              <button *ngIf="!isStandalone()" (click)="goStandalone()" class="p-1 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">fullscreen</span></button>
-             <button *ngIf="isStandalone()" (click)="goToStudio()" class="p-1 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">exit_to_app</span></button>
+             <button *ngIf="isStandalone()" (click)="closeOverlay.emit()" class="p-1 rounded hover:text-brand-primary group"><span class="material-symbols-outlined text-sm">exit_to_app</span></button>
            </div>
            <div class="text-[9px] font-black font-mono text-brand-primary bg-brand-primary/5 px-2 py-1 rounded border border-brand-primary/20">
              {{ musicManager.engine.tempo() }} BPM

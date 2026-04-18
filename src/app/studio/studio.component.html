@@ -1,17 +1,17 @@
-<div class="studio-container flex h-full bg-[#050505] overflow-hidden" [class.performance-mode]="uiService.performanceMode()">
-  <!-- Side Navigation Rail -->
-  <aside class="studio-sidebar w-16 md:w-20 border-r border-white/5 flex flex-col items-center py-8 gap-10 bg-black/40 backdrop-blur-xl z-50">
+<div class="studio-container {{ studioQualityClass() }}" [class.dark-mode]="uiService.activeTheme().name === 'Dark'">
+  <!-- Sidebar -->
+  <aside class="fl-sidebar">
     <div class="sidebar-icon" [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')">
       <span class="material-symbols-outlined">queue_music</span>
-      <span class="sidebar-label">Arrangement</span>
+      <span class="sidebar-label">Playlist</span>
     </div>
     <div class="sidebar-icon" [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')">
       <span class="material-symbols-outlined">music_note</span>
-      <span class="sidebar-label">Drums</span>
+      <span class="sidebar-label">Drum Machine</span>
     </div>
-    <div class="sidebar-icon" [class.active]="showPianoRoll()" (click)="showPianoRoll.set(!showPianoRoll())">
+    <div class="sidebar-icon" [class.active]="activeView() === 'piano-roll'" (click)="setActiveView('piano-roll')">
       <span class="material-symbols-outlined">piano</span>
-      <span class="sidebar-label">Piano</span>
+      <span class="sidebar-label">Piano Roll</span>
     </div>
     <div class="sidebar-icon" [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')">
       <span class="material-symbols-outlined">equalizer</span>
@@ -19,129 +19,61 @@
     </div>
     <div class="sidebar-icon" [class.active]="activeView() === 'vocal-suite'" (click)="setActiveView('vocal-suite')">
       <span class="material-symbols-outlined">mic</span>
-      <span class="sidebar-label">Vocals</span>
+      <span class="sidebar-label">Vocal Suite</span>
     </div>
     <div class="sidebar-icon" [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')">
-      <span class="material-symbols-outlined">compress</span>
-      <span class="sidebar-label">Master</span>
+      <span class="material-symbols-outlined">graphic_eq</span>
+      <span class="sidebar-label">Mastering</span>
     </div>
-    <div class="sidebar-icon" [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')">
-      <span class="material-symbols-outlined">sensors</span>
-      <span class="sidebar-label">Live</span>
+
+    <div class="mt-auto flex flex-col gap-4 items-center pb-4">
+      <button (click)="aiService.sonicCohesion()" class="sidebar-icon fl-audit-button" title="Strategic Audit">
+        <span class="material-symbols-outlined">analytics</span>
+      </button>
+      <button (click)="uiService.toggleTheme()" class="sidebar-icon">
+        <span class="material-symbols-outlined">{{ uiService.activeTheme().name === 'Dark' ? 'light_mode' : 'dark_mode' }}</span>
+      </button>
     </div>
   </aside>
 
   <div class="main-content">
     <!-- Top Bar -->
-    <header class="fl-top-bar px-4 flex items-center justify-between shrink-0 relative z-50">
+    <header class="fl-top-bar">
       <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2 text-brand-primary">
-          <img *ngIf="profileService.profile().avatarImage" [src]="profileService.profile().avatarImage" class="w-5 h-5 object-cover rounded shadow-lg" />
-          <span *ngIf="!profileService.profile().avatarImage" class="material-symbols-outlined text-xl">token</span>
-          <h2 class="text-slate-100 text-xs font-black tracking-tight uppercase italic leading-none">
-            <span class="studio-title-desktop">STUDIO PRO </span>
-            <span class="studio-title-desktop studio-title-accent">v2.0</span>
-            <span class="studio-title-mobile">STUDIO </span>
-            <span class="studio-title-mobile studio-title-accent">Mobile</span>
-          </h2>
-        </div>
-        <div class="h-6 w-px bg-white/10"></div>
-        <div class="flex items-center gap-3 bg-black/40 px-3 py-1 rounded border border-brand-primary/20">
-          <span class="material-symbols-outlined text-brand-primary text-xs">schedule</span>
-          <span class="text-brand-primary font-mono text-lg font-bold tracking-[0.1em]">{{ currentBeat().toFixed(0) }}</span>
+        <h1 class="text-sm font-black uppercase tracking-[0.4em] flex items-center gap-2">
+          <span class="studio-title-desktop">S.M.U.V.E. <span class="studio-title-accent">Studio</span></span>
+          <span class="studio-title-mobile">S.M.U.V.E.</span>
+          <span class="text-[10px] bg-brand-primary/20 text-brand-primary px-2 py-0.5 rounded-full border border-brand-primary/30">v4.2</span>
+        </h1>
+        <div class="studio-mode-pills flex items-center gap-2">
+          <span class="mode-pill" [class.mode-pill-active]="activeView() === 'dj'">Song</span>
+          <span class="mode-pill" [class.mode-pill-active]="activeView() !== 'dj'">Pat</span>
         </div>
       </div>
 
-      <div class="flex items-center gap-4">
-        <div class="hidden lg:flex items-center gap-4 studio-mode-pills">
-          <div class="mode-pill" [class.mode-pill-active]="activeView() === 'dj'">
-            <span class="material-symbols-outlined text-[10px]">album</span>
-            <span>Arrangement</span>
+      <div class="flex items-center gap-6">
+        <!-- Center Transport (Desktop) -->
+        <div class="transport-console desktop-transport flex items-center gap-4 bg-black/40 px-6 py-2 rounded-2xl border border-white/5 backdrop-blur-md">
+          <div class="flex flex-col items-center">
+            <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Tempo</span>
+            <span class="text-xs font-mono font-black text-brand-primary">{{ musicManager.engine.tempo() }}</span>
           </div>
-          <div class="mode-pill" [class.mode-pill-active]="showPianoRoll()">
-            <span class="material-symbols-outlined text-[10px]">piano</span>
-            <span>Piano Roll</span>
+          <div class="h-6 w-px bg-white/10"></div>
+          <div class="flex items-center gap-4">
+            <button (click)="audioEngine.start()" class="material-symbols-outlined text-slate-400 hover:text-white transition-all">play_arrow</button>
+            <button (click)="audioEngine.stop()" class="material-symbols-outlined text-slate-400 hover:text-white transition-all">stop</button>
+            <button (click)="audioSession.toggleRecord()"
+                    [class.recording-active]="audioSession.isRecording()"
+                    class="material-symbols-outlined text-slate-500 hover:text-red-500 transition-all">fiber_manual_record</button>
           </div>
-          <div class="mode-pill" [class.mode-pill-active]="activeView() === 'mastering'">
-            <span class="material-symbols-outlined text-[10px]">graphic_eq</span>
-            <span>Master Chain</span>
+          <div class="h-6 w-px bg-white/10"></div>
+          <div class="flex flex-col items-center">
+            <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Bar</span>
+            <span class="text-xs font-mono font-black text-white">{{ (currentBeat() / 4 | number:'1.0-0') || 1 }}</span>
           </div>
         </div>
-        <div class="hidden md:flex flex-col items-end opacity-60 mr-4">
-          <span class="text-[6px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Neural Hub Status</span>
-          <span class="text-[9px] font-bold text-white uppercase tracking-tight italic">{{ aiService.strategicDecrees()[0] }}</span>
-        </div>
-        <button
-          (click)="aiService.performExecutiveAudit()"
-          class="fl-audit-button btn-pro btn-pro-primary text-[8px] font-black tracking-widest py-1 px-4 h-auto uppercase"
-        >
-          Audit
-        </button>
-      </div>
-    </header>
 
-    <div class="studio-mobile-transport">
-      <app-transport-bar class="mobile-transport"></app-transport-bar>
-    </div>
-
-    <!-- View Navigation -->
-    <div class="studio-view-nav flex items-center justify-between px-4 md:px-6 py-2 md:py-3 bg-[#1a110b] border-b border-white/5 shrink-0 shadow-inner overflow-hidden">
-      <div class="view-nav-container flex-grow">
-        <div class="flex items-center gap-1 min-w-max">
-          @for (view of ['dj', 'drum-machine', 'piano-roll', 'mixer', 'vocal-suite', 'performance', 'mastering']; track view) {
-            <button
-              (click)="setActiveView($any(view))"
-              class="px-3 md:px-5 py-1.5 rounded text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-300 border border-transparent whitespace-nowrap"
-              [class.bg-brand-primary/20]="activeView() === view"
-              [class.text-brand-primary]="activeView() === view"
-              [class.border-brand-primary/20]="activeView() === view"
-              [class.text-slate-500]="activeView() !== view"
-              [class.hover:text-white]="activeView() !== view"
-            >
-              {{ view.replace('-', ' ') }}
-            </button>
-          }
-        </div>
-      </div>
-      <div class="hidden sm:flex gap-4 ml-4">
-        <button
-          (click)="uiService.toggleAutoPianoRoll()"
-          class="text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
-          [class.text-brand-primary]="uiService.autoPianoRoll()"
-          [class.text-slate-500]="!uiService.autoPianoRoll()"
-          title="Toggle Auto-Open Piano Roll on Track Selection"
-        >
-          <span class="material-symbols-outlined text-[14px]">
-            auto_mode
-          </span>
-          Auto-Open
-        </button>
-        <button
-          (click)="showMixer.set(!showMixer())"
-          class="text-[10px] font-black uppercase tracking-widest transition-all"
-          [class.text-brand-primary]="showMixer()"
-          [class.text-slate-500]="!showMixer()"
-        >
-          Mixer
-        </button>
-        <div class="h-6 w-px bg-white/10 mx-2"></div>
-        <div class="transport-console flex items-center gap-5 px-6 py-2 rounded-full glass-v42 border border-white/5">
-          <button (click)="audioEngine.stop()"
-                  class="material-symbols-outlined text-xl text-slate-500 hover:text-white transition-all hover:scale-110 active:scale-95"
-                  title="Stop (Space)">stop</button>
-
-          <button (click)="audioEngine.start()" *ngIf="!audioEngine.isPlaying()"
-                  class="material-symbols-outlined text-3xl text-brand-primary hover:scale-110 active:scale-95 transition-all drop-shadow-[0_0_8px_rgba(236,91,19,0.4)]"
-                  title="Play (Space)">play_arrow</button>
-
-          <button (click)="audioEngine.toggleRecording()"
-                  [class.recording-active]="audioEngine.isRecording()"
-                  [attr.aria-pressed]="audioEngine.isRecording()"
-                  aria-label="Record"
-                  class="material-symbols-outlined text-xl text-slate-500 hover:text-red-500 transition-all hover:scale-110 active:scale-95"
-                  title="Record (R)">fiber_manual_record</button>
-        </div>
-        <div class="metronome-console flex items-center gap-3 px-4 py-1.5 bg-black/40 rounded-xl border border-white/5 backdrop-blur-md">
+        <div class="metronome-console flex items-center gap-3 bg-black/40 rounded-xl border border-white/5 backdrop-blur-md">
           <button (click)="audioEngine.toggleMetronome()"
                   [class.metronome-active]="audioEngine.metronomeEnabled()"
                   [attr.aria-pressed]="audioEngine.metronomeEnabled()"
@@ -166,14 +98,14 @@
           Rack
         </button>
       </div>
-    </div>
+    </header>
 
     <!-- Main Workspace -->
     <main class="flex-grow relative overflow-hidden bg-background-dark">
       <div class="studio-grid-overlay pointer-events-none"></div>
 
       <!-- ARRANGEMENT VIEW (Always Underneath for better connection) -->
-      <div class="absolute inset-0 z-10">
+      <div class="absolute inset-0 z-10 arrangement-layer" (click)="$event.stopPropagation()">
         <app-arrangement-view></app-arrangement-view>
       </div>
 
@@ -269,7 +201,7 @@
         [class.pointer-events-none]="activeView() !== 'drum-machine'"
         [class.opacity-0]="activeView() !== 'drum-machine'"
       >
-        <app-drum-machine></app-drum-machine>
+        <app-drum-machine [isStudioOverlay]="true"></app-drum-machine>
       </div>
 
       <div
@@ -289,11 +221,17 @@
         </div>
       </div>
 
-      <div class="fl-editor-overlay" [class.visible]="showPianoRoll()">
+      <!-- SLIDING EDITOR OVERLAY (PIANO ROLL / DRUM MACHINE) -->
+      <div data-testid="editor-overlay" class="fl-editor-overlay" [class.visible]="showPianoRoll()">
         <div class="editor-header">
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-emerald-400 text-sm">grid_on</span>
-            <span class="text-[10px] font-black text-white uppercase tracking-widest">Piano Roll</span>
+            <span class="material-symbols-outlined text-emerald-400 text-sm">
+              {{ activeEditor() === 'piano-roll' ? 'grid_on' : 'pattern' }}
+            </span>
+            <span class="text-[10px] font-black text-white uppercase tracking-widest">
+              {{ activeEditor() === 'piano-roll' ? 'Piano Roll' : 'Drum Machine' }}
+            </span>
+
             <button
               (click)="uiService.toggleAutoPianoRoll()"
               class="ml-4 px-2 py-0.5 rounded border border-white/5 text-[8px] font-black uppercase tracking-widest transition-all"
@@ -303,13 +241,38 @@
             >
               Auto-Open: {{ uiService.autoPianoRoll() ? 'ON' : 'OFF' }}
             </button>
+
+            <button
+              data-testid="focus-lock-btn" (click)="toggleFocusLock()"
+              class="px-2 py-0.5 rounded border border-white/5 text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1"
+              [class.bg-amber-500/20]="focusLocked()"
+              [class.text-amber-500]="focusLocked()"
+              [class.text-slate-500]="!focusLocked()"
+            >
+              <span class="material-symbols-outlined text-[10px]">{{ focusLocked() ? 'lock' : 'lock_open' }}</span>
+              Focus Lock
+            </button>
           </div>
-          <button (click)="showPianoRoll.set(false)" class="text-slate-500 hover:text-white transition-colors">
-            <span class="material-symbols-outlined text-sm">close</span>
-          </button>
+
+          <div class="flex items-center gap-2">
+             <button
+               (click)="showPianoRoll.set(false)"
+               class="md:hidden px-3 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-400"
+             >
+               Back to Arrangement
+             </button>
+             <button (click)="showPianoRoll.set(false)" class="text-slate-500 hover:text-white transition-colors p-1">
+               <span class="material-symbols-outlined text-sm">close</span>
+             </button>
+          </div>
         </div>
-        <div class="flex-grow overflow-hidden">
-          <app-piano-roll></app-piano-roll>
+        <div class="flex-grow overflow-hidden relative">
+          <div class="absolute inset-0 transition-opacity duration-300" [class.opacity-100]="activeEditor() === 'piano-roll'" [class.pointer-events-none]="activeEditor() !== 'piano-roll'">
+             <app-piano-roll [isStudioOverlay]="true"></app-piano-roll>
+          </div>
+          <div class="absolute inset-0 transition-opacity duration-300" [class.opacity-100]="activeEditor() === 'drum-machine'" [class.pointer-events-none]="activeEditor() !== 'drum-machine'">
+             <app-drum-machine [isStudioOverlay]="true"></app-drum-machine>
+          </div>
         </div>
       </div>
     </main>
@@ -327,7 +290,7 @@
           { view: 'performance', label: 'Live', icon: 'sensors' }
         ]; track item.view) {
           <button
-            (click)="setActiveView($any(item.view))"
+            (click)="setActiveView((item.view))"
             class="fl-mobile-nav-button"
             [class.active]="activeView() === item.view"
           >

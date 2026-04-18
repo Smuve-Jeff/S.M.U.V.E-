@@ -385,3 +385,12 @@
   cursor: pointer;
   box-shadow: 0 0 5px var(--fl-accent);
 }
+
+.arrangement-layer {
+  pointer-events: auto;
+}
+
+/* Ensure view panes don't block arrangement if they are transparent/empty */
+.view-pane-transition.opacity-0 {
+  pointer-events: none !important;
+}
