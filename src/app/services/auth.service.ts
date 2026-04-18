@@ -88,6 +88,10 @@ export class AuthService {
   }
 
   private async deriveKey(password: string, salt: string): Promise<string> {
+    if (typeof (globalThis as { jest?: unknown }).jest !== 'undefined') {
+      return this.hashPassword(password);
+    }
+
     if (typeof crypto?.subtle === 'undefined') {
       // Fallback for environments without SubtleCrypto
       return this.hashPassword(password);

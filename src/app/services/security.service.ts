@@ -74,8 +74,12 @@ export class SecurityService {
   private readonly API_URL = APP_SECURITY_CONFIG.api_url;
 
   private getHeaders() {
-    const token = this.injector.get(AuthService).jwtToken();
-    return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
+    try {
+      const token = this.injector.get(AuthService, null)?.jwtToken();
+      return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    } catch {
+      return {};
+    }
   }
 
   logs = signal<SecurityLog[]>([]);
@@ -423,9 +427,9 @@ export class SecurityService {
   }
 
   getSecurityAudit(): { score: number; status: string; alerts: string[] } {
-    const authService = inject(AuthService);
+    const authService = this.injector.get(AuthService, null);
     const profile = this.profileService.profile();
-    const user = authService.currentUser();
+    const user = authService?.currentUser();
 
     let score = 100;
     const alerts: string[] = [];
