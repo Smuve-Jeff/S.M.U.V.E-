@@ -21,22 +21,22 @@ describe('AudioEngineService', () => {
       frequency: { value: 0, setTargetAtTime: jest.fn() },
       pan: { value: 0 },
       Q: { value: 0 },
-        threshold: { value: 0, setTargetAtTime: jest.fn() },
-        ratio: { value: 0, setTargetAtTime: jest.fn() },
-        attack: { value: 0, setTargetAtTime: jest.fn() },
-        release: { value: 0, setTargetAtTime: jest.fn() },
-        playbackRate: {
-          value: 1,
-          setTargetAtTime: jest.fn(),
-          cancelScheduledValues: jest.fn(),
-          setValueAtTime: jest.fn(),
-          linearRampToValueAtTime: jest.fn(),
-        },
-        knee: { value: 0 },
-        curve: null,
-        oversample: 'none',
-        connect: jest.fn().mockImplementation(() => createMockNode()),
-        disconnect: jest.fn(),
+      threshold: { value: 0, setTargetAtTime: jest.fn() },
+      ratio: { value: 0, setTargetAtTime: jest.fn() },
+      attack: { value: 0, setTargetAtTime: jest.fn() },
+      release: { value: 0, setTargetAtTime: jest.fn() },
+      playbackRate: {
+        value: 1,
+        setTargetAtTime: jest.fn(),
+        cancelScheduledValues: jest.fn(),
+        setValueAtTime: jest.fn(),
+        linearRampToValueAtTime: jest.fn(),
+      },
+      knee: { value: 0 },
+      curve: null,
+      oversample: 'none',
+      connect: jest.fn().mockImplementation(() => createMockNode()),
+      disconnect: jest.fn(),
       start: jest.fn(),
       stop: jest.fn(),
       type: 'lowpass',
@@ -172,19 +172,32 @@ describe('AudioEngineService', () => {
     service.isRecording.set(true);
     service.recorder.pendingMidi = [];
 
-    service.playSynth(1.25, 440, 0.5, 2, -0.25, 0.4, 0.1, 0.05, {
-      type: 'square',
-      cutoff: 2400,
-      attack: 0.02,
-      decay: 0.1,
-      sustain: 0.6,
-      release: 0.3,
-    }, 2);
+    service.playSynth(
+      1.25,
+      440,
+      0.5,
+      2,
+      -0.25,
+      0.4,
+      0.1,
+      0.05,
+      {
+        type: 'square',
+        cutoff: 2400,
+        attack: 0.02,
+        decay: 0.1,
+        sustain: 0.6,
+        release: 0.3,
+      },
+      2
+    );
 
     const osc = mockAudioContext.createOscillator.mock.results.at(-1)?.value;
-    const filter = mockAudioContext.createBiquadFilter.mock.results.at(-1)?.value;
+    const filter =
+      mockAudioContext.createBiquadFilter.mock.results.at(-1)?.value;
     const vca = mockAudioContext.createGain.mock.results.at(-1)?.value;
-    const panner = mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
+    const panner =
+      mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
 
     expect(osc.type).toBe('square');
     expect(osc.frequency.value).toBe(440);
@@ -218,9 +231,11 @@ describe('AudioEngineService', () => {
 
     service.playBuffer(2, buffer, 0.004, 3, 0.4, 2);
 
-    const source = mockAudioContext.createBufferSource.mock.results.at(-1)?.value;
+    const source =
+      mockAudioContext.createBufferSource.mock.results.at(-1)?.value;
     const vca = mockAudioContext.createGain.mock.results.at(-1)?.value;
-    const panner = mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
+    const panner =
+      mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
 
     expect(source.buffer).toBe(buffer);
     expect(panner.pan.value).toBe(0.4);

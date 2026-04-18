@@ -98,7 +98,11 @@ describe('PlayerService', () => {
 
     service.next();
 
-    expect(mockDeckService.loadDeckBuffer).toHaveBeenCalledWith('A', buffer, 'Loop');
+    expect(mockDeckService.loadDeckBuffer).toHaveBeenCalledWith(
+      'A',
+      buffer,
+      'Loop'
+    );
     expect(mockDeckService.togglePlay).toHaveBeenCalledWith('A');
   });
 
@@ -109,7 +113,9 @@ describe('PlayerService', () => {
       ok: true,
       arrayBuffer: jest.fn().mockResolvedValue(arrayBuffer),
     } as any);
-    mockAudioEngine.getContext().decodeAudioData.mockResolvedValue(decodedBuffer);
+    mockAudioEngine
+      .getContext()
+      .decodeAudioData.mockResolvedValue(decodedBuffer);
     service.playlist.set([
       { id: 'track-1', title: 'Current', artist: 'A' },
       { id: 'track-2', title: 'Remote', artist: 'B', url: '/audio/remote.wav' },

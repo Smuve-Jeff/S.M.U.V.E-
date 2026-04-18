@@ -107,9 +107,12 @@ describe('SequencerService advanced features', () => {
 
   it('skips notes when step probability rejects playback', () => {
     const track = service.activePattern()!.tracks[0];
-    service.activePattern()!.tracks.slice(1).forEach((other) => {
-      other.mute = true;
-    });
+    service
+      .activePattern()!
+      .tracks.slice(1)
+      .forEach((other) => {
+        other.mute = true;
+      });
     randomSpy.mockReturnValue(0.75);
     service.setStepProbability(track.id, 0, 0.5);
 
