@@ -334,7 +334,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     try {
       iframe.contentWindow?.location.reload();
     } catch {
-      iframe.src = iframe.src;
+      const currentSrc = iframe.src;
+      iframe.src = '';
+      iframe.src = currentSrc;
     }
   }
 

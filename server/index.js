@@ -346,7 +346,10 @@ app.delete(
       ]);
       return res.json({ success: true });
     } catch (err) {
-      console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
+      console.error("Internal Server Error:", err);
+      res
+        .status(500)
+        .json({ error: "Strategic anomaly detected. Secure operations compromised." });
     }
   }
 );
