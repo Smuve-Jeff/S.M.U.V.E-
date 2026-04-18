@@ -578,7 +578,8 @@ app.post(
         return res.status(400).json({ error: "Invalid connector ID." });
       }
       const { trigger = 'manual', payload = {} } = req.body || {};
-      const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const crypto = require('node:crypto');
+      const jobId = `job_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 
       await pool.query(
         'INSERT INTO connector_jobs (job_id, user_id, connector_id, status, trigger_type, payload, updated_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)',
