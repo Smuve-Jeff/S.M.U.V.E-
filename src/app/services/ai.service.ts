@@ -1,4 +1,7 @@
+import { APP_SECURITY_CONFIG } from '../app.security';
 import { AuthService } from './auth.service';
+import { Injector } from '@angular/core';
+
 import {
   Injectable,
   inject,
@@ -491,8 +494,8 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
 })
 
 export class AiService {
-  private authService = inject(AuthService);
   private http = inject(HttpClient);
+  private injector = inject(Injector);
   private userProfileService = inject(UserProfileService);
   private analyticsService = inject(AnalyticsService);
   private userContext = inject(UserContextService);
@@ -502,8 +505,13 @@ export class AiService {
   private aiAuditService = inject(AiAuditService);
   private logger = inject(LoggingService);
 
-  private API_URL =
-    'https://smuve-v4-backend-9951606049235487441.onrender.com/api';
+
+  private getHeaders() {
+    const token = this.injector.get(AuthService).jwtToken();
+    return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
+  }
+
+  private API_URL = APP_SECURITY_CONFIG.api_url;
 
   systemStatus = signal<AiSystemStatus>({
     latency: 45,
@@ -617,7 +625,7 @@ export class AiService {
       const response = await firstValueFrom(
         this.http.post<{ text: string }>(`${this.API_URL}/ai/analyze`, {
           prompt,
-        })
+        }, this.getHeaders())
       );
       return response.text;
     } catch (_error) {
@@ -1173,7 +1181,7 @@ export class AiService {
 
   async getStrategicRecommendations(): Promise<StrategicRecommendationType[]> {
     const profile = this.userProfileService.profile();
-    const user = this.authService.currentUser();
+    const user = this.injector.get(AuthService).currentUser();
     const catalog = profile?.catalog || [];
     const campaigns = profile?.marketingCampaigns || [];
     const identity = this.artistIdentityService.buildIdentitySnapshot(profile);

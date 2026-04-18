@@ -1,3 +1,4 @@
+import { APP_SECURITY_CONFIG } from '../app.security';
 import { Injectable, inject, signal } from '@angular/core';
 import { UserProfile } from './user-profile.service';
 import { LoggingService } from './logging.service';
@@ -5,6 +6,8 @@ import { HttpClient } from '@angular/common/http';
 import { LocalStorageService } from './local-storage.service';
 import { firstValueFrom } from 'rxjs';
 import { ArtistIdentityState } from '../types/artist-identity.types';
+import { AuthService } from './auth.service';
+import { Injector } from '@angular/core';
 
 @Injectable({
   providedIn: 'root',
@@ -13,8 +16,13 @@ export class DatabaseService {
   private logger = inject(LoggingService);
   private http = inject(HttpClient);
   private localStorageService = inject(LocalStorageService);
-  private API_URL =
-    'https://smuve-v4-backend-9951606049235487441.onrender.com/api';
+  private injector = inject(Injector);
+  private API_URL = APP_SECURITY_CONFIG.api_url;
+
+  private getHeaders() {
+    const token = this.injector.get(AuthService).jwtToken();
+    return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
+  }
 
   get apiUrl(): string {
     return this.API_URL;
@@ -42,7 +50,7 @@ export class DatabaseService {
           this.http.post(`${this.API_URL}/profile`, {
             userId,
             profileData: profile,
-          })
+          }, this.getHeaders())
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -57,7 +65,7 @@ export class DatabaseService {
     if (userId && navigator.onLine) {
       try {
         const profile = await firstValueFrom(
-          this.http.get<UserProfile>(`${this.API_URL}/profile/${userId}`)
+          this.http.get<UserProfile>(`${this.API_URL}/profile/${userId}`, this.getHeaders())
         );
         if (profile) {
           localStorage.setItem(
@@ -100,7 +108,7 @@ export class DatabaseService {
             userId,
             title,
             projectData,
-          })
+          }, this.getHeaders())
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -117,7 +125,7 @@ export class DatabaseService {
     if (userId && navigator.onLine) {
       try {
         return await firstValueFrom(
-          this.http.get<any[]>(`${this.API_URL}/projects/${userId}`)
+          this.http.get<any[]>(`${this.API_URL}/projects/${userId}`, this.getHeaders())
         );
       } catch (error) {
         this.logger.error('Failed to list projects from cloud', error);
@@ -147,7 +155,7 @@ export class DatabaseService {
             userId,
             identity,
             profileData: profile,
-          })
+          }, this.getHeaders())
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -165,7 +173,7 @@ export class DatabaseService {
       try {
         const response = await firstValueFrom(
           this.http.get<{ identity: ArtistIdentityState }>(
-            `${this.API_URL}/identity/${userId}`
+            `${this.API_URL}/identity/${userId}`, this.getHeaders()
           )
         );
         if (response?.identity) {
@@ -187,7 +195,7 @@ export class DatabaseService {
     if (userId && navigator.onLine) {
       try {
         return await firstValueFrom(
-          this.http.get<any[]>(`${this.API_URL}/identity/${userId}/connectors`)
+          this.http.get<any[]>(`${this.API_URL}/identity/${userId}/connectors`, this.getHeaders())
         );
       } catch (error) {
         this.logger.error('Failed to list connector jobs from cloud', error);

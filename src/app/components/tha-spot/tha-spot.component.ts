@@ -142,6 +142,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   });
 
   constructor() {
+    effect(() => {
+      const current = this.currentGame();
+      if (current) {
+        // this.uiService.setSubtleGlow(current.art?.accentStart || '#ec5b13');
+      } else {
+        // this.uiService.setSubtleGlow(null);
+      }
+    });
     // constructor body
   }
 
@@ -169,6 +177,25 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   confirmLaunch() {
     const game = this.selectedGame();
+    if (!game) return;
+
+    this.closePreview();
+    this.isMatchmaking.set(true);
+    this.matchmakingStatus.set('UPLINKING...');
+    this.matchmakingProgress.set(0);
+
+    let p = 0;
+    this.matchmakingTimerId = setInterval(() => {
+      p += Math.random() * 15;
+      this.matchmakingProgress.set(p);
+      if (p >= 100) {
+        if (this.matchmakingTimerId) clearInterval(this.matchmakingTimerId);
+        this.isMatchmaking.set(false);
+        this.currentGame.set(game);
+        // Tracking
+        // this.profileService.updateGameStats(game.id, { plays: 1 });
+      }
+    }, 150);
     if (game) this.currentGame.set(game);
   }
 
@@ -192,6 +219,25 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     });
   }
 
+  setSearchQuery(query: string): void {
+    this.searchQuery.set(query);
+  }
+
+  setSortMode(mode: GameSortMode): void {
+    this.sortMode.set(mode);
+  }
+
+  setActiveGenre(genre: string): void {
+    this.activeGenre.set(genre);
+  }
+
+  toggleQuickFilter(filter: string): void {
+    const activeFilters = this.quickFilters();
+    this.quickFilters.set(
+      activeFilters.includes(filter)
+        ? activeFilters.filter(activeFilter => activeFilter !== filter)
+        : [...activeFilters, filter]
+    );
   setSearchQuery(q: string) { this.searchQuery.set(q); }
   setSortMode(m: GameSortMode) { this.sortMode.set(m); }
   setActiveGenre(g: string) { this.activeGenre.set(g); }

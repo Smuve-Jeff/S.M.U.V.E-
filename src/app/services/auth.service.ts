@@ -1,7 +1,10 @@
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { Injectable, inject, signal } from '@angular/core';
 import { SecurityService } from './security.service';
 import { LoggingService } from './logging.service';
 import { UserProfileService, initialProfile } from './user-profile.service';
+import { APP_SECURITY_CONFIG as GLOBAL_SECURITY_CONFIG } from '../app.security';
 import { LoginConfirmationService } from './login-confirmation.service';
 
 const APP_SECURITY_CONFIG = {
@@ -37,15 +40,35 @@ export class AuthService {
   private securityService = inject(SecurityService);
   private profileService = inject(UserProfileService);
   private loginConfirmationService = inject(LoginConfirmationService);
+  private http = inject(HttpClient);
+  private _jwtToken = signal<string | null>(null);
+  jwtToken = this._jwtToken.asReadonly();
 
   private _isAuthenticated = signal(false);
   private _currentUser = signal<AuthUser | null>(null);
 
   isAuthenticated = this._isAuthenticated.asReadonly();
   currentUser = this._currentUser.asReadonly();
+  private readonly API_URL = GLOBAL_SECURITY_CONFIG.api_url;
+
+  private async acquireJwt(userId: string): Promise<void> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<{ token: string }>(`${this.API_URL}/auth/session`, { userId })
+      );
+      if (response && response.token) {
+        this._jwtToken.set(response.token);
+        localStorage.setItem("smuve_jwt_token", response.token);
+      }
+    } catch (error) {
+      this.logger.error("Failed to acquire strategic JWT session", error);
+    }
+  }
 
   constructor() {
     void this.loadSession();
+    const savedToken = localStorage.getItem("smuve_jwt_token");
+    if (savedToken) this._jwtToken.set(savedToken);
   }
 
   private normalizeEmail(email: string): string {
@@ -100,7 +123,7 @@ export class AuthService {
   }
 
   private encrypt(data: string): string {
-    const salted = data + '|' + APP_SECURITY_CONFIG.auth_salt;
+    const salted = data + '|' + GLOBAL_SECURITY_CONFIG.auth_salt;
     return btoa(unescape(encodeURIComponent(salted)));
   }
 
@@ -108,7 +131,7 @@ export class AuthService {
     try {
       const decoded = decodeURIComponent(escape(atob(encoded)));
       const [data, key] = decoded.split('|');
-      return key === APP_SECURITY_CONFIG.auth_salt ? data : null;
+      return key === GLOBAL_SECURITY_CONFIG.auth_salt ? data : null;
     } catch {
       return null;
     }
@@ -127,6 +150,8 @@ export class AuthService {
       // Validate session with security service
       if (!this.securityService.validateSession()) {
         this.clearSession();
+    this._jwtToken.set(null);
+    localStorage.removeItem("smuve_jwt_token");
         return;
       }
 
@@ -137,6 +162,8 @@ export class AuthService {
     } catch (error) {
       this.logger.error('Failed to load session:', error);
       this.clearSession();
+    this._jwtToken.set(null);
+    localStorage.removeItem("smuve_jwt_token");
     }
   }
 
@@ -156,15 +183,34 @@ export class AuthService {
     localStorage.removeItem('smuve_auth_session');
   }
 
+  private secureRandomHex(byteLength: number): string {
+    const bytes = new Uint8Array(byteLength);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  private secureRandomInt(maxExclusive: number): number {
+    if (!Number.isInteger(maxExclusive) || maxExclusive <= 0) {
+      throw new Error('maxExclusive must be a positive integer');
+    }
+    const maxUint32 = 0x100000000;
+    const limit = maxUint32 - (maxUint32 % maxExclusive);
+    const buffer = new Uint32Array(1);
+    do {
+      crypto.getRandomValues(buffer);
+    } while (buffer[0] >= limit);
+    return buffer[0] % maxExclusive;
+  }
+
   private generateUserId(): string {
-    return `user_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    return `user_${Date.now()}_${this.secureRandomHex(8)}`;
   }
 
   private hashPassword(password: string): string {
     // Lightweight client-side hash for mock/local auth only.
     // Do NOT treat as secure.
     let hash = 0;
-    const input = `${password}|${APP_SECURITY_CONFIG.auth_salt}`;
+    const input = `${password}|${GLOBAL_SECURITY_CONFIG.auth_salt}`;
     for (let i = 0; i < input.length; i++) {
       hash = (hash << 5) - hash + input.charCodeAt(i);
       hash |= 0;
@@ -219,7 +265,7 @@ export class AuthService {
       // Derive secure password hash using PBKDF2
       const passwordHash = await this.deriveKey(
         credentials.password,
-        `${normalizedEmail}_${APP_SECURITY_CONFIG.auth_salt}`
+        `${normalizedEmail}_${GLOBAL_SECURITY_CONFIG.auth_salt}`
       );
 
       const newUser: AuthUser = {
@@ -232,7 +278,7 @@ export class AuthService {
         lastLogin: new Date(),
         profileCompleteness: 0,
         emailVerified: false,
-        verificationCode: Math.floor(100000 + Math.random() * 900000).toString(),
+        verificationCode: (100000 + this.secureRandomInt(900000)).toString(),
       };
 
       localStorage.setItem(
@@ -248,6 +294,7 @@ export class AuthService {
       this._currentUser.set(newUser);
       this._isAuthenticated.set(true);
       this.saveSession(newUser);
+      await this.acquireJwt(newUser.id);
       this.securityService.clearRateLimit(rateLimitKey);
 
       await this.profileService.updateProfile({
@@ -331,7 +378,7 @@ export class AuthService {
       // Verify password using PBKDF2 derivation
       const inputHash = await this.deriveKey(
         credentials.password,
-        `${normalizedEmail}_${APP_SECURITY_CONFIG.auth_salt}`
+        `${normalizedEmail}_${GLOBAL_SECURITY_CONFIG.auth_salt}`
       );
 
       // Support both legacy and new hash formats
@@ -383,6 +430,7 @@ export class AuthService {
 
       this._currentUser.set(user);
       this._isAuthenticated.set(true);
+      await this.acquireJwt(user.id);
       this.saveSession(user);
       this.securityService.clearRateLimit(rateLimitKey);
 
@@ -478,5 +526,7 @@ export class AuthService {
     this._currentUser.set(null);
     this._isAuthenticated.set(false);
     this.clearSession();
+    this._jwtToken.set(null);
+    localStorage.removeItem("smuve_jwt_token");
   }
 }
