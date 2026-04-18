@@ -97,37 +97,71 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   currentGame = signal<Game | null>(null);
 
   allCategories = computed(() => {
-    const genres = Array.from(new Set(this.games().map(g => g.genre))).filter(Boolean) as string[];
+    const genres = Array.from(
+      new Set(this.games().map((game) => game.genre))
+    ).filter(Boolean) as string[];
     return genres.sort();
   });
 
   filteredGames = computed(() => {
-    let filtered = this.games();
     const query = this.searchQuery().toLowerCase();
     const roomId = this.activeRoom();
-    const room = this.gamingRooms().find(r => r.id === roomId);
+    const room = this.gamingRooms().find((entry) => entry.id === roomId);
     const genre = this.activeGenre();
+    const quickFilters = this.quickFilters();
 
-    if (genre !== 'all') { filtered = filtered.filter(g => g.genre === genre); }
+    let filtered = [...this.games()];
+
+    if (genre !== 'all') {
+      filtered = filtered.filter((game) => game.genre === genre);
+    }
     if (room && roomId !== 'all') {
-      filtered = filtered.filter(g => this.gameService.matchesRoom(g, room));
+      filtered = filtered.filter((game) =>
+        this.gameService.matchesRoom(game, room)
+      );
     }
 
     if (query) {
-      filtered = filtered.filter(g =>
-        g.name.toLowerCase().includes(query) ||
-        g.genre?.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (game) =>
+          game.name.toLowerCase().includes(query) ||
+          game.genre?.toLowerCase().includes(query)
       );
     }
-    return filtered;
+
+    if (quickFilters.length) {
+      filtered = filtered.filter((game) =>
+        this.matchesQuickFilters(game, quickFilters)
+      );
+    }
+
+    return this.gameService.filterAndSortGames(
+      filtered,
+      {},
+      this.sortMode()
+    );
   });
 
   matchingRecommendationRails = computed(() => {
-    return this.recommendationRails();
+    const roomId = this.activeRoom();
+    if (roomId === 'all') {
+      return this.recommendationRails();
+    }
+    return this.recommendationRails().filter(
+      (rail) => !rail.roomIds?.length || rail.roomIds.includes(roomId)
+    );
   });
 
   activeEvents = computed(() => {
-    return this.liveEvents();
+    const roomId = this.activeRoom();
+    const now = this.now();
+    const resolved = this.liveEvents().map((event) =>
+      this.resolveEventStatus(event, now)
+    );
+    if (roomId === 'all') {
+      return resolved;
+    }
+    return resolved.filter((event) => event.roomId === roomId);
   });
 
   neuralSyncScore = computed(() => {
@@ -140,6 +174,74 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       'EXECUTE DAILY TOURNAMENT RUN',
       'SYNC KNOWLEDGE BASE WITH NEW DROPS',
     ];
+  });
+
+  launchWarning = signal<string>('');
+
+  activeRecommendationRail = computed(() => {
+    const rails = this.recommendationRails();
+    if (!rails.length) {
+      return null;
+    }
+    const profile = this.profileService.profile();
+    return (
+      rails.find((rail) => this.matchesRecommendationAudience(rail, profile)) ||
+      rails[0]
+    );
+  });
+
+  recommendedGames = computed(() => {
+    const rail = this.activeRecommendationRail();
+    if (!rail) {
+      return [];
+    }
+    return this.getGamesForRail(rail);
+  });
+
+  recentlyPlayed = computed(() => {
+    const profile = this.profileService.profile();
+    const stats = profile?.gameStats || {};
+    const gameLookup = new Map(this.games().map((game) => [game.id, game]));
+
+    return Object.entries(stats)
+      .map(([gameId, stat]) => ({
+        game: gameLookup.get(gameId),
+        lastPlayedAt: stat.lastPlayedAt || 0,
+      }))
+      .filter((entry) => !!entry.game)
+      .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt)
+      .map((entry) => entry.game!) as Game[];
+  });
+
+  liveMetrics = computed(() => {
+    const roomPlayers = this.games().reduce(
+      (sum, game) => sum + (game.playersOnline || 0),
+      0
+    );
+
+    return {
+      roomPlayers,
+      activeRooms: this.gamingRooms().length,
+      liveEvents: this.activeEvents().length,
+    };
+  });
+
+  activitySummary = computed(() => {
+    const profile = this.profileService.profile();
+    const progression = (profile?.thaSpotProgression || {}) as {
+      favoriteRoomId?: string;
+      currentStreak?: number;
+      earnedCosmetics?: string[];
+    };
+    const favoriteRoom = this.gamingRooms().find(
+      (room) => room.id === progression.favoriteRoomId
+    );
+
+    return {
+      favoriteRoomLabel: favoriteRoom?.name || 'All Games',
+      currentStreak: progression.currentStreak || 0,
+      cosmetics: progression.earnedCosmetics || [],
+    };
   });
 
   constructor() {
@@ -161,7 +263,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.clockId) clearInterval(this.clockId);
     if (this.feedRefreshId) clearInterval(this.feedRefreshId);
-    if (this.matchmakingTimerId) clearInterval(this.matchmakingTimerId);
+    if (this.matchmakingTimerId) clearTimeout(this.matchmakingTimerId);
     this.feedSubscription?.unsubscribe();
   }
 
@@ -170,47 +272,136 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   onGameClick(game: Game) {
-    this.selectedGame.set(game);
+    this.previewGame(game);
+  }
+
+  openPreview(game: Game) {
+    this.previewGame(game);
   }
 
   closePreview() {
     this.selectedGame.set(null);
+    this.launchWarning.set('');
+  }
+
+  previewGame(game: Game) {
+    this.selectedGame.set(game);
+    this.launchWarning.set(this.resolveLaunchWarning(game));
   }
 
   confirmLaunch() {
     const game = this.selectedGame();
     if (!game) return;
 
-    this.closePreview();
-    this.isMatchmaking.set(true);
-    this.matchmakingStatus.set('UPLINKING...');
-    this.matchmakingProgress.set(0);
-
-    let p = 0;
-    this.matchmakingTimerId = setInterval(() => {
-      p += Math.random() * 15;
-      this.matchmakingProgress.set(p);
-      if (p >= 100) {
-        if (this.matchmakingTimerId) clearInterval(this.matchmakingTimerId);
-        this.isMatchmaking.set(false);
-        this.currentGame.set(game);
-        // Tracking
-        // this.profileService.updateGameStats(game.id, { plays: 1 });
+    if (game.launchConfig?.embedMode === 'external-only') {
+      const launchUrl =
+        game.launchConfig.approvedExternalUrl || game.url || '';
+      if (launchUrl) {
+        window.open(launchUrl, '_blank', 'noopener');
       }
-    }, 150);
-    if (game) this.currentGame.set(game);
+      this.closePreview();
+      return;
+    }
+
+    const sessionContext = this.buildSessionContext(game);
+    this.closePreview();
+
+    if (this.isMultiplayerGame(game)) {
+      this.isMatchmaking.set(true);
+      this.matchmakingStatus.set('UPLINKING...');
+      this.matchmakingProgress.set(0);
+      if (this.matchmakingTimerId) clearTimeout(this.matchmakingTimerId);
+      this.matchmakingTimerId = setTimeout(() => {
+        this.isMatchmaking.set(false);
+        this.matchmakingProgress.set(100);
+        this.currentGame.set(game);
+        void this.profileService.recordGameLaunch(game.id, sessionContext);
+      }, 4000);
+      return;
+    }
+
+    this.currentGame.set(game);
+    void this.profileService.recordGameLaunch(game.id, sessionContext);
   }
 
   closeGame() {
     this.currentGame.set(null);
   }
 
+  reloadGame() {
+    const iframe = this.gameIframe?.nativeElement;
+    if (!iframe) return;
+    try {
+      iframe.contentWindow?.location.reload();
+    } catch {
+      iframe.src = iframe.src;
+    }
+  }
+
   toggleIntel() {
-    this.showIntelPanel.update(v => !v);
+    this.showIntelPanel.update((value) => !value);
   }
 
   toggleBrowse() {
-    this.isBrowseView.update(v => !v);
+    this.isBrowseView.update((value) => !value);
+  }
+
+  getActiveRoomName(): string {
+    const roomId = this.activeRoom();
+    return (
+      this.gamingRooms().find((room) => room.id === roomId)?.name ||
+      'All Games'
+    );
+  }
+
+  clearDiscoveryControls(): void {
+    this.activeRoom.set('all');
+    this.activeGenre.set('all');
+    this.searchQuery.set('');
+    this.sortMode.set('Popular');
+    this.quickFilters.set([]);
+  }
+
+  getGamesForRail(rail: RecommendationRail): Game[] {
+    let games = [...this.games()];
+
+    if (rail.gameIds?.length) {
+      const lookup = new Map(games.map((game) => [game.id, game]));
+      games = rail.gameIds.map((id) => lookup.get(id)).filter(Boolean) as Game[];
+    } else if (rail.roomIds?.length) {
+      const rooms = this.gamingRooms().filter((room) =>
+        rail.roomIds?.includes(room.id)
+      );
+      games = games.filter((game) =>
+        rooms.some((room) => this.gameService.matchesRoom(game, room))
+      );
+    }
+
+    const sorted = this.gameService.filterAndSortGames(games, {}, 'Popular');
+    return rail.maxItems ? sorted.slice(0, rail.maxItems) : sorted;
+  }
+
+  getSafeUrl(game: Game): SafeResourceUrl | null {
+    if (game.launchConfig?.embedMode === 'external-only') {
+      return null;
+    }
+    const url = game.launchConfig?.approvedEmbedUrl || game.url;
+    if (!url) {
+      return null;
+    }
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+
+  onMessage(event: MessageEvent): void {
+    const active = this.currentGame();
+    const frameWindow = this.gameIframe?.nativeElement?.contentWindow;
+    if (!active || !frameWindow || event.source !== frameWindow) {
+      return;
+    }
+
+    if (event.data?.type === 'GAME_OVER') {
+      this.closeGame();
+    }
   }
 
   private loadFeed() {
@@ -219,6 +410,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       this.feed.set(feed);
       this.games.set(feed.games);
       this.gamingRooms.set(feed.rooms);
+      this.badges.set(feed.badges);
+      this.liveEvents.set(feed.liveEvents);
+      this.socialPresence.set(feed.socialPresence);
+      this.promotions.set(feed.promotions);
+      this.recommendationRails.set(feed.recommendationRails);
     });
   }
 
@@ -241,5 +437,114 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         ? activeFilters.filter((activeFilter) => activeFilter !== filter)
         : [...activeFilters, filter]
     );
+  }
+
+  private matchesQuickFilters(game: Game, filters: QuickFilter[]): boolean {
+    const tags = (game.tags || []).map((tag) => tag.toLowerCase());
+
+    return filters.every((filter) => {
+      switch (filter) {
+        case 'featured':
+          return game.badgeIds?.includes('featured') ?? false;
+        case 'multiplayer':
+          return (
+            (!!game.multiplayerType && game.multiplayerType !== 'None') ||
+            tags.includes('multiplayer')
+          );
+        case 'instant':
+          return (game.queueEstimateMinutes || 0) === 0;
+        case 'online':
+          return game.availability === 'Online' || game.availability === 'Hybrid';
+        default:
+          return true;
+      }
+    });
+  }
+
+  private resolveEventStatus(event: LiveEvent, now: number): LiveEvent {
+    if (!event.schedule?.startAt) {
+      return event;
+    }
+    const start = new Date(event.schedule.startAt).getTime();
+    const end = event.schedule.endAt
+      ? new Date(event.schedule.endAt).getTime()
+      : null;
+
+    let status: LiveEvent['status'] = event.status;
+    if (!Number.isNaN(start) && now < start) {
+      status = 'upcoming';
+    } else if (end && !Number.isNaN(end) && now > end) {
+      status = 'ending-soon';
+    } else {
+      status = 'live';
+    }
+
+    return { ...event, status };
+  }
+
+  private matchesRecommendationAudience(
+    rail: RecommendationRail,
+    profile: { primaryGenre?: string; gameStats?: Record<string, any> } | null
+  ): boolean {
+    const audience = rail.audience;
+    if (!audience) {
+      return true;
+    }
+
+    const primaryGenre = profile?.primaryGenre;
+    if (
+      audience.primaryGenres?.length &&
+      (!primaryGenre || !audience.primaryGenres.includes(primaryGenre))
+    ) {
+      return false;
+    }
+
+    const totalPlays = this.totalPlays(profile?.gameStats || {});
+    if (audience.minPlays !== undefined && totalPlays < audience.minPlays) {
+      return false;
+    }
+    if (audience.maxPlays !== undefined && totalPlays > audience.maxPlays) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private totalPlays(stats: Record<string, { plays?: number }>): number {
+    return Object.values(stats).reduce(
+      (sum, entry) => sum + (entry.plays || 0),
+      0
+    );
+  }
+
+  private resolveLaunchWarning(game: Game): string {
+    if (game.launchConfig?.embedMode === 'external-only') {
+      return 'External governance required for this cabinet.';
+    }
+    if (game.launchConfig?.approvedEmbedUrl || game.url) {
+      return 'Exact embed target verified.';
+    }
+    return 'Embed target pending verification.';
+  }
+
+  private isMultiplayerGame(game: Game): boolean {
+    const tags = (game.tags || []).map((tag) => tag.toLowerCase());
+    return (
+      (game.multiplayerType && game.multiplayerType !== 'None') ||
+      tags.includes('multiplayer')
+    );
+  }
+
+  private buildSessionContext(game: Game) {
+    const event = this.activeEvents().find(
+      (entry) => entry.featuredGameId === game.id
+    );
+
+    return {
+      roomId: this.activeRoom(),
+      eventId: event?.id,
+      reward: event?.reward,
+      rewardType: event?.schedule?.rewardType,
+    };
   }
 }
