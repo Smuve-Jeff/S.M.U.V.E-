@@ -400,4 +400,25 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   hasRail(railId: string): boolean {
     return this.recommendationRails().some(r => r.id === railId);
   }
+
+  setSearchQuery(query: string): void {
+    this.searchQuery.set(query);
+  }
+
+  setSortMode(mode: GameSortMode): void {
+    this.sortMode.set(mode);
+  }
+
+  setActiveGenre(genre: string): void {
+    this.activeGenre.set(genre);
+  }
+
+  toggleQuickFilter(filter: string): void {
+    const activeFilters = this.quickFilters();
+    this.quickFilters.set(
+      activeFilters.includes(filter)
+        ? activeFilters.filter(activeFilter => activeFilter !== filter)
+        : [...activeFilters, filter]
+    );
+  }
 }
