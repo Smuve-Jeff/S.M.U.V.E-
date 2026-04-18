@@ -83,11 +83,14 @@ describe('ExportService', () => {
     expect(view.getUint8(10)).toBe('V'.charCodeAt(0));
     expect(view.getUint8(11)).toBe('E'.charCodeAt(0));
 
+    // Check audio format at offset 20 (1 = PCM)
+    expect(view.getUint16(20, true)).toBe(1);
+
     // Check sample rate at offset 24
     expect(view.getUint32(24, true)).toBe(sampleRate);
 
     // Check bits per sample at offset 34
-    expect(view.getUint16(34, true)).toBe(32);
+    expect(view.getUint16(34, true)).toBe(16);
   });
 
   it('starts high-quality live recording with supported codec', async () => {
