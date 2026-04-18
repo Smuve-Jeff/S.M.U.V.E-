@@ -412,7 +412,7 @@ describe('ThaSpotComponent', () => {
         eventId: 'event-1',
       })
     );
-  }, 10000);
+  }, 6000);
 
   it('launches solo games immediately from the preview flow', async () => {
     component.previewGame(component.games()[1]!);
