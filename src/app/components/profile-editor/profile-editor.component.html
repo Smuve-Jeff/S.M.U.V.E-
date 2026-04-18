@@ -140,6 +140,34 @@
   </div>
           <header class="border-b border-white/5 pb-6">
             <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+          <section class="identity-panel p-10 mb-10 flex flex-col md:flex-row items-center gap-10 border-brand-secondary/20 shadow-[0_0_50px_rgba(168,85,247,0.05)]">
+            <div class="w-full md:w-1/2">
+              <h2 class="text-3xl font-black italic uppercase text-brand-secondary mb-2">Strategic DNA</h2>
+              <p class="text-[10px] text-slate-500 font-black tracking-[0.3em] uppercase mb-8">Neural Expertise Calibration & Multi-Dimensional Trajectory</p>
+              <div class="grid grid-cols-2 gap-4">
+                <div *ngFor="let item of [
+                  { key: 'production', label: 'Production' },
+                  { key: 'songwriting', label: 'Songwriting' },
+                  { key: 'marketing', label: 'Marketing' },
+                  { key: 'business', label: 'Business' },
+                  { key: 'legal', label: 'Legal' },
+                  { key: 'performance', label: 'Performance' }
+                ]" class="bg-black/40 p-3 rounded-xl border border-white/5 flex flex-col gap-1">
+                  <span class="text-[8px] font-black text-slate-500 uppercase">{{ item.label }}</span>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-black text-white">{{ (editableProfile().expertise)[item.key] || 0 }}.0</span>
+                    <div class="flex gap-0.5">
+                      <div *ngFor="let i of [1,2,3,4,5]" class="w-1.5 h-3 rounded-sm border border-white/10"
+                           [class.bg-brand-secondary]="((editableProfile().expertise)[item.key] || 0) >= (i * 2)"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="w-full md:w-1/2 flex justify-center">
+              <app-radar-chart [expertise]="editableProfile().expertise" class="w-64 h-64"></app-radar-chart>
+            </div>
+          </section>
               Identity & Vision
             </h2>
           </header>
