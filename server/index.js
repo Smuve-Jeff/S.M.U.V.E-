@@ -539,8 +539,8 @@ app.get('/api/identity/:userId', authenticateToken, authorizeUser, async (req, r
 });
 
 app.post('/api/identity', authenticateToken, authorizeUser, async (req, res) => {
-  if (!isNonEmptyString(req.body.userId) || !isObject(req.body.identity)) {
-    return res.status(400).json({ error: "userId and identity data are required." });
+  if (!isObject(req.body.identity)) {
+    return res.status(400).json({ error: "Identity data is required." });
   }
   try {
     const { userId, identity, profileData } = req.body;
