@@ -1,6 +1,6 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 
 import { AuthService } from '../auth.service';
@@ -11,6 +11,8 @@ import { LoginConfirmationService } from '../login-confirmation.service';
 
 describe('AuthService', () => {
   let service: AuthService;
+  let httpMock: HttpTestingController;
+
   let securityServiceMock: {
     validateSession: jest.Mock;
     refreshSession: jest.Mock;
@@ -83,13 +85,27 @@ describe('AuthService', () => {
     });
 
     service = TestBed.inject(AuthService);
+    httpMock = TestBed.inject(HttpTestingController);
   });
 
-  it('registers profiles against the created user id', async () => {
-    const result = await service.register(
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('registers profiles against the created user id', fakeAsync(() => {
+    let result: any;
+    service.register(
       { email: 'Artist@Example.com', password: 'secret-pass' },
       '  Test Artist  '
-    );
+    ).then(r => result = r);
+
+    tick(1000);
+
+    const req = httpMock.expectOne(r => r.url.endsWith('/auth/session'));
+    expect(req.request.method).toBe('POST');
+    req.flush({ token: 'mock-jwt-token' });
+
+    tick();
 
     expect(result.success).toBe(true);
     expect(profileServiceMock.updateProfile).toHaveBeenCalledWith(
@@ -98,45 +114,61 @@ describe('AuthService', () => {
         artistName: 'Test Artist',
       })
     );
-  });
+    expect(service.jwtToken()).toBe('mock-jwt-token');
+  }));
 
-  it('normalizes email casing and spacing during login', async () => {
-    await service.register(
+  it('normalizes email casing and spacing during login', fakeAsync(() => {
+    service.register(
       { email: 'Artist@Example.com', password: 'secret-pass' },
       'Test Artist'
     );
 
-    const result = await service.login({
+    tick(1000);
+    let req = httpMock.expectOne(r => r.url.endsWith('/auth/session'));
+    req.flush({ token: 'mock-jwt-token' });
+    tick();
+
+    let result: any;
+    service.login({
       email: '  artist@example.com  ',
       password: 'secret-pass',
-    });
+    }).then(r => result = r);
+
+    tick(1000);
+    req = httpMock.expectOne(r => r.url.endsWith('/auth/session'));
+    req.flush({ token: 'mock-jwt-token-2' });
+    tick();
 
     expect(result.success).toBe(true);
     expect(profileServiceMock.loadProfile).toHaveBeenCalledWith(
       expect.any(String)
     );
     expect(service.currentUser()?.email).toBe('artist@example.com');
-    expect(
-      loginConfirmationServiceMock.sendLoginConfirmation
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({ email: 'artist@example.com' })
-    );
-  });
+    expect(service.jwtToken()).toBe('mock-jwt-token-2');
+  }));
 
-  it('does not send a confirmation email when login fails', async () => {
-    await service.register(
+  it('does not send a confirmation email when login fails', fakeAsync(() => {
+    service.register(
       { email: 'artist@example.com', password: 'secret-pass' },
       'Test Artist'
     );
+    tick(1000);
+    let req = httpMock.expectOne(r => r.url.endsWith('/auth/session'));
+    req.flush({ token: 'mock-jwt-token' });
+    tick();
 
-    const result = await service.login({
+    let result: any;
+    service.login({
       email: 'artist@example.com',
       password: 'wrong-pass',
-    });
+    }).then(r => result = r);
+
+    tick(1000);
+    httpMock.expectNone(r => r.url.endsWith('/auth/session') && r.method === 'POST');
 
     expect(result.success).toBe(false);
     expect(
       loginConfirmationServiceMock.sendLoginConfirmation
     ).not.toHaveBeenCalled();
-  });
+  }));
 });

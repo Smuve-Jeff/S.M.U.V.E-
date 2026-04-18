@@ -1,4 +1,7 @@
+import { APP_SECURITY_CONFIG } from '../app.security';
 import { AuthService } from './auth.service';
+import { Injector } from '@angular/core';
+
 import {
   Injectable,
   inject,
@@ -51,10 +54,10 @@ const DEFAULT_RATE_LIMIT: RateLimitConfig = {
 };
 
 const DEFAULT_SECURITY_CONFIG: SecurityConfig = {
-  sessionTimeoutMs: 60 * 60 * 1000, // 1 hour
-  inactivityTimeoutMs: 15 * 60 * 1000, // 15 minutes
+  sessionTimeoutMs: 3600000, // 1 hour
+  inactivityTimeoutMs: 1800000, // 30 minutes
   requireReauthForSensitive: true,
-  maxConcurrentSessions: 5,
+  maxConcurrentSessions: 3,
   csrfEnabled: true,
 };
 
@@ -62,17 +65,22 @@ const DEFAULT_SECURITY_CONFIG: SecurityConfig = {
   providedIn: 'root',
 })
 export class SecurityService {
-  private http = inject(HttpClient);
   private logger = inject(LoggingService);
   private profileService = inject(UserProfileService);
   private ngZone = inject(NgZone);
+  private http = inject(HttpClient);
+  private injector = inject(Injector);
 
-  // NOTE: backend URL can be swapped via environment later.
-  private readonly API_URL = 'http://localhost:3000/api';
+  private readonly API_URL = APP_SECURITY_CONFIG.api_url;
+
+  private getHeaders() {
+    const token = this.injector.get(AuthService).jwtToken();
+    return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
+  }
 
   logs = signal<SecurityLog[]>([]);
   sessions = signal<UserSession[]>([]);
-  isSessionValid = signal(true);
+  isSessionValid = signal<boolean>(true);
   sessionExpiresAt = signal<number | null>(null);
   lastActivity = signal<number>(Date.now());
 
@@ -329,7 +337,7 @@ export class SecurityService {
           ipAddress: '127.0.0.1',
           userAgent:
             typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-        })
+        }, this.getHeaders())
       );
     } catch (error) {
       // Logging should never break the app.
@@ -340,7 +348,7 @@ export class SecurityService {
   async fetchLogs(userId: string = 'anonymous'): Promise<void> {
     try {
       const data = await firstValueFrom(
-        this.http.get<SecurityLog[]>(`${this.API_URL}/security/logs/${userId}`)
+        this.http.get<SecurityLog[]>(`${this.API_URL}/security/logs/${userId}`, this.getHeaders())
       );
       this.logs.set(data);
     } catch (error) {
@@ -352,7 +360,7 @@ export class SecurityService {
     try {
       const data = await firstValueFrom(
         this.http.get<UserSession[]>(
-          `${this.API_URL}/security/sessions/${userId}`
+          `${this.API_URL}/security/sessions/${userId}`, this.getHeaders()
         )
       );
       this.sessions.set(data);
@@ -367,7 +375,7 @@ export class SecurityService {
   ): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.delete(`${this.API_URL}/security/session/${sessionId}`)
+        this.http.delete(`${this.API_URL}/security/session/${sessionId}`, this.getHeaders())
       );
       await this.fetchSessions(userId);
       await this.logEvent(
@@ -393,7 +401,7 @@ export class SecurityService {
           userId,
           deviceName,
           location,
-        })
+        }, this.getHeaders())
       );
     } catch (error) {
       this.logger.error('Failed to register session', error);

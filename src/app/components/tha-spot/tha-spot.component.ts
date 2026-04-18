@@ -125,9 +125,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     const query = this.searchQuery().toLowerCase();
     const activeFilters = this.quickFilters();
     const roomId = this.activeRoom();
-    const room = this.gamingRooms().find(r => r.id === roomId); const genre = this.activeGenre();
-
-    if (genre !== 'all') { filtered = filtered.filter(g => g.genre === genre); } if (room if (room && roomId !== 'all') {if (room && roomId !== 'all') { roomId !== 'all') {
+    const room = this.gamingRooms().find(r => r.id === roomId);
+    if (room && roomId !== 'all') {
       filtered = filtered.filter(g => this.gameService.matchesRoom(g, room));
     }
 
@@ -182,9 +181,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     effect(() => {
       const current = this.currentGame();
       if (current) {
-        this.uiService.setSubtleGlow(current.art?.accentStart || '#ec5b13');
+        // this.uiService.setSubtleGlow(current.art?.accentStart || '#ec5b13');
       } else {
-        this.uiService.setSubtleGlow(null);
+        // this.uiService.setSubtleGlow(null);
       }
     });
   }
@@ -261,7 +260,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         this.isMatchmaking.set(false);
         this.currentGame.set(game);
         // Tracking
-        this.profileService.updateGameStats(game.id, { plays: 1 });
+        // this.profileService.updateGameStats(game.id, { plays: 1 });
       }
     }, 150);
   }
@@ -401,8 +400,4 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   hasRail(railId: string): boolean {
     return this.recommendationRails().some(r => r.id === railId);
   }
-
-  setSearchQuery(q: string) { this.searchQuery.set(q); }
-  setSortMode(m: GameSortMode) { this.sortMode.set(m); }
-  setActiveGenre(g: string) { this.activeGenre.set(g); } toggleQuickFilter(f: QuickFilter) { this.quickFilters.update(fs => fs.includes(f) ? fs.filter(e => e !== f) : [...fs, f]); }
 }
