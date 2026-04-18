@@ -1,0 +1,36 @@
+<div class="radar-container relative w-full h-full flex items-center justify-center p-4">
+  <svg viewBox="0 0 200 200" class="w-full h-full overflow-visible">
+    <!-- Grid Circles -->
+    <circle *ngFor="let r of gridCircles" cx="100" cy="100" [attr.r]="r"
+            fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.5" />
+
+    <!-- Grid Lines -->
+    <line *ngFor="let line of gridLines()" [attr.x1]="line.x1" [attr.y1]="line.y1"
+          [attr.x2]="line.x2" [attr.y2]="line.y2"
+          stroke="rgba(255,255,255,0.05)" stroke-width="0.5" />
+
+    <!-- Data Polygon -->
+    <polygon [attr.points]="points()"
+             fill="rgba(168, 85, 247, 0.2)"
+             stroke="var(--color-secondary)"
+             stroke-width="1.5"
+             class="transition-all duration-700 ease-out shadow-[0_0_15px_rgba(168,85,247,0.3)]" />
+
+    <!-- Data Points -->
+    <circle *ngFor="let point of points().split(' ')"
+            [attr.cx]="point.split(',')[0]"
+            [attr.cy]="point.split(',')[1]"
+            r="2"
+            fill="var(--color-secondary)" />
+
+    <!-- Labels -->
+    <text *ngFor="let pos of labelPositions()"
+          [attr.x]="pos.x" [attr.y]="pos.y"
+          text-anchor="middle"
+          class="text-[7px] font-black uppercase tracking-tighter fill-slate-500">
+      {{ pos.label }}
+    </text>
+  </svg>
+
+  <div class="absolute inset-0 pointer-events-none bg-gradient-to-br from-brand-secondary/5 to-transparent opacity-20 rounded-full"></div>
+</div>
