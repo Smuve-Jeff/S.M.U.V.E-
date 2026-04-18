@@ -1016,64 +1016,63 @@ export class AiService {
     const growth = this.analyticsService.overallGrowth();
     const preferences = profile.recommendationPreferences || {};
     const context = this.buildRecommendationContext(profile);
-    const recommendations: RankedUpgradeRecommendation[] = UPGRADE_BLUEPRINTS.map(
-      (blueprint) => {
-      const preference = preferences[blueprint.id];
-      const acquired = this.isUpgradeAcquired(profile, blueprint);
-      const state: NonNullable<UpgradeRecommendation['state']> =
-        preference?.state === 'completed'
-          ? 'completed'
-          : acquired
-            ? 'acquired'
-            : preference?.state || this.getDefaultRecommendationState();
+    const recommendations: RankedUpgradeRecommendation[] =
+      UPGRADE_BLUEPRINTS.map((blueprint) => {
+        const preference = preferences[blueprint.id];
+        const acquired = this.isUpgradeAcquired(profile, blueprint);
+        const state: NonNullable<UpgradeRecommendation['state']> =
+          preference?.state === 'completed'
+            ? 'completed'
+            : acquired
+              ? 'acquired'
+              : preference?.state || this.getDefaultRecommendationState();
 
-      const workspaceBoost = blueprint.preferredViews?.includes(viewMode)
-        ? 4
-        : 0;
-      const details = blueprint.buildDetails({
-        profile,
-        growth,
-        context: {
-          ...context,
-          preference,
-        },
-      });
-      const rankScore =
-        blueprint.rank({
+        const workspaceBoost = blueprint.preferredViews?.includes(viewMode)
+          ? 4
+          : 0;
+        const details = blueprint.buildDetails({
           profile,
-          viewMode,
           growth,
           context: {
             ...context,
             preference,
           },
-        }) +
-        workspaceBoost -
-        this.getRecommendationDecay(preference);
+        });
+        const rankScore =
+          blueprint.rank({
+            profile,
+            viewMode,
+            growth,
+            context: {
+              ...context,
+              preference,
+            },
+          }) +
+          workspaceBoost -
+          this.getRecommendationDecay(preference);
 
-      return {
-        ...blueprint,
-        ...details,
-        state,
-        genres: profile.primaryGenre ? [profile.primaryGenre] : [],
-        historySummary: this.getRecommendationHistorySummary(preference),
-        rankScore,
-      };
-    }
-    )
-      .filter(
-        (recommendation) =>
-          !['dismissed', 'not-relevant'].includes(recommendation.state || '')
-      )
-      .sort((a, b) => {
-        const stateWeight =
-          this.getRecommendationStateWeight(a.state) -
-          this.getRecommendationStateWeight(b.state);
-        if (stateWeight !== 0) {
-          return stateWeight;
-        }
-        return b.rankScore - a.rankScore;
-      });
+        return {
+          ...blueprint,
+          ...details,
+          state,
+          genres: profile.primaryGenre ? [profile.primaryGenre] : [],
+          historySummary: this.getRecommendationHistorySummary(preference),
+          rankScore,
+        };
+      })
+        .filter(
+          (recommendation) =>
+            !['dismissed', 'not-relevant'].includes(recommendation.state || '')
+        )
+        .sort((a, b) => {
+          const stateWeight =
+            this.getRecommendationStateWeight(a.state) -
+            this.getRecommendationStateWeight(b.state);
+          if (stateWeight !== 0) {
+            return stateWeight;
+          }
+          return b.rankScore - a.rankScore;
+        });
 
     return Array.from<RankedUpgradeRecommendation>(
       new Map(
