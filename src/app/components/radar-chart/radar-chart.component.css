@@ -1,0 +1,18 @@
+:host {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.radar-container {
+  background: radial-gradient(circle at center, rgba(168, 85, 247, 0.05) 0%, transparent 70%);
+}
+
+svg text {
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: 0.05em;
+}
+
+polygon {
+    filter: drop-shadow(0 0 4px rgba(168, 85, 247, 0.4));
+}

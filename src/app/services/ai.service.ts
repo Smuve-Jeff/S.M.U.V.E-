@@ -85,6 +85,10 @@ const COMMAND_ROUTES: Record<string, string> = {
     'Deliver current intelligence on genre trends, DSP algorithm shifts, and emerging market opportunities relevant to the artist profile.',
   COLLAB_STRATEGY:
     'Identify ideal collaboration targets (features, producers, remixers) based on genre alignment and growth-stage synergy. Prescribe outreach approach.',
+  AUDIT_TRACK:
+    'Analyze the selected track data. Provide specific feedback on arrangement density, frequency masking, and rhythmic cohesion.',
+  SUGGEST_COLLAB:
+    'Based on the artist profile and genre, suggest three high-value collaboration types (e.g., specific instrumentals, vocalists, or remixers) to expand the brand influence.',
 };
 
 const HIGH_DENSITY_THRESHOLD = 0.72;
@@ -682,6 +686,10 @@ export class AiService {
     if (trimmed === '/generate_drums')
       return this.handleGenerateDrumCommand(genre);
     if (trimmed === '/auto_mix') return this.handleAutoMixCommand();
+    if (trimmed === '/audit_track')
+      return this.generateAiResponse(COMMAND_ROUTES['AUDIT_TRACK']);
+    if (trimmed === '/suggest_collab')
+      return this.generateAiResponse(COMMAND_ROUTES['SUGGEST_COLLAB']);
 
     // Check for keyword-routed commands (e.g., AUTO_MIX, BIZ_STRATEGY)
     const upperCommand = command.toUpperCase().trim();
