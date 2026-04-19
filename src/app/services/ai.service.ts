@@ -503,7 +503,7 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
 })
 export class AiService {
   private http = inject(HttpClient);
-  private injector = inject(Injector);
+  private authService = inject(AuthService);
   private userProfileService = inject(UserProfileService);
   private analyticsService = inject(AnalyticsService);
   private userContext = inject(UserContextService);
