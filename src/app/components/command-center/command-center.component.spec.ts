@@ -51,7 +51,7 @@ describe('CommandCenterComponent', () => {
       currentProcessStep: signal(''),
       scanningProgress: signal(0),
       getUpgradeRecommendations: jest.fn().mockReturnValue([recommendation]),
-      getStrategicRecommendations: jest.fn().mockResolvedValue([]),
+      getStrategicRecommendations: jest.fn().mockReturnValue([]),
       processCommand: jest.fn().mockResolvedValue('ok'),
       performExecutiveAudit: jest.fn(),
     };

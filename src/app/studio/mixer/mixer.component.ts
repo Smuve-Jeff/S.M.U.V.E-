@@ -38,6 +38,10 @@ export class MixerComponent {
   viewMode = signal<'compact' | 'expanded'>('expanded');
   showVocalSuite = signal(false);
   showVisualRouting = signal(false);
+  toggleVisualRouting() {
+    this.showVisualRouting.update((v) => !v);
+  }
+
 
   toggleViewMode() {
     this.viewMode.update((v) => (v === 'compact' ? 'expanded' : 'compact'));

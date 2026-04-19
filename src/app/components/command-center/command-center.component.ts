@@ -48,7 +48,7 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
       .reverse()
       .slice(0, 4)
   );
-  strategicRecs = signal<StrategicRecommendation[]>([]);
+  strategicRecs = signal<any[]>([]);
   isPoweringUp = signal(false);
 
   // Terminal state
@@ -60,8 +60,8 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
     this.loadStrategicRecommendations();
   }
 
-  async loadStrategicRecommendations() {
-    const recs = await this.aiService.getStrategicRecommendations();
+  loadStrategicRecommendations() {
+    const recs = this.aiService.getStrategicRecommendations();
     this.strategicRecs.set(recs);
   }
 

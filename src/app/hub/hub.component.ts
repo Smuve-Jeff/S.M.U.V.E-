@@ -1,5 +1,5 @@
 import { SecurityService } from '../services/security.service';
-import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -237,9 +237,21 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private animFrame: number | null = null;
   visualizerData = signal<number[]>(new Array(24).fill(20));
+  currentBeat = this.audioEngine.currentBeat;
+  globalStudioPulse = computed(() => {
+    const pulse = [];
+    if (this.aiService.isAIDrummerActive()) pulse.push('NEURAL DRUMMER: SYNCED');
+    if (this.aiService.isAIBassistActive()) pulse.push('AI BASSIST: TRACKING');
+    if (this.aiService.isAIKeyboardistActive()) pulse.push('KEYBOARDIST: IMPROVISING');
+    if (this.audioEngine.isRecording()) pulse.push('UPLINK: CAPTURING');
+    if (pulse.length === 0) pulse.push('SYSTEM READY: STANDBY');
+    return pulse;
+  });
+  getDynamicChecklist() { return this.aiService.getDynamicChecklist(); }
+  isMobile() { return this.uiService.isCompactMobile(); }
 
   ngOnInit() {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+    if (this.uiService.isCompactMobile()) {
       this.aiService.proactiveStrategicPulse();
     }
     this.pulseInterval = setInterval(() => {
@@ -251,16 +263,17 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     this.startVisualizer();
   }
 
+  ngOnDestroy() {
+    if (this.animFrame) cancelAnimationFrame(this.animFrame);
+  }
   private startVisualizer() {
-    const analyser = this.audioEngine.getAnalyser();
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
     const update = () => {
       if (this.playerService.isPlaying()) {
+        const analyser = this.audioEngine.getAnalyser();
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
         analyser.getByteFrequencyData(dataArray);
 
-        // Map the frequency data to our 24 bars
         const newData = [];
         const step = Math.floor(bufferLength / 24);
         for (let i = 0; i < 24; i++) {
@@ -269,12 +282,10 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
             sum += dataArray[i * step + j];
           }
           const average = sum / step;
-          // Normalize to 20-100 range for CSS height
           newData.push(Math.max(20, (average / 255) * 100));
         }
         this.visualizerData.set(newData);
       } else {
-        // Idling animation if not playing
         const idle = this.visualizerData().map((v) => Math.max(20, v * 0.95));
         this.visualizerData.set(idle);
       }
