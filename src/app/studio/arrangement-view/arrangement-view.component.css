@@ -71,8 +71,8 @@
   min-width: 2000px; /* Same as time-ruler */
   position: relative;
   background-image:
-    linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 120px 60px;
 }
 
@@ -136,10 +136,12 @@
 }
 
 @media (max-width: 640px) {
-  .track-headers, .tracks-column {
+  .track-headers,
+  .tracks-column {
     width: 60px;
   }
-  .track-info, .track-instrument {
+  .track-info,
+  .track-instrument {
     display: none;
   }
 }

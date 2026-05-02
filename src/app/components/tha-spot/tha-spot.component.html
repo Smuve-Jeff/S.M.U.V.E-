@@ -1,4 +1,8 @@
-<div class="tha-spot-container storefront-v42" [class.intel-open]="showIntelPanel()" [class.browse-mode]="isBrowseView()">
+<div
+  class="tha-spot-container storefront-v42"
+  [class.intel-open]="showIntelPanel()"
+  [class.browse-mode]="isBrowseView()"
+>
   <!-- Top Navigation & Control Bar -->
   <header class="executive-controls glass-v42">
     <div class="brand-group" (click)="isBrowseView.set(false)">
@@ -21,7 +25,11 @@
     </nav>
 
     <div class="control-actions">
-      <button class="action-btn" [class.active]="isBrowseView()" (click)="toggleBrowse()">
+      <button
+        class="action-btn"
+        [class.active]="isBrowseView()"
+        (click)="toggleBrowse()"
+      >
         <span class="material-symbols-outlined">grid_view</span>
         BROWSE ALL
       </button>
@@ -34,7 +42,6 @@
 
   <!-- Main Viewport -->
   <main class="viewport-content" [class.transitioning]="isTransitioning()">
-
     <!-- Home / Recommendation View -->
     <div class="home-view" *ngIf="!isBrowseView()">
       <!-- Hero Spot (Enhanced Focus) -->
@@ -46,13 +53,18 @@
         <div class="hero-intel">
           <div class="hero-topline">
             <span class="badge featured">FEATURED CABINET</span>
-            <span class="hero-publisher" *ngIf="hero.art?.eyebrow">{{ hero.art.eyebrow }}</span>
+            <span class="hero-publisher" *ngIf="hero.art?.eyebrow">{{
+              hero.art.eyebrow
+            }}</span>
           </div>
           <h2 class="hero-title">{{ hero.name }}</h2>
           <p class="hero-description">{{ hero.description }}</p>
 
           <div class="hero-actions">
-            <button class="hero-btn-primary action-pulse" (click)="onGameClick(hero)">
+            <button
+              class="hero-btn-primary action-pulse"
+              (click)="onGameClick(hero)"
+            >
               <span class="material-symbols-outlined">play_arrow</span>
               INITIALIZE
             </button>
@@ -64,9 +76,25 @@
         </div>
       </section>
 
-      <section class="genre-grid-section"> <h3 class="rail-title">GENRE SECTORS</h3> <div class="genre-grid"> <button *ngFor="let g of allCategories()" class="genre-pill glass-v42" (click)="setActiveGenre(g); isBrowseView.set(true)"> <span class="material-symbols-outlined">category</span> {{ g | uppercase }} </button> </div> </section> <!-- Category Rails: Every Category included -->
+      <section class="genre-grid-section">
+        <h3 class="rail-title">GENRE SECTORS</h3>
+        <div class="genre-grid">
+          <button
+            *ngFor="let g of allCategories()"
+            class="genre-pill glass-v42"
+            (click)="setActiveGenre(g); isBrowseView.set(true)"
+          >
+            <span class="material-symbols-outlined">category</span>
+            {{ g | uppercase }}
+          </button>
+        </div>
+      </section>
+      <!-- Category Rails: Every Category included -->
       <div class="rails-container">
-        <section class="storefront-rail" *ngFor="let rail of matchingRecommendationRails()">
+        <section
+          class="storefront-rail"
+          *ngFor="let rail of matchingRecommendationRails()"
+        >
           <div class="rail-header">
             <div class="rail-titles">
               <h3 class="rail-title">{{ rail.title | uppercase }}</h3>
@@ -75,20 +103,34 @@
           </div>
 
           <div class="rail-scroll custom-scrollbar">
-            <div class="game-card-compact storefront-card"
-                 [class.elite-tier]="game.badgeIds?.includes('elite')"
-                 *ngFor="let game of getGamesForRail(rail)"
-                 (click)="onGameClick(game)">
+            <div
+              class="game-card-compact storefront-card"
+              [class.elite-tier]="game.badgeIds?.includes('elite')"
+              *ngFor="let game of getGamesForRail(rail)"
+              (click)="onGameClick(game)"
+            >
               <div class="card-art">
                 <img [src]="game.image" [alt]="game.name" />
-                <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
-                <div class="card-badge new" *ngIf="game.badgeIds?.includes('new-drop')">NEW</div>
+                <div
+                  class="card-badge elite"
+                  *ngIf="game.badgeIds?.includes('elite')"
+                >
+                  ELITE
+                </div>
+                <div
+                  class="card-badge new"
+                  *ngIf="game.badgeIds?.includes('new-drop')"
+                >
+                  NEW
+                </div>
               </div>
               <div class="card-info">
                 <h4>{{ game.name }}</h4>
                 <div class="card-meta">
                   <span class="genre">{{ game.genre }}</span>
-                  <span class="players">{{ game.playersOnline | number }} LIVE</span>
+                  <span class="players"
+                    >{{ game.playersOnline | number }} LIVE</span
+                  >
                 </div>
               </div>
             </div>
@@ -100,22 +142,40 @@
     <!-- Browse View: Dedicated Browse with Advanced Filters -->
     <div class="browse-view" *ngIf="isBrowseView()">
       <div class="filter-sidebar glass-v42">
-        <div class="filter-group"><label>GENRE SECTOR</label><select [ngModel]="activeGenre()" (ngModelChange)="setActiveGenre($event)"><option value="all">ALL SECTORS</option><option *ngFor="let g of allCategories()" [value]="g">{{ g | uppercase }}</option></select></div>
+        <div class="filter-group">
+          <label>GENRE SECTOR</label
+          ><select
+            [ngModel]="activeGenre()"
+            (ngModelChange)="setActiveGenre($event)"
+          >
+            <option value="all">ALL SECTORS</option>
+            <option *ngFor="let g of allCategories()" [value]="g">
+              {{ g | uppercase }}
+            </option>
+          </select>
+        </div>
 
         <div class="filter-group">
           <label>SEARCH CABINETS</label>
           <div class="search-input-wrapper">
             <span class="material-symbols-outlined">search</span>
-            <input type="text" [ngModel]="searchQuery()" (ngModelChange)="setSearchQuery($event)" placeholder="Filter by name..." />
+            <input
+              type="text"
+              [ngModel]="searchQuery()"
+              (ngModelChange)="setSearchQuery($event)"
+              placeholder="Filter by name..."
+            />
           </div>
         </div>
 
         <div class="filter-group">
           <label>QUICK FILTERS</label>
           <div class="filter-pills">
-            <button *ngFor="let f of quickFilterOptions"
-                    [class.active]="quickFilters().includes(f)"
-                    (click)="toggleQuickFilter(f)">
+            <button
+              *ngFor="let f of quickFilterOptions"
+              [class.active]="quickFilters().includes(f)"
+              (click)="toggleQuickFilter(f)"
+            >
               {{ f | uppercase }}
             </button>
           </div>
@@ -134,14 +194,26 @@
 
       <div class="browse-grid-container custom-scrollbar">
         <div class="browse-grid">
-          <div class="game-card-compact storefront-card"
-               [class.elite-tier]="game.badgeIds?.includes('elite')"
-               *ngFor="let game of filteredGames()"
-               (click)="onGameClick(game)">
+          <div
+            class="game-card-compact storefront-card"
+            [class.elite-tier]="game.badgeIds?.includes('elite')"
+            *ngFor="let game of filteredGames()"
+            (click)="onGameClick(game)"
+          >
             <div class="card-art">
               <img [src]="game.image" [alt]="game.name" />
-              <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
-              <div class="card-badge new" *ngIf="game.badgeIds?.includes('new-drop')">NEW</div>
+              <div
+                class="card-badge elite"
+                *ngIf="game.badgeIds?.includes('elite')"
+              >
+                ELITE
+              </div>
+              <div
+                class="card-badge new"
+                *ngIf="game.badgeIds?.includes('new-drop')"
+              >
+                NEW
+              </div>
             </div>
             <div class="card-info">
               <h4>{{ game.name }}</h4>
@@ -158,11 +230,11 @@
   <!-- Intel Sidebar (Strategic Heuristics) -->
   <aside class="executive-sidebar glass-v42" [class.active]="showIntelPanel()">
     <header class="sidebar-header">
-       <span class="material-symbols-outlined">neurology</span>
-       STRATEGIC INTEL
-       <button class="close-intel" (click)="toggleIntel()">
-         <span class="material-symbols-outlined">close</span>
-       </button>
+      <span class="material-symbols-outlined">neurology</span>
+      STRATEGIC INTEL
+      <button class="close-intel" (click)="toggleIntel()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </header>
 
     <div class="sidebar-content custom-scrollbar">
@@ -171,7 +243,9 @@
           <div class="label">NEURAL SYNC</div>
           <div class="value">{{ neuralSyncScore() }}%</div>
         </div>
-        <div class="sync-bar"><div class="fill" [style.width.%]="neuralSyncScore()"></div></div>
+        <div class="sync-bar">
+          <div class="fill" [style.width.%]="neuralSyncScore()"></div>
+        </div>
       </div>
 
       <div class="directives-section">
@@ -183,7 +257,10 @@
 
       <div class="social-presence">
         <h4>CREW STATUS</h4>
-        <div class="presence-item" *ngFor="let p of socialPresence().slice(0, 5)">
+        <div
+          class="presence-item"
+          *ngFor="let p of socialPresence().slice(0, 5)"
+        >
           <div class="presence-avatar"></div>
           <div class="presence-info">
             <span class="name">{{ p.name }}</span>
@@ -196,14 +273,22 @@
   </aside>
 
   <!-- Matchmaking Overlay -->
-  <div class="matchmaking-overlay" *ngIf="isMatchmaking()" [class.active]="isMatchmaking()">
+  <div
+    class="matchmaking-overlay"
+    *ngIf="isMatchmaking()"
+    [class.active]="isMatchmaking()"
+  >
     <div class="matchmaking-container">
       <div class="scanning-circle">
         <div class="scan-ring outer"></div>
-        <div class="center-icon"><span class="material-symbols-outlined">satellite_alt</span></div>
+        <div class="center-icon">
+          <span class="material-symbols-outlined">satellite_alt</span>
+        </div>
       </div>
       <h2 class="status-title">{{ matchmakingStatus() }}</h2>
-      <div class="progress-bar-small"><div class="fill" [style.width.%]="matchmakingProgress()"></div></div>
+      <div class="progress-bar-small">
+        <div class="fill" [style.width.%]="matchmakingProgress()"></div>
+      </div>
     </div>
   </div>
 
@@ -228,7 +313,9 @@
             <span class="material-symbols-outlined">sports_esports</span>
             <div class="spec-label">
               <span>CONTROLS</span>
-              <strong>{{ selected.launchConfig?.controls?.join(', ') || 'Keyboard Map' }}</strong>
+              <strong>{{
+                selected.launchConfig?.controls?.join(', ') || 'Keyboard Map'
+              }}</strong>
             </div>
           </div>
           <div class="spec-item">
@@ -241,21 +328,31 @@
         </div>
 
         <div class="preview-actions">
-           <button class="primary-btn action-pulse" (click)="confirmLaunch()">INITIALIZE</button>
-           <button class="secondary-btn" (click)="closePreview()">ABORT</button>
+          <button class="primary-btn action-pulse" (click)="confirmLaunch()">
+            INITIALIZE
+          </button>
+          <button class="secondary-btn" (click)="closePreview()">ABORT</button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Immersive Session Container -->
-  <div class="immersive-overlay" *ngIf="currentGame() as active" [class.active]="currentGame()">
+  <div
+    class="immersive-overlay"
+    *ngIf="currentGame() as active"
+    [class.active]="currentGame()"
+  >
     <div class="game-console-window glass-v42">
-       <header class="console-header">
+      <header class="console-header">
         <div class="console-title">{{ active.name | uppercase }}</div>
         <div class="console-actions">
-           <button class="icon-btn" (click)="reloadGame()"><span class="material-symbols-outlined">refresh</span></button>
-           <button class="icon-btn" (click)="closeGame()"><span class="material-symbols-outlined">close</span></button>
+          <button class="icon-btn" (click)="reloadGame()">
+            <span class="material-symbols-outlined">refresh</span>
+          </button>
+          <button class="icon-btn" (click)="closeGame()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
         </div>
       </header>
       <div class="console-body">
@@ -270,8 +367,10 @@
         ></iframe>
       </div>
       <footer class="console-footer">
-         <div class="telemetry">UPLINK: <span class="success">SECURE</span> | LATENCY: 14ms</div>
-         <button class="terminate-btn" (click)="closeGame()">TERMINATE</button>
+        <div class="telemetry">
+          UPLINK: <span class="success">SECURE</span> | LATENCY: 14ms
+        </div>
+        <button class="terminate-btn" (click)="closeGame()">TERMINATE</button>
       </footer>
     </div>
   </div>

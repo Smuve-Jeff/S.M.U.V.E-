@@ -18,7 +18,7 @@
 }
 
 /* Fader Custom Styles */
-input[type="range"][orient="vertical"] {
+input[type='range'][orient='vertical'] {
   writing-mode: bt-lr; /* Firefox */
   appearance: slider-vertical; /* Webkit */
   width: 8px;

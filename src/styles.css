@@ -45,8 +45,10 @@
   /* Effects */
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl:
+    0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   --glass: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(255, 255, 255, 0.5);
 }
@@ -77,7 +79,8 @@
 }
 
 /* --- Base --- */
-html, body {
+html,
+body {
   height: 100%;
   background-color: var(--color-bg);
   color: var(--color-text);
@@ -87,7 +90,9 @@ html, body {
   /* Prevent text size adjustment on orientation change (Android/iOS) */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 .material-symbols-outlined {
@@ -115,64 +120,71 @@ html, body {
 
 /* 1. Frosted Glass (Glassmorphism) */
 .glass-v42 {
-    background: var(--glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-md);
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md);
 }
 
 /* 2. Soft Gradients (Mesh Gradient) */
 .mesh-gradient {
-    background: radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(245, 158, 11, 0.05) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+  background:
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+    radial-gradient(
+      at 100% 100%,
+      rgba(245, 158, 11, 0.05) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
 }
 
 .dark-mode .mesh-gradient {
-    background: radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.1) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%);
+  background:
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.1) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%);
 }
 
 /* 3. Minimalist Line Art Bg */
 .line-art-bg {
-    background-image: linear-gradient(var(--color-border) 1px, transparent 1px),
-                      linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
-    background-size: 40px 40px;
+  background-image:
+    linear-gradient(var(--color-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 /* 4. Material Depth */
 .material-depth {
-    background: var(--color-surface);
-    border-radius: 1rem;
-    box-shadow:
-        0 1px 2px rgba(0,0,0,0.05),
-        0 4px 6px rgba(0,0,0,0.05),
-        inset 0 1px 0 rgba(255,255,255,0.1);
+  background: var(--color-surface);
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 4px 6px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .dark-mode .material-depth {
-    box-shadow:
-        0 1px 3px rgba(0,0,0,0.3),
-        0 4px 8px rgba(0,0,0,0.3),
-        inset 0 1px 0 rgba(255,255,255,0.05);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 /* Random Blend Utility */
 .pro-blend {
-    @apply mesh-gradient line-art-bg;
+  @apply mesh-gradient line-art-bg;
 }
 
 /* --- Legacy Compatibility & specialized views --- */
 .specialized-view {
-    --color-bg: #050505;
-    --color-surface: #121212;
-    --color-text: #e2e2e5;
-    --color-primary: #ec5b13;
-    --color-secondary: #a855f7;
-    background-color: var(--color-bg);
-    color: var(--color-text);
+  --color-bg: #050505;
+  --color-surface: #121212;
+  --color-text: #e2e2e5;
+  --color-primary: #ec5b13;
+  --color-secondary: #a855f7;
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
 /* Animation Utilities */
@@ -181,18 +193,39 @@ html, body {
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px) scale(0.99); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border-bright); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-text-dim); }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-bright);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-dim);
+}
 
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
 
 /* Buttons */
 .btn-pro {
@@ -212,70 +245,83 @@ html, body {
 
 /* Status Indicators */
 .status-dot {
-    @apply w-2 h-2 rounded-full;
+  @apply w-2 h-2 rounded-full;
 }
-.status-dot-active { background-color: var(--color-primary); box-shadow: 0 0 8px var(--color-primary); }
+.status-dot-active {
+  background-color: var(--color-primary);
+  box-shadow: 0 0 8px var(--color-primary);
+}
 
 /* Performance Mode Overrides */
 .perf-mode-active *,
 .perf-mode-active *::before,
 .perf-mode-active *::after {
-    animation-duration: 0s !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0s !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+  animation-duration: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0s !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Scanlines and Vignette (Hidden by default in 4.2, can be re-enabled if desired) */
-.scanlines, .vignette {
-    display: none;
+.scanlines,
+.vignette {
+  display: none;
 }
 
 .show-scanlines .scanlines {
-    display: block;
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
-    background-size: 100% 4px;
-    pointer-events: none;
-    z-index: 1000;
-    opacity: 0.05;
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.05;
 }
 
 /* Specialized Views (Dark-Only Production Environments) */
-app-piano-roll, app-drum-machine, app-vocal-suite, app-mixer, app-dj-deck, app-mastering-suite, app-studio {
-    color-scheme: dark;
+app-piano-roll,
+app-drum-machine,
+app-vocal-suite,
+app-mixer,
+app-dj-deck,
+app-mastering-suite,
+app-studio {
+  color-scheme: dark;
 }
 
 /* Ensure studio header and nav in 4.2 still feel professional even if production views are dark */
 app-studio header {
-    @apply border-b border-white/5;
-    background: #050505;
+  @apply border-b border-white/5;
+  background: #050505;
 }
 
 app-studio .view-nav-container {
-    background: #0d0d0d;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: #0d0d0d;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* --- Footer Refinement --- */
 .elegant-footer-text {
-    font-family: "Cinzel", serif;
-    font-weight: 400; /* Elegant visual appearance */
-    letter-spacing: 0.25em; /* Refined elegant spacing */
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    opacity: 0.7;
+  font-family: 'Cinzel', serif;
+  font-weight: 400; /* Elegant visual appearance */
+  letter-spacing: 0.25em; /* Refined elegant spacing */
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.7;
 }
 
 .elegant-footer-text:hover {
-    opacity: 1;
-    letter-spacing: 0.3em; /* Elegant breathing effect */
-    text-shadow: 0 0 12px var(--color-text-dim);
+  opacity: 1;
+  letter-spacing: 0.3em; /* Elegant breathing effect */
+  text-shadow: 0 0 12px var(--color-text-dim);
 }
 
 .dark-mode .elegant-footer-text:hover {
-    text-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
 }
 
 /* Moto G Power 5G + tall Android portrait tuning (≈2400x1080 logical ~412px width) */
@@ -324,7 +370,8 @@ app-studio .view-nav-container {
     padding-bottom: 110px;
   }
 
-  .deck-a-transform, .deck-b-transform-disabled {
+  .deck-a-transform,
+  .deck-b-transform-disabled {
     transform: none !important;
     width: 100% !important;
     max-width: 360px;
@@ -340,8 +387,8 @@ app-studio .view-nav-container {
 /* Android / mobile scrolling performance */
 .overflow-y-auto,
 .overflow-x-auto,
-[class*="overflow-y-auto"],
-[class*="overflow-x-auto"] {
+[class*='overflow-y-auto'],
+[class*='overflow-x-auto'] {
   -webkit-overflow-scrolling: touch;
 }
 
@@ -376,8 +423,12 @@ body {
 }
 
 @keyframes ticker {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 .mobile-command-ticker {
@@ -430,7 +481,7 @@ body {
   border-radius: 50%;
   box-shadow:
     0 0 0 10px #111827,
-    0 20px 50px rgba(0,0,0,0.8);
+    0 20px 50px rgba(0, 0, 0, 0.8);
 }
 
 .strobe-dots {
@@ -449,8 +500,12 @@ body {
 }
 
 @keyframes strobe-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .hud-slider-vertical {
@@ -467,14 +522,20 @@ body {
   width: 24px;
   height: 48px;
   background: linear-gradient(180deg, #334155, #0f172a);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
 }
 
-.neon-accent-primary { color: #ec5b13; text-shadow: 0 0 8px rgba(236, 91, 19, 0.4); }
-.neon-accent-secondary { color: #a855f7; text-shadow: 0 0 8px rgba(168, 85, 247, 0.4); }
+.neon-accent-primary {
+  color: #ec5b13;
+  text-shadow: 0 0 8px rgba(236, 91, 19, 0.4);
+}
+.neon-accent-secondary {
+  color: #a855f7;
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
 
 .deck-view-grid {
   display: grid;
@@ -508,8 +569,13 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% -20%, rgba(236, 91, 19, 0.1), transparent 50%),
-              radial-gradient(circle at 0% 100%, rgba(168, 85, 247, 0.1), transparent 50%);
+  background:
+    radial-gradient(
+      circle at 50% -20%,
+      rgba(236, 91, 19, 0.1),
+      transparent 50%
+    ),
+    radial-gradient(circle at 0% 100%, rgba(168, 85, 247, 0.1), transparent 50%);
   pointer-events: none;
   z-index: 0;
 }

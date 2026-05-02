@@ -33,12 +33,15 @@
         <p
           class="text-[9px] font-black uppercase tracking-[0.3em] text-brand-primary"
         >
-          {{ isVerifying() ? 'Secure Channel Verification' : 'Guided Activation' }}
+          {{
+            isVerifying() ? 'Secure Channel Verification' : 'Guided Activation'
+          }}
         </p>
         <p class="text-[11px] text-silver-dim mt-2 leading-relaxed">
-          {{ isVerifying()
-            ? 'A transmission has been sent to your secure channel. Enter the 6-digit authorization cipher to establish the link.'
-            : 'New and returning artists now continue into a guided launch flow with profile setup, onboarding questionnaire, and resume-ready workspace suggestions.'
+          {{
+            isVerifying()
+              ? 'A transmission has been sent to your secure channel. Enter the 6-digit authorization cipher to establish the link.'
+              : 'New and returning artists now continue into a guided launch flow with profile setup, onboarding questionnaire, and resume-ready workspace suggestions.'
           }}
         </p>
       </div>

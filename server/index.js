@@ -24,35 +24,41 @@ app.use((err, req, res, next) => {
 // Rate Limiting
 // Authentication Middleware
 const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: "Authentication token required." });
+    return res.status(401).json({ error: 'Authentication token required.' });
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
-      return res.status(403).json({ error: "Invalid or expired token." });
+      return res.status(403).json({ error: 'Invalid or expired token.' });
     }
     req.user = user;
     next();
   });
 };
 
-const isNonEmptyString = (val) => typeof val === "string" && val.trim().length > 0;
-const isObject = (val) => typeof val === "object" && val !== null;
+const isNonEmptyString = (val) =>
+  typeof val === 'string' && val.trim().length > 0;
+const isObject = (val) => typeof val === 'object' && val !== null;
 
 const authorizeUser = (req, res, next) => {
   const authenticatedUserId = req.user && req.user.userId;
   const requestedUserId = req.params.userId || req.body.userId;
 
   if (!isNonEmptyString(authenticatedUserId)) {
-    return res.status(401).json({ error: "Authentication required." });
+    return res.status(401).json({ error: 'Authentication required.' });
   }
 
-  if (!isNonEmptyString(requestedUserId) || authenticatedUserId !== requestedUserId) {
-    return res.status(403).json({ error: "Access denied. Strategic breach detected." });
+  if (
+    !isNonEmptyString(requestedUserId) ||
+    authenticatedUserId !== requestedUserId
+  ) {
+    return res
+      .status(403)
+      .json({ error: 'Access denied. Strategic breach detected.' });
   }
   next();
 };
@@ -237,27 +243,37 @@ const initDb = async () => {
 };
 
 // Profile Endpoints
-app.get('/api/profile/:userId', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { rows } = await pool.query(
-      'SELECT profile_data FROM user_profiles WHERE user_id = $1',
-      [userId]
-    );
-    if (rows.length > 0) {
-      res.json(rows[0].profile_data);
-    } else {
-      res.status(404).json({ error: 'Profile not found' });
+app.get(
+  '/api/profile/:userId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { rows } = await pool.query(
+        'SELECT profile_data FROM user_profiles WHERE user_id = $1',
+        [userId]
+      );
+      if (rows.length > 0) {
+        res.json(rows[0].profile_data);
+      } else {
+        res.status(404).json({ error: 'Profile not found' });
+      }
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
     }
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
   }
-});
+);
 
 app.post('/api/profile', authenticateToken, authorizeUser, async (req, res) => {
-    if (!isNonEmptyString(req.body.userId) || !isObject(req.body.profileData)) {
-      return res.status(400).json({ error: "Invalid input data format." });
-    }
+  if (!isNonEmptyString(req.body.userId) || !isObject(req.body.profileData)) {
+    return res.status(400).json({ error: 'Invalid input data format.' });
+  }
   try {
     const { userId, profileData } = req.body;
     await pool.query(
@@ -266,84 +282,133 @@ app.post('/api/profile', authenticateToken, authorizeUser, async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
+    console.error('Internal Server Error:', err);
+    res
+      .status(500)
+      .json({
+        error: 'Strategic anomaly detected. Secure operations compromised.',
+      });
   }
 });
 
-app.post("/api/auth/session", authenticateToken, (req, res) => {
+app.post('/api/auth/session', authenticateToken, (req, res) => {
   const requestedUserId = req.body && req.body.userId;
   const authenticatedUserId = req.user && req.user.userId;
 
   if (!authenticatedUserId) {
-    return res.status(401).json({ error: "Authentication required." });
+    return res.status(401).json({ error: 'Authentication required.' });
   }
 
   if (requestedUserId && requestedUserId !== authenticatedUserId) {
-    return res.status(403).json({ error: "Cannot create a session for another user." });
+    return res
+      .status(403)
+      .json({ error: 'Cannot create a session for another user.' });
   }
 
-  const token = jwt.sign({ userId: authenticatedUserId }, JWT_SECRET, { expiresIn: "1h" });
+  const token = jwt.sign({ userId: authenticatedUserId }, JWT_SECRET, {
+    expiresIn: '1h',
+  });
   res.json({ token });
 });
 
 // Security Endpoints
-app.get('/api/security/logs/:userId', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { rows } = await pool.query(
-      'SELECT * FROM security_logs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50',
-      [userId]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
+app.get(
+  '/api/security/logs/:userId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { rows } = await pool.query(
+        'SELECT * FROM security_logs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50',
+        [userId]
+      );
+      res.json(rows);
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
+    }
   }
-});
+);
 
-app.post('/api/security/log', authenticateToken, authorizeUser, async (req, res) => {
-  if (!isNonEmptyString(req.body.eventType)) {
-    return res.status(400).json({ error: "eventType is required." });
+app.post(
+  '/api/security/log',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    if (!isNonEmptyString(req.body.eventType)) {
+      return res.status(400).json({ error: 'eventType is required.' });
+    }
+    try {
+      const { userId, eventType, description, ipAddress, userAgent } = req.body;
+      await pool.query(
+        'INSERT INTO security_logs (user_id, event_type, description, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
+        [userId, eventType, description || '', ipAddress || '', userAgent || '']
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
+    }
   }
-  try {
-    const { userId, eventType, description, ipAddress, userAgent } = req.body;
-    await pool.query(
-      'INSERT INTO security_logs (user_id, event_type, description, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)',
-      [userId, eventType, description || '', ipAddress || '', userAgent || '']
-    );
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
-  }
-});
+);
 
-app.get('/api/security/sessions/:userId', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { rows } = await pool.query(
-      'SELECT * FROM user_sessions WHERE user_id = $1 ORDER BY last_active DESC',
-      [userId]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
+app.get(
+  '/api/security/sessions/:userId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { rows } = await pool.query(
+        'SELECT * FROM user_sessions WHERE user_id = $1 ORDER BY last_active DESC',
+        [userId]
+      );
+      res.json(rows);
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
+    }
   }
-});
+);
 
-app.post('/api/security/session', authenticateToken, authorizeUser, async (req, res) => {
-  if (!isNonEmptyString(req.body.sessionId)) {
-    return res.status(400).json({ error: "sessionId is required." });
+app.post(
+  '/api/security/session',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    if (!isNonEmptyString(req.body.sessionId)) {
+      return res.status(400).json({ error: 'sessionId is required.' });
+    }
+    try {
+      const { sessionId, userId, deviceName, location } = req.body;
+      await pool.query(
+        'INSERT INTO user_sessions (session_id, user_id, device_name, location) VALUES ($1, $2, $3, $4) ON CONFLICT (session_id) DO UPDATE SET last_active = CURRENT_TIMESTAMP',
+        [sessionId, userId, deviceName || '', location || '']
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
+    }
   }
-  try {
-    const { sessionId, userId, deviceName, location } = req.body;
-    await pool.query(
-      'INSERT INTO user_sessions (session_id, user_id, device_name, location) VALUES ($1, $2, $3, $4) ON CONFLICT (session_id) DO UPDATE SET last_active = CURRENT_TIMESTAMP',
-      [sessionId, userId, deviceName || '', location || '']
-    );
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
-  }
-});
+);
 
 app.delete(
   '/api/security/session/:sessionId',
@@ -371,95 +436,114 @@ app.delete(
       ]);
       return res.json({ success: true });
     } catch (err) {
-      console.error("Internal Server Error:", err);
+      console.error('Internal Server Error:', err);
       return res
         .status(500)
-        .json({ error: "Strategic anomaly detected. Secure operations compromised." });
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
     }
   }
 );
 
-app.delete('/api/security/sessions/:userId', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    await pool.query('DELETE FROM user_sessions WHERE user_id = $1', [userId]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
+app.delete(
+  '/api/security/sessions/:userId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      await pool.query('DELETE FROM user_sessions WHERE user_id = $1', [
+        userId,
+      ]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
+    }
   }
-});
+);
 
-app.post('/api/auth/login-email', loginEmailLimiter, authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId, email, artistName, loginAt } = req.body || {};
+app.post(
+  '/api/auth/login-email',
+  loginEmailLimiter,
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId, email, artistName, loginAt } = req.body || {};
 
-    // Require userId and a syntactically valid email from the request body.
-    if (!userId || !isValidEmail(email)) {
-      return res.status(400).json({
-        success: false,
-        error: 'A valid userId and recipient email are required.',
-      });
-    }
+      // Require userId and a syntactically valid email from the request body.
+      if (!userId || !isValidEmail(email)) {
+        return res.status(400).json({
+          success: false,
+          error: 'A valid userId and recipient email are required.',
+        });
+      }
 
-    // Verify the userId exists in the database and that the stored email
-    // matches the requested recipient address.  This prevents any caller from
-    // triggering a notification email to an address they do not own.
-    const { rows } = await pool.query(
-      'SELECT profile_data FROM user_profiles WHERE user_id = $1',
-      [userId]
-    );
+      // Verify the userId exists in the database and that the stored email
+      // matches the requested recipient address.  This prevents any caller from
+      // triggering a notification email to an address they do not own.
+      const { rows } = await pool.query(
+        'SELECT profile_data FROM user_profiles WHERE user_id = $1',
+        [userId]
+      );
 
-    if (rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized.',
-      });
-    }
+      if (rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          error: 'Unauthorized.',
+        });
+      }
 
-    const storedEmail =
-      rows[0].profile_data && rows[0].profile_data.email
-        ? String(rows[0].profile_data.email).trim().toLowerCase()
-        : null;
+      const storedEmail =
+        rows[0].profile_data && rows[0].profile_data.email
+          ? String(rows[0].profile_data.email).trim().toLowerCase()
+          : null;
 
-    if (!storedEmail || storedEmail !== String(email).trim().toLowerCase()) {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized.',
-      });
-    }
+      if (!storedEmail || storedEmail !== String(email).trim().toLowerCase()) {
+        return res.status(403).json({
+          success: false,
+          error: 'Unauthorized.',
+        });
+      }
 
-    const transport = createEmailTransport();
-    if (!transport) {
-      return res.status(202).json({
-        success: false,
-        skipped: true,
-        message: 'SMTP transport is not configured.',
-      });
-    }
+      const transport = createEmailTransport();
+      if (!transport) {
+        return res.status(202).json({
+          success: false,
+          skipped: true,
+          message: 'SMTP transport is not configured.',
+        });
+      }
 
-    // Use server-derived metadata instead of client-supplied values.
-    const serverUserAgent = req.get('User-Agent') || 'unknown';
-    const serverIpAddress = req.ip || 'unknown';
-    const safeArtistName = escapeHtml(artistName || 'Artist');
-    const timestamp = formatLoginTimestamp(loginAt);
-    const subjectPrefix = process.env.SMTP_SUBJECT_PREFIX || 'S.M.U.V.E 2.0';
+      // Use server-derived metadata instead of client-supplied values.
+      const serverUserAgent = req.get('User-Agent') || 'unknown';
+      const serverIpAddress = req.ip || 'unknown';
+      const safeArtistName = escapeHtml(artistName || 'Artist');
+      const timestamp = formatLoginTimestamp(loginAt);
+      const subjectPrefix = process.env.SMTP_SUBJECT_PREFIX || 'S.M.U.V.E 2.0';
 
-    await transport.sendMail({
-      from: process.env.SMTP_FROM,
-      to: storedEmail,
-      subject: `${subjectPrefix} login confirmation`,
-      text: [
-        `Hi ${safeArtistName},`,
-        '',
-        'We detected a successful login to your S.M.U.V.E 2.0 account.',
-        `Login time: ${timestamp}`,
-        `Device: ${serverUserAgent}`,
-        `IP address: ${serverIpAddress}`,
-        '',
-        'If this was you, no action is required.',
-        'If this was not you, please secure your account immediately.',
-      ].join('\n'),
-      html: `
+      await transport.sendMail({
+        from: process.env.SMTP_FROM,
+        to: storedEmail,
+        subject: `${subjectPrefix} login confirmation`,
+        text: [
+          `Hi ${safeArtistName},`,
+          '',
+          'We detected a successful login to your S.M.U.V.E 2.0 account.',
+          `Login time: ${timestamp}`,
+          `Device: ${serverUserAgent}`,
+          `IP address: ${serverIpAddress}`,
+          '',
+          'If this was you, no action is required.',
+          'If this was not you, please secure your account immediately.',
+        ].join('\n'),
+        html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
           <h2 style="margin-bottom: 12px;">S.M.U.V.E 2.0 Login Confirmation</h2>
           <p>Hi ${safeArtistName},</p>
@@ -473,99 +557,154 @@ app.post('/api/auth/login-email', loginEmailLimiter, authenticateToken, authoriz
           <p>If this was not you, please secure your account immediately.</p>
         </div>
       `,
-    });
+      });
 
-    return res.json({ success: true });
-  } catch (err) {
-    console.error('Failed to send login confirmation email', err);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to send login confirmation email.',
-    });
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('Failed to send login confirmation email', err);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to send login confirmation email.',
+      });
+    }
   }
-});
+);
 
 // Project Endpoints (Cloud Sync)
-app.get('/api/projects/:userId', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { rows } = await pool.query(
-      'SELECT * FROM projects WHERE user_id = $1 ORDER BY updated_at DESC',
-      [userId]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
-  }
-});
-
-app.post('/api/projects', authenticateToken, authorizeUser, async (req, res) => {
-    if (!isNonEmptyString(req.body.projectId) || !isNonEmptyString(req.body.userId) || !isNonEmptyString(req.body.title) || !isObject(req.body.projectData)) {
-      return res.status(400).json({ error: "Invalid project sync data." });
+app.get(
+  '/api/projects/:userId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { rows } = await pool.query(
+        'SELECT * FROM projects WHERE user_id = $1 ORDER BY updated_at DESC',
+        [userId]
+      );
+      res.json(rows);
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
     }
-  try {
-    const { projectId, userId, title, projectData } = req.body;
-    await pool.query(
-      'INSERT INTO projects (project_id, user_id, title, project_data, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) ON CONFLICT (project_id) DO UPDATE SET title = $3, project_data = $4, updated_at = CURRENT_TIMESTAMP',
-      [projectId, userId, title, JSON.stringify(projectData)]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
   }
-});
+);
+
+app.post(
+  '/api/projects',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    if (
+      !isNonEmptyString(req.body.projectId) ||
+      !isNonEmptyString(req.body.userId) ||
+      !isNonEmptyString(req.body.title) ||
+      !isObject(req.body.projectData)
+    ) {
+      return res.status(400).json({ error: 'Invalid project sync data.' });
+    }
+    try {
+      const { projectId, userId, title, projectData } = req.body;
+      await pool.query(
+        'INSERT INTO projects (project_id, user_id, title, project_data, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) ON CONFLICT (project_id) DO UPDATE SET title = $3, project_data = $4, updated_at = CURRENT_TIMESTAMP',
+        [projectId, userId, title, JSON.stringify(projectData)]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
+    }
+  }
+);
 
 // Artist Identity Endpoints
-app.get('/api/identity/:userId', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { rows } = await pool.query(
-      'SELECT identity_data, profile_snapshot, updated_at FROM artist_identities WHERE user_id = $1',
-      [userId]
-    );
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Artist identity not found' });
+app.get(
+  '/api/identity/:userId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { rows } = await pool.query(
+        'SELECT identity_data, profile_snapshot, updated_at FROM artist_identities WHERE user_id = $1',
+        [userId]
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'Artist identity not found' });
+      }
+
+      return res.json({
+        identity: rows[0].identity_data,
+        profileSnapshot: rows[0].profile_snapshot,
+        updatedAt: rows[0].updated_at,
+      });
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      return res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
     }
+  }
+);
 
-    return res.json({
-      identity: rows[0].identity_data,
-      profileSnapshot: rows[0].profile_snapshot,
-      updatedAt: rows[0].updated_at,
-    });
-  } catch (err) {
-    console.error("Internal Server Error:", err);
-    return res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
+app.post(
+  '/api/identity',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    if (!isObject(req.body.identity)) {
+      return res.status(400).json({ error: 'Identity data is required.' });
+    }
+    try {
+      const { userId, identity, profileData } = req.body;
+      await pool.query(
+        'INSERT INTO artist_identities (user_id, identity_data, profile_snapshot, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP) ON CONFLICT (user_id) DO UPDATE SET identity_data = $2, profile_snapshot = $3, updated_at = CURRENT_TIMESTAMP',
+        [userId, JSON.stringify(identity), JSON.stringify(profileData || null)]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
+    }
   }
-});
+);
 
-app.post('/api/identity', authenticateToken, authorizeUser, async (req, res) => {
-  if (!isObject(req.body.identity)) {
-    return res.status(400).json({ error: "Identity data is required." });
+app.get(
+  '/api/identity/:userId/connectors',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { rows } = await pool.query(
+        'SELECT * FROM connector_jobs WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 50',
+        [userId]
+      );
+      res.json(rows);
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
+    }
   }
-  try {
-    const { userId, identity, profileData } = req.body;
-    await pool.query(
-      'INSERT INTO artist_identities (user_id, identity_data, profile_snapshot, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP) ON CONFLICT (user_id) DO UPDATE SET identity_data = $2, profile_snapshot = $3, updated_at = CURRENT_TIMESTAMP',
-      [userId, JSON.stringify(identity), JSON.stringify(profileData || null)]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
-  }
-});
-
-app.get('/api/identity/:userId/connectors', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { rows } = await pool.query(
-      'SELECT * FROM connector_jobs WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 50',
-      [userId]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
-  }
-});
+);
 
 app.post(
   '/api/identity/:userId/connectors/:connectorId/sync',
@@ -575,7 +714,7 @@ app.post(
     try {
       const { userId, connectorId } = req.params;
       if (!isNonEmptyString(connectorId) || connectorId.length > 80) {
-        return res.status(400).json({ error: "Invalid connector ID." });
+        return res.status(400).json({ error: 'Invalid connector ID.' });
       }
       const { trigger = 'manual', payload = {} } = req.body || {};
       const crypto = require('node:crypto');
@@ -588,27 +727,42 @@ app.post(
 
       res.json({ success: true, jobId, status: 'queued' });
     } catch (err) {
-      console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
     }
   }
 );
 
 // AI Analyze Proxy
-app.post('/api/ai/analyze', aiAnalyzeLimiter, authenticateToken, async (req, res) => {
-  if (!isNonEmptyString(req.body.prompt)) {
-    return res.status(400).json({ error: "A non-empty prompt is required." });
+app.post(
+  '/api/ai/analyze',
+  aiAnalyzeLimiter,
+  authenticateToken,
+  async (req, res) => {
+    if (!isNonEmptyString(req.body.prompt)) {
+      return res.status(400).json({ error: 'A non-empty prompt is required.' });
+    }
+    try {
+      const { prompt } = req.body;
+      const response = await genAI.models.generateContent({
+        model: 'gemini-1.5-pro',
+        contents: prompt,
+      });
+      res.json({ text: response.text });
+    } catch (err) {
+      console.error('Internal Server Error:', err);
+      res
+        .status(500)
+        .json({
+          error: 'Strategic anomaly detected. Secure operations compromised.',
+        });
+    }
   }
-  try {
-    const { prompt } = req.body;
-    const response = await genAI.models.generateContent({
-      model: 'gemini-1.5-pro',
-      contents: prompt,
-    });
-    res.json({ text: response.text });
-  } catch (err) {
-    console.error("Internal Server Error:", err); res.status(500).json({ error: "Strategic anomaly detected. Secure operations compromised." });
-  }
-});
+);
 
 const startServer = async (port = process.env.PORT || 3000) => {
   await initDb();

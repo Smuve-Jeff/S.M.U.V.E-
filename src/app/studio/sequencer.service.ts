@@ -1,9 +1,7 @@
+import { AiService } from '../services/ai.service';
 import { LoggingService } from '../services/logging.service';
 import { Injectable, signal, computed, inject } from '@angular/core';
-import {
-  InstrumentsService,
-  InstrumentPreset,
-} from '../services/instruments.service';
+import { InstrumentsService } from '../services/instruments.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 
 export interface SequencerNote {
@@ -37,7 +35,6 @@ export interface SequencerPattern {
   length: number;
   tracks: SequencerTrack[];
   swing: number;
-  sceneId?: string;
 }
 
 export interface PatternVariation {
@@ -58,164 +55,78 @@ export interface PatternScene {
   providedIn: 'root',
 })
 export class SequencerService {
+  private aiService = inject(AiService);
   private logger = inject(LoggingService);
-  private readonly instrumentsService = inject(InstrumentsService);
-  private readonly engine = inject(AudioEngineService);
-  private idCounter = 0;
+  private instrumentsService = inject(InstrumentsService);
+  private engine = inject(AudioEngineService);
 
   patterns = signal<SequencerPattern[]>([]);
-  variations = signal<PatternVariation[]>([]);
-  scenes = signal<PatternScene[]>([]);
   activePatternIndex = signal(0);
+  activePattern = computed(() => this.patterns()[this.activePatternIndex()]);
+
   selectedTrackId = signal<string | null>(null);
 
-  activePattern = computed(() => {
-    const ps = this.patterns();
-    return ps.length > 0 ? ps[this.activePatternIndex()] : null;
-  });
-
-  selectedTrack = computed(() => {
-    const pattern = this.activePattern();
-    const id = this.selectedTrackId();
-    if (!pattern || !id) return null;
-    return pattern.tracks.find((t) => t.id === id) || null;
-  });
+  variations = signal<PatternVariation[]>([]);
+  scenes = signal<PatternScene[]>([]);
 
   constructor() {
-    this.initDefaultPattern();
+    this.initializeDefaultProject();
+
     this.engine.onScheduleStep = (stepIndex, when, stepDur) => {
       this.scheduleTick(stepIndex, when, stepDur);
     };
   }
 
-  private nextId(prefix: string): string {
-    this.idCounter += 1;
-    return `${prefix}-${Date.now().toString(36)}-${this.idCounter.toString(36)}`;
-  }
-
-  private clonePattern(pattern: SequencerPattern): SequencerPattern {
-    return {
-      ...pattern,
-      tracks: pattern.tracks.map((track) => ({
-        ...track,
-        notes: track.notes.map((note) => ({ ...note })),
-        steps: [...track.steps],
-        stepProbability: [...track.stepProbability],
-        ratchets: [...track.ratchets],
-      })),
-    };
-  }
-
-  private initDefaultPattern() {
-    const defaultTracks: SequencerTrack[] = [
-      this.createTrack('Kick', 'kit-808', 36, [
-        true,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-      ]),
-      this.createTrack('Snare', 'kit-808', 38, [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-      ]),
-      this.createTrack('Hi-Hat', 'kit-808', 42, [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-      ]),
-      this.createTrack('Bass', 'synth-lead', 36, [
-        true,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-      ]),
-    ];
-
-    const pattern: SequencerPattern = {
-      id: 'p1',
-      name: 'Pattern 1',
+  private initializeDefaultProject() {
+    const defaultPattern: SequencerPattern = {
+      id: 'p-1',
+      name: 'Initial Groove',
       length: 64,
-      tracks: defaultTracks,
+      tracks: [
+        this.createTrack(
+          'Kick',
+          'drum-kit-1',
+          36,
+          [0, 8, 16, 24, 32, 40, 48, 56]
+        ),
+        this.createTrack(
+          'Snare',
+          'drum-kit-1',
+          38,
+          [4, 12, 20, 28, 36, 44, 52, 60]
+        ),
+        this.createTrack(
+          'Hi-Hat',
+          'drum-kit-1',
+          42,
+          Array.from({ length: 32 }, (_, i) => i * 2)
+        ),
+      ],
       swing: 0,
     };
-
-    this.patterns.set([pattern]);
-    this.createScene('Scene 1', pattern.id);
+    this.patterns.set([defaultPattern]);
   }
 
   private createTrack(
     name: string,
     instrumentId: string,
-    defaultPitch: number,
-    steps: boolean[]
+    basePitch: number,
+    initialSteps: number[]
   ): SequencerTrack {
+    const steps = new Array(64).fill(false);
     const notes: SequencerNote[] = [];
-    steps.forEach((active, i) => {
-      if (active) {
+
+    initialSteps.forEach((s) => {
+      if (s >= 0 && s < 64) {
+        steps[s] = true;
         notes.push({
           id: this.nextId('seq-note'),
-          pitch: defaultPitch,
-          startTime: i,
+          pitch: basePitch,
+          startTime: s,
           duration: 1,
           velocity: 0.8,
         });
       }
-    });
-
-    const fullSteps = new Array(64).fill(false);
-    steps.forEach((v, i) => {
-      if (i < 64) fullSteps[i] = v;
     });
 
     return {
@@ -227,12 +138,31 @@ export class SequencerService {
       mute: false,
       solo: false,
       notes,
-      steps: fullSteps,
-      stepProbability: new Array(64).fill(1),
+      steps,
+      stepProbability: new Array(64).fill(1.0),
       ratchets: new Array(64).fill(1),
       trackLength: 64,
       velocityCurve: 'flat',
       humanize: 0,
+    };
+  }
+
+  private nextId(prefix: string): string {
+    return `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private clonePattern(p: SequencerPattern): SequencerPattern {
+    return {
+      ...p,
+      id: this.nextId('p'),
+      tracks: p.tracks.map((t) => ({
+        ...t,
+        id: this.nextId('seq-track'),
+        notes: t.notes.map((n) => ({ ...n, id: this.nextId('seq-note') })),
+        steps: [...t.steps],
+        stepProbability: [...t.stepProbability],
+        ratchets: [...t.ratchets],
+      })),
     };
   }
 
@@ -409,6 +339,8 @@ export class SequencerService {
     const activeStep =
       ((stepIndex % pattern.length) + pattern.length) % pattern.length;
 
+    this.handleAiMusicians(activeStep, when, stepDur);
+
     pattern.tracks.forEach((track) => {
       if (track.mute) return;
       const localStep =
@@ -558,5 +490,41 @@ export class SequencerService {
     );
     if (patternIdx >= 0) this.activePatternIndex.set(patternIdx);
     if (scene.variationId) this.applyVariation(scene.variationId);
+  }
+
+  private handleAiMusicians(stepIndex: number, when: number, stepDur: number) {
+    if (this.aiService.isAIDrummerActive() && stepIndex % 4 === 0) {
+      const midi = stepIndex % 8 === 0 ? 36 : 38;
+      this.engine.playSynth(
+        when,
+        440 * Math.pow(2, (midi - 69) / 12),
+        stepDur * 0.5,
+        0.8,
+        0
+      );
+    }
+
+    if (this.aiService.isAIBassistActive() && stepIndex % 2 === 0) {
+      const notes = [36, 39, 41, 43];
+      const midi = notes[Math.floor(stepIndex / 2) % notes.length];
+      this.engine.playSynth(
+        when,
+        440 * Math.pow(2, (midi - 69) / 12),
+        stepDur * 1.5,
+        0.7,
+        -0.1
+      );
+    }
+
+    if (this.aiService.isAIKeyboardistActive() && Math.random() > 0.7) {
+      const midi = 60 + Math.floor(Math.random() * 12);
+      this.engine.playSynth(
+        when,
+        440 * Math.pow(2, (midi - 69) / 12),
+        stepDur * 2,
+        0.5,
+        0.2
+      );
+    }
   }
 }

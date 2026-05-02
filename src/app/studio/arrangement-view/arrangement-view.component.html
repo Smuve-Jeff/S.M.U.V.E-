@@ -1,43 +1,69 @@
-<div class="arrangement-container bg-background-dark/40 border border-white/5 rounded-[32px] overflow-hidden flex flex-col h-full shadow-2xl titanium-texture">
+<div
+  class="arrangement-container bg-background-dark/40 border border-white/5 rounded-[32px] overflow-hidden flex flex-col h-full shadow-2xl titanium-texture"
+>
   <!-- Header with Transport Mini-Display -->
-  <div class="arrangement-header bg-extreme-panel/80 px-8 py-4 flex items-center justify-between border-b border-white/5 backdrop-blur-md">
+  <div
+    class="arrangement-header bg-extreme-panel/80 px-8 py-4 flex items-center justify-between border-b border-white/5 backdrop-blur-md"
+  >
     <div class="flex items-center gap-6">
       <div class="flex items-center gap-3">
-        <span class="material-symbols-outlined text-brand-primary text-lg">reorder</span>
-        <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Project Arrangement</h3>
+        <span class="material-symbols-outlined text-brand-primary text-lg"
+          >reorder</span
+        >
+        <h3
+          class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic"
+        >
+          Project Arrangement
+        </h3>
       </div>
       <div class="h-4 w-px bg-white/10"></div>
       <div class="flex gap-4">
-        <button class="text-[9px] font-black uppercase tracking-widest text-brand-primary border-b border-brand-primary">Arrangement</button>
-        <button class="text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors">Automation</button>
+        <button
+          class="text-[9px] font-black uppercase tracking-widest text-brand-primary border-b border-brand-primary"
+        >
+          Arrangement
+        </button>
+        <button
+          class="text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
+        >
+          Automation
+        </button>
       </div>
       <div class="h-4 w-px bg-white/10"></div>
-      <button 
-        (click)="addTrack()" 
+      <button
+        (click)="addTrack()"
         class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-primary/10 border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/20 transition-all"
       >
         <span class="material-symbols-outlined text-sm">add</span>
-        <span class="text-[9px] font-black uppercase tracking-widest">Add Track</span>
+        <span class="text-[9px] font-black uppercase tracking-widest"
+          >Add Track</span
+        >
       </button>
     </div>
-    <div class="flex items-center gap-6 text-[10px] font-mono font-black text-slate-500 bg-black/40 px-4 py-2 rounded-xl border border-white/5">
+    <div
+      class="flex items-center gap-6 text-[10px] font-mono font-black text-slate-500 bg-black/40 px-4 py-2 rounded-xl border border-white/5"
+    >
       <div class="flex items-center gap-3">
-         <span class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></span>
-         {{ trackCount() }} Tracks
+        <span
+          class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"
+        ></span>
+        {{ trackCount() }} Tracks
       </div>
       <div class="h-4 w-px bg-white/10"></div>
       <div class="flex items-center gap-3">
-         <span class="material-symbols-outlined text-xs">library_music</span>
-         {{ clipCount() }} Clips
+        <span class="material-symbols-outlined text-xs">library_music</span>
+        {{ clipCount() }} Clips
       </div>
     </div>
   </div>
 
   <div class="arrangement-content flex-grow flex overflow-hidden">
     <!-- Track Headers (Advanced Controls) -->
-    <div class="track-headers-column w-72 border-r border-white/5 flex flex-col overflow-y-auto no-scrollbar bg-black/20">
-      <div 
-        *ngFor="let track of tracks()" 
+    <div
+      class="track-headers-column w-72 border-r border-white/5 flex flex-col overflow-y-auto no-scrollbar bg-black/20"
+    >
+      <div
+        *ngFor="let track of tracks()"
         class="track-header h-28 border-b border-white/5 p-5 flex flex-col justify-between hover:bg-white/5 transition-all group cursor-pointer"
         [class.bg-brand-primary/10]="isTrackSelected(track.id)"
         [class.border-l-2]="isTrackSelected(track.id)"
@@ -46,36 +72,51 @@
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div class="w-2 h-8 rounded-full shadow-lg" [style.background-color]="track.clips[0]?.color || '#ec5b13'"></div>
+            <div
+              class="w-2 h-8 rounded-full shadow-lg"
+              [style.background-color]="track.clips[0]?.color || '#ec5b13'"
+            ></div>
             <div class="flex flex-col">
-              <span class="text-[10px] font-black uppercase tracking-wider text-white truncate w-32">{{ track.name }}</span>
-              <span class="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{{ track.clips.length }} clip(s)</span>
+              <span
+                class="text-[10px] font-black uppercase tracking-wider text-white truncate w-32"
+                >{{ track.name }}</span
+              >
+              <span
+                class="text-[8px] font-bold text-slate-500 uppercase tracking-widest"
+                >{{ track.clips.length }} clip(s)</span
+              >
             </div>
           </div>
-          <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button 
+          <div
+            class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <button
               (click)="toggleSolo(track.id); $event.stopPropagation()"
               class="w-6 h-6 rounded bg-slate-800 border border-white/10 flex items-center justify-center text-[9px] font-black transition-colors"
               [class.bg-amber-500]="track.solo"
               [class.text-black]="track.solo"
               [class.text-slate-400]="!track.solo"
               [class.hover:text-amber-400]="!track.solo"
-            >S</button>
-            <button 
+            >
+              S
+            </button>
+            <button
               (click)="toggleMute(track.id); $event.stopPropagation()"
               class="w-6 h-6 rounded bg-slate-800 border border-white/10 flex items-center justify-center text-[9px] font-black transition-colors"
               [class.bg-red-500]="track.muted"
               [class.text-white]="track.muted"
               [class.text-slate-400]="!track.muted"
               [class.hover:text-red-400]="!track.muted"
-            >M</button>
-            <button 
+            >
+              M
+            </button>
+            <button
               (click)="addClip(track.id); $event.stopPropagation()"
               class="w-6 h-6 rounded bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 hover:text-brand-primary transition-colors"
             >
               <span class="material-symbols-outlined text-xs">add</span>
             </button>
-            <button 
+            <button
               (click)="removeTrack(track.id); $event.stopPropagation()"
               class="w-6 h-6 rounded bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
             >
@@ -85,82 +126,135 @@
         </div>
 
         <div class="flex items-center gap-4">
-          <div class="flex-grow h-1.5 bg-black/60 rounded-full border border-white/5 overflow-hidden shadow-inner">
-             <div 
-               class="h-full w-3/4 shadow-[0_0_10px_rgba(236,91,19,0.2)]"
-               [class.bg-brand-primary/40]="!track.muted"
-               [class.bg-slate-600/40]="track.muted"
-             ></div>
+          <div
+            class="flex-grow h-1.5 bg-black/60 rounded-full border border-white/5 overflow-hidden shadow-inner"
+          >
+            <div
+              class="h-full w-3/4 shadow-[0_0_10px_rgba(236,91,19,0.2)]"
+              [class.bg-brand-primary/40]="!track.muted"
+              [class.bg-slate-600/40]="track.muted"
+            ></div>
           </div>
-          <span 
+          <span
             class="text-[9px] font-mono font-black"
             [class.text-brand-primary]="!track.muted"
             [class.text-slate-500]="track.muted"
-          >{{ track.muted ? 'MUTED' : '-6.2dB' }}</span>
+            >{{ track.muted ? 'MUTED' : '-6.2dB' }}</span
+          >
         </div>
       </div>
     </div>
 
     <!-- Timeline Grid -->
-    <div class="timeline-viewport flex-grow overflow-auto no-scrollbar relative bg-black/10">
+    <div
+      class="timeline-viewport flex-grow overflow-auto no-scrollbar relative bg-black/10"
+    >
       <div class="timeline-grid relative h-full" [style.width.px]="gridWidth">
         <!-- Rulers -->
-        <div class="absolute top-0 left-0 right-0 h-8 bg-black/40 border-b border-white/5 z-40 flex items-center backdrop-blur-sm">
-           <ng-container *ngFor="let bar of bars">
-             <div class="absolute h-full border-l border-white/10 flex items-center px-3" [style.left.px]="bar * barWidth" *ngIf="bar % 4 === 0">
-                <span class="text-[9px] font-mono font-black text-slate-600">{{ bar / 4 + 1 }}</span>
-             </div>
-           </ng-container>
+        <div
+          class="absolute top-0 left-0 right-0 h-8 bg-black/40 border-b border-white/5 z-40 flex items-center backdrop-blur-sm"
+        >
+          <ng-container *ngFor="let bar of bars">
+            <div
+              class="absolute h-full border-l border-white/10 flex items-center px-3"
+              [style.left.px]="bar * barWidth"
+              *ngIf="bar % 4 === 0"
+            >
+              <span class="text-[9px] font-mono font-black text-slate-600">{{
+                bar / 4 + 1
+              }}</span>
+            </div>
+          </ng-container>
         </div>
 
         <!-- Vertical Lines -->
-        <div *ngFor="let bar of bars" class="absolute top-8 bottom-0 border-l border-white/5 pointer-events-none" [style.left.px]="bar * barWidth" [class.border-white/10]="bar % 4 === 0"></div>
+        <div
+          *ngFor="let bar of bars"
+          class="absolute top-8 bottom-0 border-l border-white/5 pointer-events-none"
+          [style.left.px]="bar * barWidth"
+          [class.border-white/10]="bar % 4 === 0"
+        ></div>
 
         <!-- Tracks Lane Content -->
-        <div *ngFor="let track of tracks()" class="track-lane h-28 border-b border-white/5 relative group mt-8" [class.opacity-40]="track.muted">
+        <div
+          *ngFor="let track of tracks()"
+          class="track-lane h-28 border-b border-white/5 relative group mt-8"
+          [class.opacity-40]="track.muted"
+        >
           <!-- Clips with v4 Extreme Waveforms -->
-          <div *ngFor="let clip of track.clips"
-               class="clip-item absolute h-24 top-2 rounded-2xl border flex flex-col overflow-hidden cursor-pointer shadow-2xl group/clip backdrop-blur-sm transition-all"
-               [style.left.px]="clip.start * barWidth"
-               [style.width.px]="clip.length * barWidth"
-               [style.background-color]="(clip.color || '#ec5b13') + '22'"
-               [style.border-color]="clip.color || '#ec5b13'"
-               [class.ring-2]="isClipSelected(clip.id)"
-               [class.ring-white]="isClipSelected(clip.id)"
-               [class.scale-[1.02]]="isClipSelected(clip.id)"
-               tabindex="0"
-               role="button"
-               [attr.aria-label]="'Clip: ' + clip.name"
-               [attr.aria-pressed]="isClipSelected(clip.id)"
-               (click)="selectClip(clip.id, $event)"
-               (keydown)="onClipKeydown(clip.id, $event)">
+          <div
+            *ngFor="let clip of track.clips"
+            class="clip-item absolute h-24 top-2 rounded-2xl border flex flex-col overflow-hidden cursor-pointer shadow-2xl group/clip backdrop-blur-sm transition-all"
+            [style.left.px]="clip.start * barWidth"
+            [style.width.px]="clip.length * barWidth"
+            [style.background-color]="(clip.color || '#ec5b13') + '22'"
+            [style.border-color]="clip.color || '#ec5b13'"
+            [class.ring-2]="isClipSelected(clip.id)"
+            [class.ring-white]="isClipSelected(clip.id)"
+            [class.scale-[1.02]]="isClipSelected(clip.id)"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="'Clip: ' + clip.name"
+            [attr.aria-pressed]="isClipSelected(clip.id)"
+            (click)="selectClip(clip.id, $event)"
+            (keydown)="onClipKeydown(clip.id, $event)"
+          >
+            <div
+              class="px-4 py-2 bg-black/30 flex justify-between items-center border-b border-white/5"
+            >
+              <span
+                class="text-[9px] font-black uppercase tracking-widest text-white/90"
+                >{{ clip.name }}</span
+              >
+              <div class="flex items-center gap-2">
+                <span class="text-[7px] font-black text-white/40 font-mono"
+                  >24-BIT</span
+                >
+                <button
+                  (click)="
+                    removeClip(track.id, clip.id); $event.stopPropagation()
+                  "
+                  class="opacity-0 group-hover/clip:opacity-100 w-4 h-4 rounded bg-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white transition-all"
+                >
+                  <span class="material-symbols-outlined text-[10px]"
+                    >close</span
+                  >
+                </button>
+              </div>
+            </div>
 
-               <div class="px-4 py-2 bg-black/30 flex justify-between items-center border-b border-white/5">
-                  <span class="text-[9px] font-black uppercase tracking-widest text-white/90">{{ clip.name }}</span>
-                  <div class="flex items-center gap-2">
-                    <span class="text-[7px] font-black text-white/40 font-mono">24-BIT</span>
-                    <button 
-                      (click)="removeClip(track.id, clip.id); $event.stopPropagation()"
-                      class="opacity-0 group-hover/clip:opacity-100 w-4 h-4 rounded bg-red-500/20 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white transition-all"
-                    >
-                      <span class="material-symbols-outlined text-[10px]">close</span>
-                    </button>
-                  </div>
-               </div>
-
-               <!-- Advanced Waveform SVG -->
-               <div class="clip-waveform flex-grow relative opacity-70 p-2">
-                  <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 1000 100">
-                    <path d="M0 50 C 50 10, 100 90, 150 50 S 250 10, 300 50 S 400 90, 450 50 S 550 10, 600 50 S 700 90, 750 50 S 850 10, 900 50 S 950 90, 1000 50 L 1000 100 L 0 100 Z" [attr.fill]="clip.color || '#ec5b13'" fill-opacity="0.2" />
-                    <path d="M0 50 C 50 10, 100 90, 150 50 S 250 10, 300 50 S 400 90, 450 50 S 550 10, 600 50 S 700 90, 750 50 S 850 10, 900 50 S 950 90, 1000 50" [attr.stroke]="clip.color || '#ec5b13'" stroke-width="2" fill="none" />
-                  </svg>
-               </div>
+            <!-- Advanced Waveform SVG -->
+            <div class="clip-waveform flex-grow relative opacity-70 p-2">
+              <svg
+                width="100%"
+                height="100%"
+                preserveAspectRatio="none"
+                viewBox="0 0 1000 100"
+              >
+                <path
+                  d="M0 50 C 50 10, 100 90, 150 50 S 250 10, 300 50 S 400 90, 450 50 S 550 10, 600 50 S 700 90, 750 50 S 850 10, 900 50 S 950 90, 1000 50 L 1000 100 L 0 100 Z"
+                  [attr.fill]="clip.color || '#ec5b13'"
+                  fill-opacity="0.2"
+                />
+                <path
+                  d="M0 50 C 50 10, 100 90, 150 50 S 250 10, 300 50 S 400 90, 450 50 S 550 10, 600 50 S 700 90, 750 50 S 850 10, 900 50 S 950 90, 1000 50"
+                  [attr.stroke]="clip.color || '#ec5b13'"
+                  stroke-width="2"
+                  fill="none"
+                />
+              </svg>
+            </div>
           </div>
         </div>
 
         <!-- Playhead -->
-        <div class="playhead absolute top-0 bottom-0 w-[2px] bg-brand-primary z-50 shadow-[0_0_20px_#ec5b13] pointer-events-none" [style.left.px]="playheadPos()">
-           <div class="absolute -top-1 -left-[4px] w-2.5 h-2.5 bg-brand-primary rotate-45 border border-white/20 shadow-lg"></div>
+        <div
+          class="playhead absolute top-0 bottom-0 w-[2px] bg-brand-primary z-50 shadow-[0_0_20px_#ec5b13] pointer-events-none"
+          [style.left.px]="playheadPos()"
+        >
+          <div
+            class="absolute -top-1 -left-[4px] w-2.5 h-2.5 bg-brand-primary rotate-45 border border-white/20 shadow-lg"
+          ></div>
         </div>
       </div>
     </div>

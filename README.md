@@ -102,27 +102,27 @@ S.M.U.V.E 2.0 includes coordinated planning surfaces beyond creation.
 
 ## Main workspaces
 
-| Route | Workspace | Purpose |
-| --- | --- | --- |
-| `/hub` | Label Hub | Main command center for releases, profile context, playback, and navigation |
-| `/studio` | Studio | Core music production workspace |
-| `/piano-roll` | Piano Roll | MIDI-style note editing and arrangement |
-| `/vocal-suite` | Vocal Suite | Vocal capture and refinement workflows |
-| `/lyric-editor` | Lyric Editor | Writing and lyric-focused ideation |
-| `/image-video-lab` | Image & Video Lab | Cinema-style visual production and preview |
-| `/release-pipeline` | Release Pipeline | Track and release-stage coordination |
-| `/projects` | Projects | Work-in-progress management |
-| `/strategy` | Intel Lab / Strategy Hub | AI strategy, campaigns, social planning, and intelligence |
-| `/career` | Career Board | Career planning and momentum tracking |
-| `/business-suite` | Business Suite | Business operations and pipelines |
-| `/business-pipeline/:id` | Business Pipeline Detail | Single-pipeline drill-down |
-| `/analytics` | Analytics Dashboard | Audience and performance monitoring |
-| `/knowledge-base` | Knowledge Base | AI-oriented planning and reference surface |
-| `/profile` | Profile | Artist identity and settings context |
-| `/practice` | Practice Space | Rehearsal-focused tools |
-| `/tha-spot` | Tha Spot | Gaming, community, matchmaking, and discovery |
-| `/settings` | Settings | Visual, performance, audio, AI, and security controls |
-| `/login` | Login | Authentication entry |
+| Route                    | Workspace                | Purpose                                                                     |
+| ------------------------ | ------------------------ | --------------------------------------------------------------------------- |
+| `/hub`                   | Label Hub                | Main command center for releases, profile context, playback, and navigation |
+| `/studio`                | Studio                   | Core music production workspace                                             |
+| `/piano-roll`            | Piano Roll               | MIDI-style note editing and arrangement                                     |
+| `/vocal-suite`           | Vocal Suite              | Vocal capture and refinement workflows                                      |
+| `/lyric-editor`          | Lyric Editor             | Writing and lyric-focused ideation                                          |
+| `/image-video-lab`       | Image & Video Lab        | Cinema-style visual production and preview                                  |
+| `/release-pipeline`      | Release Pipeline         | Track and release-stage coordination                                        |
+| `/projects`              | Projects                 | Work-in-progress management                                                 |
+| `/strategy`              | Intel Lab / Strategy Hub | AI strategy, campaigns, social planning, and intelligence                   |
+| `/career`                | Career Board             | Career planning and momentum tracking                                       |
+| `/business-suite`        | Business Suite           | Business operations and pipelines                                           |
+| `/business-pipeline/:id` | Business Pipeline Detail | Single-pipeline drill-down                                                  |
+| `/analytics`             | Analytics Dashboard      | Audience and performance monitoring                                         |
+| `/knowledge-base`        | Knowledge Base           | AI-oriented planning and reference surface                                  |
+| `/profile`               | Profile                  | Artist identity and settings context                                        |
+| `/practice`              | Practice Space           | Rehearsal-focused tools                                                     |
+| `/tha-spot`              | Tha Spot                 | Gaming, community, matchmaking, and discovery                               |
+| `/settings`              | Settings                 | Visual, performance, audio, AI, and security controls                       |
+| `/login`                 | Login                    | Authentication entry                                                        |
 
 ---
 

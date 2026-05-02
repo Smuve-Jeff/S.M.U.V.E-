@@ -1,42 +1,88 @@
-<div class="journey-container min-h-screen bg-background flex items-center justify-center p-4 md:p-8 overflow-y-auto">
+<div
+  class="journey-container min-h-screen bg-background flex items-center justify-center p-4 md:p-8 overflow-y-auto"
+>
   <div class="fixed inset-0 pointer-events-none overflow-hidden">
-    <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-brand-primary/5 blur-[120px] rounded-full animate-pulse"></div>
-    <div class="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-secondary/5 blur-[120px] rounded-full animate-pulse" style="animation-delay: 2s"></div>
+    <div
+      class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-brand-primary/5 blur-[120px] rounded-full animate-pulse"
+    ></div>
+    <div
+      class="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-secondary/5 blur-[120px] rounded-full animate-pulse"
+      style="animation-delay: 2s"
+    ></div>
   </div>
 
-  <main class="journey-card glass-v42 w-full max-w-2xl rounded-3xl border border-border flex flex-col relative z-10 overflow-hidden">
-    <header class="p-6 md:p-10 border-b border-border bg-surface/40 backdrop-blur-md">
+  <main
+    class="journey-card glass-v42 w-full max-w-2xl rounded-3xl border border-border flex flex-col relative z-10 overflow-hidden"
+  >
+    <header
+      class="p-6 md:p-10 border-b border-border bg-surface/40 backdrop-blur-md"
+    >
       <div class="flex items-center gap-2 mb-6">
-        <div *ngFor="let s of steps; let i = index"
-             class="flex-grow h-1.5 rounded-full transition-all duration-500"
-             [class.bg-brand-primary]="i <= activeStep()"
-             [class.bg-border]="i > activeStep()">
-        </div>
+        <div
+          *ngFor="let s of steps; let i = index"
+          class="flex-grow h-1.5 rounded-full transition-all duration-500"
+          [class.bg-brand-primary]="i <= activeStep()"
+          [class.bg-border]="i > activeStep()"
+        ></div>
       </div>
-      <span class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2 block">Step 0{{ activeStep() + 1 }} / 0{{ steps.length }}</span>
-      <h1 class="text-2xl md:text-4xl font-black tracking-tighter text-text-main uppercase italic leading-none mb-2">{{ steps[activeStep()].title }}</h1>
-      <p class="text-[10px] md:text-xs text-text-dim font-bold uppercase tracking-widest">{{ steps[activeStep()].subtitle }}</p>
+      <span
+        class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2 block"
+        >Step 0{{ activeStep() + 1 }} / 0{{ steps.length }}</span
+      >
+      <h1
+        class="text-2xl md:text-4xl font-black tracking-tighter text-text-main uppercase italic leading-none mb-2"
+      >
+        {{ steps[activeStep()].title }}
+      </h1>
+      <p
+        class="text-[10px] md:text-xs text-text-dim font-bold uppercase tracking-widest"
+      >
+        {{ steps[activeStep()].subtitle }}
+      </p>
     </header>
 
-    <div class="journey-content p-6 md:p-10 flex-grow" [ngSwitch]="activeStep()">
+    <div
+      class="journey-content p-6 md:p-10 flex-grow"
+      [ngSwitch]="activeStep()"
+    >
       <!-- STEP 0: ORIGIN -->
       <div *ngSwitchCase="0" class="space-y-6 animate-enter">
         <div class="space-y-2">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Artist Name</label>
-          <input type="text" [(ngModel)]="profile().artistName" placeholder="ENTER IDENTITY..."
-                 class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Artist Name</label
+          >
+          <input
+            type="text"
+            [(ngModel)]="profile().artistName"
+            placeholder="ENTER IDENTITY..."
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          />
         </div>
         <div class="space-y-2">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">The Origin Story</label>
-          <textarea [(ngModel)]="profile().bio" placeholder="DESCRIBE THE SPARK..."
-                    class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-32 resize-none"></textarea>
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >The Origin Story</label
+          >
+          <textarea
+            [(ngModel)]="profile().bio"
+            placeholder="DESCRIBE THE SPARK..."
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-32 resize-none"
+          ></textarea>
         </div>
         <div class="space-y-2">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Experience Level</label>
-          <select [(ngModel)]="profile().experienceLevel" 
-                  class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Experience Level</label
+          >
+          <select
+            [(ngModel)]="profile().experienceLevel"
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          >
             <option value="" disabled>SELECT YOUR LEVEL...</option>
-            <option *ngFor="let level of experienceLevels" [value]="level">{{ level }}</option>
+            <option *ngFor="let level of experienceLevels" [value]="level">
+              {{ level }}
+            </option>
           </select>
         </div>
       </div>
@@ -44,135 +90,249 @@
       <!-- STEP 1: SOUND -->
       <div *ngSwitchCase="1" class="space-y-6 animate-enter">
         <div class="space-y-2">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Primary Genre</label>
-          <select [(ngModel)]="profile().primaryGenre" 
-                  class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Primary Genre</label
+          >
+          <select
+            [(ngModel)]="profile().primaryGenre"
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          >
             <option value="" disabled>SELECT YOUR GENRE...</option>
-            <option *ngFor="let genre of genres" [value]="genre">{{ genre }}</option>
+            <option *ngFor="let genre of genres" [value]="genre">
+              {{ genre }}
+            </option>
           </select>
         </div>
         <div class="space-y-2">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">The Unique Frequency</label>
-          <textarea [(ngModel)]="profile().uniqueSound" placeholder="WHAT VIBRATES DIFFERENTLY?..."
-                    class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-32 resize-none"></textarea>
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >The Unique Frequency</label
+          >
+          <textarea
+            [(ngModel)]="profile().uniqueSound"
+            placeholder="WHAT VIBRATES DIFFERENTLY?..."
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-32 resize-none"
+          ></textarea>
         </div>
         <div class="space-y-2">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Musical Influences</label>
-          <input type="text" [(ngModel)]="profile().influences" placeholder="ARTISTS THAT SHAPED YOUR SOUND..."
-                 class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Musical Influences</label
+          >
+          <input
+            type="text"
+            [(ngModel)]="profile().influences"
+            placeholder="ARTISTS THAT SHAPED YOUR SOUND..."
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          />
         </div>
       </div>
 
       <!-- STEP 2: PRODUCTION DNA -->
       <div *ngSwitchCase="2" class="space-y-6 animate-enter">
         <div class="space-y-2">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Preferred BPM Range</label>
-          <select [(ngModel)]="profile().preferredBpmRange" 
-                  class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Preferred BPM Range</label
+          >
+          <select
+            [(ngModel)]="profile().preferredBpmRange"
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          >
             <option value="" disabled>SELECT YOUR TEMPO ZONE...</option>
-            <option *ngFor="let range of bpmRanges" [value]="range.value">{{ range.label }}</option>
+            <option *ngFor="let range of bpmRanges" [value]="range.value">
+              {{ range.label }}
+            </option>
           </select>
         </div>
         <div class="space-y-3">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Production Style</label>
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Production Style</label
+          >
           <div class="flex flex-wrap gap-2">
-            <button *ngFor="let style of productionStyles" 
-                    (click)="toggleProductionStyle(style)"
-                    class="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all border"
-                    [class.bg-brand-primary]="hasProductionStyle(style)"
-                    [class.text-black]="hasProductionStyle(style)"
-                    [class.border-brand-primary]="hasProductionStyle(style)"
-                    [class.bg-background]="!hasProductionStyle(style)"
-                    [class.text-text-dim]="!hasProductionStyle(style)"
-                    [class.border-border]="!hasProductionStyle(style)">
+            <button
+              *ngFor="let style of productionStyles"
+              (click)="toggleProductionStyle(style)"
+              class="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all border"
+              [class.bg-brand-primary]="hasProductionStyle(style)"
+              [class.text-black]="hasProductionStyle(style)"
+              [class.border-brand-primary]="hasProductionStyle(style)"
+              [class.bg-background]="!hasProductionStyle(style)"
+              [class.text-text-dim]="!hasProductionStyle(style)"
+              [class.border-border]="!hasProductionStyle(style)"
+            >
               {{ style }}
             </button>
           </div>
         </div>
         <div class="space-y-3">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Primary Skills</label>
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Primary Skills</label
+          >
           <div class="flex flex-wrap gap-2">
-            <button *ngFor="let skill of availableSkills" 
-                    (click)="toggleSkill(skill)"
-                    class="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all border"
-                    [class.bg-brand-primary]="hasSkill(skill)"
-                    [class.text-black]="hasSkill(skill)"
-                    [class.border-brand-primary]="hasSkill(skill)"
-                    [class.bg-background]="!hasSkill(skill)"
-                    [class.text-text-dim]="!hasSkill(skill)"
-                    [class.border-border]="!hasSkill(skill)">
+            <button
+              *ngFor="let skill of availableSkills"
+              (click)="toggleSkill(skill)"
+              class="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all border"
+              [class.bg-brand-primary]="hasSkill(skill)"
+              [class.text-black]="hasSkill(skill)"
+              [class.border-brand-primary]="hasSkill(skill)"
+              [class.bg-background]="!hasSkill(skill)"
+              [class.text-text-dim]="!hasSkill(skill)"
+              [class.border-border]="!hasSkill(skill)"
+            >
               {{ skill }}
             </button>
           </div>
         </div>
         <div class="space-y-2">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">DAW of Choice</label>
-          <input type="text" [(ngModel)]="profile().primaryDaw" placeholder="E.G., ABLETON, FL STUDIO, LOGIC..."
-                 class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >DAW of Choice</label
+          >
+          <input
+            type="text"
+            [(ngModel)]="profile().primaryDaw"
+            placeholder="E.G., ABLETON, FL STUDIO, LOGIC..."
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          />
         </div>
       </div>
 
       <!-- STEP 3: VISION -->
       <div *ngSwitchCase="3" class="space-y-6 animate-enter">
         <div class="space-y-2">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Immediate Focus</label>
-          <input type="text" [(ngModel)]="profile().currentFocus" placeholder="THE CURRENT MISSION..."
-                 class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Immediate Focus</label
+          >
+          <input
+            type="text"
+            [(ngModel)]="profile().currentFocus"
+            placeholder="THE CURRENT MISSION..."
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          />
         </div>
         <div class="space-y-2">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Critical Challenge</label>
-          <input type="text" [(ngModel)]="profile().biggestChallenge" placeholder="WHAT STANDS IN THE WAY?..."
-                 class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Critical Challenge</label
+          >
+          <input
+            type="text"
+            [(ngModel)]="profile().biggestChallenge"
+            placeholder="WHAT STANDS IN THE WAY?..."
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          />
         </div>
         <div class="space-y-2">
-          <label class="text-[10px] font-black text-text-dim uppercase tracking-widest">Collaboration Interest</label>
-          <textarea [(ngModel)]="profile().collaborationGoals" placeholder="WHO DO YOU WANT TO WORK WITH?..."
-                    class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-24 resize-none"></textarea>
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Collaboration Interest</label
+          >
+          <textarea
+            [(ngModel)]="profile().collaborationGoals"
+            placeholder="WHO DO YOU WANT TO WORK WITH?..."
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-24 resize-none"
+          ></textarea>
         </div>
       </div>
 
       <!-- STEP 4: DOSSIER -->
       <div *ngSwitchCase="4" class="space-y-6 animate-enter">
-        <div class="material-depth p-6 border border-border bg-surface/50 space-y-4">
-          <h3 class="text-xs font-black text-text-main uppercase tracking-widest border-b border-border pb-3">Dossier Summary</h3>
+        <div
+          class="material-depth p-6 border border-border bg-surface/50 space-y-4"
+        >
+          <h3
+            class="text-xs font-black text-text-main uppercase tracking-widest border-b border-border pb-3"
+          >
+            Dossier Summary
+          </h3>
           <div class="grid grid-cols-2 gap-4">
-              <div>
-                  <span class="text-[8px] font-bold text-text-dim uppercase block">Artist</span>
-                  <span class="text-sm font-black text-brand-primary uppercase italic">{{ profile().artistName }}</span>
-              </div>
-              <div>
-                  <span class="text-[8px] font-bold text-text-dim uppercase block">Genre</span>
-                  <span class="text-sm font-black text-text-main uppercase italic">{{ profile().primaryGenre }}</span>
-              </div>
-              <div>
-                  <span class="text-[8px] font-bold text-text-dim uppercase block">BPM Range</span>
-                  <span class="text-sm font-black text-text-main uppercase italic">{{ profile().preferredBpmRange || 'Not Set' }}</span>
-              </div>
-              <div>
-                  <span class="text-[8px] font-bold text-text-dim uppercase block">Level</span>
-                  <span class="text-sm font-black text-text-main uppercase italic">{{ profile().experienceLevel || 'Not Set' }}</span>
-              </div>
+            <div>
+              <span class="text-[8px] font-bold text-text-dim uppercase block"
+                >Artist</span
+              >
+              <span
+                class="text-sm font-black text-brand-primary uppercase italic"
+                >{{ profile().artistName }}</span
+              >
+            </div>
+            <div>
+              <span class="text-[8px] font-bold text-text-dim uppercase block"
+                >Genre</span
+              >
+              <span
+                class="text-sm font-black text-text-main uppercase italic"
+                >{{ profile().primaryGenre }}</span
+              >
+            </div>
+            <div>
+              <span class="text-[8px] font-bold text-text-dim uppercase block"
+                >BPM Range</span
+              >
+              <span
+                class="text-sm font-black text-text-main uppercase italic"
+                >{{ profile().preferredBpmRange || 'Not Set' }}</span
+              >
+            </div>
+            <div>
+              <span class="text-[8px] font-bold text-text-dim uppercase block"
+                >Level</span
+              >
+              <span
+                class="text-sm font-black text-text-main uppercase italic"
+                >{{ profile().experienceLevel || 'Not Set' }}</span
+              >
+            </div>
           </div>
           <div *ngIf="profile().skills?.length" class="pt-2">
-            <span class="text-[8px] font-bold text-text-dim uppercase block mb-2">Skills</span>
+            <span
+              class="text-[8px] font-bold text-text-dim uppercase block mb-2"
+              >Skills</span
+            >
             <div class="flex flex-wrap gap-1">
-              <span *ngFor="let skill of profile().skills" 
-                    class="px-2 py-1 bg-brand-primary/20 text-brand-primary text-[10px] font-bold rounded-full">
+              <span
+                *ngFor="let skill of profile().skills"
+                class="px-2 py-1 bg-brand-primary/20 text-brand-primary text-[10px] font-bold rounded-full"
+              >
                 {{ skill }}
               </span>
             </div>
           </div>
-          <p class="text-[10px] text-text-dim italic leading-relaxed pt-2">"{{ profile().bio }}"</p>
+          <p class="text-[10px] text-text-dim italic leading-relaxed pt-2">
+            "{{ profile().bio }}"
+          </p>
         </div>
-        <button (click)="updateProfile()" class="w-full btn-pro btn-pro-primary py-4 text-xs font-black tracking-[0.2em]">INITIALIZE NEURAL LINK</button>
+        <button
+          (click)="updateProfile()"
+          class="w-full btn-pro btn-pro-primary py-4 text-xs font-black tracking-[0.2em]"
+        >
+          INITIALIZE NEURAL LINK
+        </button>
       </div>
     </div>
 
-    <footer class="p-6 md:p-8 bg-surface/60 border-t border-border flex items-center justify-between gap-4">
-      <button (click)="prev()" [disabled]="activeStep() === 0"
-              class="btn-pro btn-pro-outline px-6 text-[10px] font-black tracking-widest disabled:opacity-30">BACK</button>
-      <button (click)="next()" [disabled]="activeStep() === steps.length - 1"
-              class="btn-pro btn-pro-primary px-8 text-[10px] font-black tracking-widest disabled:opacity-0">CONTINUE</button>
+    <footer
+      class="p-6 md:p-8 bg-surface/60 border-t border-border flex items-center justify-between gap-4"
+    >
+      <button
+        (click)="prev()"
+        [disabled]="activeStep() === 0"
+        class="btn-pro btn-pro-outline px-6 text-[10px] font-black tracking-widest disabled:opacity-30"
+      >
+        BACK
+      </button>
+      <button
+        (click)="next()"
+        [disabled]="activeStep() === steps.length - 1"
+        class="btn-pro btn-pro-primary px-8 text-[10px] font-black tracking-widest disabled:opacity-0"
+      >
+        CONTINUE
+      </button>
     </footer>
   </main>
 </div>

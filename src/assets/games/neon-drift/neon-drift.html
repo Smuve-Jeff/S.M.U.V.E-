@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -22,7 +22,11 @@
         margin: 0;
         min-height: 100vh;
         background:
-          radial-gradient(circle at top, rgba(34, 211, 238, 0.16), transparent 35%),
+          radial-gradient(
+            circle at top,
+            rgba(34, 211, 238, 0.16),
+            transparent 35%
+          ),
           linear-gradient(180deg, #020617, #0f172a);
         color: white;
         font-family: Inter, system-ui, sans-serif;
@@ -100,8 +104,18 @@
         border-radius: 24px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background:
-          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 33%, transparent 33%, transparent 66%, rgba(255, 255, 255, 0.03) 66%),
-          linear-gradient(180deg, rgba(34, 211, 238, 0.15), rgba(2, 6, 23, 0.95));
+          linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.03) 33%,
+            transparent 33%,
+            transparent 66%,
+            rgba(255, 255, 255, 0.03) 66%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(34, 211, 238, 0.15),
+            rgba(2, 6, 23, 0.95)
+          );
       }
 
       .lane-line {
@@ -192,9 +206,15 @@
           <h1 class="title">Neon Drift X</h1>
         </div>
         <div class="metrics">
-          <div class="metric"><label>Score</label><strong id="score">0</strong></div>
-          <div class="metric"><label>Shield</label><strong id="health">100%</strong></div>
-          <div class="metric"><label>Streak</label><strong id="streak">0</strong></div>
+          <div class="metric">
+            <label>Score</label><strong id="score">0</strong>
+          </div>
+          <div class="metric">
+            <label>Shield</label><strong id="health">100%</strong>
+          </div>
+          <div class="metric">
+            <label>Streak</label><strong id="streak">0</strong>
+          </div>
         </div>
       </div>
 
@@ -205,7 +225,9 @@
       </div>
 
       <div class="controls">
-        <div class="status" id="status">Steer with the buttons or arrow keys. Survive the rush.</div>
+        <div class="status" id="status">
+          Steer with the buttons or arrow keys. Survive the rush.
+        </div>
         <div>
           <button id="leftBtn">Move Left</button>
           <button class="primary" id="restartBtn">Restart Run</button>
@@ -278,7 +300,8 @@
         active = true;
         spawnTimer = 0;
         laneIndex = 1;
-        statusEl.textContent = 'Steer with the buttons or arrow keys. Survive the rush.';
+        statusEl.textContent =
+          'Steer with the buttons or arrow keys. Survive the rush.';
         positionCar();
         syncHud('RESET');
       }
@@ -301,7 +324,11 @@
           obstacle.y += speed;
           obstacle.el.style.top = `${obstacle.y}px`;
 
-          if (obstacle.y > 290 && obstacle.y < 380 && obstacle.el.style.left === carLane) {
+          if (
+            obstacle.y > 290 &&
+            obstacle.y < 380 &&
+            obstacle.el.style.left === carLane
+          ) {
             obstacle.y = 1000;
             health = Math.max(0, health - 25);
             streak = 0;
@@ -320,15 +347,20 @@
 
         if (health <= 0) {
           active = false;
-          statusEl.textContent = 'Run complete. Restart to chase a higher score.';
+          statusEl.textContent =
+            'Run complete. Restart to chase a higher score.';
           syncHud('CRASH');
         } else {
           syncHud('CRUISE');
         }
       }
 
-      document.getElementById('leftBtn').addEventListener('click', () => steer(-1));
-      document.getElementById('rightBtn').addEventListener('click', () => steer(1));
+      document
+        .getElementById('leftBtn')
+        .addEventListener('click', () => steer(-1));
+      document
+        .getElementById('rightBtn')
+        .addEventListener('click', () => steer(1));
       document.getElementById('restartBtn').addEventListener('click', reset);
       window.addEventListener('keydown', (event) => {
         if (event.key === 'ArrowLeft') steer(-1);

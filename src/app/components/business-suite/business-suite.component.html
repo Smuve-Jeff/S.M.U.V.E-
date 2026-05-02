@@ -1,56 +1,111 @@
-<div class="p-4 md:p-8 h-full bg-background overflow-y-auto animate-enter custom-scrollbar">
+<div
+  class="p-4 md:p-8 h-full bg-background overflow-y-auto animate-enter custom-scrollbar"
+>
   <!-- Header: Fluid & Responsive -->
-  <header class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 md:mb-12 border-b border-border pb-8">
+  <header
+    class="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-10 md:mb-12 border-b border-border pb-8"
+  >
     <div>
       <div class="flex flex-wrap items-center gap-2 md:gap-3 mb-2">
-        <span class="px-2 py-0.5 bg-brand-primary/10 text-brand-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded border border-brand-primary/20">
+        <span
+          class="px-2 py-0.5 bg-brand-primary/10 text-brand-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded border border-brand-primary/20"
+        >
           Corporate Infrastructure
         </span>
-        <span class="text-text-dim text-[9px] md:text-[10px] font-black uppercase tracking-widest">
+        <span
+          class="text-text-dim text-[9px] md:text-[10px] font-black uppercase tracking-widest"
+        >
           S.M.U.V.E. Executive Suite
         </span>
       </div>
-      <h1 class="text-3xl md:text-5xl font-black text-text-main uppercase italic tracking-tighter leading-none">BUSINESS<span class="text-brand-primary">HUB</span></h1>
+      <h1
+        class="text-3xl md:text-5xl font-black text-text-main uppercase italic tracking-tighter leading-none"
+      >
+        BUSINESS<span class="text-brand-primary">HUB</span>
+      </h1>
     </div>
 
     <div class="flex items-center gap-4">
-       <div class="px-4 py-2 rounded-xl bg-surface border border-border text-right shrink-0">
-          <div class="text-[8px] md:text-[10px] font-black text-text-dim uppercase tracking-widest mb-1">System Status</div>
-          <div class="text-sm md:text-xl font-black text-brand-primary italic">OPERATIONAL</div>
-       </div>
+      <div
+        class="px-4 py-2 rounded-xl bg-surface border border-border text-right shrink-0"
+      >
+        <div
+          class="text-[8px] md:text-[10px] font-black text-text-dim uppercase tracking-widest mb-1"
+        >
+          System Status
+        </div>
+        <div class="text-sm md:text-xl font-black text-brand-primary italic">
+          OPERATIONAL
+        </div>
+      </div>
     </div>
   </header>
 
   <!-- Active Pipelines Section -->
-  <section *ngIf="bizService.activePipelines().length > 0" class="mb-12 md:mb-16">
-    <h2 class="text-lg md:text-xl font-black text-text-main uppercase italic tracking-widest mb-6 border-l-4 border-brand-primary pl-4">Active Infrastructure</h2>
+  <section
+    *ngIf="bizService.activePipelines().length > 0"
+    class="mb-12 md:mb-16"
+  >
+    <h2
+      class="text-lg md:text-xl font-black text-text-main uppercase italic tracking-widest mb-6 border-l-4 border-brand-primary pl-4"
+    >
+      Active Infrastructure
+    </h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div *ngFor="let pipeline of bizService.activePipelines()"
-           (click)="navigateToPipeline(pipeline.id)"
-           class="material-depth p-6 md:p-8 border border-border hover:border-brand-primary transition-all cursor-pointer group relative overflow-hidden flex flex-col h-full bg-surface/30">
-
+      <div
+        *ngFor="let pipeline of bizService.activePipelines()"
+        (click)="navigateToPipeline(pipeline.id)"
+        class="material-depth p-6 md:p-8 border border-border hover:border-brand-primary transition-all cursor-pointer group relative overflow-hidden flex flex-col h-full bg-surface/30"
+      >
         <div class="flex justify-between items-start mb-6">
-          <div class="w-12 h-12 bg-background rounded-xl flex items-center justify-center border border-border group-hover:border-brand-primary/30">
-            <span class="material-symbols-outlined text-brand-primary">analytics</span>
+          <div
+            class="w-12 h-12 bg-background rounded-xl flex items-center justify-center border border-border group-hover:border-brand-primary/30"
+          >
+            <span class="material-symbols-outlined text-brand-primary"
+              >analytics</span
+            >
           </div>
-          <span class="text-[9px] font-black uppercase tracking-widest px-2 py-1 bg-background rounded border border-border"
-                [class.text-brand-primary]="pipeline.status === 'Active'"
-                [class.text-text-dim]="pipeline.status !== 'Active'">
+          <span
+            class="text-[9px] font-black uppercase tracking-widest px-2 py-1 bg-background rounded border border-border"
+            [class.text-brand-primary]="pipeline.status === 'Active'"
+            [class.text-text-dim]="pipeline.status !== 'Active'"
+          >
             {{ pipeline.status }}
           </span>
         </div>
 
-        <h3 class="text-xl md:text-2xl font-black text-text-main uppercase tracking-tight italic mb-2">{{ pipeline.name }}</h3>
-        <p class="text-text-dim text-[10px] font-bold uppercase tracking-widest mb-6">{{ pipeline.type }} Pathway</p>
+        <h3
+          class="text-xl md:text-2xl font-black text-text-main uppercase tracking-tight italic mb-2"
+        >
+          {{ pipeline.name }}
+        </h3>
+        <p
+          class="text-text-dim text-[10px] font-bold uppercase tracking-widest mb-6"
+        >
+          {{ pipeline.type }} Pathway
+        </p>
 
         <div class="mt-auto space-y-2">
-           <div class="flex justify-between text-[8px] font-black uppercase text-text-dim">
-              <span>Progression</span>
-              <span>{{ (pipeline.currentStageIndex + 1) / pipeline.stages.length * 100 | number:'1.0-0' }}%</span>
-           </div>
-           <div class="h-1 bg-border rounded-full overflow-hidden">
-              <div class="h-full bg-brand-primary transition-all duration-500" [style.width.%]="(pipeline.currentStageIndex + 1) / pipeline.stages.length * 100"></div>
-           </div>
+          <div
+            class="flex justify-between text-[8px] font-black uppercase text-text-dim"
+          >
+            <span>Progression</span>
+            <span
+              >{{
+                ((pipeline.currentStageIndex + 1) / pipeline.stages.length) *
+                  100 | number: '1.0-0'
+              }}%</span
+            >
+          </div>
+          <div class="h-1 bg-border rounded-full overflow-hidden">
+            <div
+              class="h-full bg-brand-primary transition-all duration-500"
+              [style.width.%]="
+                ((pipeline.currentStageIndex + 1) / pipeline.stages.length) *
+                100
+              "
+            ></div>
+          </div>
         </div>
       </div>
     </div>
@@ -58,17 +113,42 @@
 
   <!-- Module Marketplace: Dynamic Grid -->
   <section>
-    <h2 class="text-lg md:text-xl font-black text-text-main uppercase italic tracking-widest mb-6 border-l-4 border-secondary pl-4">Deploy New Module</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-      <div *ngFor="let module of availableModules"
-           (click)="startModule(module.type)"
-           class="glass-v42 rounded-2xl p-6 border border-border hover:border-secondary transition-all cursor-pointer flex flex-col items-center text-center group bg-surface/10">
-        <div class="w-16 h-16 rounded-full bg-background flex items-center justify-center border border-border mb-6 group-hover:scale-110 transition-transform">
-          <span class="material-symbols-outlined text-2xl text-text-dim group-hover:text-secondary">rocket_launch</span>
+    <h2
+      class="text-lg md:text-xl font-black text-text-main uppercase italic tracking-widest mb-6 border-l-4 border-secondary pl-4"
+    >
+      Deploy New Module
+    </h2>
+    <div
+      class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6"
+    >
+      <div
+        *ngFor="let module of availableModules"
+        (click)="startModule(module.type)"
+        class="glass-v42 rounded-2xl p-6 border border-border hover:border-secondary transition-all cursor-pointer flex flex-col items-center text-center group bg-surface/10"
+      >
+        <div
+          class="w-16 h-16 rounded-full bg-background flex items-center justify-center border border-border mb-6 group-hover:scale-110 transition-transform"
+        >
+          <span
+            class="material-symbols-outlined text-2xl text-text-dim group-hover:text-secondary"
+            >rocket_launch</span
+          >
         </div>
-        <h4 class="text-lg font-black text-text-main uppercase tracking-tighter italic mb-2 leading-none">{{ module.type }}</h4>
-        <p class="text-[9px] md:text-[10px] text-text-dim font-bold uppercase leading-relaxed h-12 overflow-hidden">{{ module.description }}</p>
-        <button class="mt-6 btn-pro btn-pro-outline w-full text-[9px] font-black uppercase tracking-widest">INITIALIZE</button>
+        <h4
+          class="text-lg font-black text-text-main uppercase tracking-tighter italic mb-2 leading-none"
+        >
+          {{ module.type }}
+        </h4>
+        <p
+          class="text-[9px] md:text-[10px] text-text-dim font-bold uppercase leading-relaxed h-12 overflow-hidden"
+        >
+          {{ module.description }}
+        </p>
+        <button
+          class="mt-6 btn-pro btn-pro-outline w-full text-[9px] font-black uppercase tracking-widest"
+        >
+          INITIALIZE
+        </button>
       </div>
     </div>
   </section>

@@ -1,102 +1,180 @@
-<div class="chatbot-container h-full flex flex-col glass-card border-none selection:bg-brand-primary/20 animate-enter no-scrollbar overflow-hidden">
-  <header class="h-20 shrink-0 border-b border-white/5 px-8 flex items-center justify-between bg-black/40">
+<div
+  class="chatbot-container h-full flex flex-col glass-card border-none selection:bg-brand-primary/20 animate-enter no-scrollbar overflow-hidden"
+>
+  <header
+    class="h-20 shrink-0 border-b border-white/5 px-8 flex items-center justify-between bg-black/40"
+  >
     <div class="flex items-center gap-4">
-      <div class="w-10 h-10 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary group">
-        <span class="material-symbols-outlined text-2xl group-hover:scale-125 transition-transform duration-500">neurology</span>
+      <div
+        class="w-10 h-10 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary group"
+      >
+        <span
+          class="material-symbols-outlined text-2xl group-hover:scale-125 transition-transform duration-500"
+          >neurology</span
+        >
       </div>
       <div class="flex flex-col">
-        <h3 class="text-sm font-black text-white uppercase italic tracking-tighter">S.M.U.V.E<span class="text-brand-primary"> 2.0</span></h3>
-        <span class="text-[8px] font-black text-brand-primary uppercase tracking-[0.4em]">S.M.U.V.E v2.0 · Production · Marketing · Business</span>
+        <h3
+          class="text-sm font-black text-white uppercase italic tracking-tighter"
+        >
+          S.M.U.V.E<span class="text-brand-primary"> 2.0</span>
+        </h3>
+        <span
+          class="text-[8px] font-black text-brand-primary uppercase tracking-[0.4em]"
+          >S.M.U.V.E v2.0 · Production · Marketing · Business</span
+        >
       </div>
     </div>
     <div class="flex items-center gap-3">
-       <button (click)="toggleKbWriteAccess()" class="p-2 rounded-xl transition-all" [class.text-brand-primary]="profile().settings.ai.kbWriteAccess" [class.text-slate-600]="!profile().settings.ai.kbWriteAccess" [title]="profile().settings.ai.kbWriteAccess ? 'Neural Vault: Write Access Granted' : 'Neural Vault: Read Only'">
-          <span class="material-symbols-outlined text-lg">{{ profile().settings.ai.kbWriteAccess ? 'lock_open' : 'lock' }}</span>
-       </button>
-       <button (click)="close.emit()" class="w-8 h-8 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white transition-all flex items-center justify-center">
-          <span class="material-symbols-outlined">close</span>
-       </button>
+      <button
+        (click)="toggleKbWriteAccess()"
+        class="p-2 rounded-xl transition-all"
+        [class.text-brand-primary]="profile().settings.ai.kbWriteAccess"
+        [class.text-slate-600]="!profile().settings.ai.kbWriteAccess"
+        [title]="
+          profile().settings.ai.kbWriteAccess
+            ? 'Neural Vault: Write Access Granted'
+            : 'Neural Vault: Read Only'
+        "
+      >
+        <span class="material-symbols-outlined text-lg">{{
+          profile().settings.ai.kbWriteAccess ? 'lock_open' : 'lock'
+        }}</span>
+      </button>
+      <button
+        (click)="close.emit()"
+        class="w-8 h-8 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white transition-all flex items-center justify-center"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
   </header>
 
   <!-- Category shortcut tabs -->
   <div class="shrink-0 px-4 pt-3 pb-1 flex gap-2 border-b border-white/5">
-    <button *ngFor="let group of commandGroups"
-            (click)="toggleCommandCategory(group.category)"
-            class="px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border"
-            [class.bg-brand-primary]="activeCommandCategory() === group.category"
-            [class.text-white]="activeCommandCategory() === group.category"
-            [class.border-brand-primary]="activeCommandCategory() === group.category"
-            [class.bg-white/5]="activeCommandCategory() !== group.category"
-            [class.text-slate-500]="activeCommandCategory() !== group.category"
-            [class.border-white/5]="activeCommandCategory() !== group.category">
+    <button
+      *ngFor="let group of commandGroups"
+      (click)="toggleCommandCategory(group.category)"
+      class="px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border"
+      [class.bg-brand-primary]="activeCommandCategory() === group.category"
+      [class.text-white]="activeCommandCategory() === group.category"
+      [class.border-brand-primary]="activeCommandCategory() === group.category"
+      [class.bg-white/5]="activeCommandCategory() !== group.category"
+      [class.text-slate-500]="activeCommandCategory() !== group.category"
+      [class.border-white/5]="activeCommandCategory() !== group.category"
+    >
       {{ group.label }}
     </button>
     <div class="ml-auto flex items-center gap-1">
       <div class="size-1.5 rounded-full bg-green-400 animate-pulse"></div>
-      <span class="text-[7px] font-black text-slate-600 uppercase tracking-widest">Neural Active</span>
+      <span
+        class="text-[7px] font-black text-slate-600 uppercase tracking-widest"
+        >Neural Active</span
+      >
     </div>
   </div>
 
   <!-- Contextual command drawer -->
-  <div *ngIf="activeCommandCategory()" class="shrink-0 px-4 py-2 bg-black/20 border-b border-white/5 flex flex-wrap gap-2">
+  <div
+    *ngIf="activeCommandCategory()"
+    class="shrink-0 px-4 py-2 bg-black/20 border-b border-white/5 flex flex-wrap gap-2"
+  >
     <ng-container *ngFor="let group of commandGroups">
       <ng-container *ngIf="activeCommandCategory() === group.category">
-        <button *ngFor="let cmd of group.commands"
-                (click)="sendQuickCommand(cmd.label)"
-                class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black text-slate-400 uppercase tracking-widest hover:border-brand-primary/50 hover:text-brand-primary transition-all"
-                [title]="cmd.description">
+        <button
+          *ngFor="let cmd of group.commands"
+          (click)="sendQuickCommand(cmd.label)"
+          class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black text-slate-400 uppercase tracking-widest hover:border-brand-primary/50 hover:text-brand-primary transition-all"
+          [title]="cmd.description"
+        >
           {{ cmd.label }}
         </button>
       </ng-container>
     </ng-container>
   </div>
 
-  <div class="messages-viewport flex-grow overflow-y-auto no-scrollbar p-8 space-y-6" #messageViewport>
-    <div *ngFor="let msg of messages()" class="flex flex-col gap-2" [class.items-end]="msg.role === 'user'">
-      <div class="flex items-center gap-2 mb-1" *ngIf="msg.role === 'assistant'">
-         <div class="size-1.5 rounded-full animate-pulse" [ngClass]="getCategoryAccent(msg.category)"></div>
-         <span class="text-[8px] font-black text-slate-600 uppercase tracking-widest">{{ getCategoryLabel(msg.category) }}</span>
+  <div
+    class="messages-viewport flex-grow overflow-y-auto no-scrollbar p-8 space-y-6"
+    #messageViewport
+  >
+    <div
+      *ngFor="let msg of messages()"
+      class="flex flex-col gap-2"
+      [class.items-end]="msg.role === 'user'"
+    >
+      <div
+        class="flex items-center gap-2 mb-1"
+        *ngIf="msg.role === 'assistant'"
+      >
+        <div
+          class="size-1.5 rounded-full animate-pulse"
+          [ngClass]="getCategoryAccent(msg.category)"
+        ></div>
+        <span
+          class="text-[8px] font-black text-slate-600 uppercase tracking-widest"
+          >{{ getCategoryLabel(msg.category) }}</span
+        >
       </div>
-      <div class="max-w-[85%] p-5 rounded-3xl text-xs font-medium leading-relaxed transition-all shadow-lg"
-           [class.bg-black/60]="msg.role === 'assistant'"
-           [class.text-slate-300]="msg.role === 'assistant'"
-           [class.border]="msg.role === 'assistant'"
-           [class.border-white/5]="msg.role === 'assistant'"
-           [class.bg-brand-primary]="msg.role === 'user'"
-           [class.text-white]="msg.role === 'user'"
-           [class.font-black]="msg.role === 'user'">
+      <div
+        class="max-w-[85%] p-5 rounded-3xl text-xs font-medium leading-relaxed transition-all shadow-lg"
+        [class.bg-black/60]="msg.role === 'assistant'"
+        [class.text-slate-300]="msg.role === 'assistant'"
+        [class.border]="msg.role === 'assistant'"
+        [class.border-white/5]="msg.role === 'assistant'"
+        [class.bg-brand-primary]="msg.role === 'user'"
+        [class.text-white]="msg.role === 'user'"
+        [class.font-black]="msg.role === 'user'"
+      >
         {{ msg.text }}
       </div>
-      <span class="text-[7px] font-black text-slate-700 uppercase tracking-widest px-2">{{ msg.timestamp | date:'HH:mm:ss' }}_UTC</span>
+      <span
+        class="text-[7px] font-black text-slate-700 uppercase tracking-widest px-2"
+        >{{ msg.timestamp | date: 'HH:mm:ss' }}_UTC</span
+      >
     </div>
-    <div *ngIf="isTyping()" class="flex items-center gap-3 p-4 bg-black/40 rounded-2xl w-max animate-pulse">
-       <div class="flex gap-1">
-          <div class="size-1 bg-brand-primary rounded-full"></div>
-          <div class="size-1 bg-brand-primary rounded-full"></div>
-          <div class="size-1 bg-brand-primary rounded-full"></div>
-       </div>
-       <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">Neural Processing...</span>
+    <div
+      *ngIf="isTyping()"
+      class="flex items-center gap-3 p-4 bg-black/40 rounded-2xl w-max animate-pulse"
+    >
+      <div class="flex gap-1">
+        <div class="size-1 bg-brand-primary rounded-full"></div>
+        <div class="size-1 bg-brand-primary rounded-full"></div>
+        <div class="size-1 bg-brand-primary rounded-full"></div>
+      </div>
+      <span
+        class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+        >Neural Processing...</span
+      >
     </div>
   </div>
 
   <footer class="p-4 border-t border-white/5 bg-black/40">
     <div class="relative flex items-center mb-3">
-      <input type="text" [(ngModel)]="userInput" (keyup.enter)="sendMessage()"
-             placeholder="Command S.M.U.V.E 2.0... or ask about production, marketing, business"
-             class="w-full bg-black/60 border border-white/10 rounded-2xl pl-6 pr-16 py-4 text-xs font-bold text-white placeholder:text-slate-700 focus:border-brand-primary/40 focus:bg-black/80 transition-all outline-none">
-      <button (click)="sendMessage()" [disabled]="isTyping()" class="absolute right-3 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-lg shadow-brand-primary/20 hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+      <input
+        type="text"
+        [(ngModel)]="userInput"
+        (keyup.enter)="sendMessage()"
+        placeholder="Command S.M.U.V.E 2.0... or ask about production, marketing, business"
+        class="w-full bg-black/60 border border-white/10 rounded-2xl pl-6 pr-16 py-4 text-xs font-bold text-white placeholder:text-slate-700 focus:border-brand-primary/40 focus:bg-black/80 transition-all outline-none"
+      />
+      <button
+        (click)="sendMessage()"
+        [disabled]="isTyping()"
+        class="absolute right-3 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-lg shadow-brand-primary/20 hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      >
         <span class="material-symbols-outlined text-lg">bolt</span>
       </button>
     </div>
     <!-- Quick command chips -->
     <div class="flex flex-wrap gap-1.5">
-       <button *ngFor="let cmd of quickCommands"
-               (click)="sendQuickCommand(cmd.label)"
-               [title]="cmd.description"
-               class="px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 text-[7px] font-black text-slate-500 uppercase tracking-widest hover:border-brand-primary/40 hover:text-brand-primary transition-all whitespace-nowrap">
-          {{ cmd.label }}
-       </button>
+      <button
+        *ngFor="let cmd of quickCommands"
+        (click)="sendQuickCommand(cmd.label)"
+        [title]="cmd.description"
+        class="px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 text-[7px] font-black text-slate-500 uppercase tracking-widest hover:border-brand-primary/40 hover:text-brand-primary transition-all whitespace-nowrap"
+      >
+        {{ cmd.label }}
+      </button>
     </div>
   </footer>
 </div>

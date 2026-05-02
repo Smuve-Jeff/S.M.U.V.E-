@@ -171,7 +171,7 @@
             </h3>
             <div class="flex items-center gap-2">
               <button
-                (click)="zoomLevel.update(v => v * 0.9)"
+                (click)="zoomLevel.update((v) => v * 0.9)"
                 class="w-6 h-6 rounded border border-border flex items-center justify-center text-[10px] hover:bg-surface transition-all"
               >
                 <span class="material-symbols-outlined text-xs">remove</span>
@@ -180,7 +180,7 @@
                 >{{ zoomLevel() * 100 | number: '1.0-0' }}%</span
               >
               <button
-                (click)="zoomLevel.update(v => v * 1.1)"
+                (click)="zoomLevel.update((v) => v * 1.1)"
                 class="w-6 h-6 rounded border border-border flex items-center justify-center text-[10px] hover:bg-surface transition-all"
               >
                 <span class="material-symbols-outlined text-xs">add</span>
@@ -273,7 +273,7 @@
             <button
               type="button"
               class="safe-zone-toggle"
-              (click)="videoEngine.safeZoneEnabled.update(value => !value)"
+              (click)="videoEngine.safeZoneEnabled.update((value) => !value)"
             >
               {{
                 videoEngine.safeZoneEnabled() ? 'Safe Zone On' : 'Safe Zone Off'
@@ -379,7 +379,8 @@
             >
               <span
                 class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
-                >Transition Blend {{ transitionDuration() | number: '1.1-1' }}s</span
+                >Transition Blend
+                {{ transitionDuration() | number: '1.1-1' }}s</span
               >
               <input
                 type="range"
@@ -418,8 +419,13 @@
           >
             APPLY FX TO ACTIVE CLIPS
           </button>
-          <div class="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border">
-            <span class="text-[9px] md:text-[10px] font-bold text-text-main uppercase">Upscale 4K Uploads</span>
+          <div
+            class="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border"
+          >
+            <span
+              class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+              >Upscale 4K Uploads</span
+            >
             <input
               type="checkbox"
               class="w-4 h-4 accent-brand-primary"

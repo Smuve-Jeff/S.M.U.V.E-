@@ -42,9 +42,7 @@
   "dataGroups": [
     {
       "name": "api-cache",
-      "urls": [
-        "/api/**"
-      ],
+      "urls": ["/api/**"],
       "cacheConfig": {
         "maxSize": 100,
         "maxAge": "1h",
@@ -54,9 +52,7 @@
     },
     {
       "name": "external-api",
-      "urls": [
-        "https://smuve-v4-backend-*.onrender.com/api/**"
-      ],
+      "urls": ["https://smuve-v4-backend-*.onrender.com/api/**"],
       "cacheConfig": {
         "maxSize": 50,
         "maxAge": "1d",
@@ -65,11 +61,6 @@
       }
     }
   ],
-  "navigationUrls": [
-    "/**",
-    "!/**/*.*",
-    "!/**/*__*",
-    "!/**/*__*/**"
-  ],
+  "navigationUrls": ["/**", "!/**/*.*", "!/**/*__*", "!/**/*__*/**"],
   "navigationRequestStrategy": "performance"
 }

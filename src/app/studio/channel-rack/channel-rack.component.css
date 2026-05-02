@@ -102,17 +102,17 @@
   }
 
   .step-sequencer {
-     display: flex !important;
-     width: 100%;
-     margin-top: 0.5rem;
-     justify-content: space-between;
+    display: flex !important;
+    width: 100%;
+    margin-top: 0.5rem;
+    justify-content: space-between;
   }
 
   .channel-actions {
-     opacity: 1 !important;
-     width: 100%;
-     margin-top: 0.5rem;
-     border-top: 1px solid rgba(255,255,255,0.05);
-     padding-top: 0.5rem;
+    opacity: 1 !important;
+    width: 100%;
+    margin-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 0.5rem;
   }
 }

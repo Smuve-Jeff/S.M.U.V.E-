@@ -4,42 +4,63 @@
   <!-- Channel Header -->
   <div class="w-full relative">
     <div class="flex items-center justify-between mb-1">
-      <div class="w-2 h-2 rounded-full transition-colors" [class.bg-brand-danger]="channel.armed" [class.bg-slate-700]="!channel.armed" [class.animate-pulse-subtle]="channel.armed"></div>
-      <button (click)="toggleSettings()" class="text-[10px] text-silver-dim hover:text-brand-primary transition-colors">
+      <div
+        class="w-2 h-2 rounded-full transition-colors"
+        [class.bg-brand-danger]="channel.armed"
+        [class.bg-slate-700]="!channel.armed"
+        [class.animate-pulse-subtle]="channel.armed"
+      ></div>
+      <button
+        (click)="toggleSettings()"
+        class="text-[10px] text-silver-dim hover:text-brand-primary transition-colors"
+      >
         <i class="fas fa-cog"></i>
       </button>
     </div>
-    <h3 class="font-black text-[10px] uppercase tracking-widest truncate w-full text-center text-silver-bright group-hover:text-brand-primary transition-colors">
+    <h3
+      class="font-black text-[10px] uppercase tracking-widest truncate w-full text-center text-silver-bright group-hover:text-brand-primary transition-colors"
+    >
       {{ channel.label }}
     </h3>
   </div>
 
   <!-- Spectrum Mini-View -->
-  <div class="w-full h-12 bg-black/40 rounded-xl border border-white/10 overflow-hidden flex items-end gap-[1px] px-1 pb-1">
-     <div *ngFor="let height of visualizerHeights()"
-          class="flex-grow bg-brand-primary/30 rounded-t-[1px] transition-all duration-100"
-          [style.height.%]="height"></div>
+  <div
+    class="w-full h-12 bg-black/40 rounded-xl border border-white/10 overflow-hidden flex items-end gap-[1px] px-1 pb-1"
+  >
+    <div
+      *ngFor="let height of visualizerHeights()"
+      class="flex-grow bg-brand-primary/30 rounded-t-[1px] transition-all duration-100"
+      [style.height.%]="height"
+    ></div>
   </div>
 
   <!-- Fader Section -->
   <div class="flex-grow flex justify-center w-full py-2 relative">
-     <div class="absolute left-2 top-2 bottom-2 w-px bg-white/5"></div>
+    <div class="absolute left-2 top-2 bottom-2 w-px bg-white/5"></div>
 
-     <div class="fader-track h-40 w-8 bg-black/60 rounded-full flex justify-center py-2 border border-white/10 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-        <div class="absolute bottom-2 left-1 right-1 bg-gradient-to-t from-brand-primary/60 to-brand-primary/20 rounded-full transition-all" [style.height.%]="channel.level"></div>
+    <div
+      class="fader-track h-40 w-8 bg-black/60 rounded-full flex justify-center py-2 border border-white/10 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]"
+    >
+      <div
+        class="absolute bottom-2 left-1 right-1 bg-gradient-to-t from-brand-primary/60 to-brand-primary/20 rounded-full transition-all"
+        [style.height.%]="channel.level"
+      ></div>
 
-        <input
-          type="range"
-          orient="vertical"
-          min="0"
-          max="100"
-          [value]="channel.level"
-          (input)="updateLevel(+$any($event.target).value)"
-          class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-        />
-        <div class="absolute w-6 h-3 bg-white rounded-lg shadow-xl pointer-events-none"
-             [style.bottom.%]="channel.level - 2"></div>
-     </div>
+      <input
+        type="range"
+        orient="vertical"
+        min="0"
+        max="100"
+        [value]="channel.level"
+        (input)="updateLevel(+$any($event.target).value)"
+        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+      />
+      <div
+        class="absolute w-6 h-3 bg-white rounded-lg shadow-xl pointer-events-none"
+        [style.bottom.%]="channel.level - 2"
+      ></div>
+    </div>
   </div>
 
   <!-- Pan Control -->
@@ -50,7 +71,9 @@
       <span>R</span>
     </div>
     <div class="relative h-4 flex items-center">
-      <div class="absolute inset-x-0 h-1 bg-brand-surface-light rounded-full border border-white/10"></div>
+      <div
+        class="absolute inset-x-0 h-1 bg-brand-surface-light rounded-full border border-white/10"
+      ></div>
       <input
         type="range"
         min="-100"
@@ -67,14 +90,22 @@
     <button
       (click)="toggleMute()"
       class="h-8 rounded-xl font-black text-[9px] uppercase tracking-tighter border transition-all active:scale-90"
-      [ngClass]="channel.muted ? 'bg-brand-warning/20 text-brand-warning border-brand-warning/50' : 'bg-brand-surface-light text-silver-dim border-white/10'"
+      [ngClass]="
+        channel.muted
+          ? 'bg-brand-warning/20 text-brand-warning border-brand-warning/50'
+          : 'bg-brand-surface-light text-silver-dim border-white/10'
+      "
     >
       M
     </button>
     <button
       (click)="toggleArm()"
       class="h-8 rounded-xl font-black text-[9px] uppercase tracking-tighter border transition-all active:scale-90"
-      [ngClass]="channel.armed ? 'bg-brand-danger/20 text-brand-danger border-brand-danger/50' : 'bg-brand-surface-light text-silver-dim border-white/10'"
+      [ngClass]="
+        channel.armed
+          ? 'bg-brand-danger/20 text-brand-danger border-brand-danger/50'
+          : 'bg-brand-surface-light text-silver-dim border-white/10'
+      "
     >
       R
     </button>

@@ -1,24 +1,42 @@
-<div class="h-full bg-extreme-obsidian text-slate-100 flex flex-col font-sans overflow-hidden">
+<div
+  class="h-full bg-extreme-obsidian text-slate-100 flex flex-col font-sans overflow-hidden"
+>
   <div class="flex-grow flex flex-col overflow-y-auto custom-scrollbar">
     <main class="flex-grow flex flex-col lg:flex-row overflow-hidden">
       <section class="flex-grow p-4 md:p-8 overflow-y-auto custom-scrollbar">
-        <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <header
+          class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10"
+        >
           <div>
             <div class="flex items-center gap-3 mb-2">
-              <span class="size-1.5 rounded-full bg-brand-primary animate-pulse"></span>
-              <span class="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] md:tracking-[0.4em]">Career Trajectory Matrix</span>
+              <span
+                class="size-1.5 rounded-full bg-brand-primary animate-pulse"
+              ></span>
+              <span
+                class="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] md:tracking-[0.4em]"
+                >Career Trajectory Matrix</span
+              >
             </div>
-            <h1 class="text-3xl md:text-4xl font-black text-white italic tracking-tighter uppercase leading-none">EXECUTIVE<span class="text-brand-primary">HUB</span></h1>
+            <h1
+              class="text-3xl md:text-4xl font-black text-white italic tracking-tighter uppercase leading-none"
+            >
+              EXECUTIVE<span class="text-brand-primary">HUB</span>
+            </h1>
           </div>
-          <div class="flex items-center gap-4">
-          </div>
+          <div class="flex items-center gap-4"></div>
         </header>
 
         <div class="grid grid-cols-12 gap-6 md:gap-8">
           <!-- Trajectory Chart -->
-          <div class="col-span-12 lg:col-span-8 glass-card rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10">
+          <div
+            class="col-span-12 lg:col-span-8 glass-card rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10"
+          >
             <div class="flex items-center justify-between mb-8">
-              <h2 class="text-sm md:text-base font-bold text-white uppercase tracking-tight">Market Positioning Matrix</h2>
+              <h2
+                class="text-sm md:text-base font-bold text-white uppercase tracking-tight"
+              >
+                Market Positioning Matrix
+              </h2>
               <div class="flex gap-2">
                 <span class="size-2 rounded-full bg-brand-primary"></span>
                 <span class="size-2 rounded-full bg-accent-magenta"></span>
@@ -29,21 +47,43 @@
                 <svg viewBox="0 0 1000 300" class="w-full h-full opacity-40">
                   <defs>
                     <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#10b981" stop-opacity="0.3"></stop>
-                      <stop offset="100%" stop-color="#10b981" stop-opacity="0"></stop>
+                      <stop
+                        offset="0%"
+                        stop-color="#10b981"
+                        stop-opacity="0.3"
+                      ></stop>
+                      <stop
+                        offset="100%"
+                        stop-color="#10b981"
+                        stop-opacity="0"
+                      ></stop>
                     </linearGradient>
                     <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
                       <stop offset="0%" stop-color="#10b981"></stop>
                       <stop offset="100%" stop-color="#38bdf8"></stop>
                     </linearGradient>
                   </defs>
-                  <path d="M0 250 Q 150 150, 250 180 T 450 100 T 650 140 T 850 40 T 1000 60 V 300 H 0 Z" fill="url(#areaGrad)"></path>
-                  <path d="M0 250 Q 150 150, 250 180 T 450 100 T 650 140 T 850 40 T 1000 60" fill="none" stroke="url(#lineGrad)" stroke-width="4"></path>
+                  <path
+                    d="M0 250 Q 150 150, 250 180 T 450 100 T 650 140 T 850 40 T 1000 60 V 300 H 0 Z"
+                    fill="url(#areaGrad)"
+                  ></path>
+                  <path
+                    d="M0 250 Q 150 150, 250 180 T 450 100 T 650 140 T 850 40 T 1000 60"
+                    fill="none"
+                    stroke="url(#lineGrad)"
+                    stroke-width="4"
+                  ></path>
                   <g class="nodes">
                     <circle cx="250" cy="180" fill="#fff" r="4"></circle>
                     <circle cx="450" cy="100" fill="#fff" r="4"></circle>
                     <circle cx="650" cy="140" fill="#fff" r="4"></circle>
-                    <circle class="animate-ping" cx="850" cy="40" fill="#ec5b13" r="6"></circle>
+                    <circle
+                      class="animate-ping"
+                      cx="850"
+                      cy="40"
+                      fill="#ec5b13"
+                      r="6"
+                    ></circle>
                     <circle cx="850" cy="40" fill="#fff" r="4"></circle>
                   </g>
                 </svg>
@@ -52,94 +92,213 @@
           </div>
 
           <!-- Active Pitches -->
-          <div class="col-span-12 lg:col-span-4 glass-card rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10 flex flex-col">
-             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-sm md:text-base font-bold text-white uppercase tracking-tight">Active Pitches</h2>
-                <span class="text-[9px] md:text-[10px] font-black text-slate-500 bg-white/5 px-2 py-1 rounded">{{ submissions().length }} SUBMITTED</span>
-             </div>
-             <div class="space-y-3 flex-grow overflow-y-auto max-h-[250px] md:max-h-[300px] no-scrollbar pr-2">
-                @for (sub of submissions(); track sub.labelName) {
-                   <div class="p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all group/item">
-                      <div class="flex justify-between items-start mb-2">
-                         <h4 class="text-sm font-bold text-white">{{ sub.labelName }}</h4>
-                         <span class="text-[9px] font-bold px-2 py-0.5 rounded-full"
-                               [class.bg-brand-warning/10]="sub.status === 'Reviewing'"
-                               [class.text-brand-warning]="sub.status === 'Reviewing'"
-                               [class.bg-brand-muted/10]="sub.status === 'Pending'"
-                               [class.text-brand-muted]="sub.status === 'Pending'">{{ sub.status }}</span>
-                      </div>
-                      <div class="text-[10px] text-slate-500 mb-3 truncate">{{ sub.demoUrl }}</div>
-                      <div class="flex items-center justify-between">
-                         <span class="text-[9px] font-mono tracking-tight text-slate-500">{{ sub.date }}</span>
-                         <button class="text-[9px] font-black text-brand-primary uppercase opacity-0 group-hover/item:opacity-100 transition-all">Recall</button>
-                      </div>
-                   </div>
-                }
-             </div>
-             <div class="mt-8 pt-6 border-t border-white/10 space-y-4">
-                <input type="text" [(ngModel)]="newLabel" placeholder="Label Name" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all text-white outline-none">
-                <input type="text" [(ngModel)]="newDemo" placeholder="Demo Link" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all text-white outline-none">
-                <button (click)="submitToLabel()" class="w-full btn-elegant btn-elegant-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3 h-auto">Submit Proposal</button>
-             </div>
+          <div
+            class="col-span-12 lg:col-span-4 glass-card rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10 flex flex-col"
+          >
+            <div class="flex items-center justify-between mb-6">
+              <h2
+                class="text-sm md:text-base font-bold text-white uppercase tracking-tight"
+              >
+                Active Pitches
+              </h2>
+              <span
+                class="text-[9px] md:text-[10px] font-black text-slate-500 bg-white/5 px-2 py-1 rounded"
+                >{{ submissions().length }} SUBMITTED</span
+              >
+            </div>
+            <div
+              class="space-y-3 flex-grow overflow-y-auto max-h-[250px] md:max-h-[300px] no-scrollbar pr-2"
+            >
+              @for (sub of submissions(); track sub.labelName) {
+                <div
+                  class="p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all group/item"
+                >
+                  <div class="flex justify-between items-start mb-2">
+                    <h4 class="text-sm font-bold text-white">
+                      {{ sub.labelName }}
+                    </h4>
+                    <span
+                      class="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                      [class.bg-brand-warning/10]="sub.status === 'Reviewing'"
+                      [class.text-brand-warning]="sub.status === 'Reviewing'"
+                      [class.bg-brand-muted/10]="sub.status === 'Pending'"
+                      [class.text-brand-muted]="sub.status === 'Pending'"
+                      >{{ sub.status }}</span
+                    >
+                  </div>
+                  <div class="text-[10px] text-slate-500 mb-3 truncate">
+                    {{ sub.demoUrl }}
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span
+                      class="text-[9px] font-mono tracking-tight text-slate-500"
+                      >{{ sub.date }}</span
+                    >
+                    <button
+                      class="text-[9px] font-black text-brand-primary uppercase opacity-0 group-hover/item:opacity-100 transition-all"
+                    >
+                      Recall
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+            <div class="mt-8 pt-6 border-t border-white/10 space-y-4">
+              <input
+                type="text"
+                [(ngModel)]="newLabel"
+                placeholder="Label Name"
+                class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all text-white outline-none"
+              />
+              <input
+                type="text"
+                [(ngModel)]="newDemo"
+                placeholder="Demo Link"
+                class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all text-white outline-none"
+              />
+              <button
+                (click)="submitToLabel()"
+                class="w-full btn-elegant btn-elegant-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3 h-auto"
+              >
+                Submit Proposal
+              </button>
+            </div>
           </div>
 
           <!-- Venues -->
-          <div class="col-span-12 lg:col-span-6 glass-card rounded-2xl md:rounded-3xl p-6 border border-white/10">
-             <div class="flex items-center gap-3 mb-6 text-brand-secondary">
-                <span class="material-symbols-outlined">map</span>
-                <h3 class="text-sm font-bold text-white uppercase">Live Circuit</h3>
-             </div>
-             <div class="space-y-4">
-                @for (v of venues(); track v.name) {
-                   <div class="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all">
-                      <div class="flex-grow">
-                         <div class="text-xs font-bold text-white truncate max-w-[150px] md:max-w-none">{{ v.name }}</div>
-                         <div class="text-[9px] text-slate-500 uppercase tracking-wider">{{ v.location }} • {{ v.capacity }} CAP</div>
-                      </div>
-                      <span class="text-[8px] font-black px-2 py-1 rounded bg-brand-primary/10 text-brand-primary uppercase border border-brand-primary/20 shrink-0">{{ v.bookingStatus }}</span>
-                   </div>
-                }
-             </div>
+          <div
+            class="col-span-12 lg:col-span-6 glass-card rounded-2xl md:rounded-3xl p-6 border border-white/10"
+          >
+            <div class="flex items-center gap-3 mb-6 text-brand-secondary">
+              <span class="material-symbols-outlined">map</span>
+              <h3 class="text-sm font-bold text-white uppercase">
+                Live Circuit
+              </h3>
+            </div>
+            <div class="space-y-4">
+              @for (v of venues(); track v.name) {
+                <div
+                  class="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all"
+                >
+                  <div class="flex-grow">
+                    <div
+                      class="text-xs font-bold text-white truncate max-w-[150px] md:max-w-none"
+                    >
+                      {{ v.name }}
+                    </div>
+                    <div
+                      class="text-[9px] text-slate-500 uppercase tracking-wider"
+                    >
+                      {{ v.location }} • {{ v.capacity }} CAP
+                    </div>
+                  </div>
+                  <span
+                    class="text-[8px] font-black px-2 py-1 rounded bg-brand-primary/10 text-brand-primary uppercase border border-brand-primary/20 shrink-0"
+                    >{{ v.bookingStatus }}</span
+                  >
+                </div>
+              }
+            </div>
           </div>
 
           <!-- Revenue / Stats -->
-          <div class="col-span-12 lg:col-span-6 grid grid-cols-2 gap-4 md:gap-6">
-             <div class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 border-l-4 border-brand-primary flex flex-col justify-center text-center">
-                <div class="text-[8px] md:text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] md:tracking-[0.3em] mb-2">Q3 Revenue</div>
-                <div class="text-xl md:text-3xl font-black text-white italic tracking-tighter">4.5K</div>
-                <div class="text-[7px] md:text-[8px] text-brand-primary/60 font-bold mt-1 uppercase">+18% vs PREV</div>
-             </div>
-             <div class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 border-l-4 border-accent-magenta flex flex-col justify-center text-center">
-                <div class="text-[8px] md:text-[9px] font-black text-accent-magenta uppercase tracking-[0.2em] md:tracking-[0.3em] mb-2">Fan Growth</div>
-                <div class="text-xl md:text-3xl font-black text-white italic tracking-tighter">+12.4%</div>
-                <div class="text-[7px] md:text-[8px] text-accent-magenta/60 font-bold mt-1 uppercase">HYPER-GROWTH</div>
-             </div>
+          <div
+            class="col-span-12 lg:col-span-6 grid grid-cols-2 gap-4 md:gap-6"
+          >
+            <div
+              class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 border-l-4 border-brand-primary flex flex-col justify-center text-center"
+            >
+              <div
+                class="text-[8px] md:text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] md:tracking-[0.3em] mb-2"
+              >
+                Q3 Revenue
+              </div>
+              <div
+                class="text-xl md:text-3xl font-black text-white italic tracking-tighter"
+              >
+                4.5K
+              </div>
+              <div
+                class="text-[7px] md:text-[8px] text-brand-primary/60 font-bold mt-1 uppercase"
+              >
+                +18% vs PREV
+              </div>
+            </div>
+            <div
+              class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 border-l-4 border-accent-magenta flex flex-col justify-center text-center"
+            >
+              <div
+                class="text-[8px] md:text-[9px] font-black text-accent-magenta uppercase tracking-[0.2em] md:tracking-[0.3em] mb-2"
+              >
+                Fan Growth
+              </div>
+              <div
+                class="text-xl md:text-3xl font-black text-white italic tracking-tighter"
+              >
+                +12.4%
+              </div>
+              <div
+                class="text-[7px] md:text-[8px] text-accent-magenta/60 font-bold mt-1 uppercase"
+              >
+                HYPER-GROWTH
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Activity Feed Carousel -->
         <div class="flex flex-col gap-4 mt-12 mb-8">
           <div class="flex items-center justify-between">
-            <h3 class="text-[11px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Real-Time Activity Feed</h3>
-            <button class="text-brand-primary text-[10px] font-bold uppercase hover:underline">View Ledger</button>
+            <h3
+              class="text-[11px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em]"
+            >
+              Real-Time Activity Feed
+            </h3>
+            <button
+              class="text-brand-primary text-[10px] font-bold uppercase hover:underline"
+            >
+              View Ledger
+            </button>
           </div>
           <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-            <div class="min-w-[260px] md:min-w-[300px] p-4 glass-card rounded-xl flex items-center gap-4 border-r-2 border-accent-purple/30">
-              <div class="size-10 md:size-12 rounded-lg bg-extreme-titanium flex items-center justify-center text-accent-magenta shrink-0">
-                <span class="material-symbols-outlined !text-xl md:!text-2xl">output</span>
+            <div
+              class="min-w-[260px] md:min-w-[300px] p-4 glass-card rounded-xl flex items-center gap-4 border-r-2 border-accent-purple/30"
+            >
+              <div
+                class="size-10 md:size-12 rounded-lg bg-extreme-titanium flex items-center justify-center text-accent-magenta shrink-0"
+              >
+                <span class="material-symbols-outlined !text-xl md:!text-2xl"
+                  >output</span
+                >
               </div>
               <div class="flex flex-col">
-                <span class="text-white font-bold text-xs md:text-sm truncate max-w-[150px]">Main_Theme_V4_Final</span>
-                <span class="text-slate-500 text-[10px]">Render Complete • 2m ago</span>
+                <span
+                  class="text-white font-bold text-xs md:text-sm truncate max-w-[150px]"
+                  >Main_Theme_V4_Final</span
+                >
+                <span class="text-slate-500 text-[10px]"
+                  >Render Complete • 2m ago</span
+                >
               </div>
             </div>
-            <div class="min-w-[260px] md:min-w-[300px] p-4 glass-card rounded-xl flex items-center gap-4">
-              <div class="size-10 md:size-12 rounded-lg bg-extreme-titanium flex items-center justify-center text-brand-primary shrink-0">
-                <span class="material-symbols-outlined !text-xl md:!text-2xl">smart_toy</span>
+            <div
+              class="min-w-[260px] md:min-w-[300px] p-4 glass-card rounded-xl flex items-center gap-4"
+            >
+              <div
+                class="size-10 md:size-12 rounded-lg bg-extreme-titanium flex items-center justify-center text-brand-primary shrink-0"
+              >
+                <span class="material-symbols-outlined !text-xl md:!text-2xl"
+                  >smart_toy</span
+                >
               </div>
               <div class="flex flex-col">
-                <span class="text-white font-bold text-xs md:text-sm truncate max-w-[150px]">Strategic Pivot Match</span>
-                <span class="text-slate-500 text-[10px]">AI Opportunity Found • 12m ago</span>
+                <span
+                  class="text-white font-bold text-xs md:text-sm truncate max-w-[150px]"
+                  >Strategic Pivot Match</span
+                >
+                <span class="text-slate-500 text-[10px]"
+                  >AI Opportunity Found • 12m ago</span
+                >
               </div>
             </div>
           </div>
@@ -147,22 +306,34 @@
       </section>
 
       <!-- Right Sidebar: Modular Tools - Hidden on Mobile -->
-      <aside class="w-20 hidden lg:flex flex-col border-l border-slate-800 py-6 items-center gap-6 bg-gradient-to-b from-extreme-obsidian to-extreme-titanium shadow-2xl shrink-0">
-        <button class="size-12 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-lg shadow-brand-primary/20 hover:scale-110 transition-transform extreme-glow">
+      <aside
+        class="w-20 hidden lg:flex flex-col border-l border-slate-800 py-6 items-center gap-6 bg-gradient-to-b from-extreme-obsidian to-extreme-titanium shadow-2xl shrink-0"
+      >
+        <button
+          class="size-12 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-lg shadow-brand-primary/20 hover:scale-110 transition-transform extreme-glow"
+        >
           <span class="material-symbols-outlined !text-3xl">add_circle</span>
         </button>
         <div class="w-8 h-[1px] bg-slate-800"></div>
-        <button class="size-12 rounded-xl hover:bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all">
+        <button
+          class="size-12 rounded-xl hover:bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all"
+        >
           <span class="material-symbols-outlined">grid_view</span>
         </button>
-        <button class="size-12 rounded-xl hover:bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all">
+        <button
+          class="size-12 rounded-xl hover:bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all"
+        >
           <span class="material-symbols-outlined">folder</span>
         </button>
-        <button class="size-12 rounded-xl hover:bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all">
+        <button
+          class="size-12 rounded-xl hover:bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all"
+        >
           <span class="material-symbols-outlined">bar_chart</span>
         </button>
         <div class="mt-auto">
-          <button class="size-12 rounded-xl hover:bg-red-500/10 flex items-center justify-center text-red-500 extreme-glow">
+          <button
+            class="size-12 rounded-xl hover:bg-red-500/10 flex items-center justify-center text-red-500 extreme-glow"
+          >
             <span class="material-symbols-outlined !text-3xl">logout</span>
           </button>
         </div>
@@ -172,19 +343,27 @@
 </div>
 
 <!-- Scrolling Activity Feed Marquee - Hidden on small mobile to save vertical space -->
-<footer class="h-8 obsidian-bg border-t border-slate-800 hidden sm:flex items-center overflow-hidden whitespace-nowrap shrink-0">
+<footer
+  class="h-8 obsidian-bg border-t border-slate-800 hidden sm:flex items-center overflow-hidden whitespace-nowrap shrink-0"
+>
   <div class="flex animate-marquee items-center gap-10">
     <span class="text-[10px] font-black text-slate-500 flex items-center gap-2">
-      <span class="size-1.5 bg-green-500 rounded-full animate-ping"></span> SYSTEM CORE: 100% OPERATIONAL
+      <span class="size-1.5 bg-green-500 rounded-full animate-ping"></span>
+      SYSTEM CORE: 100% OPERATIONAL
     </span>
     <span class="text-[10px] font-black text-slate-500 flex items-center gap-2">
-      <span class="size-1.5 bg-accent-magenta rounded-full"></span> NEURAL LINK: v4_EXTREME_SYNC_ESTABLISHED
+      <span class="size-1.5 bg-accent-magenta rounded-full"></span> NEURAL LINK:
+      v4_EXTREME_SYNC_ESTABLISHED
     </span>
     <span class="text-[10px] font-black text-slate-500 flex items-center gap-2">
-      <span class="size-1.5 bg-brand-primary rounded-full"></span> MARKET VOLATILITY: NEGLIGIBLE
+      <span class="size-1.5 bg-brand-primary rounded-full"></span> MARKET
+      VOLATILITY: NEGLIGIBLE
     </span>
-    <span class="text-[10px] font-black text-slate-400 flex items-center gap-2 uppercase">
-        PROTOCOL EXTREME: ACTIVATED • ENCRYPTED UPLINK SECURE • BYPASSING TRADITIONAL SYNAPSE LIMITS
+    <span
+      class="text-[10px] font-black text-slate-400 flex items-center gap-2 uppercase"
+    >
+      PROTOCOL EXTREME: ACTIVATED • ENCRYPTED UPLINK SECURE • BYPASSING
+      TRADITIONAL SYNAPSE LIMITS
     </span>
   </div>
 </footer>

@@ -1,37 +1,71 @@
-<div class="master-bus-controls-wrapper h-full flex items-center justify-between px-4 gap-8 relative">
-
+<div
+  class="master-bus-controls-wrapper h-full flex items-center justify-between px-4 gap-8 relative"
+>
   <!-- Left: Branding & DSP Toggle -->
   <div class="flex items-center gap-6">
     <div class="flex flex-col min-w-[120px]">
-      <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary italic">S.M.U.V.E 2.0 Studio</h3>
-      <div class="text-[8px] text-slate-500 font-mono text-[11px] tracking-tight uppercase tracking-tighter">Production Environment v2.0</div>
+      <h3
+        class="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary italic"
+      >
+        S.M.U.V.E 2.0 Studio
+      </h3>
+      <div
+        class="text-[8px] text-slate-500 font-mono text-[11px] tracking-tight uppercase tracking-tighter"
+      >
+        Production Environment v2.0
+      </div>
     </div>
 
     <div class="h-8 w-px bg-white/5"></div>
 
     <!-- DSP DROPDOWN TRIGGER -->
-    <button (click)="toggleDropdown()"
-            [class.active]="isDropdownOpen()"
-            class="dsp-trigger-btn group flex items-center gap-3 px-4 py-2 rounded-xl bg-brand-surface border border-white/10 hover:border-brand-primary/30 transition-all">
+    <button
+      (click)="toggleDropdown()"
+      [class.active]="isDropdownOpen()"
+      class="dsp-trigger-btn group flex items-center gap-3 px-4 py-2 rounded-xl bg-brand-surface border border-white/10 hover:border-brand-primary/30 transition-all"
+    >
       <div class="flex flex-col items-start">
-        <span class="text-[10px] font-black uppercase tracking-widest text-brand-primary group-hover:text-brand-primary">Master DSP</span>
-        <span class="text-[7px] text-slate-500 font-mono text-[11px] tracking-tight uppercase">Control Panel</span>
+        <span
+          class="text-[10px] font-black uppercase tracking-widest text-brand-primary group-hover:text-brand-primary"
+          >Master DSP</span
+        >
+        <span
+          class="text-[7px] text-slate-500 font-mono text-[11px] tracking-tight uppercase"
+          >Control Panel</span
+        >
       </div>
-      <i class="fas fa-chevron-up text-[10px] transition-transform duration-300" [class.rotate-180]="isDropdownOpen()"></i>
+      <i
+        class="fas fa-chevron-up text-[10px] transition-transform duration-300"
+        [class.rotate-180]="isDropdownOpen()"
+      ></i>
     </button>
   </div>
 
   <!-- THE DRODOWN PANEL (POPOVER) -->
-  <div *ngIf="isDropdownOpen()"
-       class="absolute bottom-full left-44 mb-4 z-[500] animate__animated animate__fadeInUp animate__faster">
-    <div class="dsp-dropdown-panel glass-morphism p-6 rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col gap-6 min-w-[450px]">
-
+  <div
+    *ngIf="isDropdownOpen()"
+    class="absolute bottom-full left-44 mb-4 z-[500] animate__animated animate__fadeInUp animate__faster"
+  >
+    <div
+      class="dsp-dropdown-panel glass-morphism p-6 rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col gap-6 min-w-[450px]"
+    >
       <div class="flex items-center justify-between mb-2">
         <div class="flex flex-col">
-          <span class="text-[10px] font-black uppercase tracking-widest text-brand-primary">Master Bus DSP</span>
-          <span class="text-[8px] text-slate-500 font-mono text-[11px] tracking-tight">Precision Signal Processing Chain</span>
+          <span
+            class="text-[10px] font-black uppercase tracking-widest text-brand-primary"
+            >Master Bus DSP</span
+          >
+          <span
+            class="text-[8px] text-slate-500 font-mono text-[11px] tracking-tight"
+            >Precision Signal Processing Chain</span
+          >
         </div>
-        <button (click)="isDropdownOpen.set(false)" class="text-slate-500 hover:text-white transition-all"><i class="fas fa-times text-xs"></i></button>
+        <button
+          (click)="isDropdownOpen.set(false)"
+          class="text-slate-500 hover:text-white transition-all"
+        >
+          <i class="fas fa-times text-xs"></i>
+        </button>
       </div>
 
       <div class="h-px w-full bg-white/5"></div>
@@ -40,27 +74,61 @@
       <div class="flex flex-col gap-6">
         <div class="control-group flex flex-col gap-2">
           <div class="flex justify-between items-center mb-1">
-            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Master Output Gain</label>
-            <span class="text-[9px] font-mono text-[11px] tracking-tight text-brand-primary">{{ masterVolumePercent() }}%</span>
+            <label
+              class="text-[9px] font-bold text-slate-400 uppercase tracking-widest"
+              >Master Output Gain</label
+            >
+            <span
+              class="text-[9px] font-mono text-[11px] tracking-tight text-brand-primary"
+              >{{ masterVolumePercent() }}%</span
+            >
           </div>
-          <div class="fader-track w-full h-1.5 bg-black rounded-full relative overflow-hidden">
-            <input type="range" min="0" max="1" step="0.01" [value]="masterVolume()"
-                   (input)="updateMasterVolume($event)"
-                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-            <div class="fader-fill h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" [style.width.%]="masterVolumePercent()"></div>
+          <div
+            class="fader-track w-full h-1.5 bg-black rounded-full relative overflow-hidden"
+          >
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              [value]="masterVolume()"
+              (input)="updateMasterVolume($event)"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            />
+            <div
+              class="fader-fill h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full"
+              [style.width.%]="masterVolumePercent()"
+            ></div>
           </div>
         </div>
 
         <div class="control-group flex flex-col gap-2">
-           <div class="flex justify-between items-center mb-1">
-            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Global Ambience Mix</label>
-            <span class="text-[9px] font-mono text-[11px] tracking-tight text-brand-primary">{{ reverbMixPercent() }}%</span>
+          <div class="flex justify-between items-center mb-1">
+            <label
+              class="text-[9px] font-bold text-slate-400 uppercase tracking-widest"
+              >Global Ambience Mix</label
+            >
+            <span
+              class="text-[9px] font-mono text-[11px] tracking-tight text-brand-primary"
+              >{{ reverbMixPercent() }}%</span
+            >
           </div>
-          <div class="fader-track w-full h-1.5 bg-black rounded-full relative overflow-hidden">
-            <input type="range" min="0" max="1" step="0.01" [value]="reverbMix()"
-                   (input)="updateReverb($event)"
-                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-            <div class="fader-fill h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" [style.width.%]="reverbMixPercent()"></div>
+          <div
+            class="fader-track w-full h-1.5 bg-black rounded-full relative overflow-hidden"
+          >
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              [value]="reverbMix()"
+              (input)="updateReverb($event)"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            />
+            <div
+              class="fader-fill h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full"
+              [style.width.%]="reverbMixPercent()"
+            ></div>
           </div>
         </div>
       </div>
@@ -68,26 +136,37 @@
       <div class="grid grid-cols-2 gap-4">
         <!-- Section 3: DSP Processors -->
         <div class="flex flex-col gap-3">
-          <span class="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">Processors</span>
+          <span
+            class="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1"
+            >Processors</span
+          >
           <div class="flex gap-3">
-            <button (click)="toggleLimiter()"
-                    [class.active]="isLimiterActive()"
-                    class="dsp-toggle-btn group w-full h-16"
-                    title="Toggle Precision Limiter">
+            <button
+              (click)="toggleLimiter()"
+              [class.active]="isLimiterActive()"
+              class="dsp-toggle-btn group w-full h-16"
+              title="Toggle Precision Limiter"
+            >
               <div class="flex flex-col items-center gap-1">
                 <i class="fas fa-microchip text-xs"></i>
-                <span class="text-[8px] font-black uppercase tracking-tighter">Limiter</span>
+                <span class="text-[8px] font-black uppercase tracking-tighter"
+                  >Limiter</span
+                >
               </div>
               <div class="status-dot" [class.on]="isLimiterActive()"></div>
             </button>
 
-            <button (click)="toggleSoftClip()"
-                    [class.active]="isSoftClipActive()"
-                    class="dsp-toggle-btn group w-full h-16"
-                    title="Toggle Soft Clipping">
+            <button
+              (click)="toggleSoftClip()"
+              [class.active]="isSoftClipActive()"
+              class="dsp-toggle-btn group w-full h-16"
+              title="Toggle Soft Clipping"
+            >
               <div class="flex flex-col items-center gap-1">
                 <i class="fas fa-wave-square text-xs"></i>
-                <span class="text-[8px] font-black uppercase tracking-tighter">Soft Clip</span>
+                <span class="text-[8px] font-black uppercase tracking-tighter"
+                  >Soft Clip</span
+                >
               </div>
               <div class="status-dot" [class.on]="isSoftClipActive()"></div>
             </button>
@@ -96,18 +175,45 @@
 
         <!-- Section 4: Monitoring & Routing -->
         <div class="flex flex-col gap-3">
-          <span class="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">Monitoring</span>
+          <span
+            class="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1"
+            >Monitoring</span
+          >
           <div class="flex flex-col gap-2 flex-grow">
-            <div class="bg-black/40 rounded-2xl p-4 border border-white/10 flex flex-col items-center justify-center flex-grow">
-              <app-gain-reduction-meter [compressor]="compressor"></app-gain-reduction-meter>
+            <div
+              class="bg-black/40 rounded-2xl p-4 border border-white/10 flex flex-col items-center justify-center flex-grow"
+            >
+              <app-gain-reduction-meter
+                [compressor]="compressor"
+              ></app-gain-reduction-meter>
             </div>
 
             <!-- Output Mode Toggle -->
-            <button (click)="audioEngine.setOutputMode(audioEngine.outputMode() === 'speakers' ? 'headphones' : 'speakers')"
-                    class="w-full py-3 rounded-xl border border-white/10 bg-black/20 text-[9px] font-black uppercase flex items-center justify-center gap-3 hover:bg-white/5 transition-all"
-                    [class.text-brand-primary]="audioEngine.outputMode() === 'headphones'">
-               <i class="fas" [class.fa-volume-up]="audioEngine.outputMode() === 'speakers'" [class.fa-headphones]="audioEngine.outputMode() === 'headphones'"></i>
-               {{ audioEngine.outputMode() === 'speakers' ? 'Main Speakers' : 'Headphone Cue' }}
+            <button
+              (click)="
+                audioEngine.setOutputMode(
+                  audioEngine.outputMode() === 'speakers'
+                    ? 'headphones'
+                    : 'speakers'
+                )
+              "
+              class="w-full py-3 rounded-xl border border-white/10 bg-black/20 text-[9px] font-black uppercase flex items-center justify-center gap-3 hover:bg-white/5 transition-all"
+              [class.text-brand-primary]="
+                audioEngine.outputMode() === 'headphones'
+              "
+            >
+              <i
+                class="fas"
+                [class.fa-volume-up]="audioEngine.outputMode() === 'speakers'"
+                [class.fa-headphones]="
+                  audioEngine.outputMode() === 'headphones'
+                "
+              ></i>
+              {{
+                audioEngine.outputMode() === 'speakers'
+                  ? 'Main Speakers'
+                  : 'Headphone Cue'
+              }}
             </button>
           </div>
         </div>
@@ -117,20 +223,37 @@
 
   <!-- Right: Recording & Export (Always Visible) -->
   <div class="flex items-center gap-4 ml-auto">
-    <button (click)="toggleRecording()"
-            [class.recording]="isRecording()"
-            class="rec-btn flex items-center gap-3 px-4 py-2 rounded-xl border border-white/10 bg-brand-surface transition-all">
-      <div class="w-2 h-2 rounded-full" [class.bg-red-500]="isRecording()" [class.bg-slate-700]="!isRecording()" [class.animate-pulse-subtle]="isRecording()"></div>
-      <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">
+    <button
+      (click)="toggleRecording()"
+      [class.recording]="isRecording()"
+      class="rec-btn flex items-center gap-3 px-4 py-2 rounded-xl border border-white/10 bg-brand-surface transition-all"
+    >
+      <div
+        class="w-2 h-2 rounded-full"
+        [class.bg-red-500]="isRecording()"
+        [class.bg-slate-700]="!isRecording()"
+        [class.animate-pulse-subtle]="isRecording()"
+      ></div>
+      <span
+        class="text-[9px] font-black uppercase tracking-widest text-slate-400"
+      >
         {{ isRecording() ? 'STOP RECORDING' : 'REC MASTER' }}
       </span>
     </button>
 
-    <button (click)="finishTrack()"
-            [disabled]="isFinishing()"
-            class="finish-btn group relative overflow-hidden px-8 py-2 rounded-xl bg-brand-primary text-black font-black text-[10px] uppercase tracking-widest hover:bg-emerald-400 transition-all disabled:opacity-50">
+    <button
+      (click)="finishTrack()"
+      [disabled]="isFinishing()"
+      class="finish-btn group relative overflow-hidden px-8 py-2 rounded-xl bg-brand-primary text-black font-black text-[10px] uppercase tracking-widest hover:bg-emerald-400 transition-all disabled:opacity-50"
+    >
       <div class="flex items-center justify-center gap-2">
-        <i class="fas" [ngClass]="{'fa-paper-plane': !isFinishing(), 'fa-spinner fa-spin': isFinishing()}"></i>
+        <i
+          class="fas"
+          [ngClass]="{
+            'fa-paper-plane': !isFinishing(),
+            'fa-spinner fa-spin': isFinishing(),
+          }"
+        ></i>
         <span>{{ isFinishing() ? 'FINALIZING...' : 'FINISH TRACK' }}</span>
       </div>
     </button>
