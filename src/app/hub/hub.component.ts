@@ -1,5 +1,12 @@
 import { SecurityService } from '../services/security.service';
-import { Component, OnInit, OnDestroy, signal, inject, computed } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  signal,
+  inject,
+  computed,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -234,15 +241,21 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   currentBeat = this.audioEngine.currentBeat;
   globalStudioPulse = computed(() => {
     const pulse = [];
-    if (this.aiService.isAIDrummerActive()) pulse.push('NEURAL DRUMMER: SYNCED');
+    if (this.aiService.isAIDrummerActive())
+      pulse.push('NEURAL DRUMMER: SYNCED');
     if (this.aiService.isAIBassistActive()) pulse.push('AI BASSIST: TRACKING');
-    if (this.aiService.isAIKeyboardistActive()) pulse.push('KEYBOARDIST: IMPROVISING');
+    if (this.aiService.isAIKeyboardistActive())
+      pulse.push('KEYBOARDIST: IMPROVISING');
     if (this.audioEngine.isRecording()) pulse.push('UPLINK: CAPTURING');
     if (pulse.length === 0) pulse.push('SYSTEM READY: STANDBY');
     return pulse;
   });
-  getDynamicChecklist() { return this.aiService.getDynamicChecklist(); }
-  isMobile() { return this.uiService.isCompactMobile(); }
+  getDynamicChecklist() {
+    return this.aiService.getDynamicChecklist();
+  }
+  isMobile() {
+    return this.uiService.isCompactMobile();
+  }
 
   ngOnInit() {
     if (this.uiService.isCompactMobile()) {

@@ -42,7 +42,6 @@ export class MixerComponent {
     this.showVisualRouting.update((v) => !v);
   }
 
-
   toggleViewMode() {
     this.viewMode.update((v) => (v === 'compact' ? 'expanded' : 'compact'));
   }
