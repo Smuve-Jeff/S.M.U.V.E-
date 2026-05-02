@@ -144,13 +144,15 @@ export class MusicManagerService {
           audioUrl: rec.url,
         };
 
-        const newNotes: TrackNote[] = (rec.midi || []).map((m: any) => ({
-          id: Math.random().toString(36).substring(7),
-          midi: Math.round(m.pitch),
-          step: Math.floor(m.startTime * 16),
-          length: Math.max(1, Math.floor(m.duration * 16)),
-          velocity: m.velocity,
-        })).filter(n => n.step >= clipStartStep && n.step <= recordingEndStep);
+        const newNotes: TrackNote[] = (rec.midi || [])
+          .map((m: any) => ({
+            id: Math.random().toString(36).substring(7),
+            midi: Math.round(m.pitch),
+            step: Math.floor(m.startTime * 16),
+            length: Math.max(1, Math.floor(m.duration * 16)),
+            velocity: m.velocity,
+          }))
+          .filter((n) => n.step >= clipStartStep && n.step <= recordingEndStep);
 
         this.tracks.update((tracks) =>
           tracks.map((t) =>
@@ -158,7 +160,7 @@ export class MusicManagerService {
               ? {
                   ...t,
                   clips: [...t.clips, newClip],
-                  notes: [...t.notes, ...newNotes]
+                  notes: [...t.notes, ...newNotes],
                 }
               : t
           )
