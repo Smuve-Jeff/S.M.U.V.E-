@@ -111,9 +111,8 @@ function normalizeLaunchConfig(
     embedMode === 'inline' && supportsInlineEmbed
       ? embedUrlCandidate
       : undefined;
-  const telemetryMode = embedMode === 'inline'
-    ? config?.telemetryMode || 'frame-only'
-    : 'none';
+  const telemetryMode =
+    embedMode === 'inline' ? config?.telemetryMode || 'frame-only' : 'none';
   const trustNote =
     asString(config?.trustNote) ||
     (embedMode === 'external-only'
