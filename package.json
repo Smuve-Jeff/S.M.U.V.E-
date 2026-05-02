@@ -66,7 +66,6 @@
     "handlebars": "4.7.9",
     "hono": "4.12.14",
     "immutable": "5.1.5",
-    "path-to-regexp": "8.4.2",
     "picomatch": "2.3.2",
     "tar": "7.5.13",
     "terser-webpack-plugin": "5.4.0",
