@@ -165,6 +165,7 @@ export interface FinancialAccount {
 }
 
 export interface ProfessionalFinancials {
+  monthlyBudget: number;
   accounts: FinancialAccount[];
   totalRevenue: number;
   pendingPayouts: number;

@@ -88,7 +88,8 @@ export const initialProfile: UserProfile = {
   marketingCampaigns: [],
   financials: {
     accounts: [],
-    totalRevenue: 0,
+    monthlyBudget: 0,
+      totalRevenue: 0,
     pendingPayouts: 0,
     splitSheets: [],
     revenueHistory: [],

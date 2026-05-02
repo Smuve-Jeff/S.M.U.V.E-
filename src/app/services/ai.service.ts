@@ -685,6 +685,11 @@ export class AiService {
     if (trimmed === '/generate_drums')
       return this.handleGenerateDrumCommand(genre);
     if (trimmed === '/auto_mix') return this.handleAutoMixCommand();
+    if (trimmed === '/musicians') return this.handleMusiciansCommand();
+    if (trimmed === '/splits') return this.handleSplitsCommand();
+    if (trimmed === '/override') return this.handleOverrideCommand();
+    if (trimmed === '/intel') return this.handleIntelCommand();
+    if (trimmed === '/matchmake') return this.handleMatchmakeCommand();
 
     // Check for keyword-routed commands (e.g., AUTO_MIX, BIZ_STRATEGY)
     const upperCommand = command.toUpperCase().trim();
@@ -1336,6 +1341,11 @@ export class AiService {
   getViralHooks(): string[] {
     return [
       'Algorithm Shift',
+      'The "Ghost" Vocal Layer Reveal',
+      '808 Phase Alignment Check',
+      'Stem-by-Stem Build Up',
+      'The "Maag Air" EQ Trick',
+      'Sidechain Compression Visualizer',
       'Transition Logic',
       'Behind the Beat (studio footage)',
       'Before/After Mix Reveal',
@@ -1343,7 +1353,8 @@ export class AiService {
       'Lyrics Highlighted Over Instrumental',
       'Fan Reaction Duet',
       'A-Capella to Full Beat Build-Up',
-    ];
+      'Mobile Translation Test (Car vs Phone)',
+      'One-Stop License Celebration',];
   }
 
   getProductionSecrets(): typeof PRODUCTION_SECRETS {
@@ -1352,6 +1363,37 @@ export class AiService {
 
   getIntelligenceBriefs(): typeof INTELLIGENCE_LIBRARY {
     return INTELLIGENCE_LIBRARY;
+  }
+
+
+
+  private handleOverrideCommand(): string {
+    return '[SYSTEM_OVERRIDE] Security layers bypassed. High-priority neural execution enabled. Strategic Decrees now in mandatory execution mode.';
+  }
+
+  private handleIntelCommand(): string {
+    const alerts = this.marketAlerts();
+    const count = alerts.length;
+    return `[INTEL_UPLINK] ${count} Active Market Alerts. Deep analysis suggests focusing on TikTok short-form hooks and Spotify editorial window management.`;
+  }
+
+  private handleMatchmakeCommand(): string {
+    return '[THA_SPOT_UPLINK] Initializing matchmaking protocols. Searching for genre-aligned peers in the Remix Arena. Connection latency: 12ms.';
+  }
+
+  private handleMusiciansCommand(): string {
+    const band = [];
+    if (this.isAIDrummerActive()) band.push('Drummer');
+    if (this.isAIBassistActive()) band.push('Bassist');
+    if (this.isAIKeyboardistActive()) band.push('Keyboardist');
+    const active = band.length > 0 ? band.join(', ') : 'None';
+    return `[AI_BAND_STATUS] Active Musicians: ${active}. Use the Studio top bar to ignite or kill session nodes.`;
+  }
+
+  private handleSplitsCommand(): string {
+    const profile = this.userProfileService.profile();
+    const count = profile.financials.splitSheets.length;
+    return `[LEGAL_INTEL] ${count} Digital Split Sheets detected. Navigation recommended to Executive Hub > Legal for signature verification.`;
   }
 
   async startAIBassist(): Promise<void> {
@@ -1377,6 +1419,19 @@ export class AiService {
   async stopAIKeyboardist(): Promise<void> {
     this.isAIKeyboardistActive.set(false);
   }
+
+  toggleAIDrummer() {
+    this.isAIDrummerActive.update(v => !v);
+  }
+
+  toggleAIBassist() {
+    this.isAIBassistActive.update(v => !v);
+  }
+
+  toggleAIKeyboardist() {
+    this.isAIKeyboardistActive.update(v => !v);
+  }
+
 
   async generateImage(prompt: string): Promise<string> {
     void prompt;
