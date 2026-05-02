@@ -112,6 +112,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit() {}
 
+  resolveWithNeuralMix() {
+    this.musicManager.tracks.update(ts => ts.map(t => {
+      return { ...t, gain: t.gain * 0.9 };
+    }));
+    this.aiService.criticalDeficits.set([]);
+    this.notificationService.show('Neural Mix: Signals Optimized', 'success');
+  }
+
   ngOnDestroy() {
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);

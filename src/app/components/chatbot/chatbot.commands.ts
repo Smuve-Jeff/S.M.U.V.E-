@@ -115,4 +115,6 @@ export const QUICK_COMMANDS = [
   { label: '/release', description: 'Release strategy' },
   { label: '/status', description: 'System status' },
   { label: '/sync_kb', description: 'Sync knowledge base' },
+  { label: '/musicians', description: 'Manage AI Band' },
+  { label: '/splits', description: 'Digital Split Sheets' },
 ];

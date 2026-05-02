@@ -584,3 +584,35 @@ body {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(15, 23, 42, 0.8);
 }
+
+/* Specialized Touch-Friendly Controls for Mobile */
+@media (max-width: 768px) {
+  input[type="range"] {
+    min-height: 24px; /* Increase hit area for thumbs */
+  }
+
+  .hud-slider-vertical {
+    width: 32px !important;
+  }
+
+  .btn-pro, .transport-btn, .action-btn {
+    min-height: 44px; /* Apple recommendation for touch targets */
+    min-width: 44px;
+  }
+
+  .glass-card, .hud-module {
+    border-radius: 1.5rem !important;
+  }
+}
+
+/* Glassmorphism Refinement */
+.glass-v42 {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.extreme-glow {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+}

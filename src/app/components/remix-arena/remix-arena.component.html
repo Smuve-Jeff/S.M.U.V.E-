@@ -23,7 +23,10 @@
       >
         JOIN P2P SESSION
       </button>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2" *ngIf="sessionId()">
+        <span class="text-[10px] font-mono text-slate-500 uppercase tracking-widest">ID:</span>
+        <span class="text-[10px] font-mono text-brand-primary font-bold uppercase tracking-widest">{{ sessionId() }}</span>
+      </div>\n      <div class="flex items-center gap-2">
         <div
           class="w-2 h-2 rounded-full bg-brand-primary animate-pulse-subtle"
         ></div>
@@ -35,7 +38,7 @@
     </div>
   </header>
 
-  <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-10">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-10">
     <!-- Code Editor -->
     <div
       class="lg:col-span-2 bg-brand-surface border border-brand-surface-light rounded-xl overflow-hidden shadow-2xl"
@@ -100,7 +103,29 @@
       </div>
     </div>
 
-    <!-- Chat & Activity -->
+
+    <!-- Challenges -->
+    <div
+      class="flex flex-col h-[450px] bg-brand-surface border border-brand-surface-light rounded-xl overflow-hidden"
+    >
+      <div class="bg-brand-surface-light px-4 py-3 border-b border-slate-700">
+        <h2 class="text-xs font-bold uppercase tracking-widest">Active Challenges</h2>
+      </div>
+      <div class="flex-grow p-4 overflow-y-auto space-y-3 custom-scrollbar">
+        <div
+          *ngFor="let ch of challenges()"
+          class="p-3 bg-black/20 border border-white/5 rounded-xl hover:border-brand-primary/50 transition-all"
+        >
+          <h3 class="text-xs font-bold text-white">{{ ch.title }}</h3>
+          <p class="text-[9px] text-slate-500 mb-3">{{ ch.description }}</p>
+          <div class="flex justify-between items-center">
+            <span class="text-[10px] font-black text-brand-primary">{{ ch.prize }}</span>
+            <button (click)="acceptChallenge(ch)" class="text-[9px] font-black bg-white/5 border border-white/10 px-3 py-1 rounded hover:bg-brand-primary hover:text-black transition-all">ACCEPT</button>
+          </div>
+        </div>
+      </div>
+    </div>
+\n    <!-- Chat & Activity -->
     <div
       class="flex flex-col h-[450px] bg-brand-surface border border-brand-surface-light rounded-xl overflow-hidden"
     >

@@ -5,7 +5,8 @@ import { API_KEY_TOKEN, AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
-import { CommandCenterComponent } from '../command-center/command-center.component';
+import { UserProfileService } from '../../services/user-profile.service';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('CareerHubComponent', () => {
   let component: CareerHubComponent;
@@ -42,21 +43,11 @@ describe('CareerHubComponent', () => {
     };
 
     (window as any).AudioContext = class {
-      createGain() {
-        return { ...mockNode };
-      }
-      createOscillator() {
-        return { ...mockNode };
-      }
-      createDynamicsCompressor() {
-        return { ...mockNode };
-      }
-      createDelay() {
-        return { ...mockNode };
-      }
-      createBiquadFilter() {
-        return { ...mockNode };
-      }
+      createGain() { return { ...mockNode }; }
+      createOscillator() { return { ...mockNode }; }
+      createDynamicsCompressor() { return { ...mockNode }; }
+      createDelay() { return { ...mockNode }; }
+      createBiquadFilter() { return { ...mockNode }; }
       createAnalyser() {
         return {
           ...mockNode,
@@ -66,18 +57,10 @@ describe('CareerHubComponent', () => {
           frequencyBinCount: 1024,
         };
       }
-      createConvolver() {
-        return { ...mockNode };
-      }
-      createStereoPanner() {
-        return { ...mockNode };
-      }
-      createBufferSource() {
-        return { ...mockNode };
-      }
-      createWaveShaper() {
-        return { ...mockNode };
-      }
+      createConvolver() { return { ...mockNode }; }
+      createStereoPanner() { return { ...mockNode }; }
+      createBufferSource() { return { ...mockNode }; }
+      createWaveShaper() { return { ...mockNode }; }
       createBuffer() {
         return {
           getChannelData: () => new Float32Array(100),
@@ -87,27 +70,13 @@ describe('CareerHubComponent', () => {
           duration: 1,
         };
       }
-      createMediaStreamDestination() {
-        return { stream: {}, connect: jest.fn() };
-      }
-      get destination() {
-        return { connect: jest.fn(), disconnect: jest.fn() };
-      }
-      get currentTime() {
-        return 0;
-      }
-      get sampleRate() {
-        return 44100;
-      }
-      resume() {
-        return Promise.resolve();
-      }
-      suspend() {
-        return Promise.resolve();
-      }
-      close() {
-        return Promise.resolve();
-      }
+      createMediaStreamDestination() { return { stream: {}, connect: jest.fn() }; }
+      get destination() { return { connect: jest.fn(), disconnect: jest.fn() }; }
+      get currentTime() { return 0; }
+      get sampleRate() { return 44100; }
+      resume() { return Promise.resolve(); }
+      suspend() { return Promise.resolve(); }
+      close() { return Promise.resolve(); }
       decodeAudioData() {
         return Promise.resolve({
           duration: 1,
@@ -121,15 +90,16 @@ describe('CareerHubComponent', () => {
       imports: [
         CareerHubComponent,
         NoopAnimationsModule,
-        CommandCenterComponent,
+        HttpClientTestingModule,
       ],
       providers: [
         provideRouter([]),
         AiService,
         UIService,
+        UserProfileService,
         {
           provide: API_KEY_TOKEN,
-          useValue: 'TEST_KEY_LONG_ENOUGH_FOR_STRATEGIC_DECREE',
+          useValue: 'TEST_KEY',
         },
       ],
     }).compileComponents();
@@ -143,10 +113,22 @@ describe('CareerHubComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should render command center', () => {
-    const commandCenter = fixture.debugElement.query(
-      By.directive(CommandCenterComponent)
-    );
-    expect(commandCenter).toBeTruthy();
+  it('should render the bento grid sections', () => {
+    const matrix = fixture.debugElement.query(By.css('.glass-card'));
+    expect(matrix).toBeTruthy();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('EXECUTIVEHUB');
+    expect(text).toContain('Strategic Audit');
+    expect(text).toContain('Active Pitches');
+  });
+
+  it('should add a new label submission', () => {
+    component.newLabel = 'Test Label';
+    component.newDemo = 'https://test.com';
+    component.submitToLabel();
+
+    expect(component.submissions().length).toBe(3);
+    expect(component.submissions()[0].labelName).toBe('Test Label');
   });
 });

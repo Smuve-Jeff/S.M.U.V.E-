@@ -8,6 +8,7 @@ import { MusicManagerService } from '../../services/music-manager.service';
 import { LibraryService } from '../../services/library.service';
 import { AuthService } from '../../services/auth.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
+import { UIService } from '../../services/ui.service';
 
 @Component({
   selector: 'app-remix-arena',
@@ -27,6 +28,7 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
   libraryService = inject(LibraryService);
   authService = inject(AuthService);
   dialog = inject(InteractionDialogService);
+  uiService = inject(UIService);
 
   code = signal(
     '// S.M.U.V.E 2.0 REMIX ENGINE\n// Start writing your logic here...\n\nfunction onBeat(step) {\n  if (step % 4 === 0) {\n    playKick();\n  }\n}'
@@ -46,6 +48,11 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
   newMessage = signal('');
   sessionId = signal('');
 
+  challenges = signal([
+    { id: 'ch-1', title: 'Midnight Synth Wave', description: 'Create a 4-bar loop using only the Subtractive Synth.', prize: '500 XP' },
+    { id: 'ch-2', title: 'Vocal Glitch Mastery', description: 'Remix the lead vocals with aggressive glitch textures.', prize: '1000 XP' }
+  ]);
+
   ngOnInit() {}
 
   ngOnDestroy() {
@@ -56,32 +63,29 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
 
   async startSession() {
     const user = this.authService.currentUser();
-    if (user) {
-      const id = await this.collaborationService.startSession(user, {
-        code: this.code(),
-      });
-      this.sessionId.set(id);
-      this.messages.update((m) => [
-        ...m,
-        {
-          user: 'System',
-          text: `Session started: ${id}. Share with peers for P2P sync.`,
-        },
-      ]);
-    }
+    if (!user) return;
+    const id = await this.collaborationService.startSession(user, {
+      code: this.code(),
+    });
+    this.sessionId.set(id);
+    this.messages.update((m) => [
+      ...m,
+      {
+        user: 'System',
+        text: `Session started: ${id}. Share with peers for P2P sync.`,
+      },
+    ]);
   }
 
   async joinSession() {
     const user = this.authService.currentUser();
+    if (!user) return;
     const id = await this.dialog.prompt({
-      title: 'Join Remix Session',
-      message:
-        'Paste the session ID shared by your collaborator to establish the P2P remix link.',
-      confirmLabel: 'Join session',
-      cancelLabel: 'Cancel',
+      title: 'Join Session',
+      message: 'Enter the session ID provided by your collaborator:',
       placeholder: 'sess_abc123',
     });
-    if (user && id) {
+    if (id) {
       await this.collaborationService.joinSession(id, user);
       this.sessionId.set(id);
       this.messages.update((m) => [
@@ -94,29 +98,47 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
     }
   }
 
-  onCodeChange(newCode: string) {
-    this.code.set(newCode);
-    if (this.sessionId()) {
-      this.collaborationService.sendProjectUpdate(this.sessionId(), {
-        code: newCode,
-      });
-    }
-  }
-
   sendMessage() {
-    if (!this.newMessage()) return;
-    this.messages.update((m) => [
-      ...m,
-      { user: 'Me', text: this.newMessage() },
-    ]);
+    const text = this.newMessage().trim();
+    if (!text) return;
+    const user = (this.authService.currentUser() as any)?.email || 'Artist';
+    this.messages.update((m) => [...m, { user, text }]);
+    this.collaborationService.sendProjectUpdate(this.sessionId(), { message: text });
     this.newMessage.set('');
   }
 
   remixTrack(track: any) {
-    this.musicManager.selectedTrackId.set(track.id);
     this.messages.update((m) => [
       ...m,
-      { user: 'System', text: 'Remixing ' + track.name + '...' },
+      {
+        user: 'System',
+        text: `Remixing ${track.name}... Applying neural enhancements.`,
+      },
     ]);
+    this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? {
+        ...t,
+        gain: Math.min(1.5, t.gain * 1.1),
+        pan: (Math.random() * 2 - 1) * 0.5
+    } : t));
+
+    const updated = this.musicManager.tracks().find(t => t.id === track.id);
+    if (updated) {
+        this.musicManager.engine.updateTrack(track.id, {
+            gain: updated.gain,
+            pan: updated.pan
+        });
+    }
+  }
+
+  onCodeChange(newCode: string) {
+    this.code.set(newCode);
+    this.collaborationService.sendProjectUpdate(this.sessionId(), {
+      code: newCode,
+    });
+  }
+
+  acceptChallenge(challenge: any) {
+    this.messages.update(m => [...m, { user: 'System', text: `Challenge Accepted: ${challenge.title}. Deploying workstation... ` }]);
+    this.uiService.navigateToView('studio');
   }
 }
