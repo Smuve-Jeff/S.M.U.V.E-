@@ -1,41 +1,67 @@
-<div class="synth-container p-8 bg-slate-900/60 backdrop-blur-3xl border border-white/5 rounded-[32px] h-full flex flex-col gap-8 selection:bg-brand-primary/30 animate__animated animate__fadeIn">
-
-  <header class="flex justify-between items-center border-b border-white/5 pb-6">
+<div
+  class="synth-container p-8 bg-slate-900/60 backdrop-blur-3xl border border-white/5 rounded-[32px] h-full flex flex-col gap-8 selection:bg-brand-primary/30 animate__animated animate__fadeIn"
+>
+  <header
+    class="flex justify-between items-center border-b border-white/5 pb-6"
+  >
     <div class="flex items-center gap-4">
-      <div class="size-12 rounded-2xl bg-gradient-to-br from-brand-primary to-accent-magenta flex items-center justify-center shadow-lg shadow-brand-primary/20">
+      <div
+        class="size-12 rounded-2xl bg-gradient-to-br from-brand-primary to-accent-magenta flex items-center justify-center shadow-lg shadow-brand-primary/20"
+      >
         <span class="material-symbols-outlined text-white text-3xl">waves</span>
       </div>
       <div>
-        <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter">Neural<span class="text-brand-primary">Synth v4</span></h2>
-        <p class="text-[8px] font-black text-slate-500 uppercase tracking-[0.3em]">High-Voltage Additive Engine</p>
+        <h2
+          class="text-2xl font-black text-white italic uppercase tracking-tighter"
+        >
+          Neural<span class="text-brand-primary">Synth v4</span>
+        </h2>
+        <p
+          class="text-[8px] font-black text-slate-500 uppercase tracking-[0.3em]"
+        >
+          High-Voltage Additive Engine
+        </p>
       </div>
     </div>
 
     <div class="flex gap-2">
-      <div class="px-3 py-1 bg-black/40 rounded-lg border border-white/5 flex flex-col items-end">
-        <span class="text-[7px] font-black text-slate-500 uppercase tracking-widest">OSC_1</span>
-        <span class="text-[10px] font-black text-brand-primary uppercase">{{ synthParams.oscillator }}</span>
+      <div
+        class="px-3 py-1 bg-black/40 rounded-lg border border-white/5 flex flex-col items-end"
+      >
+        <span
+          class="text-[7px] font-black text-slate-500 uppercase tracking-widest"
+          >OSC_1</span
+        >
+        <span class="text-[10px] font-black text-brand-primary uppercase">{{
+          synthParams.oscillator
+        }}</span>
       </div>
     </div>
   </header>
 
   <div class="grid grid-cols-12 gap-8 flex-grow overflow-hidden">
-
     <!-- Oscillator & Filters -->
     <div class="col-span-12 lg:col-span-8 flex flex-col gap-8">
-
       <div class="grid grid-cols-2 gap-8">
         <!-- Osc Select -->
         <div class="space-y-4">
-          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Waveform_Signature</label>
+          <label
+            class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2"
+            >Waveform_Signature</label
+          >
           <div class="grid grid-cols-2 gap-2">
-            @for (type of ['sine', 'square', 'sawtooth', 'triangle']; track type) {
-              <button (click)="updateSynthParam('oscillator', type)"
-                      [class.bg-brand-primary]="synthParams.oscillator === type"
-                      [class.text-black]="synthParams.oscillator === type"
-                      [class.bg-white/5]="synthParams.oscillator !== type"
-                      [class.text-slate-400]="synthParams.oscillator !== type"
-                      class="px-4 py-3 rounded-xl border border-white/5 text-[9px] font-black uppercase tracking-widest transition-all hover:border-brand-primary/40">
+            @for (
+              type of ['sine', 'square', 'sawtooth', 'triangle'];
+              track type
+            ) {
+              <button
+                (click)="updateSynthParam('oscillator', type)"
+                [class.bg-brand-primary]="synthParams.oscillator === type"
+                [class.text-black]="synthParams.oscillator === type"
+                [class.bg-white/5]="synthParams.oscillator !== type"
+                [class.text-slate-400]="synthParams.oscillator !== type"
+                class="px-4 py-3 rounded-xl border border-white/5 text-[9px] font-black uppercase tracking-widest transition-all hover:border-brand-primary/40"
+              >
                 {{ type }}
               </button>
             }
@@ -44,34 +70,86 @@
 
         <!-- Filter -->
         <div class="space-y-4">
-           <div class="flex justify-between items-center px-2">
-             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Low_Pass_Filter</label>
-             <span class="text-[10px] font-mono text-brand-primary font-bold">{{ synthParams.cutoff }}Hz</span>
-           </div>
-           <div class="bg-black/40 p-6 rounded-2xl border border-white/5 space-y-6">
-              <input type="range" min="20" max="15000" step="1" [(ngModel)]="synthParams.cutoff" (ngModelChange)="updateSynthParam('cutoff', $event)"
-                     class="w-full accent-primary h-1.5 bg-black/60 rounded-full appearance-none cursor-pointer border border-white/10">
-              <div class="flex justify-between items-center">
-                 <span class="text-[8px] font-black text-slate-600 uppercase tracking-widest">Resonance</span>
-                 <input type="range" min="0" max="20" step="0.1" [(ngModel)]="synthParams.q" (ngModelChange)="updateSynthParam('q', $event)"
-                        class="w-32 accent-accent-magenta h-1 bg-black/60 rounded-full appearance-none cursor-pointer">
-              </div>
-           </div>
+          <div class="flex justify-between items-center px-2">
+            <label
+              class="text-[10px] font-black text-slate-400 uppercase tracking-widest"
+              >Low_Pass_Filter</label
+            >
+            <span class="text-[10px] font-mono text-brand-primary font-bold"
+              >{{ synthParams.cutoff }}Hz</span
+            >
+          </div>
+          <div
+            class="bg-black/40 p-6 rounded-2xl border border-white/5 space-y-6"
+          >
+            <input
+              type="range"
+              min="20"
+              max="15000"
+              step="1"
+              [(ngModel)]="synthParams.cutoff"
+              (ngModelChange)="updateSynthParam('cutoff', $event)"
+              class="w-full accent-primary h-1.5 bg-black/60 rounded-full appearance-none cursor-pointer border border-white/10"
+            />
+            <div class="flex justify-between items-center">
+              <span
+                class="text-[8px] font-black text-slate-600 uppercase tracking-widest"
+                >Resonance</span
+              >
+              <input
+                type="range"
+                min="0"
+                max="20"
+                step="0.1"
+                [(ngModel)]="synthParams.q"
+                (ngModelChange)="updateSynthParam('q', $event)"
+                class="w-32 accent-accent-magenta h-1 bg-black/60 rounded-full appearance-none cursor-pointer"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- ADSR Envelope -->
       <div class="space-y-4">
-        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Amplitude_Envelope</label>
+        <label
+          class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2"
+          >Amplitude_Envelope</label
+        >
         <div class="grid grid-cols-4 gap-4">
-          @for (stage of ['attack', 'decay', 'sustain', 'release']; track stage) {
-            <div class="bg-black/40 p-4 rounded-2xl border border-white/5 flex flex-col items-center gap-3 group hover:border-brand-primary/30 transition-all">
-              <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">{{ stage }}</div>
-              <div class="h-24 w-1 bg-white/5 rounded-full relative overflow-hidden">
-                <div class="absolute bottom-0 left-0 right-0 bg-brand-primary group-hover:bg-accent-magenta transition-colors" [style.height.%]="(stage === 'sustain' ? synthParams.sustain : (synthParams[stage] / 2)) * 100"></div>
+          @for (
+            stage of ['attack', 'decay', 'sustain', 'release'];
+            track stage
+          ) {
+            <div
+              class="bg-black/40 p-4 rounded-2xl border border-white/5 flex flex-col items-center gap-3 group hover:border-brand-primary/30 transition-all"
+            >
+              <div
+                class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+              >
+                {{ stage }}
               </div>
-              <input type="range" min="0" [max]="stage === 'sustain' ? 1 : 2" step="0.01" [(ngModel)]="synthParams[stage]" (ngModelChange)="updateSynthParam(stage, $event)"
-                     class="w-full accent-primary h-1 bg-transparent appearance-none cursor-pointer">
+              <div
+                class="h-24 w-1 bg-white/5 rounded-full relative overflow-hidden"
+              >
+                <div
+                  class="absolute bottom-0 left-0 right-0 bg-brand-primary group-hover:bg-accent-magenta transition-colors"
+                  [style.height.%]="
+                    (stage === 'sustain'
+                      ? synthParams.sustain
+                      : synthParams[stage] / 2) * 100
+                  "
+                ></div>
+              </div>
+              <input
+                type="range"
+                min="0"
+                [max]="stage === 'sustain' ? 1 : 2"
+                step="0.01"
+                [(ngModel)]="synthParams[stage]"
+                (ngModelChange)="updateSynthParam(stage, $event)"
+                class="w-full accent-primary h-1 bg-transparent appearance-none cursor-pointer"
+              />
             </div>
           }
         </div>
@@ -80,44 +158,84 @@
 
     <!-- Modulation & Effects -->
     <div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
-      <div class="obsidian-panel p-6 rounded-3xl border border-white/5 flex flex-col gap-6 flex-grow">
+      <div
+        class="obsidian-panel p-6 rounded-3xl border border-white/5 flex flex-col gap-6 flex-grow"
+      >
         <div class="flex items-center gap-3 border-b border-white/5 pb-4">
-           <span class="material-symbols-outlined text-brand-primary text-sm">bolt</span>
-           <span class="text-[10px] font-black text-white uppercase tracking-widest">Saturation_Module</span>
+          <span class="material-symbols-outlined text-brand-primary text-sm"
+            >bolt</span
+          >
+          <span
+            class="text-[10px] font-black text-white uppercase tracking-widest"
+            >Saturation_Module</span
+          >
         </div>
 
         <div class="space-y-4">
-           <div class="flex justify-between items-center">
-             <span class="text-[9px] font-black text-slate-400 uppercase">Input_Drive</span>
-             <span class="text-[10px] font-mono text-brand-primary font-bold">{{ (synthParams.distortion * 100) | number:'1.0-0' }}%</span>
-           </div>
-           <input type="range" min="0" max="1" step="0.01" [(ngModel)]="synthParams.distortion" (ngModelChange)="updateSynthParam('distortion', $event)"
-                  class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer">
+          <div class="flex justify-between items-center">
+            <span class="text-[9px] font-black text-slate-400 uppercase"
+              >Input_Drive</span
+            >
+            <span class="text-[10px] font-mono text-brand-primary font-bold"
+              >{{ synthParams.distortion * 100 | number: '1.0-0' }}%</span
+            >
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            [(ngModel)]="synthParams.distortion"
+            (ngModelChange)="updateSynthParam('distortion', $event)"
+            class="w-full accent-primary h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer"
+          />
         </div>
 
         <div class="mt-4 p-4 rounded-xl bg-white/5 space-y-3">
-           <div class="flex items-center justify-between">
-              <span class="text-[9px] font-black text-slate-400 uppercase">Sub_Oscillator</span>
-              <button (click)="updateSynthParam('subOsc', !synthParams.subOsc)"
-                      [class.bg-brand-primary]="synthParams.subOsc"
-                      class="size-4 rounded-full border border-white/10 transition-all shadow-[0_0_10px_rgba(236,91,19,0.3)]"></button>
-           </div>
-           <div class="flex justify-between items-center">
-              <span class="text-[8px] font-bold text-slate-500 uppercase">Sub_Mix</span>
-              <input type="range" min="0" max="1" step="0.01" [(ngModel)]="synthParams.subGain" (ngModelChange)="updateSynthParam('subGain', $event)"
-                     class="w-24 accent-white h-0.5 bg-black/40 rounded-full appearance-none cursor-pointer">
-           </div>
+          <div class="flex items-center justify-between">
+            <span class="text-[9px] font-black text-slate-400 uppercase"
+              >Sub_Oscillator</span
+            >
+            <button
+              (click)="updateSynthParam('subOsc', !synthParams.subOsc)"
+              [class.bg-brand-primary]="synthParams.subOsc"
+              class="size-4 rounded-full border border-white/10 transition-all shadow-[0_0_10px_rgba(236,91,19,0.3)]"
+            ></button>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-[8px] font-bold text-slate-500 uppercase"
+              >Sub_Mix</span
+            >
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              [(ngModel)]="synthParams.subGain"
+              (ngModelChange)="updateSynthParam('subGain', $event)"
+              class="w-24 accent-white h-0.5 bg-black/40 rounded-full appearance-none cursor-pointer"
+            />
+          </div>
         </div>
 
         <!-- AI Assistant Banner -->
-        <div class="mt-auto p-4 rounded-2xl bg-brand-primary/5 border border-brand-primary/20 flex flex-col gap-2">
-           <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-[10px] text-brand-primary animate-spin-slow">psychology</span>
-              <span class="text-[8px] font-black text-brand-primary uppercase tracking-widest">S.M.U.V.E_Analysis</span>
-           </div>
-           <p class="text-[9px] text-slate-400 italic leading-tight">
-             "Your sound lacks character. I've enabled the sub-harmonic frequency sync to provide the weight your composition is missing."
-           </p>
+        <div
+          class="mt-auto p-4 rounded-2xl bg-brand-primary/5 border border-brand-primary/20 flex flex-col gap-2"
+        >
+          <div class="flex items-center gap-2">
+            <span
+              class="material-symbols-outlined text-[10px] text-brand-primary animate-spin-slow"
+              >psychology</span
+            >
+            <span
+              class="text-[8px] font-black text-brand-primary uppercase tracking-widest"
+              >S.M.U.V.E_Analysis</span
+            >
+          </div>
+          <p class="text-[9px] text-slate-400 italic leading-tight">
+            "Your sound lacks character. I've enabled the sub-harmonic frequency
+            sync to provide the weight your composition is missing."
+          </p>
         </div>
       </div>
     </div>

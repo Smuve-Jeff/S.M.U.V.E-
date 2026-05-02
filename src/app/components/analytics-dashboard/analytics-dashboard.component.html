@@ -1,119 +1,229 @@
 <div class="p-8 max-w-[1400px] mx-auto animate-enter">
-  <header class="flex items-center justify-between mb-12 border-b border-white/10 pb-8">
+  <header
+    class="flex items-center justify-between mb-12 border-b border-white/10 pb-8"
+  >
     <div class="flex flex-col">
       <div class="flex items-center gap-3 mb-2">
-         <div class="w-2 h-2 rounded-full bg-brand-primary animate-pulse-subtle"></div>
-         <span class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em]">Live Intelligence Feed</span>
+        <div
+          class="w-2 h-2 rounded-full bg-brand-primary animate-pulse-subtle"
+        ></div>
+        <span
+          class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em]"
+          >Live Intelligence Feed</span
+        >
       </div>
-      <h1 class="text-4xl font-black tracking-tighter text-white uppercase italic">DATA<span class="text-brand-primary">PULSE</span></h1>
+      <h1
+        class="text-4xl font-black tracking-tighter text-white uppercase italic"
+      >
+        DATA<span class="text-brand-primary">PULSE</span>
+      </h1>
     </div>
-    <div class="px-4 py-2 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-black uppercase tracking-widest">
+    <div
+      class="px-4 py-2 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-black uppercase tracking-widest"
+    >
       Reporting: Last 30 Days
     </div>
   </header>
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-    <div class="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group">
-      <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-primary/5 blur-3xl rounded-full"></div>
-      <div class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4">Total Streams</div>
+    <div
+      class="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group"
+    >
+      <div
+        class="absolute -top-12 -right-12 w-32 h-32 bg-brand-primary/5 blur-3xl rounded-full"
+      ></div>
+      <div
+        class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4"
+      >
+        Total Streams
+      </div>
       <div class="flex items-end justify-between">
-        <div class="text-4xl font-black text-white italic tracking-tighter">{{ analytics.streams().value | number }}</div>
+        <div class="text-4xl font-black text-white italic tracking-tighter">
+          {{ analytics.streams().value | number }}
+        </div>
         <div class="text-xs font-bold text-brand-primary">+12.4%</div>
       </div>
     </div>
 
-    <div class="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group">
-      <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-brand-secondary/5 blur-3xl rounded-full"></div>
-      <div class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4">Est. Revenue</div>
+    <div
+      class="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group"
+    >
+      <div
+        class="absolute -top-12 -right-12 w-32 h-32 bg-brand-brand-secondary/5 blur-3xl rounded-full"
+      ></div>
+      <div
+        class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4"
+      >
+        Est. Revenue
+      </div>
       <div class="flex items-end justify-between">
-        <div class="text-4xl font-black text-white italic tracking-tighter">,120</div>
+        <div class="text-4xl font-black text-white italic tracking-tighter">
+          ,120
+        </div>
         <div class="text-xs font-bold text-brand-primary">+8.2%</div>
       </div>
     </div>
 
-    <div class="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group">
-      <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-danger/5 blur-3xl rounded-full"></div>
-      <div class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4">Monthly Listeners</div>
+    <div
+      class="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group"
+    >
+      <div
+        class="absolute -top-12 -right-12 w-32 h-32 bg-brand-danger/5 blur-3xl rounded-full"
+      ></div>
+      <div
+        class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4"
+      >
+        Monthly Listeners
+      </div>
       <div class="flex items-end justify-between">
-        <div class="text-4xl font-black text-white italic tracking-tighter">12.5K</div>
+        <div class="text-4xl font-black text-white italic tracking-tighter">
+          12.5K
+        </div>
         <div class="text-xs font-bold text-brand-danger">-2.1%</div>
       </div>
     </div>
   </div>
 
   <div class="grid grid-cols-12 gap-8">
-    <section class="col-span-12 lg:col-span-7 bg-brand-surface/30 rounded-3xl p-8 border border-white/10">
+    <section
+      class="col-span-12 lg:col-span-7 bg-brand-surface/30 rounded-3xl p-8 border border-white/10"
+    >
       <div class="flex items-center justify-between mb-8">
-         <h2 class="text-lg font-bold text-white uppercase tracking-tight italic">Professional Credentials</h2>
+        <h2
+          class="text-lg font-bold text-white uppercase tracking-tight italic"
+        >
+          Professional Credentials
+        </h2>
       </div>
 
       <div class="space-y-6">
         <div class="bg-black/40 p-6 rounded-2xl border border-white/10">
-           <div class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4">IPI Number (Artist Identity)</div>
-           <div class="flex gap-4">
-              <input type="text" [ngModel]="proData().ipiNumber" (ngModelChange)="updateIpi($event)"
-                     class="flex-grow bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono uppercase focus:border-brand-primary outline-none"
-                     placeholder="e.g. 00123456789">
-              <div class="px-4 py-3 bg-brand-primary/10 text-brand-primary rounded-xl border border-brand-primary/20 flex items-center justify-center">
-                 <i class="fas fa-fingerprint"></i>
-              </div>
-           </div>
+          <div
+            class="text-[10px] font-black text-silver-dim uppercase tracking-widest mb-4"
+          >
+            IPI Number (Artist Identity)
+          </div>
+          <div class="flex gap-4">
+            <input
+              type="text"
+              [ngModel]="proData().ipiNumber"
+              (ngModelChange)="updateIpi($event)"
+              class="flex-grow bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono uppercase focus:border-brand-primary outline-none"
+              placeholder="e.g. 00123456789"
+            />
+            <div
+              class="px-4 py-3 bg-brand-primary/10 text-brand-primary rounded-xl border border-brand-primary/20 flex items-center justify-center"
+            >
+              <i class="fas fa-fingerprint"></i>
+            </div>
+          </div>
         </div>
 
         <div class="bg-black/40 p-6 rounded-2xl border border-white/10">
-           <div class="flex justify-between items-center mb-4">
-              <div class="text-[10px] font-black text-silver-dim uppercase tracking-widest">Registered Works (ISWC/PRO IDs)</div>
-              <button class="text-[9px] font-black text-brand-primary uppercase tracking-widest hover:underline" (click)="addWorkId('Untitled Work', 'PENDING')">+ Register Work</button>
-           </div>
-           <div class="space-y-3">
-              <div *ngFor="let work of proData().workIds" class="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
-                 <div class="text-sm font-bold text-white uppercase italic tracking-tight">{{ work.title }}</div>
-                 <div class="flex items-center gap-4">
-                    <div class="text-[10px] font-mono text-silver-dim">{{ work.id }}</div>
-                    <div class="text-[8px] font-black px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary border border-brand-primary/20">{{ work.status }}</div>
-                 </div>
+          <div class="flex justify-between items-center mb-4">
+            <div
+              class="text-[10px] font-black text-silver-dim uppercase tracking-widest"
+            >
+              Registered Works (ISWC/PRO IDs)
+            </div>
+            <button
+              class="text-[9px] font-black text-brand-primary uppercase tracking-widest hover:underline"
+              (click)="addWorkId('Untitled Work', 'PENDING')"
+            >
+              + Register Work
+            </button>
+          </div>
+          <div class="space-y-3">
+            <div
+              *ngFor="let work of proData().workIds"
+              class="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5"
+            >
+              <div
+                class="text-sm font-bold text-white uppercase italic tracking-tight"
+              >
+                {{ work.title }}
               </div>
-           </div>
+              <div class="flex items-center gap-4">
+                <div class="text-[10px] font-mono text-silver-dim">
+                  {{ work.id }}
+                </div>
+                <div
+                  class="text-[8px] font-black px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary border border-brand-primary/20"
+                >
+                  {{ work.status }}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
     <section class="col-span-12 lg:col-span-5 flex flex-col gap-6">
-       <div class="bg-brand-primary/10 rounded-3xl p-8 border border-brand-primary/20 flex-grow">
-          <h2 class="text-lg font-bold text-brand-primary uppercase tracking-tight mb-6 flex items-center gap-3 italic">
-             <i class="fas fa-brain"></i> Strategic Insights
-          </h2>
-          <div class="space-y-4">
-            <div *ngFor="let tactic of engagementTactics" class="flex gap-4 p-4 rounded-2xl bg-black/40 border border-white/10 text-sm leading-relaxed">
-              <i class="fas fa-bolt text-brand-warning mt-1"></i>
-              <p class="text-silver-bright font-medium">{{ tactic }}</p>
-            </div>
+      <div
+        class="bg-brand-primary/10 rounded-3xl p-8 border border-brand-primary/20 flex-grow"
+      >
+        <h2
+          class="text-lg font-bold text-brand-primary uppercase tracking-tight mb-6 flex items-center gap-3 italic"
+        >
+          <i class="fas fa-brain"></i> Strategic Insights
+        </h2>
+        <div class="space-y-4">
+          <div
+            *ngFor="let tactic of engagementTactics"
+            class="flex gap-4 p-4 rounded-2xl bg-black/40 border border-white/10 text-sm leading-relaxed"
+          >
+            <i class="fas fa-bolt text-brand-warning mt-1"></i>
+            <p class="text-silver-bright font-medium">{{ tactic }}</p>
           </div>
-          <button class="w-full mt-8 btn-elegant btn-elegant-primary text-[10px] font-black uppercase tracking-[0.2em]" routerLink="/strategy">
-            Execute Strategy Matrix
-          </button>
-       </div>
+        </div>
+        <button
+          class="w-full mt-8 btn-elegant btn-elegant-primary text-[10px] font-black uppercase tracking-[0.2em]"
+          routerLink="/strategy"
+        >
+          Execute Strategy Matrix
+        </button>
+      </div>
 
-       <div class="bg-brand-surface/30 rounded-3xl p-8 border border-white/10">
-          <h2 class="text-lg font-bold text-white uppercase tracking-tight italic mb-6">Top Superfans</h2>
-          <div class="space-y-4">
-            <div *ngFor="let fan of superfans()" class="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all">
-              <div class="flex items-center gap-4">
-                 <div class="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-black text-xs">
-                    {{ fan.name.charAt(0) }}
-                 </div>
-                 <div>
-                   <div class="text-sm font-bold text-white">{{ fan.name }}</div>
-                   <div class="text-[10px] text-silver-dim uppercase tracking-widest">{{ fan.location }}</div>
-                 </div>
+      <div class="bg-brand-surface/30 rounded-3xl p-8 border border-white/10">
+        <h2
+          class="text-lg font-bold text-white uppercase tracking-tight italic mb-6"
+        >
+          Top Superfans
+        </h2>
+        <div class="space-y-4">
+          <div
+            *ngFor="let fan of superfans()"
+            class="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all"
+          >
+            <div class="flex items-center gap-4">
+              <div
+                class="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-black text-xs"
+              >
+                {{ fan.name.charAt(0) }}
               </div>
-              <div class="text-right">
-                 <div class="text-sm font-black text-brand-primary italic">{{ fan.streams }} STREAMS</div>
-                 <div class="text-[8px] font-bold text-silver-dim uppercase tracking-tighter">{{ fan.status }}</div>
+              <div>
+                <div class="text-sm font-bold text-white">{{ fan.name }}</div>
+                <div
+                  class="text-[10px] text-silver-dim uppercase tracking-widest"
+                >
+                  {{ fan.location }}
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm font-black text-brand-primary italic">
+                {{ fan.streams }} STREAMS
+              </div>
+              <div
+                class="text-[8px] font-bold text-silver-dim uppercase tracking-tighter"
+              >
+                {{ fan.status }}
               </div>
             </div>
           </div>
-       </div>
+        </div>
+      </div>
     </section>
   </div>
 </div>

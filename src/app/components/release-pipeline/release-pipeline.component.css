@@ -2,7 +2,15 @@
   display: block;
   height: 100%;
 }
-.bg-background { background-color: #0d0d0d; }
-.text-primary { color: #ec5b13; }
-.bg-primary { background-color: #ec5b13; }
-.border-primary { border-color: #ec5b13; }
+.bg-background {
+  background-color: #0d0d0d;
+}
+.text-primary {
+  color: #ec5b13;
+}
+.bg-primary {
+  background-color: #ec5b13;
+}
+.border-primary {
+  border-color: #ec5b13;
+}

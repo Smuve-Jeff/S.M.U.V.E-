@@ -1,19 +1,37 @@
-<div class="min-h-screen bg-vocal-obsidian text-slate-100 font-sans selection:bg-vocal-brand-primary/30 flex flex-col relative overflow-hidden">
+<div
+  class="min-h-screen bg-vocal-obsidian text-slate-100 font-sans selection:bg-vocal-brand-primary/30 flex flex-col relative overflow-hidden"
+>
   <!-- Dynamic HUD Background -->
   <div class="absolute inset-0 pointer-events-none opacity-20">
-    <div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(157,0,255,0.1),transparent_70%)]"></div>
-    <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+    <div
+      class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(157,0,255,0.1),transparent_70%)]"
+    ></div>
+    <div
+      class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]"
+    ></div>
   </div>
 
   <!-- Header Navigation -->
-  <header class="h-16 border-b border-white/10 flex items-center justify-between px-8 bg-vocal-obsidian/80 backdrop-blur-xl z-20 sticky top-0">
+  <header
+    class="h-16 border-b border-white/10 flex items-center justify-between px-8 bg-vocal-obsidian/80 backdrop-blur-xl z-20 sticky top-0"
+  >
     <div class="flex items-center gap-6">
       <div class="flex flex-col">
-        <h1 class="text-xl font-black tracking-tighter text-white flex items-center gap-2">
-          VOCAL SUITE <span class="text-[10px] bg-vocal-primary px-1.5 py-0.5 rounded tracking-widest uppercase">Platinum v2.0</span>
+        <h1
+          class="text-xl font-black tracking-tighter text-white flex items-center gap-2"
+        >
+          VOCAL SUITE
+          <span
+            class="text-[10px] bg-vocal-primary px-1.5 py-0.5 rounded tracking-widest uppercase"
+            >Platinum v2.0</span
+          >
         </h1>
-        <div class="flex items-center gap-2 text-[10px] font-mono text-vocal-primary uppercase font-bold">
-          <span class="size-1.5 rounded-full bg-vocal-primary animate-pulse"></span>
+        <div
+          class="flex items-center gap-2 text-[10px] font-mono text-vocal-primary uppercase font-bold"
+        >
+          <span
+            class="size-1.5 rounded-full bg-vocal-primary animate-pulse"
+          ></span>
           Neural Engine Active
         </div>
       </div>
@@ -23,305 +41,629 @@
           (click)="viewMode.set('pipeline')"
           [class.bg-vocal-primary]="viewMode() === 'pipeline'"
           [class.text-white]="viewMode() === 'pipeline'"
-          class="px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all">Pipeline</button>
+          class="px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all"
+        >
+          Pipeline
+        </button>
         <button
           (click)="viewMode.set('console')"
           [class.bg-vocal-primary]="viewMode() === 'console'"
           [class.text-white]="viewMode() === 'console'"
-          class="px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all">Console</button>
+          class="px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all"
+        >
+          Console
+        </button>
       </nav>
     </div>
 
     <div class="flex items-center gap-4">
-       <!-- S.M.U.V.E. Mini HUD -->
-       <div class="bg-vocal-titanium/40 border border-vocal-brand-primary/20 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer hover:border-vocal-primary transition-all" (click)="vocalAi.toggleFeedbackMode()">
-          <div class="size-8 rounded-full bg-vocal-brand-primary/10 border border-vocal-primary flex items-center justify-center">
-            <span class="material-symbols-outlined text-vocal-primary text-sm" [class.animate-pulse]="!vocalAi.isPassiveMode()">{{ vocalAi.isPassiveMode() ? 'visibility_off' : 'neurology' }}</span>
-          </div>
-          <div class="flex flex-col">
-            <span class="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Guidance: {{ vocalAi.isPassiveMode() ? 'Passive' : 'Inclusive' }}</span>
-            <span class="text-[10px] font-mono text-emerald-400">Neural Intelligence Active</span>
-          </div>
-       </div>
+      <!-- S.M.U.V.E. Mini HUD -->
+      <div
+        class="bg-vocal-titanium/40 border border-vocal-brand-primary/20 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer hover:border-vocal-primary transition-all"
+        (click)="vocalAi.toggleFeedbackMode()"
+      >
+        <div
+          class="size-8 rounded-full bg-vocal-brand-primary/10 border border-vocal-primary flex items-center justify-center"
+        >
+          <span
+            class="material-symbols-outlined text-vocal-primary text-sm"
+            [class.animate-pulse]="!vocalAi.isPassiveMode()"
+            >{{
+              vocalAi.isPassiveMode() ? 'visibility_off' : 'neurology'
+            }}</span
+          >
+        </div>
+        <div class="flex flex-col">
+          <span
+            class="text-[8px] font-bold text-slate-500 uppercase tracking-widest"
+            >Guidance:
+            {{ vocalAi.isPassiveMode() ? 'Passive' : 'Inclusive' }}</span
+          >
+          <span class="text-[10px] font-mono text-emerald-400"
+            >Neural Intelligence Active</span
+          >
+        </div>
+      </div>
     </div>
   </header>
 
   <main class="flex-1 p-6 z-10 overflow-y-auto custom-scrollbar">
-
     <!-- Pipeline Mode -->
     <div *ngIf="viewMode() === 'pipeline'" class="max-w-6xl mx-auto space-y-8">
       <!-- Steps Indicator -->
       <div class="grid grid-cols-4 gap-4">
-        <button *ngFor="let s of ['setup', 'record', 'edit', 'master']"
+        <button
+          *ngFor="let s of ['setup', 'record', 'edit', 'master']"
           (click)="setStep(s)"
           [class.border-vocal-primary]="currentStep() === s"
           [class.bg-vocal-brand-primary/10]="currentStep() === s"
-          class="border border-white/5 rounded-xl p-4 transition-all hover:bg-white/5 group text-left">
+          class="border border-white/5 rounded-xl p-4 transition-all hover:bg-white/5 group text-left"
+        >
           <div class="flex items-center gap-3">
-            <span class="text-xs font-black font-mono text-slate-500 group-hover:text-vocal-primary transition-colors uppercase tracking-widest">0{{s === 'setup' ? 1 : s === 'record' ? 2 : s === 'edit' ? 3 : 4}}</span>
-            <span class="text-sm font-black uppercase tracking-tighter" [class.text-vocal-primary]="currentStep() === s">{{s}}</span>
+            <span
+              class="text-xs font-black font-mono text-slate-500 group-hover:text-vocal-primary transition-colors uppercase tracking-widest"
+              >0{{
+                s === 'setup' ? 1 : s === 'record' ? 2 : s === 'edit' ? 3 : 4
+              }}</span
+            >
+            <span
+              class="text-sm font-black uppercase tracking-tighter"
+              [class.text-vocal-primary]="currentStep() === s"
+              >{{ s }}</span
+            >
           </div>
         </button>
       </div>
 
       <!-- Step Content: Setup -->
-      <div *ngIf="currentStep() === 'setup'" class="bg-vocal-titanium/20 border border-white/5 rounded-2xl p-8 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div
+        *ngIf="currentStep() === 'setup'"
+        class="bg-vocal-titanium/20 border border-white/5 rounded-2xl p-8 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-500"
+      >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
-           <div class="space-y-8">
-             <div class="space-y-2">
-               <h2 class="text-3xl font-black tracking-tight text-white uppercase">Neural Input Stage</h2>
-               <p class="text-slate-400 text-sm">Configure your hardware interface for high-fidelity capture.</p>
-             </div>
+          <div class="space-y-8">
+            <div class="space-y-2">
+              <h2
+                class="text-3xl font-black tracking-tight text-white uppercase"
+              >
+                Neural Input Stage
+              </h2>
+              <p class="text-slate-400 text-sm">
+                Configure your hardware interface for high-fidelity capture.
+              </p>
+            </div>
 
-             <app-microphone-interface></app-microphone-interface>
+            <app-microphone-interface></app-microphone-interface>
 
-             <button (click)="setStep('record')" class="w-full py-4 bg-vocal-primary text-white font-black uppercase tracking-widest rounded-xl hover:bg-vocal-brand-primary/80 transition-all shadow-[0_0_20px_rgba(157,0,255,0.3)]">
-               Begin Strategic Capture
-             </button>
+            <button
+              (click)="setStep('record')"
+              class="w-full py-4 bg-vocal-primary text-white font-black uppercase tracking-widest rounded-xl hover:bg-vocal-brand-primary/80 transition-all shadow-[0_0_20px_rgba(157,0,255,0.3)]"
+            >
+              Begin Strategic Capture
+            </button>
           </div>
 
-          <div class="bg-vocal-oled rounded-2xl border border-white/10 p-6 flex flex-col items-center justify-center relative group overflow-hidden">
-             <div class="absolute inset-0 bg-gradient-to-t from-vocal-brand-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-             <div class="size-48 rounded-full border-2 border-dashed border-vocal-brand-primary/20 flex items-center justify-center relative animate-[spin_20s_linear_infinite]">
-                <div class="size-40 rounded-full border-2 border-vocal-brand-primary/40 flex items-center justify-center animate-[spin_10s_linear_infinite_reverse]"></div>
-             </div>
-             <div class="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
-                <span class="material-symbols-outlined text-5xl text-vocal-primary drop-shadow-[0_0_15px_rgba(157,0,255,0.5)]">mic_external_on</span>
-                <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Signal Integrity: 100%</span>
-             </div>
+          <div
+            class="bg-vocal-oled rounded-2xl border border-white/10 p-6 flex flex-col items-center justify-center relative group overflow-hidden"
+          >
+            <div
+              class="absolute inset-0 bg-gradient-to-t from-vocal-brand-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+            ></div>
+            <div
+              class="size-48 rounded-full border-2 border-dashed border-vocal-brand-primary/20 flex items-center justify-center relative animate-[spin_20s_linear_infinite]"
+            >
+              <div
+                class="size-40 rounded-full border-2 border-vocal-brand-primary/40 flex items-center justify-center animate-[spin_10s_linear_infinite_reverse]"
+              ></div>
+            </div>
+            <div
+              class="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center"
+            >
+              <span
+                class="material-symbols-outlined text-5xl text-vocal-primary drop-shadow-[0_0_15px_rgba(157,0,255,0.5)]"
+                >mic_external_on</span
+              >
+              <span
+                class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500"
+                >Signal Integrity: 100%</span
+              >
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Step Content: Record -->
-      <div *ngIf="currentStep() === 'record'" class="space-y-6 animate-in fade-in zoom-in-95 duration-500">
-        <div class="bg-vocal-titanium/20 border border-white/10 rounded-3xl p-8 backdrop-blur-xl relative overflow-hidden">
+      <div
+        *ngIf="currentStep() === 'record'"
+        class="space-y-6 animate-in fade-in zoom-in-95 duration-500"
+      >
+        <div
+          class="bg-vocal-titanium/20 border border-white/10 rounded-3xl p-8 backdrop-blur-xl relative overflow-hidden"
+        >
           <div class="absolute top-0 right-0 p-8 flex flex-col items-end gap-1">
-             <span class="text-4xl font-mono font-black text-white tracking-tighter">{{recordingTimeFormatted()}}</span>
-             <span class="text-[10px] font-bold text-rose-500 animate-pulse uppercase tracking-[0.2em]" *ngIf="micService.isRecording()">Recording Live</span>
+            <span
+              class="text-4xl font-mono font-black text-white tracking-tighter"
+              >{{ recordingTimeFormatted() }}</span
+            >
+            <span
+              class="text-[10px] font-bold text-rose-500 animate-pulse uppercase tracking-[0.2em]"
+              *ngIf="micService.isRecording()"
+              >Recording Live</span
+            >
           </div>
 
-          <div class="h-64 mb-8 bg-vocal-oled rounded-2xl border border-white/5 relative flex items-center justify-center overflow-hidden">
-             <canvas #spectrograph width="1200" height="256" class="w-full h-full opacity-60"></canvas>
-             <div class="absolute inset-0 bg-gradient-to-b from-vocal-obsidian/20 via-transparent to-vocal-obsidian/20"></div>
+          <div
+            class="h-64 mb-8 bg-vocal-oled rounded-2xl border border-white/5 relative flex items-center justify-center overflow-hidden"
+          >
+            <canvas
+              #spectrograph
+              width="1200"
+              height="256"
+              class="w-full h-full opacity-60"
+            ></canvas>
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-vocal-obsidian/20 via-transparent to-vocal-obsidian/20"
+            ></div>
           </div>
 
           <div class="flex justify-center gap-8 items-center">
-             <button
+            <button
               (click)="toggleRecording()"
               [class.bg-rose-600]="micService.isRecording()"
-              class="size-20 rounded-full bg-vocal-primary flex items-center justify-center shadow-[0_0_30px_rgba(157,0,255,0.4)] hover:scale-105 transition-all">
-               <span class="material-symbols-outlined text-4xl text-white">{{micService.isRecording() ? 'stop' : 'fiber_manual_record'}}</span>
-             </button>
-             <button
+              class="size-20 rounded-full bg-vocal-primary flex items-center justify-center shadow-[0_0_30px_rgba(157,0,255,0.4)] hover:scale-105 transition-all"
+            >
+              <span class="material-symbols-outlined text-4xl text-white">{{
+                micService.isRecording() ? 'stop' : 'fiber_manual_record'
+              }}</span>
+            </button>
+            <button
               *ngIf="micService.isRecording()"
-              (click)="micService.isPaused() ? micService.resumeRecording() : micService.pauseRecording()"
-              class="size-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all">
-               <span class="material-symbols-outlined text-white">{{micService.isPaused() ? 'play_arrow' : 'pause'}}</span>
-             </button>
+              (click)="
+                micService.isPaused()
+                  ? micService.resumeRecording()
+                  : micService.pauseRecording()
+              "
+              class="size-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
+            >
+              <span class="material-symbols-outlined text-white">{{
+                micService.isPaused() ? 'play_arrow' : 'pause'
+              }}</span>
+            </button>
           </div>
         </div>
 
         <div class="flex justify-end" *ngIf="micService.recordedBlob()">
-           <button (click)="setStep('edit')" class="px-8 py-3 bg-white text-vocal-obsidian font-black uppercase tracking-widest text-xs rounded-xl hover:bg-slate-200 transition-all">
-             Commit to S.M.U.V.E. Lab
-           </button>
+          <button
+            (click)="setStep('edit')"
+            class="px-8 py-3 bg-white text-vocal-obsidian font-black uppercase tracking-widest text-xs rounded-xl hover:bg-slate-200 transition-all"
+          >
+            Commit to S.M.U.V.E. Lab
+          </button>
         </div>
       </div>
 
       <!-- Step Content: Edit -->
       <div *ngIf="currentStep() === 'edit'" class="space-y-6">
         <div class="bg-vocal-titanium/20 border border-white/5 rounded-2xl p-8">
-           <h2 class="text-xl font-black uppercase tracking-widest mb-6">Non-Destructive Waveform Editor</h2>
-           <div class="h-48 bg-vocal-oled rounded-xl border border-white/5 mb-6 relative overflow-hidden group">
-              <canvas #waveformCanvas width="1200" height="192" class="w-full h-full"></canvas>
-              <div class="absolute inset-y-0 left-1/3 w-[1px] bg-vocal-primary shadow-[0_0_10px_#a855f7]"></div>
-           </div>
-           <div class="flex gap-4">
-              <button class="px-4 py-2 bg-white/5 border border-white/10 rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all">Normalize</button>
-              <button class="px-4 py-2 bg-white/5 border border-white/10 rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all">Trim Silence</button>
-              <button (click)="setStep('master')" class="px-6 py-2 bg-vocal-primary rounded text-[10px] font-black uppercase tracking-widest ml-auto">Proceed to Mastering</button>
-           </div>
+          <h2 class="text-xl font-black uppercase tracking-widest mb-6">
+            Non-Destructive Waveform Editor
+          </h2>
+          <div
+            class="h-48 bg-vocal-oled rounded-xl border border-white/5 mb-6 relative overflow-hidden group"
+          >
+            <canvas
+              #waveformCanvas
+              width="1200"
+              height="192"
+              class="w-full h-full"
+            ></canvas>
+            <div
+              class="absolute inset-y-0 left-1/3 w-[1px] bg-vocal-primary shadow-[0_0_10px_#a855f7]"
+            ></div>
+          </div>
+          <div class="flex gap-4">
+            <button
+              class="px-4 py-2 bg-white/5 border border-white/10 rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
+            >
+              Normalize
+            </button>
+            <button
+              class="px-4 py-2 bg-white/5 border border-white/10 rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
+            >
+              Trim Silence
+            </button>
+            <button
+              (click)="setStep('master')"
+              class="px-6 py-2 bg-vocal-primary rounded text-[10px] font-black uppercase tracking-widest ml-auto"
+            >
+              Proceed to Mastering
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Step Content: Master -->
-      <div *ngIf="currentStep() === 'master'" class="animate-in fade-in slide-in-from-right-4 duration-500">
-         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 space-y-6">
-               <div class="bg-vocal-titanium/20 border border-white/10 rounded-2xl p-6">
-                  <div class="flex gap-4 mb-8">
-                     <button *ngFor="let t of ['eq', 'comp', 'exciter', 'limiter']"
-                       (click)="activeMasteringTab.set(t)"
-                       [class.border-vocal-primary]="activeMasteringTab() === t"
-                       [class.text-vocal-primary]="activeMasteringTab() === t"
-                       class="px-6 py-2 border border-white/5 bg-white/5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:border-vocal-primary transition-all">
-                       {{t}}
-                     </button>
-                  </div>
+      <div
+        *ngIf="currentStep() === 'master'"
+        class="animate-in fade-in slide-in-from-right-4 duration-500"
+      >
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div class="lg:col-span-2 space-y-6">
+            <div
+              class="bg-vocal-titanium/20 border border-white/10 rounded-2xl p-6"
+            >
+              <div class="flex gap-4 mb-8">
+                <button
+                  *ngFor="let t of ['eq', 'comp', 'exciter', 'limiter']"
+                  (click)="activeMasteringTab.set(t)"
+                  [class.border-vocal-primary]="activeMasteringTab() === t"
+                  [class.text-vocal-primary]="activeMasteringTab() === t"
+                  class="px-6 py-2 border border-white/5 bg-white/5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:border-vocal-primary transition-all"
+                >
+                  {{ t }}
+                </button>
+              </div>
 
-                  <!-- EQ Controls -->
-                  <div *ngIf="activeMasteringTab() === 'eq'" class="space-y-8 animate-in fade-in duration-300">
-                     <div class="grid grid-cols-3 gap-8">
-                        <div class="flex flex-col gap-4 items-center">
-                           <div class="relative h-48 w-2 bg-white/5 rounded-full flex items-end">
-                              <div class="w-full bg-vocal-primary rounded-full shadow-[0_0_15px_#a855f7]" [style.height.%]="(mastering.params().eq.low + 12) / 24 * 100"></div>
-                              <input type="range" min="-12" max="12" step="0.1" [ngModel]="mastering.params().eq.low" (ngModelChange)="mastering.updateParams({eq: { ...mastering.params().eq, low: $event }})"
-                                class="absolute inset-0 opacity-0 cursor-pointer [writing-mode:bt-lr] h-full w-full">
-                           </div>
-                           <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Low Shelf</span>
-                        </div>
-                        <div class="flex flex-col gap-4 items-center">
-                           <div class="relative h-48 w-2 bg-white/5 rounded-full flex items-end">
-                              <div class="w-full bg-vocal-primary rounded-full shadow-[0_0_15px_#a855f7]" [style.height.%]="(mastering.params().eq.mid + 12) / 24 * 100"></div>
-                              <input type="range" min="-12" max="12" step="0.1" [ngModel]="mastering.params().eq.mid" (ngModelChange)="mastering.updateParams({eq: { ...mastering.params().eq, mid: $event }})"
-                                class="absolute inset-0 opacity-0 cursor-pointer [writing-mode:bt-lr] h-full w-full">
-                           </div>
-                           <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Presence</span>
-                        </div>
-                        <div class="flex flex-col gap-4 items-center">
-                           <div class="relative h-48 w-2 bg-white/5 rounded-full flex items-end">
-                              <div class="w-full bg-vocal-primary rounded-full shadow-[0_0_15px_#a855f7]" [style.height.%]="(mastering.params().eq.high + 12) / 24 * 100"></div>
-                              <input type="range" min="-12" max="12" step="0.1" [ngModel]="mastering.params().eq.high" (ngModelChange)="mastering.updateParams({eq: { ...mastering.params().eq, high: $event }})"
-                                class="absolute inset-0 opacity-0 cursor-pointer [writing-mode:bt-lr] h-full w-full">
-                           </div>
-                           <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Air Shelf</span>
-                        </div>
-                     </div>
+              <!-- EQ Controls -->
+              <div
+                *ngIf="activeMasteringTab() === 'eq'"
+                class="space-y-8 animate-in fade-in duration-300"
+              >
+                <div class="grid grid-cols-3 gap-8">
+                  <div class="flex flex-col gap-4 items-center">
+                    <div
+                      class="relative h-48 w-2 bg-white/5 rounded-full flex items-end"
+                    >
+                      <div
+                        class="w-full bg-vocal-primary rounded-full shadow-[0_0_15px_#a855f7]"
+                        [style.height.%]="
+                          ((mastering.params().eq.low + 12) / 24) * 100
+                        "
+                      ></div>
+                      <input
+                        type="range"
+                        min="-12"
+                        max="12"
+                        step="0.1"
+                        [ngModel]="mastering.params().eq.low"
+                        (ngModelChange)="
+                          mastering.updateParams({
+                            eq: { ...mastering.params().eq, low: $event },
+                          })
+                        "
+                        class="absolute inset-0 opacity-0 cursor-pointer [writing-mode:bt-lr] h-full w-full"
+                      />
+                    </div>
+                    <span
+                      class="text-[9px] font-bold text-slate-500 uppercase tracking-widest"
+                      >Low Shelf</span
+                    >
                   </div>
+                  <div class="flex flex-col gap-4 items-center">
+                    <div
+                      class="relative h-48 w-2 bg-white/5 rounded-full flex items-end"
+                    >
+                      <div
+                        class="w-full bg-vocal-primary rounded-full shadow-[0_0_15px_#a855f7]"
+                        [style.height.%]="
+                          ((mastering.params().eq.mid + 12) / 24) * 100
+                        "
+                      ></div>
+                      <input
+                        type="range"
+                        min="-12"
+                        max="12"
+                        step="0.1"
+                        [ngModel]="mastering.params().eq.mid"
+                        (ngModelChange)="
+                          mastering.updateParams({
+                            eq: { ...mastering.params().eq, mid: $event },
+                          })
+                        "
+                        class="absolute inset-0 opacity-0 cursor-pointer [writing-mode:bt-lr] h-full w-full"
+                      />
+                    </div>
+                    <span
+                      class="text-[9px] font-bold text-slate-500 uppercase tracking-widest"
+                      >Presence</span
+                    >
+                  </div>
+                  <div class="flex flex-col gap-4 items-center">
+                    <div
+                      class="relative h-48 w-2 bg-white/5 rounded-full flex items-end"
+                    >
+                      <div
+                        class="w-full bg-vocal-primary rounded-full shadow-[0_0_15px_#a855f7]"
+                        [style.height.%]="
+                          ((mastering.params().eq.high + 12) / 24) * 100
+                        "
+                      ></div>
+                      <input
+                        type="range"
+                        min="-12"
+                        max="12"
+                        step="0.1"
+                        [ngModel]="mastering.params().eq.high"
+                        (ngModelChange)="
+                          mastering.updateParams({
+                            eq: { ...mastering.params().eq, high: $event },
+                          })
+                        "
+                        class="absolute inset-0 opacity-0 cursor-pointer [writing-mode:bt-lr] h-full w-full"
+                      />
+                    </div>
+                    <span
+                      class="text-[9px] font-bold text-slate-500 uppercase tracking-widest"
+                      >Air Shelf</span
+                    >
+                  </div>
+                </div>
+              </div>
 
-                  <div *ngIf="activeMasteringTab() !== 'eq'" class="h-64 flex flex-col items-center justify-center gap-4 text-slate-600 font-mono text-[10px] uppercase tracking-widest">
-                     <span class="material-symbols-outlined text-4xl opacity-20">Settings</span>
-                     Advanced Parameters Integrated into Global Neural Chain
-                  </div>
-               </div>
+              <div
+                *ngIf="activeMasteringTab() !== 'eq'"
+                class="h-64 flex flex-col items-center justify-center gap-4 text-slate-600 font-mono text-[10px] uppercase tracking-widest"
+              >
+                <span class="material-symbols-outlined text-4xl opacity-20"
+                  >Settings</span
+                >
+                Advanced Parameters Integrated into Global Neural Chain
+              </div>
+            </div>
+          </div>
+
+          <!-- Mastering Intel Sidebar -->
+          <div class="space-y-6">
+            <div
+              class="bg-vocal-oled/80 border border-vocal-brand-primary/30 rounded-2xl p-6 backdrop-blur-xl"
+            >
+              <h3
+                class="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2"
+              >
+                <span
+                  class="material-symbols-outlined text-vocal-primary text-sm animate-pulse"
+                  >auto_awesome</span
+                >
+                S.M.U.V.E. INTEL HUD
+              </h3>
+              <div class="space-y-4">
+                <div
+                  *ngFor="let item of vocalAi.vocalIntel()"
+                  class="p-3 bg-white/5 rounded-lg border-l-2 transition-all animate-in slide-in-from-right-2"
+                  [class.border-vocal-primary]="item.type === 'technical'"
+                  [class.border-emerald-500]="item.type === 'market'"
+                >
+                  <p
+                    class="text-[10px] text-slate-300 leading-relaxed font-mono uppercase tracking-tighter"
+                  >
+                    {{ item.message }}
+                  </p>
+                </div>
+                <div
+                  *ngIf="vocalAi.vocalIntel().length === 0"
+                  class="p-3 bg-white/5 rounded-lg border-l-2 border-slate-700"
+                >
+                  <p class="text-[10px] text-slate-500 italic">
+                    No critical anomalies detected in the current corridor.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <!-- Mastering Intel Sidebar -->
-            <div class="space-y-6">
-               <div class="bg-vocal-oled/80 border border-vocal-brand-primary/30 rounded-2xl p-6 backdrop-blur-xl">
-                  <h3 class="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                     <span class="material-symbols-outlined text-vocal-primary text-sm animate-pulse">auto_awesome</span>
-                     S.M.U.V.E. INTEL HUD
-                  </h3>
-                  <div class="space-y-4">
-                     <div *ngFor="let item of vocalAi.vocalIntel()" class="p-3 bg-white/5 rounded-lg border-l-2 transition-all animate-in slide-in-from-right-2" [class.border-vocal-primary]="item.type === 'technical'" [class.border-emerald-500]="item.type === 'market'">
-                        <p class="text-[10px] text-slate-300 leading-relaxed font-mono uppercase tracking-tighter">{{item.message}}</p>
-                     </div>
-                     <div *ngIf="vocalAi.vocalIntel().length === 0" class="p-3 bg-white/5 rounded-lg border-l-2 border-slate-700">
-                        <p class="text-[10px] text-slate-500 italic">No critical anomalies detected in the current corridor.</p>
-                     </div>
-                  </div>
-               </div>
-
-               <button (click)="downloadRecording()" class="w-full py-4 bg-emerald-600 text-white font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 transition-all flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                  <span class="material-symbols-outlined">export_notes</span>
-                  Finalize & Export
-               </button>
-            </div>
-         </div>
+            <button
+              (click)="downloadRecording()"
+              class="w-full py-4 bg-emerald-600 text-white font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 transition-all flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+            >
+              <span class="material-symbols-outlined">export_notes</span>
+              Finalize & Export
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Console Mode -->
-    <div *ngIf="viewMode() === 'console'" class="h-full flex flex-col gap-6 animate-in fade-in duration-500">
-       <div class="grid grid-cols-12 gap-6 flex-1">
-          <div class="col-span-12 lg:col-span-8 bg-vocal-titanium/20 border border-white/10 rounded-3xl p-6 flex flex-col gap-6">
-             <div class="h-80 bg-vocal-oled rounded-2xl border border-white/5 relative overflow-hidden">
-                <canvas #spectrograph width="1600" height="320" class="w-full h-full opacity-80"></canvas>
-                <div class="absolute inset-0 bg-gradient-to-t from-vocal-obsidian/40 to-transparent"></div>
-                <div class="absolute bottom-6 left-8 flex flex-col">
-                   <span class="text-3xl font-mono font-black text-white tracking-tighter">{{recordingTimeFormatted()}}</span>
-                   <span class="text-[9px] font-bold text-vocal-primary uppercase tracking-widest">Engine Timecode</span>
-                </div>
-             </div>
-
-             <div class="flex items-center justify-between">
-                <div class="flex gap-4">
-                   <button (click)="toggleRecording()" class="px-8 py-3 bg-rose-600 rounded-xl text-white font-black uppercase tracking-widest text-[10px] shadow-[0_0_20px_rgba(225,29,72,0.3)] hover:scale-105 transition-all">
-                      {{micService.isRecording() ? 'Stop Engine' : 'Ignite Capture'}}
-                   </button>
-                   <button class="px-8 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all">
-                      Monitor
-                   </button>
-                </div>
-                <div class="flex gap-8">
-                   <div class="flex flex-col items-end">
-                      <span class="text-xs font-mono text-emerald-400 font-bold">-2.1dB</span>
-                      <span class="text-[8px] font-bold text-slate-500 uppercase">Input Peak</span>
-                   </div>
-                   <div class="flex flex-col items-end">
-                      <span class="text-xs font-mono text-vocal-primary font-bold">-14.2 LUFS</span>
-                      <span class="text-[8px] font-bold text-slate-500 uppercase">Output LUFS</span>
-                   </div>
-                </div>
-             </div>
+    <div
+      *ngIf="viewMode() === 'console'"
+      class="h-full flex flex-col gap-6 animate-in fade-in duration-500"
+    >
+      <div class="grid grid-cols-12 gap-6 flex-1">
+        <div
+          class="col-span-12 lg:col-span-8 bg-vocal-titanium/20 border border-white/10 rounded-3xl p-6 flex flex-col gap-6"
+        >
+          <div
+            class="h-80 bg-vocal-oled rounded-2xl border border-white/5 relative overflow-hidden"
+          >
+            <canvas
+              #spectrograph
+              width="1600"
+              height="320"
+              class="w-full h-full opacity-80"
+            ></canvas>
+            <div
+              class="absolute inset-0 bg-gradient-to-t from-vocal-obsidian/40 to-transparent"
+            ></div>
+            <div class="absolute bottom-6 left-8 flex flex-col">
+              <span
+                class="text-3xl font-mono font-black text-white tracking-tighter"
+                >{{ recordingTimeFormatted() }}</span
+              >
+              <span
+                class="text-[9px] font-bold text-vocal-primary uppercase tracking-widest"
+                >Engine Timecode</span
+              >
+            </div>
           </div>
 
-          <div class="col-span-12 lg:col-span-4 space-y-6">
-             <div class="bg-vocal-obsidian border border-vocal-brand-primary/20 rounded-3xl p-6 h-full flex flex-col shadow-2xl">
-                <h3 class="text-xs font-black uppercase tracking-[0.3em] text-slate-500 mb-8 flex items-center gap-2">
-                   <span class="material-symbols-outlined text-sm">Tune</span>
-                   Mastering Control Strip
-                </h3>
-
-                <div class="flex-1 space-y-10">
-                   <div class="space-y-4">
-                      <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest">
-                         <span class="text-slate-400">Harmonic Exciter</span>
-                         <span class="text-vocal-primary">{{(mastering.params().exciter.amount * 100).toFixed(0)}}%</span>
-                      </div>
-                      <input type="range" [ngModel]="mastering.params().exciter.amount" (ngModelChange)="mastering.updateParams({exciter: { ...mastering.params().exciter, amount: $event }})" min="0" max="1" step="0.01" class="w-full h-1 bg-white/5 rounded-full appearance-none accent-vocal-primary cursor-pointer">
-                   </div>
-
-                   <div class="space-y-4">
-                      <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest">
-                         <span class="text-slate-400">Limiter Ceiling</span>
-                         <span class="text-vocal-primary">{{mastering.params().limiter.ceiling}}dB</span>
-                      </div>
-                      <input type="range" [ngModel]="mastering.params().limiter.ceiling" (ngModelChange)="mastering.updateParams({limiter: { ...mastering.params().limiter, ceiling: $event }})" min="-12" max="0" step="0.1" class="w-full h-1 bg-white/5 rounded-full appearance-none accent-vocal-primary cursor-pointer">
-                   </div>
-
-                   <div class="bg-vocal-brand-primary/5 rounded-xl p-4 border border-vocal-brand-primary/10 animate-pulse" *ngIf="!vocalAi.isPassiveMode()">
-                      <p class="text-[9px] text-vocal-primary leading-relaxed font-bold uppercase italic">"Neural Intelligence: Signal optimization active. Dominating frequency corridors."</p>
-                   </div>
-                </div>
-
-                <button (click)="downloadRecording()" class="w-full py-4 mt-8 bg-vocal-primary rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-vocal-brand-primary/80 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-                   Instant Export
-                </button>
-             </div>
+          <div class="flex items-center justify-between">
+            <div class="flex gap-4">
+              <button
+                (click)="toggleRecording()"
+                class="px-8 py-3 bg-rose-600 rounded-xl text-white font-black uppercase tracking-widest text-[10px] shadow-[0_0_20px_rgba(225,29,72,0.3)] hover:scale-105 transition-all"
+              >
+                {{
+                  micService.isRecording() ? 'Stop Engine' : 'Ignite Capture'
+                }}
+              </button>
+              <button
+                class="px-8 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all"
+              >
+                Monitor
+              </button>
+            </div>
+            <div class="flex gap-8">
+              <div class="flex flex-col items-end">
+                <span class="text-xs font-mono text-emerald-400 font-bold"
+                  >-2.1dB</span
+                >
+                <span class="text-[8px] font-bold text-slate-500 uppercase"
+                  >Input Peak</span
+                >
+              </div>
+              <div class="flex flex-col items-end">
+                <span class="text-xs font-mono text-vocal-primary font-bold"
+                  >-14.2 LUFS</span
+                >
+                <span class="text-[8px] font-bold text-slate-500 uppercase"
+                  >Output LUFS</span
+                >
+              </div>
+            </div>
           </div>
-       </div>
+        </div>
+
+        <div class="col-span-12 lg:col-span-4 space-y-6">
+          <div
+            class="bg-vocal-obsidian border border-vocal-brand-primary/20 rounded-3xl p-6 h-full flex flex-col shadow-2xl"
+          >
+            <h3
+              class="text-xs font-black uppercase tracking-[0.3em] text-slate-500 mb-8 flex items-center gap-2"
+            >
+              <span class="material-symbols-outlined text-sm">Tune</span>
+              Mastering Control Strip
+            </h3>
+
+            <div class="flex-1 space-y-10">
+              <div class="space-y-4">
+                <div
+                  class="flex justify-between text-[10px] font-bold uppercase tracking-widest"
+                >
+                  <span class="text-slate-400">Harmonic Exciter</span>
+                  <span class="text-vocal-primary"
+                    >{{
+                      (mastering.params().exciter.amount * 100).toFixed(0)
+                    }}%</span
+                  >
+                </div>
+                <input
+                  type="range"
+                  [ngModel]="mastering.params().exciter.amount"
+                  (ngModelChange)="
+                    mastering.updateParams({
+                      exciter: {
+                        ...mastering.params().exciter,
+                        amount: $event,
+                      },
+                    })
+                  "
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  class="w-full h-1 bg-white/5 rounded-full appearance-none accent-vocal-primary cursor-pointer"
+                />
+              </div>
+
+              <div class="space-y-4">
+                <div
+                  class="flex justify-between text-[10px] font-bold uppercase tracking-widest"
+                >
+                  <span class="text-slate-400">Limiter Ceiling</span>
+                  <span class="text-vocal-primary"
+                    >{{ mastering.params().limiter.ceiling }}dB</span
+                  >
+                </div>
+                <input
+                  type="range"
+                  [ngModel]="mastering.params().limiter.ceiling"
+                  (ngModelChange)="
+                    mastering.updateParams({
+                      limiter: {
+                        ...mastering.params().limiter,
+                        ceiling: $event,
+                      },
+                    })
+                  "
+                  min="-12"
+                  max="0"
+                  step="0.1"
+                  class="w-full h-1 bg-white/5 rounded-full appearance-none accent-vocal-primary cursor-pointer"
+                />
+              </div>
+
+              <div
+                class="bg-vocal-brand-primary/5 rounded-xl p-4 border border-vocal-brand-primary/10 animate-pulse"
+                *ngIf="!vocalAi.isPassiveMode()"
+              >
+                <p
+                  class="text-[9px] text-vocal-primary leading-relaxed font-bold uppercase italic"
+                >
+                  "Neural Intelligence: Signal optimization active. Dominating
+                  frequency corridors."
+                </p>
+              </div>
+            </div>
+
+            <button
+              (click)="downloadRecording()"
+              class="w-full py-4 mt-8 bg-vocal-primary rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-vocal-brand-primary/80 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+            >
+              Instant Export
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-
   </main>
 
   <!-- Status Bar -->
-  <footer class="h-10 bg-vocal-obsidian border-t border-white/5 flex items-center justify-between px-8 text-[10px] font-mono text-slate-500 uppercase tracking-widest z-20">
+  <footer
+    class="h-10 bg-vocal-obsidian border-t border-white/5 flex items-center justify-between px-8 text-[10px] font-mono text-slate-500 uppercase tracking-widest z-20"
+  >
     <div class="flex gap-6 items-center">
-       <span class="flex items-center gap-2">
-          <span class="size-2 rounded-full bg-emerald-500"></span>
-          96.0kHz / 32-BIT FLOAT
-       </span>
-       <span class="text-slate-800">|</span>
-       <span>BUF: 128 SAMPLES</span>
+      <span class="flex items-center gap-2">
+        <span class="size-2 rounded-full bg-emerald-500"></span>
+        96.0kHz / 32-BIT FLOAT
+      </span>
+      <span class="text-slate-800">|</span>
+      <span>BUF: 128 SAMPLES</span>
     </div>
     <div class="flex items-center gap-4">
-       <span class="text-vocal-primary font-black">S.M.U.V.E. CORE v2.0</span>
-       <div class="h-4 w-[1px] bg-white/10"></div>
-       <div class="flex items-center gap-2">
-          <span class="text-slate-400">Latency:</span>
-          <span class="text-emerald-400">1.2ms</span>
-       </div>
+      <span class="text-vocal-primary font-black">S.M.U.V.E. CORE v2.0</span>
+      <div class="h-4 w-[1px] bg-white/10"></div>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-400">Latency:</span>
+        <span class="text-emerald-400">1.2ms</span>
+      </div>
     </div>
   </footer>
 </div>
 
 <style>
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(157,0,255,0.2); border-radius: 2px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(157,0,255,0.4); }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(157, 0, 255, 0.2);
+    border-radius: 2px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(157, 0, 255, 0.4);
+  }
 </style>
-<app-uplink-console *ngIf="showUplink()" (close)="showUplink.set(false)"></app-uplink-console>
+<app-uplink-console
+  *ngIf="showUplink()"
+  (close)="showUplink.set(false)"
+></app-uplink-console>

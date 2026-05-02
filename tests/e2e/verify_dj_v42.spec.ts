@@ -13,8 +13,12 @@ test('DJ deck v2.0 visual and functional check', async ({ page }) => {
   await expect(
     page.locator('.knob-group .label').filter({ hasText: 'DRIVE' })
   ).toBeVisible();
-  await expect(page.locator('.btn-chrome').filter({ hasText: 'BRAKE' })).toHaveCount(2);
+  await expect(
+    page.locator('.btn-chrome').filter({ hasText: 'BRAKE' })
+  ).toHaveCount(2);
   const deckA = page.locator('.deck-a-transform');
-  const styleA = await deckA.evaluate((el) => window.getComputedStyle(el).transform);
+  const styleA = await deckA.evaluate(
+    (el) => window.getComputedStyle(el).transform
+  );
   expect(styleA).not.toBe('none');
 });

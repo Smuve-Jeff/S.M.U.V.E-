@@ -8,7 +8,9 @@ test('verify dj turntable interface', async ({ page }) => {
 
   await expect(page.getByText('DECK A', { exact: true })).toBeVisible();
   await expect(page.getByText('DECK B', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: /MASTER SYNC/i })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /MASTER SYNC/i })
+  ).toBeVisible();
   await expect(page.locator('.dj-waveform-bar canvas')).toHaveCount(2);
   await expect(page.getByText('Turntable A')).toBeVisible();
   await expect(page.getByText('Turntable B')).toBeVisible();

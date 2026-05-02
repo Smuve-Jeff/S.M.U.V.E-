@@ -26,8 +26,16 @@
   opacity: 0.2;
 }
 
-.blob-1 { top: -200px; left: -200px; background: #6366f1; }
-.blob-2 { bottom: -200px; right: -200px; background: #c084fc; }
+.blob-1 {
+  top: -200px;
+  left: -200px;
+  background: #6366f1;
+}
+.blob-2 {
+  bottom: -200px;
+  right: -200px;
+  background: #c084fc;
+}
 
 .journey-card {
   width: 100%;
@@ -63,18 +71,46 @@
   transition: all 0.3s ease;
 }
 
-.step-dot.active { background: #6366f1; transform: scale(1.5); box-shadow: 0 0 15px #6366f1; }
-.step-dot.completed { background: #c084fc; }
+.step-dot.active {
+  background: #6366f1;
+  transform: scale(1.5);
+  box-shadow: 0 0 15px #6366f1;
+}
+.step-dot.completed {
+  background: #c084fc;
+}
 
-.journey-title { font-size: 2.5rem; font-weight: 200; letter-spacing: -1px; margin-bottom: 0.5rem; }
-.journey-subtitle { font-size: 0.9rem; color: #94a3b8; font-weight: 500; }
+.journey-title {
+  font-size: 2.5rem;
+  font-weight: 200;
+  letter-spacing: -1px;
+  margin-bottom: 0.5rem;
+}
+.journey-subtitle {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
 
-.journey-content { flex: 1; margin-bottom: 4rem; }
+.journey-content {
+  flex: 1;
+  margin-bottom: 4rem;
+}
 
-.input-group { margin-bottom: 2.5rem; }
-.input-group label { display: block; font-size: 0.7rem; font-weight: 900; color: #6366f1; margin-bottom: 1rem; letter-spacing: 2px; }
+.input-group {
+  margin-bottom: 2.5rem;
+}
+.input-group label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: #6366f1;
+  margin-bottom: 1rem;
+  letter-spacing: 2px;
+}
 
-input, textarea {
+input,
+textarea {
   width: 100%;
   background: rgba(255, 255, 255, 0.03);
   border: none;
@@ -87,9 +123,16 @@ input, textarea {
   transition: border-color 0.3s;
 }
 
-textarea { height: 120px; font-size: 1rem; line-height: 1.6; }
+textarea {
+  height: 120px;
+  font-size: 1rem;
+  line-height: 1.6;
+}
 
-input:focus, textarea:focus { border-color: #6366f1; }
+input:focus,
+textarea:focus {
+  border-color: #6366f1;
+}
 
 .btn-finalize {
   width: 100%;
@@ -119,9 +162,18 @@ input:focus, textarea:focus { border-color: #6366f1; }
   transition: all 0.2s;
 }
 
-.btn-nav.primary { color: #fff; background: rgba(255, 255, 255, 0.05); border-radius: 50px; }
-.btn-nav.primary:hover { background: rgba(255, 255, 255, 0.1); }
-.btn-nav:disabled { opacity: 0.2; cursor: not-allowed; }
+.btn-nav.primary {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50px;
+}
+.btn-nav.primary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.btn-nav:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
 
 .summary-box {
   background: rgba(0, 0, 0, 0.2);
@@ -130,9 +182,29 @@ input:focus, textarea:focus { border-color: #6366f1; }
   margin-bottom: 2rem;
 }
 
-.summary-box h3 { font-size: 0.8rem; font-weight: 900; color: #c084fc; margin-bottom: 1.5rem; }
-.summary-box p { margin-bottom: 0.5rem; font-size: 0.9rem; }
-.it-bio { font-style: italic; color: #94a3b8; margin-top: 1.5rem !important; }
+.summary-box h3 {
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #c084fc;
+  margin-bottom: 1.5rem;
+}
+.summary-box p {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+.it-bio {
+  font-style: italic;
+  color: #94a3b8;
+  margin-top: 1.5rem !important;
+}
 /* --- Additional Journey styles --- */
-.vision-board { display: grid; gap: 2rem; }
-.board-item label { display: block; font-size: 0.7rem; color: #c084fc; margin-bottom: 0.5rem; }
+.vision-board {
+  display: grid;
+  gap: 2rem;
+}
+.board-item label {
+  display: block;
+  font-size: 0.7rem;
+  color: #c084fc;
+  margin-bottom: 0.5rem;
+}

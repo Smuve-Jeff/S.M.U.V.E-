@@ -117,10 +117,22 @@
   border-radius: 2rem;
 }
 
-.status-pill[data-status="Accepted"] { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-.status-pill[data-status="Reviewing"] { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
-.status-pill[data-status="Pending"] { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-.status-pill[data-status="Rejected"] { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.status-pill[data-status='Accepted'] {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+.status-pill[data-status='Reviewing'] {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+}
+.status-pill[data-status='Pending'] {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+.status-pill[data-status='Rejected'] {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
 
 .card-footer {
   display: flex;
@@ -259,8 +271,12 @@
   font-weight: 900;
 }
 
-.capacity { color: #8b5cf6; }
-.booking-status { color: #10b981; }
+.capacity {
+  color: #8b5cf6;
+}
+.booking-status {
+  color: #10b981;
+}
 
 /* LEGAL */
 .legal {
@@ -312,7 +328,10 @@
 }
 
 @media (max-width: 1024px) {
-  .submissions, .audit, .booking, .legal {
+  .submissions,
+  .audit,
+  .booking,
+  .legal {
     grid-column: span 12;
   }
 }

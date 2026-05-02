@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -24,7 +24,11 @@
         place-items: center;
         color: white;
         background:
-          radial-gradient(circle at top, rgba(139, 92, 246, 0.18), transparent 34%),
+          radial-gradient(
+            circle at top,
+            rgba(139, 92, 246, 0.18),
+            transparent 34%
+          ),
           linear-gradient(180deg, #030712, #111827);
         font-family: Inter, system-ui, sans-serif;
       }
@@ -107,7 +111,10 @@
         letter-spacing: 0.12em;
         color: white;
         opacity: 0.88;
-        transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+        transition:
+          transform 150ms ease,
+          box-shadow 150ms ease,
+          opacity 150ms ease;
       }
 
       .pad.active {
@@ -116,10 +123,18 @@
         box-shadow: 0 0 32px currentColor;
       }
 
-      .pad:nth-child(1) { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
-      .pad:nth-child(2) { background: linear-gradient(135deg, #ec4899, #be185d); }
-      .pad:nth-child(3) { background: linear-gradient(135deg, #22c55e, #15803d); }
-      .pad:nth-child(4) { background: linear-gradient(135deg, #38bdf8, #2563eb); }
+      .pad:nth-child(1) {
+        background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+      }
+      .pad:nth-child(2) {
+        background: linear-gradient(135deg, #ec4899, #be185d);
+      }
+      .pad:nth-child(3) {
+        background: linear-gradient(135deg, #22c55e, #15803d);
+      }
+      .pad:nth-child(4) {
+        background: linear-gradient(135deg, #38bdf8, #2563eb);
+      }
 
       button.primary {
         border: 0;
@@ -142,9 +157,15 @@
           <h1>Cipher Surge</h1>
         </div>
         <div class="stats">
-          <div class="stat"><label>Round</label><strong id="round">1</strong></div>
-          <div class="stat"><label>Score</label><strong id="score">0</strong></div>
-          <div class="stat"><label>Integrity</label><strong id="health">100%</strong></div>
+          <div class="stat">
+            <label>Round</label><strong id="round">1</strong>
+          </div>
+          <div class="stat">
+            <label>Score</label><strong id="score">0</strong>
+          </div>
+          <div class="stat">
+            <label>Integrity</label><strong id="health">100%</strong>
+          </div>
         </div>
       </div>
 
@@ -156,7 +177,9 @@
       </div>
 
       <div class="controls">
-        <div class="status" id="status">Watch the sequence, then play it back perfectly.</div>
+        <div class="status" id="status">
+          Watch the sequence, then play it back perfectly.
+        </div>
         <button class="primary" id="startBtn">Start Cipher</button>
       </div>
     </div>
@@ -228,14 +251,18 @@
         score = 0;
         health = 100;
         acceptingInput = false;
-        statusEl.textContent = 'Watch the sequence, then play it back perfectly.';
+        statusEl.textContent =
+          'Watch the sequence, then play it back perfectly.';
         report('RESET');
       }
 
       function fail() {
         health = Math.max(0, health - 35);
         acceptingInput = false;
-        statusEl.textContent = health > 0 ? 'Breach detected. Rebuild the cipher.' : 'System lockout. Restart to try again.';
+        statusEl.textContent =
+          health > 0
+            ? 'Breach detected. Rebuild the cipher.'
+            : 'System lockout. Restart to try again.';
         report('MISS', health <= 0);
         if (health > 0) {
           input = [];
@@ -256,7 +283,8 @@
             score += 150 * round;
             round += 1;
             report('ROUND_CLEAR');
-            statusEl.textContent = 'Cipher cleared. Stand by for the next layer.';
+            statusEl.textContent =
+              'Cipher cleared. Stand by for the next layer.';
             setTimeout(nextRound, 650);
           }
         });

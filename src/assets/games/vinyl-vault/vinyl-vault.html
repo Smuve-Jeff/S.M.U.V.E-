@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -24,7 +24,11 @@
         place-items: center;
         font-family: Inter, system-ui, sans-serif;
         background:
-          radial-gradient(circle at top, rgba(245, 158, 11, 0.15), transparent 30%),
+          radial-gradient(
+            circle at top,
+            rgba(245, 158, 11, 0.15),
+            transparent 30%
+          ),
           linear-gradient(180deg, #09090b, #18181b);
         color: white;
       }
@@ -104,7 +108,9 @@
         border: 1px solid rgba(255, 255, 255, 0.08);
         cursor: pointer;
         transform-style: preserve-3d;
-        transition: transform 180ms ease, border-color 180ms ease;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease;
       }
 
       .card.flipped,
@@ -132,7 +138,11 @@
 
       .back {
         transform: rotateY(180deg);
-        background: linear-gradient(180deg, rgba(245, 158, 11, 0.18), rgba(255, 255, 255, 0.06));
+        background: linear-gradient(
+          180deg,
+          rgba(245, 158, 11, 0.18),
+          rgba(255, 255, 255, 0.06)
+        );
       }
 
       button {
@@ -162,16 +172,24 @@
           <h1>Vinyl Vault</h1>
         </div>
         <div class="stats">
-          <div class="stat"><label>Matches</label><strong id="matches">0/8</strong></div>
-          <div class="stat"><label>Score</label><strong id="score">0</strong></div>
-          <div class="stat"><label>Streak</label><strong id="streak">0</strong></div>
+          <div class="stat">
+            <label>Matches</label><strong id="matches">0/8</strong>
+          </div>
+          <div class="stat">
+            <label>Score</label><strong id="score">0</strong>
+          </div>
+          <div class="stat">
+            <label>Streak</label><strong id="streak">0</strong>
+          </div>
         </div>
       </div>
 
       <div class="grid" id="grid"></div>
 
       <div class="footer">
-        <div class="status" id="status">Clear the collection and keep your streak alive.</div>
+        <div class="status" id="status">
+          Clear the collection and keep your streak alive.
+        </div>
         <button id="resetBtn">Reshuffle Crate</button>
       </div>
     </div>
@@ -213,7 +231,10 @@
         const shuffled = [...list];
         for (let index = shuffled.length - 1; index > 0; index -= 1) {
           const swapIndex = Math.floor(Math.random() * (index + 1));
-          [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+          [shuffled[index], shuffled[swapIndex]] = [
+            shuffled[swapIndex],
+            shuffled[index],
+          ];
         }
         return shuffled;
       }
@@ -238,13 +259,20 @@
         streak = 0;
         locked = false;
         grid.innerHTML = '';
-        cards.forEach((icon, index) => grid.appendChild(buildCard(icon, index)));
-        statusEl.textContent = 'Clear the collection and keep your streak alive.';
+        cards.forEach((icon, index) =>
+          grid.appendChild(buildCard(icon, index))
+        );
+        statusEl.textContent =
+          'Clear the collection and keep your streak alive.';
         report('RESET');
       }
 
       function reveal(button, icon, index) {
-        if (locked || button.classList.contains('flipped') || button.classList.contains('matched')) {
+        if (
+          locked ||
+          button.classList.contains('flipped') ||
+          button.classList.contains('matched')
+        ) {
           return;
         }
 

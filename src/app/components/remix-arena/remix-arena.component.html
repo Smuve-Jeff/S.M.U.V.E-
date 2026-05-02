@@ -1,32 +1,56 @@
 <div class="remix-arena-container p-8 bg-brand-dark min-h-full text-white">
   <header class="mb-10 flex justify-between items-center">
     <div>
-      <h1 class="text-4xl font-black italic text-brand-primary uppercase tracking-tighter">Remix Arena</h1>
-      <p class="text-slate-400">Collaborate on remixes in real-time with the S.M.U.V.E 2.0 engine.</p>
+      <h1
+        class="text-4xl font-black italic text-brand-primary uppercase tracking-tighter"
+      >
+        Remix Arena
+      </h1>
+      <p class="text-slate-400">
+        Collaborate on remixes in real-time with the S.M.U.V.E 2.0 engine.
+      </p>
     </div>
     <div class="flex gap-4">
-      <button (click)="startSession()" class="px-6 py-2 bg-brand-primary text-black font-bold uppercase text-xs skew-x-[-15deg] hover:skew-x-0 transition-all">
+      <button
+        (click)="startSession()"
+        class="px-6 py-2 bg-brand-primary text-black font-bold uppercase text-xs skew-x-[-15deg] hover:skew-x-0 transition-all"
+      >
         START P2P SESSION
       </button>
-      <button (click)="joinSession()" class="px-6 py-2 bg-brand-secondary text-white font-bold uppercase text-xs skew-x-[-15deg] hover:skew-x-0 transition-all">
+      <button
+        (click)="joinSession()"
+        class="px-6 py-2 bg-brand-secondary text-white font-bold uppercase text-xs skew-x-[-15deg] hover:skew-x-0 transition-all"
+      >
         JOIN P2P SESSION
       </button>
       <div class="flex items-center gap-2">
-        <div class="w-2 h-2 rounded-full bg-brand-primary animate-pulse-subtle"></div>
-        <span class="text-[10px] font-bold uppercase tracking-widest text-brand-primary">ACTIVE</span>
+        <div
+          class="w-2 h-2 rounded-full bg-brand-primary animate-pulse-subtle"
+        ></div>
+        <span
+          class="text-[10px] font-bold uppercase tracking-widest text-brand-primary"
+          >ACTIVE</span
+        >
       </div>
     </div>
   </header>
 
   <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-10">
     <!-- Code Editor -->
-    <div class="lg:col-span-2 bg-brand-surface border border-brand-surface-light rounded-xl overflow-hidden shadow-2xl">
-      <div class="bg-brand-surface-light px-4 py-2 flex justify-between items-center border-b border-slate-700">
-        <span class="text-xs font-mono text-[11px] tracking-tight text-slate-400">remix_logic.js</span>
+    <div
+      class="lg:col-span-2 bg-brand-surface border border-brand-surface-light rounded-xl overflow-hidden shadow-2xl"
+    >
+      <div
+        class="bg-brand-surface-light px-4 py-2 flex justify-between items-center border-b border-slate-700"
+      >
+        <span
+          class="text-xs font-mono text-[11px] tracking-tight text-slate-400"
+          >remix_logic.js</span
+        >
         <div class="flex gap-2">
-           <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
-           <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
-           <div class="w-3 h-3 rounded-full bg-brand-primary/50"></div>
+          <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+          <div class="w-3 h-3 rounded-full bg-brand-primary/50"></div>
         </div>
       </div>
       <textarea
@@ -39,46 +63,63 @@
     </div>
 
     <!-- Application Tracks -->
-    <div class="flex flex-col h-[450px] bg-brand-surface border border-brand-surface-light rounded-xl overflow-hidden">
+    <div
+      class="flex flex-col h-[450px] bg-brand-surface border border-brand-surface-light rounded-xl overflow-hidden"
+    >
       <div class="bg-brand-surface-light px-4 py-3 border-b border-slate-700">
-        <h2 class="text-xs font-bold uppercase tracking-widest">Available Tracks</h2>
+        <h2 class="text-xs font-bold uppercase tracking-widest">
+          Available Tracks
+        </h2>
       </div>
       <div class="flex-grow p-4 overflow-y-auto space-y-3 custom-scrollbar">
-        <div *ngFor="let track of musicManager.tracks()"
-             class="p-3 bg-brand-surface-light/50 border border-slate-700 rounded-xl hover:border-brand-primary/50 transition-all group">
+        <div
+          *ngFor="let track of musicManager.tracks()"
+          class="p-3 bg-brand-surface-light/50 border border-slate-700 rounded-xl hover:border-brand-primary/50 transition-all group"
+        >
           <div class="flex justify-between items-center">
             <div>
               <h3 class="text-sm font-bold text-white">{{ track.name }}</h3>
-              <p class="text-[10px] text-slate-500 uppercase">{{ track.instrumentId }}</p>
+              <p class="text-[10px] text-slate-500 uppercase">
+                {{ track.instrumentId }}
+              </p>
             </div>
-            <button (click)="remixTrack(track)"
-                    class="text-[10px] font-black bg-brand-primary text-black px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              (click)="remixTrack(track)"
+              class="text-[10px] font-black bg-brand-primary text-black px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            >
               REMIX
             </button>
           </div>
         </div>
-        <div *ngIf="musicManager.tracks().length === 0" class="text-center py-10 opacity-30 italic text-xs">
+        <div
+          *ngIf="musicManager.tracks().length === 0"
+          class="text-center py-10 opacity-30 italic text-xs"
+        >
           No tracks created yet. Go to Studio!
         </div>
       </div>
     </div>
 
     <!-- Chat & Activity -->
-    <div class="flex flex-col h-[450px] bg-brand-surface border border-brand-surface-light rounded-xl overflow-hidden">
-       <div class="bg-brand-surface-light px-4 py-3 border-b border-slate-700">
-         <h2 class="text-xs font-bold uppercase tracking-widest">Live Chat</h2>
-       </div>
+    <div
+      class="flex flex-col h-[450px] bg-brand-surface border border-brand-surface-light rounded-xl overflow-hidden"
+    >
+      <div class="bg-brand-surface-light px-4 py-3 border-b border-slate-700">
+        <h2 class="text-xs font-bold uppercase tracking-widest">Live Chat</h2>
+      </div>
 
-       <div class="flex-grow p-4 overflow-y-auto space-y-4 custom-scrollbar">
-         <div *ngFor="let msg of messages()" class="text-xs">
-           <span class="font-black uppercase text-brand-primary mr-2">{{ msg.user }}:</span>
-           <span class="text-slate-300">{{ msg.text }}</span>
-         </div>
-       </div>
+      <div class="flex-grow p-4 overflow-y-auto space-y-4 custom-scrollbar">
+        <div *ngFor="let msg of messages()" class="text-xs">
+          <span class="font-black uppercase text-brand-primary mr-2"
+            >{{ msg.user }}:</span
+          >
+          <span class="text-slate-300">{{ msg.text }}</span>
+        </div>
+      </div>
 
-       <div class="p-4 border-t border-slate-700">
-         <div class="relative">
-           <input
+      <div class="p-4 border-t border-slate-700">
+        <div class="relative">
+          <input
             type="text"
             [ngModel]="newMessage()"
             (ngModelChange)="newMessage.set($event)"
@@ -86,12 +127,15 @@
             placeholder="Send message..."
             class="w-full p-3 bg-brand-surface-light border border-slate-700 rounded-xl text-xs outline-none focus:border-brand-primary transition-all"
             aria-label="Chat message input"
-           >
-           <button (click)="sendMessage()" class="absolute right-3 top-2 text-brand-primary">
-             <i class="fas fa-paper-plane"></i>
-           </button>
-         </div>
-       </div>
+          />
+          <button
+            (click)="sendMessage()"
+            class="absolute right-3 top-2 text-brand-primary"
+          >
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

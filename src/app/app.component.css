@@ -9,33 +9,33 @@
 }
 
 .app-shell {
-    height: 100%;
+  height: 100%;
 }
 
 .sidebar {
-    height: 100%;
-    z-index: 1000;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+  height: 100%;
+  z-index: 1000;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Backdrop overlay for mobile sidebar */
 .sidebar-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-    transition: opacity 0.3s ease;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .app-content {
-    position: relative;
-    background-color: var(--color-bg);
+  position: relative;
+  background-color: var(--color-bg);
 }
 
 .full-page {
@@ -117,19 +117,17 @@
 }
 
 .mobile-nav-bar {
-   position: relative;
-   min-height: calc(
-     var(--mobile-nav-height, 64px)
-   );
-   padding-left: var(--mobile-edge-padding, 16px);
-   padding-right: var(--mobile-edge-padding, 16px);
-   padding-top: 8px;
-   /* Respect Android / iOS safe-area (notch / navigation gestures) */
-   padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-   display: flex;
-   align-items: stretch;
-   justify-content: space-between;
-   gap: clamp(4px, 1.8vw, 12px);
+  position: relative;
+  min-height: calc(var(--mobile-nav-height, 64px));
+  padding-left: var(--mobile-edge-padding, 16px);
+  padding-right: var(--mobile-edge-padding, 16px);
+  padding-top: 8px;
+  /* Respect Android / iOS safe-area (notch / navigation gestures) */
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: clamp(4px, 1.8vw, 12px);
 }
 
 .mobile-nav-button {
@@ -153,7 +151,11 @@
 
 .mobile-nav-button .material-symbols-outlined {
   font-size: 24px;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
 }
 
 .mobile-nav-button span:last-child {
@@ -179,108 +181,115 @@
 }
 
 /* Transitions */
-.sidebar, .app-top-bar, .app-content, footer {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.sidebar,
+.app-top-bar,
+.app-content,
+footer {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Tablet breakpoint: Better layout for tablet landscape/portrait */
 @media (max-width: 1024px) and (min-width: 769px) {
-    .sidebar {
-        width: 240px !important;
-    }
+  .sidebar {
+    width: 240px !important;
+  }
 
-    .app-top-bar {
-        padding-left: 1.5rem;
-        padding-right: 1.5rem;
-    }
+  .app-top-bar {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
 }
 
 @media (max-width: 1024px) {
-    .sidebar {
-        transform: translateX(-100%);
-        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-    .sidebar.w-full {
-        width: min(22rem, calc(100vw - 1rem));
-        max-width: calc(100vw - 1rem);
-    }
+  .sidebar.w-full {
+    width: min(22rem, calc(100vw - 1rem));
+    max-width: calc(100vw - 1rem);
+  }
 
-    .sidebar.w-full {
-        transform: translateX(0);
-    }
+  .sidebar.w-full {
+    transform: translateX(0);
+  }
 
-    /* Push the main-content area up so nothing hides behind the fixed nav bar.
+  /* Push the main-content area up so nothing hides behind the fixed nav bar.
        The mobile nav uses --mobile-nav-height plus any safe-area bottom inset.
        Added extra 20px for the branding footer strip */
-    .mobile-content-offset {
-        padding-bottom: calc(
-          var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 36px
-        );
-    }
+  .mobile-content-offset {
+    padding-bottom: calc(
+      var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 36px
+    );
+  }
 
-    .mobile-nav-button:active {
-        transform: scale(0.95);
-    }
+  .mobile-nav-button:active {
+    transform: scale(0.95);
+  }
 
-    .mobile-nav-bar .material-symbols-outlined {
-        font-size: 24px;
-        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    }
+  .mobile-nav-bar .material-symbols-outlined {
+    font-size: 24px;
+    font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24;
+  }
 
-    .mobile-nav-bar span {
-        font-size: 10px;
-        letter-spacing: 0.12em;
-        font-weight: 700;
-    }
+  .mobile-nav-bar span {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+  }
 }
 
 /* Small phone optimizations */
 @media (max-width: 640px) {
-    .mobile-content-offset {
-        padding-bottom: calc(
-          var(--mobile-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 36px
-        );
-    }
+  .mobile-content-offset {
+    padding-bottom: calc(
+      var(--mobile-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 36px
+    );
+  }
 
-    .app-top-bar {
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
-    }
+  .app-top-bar {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
 
-    .mobile-nav-button {
-        min-height: 52px;
-        padding-left: 8px;
-        padding-right: 8px;
-    }
+  .mobile-nav-button {
+    min-height: 52px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
 
-    .mobile-footer-branding {
-        padding: 3px 12px;
-        min-height: 18px;
-    }
+  .mobile-footer-branding {
+    padding: 3px 12px;
+    min-height: 18px;
+  }
 }
 
 @media (max-width: 480px) {
-    .mobile-nav-bar {
-        padding-left: 12px;
-        padding-right: 12px;
-        gap: 4px;
-    }
+  .mobile-nav-bar {
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 4px;
+  }
 
-    .mobile-nav-button {
-        max-width: none;
-        min-height: 44px;
-        padding: 6px 4px;
-    }
+  .mobile-nav-button {
+    max-width: none;
+    min-height: 44px;
+    padding: 6px 4px;
+  }
 
-    .mobile-nav-button span:last-child {
-        font-size: 9px;
-        letter-spacing: 0.08em;
-    }
+  .mobile-nav-button span:last-child {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+  }
 
-    .mobile-footer-branding {
-        padding: 2px 10px;
-    }
+  .mobile-footer-branding {
+    padding: 2px 10px;
+  }
 }
 
 /* Final refinement for content area height */

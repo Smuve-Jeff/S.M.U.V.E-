@@ -54,4 +54,5 @@
 - **Self-Hosted Control**: Complete data ownership and transparency through an open-source, self-hosted architecture.
 
 ---
-*(©️ Smuve Jeff Presents)*
+
+_(©️ Smuve Jeff Presents)_

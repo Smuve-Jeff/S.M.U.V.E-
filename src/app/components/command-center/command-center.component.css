@@ -13,23 +13,23 @@
 }
 
 :host {
-    display: block;
-    background: #020617;
+  display: block;
+  background: #020617;
 }
 
 /* Ensure data stream doesn't overflow */
 .data-stream {
-    max-height: calc(100vh - 400px);
+  max-height: calc(100vh - 400px);
 }
 
 /* Scale Assistant Animation */
 @keyframes dash {
-    to {
-        stroke-dashoffset: -1000;
-    }
+  to {
+    stroke-dashoffset: -1000;
+  }
 }
 
 .hud-node-link path {
-    stroke-dasharray: 10;
-    animation: dash 50s linear infinite;
+  stroke-dasharray: 10;
+  animation: dash 50s linear infinite;
 }

@@ -1,15 +1,33 @@
 <div class="transport-bar">
   <div class="flex items-center gap-2">
-    <button (click)="togglePlay()" [class.active]="isPlaying()" class="transport-btn" title="Play/Pause">
-      <i class="fas" [ngClass]="{'fa-play': !isPlaying(), 'fa-pause': isPlaying()}"></i>
+    <button
+      (click)="togglePlay()"
+      [class.active]="isPlaying()"
+      class="transport-btn"
+      title="Play/Pause"
+    >
+      <i
+        class="fas"
+        [ngClass]="{ 'fa-play': !isPlaying(), 'fa-pause': isPlaying() }"
+      ></i>
     </button>
     <button (click)="stop()" class="transport-btn" title="Stop">
       <i class="fas fa-stop"></i>
     </button>
-    <button (click)="toggleRecord()" [class.active]="isRecording()" class="transport-btn record-btn" title="Record">
+    <button
+      (click)="toggleRecord()"
+      [class.active]="isRecording()"
+      class="transport-btn record-btn"
+      title="Record"
+    >
       <i class="fas fa-circle text-[10px]"></i>
     </button>
-    <button (click)="toggleMetronome()" [class.active]="audioEngine.metronomeEnabled()" class="transport-btn metronome-btn" title="Metronome">
+    <button
+      (click)="toggleMetronome()"
+      [class.active]="audioEngine.metronomeEnabled()"
+      class="transport-btn metronome-btn"
+      title="Metronome"
+    >
       <i class="fas fa-drum"></i>
     </button>
   </div>
@@ -18,7 +36,9 @@
     <div class="display-item bpm-control">
       <span class="display-label">BPM</span>
       <div class="flex items-center gap-1">
-        <button class="bpm-nudge" (click)="nudgeTempo(-1)" title="Decrease BPM">−</button>
+        <button class="bpm-nudge" (click)="nudgeTempo(-1)" title="Decrease BPM">
+          −
+        </button>
         <input
           type="number"
           class="bpm-input"
@@ -28,7 +48,9 @@
           max="300"
           title="BPM"
         />
-        <button class="bpm-nudge" (click)="nudgeTempo(1)" title="Increase BPM">+</button>
+        <button class="bpm-nudge" (click)="nudgeTempo(1)" title="Increase BPM">
+          +
+        </button>
       </div>
     </div>
     <div class="display-item">
@@ -39,7 +61,10 @@
 
   <div class="flex items-center gap-4">
     <div *ngIf="audioEngine.metronomeEnabled()" class="flex flex-col">
-      <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">CLICK VOL</span>
+      <span
+        class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+        >CLICK VOL</span
+      >
       <input
         type="range"
         min="0"
@@ -50,7 +75,10 @@
       />
     </div>
     <div class="flex flex-col">
-      <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">MASTER OUT</span>
+      <span
+        class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+        >MASTER OUT</span
+      >
       <input
         type="range"
         min="0"

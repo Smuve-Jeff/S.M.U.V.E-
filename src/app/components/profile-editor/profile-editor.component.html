@@ -10,9 +10,17 @@
     ></div>
   </div>
 
-  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
-    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
-    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
+  <div
+    *ngIf="editableProfile().headerImage"
+    class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+  >
+    <img
+      [src]="editableProfile().headerImage"
+      class="w-full h-full object-cover"
+    />
+    <div
+      class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+    ></div>
   </div>
   <header
     class="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5 p-6 flex justify-between items-center"
@@ -134,42 +142,81 @@
 
       <div [ngSwitch]="activeSection()" class="relative z-10 space-y-12">
         <div *ngSwitchCase="'basic'" class="space-y-10 animate-fade-in">
-  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
-    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
-    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
-  </div>
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
           <header class="border-b border-white/5 pb-6">
             <h2 class="text-3xl font-black italic uppercase text-brand-primary">
               Identity & Vision
             </h2>
           </header>
 
-          <section class="identity-panel p-10 mb-10 flex flex-col md:flex-row items-center gap-10 border-brand-secondary/20 shadow-[0_0_50px_rgba(168,85,247,0.05)]">
+          <section
+            class="identity-panel p-10 mb-10 flex flex-col md:flex-row items-center gap-10 border-brand-secondary/20 shadow-[0_0_50px_rgba(168,85,247,0.05)]"
+          >
             <div class="w-full md:w-1/2">
-              <h2 class="text-3xl font-black italic uppercase text-brand-secondary mb-2">Strategic DNA</h2>
-              <p class="text-[10px] text-slate-500 font-black tracking-[0.3em] uppercase mb-8">Neural Expertise Calibration & Multi-Dimensional Trajectory</p>
+              <h2
+                class="text-3xl font-black italic uppercase text-brand-secondary mb-2"
+              >
+                Strategic DNA
+              </h2>
+              <p
+                class="text-[10px] text-slate-500 font-black tracking-[0.3em] uppercase mb-8"
+              >
+                Neural Expertise Calibration & Multi-Dimensional Trajectory
+              </p>
               <div class="grid grid-cols-2 gap-4">
-                <div *ngFor="let item of [
-                  { key: 'production', label: 'Production' },
-                  { key: 'songwriting', label: 'Songwriting' },
-                  { key: 'marketing', label: 'Marketing' },
-                  { key: 'business', label: 'Business' },
-                  { key: 'legal', label: 'Legal' },
-                  { key: 'performance', label: 'Performance' }
-                ]" class="bg-black/40 p-3 rounded-xl border border-white/5 flex flex-col gap-1">
-                  <span class="text-[8px] font-black text-slate-500 uppercase">{{ item.label }}</span>
+                <div
+                  *ngFor="
+                    let item of [
+                      { key: 'production', label: 'Production' },
+                      { key: 'songwriting', label: 'Songwriting' },
+                      { key: 'marketing', label: 'Marketing' },
+                      { key: 'business', label: 'Business' },
+                      { key: 'legal', label: 'Legal' },
+                      { key: 'performance', label: 'Performance' },
+                    ]
+                  "
+                  class="bg-black/40 p-3 rounded-xl border border-white/5 flex flex-col gap-1"
+                >
+                  <span
+                    class="text-[8px] font-black text-slate-500 uppercase"
+                    >{{ item.label }}</span
+                  >
                   <div class="flex items-center justify-between">
-                    <span class="text-xs font-black text-white">{{ (editableProfile().expertise)[$any(item.key)] || 0 }}.0</span>
+                    <span class="text-xs font-black text-white"
+                      >{{
+                        editableProfile().expertise[$any(item.key)] || 0
+                      }}.0</span
+                    >
                     <div class="flex gap-0.5">
-                      <div *ngFor="let i of [1,2,3,4,5]" class="w-1.5 h-3 rounded-sm border border-white/10"
-                           [class.bg-brand-secondary]="((editableProfile().expertise)[$any(item.key)] || 0) >= (i * 2)"></div>
+                      <div
+                        *ngFor="let i of [1, 2, 3, 4, 5]"
+                        class="w-1.5 h-3 rounded-sm border border-white/10"
+                        [class.bg-brand-secondary]="
+                          (editableProfile().expertise[$any(item.key)] || 0) >=
+                          i * 2
+                        "
+                      ></div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
             <div class="w-full md:w-1/2 flex justify-center">
-              <app-radar-chart [expertise]="editableProfile().expertise" class="w-64 h-64"></app-radar-chart>
+              <app-radar-chart
+                [expertise]="editableProfile().expertise"
+                class="w-64 h-64"
+              ></app-radar-chart>
             </div>
           </section>
 
@@ -207,68 +254,167 @@
             </app-form-field>
           </div>
 
-          <section *ngIf="editableProfile().profileSetupCompleted" class="space-y-8 animate-fade-in">
+          <section
+            *ngIf="editableProfile().profileSetupCompleted"
+            class="space-y-8 animate-fade-in"
+          >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div class="identity-panel flex flex-col items-center gap-6 p-10">
-                <h3 class="text-sm font-black uppercase text-white tracking-widest">Artist Avatar</h3>
-                <div class="relative group cursor-pointer" (click)="avatarUpload.click()">
-                  <div class="w-32 h-32 rounded-3xl overflow-hidden border-2 border-white/10 group-hover:border-brand-primary transition-all shadow-2xl">
-                    <img *ngIf="editableProfile().avatarImage" [src]="editableProfile().avatarImage" class="w-full h-full object-cover" />
-                    <div *ngIf="!editableProfile().avatarImage" class="w-full h-full bg-white/5 flex items-center justify-center">
+                <h3
+                  class="text-sm font-black uppercase text-white tracking-widest"
+                >
+                  Artist Avatar
+                </h3>
+                <div
+                  class="relative group cursor-pointer"
+                  (click)="avatarUpload.click()"
+                >
+                  <div
+                    class="w-32 h-32 rounded-3xl overflow-hidden border-2 border-white/10 group-hover:border-brand-primary transition-all shadow-2xl"
+                  >
+                    <img
+                      *ngIf="editableProfile().avatarImage"
+                      [src]="editableProfile().avatarImage"
+                      class="w-full h-full object-cover"
+                    />
+                    <div
+                      *ngIf="!editableProfile().avatarImage"
+                      class="w-full h-full bg-white/5 flex items-center justify-center"
+                    >
                       <i class="fas fa-camera text-3xl text-slate-700"></i>
                     </div>
                   </div>
-                  <div class="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-3xl">
-                    <span class="text-[10px] font-black uppercase text-white">Upload</span>
+                  <div
+                    class="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-3xl"
+                  >
+                    <span class="text-[10px] font-black uppercase text-white"
+                      >Upload</span
+                    >
                   </div>
-                  <input #avatarUpload type="file" class="hidden" (change)="onImageSelected($event, 'avatarImage')" accept="image/*" />
+                  <input
+                    #avatarUpload
+                    type="file"
+                    class="hidden"
+                    (change)="onImageSelected($event, 'avatarImage')"
+                    accept="image/*"
+                  />
                 </div>
-                <p class="text-[9px] text-slate-500 uppercase tracking-widest text-center">Recommended: 1024x1024 PNG/JPG</p>
+                <p
+                  class="text-[9px] text-slate-500 uppercase tracking-widest text-center"
+                >
+                  Recommended: 1024x1024 PNG/JPG
+                </p>
               </div>
 
               <div class="identity-panel flex flex-col items-center gap-6 p-10">
-                <h3 class="text-sm font-black uppercase text-white tracking-widest">Header Backdrop</h3>
-                <div class="relative group cursor-pointer w-full" (click)="headerUpload.click()">
-                  <div class="w-full h-32 rounded-3xl overflow-hidden border-2 border-white/10 group-hover:border-brand-primary transition-all shadow-2xl">
-                    <img *ngIf="editableProfile().headerImage" [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
-                    <div *ngIf="!editableProfile().headerImage" class="w-full h-full bg-white/5 flex items-center justify-center">
+                <h3
+                  class="text-sm font-black uppercase text-white tracking-widest"
+                >
+                  Header Backdrop
+                </h3>
+                <div
+                  class="relative group cursor-pointer w-full"
+                  (click)="headerUpload.click()"
+                >
+                  <div
+                    class="w-full h-32 rounded-3xl overflow-hidden border-2 border-white/10 group-hover:border-brand-primary transition-all shadow-2xl"
+                  >
+                    <img
+                      *ngIf="editableProfile().headerImage"
+                      [src]="editableProfile().headerImage"
+                      class="w-full h-full object-cover"
+                    />
+                    <div
+                      *ngIf="!editableProfile().headerImage"
+                      class="w-full h-full bg-white/5 flex items-center justify-center"
+                    >
                       <i class="fas fa-image text-3xl text-slate-700"></i>
                     </div>
                   </div>
-                  <div class="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-3xl">
-                    <span class="text-[10px] font-black uppercase text-white">Upload</span>
+                  <div
+                    class="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-3xl"
+                  >
+                    <span class="text-[10px] font-black uppercase text-white"
+                      >Upload</span
+                    >
                   </div>
-                  <input #headerUpload type="file" class="hidden" (change)="onImageSelected($event, 'headerImage')" accept="image/*" />
+                  <input
+                    #headerUpload
+                    type="file"
+                    class="hidden"
+                    (change)="onImageSelected($event, 'headerImage')"
+                    accept="image/*"
+                  />
                 </div>
-                <p class="text-[9px] text-slate-500 uppercase tracking-widest text-center">Recommended: 1920x600 Cinematic Aspect</p>
+                <p
+                  class="text-[9px] text-slate-500 uppercase tracking-widest text-center"
+                >
+                  Recommended: 1920x600 Cinematic Aspect
+                </p>
               </div>
             </div>
 
             <div class="identity-panel p-10">
               <div class="flex items-center justify-between mb-8">
                 <div>
-                  <h3 class="text-sm font-black uppercase text-white tracking-widest">Press Gallery</h3>
-                  <p class="text-[9px] text-slate-500 uppercase tracking-widest mt-1">Managed visual assets for media & promoters</p>
+                  <h3
+                    class="text-sm font-black uppercase text-white tracking-widest"
+                  >
+                    Press Gallery
+                  </h3>
+                  <p
+                    class="text-[9px] text-slate-500 uppercase tracking-widest mt-1"
+                  >
+                    Managed visual assets for media & promoters
+                  </p>
                 </div>
-                <button (click)="galleryUpload.click()" class="connector-action">
+                <button
+                  (click)="galleryUpload.click()"
+                  class="connector-action"
+                >
                   Deploy New Asset
                 </button>
-                <input #galleryUpload type="file" class="hidden" (change)="addToGallery($event)" accept="image/*" />
+                <input
+                  #galleryUpload
+                  type="file"
+                  class="hidden"
+                  (change)="addToGallery($event)"
+                  accept="image/*"
+                />
               </div>
 
               <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <div *ngFor="let img of editableProfile().pressGallery; let i = index" class="relative group aspect-square rounded-2xl overflow-hidden border border-white/10">
+                <div
+                  *ngFor="
+                    let img of editableProfile().pressGallery;
+                    let i = index
+                  "
+                  class="relative group aspect-square rounded-2xl overflow-hidden border border-white/10"
+                >
                   <img [src]="img" class="w-full h-full object-cover" />
-                  <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                    <button (click)="removeFromGallery(i)" class="w-8 h-8 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+                  <div
+                    class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"
+                  >
+                    <button
+                      (click)="removeFromGallery(i)"
+                      class="w-8 h-8 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                    >
                       <i class="fas fa-trash-alt text-xs"></i>
                     </button>
                   </div>
                 </div>
-                <div *ngIf="!editableProfile().pressGallery || editableProfile().pressGallery.length === 0"
-                     class="col-span-full py-12 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-3">
+                <div
+                  *ngIf="
+                    !editableProfile().pressGallery ||
+                    editableProfile().pressGallery.length === 0
+                  "
+                  class="col-span-full py-12 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-3"
+                >
                   <i class="fas fa-images text-slate-800 text-3xl"></i>
-                  <span class="text-[9px] font-black uppercase tracking-widest text-slate-600">No assets deployed to gallery</span>
+                  <span
+                    class="text-[9px] font-black uppercase tracking-widest text-slate-600"
+                    >No assets deployed to gallery</span
+                  >
                 </div>
               </div>
             </div>
@@ -295,10 +441,18 @@
           *ngSwitchCase="'identity-console'"
           class="space-y-10 animate-fade-in"
         >
-  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
-    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
-    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
-  </div>
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
           <header class="border-b border-white/5 pb-6">
             <h2 class="text-3xl font-black italic uppercase text-brand-primary">
               Artist Identity Console
@@ -462,10 +616,18 @@
           *ngSwitchCase="'genre-deep-dive'"
           class="space-y-10 animate-fade-in"
         >
-  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
-    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
-    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
-  </div>
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
           <header class="border-b border-white/5 pb-6">
             <h2 class="text-3xl font-black italic uppercase text-brand-primary">
               Genre Intelligence
@@ -501,10 +663,18 @@
         </div>
 
         <div *ngSwitchCase="'touring'" class="space-y-10 animate-fade-in">
-  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
-    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
-    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
-  </div>
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
           <header class="border-b border-white/5 pb-6">
             <h2 class="text-3xl font-black italic uppercase text-brand-primary">
               Touring & Live
@@ -537,61 +707,121 @@
         </div>
 
         <div *ngSwitchCase="'business'" class="space-y-10 animate-fade-in">
-  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
-    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
-    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
-  </div>
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
           <header class="border-b border-white/5 pb-6">
-            <h2 class="text-3xl font-black italic uppercase text-brand-primary">Business & Financials</h2>
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Business & Financials
+            </h2>
           </header>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <article class="identity-card">
               <span class="identity-label">Total Revenue</span>
-              <strong class="identity-score">{{ editableProfile().financials.totalRevenue | currency }}</strong>
+              <strong class="identity-score">{{
+                editableProfile().financials.totalRevenue | currency
+              }}</strong>
             </article>
             <article class="identity-card">
               <span class="identity-label">Pending Payouts</span>
-              <strong class="identity-score text-brand-primary">{{ editableProfile().financials.pendingPayouts | currency }}</strong>
+              <strong class="identity-score text-brand-primary">{{
+                editableProfile().financials.pendingPayouts | currency
+              }}</strong>
             </article>
           </div>
 
           <section class="identity-panel">
-            <h3 class="text-lg font-black uppercase text-white mb-6">Linked Accounts</h3>
+            <h3 class="text-lg font-black uppercase text-white mb-6">
+              Linked Accounts
+            </h3>
             <div class="space-y-3">
-              <div *ngFor="let acc of editableProfile().financials.accounts" class="connector-row">
+              <div
+                *ngFor="let acc of editableProfile().financials.accounts"
+                class="connector-row"
+              >
                 <div>
-                  <h4 class="text-sm font-black uppercase text-white">{{ acc.provider }}</h4>
-                  <p class="text-[10px] text-slate-500 uppercase tracking-widest">{{ acc.accountName }} • {{ acc.status }}</p>
+                  <h4 class="text-sm font-black uppercase text-white">
+                    {{ acc.provider }}
+                  </h4>
+                  <p
+                    class="text-[10px] text-slate-500 uppercase tracking-widest"
+                  >
+                    {{ acc.accountName }} • {{ acc.status }}
+                  </p>
                 </div>
-                <span class="text-white font-bold">{{ acc.balance | currency }}</span>
+                <span class="text-white font-bold">{{
+                  acc.balance | currency
+                }}</span>
               </div>
-              <p *ngIf="editableProfile().financials.accounts.length === 0" class="text-xs text-slate-500 italic">No financial accounts linked.</p>
+              <p
+                *ngIf="editableProfile().financials.accounts.length === 0"
+                class="text-xs text-slate-500 italic"
+              >
+                No financial accounts linked.
+              </p>
             </div>
           </section>
         </div>
 
         <div *ngSwitchCase="'team'" class="space-y-10 animate-fade-in">
-  <div *ngIf="editableProfile().headerImage" class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none">
-    <img [src]="editableProfile().headerImage" class="w-full h-full object-cover" />
-    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"></div>
-  </div>
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
           <header class="border-b border-white/5 pb-6">
-            <h2 class="text-3xl font-black italic uppercase text-brand-primary">Professional Team</h2>
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Professional Team
+            </h2>
           </header>
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <article *ngFor="let member of editableProfile().team" class="identity-card">
-              <div class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-4">
+            <article
+              *ngFor="let member of editableProfile().team"
+              class="identity-card"
+            >
+              <div
+                class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-4"
+              >
                 <i class="fas fa-user text-slate-400"></i>
               </div>
-              <h4 class="text-white font-black uppercase tracking-tight">{{ member.name }}</h4>
-              <p class="text-[10px] text-brand-primary font-bold uppercase tracking-widest">{{ member.role }}</p>
+              <h4 class="text-white font-black uppercase tracking-tight">
+                {{ member.name }}
+              </h4>
+              <p
+                class="text-[10px] text-brand-primary font-bold uppercase tracking-widest"
+              >
+                {{ member.role }}
+              </p>
             </article>
 
-            <button class="border-2 border-dashed border-white/10 rounded-[2rem] p-8 flex flex-col items-center justify-center gap-3 hover:border-brand-primary/50 transition-all group">
-              <i class="fas fa-plus text-slate-600 group-hover:text-brand-primary"></i>
-              <span class="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-white">Deploy Team Member</span>
+            <button
+              class="border-2 border-dashed border-white/10 rounded-[2rem] p-8 flex flex-col items-center justify-center gap-3 hover:border-brand-primary/50 transition-all group"
+            >
+              <i
+                class="fas fa-plus text-slate-600 group-hover:text-brand-primary"
+              ></i>
+              <span
+                class="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-white"
+                >Deploy Team Member</span
+              >
             </button>
           </div>
         </div>
@@ -610,5 +840,8 @@
       </app-artist-questionnaire>
     </main>
   </div>
-<app-uplink-console *ngIf="showUplink()" (close)="showUplink.set(false)"></app-uplink-console>
+  <app-uplink-console
+    *ngIf="showUplink()"
+    (close)="showUplink.set(false)"
+  ></app-uplink-console>
 </div>

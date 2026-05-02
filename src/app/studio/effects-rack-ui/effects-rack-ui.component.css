@@ -3,9 +3,9 @@
 }
 
 .slot-item {
-    transition: transform 0.2s;
+  transition: transform 0.2s;
 }
 
 .slot-item:active {
-    transform: scale(0.98);
+  transform: scale(0.98);
 }

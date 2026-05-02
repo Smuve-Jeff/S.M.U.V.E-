@@ -1,21 +1,39 @@
-<div class="p-8 h-full bg-brand-dark overflow-y-auto animate-enter" *ngIf="pipeline() as p">
+<div
+  class="p-8 h-full bg-brand-dark overflow-y-auto animate-enter"
+  *ngIf="pipeline() as p"
+>
   <!-- Header -->
   <div class="flex justify-between items-end mb-12">
     <div>
       <div class="flex items-center gap-3 mb-2">
-        <span class="px-2 py-0.5 bg-brand-primary/10 text-brand-primary text-[10px] font-black uppercase tracking-widest rounded border border-brand-primary/20">
+        <span
+          class="px-2 py-0.5 bg-brand-primary/10 text-brand-primary text-[10px] font-black uppercase tracking-widest rounded border border-brand-primary/20"
+        >
           {{ p.type }} INFRASTRUCTURE
         </span>
-        <button routerLink="/business-suite" class="text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">
+        <button
+          routerLink="/business-suite"
+          class="text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors"
+        >
           <i class="fas fa-chevron-left mr-1"></i> Return to Hub
         </button>
       </div>
-      <h1 class="text-5xl font-black text-white uppercase italic tracking-tighter">{{ p.name }}</h1>
+      <h1
+        class="text-5xl font-black text-white uppercase italic tracking-tighter"
+      >
+        {{ p.name }}
+      </h1>
     </div>
 
     <div class="text-right">
-       <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Status</div>
-       <div class="text-xl font-black text-brand-primary italic">{{ p.status }}</div>
+      <div
+        class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1"
+      >
+        Status
+      </div>
+      <div class="text-xl font-black text-brand-primary italic">
+        {{ p.status }}
+      </div>
     </div>
   </div>
 
@@ -23,76 +41,134 @@
     <!-- Main Pipeline Flow -->
     <div class="col-span-12 lg:col-span-8 space-y-8">
       <!-- Progression Timeline -->
-      <div class="flex gap-4 items-center mb-12 bg-black/20 p-4 rounded-3xl border border-white/5 overflow-x-auto overflow-y-hidden custom-scrollbar">
-        <div *ngFor="let stage of p.stages; let i = index" class="flex items-center gap-4 flex-shrink-0 min-w-[120px]">
+      <div
+        class="flex gap-4 items-center mb-12 bg-black/20 p-4 rounded-3xl border border-white/5 overflow-x-auto overflow-y-hidden custom-scrollbar"
+      >
+        <div
+          *ngFor="let stage of p.stages; let i = index"
+          class="flex items-center gap-4 flex-shrink-0 min-w-[120px]"
+        >
           <div class="flex flex-col items-center">
-            <div class="w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-black"
-                 [ngClass]="{
-                   'border-brand-primary bg-brand-primary text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]': i <= p.currentStageIndex,
-                   'border-white/10 text-slate-500 bg-transparent': i > p.currentStageIndex
-                 }">
+            <div
+              class="w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-black"
+              [ngClass]="{
+                'border-brand-primary bg-brand-primary text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]':
+                  i <= p.currentStageIndex,
+                'border-white/10 text-slate-500 bg-transparent':
+                  i > p.currentStageIndex,
+              }"
+            >
               {{ i + 1 }}
             </div>
-            <span class="text-[8px] font-black uppercase tracking-widest mt-2 whitespace-nowrap"
-                  [class.text-brand-primary]="i <= p.currentStageIndex"
-                  [class.text-slate-500]="i > p.currentStageIndex">
+            <span
+              class="text-[8px] font-black uppercase tracking-widest mt-2 whitespace-nowrap"
+              [class.text-brand-primary]="i <= p.currentStageIndex"
+              [class.text-slate-500]="i > p.currentStageIndex"
+            >
               {{ stage.name }}
             </span>
           </div>
-          <div *ngIf="i < p.stages.length - 1" class="h-[1px] bg-white/5 flex-grow mb-4 min-w-[40px]"></div>
+          <div
+            *ngIf="i < p.stages.length - 1"
+            class="h-[1px] bg-white/5 flex-grow mb-4 min-w-[40px]"
+          ></div>
         </div>
       </div>
 
       <!-- Current Stage Details -->
       <div class="space-y-6" *ngIf="currentStage() as stage">
         <div class="flex justify-between items-center mb-6">
-           <h2 class="text-2xl font-black text-white uppercase italic tracking-tighter">Phase {{ p.currentStageIndex + 1 }}: {{ stage.name }}</h2>
-           <span class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] animate-pulse">In Progress</span>
+          <h2
+            class="text-2xl font-black text-white uppercase italic tracking-tighter"
+          >
+            Phase {{ p.currentStageIndex + 1 }}: {{ stage.name }}
+          </h2>
+          <span
+            class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] animate-pulse"
+            >In Progress</span
+          >
         </div>
 
-        <div *for="let step of stage.steps" class="group bg-brand-surface/30 rounded-3xl border transition-all overflow-hidden"
-             [ngClass]="{'border-brand-primary/30 shadow-[0_0_30px_rgba(16,185,129,0.05)]': step.status === 'Pending', 'border-white/5': step.status === 'Completed'}">
+        <div
+          *ngFor="let step of stage.steps"
+          class="group bg-brand-surface/30 rounded-3xl border transition-all overflow-hidden"
+          [ngClass]="{
+            'border-brand-primary/30 shadow-[0_0_30px_rgba(16,185,129,0.05)]':
+              step.status === 'Pending',
+            'border-white/5': step.status === 'Completed',
+          }"
+        >
           <!-- Step implementation... (using *ngFor="let step of stage.steps") -->
         </div>
 
         <!-- Re-writing track content for clarity and robustness -->
         <ng-container *ngFor="let step of stage.steps">
-          <div class="group bg-brand-surface/30 rounded-3xl border transition-all overflow-hidden mb-6"
-               [ngClass]="{'border-brand-primary/30 shadow-[0_0_30px_rgba(16,185,129,0.05)]': step.status === 'Pending', 'border-white/5': step.status === 'Completed'}">
+          <div
+            class="group bg-brand-surface/30 rounded-3xl border transition-all overflow-hidden mb-6"
+            [ngClass]="{
+              'border-brand-primary/30 shadow-[0_0_30px_rgba(16,185,129,0.05)]':
+                step.status === 'Pending',
+              'border-white/5': step.status === 'Completed',
+            }"
+          >
             <div class="p-8">
               <div class="flex justify-between items-start mb-4">
                 <div>
-                  <h3 class="text-xl font-black text-white uppercase tracking-tight mb-2 flex items-center gap-3 italic">
-                     <i *ngIf="step.status === 'Completed'" class="fas fa-check-circle text-brand-primary"></i>
-                     {{ step.title }}
+                  <h3
+                    class="text-xl font-black text-white uppercase tracking-tight mb-2 flex items-center gap-3 italic"
+                  >
+                    <i
+                      *ngIf="step.status === 'Completed'"
+                      class="fas fa-check-circle text-brand-primary"
+                    ></i>
+                    {{ step.title }}
                   </h3>
-                  <p class="text-slate-400 text-sm font-medium leading-relaxed max-w-xl">{{ step.description }}</p>
+                  <p
+                    class="text-slate-400 text-sm font-medium leading-relaxed max-w-xl"
+                  >
+                    {{ step.description }}
+                  </p>
                 </div>
 
                 <div class="flex gap-3">
-                   <button *ngIf="step.actionType"
-                           (click)="performAction(step)"
-                           class="px-4 py-2 bg-brand-primary text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:scale-105 transition-all">
-                     Run {{ step.actionType }}
-                   </button>
-                   <button *ngIf="step.status !== 'Completed'"
-                           (click)="completeStep(step)"
-                           class="px-4 py-2 bg-white/5 border border-white/10 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:border-brand-primary transition-all">
-                     Mark Complete
-                   </button>
+                  <button
+                    *ngIf="step.actionType"
+                    (click)="performAction(step)"
+                    class="px-4 py-2 bg-brand-primary text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:scale-105 transition-all"
+                  >
+                    Run {{ step.actionType }}
+                  </button>
+                  <button
+                    *ngIf="step.status !== 'Completed'"
+                    (click)="completeStep(step)"
+                    class="px-4 py-2 bg-white/5 border border-white/10 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:border-brand-primary transition-all"
+                  >
+                    Mark Complete
+                  </button>
                 </div>
               </div>
 
               <!-- AI Guidance -->
-              <div class="mt-6 bg-black/40 rounded-2xl p-6 border-l-2 border-brand-primary/50 relative overflow-hidden">
-                 <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                   <i class="fas fa-brain text-4xl text-brand-primary"></i>
-                 </div>
-                 <div class="flex items-center gap-3 mb-3">
-                    <div class="w-1.5 h-1.5 bg-brand-primary rounded-full animate-pulse"></div>
-                    <span class="text-[9px] font-black text-brand-primary uppercase tracking-widest">S.M.U.V.E. Intelligence Directive</span>
-                 </div>
-                 <p class="text-silver-dim text-xs leading-relaxed italic">"{{ step.aiGuidance }}"</p>
+              <div
+                class="mt-6 bg-black/40 rounded-2xl p-6 border-l-2 border-brand-primary/50 relative overflow-hidden"
+              >
+                <div
+                  class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"
+                >
+                  <i class="fas fa-brain text-4xl text-brand-primary"></i>
+                </div>
+                <div class="flex items-center gap-3 mb-3">
+                  <div
+                    class="w-1.5 h-1.5 bg-brand-primary rounded-full animate-pulse"
+                  ></div>
+                  <span
+                    class="text-[9px] font-black text-brand-primary uppercase tracking-widest"
+                    >S.M.U.V.E. Intelligence Directive</span
+                  >
+                </div>
+                <p class="text-silver-dim text-xs leading-relaxed italic">
+                  "{{ step.aiGuidance }}"
+                </p>
               </div>
             </div>
           </div>
@@ -103,41 +179,71 @@
     <!-- S.M.U.V.E. Assistant Sidebar -->
     <div class="col-span-12 lg:col-span-4">
       <div class="sticky top-8 space-y-6">
-        <div class="bg-brand-primary/10 rounded-3xl p-8 border border-brand-primary/20">
+        <div
+          class="bg-brand-primary/10 rounded-3xl p-8 border border-brand-primary/20"
+        >
           <div class="flex items-center gap-4 mb-8">
-            <div class="w-12 h-12 rounded-2xl bg-brand-primary flex items-center justify-center text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+            <div
+              class="w-12 h-12 rounded-2xl bg-brand-primary flex items-center justify-center text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+            >
               <i class="fas fa-user-secret text-2xl"></i>
             </div>
             <div>
-              <div class="text-sm font-black text-white uppercase italic tracking-tighter">Neural Intelligence Core</div>
-              <div class="text-[10px] font-bold text-brand-primary uppercase tracking-widest">S.M.U.V.E 2.0 Active</div>
+              <div
+                class="text-sm font-black text-white uppercase italic tracking-tighter"
+              >
+                Neural Intelligence Core
+              </div>
+              <div
+                class="text-[10px] font-bold text-brand-primary uppercase tracking-widest"
+              >
+                S.M.U.V.E 2.0 Active
+              </div>
             </div>
           </div>
 
           <div class="bg-black/40 rounded-2xl p-6 mb-8 border border-white/10">
-            <p class="text-sm text-silver-bright font-medium italic leading-relaxed">
-              "You are building a kingdom, not a hobby. Every step in this {{ p.type }} pathway is a brick in your corporate fortress. Execute with precision."
+            <p
+              class="text-sm text-silver-bright font-medium italic leading-relaxed"
+            >
+              "You are building a kingdom, not a hobby. Every step in this
+              {{ p.type }} pathway is a brick in your corporate fortress.
+              Execute with precision."
             </p>
           </div>
 
           <div class="space-y-4">
-            <button class="w-full bg-brand-primary text-black font-black uppercase tracking-tighter italic text-sm py-4 rounded-xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)] flex items-center justify-between px-6">
+            <button
+              class="w-full bg-brand-primary text-black font-black uppercase tracking-tighter italic text-sm py-4 rounded-xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)] flex items-center justify-between px-6"
+            >
               <span>Ask for more guidance</span>
               <i class="fas fa-comment-dots"></i>
             </button>
-            <button class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 text-[9px] font-black text-white uppercase tracking-widest hover:border-brand-primary transition-all">
+            <button
+              class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 text-[9px] font-black text-white uppercase tracking-widest hover:border-brand-primary transition-all"
+            >
               Generate Weekly Audit
             </button>
           </div>
         </div>
 
         <!-- Career Impact Stats -->
-        <div class="bg-brand-surface/30 rounded-3xl p-8 border border-white/10 relative overflow-hidden">
-          <div class="absolute -top-12 -right-12 w-24 h-24 bg-brand-primary/5 blur-3xl"></div>
-          <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-6">Module Impact Metrics</h3>
+        <div
+          class="bg-brand-surface/30 rounded-3xl p-8 border border-white/10 relative overflow-hidden"
+        >
+          <div
+            class="absolute -top-12 -right-12 w-24 h-24 bg-brand-primary/5 blur-3xl"
+          ></div>
+          <h3
+            class="text-xs font-black text-slate-500 uppercase tracking-widest mb-6"
+          >
+            Module Impact Metrics
+          </h3>
           <div class="space-y-6">
             <div class="flex justify-between items-end">
-              <span class="text-[10px] font-black text-white uppercase">Authority Level</span>
+              <span class="text-[10px] font-black text-white uppercase"
+                >Authority Level</span
+              >
               <span class="text-brand-primary font-black italic">+12.4%</span>
             </div>
             <div class="h-1 bg-white/5 rounded-full overflow-hidden">
@@ -145,7 +251,9 @@
             </div>
 
             <div class="flex justify-between items-end">
-              <span class="text-[10px] font-black text-white uppercase">Legal Protection</span>
+              <span class="text-[10px] font-black text-white uppercase"
+                >Legal Protection</span
+              >
               <span class="text-brand-primary font-black italic">+8.0%</span>
             </div>
             <div class="h-1 bg-white/5 rounded-full overflow-hidden">
@@ -158,14 +266,24 @@
   </div>
 
   <!-- Specialized Action Overlay -->
-  <div *ngIf="activeModuleAction()" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-8 lg:p-24 overflow-y-auto">
+  <div
+    *ngIf="activeModuleAction()"
+    class="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-8 lg:p-24 overflow-y-auto"
+  >
     <div class="w-full max-w-6xl relative animate-enter">
-       <button (click)="closeAction()" class="absolute -top-12 right-0 text-white hover:text-brand-primary transition-colors flex items-center gap-2 font-black uppercase text-[10px] tracking-widest">
-          CLOSE <i class="fas fa-times"></i>
-       </button>
+      <button
+        (click)="closeAction()"
+        class="absolute -top-12 right-0 text-white hover:text-brand-primary transition-colors flex items-center gap-2 font-black uppercase text-[10px] tracking-widest"
+      >
+        CLOSE <i class="fas fa-times"></i>
+      </button>
 
-       <app-merch-design-lab *ngIf="activeModuleAction() === 'Design'"></app-merch-design-lab>
-       <app-legal-template *ngIf="activeModuleAction() === 'Template'"></app-legal-template>
+      <app-merch-design-lab
+        *ngIf="activeModuleAction() === 'Design'"
+      ></app-merch-design-lab>
+      <app-legal-template
+        *ngIf="activeModuleAction() === 'Template'"
+      ></app-legal-template>
     </div>
   </div>
 </div>

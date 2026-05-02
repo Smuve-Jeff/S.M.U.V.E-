@@ -5,21 +5,30 @@
 >
   <div class="flex items-start justify-between gap-4">
     <div>
-      <p class="text-[8px] font-black uppercase tracking-[0.35em] text-brand-primary">
+      <p
+        class="text-[8px] font-black uppercase tracking-[0.35em] text-brand-primary"
+      >
         {{ mode === 'compact' ? 'Mic Command' : 'Dedicated Vocal Interface' }}
       </p>
       <h3 class="mt-1 text-sm font-black uppercase tracking-[0.2em] text-white">
         {{ currentChannel()?.label || 'Microphone uplink' }}
       </h3>
-      <p class="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+      <p
+        class="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500"
+      >
         {{ deviceSummary()?.label || 'Select an interface to begin capture' }}
       </p>
       <div class="mt-3 flex flex-wrap gap-2" *ngIf="deviceSummary() as device">
-        <span class="rounded-full border border-brand-primary/30 bg-brand-primary/10 px-2 py-1 text-[8px] font-black uppercase tracking-[0.25em] text-brand-primary">
+        <span
+          class="rounded-full border border-brand-primary/30 bg-brand-primary/10 px-2 py-1 text-[8px] font-black uppercase tracking-[0.25em] text-brand-primary"
+        >
           {{ capabilityLabel(device.type) }}
         </span>
         <span
-          *ngFor="let capability of device.capabilities | slice:0:(mode === 'compact' ? 3 : 6)"
+          *ngFor="
+            let capability of device.capabilities
+              | slice: 0 : (mode === 'compact' ? 3 : 6)
+          "
           class="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[8px] font-black uppercase tracking-[0.25em] text-slate-300"
         >
           {{ capabilityLabel(capability) }}
@@ -36,20 +45,35 @@
       [class.bg-rose-500/10]="signalReadiness() === 'recording'"
       [class.bg-white/5]="signalReadiness() === 'offline'"
     >
-      <p class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Signal state</p>
-      <p class="mt-1 text-xs font-mono font-black uppercase text-white">{{ signalReadiness() }}</p>
+      <p
+        class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500"
+      >
+        Signal state
+      </p>
+      <p class="mt-1 text-xs font-mono font-black uppercase text-white">
+        {{ signalReadiness() }}
+      </p>
     </div>
   </div>
 
-  <div class="mt-4 grid gap-4" [class.lg:grid-cols-[1.1fr,0.9fr]]="mode === 'full'">
+  <div
+    class="mt-4 grid gap-4"
+    [class.lg:grid-cols-[1.1fr,0.9fr]]="mode === 'full'"
+  >
     <div class="space-y-4">
       <div class="grid gap-3" [class.md:grid-cols-3]="mode === 'full'">
         <button
           (click)="initializeInterface()"
           class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left transition-all hover:border-brand-primary/30 hover:bg-brand-primary/10"
         >
-          <div class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Prime</div>
-          <div class="mt-1 text-sm font-black uppercase text-white">Connect chain</div>
+          <div
+            class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500"
+          >
+            Prime
+          </div>
+          <div class="mt-1 text-sm font-black uppercase text-white">
+            Connect chain
+          </div>
         </button>
         <button
           (click)="toggleRecording()"
@@ -59,7 +83,11 @@
           [class.border-white/10]="!micService.isRecording()"
           [class.bg-white/5]="!micService.isRecording()"
         >
-          <div class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Capture</div>
+          <div
+            class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500"
+          >
+            Capture
+          </div>
           <div class="mt-1 text-sm font-black uppercase text-white">
             {{ micService.isRecording() ? 'Stop take' : 'Start take' }}
           </div>
@@ -71,7 +99,11 @@
           [class.bg-white/5]="!micService.isPaused()"
           [class.bg-amber-400/10]="micService.isPaused()"
         >
-          <div class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Flow</div>
+          <div
+            class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500"
+          >
+            Flow
+          </div>
           <div class="mt-1 text-sm font-black uppercase text-white">
             {{ micService.isPaused() ? 'Resume' : 'Pause' }}
           </div>
@@ -81,8 +113,13 @@
       <div class="grid gap-3">
         <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
           <div class="flex items-center justify-between">
-            <span class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500">Input meter</span>
-            <span class="text-xs font-mono font-black text-emerald-400">{{ inputLevel() }}%</span>
+            <span
+              class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500"
+              >Input meter</span
+            >
+            <span class="text-xs font-mono font-black text-emerald-400"
+              >{{ inputLevel() }}%</span
+            >
           </div>
           <div class="mt-4 h-3 overflow-hidden rounded-full bg-white/5">
             <div
@@ -90,7 +127,9 @@
               [style.width.%]="inputLevel()"
             ></div>
           </div>
-          <div class="mt-4 flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
+          <div
+            class="mt-4 flex items-center justify-between text-[9px] font-black uppercase tracking-widest"
+          >
             <span class="text-slate-500">Clarity</span>
             <span class="text-brand-primary">{{ clarityScore() }}%</span>
           </div>
@@ -107,8 +146,14 @@
           [class.border-white/10]="vocalProfile() !== profile"
           [class.bg-white/5]="vocalProfile() !== profile"
         >
-          <div class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500">Voice profile</div>
-          <div class="mt-1 text-sm font-black uppercase text-white">{{ profile }}</div>
+          <div
+            class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500"
+          >
+            Voice profile
+          </div>
+          <div class="mt-1 text-sm font-black uppercase text-white">
+            {{ profile }}
+          </div>
         </button>
       </div>
 
@@ -122,8 +167,14 @@
           [class.border-white/10]="currentChannel()?.id !== channel.id"
           [class.bg-white/5]="currentChannel()?.id !== channel.id"
         >
-          <div class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Channel</div>
-          <div class="mt-1 text-[10px] font-black uppercase text-white">{{ channel.label }}</div>
+          <div
+            class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500"
+          >
+            Channel
+          </div>
+          <div class="mt-1 text-[10px] font-black uppercase text-white">
+            {{ channel.label }}
+          </div>
         </button>
       </div>
     </div>
@@ -131,8 +182,13 @@
     <div class="space-y-4">
       <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
         <div class="flex items-center justify-between">
-          <span class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500">Channel control</span>
-          <span class="text-[10px] font-black uppercase tracking-widest text-white">
+          <span
+            class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500"
+            >Channel control</span
+          >
+          <span
+            class="text-[10px] font-black uppercase tracking-widest text-white"
+          >
             {{ currentChannel()?.armed ? 'Armed' : 'Standby' }}
           </span>
         </div>
@@ -161,9 +217,13 @@
         </div>
 
         <label class="mt-4 block">
-          <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em]">
+          <div
+            class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em]"
+          >
             <span class="text-slate-500">Mic pan</span>
-            <span class="text-cyan-300 font-mono">{{ currentChannel()?.pan || 0 }}</span>
+            <span class="text-cyan-300 font-mono">{{
+              currentChannel()?.pan || 0
+            }}</span>
           </div>
           <input
             type="range"
@@ -173,21 +233,31 @@
             [ngModel]="currentChannel()?.pan || 0"
             (ngModelChange)="updatePan($event)"
             class="mt-3 w-full accent-cyan-400"
-          >
+          />
         </label>
       </div>
 
       <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
         <div class="flex items-center justify-between">
-          <span class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500">Clean vocal chain</span>
-          <span class="text-[10px] font-black uppercase tracking-widest text-brand-primary">Linked</span>
+          <span
+            class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500"
+            >Clean vocal chain</span
+          >
+          <span
+            class="text-[10px] font-black uppercase tracking-widest text-brand-primary"
+            >Linked</span
+          >
         </div>
 
         <div class="mt-4 space-y-4">
           <label class="block">
-            <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em]">
+            <div
+              class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em]"
+            >
               <span class="text-slate-500">Presence</span>
-              <span class="text-brand-primary font-mono">{{ params().eq.mid.toFixed(1) }} dB</span>
+              <span class="text-brand-primary font-mono"
+                >{{ params().eq.mid.toFixed(1) }} dB</span
+              >
             </div>
             <input
               type="range"
@@ -197,13 +267,17 @@
               [ngModel]="params().eq.mid"
               (ngModelChange)="updatePresence($event)"
               class="mt-2 w-full accent-brand-primary"
-            >
+            />
           </label>
 
           <label class="block">
-            <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em]">
+            <div
+              class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em]"
+            >
               <span class="text-slate-500">Air</span>
-              <span class="text-violet-300 font-mono">{{ params().eq.high.toFixed(1) }} dB</span>
+              <span class="text-violet-300 font-mono"
+                >{{ params().eq.high.toFixed(1) }} dB</span
+              >
             </div>
             <input
               type="range"
@@ -213,13 +287,17 @@
               [ngModel]="params().eq.high"
               (ngModelChange)="updateAir($event)"
               class="mt-2 w-full accent-violet-300"
-            >
+            />
           </label>
 
           <label class="block">
-            <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em]">
+            <div
+              class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em]"
+            >
               <span class="text-slate-500">De-esser</span>
-              <span class="text-cyan-300 font-mono">{{ params().deesser.threshold.toFixed(0) }} dB</span>
+              <span class="text-cyan-300 font-mono"
+                >{{ params().deesser.threshold.toFixed(0) }} dB</span
+              >
             </div>
             <input
               type="range"
@@ -229,13 +307,17 @@
               [ngModel]="params().deesser.threshold"
               (ngModelChange)="updateDeesser($event)"
               class="mt-2 w-full accent-cyan-300"
-            >
+            />
           </label>
 
           <label class="block">
-            <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em]">
+            <div
+              class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em]"
+            >
               <span class="text-slate-500">Exciter</span>
-              <span class="text-fuchsia-300 font-mono">{{ (params().exciter.amount * 100).toFixed(0) }}%</span>
+              <span class="text-fuchsia-300 font-mono"
+                >{{ (params().exciter.amount * 100).toFixed(0) }}%</span
+              >
             </div>
             <input
               type="range"
@@ -245,7 +327,7 @@
               [ngModel]="params().exciter.amount * 100"
               (ngModelChange)="updateExciter($event)"
               class="mt-2 w-full accent-fuchsia-300"
-            >
+            />
           </label>
         </div>
       </div>

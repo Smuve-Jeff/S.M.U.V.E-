@@ -12,12 +12,16 @@ button:disabled {
 }
 
 @keyframes scan {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
 }
 
 .relative::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;

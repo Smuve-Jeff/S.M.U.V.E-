@@ -33,8 +33,16 @@
         <div
           class="w-12 h-12 rounded-xl bg-brand-primary flex items-center justify-center text-white shadow-v42-md"
         >
-          <img *ngIf="profileService.profile().avatarImage" [src]="profileService.profile().avatarImage" class="w-full h-full object-cover rounded-xl" />
-          <span *ngIf="!profileService.profile().avatarImage" class="material-symbols-outlined text-2xl">token</span>
+          <img
+            *ngIf="profileService.profile().avatarImage"
+            [src]="profileService.profile().avatarImage"
+            class="w-full h-full object-cover rounded-xl"
+          />
+          <span
+            *ngIf="!profileService.profile().avatarImage"
+            class="material-symbols-outlined text-2xl"
+            >token</span
+          >
         </div>
         <div
           class="flex flex-col overflow-hidden"
@@ -400,9 +408,15 @@
               {{ uiService.activeTheme().name }} Mode
             </strong>
             <span class="shell-appearance-detail">
-              {{ uiService.showScanlines() ? 'HUD overlay active' : 'Clean HUD' }}
+              {{
+                uiService.showScanlines() ? 'HUD overlay active' : 'Clean HUD'
+              }}
               ·
-              {{ uiService.performanceMode() ? 'performance priority' : 'full motion' }}
+              {{
+                uiService.performanceMode()
+                  ? 'performance priority'
+                  : 'full motion'
+              }}
             </span>
           </div>
           <button

@@ -1,38 +1,78 @@
 <div class="dj-hud-container h-full flex flex-col overflow-hidden select-none">
   <!-- TOP STATUS HEADER -->
-  <div class="flex items-center justify-between px-6 py-4 bg-black/40 border-b border-white/5 backdrop-blur-xl">
+  <div
+    class="flex items-center justify-between px-6 py-4 bg-black/40 border-b border-white/5 backdrop-blur-xl"
+  >
     <div class="flex items-center gap-8">
       <div class="flex flex-col">
-        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">System Status</span>
+        <span
+          class="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+          >System Status</span
+        >
         <div class="flex items-center gap-2">
-          <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>
-          <span class="text-xs font-bold text-white uppercase tracking-tighter">Uplink Active</span>
+          <div
+            class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"
+          ></div>
+          <span class="text-xs font-bold text-white uppercase tracking-tighter"
+            >Uplink Active</span
+          >
         </div>
       </div>
       <div class="flex flex-col">
-        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Master Tempo</span>
+        <span
+          class="text-[10px] font-black text-slate-500 uppercase tracking-widest"
+          >Master Tempo</span
+        >
         <div class="flex items-baseline gap-1">
-          <span class="text-xl font-black text-white font-mono">{{ (deckService.deckA().bpm + deckService.deckB().bpm) / 2 | number:'1.0-1' }}</span>
+          <span class="text-xl font-black text-white font-mono">{{
+            (deckService.deckA().bpm + deckService.deckB().bpm) / 2
+              | number: '1.0-1'
+          }}</span>
           <span class="text-[8px] font-bold text-slate-500">BPM</span>
         </div>
       </div>
     </div>
 
     <div class="flex items-center gap-4">
-      <button (click)="toggleRecording()"
-              class="flex items-center gap-2 px-4 py-2 rounded-lg border transition-all"
-              [class.bg-red-500/20]="recording()" [class.border-red-500/40]="recording()"
-              [class.border-white/10]="!recording()" [class.hover:bg-white/5]="!recording()">
-        <div class="w-2 h-2 rounded-full" [class.bg-red-500]="recording()" [class.animate-pulse]="recording()" [class.bg-slate-500]="!recording()"></div>
-        <span class="text-[10px] font-black uppercase tracking-widest" [class.text-red-500]="recording()" [class.text-slate-300]="!recording()">
-          {{ recording() ? 'Recording: ' + formatDuration(recordingElapsedMs()) : 'Record Session' }}
+      <button
+        (click)="toggleRecording()"
+        class="flex items-center gap-2 px-4 py-2 rounded-lg border transition-all"
+        [class.bg-red-500/20]="recording()"
+        [class.border-red-500/40]="recording()"
+        [class.border-white/10]="!recording()"
+        [class.hover:bg-white/5]="!recording()"
+      >
+        <div
+          class="w-2 h-2 rounded-full"
+          [class.bg-red-500]="recording()"
+          [class.animate-pulse]="recording()"
+          [class.bg-slate-500]="!recording()"
+        ></div>
+        <span
+          class="text-[10px] font-black uppercase tracking-widest"
+          [class.text-red-500]="recording()"
+          [class.text-slate-300]="!recording()"
+        >
+          {{
+            recording()
+              ? 'Recording: ' + formatDuration(recordingElapsedMs())
+              : 'Record Session'
+          }}
         </span>
       </button>
       <div class="flex items-center gap-2">
-        <button (click)="saveSessionSnapshot()" class="p-2 text-slate-400 hover:text-white transition-colors" title="Save Snapshot">
+        <button
+          (click)="saveSessionSnapshot()"
+          class="p-2 text-slate-400 hover:text-white transition-colors"
+          title="Save Snapshot"
+        >
           <i class="fas fa-save"></i>
         </button>
-        <button (click)="exportSessionSnapshot()" class="p-2 text-slate-400 hover:text-white transition-colors" title="Export JSON">
+        <button
+          (click)="exportSessionSnapshot()"
+          class="p-2 text-slate-400 hover:text-white transition-colors"
+          title="Export JSON"
+        >
           <i class="fas fa-file-export"></i>
         </button>
       </div>
@@ -41,60 +81,128 @@
 
   <!-- MAIN HUD GRID -->
   <div class="deck-view-grid flex-grow overflow-hidden">
-
     <!-- DECK A -->
     <div class="flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
       <!-- Deck A Header -->
-      <div class="hud-module p-4 flex justify-between items-center border-l-4 border-l-brand-primary">
+      <div
+        class="hud-module p-4 flex justify-between items-center border-l-4 border-l-brand-primary"
+      >
         <div class="flex flex-col gap-1">
-          <span class="hud-label">Deck A · {{ deckService.deckA().track?.name || 'Empty' }}</span>
+          <span class="hud-label"
+            >Deck A · {{ deckService.deckA().track?.name || 'Empty' }}</span
+          >
           <div class="flex items-center gap-3">
-            <span class="text-2xl font-black text-white font-mono tracking-tighter">{{ deckService.deckA().bpm | number:'1.0-1' }} <span class="text-[10px] text-slate-500">BPM</span></span>
-            <div class="px-2 py-0.5 rounded bg-brand-primary/20 text-brand-primary text-[8px] font-black uppercase tracking-widest border border-brand-primary/30">
+            <span
+              class="text-2xl font-black text-white font-mono tracking-tighter"
+              >{{ deckService.deckA().bpm | number: '1.0-1' }}
+              <span class="text-[10px] text-slate-500">BPM</span></span
+            >
+            <div
+              class="px-2 py-0.5 rounded bg-brand-primary/20 text-brand-primary text-[8px] font-black uppercase tracking-widest border border-brand-primary/30"
+            >
               {{ deckService.deckA().isPlaying ? 'Playing' : 'Stopped' }}
             </div>
           </div>
         </div>
         <div class="flex gap-2">
-          <button (click)="loadTrackFor('A')" class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+          <button
+            (click)="loadTrackFor('A')"
+            class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+          >
             <i class="fas fa-plus"></i>
           </button>
-          <button (click)="deckService.togglePlay('A')" class="w-12 h-10 rounded-lg bg-brand-primary/20 border border-brand-primary/40 flex items-center justify-center text-brand-primary hover:bg-brand-primary/30 transition-all">
-            <i class="fas" [class.fa-play]="!deckService.deckA().isPlaying" [class.fa-pause]="deckService.deckA().isPlaying"></i>
+          <button
+            (click)="deckService.togglePlay('A')"
+            class="w-12 h-10 rounded-lg bg-brand-primary/20 border border-brand-primary/40 flex items-center justify-center text-brand-primary hover:bg-brand-primary/30 transition-all"
+          >
+            <i
+              class="fas"
+              [class.fa-play]="!deckService.deckA().isPlaying"
+              [class.fa-pause]="deckService.deckA().isPlaying"
+            ></i>
           </button>
         </div>
       </div>
 
       <!-- Platter & Pitch Module -->
       <div class="grid grid-cols-[1fr_auto] gap-4">
-        <div class="hud-module p-8 flex items-center justify-center relative overflow-hidden group">
-          <div class="strobe-platter w-full aspect-square max-w-[400px] relative">
-            <div class="strobe-dots" [class.strobe-dots-active]="deckService.deckA().isPlaying"></div>
-            <div class="vinyl-platter absolute inset-2 rounded-full border-[8px] border-black/40 touch-none flex items-center justify-center overflow-hidden"
-                 [class.animate-spin-vinyl]="deckService.deckA().isPlaying && !isScratchingA()"
-                 (mousedown)="onPlatterDown('A', $event)"
-                 (touchstart)="onPlatterDown('A', $event)">
-              <div class="absolute inset-0 bg-gradient-to-br from-black via-slate-900 to-black opacity-90"></div>
-              <div class="absolute inset-0 opacity-20" style="background: repeating-radial-gradient(circle at center, transparent 0, transparent 2px, rgba(255,255,255,0.1) 3px);"></div>
+        <div
+          class="hud-module p-8 flex items-center justify-center relative overflow-hidden group"
+        >
+          <div
+            class="strobe-platter w-full aspect-square max-w-[400px] relative"
+          >
+            <div
+              class="strobe-dots"
+              [class.strobe-dots-active]="deckService.deckA().isPlaying"
+            ></div>
+            <div
+              class="vinyl-platter absolute inset-2 rounded-full border-[8px] border-black/40 touch-none flex items-center justify-center overflow-hidden"
+              [class.animate-spin-vinyl]="
+                deckService.deckA().isPlaying && !isScratchingA()
+              "
+              (mousedown)="onPlatterDown('A', $event)"
+              (touchstart)="onPlatterDown('A', $event)"
+            >
+              <div
+                class="absolute inset-0 bg-gradient-to-br from-black via-slate-900 to-black opacity-90"
+              ></div>
+              <div
+                class="absolute inset-0 opacity-20"
+                style="
+                  background: repeating-radial-gradient(
+                    circle at center,
+                    transparent 0,
+                    transparent 2px,
+                    rgba(255, 255, 255, 0.1) 3px
+                  );
+                "
+              ></div>
 
-              <div class="absolute inset-[30%] rounded-full bg-brand-primary/10 border border-brand-primary/30 backdrop-blur-md flex flex-col items-center justify-center text-center p-4">
-                <span class="text-[9px] font-black text-white uppercase leading-tight line-clamp-2">{{ deckService.deckA().track?.name || 'Ready' }}</span>
-                <div class="mt-2 w-1.5 h-1.5 rounded-full bg-brand-primary shadow-[0_0_10px_var(--color-primary)]"></div>
+              <div
+                class="absolute inset-[30%] rounded-full bg-brand-primary/10 border border-brand-primary/30 backdrop-blur-md flex flex-col items-center justify-center text-center p-4"
+              >
+                <span
+                  class="text-[9px] font-black text-white uppercase leading-tight line-clamp-2"
+                  >{{ deckService.deckA().track?.name || 'Ready' }}</span
+                >
+                <div
+                  class="mt-2 w-1.5 h-1.5 rounded-full bg-brand-primary shadow-[0_0_10px_var(--color-primary)]"
+                ></div>
               </div>
             </div>
           </div>
-          <div class="absolute top-4 left-4 hud-label opacity-40">High-Fidelity</div>
-          <div class="absolute bottom-4 right-4 hud-label opacity-40">HUD Protocol v4.2</div>
+          <div class="absolute top-4 left-4 hud-label opacity-40">
+            High-Fidelity
+          </div>
+          <div class="absolute bottom-4 right-4 hud-label opacity-40">
+            HUD Protocol v4.2
+          </div>
         </div>
 
         <div class="hud-module p-4 flex flex-col items-center justify-between">
-          <span class="hud-label [writing-mode:vertical-lr] rotate-180">Tempo Control</span>
+          <span class="hud-label [writing-mode:vertical-lr] rotate-180"
+            >Tempo Control</span
+          >
           <div class="flex-grow my-4 py-2">
-            <input type="range" min="0.8" max="1.2" step="0.001" [value]="deckService.deckA().playbackRate"
-                   (input)="deckService.deckA.update(d => ({...d, playbackRate: $any($event.target).value}))"
-                   class="hud-slider-vertical h-full appearance-none">
+            <input
+              type="range"
+              min="0.8"
+              max="1.2"
+              step="0.001"
+              [value]="deckService.deckA().playbackRate"
+              (input)="
+                deckService.deckA.update((d) => ({
+                  ...d,
+                  playbackRate: $any($event.target).value,
+                }))
+              "
+              class="hud-slider-vertical h-full appearance-none"
+            />
           </div>
-          <span class="text-[10px] font-bold text-white font-mono">{{ pitchAPercentage() }}</span>
+          <span class="text-[10px] font-bold text-white font-mono">{{
+            pitchAPercentage()
+          }}</span>
         </div>
       </div>
 
@@ -107,19 +215,51 @@
           </div>
           <div class="p-4 grid grid-cols-4 gap-2">
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckA().eqHigh" (input)="updateEq('A', 'high', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-primary">
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                [value]="deckService.deckA().eqHigh"
+                (input)="updateEq('A', 'high', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-brand-primary"
+              />
               <span class="hud-label !text-[7px]">HI</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckA().eqMid" (input)="updateEq('A', 'mid', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-primary">
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                [value]="deckService.deckA().eqMid"
+                (input)="updateEq('A', 'mid', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-brand-primary"
+              />
               <span class="hud-label !text-[7px]">MID</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckA().eqLow" (input)="updateEq('A', 'low', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-primary">
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                [value]="deckService.deckA().eqLow"
+                (input)="updateEq('A', 'low', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-brand-primary"
+              />
               <span class="hud-label !text-[7px]">LOW</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="50" max="15000" step="1" [value]="deckService.deckA().filterFreq" (input)="updateFilter('A', $any($event.target).value)" class="hud-slider-vertical h-24 accent-white">
+              <input
+                type="range"
+                min="50"
+                max="15000"
+                step="1"
+                [value]="deckService.deckA().filterFreq"
+                (input)="updateFilter('A', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-white"
+              />
               <span class="hud-label !text-[7px]">FIL</span>
             </div>
           </div>
@@ -132,19 +272,51 @@
           </div>
           <div class="p-4 grid grid-cols-4 gap-2">
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'vocals', $any($event.target).value)" class="hud-slider-vertical h-24 accent-emerald-500">
+              <input
+                type="range"
+                min="0"
+                max="1.5"
+                step="0.01"
+                value="1"
+                (input)="setStemGain('A', 'vocals', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-emerald-500"
+              />
               <span class="hud-label !text-[7px]">VOX</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'drums', $any($event.target).value)" class="hud-slider-vertical h-24 accent-emerald-500">
+              <input
+                type="range"
+                min="0"
+                max="1.5"
+                step="0.01"
+                value="1"
+                (input)="setStemGain('A', 'drums', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-emerald-500"
+              />
               <span class="hud-label !text-[7px]">DRM</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'bass', $any($event.target).value)" class="hud-slider-vertical h-24 accent-emerald-500">
+              <input
+                type="range"
+                min="0"
+                max="1.5"
+                step="0.01"
+                value="1"
+                (input)="setStemGain('A', 'bass', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-emerald-500"
+              />
               <span class="hud-label !text-[7px]">BAS</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('A', 'other', $any($event.target).value)" class="hud-slider-vertical h-24 accent-emerald-500">
+              <input
+                type="range"
+                min="0"
+                max="1.5"
+                step="0.01"
+                value="1"
+                (input)="setStemGain('A', 'other', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-emerald-500"
+              />
               <span class="hud-label !text-[7px]">OTH</span>
             </div>
           </div>
@@ -156,18 +328,32 @@
         <div class="flex justify-between items-center mb-4">
           <span class="hud-label">Performance Matrix</span>
           <div class="flex gap-2">
-            <button class="px-3 py-1 rounded bg-brand-primary/10 border border-brand-primary/20 text-[8px] font-black text-brand-primary uppercase">CUES</button>
-            <button class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[8px] font-black text-slate-500 uppercase">ROLL</button>
+            <button
+              class="px-3 py-1 rounded bg-brand-primary/10 border border-brand-primary/20 text-[8px] font-black text-brand-primary uppercase"
+            >
+              CUES
+            </button>
+            <button
+              class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[8px] font-black text-slate-500 uppercase"
+            >
+              ROLL
+            </button>
           </div>
         </div>
         <div class="grid grid-cols-4 gap-2">
-          @for (pad of [0,1,2,3,4,5,6,7]; track pad) {
-            <button class="h-16 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all hover:bg-white/10 active:scale-95"
-                    [class.border-brand-primary/40]="isCuePadSet('A', pad)"
-                    [class.bg-brand-primary/20]="isCuePadSet('A', pad)"
-                    (click)="handlePadPress('A', pad)">
-              <span class="text-[8px] font-black text-slate-500">{{ pad + 1 }}</span>
-              <span class="text-[10px] font-bold text-white uppercase">{{ isCuePadSet('A', pad) ? 'CUE' : 'SET' }}</span>
+          @for (pad of [0, 1, 2, 3, 4, 5, 6, 7]; track pad) {
+            <button
+              class="h-16 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all hover:bg-white/10 active:scale-95"
+              [class.border-brand-primary/40]="isCuePadSet('A', pad)"
+              [class.bg-brand-primary/20]="isCuePadSet('A', pad)"
+              (click)="handlePadPress('A', pad)"
+            >
+              <span class="text-[8px] font-black text-slate-500">{{
+                pad + 1
+              }}</span>
+              <span class="text-[10px] font-bold text-white uppercase">{{
+                isCuePadSet('A', pad) ? 'CUE' : 'SET'
+              }}</span>
             </button>
           }
         </div>
@@ -180,20 +366,30 @@
       <div class="hud-module p-6 flex flex-col items-center gap-4">
         <span class="hud-label">Output Velocity</span>
         <div class="flex gap-4 items-end h-48 py-4">
-          @for (bar of [0,1,2,3,4,5,6,7]; track bar) {
+          @for (bar of [0, 1, 2, 3, 4, 5, 6, 7]; track bar) {
             <div class="w-4 bg-white/5 rounded-full relative overflow-hidden">
-              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-brand-primary via-brand-secondary to-white transition-all duration-75"
-                   [style.height.%]="(getDeckLevel('A') * 100) + (bar * 5)"></div>
+              <div
+                class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-brand-primary via-brand-secondary to-white transition-all duration-75"
+                [style.height.%]="getDeckLevel('A') * 100 + bar * 5"
+              ></div>
             </div>
           }
         </div>
         <div class="w-full flex flex-col gap-2">
           <div class="flex justify-between items-center px-1">
             <span class="hud-label !text-[7px]">Master Gain</span>
-            <span class="text-[10px] font-bold text-white font-mono">{{ masterVolume() }}%</span>
+            <span class="text-[10px] font-bold text-white font-mono"
+              >{{ masterVolume() }}%</span
+            >
           </div>
-          <input type="range" min="0" max="100" [value]="masterVolume()" (input)="masterVolume.set($any($event.target).value)"
-                 class="w-full h-1.5 appearance-none bg-white/10 rounded-full accent-white">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            [value]="masterVolume()"
+            (input)="masterVolume.set($any($event.target).value)"
+            class="w-full h-1.5 appearance-none bg-white/10 rounded-full accent-white"
+          />
         </div>
       </div>
 
@@ -203,20 +399,34 @@
           <span class="hud-label neon-accent-primary">DECK A</span>
           <span class="hud-label neon-accent-secondary">DECK B</span>
         </div>
-        <div class="w-full relative h-12 bg-black/40 rounded-xl border border-white/5 flex items-center px-4 overflow-hidden">
+        <div
+          class="w-full relative h-12 bg-black/40 rounded-xl border border-white/5 flex items-center px-4 overflow-hidden"
+        >
           <div class="absolute inset-y-0 left-1/2 w-0.5 bg-white/10"></div>
-          <input type="range" min="-1" max="1" step="0.01" [value]="deckService.crossfade()" (input)="deckService.crossfade.set($any($event.target).value)"
-                 class="w-full h-full appearance-none bg-transparent relative z-10 cursor-ew-resize">
+          <input
+            type="range"
+            min="-1"
+            max="1"
+            step="0.01"
+            [value]="deckService.crossfade()"
+            (input)="deckService.crossfade.set($any($event.target).value)"
+            class="w-full h-full appearance-none bg-transparent relative z-10 cursor-ew-resize"
+          />
           <!-- Crossfader Visual Handle -->
-          <div class="absolute top-1 bottom-1 w-12 bg-white/10 border border-white/20 rounded-lg pointer-events-none transition-all duration-75"
-               [style.left.%]="((deckService.crossfade() + 1) / 2) * 85 + 2.5">
+          <div
+            class="absolute top-1 bottom-1 w-12 bg-white/10 border border-white/20 rounded-lg pointer-events-none transition-all duration-75"
+            [style.left.%]="((deckService.crossfade() + 1) / 2) * 85 + 2.5"
+          >
             <div class="absolute inset-y-2 left-1/2 w-0.5 bg-white/40"></div>
           </div>
         </div>
         <div class="flex gap-4">
-          <button (click)="deckService.hamster.set(!deckService.hamster())"
-                  class="px-4 py-2 rounded bg-white/5 border border-white/10 text-[8px] font-black uppercase tracking-widest transition-all"
-                  [class.text-brand-primary]="deckService.hamster()" [class.border-brand-primary/40]="deckService.hamster()">
+          <button
+            (click)="deckService.hamster.set(!deckService.hamster())"
+            class="px-4 py-2 rounded bg-white/5 border border-white/10 text-[8px] font-black uppercase tracking-widest transition-all"
+            [class.text-brand-primary]="deckService.hamster()"
+            [class.border-brand-primary/40]="deckService.hamster()"
+          >
             Hamster: {{ deckService.hamster() ? 'ON' : 'OFF' }}
           </button>
         </div>
@@ -225,9 +435,16 @@
       <!-- Session Intelligence -->
       <div class="hud-module p-4 flex flex-col gap-3">
         <span class="hud-label">Strategic Intelligence</span>
-        <div class="p-3 bg-brand-primary/5 border border-brand-primary/20 rounded-lg">
-          <p class="text-[10px] font-bold text-brand-primary leading-relaxed uppercase tracking-tight italic">
-            "{{ sessionNotice() || 'Uplink established. Awaiting tactical maneuvers.' }}"
+        <div
+          class="p-3 bg-brand-primary/5 border border-brand-primary/20 rounded-lg"
+        >
+          <p
+            class="text-[10px] font-bold text-brand-primary leading-relaxed uppercase tracking-tight italic"
+          >
+            "{{
+              sessionNotice() ||
+                'Uplink established. Awaiting tactical maneuvers.'
+            }}"
           </p>
         </div>
       </div>
@@ -236,22 +453,42 @@
     <!-- DECK B -->
     <div class="flex flex-col gap-6 overflow-y-auto pl-2 custom-scrollbar">
       <!-- Deck B Header -->
-      <div class="hud-module p-4 flex justify-between items-center border-r-4 border-r-brand-secondary">
+      <div
+        class="hud-module p-4 flex justify-between items-center border-r-4 border-r-brand-secondary"
+      >
         <div class="flex gap-2">
-          <button (click)="deckService.togglePlay('B')" class="w-12 h-10 rounded-lg bg-brand-secondary/20 border border-brand-secondary/40 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary/30 transition-all">
-            <i class="fas" [class.fa-play]="!deckService.deckB().isPlaying" [class.fa-pause]="deckService.deckB().isPlaying"></i>
+          <button
+            (click)="deckService.togglePlay('B')"
+            class="w-12 h-10 rounded-lg bg-brand-secondary/20 border border-brand-secondary/40 flex items-center justify-center text-brand-secondary hover:bg-brand-secondary/30 transition-all"
+          >
+            <i
+              class="fas"
+              [class.fa-play]="!deckService.deckB().isPlaying"
+              [class.fa-pause]="deckService.deckB().isPlaying"
+            ></i>
           </button>
-          <button (click)="loadTrackFor('B')" class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+          <button
+            (click)="loadTrackFor('B')"
+            class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+          >
             <i class="fas fa-plus"></i>
           </button>
         </div>
         <div class="flex flex-col gap-1 text-right">
-          <span class="hud-label">{{ deckService.deckB().track?.name || 'Empty' }} · Deck B</span>
+          <span class="hud-label"
+            >{{ deckService.deckB().track?.name || 'Empty' }} · Deck B</span
+          >
           <div class="flex items-center gap-3 justify-end">
-            <div class="px-2 py-0.5 rounded bg-brand-secondary/20 text-brand-secondary text-[8px] font-black uppercase tracking-widest border border-brand-secondary/30">
+            <div
+              class="px-2 py-0.5 rounded bg-brand-secondary/20 text-brand-secondary text-[8px] font-black uppercase tracking-widest border border-brand-secondary/30"
+            >
               {{ deckService.deckB().isPlaying ? 'Playing' : 'Stopped' }}
             </div>
-            <span class="text-2xl font-black text-white font-mono tracking-tighter">{{ deckService.deckB().bpm | number:'1.0-1' }} <span class="text-[10px] text-slate-500">BPM</span></span>
+            <span
+              class="text-2xl font-black text-white font-mono tracking-tighter"
+              >{{ deckService.deckB().bpm | number: '1.0-1' }}
+              <span class="text-[10px] text-slate-500">BPM</span></span
+            >
           </div>
         </div>
       </div>
@@ -259,33 +496,82 @@
       <!-- Platter & Pitch Module -->
       <div class="grid grid-cols-[auto_1fr] gap-4">
         <div class="hud-module p-4 flex flex-col items-center justify-between">
-          <span class="hud-label [writing-mode:vertical-lr]">Tempo Control</span>
+          <span class="hud-label [writing-mode:vertical-lr]"
+            >Tempo Control</span
+          >
           <div class="flex-grow my-4 py-2">
-            <input type="range" min="0.8" max="1.2" step="0.001" [value]="deckService.deckB().playbackRate"
-                   (input)="deckService.deckB.update(d => ({...d, playbackRate: $any($event.target).value}))"
-                   class="hud-slider-vertical h-full appearance-none">
+            <input
+              type="range"
+              min="0.8"
+              max="1.2"
+              step="0.001"
+              [value]="deckService.deckB().playbackRate"
+              (input)="
+                deckService.deckB.update((d) => ({
+                  ...d,
+                  playbackRate: $any($event.target).value,
+                }))
+              "
+              class="hud-slider-vertical h-full appearance-none"
+            />
           </div>
-          <span class="text-[10px] font-bold text-white font-mono">{{ pitchBPercentage() }}</span>
+          <span class="text-[10px] font-bold text-white font-mono">{{
+            pitchBPercentage()
+          }}</span>
         </div>
 
-        <div class="hud-module p-8 flex items-center justify-center relative overflow-hidden group">
-          <div class="strobe-platter w-full aspect-square max-w-[400px] relative">
-            <div class="strobe-dots strobe-dots-active" [class.strobe-dots-active]="deckService.deckB().isPlaying"></div>
-            <div class="vinyl-platter absolute inset-2 rounded-full border-[8px] border-black/40 touch-none flex items-center justify-center overflow-hidden"
-                 [class.animate-spin-vinyl]="deckService.deckB().isPlaying && !isScratchingB()"
-                 (mousedown)="onPlatterDown('B', $event)"
-                 (touchstart)="onPlatterDown('B', $event)">
-              <div class="absolute inset-0 bg-gradient-to-br from-black via-slate-900 to-black opacity-90"></div>
-              <div class="absolute inset-0 opacity-20" style="background: repeating-radial-gradient(circle at center, transparent 0, transparent 2px, rgba(255,255,255,0.1) 3px);"></div>
+        <div
+          class="hud-module p-8 flex items-center justify-center relative overflow-hidden group"
+        >
+          <div
+            class="strobe-platter w-full aspect-square max-w-[400px] relative"
+          >
+            <div
+              class="strobe-dots strobe-dots-active"
+              [class.strobe-dots-active]="deckService.deckB().isPlaying"
+            ></div>
+            <div
+              class="vinyl-platter absolute inset-2 rounded-full border-[8px] border-black/40 touch-none flex items-center justify-center overflow-hidden"
+              [class.animate-spin-vinyl]="
+                deckService.deckB().isPlaying && !isScratchingB()
+              "
+              (mousedown)="onPlatterDown('B', $event)"
+              (touchstart)="onPlatterDown('B', $event)"
+            >
+              <div
+                class="absolute inset-0 bg-gradient-to-br from-black via-slate-900 to-black opacity-90"
+              ></div>
+              <div
+                class="absolute inset-0 opacity-20"
+                style="
+                  background: repeating-radial-gradient(
+                    circle at center,
+                    transparent 0,
+                    transparent 2px,
+                    rgba(255, 255, 255, 0.1) 3px
+                  );
+                "
+              ></div>
 
-              <div class="absolute inset-[30%] rounded-full bg-brand-secondary/10 border border-brand-secondary/30 backdrop-blur-md flex flex-col items-center justify-center text-center p-4">
-                <span class="text-[9px] font-black text-white uppercase leading-tight line-clamp-2">{{ deckService.deckB().track?.name || 'Ready' }}</span>
-                <div class="mt-2 w-1.5 h-1.5 rounded-full bg-brand-secondary shadow-[0_0_10px_var(--brand-secondary)]"></div>
+              <div
+                class="absolute inset-[30%] rounded-full bg-brand-secondary/10 border border-brand-secondary/30 backdrop-blur-md flex flex-col items-center justify-center text-center p-4"
+              >
+                <span
+                  class="text-[9px] font-black text-white uppercase leading-tight line-clamp-2"
+                  >{{ deckService.deckB().track?.name || 'Ready' }}</span
+                >
+                <div
+                  class="mt-2 w-1.5 h-1.5 rounded-full bg-brand-secondary shadow-[0_0_10px_var(--brand-secondary)]"
+                ></div>
               </div>
             </div>
           </div>
-          <div class="absolute top-4 right-4 hud-label opacity-40">High-Fidelity</div>
-          <div class="absolute bottom-4 left-4 hud-label opacity-40">HUD Protocol v4.2</div>
+          <div class="absolute top-4 right-4 hud-label opacity-40">
+            High-Fidelity
+          </div>
+          <div class="absolute bottom-4 left-4 hud-label opacity-40">
+            HUD Protocol v4.2
+          </div>
         </div>
       </div>
 
@@ -298,19 +584,51 @@
           </div>
           <div class="p-4 grid grid-cols-4 gap-2">
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'vocals', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <input
+                type="range"
+                min="0"
+                max="1.5"
+                step="0.01"
+                value="1"
+                (input)="setStemGain('B', 'vocals', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-brand-secondary"
+              />
               <span class="hud-label !text-[7px]">VOX</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'drums', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <input
+                type="range"
+                min="0"
+                max="1.5"
+                step="0.01"
+                value="1"
+                (input)="setStemGain('B', 'drums', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-brand-secondary"
+              />
               <span class="hud-label !text-[7px]">DRM</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'bass', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <input
+                type="range"
+                min="0"
+                max="1.5"
+                step="0.01"
+                value="1"
+                (input)="setStemGain('B', 'bass', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-brand-secondary"
+              />
               <span class="hud-label !text-[7px]">BAS</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="1.5" step="0.01" value="1" (input)="setStemGain('B', 'other', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <input
+                type="range"
+                min="0"
+                max="1.5"
+                step="0.01"
+                value="1"
+                (input)="setStemGain('B', 'other', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-brand-secondary"
+              />
               <span class="hud-label !text-[7px]">OTH</span>
             </div>
           </div>
@@ -323,19 +641,51 @@
           </div>
           <div class="p-4 grid grid-cols-4 gap-2">
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckB().eqHigh" (input)="updateEq('B', 'high', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                [value]="deckService.deckB().eqHigh"
+                (input)="updateEq('B', 'high', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-brand-secondary"
+              />
               <span class="hud-label !text-[7px]">HI</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckB().eqMid" (input)="updateEq('B', 'mid', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                [value]="deckService.deckB().eqMid"
+                (input)="updateEq('B', 'mid', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-brand-secondary"
+              />
               <span class="hud-label !text-[7px]">MID</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="0" max="2" step="0.01" [value]="deckService.deckB().eqLow" (input)="updateEq('B', 'low', $any($event.target).value)" class="hud-slider-vertical h-24 accent-brand-secondary">
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                [value]="deckService.deckB().eqLow"
+                (input)="updateEq('B', 'low', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-brand-secondary"
+              />
               <span class="hud-label !text-[7px]">LOW</span>
             </div>
             <div class="flex flex-col items-center gap-2">
-              <input type="range" min="50" max="15000" step="1" [value]="deckService.deckB().filterFreq" (input)="updateFilter('B', $any($event.target).value)" class="hud-slider-vertical h-24 accent-white">
+              <input
+                type="range"
+                min="50"
+                max="15000"
+                step="1"
+                [value]="deckService.deckB().filterFreq"
+                (input)="updateFilter('B', $any($event.target).value)"
+                class="hud-slider-vertical h-24 accent-white"
+              />
               <span class="hud-label !text-[7px]">FIL</span>
             </div>
           </div>
@@ -347,18 +697,32 @@
         <div class="flex justify-between items-center mb-4">
           <span class="hud-label">Performance Matrix</span>
           <div class="flex gap-2">
-            <button class="px-3 py-1 rounded bg-brand-secondary/10 border border-brand-secondary/20 text-[8px] font-black text-brand-secondary uppercase">CUES</button>
-            <button class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[8px] font-black text-slate-500 uppercase">ROLL</button>
+            <button
+              class="px-3 py-1 rounded bg-brand-secondary/10 border border-brand-secondary/20 text-[8px] font-black text-brand-secondary uppercase"
+            >
+              CUES
+            </button>
+            <button
+              class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[8px] font-black text-slate-500 uppercase"
+            >
+              ROLL
+            </button>
           </div>
         </div>
         <div class="grid grid-cols-4 gap-2">
-          @for (pad of [0,1,2,3,4,5,6,7]; track pad) {
-            <button class="h-16 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all hover:bg-white/10 active:scale-95"
-                    [class.border-brand-secondary/40]="isCuePadSet('B', pad)"
-                    [class.bg-brand-secondary/20]="isCuePadSet('B', pad)"
-                    (click)="handlePadPress('B', pad)">
-              <span class="text-[8px] font-black text-slate-500">{{ pad + 1 }}</span>
-              <span class="text-[10px] font-bold text-white uppercase">{{ isCuePadSet('B', pad) ? 'CUE' : 'SET' }}</span>
+          @for (pad of [0, 1, 2, 3, 4, 5, 6, 7]; track pad) {
+            <button
+              class="h-16 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all hover:bg-white/10 active:scale-95"
+              [class.border-brand-secondary/40]="isCuePadSet('B', pad)"
+              [class.bg-brand-secondary/20]="isCuePadSet('B', pad)"
+              (click)="handlePadPress('B', pad)"
+            >
+              <span class="text-[8px] font-black text-slate-500">{{
+                pad + 1
+              }}</span>
+              <span class="text-[10px] font-bold text-white uppercase">{{
+                isCuePadSet('B', pad) ? 'CUE' : 'SET'
+              }}</span>
             </button>
           }
         </div>
@@ -368,7 +732,13 @@
 
   <!-- FOOTER MINI MAP / PROGRESS -->
   <div class="grid grid-cols-2 h-1 bg-white/5">
-    <div class="h-full bg-brand-primary transition-all duration-300" [style.width.%]="deckProgressPercent('A') * 100"></div>
-    <div class="h-full bg-brand-secondary transition-all duration-300 self-end ml-auto" [style.width.%]="deckProgressPercent('B') * 100"></div>
+    <div
+      class="h-full bg-brand-primary transition-all duration-300"
+      [style.width.%]="deckProgressPercent('A') * 100"
+    ></div>
+    <div
+      class="h-full bg-brand-secondary transition-all duration-300 self-end ml-auto"
+      [style.width.%]="deckProgressPercent('B') * 100"
+    ></div>
   </div>
 </div>

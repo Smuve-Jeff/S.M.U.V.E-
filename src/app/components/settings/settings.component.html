@@ -1,44 +1,105 @@
 <div class="settings-container animate-fade-in">
   <div class="glass-v42 rounded-3xl overflow-hidden shadow-v42-xl">
     <div class="p-8 border-b border-border bg-background-alt/30">
-      <h1 class="text-2xl font-black text-text-main tracking-tight uppercase">Executive_Settings <span class="text-brand-primary text-sm ml-2">v2.0</span></h1>
-      <p class="text-[10px] text-text-dim font-bold tracking-[0.3em] uppercase mt-2">Configuration and System Synchronization</p>
+      <h1 class="text-2xl font-black text-text-main tracking-tight uppercase">
+        Executive_Settings
+        <span class="text-brand-primary text-sm ml-2">v2.0</span>
+      </h1>
+      <p
+        class="text-[10px] text-text-dim font-bold tracking-[0.3em] uppercase mt-2"
+      >
+        Configuration and System Synchronization
+      </p>
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="flex border-b border-border bg-background/50 overflow-x-auto no-scrollbar">
-      <button (click)="setTab('ui')" [class.active-tab]="activeTab() === 'ui'" class="settings-tab">Interface</button>
-      <button (click)="setTab('audio')" [class.active-tab]="activeTab() === 'audio'" class="settings-tab">Audio Engine</button>
-      <button (click)="setTab('ai')" [class.active-tab]="activeTab() === 'ai'" class="settings-tab">Intelligence</button>
-      <button (click)="setTab('studio')" [class.active-tab]="activeTab() === 'studio'" class="settings-tab">Studio Pro</button>
-      <button (click)="setTab('security')" [class.active-tab]="activeTab() === 'security'" class="settings-tab">Security</button>
+    <div
+      class="flex border-b border-border bg-background/50 overflow-x-auto no-scrollbar"
+    >
+      <button
+        (click)="setTab('ui')"
+        [class.active-tab]="activeTab() === 'ui'"
+        class="settings-tab"
+      >
+        Interface
+      </button>
+      <button
+        (click)="setTab('audio')"
+        [class.active-tab]="activeTab() === 'audio'"
+        class="settings-tab"
+      >
+        Audio Engine
+      </button>
+      <button
+        (click)="setTab('ai')"
+        [class.active-tab]="activeTab() === 'ai'"
+        class="settings-tab"
+      >
+        Intelligence
+      </button>
+      <button
+        (click)="setTab('studio')"
+        [class.active-tab]="activeTab() === 'studio'"
+        class="settings-tab"
+      >
+        Studio Pro
+      </button>
+      <button
+        (click)="setTab('security')"
+        [class.active-tab]="activeTab() === 'security'"
+        class="settings-tab"
+      >
+        Security
+      </button>
     </div>
 
-    <div class="p-8 settings-content-area custom-scrollbar overflow-y-auto max-h-[70vh]">
-
+    <div
+      class="p-8 settings-content-area custom-scrollbar overflow-y-auto max-h-[70vh]"
+    >
       <!-- Interface Section -->
-      <div *ngIf="activeTab() === 'ui'" class="flex flex-col gap-6 animate-enter">
+      <div
+        *ngIf="activeTab() === 'ui'"
+        class="flex flex-col gap-6 animate-enter"
+      >
         <div class="setting-group">
           <label class="setting-label">Active Theme Mode</label>
           <p class="text-xs text-text-dim">
-            Keep the shell, settings surfaces, and workspace chrome aligned to the same appearance profile.
+            Keep the shell, settings surfaces, and workspace chrome aligned to
+            the same appearance profile.
           </p>
           <div class="grid gap-3 mt-2 md:grid-cols-2">
-            <button *ngFor="let theme of themeOptions()"
+            <button
+              *ngFor="let theme of themeOptions()"
               (click)="updateSetting('ui', 'theme', theme.name)"
               [class.theme-active]="settings().ui.theme === theme.name"
-              class="theme-btn theme-card">
+              class="theme-btn theme-card"
+            >
               <span class="theme-card-topline">
                 <span class="theme-name">{{ theme.name }} Mode</span>
-                <span class="theme-current" *ngIf="settings().ui.theme === theme.name">
+                <span
+                  class="theme-current"
+                  *ngIf="settings().ui.theme === theme.name"
+                >
                   Active
                 </span>
               </span>
               <span class="theme-card-preview" aria-hidden="true">
-                <span class="theme-swatch" [style.background]="theme.primary"></span>
-                <span class="theme-swatch" [style.background]="theme.accent"></span>
-                <span class="theme-swatch" [style.background]="theme.blue"></span>
-                <span class="theme-swatch" [style.background]="theme.neutral"></span>
+                <span
+                  class="theme-swatch"
+                  [style.background]="theme.primary"
+                ></span>
+                <span
+                  class="theme-swatch"
+                  [style.background]="theme.accent"
+                ></span>
+                <span
+                  class="theme-swatch"
+                  [style.background]="theme.blue"
+                ></span>
+                <span
+                  class="theme-swatch"
+                  [style.background]="theme.neutral"
+                ></span>
               </span>
               <span class="theme-description">
                 {{
@@ -54,7 +115,10 @@
         <div class="setting-group">
           <label class="setting-label">Appearance Snapshot</label>
           <div class="grid gap-3 md:grid-cols-3 mt-2">
-            <div *ngFor="let item of appearanceSummary()" class="appearance-summary-card">
+            <div
+              *ngFor="let item of appearanceSummary()"
+              class="appearance-summary-card"
+            >
               <span class="appearance-summary-label">{{ item.label }}</span>
               <strong class="appearance-summary-value">{{ item.value }}</strong>
               <p class="appearance-summary-detail">{{ item.detail }}</p>
@@ -67,8 +131,17 @@
             <h3 class="setting-title">Performance Mode</h3>
             <p class="text-xs text-text-dim">Optimize for lower CPU usage.</p>
           </div>
-          <button (click)="updateSetting('ui', 'performanceMode', !settings().ui.performanceMode)"
-            class="toggle-btn" [class.on]="settings().ui.performanceMode">
+          <button
+            (click)="
+              updateSetting(
+                'ui',
+                'performanceMode',
+                !settings().ui.performanceMode
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().ui.performanceMode"
+          >
             <div class="toggle-handle"></div>
           </button>
         </div>
@@ -76,10 +149,17 @@
         <div class="setting-item">
           <div>
             <h3 class="setting-title">HUD Overlay</h3>
-            <p class="text-xs text-text-dim">Toggle heritage scanline visuals.</p>
+            <p class="text-xs text-text-dim">
+              Toggle heritage scanline visuals.
+            </p>
           </div>
-          <button (click)="updateSetting('ui', 'showScanlines', !settings().ui.showScanlines)"
-            class="toggle-btn" [class.on]="settings().ui.showScanlines">
+          <button
+            (click)="
+              updateSetting('ui', 'showScanlines', !settings().ui.showScanlines)
+            "
+            class="toggle-btn"
+            [class.on]="settings().ui.showScanlines"
+          >
             <div class="toggle-handle"></div>
           </button>
         </div>
@@ -87,31 +167,47 @@
         <div class="setting-group">
           <label class="setting-label">Guidance & Quick Links</label>
           <p class="text-xs text-text-dim">
-            Keep production guidance here while the home surface stays focused on music controls.
+            Keep production guidance here while the home surface stays focused
+            on music controls.
           </p>
           <div class="grid gap-3 md:grid-cols-2 mt-2">
             <button
-              (click)="openExternalLink('https://github.com/Smuve-Jeff/S.M.U.V.E-')"
+              (click)="
+                openExternalLink('https://github.com/Smuve-Jeff/S.M.U.V.E-')
+              "
               class="guide-link-btn"
             >
               <span class="material-symbols-outlined text-sm">link</span>
               <span>Project Repository</span>
             </button>
             <button
-              (click)="openExternalLink('https://github.com/Smuve-Jeff/S.M.U.V.E-/blob/main/README.md')"
+              (click)="
+                openExternalLink(
+                  'https://github.com/Smuve-Jeff/S.M.U.V.E-/blob/main/README.md'
+                )
+              "
               class="guide-link-btn"
             >
               <span class="material-symbols-outlined text-sm">menu_book</span>
               <span>User Guide</span>
             </button>
             <button
-              (click)="openExternalLink('https://github.com/Smuve-Jeff/S.M.U.V.E-/blob/main/APPLICATION_FEATURES.md')"
+              (click)="
+                openExternalLink(
+                  'https://github.com/Smuve-Jeff/S.M.U.V.E-/blob/main/APPLICATION_FEATURES.md'
+                )
+              "
               class="guide-link-btn"
             >
-              <span class="material-symbols-outlined text-sm">tips_and_updates</span>
+              <span class="material-symbols-outlined text-sm"
+                >tips_and_updates</span
+              >
               <span>Feature Overview</span>
             </button>
-            <button (click)="uiService.navigateToView('studio')" class="guide-link-btn">
+            <button
+              (click)="uiService.navigateToView('studio')"
+              class="guide-link-btn"
+            >
               <span class="material-symbols-outlined text-sm">music_note</span>
               <span>Open Studio</span>
             </button>
@@ -120,12 +216,17 @@
       </div>
 
       <!-- Audio Section -->
-      <div *ngIf="activeTab() === 'audio'" class="flex flex-col gap-6 animate-enter">
+      <div
+        *ngIf="activeTab() === 'audio'"
+        class="flex flex-col gap-6 animate-enter"
+      >
         <div class="setting-group">
           <div class="flex items-start justify-between gap-3">
             <div>
               <label class="setting-label">Audio Interface Routing</label>
-              <p class="text-xs text-text-dim mt-1">Manage recording input and monitoring output from Settings.</p>
+              <p class="text-xs text-text-dim mt-1">
+                Manage recording input and monitoring output from Settings.
+              </p>
             </div>
             <button
               (click)="refreshAudioInputs()"
@@ -143,7 +244,10 @@
                 (ngModelChange)="selectAudioInput($event)"
               >
                 <option [ngValue]="null">Auto Select</option>
-                <option *ngFor="let device of audioInputDevices()" [value]="device.deviceId">
+                <option
+                  *ngFor="let device of audioInputDevices()"
+                  [value]="device.deviceId"
+                >
                   {{ device.label }} [{{ device.type }}]
                 </option>
               </select>
@@ -155,7 +259,9 @@
                   (click)="setOutputMode('speakers')"
                   class="px-4 py-2 rounded-lg border text-[10px] uppercase font-black tracking-widest transition-all"
                   [class.btn-active]="audioEngine.outputMode() === 'speakers'"
-                  [class.border-border]="audioEngine.outputMode() !== 'speakers'"
+                  [class.border-border]="
+                    audioEngine.outputMode() !== 'speakers'
+                  "
                 >
                   Speakers
                 </button>
@@ -163,7 +269,9 @@
                   (click)="setOutputMode('headphones')"
                   class="px-4 py-2 rounded-lg border text-[10px] uppercase font-black tracking-widest transition-all"
                   [class.btn-active]="audioEngine.outputMode() === 'headphones'"
-                  [class.border-border]="audioEngine.outputMode() !== 'headphones'"
+                  [class.border-border]="
+                    audioEngine.outputMode() !== 'headphones'
+                  "
                 >
                   Headphones
                 </button>
@@ -173,19 +281,30 @@
         </div>
 
         <div class="setting-group">
-          <label class="setting-label">Master Gain ({{(settings().audio.masterVolume * 100).toFixed(0)}}%)</label>
-          <input type="range" min="0" max="1" step="0.01"
+          <label class="setting-label"
+            >Master Gain ({{
+              (settings().audio.masterVolume * 100).toFixed(0)
+            }}%)</label
+          >
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
             [ngModel]="settings().audio.masterVolume"
             (ngModelChange)="updateSetting('audio', 'masterVolume', $event)"
-            class="smuve-slider w-full mt-2">
+            class="smuve-slider w-full mt-2"
+          />
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           <div class="setting-group">
             <label class="setting-label">Sampling Rate</label>
-            <select [ngModel]="settings().audio.sampleRate"
+            <select
+              [ngModel]="settings().audio.sampleRate"
               (ngModelChange)="updateSetting('audio', 'sampleRate', $event)"
-              class="smuve-input w-full mt-2">
+              class="smuve-input w-full mt-2"
+            >
               <option [value]="44100">44.1 kHz</option>
               <option [value]="48000">48.0 kHz</option>
               <option [value]="96000">96.0 kHz</option>
@@ -193,9 +312,11 @@
           </div>
           <div class="setting-group">
             <label class="setting-label">Process Buffer</label>
-            <select [ngModel]="settings().audio.bufferSize"
+            <select
+              [ngModel]="settings().audio.bufferSize"
               (ngModelChange)="updateSetting('audio', 'bufferSize', $event)"
-              class="smuve-input w-full mt-2">
+              class="smuve-input w-full mt-2"
+            >
               <option [value]="128">128 samples</option>
               <option [value]="256">256 samples</option>
               <option [value]="512">512 samples</option>
@@ -210,26 +331,33 @@
             <p class="text-xs text-text-dim">Primary render format.</p>
           </div>
           <div class="flex gap-2">
-            <button *ngFor="let fmt of ['wav', 'mp3', 'webm']"
+            <button
+              *ngFor="let fmt of ['wav', 'mp3', 'webm']"
               (click)="updateSetting('audio', 'defaultExportFormat', fmt)"
               [class.btn-active]="settings().audio.defaultExportFormat === fmt"
-              class="px-4 py-1.5 rounded-lg border border-border text-[10px] uppercase font-bold text-text-dim">
-              {{fmt}}
+              class="px-4 py-1.5 rounded-lg border border-border text-[10px] uppercase font-bold text-text-dim"
+            >
+              {{ fmt }}
             </button>
           </div>
         </div>
       </div>
 
       <!-- AI Strategic Section -->
-      <div *ngIf="activeTab() === 'ai'" class="flex flex-col gap-6 animate-enter">
+      <div
+        *ngIf="activeTab() === 'ai'"
+        class="flex flex-col gap-6 animate-enter"
+      >
         <div class="setting-group">
           <label class="setting-label">Advisor Behavioral Persona</label>
           <div class="grid grid-cols-3 gap-3 mt-2">
-            <button *ngFor="let p of ['Elite', 'Balanced', 'Supportive']"
+            <button
+              *ngFor="let p of ['Elite', 'Balanced', 'Supportive']"
               (click)="updateSetting('ai', 'commanderPersona', p)"
               [class.persona-active]="settings().ai.commanderPersona === p"
-              class="persona-btn">
-              {{p}}
+              class="persona-btn"
+            >
+              {{ p }}
             </button>
           </div>
         </div>
@@ -237,87 +365,165 @@
         <div class="setting-item">
           <div>
             <h3 class="setting-title">Active Executive Audit</h3>
-            <p class="text-xs text-text-dim">Background analysis during creative sessions.</p>
+            <p class="text-xs text-text-dim">
+              Background analysis during creative sessions.
+            </p>
           </div>
-          <button (click)="updateSetting('ai', 'autoAuditEnabled', !settings().ai.autoAuditEnabled)"
-            class="toggle-btn" [class.on]="settings().ai.autoAuditEnabled">
+          <button
+            (click)="
+              updateSetting(
+                'ai',
+                'autoAuditEnabled',
+                !settings().ai.autoAuditEnabled
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().ai.autoAuditEnabled"
+          >
             <div class="toggle-handle"></div>
           </button>
         </div>
       </div>
 
       <!-- Studio Preferences -->
-      <div *ngIf="activeTab() === 'studio'" class="flex flex-col gap-6 animate-enter">
-         <div class="grid grid-cols-2 gap-6">
-            <div class="setting-group">
-              <label class="setting-label">Standard Quantize</label>
-              <select [ngModel]="settings().studio.defaultQuantize"
-                (ngModelChange)="updateSetting('studio', 'defaultQuantize', $event)"
-                class="smuve-input w-full mt-2">
-                <option value="1/4">1/4 Note</option>
-                <option value="1/8">1/8 Note</option>
-                <option value="1/16">1/16 Note</option>
-                <option value="1/32">1/32 Note</option>
-              </select>
-            </div>
-         </div>
-
-         <div class="setting-item">
-            <div>
-              <h3 class="setting-title">Intelligent Automation</h3>
-              <p class="text-xs text-text-dim">Neural-driven mixing adjustments.</p>
-            </div>
-            <button (click)="updateSetting('studio', 'autoMixEnabled', !settings().studio.autoMixEnabled)"
-              class="toggle-btn" [class.on]="settings().studio.autoMixEnabled">
-              <div class="toggle-handle"></div>
-            </button>
+      <div
+        *ngIf="activeTab() === 'studio'"
+        class="flex flex-col gap-6 animate-enter"
+      >
+        <div class="grid grid-cols-2 gap-6">
+          <div class="setting-group">
+            <label class="setting-label">Standard Quantize</label>
+            <select
+              [ngModel]="settings().studio.defaultQuantize"
+              (ngModelChange)="
+                updateSetting('studio', 'defaultQuantize', $event)
+              "
+              class="smuve-input w-full mt-2"
+            >
+              <option value="1/4">1/4 Note</option>
+              <option value="1/8">1/8 Note</option>
+              <option value="1/16">1/16 Note</option>
+              <option value="1/32">1/32 Note</option>
+            </select>
           </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Intelligent Automation</h3>
+            <p class="text-xs text-text-dim">
+              Neural-driven mixing adjustments.
+            </p>
+          </div>
+          <button
+            (click)="
+              updateSetting(
+                'studio',
+                'autoMixEnabled',
+                !settings().studio.autoMixEnabled
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().studio.autoMixEnabled"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
       </div>
 
       <!-- Security Section -->
-      <div *ngIf="activeTab() === 'security'" class="flex flex-col gap-8 animate-enter">
+      <div
+        *ngIf="activeTab() === 'security'"
+        class="flex flex-col gap-8 animate-enter"
+      >
         <!-- Core Security Toggles -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+          <div
+            class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+          >
             <div>
               <h3 class="setting-title">Two-Factor Auth</h3>
               <p class="text-xs text-text-dim">Shield access with 2FA.</p>
             </div>
-            <button (click)="updateSetting('security', 'twoFactorEnabled', !settings().security.twoFactorEnabled)"
-              class="toggle-btn" [class.on]="settings().security.twoFactorEnabled">
+            <button
+              (click)="
+                updateSetting(
+                  'security',
+                  'twoFactorEnabled',
+                  !settings().security.twoFactorEnabled
+                )
+              "
+              class="toggle-btn"
+              [class.on]="settings().security.twoFactorEnabled"
+            >
               <div class="toggle-handle"></div>
             </button>
           </div>
 
-          <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+          <div
+            class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+          >
             <div>
               <h3 class="setting-title">E2E Encryption</h3>
               <p class="text-xs text-text-dim">Secure neural data streams.</p>
             </div>
-            <button (click)="updateSetting('security', 'endToEndEncryption', !settings().security.endToEndEncryption)"
-              class="toggle-btn" [class.on]="settings().security.endToEndEncryption">
+            <button
+              (click)="
+                updateSetting(
+                  'security',
+                  'endToEndEncryption',
+                  !settings().security.endToEndEncryption
+                )
+              "
+              class="toggle-btn"
+              [class.on]="settings().security.endToEndEncryption"
+            >
               <div class="toggle-handle"></div>
             </button>
           </div>
 
-          <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+          <div
+            class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+          >
             <div>
               <h3 class="setting-title">Biometric Lock</h3>
-              <p class="text-xs text-text-dim">Use system biometric verification.</p>
+              <p class="text-xs text-text-dim">
+                Use system biometric verification.
+              </p>
             </div>
-            <button (click)="updateSetting('security', 'biometricLock', !settings().security.biometricLock)"
-              class="toggle-btn" [class.on]="settings().security.biometricLock">
+            <button
+              (click)="
+                updateSetting(
+                  'security',
+                  'biometricLock',
+                  !settings().security.biometricLock
+                )
+              "
+              class="toggle-btn"
+              [class.on]="settings().security.biometricLock"
+            >
               <div class="toggle-handle"></div>
             </button>
           </div>
 
-          <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+          <div
+            class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+          >
             <div>
               <h3 class="setting-title">Audit Logging</h3>
               <p class="text-xs text-text-dim">Record all security events.</p>
             </div>
-            <button (click)="updateSetting('security', 'auditLogEnabled', !settings().security.auditLogEnabled)"
-              class="toggle-btn" [class.on]="settings().security.auditLogEnabled">
+            <button
+              (click)="
+                updateSetting(
+                  'security',
+                  'auditLogEnabled',
+                  !settings().security.auditLogEnabled
+                )
+              "
+              class="toggle-btn"
+              [class.on]="settings().security.auditLogEnabled"
+            >
               <div class="toggle-handle"></div>
             </button>
           </div>
@@ -325,47 +531,85 @@
 
         <div class="setting-group">
           <label class="setting-label">Session Timeout (Seconds)</label>
-          <input type="number"
+          <input
+            type="number"
             [ngModel]="settings().security.sessionTimeout"
-            (ngModelChange)="updateSetting('security', 'sessionTimeout', $event)"
-            class="smuve-input w-full mt-2">
+            (ngModelChange)="
+              updateSetting('security', 'sessionTimeout', $event)
+            "
+            class="smuve-input w-full mt-2"
+          />
         </div>
 
         <!-- Session Management -->
         <div class="security-module">
-          <h4 class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center"
+          >
             <span class="w-1 h-4 bg-brand-primary mr-2"></span> Active_Sessions
           </h4>
           <div class="flex flex-col gap-2">
-            <div *ngFor="let sess of securityService.sessions()" class="flex justify-between items-center bg-background/40 p-3 rounded-lg border border-border/50">
+            <div
+              *ngFor="let sess of securityService.sessions()"
+              class="flex justify-between items-center bg-background/40 p-3 rounded-lg border border-border/50"
+            >
               <div class="flex flex-col">
-                <span class="text-[11px] font-bold text-text-main">{{sess.device_name}}</span>
-                <span class="text-[9px] text-text-dim uppercase tracking-tighter">{{sess.location}} • {{sess.last_active | date:'short'}}</span>
+                <span class="text-[11px] font-bold text-text-main">{{
+                  sess.device_name
+                }}</span>
+                <span
+                  class="text-[9px] text-text-dim uppercase tracking-tighter"
+                  >{{ sess.location }} •
+                  {{ sess.last_active | date: 'short' }}</span
+                >
               </div>
-              <button (click)="revokeSession(sess.session_id)" class="text-[9px] font-black text-red-500 uppercase tracking-widest hover:underline px-2 py-1">Revoke</button>
+              <button
+                (click)="revokeSession(sess.session_id)"
+                class="text-[9px] font-black text-red-500 uppercase tracking-widest hover:underline px-2 py-1"
+              >
+                Revoke
+              </button>
             </div>
           </div>
         </div>
 
         <!-- Security Audit Log -->
         <div class="security-module">
-           <h4 class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center">
-            <span class="w-1 h-4 bg-brand-secondary mr-2"></span> Security_Audit_Log
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-secondary mr-2"></span>
+            Security_Audit_Log
           </h4>
-          <div class="bg-background/20 rounded-xl border border-border overflow-hidden">
+          <div
+            class="bg-background/20 rounded-xl border border-border overflow-hidden"
+          >
             <table class="w-full text-left text-[10px] uppercase">
               <thead class="bg-background-alt/50 border-b border-border">
                 <tr>
-                  <th class="p-3 font-black tracking-widest text-text-dim">Event</th>
-                  <th class="p-3 font-black tracking-widest text-text-dim">Details</th>
-                  <th class="p-3 font-black tracking-widest text-text-dim">Timestamp</th>
+                  <th class="p-3 font-black tracking-widest text-text-dim">
+                    Event
+                  </th>
+                  <th class="p-3 font-black tracking-widest text-text-dim">
+                    Details
+                  </th>
+                  <th class="p-3 font-black tracking-widest text-text-dim">
+                    Timestamp
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let log of securityService.logs()" class="border-b border-border/30 hover:bg-background/40">
-                  <td class="p-3 font-bold text-brand-primary">{{log.event_type}}</td>
-                  <td class="p-3 text-text-dim">{{log.description}}</td>
-                  <td class="p-3 text-text-dim">{{log.created_at | date:'shortTime'}}</td>
+                <tr
+                  *ngFor="let log of securityService.logs()"
+                  class="border-b border-border/30 hover:bg-background/40"
+                >
+                  <td class="p-3 font-bold text-brand-primary">
+                    {{ log.event_type }}
+                  </td>
+                  <td class="p-3 text-text-dim">{{ log.description }}</td>
+                  <td class="p-3 text-text-dim">
+                    {{ log.created_at | date: 'shortTime' }}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -373,14 +617,23 @@
         </div>
 
         <div class="mt-8 p-6 bg-red-500/5 border border-red-500/20 rounded-2xl">
-           <h4 class="text-red-500 font-bold uppercase text-[10px] tracking-widest mb-2">Danger_Node</h4>
-           <p class="text-xs text-text-dim mb-4">Wiping the executive profile is irreversible and deletes all neural sync data.</p>
-           <button (click)="purgeProfile()" class="px-6 py-2 bg-red-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest hover:bg-red-600 transition-colors shadow-sm">
-              Execute Profile Purge
-           </button>
+          <h4
+            class="text-red-500 font-bold uppercase text-[10px] tracking-widest mb-2"
+          >
+            Danger_Node
+          </h4>
+          <p class="text-xs text-text-dim mb-4">
+            Wiping the executive profile is irreversible and deletes all neural
+            sync data.
+          </p>
+          <button
+            (click)="purgeProfile()"
+            class="px-6 py-2 bg-red-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest hover:bg-red-600 transition-colors shadow-sm"
+          >
+            Execute Profile Purge
+          </button>
         </div>
       </div>
-
     </div>
   </div>
 </div>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -24,7 +24,11 @@
         font-family: Inter, system-ui, sans-serif;
         color: white;
         background:
-          radial-gradient(circle at top, rgba(52, 211, 153, 0.18), transparent 34%),
+          radial-gradient(
+            circle at top,
+            rgba(52, 211, 153, 0.18),
+            transparent 34%
+          ),
           linear-gradient(180deg, #020617, #111827);
       }
 
@@ -142,9 +146,15 @@
           <h1>Tempo Lockdown</h1>
         </div>
         <div class="stats">
-          <div class="stat"><label>Score</label><strong id="score">0</strong></div>
-          <div class="stat"><label>Streak</label><strong id="combo">0</strong></div>
-          <div class="stat"><label>Health</label><strong id="health">100%</strong></div>
+          <div class="stat">
+            <label>Score</label><strong id="score">0</strong>
+          </div>
+          <div class="stat">
+            <label>Streak</label><strong id="combo">0</strong>
+          </div>
+          <div class="stat">
+            <label>Health</label><strong id="health">100%</strong>
+          </div>
         </div>
       </div>
 
@@ -154,7 +164,9 @@
       </div>
 
       <div class="footer">
-        <div class="status" id="status">Drop the beat while the needle is inside the green zone.</div>
+        <div class="status" id="status">
+          Drop the beat while the needle is inside the green zone.
+        </div>
         <div>
           <button id="hitBtn">Drop Beat</button>
           <button id="resetBtn">Reset Session</button>
@@ -202,7 +214,8 @@
         combo = 0;
         health = 100;
         playing = true;
-        statusEl.textContent = 'Drop the beat while the needle is inside the green zone.';
+        statusEl.textContent =
+          'Drop the beat while the needle is inside the green zone.';
         render('RESET');
       }
 
@@ -220,7 +233,10 @@
         }
         combo = 0;
         health = Math.max(0, health - 20);
-        statusEl.textContent = health > 0 ? 'Late drop. Rebuild the pocket.' : 'Session over. Reset and try again.';
+        statusEl.textContent =
+          health > 0
+            ? 'Late drop. Rebuild the pocket.'
+            : 'Session over. Reset and try again.';
         render('MISS', health <= 0);
         if (health <= 0) playing = false;
       }
