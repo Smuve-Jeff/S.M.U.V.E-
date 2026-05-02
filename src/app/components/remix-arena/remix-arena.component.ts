@@ -160,7 +160,7 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
       ...m,
       {
         user: 'System',
-        text: `Challenge Accepted: ${challenge.title}. Deploying workstation... `,
+        text: `Challenge Accepted: ${challenge.title}. Deploying workstation...`,
       },
     ]);
     this.uiService.navigateToView('studio');
