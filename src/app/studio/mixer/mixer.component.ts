@@ -5,6 +5,7 @@ import { ChannelStripComponent } from '../channel-strip/channel-strip.component'
 import { VocalSuiteComponent } from '../vocal-suite/vocal-suite.component';
 import {
   MusicManagerService,
+  TrackModel,
 } from '../../services/music-manager.service';
 import { NeuralMixerService } from '../../services/neural-mixer.service';
 import { MixerService } from '../mixer.service';
