@@ -46,6 +46,10 @@ const COVER_HASH_SEED = 7;
 const THA_SPOT_FEED_URL = '/assets/data/tha-spot-feed.json';
 export type GameSortMode = 'Popular' | 'Rating' | 'Newest' | 'Name' | 'Queue';
 
+function isManagedGameAssetUrl(url: string) {
+  return url.startsWith('/assets/games/');
+}
+
 function buildGameCover(
   title: string,
   eyebrow: string,
@@ -89,21 +93,28 @@ function normalizeLaunchConfig(
   config: GameLaunchConfig | undefined,
   fallbackUrl: string
 ): GameLaunchConfig {
-  const inlinePolicy = config?.inlinePolicy || 'trusted';
+  const approvedExternalUrl = asString(config?.approvedExternalUrl, fallbackUrl);
+  const embedUrlCandidate = asString(config?.approvedEmbedUrl, fallbackUrl);
+  const supportsInlineEmbed = isManagedGameAssetUrl(embedUrlCandidate);
+  const inlinePolicy =
+    config?.inlinePolicy || (supportsInlineEmbed ? 'trusted' : 'external-only');
   const embedMode =
-    config?.embedMode ||
-    (inlinePolicy === 'external-only' ? 'external-only' : 'inline');
+    supportsInlineEmbed &&
+    config?.embedMode !== 'external-only' &&
+    inlinePolicy !== 'external-only'
+      ? 'inline'
+      : 'external-only';
   const approvedEmbedUrl =
-    config?.approvedEmbedUrl ||
-    (embedMode === 'inline' ? fallbackUrl : undefined);
-  const approvedExternalUrl = config?.approvedExternalUrl || fallbackUrl;
+    embedMode === 'inline' && supportsInlineEmbed ? embedUrlCandidate : undefined;
   const telemetryMode =
-    config?.telemetryMode ||
-    (fallbackUrl.startsWith('/assets/games/')
-      ? 'frame-only'
-      : approvedEmbedUrl
-        ? 'origin'
-        : 'none');
+    embedMode === 'inline'
+      ? config?.telemetryMode || 'frame-only'
+      : 'none';
+  const trustNote =
+    asString(config?.trustNote) ||
+    (embedMode === 'external-only'
+      ? 'Launches in a separate tab to avoid broken third-party embeds.'
+      : '');
 
   return {
     ...config,
@@ -116,7 +127,7 @@ function normalizeLaunchConfig(
     controls: asStringArray(config?.controls),
     objectives: asStringArray(config?.objectives),
     modes: asStringArray(config?.modes),
-    trustNote: asString(config?.trustNote),
+    trustNote,
   };
 }
 

@@ -413,10 +413,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
   }
 
-  private loadFeed() {
+  private loadFeed(forceRefresh = false) {
     this.feedSubscription?.unsubscribe();
     this.feedSubscription = this.gameService
-      .getThaSpotFeed()
+      .getThaSpotFeed(forceRefresh)
       .subscribe((feed) => {
         this.feed.set(feed);
         this.games.set(feed.games);
@@ -437,7 +437,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   private startFeedRefresh(): void {
     this.feedRefreshId = window.setInterval(() => {
-      this.loadFeed();
+      this.loadFeed(true);
     }, FEED_REFRESH_INTERVAL_MS);
   }
 
@@ -544,7 +544,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   private resolveLaunchWarning(game: Game): string {
     if (game.launchConfig?.embedMode === 'external-only') {
-      return 'External governance required for this cabinet.';
+      return (
+        game.launchConfig?.trustNote ||
+        'External governance required for this cabinet.'
+      );
     }
     if (game.launchConfig?.approvedEmbedUrl || game.url) {
       return 'Exact embed target verified.';
@@ -571,5 +574,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       reward: event?.reward,
       rewardType: event?.schedule?.rewardType,
     };
+  }
+
+  launchActionLabel(game: Game): string {
+    return game.launchConfig?.embedMode === 'external-only'
+      ? 'OPEN EXTERNALLY'
+      : 'INITIALIZE';
   }
 }
