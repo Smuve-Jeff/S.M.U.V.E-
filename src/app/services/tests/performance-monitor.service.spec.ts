@@ -1,4 +1,4 @@
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { PerformanceMonitorService } from '../performance-monitor.service';
 import { LoggingService } from '../logging.service';
 

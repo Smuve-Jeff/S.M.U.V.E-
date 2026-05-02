@@ -2,6 +2,16 @@ import { LoggingService } from './logging.service';
 import { Injectable, inject } from '@angular/core';
 import { Observable, from } from 'rxjs';
 
+type SupportedFilterType =
+  | 'allpass'
+  | 'bandpass'
+  | 'highpass'
+  | 'highshelf'
+  | 'lowpass'
+  | 'lowshelf'
+  | 'notch'
+  | 'peaking';
+
 export interface Stems {
   vocals: AudioBuffer;
   drums: AudioBuffer;
@@ -43,7 +53,7 @@ export class StemSeparationService {
 
   private async applyFilter(
     buffer: AudioBuffer,
-    type: BiquadFilterType,
+    type: SupportedFilterType,
     freq: number,
     q: number = 1.0,
     gain: number = 0

@@ -5,7 +5,6 @@ import { AudioEngineService } from '../services/audio-engine.service';
 import { PlaybackState } from './playback-state';
 import {
   MicrophoneService,
-  AudioInputDevice,
 } from '../services/microphone.service';
 
 export interface MicChannel {

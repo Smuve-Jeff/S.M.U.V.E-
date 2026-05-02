@@ -41,5 +41,5 @@ export class InstrumentService {
     return 440 * Math.pow(2, (m - 69) / 12);
   }
 
-  connect(dest: any) {}
+  connect(_dest: any) {}
 }
