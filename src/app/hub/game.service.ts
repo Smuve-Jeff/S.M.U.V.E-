@@ -93,7 +93,10 @@ function normalizeLaunchConfig(
   config: GameLaunchConfig | undefined,
   fallbackUrl: string
 ): GameLaunchConfig {
-  const approvedExternalUrl = asString(config?.approvedExternalUrl, fallbackUrl);
+  const approvedExternalUrl = asString(
+    config?.approvedExternalUrl,
+    fallbackUrl
+  );
   const embedUrlCandidate = asString(config?.approvedEmbedUrl, fallbackUrl);
   const supportsInlineEmbed = isManagedGameAssetUrl(embedUrlCandidate);
   const inlinePolicy =
@@ -105,11 +108,12 @@ function normalizeLaunchConfig(
       ? 'inline'
       : 'external-only';
   const approvedEmbedUrl =
-    embedMode === 'inline' && supportsInlineEmbed ? embedUrlCandidate : undefined;
-  const telemetryMode =
-    embedMode === 'inline'
-      ? config?.telemetryMode || 'frame-only'
-      : 'none';
+    embedMode === 'inline' && supportsInlineEmbed
+      ? embedUrlCandidate
+      : undefined;
+  const telemetryMode = embedMode === 'inline'
+    ? config?.telemetryMode || 'frame-only'
+    : 'none';
   const trustNote =
     asString(config?.trustNote) ||
     (embedMode === 'external-only'
