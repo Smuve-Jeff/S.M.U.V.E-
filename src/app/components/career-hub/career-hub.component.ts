@@ -9,21 +9,46 @@ import { AiAuditService } from '../../services/ai-audit.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './career-hub.component.html',
-  styleUrls: ['./career-hub.component.css']
+  styleUrls: ['./career-hub.component.css'],
 })
 export class CareerHubComponent {
   private userProfileService = inject(UserProfileService);
   private aiAuditService = inject(AiAuditService);
 
   submissions = signal([
-    { labelName: 'Neon Records', demoUrl: 'https://smuve.io/demo/track-1', date: '2024-03-15', status: 'Reviewing' },
-    { labelName: 'Obsidian Sound', demoUrl: 'https://smuve.io/demo/track-2', date: '2024-03-10', status: 'Pending' }
+    {
+      labelName: 'Neon Records',
+      demoUrl: 'https://smuve.io/demo/track-1',
+      date: '2024-03-15',
+      status: 'Reviewing',
+    },
+    {
+      labelName: 'Obsidian Sound',
+      demoUrl: 'https://smuve.io/demo/track-2',
+      date: '2024-03-10',
+      status: 'Pending',
+    },
   ]);
 
   venues = signal([
-    { name: 'The Circuit', location: 'Los Angeles', capacity: 500, bookingStatus: 'Confirmed' },
-    { name: 'Neon Lounge', location: 'Tokyo', capacity: 200, bookingStatus: 'Pending' },
-    { name: 'Titanium Arena', location: 'London', capacity: 1500, bookingStatus: 'Available' }
+    {
+      name: 'The Circuit',
+      location: 'Los Angeles',
+      capacity: 500,
+      bookingStatus: 'Confirmed',
+    },
+    {
+      name: 'Neon Lounge',
+      location: 'Tokyo',
+      capacity: 200,
+      bookingStatus: 'Pending',
+    },
+    {
+      name: 'Titanium Arena',
+      location: 'London',
+      capacity: 1500,
+      bookingStatus: 'Available',
+    },
   ]);
 
   newLabel = '';
@@ -41,7 +66,7 @@ export class CareerHubComponent {
     return [
       { month: 'Oct', amount: current * growth },
       { month: 'Nov', amount: current * Math.pow(growth, 2) },
-      { month: 'Dec', amount: current * Math.pow(growth, 3) }
+      { month: 'Dec', amount: current * Math.pow(growth, 3) },
     ];
   });
 
@@ -52,16 +77,16 @@ export class CareerHubComponent {
       labelName: this.newLabel,
       demoUrl: this.newDemo,
       date: new Date().toISOString().split('T')[0],
-      status: 'Pending'
+      status: 'Pending',
     };
 
-    this.submissions.update(prev => [newSubmission, ...prev]);
+    this.submissions.update((prev) => [newSubmission, ...prev]);
     this.newLabel = '';
     this.newDemo = '';
   }
 
   recallSubmission(sub: any) {
-    this.submissions.update(prev => prev.filter(s => s !== sub));
+    this.submissions.update((prev) => prev.filter((s) => s !== sub));
   }
 
   formatCurrency(value: number): string {
@@ -82,17 +107,17 @@ export class CareerHubComponent {
       status: 'Draft',
       splits: [
         { role: 'Producer', percentage: 50, name: 'You' },
-        { role: 'Songwriter', percentage: 50, name: 'Collaborator' }
+        { role: 'Songwriter', percentage: 50, name: 'Collaborator' },
       ],
       totalPercentage: 100,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
     };
 
     this.userProfileService.updateProfile({
-        financials: {
-            ...this.profile().financials,
-            splitSheets: [...this.profile().financials.splitSheets, newSplit]
-        }
+      financials: {
+        ...this.profile().financials,
+        splitSheets: [...this.profile().financials.splitSheets, newSplit],
+      },
     });
   }
 }

@@ -43,11 +43,21 @@ describe('CareerHubComponent', () => {
     };
 
     (window as any).AudioContext = class {
-      createGain() { return { ...mockNode }; }
-      createOscillator() { return { ...mockNode }; }
-      createDynamicsCompressor() { return { ...mockNode }; }
-      createDelay() { return { ...mockNode }; }
-      createBiquadFilter() { return { ...mockNode }; }
+      createGain() {
+        return { ...mockNode };
+      }
+      createOscillator() {
+        return { ...mockNode };
+      }
+      createDynamicsCompressor() {
+        return { ...mockNode };
+      }
+      createDelay() {
+        return { ...mockNode };
+      }
+      createBiquadFilter() {
+        return { ...mockNode };
+      }
       createAnalyser() {
         return {
           ...mockNode,
@@ -57,10 +67,18 @@ describe('CareerHubComponent', () => {
           frequencyBinCount: 1024,
         };
       }
-      createConvolver() { return { ...mockNode }; }
-      createStereoPanner() { return { ...mockNode }; }
-      createBufferSource() { return { ...mockNode }; }
-      createWaveShaper() { return { ...mockNode }; }
+      createConvolver() {
+        return { ...mockNode };
+      }
+      createStereoPanner() {
+        return { ...mockNode };
+      }
+      createBufferSource() {
+        return { ...mockNode };
+      }
+      createWaveShaper() {
+        return { ...mockNode };
+      }
       createBuffer() {
         return {
           getChannelData: () => new Float32Array(100),
@@ -70,13 +88,27 @@ describe('CareerHubComponent', () => {
           duration: 1,
         };
       }
-      createMediaStreamDestination() { return { stream: {}, connect: jest.fn() }; }
-      get destination() { return { connect: jest.fn(), disconnect: jest.fn() }; }
-      get currentTime() { return 0; }
-      get sampleRate() { return 44100; }
-      resume() { return Promise.resolve(); }
-      suspend() { return Promise.resolve(); }
-      close() { return Promise.resolve(); }
+      createMediaStreamDestination() {
+        return { stream: {}, connect: jest.fn() };
+      }
+      get destination() {
+        return { connect: jest.fn(), disconnect: jest.fn() };
+      }
+      get currentTime() {
+        return 0;
+      }
+      get sampleRate() {
+        return 44100;
+      }
+      resume() {
+        return Promise.resolve();
+      }
+      suspend() {
+        return Promise.resolve();
+      }
+      close() {
+        return Promise.resolve();
+      }
       decodeAudioData() {
         return Promise.resolve({
           duration: 1,

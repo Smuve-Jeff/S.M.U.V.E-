@@ -89,7 +89,7 @@ export const initialProfile: UserProfile = {
   financials: {
     accounts: [],
     monthlyBudget: 0,
-      totalRevenue: 0,
+    totalRevenue: 0,
     pendingPayouts: 0,
     splitSheets: [],
     revenueHistory: [],

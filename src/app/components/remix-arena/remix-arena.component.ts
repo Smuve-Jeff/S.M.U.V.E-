@@ -49,8 +49,18 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
   sessionId = signal('');
 
   challenges = signal([
-    { id: 'ch-1', title: 'Midnight Synth Wave', description: 'Create a 4-bar loop using only the Subtractive Synth.', prize: '500 XP' },
-    { id: 'ch-2', title: 'Vocal Glitch Mastery', description: 'Remix the lead vocals with aggressive glitch textures.', prize: '1000 XP' }
+    {
+      id: 'ch-1',
+      title: 'Midnight Synth Wave',
+      description: 'Create a 4-bar loop using only the Subtractive Synth.',
+      prize: '500 XP',
+    },
+    {
+      id: 'ch-2',
+      title: 'Vocal Glitch Mastery',
+      description: 'Remix the lead vocals with aggressive glitch textures.',
+      prize: '1000 XP',
+    },
   ]);
 
   ngOnInit() {}
@@ -103,7 +113,9 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
     if (!text) return;
     const user = (this.authService.currentUser() as any)?.email || 'Artist';
     this.messages.update((m) => [...m, { user, text }]);
-    this.collaborationService.sendProjectUpdate(this.sessionId(), { message: text });
+    this.collaborationService.sendProjectUpdate(this.sessionId(), {
+      message: text,
+    });
     this.newMessage.set('');
   }
 
@@ -115,18 +127,24 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
         text: `Remixing ${track.name}... Applying neural enhancements.`,
       },
     ]);
-    this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? {
-        ...t,
-        gain: Math.min(1.5, t.gain * 1.1),
-        pan: (Math.random() * 2 - 1) * 0.5
-    } : t));
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === track.id
+          ? {
+              ...t,
+              gain: Math.min(1.5, t.gain * 1.1),
+              pan: (Math.random() * 2 - 1) * 0.5,
+            }
+          : t
+      )
+    );
 
-    const updated = this.musicManager.tracks().find(t => t.id === track.id);
+    const updated = this.musicManager.tracks().find((t) => t.id === track.id);
     if (updated) {
-        this.musicManager.engine.updateTrack(track.id, {
-            gain: updated.gain,
-            pan: updated.pan
-        });
+      this.musicManager.engine.updateTrack(track.id, {
+        gain: updated.gain,
+        pan: updated.pan,
+      });
     }
   }
 
@@ -138,7 +156,13 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
   }
 
   acceptChallenge(challenge: any) {
-    this.messages.update(m => [...m, { user: 'System', text: `Challenge Accepted: ${challenge.title}. Deploying workstation... ` }]);
+    this.messages.update((m) => [
+      ...m,
+      {
+        user: 'System',
+        text: `Challenge Accepted: ${challenge.title}. Deploying workstation... `,
+      },
+    ]);
     this.uiService.navigateToView('studio');
   }
 }

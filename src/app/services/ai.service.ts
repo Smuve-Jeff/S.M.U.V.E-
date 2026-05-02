@@ -1354,7 +1354,8 @@ export class AiService {
       'Fan Reaction Duet',
       'A-Capella to Full Beat Build-Up',
       'Mobile Translation Test (Car vs Phone)',
-      'One-Stop License Celebration',];
+      'One-Stop License Celebration',
+    ];
   }
 
   getProductionSecrets(): typeof PRODUCTION_SECRETS {
@@ -1364,8 +1365,6 @@ export class AiService {
   getIntelligenceBriefs(): typeof INTELLIGENCE_LIBRARY {
     return INTELLIGENCE_LIBRARY;
   }
-
-
 
   private handleOverrideCommand(): string {
     return '[SYSTEM_OVERRIDE] Security layers bypassed. High-priority neural execution enabled. Strategic Decrees now in mandatory execution mode.';
@@ -1421,17 +1420,16 @@ export class AiService {
   }
 
   toggleAIDrummer() {
-    this.isAIDrummerActive.update(v => !v);
+    this.isAIDrummerActive.update((v) => !v);
   }
 
   toggleAIBassist() {
-    this.isAIBassistActive.update(v => !v);
+    this.isAIBassistActive.update((v) => !v);
   }
 
   toggleAIKeyboardist() {
-    this.isAIKeyboardistActive.update(v => !v);
+    this.isAIKeyboardistActive.update((v) => !v);
   }
-
 
   async generateImage(prompt: string): Promise<string> {
     void prompt;
