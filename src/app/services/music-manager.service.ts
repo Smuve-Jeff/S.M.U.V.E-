@@ -418,7 +418,16 @@ export class MusicManagerService {
 
   clearTrack(trackId: number) {
     this.tracks.update((ts) =>
-      ts.map((t) => (t.id === trackId ? { ...t, notes: [] } : t))
+      ts.map((t) =>
+        t.id === trackId
+          ? {
+              ...t,
+              notes: [],
+              steps: new Array(64).fill(false),
+              stepVelocities: t.stepVelocities ?? new Array(64).fill(1),
+            }
+          : t
+      )
     );
   }
 

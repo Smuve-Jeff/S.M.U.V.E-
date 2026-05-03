@@ -97,6 +97,9 @@ const SAFE_COMP_RATIO = 3.1;
 const DENSE_TARGET_LUFS = -13.5;
 const DEFAULT_TARGET_LUFS = -14;
 const SAFE_LIMITER_CEILING = -0.1;
+const AI_CHORD_TRACK_NAME = 'AI Chords';
+const AI_BASS_TRACK_NAME = 'AI Bass';
+const AI_DRUM_TRACK_NAME = 'AI Drums';
 
 type RecommendationContext = {
   catalogDepth: number;
@@ -759,6 +762,26 @@ export class AiService {
       includeBass: true,
       includeDrums: true,
     });
+    this.musicManager.structure.set([
+      {
+        id: `ai-structure-${Date.now()}`,
+        name: 'Verse',
+        label: `${genre} Verse`,
+        start: 0,
+        startBar: 1,
+        length: 4,
+        color: '#EC5B13',
+      },
+    ]);
+    if (sectionPlan.chords) {
+      this.applyGeneratedChords(sectionPlan.chords);
+    }
+    if (sectionPlan.bass) {
+      this.applyGeneratedNotes('synth-bass', AI_BASS_TRACK_NAME, sectionPlan.bass);
+    }
+    if (sectionPlan.drums) {
+      this.applyGeneratedNotes('kit-studio', AI_DRUM_TRACK_NAME, sectionPlan.drums);
+    }
     return `Song structure generated for ${genre}: ${sectionPlan.section} scaffold ready with harmonic, bass, and drum layers.`;
   }
 
@@ -770,6 +793,7 @@ export class AiService {
       variation: 0.5,
       humanize: true,
     });
+    this.applyGeneratedChords(progression);
     return `Chord progression generated for ${genre} (${progression.length} blocks).`;
   }
 
@@ -891,6 +915,7 @@ export class AiService {
       variation: 0.45,
       humanize: true,
     });
+    this.applyGeneratedNotes('synth-bass', AI_BASS_TRACK_NAME, pattern);
     return `Bassline generated for ${genre} (${pattern.length} notes).`;
   }
 
@@ -934,6 +959,7 @@ export class AiService {
       humanize: true,
       energy: 0.7,
     });
+    this.applyGeneratedNotes('kit-studio', AI_DRUM_TRACK_NAME, hits);
     return `Drum pattern generated for ${style} (${hits.length} hits).`;
   }
 
@@ -1391,8 +1417,65 @@ export class AiService {
 
   private handleSplitsCommand(): string {
     const profile = this.userProfileService.profile();
-    const count = profile.financials.splitSheets.length;
+    const count = profile?.financials?.splitSheets?.length ?? 0;
     return `[LEGAL_INTEL] ${count} Digital Split Sheets detected. Navigation recommended to Executive Hub > Legal for signature verification.`;
+  }
+
+  private applyGeneratedChords(
+    progression: ReturnType<AiService['generateChordProgression']>
+  ): void {
+    this.musicManager.chords.set(
+      progression.map((chord, index) => ({
+        ...chord,
+        id: `ai-chord-${Date.now()}-${index}`,
+      }))
+    );
+
+    const chordNotes = progression.flatMap((chord) =>
+      chord.midi.map((midi) => ({
+        midi,
+        step: chord.startStep,
+        length: chord.length,
+        velocity: 0.82,
+      }))
+    );
+    this.applyGeneratedNotes('synth-pad', AI_CHORD_TRACK_NAME, chordNotes);
+  }
+
+  private applyGeneratedNotes(
+    presetId: string,
+    trackName: string,
+    notes: Array<{ midi: number; step: number; length: number; velocity: number }>
+  ): void {
+    const trackId = this.ensureGeneratedTrack(presetId, trackName);
+    for (const note of notes) {
+      this.musicManager.addNoteToTrack(trackId, {
+        midi: note.midi,
+        step: Math.max(0, Math.min(63, Math.round(note.step))),
+        length: Math.max(1, Math.round(note.length)),
+        velocity: Math.max(0.1, Math.min(1, note.velocity)),
+      });
+    }
+    this.musicManager.selectedTrackId.set(trackId);
+  }
+
+  private ensureGeneratedTrack(presetId: string, trackName: string): number {
+    const existingTrack = this.musicManager
+      .tracks()
+      .find((track) => track.name === trackName);
+    if (existingTrack) {
+      this.musicManager.clearTrack(existingTrack.id);
+      return existingTrack.id;
+    }
+
+    const trackId = this.musicManager.ensureTrack(presetId);
+    this.musicManager.tracks.update((tracks) =>
+      tracks.map((track) =>
+        track.id === trackId ? { ...track, name: trackName } : track
+      )
+    );
+    this.musicManager.engine.updateTrack(trackId, { name: trackName });
+    return trackId;
   }
 
   async startAIBassist(): Promise<void> {
