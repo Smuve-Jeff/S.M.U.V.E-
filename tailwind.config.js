@@ -5,6 +5,8 @@ export default {
   theme: {
     extend: {
       colors: {
+        "fl-blue": "#00f2ff",
+        "fl-blue-glow": "0 0 15px rgba(0, 242, 255, 0.4)",
         // S.M.U.V.E 2.0 Professional Palette (Explicit for JIT)
         primary: '#10b981',
         secondary: '#6366f1',

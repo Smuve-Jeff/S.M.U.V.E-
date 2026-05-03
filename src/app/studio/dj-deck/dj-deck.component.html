@@ -1,7 +1,7 @@
 <div class="dj-hud-container h-full flex flex-col overflow-hidden select-none">
   <!-- TOP STATUS HEADER -->
   <div
-    class="flex items-center justify-between px-6 py-4 bg-black/40 border-b border-white/5 backdrop-blur-xl"
+    class="flex items-center justify-between px-6 py-4 bg-black/40 border-b border-fl-border backdrop-blur-xl"
   >
     <div class="flex items-center gap-8">
       <div class="flex flex-col">
@@ -11,7 +11,7 @@
         >
         <div class="flex items-center gap-2">
           <div
-            class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"
+            class="w-2 h-2 rounded-full bg-fl-blue shadow-[0_0_10px_#10b981]"
           ></div>
           <span class="text-xs font-bold text-white uppercase tracking-tighter"
             >Uplink Active</span
@@ -39,7 +39,7 @@
         class="flex items-center gap-2 px-4 py-2 rounded-lg border transition-all"
         [class.bg-red-500/20]="recording()"
         [class.border-red-500/40]="recording()"
-        [class.border-white/10]="!recording()"
+        [class.border-fl-border]="!recording()"
         [class.hover:bg-white/5]="!recording()"
       >
         <div
@@ -85,7 +85,7 @@
     <div class="flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
       <!-- Deck A Header -->
       <div
-        class="hud-module p-4 flex justify-between items-center border-l-4 border-l-brand-primary"
+        class="hud-module p-4 flex justify-between items-center border-l-4 border-l-fl-blue"
       >
         <div class="flex flex-col gap-1">
           <span class="hud-label"
@@ -98,7 +98,7 @@
               <span class="text-[10px] text-slate-500">BPM</span></span
             >
             <div
-              class="px-2 py-0.5 rounded bg-brand-primary/20 text-brand-primary text-[8px] font-black uppercase tracking-widest border border-brand-primary/30"
+              class="px-2 py-0.5 rounded bg-fl-blue/20 text-fl-blue text-[8px] font-black uppercase tracking-widest border border-fl-blue/30"
             >
               {{ deckService.deckA().isPlaying ? 'Playing' : 'Stopped' }}
             </div>
@@ -107,13 +107,13 @@
         <div class="flex gap-2">
           <button
             (click)="loadTrackFor('A')"
-            class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+            class="w-10 h-10 rounded-lg bg-white/5 border border-fl-border flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
           >
             <i class="fas fa-plus"></i>
           </button>
           <button
             (click)="deckService.togglePlay('A')"
-            class="w-12 h-10 rounded-lg bg-brand-primary/20 border border-brand-primary/40 flex items-center justify-center text-brand-primary hover:bg-brand-primary/30 transition-all"
+            class="w-12 h-10 rounded-lg bg-fl-blue/20 border border-fl-blue/40 flex items-center justify-center text-fl-blue hover:bg-fl-blue/30 transition-all"
           >
             <i
               class="fas"
@@ -160,14 +160,14 @@
               ></div>
 
               <div
-                class="absolute inset-[30%] rounded-full bg-brand-primary/10 border border-brand-primary/30 backdrop-blur-md flex flex-col items-center justify-center text-center p-4"
+                class="absolute inset-[30%] rounded-full bg-fl-blue/10 border border-fl-blue/30 backdrop-blur-md flex flex-col items-center justify-center text-center p-4"
               >
                 <span
                   class="text-[9px] font-black text-white uppercase leading-tight line-clamp-2"
                   >{{ deckService.deckA().track?.name || 'Ready' }}</span
                 >
                 <div
-                  class="mt-2 w-1.5 h-1.5 rounded-full bg-brand-primary shadow-[0_0_10px_var(--color-primary)]"
+                  class="mt-2 w-1.5 h-1.5 rounded-full bg-fl-blue shadow-[0_0_10px_var(--color-primary)]"
                 ></div>
               </div>
             </div>
@@ -222,7 +222,7 @@
                 step="0.01"
                 [value]="deckService.deckA().eqHigh"
                 (input)="updateEq('A', 'high', $any($event.target).value)"
-                class="hud-slider-vertical h-24 accent-brand-primary"
+                class="hud-slider-vertical h-24 accent-fl-blue"
               />
               <span class="hud-label !text-[7px]">HI</span>
             </div>
@@ -234,7 +234,7 @@
                 step="0.01"
                 [value]="deckService.deckA().eqMid"
                 (input)="updateEq('A', 'mid', $any($event.target).value)"
-                class="hud-slider-vertical h-24 accent-brand-primary"
+                class="hud-slider-vertical h-24 accent-fl-blue"
               />
               <span class="hud-label !text-[7px]">MID</span>
             </div>
@@ -246,7 +246,7 @@
                 step="0.01"
                 [value]="deckService.deckA().eqLow"
                 (input)="updateEq('A', 'low', $any($event.target).value)"
-                class="hud-slider-vertical h-24 accent-brand-primary"
+                class="hud-slider-vertical h-24 accent-fl-blue"
               />
               <span class="hud-label !text-[7px]">LOW</span>
             </div>
@@ -279,9 +279,9 @@
                 step="0.01"
                 value="1"
                 (input)="setStemGain('A', 'vocals', $any($event.target).value)"
-                class="hud-slider-vertical h-24 accent-emerald-500"
+                class="hud-slider-vertical h-24 accent-fl-blue"
               />
-              <button (click)="setStemGain('A', 'vocals', 0)" class="w-5 h-5 rounded bg-black/40 border border-white/10 text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button (click)="setStemGain('A', 'vocals', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
               <span class="hud-label !text-[7px]">VOX</span>
             </div>
                         <div class="flex flex-col items-center gap-2">
@@ -292,9 +292,9 @@
                 step="0.01"
                 value="1"
                 (input)="setStemGain('A', 'drums', $any($event.target).value)"
-                class="hud-slider-vertical h-24 accent-emerald-500"
+                class="hud-slider-vertical h-24 accent-fl-blue"
               />
-              <button (click)="setStemGain('A', 'drums', 0)" class="w-5 h-5 rounded bg-black/40 border border-white/10 text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button (click)="setStemGain('A', 'drums', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
               <span class="hud-label !text-[7px]">DRM</span>
             </div>
                         <div class="flex flex-col items-center gap-2">
@@ -305,9 +305,9 @@
                 step="0.01"
                 value="1"
                 (input)="setStemGain('A', 'bass', $any($event.target).value)"
-                class="hud-slider-vertical h-24 accent-emerald-500"
+                class="hud-slider-vertical h-24 accent-fl-blue"
               />
-              <button (click)="setStemGain('A', 'bass', 0)" class="w-5 h-5 rounded bg-black/40 border border-white/10 text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button (click)="setStemGain('A', 'bass', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
               <span class="hud-label !text-[7px]">BAS</span>
             </div>
                         <div class="flex flex-col items-center gap-2">
@@ -318,9 +318,9 @@
                 step="0.01"
                 value="1"
                 (input)="setStemGain('A', 'melody', $any($event.target).value)"
-                class="hud-slider-vertical h-24 accent-emerald-500"
+                class="hud-slider-vertical h-24 accent-fl-blue"
               />
-              <button (click)="setStemGain('A', 'melody', 0)" class="w-5 h-5 rounded bg-black/40 border border-white/10 text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button (click)="setStemGain('A', 'melody', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
               <span class="hud-label !text-[7px]">MEL</span>
             </div>
           </div>
@@ -333,12 +333,12 @@
           <span class="hud-label">Performance Matrix</span>
           <div class="flex gap-2">
             <button
-              class="px-3 py-1 rounded bg-brand-primary/10 border border-brand-primary/20 text-[8px] font-black text-brand-primary uppercase"
+              class="px-3 py-1 rounded bg-fl-blue/10 border border-fl-blue/20 text-[8px] font-black text-fl-blue uppercase"
             >
               CUES
             </button>
             <button
-              class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[8px] font-black text-slate-500 uppercase"
+              class="px-3 py-1 rounded bg-white/5 border border-fl-border text-[8px] font-black text-slate-500 uppercase"
             >
               ROLL
             </button>
@@ -347,9 +347,9 @@
         <div class="grid grid-cols-4 gap-2">
           @for (pad of [0, 1, 2, 3, 4, 5, 6, 7]; track pad) {
             <button
-              class="h-16 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all hover:bg-white/10 active:scale-95"
-              [class.border-brand-primary/40]="isCuePadSet('A', pad)"
-              [class.bg-brand-primary/20]="isCuePadSet('A', pad)"
+              class="h-16 rounded-lg bg-white/5 border border-fl-border flex flex-col items-center justify-center gap-1 transition-all hover:bg-white/10 active:scale-95"
+              [class.border-fl-blue/40]="isCuePadSet('A', pad)"
+              [class.bg-fl-blue/20]="isCuePadSet('A', pad)"
               (click)="handlePadPress('A', pad)"
             >
               <span class="text-[8px] font-black text-slate-500">{{
@@ -373,7 +373,7 @@
           @for (bar of [0, 1, 2, 3, 4, 5, 6, 7]; track bar) {
             <div class="w-4 bg-white/5 rounded-full relative overflow-hidden">
               <div
-                class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-brand-primary via-brand-secondary to-white transition-all duration-75"
+                class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-fl-blue via-brand-secondary to-white transition-all duration-75"
                 [style.height.%]="getDeckLevel('A') * 100 + bar * 5"
               ></div>
             </div>
@@ -404,7 +404,7 @@
           <span class="hud-label neon-accent-secondary">DECK B</span>
         </div>
         <div
-          class="w-full relative h-12 bg-black/40 rounded-xl border border-white/5 flex items-center px-4 overflow-hidden"
+          class="w-full relative h-12 bg-black/40 rounded-xl border border-fl-border flex items-center px-4 overflow-hidden"
         >
           <div class="absolute inset-y-0 left-1/2 w-0.5 bg-white/10"></div>
           <input
@@ -427,9 +427,9 @@
         <div class="flex gap-4">
           <button
             (click)="deckService.hamster.set(!deckService.hamster())"
-            class="px-4 py-2 rounded bg-white/5 border border-white/10 text-[8px] font-black uppercase tracking-widest transition-all"
-            [class.text-brand-primary]="deckService.hamster()"
-            [class.border-brand-primary/40]="deckService.hamster()"
+            class="px-4 py-2 rounded bg-white/5 border border-fl-border text-[8px] font-black uppercase tracking-widest transition-all"
+            [class.text-fl-blue]="deckService.hamster()"
+            [class.border-fl-blue/40]="deckService.hamster()"
           >
             Hamster: {{ deckService.hamster() ? 'ON' : 'OFF' }}
           </button>
@@ -440,10 +440,10 @@
       <div class="hud-module p-4 flex flex-col gap-3">
         <span class="hud-label">Strategic Intelligence</span>
         <div
-          class="p-3 bg-brand-primary/5 border border-brand-primary/20 rounded-lg"
+          class="p-3 bg-fl-blue/5 border border-fl-blue/20 rounded-lg"
         >
           <p
-            class="text-[10px] font-bold text-brand-primary leading-relaxed uppercase tracking-tight italic"
+            class="text-[10px] font-bold text-fl-blue leading-relaxed uppercase tracking-tight italic"
           >
             "{{
               sessionNotice() ||
@@ -473,7 +473,7 @@
           </button>
           <button
             (click)="loadTrackFor('B')"
-            class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+            class="w-10 h-10 rounded-lg bg-white/5 border border-fl-border flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
           >
             <i class="fas fa-plus"></i>
           </button>
@@ -597,7 +597,7 @@
                 (input)="setStemGain('B', 'vocals', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-brand-secondary"
               />
-              <button (click)="setStemGain('B', 'vocals', 0)" class="w-5 h-5 rounded bg-black/40 border border-white/10 text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button (click)="setStemGain('B', 'vocals', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
               <span class="hud-label !text-[7px]">VOX</span>
             </div>
                         <div class="flex flex-col items-center gap-2">
@@ -610,7 +610,7 @@
                 (input)="setStemGain('B', 'drums', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-brand-secondary"
               />
-              <button (click)="setStemGain('B', 'drums', 0)" class="w-5 h-5 rounded bg-black/40 border border-white/10 text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button (click)="setStemGain('B', 'drums', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
               <span class="hud-label !text-[7px]">DRM</span>
             </div>
                         <div class="flex flex-col items-center gap-2">
@@ -623,7 +623,7 @@
                 (input)="setStemGain('B', 'bass', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-brand-secondary"
               />
-              <button (click)="setStemGain('B', 'bass', 0)" class="w-5 h-5 rounded bg-black/40 border border-white/10 text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button (click)="setStemGain('B', 'bass', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
               <span class="hud-label !text-[7px]">BAS</span>
             </div>
                         <div class="flex flex-col items-center gap-2">
@@ -636,7 +636,7 @@
                 (input)="setStemGain('B', 'melody', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-brand-secondary"
               />
-              <button (click)="setStemGain('B', 'melody', 0)" class="w-5 h-5 rounded bg-black/40 border border-white/10 text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button (click)="setStemGain('B', 'melody', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
               <span class="hud-label !text-[7px]">MEL</span>
             </div>
           </div>
@@ -711,7 +711,7 @@
               CUES
             </button>
             <button
-              class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[8px] font-black text-slate-500 uppercase"
+              class="px-3 py-1 rounded bg-white/5 border border-fl-border text-[8px] font-black text-slate-500 uppercase"
             >
               ROLL
             </button>
@@ -720,7 +720,7 @@
         <div class="grid grid-cols-4 gap-2">
           @for (pad of [0, 1, 2, 3, 4, 5, 6, 7]; track pad) {
             <button
-              class="h-16 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all hover:bg-white/10 active:scale-95"
+              class="h-16 rounded-lg bg-white/5 border border-fl-border flex flex-col items-center justify-center gap-1 transition-all hover:bg-white/10 active:scale-95"
               [class.border-brand-secondary/40]="isCuePadSet('B', pad)"
               [class.bg-brand-secondary/20]="isCuePadSet('B', pad)"
               (click)="handlePadPress('B', pad)"
@@ -741,7 +741,7 @@
   <!-- FOOTER MINI MAP / PROGRESS -->
   <div class="grid grid-cols-2 h-1 bg-white/5">
     <div
-      class="h-full bg-brand-primary transition-all duration-300"
+      class="h-full bg-fl-blue transition-all duration-300"
       [style.width.%]="deckProgressPercent('A') * 100"
     ></div>
     <div
