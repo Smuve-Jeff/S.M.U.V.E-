@@ -424,7 +424,7 @@ export class MusicManagerService {
               ...t,
               notes: [],
               steps: new Array(64).fill(false),
-              stepVelocities: t.stepVelocities ?? new Array(64).fill(1),
+              stepVelocities: new Array(64).fill(1),
             }
           : t
       )
