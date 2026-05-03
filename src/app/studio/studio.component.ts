@@ -46,7 +46,7 @@ const PATH_STUDIO_VIEWS = new Set<StudioView>([
 ]);
 
 function isStudioView(value: string): value is StudioView {
-  return PATH_STUDIO_VIEWS.has(value as StudioView);
+  return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
 }
 
 @Component({
