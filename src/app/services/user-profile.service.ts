@@ -132,7 +132,7 @@ export class UserProfileService {
   private maxEventHistory = 50;
 
   constructor() {
-    if (!(typeof process !== 'undefined' && !!process.env.JEST_WORKER_ID)) {
+    if (typeof process === 'undefined' || !process.env.JEST_WORKER_ID) {
       setTimeout(() => void this.loadProfile(), 0);
     }
   }

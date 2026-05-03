@@ -135,6 +135,13 @@ const isValidEmail = (email = '') => {
   return true;
 };
 
+const sendServerError = (res, err) => {
+  console.error('Internal Server Error:', err);
+  res.status(500).json({
+    error: 'Strategic anomaly detected. Secure operations compromised.',
+  });
+};
+
 const parseBoolean = (value, fallback = false) => {
   if (value === undefined) {
     return fallback;
@@ -260,10 +267,7 @@ app.get(
         res.status(404).json({ error: 'Profile not found' });
       }
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );
@@ -280,10 +284,7 @@ app.post('/api/profile', authenticateToken, authorizeUser, async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
-    console.error('Internal Server Error:', err);
-    res.status(500).json({
-      error: 'Strategic anomaly detected. Secure operations compromised.',
-    });
+    sendServerError(res, err);
   }
 });
 
@@ -321,10 +322,7 @@ app.get(
       );
       res.json(rows);
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );
@@ -345,10 +343,7 @@ app.post(
       );
       res.json({ success: true });
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );
@@ -366,10 +361,7 @@ app.get(
       );
       res.json(rows);
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );
@@ -390,10 +382,7 @@ app.post(
       );
       res.json({ success: true });
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );
@@ -424,10 +413,7 @@ app.delete(
       ]);
       return res.json({ success: true });
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      return res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      return sendServerError(res, err);
     }
   }
 );
@@ -444,10 +430,7 @@ app.delete(
       ]);
       res.json({ success: true });
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );
@@ -568,10 +551,7 @@ app.get(
       );
       res.json(rows);
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );
@@ -597,10 +577,7 @@ app.post(
       );
       res.json({ success: true });
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );
@@ -627,10 +604,7 @@ app.get(
         updatedAt: rows[0].updated_at,
       });
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      return res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      return sendServerError(res, err);
     }
   }
 );
@@ -651,10 +625,7 @@ app.post(
       );
       res.json({ success: true });
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );
@@ -672,10 +643,7 @@ app.get(
       );
       res.json(rows);
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );
@@ -701,10 +669,7 @@ app.post(
 
       res.json({ success: true, jobId, status: 'queued' });
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );
@@ -726,10 +691,7 @@ app.post(
       });
       res.json({ text: response.text });
     } catch (err) {
-      console.error('Internal Server Error:', err);
-      res.status(500).json({
-        error: 'Strategic anomaly detected. Secure operations compromised.',
-      });
+      sendServerError(res, err);
     }
   }
 );

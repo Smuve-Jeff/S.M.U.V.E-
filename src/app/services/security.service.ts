@@ -299,9 +299,6 @@ export class SecurityService {
       return '';
     }
   }
-  incrementRateLimit(key: string): void {
-    this.recordAttempt(key);
-  }
   isValidRedirectUrl(url: string): boolean {
     if (!url) return false;
 
