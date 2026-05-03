@@ -39,6 +39,23 @@
   isolation: isolate;
 }
 
+/* Quality-mode overrides — toggled by studioQualityClass() */
+.studio-container.studio-quality-performance {
+  --studio-glow-primary: 0.06;
+  --studio-glow-secondary: 0.04;
+  --studio-grid-opacity: 0.35;
+  --studio-surface-shadow: 0 12px 24px rgba(0, 0, 0, 0.6);
+  --studio-topbar-blur: 8px;
+}
+
+.studio-container.studio-quality-ultra {
+  --studio-glow-primary: 0.22;
+  --studio-glow-secondary: 0.15;
+  --studio-grid-opacity: 0.8;
+  --studio-surface-shadow: 0 28px 60px rgba(0, 0, 0, 0.9);
+  --studio-topbar-blur: 28px;
+}
+
 /* FL-Style Sidebar */
 .fl-sidebar {
   width: 64px;
