@@ -200,6 +200,21 @@ export class AuthService {
     localStorage.removeItem('smuve_auth_session');
   }
 
+  private updateStoredUser(user: AuthUser): void {
+    const encryptedUserData = localStorage.getItem(
+      this.getUserStorageKey(user.email)
+    );
+    if (!encryptedUserData) return;
+    const userData = this.decrypt(encryptedUserData);
+    if (!userData) return;
+    const parsed = JSON.parse(userData);
+    parsed.user = user;
+    localStorage.setItem(
+      this.getUserStorageKey(user.email),
+      this.encrypt(JSON.stringify(parsed))
+    );
+  }
+
   private secureRandomHex(byteLength: number): string {
     const bytes = new Uint8Array(byteLength);
     crypto.getRandomValues(bytes);
@@ -458,9 +473,6 @@ export class AuthService {
         this.encrypt(JSON.stringify({ user, passwordHash }))
       );
 
-      const sessionId = this.generateSecureId('sess');
-      void sessionId;
-
       await this.securityService.logEvent(
         'LOGIN_SUCCESS',
         `Artist ${user.artistName} logged in successfully.`,
@@ -495,22 +507,7 @@ export class AuthService {
 
       this._currentUser.set({ ...user });
       this.saveSession(user);
-
-      // Update stored user data
-      const encryptedUserData = localStorage.getItem(
-        this.getUserStorageKey(user.email)
-      );
-      if (encryptedUserData) {
-        const userData = this.decrypt(encryptedUserData);
-        if (userData) {
-          const parsed = JSON.parse(userData);
-          parsed.user = user;
-          localStorage.setItem(
-            this.getUserStorageKey(user.email),
-            this.encrypt(JSON.stringify(parsed))
-          );
-        }
-      }
+      this.updateStoredUser(user);
 
       await this.securityService.logEvent(
         'EMAIL_VERIFIED',
@@ -535,26 +532,11 @@ export class AuthService {
 
     user.verificationCode = (100000 + this.secureRandomInt(900000)).toString();
     this._currentUser.set({ ...user });
-
-    // Update stored user data
-    const encryptedUserData = localStorage.getItem(
-      this.getUserStorageKey(user.email)
-    );
-    if (encryptedUserData) {
-      const userData = this.decrypt(encryptedUserData);
-      if (userData) {
-        const parsed = JSON.parse(userData);
-        parsed.user = user;
-        localStorage.setItem(
-          this.getUserStorageKey(user.email),
-          this.encrypt(JSON.stringify(parsed))
-        );
-      }
-    }
+    this.updateStoredUser(user);
 
     this.logger.info(
       `[MOCK EMAIL] Verification code for ${user.email}: ${user.verificationCode}`
-    );
+
     return { success: true, message: 'New verification code transmitted.' };
   }
 
