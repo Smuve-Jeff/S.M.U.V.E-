@@ -777,10 +777,18 @@ export class AiService {
       this.applyGeneratedChords(sectionPlan.chords);
     }
     if (sectionPlan.bass) {
-      this.applyGeneratedNotes('synth-bass', AI_BASS_TRACK_NAME, sectionPlan.bass);
+      this.applyGeneratedNotes(
+        'synth-bass',
+        AI_BASS_TRACK_NAME,
+        sectionPlan.bass
+      );
     }
     if (sectionPlan.drums) {
-      this.applyGeneratedNotes('kit-studio', AI_DRUM_TRACK_NAME, sectionPlan.drums);
+      this.applyGeneratedNotes(
+        'kit-studio',
+        AI_DRUM_TRACK_NAME,
+        sectionPlan.drums
+      );
     }
     return `Song structure generated for ${genre}: ${sectionPlan.section} scaffold ready with harmonic, bass, and drum layers.`;
   }
@@ -1445,7 +1453,12 @@ export class AiService {
   private applyGeneratedNotes(
     presetId: string,
     trackName: string,
-    notes: Array<{ midi: number; step: number; length: number; velocity: number }>
+    notes: Array<{
+      midi: number;
+      step: number;
+      length: number;
+      velocity: number;
+    }>
   ): void {
     const trackId = this.ensureGeneratedTrack(presetId, trackName);
     for (const note of notes) {

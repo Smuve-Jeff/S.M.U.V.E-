@@ -247,8 +247,9 @@ describe('AiService', () => {
 
     expect(bassResponse.toLowerCase()).toContain('generated');
     expect(drumResponse.toLowerCase()).toContain('generated');
-    expect(musicManagerMock.tracks().find((t: any) => t.name === 'AI Bass')?.notes)
-      .toHaveLength(8);
+    expect(
+      musicManagerMock.tracks().find((t: any) => t.name === 'AI Bass')?.notes
+    ).toHaveLength(8);
     expect(
       musicManagerMock.tracks().find((t: any) => t.name === 'AI Drums')?.notes
         .length
@@ -257,7 +258,9 @@ describe('AiService', () => {
 
   it('applies generated chord and structure commands into music manager state', async () => {
     const chordResponse = await service.processCommand('/generate_chords');
-    const structureResponse = await service.processCommand('/generate_structure');
+    const structureResponse = await service.processCommand(
+      '/generate_structure'
+    );
 
     expect(chordResponse.toLowerCase()).toContain('generated');
     expect(structureResponse.toLowerCase()).toContain('structure');
