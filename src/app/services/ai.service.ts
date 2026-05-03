@@ -1464,8 +1464,8 @@ export class AiService {
     for (const note of notes) {
       this.musicManager.addNoteToTrack(trackId, {
         midi: note.midi,
-        step: Math.max(0, Math.min(63, Math.round(note.step))),
-        length: Math.max(1, Math.round(note.length)),
+        step: Math.max(0, Math.min(63, note.step)),
+        length: Math.max(1, note.length),
         velocity: Math.max(0.1, Math.min(1, note.velocity)),
       });
     }
