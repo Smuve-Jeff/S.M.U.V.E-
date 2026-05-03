@@ -1,5 +1,5 @@
 <div
-  class="min-h-screen bg-vocal-obsidian text-slate-100 font-sans selection:bg-vocal-brand-primary/30 flex flex-col relative overflow-hidden"
+  class="min-h-screen bg-vocal-obsidian text-slate-100 font-sans selection:bg-vocal-fl-blue/30 flex flex-col relative overflow-hidden"
 >
   <!-- Dynamic HUD Background -->
   <div class="absolute inset-0 pointer-events-none opacity-20">
@@ -13,7 +13,7 @@
 
   <!-- Header Navigation -->
   <header
-    class="h-16 border-b border-white/10 flex items-center justify-between px-8 bg-vocal-obsidian/80 backdrop-blur-xl z-20 sticky top-0"
+    class="h-16 border-b border-fl-border flex items-center justify-between px-8 bg-vocal-obsidian/80 backdrop-blur-xl z-20 sticky top-0"
   >
     <div class="flex items-center gap-6">
       <div class="flex flex-col">
@@ -36,7 +36,7 @@
         </div>
       </div>
 
-      <nav class="flex bg-white/5 rounded-lg p-1 border border-white/10 ml-4">
+      <nav class="flex bg-white/5 rounded-lg p-1 border border-fl-border ml-4">
         <button
           (click)="viewMode.set('pipeline')"
           [class.bg-vocal-primary]="viewMode() === 'pipeline'"
@@ -59,11 +59,11 @@
     <div class="flex items-center gap-4">
       <!-- S.M.U.V.E. Mini HUD -->
       <div
-        class="bg-vocal-titanium/40 border border-vocal-brand-primary/20 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer hover:border-vocal-primary transition-all"
+        class="bg-vocal-titanium/40 border border-vocal-fl-blue/20 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer hover:border-vocal-primary transition-all"
         (click)="vocalAi.toggleFeedbackMode()"
       >
         <div
-          class="size-8 rounded-full bg-vocal-brand-primary/10 border border-vocal-primary flex items-center justify-center"
+          class="size-8 rounded-full bg-vocal-fl-blue/10 border border-vocal-primary flex items-center justify-center"
         >
           <span
             class="material-symbols-outlined text-vocal-primary text-sm"
@@ -79,7 +79,7 @@
             >Guidance:
             {{ vocalAi.isPassiveMode() ? 'Passive' : 'Inclusive' }}</span
           >
-          <span class="text-[10px] font-mono text-emerald-400"
+          <span class="text-[10px] font-mono text-fl-blue"
             >Neural Intelligence Active</span
           >
         </div>
@@ -96,8 +96,8 @@
           *ngFor="let s of ['setup', 'record', 'edit', 'master']"
           (click)="setStep(s)"
           [class.border-vocal-primary]="currentStep() === s"
-          [class.bg-vocal-brand-primary/10]="currentStep() === s"
-          class="border border-white/5 rounded-xl p-4 transition-all hover:bg-white/5 group text-left"
+          [class.bg-vocal-fl-blue/10]="currentStep() === s"
+          class="border border-fl-border rounded-xl p-4 transition-all hover:bg-white/5 group text-left"
         >
           <div class="flex items-center gap-3">
             <span
@@ -118,7 +118,7 @@
       <!-- Step Content: Setup -->
       <div
         *ngIf="currentStep() === 'setup'"
-        class="bg-vocal-titanium/20 border border-white/5 rounded-2xl p-8 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-500"
+        class="bg-vocal-titanium/20 border border-fl-border rounded-2xl p-8 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-500"
       >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
           <div class="space-y-8">
@@ -137,23 +137,23 @@
 
             <button
               (click)="setStep('record')"
-              class="w-full py-4 bg-vocal-primary text-white font-black uppercase tracking-widest rounded-xl hover:bg-vocal-brand-primary/80 transition-all shadow-[0_0_20px_rgba(157,0,255,0.3)]"
+              class="w-full py-4 bg-vocal-primary text-white font-black uppercase tracking-widest rounded-xl hover:bg-vocal-fl-blue/80 transition-all shadow-[0_0_20px_rgba(157,0,255,0.3)]"
             >
               Begin Strategic Capture
             </button>
           </div>
 
           <div
-            class="bg-vocal-oled rounded-2xl border border-white/10 p-6 flex flex-col items-center justify-center relative group overflow-hidden"
+            class="bg-vocal-oled rounded-2xl border border-fl-border p-6 flex flex-col items-center justify-center relative group overflow-hidden"
           >
             <div
-              class="absolute inset-0 bg-gradient-to-t from-vocal-brand-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+              class="absolute inset-0 bg-gradient-to-t from-vocal-fl-blue/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
             ></div>
             <div
-              class="size-48 rounded-full border-2 border-dashed border-vocal-brand-primary/20 flex items-center justify-center relative animate-[spin_20s_linear_infinite]"
+              class="size-48 rounded-full border-2 border-dashed border-vocal-fl-blue/20 flex items-center justify-center relative animate-[spin_20s_linear_infinite]"
             >
               <div
-                class="size-40 rounded-full border-2 border-vocal-brand-primary/40 flex items-center justify-center animate-[spin_10s_linear_infinite_reverse]"
+                class="size-40 rounded-full border-2 border-vocal-fl-blue/40 flex items-center justify-center animate-[spin_10s_linear_infinite_reverse]"
               ></div>
             </div>
             <div
@@ -178,7 +178,7 @@
         class="space-y-6 animate-in fade-in zoom-in-95 duration-500"
       >
         <div
-          class="bg-vocal-titanium/20 border border-white/10 rounded-3xl p-8 backdrop-blur-xl relative overflow-hidden"
+          class="bg-vocal-titanium/20 border border-fl-border rounded-3xl p-8 backdrop-blur-xl relative overflow-hidden"
         >
           <div class="absolute top-0 right-0 p-8 flex flex-col items-end gap-1">
             <span
@@ -193,7 +193,7 @@
           </div>
 
           <div
-            class="h-64 mb-8 bg-vocal-oled rounded-2xl border border-white/5 relative flex items-center justify-center overflow-hidden"
+            class="h-64 mb-8 bg-vocal-oled rounded-2xl border border-fl-border relative flex items-center justify-center overflow-hidden"
           >
             <canvas
               #spectrograph
@@ -209,7 +209,7 @@
           <div class="flex justify-center gap-8 items-center">
             <button
               (click)="toggleRecording()"
-              [class.bg-rose-600]="micService.isRecording()"
+              [class.bg-fl-blue]="micService.isRecording()"
               class="size-20 rounded-full bg-vocal-primary flex items-center justify-center shadow-[0_0_30px_rgba(157,0,255,0.4)] hover:scale-105 transition-all"
             >
               <span class="material-symbols-outlined text-4xl text-white">{{
@@ -244,12 +244,12 @@
 
       <!-- Step Content: Edit -->
       <div *ngIf="currentStep() === 'edit'" class="space-y-6">
-        <div class="bg-vocal-titanium/20 border border-white/5 rounded-2xl p-8">
+        <div class="bg-vocal-titanium/20 border border-fl-border rounded-2xl p-8">
           <h2 class="text-xl font-black uppercase tracking-widest mb-6">
             Non-Destructive Waveform Editor
           </h2>
           <div
-            class="h-48 bg-vocal-oled rounded-xl border border-white/5 mb-6 relative overflow-hidden group"
+            class="h-48 bg-vocal-oled rounded-xl border border-fl-border mb-6 relative overflow-hidden group"
           >
             <canvas
               #waveformCanvas
@@ -263,12 +263,12 @@
           </div>
           <div class="flex gap-4">
             <button
-              class="px-4 py-2 bg-white/5 border border-white/10 rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
+              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
             >
               Normalize
             </button>
             <button
-              class="px-4 py-2 bg-white/5 border border-white/10 rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
+              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
             >
               Trim Silence
             </button>
@@ -290,7 +290,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div class="lg:col-span-2 space-y-6">
             <div
-              class="bg-vocal-titanium/20 border border-white/10 rounded-2xl p-6"
+              class="bg-vocal-titanium/20 border border-fl-border rounded-2xl p-6"
             >
               <div class="flex gap-4 mb-8">
                 <button
@@ -298,7 +298,7 @@
                   (click)="activeMasteringTab.set(t)"
                   [class.border-vocal-primary]="activeMasteringTab() === t"
                   [class.text-vocal-primary]="activeMasteringTab() === t"
-                  class="px-6 py-2 border border-white/5 bg-white/5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:border-vocal-primary transition-all"
+                  class="px-6 py-2 border border-fl-border bg-white/5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:border-vocal-primary transition-all"
                 >
                   {{ t }}
                 </button>
@@ -408,7 +408,7 @@
                   >Settings</span
                 >
                 Advanced Parameters Integrated into Global Neural Chain
-            <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-vocal-primary/30 transition-all">
+            <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-fl-border group hover:border-vocal-primary/30 transition-all">
               <div class="flex flex-col">
                 <span class="text-[10px] font-black text-white uppercase tracking-widest">Neural De-Esser</span>
                 <span class="text-[8px] text-slate-500 uppercase font-bold mt-1">AI Sibilance Reduction</span>
@@ -425,7 +425,7 @@
           <!-- Mastering Intel Sidebar -->
           <div class="space-y-6">
             <div
-              class="bg-vocal-oled/80 border border-vocal-brand-primary/30 rounded-2xl p-6 backdrop-blur-xl"
+              class="bg-vocal-oled/80 border border-vocal-fl-blue/30 rounded-2xl p-6 backdrop-blur-xl"
             >
               <h3
                 class="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2"
@@ -441,7 +441,7 @@
                   *ngFor="let item of vocalAi.vocalIntel()"
                   class="p-3 bg-white/5 rounded-lg border-l-2 transition-all animate-in slide-in-from-right-2"
                   [class.border-vocal-primary]="item.type === 'technical'"
-                  [class.border-emerald-500]="item.type === 'market'"
+                  [class.border-fl-blue]="item.type === 'market'"
                 >
                   <p
                     class="text-[10px] text-slate-300 leading-relaxed font-mono uppercase tracking-tighter"
@@ -462,7 +462,7 @@
 
             <button
               (click)="downloadRecording()"
-              class="w-full py-4 bg-emerald-600 text-white font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 transition-all flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+              class="w-full py-4 bg-emerald-600 text-white font-black uppercase tracking-widest rounded-xl hover:bg-fl-blue transition-all flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
             >
               <span class="material-symbols-outlined">export_notes</span>
               Finalize & Export
@@ -479,10 +479,10 @@
     >
       <div class="grid grid-cols-12 gap-6 flex-1">
         <div
-          class="col-span-12 lg:col-span-8 bg-vocal-titanium/20 border border-white/10 rounded-3xl p-6 flex flex-col gap-6"
+          class="col-span-12 lg:col-span-8 bg-vocal-titanium/20 border border-fl-border rounded-3xl p-6 flex flex-col gap-6"
         >
           <div
-            class="h-80 bg-vocal-oled rounded-2xl border border-white/5 relative overflow-hidden"
+            class="h-80 bg-vocal-oled rounded-2xl border border-fl-border relative overflow-hidden"
           >
             <canvas
               #spectrograph
@@ -509,21 +509,21 @@
             <div class="flex gap-4">
               <button
                 (click)="toggleRecording()"
-                class="px-8 py-3 bg-rose-600 rounded-xl text-white font-black uppercase tracking-widest text-[10px] shadow-[0_0_20px_rgba(225,29,72,0.3)] hover:scale-105 transition-all"
+                class="px-8 py-3 bg-fl-blue rounded-xl text-white font-black uppercase tracking-widest text-[10px] shadow-[0_0_20px_rgba(225,29,72,0.3)] hover:scale-105 transition-all"
               >
                 {{
                   micService.isRecording() ? 'Stop Engine' : 'Ignite Capture'
                 }}
               </button>
               <button
-                class="px-8 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all"
+                class="px-8 py-3 bg-white/5 border border-fl-border rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all"
               >
                 Monitor
               </button>
             </div>
             <div class="flex gap-8">
               <div class="flex flex-col items-end">
-                <span class="text-xs font-mono text-emerald-400 font-bold"
+                <span class="text-xs font-mono text-fl-blue font-bold"
                   >-2.1dB</span
                 >
                 <span class="text-[8px] font-bold text-slate-500 uppercase"
@@ -544,7 +544,7 @@
 
         <div class="col-span-12 lg:col-span-4 space-y-6">
           <div
-            class="bg-vocal-obsidian border border-vocal-brand-primary/20 rounded-3xl p-6 h-full flex flex-col shadow-2xl"
+            class="bg-vocal-obsidian border border-vocal-fl-blue/20 rounded-3xl p-6 h-full flex flex-col shadow-2xl"
           >
             <h3
               class="text-xs font-black uppercase tracking-[0.3em] text-slate-500 mb-8 flex items-center gap-2"
@@ -611,7 +611,7 @@
               </div>
 
               <div
-                class="bg-vocal-brand-primary/5 rounded-xl p-4 border border-vocal-brand-primary/10 animate-pulse"
+                class="bg-vocal-fl-blue/5 rounded-xl p-4 border border-vocal-fl-blue/10 animate-pulse"
                 *ngIf="!vocalAi.isPassiveMode()"
               >
                 <p
@@ -625,7 +625,7 @@
 
             <button
               (click)="downloadRecording()"
-              class="w-full py-4 mt-8 bg-vocal-primary rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-vocal-brand-primary/80 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+              class="w-full py-4 mt-8 bg-vocal-primary rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-vocal-fl-blue/80 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"
             >
               Instant Export
             </button>
@@ -637,11 +637,11 @@
 
   <!-- Status Bar -->
   <footer
-    class="h-10 bg-vocal-obsidian border-t border-white/5 flex items-center justify-between px-8 text-[10px] font-mono text-slate-500 uppercase tracking-widest z-20"
+    class="h-10 bg-vocal-obsidian border-t border-fl-border flex items-center justify-between px-8 text-[10px] font-mono text-slate-500 uppercase tracking-widest z-20"
   >
     <div class="flex gap-6 items-center">
       <span class="flex items-center gap-2">
-        <span class="size-2 rounded-full bg-emerald-500"></span>
+        <span class="size-2 rounded-full bg-fl-blue"></span>
         96.0kHz / 32-BIT FLOAT
       </span>
       <span class="text-slate-800">|</span>
@@ -652,7 +652,7 @@
       <div class="h-4 w-[1px] bg-white/10"></div>
       <div class="flex items-center gap-2">
         <span class="text-slate-400">Latency:</span>
-        <span class="text-emerald-400">1.2ms</span>
+        <span class="text-fl-blue">1.2ms</span>
       </div>
     </div>
   </footer>

@@ -8,9 +8,9 @@ import { UserProfileService } from '../../services/user-profile.service';
   imports: [CommonModule],
   template: `
     <div
-      class="knowledge-base-container glass-card p-6 animate__animated animate__fadeIn"
+      class="knowledge-base-container glass-v42 shadow-v42-xl p-6 animate__animated animate__fadeIn"
     >
-      <header class="mb-8 border-b border-emerald-500/30 pb-4">
+      <header class="mb-8 border-b border-fl-blue/30 pb-4">
         <h1 class="text-3xl font-bold text-emerald-400">
           NEURAL KNOWLEDGE VAULT
           <span class="text-xs text-emerald-500/50">[SECURE ACCESS]</span>
@@ -22,7 +22,7 @@ import { UserProfileService } from '../../services/user-profile.service';
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
         <section
-          class="vault-section glass-card p-4 border-l-2 border-purple-500"
+          class="vault-section glass-v42 shadow-v42-xl p-4 border-l-2 border-fl-blue"
         >
           <h2 class="text-xl font-bold text-purple-400 mb-4 flex items-center">
             <span class="material-symbols-outlined mr-2">psychology</span>
@@ -41,7 +41,7 @@ import { UserProfileService } from '../../services/user-profile.service';
               track style.id
             ) {
               <div
-                class="p-3 bg-slate-900/50 rounded border border-purple-500/20"
+                class="p-3 bg-slate-900/50 rounded border border-fl-blue/20"
               >
                 <div class="font-bold text-purple-300">{{ style.name }}</div>
                 <p class="text-sm text-slate-400">{{ style.description }}</p>
@@ -51,7 +51,7 @@ import { UserProfileService } from '../../services/user-profile.service';
         </section>
 
         <section
-          class="vault-section glass-card p-4 border-l-2 border-emerald-500"
+          class="vault-section glass-v42 shadow-v42-xl p-4 border-l-2 border-fl-blue"
         >
           <h2 class="text-xl font-bold text-emerald-400 mb-4 flex items-center">
             <span class="material-symbols-outlined mr-2">security</span>
@@ -70,7 +70,7 @@ import { UserProfileService } from '../../services/user-profile.service';
               track secret.id
             ) {
               <div
-                class="p-3 bg-slate-900/50 rounded border border-emerald-500/20"
+                class="p-3 bg-slate-900/50 rounded border border-fl-blue/20"
               >
                 <div class="font-bold text-emerald-300">{{ secret.title }}</div>
                 <p class="text-sm text-slate-400">{{ secret.content }}</p>
@@ -80,7 +80,7 @@ import { UserProfileService } from '../../services/user-profile.service';
         </section>
 
         <section
-          class="vault-section glass-card p-4 border-l-2 border-orange-500 md:col-span-2"
+          class="vault-section glass-v42 shadow-v42-xl p-4 border-l-2 border-fl-blue md:col-span-2"
         >
           <h2 class="text-xl font-bold text-orange-400 mb-4 flex items-center">
             <span class="material-symbols-outlined mr-2">trending_up</span> CORE
@@ -95,7 +95,7 @@ import { UserProfileService } from '../../services/user-profile.service';
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             @for (trend of profile().knowledgeBase.coreTrends; track trend.id) {
               <div
-                class="p-3 bg-slate-900/50 rounded border border-orange-500/20"
+                class="p-3 bg-slate-900/50 rounded border border-fl-blue/20"
               >
                 <div class="font-bold text-orange-300">{{ trend.trend }}</div>
                 <p class="text-sm text-slate-400">

@@ -1,12 +1,12 @@
 <div
-  class="channel-rack-container bg-brand-dark border border-white/10 rounded-2xl overflow-hidden shadow-2xl h-full flex flex-col font-sans"
+  class="channel-rack-container bg-fl-darker border border-fl-border rounded-2xl overflow-hidden shadow-2xl h-full flex flex-col font-sans"
 >
   <!-- Dynamic Rack Header -->
   <div
-    class="rack-header bg-brand-surface px-4 py-3 flex items-center justify-between border-b border-white/10"
+    class="rack-header bg-black/40 px-4 py-3 flex items-center justify-between border-b border-fl-border"
   >
     <div class="flex items-center gap-2">
-      <i class="fas fa-microchip text-brand-primary text-[10px]"></i>
+      <i class="fas fa-microchip text-fl-blue text-[10px]"></i>
       <h3
         class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300 italic"
       >
@@ -16,7 +16,7 @@
     <div class="flex items-center gap-3">
       <button
         (click)="importAudio()"
-        class="text-[9px] font-black text-slate-500 hover:text-brand-primary uppercase flex items-center gap-1"
+        class="text-[9px] font-black text-slate-500 hover:text-fl-blue uppercase flex items-center gap-1"
       >
         <span class="material-symbols-outlined text-xs">upload_file</span>
         Import
@@ -32,13 +32,13 @@
       <button
         (click)="batchMute(false)"
         [disabled]="selectedIds().size === 0"
-        class="text-[8px] font-black uppercase text-slate-500 hover:text-brand-primary disabled:opacity-30"
+        class="text-[8px] font-black uppercase text-slate-500 hover:text-fl-blue disabled:opacity-30"
       >
         Unmute Selected
       </button>
       <button
         (click)="addTrack()"
-        class="w-6 h-6 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center hover:bg-brand-primary hover:text-black transition-all"
+        class="w-6 h-6 rounded-lg bg-fl-blue/10 border border-fl-blue/20 flex items-center justify-center hover:bg-fl-blue hover:text-black transition-all"
       >
         <i class="fas fa-plus text-[8px]"></i>
       </button>
@@ -54,18 +54,18 @@
       (drop)="onDrop(i)"
       (click)="selectTrack(track)"
       [style.border-left-color]="track.color"
-      [class.border-brand-primary/40]="
+      [class.border-fl-blue/40]="
         musicManager.selectedTrackId() === track.id
       "
       [class.bg-white/[0.03]]="musicManager.selectedTrackId() === track.id"
-      class="channel-item flex items-center gap-3 mb-2 p-3 bg-black/20 rounded-xl border border-l-4 border-white/10 hover:bg-white/[0.05] transition-all group relative cursor-grab active:cursor-grabbing"
+      class="channel-item flex items-center gap-3 mb-2 p-3 bg-black/20 rounded-xl border border-l-4 border-fl-border hover:bg-white/[0.05] transition-all group relative cursor-grab active:cursor-grabbing"
     >
       <!-- Multi-select Checkbox -->
       <div
         (click)="toggleSelection(track.id, $event)"
         class="w-4 h-4 rounded border border-white/20 flex items-center justify-center transition-all"
-        [class.bg-brand-primary]="selectedIds().has(track.id)"
-        [class.border-brand-primary]="selectedIds().has(track.id)"
+        [class.bg-fl-blue]="selectedIds().has(track.id)"
+        [class.border-fl-blue]="selectedIds().has(track.id)"
       >
         <i
           *ngIf="selectedIds().has(track.id)"
@@ -80,7 +80,7 @@
           [class.bg-yellow-500/20]="track.mute"
           [class.text-yellow-500]="track.mute"
           [class.border-yellow-500/40]="track.mute"
-          class="w-5 h-5 rounded-lg border border-white/10 flex items-center justify-center text-[7px] font-black transition-all"
+          class="w-5 h-5 rounded-lg border border-fl-border flex items-center justify-center text-[7px] font-black transition-all"
         >
           M
         </button>
@@ -89,7 +89,7 @@
           [class.bg-blue-500/20]="track.solo"
           [class.text-blue-500]="track.solo"
           [class.border-blue-500/40]="track.solo"
-          class="w-5 h-5 rounded-lg border border-white/10 flex items-center justify-center text-[7px] font-black transition-all"
+          class="w-5 h-5 rounded-lg border border-fl-border flex items-center justify-center text-[7px] font-black transition-all"
         >
           S
         </button>
@@ -104,7 +104,7 @@
         </div>
         <div class="flex items-center gap-2">
           <span
-            class="text-[7px] font-mono tracking-tight text-brand-primary/60 uppercase"
+            class="text-[7px] font-mono tracking-tight text-fl-blue/60 uppercase"
             >{{ track.type }}</span
           >
           <input
@@ -122,7 +122,7 @@
           [value]="track.instrumentId"
           (click)="$event.stopPropagation()"
           (change)="updateInstrument(track, $any($event.target).value)"
-          class="mt-1 bg-black/60 border border-white/10 rounded-lg px-1.5 py-1 text-[7px] font-black uppercase tracking-widest text-slate-300 focus:outline-none focus:border-brand-primary/40"
+          class="mt-1 bg-black/60 border border-fl-border rounded-lg px-1.5 py-1 text-[7px] font-black uppercase tracking-widest text-slate-300 focus:outline-none focus:border-fl-blue/40"
         >
           <option *ngFor="let preset of availablePresets" [value]="preset.id">
             {{ preset.name }}
@@ -131,8 +131,8 @@
         <div *ngIf="track.type === 'midi'" class="mt-1 flex items-center gap-1">
           <button
             (click)="$event.stopPropagation(); setTrackQuality(track, 'ultra')"
-            class="px-1.5 py-1 text-[7px] rounded border border-white/10"
-            [class.text-brand-primary]="
+            class="px-1.5 py-1 text-[7px] rounded border border-fl-border"
+            [class.text-fl-blue]="
               (track.qualityMode ?? 'ultra') === 'ultra'
             "
           >
@@ -142,8 +142,8 @@
             (click)="
               $event.stopPropagation(); setTrackQuality(track, 'performance')
             "
-            class="px-1.5 py-1 text-[7px] rounded border border-white/10"
-            [class.text-brand-primary]="
+            class="px-1.5 py-1 text-[7px] rounded border border-fl-border"
+            [class.text-fl-blue]="
               (track.qualityMode ?? 'ultra') === 'performance'
             "
           >
@@ -152,7 +152,7 @@
         </div>
         <div
           *ngIf="track.type === 'audio'"
-          class="mt-1 text-[7px] font-black uppercase text-brand-primary bg-brand-primary/10 px-2 py-1 rounded border border-brand-primary/20 truncate"
+          class="mt-1 text-[7px] font-black uppercase text-fl-blue bg-fl-blue/10 px-2 py-1 rounded border border-fl-blue/20 truncate"
         >
           {{ track.audioUrl ? 'CLIP: ' + track.name : 'NO AUDIO' }}
         </div>
@@ -168,9 +168,9 @@
           (click)="
             $event.stopPropagation(); musicManager.toggleStep(track.id, i)
           "
-          [class.bg-brand-surface-light]="i % 8 < 4"
-          [class.bg-brand-surface]="i % 8 >= 4"
-          [class.bg-brand-primary]="track.steps[i]"
+          [class.bg-black/20]="i % 8 < 4"
+          [class.bg-black/40]="i % 8 >= 4"
+          [class.bg-fl-blue]="track.steps[i]"
           [class.shadow-[0_0_12px_rgba(16,185,129,0.3)]]="track.steps[i]"
           [style.opacity]="0.45 + getStepVelocity(track, i) / 2"
           class="step-pad w-5 h-8 rounded-sm transition-all relative overflow-hidden"
@@ -181,7 +181,7 @@
           ></div>
           <div
             (click)="setStepAccent(track, i, $event)"
-            class="absolute top-0 left-0 w-full h-1 bg-white/10 hover:bg-brand-primary/40"
+            class="absolute top-0 left-0 w-full h-1 bg-white/10 hover:bg-fl-blue/40"
           ></div>
           <div
             class="absolute bottom-0 left-0 right-0 h-[2px] bg-white/10"
@@ -192,11 +192,11 @@
       <!-- Audio Track Mini Waveform Placeholder -->
       <div
         *ngIf="track.type === 'audio'"
-        class="flex-grow flex items-center justify-center bg-black/40 rounded-lg border border-white/5 h-8 mx-2 overflow-hidden px-4"
+        class="flex-grow flex items-center justify-center bg-black/40 rounded-lg border border-fl-border h-8 mx-2 overflow-hidden px-4"
       >
-        <div class="w-full h-px bg-brand-primary/20 relative">
+        <div class="w-full h-px bg-fl-blue/20 relative">
           <div
-            class="absolute inset-0 bg-brand-primary animate-pulse opacity-40"
+            class="absolute inset-0 bg-fl-blue animate-pulse opacity-40"
           ></div>
         </div>
         <span class="text-[7px] font-black uppercase ml-2 text-slate-600"
@@ -212,19 +212,19 @@
           <div class="flex items-center gap-1">
             <button
               (click)="$event.stopPropagation(); createPatternSlot(track)"
-              class="px-1.5 py-1 text-[7px] rounded border border-white/10 hover:border-brand-primary/40"
+              class="px-1.5 py-1 text-[7px] rounded border border-fl-border hover:border-fl-blue/40"
             >
               Slot+
             </button>
             <button
               (click)="$event.stopPropagation(); duplicatePatternSlot(track)"
-              class="px-1.5 py-1 text-[7px] rounded border border-white/10 hover:border-brand-primary/40"
+              class="px-1.5 py-1 text-[7px] rounded border border-fl-border hover:border-fl-blue/40"
             >
               Clone
             </button>
             <button
               (click)="$event.stopPropagation(); savePatternVersion(track)"
-              class="px-1.5 py-1 text-[7px] rounded border border-white/10 hover:border-brand-primary/40"
+              class="px-1.5 py-1 text-[7px] rounded border border-fl-border hover:border-fl-blue/40"
             >
               Ver+
             </button>
@@ -232,25 +232,25 @@
           <div class="flex items-center gap-1">
             <button
               (click)="$event.stopPropagation(); fillPattern(track)"
-              class="px-1.5 py-1 text-[7px] rounded border border-white/10"
+              class="px-1.5 py-1 text-[7px] rounded border border-fl-border"
             >
               Fill
             </button>
             <button
               (click)="$event.stopPropagation(); clearPattern(track)"
-              class="px-1.5 py-1 text-[7px] rounded border border-white/10"
+              class="px-1.5 py-1 text-[7px] rounded border border-fl-border"
             >
               Clear
             </button>
             <button
               (click)="$event.stopPropagation(); rotatePattern(track, 1)"
-              class="px-1.5 py-1 text-[7px] rounded border border-white/10"
+              class="px-1.5 py-1 text-[7px] rounded border border-fl-border"
             >
               Rot+
             </button>
             <button
               (click)="$event.stopPropagation(); randomizePattern(track)"
-              class="px-1.5 py-1 text-[7px] rounded border border-white/10"
+              class="px-1.5 py-1 text-[7px] rounded border border-fl-border"
             >
               Rnd
             </button>
@@ -263,7 +263,7 @@
             [value]="track.gain * 100"
             min="0"
             max="100"
-            class="w-16 h-0.5 accent-brand-primary"
+            class="w-16 h-0.5 accent-fl-blue"
           />
           <input
             type="range"
@@ -286,11 +286,11 @@
 
   <!-- Rack Footer -->
   <div
-    class="p-3 border-t border-white/10 bg-brand-surface/40 flex justify-between items-center shrink-0"
+    class="p-3 border-t border-fl-border bg-black/40 flex justify-between items-center shrink-0"
   >
     <div class="flex items-center gap-2">
       <div
-        class="w-2 h-2 rounded-full bg-brand-primary shadow-[0_0_8px_#10b981]"
+        class="w-2 h-2 rounded-full bg-fl-blue shadow-[0_0_8px_#10b981]"
       ></div>
       <span
         class="text-[8px] font-black uppercase tracking-widest text-slate-500"

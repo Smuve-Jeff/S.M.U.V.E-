@@ -1,11 +1,11 @@
 <div
-  class="drum-machine hardware-surface p-10 rounded-3xl border border-white/10 shadow-2xl flex flex-col gap-6 overflow-hidden"
+  class="drum-machine hardware-surface p-10 rounded-3xl border border-fl-border shadow-2xl flex flex-col gap-6 overflow-hidden"
   [class.compact-mode]="isStudioOverlay"
 >
   <div *ngIf="isStudioOverlay" class="absolute top-2 left-2 z-[100] md:hidden">
     <button
       (click)="closeOverlay.emit()"
-      class="p-2 rounded-full bg-brand-primary/20 border border-brand-primary/40 text-brand-primary backdrop-blur-md"
+      class="p-2 rounded-full bg-fl-blue/20 border border-fl-blue/40 text-fl-blue backdrop-blur-md"
     >
       <span class="material-symbols-outlined">arrow_back</span>
     </button>
@@ -15,12 +15,12 @@
 
   <!-- Mobile Tab Navigation -->
   <div
-    class="flex md:hidden bg-black/40 rounded-xl p-1 mb-4 border border-white/5"
+    class="flex md:hidden bg-black/40 rounded-xl p-1 mb-4 border border-fl-border"
   >
     <button
       (click)="activeTab.set('sequencer')"
       class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
-      [class.bg-brand-primary]="activeTab() === 'sequencer'"
+      [class.bg-fl-blue]="activeTab() === 'sequencer'"
       [class.text-black]="activeTab() === 'sequencer'"
       [class.text-slate-500]="activeTab() !== 'sequencer'"
     >
@@ -29,7 +29,7 @@
     <button
       (click)="activeTab.set('pads')"
       class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
-      [class.bg-brand-primary]="activeTab() === 'pads'"
+      [class.bg-fl-blue]="activeTab() === 'pads'"
       [class.text-black]="activeTab() === 'pads'"
       [class.text-slate-500]="activeTab() !== 'pads'"
     >
@@ -38,7 +38,7 @@
     <button
       (click)="activeTab.set('params')"
       class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
-      [class.bg-brand-primary]="activeTab() === 'params'"
+      [class.bg-fl-blue]="activeTab() === 'params'"
       [class.text-black]="activeTab() === 'params'"
       [class.text-slate-500]="activeTab() !== 'params'"
     >
@@ -49,14 +49,14 @@
   <div class="flex items-center justify-between flex-shrink-0">
     <div class="flex items-center gap-4">
       <span
-        class="material-symbols-outlined text-4xl text-brand-primary animate-pulse"
+        class="material-symbols-outlined text-4xl text-fl-blue animate-pulse"
         >grid_view</span
       >
       <div>
         <h2
           class="text-2xl font-black text-white italic uppercase tracking-tighter"
         >
-          NEURAL DRUM <span class="text-brand-primary">SYNTH v5</span>
+          NEURAL DRUM <span class="text-fl-blue">SYNTH v5</span>
         </h2>
         <p
           class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
@@ -70,21 +70,21 @@
     <div class="flex gap-3 items-center">
       <!-- BPM display -->
       <div
-        class="bg-black/60 px-4 py-2 rounded-xl border border-white/5 flex flex-col items-center"
+        class="bg-black/60 px-4 py-2 rounded-xl border border-fl-border flex flex-col items-center"
       >
         <span class="text-[7px] font-black text-slate-500 uppercase">BPM</span>
-        <span class="text-sm font-black text-brand-primary font-mono">{{
+        <span class="text-sm font-black text-fl-blue font-mono">{{
           audioEngine.tempo()
         }}</span>
       </div>
       <!-- Playback status -->
       <div
-        class="bg-black/60 px-4 py-2 rounded-xl border border-white/5 flex flex-col items-center"
+        class="bg-black/60 px-4 py-2 rounded-xl border border-fl-border flex flex-col items-center"
       >
         <span class="text-[7px] font-black text-slate-500 uppercase">SEQ</span>
         <span
           class="text-xs font-black uppercase"
-          [class.text-emerald-400]="isSequencerRunning()"
+          [class.text-fl-blue]="isSequencerRunning()"
           [class.text-slate-600]="!isSequencerRunning()"
         >
           {{ isSequencerRunning() ? 'PLAYING' : 'STOPPED' }}
@@ -95,10 +95,10 @@
         (click)="generateAiPattern()"
         [disabled]="isGeneratingPattern()"
         class="flex items-center gap-2 px-4 py-2 rounded-xl border font-black text-xs uppercase tracking-widest transition-all"
-        [class.border-brand-primary]="!isGeneratingPattern()"
-        [class.text-brand-primary]="!isGeneratingPattern()"
-        [class.hover:bg-brand-primary/10]="!isGeneratingPattern()"
-        [class.border-white/10]="isGeneratingPattern()"
+        [class.border-fl-blue]="!isGeneratingPattern()"
+        [class.text-fl-blue]="!isGeneratingPattern()"
+        [class.hover:bg-fl-blue/10]="!isGeneratingPattern()"
+        [class.border-fl-border]="isGeneratingPattern()"
         [class.text-slate-500]="isGeneratingPattern()"
       >
         <span
@@ -112,7 +112,7 @@
       <!-- Clear Pattern -->
       <button
         (click)="clearPattern()"
-        class="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-slate-500 font-black text-xs uppercase tracking-widest hover:border-red-500/40 hover:text-red-400 transition-all"
+        class="flex items-center gap-2 px-4 py-2 rounded-xl border border-fl-border text-slate-500 font-black text-xs uppercase tracking-widest hover:border-red-500/40 hover:text-red-400 transition-all"
       >
         <span class="material-symbols-outlined text-sm">delete_sweep</span>
         CLEAR
@@ -201,7 +201,7 @@
 
       <!-- Visualizer -->
       <div
-        class="relative h-20 bg-black/60 rounded-xl border border-white/5 overflow-hidden flex-shrink-0"
+        class="relative h-20 bg-black/60 rounded-xl border border-fl-border overflow-hidden flex-shrink-0"
       >
         <canvas
           #visualizer
@@ -224,7 +224,7 @@
             @for (step of stepRange; track step) {
               <div
                 class="w-7 shrink-0 text-center text-[8px] font-black tracking-widest md:w-8"
-                [class.text-brand-primary]="step % stepsPerBar === 0"
+                [class.text-fl-blue]="step % stepsPerBar === 0"
                 [class.text-slate-500]="
                   step % 4 === 0 && step % stepsPerBar !== 0
                 "
@@ -305,11 +305,11 @@
 
     <!-- Right: Parameter Controls -->
     <div
-      class="xl:col-span-5 obsidian-panel rounded-2xl border border-white/5 p-6 flex flex-col gap-5 shadow-inner overflow-y-auto custom-scrollbar"
+      class="xl:col-span-5 obsidian-panel rounded-2xl border border-fl-border p-6 flex flex-col gap-5 shadow-inner overflow-y-auto custom-scrollbar"
     >
       @if (selectedPad(); as pad) {
         <div
-          class="flex items-center gap-3 border-b border-white/5 pb-3 flex-shrink-0"
+          class="flex items-center gap-3 border-b border-fl-border pb-3 flex-shrink-0"
         >
           <div
             class="w-9 h-9 rounded-xl flex items-center justify-center border-2"
@@ -342,7 +342,7 @@
                   class="text-[9px] font-black text-slate-400 uppercase tracking-widest"
                   >PITCH / FREQ</span
                 >
-                <span class="text-xs font-mono text-brand-primary font-bold">{{
+                <span class="text-xs font-mono text-fl-blue font-bold">{{
                   pad.type === 'kick' ||
                   pad.type === 'tom' ||
                   pad.type === 'cowbell'
@@ -425,7 +425,7 @@
                   class="text-[9px] font-black text-slate-400 uppercase tracking-widest"
                   >OUTPUT GAIN</span
                 >
-                <span class="text-xs font-mono text-emerald-400 font-bold"
+                <span class="text-xs font-mono text-fl-blue font-bold"
                   >{{ pad.params.gain * 100 | number: '1.0-0' }}%</span
                 >
               </div>
@@ -449,7 +449,7 @@
                     >PUNCH</span
                   >
                   <span
-                    class="text-xs font-mono text-brand-primary font-bold"
+                    class="text-xs font-mono text-fl-blue font-bold"
                     >{{ (pad.params.punch || 0) * 100 | number: '1.0-0' }}</span
                   >
                 </div>
@@ -471,7 +471,7 @@
                     >SNAP</span
                   >
                   <span
-                    class="text-xs font-mono text-brand-primary font-bold"
+                    class="text-xs font-mono text-fl-blue font-bold"
                     >{{ (pad.params.snap || 0) * 100 | number: '1.0-0' }}</span
                   >
                 </div>
@@ -493,7 +493,7 @@
                     >CRISPNESS</span
                   >
                   <span
-                    class="text-xs font-mono text-brand-primary font-bold"
+                    class="text-xs font-mono text-fl-blue font-bold"
                     >{{
                       (pad.params.crispness || 0) * 100 | number: '1.0-0'
                     }}</span
@@ -517,7 +517,7 @@
                     >WIDTH</span
                   >
                   <span
-                    class="text-xs font-mono text-brand-primary font-bold"
+                    class="text-xs font-mono text-fl-blue font-bold"
                     >{{ (pad.params.width || 0) * 100 | number: '1.0-0' }}</span
                   >
                 </div>
@@ -539,7 +539,7 @@
                     >TONE</span
                   >
                   <span
-                    class="text-xs font-mono text-brand-primary font-bold"
+                    class="text-xs font-mono text-fl-blue font-bold"
                     >{{ (pad.params.tone || 0) * 100 | number: '1.0-0' }}</span
                   >
                 </div>
@@ -561,7 +561,7 @@
                     >RATTLE</span
                   >
                   <span
-                    class="text-xs font-mono text-brand-primary font-bold"
+                    class="text-xs font-mono text-fl-blue font-bold"
                     >{{
                       (pad.params.rattle || 0) * 100 | number: '1.0-0'
                     }}</span
@@ -585,7 +585,7 @@
                     >SHIMMER</span
                   >
                   <span
-                    class="text-xs font-mono text-brand-primary font-bold"
+                    class="text-xs font-mono text-fl-blue font-bold"
                     >{{
                       (pad.params.shimmer || 0) * 100 | number: '1.0-0'
                     }}</span
@@ -609,7 +609,7 @@
           class="mt-auto flex-shrink-0 rounded-xl border p-4 flex flex-col gap-3"
           [class.border-cyan-500/30]="micStatus() !== 'idle'"
           [class.bg-cyan-500/5]="micStatus() !== 'idle'"
-          [class.border-white/5]="micStatus() === 'idle'"
+          [class.border-fl-border]="micStatus() === 'idle'"
           [class.bg-black/20]="micStatus() === 'idle'"
         >
           <div class="flex items-center justify-between">
@@ -673,10 +673,10 @@
             </div>
           } @else if (micStatus() === 'done') {
             <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-sm text-emerald-400"
+              <span class="material-symbols-outlined text-sm text-fl-blue"
                 >check_circle</span
               >
-              <span class="text-[10px] font-black text-emerald-400 uppercase"
+              <span class="text-[10px] font-black text-fl-blue uppercase"
                 >SAMPLE LOADED</span
               >
             </div>

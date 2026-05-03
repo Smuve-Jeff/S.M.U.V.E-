@@ -1,12 +1,12 @@
 <section
-  class="rounded-3xl border border-white/10 bg-black/30 backdrop-blur-xl"
+  class="rounded-3xl border border-fl-border bg-black/30 backdrop-blur-xl"
   [class.p-4]="mode === 'compact'"
   [class.p-6]="mode === 'full'"
 >
   <div class="flex items-start justify-between gap-4">
     <div>
       <p
-        class="text-[8px] font-black uppercase tracking-[0.35em] text-brand-primary"
+        class="text-[8px] font-black uppercase tracking-[0.35em] text-fl-blue"
       >
         {{ mode === 'compact' ? 'Mic Command' : 'Dedicated Vocal Interface' }}
       </p>
@@ -20,7 +20,7 @@
       </p>
       <div class="mt-3 flex flex-wrap gap-2" *ngIf="deviceSummary() as device">
         <span
-          class="rounded-full border border-brand-primary/30 bg-brand-primary/10 px-2 py-1 text-[8px] font-black uppercase tracking-[0.25em] text-brand-primary"
+          class="rounded-full border border-fl-blue/30 bg-fl-blue/10 px-2 py-1 text-[8px] font-black uppercase tracking-[0.25em] text-fl-blue"
         >
           {{ capabilityLabel(device.type) }}
         </span>
@@ -29,7 +29,7 @@
             let capability of device.capabilities
               | slice: 0 : (mode === 'compact' ? 3 : 6)
           "
-          class="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[8px] font-black uppercase tracking-[0.25em] text-slate-300"
+          class="rounded-full border border-fl-border bg-white/5 px-2 py-1 text-[8px] font-black uppercase tracking-[0.25em] text-slate-300"
         >
           {{ capabilityLabel(capability) }}
         </span>
@@ -38,10 +38,10 @@
 
     <div
       class="rounded-2xl border px-3 py-2 text-right"
-      [class.border-emerald-400/30]="signalReadiness() === 'ready'"
+      [class.border-fl-blue/30]="signalReadiness() === 'ready'"
       [class.border-rose-500/30]="signalReadiness() === 'recording'"
-      [class.border-white/10]="signalReadiness() === 'offline'"
-      [class.bg-emerald-400/10]="signalReadiness() === 'ready'"
+      [class.border-fl-border]="signalReadiness() === 'offline'"
+      [class.bg-fl-blue/10]="signalReadiness() === 'ready'"
       [class.bg-rose-500/10]="signalReadiness() === 'recording'"
       [class.bg-white/5]="signalReadiness() === 'offline'"
     >
@@ -64,7 +64,7 @@
       <div class="grid gap-3" [class.md:grid-cols-3]="mode === 'full'">
         <button
           (click)="initializeInterface()"
-          class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left transition-all hover:border-brand-primary/30 hover:bg-brand-primary/10"
+          class="rounded-2xl border border-fl-border bg-white/5 px-4 py-3 text-left transition-all hover:border-fl-blue/30 hover:bg-fl-blue/10"
         >
           <div
             class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500"
@@ -80,7 +80,7 @@
           class="rounded-2xl border px-4 py-3 text-left transition-all"
           [class.border-rose-500/30]="micService.isRecording()"
           [class.bg-rose-500/10]="micService.isRecording()"
-          [class.border-white/10]="!micService.isRecording()"
+          [class.border-fl-border]="!micService.isRecording()"
           [class.bg-white/5]="!micService.isRecording()"
         >
           <div
@@ -95,7 +95,7 @@
         <button
           (click)="togglePause()"
           [disabled]="!micService.isRecording()"
-          class="rounded-2xl border border-white/10 px-4 py-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-40"
+          class="rounded-2xl border border-fl-border px-4 py-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-40"
           [class.bg-white/5]="!micService.isPaused()"
           [class.bg-amber-400/10]="micService.isPaused()"
         >
@@ -111,19 +111,19 @@
       </div>
 
       <div class="grid gap-3">
-        <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div class="rounded-2xl border border-fl-border bg-black/20 p-4">
           <div class="flex items-center justify-between">
             <span
               class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500"
               >Input meter</span
             >
-            <span class="text-xs font-mono font-black text-emerald-400"
+            <span class="text-xs font-mono font-black text-fl-blue"
               >{{ inputLevel() }}%</span
             >
           </div>
           <div class="mt-4 h-3 overflow-hidden rounded-full bg-white/5">
             <div
-              class="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-brand-primary transition-all"
+              class="h-full rounded-full bg-gradient-to-r from-fl-blue via-cyan-400 to-fl-blue transition-all"
               [style.width.%]="inputLevel()"
             ></div>
           </div>
@@ -131,7 +131,7 @@
             class="mt-4 flex items-center justify-between text-[9px] font-black uppercase tracking-widest"
           >
             <span class="text-slate-500">Clarity</span>
-            <span class="text-brand-primary">{{ clarityScore() }}%</span>
+            <span class="text-fl-blue">{{ clarityScore() }}%</span>
           </div>
         </div>
       </div>
@@ -141,9 +141,9 @@
           *ngFor="let profile of ['crystal', 'broadcast', 'warmth']"
           (click)="applyVocalProfile($any(profile))"
           class="rounded-2xl border px-4 py-3 text-left transition-all"
-          [class.border-brand-primary/40]="vocalProfile() === profile"
-          [class.bg-brand-primary/10]="vocalProfile() === profile"
-          [class.border-white/10]="vocalProfile() !== profile"
+          [class.border-fl-blue/40]="vocalProfile() === profile"
+          [class.bg-fl-blue/10]="vocalProfile() === profile"
+          [class.border-fl-border]="vocalProfile() !== profile"
           [class.bg-white/5]="vocalProfile() !== profile"
         >
           <div
@@ -162,9 +162,9 @@
           *ngFor="let channel of channels()"
           (click)="selectChannel(channel.id)"
           class="rounded-xl border px-3 py-2 text-left transition-all"
-          [class.border-brand-primary/40]="currentChannel()?.id === channel.id"
-          [class.bg-brand-primary/10]="currentChannel()?.id === channel.id"
-          [class.border-white/10]="currentChannel()?.id !== channel.id"
+          [class.border-fl-blue/40]="currentChannel()?.id === channel.id"
+          [class.bg-fl-blue/10]="currentChannel()?.id === channel.id"
+          [class.border-fl-border]="currentChannel()?.id !== channel.id"
           [class.bg-white/5]="currentChannel()?.id !== channel.id"
         >
           <div
@@ -180,7 +180,7 @@
     </div>
 
     <div class="space-y-4">
-      <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div class="rounded-2xl border border-fl-border bg-black/20 p-4">
         <div class="flex items-center justify-between">
           <span
             class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500"
@@ -199,7 +199,7 @@
             class="flex-1 rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
             [class.border-rose-500/40]="currentChannel()?.armed"
             [class.bg-rose-500/10]="currentChannel()?.armed"
-            [class.border-white/10]="!currentChannel()?.armed"
+            [class.border-fl-border]="!currentChannel()?.armed"
             [class.bg-white/5]="!currentChannel()?.armed"
           >
             Arm
@@ -209,7 +209,7 @@
             class="flex-1 rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
             [class.border-amber-400/40]="currentChannel()?.muted"
             [class.bg-amber-400/10]="currentChannel()?.muted"
-            [class.border-white/10]="!currentChannel()?.muted"
+            [class.border-fl-border]="!currentChannel()?.muted"
             [class.bg-white/5]="!currentChannel()?.muted"
           >
             Mute
@@ -237,14 +237,14 @@
         </label>
       </div>
 
-      <div class="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div class="rounded-2xl border border-fl-border bg-black/20 p-4">
         <div class="flex items-center justify-between">
           <span
             class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500"
             >Clean vocal chain</span
           >
           <span
-            class="text-[10px] font-black uppercase tracking-widest text-brand-primary"
+            class="text-[10px] font-black uppercase tracking-widest text-fl-blue"
             >Linked</span
           >
         </div>
@@ -255,7 +255,7 @@
               class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.3em]"
             >
               <span class="text-slate-500">Presence</span>
-              <span class="text-brand-primary font-mono"
+              <span class="text-fl-blue font-mono"
                 >{{ params().eq.mid.toFixed(1) }} dB</span
               >
             </div>
@@ -266,7 +266,7 @@
               step="0.1"
               [ngModel]="params().eq.mid"
               (ngModelChange)="updatePresence($event)"
-              class="mt-2 w-full accent-brand-primary"
+              class="mt-2 w-full accent-fl-blue"
             />
           </label>
 

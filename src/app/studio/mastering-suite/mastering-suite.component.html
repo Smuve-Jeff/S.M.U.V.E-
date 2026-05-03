@@ -1,12 +1,12 @@
 <div
-  class="mastering-suite-container p-6 bg-slate-950/90 backdrop-blur-3xl border border-white/5 rounded-3xl animate__animated animate__fadeIn"
+  class="mastering-suite-container p-6 bg-slate-950/90 backdrop-blur-3xl border border-fl-border rounded-3xl animate__animated animate__fadeIn"
 >
   <header class="flex justify-between items-center mb-10">
     <div>
       <h1
         class="text-3xl font-black text-white italic tracking-tighter uppercase"
       >
-        Neural<span class="text-brand-primary">Mastering</span>
+        Neural<span class="text-fl-blue">Mastering</span>
       </h1>
       <p
         class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]"
@@ -17,7 +17,7 @@
     <div class="flex gap-4">
       <button
         (click)="processMastering()"
-        class="px-6 py-2 bg-brand-primary text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-brand-primary/20 hover:scale-105 transition-all"
+        class="px-6 py-2 bg-fl-blue text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-fl-blue/20 hover:scale-105 transition-all"
       >
         AUTO-PROCESS
       </button>
@@ -28,7 +28,7 @@
     <!-- Visualizer Section -->
     <div class="col-span-12 lg:col-span-7 space-y-6">
       <div
-        class="glass-card p-4 rounded-2xl border border-white/5 relative overflow-hidden h-64"
+        class="glass-v42 shadow-v42-xl p-4 rounded-2xl border border-fl-border relative overflow-hidden h-64"
       >
         <div
           class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"
@@ -40,7 +40,7 @@
           height="256"
         ></canvas>
         <div
-          class="absolute top-4 left-4 text-[8px] font-black text-brand-primary/40 uppercase tracking-widest"
+          class="absolute top-4 left-4 text-[8px] font-black text-fl-blue/40 uppercase tracking-widest"
         >
           Spectral_History_Matrix
         </div>
@@ -49,7 +49,7 @@
       <div class="grid grid-cols-5 gap-3">
         @for (band of bands(); track band.id) {
           <div
-            class="p-3 bg-black/40 border border-white/5 rounded-2xl flex flex-col items-center text-center group hover:border-brand-primary/30 transition-all"
+            class="p-3 bg-black/40 border border-fl-border rounded-2xl flex flex-col items-center text-center group hover:border-fl-blue/30 transition-all"
           >
             <span class="text-[8px] font-black text-slate-500 mb-1">{{
               band.range
@@ -61,13 +61,13 @@
               class="w-1.5 h-20 bg-white/5 rounded-full overflow-hidden relative"
             >
               <div
-                class="absolute bottom-0 left-0 right-0 bg-brand-primary group-hover:bg-accent-magenta transition-colors"
+                class="absolute bottom-0 left-0 right-0 bg-fl-blue group-hover:bg-accent-magenta transition-colors"
                 [style.height.%]="((band.gain + 12) / 24) * 100"
               ></div>
             </div>
             <span
               class="mt-3 text-[10px] font-mono font-bold"
-              [class.text-brand-primary]="band.gain > 0"
+              [class.text-fl-blue]="band.gain > 0"
               >{{ band.gain > 0 ? '+' : '' }}{{ band.gain }}dB</span
             >
           </div>
@@ -78,7 +78,7 @@
     <!-- Meters Section -->
     <div class="col-span-12 lg:col-span-5 space-y-6">
       <div
-        class="glass-card p-6 rounded-3xl border border-white/5 grid grid-cols-2 gap-6"
+        class="glass-v42 shadow-v42-xl p-6 rounded-3xl border border-fl-border grid grid-cols-2 gap-6"
       >
         <div class="flex flex-col gap-1">
           <span
@@ -89,7 +89,7 @@
             lufsIntegrated()
           }}</span>
           <div class="w-full h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
-            <div class="h-full bg-brand-primary" [style.width.%]="70"></div>
+            <div class="h-full bg-fl-blue" [style.width.%]="70"></div>
           </div>
         </div>
         <div class="flex flex-col gap-1">
@@ -123,7 +123,7 @@
       </div>
 
       <div
-        class="glass-card p-6 rounded-3xl border border-white/5 flex flex-col gap-4"
+        class="glass-v42 shadow-v42-xl p-6 rounded-3xl border border-fl-border flex flex-col gap-4"
       >
         <div
           class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]"
@@ -142,7 +142,7 @@
             (input)="updateTargetLufs(+$any($event.target).value)"
             class="w-full"
           />
-          <span class="text-brand-primary font-mono">{{ targetLufs() }}</span>
+          <span class="text-fl-blue font-mono">{{ targetLufs() }}</span>
         </label>
         <label class="text-xs text-slate-300">
           Safe Ceiling dBFS
@@ -156,7 +156,7 @@
             (input)="updateSafeCeiling(+$any($event.target).value)"
             class="w-full"
           />
-          <span class="text-brand-primary font-mono">{{ safeCeiling() }}</span>
+          <span class="text-fl-blue font-mono">{{ safeCeiling() }}</span>
         </label>
         @if (smartAssistSuggestion()) {
           <p class="text-xs text-slate-300">{{ smartAssistSuggestion() }}</p>
@@ -165,22 +165,22 @@
           <p class="text-xs text-brand-secondary">{{ eqMaskingHint() }}</p>
         }
         @if (isProcessing()) {
-          <p class="text-[10px] text-brand-primary uppercase tracking-widest">
+          <p class="text-[10px] text-fl-blue uppercase tracking-widest">
             Processing...
           </p>
         }
       </div>
 
       <div
-        class="p-6 rounded-3xl bg-brand-primary/5 border border-brand-primary/20 flex flex-col gap-4"
+        class="p-6 rounded-3xl bg-fl-blue/5 border border-fl-blue/20 flex flex-col gap-4"
       >
         <div class="flex items-center gap-3">
           <span
-            class="material-symbols-outlined text-brand-primary animate-pulse"
+            class="material-symbols-outlined text-fl-blue animate-pulse"
             >shield</span
           >
           <span
-            class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]"
+            class="text-[10px] font-black text-fl-blue uppercase tracking-[0.2em]"
             >Safety_Intelligence</span
           >
         </div>
@@ -191,12 +191,12 @@
         </p>
         <div class="flex gap-3">
           <div
-            class="px-3 py-1 bg-brand-primary/20 rounded border border-brand-primary/30 text-[9px] font-black text-brand-primary uppercase"
+            class="px-3 py-1 bg-fl-blue/20 rounded border border-fl-blue/30 text-[9px] font-black text-fl-blue uppercase"
           >
             Limiter_Active
           </div>
           <div
-            class="px-3 py-1 bg-white/5 rounded border border-white/10 text-[9px] font-black text-slate-500 uppercase"
+            class="px-3 py-1 bg-white/5 rounded border border-fl-border text-[9px] font-black text-slate-500 uppercase"
           >
             Oversampling_4X
           </div>

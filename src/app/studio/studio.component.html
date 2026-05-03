@@ -74,11 +74,11 @@
     <header class="fl-top-bar">
       <div class="flex items-center gap-4">
       <!-- Autonomous Session Musicians -->
-      <div class="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5 mr-4 hidden lg:flex">
+      <div class="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-fl-border mr-4 hidden lg:flex">
         <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest mr-2">AI Band</span>
         <button
           (click)="aiService.toggleAIDrummer()"
-          [class.text-brand-primary]="aiService.isAIDrummerActive()"
+          [class.text-fl-blue]="aiService.isAIDrummerActive()"
           [class.text-slate-600]="!aiService.isAIDrummerActive()"
           class="size-7 rounded-full bg-white/5 flex items-center justify-center transition-all hover:bg-white/10"
           title="AI Drummer"
@@ -113,7 +113,7 @@
           >
           <span class="studio-title-mobile">S.M.U.V.E.</span>
           <span
-            class="text-[10px] bg-brand-primary/20 text-brand-primary px-2 py-0.5 rounded-full border border-brand-primary/30"
+            class="text-[10px] bg-fl-blue/20 text-fl-blue px-2 py-0.5 rounded-full border border-fl-blue/30"
             >v4.2</span
           >
         </h1>
@@ -134,14 +134,14 @@
       <div class="flex items-center gap-6">
         <!-- Center Transport (Desktop) -->
         <div
-          class="transport-console desktop-transport flex items-center gap-4 bg-black/40 px-6 py-2 rounded-2xl border border-white/5 backdrop-blur-md"
+          class="transport-console desktop-transport flex items-center gap-4 bg-black/40 px-6 py-2 rounded-2xl border border-fl-border backdrop-blur-md"
         >
           <div class="flex flex-col items-center">
             <span
               class="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1"
               >Tempo</span
             >
-            <span class="text-xs font-mono font-black text-brand-primary">{{
+            <span class="text-xs font-mono font-black text-fl-blue">{{
               musicManager.engine.tempo()
             }}</span>
           </div>
@@ -180,14 +180,14 @@
         </div>
 
         <div
-          class="metronome-console flex items-center gap-3 bg-black/40 rounded-xl border border-white/5 backdrop-blur-md"
+          class="metronome-console flex items-center gap-3 bg-black/40 rounded-xl border border-fl-border backdrop-blur-md"
         >
           <button
             (click)="audioEngine.toggleMetronome()"
             [class.metronome-active]="audioEngine.metronomeEnabled()"
             [attr.aria-pressed]="audioEngine.metronomeEnabled()"
             aria-label="Metronome"
-            class="material-symbols-outlined text-lg text-slate-500 hover:text-brand-primary transition-all"
+            class="material-symbols-outlined text-lg text-slate-500 hover:text-fl-blue transition-all"
             title="Metronome"
           >
             metronome
@@ -204,7 +204,7 @@
               step="0.01"
               [value]="audioEngine.metronomeVolume()"
               (input)="updateMetronomeVolume($event)"
-              class="w-12 accent-brand-primary h-1 bg-white/5 rounded-full appearance-none cursor-pointer"
+              class="w-12 accent-fl-blue h-1 bg-white/5 rounded-full appearance-none cursor-pointer"
             />
           </div>
         </div>
@@ -212,7 +212,7 @@
         <button
           (click)="showRack.set(!showRack())"
           class="text-[10px] font-black uppercase tracking-widest transition-all"
-          [class.text-brand-primary]="showRack()"
+          [class.text-fl-blue]="showRack()"
           [class.text-slate-500]="!showRack()"
         >
           Rack
@@ -238,16 +238,16 @@
         class="absolute inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center animate-enter"
       >
         <div
-          class="w-full max-w-md p-8 glass-card border border-brand-primary/30 text-center"
+          class="w-full max-w-md p-8 glass-v42 shadow-v42-xl border border-fl-blue/30 text-center"
         >
           <div class="mb-6 relative">
             <div
-              class="text-[60px] font-black text-brand-primary/20 absolute inset-0 flex items-center justify-center"
+              class="text-[60px] font-black text-fl-blue/20 absolute inset-0 flex items-center justify-center"
             >
               {{ aiService.scanningProgress() }}%
             </div>
             <span
-              class="material-symbols-outlined !text-6xl text-brand-primary animate-spin-slow"
+              class="material-symbols-outlined !text-6xl text-fl-blue animate-spin-slow"
               >offline_bolt</span
             >
           </div>
@@ -263,7 +263,7 @@
           </p>
           <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
             <div
-              class="h-full bg-brand-primary transition-all duration-300"
+              class="h-full bg-fl-blue transition-all duration-300"
               [style.width.%]="aiService.scanningProgress()"
             ></div>
           </div>
@@ -275,11 +275,11 @@
         *ngIf="
           !aiService.isScanning() && aiService.criticalDeficits().length > 0
         "
-        class="absolute top-20 right-8 z-[100] w-80 glass-card p-6 border border-brand-primary/20 shadow-2xl animate-enter"
+        class="absolute top-20 right-8 z-[100] w-80 glass-v42 shadow-v42-xl p-6 border border-fl-blue/20 shadow-2xl animate-enter"
       >
         <div class="flex items-center justify-between mb-4">
           <span
-            class="text-[10px] font-black text-brand-primary uppercase tracking-widest"
+            class="text-[10px] font-black text-fl-blue uppercase tracking-widest"
             >Executive Audit Report</span
           >
           <button
@@ -299,21 +299,21 @@
             >
           </div>
           <div
-            class="w-24 h-12 bg-black/40 rounded-lg border border-white/5 overflow-hidden"
+            class="w-24 h-12 bg-black/40 rounded-lg border border-fl-border overflow-hidden"
           >
             <div
-              class="h-full bg-brand-primary/40 flex items-end justify-around px-2"
+              class="h-full bg-fl-blue/40 flex items-end justify-around px-2"
             >
               <div
-                class="w-1 bg-brand-primary"
+                class="w-1 bg-fl-blue"
                 [style.height.%]="aiService.frequencyBalance().low"
               ></div>
               <div
-                class="w-1 bg-brand-primary"
+                class="w-1 bg-fl-blue"
                 [style.height.%]="aiService.frequencyBalance().mid"
               ></div>
               <div
-                class="w-1 bg-brand-primary"
+                class="w-1 bg-fl-blue"
                 [style.height.%]="aiService.frequencyBalance().high"
               ></div>
             </div>
@@ -321,7 +321,7 @@
         </div>
         <div class="space-y-3">
           <div
-            class="text-[8px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 pb-1"
+            class="text-[8px] font-black text-slate-500 uppercase tracking-widest border-b border-fl-border pb-1"
           >
             Critical Deficits
           </div>
@@ -339,7 +339,7 @@
             >
           </div>
         </div>
-        <button (click)="resolveWithNeuralMix()" class="w-full mt-6 py-2 bg-brand-primary/10 border border-brand-primary/20 rounded-lg text-brand-primary text-[9px] font-black uppercase tracking-widest hover:bg-brand-primary/20 transition-all">
+        <button (click)="resolveWithNeuralMix()" class="w-full mt-6 py-2 bg-fl-blue/10 border border-fl-blue/20 rounded-lg text-fl-blue text-[9px] font-black uppercase tracking-widest hover:bg-fl-blue/20 transition-all">
           Resolve with Neural Mix
         </button>
       </div>
@@ -399,10 +399,10 @@
           class="absolute inset-0 flex items-center justify-center bg-black/80"
         >
           <div
-            class="text-center p-8 glass-card rounded-3xl border border-brand-primary/20 max-w-sm animate-enter mx-4"
+            class="text-center p-8 glass-v42 shadow-v42-xl rounded-3xl border border-fl-blue/20 max-w-sm animate-enter mx-4"
           >
             <span
-              class="material-symbols-outlined !text-4xl text-brand-primary mb-6 animate-pulse"
+              class="material-symbols-outlined !text-4xl text-fl-blue mb-6 animate-pulse"
               >sensors</span
             >
             <h2
@@ -428,7 +428,7 @@
       >
         <div class="editor-header">
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-emerald-400 text-sm">
+            <span class="material-symbols-outlined text-fl-blue text-sm">
               {{ activeEditor() === 'piano-roll' ? 'grid_on' : 'pattern' }}
             </span>
             <span
@@ -441,9 +441,9 @@
 
             <button
               (click)="uiService.toggleAutoPianoRoll()"
-              class="ml-4 px-2 py-0.5 rounded border border-white/5 text-[8px] font-black uppercase tracking-widest transition-all"
-              [class.bg-brand-primary/20]="uiService.autoPianoRoll()"
-              [class.text-brand-primary]="uiService.autoPianoRoll()"
+              class="ml-4 px-2 py-0.5 rounded border border-fl-border text-[8px] font-black uppercase tracking-widest transition-all"
+              [class.bg-fl-blue/20]="uiService.autoPianoRoll()"
+              [class.text-fl-blue]="uiService.autoPianoRoll()"
               [class.text-slate-500]="!uiService.autoPianoRoll()"
             >
               Auto-Open: {{ uiService.autoPianoRoll() ? 'ON' : 'OFF' }}
@@ -452,7 +452,7 @@
             <button
               data-testid="focus-lock-btn"
               (click)="toggleFocusLock()"
-              class="px-2 py-0.5 rounded border border-white/5 text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1"
+              class="px-2 py-0.5 rounded border border-fl-border text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-1"
               [class.bg-amber-500/20]="focusLocked()"
               [class.text-amber-500]="focusLocked()"
               [class.text-slate-500]="!focusLocked()"
@@ -467,7 +467,7 @@
           <div class="flex items-center gap-2">
             <button
               (click)="showPianoRoll.set(false)"
-              class="md:hidden px-3 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-400"
+              class="md:hidden px-3 py-1 rounded bg-white/5 border border-fl-border text-[9px] font-black uppercase tracking-widest text-slate-400"
             >
               Back to Arrangement
             </button>
@@ -500,7 +500,7 @@
 
     <div class="studio-bottom-dock">
       <app-transport-bar
-        class="studio-transport desktop-transport shrink-0 border-t border-white/5"
+        class="studio-transport desktop-transport shrink-0 border-t border-fl-border"
       ></app-transport-bar>
       <nav class="fl-mobile-nav">
         @for (
