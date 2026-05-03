@@ -168,7 +168,7 @@
           (click)="
             $event.stopPropagation(); musicManager.toggleStep(track.id, i)
           "
-          [class.bg-black/40-light]="i % 8 < 4"
+          [class.bg-black/20]="i % 8 < 4"
           [class.bg-black/40]="i % 8 >= 4"
           [class.bg-fl-blue]="track.steps[i]"
           [class.shadow-[0_0_12px_rgba(16,185,129,0.3)]]="track.steps[i]"
