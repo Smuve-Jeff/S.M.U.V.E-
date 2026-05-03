@@ -1,31 +1,35 @@
-import { SecurityService } from '../services/security.service';
 import {
   Component,
   OnInit,
   OnDestroy,
-  signal,
   inject,
+  signal,
   computed,
+  AfterViewInit,
+  ViewChild,
+  ElementRef,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
-import { UserProfileService } from '../services/user-profile.service';
-import { DeckService } from '../services/deck.service';
+import { Router } from '@angular/router';
 import { UIService } from '../services/ui.service';
+import { DeckService } from '../services/deck.service';
+import { UserProfileService } from '../services/user-profile.service';
 import { AiService } from '../services/ai.service';
 import { FileLoaderService } from '../services/file-loader.service';
 import { ExportService } from '../services/export.service';
 import { AudioEngineService } from '../services/audio-engine.service';
-import { AfterViewInit } from '@angular/core';
 import { NotificationService } from '../services/notification.service';
 import { PlayerService } from '../services/player.service';
+import {
+  OnboardingService,
+  OnboardingStep,
+} from '../services/onboarding.service';
+import { SecurityService } from '../services/security.service';
 import { MainViewMode } from '../services/user-context.service';
-import { OnboardingService } from '../services/onboarding.service';
-import { OnboardingStep } from '../services/onboarding.service';
 
 interface LandingFeature {
-  route: MainViewMode;
+  route: string;
   category: string;
   title: string;
   description: string;
@@ -34,7 +38,7 @@ interface LandingFeature {
 }
 
 interface WorkflowStage {
-  route: MainViewMode;
+  route: string;
   label: string;
   title: string;
   description: string;
@@ -47,10 +51,21 @@ interface HomeBackdropMedia {
   layoutClass: string;
 }
 
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  color: string;
+  alpha: number;
+  life: number;
+}
+
 @Component({
   selector: 'app-hub',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule],
   templateUrl: './hub.component.html',
   styleUrls: ['./hub.component.css'],
 })
@@ -67,6 +82,12 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   public playerService = inject(PlayerService);
   public onboarding = inject(OnboardingService);
   public securityService = inject(SecurityService);
+
+  @ViewChild('visualizerCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  private ctx!: CanvasRenderingContext2D;
+  private particles: Particle[] = [];
+  private mouseX = 0;
+  private mouseY = 0;
 
   // Quick Start Form
   quickProfile = signal({
@@ -257,6 +278,30 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.uiService.isCompactMobile();
   }
 
+  onItemMouseMove(event: MouseEvent, el: HTMLElement) {
+    const rect = el.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    el.style.setProperty('--mouse-x-local', `${x}%`);
+    el.style.setProperty('--mouse-y-local', `${y}%`);
+  }
+
+  @HostListener('mousemove', ['$event'])
+  onMouseMove(event: MouseEvent) {
+    this.mouseX = event.clientX;
+    this.mouseY = event.clientY;
+
+    const xPct = (event.clientX / window.innerWidth) * 100;
+    const yPct = (event.clientY / window.innerHeight) * 100;
+    document.documentElement.style.setProperty('--mouse-x', `${xPct}%`);
+    document.documentElement.style.setProperty('--mouse-y', `${yPct}%`);
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.resizeCanvas();
+  }
+
   ngOnInit() {
     if (this.uiService.isCompactMobile()) {
       this.aiService.proactiveStrategicPulse();
@@ -267,12 +312,54 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit() {
+    this.initCanvas();
     this.startVisualizer();
+  }
+
+  private initCanvas() {
+    if (!this.canvasRef) return;
+    this.ctx = this.canvasRef.nativeElement.getContext('2d')!;
+    this.resizeCanvas();
+    this.initParticles();
+  }
+
+  private resizeCanvas() {
+    if (!this.canvasRef) return;
+    this.canvasRef.nativeElement.width = window.innerWidth;
+    this.canvasRef.nativeElement.height = window.innerHeight;
+  }
+
+  private initParticles() {
+    this.particles = [];
+    const count = this.isMobile() ? 40 : 120;
+    for (let i = 0; i < count; i++) {
+      this.particles.push(this.createParticle());
+    }
+  }
+
+  private createParticle(): Particle {
+    return {
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      size: Math.random() * 2 + 1,
+      color: this.uiService.activeTheme().primary,
+      alpha: Math.random() * 0.5 + 0.1,
+      life: Math.random() * 100,
+    };
   }
 
   private startVisualizer() {
     const update = () => {
-      if (this.playerService.isPlaying()) {
+      if (this.uiService.performanceMode()) {
+        this.animFrame = requestAnimationFrame(update);
+        return;
+      }
+
+      const isPlaying = this.playerService.isPlaying();
+
+      if (isPlaying) {
         const analyser = this.audioEngine.getAnalyser();
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
@@ -290,12 +377,73 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
         }
         this.visualizerData.set(newData);
       } else {
-        const idle = this.visualizerData().map((v) => Math.max(20, v * 0.95));
+        const idle = this.visualizerData().map((v) => Math.max(20, v * 0.98));
         this.visualizerData.set(idle);
       }
+
+      this.drawBackground(isPlaying);
       this.animFrame = requestAnimationFrame(update);
     };
     this.animFrame = requestAnimationFrame(update);
+  }
+
+  private drawBackground(isPlaying: boolean) {
+    if (!this.ctx) return;
+
+    this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    const intensity = isPlaying ? this.visualizerData()[0] / 100 : 0.2;
+    const theme = this.uiService.activeTheme();
+
+    this.particles.forEach((p) => {
+      // Update
+      p.x += p.vx * (1 + intensity * 2);
+      p.y += p.vy * (1 + intensity * 2);
+
+      // Wrap
+      if (p.x < 0) p.x = window.innerWidth;
+      if (p.x > window.innerWidth) p.x = 0;
+      if (p.y < 0) p.y = window.innerHeight;
+      if (p.y > window.innerHeight) p.y = 0;
+
+      // Interaction
+      const dx = p.x - this.mouseX;
+      const dy = p.y - this.mouseY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 200) {
+        p.x += dx * 0.01;
+        p.y += dy * 0.01;
+      }
+
+      // Draw
+      this.ctx.beginPath();
+      this.ctx.arc(p.x, p.y, p.size * (1 + intensity * 0.5), 0, Math.PI * 2);
+      this.ctx.fillStyle = p.color;
+      this.ctx.globalAlpha = p.alpha * (isPlaying ? 1.5 : 1);
+      this.ctx.fill();
+    });
+
+    // Draw lines between close particles
+    this.ctx.lineWidth = 0.5;
+    for (let i = 0; i < this.particles.length; i++) {
+      for (let j = i + 1; j < this.particles.length; j++) {
+        const p1 = this.particles[i];
+        const p2 = this.particles[j];
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 150) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(p1.x, p1.y);
+          this.ctx.lineTo(p2.x, p2.y);
+          this.ctx.strokeStyle = theme.primary;
+          this.ctx.globalAlpha = (1 - dist / 150) * 0.15 * (isPlaying ? 2 : 1);
+          this.ctx.stroke();
+        }
+      }
+    }
+    this.ctx.globalAlpha = 1;
   }
 
   ngOnDestroy() {

@@ -52,11 +52,16 @@
   }
 
   <!-- Background Reactive Layer -->
-  <div class="hub-ambient-glow"></div>
-  <div class="hub-party-lights"></div>
-  <div class="hub-laser-beams"></div>
-  <div class="hub-reactive-grid"></div>
-  <div class="hub-particles"></div>
+  <canvas
+    #visualizerCanvas
+    class="hub-visualizer-canvas"
+    *ngIf="!uiService.performanceMode()"
+  ></canvas>
+  <div class="hub-ambient-glow" *ngIf="!uiService.performanceMode()"></div>
+  <div class="hub-party-lights" *ngIf="!uiService.performanceMode()"></div>
+  <div class="hub-laser-beams" *ngIf="!uiService.performanceMode()"></div>
+  <div class="hub-reactive-grid" *ngIf="!uiService.performanceMode()"></div>
+  <div class="hub-particles" *ngIf="!uiService.performanceMode()"></div>
   <div class="hub-media-montage" aria-hidden="true">
     @for (panel of homeBackdropMedia; track panel.title) {
       <figure class="media-panel" [ngClass]="panel.layoutClass">
@@ -101,218 +106,59 @@
           <span class="stat-value text-accent">{{
             profileService.profile().catalog.length
           }}</span>
-          <span class="stat-label">Workspace Access</span>
-          <span class="stat-value text-accent">OPEN</span>
         </div>
       </div>
     </header>
 
-    <section
-      *ngIf="onboarding.shouldShow()"
-      class="mb-8 rounded-[2rem] border border-brand-primary/20 bg-black/35 backdrop-blur-xl p-6 md:p-8"
-    >
-      <div
-        class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6"
-      >
-        <div class="max-w-2xl">
-          <p
-            class="text-[10px] font-black uppercase tracking-[0.35em] text-brand-primary"
-          >
-            Guided Launch Flow
-          </p>
-          <h2
-            class="text-2xl md:text-3xl font-black italic uppercase text-white tracking-tight mt-3"
-          >
-            Build the first-session path without leaving the hub
-          </h2>
-          <p class="text-sm text-slate-400 leading-relaxed mt-3">
-            We detected setup gaps and recent activity so you can finish
-            identity, answer the onboarding questionnaire, and jump straight
-            back into the right workspace.
-          </p>
-        </div>
-
-        <div class="flex flex-col sm:flex-row gap-3">
-          <button
-            (click)="continueOnboarding()"
-            class="px-5 py-3 rounded-2xl bg-brand-primary text-black text-[11px] font-black uppercase tracking-[0.2em]"
-          >
-            Continue setup
-          </button>
-          <button
-            (click)="resumeWorkspace()"
-            class="px-5 py-3 rounded-2xl border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white"
-          >
-            Resume workspace
-          </button>
-        </div>
-      </div>
-
-      <div class="mt-6 h-2 rounded-full bg-white/5 overflow-hidden">
-        <div
-          class="h-full bg-gradient-to-r from-brand-primary via-emerald-400 to-sky-400"
-          [style.width.%]="onboarding.progress()"
-        ></div>
-      </div>
-
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mt-6">
-        <article
-          *ngFor="let step of onboarding.steps()"
-          class="rounded-2xl border p-4 transition-all"
-          [class.border-brand-primary/30]="step.complete"
-          [class.bg-brand-primary/10]="step.complete"
-          [class.border-white/10]="!step.complete"
-          [class.bg-white/5]="!step.complete"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <div
-                class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400"
-              >
-                {{ step.complete ? 'Complete' : 'Next Step' }}
-              </div>
-              <h3 class="text-sm font-black uppercase text-white mt-2">
-                {{ step.title }}
-              </h3>
-            </div>
-            <span
-              class="material-symbols-outlined"
-              [class.text-brand-primary]="step.complete"
-            >
-              {{ step.complete ? 'check_circle' : 'arrow_forward' }}
-            </span>
-          </div>
-          <p class="text-xs text-slate-400 leading-relaxed mt-3">
-            {{ step.description }}
-          </p>
-          <button
-            *ngIf="!step.complete"
-            (click)="openOnboardingStep(step)"
-            class="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary"
-            [attr.aria-label]="'Continue onboarding: ' + step.cta"
-          >
-            {{ step.cta }}
-          </button>
-        </article>
-      </div>
-    </section>
-
-    <!-- Bento Grid Layout -->
-    @if (securityService.getSecurityAudit().score < 80) {
-      <div
-        class="col-span-full mb-6 glass-v42 border-l-4 border-brand-danger p-6 animate-enter"
-        (click)="uiService.navigateToView('profile')"
-      >
-        <div class="flex items-center gap-6">
-          <div
-            class="w-12 h-12 rounded-full bg-brand-danger/10 flex items-center justify-center text-brand-danger"
-          >
-            <span class="material-symbols-outlined text-3xl">gpp_maybe</span>
-          </div>
-          <div class="flex-1">
-            <h3
-              class="text-sm font-black uppercase tracking-widest text-brand-danger"
-            >
-              Security Deficit Detected
-            </h3>
-            <p class="text-xs text-silver-dim mt-1 font-bold">
-              Your artist identity is vulnerable.
-              {{ securityService.getSecurityAudit().alerts[0] }}
-            </p>
-          </div>
-          <button
-            class="btn-elegant btn-elegant-danger h-10 px-6 text-[10px] font-black uppercase tracking-widest"
-          >
-            Verify Identity
-          </button>
-        </div>
-      </div>
-    }
-
     <div class="bento-grid">
-      <!-- Module 1: S.M.U.V.E Audit (2x2) -->
+      <!-- Module 1: Strategic Brief (2x2) -->
       <div
         class="bento-item bento-2x2 bento-card glass-v42 audit-module"
-        (click)="uiService.navigateToView('knowledge-base')"
+        (click)="uiService.navigateToView('strategy')"
+        (mousemove)="onItemMouseMove($event, itemEl)"
+        #itemEl
       >
-        <div class="card-overlay"></div>
         <div class="card-content">
-          <div class="flex justify-between items-start mb-6">
+          <div class="flex items-center justify-between mb-8">
             <div class="card-icon-box bg-primary/20 text-primary">
-              <span class="material-symbols-outlined"
-                >security_update_good</span
-              >
+              <span class="material-symbols-outlined">security</span>
             </div>
-            <span class="pill pill-live">AI AUDIT ACTIVE</span>
+            <div class="stat-badge">V2.0 STABLE</div>
           </div>
-          <h2 class="card-heading glimmer-text">
-            Executive Intelligence Brief
-          </h2>
-          <p class="card-subtext mb-8">
-            Real-time scanning of your sonic assets and market readiness.
+
+          <h2 class="card-heading glimmer-text">Strategic Brief</h2>
+          <p class="card-desc">
+            Your intelligence network is tracking market shifts and campaign
+            performance across all active regions.
           </p>
 
-          <!-- Mobile Explicit Directives -->
-          <div class="mt-6 lg:hidden space-y-3">
-            <p
-              class="text-[9px] font-black uppercase tracking-widest text-accent"
+          <div class="mt-8 space-y-4">
+            <div
+              *ngFor="let stat of labelStats"
+              class="flex items-center justify-between border-b border-white/5 pb-3"
             >
-              Current Executive Directives
-            </p>
-            @for (
-              task of aiService.getDynamicChecklist().slice(0, 2);
-              track task.id
-            ) {
-              <div
-                class="directive-item bg-white/5 border border-white/10 rounded-lg p-3 flex gap-3"
-              >
-                <span class="material-symbols-outlined text-sm text-accent"
-                  >bolt</span
-                >
-                <div class="flex-1">
-                  <p class="text-[10px] font-bold uppercase">
-                    {{ task.label }}
-                  </p>
-                  <p class="text-[9px] opacity-60 leading-tight">
-                    {{ task.description }}
-                  </p>
-                </div>
+              <div>
+                <p class="text-[10px] font-bold uppercase opacity-40">
+                  {{ stat.label }}
+                </p>
+                <p class="text-xs text-white/60">{{ stat.foot }}</p>
               </div>
-            }
-          </div>
-          <div class="audit-scores space-y-4">
-            <div class="score-row">
-              <span class="score-label">Sonic Cohesion</span>
-              <div class="score-bar-track">
-                <div
-                  class="score-bar-fill bg-primary"
-                  [style.width.%]="85"
-                ></div>
-              </div>
-            </div>
-            <div class="score-row">
-              <span class="score-label">Market Viability</span>
-              <div class="score-bar-track">
-                <div
-                  class="score-bar-fill bg-accent"
-                  [style.width.%]="72"
-                ></div>
+              <div class="text-lg font-black text-primary">
+                {{ stat.value }}
               </div>
             </div>
           </div>
 
-          <div class="mt-8">
-            <div class="mb-4 space-y-2">
-              <div
-                class="text-[8px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"
+          <div class="mt-8 bg-black/40 rounded-2xl p-4 border border-white/5">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="status-dot status-dot-active"></div>
+              <span class="text-[9px] font-black uppercase tracking-widest"
+                >Neural Uplink Active</span
               >
-                <span
-                  class="w-1 h-1 rounded-full bg-emerald-500 animate-ping"
-                ></span>
-                Global Studio Pulse
-              </div>
+            </div>
+            <div class="flex items-center gap-3">
               <div
-                class="h-10 overflow-hidden relative bg-black/20 rounded-lg border border-white/5"
+                class="flex-1 h-6 bg-white/5 rounded-lg overflow-hidden relative"
               >
                 <div
                   class="absolute inset-0 flex flex-col transition-all duration-1000"
@@ -349,6 +195,8 @@
       <!-- Module 2: Current Project (2x1 Wide) -->
       <div
         class="bento-item bento-2x1 bento-card glass-v42 interactive-playback playback-module"
+        (mousemove)="onItemMouseMove($event, itemEl)"
+        #itemEl
       >
         <div class="card-content flex items-center gap-6">
           <div
@@ -402,6 +250,8 @@
       <div
         class="bento-item bento-1x2 bento-card glass-v42 career-module"
         (click)="uiService.navigateToView('career')"
+        (mousemove)="onItemMouseMove($event, itemEl)"
+        #itemEl
       >
         <div class="card-content h-full flex flex-col">
           <div class="card-icon-box bg-secondary/20 text-secondary mb-4">
@@ -482,6 +332,8 @@
       <div
         class="bento-item bento-1x1 bento-card glass-v42 club-module"
         (click)="uiService.navigateToView('tha-spot')"
+        (mousemove)="onItemMouseMove($event, itemEl)"
+        #itemEl
       >
         <div
           class="card-content flex flex-col items-center justify-center text-center h-full"
@@ -503,6 +355,8 @@
       <div
         class="bento-item bento-1x1 bento-card glass-v42 cinema-module"
         (click)="uiService.navigateToView('image-video-lab')"
+        (mousemove)="onItemMouseMove($event, itemEl)"
+        #itemEl
       >
         <div
           class="card-content flex flex-col items-center justify-center text-center h-full"
@@ -524,6 +378,8 @@
       <div
         class="bento-item bento-1x1 bento-card glass-v42 studio-module"
         (click)="uiService.navigateToView('studio')"
+        (mousemove)="onItemMouseMove($event, itemEl)"
+        #itemEl
       >
         <div
           class="card-content flex flex-col items-center justify-center text-center h-full"
@@ -544,6 +400,8 @@
       <div
         class="bento-item bento-1x1 bento-card glass-v42 intel-module"
         (click)="uiService.navigateToView('strategy')"
+        (mousemove)="onItemMouseMove($event, itemEl)"
+        #itemEl
       >
         <div
           class="card-content flex flex-col items-center justify-center text-center h-full"
