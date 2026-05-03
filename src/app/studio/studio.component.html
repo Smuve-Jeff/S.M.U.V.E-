@@ -73,37 +73,42 @@
     <!-- Top Bar -->
     <header class="fl-top-bar">
       <div class="flex items-center gap-4">
-      <!-- Autonomous Session Musicians -->
-      <div class="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-fl-border mr-4 hidden lg:flex">
-        <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest mr-2">AI Band</span>
-        <button
-          (click)="aiService.toggleAIDrummer()"
-          [class.text-fl-blue]="aiService.isAIDrummerActive()"
-          [class.text-slate-600]="!aiService.isAIDrummerActive()"
-          class="size-7 rounded-full bg-white/5 flex items-center justify-center transition-all hover:bg-white/10"
-          title="AI Drummer"
+        <!-- Autonomous Session Musicians -->
+        <div
+          class="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-fl-border mr-4 hidden lg:flex"
         >
-          <span class="material-symbols-outlined !text-sm">rebase_edit</span>
-        </button>
-        <button
-          (click)="aiService.toggleAIBassist()"
-          [class.text-accent-magenta]="aiService.isAIBassistActive()"
-          [class.text-slate-600]="!aiService.isAIBassistActive()"
-          class="size-7 rounded-full bg-white/5 flex items-center justify-center transition-all hover:bg-white/10"
-          title="AI Bassist"
-        >
-          <span class="material-symbols-outlined !text-sm">linear_scale</span>
-        </button>
-        <button
-          (click)="aiService.toggleAIKeyboardist()"
-          [class.text-brand-secondary]="aiService.isAIKeyboardistActive()"
-          [class.text-slate-600]="!aiService.isAIKeyboardistActive()"
-          class="size-7 rounded-full bg-white/5 flex items-center justify-center transition-all hover:bg-white/10"
-          title="AI Keyboardist"
-        >
-          <span class="material-symbols-outlined !text-sm">grid_on</span>
-        </button>
-      </div>
+          <span
+            class="text-[8px] font-black text-slate-500 uppercase tracking-widest mr-2"
+            >AI Band</span
+          >
+          <button
+            (click)="aiService.toggleAIDrummer()"
+            [class.text-fl-blue]="aiService.isAIDrummerActive()"
+            [class.text-slate-600]="!aiService.isAIDrummerActive()"
+            class="size-7 rounded-full bg-white/5 flex items-center justify-center transition-all hover:bg-white/10"
+            title="AI Drummer"
+          >
+            <span class="material-symbols-outlined !text-sm">rebase_edit</span>
+          </button>
+          <button
+            (click)="aiService.toggleAIBassist()"
+            [class.text-accent-magenta]="aiService.isAIBassistActive()"
+            [class.text-slate-600]="!aiService.isAIBassistActive()"
+            class="size-7 rounded-full bg-white/5 flex items-center justify-center transition-all hover:bg-white/10"
+            title="AI Bassist"
+          >
+            <span class="material-symbols-outlined !text-sm">linear_scale</span>
+          </button>
+          <button
+            (click)="aiService.toggleAIKeyboardist()"
+            [class.text-brand-secondary]="aiService.isAIKeyboardistActive()"
+            [class.text-slate-600]="!aiService.isAIKeyboardistActive()"
+            class="size-7 rounded-full bg-white/5 flex items-center justify-center transition-all hover:bg-white/10"
+            title="AI Keyboardist"
+          >
+            <span class="material-symbols-outlined !text-sm">grid_on</span>
+          </button>
+        </div>
 
         <h1
           class="text-sm font-black uppercase tracking-[0.4em] flex items-center gap-2"
@@ -339,7 +344,10 @@
             >
           </div>
         </div>
-        <button (click)="resolveWithNeuralMix()" class="w-full mt-6 py-2 bg-fl-blue/10 border border-fl-blue/20 rounded-lg text-fl-blue text-[9px] font-black uppercase tracking-widest hover:bg-fl-blue/20 transition-all">
+        <button
+          (click)="resolveWithNeuralMix()"
+          class="w-full mt-6 py-2 bg-fl-blue/10 border border-fl-blue/20 rounded-lg text-fl-blue text-[9px] font-black uppercase tracking-widest hover:bg-fl-blue/20 transition-all"
+        >
           Resolve with Neural Mix
         </button>
       </div>

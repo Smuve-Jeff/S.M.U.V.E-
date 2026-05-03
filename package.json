@@ -69,7 +69,8 @@
     "picomatch": "2.3.2",
     "tar": "7.5.13",
     "terser-webpack-plugin": "5.4.0",
-    "yaml": "2.8.3"
+    "yaml": "2.8.3",
+    "path-to-regexp": "3.3.0"
   },
   "engines": {
     "node": "22.12.0",

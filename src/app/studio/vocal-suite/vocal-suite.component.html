@@ -244,7 +244,9 @@
 
       <!-- Step Content: Edit -->
       <div *ngIf="currentStep() === 'edit'" class="space-y-6">
-        <div class="bg-vocal-titanium/20 border border-fl-border rounded-2xl p-8">
+        <div
+          class="bg-vocal-titanium/20 border border-fl-border rounded-2xl p-8"
+        >
           <h2 class="text-xl font-black uppercase tracking-widest mb-6">
             Non-Destructive Waveform Editor
           </h2>
@@ -408,16 +410,28 @@
                   >Settings</span
                 >
                 Advanced Parameters Integrated into Global Neural Chain
-            <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-fl-border group hover:border-vocal-primary/30 transition-all">
-              <div class="flex flex-col">
-                <span class="text-[10px] font-black text-white uppercase tracking-widest">Neural De-Esser</span>
-                <span class="text-[8px] text-slate-500 uppercase font-bold mt-1">AI Sibilance Reduction</span>
-              </div>
-              <button class="w-10 h-6 rounded-full bg-slate-800 relative transition-all" [class.bg-vocal-primary]="true">
-                <div class="absolute right-1 top-1 size-4 bg-white rounded-full shadow-lg"></div>
-              </button>
-            </div>
-
+                <div
+                  class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-fl-border group hover:border-vocal-primary/30 transition-all"
+                >
+                  <div class="flex flex-col">
+                    <span
+                      class="text-[10px] font-black text-white uppercase tracking-widest"
+                      >Neural De-Esser</span
+                    >
+                    <span
+                      class="text-[8px] text-slate-500 uppercase font-bold mt-1"
+                      >AI Sibilance Reduction</span
+                    >
+                  </div>
+                  <button
+                    class="w-10 h-6 rounded-full bg-slate-800 relative transition-all"
+                    [class.bg-vocal-primary]="true"
+                  >
+                    <div
+                      class="absolute right-1 top-1 size-4 bg-white rounded-full shadow-lg"
+                    ></div>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

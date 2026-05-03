@@ -293,7 +293,11 @@ export class SecurityService {
     return btoa(data);
   }
   decrypt(data: string): string {
-    return atob(data);
+    try {
+      return data ? atob(data) : '';
+    } catch {
+      return '';
+    }
   }
   incrementRateLimit(key: string): void {
     this.recordAttempt(key);

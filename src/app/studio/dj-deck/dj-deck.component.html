@@ -271,7 +271,7 @@
             <span class="hud-label">Stem Isolation</span>
           </div>
           <div class="p-4 grid grid-cols-4 gap-2">
-                        <div class="flex flex-col items-center gap-2">
+            <div class="flex flex-col items-center gap-2">
               <input
                 type="range"
                 min="0"
@@ -281,10 +281,15 @@
                 (input)="setStemGain('A', 'vocals', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-fl-blue"
               />
-              <button (click)="setStemGain('A', 'vocals', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button
+                (click)="setStemGain('A', 'vocals', 0)"
+                class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors"
+              >
+                M
+              </button>
               <span class="hud-label !text-[7px]">VOX</span>
             </div>
-                        <div class="flex flex-col items-center gap-2">
+            <div class="flex flex-col items-center gap-2">
               <input
                 type="range"
                 min="0"
@@ -294,10 +299,15 @@
                 (input)="setStemGain('A', 'drums', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-fl-blue"
               />
-              <button (click)="setStemGain('A', 'drums', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button
+                (click)="setStemGain('A', 'drums', 0)"
+                class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors"
+              >
+                M
+              </button>
               <span class="hud-label !text-[7px]">DRM</span>
             </div>
-                        <div class="flex flex-col items-center gap-2">
+            <div class="flex flex-col items-center gap-2">
               <input
                 type="range"
                 min="0"
@@ -307,10 +317,15 @@
                 (input)="setStemGain('A', 'bass', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-fl-blue"
               />
-              <button (click)="setStemGain('A', 'bass', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button
+                (click)="setStemGain('A', 'bass', 0)"
+                class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors"
+              >
+                M
+              </button>
               <span class="hud-label !text-[7px]">BAS</span>
             </div>
-                        <div class="flex flex-col items-center gap-2">
+            <div class="flex flex-col items-center gap-2">
               <input
                 type="range"
                 min="0"
@@ -320,7 +335,12 @@
                 (input)="setStemGain('A', 'melody', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-fl-blue"
               />
-              <button (click)="setStemGain('A', 'melody', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button
+                (click)="setStemGain('A', 'melody', 0)"
+                class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors"
+              >
+                M
+              </button>
               <span class="hud-label !text-[7px]">MEL</span>
             </div>
           </div>
@@ -439,9 +459,7 @@
       <!-- Session Intelligence -->
       <div class="hud-module p-4 flex flex-col gap-3">
         <span class="hud-label">Strategic Intelligence</span>
-        <div
-          class="p-3 bg-fl-blue/5 border border-fl-blue/20 rounded-lg"
-        >
+        <div class="p-3 bg-fl-blue/5 border border-fl-blue/20 rounded-lg">
           <p
             class="text-[10px] font-bold text-fl-blue leading-relaxed uppercase tracking-tight italic"
           >
@@ -587,7 +605,7 @@
             <span class="hud-label">Stem Isolation</span>
           </div>
           <div class="p-4 grid grid-cols-4 gap-2">
-                        <div class="flex flex-col items-center gap-2">
+            <div class="flex flex-col items-center gap-2">
               <input
                 type="range"
                 min="0"
@@ -597,10 +615,15 @@
                 (input)="setStemGain('B', 'vocals', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-brand-secondary"
               />
-              <button (click)="setStemGain('B', 'vocals', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button
+                (click)="setStemGain('B', 'vocals', 0)"
+                class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors"
+              >
+                M
+              </button>
               <span class="hud-label !text-[7px]">VOX</span>
             </div>
-                        <div class="flex flex-col items-center gap-2">
+            <div class="flex flex-col items-center gap-2">
               <input
                 type="range"
                 min="0"
@@ -610,10 +633,15 @@
                 (input)="setStemGain('B', 'drums', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-brand-secondary"
               />
-              <button (click)="setStemGain('B', 'drums', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button
+                (click)="setStemGain('B', 'drums', 0)"
+                class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors"
+              >
+                M
+              </button>
               <span class="hud-label !text-[7px]">DRM</span>
             </div>
-                        <div class="flex flex-col items-center gap-2">
+            <div class="flex flex-col items-center gap-2">
               <input
                 type="range"
                 min="0"
@@ -623,10 +651,15 @@
                 (input)="setStemGain('B', 'bass', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-brand-secondary"
               />
-              <button (click)="setStemGain('B', 'bass', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button
+                (click)="setStemGain('B', 'bass', 0)"
+                class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors"
+              >
+                M
+              </button>
               <span class="hud-label !text-[7px]">BAS</span>
             </div>
-                        <div class="flex flex-col items-center gap-2">
+            <div class="flex flex-col items-center gap-2">
               <input
                 type="range"
                 min="0"
@@ -636,7 +669,12 @@
                 (input)="setStemGain('B', 'melody', $any($event.target).value)"
                 class="hud-slider-vertical h-24 accent-brand-secondary"
               />
-              <button (click)="setStemGain('B', 'melody', 0)" class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors">M</button>
+              <button
+                (click)="setStemGain('B', 'melody', 0)"
+                class="w-5 h-5 rounded bg-black/40 border border-fl-border text-[7px] font-black text-slate-500 hover:text-red-500 transition-colors"
+              >
+                M
+              </button>
               <span class="hud-label !text-[7px]">MEL</span>
             </div>
           </div>
