@@ -587,7 +587,7 @@ body {
 
 /* Specialized Touch-Friendly Controls for Mobile */
 @media (max-width: 768px) {
-  input[type="range"] {
+  input[type='range'] {
     min-height: 24px; /* Increase hit area for thumbs */
   }
 
@@ -595,12 +595,15 @@ body {
     width: 32px !important;
   }
 
-  .btn-pro, .transport-btn, .action-btn {
+  .btn-pro,
+  .transport-btn,
+  .action-btn {
     min-height: 44px; /* Apple recommendation for touch targets */
     min-width: 44px;
   }
 
-  .glass-card, .hud-module {
+  .glass-card,
+  .hud-module {
     border-radius: 1.5rem !important;
   }
 }

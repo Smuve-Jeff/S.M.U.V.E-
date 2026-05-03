@@ -1468,10 +1468,7 @@ export class AiService {
     const maxStepIndex = Math.max(0, laneCount - 1);
 
     for (const note of notes) {
-      const step = Math.max(
-        0,
-        Math.min(maxStepIndex, Math.round(note.step))
-      );
+      const step = Math.max(0, Math.min(maxStepIndex, Math.round(note.step)));
 
       this.musicManager.addNoteToTrack(trackId, {
         midi: note.midi,
