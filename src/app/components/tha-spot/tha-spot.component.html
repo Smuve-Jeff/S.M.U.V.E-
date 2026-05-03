@@ -306,6 +306,9 @@
         </div>
         <h2>{{ selected.name }}</h2>
         <p>{{ selected.description }}</p>
+        <p class="launch-warning" *ngIf="launchWarning()">
+          {{ launchWarning() }}
+        </p>
 
         <!-- Technical Specs: Controller & Save State Support -->
         <div class="tech-specs">
@@ -329,7 +332,7 @@
 
         <div class="preview-actions">
           <button class="primary-btn action-pulse" (click)="confirmLaunch()">
-            INITIALIZE
+            {{ launchActionLabel(selected) }}
           </button>
           <button class="secondary-btn" (click)="closePreview()">ABORT</button>
         </div>

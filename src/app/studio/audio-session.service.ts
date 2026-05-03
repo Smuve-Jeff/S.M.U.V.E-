@@ -3,10 +3,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { InstrumentService } from './instrument.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { PlaybackState } from './playback-state';
-import {
-  MicrophoneService,
-  AudioInputDevice,
-} from '../services/microphone.service';
+import { MicrophoneService } from '../services/microphone.service';
 
 export interface MicChannel {
   id: string;

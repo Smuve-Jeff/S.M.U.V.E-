@@ -1,6 +1,10 @@
 import { Injectable, inject, signal, NgZone } from '@angular/core';
 import { LoggingService } from './logging.service';
 
+type PerformanceEventEntry = PerformanceEntry & {
+  processingStart: number;
+};
+
 export interface PerformanceMetrics {
   fcp: number | null; // First Contentful Paint
   lcp: number | null; // Largest Contentful Paint
@@ -101,7 +105,7 @@ export class PerformanceMonitorService {
     // FID Observer
     try {
       const fidObserver = new PerformanceObserver((list) => {
-        const entries = list.getEntries() as PerformanceEventTiming[];
+        const entries = list.getEntries() as PerformanceEventEntry[];
         if (entries.length > 0) {
           const fid = entries[0].processingStart - entries[0].startTime;
           this.updateMetric('fid', fid);

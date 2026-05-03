@@ -14,7 +14,7 @@ export class VocalAiService {
 
   isPassiveMode = computed(() => this.feedbackMode() === 'passive');
 
-  async analyzeVocalPerformance(blob: Blob) {
+  async analyzeVocalPerformance(_blob: Blob) {
     if (!navigator.onLine) {
       this.currentAdvice.set(
         "[OFFLINE ERROR] Fix your fucking connection. I'm not analyzing your shit vocals through a heuristic straw. HIGH-PASS AT 80HZ AND STOP WASTING MY TIME."

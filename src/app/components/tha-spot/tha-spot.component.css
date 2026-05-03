@@ -474,6 +474,16 @@
   font-weight: 900;
   margin-bottom: 1rem;
 }
+.launch-warning {
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  background: rgba(236, 91, 19, 0.12);
+  border: 1px solid rgba(236, 91, 19, 0.24);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
 .primary-btn {
   background: #ec5b13;
   color: white;

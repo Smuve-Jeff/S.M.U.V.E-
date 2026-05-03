@@ -83,7 +83,45 @@ describe('StudioComponent', () => {
     component.setActiveView('mastering');
 
     expect(component.activeView()).toBe('mastering');
-    expect(routerMock.navigate).toHaveBeenCalled();
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/studio'], {
+      queryParams: { view: 'mastering' },
+      replaceUrl: true,
+    });
+  });
+
+  it('switches standalone studio routes back to the canonical update path', async () => {
+    const { component, routeUrl$, routerMock } = await createComponent();
+
+    routeUrl$.next([{ path: 'vocal-suite' }]);
+    component.setActiveView('drum-machine');
+
+    expect(component.activeView()).toBe('drum-machine');
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/studio'], {
+      queryParams: { view: 'drum-machine' },
+      replaceUrl: true,
+    });
+  });
+
+  it('navigates to dedicated standalone routes for studio aliases', async () => {
+    const { component, routerMock } = await createComponent();
+
+    component.setActiveView('vocal-suite');
+
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/vocal-suite'], {
+      queryParams: undefined,
+      replaceUrl: true,
+    });
+  });
+
+  it('syncs mastering and performance views from query params without a navigation loop', async () => {
+    const { component, queryParamMap$, routerMock } = await createComponent();
+
+    queryParamMap$.next(convertToParamMap({ view: 'mastering' }));
+    expect(component.activeView()).toBe('mastering');
+
+    queryParamMap$.next(convertToParamMap({ view: 'performance' }));
+    expect(component.activeView()).toBe('performance');
+    expect(routerMock.navigate).not.toHaveBeenCalled();
   });
 
   it('maps studio quality class based on performance mode', async () => {

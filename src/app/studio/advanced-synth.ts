@@ -1,5 +1,15 @@
 import { Instrument } from './instrument';
 
+type SupportedFilterType =
+  | 'allpass'
+  | 'bandpass'
+  | 'highpass'
+  | 'highshelf'
+  | 'lowpass'
+  | 'lowshelf'
+  | 'notch'
+  | 'peaking';
+
 export interface SynthParams {
   osc1Type: OscillatorType;
   osc1Octave: number;
@@ -16,7 +26,7 @@ export interface SynthParams {
   lfoAmount: number;
   lfoTarget: 'cutoff' | 'pitch' | 'volume';
 
-  filterType: BiquadFilterType;
+  filterType: SupportedFilterType;
   filterCutoff: number;
   filterResonance: number;
 

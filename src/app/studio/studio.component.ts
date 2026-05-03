@@ -26,6 +26,29 @@ import { NotificationService } from '../services/notification.service';
 import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
 
+type StudioView =
+  | 'dj'
+  | 'piano-roll'
+  | 'mixer'
+  | 'performance'
+  | 'mastering'
+  | 'vocal-suite'
+  | 'drum-machine';
+
+const PATH_STUDIO_VIEWS = new Set<StudioView>([
+  'dj',
+  'piano-roll',
+  'mixer',
+  'performance',
+  'mastering',
+  'vocal-suite',
+  'drum-machine',
+]);
+
+function isStudioView(value: string): value is StudioView {
+  return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
+}
+
 @Component({
   selector: 'app-studio',
   standalone: true,
@@ -54,15 +77,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly musicManager = inject(MusicManagerService);
   public readonly profileService = inject(UserProfileService);
 
-  activeView = signal<
-    | 'dj'
-    | 'piano-roll'
-    | 'mixer'
-    | 'performance'
-    | 'mastering'
-    | 'vocal-suite'
-    | 'drum-machine'
-  >('dj');
+  activeView = signal<StudioView>('dj');
   showMixer = signal(true);
   showRack = signal(true);
   showPianoRoll = signal(false);
@@ -83,28 +98,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit() {
     this.route.url.subscribe((url) => {
       const path = url[0]?.path;
-      if (
-        path === 'dj' ||
-        path === 'mixer' ||
-        path === 'piano-roll' ||
-        path === 'vocal-suite' ||
-        path === 'drum-machine'
-      ) {
-        this.activeView.set(path as any);
+      if (path && isStudioView(path)) {
+        this.activeView.set(path);
       }
     });
 
     this.route.queryParamMap.subscribe((params) => {
       const view = params.get('view');
-      if (
-        view === 'dj' ||
-        view === 'mixer' ||
-        view === 'piano-roll' ||
-        view === 'vocal-suite' ||
-        view === 'drum-machine' ||
-        view === 'performance' ||
-        view === 'mastering'
-      ) {
+      if (view && isStudioView(view)) {
         this.setActiveView(view, false);
       }
     });
@@ -163,23 +164,25 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  setActiveView(
-    view:
-      | 'dj'
-      | 'piano-roll'
-      | 'mixer'
-      | 'performance'
-      | 'mastering'
-      | 'vocal-suite'
-      | 'drum-machine',
-    syncRoute = true
-  ) {
+  setActiveView(view: StudioView, syncRoute = true) {
     this.activeView.set(view);
     if (!syncRoute) return;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { view },
-      queryParamsHandling: 'merge',
+
+    const targetRoute =
+      view === 'dj'
+        ? ['/studio']
+        : view === 'vocal-suite'
+          ? ['/vocal-suite']
+          : view === 'piano-roll'
+            ? ['/piano-roll']
+            : ['/studio'];
+    const queryParams =
+      view === 'dj' || view === 'vocal-suite' || view === 'piano-roll'
+        ? undefined
+        : { view };
+
+    this.router.navigate(targetRoute, {
+      queryParams,
       replaceUrl: true,
     });
   }
