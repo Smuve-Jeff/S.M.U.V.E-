@@ -35,7 +35,7 @@ type StudioView =
   | 'vocal-suite'
   | 'drum-machine';
 
-const PATH_STUDIO_VIEWS: ReadonlySet<string> = new Set([
+const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'dj',
   'piano-roll',
   'mixer',
@@ -44,6 +44,10 @@ const PATH_STUDIO_VIEWS: ReadonlySet<string> = new Set([
   'vocal-suite',
   'drum-machine',
 ]);
+
+function isStudioView(value: string): value is StudioView {
+  return PATH_STUDIO_VIEWS.has(value as StudioView);
+}
 
 @Component({
   selector: 'app-studio',
@@ -94,15 +98,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit() {
     this.route.url.subscribe((url) => {
       const path = url[0]?.path;
-      if (path && PATH_STUDIO_VIEWS.has(path)) {
-        this.activeView.set(path as StudioView);
+      if (path && isStudioView(path)) {
+        this.activeView.set(path);
       }
     });
 
     this.route.queryParamMap.subscribe((params) => {
       const view = params.get('view');
-      if (view && PATH_STUDIO_VIEWS.has(view)) {
-        this.setActiveView(view as StudioView, false);
+      if (view && isStudioView(view)) {
+        this.setActiveView(view, false);
       }
     });
   }
