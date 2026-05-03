@@ -5,7 +5,6 @@ import {
   inject,
   signal,
   computed,
-  AfterViewInit,
   ViewChild,
   ElementRef,
   HostListener,
@@ -69,7 +68,7 @@ interface Particle {
   templateUrl: './hub.component.html',
   styleUrls: ['./hub.component.css'],
 })
-export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
+export class HubComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   public uiService = inject(UIService);
   public deckService = inject(DeckService);
@@ -83,7 +82,24 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   public onboarding = inject(OnboardingService);
   public securityService = inject(SecurityService);
 
-  @ViewChild('visualizerCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('visualizerCanvas') set canvasRef(
+    el: ElementRef<HTMLCanvasElement> | undefined
+  ) {
+    this._canvasRef = el;
+    if (el) {
+      // Canvas just appeared in the DOM (performance mode was disabled)
+      if (this.initCanvas()) {
+        this.startVisualizer();
+      }
+    } else {
+      // Canvas was removed from the DOM (performance mode enabled)
+      if (this.animFrame !== null) {
+        cancelAnimationFrame(this.animFrame);
+        this.animFrame = null;
+      }
+    }
+  }
+  private _canvasRef: ElementRef<HTMLCanvasElement> | undefined;
   private ctx!: CanvasRenderingContext2D;
   private particles: Particle[] = [];
   private mouseX = 0;
@@ -311,16 +327,10 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     }, 3000);
   }
 
-  ngAfterViewInit() {
-    if (this.initCanvas()) {
-      this.startVisualizer();
-    }
-  }
-
   private initCanvas(): boolean {
-    if (!this.canvasRef) return false;
+    if (!this._canvasRef) return false;
 
-    const canvas = this.canvasRef.nativeElement;
+    const canvas = this._canvasRef.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       canvas.style.display = 'none';
@@ -335,9 +345,9 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private resizeCanvas() {
-    if (!this.canvasRef) return;
-    this.canvasRef.nativeElement.width = window.innerWidth;
-    this.canvasRef.nativeElement.height = window.innerHeight;
+    if (!this._canvasRef) return;
+    this._canvasRef.nativeElement.width = window.innerWidth;
+    this._canvasRef.nativeElement.height = window.innerHeight;
   }
 
   private initParticles() {
@@ -364,7 +374,9 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   private startVisualizer() {
     const update = () => {
       if (this.uiService.performanceMode()) {
-        this.animFrame = requestAnimationFrame(update);
+        // Stop the loop; the @ViewChild setter will restart it
+        // when the canvas is re-added (performance mode is turned off).
+        this.animFrame = null;
         return;
       }
 
