@@ -1461,10 +1461,21 @@ export class AiService {
     }>
   ): void {
     const trackId = this.ensureGeneratedTrack(presetId, trackName);
+    const track = this.musicManager
+      .tracks()
+      .find((candidate) => candidate.id === trackId);
+    const laneCount = track?.steps?.length ?? 64;
+    const maxStepIndex = Math.max(0, laneCount - 1);
+
     for (const note of notes) {
+      const step = Math.max(
+        0,
+        Math.min(maxStepIndex, Math.round(note.step))
+      );
+
       this.musicManager.addNoteToTrack(trackId, {
         midi: note.midi,
-        step: Math.max(0, Math.min(63, note.step)),
+        step,
         length: Math.max(1, note.length),
         velocity: Math.max(0.1, Math.min(1, note.velocity)),
       });
