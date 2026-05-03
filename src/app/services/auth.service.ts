@@ -68,9 +68,16 @@ export class AuthService {
   }
 
   constructor() {
-    void this.loadSession();
-    const savedToken = localStorage.getItem('smuve_jwt_token');
+    const savedToken =
+      typeof localStorage !== 'undefined'
+        ? localStorage.getItem('smuve_jwt_token')
+        : null;
     if (savedToken) this._jwtToken.set(savedToken);
+
+    // Defer session loading to avoid circular dependency deadlocks during bootstrap
+    setTimeout(() => {
+      void this.loadSession();
+    }, 0);
   }
 
   private normalizeEmail(email: string): string {
@@ -138,6 +145,7 @@ export class AuthService {
 
   private decrypt(encoded: string): string | null {
     try {
+      if (!encoded) return null;
       const decoded = decodeURIComponent(escape(atob(encoded)));
       const [data, key] = decoded.split('|');
       return key === GLOBAL_SECURITY_CONFIG.auth_salt ? data : null;

@@ -587,7 +587,7 @@ body {
 
 /* Specialized Touch-Friendly Controls for Mobile */
 @media (max-width: 768px) {
-  input[type="range"] {
+  input[type='range'] {
     min-height: 24px; /* Increase hit area for thumbs */
   }
 
@@ -595,12 +595,15 @@ body {
     width: 32px !important;
   }
 
-  .btn-pro, .transport-btn, .action-btn {
+  .btn-pro,
+  .transport-btn,
+  .action-btn {
     min-height: 44px; /* Apple recommendation for touch targets */
     min-width: 44px;
   }
 
-  .glass-card, .hud-module {
+  .glass-card,
+  .hud-module {
     border-radius: 1.5rem !important;
   }
 }
@@ -627,7 +630,7 @@ body {
     min-width: 48px;
   }
 
-  input[type="range"] {
+  input[type='range'] {
     height: 32px;
   }
 
@@ -646,12 +649,19 @@ body {
   background: linear-gradient(90deg, #161a22, #0d0f14);
   border-left: 4px solid var(--fl-blue);
   border-radius: 4px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   margin-bottom: 2px;
 }
 
 .fl-knob-blue {
-  background: conic-gradient(from 180deg at 50% 50%, #050608 0deg, var(--fl-blue) 180deg, #050608 360deg);
+  background: conic-gradient(
+    from 180deg at 50% 50%,
+    #050608 0deg,
+    var(--fl-blue) 180deg,
+    #050608 360deg
+  );
   border-radius: 50%;
-  box-shadow: inset 0 0 5px rgba(0,0,0,0.5), 0 0 10px rgba(0, 242, 255, 0.2);
+  box-shadow:
+    inset 0 0 5px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(0, 242, 255, 0.2);
 }

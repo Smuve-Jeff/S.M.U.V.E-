@@ -146,7 +146,9 @@ describe('CareerHubComponent', () => {
   });
 
   it('should render the bento grid sections', () => {
-    const matrix = fixture.debugElement.query(By.css('.glass-v42.shadow-v42-xl'));
+    const matrix = fixture.debugElement.query(
+      By.css('.glass-v42.shadow-v42-xl')
+    );
     expect(matrix).toBeTruthy();
 
     const text = fixture.nativeElement.textContent;

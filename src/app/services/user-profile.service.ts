@@ -133,7 +133,7 @@ export class UserProfileService {
 
   constructor() {
     if (!(typeof process !== 'undefined' && !!process.env.JEST_WORKER_ID)) {
-      void this.loadProfile();
+      setTimeout(() => void this.loadProfile(), 0);
     }
   }
 

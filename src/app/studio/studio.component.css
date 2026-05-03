@@ -31,8 +31,16 @@
   height: 100%;
   width: 100%;
   background:
-    radial-gradient(circle at 10% 10%, rgba(0, 242, 255, 0.08), transparent 40%),
-    radial-gradient(circle at 90% 90%, rgba(168, 85, 247, 0.05), transparent 40%),
+    radial-gradient(
+      circle at 10% 10%,
+      rgba(0, 242, 255, 0.08),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 90% 90%,
+      rgba(168, 85, 247, 0.05),
+      transparent 40%
+    ),
     var(--fl-darker);
   color: #f1f5f9;
   position: relative;
@@ -133,7 +141,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 1.5rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(var(--studio-topbar-blur));
   z-index: 50;
 }

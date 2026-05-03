@@ -40,9 +40,7 @@ import { UserProfileService } from '../../services/user-profile.service';
               style of profile().knowledgeBase.learnedStyles;
               track style.id
             ) {
-              <div
-                class="p-3 bg-slate-900/50 rounded border border-fl-blue/20"
-              >
+              <div class="p-3 bg-slate-900/50 rounded border border-fl-blue/20">
                 <div class="font-bold text-purple-300">{{ style.name }}</div>
                 <p class="text-sm text-slate-400">{{ style.description }}</p>
               </div>
@@ -69,9 +67,7 @@ import { UserProfileService } from '../../services/user-profile.service';
               secret of profile().knowledgeBase.productionSecrets;
               track secret.id
             ) {
-              <div
-                class="p-3 bg-slate-900/50 rounded border border-fl-blue/20"
-              >
+              <div class="p-3 bg-slate-900/50 rounded border border-fl-blue/20">
                 <div class="font-bold text-emerald-300">{{ secret.title }}</div>
                 <p class="text-sm text-slate-400">{{ secret.content }}</p>
               </div>
@@ -94,9 +90,7 @@ import { UserProfileService } from '../../services/user-profile.service';
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             @for (trend of profile().knowledgeBase.coreTrends; track trend.id) {
-              <div
-                class="p-3 bg-slate-900/50 rounded border border-fl-blue/20"
-              >
+              <div class="p-3 bg-slate-900/50 rounded border border-fl-blue/20">
                 <div class="font-bold text-orange-300">{{ trend.trend }}</div>
                 <p class="text-sm text-slate-400">
                   {{ trend.actionableInsight }}
