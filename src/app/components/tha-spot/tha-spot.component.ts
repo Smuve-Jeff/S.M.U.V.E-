@@ -255,9 +255,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadFeed();
-    this.startLiveClock();
-    this.startFeedRefresh();
     if (typeof window !== 'undefined') {
+      this.startLiveClock();
+      this.startFeedRefresh();
       window.addEventListener('message', this.messageHandler);
     }
   }
