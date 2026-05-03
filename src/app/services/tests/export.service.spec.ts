@@ -65,7 +65,7 @@ describe('ExportService', () => {
       numberOfChannels: 1,
       sampleRate: sampleRate,
       length: length,
-      getChannelData: (c: number) => new Float32Array(length).fill(0.5),
+      getChannelData: (_channel: number) => new Float32Array(length).fill(0.5),
     } as any;
 
     const wavArrayBuffer = service.audioBufferToWav(buffer);

@@ -31,6 +31,7 @@ import { UIService } from '../../services/ui.service';
 
 const DEFAULT_RECOMMENDATION_ITEMS = 8;
 const FEED_REFRESH_INTERVAL_MS = 300000;
+const LIVE_CLOCK_INTERVAL_MS = 60000;
 type LibraryViewMode = 'grid' | 'compact';
 type QuickFilter = 'featured' | 'multiplayer' | 'instant' | 'online';
 const QUICK_FILTERS: QuickFilter[] = [
@@ -255,6 +256,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadFeed();
     if (typeof window !== 'undefined') {
+      this.startLiveClock();
+      this.startFeedRefresh();
       window.addEventListener('message', this.messageHandler);
     }
   }
@@ -383,7 +386,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
 
     const sorted = this.gameService.filterAndSortGames(games, {}, 'Popular');
-    return rail.maxItems ? sorted.slice(0, rail.maxItems) : sorted;
+    const maxItems = rail.maxItems ?? DEFAULT_RECOMMENDATION_ITEMS;
+    return sorted.slice(0, maxItems);
   }
 
   getSafeUrl(game: Game): SafeResourceUrl | null {
@@ -409,10 +413,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     }
   }
 
-  private loadFeed() {
+  private loadFeed(forceRefresh = false) {
     this.feedSubscription?.unsubscribe();
     this.feedSubscription = this.gameService
-      .getThaSpotFeed()
+      .getThaSpotFeed(forceRefresh)
       .subscribe((feed) => {
         this.feed.set(feed);
         this.games.set(feed.games);
@@ -423,6 +427,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         this.promotions.set(feed.promotions);
         this.recommendationRails.set(feed.recommendationRails);
       });
+  }
+
+  private startLiveClock(): void {
+    this.clockId = window.setInterval(() => {
+      this.now.set(Date.now());
+    }, LIVE_CLOCK_INTERVAL_MS);
+  }
+
+  private startFeedRefresh(): void {
+    this.feedRefreshId = window.setInterval(() => {
+      this.loadFeed(true);
+    }, FEED_REFRESH_INTERVAL_MS);
   }
 
   setSearchQuery(query: string): void {
@@ -528,7 +544,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   private resolveLaunchWarning(game: Game): string {
     if (game.launchConfig?.embedMode === 'external-only') {
-      return 'External governance required for this cabinet.';
+      return (
+        game.launchConfig?.trustNote ||
+        'External governance required for this cabinet.'
+      );
     }
     if (game.launchConfig?.approvedEmbedUrl || game.url) {
       return 'Exact embed target verified.';
@@ -555,5 +574,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       reward: event?.reward,
       rewardType: event?.schedule?.rewardType,
     };
+  }
+
+  launchActionLabel(game: Game): string {
+    return game.launchConfig?.embedMode === 'external-only'
+      ? 'OPEN EXTERNALLY'
+      : 'INITIALIZE';
   }
 }

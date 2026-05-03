@@ -19,15 +19,10 @@ describe('HistoryService', () => {
   });
 
   it('should enable undo after pushing an action', () => {
-    let value = 0;
     service.pushAction({
       description: 'Increment',
-      undo: () => {
-        value--;
-      },
-      redo: () => {
-        value++;
-      },
+      undo: () => {},
+      redo: () => {},
     });
 
     expect(service.canUndo()).toBe(true);
@@ -77,32 +72,20 @@ describe('HistoryService', () => {
   });
 
   it('should clear redo stack when new action is pushed', () => {
-    let value = 0;
-
     service.pushAction({
       description: 'Action 1',
-      undo: () => {
-        value--;
-      },
-      redo: () => {
-        value++;
-      },
+      undo: () => {},
+      redo: () => {},
     });
 
-    value++;
     service.undo();
-    value--;
 
     expect(service.canRedo()).toBe(true);
 
     service.pushAction({
       description: 'Action 2',
-      undo: () => {
-        value -= 2;
-      },
-      redo: () => {
-        value += 2;
-      },
+      undo: () => {},
+      redo: () => {},
     });
 
     expect(service.canRedo()).toBe(false);
@@ -149,16 +132,10 @@ describe('HistoryService', () => {
   });
 
   it('should clear all history', () => {
-    let value = 0;
-
     service.pushAction({
       description: 'Action',
-      undo: () => {
-        value = 0;
-      },
-      redo: () => {
-        value = 1;
-      },
+      undo: () => {},
+      redo: () => {},
     });
 
     expect(service.canUndo()).toBe(true);
@@ -186,18 +163,12 @@ describe('HistoryService', () => {
   });
 
   it('should limit history size to 100 actions', () => {
-    let value = 0;
-
     // Push 150 actions
     for (let i = 0; i < 150; i++) {
       service.pushAction({
         description: `Action ${i}`,
-        undo: () => {
-          value--;
-        },
-        redo: () => {
-          value++;
-        },
+        undo: () => {},
+        redo: () => {},
       });
     }
 

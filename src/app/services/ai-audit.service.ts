@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { UserProfile, ProfileAuditLog } from '../types/profile.types';
 
 @Injectable({

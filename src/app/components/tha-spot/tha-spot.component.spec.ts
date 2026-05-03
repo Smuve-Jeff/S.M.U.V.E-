@@ -210,6 +210,25 @@ const mockFeed: ThaSpotFeed = {
       },
       art: { eyebrow: 'Offline', accentStart: '#34d399', accentEnd: '#059669' },
     },
+    {
+      id: '3',
+      name: 'Hextris',
+      url: 'https://hextris.github.io/hextris/',
+      genre: 'Classic',
+      availability: 'Online',
+      rating: 4.7,
+      playersOnline: 120,
+      tags: ['Arcade', 'Retro'],
+      queueEstimateMinutes: 0,
+      badgeIds: ['featured'],
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://hextris.github.io/hextris/',
+        approvedExternalUrl: 'https://hextris.github.io/hextris/',
+        telemetryMode: 'origin',
+      },
+      art: { eyebrow: 'Online', accentStart: '#38bdf8', accentEnd: '#2563eb' },
+    },
   ],
 };
 
@@ -320,6 +339,7 @@ describe('ThaSpotComponent', () => {
     component.toggleQuickFilter('multiplayer');
     component.setSortMode('Name');
     expect(component.filteredGames().map((game) => game.name)).toEqual([
+      'Hextris',
       'Tempo Lockdown',
       'Tha Battlefield',
     ]);
@@ -339,7 +359,7 @@ describe('ThaSpotComponent', () => {
     );
     expect(component.recommendedGames().length).toBeGreaterThan(0);
     expect(component.recentlyPlayed()[0].name).toBe('Tempo Lockdown');
-    expect(component.liveMetrics().roomPlayers).toBe(1590);
+    expect(component.liveMetrics().roomPlayers).toBe(1710);
     expect(component.activitySummary().favoriteRoomLabel).toBe(
       'Producer Lounge'
     );
@@ -441,6 +461,28 @@ describe('ThaSpotComponent', () => {
     component.confirmLaunch();
 
     expect(openSpy).toHaveBeenCalled();
+    expect(component.currentGame()).toBeNull();
+  });
+
+  it('normalizes remote cabinets to external launches and updates preview guidance', () => {
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    const remoteGame = component.games().find((game) => game.id === '3');
+
+    expect(remoteGame?.launchConfig?.embedMode).toBe('external-only');
+
+    component.previewGame(remoteGame!);
+    fixture.detectChanges();
+    expect(component.launchActionLabel(remoteGame!)).toBe('OPEN EXTERNALLY');
+    expect(component.launchWarning()).toContain('separate tab');
+    expect(fixture.nativeElement.textContent).toContain('OPEN EXTERNALLY');
+
+    component.confirmLaunch();
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://hextris.github.io/hextris/',
+      '_blank',
+      'noopener'
+    );
     expect(component.currentGame()).toBeNull();
   });
 

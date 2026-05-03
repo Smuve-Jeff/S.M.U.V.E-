@@ -9,6 +9,8 @@ import { AudioEngineService } from '../audio-engine.service';
 import { signal } from '@angular/core';
 import { ArtistIdentityService } from '../artist-identity.service';
 import { AuthService } from '../auth.service';
+import { MusicManagerService } from '../music-manager.service';
+import { NeuralMixerService } from '../neural-mixer.service';
 
 describe('AiService', () => {
   let service: AiService;
@@ -17,6 +19,8 @@ describe('AiService', () => {
   let analyticsService: any;
   let artistIdentityService: any;
   let authServiceMock: any;
+  let musicManagerMock: any;
+  let neuralMixerMock: any;
 
   beforeEach(() => {
     userProfileService = {
@@ -28,6 +32,7 @@ describe('AiService', () => {
         marketingCampaigns: [],
         recommendationPreferences: {},
         recommendationHistory: [],
+        artistName: 'Test Artist',
         primaryGenre: 'Hip-Hop',
         tasks: [],
         skills: [],
@@ -74,6 +79,81 @@ describe('AiService', () => {
         emailVerified: true,
       }),
     };
+    let trackIdCounter = 0;
+    musicManagerMock = {
+      tracks: signal([]),
+      selectedTrackId: signal<number | null>(null),
+      structure: signal([]),
+      chords: signal([]),
+      ensureTrack: jest.fn((presetId: string) => {
+        const id = ++trackIdCounter;
+        musicManagerMock.tracks.update((tracks: any[]) => [
+          ...tracks,
+          {
+            id,
+            name: presetId,
+            instrumentId: presetId,
+            type: 'midi',
+            color: '#EC5B13',
+            notes: [],
+            clips: [],
+            gain: 0.9,
+            pan: 0,
+            sendA: 0.1,
+            sendB: 0.05,
+            fxSlots: [],
+            mute: false,
+            solo: false,
+            steps: new Array(64).fill(false),
+            stepVelocities: new Array(64).fill(1),
+            patternSlots: [],
+            activePatternSlotId: null,
+          },
+        ]);
+        if (musicManagerMock.selectedTrackId() == null) {
+          musicManagerMock.selectedTrackId.set(id);
+        }
+        return id;
+      }),
+      clearTrack: jest.fn((trackId: number) => {
+        musicManagerMock.tracks.update((tracks: any[]) =>
+          tracks.map((track) =>
+            track.id === trackId
+              ? {
+                  ...track,
+                  notes: [],
+                  steps: new Array(64).fill(false),
+                  stepVelocities: track.stepVelocities ?? new Array(64).fill(1),
+                }
+              : track
+          )
+        );
+      }),
+      addNoteToTrack: jest.fn((trackId: number, note: any) => {
+        musicManagerMock.tracks.update((tracks: any[]) =>
+          tracks.map((track) => {
+            if (track.id !== trackId) return track;
+            const nextNotes = [
+              ...track.notes,
+              { ...note, id: `note-${track.notes.length + 1}` },
+            ];
+            const nextSteps = new Array(64).fill(false);
+            nextNotes.forEach((entry: any) => {
+              if (entry.step >= 0 && entry.step < 64) {
+                nextSteps[entry.step] = true;
+              }
+            });
+            return { ...track, notes: nextNotes, steps: nextSteps };
+          })
+        );
+      }),
+      engine: {
+        updateTrack: jest.fn(),
+      },
+    };
+    neuralMixerMock = {
+      applyNeuralMix: jest.fn(),
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -88,6 +168,8 @@ describe('AiService', () => {
         { provide: UserContextService, useValue: userContextService },
         { provide: ArtistIdentityService, useValue: artistIdentityService },
         { provide: AuthService, useValue: authServiceMock },
+        { provide: MusicManagerService, useValue: musicManagerMock },
+        { provide: NeuralMixerService, useValue: neuralMixerMock },
         { provide: StemSeparationService, useValue: {} },
         {
           provide: AudioEngineService,
@@ -162,8 +244,43 @@ describe('AiService', () => {
   it('handles new generate bass/drums slash commands', async () => {
     const bassResponse = await service.processCommand('/generate_bass');
     const drumResponse = await service.processCommand('/generate_drums');
+
     expect(bassResponse.toLowerCase()).toContain('generated');
     expect(drumResponse.toLowerCase()).toContain('generated');
+    expect(
+      musicManagerMock.tracks().find((t: any) => t.name === 'AI Bass')?.notes
+    ).toHaveLength(8);
+    expect(
+      musicManagerMock.tracks().find((t: any) => t.name === 'AI Drums')?.notes
+        .length
+    ).toBeGreaterThan(0);
+  });
+
+  it('applies generated chord and structure commands into music manager state', async () => {
+    const chordResponse = await service.processCommand('/generate_chords');
+    const structureResponse = await service.processCommand(
+      '/generate_structure'
+    );
+
+    expect(chordResponse.toLowerCase()).toContain('generated');
+    expect(structureResponse.toLowerCase()).toContain('structure');
+    expect(musicManagerMock.chords().length).toBeGreaterThan(0);
+    expect(musicManagerMock.structure().length).toBe(1);
+    expect(
+      musicManagerMock.tracks().find((t: any) => t.name === 'AI Chords')?.notes
+        .length
+    ).toBeGreaterThan(0);
+  });
+
+  it('reports zero split sheets when financial data is missing', async () => {
+    userProfileService.profile.set({
+      ...userProfileService.profile(),
+      financials: undefined,
+    });
+
+    await expect(service.processCommand('/splits')).resolves.toContain(
+      '0 Digital Split Sheets'
+    );
   });
 
   it('personalizes upgrade recommendations around missing campaigns and shallow catalog depth', () => {

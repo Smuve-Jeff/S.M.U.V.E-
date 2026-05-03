@@ -162,6 +162,33 @@ describe('GameService', () => {
     expect(games[0]?.launchConfig?.telemetryMode).toBeDefined();
   });
 
+  it('routes third-party cabinets to external launches while keeping managed games inline', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
+    const games = await pending;
+
+    const remoteGame = games.find((game) => game.id === '12');
+    const managedGame = games.find((game) => game.id === '13');
+
+    expect(remoteGame?.launchConfig).toEqual(
+      expect.objectContaining({
+        embedMode: 'external-only',
+        approvedEmbedUrl: undefined,
+        approvedExternalUrl: 'https://hextris.github.io/hextris/',
+        telemetryMode: 'none',
+      })
+    );
+    expect(remoteGame?.launchConfig?.trustNote).toContain(
+      'Launches in a separate tab'
+    );
+    expect(managedGame?.launchConfig).toEqual(
+      expect.objectContaining({
+        embedMode: 'inline',
+        approvedEmbedUrl: '/assets/games/battlefield/battlefield.html',
+      })
+    );
+  });
+
   it('filters games through data-driven room rules', async () => {
     const pending = firstValueFrom(service.getGamesForRoom('weekend-clash'));
     httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);

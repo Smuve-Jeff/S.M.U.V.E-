@@ -4,10 +4,8 @@ import { DatabaseService } from './database.service';
 import {
   RecommendationHistoryEntry,
   UpgradeRecommendation,
-  ArtistKnowledgeBase,
 } from '../types/ai.types';
 import {
-  ArtistIdentityState,
   createInitialArtistIdentity,
   ensureArtistIdentityState,
 } from '../types/artist-identity.types';

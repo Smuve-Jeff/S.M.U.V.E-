@@ -66,7 +66,7 @@ describe('ProjectsComponent', () => {
     });
 
     it('does not add a project when the name is blank', async () => {
-      const { component, dialogMock, uplinkMock } = await createComponent();
+      const { component, dialogMock } = await createComponent();
       const initialCount = component.projects().length;
 
       dialogMock.prompt.mockResolvedValue('   ');
