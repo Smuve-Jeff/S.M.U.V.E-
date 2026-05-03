@@ -1477,6 +1477,17 @@ export class AiService {
       .tracks()
       .find((track) => track.name === trackName);
     if (existingTrack) {
+      this.musicManager.tracks.update((tracks) =>
+        tracks.map((track) =>
+          track.id === existingTrack.id
+            ? { ...track, name: trackName, presetId }
+            : track
+        )
+      );
+      this.musicManager.engine.updateTrack(existingTrack.id, {
+        name: trackName,
+        presetId,
+      });
       this.musicManager.clearTrack(existingTrack.id);
       return existingTrack.id;
     }
