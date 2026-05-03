@@ -312,15 +312,26 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.initCanvas();
-    this.startVisualizer();
+    if (this.initCanvas()) {
+      this.startVisualizer();
+    }
   }
 
-  private initCanvas() {
-    if (!this.canvasRef) return;
-    this.ctx = this.canvasRef.nativeElement.getContext('2d')!;
+  private initCanvas(): boolean {
+    if (!this.canvasRef) return false;
+
+    const canvas = this.canvasRef.nativeElement;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      canvas.style.display = 'none';
+      return false;
+    }
+
+    this.ctx = ctx;
+    canvas.style.display = '';
     this.resizeCanvas();
     this.initParticles();
+    return true;
   }
 
   private resizeCanvas() {
