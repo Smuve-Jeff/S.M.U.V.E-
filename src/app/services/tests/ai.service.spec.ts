@@ -150,6 +150,13 @@ describe('AiService', () => {
       engine: {
         updateTrack: jest.fn(),
       },
+      setInstrument: jest.fn((trackId: number, presetId: string) => {
+        musicManagerMock.tracks.update((tracks: any[]) =>
+          tracks.map((track) =>
+            track.id === trackId ? { ...track, instrumentId: presetId } : track
+          )
+        );
+      }),
     };
     neuralMixerMock = {
       applyNeuralMix: jest.fn(),

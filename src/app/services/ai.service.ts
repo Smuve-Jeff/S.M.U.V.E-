@@ -1488,16 +1488,15 @@ export class AiService {
       .tracks()
       .find((track) => track.name === trackName);
     if (existingTrack) {
+      this.musicManager.setInstrument(existingTrack.id, presetId);
+      // Ensure the caller-supplied name is preserved regardless of preset rename logic
       this.musicManager.tracks.update((tracks) =>
         tracks.map((track) =>
-          track.id === existingTrack.id
-            ? { ...track, name: trackName, presetId }
-            : track
+          track.id === existingTrack.id ? { ...track, name: trackName } : track
         )
       );
       this.musicManager.engine.updateTrack(existingTrack.id, {
         name: trackName,
-        presetId,
       });
       this.musicManager.clearTrack(existingTrack.id);
       return existingTrack.id;
