@@ -110,8 +110,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     const query = this.searchQuery().toLowerCase();
     const filters = this.quickFilters();
     const mode = this.sortMode();
-    const roomId = this.activeRoom();
-    const room = this.gamingRooms().find((r) => r.id === roomId);
 
     let result = games.filter((game) => {
       const matchesGenre = genre === 'all' || game.genre === genre;
@@ -124,15 +122,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         (platform === 'Internal' && game.url.startsWith('/assets/')) ||
         (platform === 'External' && !game.url.startsWith('/assets/'));
 
-      const matchesRoom = !room || roomId === 'all' || this.gameService.matchesRoom(game, room);
-
       const matchesQuick = this.matchesQuickFilters(game, filters);
 
-      return matchesGenre && matchesQuery && matchesPlatform && matchesRoom && matchesQuick;
+      return matchesGenre && matchesQuery && matchesPlatform && matchesQuick;
     });
 
     return this.gameService.filterAndSortGames(result, {}, mode);
-
+  });
 
   matchingRecommendationRails = computed(() => {
     const roomId = this.activeRoom();
