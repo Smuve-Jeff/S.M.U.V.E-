@@ -705,7 +705,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         trustNote: 'Allowlisted arcade partner.',
         embedMode: 'inline',
-        approvedExternalUrl: 'https://htmlgames.com/game/Beat+Runner',
+        approvedExternalUrl: 'https://www.gamepix.com/play/music-rush',
         approvedEmbedUrl: 'https://www.gamepix.com/play/music-rush',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
