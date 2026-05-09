@@ -784,7 +784,7 @@
     },
     {
       "id": "7",
-      "name": "2048 Championship",
+      "name": "2048",
       "url": "https://play2048.co/",
       "description": "Reliable number-combo classic for quick logic resets between creative work.",
       "genre": "Puzzle",
@@ -840,7 +840,7 @@
     },
     {
       "id": "8",
-      "name": "Beat Runner",
+      "name": "Music Rush",
       "url": "https://www.gamepix.com/play/music-rush",
       "description": "Sprint through glow landscapes synced to the beat with lightweight online launch.",
       "genre": "Runner",
@@ -894,7 +894,7 @@
     },
     {
       "id": "9",
-      "name": "Pac-Man Classic",
+      "name": "Pac-Man",
       "url": "https://pacman.live/play.html",
       "description": "Definitive arcade classic for pure cabinet energy and route memorization.",
       "genre": "Classic",
@@ -1007,7 +1007,7 @@
     },
     {
       "id": "11",
-      "name": "Grandmaster Chess",
+      "name": "Chess Classic",
       "url": "https://www.gamepix.com/play/chess-classic",
       "description": "The ultimate strategy board with steady queues and deep tactical play.",
       "genre": "Strategy",
@@ -1063,7 +1063,7 @@
     },
     {
       "id": "12",
-      "name": "Pro Hoops 2K",
+      "name": "Basket Random",
       "url": "https://www.gamepix.com/play/basket-random",
       "description": "Step onto the court for fast high-energy basketball runs.",
       "genre": "Sports",
@@ -1119,7 +1119,7 @@
     },
     {
       "id": "13",
-      "name": "Soccer Stars",
+      "name": "Soccer Random",
       "url": "https://www.gamepix.com/play/soccer-random",
       "description": "Global tournament energy with high player counts and quick rematches.",
       "genre": "Sports",
@@ -1179,7 +1179,7 @@
     },
     {
       "id": "14",
-      "name": "Executive Solitaire",
+      "name": "Solitaire Classic (Station Pod)",
       "url": "https://www.gamepix.com/play/solitaire-classic",
       "description": "Classic card patience run for low-pressure recovery between bigger sessions.",
       "genre": "Strategy",
@@ -1289,7 +1289,7 @@
     },
     {
       "id": "16",
-      "name": "Smash Karts X",
+      "name": "Kart Fight",
       "url": "https://www.gamepix.com/play/kart-fight",
       "description": "High-speed multiplayer kart combat with premium arena flow, powerups, and replay-ready matches.",
       "genre": "Racing",
@@ -1349,7 +1349,7 @@
     },
     {
       "id": "17",
-      "name": "Subway Surfers Live",
+      "name": "Rail Surfers",
       "url": "https://www.gamepix.com/play/rail-surfers",
       "description": "A polished endless runner with top-tier flow, vivid presentation, and instant arcade momentum.",
       "genre": "Runner",
@@ -1404,7 +1404,7 @@
     },
     {
       "id": "18",
-      "name": "Moto X3M Nitro",
+      "name": "Moto X3M",
       "url": "https://www.gamepix.com/play/moto-x3m",
       "description": "Precision stunt racing with highly polished track design, strong readability, and fast restart loops.",
       "genre": "Racing",
@@ -1459,7 +1459,7 @@
     },
     {
       "id": "19",
-      "name": "Temple Run 2 Prime",
+      "name": "Tomb Runner (Station Pod)",
       "url": "https://www.gamepix.com/play/tomb-runner",
       "description": "Cinematic chase runner with premium pacing, polished traversal, and repeat-play flow.",
       "genre": "Runner",
@@ -1569,7 +1569,7 @@
     },
     {
       "id": "21",
-      "name": "8-Ball Billiards Classic",
+      "name": "8-Ball Billiards",
       "url": "https://www.gamepix.com/play/8-ball-billiards-classic",
       "description": "Precision cue-sport cabinet with smooth pacing, clean bank shots, and quick rematches.",
       "genre": "Sports",
@@ -1626,7 +1626,7 @@
     },
     {
       "id": "22",
-      "name": "Mahjong Classic",
+      "name": "Mahjong",
       "url": "https://www.gamepix.com/play/mahjong-classic",
       "description": "Late-night tile strategy with clean board readability and calm focus-session pacing.",
       "genre": "Puzzle",
@@ -1684,7 +1684,7 @@
       "id": "23",
       "name": "Tactical Squad",
       "url": "https://www.gamepix.com/play/tactical-squad",
-      "description": "Elite first-person shooting precision with high-stakes tactical deployments.",
+      "description": "First-person shooting precision with high-stakes tactical deployments.",
       "genre": "Shooting",
       "rating": 4.8,
       "playersOnline": 15000,
@@ -1733,9 +1733,9 @@
     },
     {
       "id": "24",
-      "name": "Quest of Heroes",
+      "name": "Hero Adventure",
       "url": "https://www.gamepix.com/play/hero-adventure",
-      "description": "Deep RPG adventure with character progression and elite boss encounters.",
+      "description": "Deep RPG adventure with character progression and boss encounters.",
       "genre": "RPG",
       "rating": 4.7,
       "playersOnline": 9200,
@@ -1813,9 +1813,9 @@
     },
     {
       "id": "26",
-      "name": "Super Bowling Pro",
+      "name": "Classic Bowling",
       "url": "https://www.gamepix.com/play/classic-bowling",
-      "description": "Elite sports simulation with realistic physics and tournament brackets.",
+      "description": "Sports simulation with realistic physics and tournament brackets.",
       "genre": "Sports",
       "rating": 4.6,
       "playersOnline": 4200,
@@ -1850,7 +1850,7 @@
     },
     {
       "id": "27",
-      "name": "Dungeon Crawler X",
+      "name": "Dungeon Fury",
       "url": "https://www.gamepix.com/play/dungeon-fury",
       "description": "Fast-paced action RPG through procedurally generated lethal corridors.",
       "genre": "RPG",
@@ -1891,7 +1891,7 @@
     },
     {
       "id": "28",
-      "name": "Strike Force",
+      "name": "Special Strike",
       "url": "https://www.gamepix.com/play/special-strike",
       "description": "Multiplayer shooting arena with customized loadouts and team-based objectives.",
       "genre": "Shooting",
@@ -2018,7 +2018,7 @@
     },
     {
       "id": "31",
-      "name": "Soccer Random X",
+      "name": "Soccer Random (Server)",
       "url": "https://www.gamepix.com/play/soccer-random",
       "description": "High-stakes physics-based soccer with online co-op support.",
       "genre": "Sports",
@@ -2057,7 +2057,7 @@
     },
     {
       "id": "32",
-      "name": "Cyber Adventure RPG",
+      "name": "Cyber Adventure",
       "url": "https://www.gamepix.com/play/cyber-adventure",
       "description": "Epic cyberpunk adventure with deep RPG mechanics and offline-first persistence.",
       "genre": "RPG",
@@ -2095,9 +2095,9 @@
     },
     {
       "id": "33",
-      "name": "Elite Sniper",
+      "name": "Sniper Mission",
       "url": "https://www.gamepix.com/play/sniper-mission",
-      "description": "Long-range tactical shooting missions with elite ballistics.",
+      "description": "Long-range tactical shooting missions with ballistics.",
       "genre": "Shooting",
       "rating": 4.7,
       "playersOnline": 8000,
@@ -2129,7 +2129,7 @@
     },
     {
       "id": "34",
-      "name": "Kingdom Defense",
+      "name": "Tower Defense",
       "url": "https://www.gamepix.com/play/tower-defense",
       "description": "Strategic RPG defense with hero management and spell casting.",
       "genre": "RPG",
@@ -2164,9 +2164,9 @@
     },
     {
       "id": "35",
-      "name": "Classic Solitaire",
+      "name": "Solitaire Classic (Station Cabinet)",
       "url": "https://www.gamepix.com/play/solitaire-classic",
-      "description": "The definitive classic card run for elite focus training.",
+      "description": "The definitive classic card run for focus training.",
       "genre": "Classic",
       "rating": 4.9,
       "playersOnline": 50000,
@@ -2199,7 +2199,7 @@
     },
     {
       "id": "36",
-      "name": "Multiplayer Ludo",
+      "name": "Ludo Legend",
       "url": "https://www.gamepix.com/play/ludo-legend",
       "description": "Global board battle with real-time multiplayer and co-op social play.",
       "genre": "Classic",
@@ -2236,7 +2236,7 @@
     },
     {
       "id": "37",
-      "name": "Zombie Survival",
+      "name": "Zombie Idle Defense",
       "url": "https://www.gamepix.com/play/zombie-idle-defense",
       "description": "Intense shooting defense RPG with survivor squads and tech upgrades.",
       "genre": "Shooting",
@@ -2282,7 +2282,7 @@
     },
     {
       "id": "38",
-      "name": "Arena Clash X",
+      "name": "Arena Clash",
       "url": "https://www.gamepix.com/play/arena-clash-x",
       "description": "Neon tournament fighter with high-speed strings, ranked ladders, and online rematches.",
       "genre": "Fighting",
@@ -2757,7 +2757,7 @@
     },
     {
       "id": "sonic-racing",
-      "name": "Sonic Racing Elite",
+      "name": "Sonic Racing",
       "url": "https://www.gamepix.com/play/sonic-racing",
       "genre": "Racing",
       "description": "High-velocity hedgehog racing with drift-enabled controls and tactical loop shortcuts.",
@@ -2787,7 +2787,7 @@
     },
     {
       "id": "doom-classic",
-      "name": "Doom: Elite Protocol",
+      "name": "DOOM",
       "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
       "genre": "Shooting",
       "description": "The absolute foundation of tactical FPS. Brutal, fast, and legendary.",
@@ -2818,7 +2818,7 @@
     },
     {
       "id": "mario-classic",
-      "name": "Super Mario: Classic World",
+      "name": "Super Mario Bros.",
       "url": "https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html",
       "genre": "Classic",
       "description": "The definitive platformer experience. Run, jump, and save the kingdom in this high-fidelity retro emulation.",
@@ -2852,7 +2852,7 @@
     },
     {
       "id": "gta-legacy",
-      "name": "GTA: Legacy City",
+      "name": "GTA",
       "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1",
       "genre": "Action",
       "description": "Top-down urban chaos. High-speed chases and tactical missions in the original open-world criminal simulator.",
@@ -2887,10 +2887,10 @@
     },
     {
       "id": "nba-pro-3d",
-      "name": "NBA: Pro Basketball 3D",
+      "name": "Basketball Stars",
       "url": "https://www.gamepix.com/play/basketball-stars",
       "genre": "Sports",
-      "description": "Elite WebGL basketball with fluid 3D animations, shot timing, and competitive street-ball mechanics.",
+      "description": "WebGL basketball with fluid 3D animations, shot timing, and competitive street-ball mechanics.",
       "availability": "Online",
       "playersOnline": 45000,
       "rating": 4.8,
@@ -2924,7 +2924,7 @@
     },
     {
       "id": "nfl-redzone-rush",
-      "name": "NFL: Redzone Rush",
+      "name": "Touchdown Rush",
       "url": "https://www.gamepix.com/play/touchdown-rush",
       "genre": "Sports",
       "description": "High-intensity gridiron action. Manage the clock and execute perfect plays in this premium football simulator.",
@@ -2961,7 +2961,7 @@
     },
     {
       "id": "dbz-retro-combat",
-      "name": "DBZ: Retro Combat",
+      "name": "Dragon Ball Z: Buyuu Retsuden",
       "url": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
       "genre": "Fighting",
       "description": "Legendary Saiyan combat. High-speed martial arts and energy blasts in this classic fighting emulation.",
@@ -2995,10 +2995,10 @@
     },
     {
       "id": "halo-tribute",
-      "name": "Halo: Spartan Strike",
-      "url": "https://www.gamepix.com/play/cyber-adventure",
+      "name": "Halo: Spartan Tribute",
+      "url": "https://www.gamepix.com/play/space-blaze-2",
       "genre": "Shooting",
-      "description": "Tactical 2.5D sci-fi combat. Lead your squad through hostile zones in this elite futuristic shooter tribute.",
+      "description": "Tactical sci-fi combat at full throttle. Hold the line against relentless waves in this Spartan-themed shooter tribute.",
       "availability": "Online",
       "playersOnline": 15000,
       "rating": 4.6,
@@ -3013,7 +3013,7 @@
         "station-pod"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/space-blaze-2",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -3032,10 +3032,10 @@
     },
     {
       "id": "boxing-heavyweight",
-      "name": "Boxing: Heavyweight Champion",
+      "name": "Boxing Stars",
       "url": "https://www.gamepix.com/play/boxing-stars",
       "genre": "Fighting",
-      "description": "Elite heavyweight boxing. Master the sweet science with realistic 3D WebGL physics and career depth.",
+      "description": "Heavyweight boxing. Master the sweet science with realistic 3D WebGL physics and career depth.",
       "availability": "Online",
       "playersOnline": 21000,
       "rating": 4.8,
@@ -3069,7 +3069,7 @@
     },
     {
       "id": "tekken-3-elite",
-      "name": "Tekken 3: Iron Fist",
+      "name": "Tekken 3",
       "url": "https://www.retrogames.cc/embed/40238-tekken-3.html",
       "genre": "Fighting",
       "description": "The king of iron fist tournament. High-fidelity PS1 emulation with buttery smooth 60fps combat.",
@@ -3105,7 +3105,7 @@
     },
     {
       "id": "smash-bros-elite",
-      "name": "Super Smash Bros. 64",
+      "name": "Super Smash Bros.",
       "url": "https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html",
       "genre": "Fighting",
       "description": "Original N64 crossover chaos. Pixel-perfect emulation with enhanced controller mapping.",
@@ -3140,7 +3140,7 @@
     },
     {
       "id": "mario-kart-64-elite",
-      "name": "Mario Kart 64: Pro",
+      "name": "Mario Kart 64",
       "url": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
       "genre": "Racing",
       "description": "Drift through nostalgia. N64 racing legend with stable multiplayer performance.",
@@ -3178,7 +3178,7 @@
       "name": "Crash Team Racing",
       "url": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
       "genre": "Racing",
-      "description": "High-octane marsupial racing. Elite PS1 speed with precision touch controls.",
+      "description": "High-octane marsupial racing. PS1 speed with precision touch controls.",
       "availability": "Online",
       "playersOnline": 14200,
       "rating": 4.9,
@@ -3208,7 +3208,7 @@
     },
     {
       "id": "zelda-oot-elite",
-      "name": "Zelda: Ocarina of Time",
+      "name": "The Legend of Zelda: Ocarina of Time",
       "url": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
       "genre": "RPG",
       "description": "The masterpiece redefined. N64 RPG excellence with saved-state cloud sync support.",
@@ -3242,7 +3242,7 @@
     },
     {
       "id": "street-fighter-3d",
-      "name": "Street Fighter: Arena",
+      "name": "Street Fighter 2",
       "url": "https://www.gamepix.com/play/street-fighter-2",
       "genre": "Fighting",
       "description": "Classic combat, modern engine. Optimized WebGL fighting with low-latency netcode.",
@@ -3312,10 +3312,10 @@
     },
     {
       "id": "3d-chess-elite",
-      "name": "Grandmaster Chess 3D",
+      "name": "Chess Grandmaster",
       "url": "https://www.gamepix.com/play/chess-grandmaster",
       "genre": "Strategy",
-      "description": "Elite tactical intelligence. Advanced AI opponents in a high-fidelity 3D environment.",
+      "description": "Tactical intelligence. Advanced AI opponents in a high-fidelity 3D environment.",
       "availability": "Online",
       "playersOnline": 8500,
       "rating": 4.9,
@@ -3350,7 +3350,7 @@
       "name": "GoldenEye 007",
       "url": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
       "genre": "Shooting",
-      "description": "The definitive N64 shooter. High-fidelity emulation with optimized mouse/touch mapping for elite runs.",
+      "description": "The definitive N64 shooter. High-fidelity emulation with optimized mouse/touch mapping for runs.",
       "availability": "Online",
       "playersOnline": 28400,
       "rating": 5.0,
@@ -3385,7 +3385,7 @@
       "name": "Tony Hawk's Pro Skater 2",
       "url": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
       "genre": "Sports",
-      "description": "Elite skating excellence. PS1 legend with stabilized frame rates and high-fidelity textures.",
+      "description": "Skating excellence. PS1 legend with stabilized frame rates and high-fidelity textures.",
       "availability": "Online",
       "playersOnline": 19500,
       "rating": 5.0,
@@ -3483,7 +3483,7 @@
     },
     {
       "id": "doom-elite",
-      "name": "DOOM: Ultimate",
+      "name": "DOOM",
       "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
       "genre": "Shooting",
       "description": "Original FPS carnage. Stabilized DOS emulation with enhanced web execution.",
@@ -3516,10 +3516,10 @@
     },
     {
       "id": "fnf-music-battle",
-      "name": "Rhythm Legends: Funkin",
+      "name": "Friday Night Funkin'",
       "url": "https://www.gamepix.com/play/friday-night-funkin",
       "genre": "Music Battle",
-      "description": "High-intensity rap battles with precision timing and elite soundtrack depth.",
+      "description": "High-intensity rap battles with precision timing and soundtrack depth.",
       "availability": "Online",
       "playersOnline": 42000,
       "rating": 4.8,
@@ -3551,10 +3551,10 @@
     },
     {
       "id": "tetris-classic-elite",
-      "name": "Tetris: Grand Master",
+      "name": "Tetris",
       "url": "https://www.retrogames.cc/embed/18814-tetris-usa.html",
       "genre": "Puzzle",
-      "description": "The definitive puzzle experience. Classic NES logic with elite-tier responsive input.",
+      "description": "The definitive puzzle experience. Classic NES logic with tier responsive input.",
       "availability": "Online",
       "playersOnline": 28000,
       "rating": 5.0,
@@ -3585,7 +3585,7 @@
     },
     {
       "id": "tomb-runner-elite",
-      "name": "Tomb Runner: Elite",
+      "name": "Tomb Runner (Elite)",
       "url": "https://www.gamepix.com/play/tomb-runner",
       "genre": "Runner",
       "description": "High-speed tactical running. Fluid WebGL animations and precise touch-based navigation.",
@@ -3623,7 +3623,7 @@
       "name": "Castlevania: Symphony of the Night",
       "url": "https://www.retrogames.cc/embed/40194-castlevania-symphony-of-the-night.html",
       "genre": "Action RPG",
-      "description": "The definitive Gothic masterpiece. Elite PS1 exploration with a legendary soundtrack.",
+      "description": "The definitive Gothic masterpiece. PS1 exploration with a legendary soundtrack.",
       "availability": "Online",
       "playersOnline": 8500,
       "rating": 5.0,
@@ -3655,7 +3655,7 @@
     },
     {
       "id": "wipeout-ps1-elite",
-      "name": "Wipeout 2097 / XL",
+      "name": "Wipeout XL",
       "url": "https://www.retrogames.cc/embed/40597-wipeout-xl.html",
       "genre": "Racing",
       "description": "Anti-gravity racing at its peak. High-energy electronic soundtrack and tech-noir visuals.",
@@ -3691,7 +3691,7 @@
       "name": "Street Fighter II: Special Champion Edition",
       "url": "https://www.retrogames.cc/embed/19001-street-fighter-ii-special-champion-edition-usa.html",
       "genre": "Fighting",
-      "description": "The foundation of competitive fighting. Elite Genesis combat with perfect frame data.",
+      "description": "The foundation of competitive fighting. Genesis combat with perfect frame data.",
       "availability": "Online",
       "playersOnline": 12000,
       "rating": 4.9,
@@ -3722,14 +3722,14 @@
     },
     {
       "id": "wolf3d-inline-elite",
-      "name": "Wolfenstein 3D: Elite",
+      "name": "Wolfenstein 3D",
       "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fwolf3d.jsdos?anonymous=1",
       "genre": "Shooting",
-      "description": "The grandfather of FPS. Elite high-speed escape from Castle Wolfenstein. Fully stabilized inline execution.",
+      "description": "The grandfather of FPS. High-speed escape from Castle Wolfenstein. Fully stabilized inline execution.",
       "availability": "Online",
       "playersOnline": 7200,
       "rating": 4.8,
-      "badgeIds": [
+
         "elite",
         "classic"
       ],
@@ -3752,6 +3752,239 @@
         "eyebrow": "id Software Elite",
         "accentStart": "#4ade80",
         "accentEnd": "#166534"
+      }
+    },
+    {
+      "id": "double-dragon-nes",
+      "name": "Double Dragon",
+      "url": "https://www.retrogames.cc/embed/19139-double-dragon-usa.html",
+      "genre": "Beat 'em up",
+      "description": "The quintessential co-op brawler. Fight through the streets to rescue Marian in this NES classic.",
+      "availability": "Online",
+      "playersOnline": 15000,
+      "rating": 4.8,
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Action",
+        "Retro",
+        "NES",
+        "Co-op"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19139-double-dragon-usa.html",
+        "telemetryMode": "none",
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Classic NES emulation verified."
+      },
+      "art": {
+        "eyebrow": "Technos Elite",
+        "accentStart": "#b91c1c",
+        "accentEnd": "#7f1d1d"
+      }
+    },
+    {
+      "id": "dominoes-classic",
+      "name": "Dominoes",
+      "url": "https://www.gamepix.com/play/dominoes",
+      "genre": "Board Game",
+      "description": "Classic logic and strategy. Test your skills against AI in this high-fidelity dominoes simulation.",
+      "availability": "Online",
+      "playersOnline": 42000,
+      "rating": 4.6,
+      "badgeIds": [
+        "trending"
+      ],
+      "tags": [
+        "Logic",
+        "Board Game",
+        "Puzzle"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/dominoes",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "external-only",
+        "controls": [
+          "Mouse"
+        ],
+        "trustNote": "Allowlisted logic partner."
+      },
+      "art": {
+        "eyebrow": "Board Elite",
+        "accentStart": "#4b5563",
+        "accentEnd": "#1f2937"
+      }
+    },
+    {
+      "id": "track-and-field-nes",
+      "name": "Track & Field",
+      "url": "https://www.retrogames.cc/embed/19022-track-field-usa.html",
+      "genre": "Sports",
+      "description": "The ultimate athletic competition. Mash your way to victory in various Olympic events.",
+      "availability": "Online",
+      "playersOnline": 8000,
+      "rating": 4.5,
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Sports",
+        "Retro",
+        "NES"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19022-track-field-usa.html",
+        "telemetryMode": "none",
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Konami classic emulation verified."
+      },
+      "art": {
+        "eyebrow": "Konami Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#991b1b"
+      }
+    },
+    {
+      "id": "pokemon-fire-red",
+      "name": "Pok\u00e9mon: FireRed Version",
+      "url": "https://www.retrogames.cc/embed/40112-pokemon-fire-red-version-usa.html",
+      "genre": "RPG",
+      "description": "The definitive Kanto journey. Catch, train, and battle your way to becoming a Pok\u00e9mon Master.",
+      "availability": "Online",
+      "playersOnline": 55000,
+      "rating": 5.0,
+      "badgeIds": [
+        "staff-pick",
+        "elite"
+      ],
+      "tags": [
+        "RPG",
+        "Retro",
+        "GBA",
+        "Adventure"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40112-pokemon-fire-red-version-usa.html",
+        "telemetryMode": "none",
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite GBA emulation verified."
+      },
+      "art": {
+        "eyebrow": "Nintendo Elite",
+        "accentStart": "#f87171",
+        "accentEnd": "#dc2626"
+      }
+    },
+    {
+      "id": "final-fantasy-nes",
+      "name": "Final Fantasy",
+      "url": "https://www.retrogames.cc/embed/18816-final-fantasy-usa.html",
+      "genre": "RPG",
+      "description": "Where the legend began. Embark on an epic quest with the Warriors of Light in this foundational RPG.",
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "RPG",
+        "Retro",
+        "NES",
+        "Fantasy"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18816-final-fantasy-usa.html",
+        "telemetryMode": "none",
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Square classic emulation verified."
+      },
+      "art": {
+        "eyebrow": "Square Elite",
+        "accentStart": "#60a5fa",
+        "accentEnd": "#1d4ed8"
+      }
+    },
+    {
+      "id": "mike-tyson-punch-out",
+      "name": "Mike Tyson's Punch-Out!!",
+      "url": "https://www.retrogames.cc/embed/19002-mike-tyson-s-punch-out-usa.html",
+      "genre": "Fighting",
+      "description": "Step into the ring as Little Mac and face off against a cast of colorful boxers on your way to Iron Mike.",
+      "availability": "Online",
+      "playersOnline": 22000,
+      "rating": 4.9,
+      "badgeIds": [
+        "classic",
+        "staff-pick"
+      ],
+      "tags": [
+        "Fighting",
+        "Retro",
+        "NES",
+        "Sports"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19002-mike-tyson-s-punch-out-usa.html",
+        "telemetryMode": "none",
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite NES combat protocol verified."
+      },
+      "art": {
+        "eyebrow": "Nintendo Elite",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#b45309"
+      }
+    },
+    {
+      "id": "galaga-classic",
+      "name": "Galaga",
+      "url": "https://www.retrogames.cc/embed/10052-galaga-namco.html",
+      "genre": "Shooting",
+      "description": "Defend the galaxy from the insect-like Galaga aliens in this quintessential fixed shooter.",
+      "availability": "Online",
+      "playersOnline": 18000,
+      "rating": 4.8,
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Shooting",
+        "Retro",
+        "Arcade"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10052-galaga-namco.html",
+        "telemetryMode": "none",
+        "embedMode": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Arcade logic verified."
+      },
+      "art": {
+        "eyebrow": "Namco Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1e40af"
       }
     }
   ],
