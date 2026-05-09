@@ -454,7 +454,6 @@
       "campaignType": "intel"
     }
   ],
-  "leaderboards": [],
   "games": [
     {
       "id": "1",
@@ -575,7 +574,7 @@
     },
     {
       "id": "3",
-      "name": "Neon Drift X",
+      "name": "Neon Drift",
       "url": "/assets/games/neon-drift/neon-drift.html",
       "description": "Precision lane swaps through a neon expressway tuned for instant offline retries.",
       "genre": "Racing",
@@ -729,7 +728,7 @@
       }
     },
     {
-      "id": "6",
+      "id": "15",
       "name": "Hextris",
       "url": "https://hextris.github.io/hextris/",
       "description": "Trusted online arcade puzzler with premium hex-stack gameplay.",
@@ -768,7 +767,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Embedded from an allowlisted partner domain.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://hextris.github.io/hextris/",
         "approvedEmbedUrl": "https://hextris.github.io/hextris/",
         "telemetryMode": "origin",
@@ -824,7 +823,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted logic partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://play2048.co/",
         "approvedEmbedUrl": "https://play2048.co/",
         "telemetryMode": "origin",
@@ -878,7 +877,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted arcade partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://htmlgames.com/game/Beat+Runner",
         "approvedEmbedUrl": "https://www.gamepix.com/play/music-rush",
         "telemetryMode": "origin",
@@ -933,7 +932,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted retro partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://pacman.live/play.html",
         "approvedEmbedUrl": "https://pacman.live/play.html",
         "telemetryMode": "origin",
@@ -990,7 +989,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Executive-grade retro combat cabinet.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
         "telemetryMode": "origin",
@@ -1047,7 +1046,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted strategy partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/chess-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/chess-classic",
         "telemetryMode": "origin",
@@ -1103,7 +1102,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted sports partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/basket-random",
         "approvedEmbedUrl": "https://www.gamepix.com/play/basket-random",
         "telemetryMode": "origin",
@@ -1162,7 +1161,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted tournament partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
         "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
         "telemetryMode": "origin",
@@ -1179,7 +1178,7 @@
     },
     {
       "id": "14",
-      "name": "Solitaire Classic",
+      "name": "Solitaire Classic (Station Pod)",
       "url": "https://www.gamepix.com/play/solitaire-classic",
       "description": "Classic card patience run for low-pressure recovery between bigger sessions.",
       "genre": "Strategy",
@@ -1218,7 +1217,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted classic partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/solitaire-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
         "telemetryMode": "origin",
@@ -1233,7 +1232,7 @@
       }
     },
     {
-      "id": "15",
+      "id": "6",
       "name": "Cipher Surge",
       "url": "/assets/games/cipher-surge/cipher-surge.html",
       "description": "Neural pattern-defense cabinet with polished offline AI memory rounds and fast replay loops.",
@@ -1333,7 +1332,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted competitive kart partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/kart-fight",
         "approvedEmbedUrl": "https://www.gamepix.com/play/kart-fight",
         "telemetryMode": "origin",
@@ -1388,7 +1387,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted premium runner partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/rail-surfers",
         "approvedEmbedUrl": "https://www.gamepix.com/play/rail-surfers",
         "telemetryMode": "origin",
@@ -1443,7 +1442,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted stunt racing partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/moto-x3m",
         "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m",
         "telemetryMode": "origin",
@@ -1459,7 +1458,7 @@
     },
     {
       "id": "19",
-      "name": "Tomb Runner",
+      "name": "Tomb Runner (Station Pod)",
       "url": "https://www.gamepix.com/play/tomb-runner",
       "description": "Cinematic chase runner with premium pacing, polished traversal, and repeat-play flow.",
       "genre": "Runner",
@@ -1498,7 +1497,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted endless runner partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/tomb-runner",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tomb-runner",
         "telemetryMode": "origin",
@@ -1553,7 +1552,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted arcade builder partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/tower-build",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
         "telemetryMode": "origin",
@@ -1610,7 +1609,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted precision sports partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
         "telemetryMode": "origin",
@@ -1666,7 +1665,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted puzzle partner with inline launch support.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/mahjong-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/mahjong-classic",
         "telemetryMode": "origin",
@@ -1684,7 +1683,7 @@
       "id": "23",
       "name": "Tactical Squad",
       "url": "https://www.gamepix.com/play/tactical-squad",
-      "description": "first-person shooting precision with high-stakes tactical deployments.",
+      "description": "First-person shooting precision with high-stakes tactical deployments.",
       "genre": "Shooting",
       "rating": 4.8,
       "playersOnline": 15000,
@@ -1706,7 +1705,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tactical-squad",
         "approvedExternalUrl": "https://www.gamepix.com/play/tactical-squad",
         "telemetryMode": "origin",
@@ -1757,7 +1756,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/hero-adventure",
         "approvedExternalUrl": "https://www.gamepix.com/play/hero-adventure",
         "telemetryMode": "origin",
@@ -1795,7 +1794,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tank-wars",
         "approvedExternalUrl": "https://www.gamepix.com/play/tank-wars",
         "telemetryMode": "origin",
@@ -1815,7 +1814,7 @@
       "id": "26",
       "name": "Classic Bowling",
       "url": "https://www.gamepix.com/play/classic-bowling",
-      "description": "sports simulation with realistic physics and tournament brackets.",
+      "description": "Sports simulation with realistic physics and tournament brackets.",
       "genre": "Sports",
       "rating": 4.6,
       "playersOnline": 4200,
@@ -1833,7 +1832,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/classic-bowling",
         "approvedExternalUrl": "https://www.gamepix.com/play/classic-bowling",
         "telemetryMode": "origin",
@@ -1874,7 +1873,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/dungeon-fury",
         "approvedExternalUrl": "https://www.gamepix.com/play/dungeon-fury",
         "telemetryMode": "origin",
@@ -1915,7 +1914,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/special-strike",
         "approvedExternalUrl": "https://www.gamepix.com/play/special-strike",
         "telemetryMode": "origin",
@@ -1963,7 +1962,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/space-invaders",
         "approvedExternalUrl": "https://www.gamepix.com/play/space-invaders",
         "telemetryMode": "origin",
@@ -2001,7 +2000,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/basketball-master",
         "approvedExternalUrl": "https://www.gamepix.com/play/basketball-master",
         "telemetryMode": "origin",
@@ -2018,7 +2017,7 @@
     },
     {
       "id": "31",
-      "name": "Soccer Random",
+      "name": "Soccer Random (Server)",
       "url": "https://www.gamepix.com/play/soccer-random",
       "description": "High-stakes physics-based soccer with online co-op support.",
       "genre": "Sports",
@@ -2039,7 +2038,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
         "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
         "telemetryMode": "origin",
@@ -2078,7 +2077,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
         "approvedExternalUrl": "https://www.gamepix.com/play/cyber-adventure",
         "telemetryMode": "origin",
@@ -2114,7 +2113,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/sniper-mission",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -2149,7 +2148,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-defense",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -2164,7 +2163,7 @@
     },
     {
       "id": "35",
-      "name": "Solitaire Classic",
+      "name": "Solitaire Classic (Station Cabinet)",
       "url": "https://www.gamepix.com/play/solitaire-classic",
       "description": "The definitive classic card run for focus training.",
       "genre": "Classic",
@@ -2184,7 +2183,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -2220,7 +2219,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/ludo-legend",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -2257,7 +2256,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/zombie-idle-defense",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -2326,7 +2325,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted fight-night partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/arena-clash-x",
         "approvedEmbedUrl": "https://www.gamepix.com/play/arena-clash-x",
         "telemetryMode": "origin",
@@ -2384,7 +2383,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted tag-fighter partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/tag-team-titans",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tag-team-titans",
         "telemetryMode": "origin",
@@ -2442,7 +2441,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted football partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/gridiron-drive",
         "approvedEmbedUrl": "https://www.gamepix.com/play/gridiron-drive",
         "telemetryMode": "origin",
@@ -2501,7 +2500,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted court-sports partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/rally-racquet-tour",
         "approvedEmbedUrl": "https://www.gamepix.com/play/rally-racquet-tour",
         "telemetryMode": "origin",
@@ -2561,7 +2560,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted squad-ops partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/squad-ops-ghost-protocol",
         "approvedEmbedUrl": "https://www.gamepix.com/play/squad-ops-ghost-protocol",
         "telemetryMode": "origin",
@@ -2621,7 +2620,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted online raid partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/raid-fireteam-z",
         "approvedEmbedUrl": "https://www.gamepix.com/play/raid-fireteam-z",
         "telemetryMode": "origin",
@@ -2681,7 +2680,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted co-op RPG partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/mythic-raid-online",
         "approvedEmbedUrl": "https://www.gamepix.com/play/mythic-raid-online",
         "telemetryMode": "origin",
@@ -2741,7 +2740,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted campaign RPG partner.",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/legends-of-the-rift",
         "approvedEmbedUrl": "https://www.gamepix.com/play/legends-of-the-rift",
         "telemetryMode": "origin",
@@ -2787,7 +2786,7 @@
     },
     {
       "id": "doom-classic",
-      "name": "DOOM",
+      "name": "DOOM (Classic)",
       "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
       "genre": "Shooting",
       "description": "The absolute foundation of tactical FPS. Brutal, fast, and legendary.",
@@ -2801,7 +2800,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2838,7 +2837,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2873,7 +2872,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2910,7 +2909,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2947,7 +2946,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2981,7 +2980,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2995,10 +2994,10 @@
     },
     {
       "id": "halo-tribute",
-      "name": "Cyber Adventure",
-      "url": "https://www.gamepix.com/play/cyber-adventure",
+      "name": "Halo: Spartan Tribute",
+      "url": "https://www.gamepix.com/play/space-blaze-2",
       "genre": "Shooting",
-      "description": "Tactical 2.5D sci-fi combat. Lead your squad through hostile zones in this futuristic shooter tribute.",
+      "description": "Tactical sci-fi combat at full throttle. Hold the line against relentless waves in this Spartan-themed shooter tribute.",
       "availability": "Online",
       "playersOnline": 15000,
       "rating": 4.6,
@@ -3013,12 +3012,12 @@
         "station-pod"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/space-blaze-2",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3035,7 +3034,7 @@
       "name": "Boxing Stars",
       "url": "https://www.gamepix.com/play/boxing-stars",
       "genre": "Fighting",
-      "description": "heavyweight boxing. Master the sweet science with realistic 3D WebGL physics and career depth.",
+      "description": "Heavyweight boxing. Master the sweet science with realistic 3D WebGL physics and career depth.",
       "availability": "Online",
       "playersOnline": 21000,
       "rating": 4.8,
@@ -3055,7 +3054,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3091,7 +3090,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40238-tekken-3.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3126,7 +3125,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3161,7 +3160,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3194,7 +3193,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3228,7 +3227,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3263,7 +3262,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3298,7 +3297,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3315,7 +3314,7 @@
       "name": "Chess Grandmaster",
       "url": "https://www.gamepix.com/play/chess-grandmaster",
       "genre": "Strategy",
-      "description": "tactical intelligence. Advanced AI opponents in a high-fidelity 3D environment.",
+      "description": "Tactical intelligence. Advanced AI opponents in a high-fidelity 3D environment.",
       "availability": "Online",
       "playersOnline": 8500,
       "rating": 4.9,
@@ -3333,7 +3332,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3368,7 +3367,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3385,7 +3384,7 @@
       "name": "Tony Hawk's Pro Skater 2",
       "url": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
       "genre": "Sports",
-      "description": "skating excellence. PS1 legend with stabilized frame rates and high-fidelity textures.",
+      "description": "Skating excellence. PS1 legend with stabilized frame rates and high-fidelity textures.",
       "availability": "Online",
       "playersOnline": 19500,
       "rating": 5.0,
@@ -3402,7 +3401,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3435,7 +3434,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40662-parappa-the-rapper.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3469,7 +3468,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3483,7 +3482,7 @@
     },
     {
       "id": "doom-elite",
-      "name": "DOOM",
+      "name": "DOOM (Elite)",
       "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
       "genre": "Shooting",
       "description": "Original FPS carnage. Stabilized DOS emulation with enhanced web execution.",
@@ -3502,7 +3501,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3537,7 +3536,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3571,7 +3570,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18814-tetris-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3585,7 +3584,7 @@
     },
     {
       "id": "tomb-runner-elite",
-      "name": "Tomb Runner",
+      "name": "Tomb Runner (Elite)",
       "url": "https://www.gamepix.com/play/tomb-runner",
       "genre": "Runner",
       "description": "High-speed tactical running. Fluid WebGL animations and precise touch-based navigation.",
@@ -3606,7 +3605,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3641,7 +3640,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40194-castlevania-symphony-of-the-night.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3674,7 +3673,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40597-wipeout-xl.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3708,7 +3707,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/19001-street-fighter-ii-special-champion-edition-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3725,7 +3724,7 @@
       "name": "Wolfenstein 3D",
       "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fwolf3d.jsdos?anonymous=1",
       "genre": "Shooting",
-      "description": "The grandfather of FPS. high-speed escape from Castle Wolfenstein. Fully stabilized inline execution.",
+      "description": "The grandfather of FPS. High-speed escape from Castle Wolfenstein. Fully stabilized inline execution.",
       "availability": "Online",
       "playersOnline": 7200,
       "rating": 4.8,
@@ -3742,7 +3741,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fwolf3d.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3775,7 +3774,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/19139-double-dragon-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3810,7 +3809,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Mouse"
         ],
@@ -3842,7 +3841,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/19022-track-field-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3876,7 +3875,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40112-pokemon-fire-red-version-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3909,7 +3908,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18816-final-fantasy-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3943,7 +3942,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/19002-mike-tyson-s-punch-out-usa.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3975,7 +3974,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/10052-galaga-namco.html",
         "telemetryMode": "none",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],

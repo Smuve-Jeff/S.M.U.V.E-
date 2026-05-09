@@ -67,6 +67,7 @@ export class UIService {
   autoPianoRoll = signal(false);
   recentViewModes = signal<MainViewMode[]>(this.readModes(this.recentKey));
   pinnedViewModes = signal<MainViewMode[]>(this.readModes(this.pinnedKey));
+  subtleGlow = signal<string | null>(null);
 
   // Derived signals for UI state
   isLowPower = computed(() => this.performanceMode());
@@ -122,6 +123,18 @@ export class UIService {
           document.documentElement.classList.remove('dark-mode');
         }
       });
+      effect(() => {
+        const glow = this.subtleGlow();
+        if (typeof document !== 'undefined') {
+          if (glow) {
+            document.documentElement.style.setProperty('--accent-glow', glow);
+            document.body.classList.add('glow-active');
+          } else {
+            document.documentElement.style.removeProperty('--accent-glow');
+            document.body.classList.remove('glow-active');
+          }
+        }
+      });
     }
   }
 
@@ -143,6 +156,10 @@ export class UIService {
   toggleScanlines() {
     const nextValue = !this.showScanlines();
     this.updateSetting('showScanlines', nextValue);
+  }
+
+  setSubtleGlow(color: string | null) {
+    this.subtleGlow.set(color);
   }
 
   private updateSetting(key: string, value: any) {
