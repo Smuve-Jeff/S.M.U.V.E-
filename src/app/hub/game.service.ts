@@ -48,7 +48,10 @@ export type GameSortMode = 'Popular' | 'Rating' | 'Newest' | 'Name' | 'Queue';
 
 function isManagedGameAssetUrl(url: string) {
   const approvedDomains = ['retrogames.cc', 'dos.zone', 'gamepix.com'];
-  return url.startsWith('/assets/games/') || approvedDomains.some(domain => url.includes(domain));
+  return (
+    url.startsWith('/assets/games/') ||
+    approvedDomains.some((domain) => url.includes(domain))
+  );
 }
 
 function buildGameCover(
@@ -114,11 +117,15 @@ function normalizeLaunchConfig(
       : undefined;
   const telemetryMode =
     embedMode === 'inline' ? config?.telemetryMode || 'frame-only' : 'none';
-  const trustNote =
+  const baseTrustNote =
     asString(config?.trustNote) ||
     (embedMode === 'external-only'
       ? 'Elite WASM protocol active. Secure uplink established.'
       : '');
+  const trustNote =
+    embedMode === 'external-only' && baseTrustNote
+      ? `${baseTrustNote} Launches in a separate tab.`
+      : baseTrustNote;
 
   return {
     ...config,

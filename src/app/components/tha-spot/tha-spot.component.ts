@@ -28,7 +28,6 @@ import {
 import { THA_SPOT_FALLBACK_FEED } from '../../hub/tha-spot-feed.fallback';
 import { UserProfileService } from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
-import { APP_SECURITY_CONFIG } from '../../app.security';
 
 const DEFAULT_RECOMMENDATION_ITEMS = 8;
 const FEED_REFRESH_INTERVAL_MS = 300000;
@@ -401,15 +400,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     if (game.launchConfig?.embedMode === 'external-only') {
       return null;
     }
-    let url = game.launchConfig?.approvedEmbedUrl || game.url;
+    const url = game.launchConfig?.approvedEmbedUrl || game.url;
     if (!url) {
       return null;
-    }
-
-    // Advanced Security: Append secure hash for Elite Cabinets
-    if (game.badgeIds?.includes('elite')) {
-      const separator = url.includes('?') ? '&' : '?';
-      url += `${separator}smuve_auth_token=${APP_SECURITY_CONFIG.auth_salt}&secure_mode=wasm`;
     }
 
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
@@ -421,26 +414,43 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     if (!active || !frameWindow || event.source !== frameWindow) {
       return;
     }
+    if (!this.isAllowedMessageOrigin(active, event.origin)) {
+      return;
+    }
 
     // Secure Gaming Protocol Handlers
     switch (event.data?.type) {
       case 'GAME_READY':
-        console.log('[THA-SPOT] Cabinet Ready:', active.name);
         break;
       case 'GAME_UPDATE':
-        // Handle telemetry or score updates
-        if (event.data.score) {
-          console.log('[THA-SPOT] Score Update:', event.data.score);
-        }
+        // Handle telemetry or score updates through a dedicated logging/telemetry
+        // service when one is available. Avoid console logging in production UI code.
         break;
       case 'GAME_OVER':
-        console.log('[THA-SPOT] Game Over:', active.name);
         this.closeGame();
         break;
       default:
         // Handle generic signals
         break;
     }
+  }
+
+  private isAllowedMessageOrigin(active: Game, origin: string): boolean {
+    const telemetryMode = active.launchConfig?.telemetryMode || 'frame-only';
+    if (telemetryMode === 'none') {
+      return false;
+    }
+
+    if (telemetryMode === 'origin') {
+      const telemetryOrigins = active.launchConfig?.telemetryOrigins || [];
+      return telemetryOrigins.includes(origin);
+    }
+
+    if (telemetryMode === 'frame-only') {
+      return typeof window !== 'undefined' && origin === window.location.origin;
+    }
+
+    return false;
   }
 
   private loadFeed(forceRefresh = false) {
@@ -578,10 +588,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   private resolveLaunchWarning(game: Game): string {
     if (game.launchConfig?.embedMode === 'external-only') {
-      return (
+      const trustNote =
         game.launchConfig?.trustNote ||
-        'External governance required for this cabinet.'
-      );
+        'External governance required for this cabinet.';
+      return `${trustNote} Launches in a separate tab.`;
     }
     if (game.launchConfig?.approvedEmbedUrl || game.url) {
       return 'Exact embed target verified.';
