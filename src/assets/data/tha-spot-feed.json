@@ -768,7 +768,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Embedded from an allowlisted partner domain.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://hextris.github.io/hextris/",
         "approvedEmbedUrl": "https://hextris.github.io/hextris/",
         "telemetryMode": "origin",
@@ -824,7 +824,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted logic partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://play2048.co/",
         "approvedEmbedUrl": "https://play2048.co/",
         "telemetryMode": "origin",
@@ -878,7 +878,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted arcade partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://htmlgames.com/game/Beat+Runner",
         "approvedEmbedUrl": "https://www.gamepix.com/play/music-rush",
         "telemetryMode": "origin",
@@ -933,7 +933,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted retro partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://pacman.live/play.html",
         "approvedEmbedUrl": "https://pacman.live/play.html",
         "telemetryMode": "origin",
@@ -990,7 +990,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Executive-grade retro combat cabinet.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
         "telemetryMode": "origin",
@@ -1047,7 +1047,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted strategy partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/chess-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/chess-classic",
         "telemetryMode": "origin",
@@ -1103,7 +1103,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted sports partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/basket-random",
         "approvedEmbedUrl": "https://www.gamepix.com/play/basket-random",
         "telemetryMode": "origin",
@@ -1162,7 +1162,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted tournament partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
         "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
         "telemetryMode": "origin",
@@ -1218,7 +1218,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted classic partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/solitaire-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
         "telemetryMode": "origin",
@@ -1333,7 +1333,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted competitive kart partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/kart-fight",
         "approvedEmbedUrl": "https://www.gamepix.com/play/kart-fight",
         "telemetryMode": "origin",
@@ -1388,7 +1388,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted premium runner partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/rail-surfers",
         "approvedEmbedUrl": "https://www.gamepix.com/play/rail-surfers",
         "telemetryMode": "origin",
@@ -1443,7 +1443,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted stunt racing partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/moto-x3m",
         "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m",
         "telemetryMode": "origin",
@@ -1498,7 +1498,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted endless runner partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/tomb-runner",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tomb-runner",
         "telemetryMode": "origin",
@@ -1553,7 +1553,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted arcade builder partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/tower-build",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
         "telemetryMode": "origin",
@@ -1610,7 +1610,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted precision sports partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
         "telemetryMode": "origin",
@@ -1666,7 +1666,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted puzzle partner with inline launch support.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/mahjong-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/mahjong-classic",
         "telemetryMode": "origin",
@@ -1706,7 +1706,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tactical-squad",
         "approvedExternalUrl": "https://www.gamepix.com/play/tactical-squad",
         "telemetryMode": "origin",
@@ -1757,7 +1757,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/hero-adventure",
         "approvedExternalUrl": "https://www.gamepix.com/play/hero-adventure",
         "telemetryMode": "origin",
@@ -1795,7 +1795,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tank-wars",
         "approvedExternalUrl": "https://www.gamepix.com/play/tank-wars",
         "telemetryMode": "origin",
@@ -1833,7 +1833,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/classic-bowling",
         "approvedExternalUrl": "https://www.gamepix.com/play/classic-bowling",
         "telemetryMode": "origin",
@@ -1874,7 +1874,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/dungeon-fury",
         "approvedExternalUrl": "https://www.gamepix.com/play/dungeon-fury",
         "telemetryMode": "origin",
@@ -1915,7 +1915,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/special-strike",
         "approvedExternalUrl": "https://www.gamepix.com/play/special-strike",
         "telemetryMode": "origin",
@@ -1963,7 +1963,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/space-invaders",
         "approvedExternalUrl": "https://www.gamepix.com/play/space-invaders",
         "telemetryMode": "origin",
@@ -2001,7 +2001,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/basketball-master",
         "approvedExternalUrl": "https://www.gamepix.com/play/basketball-master",
         "telemetryMode": "origin",
@@ -2039,7 +2039,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
         "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
         "telemetryMode": "origin",
@@ -2078,7 +2078,7 @@
           "Keyboard"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
         "approvedExternalUrl": "https://www.gamepix.com/play/cyber-adventure",
         "telemetryMode": "origin",
@@ -2114,7 +2114,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/sniper-mission",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -2149,7 +2149,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-defense",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -2184,7 +2184,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -2220,7 +2220,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/ludo-legend",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -2257,7 +2257,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/zombie-idle-defense",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -2326,7 +2326,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted fight-night partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/arena-clash-x",
         "approvedEmbedUrl": "https://www.gamepix.com/play/arena-clash-x",
         "telemetryMode": "origin",
@@ -2384,7 +2384,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted tag-fighter partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/tag-team-titans",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tag-team-titans",
         "telemetryMode": "origin",
@@ -2442,7 +2442,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted football partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/gridiron-drive",
         "approvedEmbedUrl": "https://www.gamepix.com/play/gridiron-drive",
         "telemetryMode": "origin",
@@ -2501,7 +2501,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted court-sports partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/rally-racquet-tour",
         "approvedEmbedUrl": "https://www.gamepix.com/play/rally-racquet-tour",
         "telemetryMode": "origin",
@@ -2561,7 +2561,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted squad-ops partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/squad-ops-ghost-protocol",
         "approvedEmbedUrl": "https://www.gamepix.com/play/squad-ops-ghost-protocol",
         "telemetryMode": "origin",
@@ -2621,7 +2621,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted online raid partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/raid-fireteam-z",
         "approvedEmbedUrl": "https://www.gamepix.com/play/raid-fireteam-z",
         "telemetryMode": "origin",
@@ -2681,7 +2681,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted co-op RPG partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/mythic-raid-online",
         "approvedEmbedUrl": "https://www.gamepix.com/play/mythic-raid-online",
         "telemetryMode": "origin",
@@ -2741,7 +2741,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted campaign RPG partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/legends-of-the-rift",
         "approvedEmbedUrl": "https://www.gamepix.com/play/legends-of-the-rift",
         "telemetryMode": "origin",
@@ -2801,7 +2801,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2838,7 +2838,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2873,7 +2873,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2910,7 +2910,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2947,7 +2947,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2981,7 +2981,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3018,7 +3018,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3055,7 +3055,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3091,7 +3091,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40238-tekken-3.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3126,7 +3126,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3161,7 +3161,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3194,7 +3194,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3228,7 +3228,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3263,7 +3263,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3298,7 +3298,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3333,7 +3333,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3368,7 +3368,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3402,7 +3402,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3435,7 +3435,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40662-parappa-the-rapper.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3469,7 +3469,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3502,7 +3502,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3537,7 +3537,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3571,7 +3571,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18814-tetris-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3606,7 +3606,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3641,7 +3641,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40194-castlevania-symphony-of-the-night.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3674,7 +3674,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40597-wipeout-xl.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3708,7 +3708,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/19001-street-fighter-ii-special-champion-edition-usa.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3742,7 +3742,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fwolf3d.jsdos?anonymous=1",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
