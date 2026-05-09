@@ -58,7 +58,7 @@
 
           <div class="rail-scroll custom-scrollbar">
             <div
-              class="game-card-compact glass-v42 storefront-card"
+              class="game-card-compact glass-v42 storefront-card" [class.elite-cabinet]="game.badgeIds?.includes('elite')"
               [class.elite-tier]="game.badgeIds?.includes('elite')"
               *ngFor="let game of getGamesForRail(rail)"
               (click)="onGameClick(game)"
@@ -96,6 +96,19 @@
     <!-- Browse View: Dedicated Browse with Advanced Filters -->
     <div class="browse-view" *ngIf="isBrowseView()">
       <div class="filter-sidebar glass-v42">
+                <div class="filter-group">
+          <label>PLATFORM SECTOR</label>
+          <select
+            [ngModel]="activePlatform()"
+            (ngModelChange)="setActivePlatform($event)"
+            class="glass-v42"
+          >
+            <option value="all">ALL SYSTEMS</option>
+            <option value="Internal">ELITE INTERNAL</option>
+            <option value="External">EXTERNAL UPLINK</option>
+          </select>
+        </div>
+
         <div class="filter-group">
           <label>GENRE SECTOR</label>
           <select
@@ -153,7 +166,7 @@
       <div class="browse-grid-container custom-scrollbar">
         <div class="browse-grid">
           <div
-            class="game-card-compact glass-v42 storefront-card"
+            class="game-card-compact glass-v42 storefront-card" [class.elite-cabinet]="game.badgeIds?.includes('elite')"
             [class.elite-tier]="game.badgeIds?.includes('elite')"
             *ngFor="let game of filteredGames()"
             (click)="onGameClick(game)"
