@@ -427,10 +427,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       case 'GAME_READY':
         break;
       case 'GAME_UPDATE':
-        // Handle telemetry or score updates
-        if (event.data.score) {
-          console.log('[THA-SPOT] Score Update:', event.data.score);
-        }
+        // Handle telemetry or score updates through a dedicated logging/telemetry
+        // service when one is available. Avoid console logging in production UI code.
         break;
       case 'GAME_OVER':
         this.closeGame();
