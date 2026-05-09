@@ -1632,6 +1632,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/sniper-mission',
+        telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
           'Elite emulation verified. Auto-save states enabled via cloud uplink.',
@@ -1659,6 +1660,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/tower-defense',
+        telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
           'Elite emulation verified. Auto-save states enabled via cloud uplink.',
@@ -1685,6 +1687,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/solitaire-classic',
+        telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
           'Elite emulation verified. Auto-save states enabled via cloud uplink.',
@@ -1712,6 +1715,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/ludo-legend',
+        telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
           'Elite emulation verified. Auto-save states enabled via cloud uplink.',
@@ -1740,6 +1744,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/zombie-idle-defense',
+        telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
           'Elite emulation verified. Auto-save states enabled via cloud uplink.',
