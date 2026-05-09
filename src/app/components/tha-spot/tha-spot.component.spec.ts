@@ -365,11 +365,10 @@ describe('ThaSpotComponent', () => {
     );
   });
 
-  it('renders the executive gaming hub layout', () => {
+  it('renders the hub layout with strategic intel panel', () => {
     const text = fixture.nativeElement.textContent;
 
-    expect(text).toContain('EXECUTIVE GAMING HUB');
-    expect(text).toContain('INTEL');
+    expect(text).toContain('THA SPOT');
     expect(text).toContain('STRATEGIC INTEL');
     expect(text).toContain('NEURAL SYNC');
     expect(text).toContain('DIRECTIVES');
