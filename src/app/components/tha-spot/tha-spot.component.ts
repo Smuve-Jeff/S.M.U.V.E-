@@ -409,7 +409,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     // Advanced Security: Append secure hash for Elite Cabinets
     if (game.badgeIds?.includes('elite')) {
       const separator = url.includes('?') ? '&' : '?';
-      url += `${separator}smuve_auth_token=${APP_SECURITY_CONFIG.auth_salt}&secure_mode=wasm`;
+      url += `${separator}secure_mode=wasm`;
     }
 
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
