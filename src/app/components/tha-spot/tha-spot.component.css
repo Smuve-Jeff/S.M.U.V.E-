@@ -911,23 +911,6 @@
 }
 
 /* Immersive Browse View Adjustments */
-.browse-view {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  height: 100%;
-  background: #020617;
-  overflow: hidden;
-}
-
-.filter-sidebar {
-  padding: 2.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2.5rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(2, 6, 23, 0.8);
-}
-
 .browse-grid-container {
   padding: 3rem;
   background: radial-gradient(circle at 50% 0%, rgba(175, 37, 244, 0.05) 0%, transparent 70%);
