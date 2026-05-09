@@ -874,7 +874,8 @@
 
 /* Elite Cabinet Enhancements */
 .elite-cabinet {
-  border: 1px solid #af25f4 !important;
+  position: relative;
+  border: 1px solid `#af25f4` !important;
   background: linear-gradient(135deg, rgba(61, 43, 31, 0.95), rgba(175, 37, 244, 0.2)) !important;
   box-shadow: 0 0 20px rgba(175, 37, 244, 0.3), inset 0 0 10px rgba(175, 37, 244, 0.2) !important;
   overflow: hidden;
