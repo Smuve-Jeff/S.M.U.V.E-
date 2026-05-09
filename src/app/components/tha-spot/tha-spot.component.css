@@ -871,3 +871,79 @@
   background: rgba(175, 37, 244, 0.3);
   border-radius: 10px;
 }
+
+/* Elite Cabinet Enhancements */
+.elite-cabinet {
+  border: 1px solid #af25f4 !important;
+  background: linear-gradient(135deg, rgba(61, 43, 31, 0.95), rgba(175, 37, 244, 0.2)) !important;
+  box-shadow: 0 0 20px rgba(175, 37, 244, 0.3), inset 0 0 10px rgba(175, 37, 244, 0.2) !important;
+  overflow: hidden;
+}
+
+.elite-cabinet::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('/assets/noise_pattern.svg');
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.elite-cabinet .card-art img {
+  filter: contrast(1.1) brightness(1.1);
+  border-bottom: 1px solid #af25f4;
+}
+
+.elite-cabinet h4 {
+  color: #af25f4;
+  text-shadow: 0 0 8px rgba(175, 37, 244, 0.5);
+}
+
+.elite-cabinet .card-badge.elite {
+  background: #af25f4;
+  color: #fff;
+  font-weight: 900;
+  box-shadow: 0 0 10px #af25f4;
+}
+
+/* Immersive Browse View Adjustments */
+.browse-view {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: 100%;
+  background: #020617;
+  overflow: hidden;
+}
+
+.filter-sidebar {
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(2, 6, 23, 0.8);
+}
+
+.browse-grid-container {
+  padding: 3rem;
+  background: radial-gradient(circle at 50% 0%, rgba(175, 37, 244, 0.05) 0%, transparent 70%);
+}
+
+.browse-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 2rem;
+}
+
+.storefront-card {
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.storefront-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: #af25f4;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(175, 37, 244, 0.2);
+}

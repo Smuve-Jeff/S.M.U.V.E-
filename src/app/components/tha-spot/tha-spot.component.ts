@@ -79,6 +79,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   activeRoom = signal<string>('all');
   activeGenre = signal<string>('all');
+  activePlatform = signal<string>('all');
   searchQuery = signal<string>('');
   sortMode = signal<GameSortMode>('Popular');
   libraryView = signal<LibraryViewMode>('compact');
@@ -86,7 +87,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   isTransitioning = signal<boolean>(false);
   now = signal<number>(Date.now());
 
-  isBrowseView = signal<boolean>(false);
+  isBrowseView = signal<boolean>(true);
   showIntelPanel = signal<boolean>(false);
   isMatchmaking = signal<boolean>(false);
   matchmakingStatus = signal<string>('UPLINKING...');
@@ -103,38 +104,30 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   });
 
   filteredGames = computed(() => {
-    const query = this.searchQuery().toLowerCase();
-    const roomId = this.activeRoom();
-    const room = this.gamingRooms().find((entry) => entry.id === roomId);
+    const games = this.games();
     const genre = this.activeGenre();
-    const quickFilters = this.quickFilters();
+    const platform = this.activePlatform();
+    const query = this.searchQuery().toLowerCase();
+    const filters = this.quickFilters();
+    const mode = this.sortMode();
 
-    let filtered = [...this.games()];
+    let result = games.filter((game) => {
+      const matchesGenre = genre === 'all' || game.genre === genre;
+      const matchesQuery = !query ||
+        game.name.toLowerCase().includes(query) ||
+        game.description?.toLowerCase().includes(query) ||
+        game.tags?.some(t => t.toLowerCase().includes(query));
 
-    if (genre !== 'all') {
-      filtered = filtered.filter((game) => game.genre === genre);
-    }
-    if (room && roomId !== 'all') {
-      filtered = filtered.filter((game) =>
-        this.gameService.matchesRoom(game, room)
-      );
-    }
+      const matchesPlatform = platform === 'all' ||
+        (platform === 'Internal' && game.url.startsWith('/assets/')) ||
+        (platform === 'External' && !game.url.startsWith('/assets/'));
 
-    if (query) {
-      filtered = filtered.filter(
-        (game) =>
-          game.name.toLowerCase().includes(query) ||
-          game.genre?.toLowerCase().includes(query)
-      );
-    }
+      const matchesQuick = this.matchesQuickFilters(game, filters);
 
-    if (quickFilters.length) {
-      filtered = filtered.filter((game) =>
-        this.matchesQuickFilters(game, quickFilters)
-      );
-    }
+      return matchesGenre && matchesQuery && matchesPlatform && matchesQuick;
+    });
 
-    return this.gameService.filterAndSortGames(filtered, {}, this.sortMode());
+    return this.gameService.filterAndSortGames(result, {}, mode);
   });
 
   matchingRecommendationRails = computed(() => {
@@ -362,6 +355,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   clearDiscoveryControls(): void {
     this.activeRoom.set('all');
+    this.activePlatform.set('all');
     this.activeGenre.set('all');
     this.searchQuery.set('');
     this.sortMode.set('Popular');
@@ -447,6 +441,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   setSortMode(mode: GameSortMode): void {
     this.sortMode.set(mode);
+  }
+
+  setActivePlatform(platform: string): void {
+    this.activePlatform.set(platform);
   }
 
   setActiveGenre(genre: string): void {
