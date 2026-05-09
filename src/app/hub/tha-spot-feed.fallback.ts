@@ -1632,6 +1632,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/sniper-mission',
+        approvedExternalUrl: 'https://www.gamepix.com/play/sniper-mission',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
@@ -1660,6 +1661,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/tower-defense',
+        approvedExternalUrl: 'https://www.gamepix.com/play/tower-defense',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
@@ -1687,6 +1689,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/solitaire-classic',
+        approvedExternalUrl: 'https://www.gamepix.com/play/solitaire-classic',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
@@ -1715,6 +1718,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/ludo-legend',
+        approvedExternalUrl: 'https://www.gamepix.com/play/ludo-legend',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
@@ -1744,6 +1748,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/zombie-idle-defense',
+        approvedExternalUrl: 'https://www.gamepix.com/play/zombie-idle-defense',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
