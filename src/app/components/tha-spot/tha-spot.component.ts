@@ -28,7 +28,6 @@ import {
 import { THA_SPOT_FALLBACK_FEED } from '../../hub/tha-spot-feed.fallback';
 import { UserProfileService } from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
-import { APP_SECURITY_CONFIG } from '../../app.security';
 
 const DEFAULT_RECOMMENDATION_ITEMS = 8;
 const FEED_REFRESH_INTERVAL_MS = 300000;
@@ -401,15 +400,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     if (game.launchConfig?.embedMode === 'external-only') {
       return null;
     }
-    let url = game.launchConfig?.approvedEmbedUrl || game.url;
+    const url = game.launchConfig?.approvedEmbedUrl || game.url;
     if (!url) {
       return null;
-    }
-
-    // Advanced Security: Append secure hash for Elite Cabinets
-    if (game.badgeIds?.includes('elite')) {
-      const separator = url.includes('?') ? '&' : '?';
-      url += `${separator}smuve_auth_token=${APP_SECURITY_CONFIG.auth_salt}&secure_mode=wasm`;
     }
 
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
