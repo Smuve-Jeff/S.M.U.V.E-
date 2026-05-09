@@ -728,7 +728,7 @@
       }
     },
     {
-      "id": "15",
+      "id": "6",
       "name": "Hextris",
       "url": "https://hextris.github.io/hextris/",
       "description": "Trusted online arcade puzzler with premium hex-stack gameplay.",
@@ -878,7 +878,7 @@
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted arcade partner.",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://htmlgames.com/game/Beat+Runner",
+        "approvedExternalUrl": "https://www.gamepix.com/play/music-rush",
         "approvedEmbedUrl": "https://www.gamepix.com/play/music-rush",
         "telemetryMode": "origin",
         "telemetryOrigins": [
@@ -1232,7 +1232,7 @@
       }
     },
     {
-      "id": "6",
+      "id": "15",
       "name": "Cipher Surge",
       "url": "/assets/games/cipher-surge/cipher-surge.html",
       "description": "Neural pattern-defense cabinet with polished offline AI memory rounds and fast replay loops.",
@@ -3553,7 +3553,7 @@
       "name": "Tetris",
       "url": "https://www.retrogames.cc/embed/18814-tetris-usa.html",
       "genre": "Puzzle",
-      "description": "The definitive puzzle experience. Classic NES logic with tier responsive input.",
+      "description": "The definitive puzzle experience. Classic NES logic with tier-responsive input.",
       "availability": "Online",
       "playersOnline": 28000,
       "rating": 5.0,

@@ -123,18 +123,18 @@ export class UIService {
           document.documentElement.classList.remove('dark-mode');
         }
       });
-            effect(() => {
-              const glow = this.subtleGlow();
-              if (typeof document !== 'undefined') {
-                if (glow) {
-                  document.documentElement.style.setProperty('--accent-glow', glow);
-                  document.body.classList.add('glow-active');
-                } else {
-                  document.documentElement.style.removeProperty('--accent-glow');
-                  document.body.classList.remove('glow-active');
-                }
-              }
-            });
+      effect(() => {
+        const glow = this.subtleGlow();
+        if (typeof document !== 'undefined') {
+          if (glow) {
+            document.documentElement.style.setProperty('--accent-glow', glow);
+            document.body.classList.add('glow-active');
+          } else {
+            document.documentElement.style.removeProperty('--accent-glow');
+            document.body.classList.remove('glow-active');
+          }
+        }
+      });
     }
   }
 
