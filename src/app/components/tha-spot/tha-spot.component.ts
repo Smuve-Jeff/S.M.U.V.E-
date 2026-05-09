@@ -588,10 +588,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   private resolveLaunchWarning(game: Game): string {
     if (game.launchConfig?.embedMode === 'external-only') {
-      return (
+      const trustNote =
         game.launchConfig?.trustNote ||
-        'External governance required for this cabinet.'
-      );
+        'External governance required for this cabinet.';
+      return `${trustNote} Launches in a separate tab.`;
     }
     if (game.launchConfig?.approvedEmbedUrl || game.url) {
       return 'Exact embed target verified.';

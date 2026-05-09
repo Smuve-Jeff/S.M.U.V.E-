@@ -47,7 +47,18 @@ const THA_SPOT_FEED_URL = '/assets/data/tha-spot-feed.json';
 export type GameSortMode = 'Popular' | 'Rating' | 'Newest' | 'Name' | 'Queue';
 
 function isManagedGameAssetUrl(url: string) {
-  return url.startsWith('/assets/games/');
+  const approvedDomains = ['retrogames.cc', 'dos.zone', 'gamepix.com'];
+  return (
+    url.startsWith('/assets/games/') ||
+    approvedDomains.some((domain) => {
+      try {
+        const host = new URL(url).hostname;
+        return host === domain || host.endsWith(`.${domain}`);
+      } catch {
+        return false;
+      }
+    })
+  );
 }
 
 function buildGameCover(
@@ -113,11 +124,15 @@ function normalizeLaunchConfig(
       : undefined;
   const telemetryMode =
     embedMode === 'inline' ? config?.telemetryMode || 'frame-only' : 'none';
-  const trustNote =
+  const baseTrustNote =
     asString(config?.trustNote) ||
     (embedMode === 'external-only'
-      ? 'Launches in a separate tab to avoid broken third-party embeds.'
+      ? 'Launches in a separate tab.'
       : '');
+  const trustNote =
+    embedMode === 'external-only' && baseTrustNote
+      ? `${baseTrustNote} Launches in a separate tab.`
+      : baseTrustNote;
 
   return {
     ...config,

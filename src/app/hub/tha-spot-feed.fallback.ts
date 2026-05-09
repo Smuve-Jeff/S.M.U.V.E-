@@ -1372,7 +1372,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: '25',
-      name: 'Classic Tank Wars',
+      name: 'Battle City',
       url: 'https://www.gamepix.com/play/tank-wars',
       description:
         'Vintage arcade combat with strategic positioning and explosive rounds.',
@@ -1402,7 +1402,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: '26',
-      name: 'Classic Bowling',
+      name: 'League Bowling',
       url: 'https://www.gamepix.com/play/classic-bowling',
       description:
         'Sports simulation with realistic physics and tournament brackets.',
@@ -2194,7 +2194,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 25400,
       rating: 5.0,
       badgeIds: ['featured', 'staff-pick'],
-      tags: ['Classic', 'Platformer', 'Retro', 'station-cabinet'],
+      tags: [
+        'Classic',
+        'Platformer',
+        'Retro',
+        'station-cabinet',
+        'WASM',
+        'High-Perf',
+      ],
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html',
@@ -2221,7 +2228,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 12800,
       rating: 4.9,
       badgeIds: ['featured', 'staff-pick', 'elite'],
-      tags: ['Action', 'Open World', 'Retro', 'station-pod'],
+      tags: [
+        'Action',
+        'Open World',
+        'Retro',
+        'station-pod',
+        'WASM',
+        'High-Perf',
+      ],
       launchConfig: {
         approvedEmbedUrl:
           'https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1',
@@ -2301,7 +2315,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 18500,
       rating: 4.9,
       badgeIds: ['featured', 'staff-pick'],
-      tags: ['Fighting', 'Anime', 'Retro', 'station-cabinet'],
+      tags: [
+        'Fighting',
+        'Anime',
+        'Retro',
+        'station-cabinet',
+        'WASM',
+        'High-Perf',
+      ],
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html',
@@ -2328,6 +2349,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 15000,
       rating: 4.6,
       badgeIds: ['featured', 'staff-pick', 'elite'],
+      tags: [
+        'Shooting',
+        'Sci-Fi',
+        'Action',
+        'station-pod',
+        'WASM',
+        'High-Perf',
+      ],
       tags: ['Shooting', 'Sci-Fi', 'Action', 'station-pod'],
       launchConfig: {
         approvedEmbedUrl: 'https://www.gamepix.com/play/space-blaze-2',
@@ -2489,7 +2518,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 31000,
       rating: 5.0,
       badgeIds: ['featured', 'elite'],
-      tags: ['RPG', 'Retro', 'N64', 'Adventure'],
+      tags: ['RPG', 'Retro', 'N64', 'Adventure', 'WASM', 'High-Perf'],
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html',
@@ -2678,7 +2707,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 34000,
       rating: 4.9,
       badgeIds: ['trending', 'elite'],
-      tags: ['Classic', 'Platformer', 'Retro', 'Genesis'],
+      tags: ['Classic', 'Platformer', 'Retro', 'Genesis', 'WASM', 'High-Perf'],
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html',
@@ -2919,7 +2948,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 15000,
       rating: 4.8,
       badgeIds: ['classic'],
-      tags: ['Action', 'Retro', 'NES', 'Co-op'],
+      tags: ['Action', 'Retro', 'NES', 'Co-op', 'WASM', 'High-Perf'],
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/19139-double-dragon-usa.html',
@@ -2997,6 +3026,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 55000,
       rating: 5.0,
       badgeIds: ['staff-pick', 'elite'],
+      tags: ['RPG', 'Retro', 'GBC', 'Adventure', 'WASM', 'High-Perf'],
       tags: ['RPG', 'Retro', 'GBC', 'Adventure'],
       launchConfig: {
         approvedEmbedUrl:
@@ -3049,7 +3079,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 22000,
       rating: 4.9,
       badgeIds: ['classic', 'staff-pick'],
-      tags: ['Fighting', 'Retro', 'NES', 'Sports'],
+      tags: ['Fighting', 'Retro', 'NES', 'Sports', 'WASM', 'High-Perf'],
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/19002-mike-tyson-s-punch-out-usa.html',
