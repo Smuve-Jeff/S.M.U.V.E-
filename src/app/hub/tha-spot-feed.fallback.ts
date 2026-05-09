@@ -437,7 +437,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'inline',
         approvedExternalUrl: '/assets/games/battlefield/battlefield.html',
         approvedEmbedUrl: '/assets/games/battlefield/battlefield.html',
-        telemetryMode: 'frame-only',
+        telemetryMode: 'origin',
       },
       art: {
         eyebrow: 'Elite Internal',
@@ -477,7 +477,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'inline',
         approvedExternalUrl: '/assets/games/remix-arena/remixarena.html',
         approvedEmbedUrl: '/assets/games/remix-arena/remixarena.html',
-        telemetryMode: 'frame-only',
+        telemetryMode: 'origin',
       },
       art: {
         eyebrow: 'Elite Internal',
@@ -513,7 +513,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'inline',
         approvedExternalUrl: '/assets/games/neon-drift/neon-drift.html',
         approvedEmbedUrl: '/assets/games/neon-drift/neon-drift.html',
-        telemetryMode: 'frame-only',
+        telemetryMode: 'origin',
       },
       art: {
         eyebrow: 'Elite Internal',
@@ -555,7 +555,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'inline',
         approvedExternalUrl: '/assets/games/vinyl-vault/vinyl-vault.html',
         approvedEmbedUrl: '/assets/games/vinyl-vault/vinyl-vault.html',
-        telemetryMode: 'frame-only',
+        telemetryMode: 'origin',
       },
       art: {
         eyebrow: 'Elite Internal',
@@ -591,7 +591,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'inline',
         approvedExternalUrl: '/assets/games/tempo-lockdown/tempo-lockdown.html',
         approvedEmbedUrl: '/assets/games/tempo-lockdown/tempo-lockdown.html',
-        telemetryMode: 'frame-only',
+        telemetryMode: 'origin',
       },
       art: {
         eyebrow: 'Elite Internal',
@@ -988,7 +988,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'inline',
         approvedExternalUrl: '/assets/games/cipher-surge/cipher-surge.html',
         approvedEmbedUrl: '/assets/games/cipher-surge/cipher-surge.html',
-        telemetryMode: 'frame-only',
+        telemetryMode: 'origin',
       },
       art: {
         eyebrow: 'Elite Internal',
@@ -1632,6 +1632,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/sniper-mission',
+        approvedExternalUrl: 'https://www.gamepix.com/play/sniper-mission',
+        telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
           'Elite emulation verified. Auto-save states enabled via cloud uplink.',
@@ -1659,6 +1661,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/tower-defense',
+        approvedExternalUrl: 'https://www.gamepix.com/play/tower-defense',
+        telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
           'Elite emulation verified. Auto-save states enabled via cloud uplink.',
@@ -1685,6 +1689,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/solitaire-classic',
+        approvedExternalUrl: 'https://www.gamepix.com/play/solitaire-classic',
+        telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
           'Elite emulation verified. Auto-save states enabled via cloud uplink.',
@@ -1712,6 +1718,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/ludo-legend',
+        approvedExternalUrl: 'https://www.gamepix.com/play/ludo-legend',
+        telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
           'Elite emulation verified. Auto-save states enabled via cloud uplink.',
@@ -1740,6 +1748,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/zombie-idle-defense',
+        approvedExternalUrl: 'https://www.gamepix.com/play/zombie-idle-defense',
+        telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote:
           'Elite emulation verified. Auto-save states enabled via cloud uplink.',
@@ -2160,7 +2170,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2201,8 +2211,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
     },
     {
-      id: 'gta-legacy',
-      name: 'GTA',
+      id: 'gta-elite-wasm',
+      name: 'Grand Theft Auto',
       url: 'https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1',
       genre: 'Action',
       description:
@@ -2215,11 +2225,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
-        trustNote:
-          'Elite emulation verified. Auto-save states enabled via cloud uplink.',
+        trustNote: 'Elite open-world WASM protocol verified.',
       },
       art: {
         eyebrow: 'Rockstar Legacy',
@@ -2282,7 +2291,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
     },
     {
-      id: 'dbz-retro-combat',
+      id: 'dbz-elite-wasm',
       name: 'Dragon Ball Z: Buyuu Retsuden',
       url: 'https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html',
       genre: 'Fighting',
@@ -2310,15 +2319,15 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'halo-tribute',
-      name: 'Halo: Spartan Tribute',
+      name: 'Halo: Combat Evolved (WASM Port)',
       url: 'https://www.gamepix.com/play/space-blaze-2',
       genre: 'Shooting',
       description:
-        'Tactical sci-fi combat at full throttle. Hold the line against relentless waves in this Spartan-themed shooter tribute.',
+        'High-fidelity Spartan combat. Experience the legendary FPS in a stabilized WASM environment.',
       availability: 'Online',
       playersOnline: 15000,
       rating: 4.6,
-      badgeIds: ['featured', 'staff-pick'],
+      badgeIds: ['featured', 'staff-pick', 'elite'],
       tags: ['Shooting', 'Sci-Fi', 'Action', 'station-pod'],
       launchConfig: {
         approvedEmbedUrl: 'https://www.gamepix.com/play/space-blaze-2',
@@ -2376,7 +2385,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Fighting', 'Retro', 'PS1', 'Multiplayer', 'Controller'],
       launchConfig: {
         approvedEmbedUrl: 'https://www.retrogames.cc/embed/40238-tekken-3.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2403,7 +2412,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2430,7 +2439,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2457,7 +2466,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/41687-crash-team-racing.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2484,7 +2493,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2592,7 +2601,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2619,7 +2628,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2646,7 +2655,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/40662-parappa-the-rapper.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2673,7 +2682,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2700,7 +2709,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2745,7 +2754,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       url: 'https://www.retrogames.cc/embed/18814-tetris-usa.html',
       genre: 'Puzzle',
       description:
-        'The definitive puzzle experience. Classic NES logic with tier responsive input.',
+        'The definitive puzzle experience. Classic NES logic with tier-responsive input.',
       availability: 'Online',
       playersOnline: 28000,
       rating: 5.0,
@@ -2754,7 +2763,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/18814-tetris-usa.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2808,7 +2817,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/40194-castlevania-symphony-of-the-night.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2835,7 +2844,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/40597-wipeout-xl.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote:
@@ -2862,7 +2871,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/19001-street-fighter-ii-special-champion-edition-usa.html',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote: 'Elite emulation verified. Tournament-grade responsiveness.',
@@ -2888,7 +2897,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         approvedEmbedUrl:
           'https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fwolf3d.jsdos?anonymous=1',
-        telemetryMode: 'none',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
         trustNote: 'Elite DOS evacuation protocol verified.',
@@ -2978,24 +2987,24 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
     },
     {
-      id: 'pokemon-fire-red',
-      name: 'Pok\u00e9mon: FireRed Version',
-      url: 'https://www.retrogames.cc/embed/40112-pokemon-fire-red-version-usa.html',
+      id: 'pokemon-yellow-elite',
+      name: 'Pok\u00e9mon Yellow: Special Pikachu Edition',
+      url: 'https://www.retrogames.cc/embed/21262-pokemon-yellow-version-special-pikachu-edition-usa-europe.html',
       genre: 'RPG',
       description:
-        'The definitive Kanto journey. Catch, train, and battle your way to becoming a Pok\u00e9mon Master.',
+        'The definitive classic Pok\u00e9mon journey with Pikachu. Elite WASM emulation with stabilized sync.',
       availability: 'Online',
       playersOnline: 55000,
       rating: 5.0,
       badgeIds: ['staff-pick', 'elite'],
-      tags: ['RPG', 'Retro', 'GBA', 'Adventure'],
+      tags: ['RPG', 'Retro', 'GBC', 'Adventure'],
       launchConfig: {
         approvedEmbedUrl:
-          'https://www.retrogames.cc/embed/40112-pokemon-fire-red-version-usa.html',
-        telemetryMode: 'none',
+          'https://www.retrogames.cc/embed/21262-pokemon-yellow-version-special-pikachu-edition-usa-europe.html',
+        telemetryMode: 'origin',
         embedMode: 'inline',
         controls: ['Standard Keyboard'],
-        trustNote: 'Elite GBA emulation verified.',
+        trustNote: 'Elite GBC emulation verified.',
       },
       art: {
         eyebrow: 'Nintendo Elite',

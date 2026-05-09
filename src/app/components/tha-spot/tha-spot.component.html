@@ -326,6 +326,7 @@
         </div>
       </header>
       <div class="console-body" [class.retro-flicker]="active.badgeIds?.includes('elite')">
+        <div class="scanline-overlay" *ngIf="active.badgeIds?.includes('elite')"></div>
         <iframe
           *ngIf="getSafeUrl(active) as safeUrl"
           #gameIframe

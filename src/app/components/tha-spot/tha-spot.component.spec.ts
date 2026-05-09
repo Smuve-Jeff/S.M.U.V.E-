@@ -486,6 +486,23 @@ describe('ThaSpotComponent', () => {
     expect(component.currentGame()).toBeNull();
   });
 
+  it('does not append shared auth secrets to iframe URLs', () => {
+    const bypassSpy = jest.spyOn(
+      (component as any).sanitizer,
+      'bypassSecurityTrustResourceUrl'
+    );
+    const eliteGame = {
+      ...component.games()[0]!,
+      badgeIds: ['elite'],
+    };
+
+    component.getSafeUrl(eliteGame);
+
+    expect(bypassSpy).toHaveBeenCalledWith(
+      '/assets/games/battlefield/battlefield.html'
+    );
+  });
+
   it('ignores posted scores when sessions end', () => {
     const sourceWindow = {} as Window;
     const sessionCallCount =
@@ -504,5 +521,74 @@ describe('ThaSpotComponent', () => {
     expect(profileServiceMock.recordGameLaunch.mock.calls).toHaveLength(
       sessionCallCount
     );
+  });
+
+  it('rejects cross-origin GAME_OVER messages for frame-only telemetry', () => {
+    const sourceWindow = {} as Window;
+    const closeSpy = jest.spyOn(component, 'closeGame');
+    component.currentGame.set(component.games()[0]!);
+    (component as any).gameIframe = {
+      nativeElement: { contentWindow: sourceWindow },
+    };
+
+    component.onMessage({
+      data: { type: 'GAME_OVER' },
+      origin: 'https://evil.example',
+      source: sourceWindow,
+    } as MessageEvent);
+
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(component.currentGame()?.id).toBe('1');
+  });
+
+  it('accepts allowlisted origin messages when telemetry mode is origin', () => {
+    const sourceWindow = {} as Window;
+    const closeSpy = jest.spyOn(component, 'closeGame');
+    const originTrackedGame = {
+      ...component.games()[0]!,
+      launchConfig: {
+        ...component.games()[0]!.launchConfig,
+        telemetryMode: 'origin' as const,
+        telemetryOrigins: ['https://telemetry.trusted.example'],
+      },
+    };
+    component.currentGame.set(originTrackedGame);
+    (component as any).gameIframe = {
+      nativeElement: { contentWindow: sourceWindow },
+    };
+
+    component.onMessage({
+      data: { type: 'GAME_OVER' },
+      origin: 'https://telemetry.trusted.example',
+      source: sourceWindow,
+    } as MessageEvent);
+
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+    expect(component.currentGame()).toBeNull();
+  });
+
+  it('rejects messages when telemetry mode is none', () => {
+    const sourceWindow = {} as Window;
+    const closeSpy = jest.spyOn(component, 'closeGame');
+    const noTelemetryGame = {
+      ...component.games()[0]!,
+      launchConfig: {
+        ...component.games()[0]!.launchConfig,
+        telemetryMode: 'none' as const,
+      },
+    };
+    component.currentGame.set(noTelemetryGame);
+    (component as any).gameIframe = {
+      nativeElement: { contentWindow: sourceWindow },
+    };
+
+    component.onMessage({
+      data: { type: 'GAME_OVER' },
+      origin: window.location.origin,
+      source: sourceWindow,
+    } as MessageEvent);
+
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(component.currentGame()?.id).toBe('1');
   });
 });

@@ -404,6 +404,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     if (!url) {
       return null;
     }
+
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
@@ -413,10 +414,43 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     if (!active || !frameWindow || event.source !== frameWindow) {
       return;
     }
-
-    if (event.data?.type === 'GAME_OVER') {
-      this.closeGame();
+    if (!this.isAllowedMessageOrigin(active, event.origin)) {
+      return;
     }
+
+    // Secure Gaming Protocol Handlers
+    switch (event.data?.type) {
+      case 'GAME_READY':
+        break;
+      case 'GAME_UPDATE':
+        // Handle telemetry or score updates through a dedicated logging/telemetry
+        // service when one is available. Avoid console logging in production UI code.
+        break;
+      case 'GAME_OVER':
+        this.closeGame();
+        break;
+      default:
+        // Handle generic signals
+        break;
+    }
+  }
+
+  private isAllowedMessageOrigin(active: Game, origin: string): boolean {
+    const telemetryMode = active.launchConfig?.telemetryMode || 'frame-only';
+    if (telemetryMode === 'none') {
+      return false;
+    }
+
+    if (telemetryMode === 'origin') {
+      const telemetryOrigins = active.launchConfig?.telemetryOrigins || [];
+      return telemetryOrigins.includes(origin);
+    }
+
+    if (telemetryMode === 'frame-only') {
+      return typeof window !== 'undefined' && origin === window.location.origin;
+    }
+
+    return false;
   }
 
   private loadFeed(forceRefresh = false) {
