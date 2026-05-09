@@ -566,4 +566,29 @@ describe('ThaSpotComponent', () => {
     expect(closeSpy).toHaveBeenCalledTimes(1);
     expect(component.currentGame()).toBeNull();
   });
+
+  it('rejects messages when telemetry mode is none', () => {
+    const sourceWindow = {} as Window;
+    const closeSpy = jest.spyOn(component, 'closeGame');
+    const noTelemetryGame = {
+      ...component.games()[0]!,
+      launchConfig: {
+        ...component.games()[0]!.launchConfig,
+        telemetryMode: 'none' as const,
+      },
+    };
+    component.currentGame.set(noTelemetryGame);
+    (component as any).gameIframe = {
+      nativeElement: { contentWindow: sourceWindow },
+    };
+
+    component.onMessage({
+      data: { type: 'GAME_OVER' },
+      origin: window.location.origin,
+      source: sourceWindow,
+    } as MessageEvent);
+
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(component.currentGame()?.id).toBe('1');
+  });
 });
