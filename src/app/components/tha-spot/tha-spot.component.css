@@ -393,7 +393,7 @@
 
 /* Preview Card Depth */
 .preview-card {
-  box-shadow: var(--shadow-v42-xl);
+  box-shadow: var(--shadow-xl);
   transform: perspective(1000px) rotateX(2deg);
   transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 }
