@@ -425,7 +425,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     // Secure Gaming Protocol Handlers
     switch (event.data?.type) {
       case 'GAME_READY':
-        console.log('[THA-SPOT] Cabinet Ready:', active.name);
         break;
       case 'GAME_UPDATE':
         // Handle telemetry or score updates
