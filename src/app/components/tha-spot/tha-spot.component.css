@@ -947,3 +947,111 @@
   border-color: #af25f4;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(175, 37, 244, 0.2);
 }
+
+/* Analog Engine v4.2 Design System Extensions */
+.glass-v42 {
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(12px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+}
+
+.shadow-v42-xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 20px rgba(175, 37, 244, 0.15) !important;
+}
+
+.holographic-depth {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  ) !important;
+  background-size: 200% 200% !important;
+  animation: holographic-shimmer 8s linear infinite !important;
+}
+
+@keyframes holographic-shimmer {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 200%; }
+}
+
+.retro-flicker {
+  position: relative;
+}
+
+.retro-flicker::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: rgba(18, 16, 16, 0.1);
+  opacity: 0;
+  z-index: 2;
+  pointer-events: none;
+  animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+  0% { opacity: 0.27861; }
+  5% { opacity: 0.34769; }
+  10% { opacity: 0.23604; }
+  15% { opacity: 0.90626; }
+  20% { opacity: 0.18128; }
+  25% { opacity: 0.83891; }
+  30% { opacity: 0.65583; }
+  35% { opacity: 0.67807; }
+  40% { opacity: 0.26559; }
+  45% { opacity: 0.84693; }
+  50% { opacity: 0.96019; }
+  55% { opacity: 0.08594; }
+  60% { opacity: 0.20313; }
+  65% { opacity: 0.71988; }
+  70% { opacity: 0.53455; }
+  75% { opacity: 0.37288; }
+  80% { opacity: 0.71428; }
+  85% { opacity: 0.70419; }
+  90% { opacity: 0.7003; }
+  95% { opacity: 0.36108; }
+  100% { opacity: 0.24387; }
+}
+
+.game-console-window {
+  background: linear-gradient(135deg, #3d2b1f 0%, #1e293b 100%) !important;
+  border: 4px solid #3d2b1f !important;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(175, 37, 244, 0.2) !important;
+}
+
+.console-header {
+  background: #3d2b1f !important;
+  color: #facc15 !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+}
+
+.console-footer {
+  background: #3d2b1f !important;
+  color: #af25f4 !important;
+  border-top: 2px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.scanline-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+  z-index: 10;
+  pointer-events: none;
+}

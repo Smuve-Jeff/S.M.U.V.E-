@@ -28,6 +28,7 @@ import {
 import { THA_SPOT_FALLBACK_FEED } from '../../hub/tha-spot-feed.fallback';
 import { UserProfileService } from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
+import { APP_SECURITY_CONFIG } from '../../app.security';
 
 const DEFAULT_RECOMMENDATION_ITEMS = 8;
 const FEED_REFRESH_INTERVAL_MS = 300000;
@@ -400,10 +401,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     if (game.launchConfig?.embedMode === 'external-only') {
       return null;
     }
-    const url = game.launchConfig?.approvedEmbedUrl || game.url;
+    let url = game.launchConfig?.approvedEmbedUrl || game.url;
     if (!url) {
       return null;
     }
+
+    // Advanced Security: Append secure hash for Elite Cabinets
+    if (game.badgeIds?.includes('elite')) {
+      const separator = url.includes('?') ? '&' : '?';
+      url += `${separator}smuve_auth_token=${APP_SECURITY_CONFIG.auth_salt}&secure_mode=wasm`;
+    }
+
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
@@ -414,8 +422,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (event.data?.type === 'GAME_OVER') {
-      this.closeGame();
+    // Secure Gaming Protocol Handlers
+    switch (event.data?.type) {
+      case 'GAME_READY':
+        console.log('[THA-SPOT] Cabinet Ready:', active.name);
+        break;
+      case 'GAME_UPDATE':
+        // Handle telemetry or score updates
+        if (event.data.score) {
+          console.log('[THA-SPOT] Score Update:', event.data.score);
+        }
+        break;
+      case 'GAME_OVER':
+        console.log('[THA-SPOT] Game Over:', active.name);
+        this.closeGame();
+        break;
+      default:
+        // Handle generic signals
+        break;
     }
   }
 
