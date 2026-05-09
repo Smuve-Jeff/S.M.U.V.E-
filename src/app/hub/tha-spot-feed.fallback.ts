@@ -3882,7 +3882,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "controls": [
           "Standard Keyboard"
         ],
-        "trustNote": "Elite GBA emulation verified."
+        "trustNote": "Elite GBC emulation verified."
       },
       "art": {
         "eyebrow": "Nintendo Elite",
