@@ -995,6 +995,13 @@
   animation: flicker 0.15s infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .retro-flicker::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 @keyframes flicker {
   0% { opacity: 0.27861; }
   5% { opacity: 0.34769; }
