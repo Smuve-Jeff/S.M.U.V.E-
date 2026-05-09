@@ -728,7 +728,7 @@
       }
     },
     {
-      "id": "15",
+      "id": "6",
       "name": "Hextris",
       "url": "https://hextris.github.io/hextris/",
       "description": "Trusted online arcade puzzler with premium hex-stack gameplay.",
@@ -1232,7 +1232,7 @@
       }
     },
     {
-      "id": "6",
+      "id": "15",
       "name": "Cipher Surge",
       "url": "/assets/games/cipher-surge/cipher-surge.html",
       "description": "Neural pattern-defense cabinet with polished offline AI memory rounds and fast replay loops.",

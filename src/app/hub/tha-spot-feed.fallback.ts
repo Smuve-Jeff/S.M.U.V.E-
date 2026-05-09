@@ -600,7 +600,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
     },
     {
-      id: '15',
+      id: '6',
       name: 'Hextris',
       url: 'https://hextris.github.io/hextris/',
       description:
@@ -951,7 +951,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
     },
     {
-      id: '6',
+      id: '15',
       name: 'Cipher Surge',
       url: '/assets/games/cipher-surge/cipher-surge.html',
       description:
