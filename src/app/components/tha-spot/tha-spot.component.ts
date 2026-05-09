@@ -433,7 +433,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         }
         break;
       case 'GAME_OVER':
-        console.log('[THA-SPOT] Game Over:', active.name);
         this.closeGame();
         break;
       default:
