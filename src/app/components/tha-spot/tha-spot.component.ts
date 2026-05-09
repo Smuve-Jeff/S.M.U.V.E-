@@ -414,6 +414,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     if (!active || !frameWindow || event.source !== frameWindow) {
       return;
     }
+    if (!this.isAllowedMessageOrigin(active, event.origin)) {
+      return;
+    }
 
     // Secure Gaming Protocol Handlers
     switch (event.data?.type) {
@@ -430,6 +433,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         // Handle generic signals
         break;
     }
+  }
+
+  private isAllowedMessageOrigin(active: Game, origin: string): boolean {
+    const telemetryMode = active.launchConfig?.telemetryMode || 'frame-only';
+    if (telemetryMode === 'none') {
+      return false;
+    }
+
+    if (telemetryMode === 'origin') {
+      const telemetryOrigins = active.launchConfig?.telemetryOrigins || [];
+      return telemetryOrigins.includes(origin);
+    }
+
+    if (telemetryMode === 'frame-only') {
+      return typeof window !== 'undefined' && origin === window.location.origin;
+    }
+
+    return false;
   }
 
   private loadFeed(forceRefresh = false) {
