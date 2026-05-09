@@ -2995,10 +2995,10 @@
     },
     {
       "id": "halo-tribute",
-      "name": "Cyber Adventure",
-      "url": "https://www.gamepix.com/play/cyber-adventure",
+      "name": "Halo: Spartan Tribute",
+      "url": "https://www.gamepix.com/play/space-blaze-2",
       "genre": "Shooting",
-      "description": "Tactical 2.5D sci-fi combat. Lead your squad through hostile zones in this futuristic shooter tribute.",
+      "description": "Tactical sci-fi combat at full throttle. Hold the line against relentless waves in this Spartan-themed shooter tribute.",
       "availability": "Online",
       "playersOnline": 15000,
       "rating": 4.6,
@@ -3013,7 +3013,7 @@
         "station-pod"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/space-blaze-2",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
