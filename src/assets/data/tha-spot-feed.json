@@ -2166,6 +2166,9 @@
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": ["Standard Keyboard"],
+        "controls": [
+          "Standard Keyboard"
+        ],
         "trustNote": "Elite open-world WASM protocol verified."
       },
       "art": {
@@ -2265,6 +2268,11 @@
       "playersOnline": 15000,
       "rating": 4.6,
       "badgeIds": ["featured", "staff-pick", "elite"],
+      "badgeIds": [
+        "featured",
+        "staff-pick",
+        "elite"
+      ],
       "tags": [
         "Shooting",
         "Sci-Fi",
@@ -2888,6 +2896,16 @@
       "rating": 5.0,
       "badgeIds": ["staff-pick", "elite"],
       "tags": ["RPG", "Retro", "GBC", "Adventure", "WASM", "High-Perf"],
+      "badgeIds": [
+        "staff-pick",
+        "elite"
+      ],
+      "tags": [
+        "RPG",
+        "Retro",
+        "GBC",
+        "Adventure"
+      ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/21262-pokemon-yellow-version-special-pikachu-edition-usa-europe.html",
         "telemetryMode": "origin",
