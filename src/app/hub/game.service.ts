@@ -48,7 +48,7 @@ export type GameSortMode = 'Popular' | 'Rating' | 'Newest' | 'Name' | 'Queue';
 
 function isManagedGameAssetUrl(url: string) {
   const approvedDomains = ['retrogames.cc', 'dos.zone', 'gamepix.com'];
-  return url.startsWith('/assets/games/') || approvedDomains.some(domain => url.includes(domain));
+  return url.startsWith('/assets/games/') || approvedDomains.some(domain => { try { const host = new URL(url).hostname; return host === domain || host.endsWith('.' + domain); } catch { return false; } });
 }
 
 function buildGameCover(
