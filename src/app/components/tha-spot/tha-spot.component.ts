@@ -408,14 +408,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (event.data?.type === 'GAME_UPDATE') {
-      // Enhanced tracking for Elite cabinets
-      const telemetry = event.data.data;
-      if (telemetry?.score > 1000) {
-        // High performance detected
-      }
-    }
-
     if (event.data?.type === 'GAME_OVER') {
       this.closeGame();
     }
