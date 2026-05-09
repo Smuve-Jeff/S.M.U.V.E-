@@ -127,7 +127,7 @@ function normalizeLaunchConfig(
   const baseTrustNote =
     asString(config?.trustNote) ||
     (embedMode === 'external-only'
-      ? 'Elite WASM protocol active. Secure uplink established.'
+      ? 'Launches in a separate tab.'
       : '');
   const trustNote =
     embedMode === 'external-only' && baseTrustNote
