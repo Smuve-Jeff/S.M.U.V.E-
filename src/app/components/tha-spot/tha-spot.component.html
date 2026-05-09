@@ -1,110 +1,64 @@
-<div
-  class="tha-spot-container storefront-v42"
-  [class.intel-open]="showIntelPanel()"
-  [class.browse-mode]="isBrowseView()"
->
-  <!-- Top Navigation & Control Bar -->
-  <header class="executive-controls glass-v42">
-    <div class="brand-group" (click)="isBrowseView.set(false)">
-      <span class="material-symbols-outlined brand-icon">videogame_asset</span>
-      <h1 class="glimmer-text">THA SPOT</h1>
-      <span class="executive-hub-label">EXECUTIVE GAMING HUB</span>
+<div class="tha-spot-shell" [attr.data-theme]="'analog-v42'">
+  <!-- Status Bar Overlay (Analog v4.2) -->
+  <header class="spot-header glass-v42">
+    <div class="brand-sector">
+      <span class="material-symbols-outlined">hub</span>
+      <h1>THA SPOT <small>v4.2</small></h1>
     </div>
 
-    <!-- Room Navigator: Distinct Navigation Elements -->
-    <nav class="room-pill-nav">
-      <button
-        *ngFor="let room of gamingRooms()"
-        class="room-pill"
-        [class.active]="activeRoom() === room.id"
-        (click)="setActiveRoom(room.id); isBrowseView.set(false)"
-      >
-        <span class="material-symbols-outlined">{{ room.icon }}</span>
-        <span class="room-label">{{ room.name | uppercase }}</span>
-      </button>
-    </nav>
-
-    <div class="control-actions">
-      <button
-        class="action-btn"
-        [class.active]="isBrowseView()"
-        (click)="toggleBrowse()"
-      >
-        <span class="material-symbols-outlined">grid_view</span>
-        BROWSE ALL
-      </button>
-      <button class="action-btn" (click)="toggleIntel()">
+    <div class="header-controls">
+      <div class="terminal-status">
+        <span class="status-indicator"></span>
+        UPLINK ACTIVE
+      </div>
+      <button class="icon-btn" (click)="toggleIntel()">
         <span class="material-symbols-outlined">neurology</span>
-        INTEL
+      </button>
+      <button class="icon-btn" (click)="toggleBrowse()">
+        <span class="material-symbols-outlined">{{ isBrowseView() ? 'grid_view' : 'search' }}</span>
       </button>
     </div>
   </header>
 
-  <!-- Main Viewport -->
-  <main class="viewport-content" [class.transitioning]="isTransitioning()">
-    <!-- Home / Recommendation View -->
-    <div class="home-view" *ngIf="!isBrowseView()">
-      <!-- Hero Spot (Enhanced Focus) -->
-      <section class="hero-stage glass-v42" *ngIf="games()[0] as hero">
-        <div class="hero-background">
-          <img [src]="hero.image" alt="" />
-          <div class="hero-overlay"></div>
-        </div>
-        <div class="hero-intel">
-          <div class="hero-topline">
-            <span class="badge featured">FEATURED CABINET</span>
-            <span class="hero-publisher" *ngIf="hero.art?.eyebrow">{{
-              hero.art.eyebrow
-            }}</span>
-          </div>
-          <h2 class="hero-title">{{ hero.name }}</h2>
-          <p class="hero-description">{{ hero.description }}</p>
-
-          <div class="hero-actions">
-            <button
-              class="hero-btn-primary action-pulse"
-              (click)="onGameClick(hero)"
-            >
-              <span class="material-symbols-outlined">play_arrow</span>
-              INITIALIZE
-            </button>
-            <button class="hero-btn-secondary" (click)="openPreview(hero)">
-              <span class="material-symbols-outlined">info</span>
-              INTEL
-            </button>
+  <main class="main-content">
+    <!-- Storefront View: Bento Grid & Recommendation Rails -->
+    <div class="content-scroller custom-scrollbar" *ngIf="!isBrowseView()">
+      <section class="storefront-grid">
+        <!-- Hero Intel Module -->
+        <div class="hero-intel glass-v42 shadow-v42-xl">
+          <div class="hero-copy">
+            <h2>{{ getActiveRoomName() | uppercase }}</h2>
+            <p>Strategic gaming sector primed for artist performance.</p>
           </div>
         </div>
-      </section>
 
-      <section class="genre-grid-section">
-        <h3 class="rail-title">GENRE SECTORS</h3>
-        <div class="genre-grid">
+        <!-- Room Shortcuts -->
+        <div class="room-pill-nav">
           <button
-            *ngFor="let g of allCategories()"
-            class="genre-pill glass-v42"
-            (click)="setActiveGenre(g); isBrowseView.set(true)"
+            class="room-pill glass-v42"
+            *ngFor="let room of gamingRooms()"
+            [class.active]="activeRoom() === room.id"
+            (click)="setActiveRoom(room.id)"
           >
-            <span class="material-symbols-outlined">category</span>
-            {{ g | uppercase }}
+            <span class="material-symbols-outlined">{{ room.icon }}</span>
+            {{ room.name | uppercase }}
           </button>
         </div>
       </section>
-      <!-- Category Rails: Every Category included -->
+
+      <!-- Category Rails -->
       <div class="rails-container">
         <section
           class="storefront-rail"
           *ngFor="let rail of matchingRecommendationRails()"
         >
           <div class="rail-header">
-            <div class="rail-titles">
-              <h3 class="rail-title">{{ rail.title | uppercase }}</h3>
-              <p class="rail-subtitle">{{ rail.subtitle }}</p>
-            </div>
+            <h3 class="rail-title">{{ rail.title | uppercase }}</h3>
           </div>
 
           <div class="rail-scroll custom-scrollbar">
             <div
-              class="game-card-compact storefront-card"
+              class="game-card-compact glass-v42 storefront-card"
               [class.elite-tier]="game.badgeIds?.includes('elite')"
               *ngFor="let game of getGamesForRail(rail)"
               (click)="onGameClick(game)"
@@ -143,10 +97,11 @@
     <div class="browse-view" *ngIf="isBrowseView()">
       <div class="filter-sidebar glass-v42">
         <div class="filter-group">
-          <label>GENRE SECTOR</label
-          ><select
+          <label>GENRE SECTOR</label>
+          <select
             [ngModel]="activeGenre()"
             (ngModelChange)="setActiveGenre($event)"
+            class="glass-v42"
           >
             <option value="all">ALL SECTORS</option>
             <option *ngFor="let g of allCategories()" [value]="g">
@@ -157,7 +112,7 @@
 
         <div class="filter-group">
           <label>SEARCH CABINETS</label>
-          <div class="search-input-wrapper">
+          <div class="search-input-wrapper glass-v42">
             <span class="material-symbols-outlined">search</span>
             <input
               type="text"
@@ -175,6 +130,7 @@
               *ngFor="let f of quickFilterOptions"
               [class.active]="quickFilters().includes(f)"
               (click)="toggleQuickFilter(f)"
+              class="glass-v42"
             >
               {{ f | uppercase }}
             </button>
@@ -183,19 +139,21 @@
 
         <div class="filter-group">
           <label>SORT MODE</label>
-          <select [ngModel]="sortMode()" (ngModelChange)="setSortMode($event)">
+          <select [ngModel]="sortMode()" (ngModelChange)="setSortMode($event)" class="glass-v42">
             <option value="Popular">POPULARITY</option>
             <option value="Rating">TOP RATED</option>
             <option value="Newest">RECENT DROPS</option>
             <option value="Name">ALPHABETICAL</option>
           </select>
         </div>
+
+        <button class="secondary-btn" (click)="toggleBrowse()">BACK TO HUB</button>
       </div>
 
       <div class="browse-grid-container custom-scrollbar">
         <div class="browse-grid">
           <div
-            class="game-card-compact storefront-card"
+            class="game-card-compact glass-v42 storefront-card"
             [class.elite-tier]="game.badgeIds?.includes('elite')"
             *ngFor="let game of filteredGames()"
             (click)="onGameClick(game)"
@@ -276,11 +234,10 @@
   <div
     class="matchmaking-overlay"
     *ngIf="isMatchmaking()"
-    [class.active]="isMatchmaking()"
   >
     <div class="matchmaking-container">
       <div class="scanning-circle">
-        <div class="scan-ring outer"></div>
+        <div class="scan-ring"></div>
         <div class="center-icon">
           <span class="material-symbols-outlined">satellite_alt</span>
         </div>
@@ -295,7 +252,7 @@
   <!-- Preview Overlay (Intel & Specs) -->
   <div class="preview-overlay" *ngIf="selectedGame() as selected">
     <div class="overlay-backdrop" (click)="closePreview()"></div>
-    <div class="preview-card glass-v42 holographic-depth">
+    <div class="preview-card glass-v42 holographic-depth shadow-v42-xl">
       <div class="preview-media">
         <img [src]="selected.image" [alt]="selected.name" />
       </div>
@@ -310,22 +267,19 @@
           {{ launchWarning() }}
         </p>
 
-        <!-- Technical Specs: Controller & Save State Support -->
-        <div class="tech-specs">
+        <div class="tech-specs glass-v42">
           <div class="spec-item">
             <span class="material-symbols-outlined">sports_esports</span>
             <div class="spec-label">
               <span>CONTROLS</span>
-              <strong>{{
-                selected.launchConfig?.controls?.join(', ') || 'Keyboard Map'
-              }}</strong>
+              <strong>{{ selected.launchConfig?.controls?.join(', ') || 'Neural Map' }}</strong>
             </div>
           </div>
           <div class="spec-item">
             <span class="material-symbols-outlined">cloud_sync</span>
             <div class="spec-label">
               <span>PERSISTENCE</span>
-              <strong>Auto-Save Verified</strong>
+              <strong>Verified</strong>
             </div>
           </div>
         </div>
@@ -346,9 +300,9 @@
     *ngIf="currentGame() as active"
     [class.active]="currentGame()"
   >
-    <div class="game-console-window glass-v42">
-      <header class="console-header">
-        <div class="console-title">{{ active.name | uppercase }}</div>
+    <div class="game-console-window glass-v42 shadow-v42-xl">
+      <header class="console-header glass-v42">
+        <div class="console-title">{{ active.name | uppercase }} <span class="tag" *ngIf="active.badgeIds?.includes('elite')">[ELITE]</span></div>
         <div class="console-actions">
           <button class="icon-btn" (click)="reloadGame()">
             <span class="material-symbols-outlined">refresh</span>
@@ -358,18 +312,18 @@
           </button>
         </div>
       </header>
-      <div class="console-body">
+      <div class="console-body" [class.retro-flicker]="active.badgeIds?.includes('elite')">
         <iframe
           *ngIf="getSafeUrl(active) as safeUrl"
           #gameIframe
           [src]="safeUrl"
           class="game-frame"
-          sandbox="allow-scripts allow-pointer-lock allow-popups"
+          sandbox="allow-scripts allow-pointer-lock allow-popups allow-same-origin"
           allow="fullscreen; autoplay; gamepad"
           allowfullscreen
         ></iframe>
       </div>
-      <footer class="console-footer">
+      <footer class="console-footer glass-v42">
         <div class="telemetry">
           UPLINK: <span class="success">SECURE</span> | LATENCY: 14ms
         </div>
