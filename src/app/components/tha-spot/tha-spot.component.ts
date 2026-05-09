@@ -105,26 +105,38 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   filteredGames = computed(() => {
     const games = this.games();
+    const roomId = this.activeRoom();
+    const room = this.gamingRooms().find((entry) => entry.id === roomId);
     const genre = this.activeGenre();
     const platform = this.activePlatform();
     const query = this.searchQuery().toLowerCase();
     const filters = this.quickFilters();
     const mode = this.sortMode();
 
-    let result = games.filter((game) => {
+    const result = games.filter((game) => {
       const matchesGenre = genre === 'all' || game.genre === genre;
-      const matchesQuery = !query ||
+      const matchesQuery =
+        !query ||
         game.name.toLowerCase().includes(query) ||
         game.description?.toLowerCase().includes(query) ||
-        game.tags?.some(t => t.toLowerCase().includes(query));
+        game.tags?.some((t) => t.toLowerCase().includes(query));
 
-      const matchesPlatform = platform === 'all' ||
+      const matchesPlatform =
+        platform === 'all' ||
         (platform === 'Internal' && game.url.startsWith('/assets/')) ||
         (platform === 'External' && !game.url.startsWith('/assets/'));
+      const matchesRoom =
+        !room || roomId === 'all' || this.gameService.matchesRoom(game, room);
 
       const matchesQuick = this.matchesQuickFilters(game, filters);
 
-      return matchesGenre && matchesQuery && matchesPlatform && matchesQuick;
+      return (
+        matchesGenre &&
+        matchesQuery &&
+        matchesPlatform &&
+        matchesRoom &&
+        matchesQuick
+      );
     });
 
     return this.gameService.filterAndSortGames(result, {}, mode);
