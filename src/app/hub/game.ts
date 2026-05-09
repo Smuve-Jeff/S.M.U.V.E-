@@ -145,6 +145,7 @@ export interface RecommendationRail {
   audience?: RecommendationAudience;
   weights?: RecommendationWeights;
   maxItems?: number;
+  badgeId?: string;
 }
 
 export interface ThaSpotFeed {

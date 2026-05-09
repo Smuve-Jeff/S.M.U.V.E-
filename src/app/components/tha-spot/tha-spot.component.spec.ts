@@ -277,6 +277,7 @@ describe('ThaSpotComponent', () => {
     activeTheme: signal({ name: 'Dark' }),
     mainViewMode: signal('tha-spot'),
     navigateToView: jest.fn(),
+    setSubtleGlow: jest.fn(),
   };
 
   beforeEach(async () => {

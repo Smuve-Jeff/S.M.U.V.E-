@@ -248,9 +248,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     effect(() => {
       const current = this.currentGame();
       if (current) {
-        // this.uiService.setSubtleGlow(current.art?.accentStart || '#ec5b13');
+        this.uiService.setSubtleGlow(current.art?.accentStart || '#ec5b13');
       } else {
-        // this.uiService.setSubtleGlow(null);
+        this.uiService.setSubtleGlow(null);
       }
     });
     // constructor body
