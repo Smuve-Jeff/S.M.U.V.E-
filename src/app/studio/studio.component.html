@@ -1,4 +1,4 @@
-<div class="studio-container {{ studioQualityClass() }}">
+<div class="studio-container {{ studioQualityClass() }}" [class.holographic]="uiService.holographicMode()">
   <!-- Neural Foundry Overlay -->
   <div class="neural-foundry-overlay" *ngIf="showNeuralFoundry()">
     <app-neural-foundry></app-neural-foundry>
@@ -21,14 +21,14 @@
         
         <!-- Arrangement Co-Pilot Button -->
         <div *ngIf="hasArrangementCoPilot()" class="co-pilot-controls">
-            <button>Invoke Arrangement Co-Pilot</button>
+            <button (click)="invokeArrangementCoPilot()">Invoke Arrangement Co-Pilot</button>
         </div>
 
         <app-mixer [class.hidden]="activeView() !== 'mixer'"></app-mixer>
 
         <!-- Holo-Mixer Button -->
         <div *ngIf="hasHoloMixer() && activeView() === 'mixer'" class="holo-mixer-controls">
-            <button>Activate Holographic Console</button>
+            <button (click)="activateHolographicConsole()">Activate Holographic Console</button>
         </div>
 
         <app-dj-deck [class.hidden]="activeView() !== 'dj'"></app-dj-deck>

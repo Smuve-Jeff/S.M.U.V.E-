@@ -1,3 +1,4 @@
+
 import {
   Injectable,
   signal,
@@ -60,6 +61,7 @@ export class UIService {
   isChatbotOpen = signal(false);
   visualIntensity = signal(0);
   isCompactMobile = signal(false);
+  holographicMode = signal(false);
 
   isOnline = signal(true);
   performanceMode = signal(false);
@@ -142,6 +144,11 @@ export class UIService {
     const newVal = !this.performanceMode();
     this.updateSetting('performanceMode', newVal);
   }
+
+  toggleHolographicMode() {
+    this.holographicMode.update((v) => !v);
+  }
+
 
   toggleTheme() {
     const nextTheme = this.activeTheme().name === 'Light' ? 'Dark' : 'Light';

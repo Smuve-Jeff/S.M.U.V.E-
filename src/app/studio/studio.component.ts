@@ -1,3 +1,4 @@
+
 import { UserProfileService } from '../services/user-profile.service';
 import {
   Component,
@@ -26,6 +27,7 @@ import { NotificationService } from '../services/notification.service';
 import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
 import { NeuralFoundryComponent } from '../neural-foundry/neural-foundry.component';
+import { AiCopilotService } from './ai-copilot.service';
 
 type StudioView =
   | 'dj'
@@ -78,6 +80,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly router = inject(Router);
   public readonly musicManager = inject(MusicManagerService);
   public readonly profileService = inject(UserProfileService);
+  private readonly aiCopilot = inject(AiCopilotService);
+
 
   activeView = signal<StudioView>('dj');
   showMixer = signal(true);
@@ -203,5 +207,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   toggleFocusLock() {
     this.focusLocked.update((v) => !v);
+  }
+
+  invokeArrangementCoPilot() {
+    this.aiCopilot.applySuggestions();
+  }
+
+  activateHolographicConsole() {
+    this.uiService.toggleHolographicMode();
+    this.notificationService.show('Holographic Console Activated', 'success');
   }
 }
