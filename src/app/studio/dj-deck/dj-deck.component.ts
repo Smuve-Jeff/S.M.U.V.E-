@@ -103,6 +103,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private activeTouchB: number | null = null;
   private recordingStartedAt: number | null = null;
   private lastRenderTimestamp = 0;
+  activeMobileDeck = signal<"A" | "B">("A");
   performanceMode = signal<'cue' | 'roll' | 'sampler'>('cue');
   private tapTimes: { [key: string]: number[] } = { A: [], B: [] };
   readonly rollPadLabels = ['1/8', '1/4', '1/2', '1', '2', '4', '8', '16'];
@@ -997,5 +998,21 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private clearSamplerActivePad(deck: 'A' | 'B') {
     this.clearSamplerReturnTimer(deck);
     this.setActiveSamplerPad(deck, null);
+  }
+
+  updateGain(deck: 'A' | 'B', value: any) {
+    const gain = parseFloat(value);
+    if (deck === 'A') {
+      this.deckService.deckA.update(d => ({ ...d, gain }));
+    } else {
+      this.deckService.deckB.update(d => ({ ...d, gain }));
+    }
+    this.engine.setDeckGain(deck, gain);
+  }
+
+  updateCrossfader(value: any) {
+    const cf = parseFloat(value);
+    this.deckService.crossfade.set(cf);
+    this.engine.setCrossfader(cf);
   }
 }

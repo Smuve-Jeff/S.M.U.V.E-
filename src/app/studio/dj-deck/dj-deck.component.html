@@ -1,5 +1,117 @@
 <div class="dj-hud-container h-full flex flex-col overflow-hidden select-none">
   <!-- TOP STATUS HEADER -->
+<!-- MOBILE COMPACT VIEW -->
+<div class="mobile-only flex flex-col h-full overflow-hidden bg-[#05070a]">
+  <!-- Mobile Header / Deck Toggle -->
+  <div class="flex items-center justify-between p-4 border-b border-white/5">
+    <div class="flex gap-2">
+      <button
+        (pointerdown)="activeMobileDeck.set('A')"
+        class="px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest transition-all"
+        [class.bg-fl-blue]="activeMobileDeck() === 'A'"
+        [class.text-white]="activeMobileDeck() === 'A'"
+        [class.bg-white/5]="activeMobileDeck() !== 'A'"
+        [class.text-slate-500]="activeMobileDeck() !== 'A'"
+      >Deck A</button>
+      <button
+        (pointerdown)="activeMobileDeck.set('B')"
+        class="px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest transition-all"
+        [class.bg-brand-secondary]="activeMobileDeck() === 'B'"
+        [class.text-white]="activeMobileDeck() === 'B'"
+        [class.bg-white/5]="activeMobileDeck() !== 'B'"
+        [class.text-slate-500]="activeMobileDeck() !== 'B'"
+      >Deck B</button>
+    </div>
+
+    <div class="flex flex-col items-end">
+      <span class="text-[10px] font-mono font-black text-fl-blue uppercase tracking-widest">Master</span>
+      <div class="flex items-center gap-2">
+        <span class="text-[8px] font-mono text-slate-500">{{ masterVolume() }}%</span>
+        <div class="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
+          <div class="h-full bg-fl-blue" [style.width.%]="masterVolume()"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Interaction Area -->
+  <div class="flex-grow overflow-y-auto no-scrollbar pb-24">
+    <!-- Active Deck Visualizer -->
+    <div class="p-4 flex flex-col gap-4">
+      <div class="hud-module p-6 relative overflow-hidden group aspect-square flex items-center justify-center">
+         <div class="strobe-platter w-full aspect-square relative max-w-[280px]">
+            <div class="strobe-dots" [class.strobe-dots-active]="(activeMobileDeck() === 'A' ? deckService.deckA() : deckService.deckB()).isPlaying"></div>
+            <div class="vinyl-platter absolute inset-2 rounded-full border-[6px] border-black/40 touch-none flex items-center justify-center overflow-hidden"
+                 [class.animate-spin-vinyl]="(activeMobileDeck() === 'A' ? deckService.deckA() : deckService.deckB()).isPlaying"
+                 (mousedown)="onPlatterDown(activeMobileDeck(), $event)"
+                 (touchstart)="onPlatterDown(activeMobileDeck(), $event)">
+              <div class="absolute inset-0 bg-gradient-to-br from-black via-slate-900 to-black opacity-90"></div>
+              <div class="absolute inset-[30%] rounded-full bg-white/5 border border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-2">
+                 <span class="text-[8px] font-black text-white uppercase leading-tight line-clamp-1">
+                   {{ (activeMobileDeck() === 'A' ? deckService.deckA() : deckService.deckB()).track?.name || 'Ready' }}
+                 </span>
+              </div>
+            </div>
+         </div>
+      </div>
+
+      <!-- Quick Mix Controls -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="hud-module p-4 flex flex-col gap-3">
+          <span class="hud-label">Volume</span>
+          <input type="range" min="0" max="1" step="0.01"
+                 [value]="activeMobileDeck() === 'A' ? deckService.deckA().gain : deckService.deckB().gain"
+                 (input)="updateGain(activeMobileDeck(), $any($event.target).value)"
+                 class="w-full accent-fl-blue h-10">
+        </div>
+        <div class="hud-module p-4 flex flex-col gap-3">
+          <span class="hud-label">Filter</span>
+          <input type="range" min="50" max="15000" step="1"
+                 [value]="activeMobileDeck() === 'A' ? deckService.deckA().filterFreq : deckService.deckB().filterFreq"
+                 (input)="updateFilter(activeMobileDeck(), $any($event.target).value)"
+                 class="w-full accent-white h-10">
+        </div>
+      </div>
+      <!-- Deck Manipulation Effects -->
+      <div class="grid grid-cols-2 gap-3">
+        <button (pointerdown)="engine.brakeDeck(activeMobileDeck())"
+                class="hud-module p-4 font-black text-[10px] uppercase tracking-widest text-white active:bg-fl-blue/20">Brake</button>
+        <button (pointerdown)="engine.bitcrushDeck(activeMobileDeck())"
+                class="hud-module p-4 font-black text-[10px] uppercase tracking-widest text-white active:bg-brand-secondary/20">Crush</button>
+      </div>
+
+      <!-- Performance Pads (Mobile Size) -->
+      <div class="hud-module p-4">
+        <div class="grid grid-cols-4 gap-2">
+           @for (pad of [0,1,2,3]; track pad) {
+             <button
+               class="h-14 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center active:scale-95 transition-all"
+               (pointerdown)="handlePadPress(activeMobileDeck(), pad)"
+               [class.bg-fl-blue/20]="isCuePadSet(activeMobileDeck(), pad)"
+               [class.border-fl-blue/30]="isCuePadSet(activeMobileDeck(), pad)"
+             >
+               <span class="text-[7px] font-black text-slate-500">{{ pad + 1 }}</span>
+               <span class="text-[9px] font-black text-white">{{ isCuePadSet(activeMobileDeck(), pad) ? 'CUE' : 'SET' }}</span>
+             </button>
+           }
+        </div>
+      </div>
+
+      <!-- Central Crossfader (Always Visible) -->
+      <div class="hud-module p-4 mt-2">
+        <div class="flex justify-between items-center mb-2">
+          <span class="hud-label">Crossfader</span>
+          <span class="text-[8px] font-mono text-white">{{ deckService.crossfade().toFixed(2) }}</span>
+        </div>
+        <input type="range" min="-1" max="1" step="0.01"
+               [ngModel]="deckService.crossfade()"
+               (input)="updateCrossfader($any($event.target).value)"
+               class="w-full accent-fl-blue h-12">
+      </div>
+    </div>
+  </div>
+</div>
+  <!-- TOP STATUS HEADER -->
   <div
     class="flex items-center justify-between px-6 py-4 bg-black/40 border-b border-fl-border backdrop-blur-xl"
   >

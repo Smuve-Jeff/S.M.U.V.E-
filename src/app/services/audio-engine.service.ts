@@ -996,4 +996,16 @@ export class AudioEngineService {
     }
     return this.recordingDestination;
   }
+
+  bitcrushDeck(id: DeckId, bits: number = 8) {
+    const deck = this.getDeck(id);
+    const filter = deck.filter;
+    filter.type = 'lowpass';
+    filter.Q.value = 15;
+    filter.frequency.setValueAtTime(400, this.ctx.currentTime);
+    setTimeout(() => {
+       filter.Q.value = 1;
+       filter.frequency.setValueAtTime(15000, this.ctx.currentTime);
+    }, 500);
+  }
 }
