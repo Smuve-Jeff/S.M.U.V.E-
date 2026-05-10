@@ -315,7 +315,7 @@
   >
     <div class="game-console-window glass-v42 shadow-v42-xl">
       <header class="console-header glass-v42">
-        <div class="console-title">{{ active.name | uppercase }} <span class="tag" *ngIf="active.badgeIds?.includes('elite')">[ELITE]</span></div>
+        <div class="console-title">{{ active.name | uppercase }} <span class="tag" *ngIf="isRetroOrArcade(active)">[ELITE]</span></div>
         <div class="console-actions">
           <button class="icon-btn" (click)="reloadGame()">
             <span class="material-symbols-outlined">refresh</span>
@@ -325,8 +325,8 @@
           </button>
         </div>
       </header>
-      <div class="console-body" [class.retro-flicker]="active.badgeIds?.includes('elite')">
-        <div class="scanline-overlay" *ngIf="active.badgeIds?.includes('elite')"></div>
+      <div class="console-body" [class.retro-flicker]="isRetroOrArcade(active)">
+        <div class="scanline-overlay" *ngIf="isRetroOrArcade(active)"></div>
         <iframe
           *ngIf="getSafeUrl(active) as safeUrl"
           #gameIframe
