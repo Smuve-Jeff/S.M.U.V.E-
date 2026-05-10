@@ -409,11 +409,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   getSafeUrl(game: Game): SafeResourceUrl | null {
-    if (game.launchConfig?.embedMode === "external-only") {
-      return null;
+    let url = game.url;
+    if (game.launchConfig?.embedMode === 'external-only') {
+      url = game.launchConfig.approvedExternalUrl || game.url;
+    } else {
+      url = game.launchConfig?.approvedEmbedUrl || game.url;
     }
-    let url = game.launchConfig?.approvedEmbedUrl || game.url;
+
     if (!url) {
+      // If no URL is found, return a fallback or null
       return null;
     }
 

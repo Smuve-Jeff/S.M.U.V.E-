@@ -10,7 +10,6 @@ module.exports = {
     '<rootDir>/node_modules/',
     '<rootDir>/dist/',
     '<rootDir>/src/test.ts',
-    '<rootDir>/tests/',
   ],
   projects: [
     {
