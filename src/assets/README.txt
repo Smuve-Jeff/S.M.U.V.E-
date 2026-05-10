@@ -1,5 +1,5 @@
 Assets placeholder
-
+google.com, pub-4375561992255427, DIRECT, f08c47fec0942fa0
 Add your licensed samples in subfolders, e.g.:
 - assets/samples/piano/*.wav
 - assets/samples/guitar/*.wav
