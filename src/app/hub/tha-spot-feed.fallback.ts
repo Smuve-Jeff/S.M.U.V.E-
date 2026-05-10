@@ -2357,7 +2357,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         'WASM',
         'High-Perf',
       ],
-      tags: ['Shooting', 'Sci-Fi', 'Action', 'station-pod'],
       launchConfig: {
         approvedEmbedUrl: 'https://www.gamepix.com/play/space-blaze-2',
         telemetryMode: 'origin',
@@ -3027,7 +3026,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       rating: 5.0,
       badgeIds: ['staff-pick', 'elite'],
       tags: ['RPG', 'Retro', 'GBC', 'Adventure', 'WASM', 'High-Perf'],
-      tags: ['RPG', 'Retro', 'GBC', 'Adventure'],
       launchConfig: {
         approvedEmbedUrl:
           'https://www.retrogames.cc/embed/21262-pokemon-yellow-version-special-pikachu-edition-usa-europe.html',
