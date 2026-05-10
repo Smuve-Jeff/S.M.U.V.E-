@@ -409,10 +409,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   getSafeUrl(game: Game): SafeResourceUrl | null {
-    let url = game.url;
-    if (game.launchConfig?.embedMode === 'external-only') {
+    let url: string | undefined;
+
+    // Prioritize game.url for internal games to ensure they are always playable from assets.
+    if (game.url && game.url.startsWith('/assets/')) {
+      url = game.url;
+    } else if (game.launchConfig?.embedMode === 'external-only') {
       url = game.launchConfig.approvedExternalUrl || game.url;
     } else {
+      // For non-internal games, respect approved URLs first.
       url = game.launchConfig?.approvedEmbedUrl || game.url;
     }
 
@@ -421,8 +426,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       return null;
     }
 
-    if (game.badgeIds?.includes("elite")) {
-      const separator = url.includes("?") ? "&" : "?";
+    // Apply security token for all retro, arcade, and elite games.
+    if (this.isRetroOrArcade(game)) {
+      const separator = url.includes('?') ? '&' : '?';
       const token = APP_SECURITY_CONFIG.auth_salt;
       url = `${url}${separator}smuve_auth_token=${token}&secure_mode=wasm`;
     }
