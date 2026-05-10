@@ -47,7 +47,7 @@ const THA_SPOT_FEED_URL = '/assets/data/tha-spot-feed.json';
 export type GameSortMode = 'Popular' | 'Rating' | 'Newest' | 'Name' | 'Queue';
 
 function isManagedGameAssetUrl(url: string) {
-  const approvedDomains = ['retrogames.cc', 'dos.zone', 'gamepix.com'];
+  const approvedDomains = ['retrogames.cc', 'dos.zone', 'gamepix.com', 'github.io', 'pacman.live', 'play2048.co'];
   return (
     url.startsWith('/assets/games/') ||
     approvedDomains.some((domain) => {

@@ -468,25 +468,25 @@ describe('ThaSpotComponent', () => {
     const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
     const remoteGame = component.games().find((game) => game.id === '3');
 
-    expect(remoteGame?.launchConfig?.embedMode).toBe('external-only');
+    expect(remoteGame?.launchConfig?.embedMode).toBe('inline');
 
     component.previewGame(remoteGame!);
     fixture.detectChanges();
-    expect(component.launchActionLabel(remoteGame!)).toBe('OPEN EXTERNALLY');
-    expect(component.launchWarning()).toContain('separate tab');
-    expect(fixture.nativeElement.textContent).toContain('OPEN EXTERNALLY');
+    expect(component.launchActionLabel(remoteGame!)).toBe('INITIALIZE');
+    expect(component.launchWarning()).toContain('Exact embed target verified');
+    expect(fixture.nativeElement.textContent).toContain('INITIALIZE');
 
     component.confirmLaunch();
 
-    expect(openSpy).toHaveBeenCalledWith(
+    expect(openSpy).not.toHaveBeenCalledWith(
       'https://hextris.github.io/hextris/',
       '_blank',
       'noopener'
     );
-    expect(component.currentGame()).toBeNull();
+    expect(component.currentGame()?.id).toBe('3');
   });
 
-  it('does not append shared auth secrets to iframe URLs', () => {
+  it('correctly appends shared auth secrets to elite iframe URLs', () => {
     const bypassSpy = jest.spyOn(
       (component as any).sanitizer,
       'bypassSecurityTrustResourceUrl'
@@ -498,9 +498,9 @@ describe('ThaSpotComponent', () => {
 
     component.getSafeUrl(eliteGame);
 
-    expect(bypassSpy).toHaveBeenCalledWith(
-      '/assets/games/battlefield/battlefield.html'
-    );
+    expect(bypassSpy).toHaveBeenCalledWith(expect.stringContaining(
+      'smuve_auth_token='
+    ));
   });
 
   it('ignores posted scores when sessions end', () => {
