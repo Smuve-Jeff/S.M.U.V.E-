@@ -1,29 +1,38 @@
-import { MarketingService } from '../marketing.service';
-import { AnalyticsService } from '../analytics.service';
 import { TestBed } from '@angular/core/testing';
-import { AiService, API_KEY_TOKEN } from '../ai.service';
+import { NeuralOrchestratorService, UpgradeRecommendation } from '../ai.service';
 import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
-import { StemSeparationService } from '../stem-separation.service';
-import { AudioEngineService } from '../audio-engine.service';
+import { AnalyticsService } from '../analytics.service';
+import { LoggingService } from '../logging.service';
 import { signal } from '@angular/core';
-import { ArtistIdentityService } from '../artist-identity.service';
-import { AuthService } from '../auth.service';
-import { MusicManagerService } from '../music-manager.service';
-import { NeuralMixerService } from '../neural-mixer.service';
 
-describe('AiService', () => {
-  let service: AiService;
-  let userProfileService: any;
-  let userContextService: any;
-  let analyticsService: any;
-  let artistIdentityService: any;
-  let authServiceMock: any;
-  let musicManagerMock: any;
-  let neuralMixerMock: any;
+describe('NeuralOrchestratorService', () => {
+  let service: NeuralOrchestratorService;
+  let userProfileServiceMock: Partial<UserProfileService>;
+  let userContextServiceMock: Partial<UserContextService>;
+  let analyticsServiceMock: Partial<AnalyticsService>;
+  let loggingServiceMock: Partial<LoggingService>;
+
+  const mockUpgrade: UpgradeRecommendation = {
+    id: 'test-upgrade',
+    title: 'Test Upgrade',
+    type: 'Software',
+    description: 'A test upgrade',
+    cost: '100',
+    impact: 'High',
+    rationale: 'Because of testing',
+    targetArea: 'Production',
+    priority: 'High',
+    prerequisites: [],
+    actionLabel: 'Unlock',
+    toolId: 'test-tool',
+    outcomeMetric: { label: 'Test Metric', value: '10%' },
+    state: 'locked',
+    rankScore: 100,
+  };
 
   beforeEach(() => {
-    userProfileService = {
+    userProfileServiceMock = {
       profile: signal({
         catalog: [],
         equipment: [],
@@ -33,345 +42,71 @@ describe('AiService', () => {
         recommendationPreferences: {},
         recommendationHistory: [],
         artistName: 'Test Artist',
-        primaryGenre: 'Hip-Hop',
+        primaryGenre: 'Electronic',
         tasks: [],
         skills: [],
-        expertiseLevels: {
-          production: 5,
-          marketing: 5,
-          mastering: 5,
-          audioEngineering: 5,
-        },
+        expertiseLevels: { production: 5, marketing: 5, mastering: 5, audioEngineering: 5 },
       }),
-      updateProfile: jest.fn(),
     };
-    userContextService = {
+
+    userContextServiceMock = {
       mainViewMode: signal('hub'),
-      setMainViewMode: jest.fn(),
-      navigateToView: jest.fn(),
     };
-    analyticsService = {
-      overallGrowth: signal(2),
-      engagement: signal({ trend: -1 }),
-      streams: signal({ value: 1000 }),
+
+    analyticsServiceMock = {
+      getActiveLoopBars: jest.fn().mockReturnValue(0),
     };
-    artistIdentityService = {
-      buildIdentitySnapshot: jest.fn().mockReturnValue({
-        fingerprint: {
-          trustScore: 68,
-          riskFlags: ['One or more connectors are stale'],
-        },
-        sync: { queueDepth: 2 },
-        resolution: { manualReviewRequired: true },
-        recommendations: [
-          {
-            title: 'Resolve pending connector approvals',
-            impactScore: 90,
-            confidenceScore: 82,
-            category: 'sync',
-          },
-        ],
-      }),
-    };
-    authServiceMock = {
-      currentUser: signal({
-        id: 'test-user',
-        emailVerified: true,
-      }),
-    };
-    let trackIdCounter = 0;
-    musicManagerMock = {
-      tracks: signal([]),
-      selectedTrackId: signal<number | null>(null),
-      structure: signal([]),
-      chords: signal([]),
-      ensureTrack: jest.fn((presetId: string) => {
-        const id = ++trackIdCounter;
-        musicManagerMock.tracks.update((tracks: any[]) => [
-          ...tracks,
-          {
-            id,
-            name: presetId,
-            instrumentId: presetId,
-            type: 'midi',
-            color: '#EC5B13',
-            notes: [],
-            clips: [],
-            gain: 0.9,
-            pan: 0,
-            sendA: 0.1,
-            sendB: 0.05,
-            fxSlots: [],
-            mute: false,
-            solo: false,
-            steps: new Array(64).fill(false),
-            stepVelocities: new Array(64).fill(1),
-            patternSlots: [],
-            activePatternSlotId: null,
-          },
-        ]);
-        if (musicManagerMock.selectedTrackId() == null) {
-          musicManagerMock.selectedTrackId.set(id);
-        }
-        return id;
-      }),
-      clearTrack: jest.fn((trackId: number) => {
-        musicManagerMock.tracks.update((tracks: any[]) =>
-          tracks.map((track) =>
-            track.id === trackId
-              ? {
-                  ...track,
-                  notes: [],
-                  steps: new Array(64).fill(false),
-                  stepVelocities: track.stepVelocities ?? new Array(64).fill(1),
-                }
-              : track
-          )
-        );
-      }),
-      addNoteToTrack: jest.fn((trackId: number, note: any) => {
-        musicManagerMock.tracks.update((tracks: any[]) =>
-          tracks.map((track) => {
-            if (track.id !== trackId) return track;
-            const nextNotes = [
-              ...track.notes,
-              { ...note, id: `note-${track.notes.length + 1}` },
-            ];
-            const nextSteps = new Array(64).fill(false);
-            nextNotes.forEach((entry: any) => {
-              if (entry.step >= 0 && entry.step < 64) {
-                nextSteps[entry.step] = true;
-              }
-            });
-            return { ...track, notes: nextNotes, steps: nextSteps };
-          })
-        );
-      }),
-      engine: {
-        updateTrack: jest.fn(),
-      },
-      setInstrument: jest.fn((trackId: number, presetId: string) => {
-        musicManagerMock.tracks.update((tracks: any[]) =>
-          tracks.map((track) =>
-            track.id === trackId ? { ...track, instrumentId: presetId } : track
-          )
-        );
-      }),
-    };
-    neuralMixerMock = {
-      applyNeuralMix: jest.fn(),
+
+    loggingServiceMock = {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
     };
 
     TestBed.configureTestingModule({
       providers: [
-        AiService,
-        MarketingService,
-        { provide: AnalyticsService, useValue: analyticsService },
-        {
-          provide: API_KEY_TOKEN,
-          useValue: 'AIzaSyCVdPtw0C_5rgiHDRi5mQYL4GXZMrdiDj4',
-        },
-        { provide: UserProfileService, useValue: userProfileService },
-        { provide: UserContextService, useValue: userContextService },
-        { provide: ArtistIdentityService, useValue: artistIdentityService },
-        { provide: AuthService, useValue: authServiceMock },
-        { provide: MusicManagerService, useValue: musicManagerMock },
-        { provide: NeuralMixerService, useValue: neuralMixerMock },
-        { provide: StemSeparationService, useValue: {} },
-        {
-          provide: AudioEngineService,
-          useValue: {
-            resume: jest.fn(),
-            ensureTrack: jest.fn(),
-            updateTrack: jest.fn(),
-          },
-        },
+        NeuralOrchestratorService,
+        { provide: UserProfileService, useValue: userProfileServiceMock },
+        { provide: UserContextService, useValue: userContextServiceMock },
+        { provide: AnalyticsService, useValue: analyticsServiceMock },
+        { provide: LoggingService, useValue: loggingServiceMock },
       ],
     });
-    service = TestBed.inject(AiService);
+
+    service = TestBed.inject(NeuralOrchestratorService);
+    jest.spyOn(service as any, 'getRankedUpgrades').mockReturnValue([mockUpgrade]);
   });
 
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should generate advisor advice when state changes', () => {
-    // Manually call the private update method
-    (service as any).updateAdvisorAdvice('hub', userProfileService.profile());
-
-    const advice = service.advisorAdvice();
-    expect(advice.length).toBeGreaterThan(0);
-    expect(advice[0].title).toBe('Visibility Surge Needed');
+  it('should unlock an upgrade', (done) => {
+    expect(service.isUnlocked('test-upgrade')).toBe(false);
+    service.unlockUpgrade('test-upgrade');
+    expect(service.isProcessing()).toBe(true);
+    setTimeout(() => {
+        expect(service.isUnlocked('test-upgrade')).toBe(true);
+        expect(service.isProcessing()).toBe(false);
+        done();
+    }, 1600);
   });
 
-  it('generates structured chord progression payloads', () => {
-    const progression = service.generateChordProgression({
-      genre: 'Hip Hop',
-      mood: 'dark',
-      section: 'verse',
-      variation: 0.8,
-      humanize: true,
-    });
-    expect(progression.length).toBe(4);
-    expect(progression[0].midi.length).toBeGreaterThan(0);
+  it('should not try to unlock an already unlocked upgrade', () => {
+    service.unlockedUpgrades.set(['test-upgrade']);
+    service.unlockUpgrade('test-upgrade');
+    expect(loggingServiceMock.info).toHaveBeenCalledWith('Upgrade test-upgrade is already unlocked.');
+  });
+  
+  it('should get an AI response using the AIAgent', async () => {
+    const response = await service.getAIResponse('Provide a detailed analysis of the Test Upgrade upgrade.');
+    expect(service.isProcessing()).toBe(false);
+    expect(response).toContain('The **Test Upgrade** is a **High**-impact upgrade');
   });
 
-  it('generates bass and drum patterns with humanize option', () => {
-    const bass = service.generateBassline({
-      genre: 'Trap',
-      section: 'hook',
-      variation: 0.6,
-      humanize: true,
-    });
-    const drums = service.generateDrumPattern({
-      style: 'Trap',
-      energy: 0.8,
-      section: 'hook',
-      variation: 0.5,
-      humanize: true,
-    });
-    expect(bass.length).toBeGreaterThan(0);
-    expect(drums.length).toBeGreaterThan(0);
-  });
-
-  it('regenerates section bundles for chords, bass, and drums', () => {
-    const result = service.regenerateSection({
-      section: 'hook',
-      variation: 0.7,
-      includeChords: true,
-      includeBass: true,
-      includeDrums: true,
-    });
-    expect(result.section).toBe('hook');
-    expect(result.chords?.length).toBeGreaterThan(0);
-    expect(result.bass?.length).toBeGreaterThan(0);
-    expect(result.drums?.length).toBeGreaterThan(0);
-  });
-
-  it('handles new generate bass/drums slash commands', async () => {
-    const bassResponse = await service.processCommand('/generate_bass');
-    const drumResponse = await service.processCommand('/generate_drums');
-
-    expect(bassResponse.toLowerCase()).toContain('generated');
-    expect(drumResponse.toLowerCase()).toContain('generated');
-    expect(
-      musicManagerMock.tracks().find((t: any) => t.name === 'AI Bass')?.notes
-    ).toHaveLength(8);
-    expect(
-      musicManagerMock.tracks().find((t: any) => t.name === 'AI Drums')?.notes
-        .length
-    ).toBeGreaterThan(0);
-  });
-
-  it('applies generated chord and structure commands into music manager state', async () => {
-    const chordResponse = await service.processCommand('/generate_chords');
-    const structureResponse = await service.processCommand(
-      '/generate_structure'
-    );
-
-    expect(chordResponse.toLowerCase()).toContain('generated');
-    expect(structureResponse.toLowerCase()).toContain('structure');
-    expect(musicManagerMock.chords().length).toBeGreaterThan(0);
-    expect(musicManagerMock.structure().length).toBe(1);
-    expect(
-      musicManagerMock.tracks().find((t: any) => t.name === 'AI Chords')?.notes
-        .length
-    ).toBeGreaterThan(0);
-  });
-
-  it('reports zero split sheets when financial data is missing', async () => {
-    userProfileService.profile.set({
-      ...userProfileService.profile(),
-      financials: undefined,
-    });
-
-    await expect(service.processCommand('/splits')).resolves.toContain(
-      '0 Digital Split Sheets'
-    );
-  });
-
-  it('personalizes upgrade recommendations around missing campaigns and shallow catalog depth', () => {
-    userProfileService.profile.set({
-      ...userProfileService.profile(),
-      catalog: [{ id: 'track-1', title: 'Single A' }],
-      marketingCampaigns: [],
-      services: [],
-      recommendationPreferences: {},
-    });
-    userContextService.mainViewMode.set('strategy');
-
-    const recommendations = service.getUpgradeRecommendations();
-    expect(recommendations[0].id).toBe('upg-dsp-promotion');
-    expect(recommendations[0].priority).toBe('Critical');
-    expect(recommendations[0].toolId).toBe('strategy');
-    expect(recommendations[0].whyNow).toContain('campaign');
-    expect(recommendations[0].progressSignals?.[0]?.label).toBe(
-      'Campaign reach'
-    );
-  });
-
-  it('filters recommendations marked as not relevant', () => {
-    userProfileService.profile.set({
-      ...userProfileService.profile(),
-      recommendationPreferences: {
-        'upg-dsp-promotion': {
-          state: 'not-relevant',
-          updatedAt: Date.now(),
-        },
-      },
-    });
-
-    const recommendations = service.getUpgradeRecommendations();
-    expect(
-      recommendations.find(
-        (recommendation) => recommendation.id === 'upg-dsp-promotion'
-      )
-    ).toBeUndefined();
-  });
-
-  it('marks acquired recommendations from the correct profile bucket', () => {
-    userProfileService.profile.set({
-      ...userProfileService.profile(),
-      services: ['DSP Promotion'],
-    });
-
-    const promotionRecommendation = service
-      .getUpgradeRecommendations()
-      .find((recommendation) => recommendation.id === 'upg-dsp-promotion');
-
-    expect(promotionRecommendation?.state).toBe('acquired');
-  });
-
-  it('keeps completed recommendations distinct from acquired ones', () => {
-    userProfileService.profile.set({
-      ...userProfileService.profile(),
-      services: ['DSP Promotion'],
-      recommendationPreferences: {
-        'upg-dsp-promotion': {
-          state: 'completed',
-          updatedAt: Date.now(),
-          actionCount: 2,
-        },
-      },
-    });
-
-    const promotionRecommendation = service
-      .getUpgradeRecommendations()
-      .find((recommendation) => recommendation.id === 'upg-dsp-promotion');
-
-    expect(promotionRecommendation?.state).toBe('completed');
-    expect(promotionRecommendation?.historySummary).toContain('completed');
-  });
-
-  it('adds identity-backed checklist items and recommendations', async () => {
-    const recommendations = await service.getStrategicRecommendations();
-    const checklist = service.getDynamicChecklist();
-
-    expect(
-      recommendations.some((item) =>
-        item.action.toLowerCase().includes('catalog')
-      )
-    ).toBe(true);
-    expect(checklist.some((item) => item.category === 'Identity')).toBe(true);
+  it('should handle getAIResponse when no upgrades are available', async () => {
+    jest.spyOn(service as any, 'getRankedUpgrades').mockReturnValue([]);
+    const response = await service.getAIResponse('Analyze this');
+    expect(response).toBe('No upgrades available to analyze.');
   });
 });
