@@ -1151,7 +1151,7 @@
 }
 
 .ticker-badge {
-  background: `#ec5b13`;
+  background: #ec5b13;
   color: white;
   font-family: Orbitron, sans-serif;
   font-size: 0.65rem;
@@ -1207,16 +1207,6 @@
 
 .shadow-v42-xl {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 20px rgba(175, 37, 244, 0.15) !important;
-}
-
-.holographic-depth {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0) 50%,
-    rgba(255, 255, 255, 0.05) 100%
-  ) !important;
-.holographic-depth {
   background: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.05) 0%,
@@ -1227,7 +1217,7 @@
   animation: holographic-shimmer 8s linear infinite !important;
 }
 
-`@keyframes` holographic-shimmer {
+@keyframes holographic-shimmer {
   0% { background-position: 0% 0%; }
   100% { background-position: 200% 200%; }
 }
@@ -1251,7 +1241,7 @@
   animation: flicker 0.15s infinite;
 }
 
-`@keyframes` flicker {
+@keyframes flicker {
   0% { opacity: 0.27861; }
   5% { opacity: 0.34769; }
   10% { opacity: 0.23604; }
@@ -1275,7 +1265,7 @@
   100% { opacity: 0.24387; }
 }
 
-`@media` (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
   .holographic-depth,
   .retro-flicker::after {
     animation: none !important;
