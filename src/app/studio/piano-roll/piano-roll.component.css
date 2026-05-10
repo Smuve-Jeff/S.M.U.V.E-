@@ -1,51 +1,134 @@
+/* app/studio/piano-roll/piano-roll.component.css */
+:host {
+  --pr-bg: #1f1f1f;
+  --pr-sidebar-bg: #2a2a2a;
+  --pr-grid-bg: #333333;
+  --pr-header-bg: #252525;
+  --pr-border-color: #4f4f4f;
+  --pr-text-color: #f1f1f1;
+  --pr-text-muted: #999;
+  --pr-primary-color: #4a90e2;
+}
+
 .piano-roll-container {
-  height: 100%;
-  background: #050608;
+  height: 100vh; 
+  display: flex;
+  flex-direction: column;
+  background: var(--pr-bg);
+  color: var(--pr-text-color);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+.pr-header {
+  display: flex; 
+  align-items: center; 
+  padding: 0 1rem;
+  height: 60px;
+  background: var(--pr-header-bg);
+  border-bottom: 1px solid var(--pr-border-color);
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+.pr-main-content {
+  flex-grow: 1; 
+  display: flex; 
+  overflow: hidden;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 242, 255, 0.2);
+.pr-sidebar-left, .pr-sidebar-right {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--pr-sidebar-bg);
+  padding: 1rem;
+  overflow-y: auto;
+  border-right: 1px solid var(--pr-border-color);
+}
+
+.pr-sidebar-right { 
+  border-right: none;
+  border-left: 1px solid var(--pr-border-color);
+}
+
+.pr-grid-container {
+  flex-grow: 1; 
+  display: flex;
+}
+
+.piano-keys {
+  width: 100px; 
+  background: #3a3a3a;
+}
+
+.grid-scroll-area {
+  flex-grow: 1; 
+  overflow: scroll;
+}
+
+/* AI Tools Section */
+.ai-tools-section {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--pr-border-color);
+}
+
+.ai-tools-section h2, .track-list-section h2 {
+  margin-bottom: 1rem;
+}
+
+.control-group {
+  margin-bottom: 1rem;
+}
+
+.control-group label {
+  display: block; 
+  margin-bottom: 0.5rem; 
+  color: var(--pr-text-muted)
+}
+
+.control-group input[type="range"], .control-group select {
+  width: 100%;
+}
+
+.ai-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Note Inspector & MIDI Tools */
+.note-inspector, .midi-tool-actions {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.midi-tool-actions button, .note-inspector button {
+  justify-content: center;
+}
+
+.note-inspector.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* General UI Elements */
+button {
+  background: #444;
+  color: white;
+  border: 1px solid #666;
+  padding: 0.5rem 1rem;
   border-radius: 4px;
+  cursor: pointer;
 }
 
-.midi-note {
-  box-shadow: 0 0 10px rgba(0, 242, 255, 0.1);
-  transition: all 0.2s;
-  cursor: grab;
-}
+button:hover { background: #555; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.midi-note:hover {
-  box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
-  filter: brightness(1.2);
-}
-
-.selected-note {
-  box-shadow: 0 0 25px rgba(236, 91, 19, 0.5);
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-.grid-background {
-  background-image:
-    linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
-  background-size: 32px 32px;
-}
-
-@media (max-width: 768px) {
-  .piano-roll-container {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-
-  .w-16 {
-    width: 64px !important; /* Wider keys for touch */
-  }
+select, input[type="text"] {
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  padding: 0.5rem;
+  border-radius: 4px;
+  width: 100%;
 }

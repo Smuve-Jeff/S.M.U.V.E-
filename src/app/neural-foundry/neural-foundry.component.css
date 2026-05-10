@@ -1,0 +1,113 @@
+:host {
+  --foundry-bg: #101010;
+  --foundry-surface: #1a1a1a;
+  --foundry-border: #3a3a3a;
+  --foundry-text: #e0e0e0;
+  --foundry-text-dark: #888;
+  --foundry-primary: #00aaff;
+  --foundry-unlocked: #00ffaa;
+}
+
+.foundry-container {
+  background-color: var(--foundry-bg);
+  color: var(--foundry-text);
+  padding: 2rem;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.foundry-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.foundry-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--foundry-primary);
+  text-shadow: 0 0 10px var(--foundry-primary);
+}
+
+.upgrades-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.upgrade-card {
+  background-color: var(--foundry-surface);
+  border: 1px solid var(--foundry-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease-in-out;
+}
+
+.upgrade-card:hover {
+  border-color: var(--foundry-primary);
+  box-shadow: 0 0 15px rgba(0, 170, 255, 0.3);
+}
+
+.upgrade-card.unlocked {
+  border-color: var(--foundry-unlocked);
+}
+
+.card-header .upgrade-type {
+  font-size: 0.8rem;
+  color: var(--foundry-text-dark);
+}
+
+.card-header .upgrade-title {
+  font-size: 1.5rem;
+  margin-top: 0.5rem;
+  color: var(--foundry-primary);
+}
+
+.card-body .upgrade-description {
+  margin: 1rem 0;
+}
+
+.card-body .upgrade-rationale {
+  font-style: italic;
+  color: var(--foundry-text-dark);
+}
+
+.card-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--foundry-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.upgrade-meta span {
+  display: block;
+  font-size: 0.8rem;
+}
+
+.unlock-button {
+  background-color: var(--foundry-primary);
+  color: var(--foundry-bg);
+  border: none;
+  padding: 0.8rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.unlock-button:disabled {
+  background-color: var(--foundry-border);
+  cursor: not-allowed;
+}
+
+.upgrade-card.unlocked .unlock-button {
+  background-color: var(--foundry-unlocked);
+}
+
+.no-upgrades {
+  text-align: center;
+  padding: 2rem;
+  color: var(--foundry-text-dark);
+}

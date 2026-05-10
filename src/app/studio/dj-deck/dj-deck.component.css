@@ -1,0 +1,104 @@
+/* app/studio/dj-deck/dj-deck.component.css */
+:host {
+  --deck-a-color: #10b981;
+  --deck-b-color: #f59e0b;
+  --bg-dark: #1a1a1a;
+  --surface-color: #2c2c2c;
+  --text-light: #f0f0f0;
+}
+
+.dj-deck-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.5rem;
+  background-color: var(--bg-dark);
+  color: var(--text-light);
+}
+
+.deck-global-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.decks-container {
+  flex-grow: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.deck {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background-color: var(--surface-color);
+  padding: 1.5rem;
+  border-radius: 12px;
+}
+
+#deck-a { border-left: 5px solid var(--deck-a-color); }
+#deck-b { border-right: 5px solid var(--deck-b-color); }
+
+.deck-stems {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid #444;
+}
+
+.deck-stems h3 {
+  text-align: center;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+}
+
+.stem-faders {
+  display: flex;
+  justify-content: space-around;
+  gap: 1.5rem;
+}
+
+.stem-fader-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stem-fader-group label {
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.stem-fader-group input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  writing-mode: bt-lr; /* Vertical slider */
+  width: 8px;
+  height: 100px;
+  background: #555;
+  border-radius: 4px;
+}
+
+.mute-button {
+  background-color: #444;
+  border: 1px solid #666;
+  color: #fff;
+  border-radius: 4px;
+  width: 30px;
+  height: 30px;
+  font-weight: 700;
+}
+
+/* Add styles for app-deck-controls if it is a separate component */

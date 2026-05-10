@@ -2,20 +2,14 @@ import { AudioRecorderService } from '../studio/audio-recorder.service';
 import { LoggingService } from './logging.service';
 import { Injectable, signal, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { StemSeparationService } from './stem-separation.service';
+import { StemSeparationService, Stems } from './stem-separation.service';
 
 export type DeckId = 'A' | 'B';
-export type Stems = {
-  vocals: AudioBuffer;
-  drums: AudioBuffer;
-  bass: AudioBuffer;
-  melody: AudioBuffer;
-};
 
 interface DeckChannel {
   id: DeckId;
   buffer: AudioBuffer | null;
-  sources: { [K in keyof Stems]: AudioBufferSourceNode | null };
+  sources: { [K in keyof Stems]?: AudioBufferSourceNode | null };
   gains: { [K in keyof Stems]: GainNode };
   eqLow: BiquadFilterNode;
   eqMid: BiquadFilterNode;
@@ -98,9 +92,8 @@ export class AudioEngineService {
   };
 
   constructor() {
-    this.ctx = new (
-      window.AudioContext || (window as any).webkitAudioContext
-    )();
+    this.ctx = new (window.AudioContext ||
+      (window as any).webkitAudioContext)();
     this.masterGain = this.ctx.createGain();
     this.compressor = this.ctx.createDynamicsCompressor();
     this.saturationNode = this.ctx.createWaveShaper();
@@ -206,12 +199,12 @@ export class AudioEngineService {
     const deck: DeckChannel = {
       id,
       buffer: null,
-      sources: { vocals: null, drums: null, bass: null, melody: null },
+      sources: {},
       gains: {
         vocals: this.ctx.createGain(),
         drums: this.ctx.createGain(),
         bass: this.ctx.createGain(),
-        melody: this.ctx.createGain(),
+        instrumental: this.ctx.createGain(),
       },
       eqLow: this.ctx.createBiquadFilter(),
       eqMid: this.ctx.createBiquadFilter(),
@@ -276,11 +269,10 @@ export class AudioEngineService {
     deck.buffer = buffer;
     deck.pauseOffset = 0;
     try {
-      deck.stems = await firstValueFrom(
-        this.stemSeparationService.separate(buffer)
-      );
+      deck.stems = this.stemSeparationService.separate(buffer);
     } catch (e) {
       this.logger.warn('Stem separation failed for deck', id, e);
+      deck.stems = null; // Fallback to full mix
     }
   }
 
@@ -334,35 +326,36 @@ export class AudioEngineService {
     deck.isPlaying = true;
 
     if (deck.stems) {
-      ['vocals', 'drums', 'bass', 'melody'].forEach((k: any) => {
+      (Object.keys(deck.stems) as (keyof Stems)[]).forEach((key) => {
         const src = this.ctx.createBufferSource();
-        src.buffer = (deck.stems as any)[k];
+        src.buffer = deck.stems![key];
         src.playbackRate.value = deck.rate;
         src.loop = deck.loopEnabled;
-        src.connect(deck.gains[k as keyof Stems]);
+        src.connect(deck.gains[key]);
         src.start(0, offset % dur);
-        (deck.sources as any)[k] = src;
+        deck.sources[key] = src;
       });
     } else if (deck.buffer) {
+      // Fallback: play the full mix through the 'instrumental' gain
       const src = this.ctx.createBufferSource();
       src.buffer = deck.buffer;
       src.playbackRate.value = deck.rate;
       src.loop = deck.loopEnabled;
-      src.connect(deck.gains.vocals);
+      src.connect(deck.gains.instrumental);
       src.start(0, offset % dur);
-      deck.sources.vocals = src;
+      deck.sources.instrumental = src;
     }
   }
 
   private stopDeckSource(deck: DeckChannel) {
-    ['vocals', 'drums', 'bass', 'melody'].forEach((k: any) => {
-      if ((deck.sources as any)[k]) {
+    (Object.keys(deck.sources) as (keyof Stems)[]).forEach((key) => {
+      if (deck.sources[key]) {
         try {
-          (deck.sources as any)[k]!.stop();
+          deck.sources[key]!.stop();
         } catch (_e) {
           /* ignore */
         }
-        (deck.sources as any)[k] = null;
+        deck.sources[key] = null;
       }
     });
     deck.isPlaying = false;

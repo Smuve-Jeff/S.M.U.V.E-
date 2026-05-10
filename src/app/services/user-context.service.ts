@@ -48,6 +48,13 @@ export interface Enhancements {
   surroundSound: boolean;
 }
 
+export interface Stems {
+  vocals: number;
+  drums: number;
+  bass: number;
+  instrumental: number;
+}
+
 export interface DeckState {
   track: Track;
   isPlaying: boolean;
@@ -72,6 +79,7 @@ export interface DeckState {
   beatGridOffset: number;
   sendA: number;
   sendB: number;
+  stemGains: Stems;
 }
 
 export const initialDeckState: DeckState = {
@@ -102,6 +110,7 @@ export const initialDeckState: DeckState = {
   beatGridOffset: 0,
   sendA: 0,
   sendB: 0,
+  stemGains: { vocals: 1, drums: 1, bass: 1, instrumental: 1 },
 };
 
 @Injectable({

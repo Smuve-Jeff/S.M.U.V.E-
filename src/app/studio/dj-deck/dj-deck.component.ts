@@ -24,6 +24,7 @@ import { DatabaseService } from '../../services/database.service';
 import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { PlayerService } from '../../services/player.service';
+import { NeuralOrchestratorService } from '../../services/ai.service';
 
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
@@ -32,6 +33,7 @@ const MIN_SAMPLER_RETURN_MILLIS = 80;
 @Component({
   selector: 'app-dj-deck',
   templateUrl: './dj-deck.component.html',
+  styleUrl: './dj-deck.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, DecimalPipe],
@@ -42,12 +44,16 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('meterA') meterA!: ElementRef<HTMLCanvasElement>;
   @ViewChild('meterB') meterB!: ElementRef<HTMLCanvasElement>;
 
+  private neuralOrchestrator = inject(NeuralOrchestratorService);
   theme = input<AppTheme>(inject(UIService).activeTheme());
 
   midiEnabled = signal(false);
   phantomPowerEnabled = signal(false);
   showSampleLibrary = signal(false);
   isMobile = signal(false);
+
+  hasNeuralStemSplitter = computed(() => this.neuralOrchestrator.isUnlocked('upg-neural-stem-splitter'));
+  stems = ['vocals', 'drums', 'bass', 'instrumental'];
 
   hotCueMarkersA = computed(() => {
     const deck = this.deckService.deckA();
@@ -70,8 +76,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       deckId === 'A' ? this.deckService.deckA() : this.deckService.deckB();
     if (!deck.duration) return {};
 
-    // Calculate angle based on position in track
-    // One full rotation (360deg) = 1.8 seconds
     const angle = (pos / 1.8) * 360;
     return {
       transform: `rotate(${angle}deg)`,
@@ -116,8 +120,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   slipProgressA = computed(() => {
     const deck = this.deckService.deckA();
     if (!deck.slip) return 0;
-    // We need to know where the playback would be if not scratching/looping
-    // For now we'll just use the rotation signal plus an offset
     return this.rotationA() % 360;
   });
 
@@ -157,15 +159,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private profileService = inject(UserProfileService);
   private databaseService = inject(DatabaseService);
   public playerService = inject(PlayerService);
-
-  hasNeuralStems = computed(() => {
-    const profile = this.profileService.profile();
-    return (
-      profile.daw.includes('Neural Audio Interface V1 (Prototype)') ||
-      profile.equipment.includes('Neural Audio Interface V1 (Prototype)') ||
-      profile.daw.includes('Sub-Atomic Kick Dominance Pack')
-    );
-  });
 
   pitchAPercentage = computed(
     () => `${(this.deckService.deckA().playbackRate * 100).toFixed(1)}%`
@@ -566,8 +559,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.deckService.sync(deck);
   }
 
-  setStemGain(deck: 'A' | 'B', stem: string, val: any) {
-    const gain = parseFloat(val);
+  setStemGain(deck: 'A' | 'B', stem: string, event: Event) {
+    const gain = (event.target as HTMLInputElement).valueAsNumber;
     this.deckService.onStemGainChange(deck, { stem, gain });
   }
 
@@ -628,7 +621,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       const deckState = this.deckService.deckA();
       const progress = this.engine.getDeckProgress('A');
 
-      // If slip mode is enabled, we restore to the background playhead
       if (deckState.slip && this.wasPlaying.A) {
         this.engine.seekDeck('A', progress.slipPosition);
       }
@@ -661,8 +653,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (delta > Math.PI) delta -= 2 * Math.PI;
     if (delta < -Math.PI) delta += 2 * Math.PI;
 
-    // Physical Wind-back: delta rotation maps to audio scrub
-    // One full rotation (2PI) should move approx 1.8 seconds (typical 33 RPM feel)
     const scrubSecondsPerRadian = 1.8 / (2 * Math.PI);
     const scrub = delta * scrubSecondsPerRadian;
 
@@ -674,10 +664,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.engine.seekDeck(deck, newPos);
 
-    // Velocity-based playback rate for authentic scratch sound
-    // velocity = radians per update. Let's scale it.
-    const SECONDS_PER_FRAME = 0.016; // Approx 60fps
-    const velocity = (delta / SECONDS_PER_FRAME) * scrubSecondsPerRadian; // approx rate
+    const SECONDS_PER_FRAME = 0.016;
+    const velocity = (delta / SECONDS_PER_FRAME) * scrubSecondsPerRadian;
     this.engine.setDeckRate(deck, velocity, false);
 
     if (deck === 'A') {

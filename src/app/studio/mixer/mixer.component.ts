@@ -1,4 +1,4 @@
-import { Component, Input, inject, signal } from '@angular/core';
+import { Component, Input, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioSessionService } from '../audio-session.service';
 import { ChannelStripComponent } from '../channel-strip/channel-strip.component';
@@ -33,6 +33,8 @@ export class MixerComponent {
   masterVolume = this.audioSession.masterVolume;
   selectedTrackId = this.musicManager.selectedTrackId;
   tracks = this.musicManager.tracks;
+
+  selectedTrack = computed(() => this.tracks().find(t => t.id === this.selectedTrackId()));
 
   viewMode = signal<'compact' | 'expanded'>('expanded');
   showVocalSuite = signal(false);

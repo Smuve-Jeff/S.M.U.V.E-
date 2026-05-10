@@ -20,11 +20,12 @@ import { MasteringSuiteComponent } from './mastering-suite/mastering-suite.compo
 import { AudioSessionService } from './audio-session.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { AudioEngineService } from '../services/audio-engine.service';
-import { AiService } from '../services/ai.service';
+import { NeuralOrchestratorService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
 import { NotificationService } from '../services/notification.service';
 import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
+import { NeuralFoundryComponent } from '../neural-foundry/neural-foundry.component';
 
 type StudioView =
   | 'dj'
@@ -62,6 +63,7 @@ function isStudioView(value: string): value is StudioView {
     MasteringSuiteComponent,
     VocalSuiteComponent,
     DrumMachineComponent,
+    NeuralFoundryComponent
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -69,7 +71,7 @@ function isStudioView(value: string): value is StudioView {
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly audioSession = inject(AudioSessionService);
   public readonly audioEngine = inject(AudioEngineService);
-  public readonly aiService = inject(AiService);
+  public readonly neuralOrchestrator = inject(NeuralOrchestratorService);
   public readonly uiService = inject(UIService);
   private readonly notificationService = inject(NotificationService);
   private readonly route = inject(ActivatedRoute);
@@ -83,6 +85,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showPianoRoll = signal(false);
   activeEditor = signal<'piano-roll' | 'drum-machine'>('piano-roll');
   focusLocked = signal(false);
+  showNeuralFoundry = signal(false);
+
+  hasArrangementCoPilot = computed(() => this.neuralOrchestrator.isUnlocked('upg-arranger-ai-co-pilot'));
+  hasHoloMixer = computed(() => this.neuralOrchestrator.isUnlocked('upg-holographic-mixer'));
 
   studioQualityClass = computed(() =>
     this.uiService.performanceMode()
@@ -119,7 +125,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         return { ...t, gain: t.gain * 0.9 };
       })
     );
-    this.aiService.criticalDeficits.set([]);
     this.notificationService.show('Neural Mix: Signals Optimized', 'success');
   }
 
@@ -186,6 +191,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       replaceUrl: true,
     });
   }
+
+  toggleNeuralFoundry() {
+    this.showNeuralFoundry.update(v => !v);
+  }
+
   updateMetronomeVolume(event: Event) {
     const vol = (event.target as HTMLInputElement).valueAsNumber;
     this.audioEngine.setMetronomeVolume(vol);

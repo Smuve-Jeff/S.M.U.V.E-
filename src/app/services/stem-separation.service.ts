@@ -1,81 +1,36 @@
-import { LoggingService } from './logging.service';
-import { Injectable, inject } from '@angular/core';
-import { Observable, from } from 'rxjs';
-
-type SupportedFilterType =
-  | 'allpass'
-  | 'bandpass'
-  | 'highpass'
-  | 'highshelf'
-  | 'lowpass'
-  | 'lowshelf'
-  | 'notch'
-  | 'peaking';
-
-export interface Stems {
-  vocals: AudioBuffer;
-  drums: AudioBuffer;
-  bass: AudioBuffer;
-  melody: AudioBuffer;
-}
+import { Injectable } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class StemSeparationService {
-  private logger = inject(LoggingService);
 
-  constructor() {}
+  constructor() { }
 
-  separate(audioBuffer: AudioBuffer): Observable<Stems | null> {
-    this.logger.info(
-      'StemSeparationService: Initializing Neural Frequency Splitter (Simulation)...'
-    );
-
-    // We simulate stem separation by applying different frequency filters to the original buffer.
-    // This provides a "functional feel" where the user actually hears different components.
-    return from(this.simulateSeparation(audioBuffer));
+  // This is a placeholder for the actual stem separation logic.
+  // In a real application, this would involve a complex algorithm
+  // or a call to a machine learning model.
+  separate(buffer: AudioBuffer): Record<string, AudioBuffer> {
+    // For now, we'll just return clones of the original buffer.
+    return {
+      vocals: this.cloneAudioBuffer(buffer),
+      drums: this.cloneAudioBuffer(buffer),
+      bass: this.cloneAudioBuffer(buffer),
+      instrumental: this.cloneAudioBuffer(buffer),
+    };
   }
 
-  private async simulateSeparation(buffer: AudioBuffer): Promise<Stems> {
-    // Create 4 distinct "stems" using filters
-    const vocals = await this.applyFilter(buffer, 'peaking', 2500, 1.5, 6); // Boost vocal range
-    const drums = await this.applyFilter(buffer, 'highpass', 5000); // Emphasize transients
-    const bass = await this.applyFilter(buffer, 'lowpass', 250); // Low-end only
-    const melody = await this.applyFilter(buffer, 'bandpass', 1000, 1.0); // Mid-range focus
+  private cloneAudioBuffer(buffer: AudioBuffer): AudioBuffer {
+    const newBuffer = new AudioBuffer({
+      length: buffer.length,
+      sampleRate: buffer.sampleRate,
+      numberOfChannels: buffer.numberOfChannels,
+    });
 
-    this.logger.info(
-      'StemSeparationService: Neural frequency reconstruction complete.'
-    );
+    for (let i = 0; i < buffer.numberOfChannels; i++) {
+      newBuffer.copyToChannel(buffer.getChannelData(i), i);
+    }
 
-    return { vocals, drums, bass, melody };
-  }
-
-  private async applyFilter(
-    buffer: AudioBuffer,
-    type: SupportedFilterType,
-    freq: number,
-    q: number = 1.0,
-    gain: number = 0
-  ): Promise<AudioBuffer> {
-    const offlineCtx = new OfflineAudioContext(
-      buffer.numberOfChannels,
-      buffer.length,
-      buffer.sampleRate
-    );
-    const source = offlineCtx.createBufferSource();
-    source.buffer = buffer;
-
-    const filter = offlineCtx.createBiquadFilter();
-    filter.type = type;
-    filter.frequency.value = freq;
-    filter.Q.value = q;
-    filter.gain.value = gain;
-
-    source.connect(filter);
-    filter.connect(offlineCtx.destination);
-    source.start(0);
-
-    return await offlineCtx.startRendering();
+    return newBuffer;
   }
 }

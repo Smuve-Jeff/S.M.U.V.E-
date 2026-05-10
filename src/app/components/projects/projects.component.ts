@@ -4,20 +4,13 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
 import { UplinkService } from '../../services/uplink.service';
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { UserProfileService } from '../../services/user-profile.service';
+import { ProjectService } from '../../services/project.service';
+import { Project } from '../../types';
 
 interface Task {
   id: number;
   description: string;
   completed: boolean;
-}
-
-interface Project {
-  id: number;
-  name: string;
-  description: string;
-  tasks: Task[];
-  status: 'In Progress' | 'Completed';
-  deadline?: Date;
 }
 
 interface PlaybookPhase {
@@ -41,6 +34,7 @@ export class ProjectsComponent {
   private dialog = inject(InteractionDialogService);
   private uplinkService = inject(UplinkService);
   private profileService = inject(UserProfileService);
+  private projectService = inject(ProjectService);
   showUplink = signal(false);
   projects = signal<Project[]>([]);
   selectedProject = signal<Project | null>(null);
@@ -63,22 +57,12 @@ export class ProjectsComponent {
   ];
 
   constructor() {
-    // Mock data for demonstration
-    this.projects.set([
-      {
-        id: 1,
-        name: 'Aurora EP Release',
-        description: 'Release of the 3-track EP "Aurora"',
-        status: 'In Progress',
-        tasks: [
-          { id: 1, description: 'Finalize mix for "Sunrise"', completed: true },
-          { id: 2, description: 'Master "Midday"', completed: false },
-          { id: 3, description: 'Shoot cover art', completed: false },
-        ],
-        deadline: new Date('2024-09-15'),
-      },
-    ]);
-    this.selectedProject.set(this.projects()[0]);
+    this.projectService.list.subscribe(projects => {
+      this.projects.set(projects);
+      if (projects.length > 0 && !this.selectedProject()) {
+        this.selectedProject.set(projects[0]);
+      }
+    });
   }
 
   selectProject(project: Project): void {
@@ -153,7 +137,7 @@ export class ProjectsComponent {
     });
     if (!name?.trim()) return;
     const newProject: Project = {
-      id: parseInt(crypto.randomUUID().replace(/-/g, '').slice(0, 8), 16),
+      id: 'proj_' + Date.now() + Math.random().toString(36).substring(2, 9),
       name: name.trim(),
       description: 'New release cycle',
       status: 'In Progress',
@@ -163,7 +147,7 @@ export class ProjectsComponent {
           ProjectsComponent.DEFAULT_DEADLINE_DAYS * 24 * 60 * 60 * 1000
       ),
     };
-    this.projects.update((list) => [...list, newProject]);
+    this.projectService.add(newProject);
     this.selectedProject.set(newProject);
   }
 

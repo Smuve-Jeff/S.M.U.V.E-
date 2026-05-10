@@ -1,7 +1,6 @@
 import { Injectable, signal, effect } from '@angular/core';
 import { AudioEngineService, DeckId } from './audio-engine.service';
-import { Stems } from './stem-separation.service';
-import { DeckState, initialDeckState } from './user-context.service';
+import { Stems, DeckState, initialDeckState } from './user-context.service';
 
 @Injectable({
   providedIn: 'root',
@@ -63,8 +62,16 @@ export class DeckService {
     this.syncDeckState(deck);
   }
 
-  onStemGainChange(deck: DeckId, event: { stem: string; gain: number }) {
-    this.engine.setDeckStemGain(deck, event.stem as keyof Stems, event.gain);
+  onStemGainChange(deck: DeckId, event: { stem: keyof Stems; gain: number }) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update(d => ({ 
+      ...d, 
+      stemGains: { 
+        ...d.stemGains, 
+        [event.stem]: event.gain 
+      } 
+    }));
+    this.engine.setDeckStemGain(deck, event.stem, event.gain);
   }
 
   loadDeckBuffer(
@@ -175,7 +182,7 @@ export class DeckService {
     else this.deckB.update((d) => ({ ...d, filterFreq: freq }));
   }
 
-  setDeckSend(deck: DeckId, send: 'A' | 'B', gain: number) {
+  setDeckSend(deck: DeckId, send: 'A' | 'B', gain:.number) {
     this.engine.setDeckSend(deck, send, gain);
     if (deck === 'A')
       this.deckA.update((d) => ({
