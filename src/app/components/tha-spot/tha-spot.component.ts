@@ -26,7 +26,9 @@ import {
   ThaSpotFeed,
 } from '../../hub/game';
 import { THA_SPOT_FALLBACK_FEED } from '../../hub/tha-spot-feed.fallback';
+import { APP_SECURITY_CONFIG } from '../../app.security';
 import { UserProfileService } from '../../services/user-profile.service';
+import { SecurityService } from '../../services/security.service';
 import { UIService } from '../../services/ui.service';
 
 const DEFAULT_RECOMMENDATION_ITEMS = 8;
@@ -56,6 +58,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   public profileService = inject(UserProfileService);
   public uiService = inject(UIService);
   private sanitizer = inject(DomSanitizer);
+  private securityService = inject(SecurityService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -396,13 +399,28 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     return sorted.slice(0, maxItems);
   }
 
+  isRetroOrArcade(game: Game): boolean {
+    const tags = (game.tags || []).map((t) => t.toLowerCase());
+    return (
+      tags.includes("retro") ||
+      tags.includes("arcade") ||
+      game.badgeIds?.includes("elite") === true
+    );
+  }
+
   getSafeUrl(game: Game): SafeResourceUrl | null {
-    if (game.launchConfig?.embedMode === 'external-only') {
+    if (game.launchConfig?.embedMode === "external-only") {
       return null;
     }
-    const url = game.launchConfig?.approvedEmbedUrl || game.url;
+    let url = game.launchConfig?.approvedEmbedUrl || game.url;
     if (!url) {
       return null;
+    }
+
+    if (game.badgeIds?.includes("elite")) {
+      const separator = url.includes("?") ? "&" : "?";
+      const token = APP_SECURITY_CONFIG.auth_salt;
+      url = `${url}${separator}smuve_auth_token=${token}&secure_mode=wasm`;
     }
 
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
