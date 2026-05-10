@@ -370,9 +370,21 @@ export class GameService {
   getThaSpotFeed(forceRefresh = false): Observable<ThaSpotFeed> {
     if (!this.feedCache$ || forceRefresh) {
       this.feedCache$ = this.http.get<ThaSpotFeed>(THA_SPOT_FEED_URL).pipe(
-        map((feed) => normalizeFeed(feed)),
+        map((feed) => {
+          const normalized = normalizeFeed(feed);
+          if (!normalized.games || normalized.games.length === 0) {
+            console.warn(
+              'GameService: Feed loaded but contained no games. Using fallback.'
+            );
+            return normalizeFeed(THA_SPOT_FALLBACK_FEED);
+          }
+          return normalized;
+        }),
         catchError((error) => {
-          console.warn('GameService: failed to load Tha Spot feed', error);
+          console.warn(
+            'GameService: failed to load Tha Spot feed, using fallback',
+            error
+          );
           return of(normalizeFeed(THA_SPOT_FALLBACK_FEED));
         }),
         shareReplay(1)

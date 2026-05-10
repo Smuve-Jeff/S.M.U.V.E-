@@ -204,28 +204,26 @@
         </div>
 
         <button
-          *ngFor="let view of group.items"
+          *ngFor="let item of group.items"
           type="button"
-          (click)="navigateToView(view.mode)"
+          (click)="navigateToView(item.mode)"
           class="nav-item group flex w-full items-center px-4 py-3 rounded-2xl transition-all duration-200 cursor-pointer border border-transparent bg-transparent text-left"
-          [attr.aria-label]="'Open ' + view.label"
-          [title]="view.label"
-          [class.bg-brand-primary/10]="uiService.mainViewMode() === view.mode"
+          [attr.aria-label]="'Open ' + item.label"
+          [title]="item.label"
+          [class.bg-brand-primary/10]="uiService.mainViewMode() === item.mode"
           [class.border-brand-primary/20]="
-            uiService.mainViewMode() === view.mode
+            uiService.mainViewMode() === item.mode
           "
-          [class.text-brand-primary]="uiService.mainViewMode() === view.mode"
-          [class.text-text-dim]="uiService.mainViewMode() !== view.mode"
-          [class.hover:bg-background-alt]="
-            uiService.mainViewMode() !== view.mode
-          "
-          [class.hover:text-text-main]="uiService.mainViewMode() !== view.mode"
+          [class.text-brand-primary]="uiService.mainViewMode() === item.mode"
+          [class.text-text-dim]="uiService.mainViewMode() !== item.mode"
+          [class.hover:bg-background-alt]="uiService.mainViewMode() !== item.mode"
+          [class.hover:text-text-main]="uiService.mainViewMode() !== item.mode"
         >
           <div class="w-8 flex justify-center">
             <span
               class="material-symbols-outlined text-xl transition-transform group-hover:scale-110"
             >
-              {{ view.icon }}
+              {{ item.icon }}
             </span>
           </div>
           <div
@@ -233,10 +231,10 @@
             *ngIf="isSidebarOpen() || isMobile()"
           >
             <div class="font-bold text-[12px] uppercase tracking-wide">
-              {{ view.label }}
+              {{ item.label }}
             </div>
             <div class="text-[10px] text-text-dim mt-1 leading-relaxed">
-              {{ view.description }}
+              {{ item.description }}
             </div>
           </div>
         </button>
@@ -459,6 +457,15 @@
             *ngIf="uiService.isChatbotOpen()"
             class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-surface animate-pulse"
           ></div>
+        </button>
+        <button
+          *ngIf="installPrompt()"
+          (click)="promptPwaInstall()"
+          type="button"
+          class="shell-icon-button w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group"
+          aria-label="Install S.M.U.V.E. App"
+        >
+          <span class="material-symbols-outlined">install_desktop</span>
         </button>
 
         <button

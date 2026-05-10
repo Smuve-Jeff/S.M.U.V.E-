@@ -1,8 +1,22 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { AiService } from '../../services/ai.service';
 import { AdvisorAdvice } from '../../types/ai.types';
 import { UserContextService } from '../../services/user-context.service';
+import { CommandPaletteService } from '../../services/command-palette.service';
+
+// We assume AdvisorAdvice might have a structure like this:
+// export interface AdvisorAdvice {
+//   id: string;
+//   title: string;
+//   description: string;
+//   priority: 'high' | 'medium' | 'low';
+//   action?: {
+//     type: 'navigate' | 'command';
+//     payload: string;
+//   };
+// }
 
 @Component({
   selector: 'app-smuve-advisor',
@@ -14,14 +28,34 @@ import { UserContextService } from '../../services/user-context.service';
 export class SmuveAdvisorComponent {
   private aiService = inject(AiService);
   private userContext = inject(UserContextService);
+  private router = inject(Router);
+  private commandPalette = inject(CommandPaletteService);
 
   advice = this.aiService.advisorAdvice;
   isOpen = signal(false);
 
+  /**
+   * Toggles the visibility of the advisor panel.
+   */
   toggleOpen() {
     this.isOpen.update((v) => !v);
   }
 
+  /**
+   * Requests a new set of advice from the AI service.
+   * This method is a placeholder and assumes a corresponding method exists on AiService.
+   */
+  refreshAdvice() {
+    // Assuming aiService has a method to refresh advice
+    // this.aiService.refreshAdvisorAdvice(); 
+    console.log('Requesting new advice...');
+  }
+
+  /**
+   * Determines the display color based on advice priority.
+   * @param priority The priority level ('high', 'medium', or other).
+   * @returns Tailwind CSS classes for color and background.
+   */
   getPriorityColor(priority: string): string {
     switch (priority) {
       case 'high':
@@ -33,7 +67,44 @@ export class SmuveAdvisorComponent {
     }
   }
 
+  /**
+   * Executes a suggested action from an advice item.
+   * This implementation assumes the 'action' property structure on AdvisorAdvice.
+   * @param item The AdvisorAdvice object containing the action.
+   */
   executeAction(item: AdvisorAdvice) {
-    console.log('Advisor Action Executed:', item.title);
+    // Casting to `any` because the 'action' property is an assumption.
+    const action = (item as any).action;
+
+    if (!action) {
+      console.log('No action defined for this advice:', item.title);
+      return;
+    }
+
+    switch (action.type) {
+      case 'navigate':
+        this.router.navigate([action.payload]);
+        break;
+      case 'command':
+        this.commandPalette.executeCommandById(action.payload);
+        break;
+      default:
+        console.warn(`Unknown advisor action type: ${action.type}`);
+    }
+
+    // After executing, hide the panel and potentially dismiss the advice.
+    this.isOpen.set(false);
+    this.dismissAdvice(item);
+  }
+
+  /**
+   * Dismisses a piece of advice.
+   * This method is a placeholder and assumes a corresponding method exists on AiService.
+   * @param item The AdvisorAdvice object to dismiss.
+   */
+  dismissAdvice(item: AdvisorAdvice) {
+    // Assuming aiService can handle dismissing advice.
+    // this.aiService.dismissAdvisorAdvice((item as any).id);
+    console.log('Dismissing advice:', item.title);
   }
 }

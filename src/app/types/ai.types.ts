@@ -184,11 +184,13 @@ export type AdvisorPersona = 'EXECUTIVE' | 'AR' | 'PUBLICIST' | 'SYNC';
 export interface AdvisorAdvice {
   id: string;
   title: string;
-  content: string;
-  type: string;
-  priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
-  persona: AdvisorPersona;
-  actionLabel?: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+  action?: {
+    type: 'navigate' | 'command';
+    payload: string;
+  };
+  persona?: AdvisorPersona;
 }
 
 export type ArtistTier =

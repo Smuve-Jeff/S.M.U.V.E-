@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -26,12 +26,18 @@ export class LoginComponent implements OnInit {
   isError = signal(false);
   isVerifying = signal(false);
   verificationCode = '';
+  requires2FA = signal(false);
 
   credentials: AuthCredentials = {
     email: '',
     password: '',
+    twoFactorCode: '',
   };
   artistName = '';
+
+  passwordValidation = computed(() =>
+    this.authService.validatePassword(this.credentials.password)
+  );
 
   ngOnInit() {
     if (this.authService.isAuthenticated()) {
@@ -49,31 +55,51 @@ export class LoginComponent implements OnInit {
       if (this.isVerifying()) {
         result = await this.authService.verifyEmail(this.verificationCode);
       } else if (this.isRegistering()) {
-        result = await this.authService.register(
-          this.credentials,
-          this.artistName
-        );
+        const validation = this.passwordValidation();
+        if (!validation.isValid) {
+          this.isError.set(true);
+          this.message.set(validation.errors.join(' '));
+          this.isLoading.set(false);
+          return;
+        }
+        result = await this.authService.register(this.credentials, this.artistName);
       } else {
         result = await this.authService.login(this.credentials);
       }
 
       this.message.set(result.message);
       if (result.success) {
-        if (this.isRegistering() && !this.isVerifying()) {
-          this.isVerifying.set(true);
-          this.isLoading.set(false);
-          return;
-        }
-        setTimeout(() => {
-          void this.navigateAfterAuth();
-        }, 1500);
+        this.handleSuccessfulAuth();
       } else {
-        this.isError.set(true);
+        this.handleFailedAuth(result);
       }
     } catch (_err) {
       this.isError.set(true);
       this.message.set('An unexpected error occurred. System offline.');
     } finally {
+      if (!this.isVerifying() && !this.requires2FA()) {
+        this.isLoading.set(false);
+      }
+    }
+  }
+
+  private handleSuccessfulAuth() {
+    if (this.isRegistering() && !this.isVerifying()) {
+      this.isVerifying.set(true);
+      this.isLoading.set(false);
+      return;
+    }
+    setTimeout(() => {
+      void this.navigateAfterAuth();
+    }, 1500);
+  }
+
+  private handleFailedAuth(result: { message: string; requires2FA?: boolean }) {
+    this.isError.set(true);
+    if (result.requires2FA) {
+      this.requires2FA.set(true);
+      this.isLoading.set(true); // Keep loading active for 2FA input
+    } else {
       this.isLoading.set(false);
     }
   }
@@ -92,6 +118,8 @@ export class LoginComponent implements OnInit {
   toggleMode() {
     this.isRegistering.update((v) => !v);
     this.isVerifying.set(false);
+    this.requires2FA.set(false);
+    this.credentials.password = '';
     this.message.set('');
   }
 

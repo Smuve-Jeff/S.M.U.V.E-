@@ -260,7 +260,6 @@ export class UserProfileService {
       recommendationId
     ];
     await this.updateProfile({
-      ...current,
       recommendationPreferences: {
         ...(current.recommendationPreferences || {}),
         [recommendationId]: {
@@ -280,6 +279,22 @@ export class UserProfileService {
         }
       ),
     });
+  }
+
+  async recordGameLaunch(gameId: string, context: ThaSpotSessionContext = {}) {
+    const current = this.profile();
+    const stats = { ...(current.gameStats || {}) };
+    const prev = stats[gameId] || {};
+    const now = Date.now();
+
+    stats[gameId] = {
+      ...prev,
+      plays: (prev.plays || 0) + 1,
+      lastPlayedAt: now,
+      lastRoomId: context.roomId || prev.lastRoomId,
+    };
+
+    await this.updateProfile({ gameStats: stats });
   }
 
   async recordGameResult(gameId: string, context: ThaSpotSessionContext = {}) {
@@ -321,14 +336,9 @@ export class UserProfileService {
     };
 
     await this.updateProfile({
-      ...current,
       gameStats: stats,
       thaSpotProgression: nextProgression,
-    } as any);
-  }
-
-  async recordGameLaunch(gameId: string, context: ThaSpotSessionContext = {}) {
-    await this.recordGameResult(gameId, context);
+    });
   }
 
   private buildThaSpotProgression(
@@ -401,6 +411,7 @@ export class UserProfileService {
     } = profile as any;
 
     return {
+      ...initialProfile,
       ...cleanProfile,
       artistIdentity: ensureArtistIdentityState(
         profile.artistName,

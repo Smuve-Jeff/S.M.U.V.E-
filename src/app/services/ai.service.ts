@@ -334,10 +334,6 @@ const UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
     prerequisites: ['Finish arrangement and mix notes first'],
     actionLabel: 'Open Release Pipeline',
     toolId: 'release-pipeline',
-    outcomeMetric: {
-      label: 'Expected gain',
-      value: 'Stronger release readiness',
-    },
     preferredViews: ['release-pipeline', 'studio'],
     rank: ({ profile, viewMode, context }) => {
       const hasService = (profile.services || []).includes(
@@ -727,7 +723,20 @@ export class AiService {
 
   private handleStatusCommand(): string {
     const status = this.systemStatus();
-    return `[STATUS] Neural Sync: ${status.neuralSync}% | CPU Load: ${status.cpuLoad}% | Strategic Health: OPTIMAL`;
+    const profile = this.userProfileService.profile();
+    const score = profile.strategicHealthScore || 0;
+    const healthLabel =
+      score >= 85
+        ? 'OPTIMAL'
+        : score >= 70
+        ? 'STABLE'
+        : score >= 50
+        ? 'DEGRADED'
+        : 'CRITICAL';
+
+    return `[STATUS] Neural Sync: ${status.neuralSync}% | CPU Load: ${status.cpuLoad}% | Strategic Health: ${healthLabel} (${score.toFixed(
+      1
+    )}%)`;
   }
 
   private handlePromoCommand(artist: string, genre: string): Promise<string> {
@@ -814,38 +823,6 @@ export class AiService {
 
   proactiveStrategicPulse() {
     this.logger.info('AiService: Triggering proactive strategic pulse');
-  }
-
-  async getAdvisorAdvice(): Promise<AdvisorAdvice[]> {
-    const profile = this.userProfileService.profile();
-    const catalog = profile.catalog || [];
-    const advice: AdvisorAdvice[] = [];
-
-    if (catalog.length > 0) {
-      advice.push({
-        id: 'ar-1',
-        title: 'Sonic Cohesion',
-        content: 'Your catalog shows high variance. Stabilize your sound.',
-        type: 'Production',
-        priority: 'MEDIUM',
-        persona: 'AR',
-      });
-    }
-
-    if (!profile.proName) {
-      advice.push({
-        id: 'pub-1',
-        title: 'Transparency Gap',
-        content:
-          "No PRO registration found. You're invisible to legal revenue.",
-        type: 'Branding',
-        priority: 'HIGH',
-        persona: 'PUBLICIST',
-      });
-    }
-
-    this.advisorAdvice.set(advice);
-    return advice;
   }
 
   async generateAsset(type: 'BIO' | 'PITCH' | 'EPK'): Promise<string> {
@@ -1037,13 +1014,32 @@ export class AiService {
           catalog.length) *
         100;
     }
+
+    const sonicCohesion = Math.max(0, 100 - bpmVar * 5);
+    const marketViability = genAlig > 70 ? 85 : 40;
+    const arrangementDepth = catalog.length > 3 ? 80 : 60;
+
+    const criticalDeficits: string[] = [];
+    if (sonicCohesion < 60) {
+      criticalDeficits.push('Improve sonic cohesion across catalog.');
+    }
+    if (marketViability < 50) {
+      criticalDeficits.push('Genre alignment is weak. Refine brand focus.');
+    }
+    if (catalog.length < 3) {
+      criticalDeficits.push('Expand catalog depth to improve market presence.');
+    }
+
     return {
-      overallScore: Math.floor((genAlig + keyCons) / 2) || 50,
-      sonicCohesion: Math.floor(100 - bpmVar),
-      arrangementDepth: 75,
-      marketViability: genAlig > 70 ? 85 : 40,
-      criticalDeficits: [],
-      technicalRecommendations: [],
+      overallScore: Math.floor((genAlig + keyCons + sonicCohesion) / 3) || 50,
+      sonicCohesion,
+      arrangementDepth,
+      marketViability,
+      criticalDeficits,
+      technicalRecommendations:
+        criticalDeficits.length > 0
+          ? ['Review critical deficits for tactical solutions.']
+          : [],
       catalogAnalysis: {
         bpmVariance: bpmVar,
         keyConsistency: keyCons,

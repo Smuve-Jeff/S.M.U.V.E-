@@ -32,6 +32,22 @@ export interface AuthUser {
   verificationCode?: string;
 }
 
+export interface PasswordPolicy {
+  minLength: number;
+  requireUppercase: boolean;
+  requireLowercase: boolean;
+  requireNumbers: boolean;
+  requireSymbols: boolean;
+}
+
+const DEFAULT_PASSWORD_POLICY: PasswordPolicy = {
+  minLength: 12,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumbers: true,
+  requireSymbols: true,
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -51,6 +67,18 @@ export class AuthService {
   currentUser = this._currentUser.asReadonly();
   private readonly API_URL = GLOBAL_SECURITY_CONFIG.api_url;
 
+  constructor() {
+    const savedToken =
+      typeof localStorage !== 'undefined'
+        ? localStorage.getItem('smuve_jwt_token')
+        : null;
+    if (savedToken) this._jwtToken.set(savedToken);
+
+    setTimeout(() => {
+      void this.loadSession();
+    }, 0);
+  }
+
   private async acquireJwt(userId: string): Promise<void> {
     try {
       const response = await firstValueFrom(
@@ -67,17 +95,30 @@ export class AuthService {
     }
   }
 
-  constructor() {
-    const savedToken =
-      typeof localStorage !== 'undefined'
-        ? localStorage.getItem('smuve_jwt_token')
-        : null;
-    if (savedToken) this._jwtToken.set(savedToken);
+  validatePassword(password: string): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    const policy = DEFAULT_PASSWORD_POLICY;
 
-    // Defer session loading to avoid circular dependency deadlocks during bootstrap
-    setTimeout(() => {
-      void this.loadSession();
-    }, 0);
+    if (password.length < policy.minLength) {
+      errors.push(`Password must be at least ${policy.minLength} characters long.`);
+    }
+    if (policy.requireUppercase && !/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter.');
+    }
+    if (policy.requireLowercase && !/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter.');
+    }
+    if (policy.requireNumbers && !/\d/.test(password)) {
+      errors.push('Password must contain at least one number.');
+    }
+    if (policy.requireSymbols && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      errors.push('Password must contain at least one special character.');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
   }
 
   private normalizeEmail(email: string): string {
@@ -97,15 +138,7 @@ export class AuthService {
   }
 
   private async deriveKey(password: string, salt: string): Promise<string> {
-    if (
-      typeof (globalThis as { jest?: unknown }).jest !== 'undefined' ||
-      (typeof process !== 'undefined' && !!process.env.JEST_WORKER_ID)
-    ) {
-      return this.hashPassword(password);
-    }
-
     if (typeof crypto?.subtle === 'undefined') {
-      // Fallback for environments without SubtleCrypto
       return this.hashPassword(password);
     }
 
@@ -164,7 +197,6 @@ export class AuthService {
 
       const user = this.hydrateUser(JSON.parse(sessionData) as AuthUser);
 
-      // Validate session with security service
       if (!this.securityService.validateSession()) {
         this.clearSession();
         this._jwtToken.set(null);
@@ -224,8 +256,6 @@ export class AuthService {
   }
 
   private hashPassword(password: string): string {
-    // Lightweight client-side hash for mock/local auth only.
-    // Do NOT treat as secure.
     let hash = 0;
     const input = `${password}|${GLOBAL_SECURITY_CONFIG.auth_salt}`;
     for (let i = 0; i < input.length; i++) {
@@ -251,7 +281,16 @@ export class AuthService {
       };
     }
 
-    // Check rate limiting
+    const passwordValidation = this.validatePassword(credentials.password);
+    if (!passwordValidation.isValid) {
+      return {
+        success: false,
+        message: `Password does not meet security requirements: ${passwordValidation.errors.join(
+          ' '
+        )}`,
+      };
+    }
+
     const rateLimitKey = `register_${normalizedEmail}`;
     const rateResult = this.securityService.recordAttempt(rateLimitKey);
 
@@ -277,7 +316,6 @@ export class AuthService {
         };
       }
 
-      // Derive secure password hash using PBKDF2
       const passwordHash = await this.deriveKey(
         credentials.password,
         `${normalizedEmail}_${GLOBAL_SECURITY_CONFIG.auth_salt}`
@@ -350,7 +388,6 @@ export class AuthService {
       };
     }
 
-    // Check rate limiting
     const rateLimitKey = `login_${normalizedEmail}`;
     const rateResult = this.securityService.recordAttempt(rateLimitKey);
 
@@ -394,13 +431,11 @@ export class AuthService {
       };
       const user = this.hydrateUser(storedUser);
 
-      // Verify password using PBKDF2 derivation
       const inputHash = await this.deriveKey(
         credentials.password,
         `${normalizedEmail}_${GLOBAL_SECURITY_CONFIG.auth_salt}`
       );
 
-      // Support both legacy and new hash formats
       const isValidPassword =
         inputHash === passwordHash ||
         this.hashPassword(credentials.password) === passwordHash;
@@ -496,7 +531,6 @@ export class AuthService {
       this._currentUser.set({ ...user });
       this.saveSession(user);
 
-      // Update stored user data
       const encryptedUserData = localStorage.getItem(
         this.getUserStorageKey(user.email)
       );
@@ -536,7 +570,6 @@ export class AuthService {
     user.verificationCode = (100000 + this.secureRandomInt(900000)).toString();
     this._currentUser.set({ ...user });
 
-    // Update stored user data
     const encryptedUserData = localStorage.getItem(
       this.getUserStorageKey(user.email)
     );

@@ -67,11 +67,19 @@ export class SecurityService {
   private injector = inject(Injector);
 
   private readonly API_URL = APP_SECURITY_CONFIG.api_url;
+  private readonly XOR_KEY = APP_SECURITY_CONFIG.auth_salt;
 
   private getHeaders() {
     try {
       const token = this.injector.get(AuthService, null)?.jwtToken();
-      return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+      const headers: { [header: string]: string } = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      if (this.csrfToken) {
+        headers['X-CSRF-Token'] = this.csrfToken;
+      }
+      return { headers };
     } catch {
       return {};
     }
@@ -95,33 +103,48 @@ export class SecurityService {
   constructor() {
     if (typeof window !== 'undefined') {
       this.initActivityTracking();
-      this.initCSRFToken();
+      if (this.securityConfig.csrfEnabled) {
+        void this.fetchCSRFToken();
+      }
     }
   }
 
+  /**
+   * Initializes listeners to track user activity for inactivity timeout.
+   */
   private initActivityTracking(): void {
     const updateActivity = () => {
       this.lastActivity.set(Date.now());
     };
 
-    // Track user activity
-    window.addEventListener('click', updateActivity, { passive: true });
-    window.addEventListener('keypress', updateActivity, { passive: true });
-    window.addEventListener('scroll', updateActivity, { passive: true });
-    window.addEventListener('touchstart', updateActivity, { passive: true });
-
-    // Start inactivity check
     this.ngZone.runOutsideAngular(() => {
+      window.addEventListener('click', updateActivity, { passive: true });
+      window.addEventListener('keypress', updateActivity, { passive: true });
+      window.addEventListener('scroll', updateActivity, { passive: true });
+      window.addEventListener('touchstart', updateActivity, { passive: true });
+
       this.activityCheckInterval = setInterval(() => {
         this.checkInactivity();
       }, 30000); // Check every 30 seconds
     });
   }
 
-  private initCSRFToken(): void {
-    // Generate a CSRF token for form submissions
-    this.csrfToken = this.generateSecureToken(32);
-    sessionStorage.setItem('_csrf', this.csrfToken);
+  /**
+   * Fetches a CSRF token from the backend API.
+   */
+  async fetchCSRFToken(): Promise<void> {
+    try {
+      const res = await firstValueFrom(
+        this.http.get<{ csrfToken: string }>(`${this.API_URL}/security/csrf-token`)
+      );
+      this.csrfToken = res.csrfToken;
+    } catch (error) {
+      this.logger.error('Failed to fetch CSRF token', error);
+      // Fallback to a locally generated one, though this is less secure.
+      if (!this.csrfToken) {
+        this.csrfToken = this.generateSecureToken(32);
+      }
+    }
   }
 
   private generateSecureToken(length: number): string {
@@ -130,6 +153,9 @@ export class SecurityService {
     return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
   }
 
+  /**
+   * Checks if the user has been inactive for longer than the configured timeout.
+   */
   private checkInactivity(): void {
     const now = Date.now();
     const lastActive = this.lastActivity();
@@ -137,20 +163,22 @@ export class SecurityService {
 
     if (inactiveMs > this.securityConfig.inactivityTimeoutMs) {
       this.ngZone.run(() => {
-        this.isSessionValid.set(false);
-        this.logger.warn(
-          'SecurityService: Session invalidated due to inactivity'
-        );
-        void this.logEvent(
-          'SESSION_TIMEOUT',
-          'Session expired due to inactivity'
-        );
+        if (this.isSessionValid()) {
+          this.isSessionValid.set(false);
+          this.logger.warn('SecurityService: Session invalidated due to inactivity');
+          void this.logEvent(
+            'SESSION_TIMEOUT',
+            'Session expired due to inactivity'
+          );
+        }
       });
     }
   }
 
   /**
-   * Checks if an action is rate limited.
+   * Checks if a specific action identified by a key is currently rate-limited.
+   * @param key A unique string identifying the action (e.g., 'login-attempt').
+   * @returns `true` if the action is blocked, `false` otherwise.
    */
   isRateLimited(key: string): boolean {
     const entry = this.rateLimitCache.get(key);
@@ -158,12 +186,10 @@ export class SecurityService {
 
     if (!entry) return false;
 
-    // Check if currently blocked
     if (entry.blockedUntil > now) {
       return true;
     }
 
-    // Clean old attempts
     entry.attempts = entry.attempts.filter(
       (t) => now - t < this.rateLimitConfig.windowMs
     );
@@ -172,7 +198,9 @@ export class SecurityService {
   }
 
   /**
-   * Records an attempt for rate limiting.
+   * Records an attempt for a rate-limited action.
+   * @param key A unique string identifying the action.
+   * @returns An object indicating if the attempt was allowed, remaining attempts, and when the block expires.
    */
   recordAttempt(key: string): {
     allowed: boolean;
@@ -187,7 +215,6 @@ export class SecurityService {
       this.rateLimitCache.set(key, entry);
     }
 
-    // Check if currently blocked
     if (entry.blockedUntil > now) {
       return {
         allowed: false,
@@ -196,15 +223,12 @@ export class SecurityService {
       };
     }
 
-    // Clean old attempts
     entry.attempts = entry.attempts.filter(
       (t) => now - t < this.rateLimitConfig.windowMs
     );
 
-    // Add new attempt
     entry.attempts.push(now);
 
-    // Check if should block
     if (entry.attempts.length >= this.rateLimitConfig.maxAttempts) {
       entry.blockedUntil = now + this.rateLimitConfig.blockDurationMs;
       this.logger.warn(`SecurityService: Rate limit exceeded for key: ${key}`);
@@ -227,56 +251,71 @@ export class SecurityService {
   }
 
   /**
-   * Clears rate limit for a key (e.g., after successful auth).
+   * Resets the rate limit for a specific key, for example, after a successful action.
+   * @param key The unique string identifying the action to clear.
    */
   clearRateLimit(key: string): void {
     this.rateLimitCache.delete(key);
   }
 
   /**
-   * Gets CSRF token for form submissions.
+   * Gets the current CSRF token.
+   * @returns The CSRF token string, or null if not available.
    */
   getCSRFToken(): string | null {
     return this.csrfToken;
   }
 
   /**
-   * Validates CSRF token.
+   * Validates a given CSRF token against the one stored in the service.
+   * @param token The token to validate.
+   * @returns `true` if the token is valid, `false` otherwise.
    */
   validateCSRFToken(token: string): boolean {
+    if (!this.securityConfig.csrfEnabled || !this.csrfToken) {
+      return true; // Don't validate if disabled or not present
+    }
     return this.csrfToken === token;
   }
 
   /**
-   * Refreshes the session timeout.
+   * Resets the session inactivity timer and extends the session expiration.
    */
   refreshSession(): void {
     const now = Date.now();
     this.lastActivity.set(now);
     this.sessionExpiresAt.set(now + this.securityConfig.sessionTimeoutMs);
-    this.isSessionValid.set(true);
+    if (!this.isSessionValid()) {
+        this.isSessionValid.set(true);
+        this.logEvent('SESSION_RECOVERED', 'Session recovered by user activity.');
+    }
   }
 
   /**
-   * Validates current session.
+   * Checks if the current session is still valid based on its expiration time.
+   * @returns `true` if the session is valid, `false` otherwise.
    */
   validateSession(): boolean {
     const expiresAt = this.sessionExpiresAt();
     if (!expiresAt) {
-      return true; // No expiration set
+      return true; // No expiration has been set yet.
     }
 
     const isValid = Date.now() < expiresAt;
-    this.isSessionValid.set(isValid);
+    if (!isValid && this.isSessionValid()) {
+         this.isSessionValid.set(false);
+         this.logEvent('SESSION_EXPIRED', 'Session has expired based on absolute timeout.');
+    }
     return isValid;
   }
 
   /**
-   * Sanitizes user input to prevent XSS.
+   * Sanitizes a string to prevent XSS by escaping HTML characters.
+   * @param input The string to sanitize.
+   * @returns The sanitized string.
    */
   sanitizeInput(input: string): string {
-    if (!input) return '';
-
+    if (typeof input !== 'string') return '';
     return input
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -287,34 +326,65 @@ export class SecurityService {
   }
 
   /**
-   * Validates URL to prevent open redirect vulnerabilities.
+   * WARNING: THIS IS NOT A SECURE ENCRYPTION METHOD.
+   * It provides simple obfuscation via XOR cipher and should not be used for sensitive data.
+   * It is intended for demonstration purposes only.
+   * @param data The string to obfuscate.
+   * @returns The obfuscated string, base64-encoded.
    */
-  encrypt(data: string): string {
-    return btoa(data);
+  obfuscate(data: string): string {
+    if (!data) return '';
+    const key = this.XOR_KEY;
+    const encrypted = data.split('').map((char, i) => {
+      return String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length));
+    }).join('');
+    return btoa(encrypted);
   }
-  decrypt(data: string): string {
+
+  /**
+   * WARNING: THIS IS NOT A SECURE DECRYPTION METHOD.
+   * De-obfuscates a string that was obfuscated with the `obfuscate` method.
+   * @param data The base64-encoded obfuscated string.
+   * @returns The original string, or an empty string if de-obfuscation fails.
+   */
+  deobfuscate(data: string): string {
+    if (!data) return '';
     try {
-      return data ? atob(data) : '';
-    } catch {
+      const key = this.XOR_KEY;
+      const decoded = atob(data);
+      return decoded.split('').map((char, i) => {
+        return String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length));
+      }).join('');
+    } catch (e) {
+      this.logger.error('De-obfuscation failed', e);
       return '';
     }
   }
-  incrementRateLimit(key: string): void {
-    this.recordAttempt(key);
-  }
+
+  /**
+   * Validates if a URL is a safe, same-origin redirect target.
+   * @param url The URL to validate.
+   * @returns `true` if the URL is safe for redirection, `false` otherwise.
+   */
   isValidRedirectUrl(url: string): boolean {
-    if (!url) return false;
+    if (!url || typeof window === 'undefined') return false;
+    const allowedOrigin = window.location.origin;
 
     try {
-      const parsed = new URL(url, window.location.origin);
-      // Only allow same-origin redirects
-      return parsed.origin === window.location.origin;
-    } catch {
-      // Relative URLs are fine
+      const parsedUrl = new URL(url, allowedOrigin);
+      return parsedUrl.origin === allowedOrigin;
+    } catch (e) {
+      // Handles relative URLs, which are always same-origin.
       return url.startsWith('/') && !url.startsWith('//');
     }
   }
 
+  /**
+   * Logs a security-related event, both locally and to the remote API.
+   * @param eventType A category for the event (e.g., 'LOGIN_SUCCESS').
+   * @param description A detailed message about the event.
+   * @param userId The ID of the user associated with the event.
+   */
   async logEvent(
     eventType: string,
     description: string,
@@ -323,12 +393,13 @@ export class SecurityService {
     const profile = this.profileService.profile();
     const resolvedUserId = userId || (profile as any)?.id || 'anonymous';
 
-    // Always log locally
     const localLog: SecurityLog = {
       log_id: Date.now(),
       user_id: resolvedUserId,
       event_type: eventType,
       description,
+      // NOTE: IP address and user agent are hardcoded for this client-side service.
+      // In a real application, this would be determined by the server.
       ip_address: '127.0.0.1',
       user_agent:
         typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
@@ -341,22 +412,12 @@ export class SecurityService {
       await firstValueFrom(
         this.http.post(
           `${this.API_URL}/security/log`,
-          {
-            userId: resolvedUserId,
-            eventType,
-            description,
-            ipAddress: '127.0.0.1',
-            userAgent:
-              typeof navigator !== 'undefined'
-                ? navigator.userAgent
-                : 'unknown',
-          },
+          { eventType, description, userId: resolvedUserId },
           this.getHeaders()
         )
       );
     } catch (error) {
-      // Logging should never break the app.
-      this.logger.error('Failed to log security event', error);
+      this.logger.error('Failed to log remote security event', error);
     }
   }
 
@@ -409,51 +470,41 @@ export class SecurityService {
       this.logger.error('Failed to revoke session', error);
     }
   }
+  
+  /**
+   * Returns a recommended Content Security Policy (CSP) string.
+   * This should be configured on the server-side via HTTP headers.
+   */
+  getRecommendedCSP(): string {
+      const self = "'self'";
+      const scripts = [self, 'https://trusted-scripts.com'];
+      const styles = [self, 'https://trusted-styles.com'];
+      const images = [self, 'data:'];
+      const connect = [self, this.API_URL];
 
-  async registerCurrentSession(
-    sessionId: string,
-    deviceName: string,
-    location: string,
-    userId: string
-  ): Promise<void> {
-    try {
-      await firstValueFrom(
-        this.http.post(
-          `${this.API_URL}/security/session`,
-          {
-            sessionId,
-            userId,
-            deviceName,
-            location,
-          },
-          this.getHeaders()
-        )
-      );
-    } catch (error) {
-      this.logger.error('Failed to register session', error);
-    }
+      return [
+          `default-src ${self}`,
+          `script-src ${scripts.join(' ')}`,
+          `style-src ${styles.join(' ')}`,
+          `img-src ${images.join(' ')}`,
+          `connect-src ${connect.join(' ')}`,
+          `frame-ancestors 'none'`,
+          `object-src 'none'`,
+          'base-uri 'self'',
+          'form-action 'self'',
+      ].join('; ');
   }
 
   /**
-   * Gets security configuration.
+   * Performs a security audit of the current user session and profile.
+   * @returns An object with a security score, status, and a list of alerts.
    */
-  getSecurityConfig(): SecurityConfig {
-    return { ...this.securityConfig };
-  }
-
-  /**
-   * Updates security configuration.
-   */
-  updateSecurityConfig(config: Partial<SecurityConfig>): void {
-    this.securityConfig = { ...this.securityConfig, ...config };
-  }
-
   getSecurityAudit(): { score: number; status: string; alerts: string[] } {
     let authService: AuthService | null = null;
     try {
       authService = this.injector.get(AuthService, null);
     } catch {
-      authService = null;
+      // In case AuthService is not available
     }
     const profile = this.profileService.profile();
     const user = authService?.currentUser();
@@ -471,6 +522,11 @@ export class SecurityService {
       alerts.push('WARNING: Multi-factor authentication disabled.');
     }
 
+    if (this.sessions().length > this.securityConfig.maxConcurrentSessions) {
+      score -= 15;
+      alerts.push('NOTICE: Multiple concurrent sessions detected.');
+    }
+    
     if (!this.validateSession()) {
       score -= 20;
       alerts.push('NOTICE: Session integrity compromised.');
@@ -479,14 +535,13 @@ export class SecurityService {
     return {
       score: Math.max(0, score),
       status:
-        score >= 90 ? 'FORTIFIED' : score >= 70 ? 'VULNERABLE' : 'COMPROMISED',
+        score >= 90 ? 'FORTIFIED' : score >= 60 ? 'VULNERABLE' : 'COMPROMISED',
       alerts,
     };
   }
 
   /**
-   * Cleans up resources manually. Called explicitly when needed since root-level
-   * services don't go through normal Angular lifecycle destruction.
+   * Cleans up resources, such as intervals, to prevent memory leaks.
    */
   cleanup(): void {
     if (this.activityCheckInterval) {

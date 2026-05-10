@@ -458,18 +458,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   private isAllowedMessageOrigin(active: Game, origin: string): boolean {
-    const telemetryMode = active.launchConfig?.telemetryMode || 'frame-only';
+    const telemetryMode = active.launchConfig?.telemetryMode;
     if (telemetryMode === 'none') {
       return false;
     }
 
-    if (telemetryMode === 'origin') {
-      const telemetryOrigins = active.launchConfig?.telemetryOrigins || [];
-      return telemetryOrigins.includes(origin);
+    const isInternal = active.url.startsWith('/assets/');
+    if (isInternal) {
+      return typeof window !== 'undefined' && origin === window.location.origin;
     }
 
-    if (telemetryMode === 'frame-only') {
-      return typeof window !== 'undefined' && origin === window.location.origin;
+    if (telemetryMode === 'origin') {
+      const allowed = active.launchConfig?.telemetryOrigins || [];
+      return allowed.includes(origin);
     }
 
     return false;

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './services/auth.guard';
+import { provideHttpClient } from '@angular/common/http';
 
 export const routes: Routes = [
   {
@@ -15,7 +16,7 @@ export const routes: Routes = [
   {
     path: 'vocal-suite',
     loadComponent: () =>
-      import('./studio/studio.component').then((m) => m.StudioComponent),
+      import('./studio/vocal-suite/vocal-suite.component').then((m) => m.VocalSuiteComponent),
   },
   {
     path: 'profile',
@@ -160,7 +161,7 @@ export const routes: Routes = [
   {
     path: 'dj',
     loadComponent: () =>
-      import('./studio/studio.component').then((m) => m.StudioComponent),
+      import('./studio/dj-deck/dj-deck.component').then((m) => m.DjDeckComponent),
   },
   {
     path: 'piano-roll',
@@ -199,10 +200,11 @@ export const routes: Routes = [
   { path: '**', redirectTo: 'hub' },
 ];
 
+// Apply authGuard to all routes except 'login' and redirects
 for (const route of routes) {
   if (!route.path || route.path === 'login' || route.redirectTo) {
     continue;
   }
 
-  route.canActivate = [authGuard];
+  route.canActivate = route.canActivate ? [...route.canActivate, authGuard] : [authGuard];
 }
