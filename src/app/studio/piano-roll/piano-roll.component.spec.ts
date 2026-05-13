@@ -103,8 +103,8 @@ describe('PianoRollComponent', () => {
     };
 
     const mockInstruments = {
-       getPresets: jest.fn().mockReturnValue([{id: 'synth', name: 'Synth'}]),
-       getPresetById: jest.fn().mockReturnValue({id: 'synth', name: 'Synth'})
+      getPresets: jest.fn().mockReturnValue([{ id: 'synth', name: 'Synth' }]),
+      getPresetById: jest.fn().mockReturnValue({ id: 'synth', name: 'Synth' }),
     };
 
     await TestBed.configureTestingModule({
@@ -114,7 +114,13 @@ describe('PianoRollComponent', () => {
         { provide: AudioSessionService, useValue: audioSessionMock },
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: InstrumentsService, useValue: mockInstruments },
-        { provide: AiService, useValue: { generateAiResponse: jest.fn(), isUnlocked: jest.fn().mockReturnValue(true) } },
+        {
+          provide: AiService,
+          useValue: {
+            generateAiResponse: jest.fn(),
+            isUnlocked: jest.fn().mockReturnValue(true),
+          },
+        },
         { provide: UIService, useValue: { performanceMode: signal(false) } },
         { provide: Router, useValue: { url: route, navigate: jest.fn() } },
       ],

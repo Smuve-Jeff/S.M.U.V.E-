@@ -1,9 +1,75 @@
 .studio-container {
   height: 100vh;
-  background-color: #111;
+  background-color: #050505;
   color: #eee;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.studio-header {
+  height: 55px;
+  background: #252525;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+  border-bottom: 1px solid #000;
+  z-index: 50;
+}
+
+.studio-title {
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #fff;
+}
+
+.studio-title span {
+  color: #00d2ff;
+}
+
+.header-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.header-btn {
+  background: #333;
+  color: #ccc;
+  border: 1px solid #444;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.header-btn:hover {
+  background: #444;
+  color: #fff;
+}
+
+.studio-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.studio-workspace {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #0d0d0d;
+}
+
+/* Tab/View selection logic styling would go here if needed */
+
+.hidden {
+  display: none !important;
 }
 
 .neural-foundry-overlay {
@@ -12,8 +78,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.9);
-  z-index: 100;
+  background-color: rgba(0, 0, 0, 0.95);
+  z-index: 1000;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -21,51 +87,13 @@
 
 .close-foundry-btn {
   position: absolute;
-  top: 2rem;
-  right: 2rem;
-  background: #ff4081;
+  top: 1rem;
+  right: 1rem;
+  background: #f44336;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 900;
   cursor: pointer;
-}
-
-.studio-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: #222;
-}
-
-.header-btn {
-  background: #ff4081;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-}
-
-.studio-workspace {
-  flex-grow: 1;
-  padding: 1rem;
-  overflow-y: auto;
-}
-
-.co-pilot-controls,
-.holo-mixer-controls {
-  padding: 1rem;
-  background: #333;
-  margin: 1rem 0;
-  border-left: 3px solid #ff4081;
-}
-
-.co-pilot-controls button,
-.holo-mixer-controls button {
-  background: #ff4081;
-  color: white;
-  border: none;
-  padding: 0.8rem 1.5rem;
-  cursor: pointer;
-  font-size: 1rem;
 }

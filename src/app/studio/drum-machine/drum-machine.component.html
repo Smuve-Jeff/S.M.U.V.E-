@@ -1,13 +1,51 @@
 <div class="drum-machine-container">
-  <!-- Quantum Drum Engine -->
-  <div *ngIf="hasQuantumDrumEngine()" class="quantum-engine-controls">
-    <button (click)="generateQuantumGroove()" [disabled]="isGenerating()">
-      {{ isGenerating() ? 'Generating...' : 'Generate Quantum Groove' }}
-    </button>
+  <div class="drum-header">
+    <div
+      class="header-title"
+      style="
+        font-weight: 900;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+      "
+    >
+      Drum Machine
+    </div>
+    <div class="quantum-engine-controls" *ngIf="hasQuantumDrumEngine()">
+      <button (click)="generateQuantumGroove()" [disabled]="isGenerating()">
+        {{ isGenerating() ? 'Generating...' : 'Quantum Groove' }}
+      </button>
+      <button (click)="clearPattern()" style="background: #333; color: #fff">
+        Clear
+      </button>
+    </div>
   </div>
 
-  <!-- Existing Drum Machine UI -->
-  <div class="sequencer-grid">
-    <!-- ... pads and steps ... -->
+  <div class="drum-content">
+    <div class="pads-sidebar no-scrollbar">
+      <div
+        *ngFor="let pad of pads()"
+        class="drum-pad-item"
+        [class.selected]="selectedPad()?.id === pad.id"
+        (click)="selectPad(pad)"
+      >
+        <div class="pad-led" [style.background-color]="pad.color"></div>
+        <span class="pad-name">{{ pad.name }}</span>
+      </div>
+    </div>
+
+    <div class="sequencer-viewport no-scrollbar">
+      <div class="sequencer-grid">
+        <div *ngFor="let pad of pads()" class="sequencer-row">
+          <div
+            *ngFor="let step of pad.steps; let sIdx = index"
+            class="step-box"
+            [class.active]="step.active"
+            [class.current-step]="currentStep() === sIdx"
+            (click)="toggleStep(pad, sIdx)"
+          ></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
