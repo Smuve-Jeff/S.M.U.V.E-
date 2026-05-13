@@ -86,7 +86,7 @@ describe('MixerComponent', () => {
 
   it('updates and clamps track gain', async () => {
     const { component, musicManagerMock } = await createComponent();
-    component.updateTrackGain(1, 110);
+    component.updateTrackVolume(1, 110);
     expect(component.tracks()[0].gain).toBe(1);
     expect(musicManagerMock.engine.updateTrack).toHaveBeenCalledWith(1, {
       gain: 1,
