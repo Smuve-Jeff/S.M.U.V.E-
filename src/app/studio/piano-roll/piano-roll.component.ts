@@ -356,7 +356,7 @@ export class PianoRollComponent implements AfterViewInit {
     if (!track) return;
     const box = this.selectionBox();
     const newSelection = new Set<string>();
-track.notes.forEach((note: TrackNote) => {
+    track.notes.forEach((note: TrackNote) => {
       const noteX = note.step * this.cellWidth;
       const noteY = (127 - note.midi) * this.rowHeight;
       const noteWidth = note.length * this.cellWidth;
