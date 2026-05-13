@@ -674,6 +674,51 @@ export class AudioEngineService {
     src.stop(stopAt);
   }
 
+  /**
+   * Triggers a polyphonic note attack for a specific track
+   */
+  triggerAttack(
+    trackId: number,
+    freq: number,
+    when: number,
+    velocity: number,
+    duration: number,
+    gain: number,
+    pan: number,
+    sendA: number,
+    sendB: number,
+    synthParams: any,
+    velocityScale: number = 1
+  ) {
+    this.resume();
+    const osc = this.ctx.createOscillator();
+    const vca = this.ctx.createGain();
+    const panner = this.ctx.createStereoPanner();
+
+    osc.type = synthParams.type || 'sine';
+    osc.frequency.setValueAtTime(freq, when);
+
+    const actualVel = velocity * velocityScale;
+    vca.gain.setValueAtTime(0, when);
+    vca.gain.linearRampToValueAtTime(
+      actualVel * gain,
+      when + (synthParams.attack || 0.005)
+    );
+    vca.gain.exponentialRampToValueAtTime(0.001, when + duration);
+
+    panner.pan.setValueAtTime(pan, when);
+
+    osc.connect(vca).connect(panner).connect(this.masterGain);
+
+    if (sendA > 0) {
+      const sA = this.ctx.createGain();
+      sA.gain.value = sendA;
+      vca.connect(sA).connect(this.reverbWet);
+    }
+
+    osc.start(when);
+    osc.stop(when + duration + 0.1);
+  }
   setMasterOutputLevel(normalized: number) {
     this.masterGain.gain.setTargetAtTime(
       normalized,
