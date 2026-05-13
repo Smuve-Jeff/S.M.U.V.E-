@@ -19,13 +19,13 @@ export class NeuralFoundryComponent {
   isProcessing = this.orchestrator.isProcessing;
 
   unlock(upgrade: UpgradeRecommendation) {
-    if (upgrade.state === 'locked') {
+    if (upgrade.state === ('locked' as any)) {
       this.orchestrator.unlockUpgrade(upgrade.id);
     }
   }
 
   getUpgradeStatus(upgrade: UpgradeRecommendation): string {
-    if (upgrade.state === 'unlocked') return '[ UNLOCKED ]';
+    if (upgrade.state === ('unlocked' as any)) return '[ UNLOCKED ]';
     if (this.isProcessing() && this.orchestrator.isProcessing())
       return '[ PROCESSING ]';
     return `[ ${upgrade.cost} ]`;
