@@ -1,83 +1,404 @@
-<!-- app/studio/dj-deck/dj-deck.component.html -->
-<div class="dj-deck-container" [class.flat-view]="isFlatView()">
-  <!-- Global Controls -->
-  <div class="deck-global-controls">
-    <div class="control-group master-volume">
-      <label>MASTER</label>
-      <input
-        type="range"
-        min="0"
-        max="1.2"
-        step="0.01"
-        [value]="masterVolume()"
-        (input)="setMasterVolume($event)"
-      />
-      <span>{{ masterVolume() | number: '1.0-2' }}</span>
+<div class="dj-3d-stage" [class.flat-view]="isFlatView()">
+  <!-- Top Bar / Global Controls -->
+  <div class="dj-top-bar">
+    <div class="logo">SMUVE <span>3D</span></div>
+    <div class="session-notice" [class.active]="sessionNotice()">
+      {{ sessionNotice() }}
     </div>
-    <div class="control-group crossfader">
-      <label>XFADE</label>
-      <input
-        type="range"
-        min="-1"
-        max="1"
-        step="0.01"
-        [value]="deckService.crossfade()"
-        (input)="updateCrossfader($event)"
-      />
-    </div>
-    <div class="control-group">
-      <button (click)="toggleRecording()" [class.recording]="recording()">
-        <span class="material-symbols-outlined">fiber_manual_record</span>
-        <span>{{ recording() ? recordingDurationLabel() : 'RECORD' }}</span>
+    <div class="global-actions">
+      <button (click)="saveSessionSnapshot()" title="Save Session">
+        <span class="material-symbols-outlined">save</span>
+      </button>
+      <button (click)="exportSessionSnapshot()" title="Export JSON">
+        <span class="material-symbols-outlined">ios_share</span>
+      </button>
+      <button
+        (click)="isFlatView.set(!isFlatView())"
+        [title]="isFlatView() ? '3D View' : 'Flat View'"
+      >
+        <span class="material-symbols-outlined">{{
+          isFlatView() ? '3d_rotation' : 'view_stream'
+        }}</span>
       </button>
     </div>
   </div>
 
-  <!-- Decks -->
-  <div class="decks-container">
-    <div class="deck" id="deck-a">
-      <app-deck-controls [deckId]="'A'"></app-deck-controls>
-      <div class="deck-stems">
-        <h3>AI STEMS</h3>
-        <div class="stem-faders">
-          @for (stem of stems; track stem) {
-            <div class="stem-fader-group">
-              <label>{{ stem.toUpperCase() }}</label>
+  <div
+    class="dj-console-3d"
+    [class.is-scratching]="isScratchingA() || isScratchingB()"
+  >
+    <!-- Left Deck (A) -->
+    <div class="deck-section deck-left" id="deck-a">
+      <div class="deck-plinth">
+        <div
+          class="platter-container"
+          (mousedown)="onPlatterDown('A', $event)"
+          (touchstart)="onPlatterDown('A', $event)"
+        >
+          <div class="platter-base"></div>
+          <div
+            class="platter-vinyl"
+            [style.transform]="'rotate(' + rotationA() + 'deg)'"
+          >
+            <div class="vinyl-grooves"></div>
+            <div class="vinyl-label">
+              <img
+                [src]="deckService.deckA().vinylImageUrl"
+                *ngIf="deckService.deckA().vinylImageUrl"
+              />
+              <div class="label-text">
+                {{ deckService.deckA().track?.name || 'SMUVE' }}
+              </div>
+            </div>
+            <div class="platter-strobe"></div>
+          </div>
+          <div class="platter-spindle"></div>
+        </div>
+
+        <div class="deck-controls-surface">
+          <div class="pitch-fader-container">
+            <div class="fader-track">
               <input
                 type="range"
-                min="0"
-                max="1.5"
-                step="0.01"
-                value="1"
-                (input)="setStemGain('A', stem, $event)"
+                min="0.9"
+                max="1.1"
+                step="0.001"
+                [value]="deckService.deckA().playbackRate"
+                (input)="setPlaybackRate('A', $any($event.target).value)"
               />
-              <button class="mute-button">M</button>
             </div>
+            <label>PITCH</label>
+          </div>
+
+          <div class="deck-main-buttons">
+            <button
+              class="btn-cue"
+              [class.active]="isCuePadSet('A', 0)"
+              (click)="handlePadPress('A', 0)"
+            >
+              CUE
+            </button>
+            <button
+              class="btn-play"
+              [class.active]="deckService.deckA().isPlaying"
+              (click)="deckService.togglePlay('A')"
+            >
+              <span class="material-symbols-outlined">{{
+                deckService.deckA().isPlaying ? 'pause' : 'play_arrow'
+              }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deck A Visualizers -->
+      <div class="deck-visuals">
+        <canvas #waveformA class="waveform-canvas"></canvas>
+        <div class="level-meter">
+          <canvas #meterA></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Mixer -->
+    <div class="mixer-section">
+      <div class="mixer-chassis">
+        <div class="mixer-channel">
+          <div class="knob-group">
+            <label>GAIN</label>
+            <input
+              type="range"
+              class="knob"
+              min="0"
+              max="1.5"
+              step="0.01"
+              [value]="deckService.deckA().gain"
+              (input)="setGain('A', $any($event.target).value)"
+            />
+          </div>
+          <div class="eq-knobs">
+            <input
+              type="range"
+              class="knob small"
+              min="0"
+              max="2"
+              step="0.01"
+              [value]="deckService.deckA().eqHigh"
+              (input)="updateEq('A', 'high', $any($event.target).value)"
+            />
+            <input
+              type="range"
+              class="knob small"
+              min="0"
+              max="2"
+              step="0.01"
+              [value]="deckService.deckA().eqMid"
+              (input)="updateEq('A', 'mid', $any($event.target).value)"
+            />
+            <input
+              type="range"
+              class="knob small"
+              min="0"
+              max="2"
+              step="0.01"
+              [value]="deckService.deckA().eqLow"
+              (input)="updateEq('A', 'low', $any($event.target).value)"
+            />
+          </div>
+          <div class="channel-fader">
+            <input
+              type="range"
+              orient="vertical"
+              min="0"
+              max="1.2"
+              step="0.01"
+              [value]="deckService.deckA().gain"
+              (input)="setGain('A', $any($event.target).value)"
+            />
+          </div>
+        </div>
+
+        <div class="mixer-center">
+          <div class="master-section">
+            <label>MASTER</label>
+            <div class="master-vu">
+              <div
+                class="vu-bar"
+                [style.height.%]="getDeckLevel('A') * 100"
+              ></div>
+              <div
+                class="vu-bar"
+                [style.height.%]="getDeckLevel('B') * 100"
+              ></div>
+            </div>
+            <input
+              type="range"
+              class="knob"
+              min="0"
+              max="1.2"
+              step="0.01"
+              [value]="masterVolume()"
+              (input)="setMasterVolume($any($event.target).value)"
+            />
+          </div>
+
+          <div class="crossfader-container">
+            <input
+              type="range"
+              min="-1"
+              max="1"
+              step="0.01"
+              [value]="deckService.crossfade()"
+              (input)="updateCrossfader($any($event.target).value)"
+            />
+          </div>
+        </div>
+
+        <div class="mixer-channel">
+          <div class="knob-group">
+            <label>GAIN</label>
+            <input
+              type="range"
+              class="knob"
+              min="0"
+              max="1.5"
+              step="0.01"
+              [value]="deckService.deckB().gain"
+              (input)="setGain('B', $any($event.target).value)"
+            />
+          </div>
+          <div class="eq-knobs">
+            <input
+              type="range"
+              class="knob small"
+              min="0"
+              max="2"
+              step="0.01"
+              [value]="deckService.deckB().eqHigh"
+              (input)="updateEq('B', 'high', $any($event.target).value)"
+            />
+            <input
+              type="range"
+              class="knob small"
+              min="0"
+              max="2"
+              step="0.01"
+              [value]="deckService.deckB().eqMid"
+              (input)="updateEq('B', 'mid', $any($event.target).value)"
+            />
+            <input
+              type="range"
+              class="knob small"
+              min="0"
+              max="2"
+              step="0.01"
+              [value]="deckService.deckB().eqLow"
+              (input)="updateEq('B', 'low', $any($event.target).value)"
+            />
+          </div>
+          <div class="channel-fader">
+            <input
+              type="range"
+              orient="vertical"
+              min="0"
+              max="1.2"
+              step="0.01"
+              [value]="deckService.deckB().gain"
+              (input)="setGain('B', $any($event.target).value)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Deck (B) -->
+    <div class="deck-section deck-right" id="deck-b">
+      <div class="deck-plinth">
+        <div
+          class="platter-container"
+          (mousedown)="onPlatterDown('B', $event)"
+          (touchstart)="onPlatterDown('B', $event)"
+        >
+          <div class="platter-base"></div>
+          <div
+            class="platter-vinyl"
+            [style.transform]="'rotate(' + rotationB() + 'deg)'"
+          >
+            <div class="vinyl-grooves"></div>
+            <div class="vinyl-label">
+              <img
+                [src]="deckService.deckB().vinylImageUrl"
+                *ngIf="deckService.deckB().vinylImageUrl"
+              />
+              <div class="label-text">
+                {{ deckService.deckB().track?.name || 'SMUVE' }}
+              </div>
+            </div>
+            <div class="platter-strobe"></div>
+          </div>
+          <div class="platter-spindle"></div>
+        </div>
+
+        <div class="deck-controls-surface">
+          <div class="pitch-fader-container">
+            <div class="fader-track">
+              <input
+                type="range"
+                min="0.9"
+                max="1.1"
+                step="0.001"
+                [value]="deckService.deckB().playbackRate"
+                (input)="setPlaybackRate('B', $any($event.target).value)"
+              />
+            </div>
+            <label>PITCH</label>
+          </div>
+
+          <div class="deck-main-buttons">
+            <button
+              class="btn-cue"
+              [class.active]="isCuePadSet('B', 0)"
+              (click)="handlePadPress('B', 0)"
+            >
+              CUE
+            </button>
+            <button
+              class="btn-play"
+              [class.active]="deckService.deckB().isPlaying"
+              (click)="deckService.togglePlay('B')"
+            >
+              <span class="material-symbols-outlined">{{
+                deckService.deckB().isPlaying ? 'pause' : 'play_arrow'
+              }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deck B Visualizers -->
+      <div class="deck-visuals">
+        <canvas #waveformB class="waveform-canvas"></canvas>
+        <div class="level-meter">
+          <canvas #meterB></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Pads Section -->
+  <div class="performance-section">
+    <div class="performance-tabs">
+      <button
+        [class.active]="performanceMode() === 'cue'"
+        (click)="performanceMode.set('cue')"
+      >
+        HOT CUES
+      </button>
+      <button
+        [class.active]="performanceMode() === 'roll'"
+        (click)="performanceMode.set('roll')"
+      >
+        ROLL
+      </button>
+      <button
+        [class.active]="performanceMode() === 'sampler'"
+        (click)="performanceMode.set('sampler')"
+      >
+        SAMPLER
+      </button>
+    </div>
+
+    <div class="pads-grid-container">
+      <div class="pads-deck">
+        <div class="pads-grid">
+          @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {
+            <button
+              class="pad"
+              [class.active]="
+                isCuePadSet('A', i) ||
+                isRollPadActive('A', i) ||
+                isSamplerPadActive('A', i)
+              "
+              (mousedown)="handlePadDown('A', i, $event)"
+              (mouseup)="handlePadRelease('A', i)"
+              (click)="handlePadPress('A', i)"
+              (contextmenu)="clearPad('A', i, $event)"
+            >
+              {{ getPadLabel(i) }}
+            </button>
+          }
+        </div>
+      </div>
+      <div class="pads-deck">
+        <div class="pads-grid">
+          @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {
+            <button
+              class="pad"
+              [class.active]="
+                isCuePadSet('B', i) ||
+                isRollPadActive('B', i) ||
+                isSamplerPadActive('B', i)
+              "
+              (mousedown)="handlePadDown('B', i, $event)"
+              (mouseup)="handlePadRelease('B', i)"
+              (click)="handlePadPress('B', i)"
+              (contextmenu)="clearPad('B', i, $event)"
+            >
+              {{ getPadLabel(i) }}
+            </button>
           }
         </div>
       </div>
     </div>
-    <div class="deck" id="deck-b">
-      <app-deck-controls [deckId]="'B'"></app-deck-controls>
-      <div class="deck-stems">
-        <h3>AI STEMS</h3>
-        <div class="stem-faders">
-          @for (stem of stems; track stem) {
-            <div class="stem-fader-group">
-              <label>{{ stem.toUpperCase() }}</label>
-              <input
-                type="range"
-                min="0"
-                max="1.5"
-                step="0.01"
-                value="1"
-                (input)="setStemGain('B', stem, $event)"
-              />
-              <button class="mute-button">M</button>
-            </div>
-          }
-        </div>
-      </div>
-    </div>
+  </div>
+
+  <!-- Load Buttons -->
+  <div class="deck-load-actions">
+    <button (click)="loadTrackFor('A')">
+      <span class="material-symbols-outlined">upload_file</span> LOAD DECK A
+    </button>
+    <button (click)="loadTrackFor('B')">
+      <span class="material-symbols-outlined">upload_file</span> LOAD DECK B
+    </button>
   </div>
 </div>

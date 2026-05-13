@@ -1,145 +1,198 @@
-/* app/studio/piano-roll/piano-roll.component.css */
 :host {
-  --pr-bg: #1f1f1f;
-  --pr-sidebar-bg: #2a2a2a;
-  --pr-grid-bg: #333333;
-  --pr-header-bg: #252525;
-  --pr-border-color: #4f4f4f;
-  --pr-text-color: #f1f1f1;
-  --pr-text-muted: #999;
-  --pr-primary-color: #4a90e2;
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #111;
+  color: #eee;
+  --fl-blue: #00d2ff;
+  --fl-orange: #ff9d00;
+  --pr-grid-bg: #1a1a1a;
+  --pr-border: #000;
 }
 
 .piano-roll-container {
-  height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--pr-bg);
-  color: var(--pr-text-color);
+  height: 100%;
+  background: #0a0a0a;
 }
 
 .pr-header {
+  height: 50px;
+  background: #252525;
+  border-bottom: 1px solid #000;
   display: flex;
   align-items: center;
   padding: 0 1rem;
-  height: 60px;
-  background: var(--pr-header-bg);
-  border-bottom: 1px solid var(--pr-border-color);
+  gap: 1.5rem;
+}
+
+.pr-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
 }
 
 .pr-main-content {
-  flex-grow: 1;
+  flex: 1;
   display: flex;
   overflow: hidden;
 }
 
-.pr-sidebar-left,
-.pr-sidebar-right {
-  width: 280px;
-  flex-shrink: 0;
-  background: var(--pr-sidebar-bg);
+.pr-sidebar-left {
+  width: 220px;
+  background: #1e1e1e;
+  border-right: 1px solid #000;
+  display: flex;
+  flex-direction: column;
   padding: 1rem;
+  gap: 1.5rem;
   overflow-y: auto;
-  border-right: 1px solid var(--pr-border-color);
-}
-
-.pr-sidebar-right {
-  border-right: none;
-  border-left: 1px solid var(--pr-border-color);
 }
 
 .pr-grid-container {
-  flex-grow: 1;
+  flex: 1;
   display: flex;
+  background: #0d0d0d;
+  overflow: hidden;
 }
 
 .piano-keys {
-  width: 100px;
-  background: #3a3a3a;
+  width: 60px;
+  background: #2a2a2a;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #000;
+}
+
+.piano-key {
+  height: 20px; /* rowHeight */
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+  color: #000;
+  font-size: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+}
+
+.piano-key.black {
+  background: #333;
+  color: #fff;
+  border-bottom-color: #111;
 }
 
 .grid-scroll-area {
-  flex-grow: 1;
-  overflow: scroll;
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background-image:
+    linear-gradient(var(--pr-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--pr-border) 1px, transparent 1px);
+  background-size: 40px 20px; /* cellWidth rowHeight */
 }
 
-/* AI Tools Section */
-.ai-tools-section {
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--pr-border-color);
+.grid-content {
+  position: relative;
 }
 
-.ai-tools-section h2,
-.track-list-section h2 {
-  margin-bottom: 1rem;
-}
-
-.control-group {
-  margin-bottom: 1rem;
-}
-
-.control-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: var(--pr-text-muted);
-}
-
-.control-group input[type='range'],
-.control-group select {
-  width: 100%;
-}
-
-.ai-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-/* Note Inspector & MIDI Tools */
-.note-inspector,
-.midi-tool-actions {
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.midi-tool-actions button,
-.note-inspector button {
-  justify-content: center;
-}
-
-.note-inspector.disabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-/* General UI Elements */
-button {
-  background: #444;
-  color: white;
-  border: 1px solid #666;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
+.note {
+  position: absolute;
+  height: 18px; /* rowHeight - 2 */
+  background: var(--fl-blue);
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   cursor: pointer;
 }
 
-button:hover {
-  background: #555;
+.note.selected {
+  background: var(--fl-orange);
+  border-color: #fff;
+  box-shadow: 0 0 10px var(--fl-orange);
+  z-index: 5;
 }
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+
+.note-velocity-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.pr-sidebar-right {
+  width: 200px;
+  background: #1e1e1e;
+  border-left: 1px solid #000;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+h3,
+h2 {
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #666;
+  margin-bottom: 0.5rem;
+  letter-spacing: 1px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.control-group label {
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #555;
+}
+
+button {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  color: #ccc;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background: #333;
+  color: #fff;
+}
+
+button.active {
+  background: var(--fl-blue);
+  color: #000;
+  border-color: var(--fl-blue);
 }
 
 select,
-input[type='text'] {
-  background: #333;
-  color: white;
-  border: 1px solid #555;
-  padding: 0.5rem;
-  border-radius: 4px;
+input[type='range'] {
   width: 100%;
+}
+
+.selection-box {
+  position: absolute;
+  border: 1px solid var(--fl-blue);
+  background: rgba(0, 210, 255, 0.1);
+  pointer-events: none;
 }

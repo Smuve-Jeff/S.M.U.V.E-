@@ -12,7 +12,7 @@ import {
   AfterViewInit,
   HostListener,
 } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { AppTheme } from '../../services/user-context.service';
 import { FileLoaderService } from '../../services/file-loader.service';
 import { ExportService } from '../../services/export.service';
@@ -25,7 +25,6 @@ import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { PlayerService } from '../../services/player.service';
 import { AiService as NeuralOrchestratorService } from '../../services/ai.service';
-import { DeckControlsComponent } from './deck-controls.component';
 
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
@@ -37,7 +36,7 @@ const MIN_SAMPLER_RETURN_MILLIS = 80;
   styleUrl: './dj-deck.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, DeckControlsComponent, FormsModule, DecimalPipe],
+  imports: [CommonModule, FormsModule],
 })
 export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('waveformA') waveformA!: ElementRef<HTMLCanvasElement>;
@@ -228,12 +227,23 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       ) {
         this.drawWaveforms();
         this.drawMeters();
+        this.updateRotations();
         this.lastRenderTimestamp = timestamp;
       }
 
       this.animFrame = requestAnimationFrame(loop);
     };
     this.animFrame = requestAnimationFrame(loop);
+  }
+  private updateRotations() {
+    const stateA = this.deckService.deckA();
+    const stateB = this.deckService.deckB();
+    if (stateA.isPlaying && !this.isScratchingA()) {
+      this.rotationA.update((r) => (r + stateA.playbackRate * 2.5) % 360);
+    }
+    if (stateB.isPlaying && !this.isScratchingB()) {
+      this.rotationB.update((r) => (r + stateB.playbackRate * 2.5) % 360);
+    }
   }
 
   private drawWaveforms() {
