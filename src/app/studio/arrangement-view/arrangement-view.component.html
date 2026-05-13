@@ -39,7 +39,7 @@
             </button>
             <button
               class="mini-btn"
-              [class.active-mute]="track.muted"
+              [class.active-mute]="track.mute"
               (click)="toggleMute(track.id); $event.stopPropagation()"
             >
               M
@@ -47,7 +47,7 @@
           </div>
         </div>
         <div class="track-volume-bar">
-          <div class="volume-fill" [style.width.%]="track.muted ? 0 : 75"></div>
+          <div class="volume-fill" [style.width.%]="track.mute ? 0 : 75"></div>
         </div>
       </div>
     </div>

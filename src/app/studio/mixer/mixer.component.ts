@@ -1,8 +1,6 @@
 import { Component, Input, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioSessionService } from '../audio-session.service';
-import { ChannelStripComponent } from '../channel-strip/channel-strip.component';
-import { VocalSuiteComponent } from '../vocal-suite/vocal-suite.component';
 import {
   MusicManagerService,
   TrackModel,

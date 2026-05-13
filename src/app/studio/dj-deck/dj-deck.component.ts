@@ -25,7 +25,6 @@ import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { PlayerService } from '../../services/player.service';
 import { AiService as NeuralOrchestratorService } from '../../services/ai.service';
-import { DeckControlsComponent } from './deck-controls.component';
 
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
