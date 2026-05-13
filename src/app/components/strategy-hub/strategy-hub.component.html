@@ -6,7 +6,7 @@
     <div class="flex flex-col">
       <div class="flex items-center gap-3 mb-2">
         <div
-          class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse-subtle"
+          class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse-subtle retro-flicker"
         ></div>
         <span
           class="text-[9px] md:text-[10px] font-black text-silver-dim uppercase tracking-[0.3em] md:tracking-[0.4em]"
@@ -26,7 +26,7 @@
 
     <!-- Tab Container with horizontal scroll on mobile -->
     <div
-      class="flex items-center gap-1 p-1 overflow-x-auto no-scrollbar bg-brand-surface/40 rounded-2xl border border-white/10 max-w-full"
+      class="flex items-center gap-1 p-1 overflow-x-auto no-scrollbar glass-v42 shadow-v42-xl rounded-2xl border border-white/10 max-w-full"
     >
       @for (
         tab of ['overview', 'campaigns', 'analytics', 'outreach', 'social'];
@@ -213,7 +213,7 @@
 
       <div class="col-span-12 lg:col-span-4 space-y-6 md:space-y-8">
         <div
-          class="bg-brand-surface/40 rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10"
+          class="glass-v42 shadow-v42-xl rounded-2xl md:rounded-3xl p-6 md:p-8 border border-white/10"
         >
           <h2
             class="text-[11px] md:text-sm font-black text-white uppercase tracking-[0.2em] mb-6 flex items-center gap-3"
@@ -281,7 +281,7 @@
               </div>
               <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
                 <div
-                  class="h-full bg-brand-accent animate-pulse-subtle"
+                  class="h-full bg-brand-accent animate-pulse-subtle retro-flicker"
                   [style.width.%]="aiService.systemStatus().neuralSync"
                 ></div>
               </div>
@@ -431,7 +431,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           @for (campaign of campaigns(); track campaign.id) {
             <div
-              class="campaign-card bg-brand-surface/40 rounded-2xl border border-white/10 p-6 hover:border-brand-primary/30 transition-all group"
+              class="campaign-card glass-v42 shadow-v42-xl rounded-2xl border border-white/10 p-6 hover:border-brand-primary/30 transition-all group"
             >
               <div class="flex justify-between items-start mb-4">
                 <h3
@@ -525,7 +525,7 @@
       <!-- Aggregate Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div
-          class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
+          class="glass-v42 shadow-v42-xl rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
         >
           <span
             class="text-[8px] font-black text-silver-dim uppercase tracking-widest"
@@ -539,7 +539,7 @@
           >
         </div>
         <div
-          class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
+          class="glass-v42 shadow-v42-xl rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
         >
           <span
             class="text-[8px] font-black text-silver-dim uppercase tracking-widest"
@@ -551,7 +551,7 @@
           <span class="text-[8px] text-brand-primary uppercase">All-time</span>
         </div>
         <div
-          class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
+          class="glass-v42 shadow-v42-xl rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
         >
           <span
             class="text-[8px] font-black text-silver-dim uppercase tracking-widest"
@@ -565,7 +565,7 @@
           >
         </div>
         <div
-          class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
+          class="glass-v42 shadow-v42-xl rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
         >
           <span
             class="text-[8px] font-black text-silver-dim uppercase tracking-widest"
@@ -871,7 +871,7 @@
         <div class="space-y-3">
           @for (rec of upgradeRecs(); track rec.id) {
             <div
-              class="flex items-start gap-4 bg-brand-surface/40 rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group"
+              class="flex items-start gap-4 glass-v42 shadow-v42-xl rounded-2xl border border-white/10 p-5 hover:border-brand-primary/30 transition-all group"
               [attr.data-testid]="'strategy-recommendation-' + rec.id"
             >
               <div
@@ -1114,7 +1114,7 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         @for (platform of socialStats(); track platform.platform) {
           <div
-            class="bg-brand-surface/40 rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
+            class="glass-v42 shadow-v42-xl rounded-2xl border border-white/10 p-5 flex flex-col gap-2"
           >
             <span
               class="text-[8px] font-black text-silver-dim uppercase tracking-widest"
