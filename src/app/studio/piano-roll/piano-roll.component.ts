@@ -377,7 +377,7 @@ export class PianoRollComponent implements AfterViewInit {
     return Array.from({ length: this.numMeasures }, (_, i) => ({
       index: i,
       noteCount:
-        this.selectedTrack()?.notes.filter((n: any) => Math.floor(n.step / 16) === i)
+this.selectedTrack()?.notes.filter((n: TrackNote) => Math.floor(n.step / 16) === i)
           .length || 0,
     }));
   }
