@@ -34,7 +34,9 @@ export class MixerComponent {
   selectedTrackId = this.musicManager.selectedTrackId;
   tracks = this.musicManager.tracks;
 
-  selectedTrack = computed(() => this.tracks().find(t => t.id === this.selectedTrackId()));
+  selectedTrack = computed(() =>
+    this.tracks().find((t) => t.id === this.selectedTrackId())
+  );
 
   viewMode = signal<'compact' | 'expanded'>('expanded');
   showVocalSuite = signal(false);

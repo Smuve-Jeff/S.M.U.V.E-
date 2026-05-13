@@ -1,7 +1,14 @@
 import { Injectable, signal } from '@angular/core';
-import { AppTheme } from './app-theme';
 
-export type { AppTheme };
+export interface AppTheme {
+  name: string;
+  primary: string;
+  accent: string;
+  neutral: string;
+  purple: string;
+  red: string;
+  blue: string;
+}
 
 export type MainViewMode =
   | 'hub'
@@ -28,89 +35,56 @@ export type MainViewMode =
   | 'knowledge-base'
   | 'business-suite'
   | 'business-pipeline'
+  | 'mixer'
+  | 'drum-machine'
+  | 'mastering'
+  | 'dj-deck'
   | 'settings';
 
-export type { MainViewMode as ViewMode };
-
-export interface Track {
-  name: string;
-  url: string;
-  artist?: string;
-  albumArtUrl?: string;
-  videoSrc?: string;
-}
-export interface EqBand {
-  label: string;
-  value: number;
-}
-export interface Enhancements {
-  bassBoost: boolean;
-  surroundSound: boolean;
-}
-
 export interface Stems {
-  vocals: number;
-  drums: number;
-  bass: number;
-  instrumental: number;
+  vocals: AudioBuffer;
+  drums: AudioBuffer;
+  bass: AudioBuffer;
+  instrumental: AudioBuffer;
+  other: AudioBuffer;
 }
 
 export interface DeckState {
-  track: Track;
-  isPlaying: boolean;
+  track: any;
+  bpm: number;
+  playbackRate: number;
   progress: number;
   duration: number;
-  playbackRate: number;
-  vinylImageUrl?: string;
-  filterFreq: number;
-  loop: boolean;
   gain: number;
+  filterFreq: number;
   eqHigh: number;
   eqMid: number;
   eqLow: number;
-  wasPlayingBeforeScratch?: boolean;
-  buffer?: AudioBuffer;
+  slip: boolean;
+  isPlaying: boolean;
+  loop: boolean;
   hotCues: (number | null)[];
   samplerPads: (number | null)[];
-  keyLock: boolean;
-  loopLength: number;
-  slip: boolean;
-  bpm: number;
-  beatGridOffset: number;
-  sendA: number;
-  sendB: number;
-  stemGains: Stems;
+  stemGains: Record<string, number>;
 }
 
 export const initialDeckState: DeckState = {
-  track: {
-    name: 'NO SIGNAL',
-    url: '',
-    artist: 'Load a track into deck',
-    albumArtUrl: 'https://picsum.photos/seed/placeholder/500/500',
-  },
-  isPlaying: false,
+  track: null,
+  bpm: 128,
+  playbackRate: 1,
   progress: 0,
   duration: 0,
-  playbackRate: 1,
-  vinylImageUrl: 'https://picsum.photos/seed/placeholder/200/200',
-  filterFreq: 20000,
-  loop: false,
-  gain: 1.0,
+  gain: 1,
+  filterFreq: 15000,
   eqHigh: 0,
   eqMid: 0,
   eqLow: 0,
-  wasPlayingBeforeScratch: false,
+  slip: false,
+  isPlaying: false,
+  loop: false,
   hotCues: new Array(8).fill(null),
   samplerPads: new Array(8).fill(null),
-  keyLock: true,
-  loopLength: 4,
-  slip: false,
-  bpm: 128,
-  beatGridOffset: 0,
-  sendA: 0,
-  sendB: 0,
-  stemGains: { vocals: 1, drums: 1, bass: 1, instrumental: 1 },
+  stemGains: { vocals: 1, drums: 1, bass: 1, instrumental: 1, other: 1 },
 };
 
 @Injectable({
@@ -118,18 +92,13 @@ export const initialDeckState: DeckState = {
 })
 export class UserContextService {
   mainViewMode = signal<MainViewMode>('tha-spot');
-  lastUsedTheme = signal<AppTheme | null>(null);
-  lastGeneratedImageUrl = signal<string | null>(null);
+  appTheme = signal<any>('analog-v42');
 
   setMainViewMode(mode: MainViewMode): void {
     this.mainViewMode.set(mode);
   }
 
-  setTheme(theme: AppTheme): void {
-    this.lastUsedTheme.set(theme);
-  }
-
-  setLastImageUrl(url: string): void {
-    this.lastGeneratedImageUrl.set(url);
+  setAppTheme(theme: any): void {
+    this.appTheme.set(theme);
   }
 }

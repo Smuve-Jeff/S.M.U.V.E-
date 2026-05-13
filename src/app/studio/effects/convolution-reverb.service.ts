@@ -4,14 +4,16 @@ import { firstValueFrom } from 'rxjs';
 import { AudioEngineService } from '../../services/audio-engine.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ConvolutionReverbService {
   private readonly http = inject(HttpClient);
   private readonly audioEngine = inject(AudioEngineService);
 
   async loadImpulseResponse(url: string): Promise<AudioBuffer> {
-    const response = await firstValueFrom(this.http.get(url, { responseType: 'arraybuffer' }));
+    const response = await firstValueFrom(
+      this.http.get(url, { responseType: 'arraybuffer' })
+    );
     return this.audioEngine.ctx.decodeAudioData(response);
   }
 
@@ -25,7 +27,10 @@ class ConvolutionReverb {
   private readonly wetGain: GainNode;
   private readonly dryGain: GainNode;
 
-  constructor(private readonly context: AudioContext, impulseResponse: AudioBuffer) {
+  constructor(
+    private readonly context: AudioContext,
+    impulseResponse: AudioBuffer
+  ) {
     this.convolver = this.context.createConvolver();
     this.convolver.buffer = impulseResponse;
     this.wetGain = this.context.createGain();
@@ -47,12 +52,20 @@ class ConvolutionReverb {
     this.convolver.disconnect();
   }
 
-  set(options: { wet?: number, dry?: number }) {
+  set(options: { wet?: number; dry?: number }) {
     if (options.wet !== undefined) {
-      this.wetGain.gain.setTargetAtTime(options.wet, this.context.currentTime, 0.01);
+      this.wetGain.gain.setTargetAtTime(
+        options.wet,
+        this.context.currentTime,
+        0.01
+      );
     }
     if (options.dry !== undefined) {
-      this.dryGain.gain.setTargetAtTime(options.dry, this.context.currentTime, 0.01);
+      this.dryGain.gain.setTargetAtTime(
+        options.dry,
+        this.context.currentTime,
+        0.01
+      );
     }
   }
 }

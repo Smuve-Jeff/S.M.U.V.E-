@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { NeuralOrchestratorService, UpgradeRecommendation } from '../ai.service';
+import {
+  NeuralOrchestratorService,
+  UpgradeRecommendation,
+} from '../ai.service';
 import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
 import { AnalyticsService } from '../analytics.service';
@@ -45,7 +48,12 @@ describe('NeuralOrchestratorService', () => {
         primaryGenre: 'Electronic',
         tasks: [],
         skills: [],
-        expertiseLevels: { production: 5, marketing: 5, mastering: 5, audioEngineering: 5 },
+        expertiseLevels: {
+          production: 5,
+          marketing: 5,
+          mastering: 5,
+          audioEngineering: 5,
+        },
       }),
     };
 
@@ -74,7 +82,9 @@ describe('NeuralOrchestratorService', () => {
     });
 
     service = TestBed.inject(NeuralOrchestratorService);
-    jest.spyOn(service as any, 'getRankedUpgrades').mockReturnValue([mockUpgrade]);
+    jest
+      .spyOn(service as any, 'getRankedUpgrades')
+      .mockReturnValue([mockUpgrade]);
   });
 
   it('should be created', () => {
@@ -86,22 +96,28 @@ describe('NeuralOrchestratorService', () => {
     service.unlockUpgrade('test-upgrade');
     expect(service.isProcessing()).toBe(true);
     setTimeout(() => {
-        expect(service.isUnlocked('test-upgrade')).toBe(true);
-        expect(service.isProcessing()).toBe(false);
-        done();
+      expect(service.isUnlocked('test-upgrade')).toBe(true);
+      expect(service.isProcessing()).toBe(false);
+      done();
     }, 1600);
   });
 
   it('should not try to unlock an already unlocked upgrade', () => {
     service.unlockedUpgrades.set(['test-upgrade']);
     service.unlockUpgrade('test-upgrade');
-    expect(loggingServiceMock.info).toHaveBeenCalledWith('Upgrade test-upgrade is already unlocked.');
+    expect(loggingServiceMock.info).toHaveBeenCalledWith(
+      'Upgrade test-upgrade is already unlocked.'
+    );
   });
-  
+
   it('should get an AI response using the AIAgent', async () => {
-    const response = await service.getAIResponse('Provide a detailed analysis of the Test Upgrade upgrade.');
+    const response = await service.getAIResponse(
+      'Provide a detailed analysis of the Test Upgrade upgrade.'
+    );
     expect(service.isProcessing()).toBe(false);
-    expect(response).toContain('The **Test Upgrade** is a **High**-impact upgrade');
+    expect(response).toContain(
+      'The **Test Upgrade** is a **High**-impact upgrade'
+    );
   });
 
   it('should handle getAIResponse when no upgrades are available', async () => {

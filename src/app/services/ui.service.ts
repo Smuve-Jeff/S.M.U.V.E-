@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   signal,
@@ -148,7 +147,6 @@ export class UIService {
   toggleHolographicMode() {
     this.holographicMode.update((v) => !v);
   }
-
 
   toggleTheme() {
     const nextTheme = this.activeTheme().name === 'Light' ? 'Dark' : 'Light';

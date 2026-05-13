@@ -46,8 +46,12 @@
   border-radius: 12px;
 }
 
-#deck-a { border-left: 5px solid var(--deck-a-color); }
-#deck-b { border-right: 5px solid var(--deck-b-color); }
+#deck-a {
+  border-left: 5px solid var(--deck-a-color);
+}
+#deck-b {
+  border-right: 5px solid var(--deck-b-color);
+}
 
 .deck-stems {
   margin-top: auto;
@@ -81,7 +85,7 @@
   font-weight: 600;
 }
 
-.stem-fader-group input[type="range"] {
+.stem-fader-group input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   writing-mode: bt-lr; /* Vertical slider */

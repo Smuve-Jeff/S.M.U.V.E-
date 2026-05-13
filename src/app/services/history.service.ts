@@ -112,8 +112,8 @@ export class HistoryService {
    */
   toJSON(): SerializableHistoryState {
     return {
-      undoStack: this.undoStack.map(action => action.description),
-      redoStack: this.redoStack.map(action => action.description),
+      undoStack: this.undoStack.map((action) => action.description),
+      redoStack: this.redoStack.map((action) => action.description),
     };
   }
 
@@ -129,15 +129,27 @@ export class HistoryService {
     // because the functions can't be serialized. We're just restoring the text.
     // In a real-world application, you'd need a factory or a mapping to
     // recreate the action objects from the descriptions or an action ID.
-    this.undoStack = json.undoStack.map(description => ({
+    this.undoStack = json.undoStack.map((description) => ({
       description,
-      undo: () => console.warn(`Cannot undo '${description}': action was restored from serialized state.`),
-      redo: () => console.warn(`Cannot redo '${description}': action was restored from serialized state.`),
+      undo: () =>
+        console.warn(
+          `Cannot undo '${description}': action was restored from serialized state.`
+        ),
+      redo: () =>
+        console.warn(
+          `Cannot redo '${description}': action was restored from serialized state.`
+        ),
     }));
-    this.redoStack = json.redoStack.map(description => ({
+    this.redoStack = json.redoStack.map((description) => ({
       description,
-      undo: () => console.warn(`Cannot undo '${description}': action was restored from serialized state.`),
-      redo: () => console.warn(`Cannot redo '${description}': action was restored from serialized state.`),
+      undo: () =>
+        console.warn(
+          `Cannot undo '${description}': action was restored from serialized state.`
+        ),
+      redo: () =>
+        console.warn(
+          `Cannot redo '${description}': action was restored from serialized state.`
+        ),
     }));
     this.updateSignals();
   }

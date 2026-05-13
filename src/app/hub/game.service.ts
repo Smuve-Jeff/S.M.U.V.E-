@@ -47,7 +47,14 @@ const THA_SPOT_FEED_URL = '/assets/data/tha-spot-feed.json';
 export type GameSortMode = 'Popular' | 'Rating' | 'Newest' | 'Name' | 'Queue';
 
 function isManagedGameAssetUrl(url: string) {
-  const approvedDomains = ['retrogames.cc', 'dos.zone', 'gamepix.com', 'github.io', 'pacman.live', 'play2048.co'];
+  const approvedDomains = [
+    'retrogames.cc',
+    'dos.zone',
+    'gamepix.com',
+    'github.io',
+    'pacman.live',
+    'play2048.co',
+  ];
   return (
     url.startsWith('/assets/games/') ||
     approvedDomains.some((domain) => {
@@ -126,9 +133,7 @@ function normalizeLaunchConfig(
     embedMode === 'inline' ? config?.telemetryMode || 'frame-only' : 'none';
   const baseTrustNote =
     asString(config?.trustNote) ||
-    (embedMode === 'external-only'
-      ? 'Launches in a separate tab.'
-      : '');
+    (embedMode === 'external-only' ? 'Launches in a separate tab.' : '');
   const trustNote =
     embedMode === 'external-only' && baseTrustNote
       ? `${baseTrustNote} Launches in a separate tab.`

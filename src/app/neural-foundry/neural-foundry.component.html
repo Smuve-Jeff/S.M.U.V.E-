@@ -5,7 +5,11 @@
   </header>
 
   <div class="upgrades-list">
-    <div *ngFor="let upgrade of availableUpgrades()" class="upgrade-card" [class.unlocked]="upgrade.state === 'unlocked'">
+    <div
+      *ngFor="let upgrade of availableUpgrades()"
+      class="upgrade-card"
+      [class.unlocked]="upgrade.state === 'unlocked'"
+    >
       <div class="card-header">
         <span class="upgrade-type">{{ upgrade.type }}</span>
         <h2 class="upgrade-title">{{ upgrade.title }}</h2>
@@ -13,22 +17,32 @@
 
       <div class="card-body">
         <p class="upgrade-description">{{ upgrade.description }}</p>
-        <p class="upgrade-rationale"><strong>Rationale:</strong> {{ upgrade.rationale }}</p>
+        <p class="upgrade-rationale">
+          <strong>Rationale:</strong> {{ upgrade.rationale }}
+        </p>
       </div>
 
       <div class="card-footer">
         <div class="upgrade-meta">
           <span><strong>Impact:</strong> {{ upgrade.impact }}</span>
           <span><strong>Target:</strong> {{ upgrade.targetArea }}</span>
-          <span><strong>Metric:</strong> {{ upgrade.outcomeMetric.label }} ({{ upgrade.outcomeMetric.value }})</span>
+          <span
+            ><strong>Metric:</strong> {{ upgrade.outcomeMetric.label }} ({{
+              upgrade.outcomeMetric.value
+            }})</span
+          >
         </div>
-        <button class="unlock-button" (click)="unlock(upgrade)" [disabled]="upgrade.state !== 'locked' || isProcessing()">
+        <button
+          class="unlock-button"
+          (click)="unlock(upgrade)"
+          [disabled]="upgrade.state !== 'locked' || isProcessing()"
+        >
           {{ getUpgradeStatus(upgrade) }}
         </button>
       </div>
     </div>
     <div *ngIf="availableUpgrades().length === 0" class="no-upgrades">
-        <p>All available Neural Upgrades have been unlocked.</p>
+      <p>All available Neural Upgrades have been unlocked.</p>
     </div>
   </div>
 </div>

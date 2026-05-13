@@ -64,12 +64,12 @@ export class DeckService {
 
   onStemGainChange(deck: DeckId, event: { stem: keyof Stems; gain: number }) {
     const target = deck === 'A' ? this.deckA : this.deckB;
-    target.update(d => ({ 
-      ...d, 
-      stemGains: { 
-        ...d.stemGains, 
-        [event.stem]: event.gain 
-      } 
+    target.update((d) => ({
+      ...d,
+      stemGains: {
+        ...d.stemGains,
+        [event.stem]: event.gain,
+      },
     }));
     this.engine.setDeckStemGain(deck, event.stem, event.gain);
   }
@@ -182,7 +182,7 @@ export class DeckService {
     else this.deckB.update((d) => ({ ...d, filterFreq: freq }));
   }
 
-  setDeckSend(deck: DeckId, send: 'A' | 'B', gain:.number) {
+  setDeckSend(deck: DeckId, send: 'A' | 'B', gain: number) {
     this.engine.setDeckSend(deck, send, gain);
     if (deck === 'A')
       this.deckA.update((d) => ({

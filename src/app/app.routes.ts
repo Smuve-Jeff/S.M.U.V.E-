@@ -16,7 +16,9 @@ export const routes: Routes = [
   {
     path: 'vocal-suite',
     loadComponent: () =>
-      import('./studio/vocal-suite/vocal-suite.component').then((m) => m.VocalSuiteComponent),
+      import('./studio/vocal-suite/vocal-suite.component').then(
+        (m) => m.VocalSuiteComponent
+      ),
   },
   {
     path: 'profile',
@@ -161,7 +163,9 @@ export const routes: Routes = [
   {
     path: 'dj',
     loadComponent: () =>
-      import('./studio/dj-deck/dj-deck.component').then((m) => m.DjDeckComponent),
+      import('./studio/dj-deck/dj-deck.component').then(
+        (m) => m.DjDeckComponent
+      ),
   },
   {
     path: 'piano-roll',
@@ -206,5 +210,7 @@ for (const route of routes) {
     continue;
   }
 
-  route.canActivate = route.canActivate ? [...route.canActivate, authGuard] : [authGuard];
+  route.canActivate = route.canActivate
+    ? [...route.canActivate, authGuard]
+    : [authGuard];
 }

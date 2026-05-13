@@ -1,13 +1,13 @@
 <div class="drum-machine-container">
-    <!-- Quantum Drum Engine -->
-    <div *ngIf="hasQuantumDrumEngine()" class="quantum-engine-controls">
-        <button (click)="generateQuantumGroove()" [disabled]="isGenerating()">
-            {{ isGenerating() ? 'Generating...' : 'Generate Quantum Groove' }}
-        </button>
-    </div>
+  <!-- Quantum Drum Engine -->
+  <div *ngIf="hasQuantumDrumEngine()" class="quantum-engine-controls">
+    <button (click)="generateQuantumGroove()" [disabled]="isGenerating()">
+      {{ isGenerating() ? 'Generating...' : 'Generate Quantum Groove' }}
+    </button>
+  </div>
 
-    <!-- Existing Drum Machine UI -->
-    <div class="sequencer-grid">
-        <!-- ... pads and steps ... -->
-    </div>
+  <!-- Existing Drum Machine UI -->
+  <div class="sequencer-grid">
+    <!-- ... pads and steps ... -->
+  </div>
 </div>

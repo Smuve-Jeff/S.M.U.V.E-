@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { AudioEngineService } from '../../services/audio-engine.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class CompressorService {
   private readonly audioEngine = inject(AudioEngineService);
@@ -37,14 +37,15 @@ class Compressor {
 
   set(options: any) {
     for (const key in options) {
-      if (this.compressor[key as keyof DynamicsCompressorNode] instanceof AudioParam) {
-        (this.compressor[key as keyof DynamicsCompressorNode] as AudioParam).setTargetAtTime(
-          options[key],
-          this.context.currentTime,
-          0.01
-        );
+      const target = this.compressor[key as keyof DynamicsCompressorNode];
+      if (target instanceof AudioParam) {
+        target.setTargetAtTime(options[key], this.context.currentTime, 0.01);
       } else {
-        this.compressor[key as keyof DynamicsCompressorNode] = options[key];
+        try {
+          (this.compressor as any)[key] = options[key];
+        } catch (e) {
+          // Ignore read-only properties
+        }
       }
     }
   }

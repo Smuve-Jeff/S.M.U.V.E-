@@ -57,7 +57,7 @@ export class ProjectsComponent {
   ];
 
   constructor() {
-    this.projectService.list.subscribe(projects => {
+    this.projectService.list$.subscribe((projects) => {
       this.projects.set(projects);
       if (projects.length > 0 && !this.selectedProject()) {
         this.selectedProject.set(projects[0]);

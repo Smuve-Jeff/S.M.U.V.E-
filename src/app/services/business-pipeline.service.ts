@@ -324,7 +324,8 @@ export class BusinessPipelineService {
               {
                 id: 'step-1',
                 title: 'Split Sheets',
-                description: 'Define a universal agreement for your collaborators.',
+                description:
+                  'Define a universal agreement for your collaborators.',
                 status: 'Pending',
                 aiGuidance:
                   "Handshakes don't pay the bills. Paperwork does. Get everyone to sign split sheets before the master is done.",

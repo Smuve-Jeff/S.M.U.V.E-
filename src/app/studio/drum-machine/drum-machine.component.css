@@ -1,27 +1,27 @@
 .drum-machine-container {
-    /* ... existing styles ... */
+  /* ... existing styles ... */
 }
 
 .quantum-engine-controls {
-    padding: 1rem;
-    background: #2a2a2a;
-    border-bottom: 1px solid #444;
-    text-align: center;
+  padding: 1rem;
+  background: #2a2a2a;
+  border-bottom: 1px solid #444;
+  text-align: center;
 }
 
 .quantum-engine-controls button {
-    background-color: #00aaff;
-    color: #111;
-    border: none;
-    padding: 0.8rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+  background-color: #00aaff;
+  color: #111;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
 }
 
 .quantum-engine-controls button:disabled {
-    background-color: #555;
-    cursor: not-allowed;
+  background-color: #555;
+  cursor: not-allowed;
 }

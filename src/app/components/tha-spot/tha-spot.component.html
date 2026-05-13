@@ -15,7 +15,9 @@
         <span class="material-symbols-outlined">neurology</span>
       </button>
       <button class="icon-btn" (click)="toggleBrowse()">
-        <span class="material-symbols-outlined">{{ isBrowseView() ? 'grid_view' : 'search' }}</span>
+        <span class="material-symbols-outlined">{{
+          isBrowseView() ? 'grid_view' : 'search'
+        }}</span>
       </button>
     </div>
   </header>
@@ -58,7 +60,8 @@
 
           <div class="rail-scroll custom-scrollbar">
             <div
-              class="game-card-compact glass-v42 storefront-card" [class.elite-cabinet]="game.badgeIds?.includes('elite')"
+              class="game-card-compact glass-v42 storefront-card"
+              [class.elite-cabinet]="game.badgeIds?.includes('elite')"
               [class.elite-tier]="game.badgeIds?.includes('elite')"
               *ngFor="let game of getGamesForRail(rail)"
               (click)="onGameClick(game)"
@@ -96,7 +99,7 @@
     <!-- Browse View: Dedicated Browse with Advanced Filters -->
     <div class="browse-view" *ngIf="isBrowseView()">
       <div class="filter-sidebar glass-v42">
-                <div class="filter-group">
+        <div class="filter-group">
           <label>PLATFORM SECTOR</label>
           <select
             [ngModel]="activePlatform()"
@@ -152,7 +155,11 @@
 
         <div class="filter-group">
           <label>SORT MODE</label>
-          <select [ngModel]="sortMode()" (ngModelChange)="setSortMode($event)" class="glass-v42">
+          <select
+            [ngModel]="sortMode()"
+            (ngModelChange)="setSortMode($event)"
+            class="glass-v42"
+          >
             <option value="Popular">POPULARITY</option>
             <option value="Rating">TOP RATED</option>
             <option value="Newest">RECENT DROPS</option>
@@ -160,13 +167,16 @@
           </select>
         </div>
 
-        <button class="secondary-btn" (click)="toggleBrowse()">BACK TO HUB</button>
+        <button class="secondary-btn" (click)="toggleBrowse()">
+          BACK TO HUB
+        </button>
       </div>
 
       <div class="browse-grid-container custom-scrollbar">
         <div class="browse-grid">
           <div
-            class="game-card-compact glass-v42 storefront-card" [class.elite-cabinet]="game.badgeIds?.includes('elite')"
+            class="game-card-compact glass-v42 storefront-card"
+            [class.elite-cabinet]="game.badgeIds?.includes('elite')"
             [class.elite-tier]="game.badgeIds?.includes('elite')"
             *ngFor="let game of filteredGames()"
             (click)="onGameClick(game)"
@@ -244,10 +254,7 @@
   </aside>
 
   <!-- Matchmaking Overlay -->
-  <div
-    class="matchmaking-overlay"
-    *ngIf="isMatchmaking()"
-  >
+  <div class="matchmaking-overlay" *ngIf="isMatchmaking()">
     <div class="matchmaking-container">
       <div class="scanning-circle">
         <div class="scan-ring"></div>
@@ -285,7 +292,9 @@
             <span class="material-symbols-outlined">sports_esports</span>
             <div class="spec-label">
               <span>CONTROLS</span>
-              <strong>{{ selected.launchConfig?.controls?.join(', ') || 'Neural Map' }}</strong>
+              <strong>{{
+                selected.launchConfig?.controls?.join(', ') || 'Neural Map'
+              }}</strong>
             </div>
           </div>
           <div class="spec-item">
@@ -315,7 +324,10 @@
   >
     <div class="game-console-window glass-v42 shadow-v42-xl">
       <header class="console-header glass-v42">
-        <div class="console-title">{{ active.name | uppercase }} <span class="tag" *ngIf="isRetroOrArcade(active)">[ELITE]</span></div>
+        <div class="console-title">
+          {{ active.name | uppercase }}
+          <span class="tag" *ngIf="isRetroOrArcade(active)">[ELITE]</span>
+        </div>
         <div class="console-actions">
           <button class="icon-btn" (click)="reloadGame()">
             <span class="material-symbols-outlined">refresh</span>

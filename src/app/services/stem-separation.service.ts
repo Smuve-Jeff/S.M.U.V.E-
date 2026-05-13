@@ -1,22 +1,26 @@
 import { Injectable } from '@angular/core';
 
+export interface Stems {
+  vocals: AudioBuffer;
+  drums: AudioBuffer;
+  bass: AudioBuffer;
+  instrumental: AudioBuffer;
+  other: AudioBuffer;
+}
+
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class StemSeparationService {
+  constructor() {}
 
-  constructor() { }
-
-  // This is a placeholder for the actual stem separation logic.
-  // In a real application, this would involve a complex algorithm
-  // or a call to a machine learning model.
-  separate(buffer: AudioBuffer): Record<string, AudioBuffer> {
-    // For now, we'll just return clones of the original buffer.
+  separate(buffer: AudioBuffer): Stems {
     return {
       vocals: this.cloneAudioBuffer(buffer),
       drums: this.cloneAudioBuffer(buffer),
       bass: this.cloneAudioBuffer(buffer),
       instrumental: this.cloneAudioBuffer(buffer),
+      other: this.cloneAudioBuffer(buffer),
     };
   }
 
