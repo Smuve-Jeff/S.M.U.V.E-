@@ -171,7 +171,7 @@ export class MusicManagerService {
     });
     this.loadLastSession();
 
-    (this.engine as any).onStep = (step: number, time: number) => {
+    this.engine.onScheduleStep = (step: number, time: number) => {
       this.currentStep.set(step);
       for (const t of this.tracks()) {
         if (t.mute) continue;
