@@ -93,7 +93,8 @@ export class MixerComponent {
     this.musicManager.toggleSolo(id);
   }
 
-  updateTrackVolume(id: number, value: number) {
+updateTrackVolume(id: number, value: string | number) {
+    const gain = Math.max(0, Math.min(1, parseFloat(value as string) / 100));
     const gain = Math.max(0, Math.min(1, value / 100));
     this.musicManager.tracks.update((tracks) =>
       tracks.map((track) => (track.id === id ? { ...track, gain } : track))
