@@ -86,7 +86,7 @@ export const initialDeckState: DeckState = {
   hotCues: new Array(8).fill(null),
   samplerPads: new Array(8).fill(null),
   stemGains: { vocals: 1, drums: 1, bass: 1, instrumental: 1, other: 1 },
-  vinylImageUrl: "",
+  vinylImageUrl: '',
 };
 
 @Injectable({
