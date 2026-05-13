@@ -690,3 +690,38 @@ body.glow-active::before {
 .perf-mode-active body.glow-active::before {
   opacity: 0.05;
 }
+
+/* S.M.U.V.E. v4.2 Custom Scrollbars for Studio */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #020617;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #af25f4;
+  box-shadow: 0 0 10px #af25f4;
+}
+
+/* Analog v4.2 Theme Global Hooks */
+[data-theme='analog-v42'] {
+  --color-neon: #af25f4;
+  --color-primary: #10b981;
+  --color-accent: #f59e0b;
+  --color-wood: #3d2b1f;
+}
+
+.neon-text {
+  text-shadow: 0 0 10px currentColor;
+}
+
+.glass-v42 {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
