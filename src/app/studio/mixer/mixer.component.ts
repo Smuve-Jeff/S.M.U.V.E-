@@ -14,7 +14,7 @@ import { Clip } from '../instrument.service';
 @Component({
   selector: 'app-mixer',
   standalone: true,
-  imports: [CommonModule, ChannelStripComponent, VocalSuiteComponent],
+  imports: [CommonModule],
   templateUrl: './mixer.component.html',
   styleUrls: ['./mixer.component.css'],
 })
@@ -93,7 +93,7 @@ export class MixerComponent {
     this.musicManager.toggleSolo(id);
   }
 
-  updateTrackGain(id: number, value: number) {
+  updateTrackVolume(id: number, value: number) {
     const gain = Math.max(0, Math.min(1, value / 100));
     this.musicManager.tracks.update((tracks) =>
       tracks.map((track) => (track.id === id ? { ...track, gain } : track))

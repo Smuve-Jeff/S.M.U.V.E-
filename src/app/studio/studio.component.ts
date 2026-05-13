@@ -20,6 +20,7 @@ import { MasteringSuiteComponent } from './mastering-suite/mastering-suite.compo
 import { AudioSessionService } from './audio-session.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { AudioEngineService } from '../services/audio-engine.service';
+import { ChannelRackComponent } from "./channel-rack/channel-rack.component";
 import { AiService as NeuralOrchestratorService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
 import { NotificationService } from '../services/notification.service';
@@ -63,6 +64,7 @@ function isStudioView(value: string): value is StudioView {
     PianoRollComponent,
     MasteringSuiteComponent,
     VocalSuiteComponent,
+    ChannelRackComponent,
     DrumMachineComponent,
     NeuralFoundryComponent,
   ],

@@ -13,8 +13,18 @@
   <!-- Main Studio UI -->
   <div class="studio-main-content">
     <header class="studio-header">
-      <h1 class="studio-title">SMUVE Studio</h1>
+      <h1 class="studio-title">SMUVE <span>Studio</span></h1>
       <div class="header-controls">
+        <button class="header-btn" (click)="setActiveView('dj')">DJ</button>
+        <button class="header-btn" (click)="setActiveView('mixer')">
+          Mixer
+        </button>
+        <button class="header-btn" (click)="setActiveView('piano-roll')">
+          Piano Roll
+        </button>
+        <button class="header-btn" (click)="setActiveView('drum-machine')">
+          Drums
+        </button>
         <button class="header-btn" (click)="toggleNeuralFoundry()">
           Neural Foundry
         </button>
@@ -24,42 +34,34 @@
     <app-transport-bar></app-transport-bar>
 
     <main class="studio-workspace">
-      <app-arrangement-view
-        [class.hidden]="activeView() !== 'dj'"
-      ></app-arrangement-view>
-
-      <!-- Arrangement Co-Pilot Button -->
-      <div *ngIf="hasArrangementCoPilot()" class="co-pilot-controls">
-        <button (click)="invokeArrangementCoPilot()">
-          Invoke Arrangement Co-Pilot
-        </button>
+      <div class="view-wrapper" [class.hidden]="activeView() !== 'dj'">
+        <app-arrangement-view></app-arrangement-view>
+        <app-dj-deck></app-dj-deck>
       </div>
 
-      <app-mixer [class.hidden]="activeView() !== 'mixer'"></app-mixer>
+      <div class="view-wrapper" [class.hidden]="activeView() !== 'mixer'">
+        <app-mixer></app-mixer>
+      </div>
 
-      <!-- Holo-Mixer Button -->
+      <div class="view-wrapper" [class.hidden]="activeView() !== 'piano-roll'">
+        <app-channel-rack></app-channel-rack>
+        <app-piano-roll></app-piano-roll>
+      </div>
+
       <div
-        *ngIf="hasHoloMixer() && activeView() === 'mixer'"
-        class="holo-mixer-controls"
+        class="view-wrapper"
+        [class.hidden]="activeView() !== 'drum-machine'"
       >
-        <button (click)="activateHolographicConsole()">
-          Activate Holographic Console
-        </button>
+        <app-drum-machine></app-drum-machine>
       </div>
 
-      <app-dj-deck [class.hidden]="activeView() !== 'dj'"></app-dj-deck>
-      <app-piano-roll
-        [class.hidden]="activeView() !== 'piano-roll'"
-      ></app-piano-roll>
-      <app-mastering-suite
-        [class.hidden]="activeView() !== 'mastering'"
-      ></app-mastering-suite>
-      <app-vocal-suite
-        [class.hidden]="activeView() !== 'vocal-suite'"
-      ></app-vocal-suite>
-      <app-drum-machine
-        [class.hidden]="activeView() !== 'drum-machine'"
-      ></app-drum-machine>
+      <div class="view-wrapper" [class.hidden]="activeView() !== 'mastering'">
+        <app-mastering-suite></app-mastering-suite>
+      </div>
+
+      <div class="view-wrapper" [class.hidden]="activeView() !== 'vocal-suite'">
+        <app-vocal-suite></app-vocal-suite>
+      </div>
     </main>
   </div>
 </div>
