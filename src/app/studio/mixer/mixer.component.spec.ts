@@ -84,7 +84,7 @@ describe('MixerComponent', () => {
     jest.restoreAllMocks();
   });
 
-  it('updates and clamps track gain', async () => {
+  it('updates and clamps track volume', async () => {
     const { component, musicManagerMock } = await createComponent();
     component.updateTrackVolume(1, 110);
     expect(component.tracks()[0].gain).toBe(1);
