@@ -5,7 +5,6 @@ import {
   signal,
   HostListener,
   computed,
-  ErrorHandler,
   DestroyRef,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -38,12 +37,6 @@ import { InteractionDialogComponent } from './components/interaction-dialog/inte
 import { InteractionDialogService } from './services/interaction-dialog.service';
 import { ViewConfig } from './services/workspace-registry';
 
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
-  prompt(): Promise<void>;
-}
-
 interface NavigationGroup {
   category: ViewConfig['category'];
   label: string;
@@ -67,7 +60,7 @@ interface NavigationGroup {
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
 })
-export class AppComponent implements ErrorHandler {
+export class AppComponent {
   authService = inject(AuthService);
   uiService = inject(UIService);
   aiService = inject(AiService);
@@ -89,8 +82,6 @@ export class AppComponent implements ErrorHandler {
   isAuthRoute = signal(false);
   isSyncCenterOpen = signal(false);
   isMobileWorkspaceTrayOpen = signal(false);
-  installPrompt = signal<BeforeInstallPromptEvent | null>(null);
-
   navigationGroups: NavigationGroup[] = this.buildNavigationGroups();
   activeViewConfig = computed(
     () =>
@@ -131,7 +122,6 @@ export class AppComponent implements ErrorHandler {
 
   constructor() {
     this.checkMobile();
-    this.setupPwaListeners();
     this.setupAppUpdateNotifications();
     this.updateShellFromUrl(this.router.url);
 
@@ -144,25 +134,14 @@ export class AppComponent implements ErrorHandler {
         this.updateShellFromUrl(this.router.url);
       });
 
+    let wasOnline = this.uiService.isOnline();
     effect(() => {
-      if (!this.uiService.isOnline()) {
-        this.notificationService.show('System Offline', 'error', 3000);
+      const isOnline = this.uiService.isOnline();
+      if (isOnline && !wasOnline) {
+        this.notificationService.show('System Online', 'success', 3000);
       }
+      wasOnline = isOnline;
     });
-  }
-
-  handleError(error: any): void {
-    console.error('Global Error Handler:', error);
-    this.notificationService.show(
-      'An unexpected error occurred. Please check the console.',
-      'error'
-    );
-  }
-
-  @HostListener('window:beforeinstallprompt', ['$event'])
-  onBeforeInstallPrompt(event: BeforeInstallPromptEvent) {
-    event.preventDefault();
-    this.installPrompt.set(event);
   }
 
   @HostListener('window:keydown', ['$event'])
@@ -214,15 +193,6 @@ export class AppComponent implements ErrorHandler {
         ['piano-roll', 'tha-spot', 'networking'].includes(path) ||
         (path === 'studio' && this.isMobile())
     );
-  }
-
-  private setupPwaListeners() {
-    if (typeof window === 'undefined') return;
-
-    window.addEventListener('appinstalled', () => {
-      this.installPrompt.set(null);
-      this.notificationService.show('S.M.U.V.E. successfully installed!', 'success');
-    });
   }
 
   private isVersionReadyEvent(event: unknown): event is VersionReadyEvent {
@@ -293,20 +263,6 @@ export class AppComponent implements ErrorHandler {
 
   togglePinnedView(mode: MainViewMode) {
     this.uiService.togglePinnedView(mode);
-  }
-
-  async promptPwaInstall() {
-    const prompt = this.installPrompt();
-    if (!prompt) {
-      this.notificationService.show('Installation is not available at this moment.', 'warn');
-      return;
-    }
-    await prompt.prompt();
-    const choice = await prompt.userChoice;
-    if (choice.outcome === 'accepted') {
-      this.notificationService.show('Beginning S.M.U.V.E. installation...', 'info');
-    }
-    this.installPrompt.set(null);
   }
 
   private buildNavigationGroups(): NavigationGroup[] {

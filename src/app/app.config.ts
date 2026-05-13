@@ -1,6 +1,6 @@
 import {
   ApplicationConfig,
-  provideZoneChangeDetection,
+  provideZonelessChangeDetection,
   isDevMode,
   inject,
   APP_INITIALIZER,
@@ -10,18 +10,13 @@ import { routes } from './app.routes';
 import { provideServiceWorker } from '@angular/service-worker';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
-
 import { provideAiService } from './services/ai.service';
 import { AutoSaveService } from './services/auto-save.service';
-import { HistoryService } from './services/history.service';
-import { SecurityService } from './services/security.service';
 import { LoggingService } from './services/logging.service';
-import { AuthService } from './services/auth.service';
-import { UserProfileService } from './services/user-profile.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideZonelessChangeDetection(),
     provideRouter(routes),
     provideHttpClient(),
     provideServiceWorker('ngsw-worker.js', {
@@ -30,23 +25,18 @@ export const appConfig: ApplicationConfig = {
     }),
     provideAnimations(),
     provideAiService(),
-    // Add new providers here:
-    AuthService,
-    UserProfileService,
-    HistoryService,
-    SecurityService,
-    AutoSaveService,
-    LoggingService,
     {
       provide: APP_INITIALIZER,
-      useFactory: (logger: LoggingService, autoSave: AutoSaveService, auth: AuthService, security: SecurityService) => () => {
-        logger.system('S.M.U.V.E 2.0 Strategic Music Utility Virtual Enterprise Initialized');
-        logger.info('Auth Service Initialized');
-        logger.info('Auto-Save Service Initialized');
-        logger.info('Security Service Initialized');
-        // You can add more initialization logic here if needed
+      useFactory: () => {
+        const logger = inject(LoggingService);
+        const _autoSave = inject(AutoSaveService);
+        return () => {
+          logger.system(
+            'S.M.U.V.E 2.0 Strategic Music Utility Virtual Enterprise Initialized'
+          );
+          logger.info('Auto-Save Service Initialized');
+        };
       },
-      deps: [LoggingService, AutoSaveService, AuthService, SecurityService],
       multi: true,
     },
   ],
