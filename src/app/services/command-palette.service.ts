@@ -80,6 +80,7 @@ const INTERACTION_TIPS: InteractionTip[] = [
   providedIn: 'root',
 })
 export class CommandPaletteService {
+  executeCommandById(id: string) {}
   private uiService = inject(UIService);
   private playerService = inject(PlayerService);
   private aiService = inject(AiService);

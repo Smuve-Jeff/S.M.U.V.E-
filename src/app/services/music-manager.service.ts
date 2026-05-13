@@ -102,6 +102,8 @@ export interface TrackModel {
   providedIn: 'root',
 })
 export class MusicManagerService {
+  projectBPM = signal(120);
+  activeLoopBars = signal(4);
   private logger = inject(LoggingService);
   private instruments = inject(InstrumentsService);
   public engine = inject(AudioEngineService);

@@ -47,7 +47,7 @@ export class SmuveAdvisorComponent {
    */
   refreshAdvice() {
     // Assuming aiService has a method to refresh advice
-    // this.aiService.refreshAdvisorAdvice(); 
+    // this.aiService.refreshAdvisorAdvice();
     console.log('Requesting new advice...');
   }
 

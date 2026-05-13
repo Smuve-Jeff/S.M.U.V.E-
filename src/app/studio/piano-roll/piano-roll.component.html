@@ -1,6 +1,5 @@
 <!-- app/studio/piano-roll/piano-roll.component.html -->
 <div class="piano-roll-container" [class.is-overlay]="isStudioOverlay">
-
   <!-- Header -->
   <header class="pr-header">
     <div class="pr-title">
@@ -9,40 +8,52 @@
     </div>
     <div class="pr-transport">
       <button (click)="togglePlay()" class="play-button">
-        <span class="material-symbols-outlined">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
+        <span class="material-symbols-outlined">{{
+          audioSession.isPlaying() ? 'pause' : 'play_arrow'
+        }}</span>
       </button>
       <div class="bpm-display">{{ musicManager.projectBPM() }} BPM</div>
     </div>
     <div class="pr-header-actions">
-        <button (click)="closeOverlay.emit()" *ngIf="isStudioOverlay">Close</button>
-        <button (click)="goStandalone()" *ngIf="!isStandalone">Open Fullscreen</button>
+      <button (click)="closeOverlay.emit()" *ngIf="isStudioOverlay">
+        Close
+      </button>
+      <button (click)="goStandalone()" *ngIf="!isStandalone">
+        Open Fullscreen
+      </button>
     </div>
   </header>
 
   <!-- Main Content -->
   <div class="pr-main-content">
-
     <!-- Left Sidebar: Tracks & AI -->
     <aside class="pr-sidebar-left" *ngIf="showTrackSidebar()">
-      
       <!-- Track List -->
       <div class="track-list-section">
         <h2>Tracks</h2>
         <div class="track-list">
-          <div *ngFor="let track of musicManager.tracks()" 
-               class="track-item" 
-               [class.selected]="track.id === musicManager.selectedTrackId()"
-               (click)="selectTrack(track)">
+          <div
+            *ngFor="let track of musicManager.tracks()"
+            class="track-item"
+            [class.selected]="track.id === musicManager.selectedTrackId()"
+            (click)="selectTrack(track)"
+          >
             <span class="track-name">{{ track.name }}</span>
-            <span class="track-instrument">{{ instrumentsService.getPresetById(track.instrumentId)?.name }}</span>
-            <button class="remove-track-btn" (click)="removeTrack(track.id)">&times;</button>
+            <span class="track-instrument">{{
+              instrumentsService.getPresetById(track.instrumentId)?.name
+            }}</span>
+            <button class="remove-track-btn" (click)="removeTrack(track.id)">
+              &times;
+            </button>
           </div>
         </div>
         <div class="add-track-form">
-            <select [(ngModel)]="newTrackPresetId">
-              <option *ngFor="let preset of availablePresets" [value]="preset.id">{{ preset.name }}</option>
-            </select>
-            <button (click)="addTrack()">+ Add Track</button>
+          <select [(ngModel)]="newTrackPresetId">
+            <option *ngFor="let preset of availablePresets" [value]="preset.id">
+              {{ preset.name }}
+            </option>
+          </select>
+          <button (click)="addTrack()">+ Add Track</button>
         </div>
       </div>
 
@@ -61,50 +72,96 @@
         </div>
         <div class="control-group">
           <label>Complexity</label>
-          <input type="range" min="0.1" max="1" step="0.1" [(ngModel)]="aiComplexity">
+          <input
+            type="range"
+            min="0.1"
+            max="1"
+            step="0.1"
+            [(ngModel)]="aiComplexity"
+          />
         </div>
-         <div class="control-group">
+        <div class="control-group">
           <label>Temperature</label>
-          <input type="range" min="0.1" max="1.5" step="0.1" [(ngModel)]="aiTemperature">
+          <input
+            type="range"
+            min="0.1"
+            max="1.5"
+            step="0.1"
+            [(ngModel)]="aiTemperature"
+          />
         </div>
         <div class="ai-buttons">
-            <button (click)="generateSequence('melody')" [disabled]="!selectedTrack()">Generate Melody</button>
-            <button (click)="generateSequence('chords')" [disabled]="!selectedTrack()">Generate Chords</button>
-            <button (click)="generateSequence('bassline')" [disabled]="!selectedTrack()">Generate Bassline</button>
-            <button (click)="generateSequence('arpeggio')" [disabled]="!selectedTrack()">Arpeggiate</button>
+          <button
+            (click)="generateSequence('melody')"
+            [disabled]="!selectedTrack()"
+          >
+            Generate Melody
+          </button>
+          <button
+            (click)="generateSequence('chords')"
+            [disabled]="!selectedTrack()"
+          >
+            Generate Chords
+          </button>
+          <button
+            (click)="generateSequence('bassline')"
+            [disabled]="!selectedTrack()"
+          >
+            Generate Bassline
+          </button>
+          <button
+            (click)="generateSequence('arpeggio')"
+            [disabled]="!selectedTrack()"
+          >
+            Arpeggiate
+          </button>
         </div>
         <p class="ai-status" *ngIf="isAiGenerating()">AI is thinking...</p>
       </div>
-
     </aside>
 
     <!-- Center: Grid & Piano -->
     <div class="pr-grid-container">
       <div class="piano-keys">
-        <div *ngFor="let key of getDisplayKeys()" 
-             class="piano-key" 
-             [class.black]="isBlackKey(key)"
-             [class.in-scale]="isInScale(key)">
-             <span>{{ getKeyName(key) }}{{ Math.floor(key / 12) - 1 }}</span>
+        <div
+          *ngFor="let key of getDisplayKeys()"
+          class="piano-key"
+          [class.black]="isBlackKey(key)"
+          [class.in-scale]="isInScale(key)"
+        >
+          <span>{{ getKeyName(key) }}{{ Math.floor(key / 12) - 1 }}</span>
         </div>
       </div>
-      <div class="grid-scroll-area" #scrollContainer (mousedown)="onGridMouseDown($event)">
+      <div
+        class="grid-scroll-area"
+        #scrollContainer
+        (mousedown)="onGridMouseDown($event)"
+      >
         <div class="grid-content" [style.width.px]="gridWidth">
-            <!-- Notes -->
-            <ng-container *ngIf="selectedTrack() as track">
-              <div *ngFor="let note of getVisibleNotes(track)" 
-                   class="note" 
-                   [class.selected]="selectedNoteIds().has(note.id)"
-                   [style.top.px]="(127 - note.midi) * rowHeight"
-                   [style.left.px]="note.step * cellWidth"
-                   [style.width.px]="note.length * cellWidth"
-                   [style.opacity]="note.probability || 1"
-                   (mousedown)="onNoteMouseDown($event, note)">
-                   <div class="note-velocity-bar" [style.height.%]="note.velocity * 100"></div>
-              </div>
-            </ng-container>
-            <!-- Selection Box -->
-            <div class="selection-box" *ngIf="selectionBox().active" [style.transform]="getSelectionBoxTransform()"></div>
+          <!-- Notes -->
+          <ng-container *ngIf="selectedTrack() as track">
+            <div
+              *ngFor="let note of getVisibleNotes(track)"
+              class="note"
+              [class.selected]="selectedNoteIds().has(note.id)"
+              [style.top.px]="(127 - note.midi) * rowHeight"
+              [style.left.px]="note.step * cellWidth"
+              [style.width.px]="note.length * cellWidth"
+              [style.opacity]="note.probability || 1"
+              (mousedown)="onNoteMouseDown($event, note)"
+            >
+              <div
+                class="note-velocity-bar"
+                [style.height.%]="note.velocity * 100"
+              ></div>
+            </div>
+          </ng-container>
+          <!-- Selection Box -->
+          <div
+            class="selection-box"
+            *ngIf="selectionBox().active"
+            [style.transform]="getSelectionBoxTransform()"
+          ></div>
         </div>
       </div>
     </div>
@@ -113,24 +170,54 @@
     <aside class="pr-sidebar-right">
       <h3>Tools</h3>
       <div class="tool-buttons">
-        <button [class.active]="editMode() === 'draw'" (click)="setEditMode('draw')">Draw</button>
-        <button [class.active]="editMode() === 'select'" (click)="setEditMode('select')">Select</button>
+        <button
+          [class.active]="editMode() === 'draw'"
+          (click)="setEditMode('draw')"
+        >
+          Draw
+        </button>
+        <button
+          [class.active]="editMode() === 'select'"
+          (click)="setEditMode('select')"
+        >
+          Select
+        </button>
       </div>
-      
+
       <h3>MIDI Tools</h3>
       <div class="midi-tool-actions">
         <button (click)="quantizeNotes()">Quantize (Q)</button>
         <button (click)="humanizeSelected()">Humanize</button>
-        <button (click)="deleteSelected()" [disabled]="selectedNoteIds().size === 0">Delete (Del)</button>
-        <button (click)="duplicateSelected()" [disabled]="selectedNoteIds().size === 0">Duplicate (Ctrl+D)</button>
+        <button
+          (click)="deleteSelected()"
+          [disabled]="selectedNoteIds().size === 0"
+        >
+          Delete (Del)
+        </button>
+        <button
+          (click)="duplicateSelected()"
+          [disabled]="selectedNoteIds().size === 0"
+        >
+          Duplicate (Ctrl+D)
+        </button>
         <button (click)="duplicateNextBar()">Duplicate Bar</button>
       </div>
 
       <h3>Note Inspector</h3>
-      <div class="note-inspector" [class.disabled]="selectedNoteIds().size === 0">
+      <div
+        class="note-inspector"
+        [class.disabled]="selectedNoteIds().size === 0"
+      >
         <div class="control-group">
           <label>Probability</label>
-          <input type="range" min="0.1" max="1" step="0.1" (input)="setSelectedNoteProbability($event)" [disabled]="selectedNoteIds().size === 0">
+          <input
+            type="range"
+            min="0.1"
+            max="1"
+            step="0.1"
+            (input)="setSelectedNoteProbability($event)"
+            [disabled]="selectedNoteIds().size === 0"
+          />
         </div>
         <div class="control-group">
           <label>Velocity</label>
@@ -149,14 +236,12 @@
           <button (click)="nudgeSelectedOctave(-1)">-Oct</button>
           <button (click)="nudgeSelectedOctave(1)">+Oct</button>
         </div>
-         <div class="control-group">
+        <div class="control-group">
           <label>Velocity Curve</label>
           <button (click)="applyVelocityCurve('crescendo')">Cresc.</button>
           <button (click)="applyVelocityCurve('decrescendo')">Decresc.</button>
         </div>
       </div>
     </aside>
-
   </div>
-
 </div>

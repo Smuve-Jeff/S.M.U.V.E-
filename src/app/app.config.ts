@@ -39,13 +39,22 @@ export const appConfig: ApplicationConfig = {
     LoggingService,
     {
       provide: APP_INITIALIZER,
-      useFactory: (logger: LoggingService, autoSave: AutoSaveService, auth: AuthService, security: SecurityService) => () => {
-        logger.system('S.M.U.V.E 2.0 Strategic Music Utility Virtual Enterprise Initialized');
-        logger.info('Auth Service Initialized');
-        logger.info('Auto-Save Service Initialized');
-        logger.info('Security Service Initialized');
-        // You can add more initialization logic here if needed
-      },
+      useFactory:
+        (
+          logger: LoggingService,
+          autoSave: AutoSaveService,
+          auth: AuthService,
+          security: SecurityService
+        ) =>
+        () => {
+          logger.system(
+            'S.M.U.V.E 2.0 Strategic Music Utility Virtual Enterprise Initialized'
+          );
+          logger.info('Auth Service Initialized');
+          logger.info('Auto-Save Service Initialized');
+          logger.info('Security Service Initialized');
+          // You can add more initialization logic here if needed
+        },
       deps: [LoggingService, AutoSaveService, AuthService, SecurityService],
       multi: true,
     },

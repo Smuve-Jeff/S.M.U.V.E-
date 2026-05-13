@@ -3,12 +3,12 @@ import { MusicManagerService } from '../../services/music-manager.service';
 import { TrackModel } from '../../services/music-manager.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AiMixAssistantService {
   private readonly musicManager = inject(MusicManagerService);
 
-  constructor() { }
+  constructor() {}
 
   analyzeTrack(track: TrackModel): any {
     // Placeholder for track analysis
@@ -18,8 +18,8 @@ export class AiMixAssistantService {
       frequencyContent: {
         low: 0.6,
         mid: 0.4,
-        high: 0.2
-      }
+        high: 0.2,
+      },
     };
   }
 

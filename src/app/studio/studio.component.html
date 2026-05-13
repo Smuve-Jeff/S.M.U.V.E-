@@ -1,41 +1,65 @@
-<div class="studio-container {{ studioQualityClass() }}" [class.holographic]="uiService.holographicMode()">
+<div
+  class="studio-container {{ studioQualityClass() }}"
+  [class.holographic]="uiService.holographicMode()"
+>
   <!-- Neural Foundry Overlay -->
   <div class="neural-foundry-overlay" *ngIf="showNeuralFoundry()">
     <app-neural-foundry></app-neural-foundry>
-    <button class="close-foundry-btn" (click)="toggleNeuralFoundry()">Close</button>
+    <button class="close-foundry-btn" (click)="toggleNeuralFoundry()">
+      Close
+    </button>
   </div>
 
   <!-- Main Studio UI -->
   <div class="studio-main-content">
     <header class="studio-header">
-        <h1 class="studio-title">SMUVE Studio</h1>
-        <div class="header-controls">
-            <button class="header-btn" (click)="toggleNeuralFoundry()">Neural Foundry</button>
-        </div>
+      <h1 class="studio-title">SMUVE Studio</h1>
+      <div class="header-controls">
+        <button class="header-btn" (click)="toggleNeuralFoundry()">
+          Neural Foundry
+        </button>
+      </div>
     </header>
-    
+
     <app-transport-bar></app-transport-bar>
 
     <main class="studio-workspace">
-        <app-arrangement-view [class.hidden]="activeView() !== 'dj'"></app-arrangement-view>
-        
-        <!-- Arrangement Co-Pilot Button -->
-        <div *ngIf="hasArrangementCoPilot()" class="co-pilot-controls">
-            <button (click)="invokeArrangementCoPilot()">Invoke Arrangement Co-Pilot</button>
-        </div>
+      <app-arrangement-view
+        [class.hidden]="activeView() !== 'dj'"
+      ></app-arrangement-view>
 
-        <app-mixer [class.hidden]="activeView() !== 'mixer'"></app-mixer>
+      <!-- Arrangement Co-Pilot Button -->
+      <div *ngIf="hasArrangementCoPilot()" class="co-pilot-controls">
+        <button (click)="invokeArrangementCoPilot()">
+          Invoke Arrangement Co-Pilot
+        </button>
+      </div>
 
-        <!-- Holo-Mixer Button -->
-        <div *ngIf="hasHoloMixer() && activeView() === 'mixer'" class="holo-mixer-controls">
-            <button (click)="activateHolographicConsole()">Activate Holographic Console</button>
-        </div>
+      <app-mixer [class.hidden]="activeView() !== 'mixer'"></app-mixer>
 
-        <app-dj-deck [class.hidden]="activeView() !== 'dj'"></app-dj-deck>
-        <app-piano-roll [class.hidden]="activeView() !== 'piano-roll'"></app-piano-roll>
-        <app-mastering-suite [class.hidden]="activeView() !== 'mastering'"></app-mastering-suite>
-        <app-vocal-suite [class.hidden]="activeView() !== 'vocal-suite'"></app-vocal-suite>
-        <app-drum-machine [class.hidden]="activeView() !== 'drum-machine'"></app-drum-machine>
+      <!-- Holo-Mixer Button -->
+      <div
+        *ngIf="hasHoloMixer() && activeView() === 'mixer'"
+        class="holo-mixer-controls"
+      >
+        <button (click)="activateHolographicConsole()">
+          Activate Holographic Console
+        </button>
+      </div>
+
+      <app-dj-deck [class.hidden]="activeView() !== 'dj'"></app-dj-deck>
+      <app-piano-roll
+        [class.hidden]="activeView() !== 'piano-roll'"
+      ></app-piano-roll>
+      <app-mastering-suite
+        [class.hidden]="activeView() !== 'mastering'"
+      ></app-mastering-suite>
+      <app-vocal-suite
+        [class.hidden]="activeView() !== 'vocal-suite'"
+      ></app-vocal-suite>
+      <app-drum-machine
+        [class.hidden]="activeView() !== 'drum-machine'"
+      ></app-drum-machine>
     </main>
   </div>
 </div>

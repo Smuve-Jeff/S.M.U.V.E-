@@ -11,7 +11,7 @@
 }
 
 .piano-roll-container {
-  height: 100vh; 
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--pr-bg);
@@ -19,8 +19,8 @@
 }
 
 .pr-header {
-  display: flex; 
-  align-items: center; 
+  display: flex;
+  align-items: center;
   padding: 0 1rem;
   height: 60px;
   background: var(--pr-header-bg);
@@ -28,12 +28,13 @@
 }
 
 .pr-main-content {
-  flex-grow: 1; 
-  display: flex; 
+  flex-grow: 1;
+  display: flex;
   overflow: hidden;
 }
 
-.pr-sidebar-left, .pr-sidebar-right {
+.pr-sidebar-left,
+.pr-sidebar-right {
   width: 280px;
   flex-shrink: 0;
   background: var(--pr-sidebar-bg);
@@ -42,23 +43,23 @@
   border-right: 1px solid var(--pr-border-color);
 }
 
-.pr-sidebar-right { 
+.pr-sidebar-right {
   border-right: none;
   border-left: 1px solid var(--pr-border-color);
 }
 
 .pr-grid-container {
-  flex-grow: 1; 
+  flex-grow: 1;
   display: flex;
 }
 
 .piano-keys {
-  width: 100px; 
+  width: 100px;
   background: #3a3a3a;
 }
 
 .grid-scroll-area {
-  flex-grow: 1; 
+  flex-grow: 1;
   overflow: scroll;
 }
 
@@ -69,7 +70,8 @@
   border-top: 1px solid var(--pr-border-color);
 }
 
-.ai-tools-section h2, .track-list-section h2 {
+.ai-tools-section h2,
+.track-list-section h2 {
   margin-bottom: 1rem;
 }
 
@@ -78,12 +80,13 @@
 }
 
 .control-group label {
-  display: block; 
-  margin-bottom: 0.5rem; 
-  color: var(--pr-text-muted)
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--pr-text-muted);
 }
 
-.control-group input[type="range"], .control-group select {
+.control-group input[type='range'],
+.control-group select {
   width: 100%;
 }
 
@@ -95,14 +98,16 @@
 }
 
 /* Note Inspector & MIDI Tools */
-.note-inspector, .midi-tool-actions {
+.note-inspector,
+.midi-tool-actions {
   margin-top: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.midi-tool-actions button, .note-inspector button {
+.midi-tool-actions button,
+.note-inspector button {
   justify-content: center;
 }
 
@@ -121,10 +126,16 @@ button {
   cursor: pointer;
 }
 
-button:hover { background: #555; }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
+button:hover {
+  background: #555;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-select, input[type="text"] {
+select,
+input[type='text'] {
   background: #333;
   color: white;
   border: 1px solid #555;

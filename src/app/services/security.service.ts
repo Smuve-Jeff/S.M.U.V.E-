@@ -135,7 +135,9 @@ export class SecurityService {
   async fetchCSRFToken(): Promise<void> {
     try {
       const res = await firstValueFrom(
-        this.http.get<{ csrfToken: string }>(`${this.API_URL}/security/csrf-token`)
+        this.http.get<{ csrfToken: string }>(
+          `${this.API_URL}/security/csrf-token`
+        )
       );
       this.csrfToken = res.csrfToken;
     } catch (error) {
@@ -165,7 +167,9 @@ export class SecurityService {
       this.ngZone.run(() => {
         if (this.isSessionValid()) {
           this.isSessionValid.set(false);
-          this.logger.warn('SecurityService: Session invalidated due to inactivity');
+          this.logger.warn(
+            'SecurityService: Session invalidated due to inactivity'
+          );
           void this.logEvent(
             'SESSION_TIMEOUT',
             'Session expired due to inactivity'
@@ -286,8 +290,8 @@ export class SecurityService {
     this.lastActivity.set(now);
     this.sessionExpiresAt.set(now + this.securityConfig.sessionTimeoutMs);
     if (!this.isSessionValid()) {
-        this.isSessionValid.set(true);
-        this.logEvent('SESSION_RECOVERED', 'Session recovered by user activity.');
+      this.isSessionValid.set(true);
+      this.logEvent('SESSION_RECOVERED', 'Session recovered by user activity.');
     }
   }
 
@@ -303,8 +307,11 @@ export class SecurityService {
 
     const isValid = Date.now() < expiresAt;
     if (!isValid && this.isSessionValid()) {
-         this.isSessionValid.set(false);
-         this.logEvent('SESSION_EXPIRED', 'Session has expired based on absolute timeout.');
+      this.isSessionValid.set(false);
+      this.logEvent(
+        'SESSION_EXPIRED',
+        'Session has expired based on absolute timeout.'
+      );
     }
     return isValid;
   }
@@ -335,9 +342,14 @@ export class SecurityService {
   obfuscate(data: string): string {
     if (!data) return '';
     const key = this.XOR_KEY;
-    const encrypted = data.split('').map((char, i) => {
-      return String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length));
-    }).join('');
+    const encrypted = data
+      .split('')
+      .map((char, i) => {
+        return String.fromCharCode(
+          char.charCodeAt(0) ^ key.charCodeAt(i % key.length)
+        );
+      })
+      .join('');
     return btoa(encrypted);
   }
 
@@ -352,9 +364,14 @@ export class SecurityService {
     try {
       const key = this.XOR_KEY;
       const decoded = atob(data);
-      return decoded.split('').map((char, i) => {
-        return String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length));
-      }).join('');
+      return decoded
+        .split('')
+        .map((char, i) => {
+          return String.fromCharCode(
+            char.charCodeAt(0) ^ key.charCodeAt(i % key.length)
+          );
+        })
+        .join('');
     } catch (e) {
       this.logger.error('De-obfuscation failed', e);
       return '';
@@ -470,29 +487,29 @@ export class SecurityService {
       this.logger.error('Failed to revoke session', error);
     }
   }
-  
+
   /**
    * Returns a recommended Content Security Policy (CSP) string.
    * This should be configured on the server-side via HTTP headers.
    */
   getRecommendedCSP(): string {
-      const self = "'self'";
-      const scripts = [self, 'https://trusted-scripts.com'];
-      const styles = [self, 'https://trusted-styles.com'];
-      const images = [self, 'data:'];
-      const connect = [self, this.API_URL];
+    const self = "'self'";
+    const scripts = [self, 'https://trusted-scripts.com'];
+    const styles = [self, 'https://trusted-styles.com'];
+    const images = [self, 'data:'];
+    const connect = [self, this.API_URL];
 
-      return [
-          `default-src ${self}`,
-          `script-src ${scripts.join(' ')}`,
-          `style-src ${styles.join(' ')}`,
-          `img-src ${images.join(' ')}`,
-          `connect-src ${connect.join(' ')}`,
-          `frame-ancestors 'none'`,
-          `object-src 'none'`,
-          'base-uri 'self'',
-          'form-action 'self'',
-      ].join('; ');
+    return [
+      `default-src ${self}`,
+      `script-src ${scripts.join(' ')}`,
+      `style-src ${styles.join(' ')}`,
+      `img-src ${images.join(' ')}`,
+      `connect-src ${connect.join(' ')}`,
+      `frame-ancestors 'none'`,
+      `object-src 'none'`,
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join('; ');
   }
 
   /**
@@ -526,7 +543,7 @@ export class SecurityService {
       score -= 15;
       alerts.push('NOTICE: Multiple concurrent sessions detected.');
     }
-    
+
     if (!this.validateSession()) {
       score -= 20;
       alerts.push('NOTICE: Session integrity compromised.');

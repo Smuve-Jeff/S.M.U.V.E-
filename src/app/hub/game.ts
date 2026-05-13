@@ -15,6 +15,7 @@ export interface GameLaunchConfig {
   telemetryMode?: TelemetryMode;
   telemetryOrigins?: string[];
   trustNote?: string;
+  secure_mode?: string;
 }
 
 export interface Game {

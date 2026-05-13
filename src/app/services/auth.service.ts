@@ -100,7 +100,9 @@ export class AuthService {
     const policy = DEFAULT_PASSWORD_POLICY;
 
     if (password.length < policy.minLength) {
-      errors.push(`Password must be at least ${policy.minLength} characters long.`);
+      errors.push(
+        `Password must be at least ${policy.minLength} characters long.`
+      );
     }
     if (policy.requireUppercase && !/[A-Z]/.test(password)) {
       errors.push('Password must contain at least one uppercase letter.');

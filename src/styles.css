@@ -668,7 +668,7 @@ body {
 
 /* Dynamic Accent Glow (Analog Engine v4.2) */
 body.glow-active::before {
-  content: "";
+  content: '';
   position: fixed;
   top: 0;
   left: 0;
@@ -682,7 +682,9 @@ body.glow-active::before {
   opacity: 0.2;
   pointer-events: none;
   z-index: 0;
-  transition: opacity 1s ease, background 1s ease;
+  transition:
+    opacity 1s ease,
+    background 1s ease;
 }
 
 .perf-mode-active body.glow-active::before {

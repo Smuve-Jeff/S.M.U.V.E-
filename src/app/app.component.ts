@@ -40,7 +40,10 @@ import { ViewConfig } from './services/workspace-registry';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
-  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed';
+    platform: string;
+  }>;
   prompt(): Promise<void>;
 }
 
@@ -221,7 +224,10 @@ export class AppComponent implements ErrorHandler {
 
     window.addEventListener('appinstalled', () => {
       this.installPrompt.set(null);
-      this.notificationService.show('S.M.U.V.E. successfully installed!', 'success');
+      this.notificationService.show(
+        'S.M.U.V.E. successfully installed!',
+        'success'
+      );
     });
   }
 
@@ -298,13 +304,19 @@ export class AppComponent implements ErrorHandler {
   async promptPwaInstall() {
     const prompt = this.installPrompt();
     if (!prompt) {
-      this.notificationService.show('Installation is not available at this moment.', 'warn');
+      this.notificationService.show(
+        'Installation is not available at this moment.',
+        'warning'
+      );
       return;
     }
     await prompt.prompt();
     const choice = await prompt.userChoice;
     if (choice.outcome === 'accepted') {
-      this.notificationService.show('Beginning S.M.U.V.E. installation...', 'info');
+      this.notificationService.show(
+        'Beginning S.M.U.V.E. installation...',
+        'info'
+      );
     }
     this.installPrompt.set(null);
   }

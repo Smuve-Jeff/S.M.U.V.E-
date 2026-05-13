@@ -62,7 +62,10 @@ export class LoginComponent implements OnInit {
           this.isLoading.set(false);
           return;
         }
-        result = await this.authService.register(this.credentials, this.artistName);
+        result = await this.authService.register(
+          this.credentials,
+          this.artistName
+        );
       } else {
         result = await this.authService.login(this.credentials);
       }

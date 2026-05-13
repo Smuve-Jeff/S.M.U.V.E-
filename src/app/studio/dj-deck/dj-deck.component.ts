@@ -24,7 +24,8 @@ import { DatabaseService } from '../../services/database.service';
 import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { PlayerService } from '../../services/player.service';
-import { NeuralOrchestratorService } from '../../services/ai.service';
+import { AiService as NeuralOrchestratorService } from '../../services/ai.service';
+import { DeckControlsComponent } from './deck-controls.component';
 
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
@@ -36,7 +37,7 @@ const MIN_SAMPLER_RETURN_MILLIS = 80;
   styleUrl: './dj-deck.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, FormsModule, DecimalPipe],
+  imports: [CommonModule, DeckControlsComponent, FormsModule, DecimalPipe],
 })
 export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('waveformA') waveformA!: ElementRef<HTMLCanvasElement>;
@@ -52,7 +53,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   showSampleLibrary = signal(false);
   isMobile = signal(false);
 
-  hasNeuralStemSplitter = computed(() => this.neuralOrchestrator.isUnlocked('upg-neural-stem-splitter'));
+  hasNeuralStemSplitter = computed(() =>
+    this.neuralOrchestrator.isUnlocked('upg-neural-stem-splitter')
+  );
   stems = ['vocals', 'drums', 'bass', 'instrumental'];
 
   hotCueMarkersA = computed(() => {
@@ -107,7 +110,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private activeTouchB: number | null = null;
   private recordingStartedAt: number | null = null;
   private lastRenderTimestamp = 0;
-  activeMobileDeck = signal<"A" | "B">("A");
+  activeMobileDeck = signal<'A' | 'B'>('A');
   performanceMode = signal<'cue' | 'roll' | 'sampler'>('cue');
   private tapTimes: { [key: string]: number[] } = { A: [], B: [] };
   readonly rollPadLabels = ['1/8', '1/4', '1/2', '1', '2', '4', '8', '16'];
@@ -561,7 +564,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setStemGain(deck: 'A' | 'B', stem: string, event: Event) {
     const gain = (event.target as HTMLInputElement).valueAsNumber;
-    this.deckService.onStemGainChange(deck, { stem, gain });
+    this.deckService.onStemGainChange(deck, { stem: stem as any, gain });
   }
 
   setCrossfade(val: any) {
@@ -991,9 +994,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   updateGain(deck: 'A' | 'B', value: any) {
     const gain = parseFloat(value);
     if (deck === 'A') {
-      this.deckService.deckA.update(d => ({ ...d, gain }));
+      this.deckService.deckA.update((d) => ({ ...d, gain }));
     } else {
-      this.deckService.deckB.update(d => ({ ...d, gain }));
+      this.deckService.deckB.update((d) => ({ ...d, gain }));
     }
     this.engine.setDeckGain(deck, gain);
   }

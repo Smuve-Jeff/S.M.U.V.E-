@@ -498,9 +498,9 @@ describe('ThaSpotComponent', () => {
 
     component.getSafeUrl(eliteGame);
 
-    expect(bypassSpy).toHaveBeenCalledWith(expect.stringContaining(
-      'smuve_auth_token='
-    ));
+    expect(bypassSpy).toHaveBeenCalledWith(
+      expect.stringContaining('smuve_auth_token=')
+    );
   });
 
   it('ignores posted scores when sessions end', () => {

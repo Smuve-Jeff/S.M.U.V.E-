@@ -216,7 +216,9 @@
           "
           [class.text-brand-primary]="uiService.mainViewMode() === item.mode"
           [class.text-text-dim]="uiService.mainViewMode() !== item.mode"
-          [class.hover:bg-background-alt]="uiService.mainViewMode() !== item.mode"
+          [class.hover:bg-background-alt]="
+            uiService.mainViewMode() !== item.mode
+          "
           [class.hover:text-text-main]="uiService.mainViewMode() !== item.mode"
         >
           <div class="w-8 flex justify-center">

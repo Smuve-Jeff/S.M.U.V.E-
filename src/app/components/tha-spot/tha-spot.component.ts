@@ -402,9 +402,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   isRetroOrArcade(game: Game): boolean {
     const tags = (game.tags || []).map((t) => t.toLowerCase());
     return (
-      tags.includes("retro") ||
-      tags.includes("arcade") ||
-      game.badgeIds?.includes("elite") === true
+      tags.includes('retro') ||
+      tags.includes('arcade') ||
+      game.badgeIds?.includes('elite') === true
     );
   }
 

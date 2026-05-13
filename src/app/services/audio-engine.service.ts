@@ -92,8 +92,9 @@ export class AudioEngineService {
   };
 
   constructor() {
-    this.ctx = new (window.AudioContext ||
-      (window as any).webkitAudioContext)();
+    this.ctx = new (
+      window.AudioContext || (window as any).webkitAudioContext
+    )();
     this.masterGain = this.ctx.createGain();
     this.compressor = this.ctx.createDynamicsCompressor();
     this.saturationNode = this.ctx.createWaveShaper();
@@ -205,6 +206,7 @@ export class AudioEngineService {
         drums: this.ctx.createGain(),
         bass: this.ctx.createGain(),
         instrumental: this.ctx.createGain(),
+        other: this.ctx.createGain(),
       },
       eqLow: this.ctx.createBiquadFilter(),
       eqMid: this.ctx.createBiquadFilter(),
@@ -997,8 +999,8 @@ export class AudioEngineService {
     filter.Q.value = 15;
     filter.frequency.setValueAtTime(400, this.ctx.currentTime);
     setTimeout(() => {
-       filter.Q.value = 1;
-       filter.frequency.setValueAtTime(15000, this.ctx.currentTime);
+      filter.Q.value = 1;
+      filter.frequency.setValueAtTime(15000, this.ctx.currentTime);
     }, 500);
   }
 }
