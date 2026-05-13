@@ -9,6 +9,8 @@ import { LibraryService } from '../../services/library.service';
 import { AuthService } from '../../services/auth.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { UIService } from '../../services/ui.service';
+import { AiService } from '../../services/ai.service';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-remix-arena',
@@ -29,6 +31,8 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
   authService = inject(AuthService);
   dialog = inject(InteractionDialogService);
   uiService = inject(UIService);
+  aiService = inject(AiService);
+  notificationService = inject(NotificationService);
 
   code = signal(
     '// S.M.U.V.E 2.0 REMIX ENGINE\n// Start writing your logic here...\n\nfunction onBeat(step) {\n  if (step % 4 === 0) {\n    playKick();\n  }\n}'
@@ -47,6 +51,7 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
 
   newMessage = signal('');
   sessionId = signal('');
+  isThinking = signal(false);
 
   challenges = signal([
     {
@@ -69,6 +74,16 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
     if (this.sessionId()) {
       this.collaborationService.leaveSession(this.sessionId());
     }
+  }
+
+  async suggestLogic() {
+    this.isThinking.set(true);
+    this.notificationService.show('Remix AI: Generating Algorithmic Patterns...', 'info');
+    const prompt = `Suggest a creative JavaScript function for a music remix engine that creates an interesting ${this.challenges()[0].title} style rhythm.`;
+    const suggestion = await this.aiService.getAIResponse(prompt);
+    this.code.update(c => c + '\n\n// AI Suggestion:\n' + suggestion);
+    this.isThinking.set(false);
+    this.notificationService.show('Remix AI: Logic Deployed.', 'success');
   }
 
   async startSession() {
