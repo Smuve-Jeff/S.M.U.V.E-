@@ -5,6 +5,7 @@ import { InstrumentsService } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
 import { FileLoaderService } from './file-loader.service';
 import { UserProfileService } from './user-profile.service';
+import { AudioSessionService } from '../studio/audio-session.service';
 
 export interface TrackNote {
   id: string;
@@ -109,6 +110,7 @@ export class MusicManagerService {
   public engine = inject(AudioEngineService);
   private fileLoader = inject(FileLoaderService);
   private profileService = inject(UserProfileService);
+  private audioSession = inject(AudioSessionService);
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
@@ -824,5 +826,24 @@ export class MusicManagerService {
         )
       );
     }
+  }
+  recordLiveNote(note: string, velocity: number) {
+    const selectedId = this.selectedTrackId();
+    if (!selectedId || !this.audioSession.isRecording()) return;
+
+    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const octave = parseInt(note.slice(-1));
+    const name = note.slice(0, -1);
+    const midi = (octave + 1) * 12 + names.indexOf(name);
+
+    // Calculate current step based on transport position
+    const currentStepValue = Math.floor(this.engine.currentBeat() * 4) % 64;
+
+    this.addNoteToTrack(selectedId, {
+      midi,
+      step: currentStepValue,
+      length: 1,
+      velocity
+    });
   }
 }

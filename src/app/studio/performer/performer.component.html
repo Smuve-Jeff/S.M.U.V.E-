@@ -1,0 +1,82 @@
+<div class="performer-container glass-v42 shadow-v42-xl" [attr.data-theme]="'analog-v42'">
+  <header class="performer-header">
+    <div class="header-left">
+        <h2 class="performer-title">THE <span>PERFORMER</span></h2>
+        <div class="instrument-selector">
+            <button
+                [class.active]="liveEngine.activeInstrument() === 'poly-synth'"
+                (click)="setInstrument('poly-synth')">
+                POLY SYNTH
+            </button>
+            <button
+                [class.active]="liveEngine.activeInstrument() === 'mono-lead'"
+                (click)="setInstrument('mono-lead')">
+                MONO LEAD
+            </button>
+            <button
+                [class.active]="liveEngine.activeInstrument() === 'fm-bell'"
+                (click)="setInstrument('fm-bell')">
+                FM BELLS
+            </button>
+        </div>
+    </div>
+
+    <div class="ai-controls">
+        <button (click)="toggleSmartChords()" [class.active]="liveEngine.smartChords()">
+            AI CHORDS: {{ liveEngine.smartChords() ? 'ON' : 'OFF' }}
+        </button>
+        <div class="midi-status" [class.active]="liveEngine.midiEnabled()">
+            MIDI: {{ liveEngine.midiEnabled() ? (liveEngine.availableMidiInputs()[0] || 'READY') : 'OFF' }}
+        </div>
+    </div>
+
+    <div class="mode-toggle">
+      <button (click)="viewMode.set('keyboard')" [class.active]="viewMode() === 'keyboard'">KEYS</button>
+      <button (click)="viewMode.set('pads')" [class.active]="viewMode() === 'pads'">PADS</button>
+    </div>
+  </header>
+
+  <div class="performer-body">
+    <!-- Keyboard Layout -->
+    <div *ngIf="viewMode() === 'keyboard'" class="keyboard-view">
+      <div class="keys-container">
+        <div
+          *ngFor="let key of keys"
+          class="key"
+          [class.black]="key.isBlack"
+          [class.active]="activeNotes.has(key.note)"
+          (touchstart)="playNote(key.note, $event)"
+          (touchend)="stopNote(key.note, $event)"
+          (mousedown)="playNote(key.note, $event)"
+          (mouseup)="stopNote(key.note, $event)"
+          (mouseleave)="stopNote(key.note, $event)">
+          <span class="key-label">{{ key.label }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pads Layout -->
+    <div *ngIf="viewMode() === 'pads'" class="pads-view">
+      <div class="pads-grid">
+        <div
+          *ngFor="let pad of pads"
+          class="pad dj-hud-container"
+          [class.active]="activeNotes.has(pad.note)"
+          (touchstart)="playNote(pad.note, $event)"
+          (touchend)="stopNote(pad.note, $event)"
+          (mousedown)="playNote(pad.note, $event)"
+          (mouseup)="stopNote(pad.note, $event)"
+          (mouseleave)="stopNote(pad.note, $event)">
+          <span class="pad-label">{{ pad.label }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="performer-footer">
+    <div class="status-indicator" [class.initialized]="liveEngine.isInitialized()">
+        {{ liveEngine.isInitialized() ? 'ENGINE READY' : 'CLICK KEYS TO INITIALIZE' }}
+    </div>
+    <div class="hint">Android Touch Optimized • Velocity Sensitive (Y-Axis) • Low Latency</div>
+  </footer>
+</div>
