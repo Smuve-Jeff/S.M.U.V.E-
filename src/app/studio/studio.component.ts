@@ -28,6 +28,7 @@ import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
 import { NeuralFoundryComponent } from '../neural-foundry/neural-foundry.component';
 import { AiCopilotService } from './ai-copilot.service';
+import { PerformerComponent } from './performer/performer.component';
 
 type StudioView =
   | 'dj'
@@ -36,7 +37,8 @@ type StudioView =
   | 'performance'
   | 'mastering'
   | 'vocal-suite'
-  | 'drum-machine';
+  | 'drum-machine'
+  | 'performer';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'dj',
@@ -67,6 +69,7 @@ function isStudioView(value: string): value is StudioView {
     ChannelRackComponent,
     DrumMachineComponent,
     NeuralFoundryComponent,
+    PerformerComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
