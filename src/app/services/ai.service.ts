@@ -67,7 +67,10 @@ export class AiService {
   }
 
   unlockUpgrade(upgradeId: string): void {
-    if (this.unlockedUpgrades().includes(upgradeId)) return;
+    if (this.unlockedUpgrades().includes(upgradeId)) {
+      this.logger.info(`Upgrade ${upgradeId} is already unlocked.`);
+      return;
+    }
     this.isProcessing.set(true);
     setTimeout(() => {
       this.unlockedUpgrades.update((current) => [...current, upgradeId]);
@@ -76,7 +79,7 @@ export class AiService {
   }
 
   isUnlocked(upgradeId: string): boolean {
-    return true;
+    return this.unlockedUpgrades().includes(upgradeId);
   }
 
   getUpgradeRecommendations(): UpgradeRecommendation[] {
@@ -95,9 +98,10 @@ export class AiService {
       activeLoopBars: 0,
     };
 
+    const unlocked = this.unlockedUpgrades();
     const ranked = NEURAL_UPGRADE_BLUEPRINTS.map((blueprint) => {
       const rankScore = blueprint.rank({ profile, context, viewMode });
-      const state: 'unlocked' = 'unlocked';
+      const state = unlocked.includes(blueprint.id) ? 'unlocked' : 'locked';
       return { ...blueprint, rankScore, state };
     });
 

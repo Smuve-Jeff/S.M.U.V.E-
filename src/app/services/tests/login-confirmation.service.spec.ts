@@ -6,6 +6,7 @@ import {
 import { provideHttpClient } from '@angular/common/http';
 
 import { LoginConfirmationService } from '../login-confirmation.service';
+import { AuthService } from '../auth.service';
 import { DatabaseService } from '../database.service';
 import { LoggingService } from '../logging.service';
 
@@ -20,6 +21,7 @@ describe('LoginConfirmationService', () => {
     TestBed.configureTestingModule({
       providers: [
         LoginConfirmationService,
+        { provide: AuthService, useValue: { jwtToken: jest.fn().mockReturnValue('mock-token') } },
         provideHttpClient(),
         provideHttpClientTesting(),
         {
@@ -37,6 +39,7 @@ describe('LoginConfirmationService', () => {
 
     service = TestBed.inject(LoginConfirmationService);
     httpMock = TestBed.inject(HttpTestingController);
+
     loggerMock.warn.mockReset();
   });
 

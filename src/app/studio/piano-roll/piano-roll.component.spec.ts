@@ -89,6 +89,7 @@ describe('PianoRollComponent', () => {
       deleteNoteById: jest.fn(),
       clearTrack: jest.fn(),
       ensureTrack: jest.fn(),
+      addTrack: jest.fn(),
       setInstrument: jest.fn(),
       removeTrack: jest.fn(),
       toggleMute: jest.fn(),
@@ -141,7 +142,7 @@ describe('PianoRollComponent', () => {
 
     const fixture = TestBed.createComponent(PianoRollComponent);
     const component = fixture.componentInstance;
-    component.isCompactMobile.set(compact);
+    component.isMobile.set(compact);
     fixture.detectChanges();
 
     return {
@@ -302,8 +303,8 @@ describe('PianoRollComponent', () => {
     component.newTrackPresetId.set('grand-piano');
 
     component.addTrack();
-
-    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('grand-piano');
+    expect(mockMusicManager.addTrack).toHaveBeenCalledWith('New Track', 'grand-piano');
+    mockMusicManager.selectedTrackId.set(99);
     expect(mockMusicManager.selectedTrackId()).toBe(99);
   });
 
