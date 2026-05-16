@@ -88,6 +88,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   libraryView = signal<LibraryViewMode>('compact');
   quickFilters = signal<QuickFilter[]>([]);
   isTransitioning = signal<boolean>(false);
+  showFavoritesOnly = signal<boolean>(false);
   now = signal<number>(Date.now());
 
   isBrowseView = signal<boolean>(true);
@@ -116,7 +117,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     const filters = this.quickFilters();
     const mode = this.sortMode();
 
+    const showFavs = this.showFavoritesOnly();
     const result = games.filter((game) => {
+      if (showFavs && !this.isFavorite(game.id)) return false;
       const matchesGenre = genre === 'all' || game.genre === genre;
       const matchesQuery =
         !query ||
