@@ -1,39 +1,104 @@
+:host {
+  display: block;
+  height: 100%;
+  background: var(--studio-bg, #07070a);
+  color: #f0f0f5;
+  padding: 1.5rem;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+.vocal-suite-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 1.5rem;
+}
+
+.vocal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--studio-border);
+}
+
+.vocal-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.1rem;
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.vocal-title span {
+  color: #ec5b13;
+  text-shadow: 0 0 10px rgba(236, 91, 19, 0.4);
+}
+
+.view-modes {
+  display: flex;
+  gap: 8px;
+}
+
+.mode-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--studio-border);
+  color: #7a7a9a;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  border-color: #ec5b13;
+  color: #ec5b13;
+  background: rgba(236, 91, 19, 0.1);
+  box-shadow: 0 0 15px rgba(236, 91, 19, 0.2);
+}
+
+.vocal-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.spectrogram-container {
+  height: 300px;
+  background: #000;
+  border-radius: 16px;
+  border: 1px solid var(--studio-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.control-panel {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--studio-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
 .vocal-brushed-metal {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0) 50%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.05) 100%);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(157, 0, 255, 0.3);
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(157, 0, 255, 0.5);
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  :host {
+    padding: 0.5rem;
   }
-  to {
-    transform: rotate(360deg);
-  }
-}
 
-.animate-spin-slow {
-  animation: spin 3s linear infinite;
+  .vocal-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .spectrogram-container {
+    height: 200px;
+  }
 }

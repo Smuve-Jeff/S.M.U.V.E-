@@ -1,104 +1,66 @@
+:host {
+  display: block;
+  padding: 0.5rem 1rem;
+  background: rgba(15, 15, 20, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
 .transport-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1.5rem;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-:host(.mobile-transport) .transport-bar {
-  width: 100%;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.45rem 0.75rem;
-  border-radius: 14px;
-}
-
-:host(.mobile-transport) .display-section {
-  flex: 1 1 100%;
-  justify-content: space-between;
-  border: none;
-  padding: 0;
-}
-
-:host(.mobile-transport) .display-item {
-  align-items: flex-start;
-}
-
-:host(.mobile-transport) .transport-btn {
-  width: 44px;
-  height: 44px;
-  font-size: 0.9rem;
-}
-
-:host(.mobile-transport) .display-label {
-  font-size: 0.7rem;
-}
-
-:host(.mobile-transport) .display-value {
-  font-size: 0.7rem;
-}
-
-:host(.mobile-transport) .bpm-input {
-  width: 44px;
-  font-size: 0.75rem;
-}
-
-:host(.mobile-transport) input[type='range'] {
-  width: 90px;
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .transport-btn {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  border: none;
-  color: #64748b;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #7a7a9a;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.9rem;
 }
 
 .transport-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .transport-btn.active {
-  color: var(--color-primary);
-  text-shadow: 0 0 10px var(--color-primary);
+  color: #ec5b13;
+  background: rgba(236, 91, 19, 0.1);
+  border-color: #ec5b13;
+  box-shadow: 0 0 15px rgba(236, 91, 19, 0.3);
 }
 
 .record-btn.active {
   color: #ef4444;
-  text-shadow: 0 0 10px #ef4444;
-}
-
-.metronome-btn.active {
-  color: var(--color-primary);
-  text-shadow: 0 0 10px var(--color-primary);
-  animation: metronome-pulse 0.5s ease-in-out infinite alternate;
-}
-
-@keyframes metronome-pulse {
-  0% {
-    opacity: 0.8;
-  }
-  100% {
-    opacity: 1;
-  }
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
 }
 
 .display-section {
   display: flex;
-  gap: 1rem;
-  padding: 0 1rem;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0 1.5rem;
   border-left: 1px solid rgba(255, 255, 255, 0.05);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -110,69 +72,135 @@
 }
 
 .display-label {
-  font-size: 0.5rem;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.55rem;
   font-weight: 900;
-  color: #475569;
+  color: #4a4a65;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.15em;
+  margin-bottom: 2px;
 }
 
 .display-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: #ec5b13;
+  text-shadow: 0 0 10px rgba(236, 91, 19, 0.2);
 }
 
 .bpm-control {
+  display: flex;
+  align-items: center;
   gap: 4px;
 }
 
 .bpm-input {
-  width: 52px;
-  background: rgba(0, 0, 0, 0.6);
+  width: 55px;
+  background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
-  color: var(--color-primary);
+  color: #ec5b13;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 700;
   text-align: center;
-  padding: 2px 4px;
+  padding: 4px;
   outline: none;
-  -moz-appearance: textfield;
-}
-
-.bpm-input::-webkit-inner-spin-button,
-.bpm-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
 }
 
 .bpm-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 6px rgba(236, 91, 19, 0.4);
+  border-color: #ec5b13;
+  box-shadow: 0 0 8px rgba(236, 91, 19, 0.3);
 }
 
 .bpm-nudge {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-  color: #94a3b8;
+  border-radius: 4px;
+  color: #7a7a9a;
   cursor: pointer;
-  font-size: 0.85rem;
-  line-height: 1;
+  font-size: 0.8rem;
   transition: all 0.15s;
-  padding: 0;
 }
 
 .bpm-nudge:hover {
-  background: rgba(236, 91, 19, 0.2);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: #ec5b13;
+  border-color: #ec5b13;
+  background: rgba(236, 91, 19, 0.1);
+}
+
+.fader-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fader-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fader-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.5rem;
+  font-weight: 900;
+  color: #4a4a65;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+input[type='range'] {
+  width: 80px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  appearance: none;
+  outline: none;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #ec5b13;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(236, 91, 19, 0.5);
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .transport-bar {
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+
+  .display-section {
+    padding: 0;
+    border: none;
+    flex: 1 1 100%;
+    justify-content: space-around;
+  }
+
+  .control-group {
+    justify-content: center;
+    flex: 1;
+  }
+
+  .fader-group {
+    display: none; /* Hide faders on mobile transport bar to save space */
+  }
+
+  .transport-btn {
+    width: 48px;
+    height: 48px;
+  }
 }
