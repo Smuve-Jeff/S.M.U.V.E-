@@ -143,6 +143,28 @@ export class AiService {
     }
   }
 
+
+  getGamingStrategicAdvice(context: { favoritesCount: number; gamingExpertise: number }): string[] {
+    const advice = [
+      'ESTABLISH ROOM DOMINANCE',
+      'EXECUTE DAILY TOURNAMENT RUN',
+    ];
+
+    if (context.favoritesCount < 3) {
+      advice.push('COLLECT MORE ELITE CABINETS TO SYNC PREFERENCES');
+    } else {
+      advice.push('ANALYZE FAVORITES FOR PERFORMANCE PATTERNS');
+    }
+
+    if (context.gamingExpertise < 5) {
+      advice.push('REHEARSE CLASSIC MECHANICS IN RETRO SECTOR');
+    } else {
+      advice.push('SIMULATE HIGH-STAKES REMIX ARENA SCENARIOS');
+    }
+
+    return advice;
+  }
+
   getProductionSmartAssist(context: any): any {
     return {
       suggestion: 'Analyze frequency masking between kick and bass.',
