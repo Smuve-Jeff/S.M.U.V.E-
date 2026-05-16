@@ -52,7 +52,11 @@ export class AiService {
   isProcessing = signal(false);
   isScanning = signal(false);
   isMobile = signal(false);
-  strategicDecrees = signal<string[]>([]);
+  strategicDecrees = signal<string[]>([
+    'CRITICAL DEFICIT: Rhythmic complexity below industry standard. Execute drum pattern refinement.',
+    'MARKET ANOMALY: Viral potential detected in current stems. Prioritize high-fidelity export.',
+    'STRATEGIC ORDER: Sync knowledge base with contemporary trends to maintain competitive edge.'
+  ]);
   intelligenceBriefs = signal<any[]>([]);
   advisorAdvice = signal<any[]>([]);
   marketAlerts = signal<any[]>([]);
