@@ -13,7 +13,6 @@ export interface TrackNote {
   step: number;
   length: number;
   velocity: number;
-  probability?: number;
 }
 
 export interface PatternVersion {
@@ -218,7 +217,7 @@ export class MusicManagerService {
     });
   }
 
-  private normalizeTrack(track: any): TrackModel {
+    private normalizeTrack(track: any): TrackModel {
     return {
       ...track,
       notes: track.notes || [],
@@ -228,11 +227,11 @@ export class MusicManagerService {
       solo: !!track.solo,
       steps: track.steps || new Array(64).fill(false),
       type: track.type || 'midi',
-      color: track.color || '#af25f4',
+      color: track.color || '#af25f4'
     };
   }
 
-  private loadLastSession() {
+private loadLastSession() {
     const profile = this.profileService.profile();
     const lastSession = (profile?.knowledgeBase as any)?.lastDawSession;
 
@@ -812,8 +811,9 @@ export class MusicManagerService {
     this.engine.loopEnd.set(end);
   }
 
+
   addTrack(name: string, instrumentId: string) {
-    const id = Math.max(0, ...this.tracks().map((t) => t.id)) + 1;
+    const id = Math.max(0, ...this.tracks().map(t => t.id)) + 1;
     const newTrack: TrackModel = {
       id,
       name,
@@ -830,60 +830,32 @@ export class MusicManagerService {
       qualityMode: 'ultra',
       type: 'midi',
       color: '#af25f4',
-      fxSlots: [],
+      fxSlots: []
     };
-    this.tracks.update((ts) => [...ts, newTrack]);
+    this.tracks.update(ts => [...ts, newTrack]);
     this.selectedTrackId.set(id);
     return id;
   }
 
-  recordLiveNote(noteOrMidi: string | number, velocity: number) {
-    const trackId = this.selectedTrackId();
-    if (trackId === null) return;
 
-    if (typeof noteOrMidi === 'number') {
-      const step = Math.max(0, this.currentStep());
-      this.addNoteToTrack(trackId, {
-        midi: noteOrMidi,
-        step,
-        length: 1,
-        velocity,
-      });
-      return;
-    }
+  recordLiveNote(note: string, velocity: number) {
+    const selectedId = this.selectedTrackId();
+    if (!selectedId || !this.audioSession.isRecording()) return;
 
-    if (!this.audioSession.isRecording()) return;
+    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const octave = parseInt(note.slice(-1));
+    const name = note.slice(0, -1);
+    const midi = (octave + 1) * 12 + names.indexOf(name);
 
-    const noteMatch = noteOrMidi.match(/^([A-G]#?)(-?\d+)$/);
-    if (!noteMatch) return;
+    // Calculate current step based on transport position
+    const currentStepValue = Math.floor(this.engine.currentBeat() * 4) % 64;
 
-    const [, noteName, octaveText] = noteMatch;
-    const names = [
-      'C',
-      'C#',
-      'D',
-      'D#',
-      'E',
-      'F',
-      'F#',
-      'G',
-      'G#',
-      'A',
-      'A#',
-      'B',
-    ];
-    const noteIndex = names.indexOf(noteName);
-    const octave = Number.parseInt(octaveText, 10);
-    if (noteIndex < 0 || Number.isNaN(octave)) return;
-
-    const midi = (octave + 1) * 12 + noteIndex;
-    const step = Math.floor(this.engine.currentBeat() * 4) % 64;
-
-    this.addNoteToTrack(trackId, {
+    this.addNoteToTrack(selectedId, {
       midi,
-      step,
+      step: currentStepValue,
       length: 1,
-      velocity,
+      velocity
     });
   }
+
 }
