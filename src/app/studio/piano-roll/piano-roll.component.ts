@@ -2,23 +2,21 @@ import {
   Component,
   inject,
   signal,
-  EventEmitter,
-  Output,
   computed,
-  HostListener,
+  AfterViewInit,
   ViewChild,
   ElementRef,
-  AfterViewInit,
+  HostListener,
+  Output,
+  EventEmitter,
+  OnInit,
+  ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  MusicManagerService,
-  TrackNote,
-  TrackModel
-} from '../../services/music-manager.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
+import { MusicManagerService, TrackModel, TrackNote } from '../../services/music-manager.service';
 import { AudioSessionService } from '../audio-session.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
 import { InstrumentsService } from '../../services/instruments.service';
 import { HistoryService } from '../../services/history.service';
 import { AiService } from '../../services/ai.service';
@@ -31,7 +29,7 @@ import { Router } from '@angular/router';
   templateUrl: './piano-roll.component.html',
   styleUrl: './piano-roll.component.css'
 })
-export class PianoRollComponent implements AfterViewInit {
+export class PianoRollComponent implements OnInit, AfterViewInit {
   public musicManager = inject(MusicManagerService);
   public audioSession = inject(AudioSessionService);
   private audioEngine = inject(AudioEngineService);
@@ -39,6 +37,7 @@ export class PianoRollComponent implements AfterViewInit {
   private history = inject(HistoryService);
   private aiService = inject(AiService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   @Output() close = new EventEmitter<void>();
   @Output() closeOverlay = new EventEmitter<void>();
@@ -48,8 +47,12 @@ export class PianoRollComponent implements AfterViewInit {
   editMode = signal<'draw' | 'select' | 'erase'>('draw');
   selectedNoteIds = signal<Set<string>>(new Set());
 
-  rowHeight = 24;
-  cellWidth = 40;
+  // Use signals for layout to avoid NG0100 and improve reactivity
+  windowWidth = signal(typeof window !== 'undefined' ? window.innerWidth : 1280);
+
+  rowHeight = computed(() => this.isMobile() ? 48 : 24);
+  cellWidth = computed(() => this.windowWidth() < 1201 ? 32 : 40);
+
   numMeasures = 4;
   cells: any[] = new Array(64).fill(0);
 
@@ -65,7 +68,7 @@ export class PianoRollComponent implements AfterViewInit {
   isCompactMobile = signal(false);
   isStudioOverlay = signal(false);
   isStandalone = signal(true);
-  showTrackSidebar = signal(true);
+  showTrackSidebar = signal(false);
   showAudioDock = signal(false);
   audioDockView = signal<'mastering' | 'mixer' | 'ai'>('mixer');
   gridWidth = 1600;
@@ -80,24 +83,24 @@ export class PianoRollComponent implements AfterViewInit {
   isAiGenerating = signal(false);
   snapToScale = signal(false);
 
+  ngOnInit() {
+    this.checkMobile();
+  }
+
   ngAfterViewInit() {
     if (this.scrollContainer) {
-      this.scrollContainer.nativeElement.scrollTop = (127 - 60) * this.rowHeight - 200;
+      this.scrollContainer.nativeElement.scrollTop = (127 - 60) * this.rowHeight() - 200;
     }
-    this.checkMobile();
+    this.cdr.detectChanges();
   }
 
   @HostListener('window:resize')
   checkMobile() {
-    const width = window.innerWidth;
+    const width = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    this.windowWidth.set(width);
     const compact = width < 768;
     this.isMobile.set(compact);
     this.isCompactMobile.set(compact);
-    if (width < 1201) {
-      this.cellWidth = 32;
-    } else {
-      this.cellWidth = 40;
-    }
   }
 
   togglePlay() {
@@ -133,9 +136,10 @@ export class PianoRollComponent implements AfterViewInit {
   }
 
   humanizeSelected() {
-    if (!this.selectedTrack()) return;
+    const track = this.selectedTrack();
+    if (!track) return;
     this.musicManager.tracks.update(ts => ts.map(t => {
-      if (t.id === this.selectedTrack()!.id) {
+      if (t.id === track.id) {
         const humanized = t.notes.map(n => ({
           ...n,
           velocity: Math.min(1, Math.max(0.1, n.velocity + (Math.random() - 0.5) * 0.1)),
@@ -149,9 +153,10 @@ export class PianoRollComponent implements AfterViewInit {
 
   deleteSelected() {
     const ids = this.selectedNoteIds();
-    if (ids.size === 0 || !this.selectedTrack()) return;
+    const track = this.selectedTrack();
+    if (ids.size === 0 || !track) return;
     this.musicManager.tracks.update(ts => ts.map(t => {
-      if (t.id === this.selectedTrack()!.id) {
+      if (t.id === track.id) {
         return { ...t, notes: t.notes.filter(n => !ids.has(n.id)) };
       }
       return t;
@@ -194,8 +199,8 @@ export class PianoRollComponent implements AfterViewInit {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      const step = Math.floor(x / this.cellWidth);
-      const midi = 127 - Math.floor(y / this.rowHeight);
+      const step = Math.floor(x / this.cellWidth());
+      const midi = 127 - Math.floor(y / this.rowHeight());
 
       const newNote: TrackNote = {
         id: 'note-' + Date.now(),
