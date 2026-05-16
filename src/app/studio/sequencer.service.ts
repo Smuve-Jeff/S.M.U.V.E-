@@ -31,4 +31,8 @@ export class SequencerService {
       // AI Keyboardist logic
     }
   }
+  scheduleTick(step: number, midi: number, duration: number) {
+    this.engine.playSynth(0, midi, duration, 0.8, 0);
+  }
+
 }

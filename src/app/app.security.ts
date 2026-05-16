@@ -21,5 +21,5 @@ export const APP_SECURITY_CONFIG = {
   session_timeout: env.SESSION_TIMEOUT || 3600000, // 1 hour
   api_url:
     env.API_URL ||
-    'https://smuve-v4-backend-9951606049235487441.onrender.com/api',
+    'https://s-m-u-v-e-2-0-fixed.onrender.com/api',
 };

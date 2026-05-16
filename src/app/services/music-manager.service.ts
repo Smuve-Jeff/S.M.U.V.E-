@@ -217,7 +217,21 @@ export class MusicManagerService {
     });
   }
 
-  private loadLastSession() {
+    private normalizeTrack(track: any): TrackModel {
+    return {
+      ...track,
+      notes: track.notes || [],
+      clips: track.clips || [],
+      fxSlots: track.fxSlots || [],
+      mute: !!track.mute,
+      solo: !!track.solo,
+      steps: track.steps || new Array(64).fill(false),
+      type: track.type || 'midi',
+      color: track.color || '#af25f4'
+    };
+  }
+
+private loadLastSession() {
     const profile = this.profileService.profile();
     const lastSession = (profile?.knowledgeBase as any)?.lastDawSession;
 
@@ -268,7 +282,7 @@ export class MusicManagerService {
       instrumentId: preset.id,
       type: 'midi',
       qualityMode: 'ultra',
-      color: '#EC5B13',
+      color: '#af25f4',
       notes: [],
       clips: [],
       gain: 0.9,
@@ -797,36 +811,33 @@ export class MusicManagerService {
     this.engine.loopEnd.set(end);
   }
 
-  private normalizeTrack(track: TrackModel): TrackModel {
-    return {
-      ...track,
-      qualityMode: track.qualityMode ?? 'ultra',
-      stepVelocities: track.stepVelocities ?? new Array(64).fill(1),
-      patternSlots: track.patternSlots ?? [],
-      activePatternSlotId: track.activePatternSlotId ?? null,
-      steps: track.steps ?? new Array(64).fill(false),
+
+  addTrack(name: string, instrumentId: string) {
+    const id = Math.max(0, ...this.tracks().map(t => t.id)) + 1;
+    const newTrack: TrackModel = {
+      id,
+      name,
+      instrumentId,
+      notes: [],
+      steps: new Array(64).fill(false),
+      gain: 0.8,
+      pan: 0,
+      sendA: 0,
+      sendB: 0,
+      mute: false,
+      solo: false,
+      clips: [],
+      qualityMode: 'ultra',
+      type: 'midi',
+      color: '#af25f4',
+      fxSlots: []
     };
+    this.tracks.update(ts => [...ts, newTrack]);
+    this.selectedTrackId.set(id);
+    return id;
   }
 
-  commitPatternToArrangement(trackId: number, slotId: string, start: number) {
-    const track = this.tracks().find((t) => t.id === trackId);
-    if (track) {
-      const clip: ArrangementClip = {
-        id: 'clip_' + crypto.randomUUID(),
-        name: 'Pattern',
-        start,
-        length: 4,
-        color: track.color,
-      };
-      this.tracks.update((tracks) =>
-        tracks.map((existingTrack) =>
-          existingTrack.id === trackId
-            ? { ...existingTrack, clips: [...existingTrack.clips, clip] }
-            : existingTrack
-        )
-      );
-    }
-  }
+
   recordLiveNote(note: string, velocity: number) {
     const selectedId = this.selectedTrackId();
     if (!selectedId || !this.audioSession.isRecording()) return;
@@ -846,4 +857,5 @@ export class MusicManagerService {
       velocity
     });
   }
+
 }

@@ -8,6 +8,8 @@ import { UserContextService } from '../user-context.service';
 import { AnalyticsService } from '../analytics.service';
 import { LoggingService } from '../logging.service';
 import { signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 
 describe('NeuralOrchestratorService', () => {
   let service: NeuralOrchestratorService;
@@ -15,6 +17,7 @@ describe('NeuralOrchestratorService', () => {
   let userContextServiceMock: Partial<UserContextService>;
   let analyticsServiceMock: Partial<AnalyticsService>;
   let loggingServiceMock: Partial<LoggingService>;
+  let httpMock: HttpTestingController;
 
   const mockUpgrade: UpgradeRecommendation = {
     id: 'test-upgrade',
@@ -74,6 +77,8 @@ describe('NeuralOrchestratorService', () => {
     TestBed.configureTestingModule({
       providers: [
         NeuralOrchestratorService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: UserProfileService, useValue: userProfileServiceMock },
         { provide: UserContextService, useValue: userContextServiceMock },
         { provide: AnalyticsService, useValue: analyticsServiceMock },
@@ -82,9 +87,14 @@ describe('NeuralOrchestratorService', () => {
     });
 
     service = TestBed.inject(NeuralOrchestratorService);
+    httpMock = TestBed.inject(HttpTestingController);
     jest
       .spyOn(service as any, 'getRankedUpgrades')
       .mockReturnValue([mockUpgrade]);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
   });
 
   it('should be created', () => {
@@ -111,18 +121,26 @@ describe('NeuralOrchestratorService', () => {
   });
 
   it('should get an AI response using the AIAgent', async () => {
-    const response = await service.getAIResponse(
+    const requestPromise = service.getAIResponse(
       'Provide a detailed analysis of the Test Upgrade upgrade.'
     );
+
+    const req = httpMock.expectOne('/api/ai/analyze');
+    req.flush({ text: 'The **Test Upgrade** is a **High**-impact upgrade' });
+
+    const response = await requestPromise;
     expect(service.isProcessing()).toBe(false);
     expect(response).toContain(
       'The **Test Upgrade** is a **High**-impact upgrade'
     );
   });
 
-  it('should handle getAIResponse when no upgrades are available', async () => {
-    jest.spyOn(service as any, 'getRankedUpgrades').mockReturnValue([]);
-    const response = await service.getAIResponse('Analyze this');
-    expect(response).toBe('No upgrades available to analyze.');
+  it('should handle getAIResponse when backend fails', async () => {
+    const requestPromise = service.getAIResponse('Analyze this');
+    const req = httpMock.expectOne('/api/ai/analyze');
+    req.error(new ErrorEvent('Network error'));
+
+    const response = await requestPromise;
+    expect(response).toBe('Strategic Link Severed. Offline processing active.');
   });
 });
