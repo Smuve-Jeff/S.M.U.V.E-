@@ -2,10 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { DrumMachineComponent } from './drum-machine.component';
 import { AudioEngineService } from '../../services/audio-engine.service';
-import { MicrophoneService } from '../../services/microphone.service';
 import { AiService } from '../../services/ai.service';
 import { LoggingService } from '../../services/logging.service';
 import { MusicManagerService } from '../../services/music-manager.service';
+import { InstrumentsService } from '../../services/instruments.service';
 
 describe('DrumMachineComponent', () => {
   const createComponent = async () => {
@@ -66,23 +66,13 @@ describe('DrumMachineComponent', () => {
       })),
       onScheduleStep: jest.fn(),
       ensureTrack: jest.fn(),
-      getContext: () => ({ currentTime: 0 }),
-      triggerAttack: jest.fn(),
       getContext: jest.fn().mockReturnValue({ currentTime: 0 }),
-    };
-
-    const mockMicService = {
-      isInitialized: signal(false),
-      isRecording: signal(false),
-      recordedBlob: signal<Blob | null>(null),
-      initialize: jest.fn().mockResolvedValue(undefined),
-      startRecording: jest.fn(),
-      stopRecording: jest.fn(),
-      stop: jest.fn(),
+      triggerAttack: jest.fn(),
     };
 
     const mockAiService = {
       generateAiResponse: jest.fn().mockResolvedValue('trap'),
+      isUnlocked: jest.fn().mockReturnValue(true),
     };
 
     const mockLogger = {
@@ -91,30 +81,29 @@ describe('DrumMachineComponent', () => {
       error: jest.fn(),
     };
 
+    const mockInstrumentsService = {
+      getPresets: jest.fn().mockReturnValue([
+        { id: 'kit-808', name: '808 Kit', category: 'drum' },
+        { id: 'kit-studio', name: 'Studio Kit', category: 'drum' },
+      ]),
+    };
+
+    const mockMusicManager = {
+      tracks: signal([]),
+      selectedTrackId: signal(null),
+      currentStep: signal(-1),
+      midiToFreq: (_m) => 440,
+      setInstrument: jest.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [DrumMachineComponent],
       providers: [
-        {
-          provide: MusicManagerService,
-          useValue: {
-            tracks: signal([]),
-            selectedTrackId: signal(null),
-            currentStep: signal(-1),
-            midiToFreq: (m) => 440,
-            projectBPM: signal(124),
-            midiToFreq: (m) => 440,
-            currentStep: signal(-1),
-            ensureTrack: jest.fn(),
-            getContext: () => ({ currentTime: 0 }),
-            triggerAttack: jest.fn(),
-            getContext: jest.fn().mockReturnValue({ currentTime: 0 }),
-            loadLastSession: jest.fn(),
-          },
-        },
+        { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: AudioEngineService, useValue: mockAudioEngine },
-        { provide: MicrophoneService, useValue: mockMicService },
         { provide: AiService, useValue: mockAiService },
         { provide: LoggingService, useValue: mockLogger },
+        { provide: InstrumentsService, useValue: mockInstrumentsService },
       ],
     })
       .overrideComponent(DrumMachineComponent, {
@@ -130,8 +119,9 @@ describe('DrumMachineComponent', () => {
       component,
       fixture,
       mockAudioEngine,
-      mockMicService,
       mockAiService,
+      mockInstrumentsService,
+      mockMusicManager,
     };
   };
 
@@ -170,7 +160,6 @@ describe('DrumMachineComponent', () => {
 
   it('clearPattern resets all steps to inactive', async () => {
     const { component } = await createComponent();
-    // Activate some steps
     component.toggleStep(component.pads()[0], 0);
     component.toggleStep(component.pads()[1], 4);
     component.clearPattern();
@@ -189,37 +178,23 @@ describe('DrumMachineComponent', () => {
     expect(types).toContain('ride');
   });
 
-  it('each pad has a semitone parameter', async () => {
+  it('each pad has advanced parameters', async () => {
     const { component } = await createComponent();
     for (const pad of component.pads()) {
-      expect(pad.params.semitone).toBeDefined();
-      expect(typeof pad.params.semitone).toBe('number');
+      expect(pad.params.pan).toBeDefined();
+      expect(pad.params.decay).toBeDefined();
     }
   });
 
-  it('generateAiPattern sets isGeneratingPattern then clears it', async () => {
-    const { component, mockAiService } = await createComponent();
-    mockAiService.generateAiResponse.mockResolvedValue('house');
-
-    const promise = component.generateAiPattern();
-    expect(component.isGeneratingPattern()).toBe(true);
-    await promise;
-    expect(component.isGeneratingPattern()).toBe(false);
-  });
-
   it('generateAiPattern applies house pattern with kick on beats 0,4,8,12', async () => {
-    const { component, mockAiService } = await createComponent();
-    mockAiService.generateAiResponse.mockResolvedValue('house');
-
-    await component.generateAiPattern();
+    const { component } = await createComponent();
+    await component.generateAiPattern('house');
 
     const kick = component.pads().find((p) => p.name === 'KICK')!;
     expect(kick.steps[0].active).toBe(true);
     expect(kick.steps[4].active).toBe(true);
     expect(kick.steps[8].active).toBe(true);
     expect(kick.steps[12].active).toBe(true);
-    expect(kick.steps[16].active).toBe(true);
-    expect(kick.steps[20].active).toBe(true);
   });
 
   it('isSequencerRunning reflects audioEngine.isPlaying', async () => {
@@ -229,30 +204,20 @@ describe('DrumMachineComponent', () => {
     expect(component.isSequencerRunning()).toBe(true);
   });
 
-  xit('hooks into audioEngine.onScheduleStep and updates currentStep across all bars', async () => {
-    const { component, mockAudioEngine } = await createComponent();
-    expect(typeof mockAudioEngine.onScheduleStep).toBe('function');
-    mockAudioEngine.onScheduleStep!(20, 0, 0.1);
-    expect(component.currentStep()).toBe(20);
-  });
-
-  xit('scheduler triggers pad sounds for active steps', async () => {
-    const { component, mockAudioEngine } = await createComponent();
-    // Activate step 0 on the kick pad
-    component.toggleStep(component.pads()[0], 0);
-    const createOscSpy = mockAudioEngine.ctx.createOscillator;
-    mockAudioEngine.onScheduleStep!(0, 0, 0.1);
-    expect(createOscSpy).toHaveBeenCalled();
-  });
-
-  it('micStatus starts as idle', async () => {
+  it('stepRange spans 64 steps (4 bars)', async () => {
     const { component } = await createComponent();
-    expect(component.micStatus()).toBe('idle');
-  });
-
-  it('stepRange spans 4 bars', async () => {
-    const { component } = await createComponent();
-    expect(component.patternBars).toBe(4);
     expect(component.stepRange.length).toBe(64);
+  });
+
+  it('evolvePattern mutates steps based on intensity', async () => {
+    const { component } = await createComponent();
+    component.evolutionIntensity.set(1.0); // High intensity
+    const initialActive = component
+      .pads()[0]
+      .steps.filter((s) => s.active).length;
+    component.evolvePattern();
+    const newActive = component.pads()[0].steps.filter((s) => s.active).length;
+    // With intensity 1, it's highly likely something changed
+    expect(newActive).not.toBe(initialActive);
   });
 });

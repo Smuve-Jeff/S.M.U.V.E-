@@ -2,26 +2,158 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #111;
+  background: #050505;
   color: #fff;
-  --fl-blue: #00d2ff;
-  --fl-orange: #ff9d00;
+  font-family: 'Inter', sans-serif;
+  --neon-purple: #af25f4;
+  --neon-blue: #00d2ff;
+  --neon-orange: #ff9d00;
+  --wood-brown: #3d2b1f;
 }
 
 .drum-machine-container {
   display: flex;
   flex-direction: column;
   height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+/* Wood Panel Styling */
+.wood-panel {
+  background-color: var(--wood-brown);
+  background-image: url('https://www.transparenttextures.com/patterns/wood-pattern.png');
+  border: 4px solid #2a1d15;
+  box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
 }
 
 .drum-header {
-  height: 50px;
-  background: #252525;
-  border-bottom: 1px solid #000;
+  height: 60px;
   display: flex;
   align-items: center;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
   justify-content: space-between;
+  gap: 20px;
+  z-index: 10;
+}
+
+.neon-text-sm {
+  color: var(--neon-purple);
+  text-shadow: 0 0 10px var(--neon-purple);
+  font-weight: 900;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+}
+
+.engine-status {
+  font-size: 0.5rem;
+  color: #555;
+  letter-spacing: 1px;
+}
+
+.kit-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px;
+  border-radius: 4px;
+}
+
+.kit-selector label {
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: #888;
+}
+
+.kit-selector select {
+  background: transparent;
+  border: none;
+  color: var(--neon-blue);
+  font-size: 0.75rem;
+  font-weight: 900;
+  cursor: pointer;
+  outline: none;
+}
+
+.quantum-engine-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ai-branding {
+  font-size: 0.5rem;
+  font-weight: 900;
+  color: var(--neon-blue);
+  text-shadow: 0 0 5px var(--neon-blue);
+}
+
+.ai-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.ai-btn {
+  background: rgba(0, 210, 255, 0.1);
+  border: 1px solid var(--neon-blue);
+  color: var(--neon-blue);
+  font-size: 0.55rem;
+  padding: 2px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-btn:hover {
+  background: var(--neon-blue);
+  color: #000;
+}
+
+.clear-btn {
+  background: #333;
+  color: #aaa;
+  border: none;
+  font-size: 0.6rem;
+  padding: 6px 12px;
+  border-radius: 2px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+/* Evolution HUD */
+.evolution-hud {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  gap: 20px;
+  background: rgba(0,0,0,0.4);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.hud-label {
+  font-size: 0.55rem;
+  font-weight: 900;
+  color: #666;
+  width: 120px;
+}
+
+.hud-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.hud-param {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-param span {
+  font-size: 0.5rem;
+  color: #888;
 }
 
 .drum-content {
@@ -31,52 +163,77 @@
 }
 
 .pads-sidebar {
-  width: 150px;
-  background: #1e1e1e;
-  border-right: 1px solid #000;
+  width: 160px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
+  gap: 8px;
   overflow-y: auto;
 }
 
 .drum-pad-item {
-  height: 60px;
-  border-bottom: 1px solid #111;
+  height: 54px;
   display: flex;
   align-items: center;
-  padding: 0 15px;
-  gap: 10px;
+  padding: 0 12px;
+  gap: 12px;
   cursor: pointer;
-  background: #222;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
 .drum-pad-item.selected {
-  background: #333;
-  border-left: 4px solid var(--fl-orange);
+  border: 1px solid var(--neon-purple);
+  background: rgba(175, 37, 244, 0.1);
+  box-shadow: inset 0 0 10px rgba(175, 37, 244, 0.2);
 }
 
 .pad-led {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+.pad-led.glowing {
+  box-shadow: 0 0 10px currentColor;
+}
+
+.pad-info {
+  display: flex;
+  flex-direction: column;
 }
 
 .pad-name {
   font-size: 0.7rem;
   font-weight: 900;
   text-transform: uppercase;
-  color: #888;
+  color: #fff;
 }
 
-.drum-pad-item.selected .pad-name {
-  color: #fff;
+.pad-midi {
+  font-size: 0.5rem;
+  color: #555;
 }
 
 .sequencer-viewport {
   flex: 1;
   overflow: auto;
-  background: #0d0d0d;
+  background: #020202;
+  position: relative;
+}
+
+.scanline-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.1;
 }
 
 .sequencer-grid {
@@ -86,23 +243,39 @@
 
 .sequencer-row {
   display: flex;
-  height: 60px;
-  border-bottom: 1px solid #1a1a1a;
+  height: 54px;
+  border-bottom: 1px solid #0a0a0a;
+  transition: background 0.2s;
+}
+
+.sequencer-row.selected-row {
+  background: rgba(255,255,255,0.02);
 }
 
 .step-box {
   flex-shrink: 0;
-  width: 40px;
+  width: 44px;
   height: 100%;
-  border-right: 1px solid #1a1a1a;
+  border-right: 1px solid #0a0a0a;
   cursor: pointer;
   position: relative;
-  transition: background 0.1s;
+  transition: all 0.1s;
 }
 
 .step-box.active {
-  background: var(--fl-orange);
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+  background: rgba(255,255,255,0.03);
+}
+
+.step-indicator {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  background: var(--step-color);
+  border-radius: 2px;
+  box-shadow: 0 0 15px var(--step-color);
+  opacity: 0.8;
 }
 
 .step-box.current-step::after {
@@ -112,63 +285,143 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid #fff;
+  z-index: 10;
 }
 
+/* Coloring groups of 4 */
 .step-box:nth-child(8n + 5),
 .step-box:nth-child(8n + 6),
 .step-box:nth-child(8n + 7),
 .step-box:nth-child(8n + 8) {
-  background-color: #151515;
+  background-color: #080808;
 }
 
-.quantum-engine-controls {
-  padding: 10px;
-  background: #1a1a1a;
+/* Param Inspector */
+.param-inspector {
+  width: 200px;
+  background: #080808;
+  border-left: 1px solid #1a1a1a;
+  padding: 15px;
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.quantum-engine-controls button {
-  background: var(--fl-blue);
-  border: none;
-  color: #000;
-  padding: 8px 15px;
-  border-radius: 4px;
-  font-size: 0.65rem;
+.inspector-title {
+  font-size: 0.6rem;
   font-weight: 900;
-  text-transform: uppercase;
+  color: #444;
+  letter-spacing: 2px;
+}
+
+.pad-preview-header {
+  padding: 10px;
+  background: rgba(255,255,255,0.02);
+  border-left: 4px solid #fff;
+}
+
+.param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.param-group label {
+  font-size: 0.55rem;
+  font-weight: 900;
+  color: #888;
+}
+
+.param-group input[type='range'] {
+  width: 100%;
+  accent-color: var(--neon-purple);
+}
+
+.velocity-bars {
+  display: flex;
+  height: 60px;
+  align-items: flex-end;
+  gap: 2px;
+  background: #000;
+  padding: 5px;
+  border-radius: 4px;
+}
+
+.v-bar {
+  flex: 1;
+  background: #222;
   cursor: pointer;
 }
 
-/* Mobile Specific Optimizations */
-@media (max-width: 768px) {
-  .pads-sidebar {
-    width: 80px;
-  }
+.v-bar.v-active {
+  background: var(--neon-purple);
+}
 
-  .drum-pad-item {
-    height: 50px;
-    padding: 0 8px;
-    justify-content: center;
-  }
+.neon-text-xs {
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: #fff;
+}
 
-  .pad-name {
-    display: none; /* Icon/LED only on small screens */
-  }
+/* Switch UI */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 18px;
+}
 
-  .step-box {
-    width: 50px; /* Wider steps for fingers */
-    height: 50px;
-  }
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
 
-  .drum-header {
-    height: 40px;
-    padding: 0 0.5rem;
-  }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #222;
+  transition: .4s;
+}
 
-  .quantum-engine-controls button {
-    padding: 6px 10px;
-    font-size: 0.55rem;
-  }
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: var(--neon-blue);
+}
+
+input:checked + .slider:before {
+  transform: translateX(16px);
+}
+
+.slider.round {
+  border-radius: 18px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
