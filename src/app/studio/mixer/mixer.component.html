@@ -4,6 +4,7 @@
     *ngFor="let track of tracks(); let i = index"
     class="mixer-strip"
     [class.selected]="musicManager.selectedTrackId() === track.id"
+    (click)="musicManager.selectedTrackId.set(track.id)"
   >
     <div class="track-label">{{ track.name }}</div>
 
@@ -30,14 +31,14 @@
       <button
         class="mini-btn"
         [class.active-solo]="track.solo"
-        (click)="toggleSolo(track.id)"
+        (click)="toggleSolo(track.id); $event.stopPropagation()"
       >
         S
       </button>
       <button
         class="mini-btn"
         [class.active-mute]="track.mute"
-        (click)="toggleMute(track.id)"
+        (click)="toggleMute(track.id); $event.stopPropagation()"
       >
         M
       </button>
@@ -48,31 +49,16 @@
   <div class="mixer-strip master">
     <div class="track-label">MASTER</div>
 
-    <div
-      class="vu-meter-container"
-      style="width: 40px; display: flex; gap: 2px; padding: 2px"
-    >
-      <div
-        class="vu-meter-fill"
-        style="flex: 1; position: relative"
-        [style.height.%]="masterVolume() * 0.9"
-      ></div>
-      <div
-        class="vu-meter-fill"
-        style="flex: 1; position: relative"
-        [style.height.%]="masterVolume() * 0.85"
-      ></div>
+    <div class="vu-meter-container" style="width: 24px; display: flex; gap: 2px; padding: 1px">
+      <div class="vu-meter-fill" style="flex: 1; position: relative" [style.height.%]="masterVolume() * 0.9"></div>
+      <div class="vu-meter-fill" style="flex: 1; position: relative" [style.height.%]="masterVolume() * 0.85"></div>
     </div>
 
     <div class="pan-knob" style="opacity: 0.3"></div>
 
     <div class="fader-container">
       <div class="fader-track" style="width: 6px"></div>
-      <div
-        class="fader-cap"
-        style="width: 40px; background: #333"
-        [style.bottom.%]="masterVolume() * 0.8"
-      ></div>
+      <div class="fader-cap" style="width: 50px; background: #2a2a35" [style.bottom.%]="masterVolume() * 0.8"></div>
       <input
         type="range"
         min="0"
@@ -83,7 +69,7 @@
       />
     </div>
 
-    <div class="track-label" style="color: var(--fl-blue)">
+    <div class="track-label" style="color: #a855f7">
       {{ masterVolume().toFixed(0) }}%
     </div>
   </div>

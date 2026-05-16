@@ -48,6 +48,7 @@ const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'mastering',
   'vocal-suite',
   'drum-machine',
+  'performer',
 ]);
 
 function isStudioView(value: string): value is StudioView {
@@ -89,8 +90,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   activeView = signal<StudioView>('dj');
   showMixer = signal(true);
   showRack = signal(true);
-  showPianoRoll = signal(false);
-  activeEditor = signal<'piano-roll' | 'drum-machine'>('piano-roll');
   focusLocked = signal(false);
   showNeuralFoundry = signal(false);
 
@@ -155,26 +154,23 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         const isDrumTrack =
           track?.instrumentId.toLowerCase().includes('kit') ||
           track?.name.toLowerCase().includes('drum');
-        const targetEditor: 'piano-roll' | 'drum-machine' = isDrumTrack
-          ? 'drum-machine'
-          : 'piano-roll';
+
+        const targetView: StudioView = isDrumTrack ? 'drum-machine' : 'piano-roll';
 
         if (!this.focusLocked()) {
-          this.activeEditor.set(targetEditor);
+          // Auto-switch view if in an editor-context
+          const current = this.activeView();
+          if (current === 'piano-roll' || current === 'drum-machine') {
+            this.activeView.set(targetView);
+          }
         }
 
-        // Auto-focus on editors regardless of view
-        if (
-          this.uiService.autoPianoRoll() ||
-          this.uiService.isCompactMobile()
-        ) {
-          this.showPianoRoll.set(true);
-        } else if (!this.showPianoRoll()) {
-          this.notificationService.show(
-            `Track selected. ${isDrumTrack ? 'Drum Machine' : 'Piano Roll'} is ready.`,
-            'info',
-            3000
-          );
+        if (!['piano-roll', 'drum-machine', 'performer'].includes(this.activeView())) {
+             this.notificationService.show(
+                `Track selected. ${isDrumTrack ? 'Drum Machine' : 'Piano Roll'} is ready.`,
+                'info',
+                2000
+              );
         }
       }
     });
@@ -184,18 +180,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.activeView.set(view);
     if (!syncRoute) return;
 
-    const targetRoute =
-      view === 'dj'
-        ? ['/studio']
-        : view === 'vocal-suite'
-          ? ['/vocal-suite']
-          : view === 'piano-roll'
-            ? ['/piano-roll']
-            : ['/studio'];
-    const queryParams =
-      view === 'dj' || view === 'vocal-suite' || view === 'piano-roll'
-        ? undefined
-        : { view };
+    const targetRoute = ['/studio'];
+    const queryParams = { view };
 
     this.router.navigate(targetRoute, {
       queryParams,

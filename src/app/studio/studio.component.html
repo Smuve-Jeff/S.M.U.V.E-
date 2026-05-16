@@ -6,30 +6,47 @@
   <div class="neural-foundry-overlay" *ngIf="showNeuralFoundry()">
     <app-neural-foundry></app-neural-foundry>
     <button class="close-foundry-btn" (click)="toggleNeuralFoundry()">
-      Close
+      CLOSE
     </button>
   </div>
 
   <!-- Main Studio UI -->
   <div class="studio-main-content">
     <header class="studio-header">
-      <h1 class="studio-title">SMUVE <span>Studio</span></h1>
+      <h1 class="studio-title">SMUVE <span>STUDIO</span></h1>
       <div class="header-controls">
-        <button class="header-btn" (click)="setActiveView('dj')">DJ</button>
-        <button class="header-btn" (click)="setActiveView('mixer')">
-          Mixer
-        </button>
-        <button class="header-btn" (click)="setActiveView('piano-roll')">
-          Piano Roll
-        </button>
-        <button class="header-btn" (click)="setActiveView('drum-machine')">
-          Drums
-        </button>
-        <button class="header-btn" (click)="setActiveView('performer')">
-          THE PERFORMER
-        </button>
-        <button class="header-btn" (click)="toggleNeuralFoundry()">
-          Neural Foundry
+        <button
+          class="header-btn"
+          [class.active]="activeView() === 'dj'"
+          (click)="setActiveView('dj')">DJ DECK</button>
+        <button
+          class="header-btn"
+          [class.active]="activeView() === 'mixer'"
+          (click)="setActiveView('mixer')">MIXER</button>
+        <button
+          class="header-btn"
+          [class.active]="activeView() === 'piano-roll'"
+          (click)="setActiveView('piano-roll')">PIANO ROLL</button>
+        <button
+          class="header-btn"
+          [class.active]="activeView() === 'drum-machine'"
+          (click)="setActiveView('drum-machine')">DRUMS</button>
+        <button
+          class="header-btn"
+          [class.active]="activeView() === 'performer'"
+          (click)="setActiveView('performer')">PERFORMER</button>
+        <button
+          class="header-btn"
+          [class.active]="activeView() === 'mastering'"
+          (click)="setActiveView('mastering')">MASTERING</button>
+        <button
+          class="header-btn"
+          [class.active]="activeView() === 'vocal-suite'"
+          (click)="setActiveView('vocal-suite')">VOCAL SUITE</button>
+        <button
+          class="header-btn header-btn-ai"
+          (click)="toggleNeuralFoundry()">
+          NEURAL FOUNDRY
         </button>
       </div>
     </header>

@@ -2,13 +2,10 @@
   display: block;
   height: 100%;
   width: 100%;
-  background-color: #0d0d0d;
-  color: #fff;
+  background-color: var(--studio-bg, #07070a);
+  color: #f0f0f5;
   overflow: hidden;
-  --fl-blue: #00d2ff;
-  --fl-orange: #ff9d00;
-  --fl-dark-bg: #1a1a1a;
-  --fl-border: rgba(255, 255, 255, 0.08);
+  font-family: 'Rajdhani', sans-serif;
 }
 
 .playlist-container {
@@ -19,12 +16,12 @@
 
 .playlist-header {
   height: 50px;
-  background: #252525;
+  background: rgba(255, 255, 255, 0.02);
   display: flex;
   align-items: center;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
   justify-content: space-between;
-  border-bottom: 1px solid #000;
+  border-bottom: 1px solid var(--studio-border);
 }
 
 .view-tabs {
@@ -35,17 +32,19 @@
 .tab-btn {
   background: transparent;
   border: none;
-  color: #888;
-  font-size: 0.75rem;
+  color: #7a7a9a;
+  font-size: 0.7rem;
   font-weight: 800;
   text-transform: uppercase;
+  font-family: var(--font-display);
   cursor: pointer;
   padding: 10px 0;
   position: relative;
+  letter-spacing: 1px;
 }
 
 .tab-btn.active {
-  color: var(--fl-blue);
+  color: #ec5b13;
 }
 
 .tab-btn.active::after {
@@ -55,7 +54,8 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--fl-blue);
+  background: #ec5b13;
+  box-shadow: 0 0 10px #ec5b13;
 }
 
 .playlist-content {
@@ -65,25 +65,26 @@
 }
 
 .track-headers {
-  width: 240px;
-  background: #1e1e1e;
-  border-right: 1px solid #000;
+  width: 220px;
+  background: rgba(0, 0, 0, 0.2);
+  border-right: 1px solid var(--studio-border);
   overflow-y: auto;
 }
 
 .track-header {
   height: 80px;
-  border-bottom: 1px solid #000;
+  border-bottom: 1px solid var(--studio-border);
   display: flex;
   flex-direction: column;
-  padding: 10px;
+  padding: 12px;
   position: relative;
-  background: #2a2a2a;
+  background: rgba(255, 255, 255, 0.01);
+  transition: all 0.2s;
 }
 
 .track-header.selected {
-  background: #3a3a3a;
-  border-left: 4px solid var(--fl-blue);
+  background: rgba(236, 91, 19, 0.05);
+  border-left: 4px solid #ec5b13;
 }
 
 .track-top {
@@ -97,48 +98,54 @@
   width: 4px;
   height: 24px;
   border-radius: 2px;
+  box-shadow: 0 0 8px currentColor;
 }
 
 .track-name {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
-  color: #ccc;
+  color: #f0f0f5;
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: var(--font-display);
 }
 
 .track-controls {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .mini-btn {
-  width: 24px;
-  height: 24px;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  color: #666;
-  font-size: 0.6rem;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--studio-border);
+  color: #7a7a9a;
+  font-size: 0.65rem;
   font-weight: 900;
-  border-radius: 4px;
+  font-family: var(--font-display);
+  border-radius: 6px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .mini-btn.active-solo {
-  background: #ffc107;
-  color: #000;
+  background: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border-color: #ffc107;
 }
 .mini-btn.active-mute {
-  background: #f44336;
-  color: #fff;
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  border-color: #f44336;
 }
 
 .track-volume-bar {
-  height: 4px;
-  background: #111;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 2px;
   position: relative;
   overflow: hidden;
@@ -146,13 +153,13 @@
 
 .volume-fill {
   height: 100%;
-  background: var(--fl-blue);
-  box-shadow: 0 0 8px var(--fl-blue);
+  background: #ec5b13;
+  box-shadow: 0 0 8px #ec5b13;
 }
 
 .grid-viewport {
   flex: 1;
-  background: #0d0d0d;
+  background: #050507;
   position: relative;
   overflow: auto;
 }
@@ -160,57 +167,66 @@
 .grid-canvas {
   position: relative;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: 100px 80px;
 }
 
 .time-ruler {
-  height: 30px;
-  background: #1a1a1a;
-  border-bottom: 1px solid #000;
+  height: 35px;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid var(--studio-border);
   display: flex;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
+  backdrop-filter: blur(8px);
 }
 
 .ruler-bar {
-  width: 400px; /* 4 bars per large grid */
-  border-right: 1px solid #333;
-  padding: 5px 10px;
-  font-size: 0.6rem;
-  font-weight: 800;
-  color: #555;
+  width: 400px;
+  border-right: 1px solid var(--studio-border);
+  padding: 8px 12px;
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: #4a4a65;
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
 }
 
 .clip-item {
   position: absolute;
   height: 70px;
   top: 5px;
-  border-radius: 4px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 210, 255, 0.15);
+  background: rgba(236, 91, 19, 0.15);
   overflow: hidden;
   cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.1s;
+}
+
+.clip-item:hover {
+  filter: brightness(1.2);
 }
 
 .clip-header {
-  height: 18px;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 0 8px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0 10px;
   display: flex;
   align-items: center;
-  font-size: 0.55rem;
-  font-weight: 800;
+  font-size: 0.6rem;
+  font-weight: 900;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.8);
+  color: #f0f0f5;
+  font-family: var(--font-display);
 }
 
 .clip-waveform {
   flex: 1;
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 .playhead {
@@ -219,16 +235,16 @@
   bottom: 0;
   width: 2px;
   background: #fff;
-  box-shadow: 0 0 10px #fff;
-  z-index: 5;
+  box-shadow: 0 0 15px #fff;
+  z-index: 15;
 }
 
 .playhead-cap {
   position: absolute;
   top: 0;
-  left: -6px;
-  width: 14px;
-  height: 14px;
+  left: -7px;
+  width: 16px;
+  height: 16px;
   background: #fff;
   clip-path: polygon(0 0, 100% 0, 50% 100%);
 }
@@ -236,53 +252,37 @@
 /* Mobile Specific Optimizations */
 @media (max-width: 768px) {
   .track-headers {
-    width: 60px; /* Mini headers in mobile */
+    width: 70px;
   }
 
   .track-header {
-    padding: 5px;
-    height: 60px;
+    padding: 8px;
+    height: 70px;
     justify-content: center;
   }
 
   .track-name,
   .track-controls,
   .track-volume-bar {
-    display: none; /* Hide detailed info in mini view */
+    display: none;
   }
 
   .track-color-strip {
-    width: 10px;
-    height: 40px;
+    width: 12px;
+    height: 45px;
     margin: 0 auto;
   }
 
   .ruler-bar {
-    width: 150px; /* More compact timeline for mobile */
+    width: 160px;
   }
 
   .clip-item {
-    height: 50px;
-  }
-
-  .clip-header {
-    font-size: 0.45rem;
+    height: 60px;
   }
 
   .playlist-header {
-    height: 40px;
-    padding: 0 0.5rem;
+    height: 45px;
+    padding: 0 1rem;
   }
-
-  .view-tabs {
-    gap: 0.8rem;
-  }
-}
-
-/* Touch Safety */
-.clip-item,
-.track-header,
-.mini-btn {
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
 }
