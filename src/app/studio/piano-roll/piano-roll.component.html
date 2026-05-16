@@ -48,7 +48,10 @@
           </div>
         </div>
         <div class="add-track-form">
-          <select [(ngModel)]="newTrackPresetId">
+          <select
+            [ngModel]="newTrackPresetId()"
+            (ngModelChange)="newTrackPresetId.set($event)"
+          >
             <option *ngFor="let preset of availablePresets" [value]="preset.id">
               {{ preset.name }}
             </option>

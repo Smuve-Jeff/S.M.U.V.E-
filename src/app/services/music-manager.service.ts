@@ -5,6 +5,7 @@ import { InstrumentsService } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
 import { FileLoaderService } from './file-loader.service';
 import { UserProfileService } from './user-profile.service';
+import { AudioSessionService } from '../studio/audio-session.service';
 
 export interface TrackNote {
   id: string;
@@ -12,6 +13,7 @@ export interface TrackNote {
   step: number;
   length: number;
   velocity: number;
+  probability?: number;
 }
 
 export interface PatternVersion {
@@ -109,6 +111,7 @@ export class MusicManagerService {
   public engine = inject(AudioEngineService);
   private fileLoader = inject(FileLoaderService);
   private profileService = inject(UserProfileService);
+  private audioSession = inject(AudioSessionService);
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
@@ -215,7 +218,7 @@ export class MusicManagerService {
     });
   }
 
-    private normalizeTrack(track: any): TrackModel {
+  private normalizeTrack(track: any): TrackModel {
     return {
       ...track,
       notes: track.notes || [],
@@ -225,11 +228,11 @@ export class MusicManagerService {
       solo: !!track.solo,
       steps: track.steps || new Array(64).fill(false),
       type: track.type || 'midi',
-      color: track.color || '#af25f4'
+      color: track.color || '#af25f4',
     };
   }
 
-private loadLastSession() {
+  private loadLastSession() {
     const profile = this.profileService.profile();
     const lastSession = (profile?.knowledgeBase as any)?.lastDawSession;
 
@@ -809,9 +812,8 @@ private loadLastSession() {
     this.engine.loopEnd.set(end);
   }
 
-
   addTrack(name: string, instrumentId: string) {
-    const id = Math.max(0, ...this.tracks().map(t => t.id)) + 1;
+    const id = Math.max(0, ...this.tracks().map((t) => t.id)) + 1;
     const newTrack: TrackModel = {
       id,
       name,
@@ -828,27 +830,60 @@ private loadLastSession() {
       qualityMode: 'ultra',
       type: 'midi',
       color: '#af25f4',
-      fxSlots: []
+      fxSlots: [],
     };
-    this.tracks.update(ts => [...ts, newTrack]);
+    this.tracks.update((ts) => [...ts, newTrack]);
     this.selectedTrackId.set(id);
     return id;
   }
 
-  recordLiveNote(midi: number, velocity: number) {
+  recordLiveNote(noteOrMidi: string | number, velocity: number) {
     const trackId = this.selectedTrackId();
     if (trackId === null) return;
 
-    const step = Math.max(0, this.currentStep());
-    const note: TrackNote = {
-      id: Math.random().toString(36).substring(7),
+    if (typeof noteOrMidi === 'number') {
+      const step = Math.max(0, this.currentStep());
+      this.addNoteToTrack(trackId, {
+        midi: noteOrMidi,
+        step,
+        length: 1,
+        velocity,
+      });
+      return;
+    }
+
+    if (!this.audioSession.isRecording()) return;
+
+    const noteMatch = noteOrMidi.match(/^([A-G]#?)(-?\d+)$/);
+    if (!noteMatch) return;
+
+    const [, noteName, octaveText] = noteMatch;
+    const names = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
+    ];
+    const noteIndex = names.indexOf(noteName);
+    const octave = Number.parseInt(octaveText, 10);
+    if (noteIndex < 0 || Number.isNaN(octave)) return;
+
+    const midi = (octave + 1) * 12 + noteIndex;
+    const step = Math.floor(this.engine.currentBeat() * 4) % 64;
+
+    this.addNoteToTrack(trackId, {
       midi,
       step,
       length: 1,
-      velocity
-    };
-
-    this.addNoteToTrack(trackId, note);
+      velocity,
+    });
   }
-
 }

@@ -25,6 +25,9 @@
         <button class="header-btn" (click)="setActiveView('drum-machine')">
           Drums
         </button>
+        <button class="header-btn" (click)="setActiveView('performer')">
+          THE PERFORMER
+        </button>
         <button class="header-btn" (click)="toggleNeuralFoundry()">
           Neural Foundry
         </button>
@@ -53,6 +56,13 @@
         [class.hidden]="activeView() !== 'drum-machine'"
       >
         <app-drum-machine></app-drum-machine>
+      </div>
+
+      <div
+        class="view-wrapper"
+        [class.hidden]="activeView() !== 'performer'"
+      >
+        <app-performer></app-performer>
       </div>
 
       <div class="view-wrapper" [class.hidden]="activeView() !== 'mastering'">
