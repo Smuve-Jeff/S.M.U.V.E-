@@ -121,6 +121,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     this.musicManager.addTrack('New Track', this.newTrackPresetId());
   }
 
+  private createNoteId() {
+    return (
+      globalThis.crypto?.randomUUID?.() ??
+      `note-${Math.random().toString(36).slice(2, 11)}`
+    );
+  }
+
   getVisibleNotes(track: TrackModel) {
     return track.notes;
   }
@@ -209,7 +216,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const offset = maxStep - minStep || 1;
     const newNotes = notesToDuplicate.map((note) => ({
       ...note,
-      id: `note-${Math.random().toString(36).slice(2, 11)}`,
+      id: this.createNoteId(),
       step: note.step + offset,
     }));
 
@@ -236,7 +243,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
         : track.notes.filter((note) => this.selectedNoteIds().has(note.id));
     const duplicatedNotes = sourceNotes.map((note) => ({
       ...note,
-      id: `note-${Math.random().toString(36).slice(2, 11)}`,
+      id: this.createNoteId(),
       step: note.step + this.stepsPerMeasure,
     }));
 
