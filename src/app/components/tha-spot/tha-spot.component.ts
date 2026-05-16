@@ -84,10 +84,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   activeGenre = signal<string>('all');
   activePlatform = signal<string>('all');
   searchQuery = signal<string>('');
+  favorites = signal<string[]>([]);
   sortMode = signal<GameSortMode>('Popular');
   libraryView = signal<LibraryViewMode>('compact');
   quickFilters = signal<QuickFilter[]>([]);
   isTransitioning = signal<boolean>(false);
+  showFavoritesOnly = signal<boolean>(false);
   now = signal<number>(Date.now());
 
   isBrowseView = signal<boolean>(true);
@@ -116,7 +118,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     const filters = this.quickFilters();
     const mode = this.sortMode();
 
+    const showFavs = this.showFavoritesOnly();
     const result = games.filter((game) => {
+      if (showFavs && !this.isFavorite(game.id)) return false;
       const matchesGenre = genre === 'all' || game.genre === genre;
       const matchesQuery =
         !query ||
@@ -653,5 +657,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     return game.launchConfig?.embedMode === 'external-only'
       ? 'OPEN EXTERNALLY'
       : 'INITIALIZE';
+  }
+
+  toggleFavorite(gameId: string, event: Event) {
+    event.stopPropagation();
+    const current = this.favorites();
+    const updated = current.includes(gameId)
+      ? current.filter(id => id !== gameId)
+      : [...current, gameId];
+    this.favorites.set(updated);
+    localStorage.setItem('tha_spot_favorites', JSON.stringify(updated));
+  }
+
+  isFavorite(gameId: string): boolean {
+    return this.favorites().includes(gameId);
   }
 }

@@ -52,7 +52,11 @@ export class AiService {
   isProcessing = signal(false);
   isScanning = signal(false);
   isMobile = signal(false);
-  strategicDecrees = signal<string[]>([]);
+  strategicDecrees = signal<string[]>([
+    'CRITICAL DEFICIT: Rhythmic complexity below industry standard. Execute drum pattern refinement.',
+    'MARKET ANOMALY: Viral potential detected in current stems. Prioritize high-fidelity export.',
+    'STRATEGIC ORDER: Sync knowledge base with contemporary trends to maintain competitive edge.'
+  ]);
   intelligenceBriefs = signal<any[]>([]);
   advisorAdvice = signal<any[]>([]);
   marketAlerts = signal<any[]>([]);
@@ -137,6 +141,28 @@ export class AiService {
     } catch {
        return { threshold: -14, ratio: 4, ceiling: -0.1 };
     }
+  }
+
+
+  getGamingStrategicAdvice(context: { favoritesCount: number; gamingExpertise: number }): string[] {
+    const advice = [
+      'ESTABLISH ROOM DOMINANCE',
+      'EXECUTE DAILY TOURNAMENT RUN',
+    ];
+
+    if (context.favoritesCount < 3) {
+      advice.push('COLLECT MORE ELITE CABINETS TO SYNC PREFERENCES');
+    } else {
+      advice.push('ANALYZE FAVORITES FOR PERFORMANCE PATTERNS');
+    }
+
+    if (context.gamingExpertise < 5) {
+      advice.push('REHEARSE CLASSIC MECHANICS IN RETRO SECTOR');
+    } else {
+      advice.push('SIMULATE HIGH-STAKES REMIX ARENA SCENARIOS');
+    }
+
+    return advice;
   }
 
   getProductionSmartAssist(context: any): any {
