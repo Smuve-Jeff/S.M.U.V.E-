@@ -1,4 +1,4 @@
-import { ThaSpotFeed } from './game';
+import { ThaSpotFeed } from './hub.models';
 
 export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   "badges": [
@@ -4489,6 +4489,207 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#facc15",
         "accentEnd": "#a16207"
       }
+    },
+    {
+      "id": "gta-san-andreas-elite",
+      "name": "Grand Theft Auto: San Andreas",
+      "url": "https://www.retrogames.cc/embed/43315-grand-theft-auto-san-andreas.html",
+      "genre": "Action",
+      "description": "Return to Los Santos in the definitive open-world masterpiece. High-performance PS2-era emulation.",
+      "availability": "Online",
+      "playersOnline": 45000,
+      "rating": 5.0,
+      "badgeIds": [
+        "classic",
+        "elite",
+        "trending"
+      ],
+      "tags": [
+        "Action",
+        "Retro",
+        "PS2",
+        "Open World",
+        "WASM"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43315-grand-theft-auto-san-andreas.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "Rockstar Elite",
+        "accentStart": "#fb7185",
+        "accentEnd": "#e11d48"
+      }
+    },
+    {
+      "id": "madden-nfl-2000-elite",
+      "name": "Madden NFL 2000",
+      "url": "https://www.retrogames.cc/embed/41885-madden-nfl-2000-usa.html",
+      "genre": "Sports",
+      "description": "The gridiron classic that redefined sports gaming. Elite PS1 performance with legendary commentary.",
+      "availability": "Online",
+      "playersOnline": 18000,
+      "rating": 4.8,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Sports",
+        "Retro",
+        "PS1",
+        "Football"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41885-madden-nfl-2000-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "EA Sports Elite",
+        "accentStart": "#60a5fa",
+        "accentEnd": "#1d4ed8"
+      }
+    },
+    {
+      "id": "nba-2k1-elite",
+      "name": "NBA 2K1",
+      "url": "https://www.retrogames.cc/embed/41223-nba-2k1-usa.html",
+      "genre": "Sports",
+      "description": "Experience the birth of the 2K dynasty. High-fidelity Dreamcast emulation with online-ready logic.",
+      "availability": "Online",
+      "playersOnline": 15000,
+      "rating": 4.9,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Sports",
+        "Retro",
+        "Dreamcast",
+        "Basketball"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-nba-2k1-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "SEGA Elite",
+        "accentStart": "#f87171",
+        "accentEnd": "#b91c1c"
+      }
+    },
+    {
+      "id": "wwf-no-mercy-elite",
+      "name": "WWF No Mercy",
+      "url": "https://www.retrogames.cc/embed/32467-wwf-no-mercy-usa.html",
+      "genre": "Fighting",
+      "description": "The greatest wrestling game ever made. Relive the Attitude Era with perfected N64 grappling mechanics.",
+      "availability": "Online",
+      "playersOnline": 22000,
+      "rating": 5.0,
+      "badgeIds": [
+        "classic",
+        "elite",
+        "staff-pick"
+      ],
+      "tags": [
+        "Fighting",
+        "Retro",
+        "N64",
+        "Wrestling"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32467-wwf-no-mercy-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "THQ Elite",
+        "accentStart": "#a78bfa",
+        "accentEnd": "#5b21b6"
+      }
+    },
+    {
+      "id": "marvel-vs-capcom-elite",
+      "name": "Marvel vs. Capcom: Clash of Super Heroes",
+      "url": "https://www.retrogames.cc/embed/8404-marvel-vs-capcom-clash-of-super-heroes-980123.html",
+      "genre": "Fighting",
+      "description": "Two worlds collide in this explosive arcade classic. High-speed tag-team combat at its peak.",
+      "availability": "Online",
+      "playersOnline": 30000,
+      "rating": 4.9,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Fighting",
+        "Retro",
+        "Arcade",
+        "Capcom"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8404-marvel-vs-capcom-clash-of-super-heroes-980123.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "Capcom Elite",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#78350f"
+      }
+    },
+    {
+      "id": "tmnt-turtles-in-time-elite",
+      "name": "Teenage Mutant Ninja Turtles: Turtles in Time",
+      "url": "https://www.retrogames.cc/embed/9394-teenage-mutant-ninja-turtles-turtles-in-time-4-players-ver-uaa.html",
+      "genre": "Arcade Classic",
+      "description": "Big Apple, 3 AM. Fight through time in the ultimate 4-player arcade beat 'em up.",
+      "availability": "Online",
+      "playersOnline": 25000,
+      "rating": 5.0,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Arcade",
+        "Retro",
+        "Action",
+        "Co-op"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/9394-teenage-mutant-ninja-turtles-turtles-in-time-4-players-ver-uaa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "Konami Elite",
+        "accentStart": "#10b981",
+        "accentEnd": "#064e3b"
+      }
     }
   ],
   "recommendationRails": [
@@ -4633,7 +4834,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "grand-theft-auto-ps1",
         "mortal-kombat-2-elite",
         "sfii-world-warrior",
-        "tekken-3-elite"
+        "tekken-3-elite",
+        "tmnt-turtles-in-time-elite",
+        "gta-san-andreas-elite"
       ],
       "audience": {
         "rooms": [
