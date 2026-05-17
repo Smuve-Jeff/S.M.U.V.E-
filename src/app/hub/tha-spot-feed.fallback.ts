@@ -400,6 +400,71 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   ],
   games: [
     {
+        'id': 'tekken-4-tribute',
+        'name': 'Tekken 4 Tribute',
+        'url': '/assets/games/tekken-4-tribute/tekken-4-tribute.html',
+        'genre': 'Fighting',
+        'description': 'Elite 2D fighting demo. Shinjuku Arena. Stabilized neural combat.',
+        'availability': 'Offline',
+        'playersOnline': 1000,
+        'rating': 5.0,
+        'badgeIds': [
+            'elite',
+            'new-drop'
+        ],
+        'tags': [
+            'Fighting',
+            'Elite',
+            'Phaser'
+        ],
+        'launchConfig': {
+            'embedMode': 'inline',
+            'controls': [
+                'WASD to move',
+                'J/K/L to attack'
+            ],
+            'telemetryMode': 'origin'
+        },
+        'art': {
+            'eyebrow': 'Executive Classic',
+            'accentStart': '#af25f4',
+            'accentEnd': '#7c3aed'
+        }
+    },
+    {
+        'id': 'halo-ce-web',
+        'name': 'Halo: CE Web',
+        'url': '/assets/games/halo-ce-web/halo-ce-web.html',
+        'genre': 'Shooting',
+        'description': 'Elite 3D FPS demo. WebGL combat link. Master Chief protocol.',
+        'availability': 'Offline',
+        'playersOnline': 2000,
+        'rating': 5.0,
+        'badgeIds': [
+            'elite',
+            'new-drop'
+        ],
+        'tags': [
+            'Shooting',
+            'Elite',
+            'ThreeJS'
+        ],
+        'launchConfig': {
+            'embedMode': 'inline',
+            'controls': [
+                'WASD to move',
+                'Mouse to aim/shoot'
+            ],
+            'telemetryMode': 'origin'
+        },
+        'art': {
+            'eyebrow': 'Executive Classic',
+            'accentStart': '#22d3ee',
+            'accentEnd': '#0891b2'
+        }
+    }
+,
+    {
       id: '1',
       name: 'Tha Battlefield',
       url: '/assets/games/battlefield/battlefield.html',

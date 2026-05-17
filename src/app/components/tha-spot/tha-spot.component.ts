@@ -8,6 +8,7 @@ import {
   effect,
   ViewChild,
   ElementRef,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -48,6 +49,7 @@ const QUICK_FILTERS: QuickFilter[] = [
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './tha-spot.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./tha-spot.component.css'],
 })
 export class ThaSpotComponent implements OnInit, OnDestroy {
@@ -100,6 +102,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   selectedGame = signal<Game | null>(null);
   currentGame = signal<Game | null>(null);
+  currentSafeUrl = computed(() => {
+    const game = this.currentGame();
+    if (!game) return null;
+    return this.getSafeUrl(game);
+  });
 
   allCategories = computed(() => {
     const genres = Array.from(
@@ -341,6 +348,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     void this.profileService.recordGameLaunch(game.id, sessionContext);
   }
 
+  private loadGameState(game: Game) {
+    const save = localStorage.getItem(`smuve_save_${game.id}`);
+    if (save && this.gameIframe?.nativeElement?.contentWindow) {
+      this.gameIframe.nativeElement.contentWindow.postMessage({
+        type: "LOAD_STATE",
+        payload: JSON.parse(save)
+      }, "*");
+    }
+  }
+
   closeGame() {
     this.currentGame.set(null);
   }
@@ -453,16 +470,33 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     // Secure Gaming Protocol Handlers
     switch (event.data?.type) {
       case 'GAME_READY':
+        this.loadGameState(active);
         break;
       case 'GAME_UPDATE':
-        // Handle telemetry or score updates through a dedicated logging/telemetry
-        // service when one is available. Avoid console logging in production UI code.
+        if (event.data.data?.score !== undefined || event.data.data?.level !== undefined) {
+           this.profileService.recordGameResult(active.id, {
+             ...this.buildSessionContext(active),
+             score: event.data.data.score,
+             level: event.data.data.level,
+             health: event.data.data.health
+           });
+        }
+        break;
+      case 'GAME_SAVE':
+        if (event.data.payload) {
+          localStorage.setItem(`smuve_save_${active.id}`, JSON.stringify(event.data.payload));
+        }
         break;
       case 'GAME_OVER':
+        this.profileService.recordGameResult(active.id, {
+          ...this.buildSessionContext(active),
+          score: event.data.data?.score,
+          level: event.data.data?.level,
+          isWin: event.data.data?.isWin
+        });
         this.closeGame();
         break;
       default:
-        // Handle generic signals
         break;
     }
   }

@@ -327,6 +327,8 @@ export class UserProfileService {
       plays: (prev.plays || 0) + 1,
       lastPlayedAt: now,
       lastRoomId: roomId,
+      highScore: Math.max(prev.highScore || 0, context.score || 0),
+      bestLevel: Math.max(prev.bestLevel || 0, context.level || 0),
       roomPlays,
       earnedCosmetics: this.mergeUniqueStrings(
         prev.earnedCosmetics,
@@ -541,6 +543,8 @@ export class UserProfileService {
         gameId,
         {
           plays: stat?.plays || 0,
+          highScore: stat?.highScore || 0,
+          bestLevel: stat?.bestLevel || 0,
           lastPlayedAt: stat?.lastPlayedAt,
           lastRoomId: stat?.lastRoomId,
           roomPlays: { ...(stat?.roomPlays || {}) },

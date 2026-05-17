@@ -1,302 +1,166 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cipher Surge</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipher Surge Elite</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-      :root {
-        color-scheme: dark;
-        --bg: #030712;
-        --panel: rgba(17, 24, 39, 0.92);
-        --accent: #8b5cf6;
-        --accent-soft: rgba(139, 92, 246, 0.22);
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        color: white;
-        background:
-          radial-gradient(
-            circle at top,
-            rgba(139, 92, 246, 0.18),
-            transparent 34%
-          ),
-          linear-gradient(180deg, #030712, #111827);
-        font-family: Inter, system-ui, sans-serif;
-      }
-
-      .shell {
-        width: min(92vw, 900px);
-        padding: 24px;
-        border-radius: 28px;
-        background: var(--panel);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
-      }
-
-      .header,
-      .controls {
-        display: flex;
-        justify-content: space-between;
-        gap: 18px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-
-      h1 {
-        margin: 6px 0 0;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        font-size: clamp(2rem, 4vw, 3rem);
-      }
-
-      .eyebrow,
-      .status {
-        color: rgba(255, 255, 255, 0.72);
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        font-size: 0.82rem;
-      }
-
-      .stats {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-
-      .stat {
-        min-width: 118px;
-        padding: 12px 14px;
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.05);
-      }
-
-      .stat label {
-        display: block;
-        color: rgba(255, 255, 255, 0.48);
-        font-size: 0.68rem;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-      }
-
-      .stat strong {
-        display: block;
-        margin-top: 6px;
-        font-size: 1.28rem;
-      }
-
-      .pads {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
-        margin: 28px 0;
-      }
-
-      .pad {
-        aspect-ratio: 1.15;
-        border-radius: 26px;
-        border: 0;
-        cursor: pointer;
-        font-size: clamp(1.2rem, 3vw, 1.8rem);
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        color: white;
-        opacity: 0.88;
-        transition:
-          transform 150ms ease,
-          box-shadow 150ms ease,
-          opacity 150ms ease;
-      }
-
-      .pad.active {
-        transform: scale(1.03);
-        opacity: 1;
-        box-shadow: 0 0 32px currentColor;
-      }
-
-      .pad:nth-child(1) {
-        background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-      }
-      .pad:nth-child(2) {
-        background: linear-gradient(135deg, #ec4899, #be185d);
-      }
-      .pad:nth-child(3) {
-        background: linear-gradient(135deg, #22c55e, #15803d);
-      }
-      .pad:nth-child(4) {
-        background: linear-gradient(135deg, #38bdf8, #2563eb);
-      }
-
-      button.primary {
-        border: 0;
-        border-radius: 999px;
-        padding: 12px 16px;
-        cursor: pointer;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        background: linear-gradient(135deg, #c084fc, #8b5cf6);
-        color: #030712;
-      }
+        body { margin: 0; background: #030712; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Inter', sans-serif; }
+        #game-container { border: 2px solid #8b5cf6; border-radius: 20px; box-shadow: 0 0 40px rgba(139, 92, 246, 0.4); }
     </style>
-  </head>
-  <body>
-    <div class="shell">
-      <div class="header">
-        <div>
-          <div class="eyebrow">Offline AI Puzzle</div>
-          <h1>Cipher Surge</h1>
-        </div>
-        <div class="stats">
-          <div class="stat">
-            <label>Round</label><strong id="round">1</strong>
-          </div>
-          <div class="stat">
-            <label>Score</label><strong id="score">0</strong>
-          </div>
-          <div class="stat">
-            <label>Integrity</label><strong id="health">100%</strong>
-          </div>
-        </div>
-      </div>
-
-      <div class="pads">
-        <button class="pad" data-pad="0">Pulse</button>
-        <button class="pad" data-pad="1">Vocal</button>
-        <button class="pad" data-pad="2">Bass</button>
-        <button class="pad" data-pad="3">Lead</button>
-      </div>
-
-      <div class="controls">
-        <div class="status" id="status">
-          Watch the sequence, then play it back perfectly.
-        </div>
-        <button class="primary" id="startBtn">Start Cipher</button>
-      </div>
-    </div>
-
+</head>
+<body>
+    <div id="game-container"></div>
     <script>
-      const pads = Array.from(document.querySelectorAll('.pad'));
-      const roundEl = document.getElementById('round');
-      const scoreEl = document.getElementById('score');
-      const healthEl = document.getElementById('health');
-      const statusEl = document.getElementById('status');
-      const startBtn = document.getElementById('startBtn');
+        const config = {
+            type: Phaser.AUTO,
+            width: 600,
+            height: 800,
+            parent: 'game-container',
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
 
-      let sequence = [];
-      let input = [];
-      let round = 1;
-      let score = 0;
-      let health = 100;
-      let acceptingInput = false;
+        let pads = [];
+        let sequence = [];
+        let playerInput = [];
+        let isShowingSequence = false;
+        let round = 1;
+        let score = 0;
+        let health = 100;
+        let scoreText, healthText, roundText, statusText;
+        let padColors = [0x8b5cf6, 0xec4899, 0x22c55e, 0x38bdf8];
 
-      function report(lastAction, gameOver = false) {
-        roundEl.textContent = String(round);
-        scoreEl.textContent = String(score);
-        healthEl.textContent = `${health}%`;
-        window.parent.postMessage(
-          {
-            type: gameOver ? 'GAME_OVER' : 'GAME_UPDATE',
-            data: {
-              score,
-              combo: round - 1,
-              health,
-              lastAction,
-            },
-          },
-          '*'
-        );
-      }
+        const game = new Phaser.Game(config);
 
-      function flash(index) {
-        return new Promise((resolve) => {
-          const pad = pads[index];
-          pad.classList.add('active');
-          setTimeout(() => {
-            pad.classList.remove('active');
-            setTimeout(resolve, 120);
-          }, 360);
-        });
-      }
-
-      async function showSequence() {
-        acceptingInput = false;
-        statusEl.textContent = 'AI pattern incoming...';
-        for (const index of sequence) {
-          await flash(index);
+        function preload() {
+            const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+            padColors.forEach((color, i) => {
+                graphics.clear();
+                graphics.fillStyle(color, 1);
+                graphics.fillRoundedRect(0, 0, 250, 250, 32);
+                graphics.lineStyle(4, 0xffffff, 0.5);
+                graphics.strokeRoundedRect(0, 0, 250, 250, 32);
+                graphics.generateTexture('pad' + i, 250, 250);
+            });
         }
-        input = [];
-        acceptingInput = true;
-        statusEl.textContent = 'Replay the pattern.';
-      }
 
-      function nextRound() {
-        sequence.push(Math.floor(Math.random() * pads.length));
-        showSequence();
-      }
+        function create() {
+            this.add.rectangle(300, 400, 600, 800, 0x030712);
+            this.add.text(300, 50, 'CIPHER SURGE ELITE', { fontSize: '32px', fill: '#8b5cf6', fontStyle: 'bold' }).setOrigin(0.5);
 
-      function reset() {
-        sequence = [];
-        input = [];
-        round = 1;
-        score = 0;
-        health = 100;
-        acceptingInput = false;
-        statusEl.textContent =
-          'Watch the sequence, then play it back perfectly.';
-        report('RESET');
-      }
+            const gridPos = [
+                { x: 165, y: 250 }, { x: 435, y: 250 },
+                { x: 165, y: 520 }, { x: 435, y: 520 }
+            ];
 
-      function fail() {
-        health = Math.max(0, health - 35);
-        acceptingInput = false;
-        statusEl.textContent =
-          health > 0
-            ? 'Breach detected. Rebuild the cipher.'
-            : 'System lockout. Restart to try again.';
-        report('MISS', health <= 0);
-        if (health > 0) {
-          input = [];
-          setTimeout(showSequence, 700);
+            gridPos.forEach((pos, i) => {
+                const pad = this.add.image(pos.x, pos.y, 'pad' + i).setInteractive();
+                pad.on('pointerdown', () => handlePadClick.call(this, i));
+                pads.push(pad);
+            });
+
+            roundText = this.add.text(50, 680, 'ROUND: 1', { fontSize: '24px', fill: '#fff' });
+            scoreText = this.add.text(50, 710, 'SCORE: 0', { fontSize: '24px', fill: '#fff' });
+            healthText = this.add.text(400, 680, 'INTEGRITY: 100%', { fontSize: '24px', fill: '#ec4899' });
+            statusText = this.add.text(300, 760, 'CLICK ANY PAD TO START', { fontSize: '20px', fill: '#8b5cf6' }).setOrigin(0.5);
+
+            window.parent.postMessage({ type: 'GAME_READY' }, '*');
         }
-      }
 
-      pads.forEach((pad, index) => {
-        pad.addEventListener('click', async () => {
-          if (!acceptingInput) return;
-          await flash(index);
-          input.push(index);
-          if (sequence[input.length - 1] !== index) {
-            fail();
-            return;
-          }
-          if (input.length === sequence.length) {
-            score += 150 * round;
-            round += 1;
-            report('ROUND_CLEAR');
-            statusEl.textContent =
-              'Cipher cleared. Stand by for the next layer.';
-            setTimeout(nextRound, 650);
-          }
-        });
-      });
+        function update() {}
 
-      startBtn.addEventListener('click', () => {
-        reset();
-        nextRound();
-      });
+        function handlePadClick(index) {
+            if (isShowingSequence) return;
+            if (sequence.length === 0) {
+                startNextRound.call(this);
+                return;
+            }
 
-      window.parent.postMessage({ type: 'GAME_READY' }, '*');
-      reset();
+            flashPad.call(this, index);
+            playerInput.push(index);
+
+            if (sequence[playerInput.length - 1] !== index) {
+                fail.call(this);
+                return;
+            }
+
+            if (playerInput.length === sequence.length) {
+                score += 100 * round;
+                scoreText.setText('SCORE: ' + score);
+                round++;
+                roundText.setText('ROUND: ' + round);
+                statusText.setText('CIPHER CLEAR. STAND BY.');
+
+                window.parent.postMessage({
+                    type: 'GAME_UPDATE',
+                    data: { score: score, level: round, health: health }
+                }, '*');
+
+                this.time.delayedCall(1000, startNextRound, [], this);
+            }
+        }
+
+        function startNextRound() {
+            playerInput = [];
+            sequence.push(Phaser.Math.Between(0, 3));
+            showSequence.call(this);
+        }
+
+        async function showSequence() {
+            isShowingSequence = true;
+            statusText.setText('WATCH PATTERN...');
+
+            for (let i = 0; i < sequence.length; i++) {
+                await new Promise(resolve => {
+                    this.time.delayedCall(600 * i, () => {
+                        flashPad.call(this, sequence[i]);
+                        if (i === sequence.length - 1) {
+                            this.time.delayedCall(600, () => {
+                                isShowingSequence = false;
+                                statusText.setText('REPLAY CIPHER');
+                            });
+                        }
+                        resolve();
+                    });
+                });
+            }
+        }
+
+        function flashPad(index) {
+            const pad = pads[index];
+            pad.setAlpha(0.5);
+            this.tweens.add({
+                targets: pad,
+                alpha: 1,
+                scale: 1.05,
+                duration: 200,
+                yoyo: true,
+                onComplete: () => pad.setScale(1)
+            });
+        }
+
+        function fail() {
+            health -= 25;
+            healthText.setText('INTEGRITY: ' + health + '%');
+            statusText.setText('BREACH DETECTED!');
+
+            if (health <= 0) {
+                statusText.setText('SYSTEM LOCKOUT');
+                window.parent.postMessage({
+                    type: 'GAME_OVER',
+                    data: { score: score, isWin: false }
+                }, '*');
+                this.time.delayedCall(2000, () => location.reload());
+            } else {
+                playerInput = [];
+                this.time.delayedCall(1000, showSequence, [], this);
+            }
+        }
     </script>
-  </body>
+</body>
 </html>

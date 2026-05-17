@@ -248,6 +248,7 @@
       }
 
       setInterval(updateCrowd, 200);
+      window.parent.postMessage({ type: "GAME_READY" }, "*");
 
       const lyrics = {
         TECHNICAL: [
