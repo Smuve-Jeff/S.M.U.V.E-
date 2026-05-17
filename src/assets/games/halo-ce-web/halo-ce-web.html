@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halo: CE Web Elite</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Inter', sans-serif; color: #22d3ee; }
+        #crosshair { position: fixed; top: 50%; left: 50%; width: 20px; height: 20px; border: 2px solid #22d3ee; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+        #hud { position: fixed; bottom: 20px; left: 20px; font-size: 24px; font-weight: bold; text-shadow: 0 0 10px #22d3ee; }
+        #msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); font-size: 18px; }
+    </style>
+</head>
+<body>
+    <div id="crosshair"></div>
+    <div id="hud">SHIELD: <span id="shield">100</span> | SCORE: <span id="score">0</span></div>
+    <div id="msg">CLICK TO INITIALIZE COMBAT LINK</div>
+    <script>
+        let scene, camera, renderer, player;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let score = 0, shield = 100;
+        const enemies = [];
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x020617);
+            scene.fog = new THREE.Fog(0x020617, 10, 50);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0x22d3ee, 0.5);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            // Ground
+            const floorGeo = new THREE.PlaneGeometry(100, 100);
+            const floorMat = new THREE.MeshPhongMaterial({ color: 0x1e293b });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            // Pillars (Obstacles)
+            for (let i = 0; i < 20; i++) {
+                const pillarGeo = new THREE.BoxGeometry(2, 5, 2);
+                const pillarMat = new THREE.MeshPhongMaterial({ color: 0x334155 });
+                const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+                pillar.position.set(Math.random() * 40 - 20, 2.5, Math.random() * 40 - 20);
+                scene.add(pillar);
+            }
+
+            // Enemies
+            for (let i = 0; i < 5; i++) {
+                spawnEnemy();
+            }
+
+            camera.position.y = 1.6;
+
+            document.addEventListener('keydown', (e) => onKeyDown(e));
+            document.addEventListener('keyup', (e) => onKeyUp(e));
+            document.addEventListener('mousedown', () => shoot());
+
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+
+            // Pointer Lock
+            document.body.addEventListener('click', () => {
+                document.body.requestPointerLock();
+                document.getElementById('msg').style.display = 'none';
+                window.parent.postMessage({ type: 'GAME_READY' }, '*');
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (document.pointerLockElement === document.body) {
+                    camera.rotation.y -= e.movementX * 0.002;
+                }
+            });
+            camera.rotation.order = "YXZ";
+        }
+
+        function spawnEnemy() {
+            const geo = new THREE.BoxGeometry(1, 2, 1);
+            const mat = new THREE.MeshPhongMaterial({ color: 0xfb7185 });
+            const enemy = new THREE.Mesh(geo, mat);
+            enemy.position.set(Math.random() * 40 - 20, 1, Math.random() * 40 - 20);
+            scene.add(enemy);
+            enemies.push(enemy);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onKeyDown(e) {
+            switch (e.code) {
+                case 'KeyW': moveForward = true; break;
+                case 'KeyS': moveBackward = true; break;
+                case 'KeyA': moveLeft = true; break;
+                case 'KeyD': moveRight = true; break;
+            }
+        }
+
+        function onKeyUp(e) {
+            switch (e.code) {
+                case 'KeyW': moveForward = false; break;
+                case 'KeyS': moveBackward = false; break;
+                case 'KeyA': moveLeft = false; break;
+                case 'KeyD': moveRight = false; break;
+            }
+        }
+
+        function shoot() {
+            if (document.pointerLockElement !== document.body) return;
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+
+            const intersects = raycaster.intersectObjects(enemies);
+            if (intersects.length > 0) {
+                const target = intersects[0].object;
+                scene.remove(target);
+                enemies.splice(enemies.indexOf(target), 1);
+                score += 100;
+                document.getElementById('score').innerText = score;
+                spawnEnemy();
+
+                window.parent.postMessage({
+                    type: 'GAME_UPDATE',
+                    data: { score: score, health: shield }
+                }, '*');
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (document.pointerLockElement === document.body) {
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                direction.y = 0;
+                direction.normalize();
+
+                const side = new THREE.Vector3().crossVectors(camera.up, direction).normalize();
+
+                if (moveForward) camera.position.addScaledVector(direction, 0.1);
+                if (moveBackward) camera.position.addScaledVector(direction, -0.1);
+                if (moveLeft) camera.position.addScaledVector(side, 0.1);
+                if (moveRight) camera.position.addScaledVector(side, -0.1);
+
+                // Simple AI logic
+                enemies.forEach(enemy => {
+                    enemy.lookAt(camera.position);
+                    if (Math.random() > 0.995) {
+                        shield -= 5;
+                        document.getElementById('shield').innerText = shield;
+                        if (shield <= 0) gameOver();
+                    }
+                });
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function gameOver() {
+            document.exitPointerLock();
+            shield = 0;
+            document.getElementById('shield').innerText = "0";
+            alert("COMBAT LINK SEVERED. Final Score: " + score);
+
+            window.parent.postMessage({
+                type: 'GAME_OVER',
+                data: { score: score, isWin: false }
+            }, '*');
+
+            location.reload();
+        }
+
+        init();
+    </script>
+</body>
+</html>

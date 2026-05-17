@@ -353,12 +353,12 @@
       <div class="console-body" [class.retro-flicker]="isRetroOrArcade(active)">
         <div class="scanline-overlay" *ngIf="isRetroOrArcade(active)"></div>
         <iframe
-          *ngIf="getSafeUrl(active) as safeUrl"
-          #gameIframe
-          [src]="safeUrl"
+          [src]="currentSafeUrl()" #gameIframe
+
+
           class="game-frame"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock"
-          allow="fullscreen; autoplay; gamepad; microphone; camera"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
+          allow="fullscreen; autoplay; gamepad; microphone; camera; midi; clipboard-write; web-share; accelerometer; gyroscope; magnetometer; execution-while-out-of-viewport; execution-while-not-rendered"
           allowfullscreen
         ></iframe>
       </div>

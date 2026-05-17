@@ -45,11 +45,15 @@ export interface ThaSpotEventHistoryEntry {
 
 export interface ThaSpotRoomStat {
   plays?: number;
+  highScore?: number;
+  bestLevel?: number;
   lastPlayedAt?: number;
 }
 
 export interface ThaSpotGameStat {
   plays?: number;
+  highScore?: number;
+  bestLevel?: number;
   lastPlayedAt?: number;
   lastRoomId?: string;
   roomPlays?: Record<string, number>;
@@ -67,6 +71,10 @@ export interface ThaSpotProgression {
 }
 
 export interface ThaSpotSessionContext {
+  score?: number;
+  health?: number;
+  level?: number;
+  isWin?: boolean;
   roomId?: string;
   eventId?: string;
   reward?: string;

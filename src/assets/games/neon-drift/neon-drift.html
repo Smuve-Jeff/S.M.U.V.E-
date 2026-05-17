@@ -1,376 +1,205 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Neon Drift</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Drift Elite</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-      :root {
-        color-scheme: dark;
-        --bg: #020617;
-        --panel: rgba(15, 23, 42, 0.92);
-        --accent: #22d3ee;
-        --accent-soft: rgba(34, 211, 238, 0.25);
-        --danger: #fb7185;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        min-height: 100vh;
-        background:
-          radial-gradient(
-            circle at top,
-            rgba(34, 211, 238, 0.16),
-            transparent 35%
-          ),
-          linear-gradient(180deg, #020617, #0f172a);
-        color: white;
-        font-family: Inter, system-ui, sans-serif;
-        display: grid;
-        place-items: center;
-        overflow: hidden;
-      }
-
-      .shell {
-        width: min(92vw, 920px);
-        background: var(--panel);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 28px;
-        padding: 24px;
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
-      }
-
-      .hud,
-      .controls {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .title {
-        font-size: clamp(1.8rem, 4vw, 3.1rem);
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        margin: 0;
-      }
-
-      .subtitle,
-      .status {
-        color: rgba(255, 255, 255, 0.72);
-        font-size: 0.85rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-      }
-
-      .metrics {
-        display: flex;
-        gap: 14px;
-        flex-wrap: wrap;
-      }
-
-      .metric {
-        min-width: 108px;
-        padding: 12px 14px;
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-      }
-
-      .metric label {
-        display: block;
-        font-size: 0.68rem;
-        color: rgba(255, 255, 255, 0.52);
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-      }
-
-      .metric strong {
-        display: block;
-        margin-top: 6px;
-        font-size: 1.35rem;
-      }
-
-      .road {
-        position: relative;
-        height: 420px;
-        margin: 24px 0 18px;
-        overflow: hidden;
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background:
-          linear-gradient(
-            90deg,
-            rgba(255, 255, 255, 0.03) 33%,
-            transparent 33%,
-            transparent 66%,
-            rgba(255, 255, 255, 0.03) 66%
-          ),
-          linear-gradient(
-            180deg,
-            rgba(34, 211, 238, 0.15),
-            rgba(2, 6, 23, 0.95)
-          );
-      }
-
-      .lane-line {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        background: repeating-linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.75) 0,
-          rgba(255, 255, 255, 0.75) 30px,
-          transparent 30px,
-          transparent 64px
-        );
-        opacity: 0.48;
-      }
-
-      .lane-left {
-        left: 33.333%;
-      }
-
-      .lane-right {
-        left: 66.666%;
-      }
-
-      .car,
-      .obstacle {
-        position: absolute;
-        width: 64px;
-        height: 112px;
-        border-radius: 18px;
-        left: 50%;
-        transform: translateX(-50%);
-      }
-
-      .car {
-        bottom: 24px;
-        background: linear-gradient(180deg, #f8fafc, var(--accent));
-        box-shadow: 0 0 30px rgba(34, 211, 238, 0.42);
-      }
-
-      .car::before,
-      .obstacle::before {
-        content: '';
-        position: absolute;
-        inset: 10px;
-        border-radius: 14px;
-        background: rgba(2, 6, 23, 0.85);
-      }
-
-      .obstacle {
-        top: -124px;
-        background: linear-gradient(180deg, #fb7185, #7c3aed);
-        box-shadow: 0 0 24px rgba(251, 113, 133, 0.35);
-      }
-
-      button {
-        border: 0;
-        border-radius: 999px;
-        padding: 14px 18px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        cursor: pointer;
-        background: rgba(255, 255, 255, 0.06);
-        color: white;
-      }
-
-      button.primary {
-        background: linear-gradient(135deg, var(--accent), #38bdf8);
-        color: #020617;
-      }
-
-      @media (max-width: 720px) {
-        .hud,
-        .controls {
-          flex-direction: column;
-          align-items: stretch;
-        }
-      }
+        body { margin: 0; background: #020617; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Inter', sans-serif; }
+        #game-container { border: 2px solid #22d3ee; border-radius: 12px; box-shadow: 0 0 20px rgba(34, 211, 238, 0.3); overflow: hidden; }
     </style>
-  </head>
-  <body>
-    <div class="shell">
-      <div class="hud">
-        <div>
-          <p class="subtitle">Offline Arcade</p>
-          <h1 class="title">Neon Drift</h1>
-        </div>
-        <div class="metrics">
-          <div class="metric">
-            <label>Score</label><strong id="score">0</strong>
-          </div>
-          <div class="metric">
-            <label>Shield</label><strong id="health">100%</strong>
-          </div>
-          <div class="metric">
-            <label>Streak</label><strong id="streak">0</strong>
-          </div>
-        </div>
-      </div>
-
-      <div class="road" id="road">
-        <div class="lane-line lane-left"></div>
-        <div class="lane-line lane-right"></div>
-        <div class="car" id="car"></div>
-      </div>
-
-      <div class="controls">
-        <div class="status" id="status">
-          Steer with the buttons or arrow keys. Survive the rush.
-        </div>
-        <div>
-          <button id="leftBtn">Move Left</button>
-          <button class="primary" id="restartBtn">Restart Run</button>
-          <button id="rightBtn">Move Right</button>
-        </div>
-      </div>
-    </div>
-
+</head>
+<body>
+    <div id="game-container"></div>
     <script>
-      const road = document.getElementById('road');
-      const car = document.getElementById('car');
-      const scoreEl = document.getElementById('score');
-      const healthEl = document.getElementById('health');
-      const streakEl = document.getElementById('streak');
-      const statusEl = document.getElementById('status');
-      const lanes = [16.5, 50, 83.5];
-
-      let laneIndex = 1;
-      let score = 0;
-      let health = 100;
-      let streak = 0;
-      let speed = 4;
-      let active = true;
-      let spawnTimer = 0;
-      let frameId = 0;
-      const obstacles = [];
-
-      function syncHud(eventLabel) {
-        scoreEl.textContent = String(score);
-        healthEl.textContent = `${health}%`;
-        streakEl.textContent = String(streak);
-        window.parent.postMessage(
-          {
-            type: active ? 'GAME_UPDATE' : 'GAME_OVER',
-            data: {
-              score,
-              health,
-              combo: streak,
-              lastAction: eventLabel,
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game-container',
+            physics: {
+                default: 'arcade',
+                arcade: { debug: false }
             },
-          },
-          '*'
-        );
-      }
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
 
-      function positionCar() {
-        car.style.left = `${lanes[laneIndex]}%`;
-      }
+        let player;
+        let obstacles;
+        let cursors;
+        let score = 0;
+        let health = 100;
+        let scoreText;
+        let healthText;
+        let isGameOver = false;
+        let speed = 200;
+        let spawnTimer;
 
-      function steer(delta) {
-        if (!active) return;
-        laneIndex = Math.max(0, Math.min(lanes.length - 1, laneIndex + delta));
-        positionCar();
-      }
+        const game = new Phaser.Game(config);
 
-      function createObstacle() {
-        const obstacle = document.createElement('div');
-        obstacle.className = 'obstacle';
-        obstacle.style.left = `${lanes[Math.floor(Math.random() * lanes.length)]}%`;
-        road.appendChild(obstacle);
-        obstacles.push({ el: obstacle, y: -124 });
-      }
+        function preload() {
+            // Generate textures since we can't rely on external assets
+            const graphics = this.make.graphics({ x: 0, y: 0, add: false });
 
-      function reset() {
-        obstacles.splice(0).forEach((obstacle) => obstacle.el.remove());
-        score = 0;
-        health = 100;
-        streak = 0;
-        speed = 4;
-        active = true;
-        spawnTimer = 0;
-        laneIndex = 1;
-        statusEl.textContent =
-          'Steer with the buttons or arrow keys. Survive the rush.';
-        positionCar();
-        syncHud('RESET');
-      }
+            // Player Car
+            graphics.clear();
+            graphics.fillStyle(0x22d3ee, 1);
+            graphics.fillRoundedRect(0, 0, 40, 70, 8);
+            graphics.lineStyle(2, 0xffffff, 1);
+            graphics.strokeRoundedRect(0, 0, 40, 70, 8);
+            graphics.generateTexture('player', 40, 70);
 
-      function loop() {
-        frameId = requestAnimationFrame(loop);
-        if (!active) return;
+            // Obstacle
+            graphics.clear();
+            graphics.fillStyle(0xfb7185, 1);
+            graphics.fillRoundedRect(0, 0, 45, 75, 8);
+            graphics.lineStyle(2, 0x7c3aed, 1);
+            graphics.strokeRoundedRect(0, 0, 45, 75, 8);
+            graphics.generateTexture('obstacle', 45, 75);
 
-        spawnTimer += 1;
-        if (spawnTimer > 40) {
-          spawnTimer = 0;
-          createObstacle();
+            // Road line
+            graphics.clear();
+            graphics.fillStyle(0xffffff, 0.3);
+            graphics.fillRect(0, 0, 4, 40);
+            graphics.generateTexture('line', 4, 40);
         }
 
-        score += 3;
-        speed = Math.min(11, 4 + score / 450);
+        function create() {
+            // Road Background
+            this.add.rectangle(400, 300, 800, 600, 0x0f172a);
 
-        const carLane = car.style.left;
-        obstacles.forEach((obstacle, index) => {
-          obstacle.y += speed;
-          obstacle.el.style.top = `${obstacle.y}px`;
+            // Road Lines
+            this.lines = this.add.group();
+            for(let i = 0; i < 10; i++) {
+                this.lines.create(266, i * 80, 'line');
+                this.lines.create(533, i * 80, 'line');
+            }
 
-          if (
-            obstacle.y > 290 &&
-            obstacle.y < 380 &&
-            obstacle.el.style.left === carLane
-          ) {
-            obstacle.y = 1000;
-            health = Math.max(0, health - 25);
-            streak = 0;
-            statusEl.textContent = 'Impact detected. Hold the line.';
-            syncHud('COLLISION');
-          }
+            player = this.physics.add.sprite(400, 500, 'player');
+            player.setCollideWorldBounds(true);
 
-          if (obstacle.y > 440) {
-            obstacle.el.remove();
-            obstacles.splice(index, 1);
-            streak += 1;
-            if (streak % 5 === 0) score += 75;
-            syncHud('DODGE');
-          }
-        });
+            obstacles = this.physics.add.group();
 
-        if (health <= 0) {
-          active = false;
-          statusEl.textContent =
-            'Run complete. Restart to chase a higher score.';
-          syncHud('CRASH');
-        } else {
-          syncHud('CRUISE');
+            cursors = this.input.keyboard.createCursorKeys();
+
+            scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '24px', fill: '#fff', fontStyle: 'bold' });
+            healthText = this.add.text(620, 16, 'Shield: 100%', { fontSize: '24px', fill: '#22d3ee', fontStyle: 'bold' });
+
+            this.physics.add.overlap(player, obstacles, hitObstacle, null, this);
+
+            // Spawn obstacles
+            spawnTimer = this.time.addEvent({
+                delay: 1000,
+                callback: spawnObstacle,
+                callbackScope: this,
+                loop: true
+            });
+
+            // Protocol: GAME_READY
+            window.parent.postMessage({ type: 'GAME_READY' }, '*');
+
+            // Handle LOAD_STATE
+            window.addEventListener('message', (event) => {
+                if (event.data.type === 'LOAD_STATE' && event.data.payload) {
+                    score = event.data.payload.score || 0;
+                    health = event.data.payload.health || 100;
+                    scoreText.setText('Score: ' + score);
+                    healthText.setText('Shield: ' + health + '%');
+                }
+            });
         }
-      }
 
-      document
-        .getElementById('leftBtn')
-        .addEventListener('click', () => steer(-1));
-      document
-        .getElementById('rightBtn')
-        .addEventListener('click', () => steer(1));
-      document.getElementById('restartBtn').addEventListener('click', reset);
-      window.addEventListener('keydown', (event) => {
-        if (event.key === 'ArrowLeft') steer(-1);
-        if (event.key === 'ArrowRight') steer(1);
-      });
+        function update() {
+            if (isGameOver) return;
 
-      positionCar();
-      window.parent.postMessage({ type: 'GAME_READY' }, '*');
-      reset();
-      loop();
+            // Move road lines for movement effect
+            this.lines.children.iterate(line => {
+                line.y += 5;
+                if (line.y > 600) line.y = -40;
+            });
+
+            if (cursors.left.isDown) {
+                player.setVelocityX(-300);
+            } else if (cursors.right.isDown) {
+                player.setVelocityX(300);
+            } else {
+                player.setVelocityX(0);
+            }
+
+            score += 1;
+            scoreText.setText('Score: ' + Math.floor(score / 10));
+
+            // Increase difficulty
+            speed = 200 + (score / 100);
+            spawnTimer.delay = Math.max(300, 1000 - (score / 200));
+
+            // Protocol: GAME_UPDATE
+            if (score % 60 === 0) {
+                window.parent.postMessage({
+                    type: 'GAME_UPDATE',
+                    data: {
+                        score: Math.floor(score / 10),
+                        health: health
+                    }
+                }, '*');
+
+                // Save state periodically
+                window.parent.postMessage({
+                    type: 'GAME_SAVE',
+                    payload: { score: Math.floor(score / 10), health: health }
+                }, '*');
+            }
+        }
+
+        function spawnObstacle() {
+            if (isGameOver) return;
+            const x = Phaser.Math.Between(200, 600);
+            const obstacle = obstacles.create(x, -50, 'obstacle');
+            obstacle.setVelocityY(speed);
+            obstacle.checkWorldBounds = true;
+            obstacle.outOfBoundsKill = true;
+        }
+
+        function hitObstacle(player, obstacle) {
+            obstacle.destroy();
+            health -= 20;
+            healthText.setText('Shield: ' + health + '%');
+
+            if (health <= 0) {
+                gameOver.call(this);
+            }
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            this.physics.pause();
+            player.setTint(0xff0000);
+
+            this.add.text(400, 300, 'RUN TERMINATED', {
+                fontSize: '64px',
+                fill: '#fb7185',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            this.add.text(400, 380, 'PRESS REFRESH TO RE-INITIALIZE', {
+                fontSize: '24px',
+                fill: '#fff'
+            }).setOrigin(0.5);
+
+            // Protocol: GAME_OVER
+            window.parent.postMessage({
+                type: 'GAME_OVER',
+                data: {
+                    score: Math.floor(score / 10),
+                    isWin: false
+                }
+            }, '*');
+        }
     </script>
-  </body>
+</body>
 </html>
