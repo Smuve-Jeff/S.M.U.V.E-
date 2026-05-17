@@ -4219,6 +4219,274 @@
         "accentStart": "#22d3ee",
         "accentEnd": "#0891b2"
       }
+    },
+    {
+      "id": "sfii-world-warrior",
+      "name": "Street Fighter II: The World Warrior",
+      "url": "https://www.retrogames.cc/embed/19018-street-fighter-ii-the-world-warrior-usa.html",
+      "genre": "Fighting",
+      "description": "The foundational masterpiece of the fighting genre. Master Ryu, Ken, and Chun-Li in Elite WASM.",
+      "availability": "Online",
+      "playersOnline": 35000,
+      "rating": 5.0,
+      "badgeIds": [
+        "classic",
+        "elite",
+        "staff-pick"
+      ],
+      "tags": [
+        "Fighting",
+        "Retro",
+        "SNES",
+        "WASM"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19018-street-fighter-ii-the-world-warrior-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "Capcom Elite",
+        "accentStart": "#f87171",
+        "accentEnd": "#b91c1c"
+      }
+    },
+    {
+      "id": "zelda-ocarina-of-time",
+      "name": "The Legend of Zelda: Ocarina of Time",
+      "url": "https://www.retrogames.cc/embed/32446-the-legend-of-zelda-ocarina-of-time-usa.html",
+      "genre": "RPG",
+      "description": "Experience the greatest adventure of all time. High-fidelity N64 emulation on the S.M.U.V.E link.",
+      "availability": "Online",
+      "playersOnline": 52000,
+      "rating": 5.0,
+      "badgeIds": [
+        "classic",
+        "elite",
+        "staff-pick"
+      ],
+      "tags": [
+        "RPG",
+        "Retro",
+        "N64",
+        "Adventure",
+        "WASM"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32446-the-legend-of-zelda-ocarina-of-time-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "Nintendo Elite",
+        "accentStart": "#10b981",
+        "accentEnd": "#064e3b"
+      }
+    },
+    {
+      "id": "battle-city",
+      "name": "Battle City",
+      "url": "https://www.retrogames.cc/embed/18785-battle-city-japan.html",
+      "genre": "Arcade Classic",
+      "description": "Defend your base and destroy enemy tanks in this quintessential multi-directional shooter.",
+      "availability": "Online",
+      "playersOnline": 15000,
+      "rating": 4.8,
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Arcade",
+        "Retro",
+        "NES",
+        "Shooting"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18785-battle-city-japan.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "Namco Elite",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#78350f"
+      }
+    },
+    {
+      "id": "league-bowling",
+      "name": "League Bowling",
+      "url": "https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html",
+      "genre": "Sports",
+      "description": "The most addictive bowling sim ever made. Elite Neo Geo performance with rhythmic physics.",
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.7,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Sports",
+        "Retro",
+        "Neo Geo",
+        "Arcade"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "SNK Elite",
+        "accentStart": "#60a5fa",
+        "accentEnd": "#1d4ed8"
+      }
+    },
+    {
+      "id": "grand-theft-auto-ps1",
+      "name": "Grand Theft Auto",
+      "url": "https://www.retrogames.cc/embed/41819-grand-theft-auto-usa.html",
+      "genre": "Shooting",
+      "description": "The original top-down crime epic. Dominate the streets in high-performance PS1 emulation.",
+      "availability": "Online",
+      "playersOnline": 28000,
+      "rating": 4.9,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Shooting",
+        "Retro",
+        "PS1",
+        "Action",
+        "WASM"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41819-grand-theft-auto-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "Rockstar Elite",
+        "accentStart": "#fb7185",
+        "accentEnd": "#e11d48"
+      }
+    },
+    {
+      "id": "dbz-buyuu-retsuden",
+      "name": "Dragon Ball Z: Buyuu Retsuden",
+      "url": "https://www.retrogames.cc/embed/24151-dragon-ball-z-buyuu-retsuden-japan.html",
+      "genre": "Fighting",
+      "description": "Elite Saiyan combat. Experience the legendary split-screen battles of the Mega Drive classic.",
+      "availability": "Online",
+      "playersOnline": 20000,
+      "rating": 4.9,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Fighting",
+        "Retro",
+        "Genesis",
+        "Anime"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/24151-dragon-ball-z-buyuu-retsuden-japan.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "Bandai Elite",
+        "accentStart": "#fb923c",
+        "accentEnd": "#c2410c"
+      }
+    },
+    {
+      "id": "final-fantasy-vii-elite",
+      "name": "Final Fantasy VII",
+      "url": "https://www.retrogames.cc/embed/40425-final-fantasy-vii-usa-disc-1.html",
+      "genre": "RPG",
+      "description": "The masterpiece that defined a generation. Join Cloud in the fight against Shinra.",
+      "availability": "Online",
+      "playersOnline": 58000,
+      "rating": 5.0,
+      "badgeIds": [
+        "classic",
+        "elite",
+        "staff-pick"
+      ],
+      "tags": [
+        "RPG",
+        "Retro",
+        "PS1",
+        "WASM",
+        "Adventure"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40425-final-fantasy-vii-usa-disc-1.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "Square Elite",
+        "accentStart": "#38bdf8",
+        "accentEnd": "#075985"
+      }
+    },
+    {
+      "id": "pac-man-elite",
+      "name": "Pac-Man",
+      "url": "https://www.retrogames.cc/embed/10002-pac-man-midway.html",
+      "genre": "Arcade Classic",
+      "description": "The most iconic arcade game in history. High-speed ghost chasing logic.",
+      "availability": "Online",
+      "playersOnline": 32000,
+      "rating": 4.8,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Arcade",
+        "Retro",
+        "WASM"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10002-pac-man-midway.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
+      },
+      "art": {
+        "eyebrow": "Namco Elite",
+        "accentStart": "#facc15",
+        "accentEnd": "#a16207"
+      }
     }
   ],
   "recommendationRails": [
@@ -4330,13 +4598,10 @@
         "rpg-vault"
       ],
       "gameIds": [
-        "24",
-        "27",
-        "32",
-        "34",
-        "43",
-        "44",
-        "45"
+        "zelda-ocarina-of-time",
+        "final-fantasy-vii-elite",
+        "pokemon-yellow-elite",
+        "final-fantasy-nes"
       ],
       "audience": {
         "rooms": [
@@ -4363,15 +4628,10 @@
         "co-op-link"
       ],
       "gameIds": [
-        "2",
-        "25",
-        "28",
-        "31",
-        "36",
-        "39",
-        "42",
-        "43",
-        "44"
+        "grand-theft-auto-ps1",
+        "mortal-kombat-2-elite",
+        "sfii-world-warrior",
+        "tekken-3-elite"
       ],
       "audience": {
         "rooms": [
