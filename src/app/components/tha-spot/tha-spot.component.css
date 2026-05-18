@@ -1357,3 +1357,55 @@
   z-index: 10;
   pointer-events: none;
 }
+
+/* Control Schematic Styling */
+.controls-schematic {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: rgba(175, 37, 244, 0.05) !important;
+  border: 1px solid rgba(175, 37, 244, 0.2) !important;
+}
+
+.controls-schematic h4 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  color: #af25f4;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mapping-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.map-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+}
+
+.map-row span {
+  color: #7a7a9a;
+}
+
+.map-row strong {
+  color: #facc15;
+}
+
+/* Enhanced Preview Actions */
+.preview-actions {
+  margin-top: 2rem !important;
+}
+
+.primary-btn.action-pulse {
+  background: #af25f4 !important;
+  border: none !important;
+  box-shadow: 0 0 15px rgba(175, 37, 244, 0.4) !important;
+}
