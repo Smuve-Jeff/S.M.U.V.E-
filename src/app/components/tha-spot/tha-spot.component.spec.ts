@@ -271,6 +271,7 @@ describe('ThaSpotComponent', () => {
       },
     }),
     recordGameLaunch: jest.fn().mockResolvedValue(undefined),
+    recordGameResult: jest.fn().mockResolvedValue(undefined),
   };
 
   const uiServiceMock = {

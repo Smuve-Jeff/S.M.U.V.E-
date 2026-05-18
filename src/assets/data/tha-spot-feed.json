@@ -4180,7 +4180,8 @@
           "WASD to move",
           "J/K/L to attack"
         ],
-        "telemetryMode": "origin"
+        "telemetryMode": "origin",
+        "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
       "art": {
         "eyebrow": "Executive Classic",
@@ -4212,7 +4213,8 @@
           "WASD to move",
           "Mouse to aim/shoot"
         ],
-        "telemetryMode": "origin"
+        "telemetryMode": "origin",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "art": {
         "eyebrow": "Executive Classic",
@@ -4687,6 +4689,342 @@
         "eyebrow": "Konami Elite",
         "accentStart": "#10b981",
         "accentEnd": "#064e3b"
+      }
+    },
+    {
+      "id": "tekken-5-elite",
+      "name": "Tekken 5",
+      "url": "https://www.retrogames.cc/embed/41551-tekken-5.html",
+      "genre": "Fighting",
+      "description": "The King of Iron Fist Tournament 5 begins. High-fidelity PS2 combat with crushing combos.",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41551-tekken-5.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "mgs2-elite",
+      "name": "Metal Gear Solid 2: Sons of Liberty",
+      "url": "https://www.retrogames.cc/embed/43336-metal-gear-solid-2-sons-of-liberty.html",
+      "genre": "Action",
+      "description": "Tactical Espionage Action redefined. Raiden and Snake infiltrate Big Shell in this Hideo Kojima masterpiece.",
+      "tags": [
+        "Action",
+        "Retro",
+        "PS2",
+        "Stealth"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43336-metal-gear-solid-2-sons-of-liberty.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "sonic-adventure-2-elite",
+      "name": "Sonic Adventure 2",
+      "url": "https://www.retrogames.cc/embed/41228-sonic-adventure-2-usa.html",
+      "genre": "Platformer",
+      "description": "The ultimate battle between Hero and Dark. High-speed action featuring Sonic, Shadow, and the full crew.",
+      "tags": [
+        "Platformer",
+        "Retro",
+        "Dreamcast"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41228-sonic-adventure-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "crazy-taxi-elite",
+      "name": "Crazy Taxi",
+      "url": "https://www.retrogames.cc/embed/41199-crazy-taxi-usa.html",
+      "genre": "Racing",
+      "description": "Hey hey hey, it's time to make some crazy money! High-octane arcade driving with a killer soundtrack.",
+      "tags": [
+        "Racing",
+        "Retro",
+        "Dreamcast",
+        "Arcade"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41199-crazy-taxi-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "shadow-colossus-elite",
+      "name": "Shadow of the Colossus",
+      "url": "https://www.retrogames.cc/embed/43331-shadow-of-the-colossus.html",
+      "genre": "Adventure",
+      "description": "An artistic masterpiece of scale and emotion. Seek out and defeat the 16 colossi to restore a lost life.",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "PS2"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43331-shadow-of-the-colossus.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "thps4-elite",
+      "name": "Tony Hawk's Pro Skater 4",
+      "url": "https://www.retrogames.cc/embed/43328-tony-hawk-s-pro-skater-4.html",
+      "genre": "Sports",
+      "description": "The pinnacle of arcade skating. Shred through massive open levels with the most advanced trick system.",
+      "tags": [
+        "Sports",
+        "Retro",
+        "PS2",
+        "Skating"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43328-tony-hawk-s-pro-skater-4.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "god-of-war-elite",
+      "name": "God of War",
+      "url": "https://www.retrogames.cc/embed/43325-god-of-war.html",
+      "genre": "Action",
+      "description": "The birth of a legend. Kratos takes on the gods of Olympus in an epic tale of vengeance and brutality.",
+      "tags": [
+        "Action",
+        "Retro",
+        "PS2"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43325-god-of-war.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "soulcalibur-2-elite",
+      "name": "SoulCalibur II",
+      "url": "https://www.retrogames.cc/embed/41221-soulcalibur-ii-usa.html",
+      "genre": "Fighting",
+      "description": "Transcending history and the world, a tale of souls and swords eternally retold. The definitive weapon-based fighter.",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "PS2",
+        "Dreamcast"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41221-soulcalibur-ii-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "sfiii-3rd-strike-elite",
+      "name": "Street Fighter III: 3rd Strike",
+      "url": "https://www.retrogames.cc/embed/10001-street-fighter-iii-3rd-strike-fight-for-the-future-990512.html",
+      "genre": "Fighting",
+      "description": "The deep-run favorite of fighting game purists. Master the parry system in this pixel-perfect arcade classic.",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "Arcade"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10001-street-fighter-iii-3rd-strike-fight-for-the-future-990512.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "mvc2-elite",
+      "name": "Marvel vs. Capcom 2",
+      "url": "https://www.retrogames.cc/embed/41224-marvel-vs-capcom-2-usa.html",
+      "genre": "Fighting",
+      "description": "Gonna take you for a ride! The ultimate 3v3 crossover featuring 56 legendary characters.",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "Dreamcast",
+        "Arcade"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41224-marvel-vs-capcom-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
       }
     }
   ],
