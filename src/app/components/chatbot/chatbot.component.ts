@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
 import { UserProfileService } from '../../services/user-profile.service';
+import { UIService } from '../../services/ui.service';
 import { UserContextService } from '../../services/user-context.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
@@ -43,6 +44,7 @@ interface QuickCommandGroup {
 export class ChatbotComponent implements OnInit, AfterViewChecked {
   public aiService = inject(AiService);
   public userProfileService = inject(UserProfileService);
+  public uiService = inject(UIService);
   private userContext = inject(UserContextService);
   private audioEngineService = inject(AudioEngineService);
   private speechSynthesisService = inject(SpeechSynthesisService);
