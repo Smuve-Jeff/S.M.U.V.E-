@@ -18,8 +18,12 @@ describe('AudioEngineService', () => {
         exponentialRampToValueAtTime: jest.fn(),
       },
       delayTime: { value: 0, setTargetAtTime: jest.fn() },
-      frequency: { value: 0, setTargetAtTime: jest.fn() },
-      pan: { value: 0 },
+      frequency: {
+        value: 0,
+        setTargetAtTime: jest.fn(),
+        setValueAtTime: jest.fn(),
+      },
+      pan: { value: 0, setValueAtTime: jest.fn() },
       Q: { value: 0 },
       threshold: { value: 0, setTargetAtTime: jest.fn() },
       ratio: { value: 0, setTargetAtTime: jest.fn() },
@@ -172,50 +176,27 @@ describe('AudioEngineService', () => {
     service.isRecording.set(true);
     service.recorder.pendingMidi = [];
 
-    service.playSynth(
-      1.25,
-      440,
-      0.5,
-      2,
-      -0.25,
-      0.4,
-      0.1,
-      0.05,
-      {
-        type: 'square',
-        cutoff: 2400,
-        attack: 0.02,
-        decay: 0.1,
-        sustain: 0.6,
-        release: 0.3,
-      },
-      2
-    );
+    service.playSynth(1.25, 440, 0.5, 2, -0.25, {
+      type: 'square',
+      attack: 0.02,
+      release: 0.3,
+    });
 
     const osc = mockAudioContext.createOscillator.mock.results.at(-1)?.value;
-    const filter =
-      mockAudioContext.createBiquadFilter.mock.results.at(-1)?.value;
     const vca = mockAudioContext.createGain.mock.results.at(-1)?.value;
     const panner =
       mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
 
     expect(osc.type).toBe('square');
-    expect(osc.frequency.value).toBe(440);
-    expect(filter.frequency.value).toBe(2400);
-    expect(panner.pan.value).toBe(-0.25);
-    expect(vca.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(
-      1,
-      expect.closeTo(0.72, 5),
-      1.27
+    expect(osc.frequency.setValueAtTime).toHaveBeenCalledWith(440, 1.25);
+    expect(panner.pan.setValueAtTime).toHaveBeenCalledWith(-0.25, 1.25);
+    expect(vca.gain.linearRampToValueAtTime).toHaveBeenCalledWith(2, 1.27);
+    expect(vca.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+      0.001,
+      1.25 + 0.5 + 0.3
     );
-    expect(vca.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(
-      2,
-      expect.closeTo(0.432, 5),
-      1.37
-    );
-    expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(0, 1.75, 0.3);
     expect(osc.start).toHaveBeenCalledWith(1.25);
-    expect(osc.stop).toHaveBeenCalledWith(3.25);
+    expect(osc.stop).toHaveBeenCalledWith(1.25 + 0.5 + 0.3 + 0.1);
     expect(service.recorder.pendingMidi).toEqual([
       {
         pitch: 69,
@@ -229,7 +210,7 @@ describe('AudioEngineService', () => {
   it('should clamp buffer playback gain and velocity envelopes', () => {
     const buffer = {} as AudioBuffer;
 
-    service.playBuffer(2, buffer, 0.004, 3, 0.4, 2);
+    service.triggerSampler(1, buffer, 2, 0.8, 0.4, 1);
 
     const source =
       mockAudioContext.createBufferSource.mock.results.at(-1)?.value;
@@ -239,10 +220,8 @@ describe('AudioEngineService', () => {
 
     expect(source.buffer).toBe(buffer);
     expect(panner.pan.value).toBe(0.4);
-    expect(vca.gain.linearRampToValueAtTime).toHaveBeenCalledWith(2.7, 2.002);
-    expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(0, 2.002, 0.012);
+    expect(vca.gain.linearRampToValueAtTime).toHaveBeenCalledWith(0.8, 2.005);
     expect(source.start).toHaveBeenCalledWith(2);
-    expect(source.stop).toHaveBeenCalledWith(2.014);
   });
 
   it('should schedule metronome and step callbacks with lookahead timing', () => {
@@ -253,23 +232,22 @@ describe('AudioEngineService', () => {
     (service as any).nextNoteTime = 0.05;
     mockAudioContext.currentTime = 0;
 
-    (service as any).scheduleTick();
+    (service as any).scheduler();
 
     expect(scheduled).toHaveBeenNthCalledWith(1, 0, 0.05, 0.125);
     expect(scheduled).toHaveBeenNthCalledWith(2, 1, 0.175, 0.125);
-    expect(service.currentBeat()).toBe(2);
+    expect(service.currentBeat()).toBe(1 / 4);
 
     const osc = mockAudioContext.createOscillator.mock.results.at(-1)?.value;
     expect(osc.frequency.value).toBe(1200);
   });
 
-  it('should use the performance lookahead interval when starting playback', () => {
+  it('should use the fixed scheduler interval', () => {
     const setIntervalSpy = jest.spyOn(globalThis, 'setInterval');
-    service.setPerformanceTier('performance');
 
     service.start();
 
-    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 160);
+    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 25);
     setIntervalSpy.mockRestore();
     service.stop();
   });

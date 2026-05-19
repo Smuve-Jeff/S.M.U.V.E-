@@ -1,82 +1,98 @@
-<div class="performer-container glass-v42 shadow-v42-xl" [attr.data-theme]="'analog-v42'">
-  <header class="performer-header">
-    <div class="header-left">
-        <h2 class="performer-title">THE <span>PERFORMER</span></h2>
-        <div class="instrument-selector">
-            <button
-                [class.active]="liveEngine.activeInstrument() === 'poly-synth'"
-                (click)="setInstrument('poly-synth')">
-                POLY SYNTH
-            </button>
-            <button
-                [class.active]="liveEngine.activeInstrument() === 'mono-lead'"
-                (click)="setInstrument('mono-lead')">
-                MONO LEAD
-            </button>
-            <button
-                [class.active]="liveEngine.activeInstrument() === 'fm-bell'"
-                (click)="setInstrument('fm-bell')">
-                FM BELLS
-            </button>
-        </div>
+<div class="performer-container glass-v42 retro-flicker shadow-v42-xl">
+  <div class="performer-header wood-panel">
+    <div class="header-branding">
+      <div class="neon-text-sm neon-text">LIVE PERFORMER v4.2</div>
+      <div class="status-badge glass-v42 neon-accent-primary">ACTIVE</div>
     </div>
 
-    <div class="ai-controls">
-        <button (click)="toggleSmartChords()" [class.active]="liveEngine.smartChords()">
-            AI CHORDS: {{ liveEngine.smartChords() ? 'ON' : 'OFF' }}
-        </button>
-        <div class="midi-status" [class.active]="liveEngine.midiEnabled()">
-            MIDI: {{ liveEngine.midiEnabled() ? (liveEngine.availableMidiInputs()[0] || 'READY') : 'OFF' }}
-        </div>
+    <div class="layout-selector glass-v42">
+      <button
+        [class.active]="layout() === 'keyboard'"
+        (click)="setLayout('keyboard')"
+        class="executive-glass"
+      >
+        KEYBOARD
+      </button>
+      <button
+        [class.active]="layout() === 'pads'"
+        (click)="setLayout('pads')"
+        class="executive-glass"
+      >
+        PADS
+      </button>
     </div>
 
-    <div class="mode-toggle">
-      <button (click)="viewMode.set('keyboard')" [class.active]="viewMode() === 'keyboard'">KEYS</button>
-      <button (click)="viewMode.set('pads')" [class.active]="viewMode() === 'pads'">PADS</button>
+    <div class="performer-actions">
+      <button
+        (click)="toggleSmartChords()"
+        [class.active]="smartChords()"
+        class="executive-glass extreme-glow"
+      >
+        SMART CHORDS
+      </button>
     </div>
-  </header>
+  </div>
 
-  <div class="performer-body">
+  <div class="performer-content">
+    <div class="scanline-overlay"></div>
+
     <!-- Keyboard Layout -->
-    <div *ngIf="viewMode() === 'keyboard'" class="keyboard-view">
+    <div *ngIf="layout() === 'keyboard'" class="keyboard-view">
       <div class="keys-container">
         <div
-          *ngFor="let key of keys"
-          class="key"
-          [class.black]="key.isBlack"
-          [class.active]="activeNotes.has(key.note)"
-          (touchstart)="playNote(key.note, $event)"
-          (touchend)="stopNote(key.note, $event)"
-          (mousedown)="playNote(key.note, $event)"
-          (mouseup)="stopNote(key.note, $event)"
-          (mouseleave)="stopNote(key.note, $event)">
-          <span class="key-label">{{ key.label }}</span>
+          *ngFor="let key of keyboardKeys"
+          class="perf-key"
+          [class.black-key]="isBlackKey(key.midi)"
+          [class.active]="activeKeys().has(key.midi)"
+          (mousedown)="onKeyDown(key.midi)"
+          (mouseup)="onKeyUp(key.midi)"
+          (touchstart)="onKeyDown(key.midi); $event.preventDefault()"
+          (touchend)="onKeyUp(key.midi); $event.preventDefault()"
+        >
+          <span class="key-label font-mono">{{ key.name }}</span>
         </div>
       </div>
     </div>
 
     <!-- Pads Layout -->
-    <div *ngIf="viewMode() === 'pads'" class="pads-view">
-      <div class="pads-grid">
+    <div *ngIf="layout() === 'pads'" class="pads-view">
+      <div class="perf-pads-grid">
         <div
-          *ngFor="let pad of pads"
-          class="pad dj-hud-container"
-          [class.active]="activeNotes.has(pad.note)"
-          (touchstart)="playNote(pad.note, $event)"
-          (touchend)="stopNote(pad.note, $event)"
-          (mousedown)="playNote(pad.note, $event)"
-          (mouseup)="stopNote(pad.note, $event)"
-          (mouseleave)="stopNote(pad.note, $event)">
-          <span class="pad-label">{{ pad.label }}</span>
+          *ngFor="let pad of performerPads"
+          class="perf-pad glass-v42 shadow-v42-xl"
+          [class.active]="activeKeys().has(pad.midi)"
+          [style.--pad-color]="pad.color"
+          (mousedown)="onKeyDown(pad.midi)"
+          (mouseup)="onKeyUp(pad.midi)"
+          (touchstart)="onKeyDown(pad.midi); $event.preventDefault()"
+          (touchend)="onKeyUp(pad.midi); $event.preventDefault()"
+        >
+          <div class="pad-led" [style.background-color]="pad.color"></div>
+          <span class="pad-label neon-text-xs">{{ pad.name }}</span>
         </div>
       </div>
     </div>
   </div>
 
-  <footer class="performer-footer">
-    <div class="status-indicator" [class.initialized]="liveEngine.isInitialized()">
-        {{ liveEngine.isInitialized() ? 'ENGINE READY' : 'CLICK KEYS TO INITIALIZE' }}
+  <div class="performer-footer wood-panel">
+    <div class="footer-param glass-v42">
+      <label class="neon-text-xs">VELOCITY</label>
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        [(ngModel)]="velocity"
+        class="knob-range"
+      />
     </div>
-    <div class="hint">Android Touch Optimized • Velocity Sensitive (Y-Axis) • Low Latency</div>
-  </footer>
+    <div class="footer-param glass-v42">
+      <label class="neon-text-xs">OCTAVE</label>
+      <div class="octave-controls">
+        <button (click)="nudgeOctave(-1)" class="executive-glass">-</button>
+        <span class="font-mono">{{ octave() }}</span>
+        <button (click)="nudgeOctave(1)" class="executive-glass">+</button>
+      </div>
+    </div>
+  </div>
 </div>

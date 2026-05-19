@@ -78,10 +78,13 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
 
   async suggestLogic() {
     this.isThinking.set(true);
-    this.notificationService.show('Remix AI: Generating Algorithmic Patterns...', 'info');
+    this.notificationService.show(
+      'Remix AI: Generating Algorithmic Patterns...',
+      'info'
+    );
     const prompt = `Suggest a creative JavaScript function for a music remix engine that creates an interesting ${this.challenges()[0].title} style rhythm.`;
     const suggestion = await this.aiService.getAIResponse(prompt);
-    this.code.update(c => c + '\n\n// AI Suggestion:\n' + suggestion);
+    this.code.update((c) => c + '\n\n// AI Suggestion:\n' + suggestion);
     this.isThinking.set(false);
     this.notificationService.show('Remix AI: Logic Deployed.', 'success');
   }

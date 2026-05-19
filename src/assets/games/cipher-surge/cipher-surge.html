@@ -1,166 +1,207 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cipher Surge Elite</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #030712; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Inter', sans-serif; }
-        #game-container { border: 2px solid #8b5cf6; border-radius: 20px; box-shadow: 0 0 40px rgba(139, 92, 246, 0.4); }
+      body {
+        margin: 0;
+        background: #030712;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: 'Inter', sans-serif;
+      }
+      #game-container {
+        border: 2px solid #8b5cf6;
+        border-radius: 20px;
+        box-shadow: 0 0 40px rgba(139, 92, 246, 0.4);
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="game-container"></div>
     <script>
-        const config = {
-            type: Phaser.AUTO,
-            width: 600,
-            height: 800,
-            parent: 'game-container',
-            scene: {
-                preload: preload,
-                create: create,
-                update: update
-            }
-        };
+      const config = {
+        type: Phaser.AUTO,
+        width: 600,
+        height: 800,
+        parent: 'game-container',
+        scene: {
+          preload: preload,
+          create: create,
+          update: update,
+        },
+      };
 
-        let pads = [];
-        let sequence = [];
-        let playerInput = [];
-        let isShowingSequence = false;
-        let round = 1;
-        let score = 0;
-        let health = 100;
-        let scoreText, healthText, roundText, statusText;
-        let padColors = [0x8b5cf6, 0xec4899, 0x22c55e, 0x38bdf8];
+      let pads = [];
+      let sequence = [];
+      let playerInput = [];
+      let isShowingSequence = false;
+      let round = 1;
+      let score = 0;
+      let health = 100;
+      let scoreText, healthText, roundText, statusText;
+      let padColors = [0x8b5cf6, 0xec4899, 0x22c55e, 0x38bdf8];
 
-        const game = new Phaser.Game(config);
+      const game = new Phaser.Game(config);
 
-        function preload() {
-            const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-            padColors.forEach((color, i) => {
-                graphics.clear();
-                graphics.fillStyle(color, 1);
-                graphics.fillRoundedRect(0, 0, 250, 250, 32);
-                graphics.lineStyle(4, 0xffffff, 0.5);
-                graphics.strokeRoundedRect(0, 0, 250, 250, 32);
-                graphics.generateTexture('pad' + i, 250, 250);
-            });
+      function preload() {
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        padColors.forEach((color, i) => {
+          graphics.clear();
+          graphics.fillStyle(color, 1);
+          graphics.fillRoundedRect(0, 0, 250, 250, 32);
+          graphics.lineStyle(4, 0xffffff, 0.5);
+          graphics.strokeRoundedRect(0, 0, 250, 250, 32);
+          graphics.generateTexture('pad' + i, 250, 250);
+        });
+      }
+
+      function create() {
+        this.add.rectangle(300, 400, 600, 800, 0x030712);
+        this.add
+          .text(300, 50, 'CIPHER SURGE ELITE', {
+            fontSize: '32px',
+            fill: '#8b5cf6',
+            fontStyle: 'bold',
+          })
+          .setOrigin(0.5);
+
+        const gridPos = [
+          { x: 165, y: 250 },
+          { x: 435, y: 250 },
+          { x: 165, y: 520 },
+          { x: 435, y: 520 },
+        ];
+
+        gridPos.forEach((pos, i) => {
+          const pad = this.add.image(pos.x, pos.y, 'pad' + i).setInteractive();
+          pad.on('pointerdown', () => handlePadClick.call(this, i));
+          pads.push(pad);
+        });
+
+        roundText = this.add.text(50, 680, 'ROUND: 1', {
+          fontSize: '24px',
+          fill: '#fff',
+        });
+        scoreText = this.add.text(50, 710, 'SCORE: 0', {
+          fontSize: '24px',
+          fill: '#fff',
+        });
+        healthText = this.add.text(400, 680, 'INTEGRITY: 100%', {
+          fontSize: '24px',
+          fill: '#ec4899',
+        });
+        statusText = this.add
+          .text(300, 760, 'CLICK ANY PAD TO START', {
+            fontSize: '20px',
+            fill: '#8b5cf6',
+          })
+          .setOrigin(0.5);
+
+        window.parent.postMessage({ type: 'GAME_READY' }, '*');
+      }
+
+      function update() {}
+
+      function handlePadClick(index) {
+        if (isShowingSequence) return;
+        if (sequence.length === 0) {
+          startNextRound.call(this);
+          return;
         }
 
-        function create() {
-            this.add.rectangle(300, 400, 600, 800, 0x030712);
-            this.add.text(300, 50, 'CIPHER SURGE ELITE', { fontSize: '32px', fill: '#8b5cf6', fontStyle: 'bold' }).setOrigin(0.5);
+        flashPad.call(this, index);
+        playerInput.push(index);
 
-            const gridPos = [
-                { x: 165, y: 250 }, { x: 435, y: 250 },
-                { x: 165, y: 520 }, { x: 435, y: 520 }
-            ];
-
-            gridPos.forEach((pos, i) => {
-                const pad = this.add.image(pos.x, pos.y, 'pad' + i).setInteractive();
-                pad.on('pointerdown', () => handlePadClick.call(this, i));
-                pads.push(pad);
-            });
-
-            roundText = this.add.text(50, 680, 'ROUND: 1', { fontSize: '24px', fill: '#fff' });
-            scoreText = this.add.text(50, 710, 'SCORE: 0', { fontSize: '24px', fill: '#fff' });
-            healthText = this.add.text(400, 680, 'INTEGRITY: 100%', { fontSize: '24px', fill: '#ec4899' });
-            statusText = this.add.text(300, 760, 'CLICK ANY PAD TO START', { fontSize: '20px', fill: '#8b5cf6' }).setOrigin(0.5);
-
-            window.parent.postMessage({ type: 'GAME_READY' }, '*');
+        if (sequence[playerInput.length - 1] !== index) {
+          fail.call(this);
+          return;
         }
 
-        function update() {}
+        if (playerInput.length === sequence.length) {
+          score += 100 * round;
+          scoreText.setText('SCORE: ' + score);
+          round++;
+          roundText.setText('ROUND: ' + round);
+          statusText.setText('CIPHER CLEAR. STAND BY.');
 
-        function handlePadClick(index) {
-            if (isShowingSequence) return;
-            if (sequence.length === 0) {
-                startNextRound.call(this);
-                return;
-            }
+          window.parent.postMessage(
+            {
+              type: 'GAME_UPDATE',
+              data: { score: score, level: round, health: health },
+            },
+            '*'
+          );
 
-            flashPad.call(this, index);
-            playerInput.push(index);
-
-            if (sequence[playerInput.length - 1] !== index) {
-                fail.call(this);
-                return;
-            }
-
-            if (playerInput.length === sequence.length) {
-                score += 100 * round;
-                scoreText.setText('SCORE: ' + score);
-                round++;
-                roundText.setText('ROUND: ' + round);
-                statusText.setText('CIPHER CLEAR. STAND BY.');
-
-                window.parent.postMessage({
-                    type: 'GAME_UPDATE',
-                    data: { score: score, level: round, health: health }
-                }, '*');
-
-                this.time.delayedCall(1000, startNextRound, [], this);
-            }
+          this.time.delayedCall(1000, startNextRound, [], this);
         }
+      }
 
-        function startNextRound() {
-            playerInput = [];
-            sequence.push(Phaser.Math.Between(0, 3));
-            showSequence.call(this);
-        }
+      function startNextRound() {
+        playerInput = [];
+        sequence.push(Phaser.Math.Between(0, 3));
+        showSequence.call(this);
+      }
 
-        async function showSequence() {
-            isShowingSequence = true;
-            statusText.setText('WATCH PATTERN...');
+      async function showSequence() {
+        isShowingSequence = true;
+        statusText.setText('WATCH PATTERN...');
 
-            for (let i = 0; i < sequence.length; i++) {
-                await new Promise(resolve => {
-                    this.time.delayedCall(600 * i, () => {
-                        flashPad.call(this, sequence[i]);
-                        if (i === sequence.length - 1) {
-                            this.time.delayedCall(600, () => {
-                                isShowingSequence = false;
-                                statusText.setText('REPLAY CIPHER');
-                            });
-                        }
-                        resolve();
-                    });
+        for (let i = 0; i < sequence.length; i++) {
+          await new Promise((resolve) => {
+            this.time.delayedCall(600 * i, () => {
+              flashPad.call(this, sequence[i]);
+              if (i === sequence.length - 1) {
+                this.time.delayedCall(600, () => {
+                  isShowingSequence = false;
+                  statusText.setText('REPLAY CIPHER');
                 });
-            }
-        }
-
-        function flashPad(index) {
-            const pad = pads[index];
-            pad.setAlpha(0.5);
-            this.tweens.add({
-                targets: pad,
-                alpha: 1,
-                scale: 1.05,
-                duration: 200,
-                yoyo: true,
-                onComplete: () => pad.setScale(1)
+              }
+              resolve();
             });
+          });
         }
+      }
 
-        function fail() {
-            health -= 25;
-            healthText.setText('INTEGRITY: ' + health + '%');
-            statusText.setText('BREACH DETECTED!');
+      function flashPad(index) {
+        const pad = pads[index];
+        pad.setAlpha(0.5);
+        this.tweens.add({
+          targets: pad,
+          alpha: 1,
+          scale: 1.05,
+          duration: 200,
+          yoyo: true,
+          onComplete: () => pad.setScale(1),
+        });
+      }
 
-            if (health <= 0) {
-                statusText.setText('SYSTEM LOCKOUT');
-                window.parent.postMessage({
-                    type: 'GAME_OVER',
-                    data: { score: score, isWin: false }
-                }, '*');
-                this.time.delayedCall(2000, () => location.reload());
-            } else {
-                playerInput = [];
-                this.time.delayedCall(1000, showSequence, [], this);
-            }
+      function fail() {
+        health -= 25;
+        healthText.setText('INTEGRITY: ' + health + '%');
+        statusText.setText('BREACH DETECTED!');
+
+        if (health <= 0) {
+          statusText.setText('SYSTEM LOCKOUT');
+          window.parent.postMessage(
+            {
+              type: 'GAME_OVER',
+              data: { score: score, isWin: false },
+            },
+            '*'
+          );
+          this.time.delayedCall(2000, () => location.reload());
+        } else {
+          playerInput = [];
+          this.time.delayedCall(1000, showSequence, [], this);
         }
+      }
     </script>
-</body>
+  </body>
 </html>

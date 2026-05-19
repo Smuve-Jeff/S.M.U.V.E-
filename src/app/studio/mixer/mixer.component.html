@@ -1,76 +1,85 @@
-<div class="mixer-container no-scrollbar">
-  <!-- Audio Tracks -->
-  <div
-    *ngFor="let track of tracks(); let i = index"
-    class="mixer-strip"
-    [class.selected]="musicManager.selectedTrackId() === track.id"
-    (click)="musicManager.selectedTrackId.set(track.id)"
-  >
-    <div class="track-label">{{ track.name }}</div>
-
-    <div class="vu-meter-container">
-      <div class="vu-meter-fill" [style.height.%]="20 + ((i * 15) % 60)"></div>
-    </div>
-
-    <div class="pan-knob"></div>
-
-    <div class="fader-container">
-      <div class="fader-track"></div>
-      <div class="fader-cap" [style.bottom.%]="track.gain * 0.8"></div>
-      <input
-        type="range"
-        min="0"
-        max="100"
-        step="1"
-        [value]="track.gain"
-        (input)="updateTrackVolume(track.id, +$any($event.target).value)"
-      />
-    </div>
-
-    <div class="mini-controls">
-      <button
-        class="mini-btn"
-        [class.active-solo]="track.solo"
-        (click)="toggleSolo(track.id); $event.stopPropagation()"
-      >
-        S
+<div
+  class="mixer-container glass-v42 shadow-v42-xl"
+  [class.compact]="viewMode() === 'compact'"
+>
+  <div class="mixer-header wood-panel">
+    <div class="neon-text-sm">ANALOG MIXER v4.2</div>
+    <div class="mixer-global-actions">
+      <button (click)="applyNeuralMix()" class="executive-glass extreme-glow">
+        NEURAL MIX
       </button>
-      <button
-        class="mini-btn"
-        [class.active-mute]="track.mute"
-        (click)="toggleMute(track.id); $event.stopPropagation()"
-      >
-        M
-      </button>
+      <button (click)="toggleViewMode()" class="executive-glass">MODE</button>
     </div>
   </div>
 
-  <!-- Master Strip -->
-  <div class="mixer-strip master">
-    <div class="track-label">MASTER</div>
+  <div class="mixer-tracks no-scrollbar">
+    <div
+      *ngFor="let track of tracks()"
+      class="mixer-strip glass-v42"
+      [class.selected]="isSelected(track)"
+      (click)="selectTrack(track.id)"
+    >
+      <div class="strip-top">
+        <div class="track-index neon-accent-secondary">{{ track.id }}</div>
+        <div class="track-label">{{ track.name | uppercase }}</div>
+      </div>
 
-    <div class="vu-meter-container" style="width: 24px; display: flex; gap: 2px; padding: 1px">
-      <div class="vu-meter-fill" style="flex: 1; position: relative" [style.height.%]="masterVolume() * 0.9"></div>
-      <div class="vu-meter-fill" style="flex: 1; position: relative" [style.height.%]="masterVolume() * 0.85"></div>
+      <div class="strip-body">
+        <div class="v-slider-container">
+          <input
+            type="range"
+            orient="vertical"
+            class="hud-slider-vertical"
+            [value]="gainPercent(track)"
+            (input)="updateTrackVolume(track.id, $any($event.target).value)"
+          />
+        </div>
+
+        <div class="vu-meter">
+          <div class="vu-fill" [style.height.%]="track.mute ? 0 : 45"></div>
+        </div>
+      </div>
+
+      <div class="strip-bottom wood-panel">
+        <div class="pan-control">
+          <input
+            type="range"
+            min="-100"
+            max="100"
+            class="knob-range"
+            [value]="panPercent(track)"
+            (input)="updateTrackPan(track.id, $any($event.target).value)"
+          />
+        </div>
+        <div class="strip-buttons">
+          <button
+            [class.active-mute]="track.mute"
+            (click)="toggleMute(track.id)"
+          >
+            M
+          </button>
+          <button
+            [class.active-solo]="track.solo"
+            (click)="toggleSolo(track.id)"
+          >
+            S
+          </button>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="pan-knob" style="opacity: 0.3"></div>
-
-    <div class="fader-container">
-      <div class="fader-track" style="width: 6px"></div>
-      <div class="fader-cap" style="width: 50px; background: #2a2a35" [style.bottom.%]="masterVolume() * 0.8"></div>
+  <!-- Master Bus -->
+  <div class="master-bus wood-panel shadow-v42-xl">
+    <div class="neon-text-xs">MASTER</div>
+    <div class="v-slider-container">
       <input
         type="range"
-        min="0"
-        max="100"
-        step="1"
+        orient="vertical"
+        class="hud-slider-vertical"
         [value]="masterVolume()"
-        (input)="updateMasterVolume(+$any($event.target).value)"
+        (input)="updateMasterVolume($any($event.target).value)"
       />
-    </div>
-
-    <div class="track-label" style="color: #a855f7">
-      {{ masterVolume().toFixed(0) }}%
     </div>
   </div>
 </div>

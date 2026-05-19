@@ -16,7 +16,10 @@ export class StemSeparationService {
   private notificationService = inject(NotificationService);
 
   separate(buffer: AudioBuffer): Stems {
-    this.notificationService.show('Neural Stem Splitter: Isolating Components...', 'info');
+    this.notificationService.show(
+      'Neural Stem Splitter: Isolating Components...',
+      'info'
+    );
 
     // In a real environment, this would call a WASM model or remote API.
     // For now, we return high-fidelity clones with metadata intent.
@@ -28,7 +31,10 @@ export class StemSeparationService {
       other: this.cloneAudioBuffer(buffer),
     };
 
-    this.notificationService.show('Stem Isolation Complete: Stems Mapped to Decks.', 'success');
+    this.notificationService.show(
+      'Stem Isolation Complete: Stems Mapped to Decks.',
+      'success'
+    );
     return stems;
   }
 

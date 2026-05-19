@@ -22,7 +22,7 @@ export class ChannelRackComponent {
   private instruments = inject(InstrumentsService);
 
   tracks = this.musicManager.tracks;
-  currentStep = this.engine.currentBeat;
+  currentStep = this.musicManager.currentStep;
   availablePresets = this.instruments.getPresets();
 
   steps = new Array(16).fill(0);
@@ -63,7 +63,12 @@ export class ChannelRackComponent {
   batchMute(mute: boolean) {
     const ids = Array.from(this.selectedIds());
     if (ids.length > 0) {
-      this.musicManager.batchMute(ids, mute);
+      ids.forEach((id) => {
+        const track = this.musicManager.tracks().find((t) => t.id === id);
+        if (track && track.mute !== mute) {
+          this.musicManager.toggleMute(id);
+        }
+      });
     }
   }
 
@@ -83,19 +88,19 @@ export class ChannelRackComponent {
   }
 
   updateVolume(track: TrackModel, event: any) {
+    const val = +event.target.value / 100;
     this.musicManager.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === track.id ? { ...t, gain: +event.target.value / 100 } : t
-      )
+      ts.map((t) => (t.id === track.id ? { ...t, gain: val } : t))
     );
+    this.engine.updateTrack(track.id, { gain: val });
   }
 
   updatePan(track: TrackModel, event: any) {
+    const val = +event.target.value / 100;
     this.musicManager.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === track.id ? { ...t, pan: +event.target.value / 100 } : t
-      )
+      ts.map((t) => (t.id === track.id ? { ...t, pan: val } : t))
     );
+    this.engine.updateTrack(track.id, { pan: val });
   }
 
   toggleMute(track: TrackModel) {

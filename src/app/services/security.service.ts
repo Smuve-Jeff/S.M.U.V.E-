@@ -266,15 +266,15 @@ export class SecurityService {
    * Gets the current CSRF token.
    * @returns The CSRF token string, or null if not available.
    */
-    getSecurityConfig() {
+  getSecurityConfig() {
     return {
       sessionTimeoutMs: this.securityConfig.sessionTimeoutMs,
       inactivityTimeoutMs: this.securityConfig.inactivityTimeoutMs,
-      requireReauthForSensitive: this.securityConfig.requireReauthForSensitive
+      requireReauthForSensitive: this.securityConfig.requireReauthForSensitive,
     };
   }
 
-getCSRFToken(): string | null {
+  getCSRFToken(): string | null {
     return this.csrfToken;
   }
 

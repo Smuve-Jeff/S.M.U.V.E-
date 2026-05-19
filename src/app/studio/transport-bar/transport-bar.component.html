@@ -1,75 +1,86 @@
-<div class="transport-bar">
-  <div class="control-group">
-    <button
-      (click)="togglePlay()"
-      [class.active]="isPlaying()"
-      class="transport-btn"
-      title="Play/Pause"
-    >
-      <i class="fas" [ngClass]="{ 'fa-play': !isPlaying(), 'fa-pause': isPlaying() }"></i>
-    </button>
-    <button (click)="stop()" class="transport-btn" title="Stop">
-      <i class="fas fa-stop"></i>
-    </button>
-    <button
-      (click)="toggleRecord()"
-      [class.active]="isRecording()"
-      class="transport-btn record-btn"
-      title="Record"
-    >
-      <i class="fas fa-circle"></i>
-    </button>
-    <button
-      (click)="toggleMetronome()"
-      [class.active]="audioEngine.metronomeEnabled()"
-      class="transport-btn"
-      title="Metronome"
-    >
-      <i class="fas fa-drum"></i>
-    </button>
-  </div>
-
-  <div class="display-section">
-    <div class="display-item bpm-control">
-      <span class="display-label">TEMPO</span>
-      <div class="flex items-center gap-1">
-        <button class="bpm-nudge" (click)="nudgeTempo(-1)">−</button>
-        <input
-          type="number"
-          class="bpm-input"
-          [value]="audioEngine.tempo()"
-          (change)="onTempoInput($event)"
-          min="20"
-          max="300"
-        />
-        <button class="bpm-nudge" (click)="nudgeTempo(1)">+</button>
+<div class="transport-container wood-panel shadow-v42-xl glass-v42">
+  <div class="transport-content">
+    <!-- Branding/Status -->
+    <div class="transport-branding">
+      <div class="neon-text-xs neon-text">ANALOG ENGINE v4.2</div>
+      <div class="status-indicator" [class.recording]="isRecording()">
+        <span class="dot"></span>
+        {{ isRecording() ? 'RECORDING' : isPlaying() ? 'PLAYING' : 'IDLE' }}
       </div>
     </div>
-    <div class="display-item">
-      <span class="display-label">POSITION</span>
-      <span class="display-value">{{ audioEngine.currentBeat() + 1 }}.1</span>
-    </div>
-  </div>
 
-  <div class="fader-group">
-    <div *ngIf="audioEngine.metronomeEnabled()" class="fader-item">
-      <span class="fader-label">CLICK</span>
-      <input
-        type="range"
-        min="0"
-        max="100"
-        [value]="audioEngine.metronomeVolume() * 100"
-        (input)="updateMetronomeVolume($event)"
-      />
+    <!-- Main Controls -->
+    <div class="transport-main">
+      <button
+        class="transport-btn glass-v42"
+        (click)="stop()"
+        [class.active]="isStopped()"
+      >
+        <span class="material-symbols-outlined">stop</span>
+      </button>
+      <button
+        class="transport-btn glass-v42"
+        (click)="togglePlay()"
+        [class.active]="isPlaying()"
+      >
+        <span class="material-symbols-outlined">{{
+          isPlaying() ? 'pause' : 'play_arrow'
+        }}</span>
+      </button>
+      <button
+        class="transport-btn rec-btn glass-v42"
+        (click)="toggleRecord()"
+        [class.active]="isRecording()"
+      >
+        <span class="material-symbols-outlined">fiber_manual_record</span>
+      </button>
     </div>
-    <div class="fader-item">
-      <span class="fader-label">MASTER</span>
+
+    <!-- Tempo/Sync -->
+    <div class="transport-tempo glass-v42">
+      <div class="tempo-controls">
+        <button (click)="nudgeTempo(-1)" class="nudge-btn">-</button>
+        <input
+          type="number"
+          [ngModel]="audioEngine.tempo()"
+          (ngModelChange)="audioEngine.tempo.set($event)"
+          class="tempo-input font-mono"
+        />
+        <button (click)="nudgeTempo(1)" class="nudge-btn">+</button>
+      </div>
+      <div class="neon-text-xs opacity-50">BPM</div>
+    </div>
+
+    <!-- Master Volume -->
+    <div class="transport-master glass-v42">
+      <span class="material-symbols-outlined text-sm">volume_up</span>
       <input
         type="range"
         min="0"
         max="100"
-        [value]="masterVolume()"
+        [ngModel]="masterVolume()"
         (input)="updateMasterVolume($event)"
+        class="volume-slider extreme-glow"
+      />
+      <span class="font-mono text-[10px] w-8">{{ masterVolume() }}%</span>
+    </div>
+
+    <!-- Metronome -->
+    <div class="transport-metronome glass-v42">
+      <button
+        class="metronome-toggle"
+        [class.active]="audioEngine.metronomeEnabled()"
+        (click)="toggleMetronome()"
+      >
+        <span class="material-symbols-outlined">metronome</span>
+      </button>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        [ngModel]="audioEngine.metronomeVolume() * 100"
+        (input)="updateMetronomeVolume($event)"
+        class="mini-slider"
       />
     </div>
   </div>

@@ -299,7 +299,11 @@ describe('ThaSpotComponent', () => {
     fixture = TestBed.createComponent(ThaSpotComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    httpMock.expectOne('https://s-m-u-v-e-2-0-fixed.onrender.com/api/security/csrf-token').flush({ token: 'test' });
+    httpMock
+      .expectOne(
+        'https://s-m-u-v-e-2-0-fixed.onrender.com/api/security/csrf-token'
+      )
+      .flush({ token: 'test' });
     httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
     component.now.set(new Date('2026-04-06T21:00:00.000Z').getTime());
     fixture.detectChanges();

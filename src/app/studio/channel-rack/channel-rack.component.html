@@ -1,23 +1,33 @@
-<div class="rack-container">
-  <div class="rack-header">
-    <div class="rack-title">Channel Rack</div>
+<div class="rack-container glass-v42 shadow-v42-xl">
+  <div class="rack-header wood-panel">
+    <div class="rack-title neon-text-sm">CHANNEL RACK</div>
     <div class="rack-actions">
-      <button (click)="importAudio()" class="mini-btn">IMPORT</button>
+      <button (click)="importAudio()" class="executive-glass">IMPORT</button>
     </div>
   </div>
 
   <div class="channel-list no-scrollbar">
     <div
       *ngFor="let track of musicManager.tracks(); let i = index"
-      class="channel-item"
+      class="channel-item glass-v42"
       [class.selected]="musicManager.selectedTrackId() === track.id"
       (click)="selectTrack(track)"
     >
-      <div class="channel-led" [class.active]="!track.mute"></div>
+      <div
+        class="channel-led extreme-glow"
+        [class.active]="!track.mute"
+        [style.background-color]="track.color"
+      ></div>
 
       <div class="channel-info">
-        <span class="channel-name">{{ track.name }}</span>
-        <span class="channel-type">{{ track.type }}</span>
+        <span class="channel-name neon-text-xs">{{
+          track.name | uppercase
+        }}</span>
+        <span
+          class="channel-type font-mono"
+          style="font-size: 8px; opacity: 0.5"
+          >{{ track.type | uppercase }}</span
+        >
       </div>
 
       <div class="step-sequencer" *ngIf="track.type === 'midi'">
@@ -26,17 +36,25 @@
           class="step-pad"
           [class.active]="track.steps[sIdx]"
           [class.current-step]="musicManager.currentStep() === sIdx"
-          [style.background-color]="sIdx % 8 < 4 ? '' : '#333'"
+          [style.background-color]="
+            track.steps[sIdx]
+              ? track.color
+              : sIdx % 8 < 4
+                ? 'rgba(255,255,255,0.05)'
+                : 'rgba(0,0,0,0.2)'
+          "
           (click)="toggleStep(track, sIdx); $event.stopPropagation()"
         ></div>
       </div>
 
       <div class="channel-knobs">
-        <div class="mini-knob" title="Volume"></div>
-        <div class="mini-knob" title="Pan"></div>
+        <div class="mini-knob executive-glass" title="Volume"></div>
+        <div class="mini-knob executive-glass" title="Pan"></div>
       </div>
     </div>
 
-    <button (click)="addTrack()" class="add-btn">+ ADD INSTRUMENT</button>
+    <button (click)="addTrack()" class="add-btn executive-glass extreme-glow">
+      + ADD INSTRUMENT
+    </button>
   </div>
 </div>

@@ -351,10 +351,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private loadGameState(game: Game) {
     const save = localStorage.getItem(`smuve_save_${game.id}`);
     if (save && this.gameIframe?.nativeElement?.contentWindow) {
-      this.gameIframe.nativeElement.contentWindow.postMessage({
-        type: "LOAD_STATE",
-        payload: JSON.parse(save)
-      }, "*");
+      this.gameIframe.nativeElement.contentWindow.postMessage(
+        {
+          type: 'LOAD_STATE',
+          payload: JSON.parse(save),
+        },
+        '*'
+      );
     }
   }
 
@@ -473,18 +476,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         this.loadGameState(active);
         break;
       case 'GAME_UPDATE':
-        if (event.data.data?.score !== undefined || event.data.data?.level !== undefined) {
-           this.profileService.recordGameResult(active.id, {
-             ...this.buildSessionContext(active),
-             score: event.data.data.score,
-             level: event.data.data.level,
-             health: event.data.data.health
-           });
+        if (
+          event.data.data?.score !== undefined ||
+          event.data.data?.level !== undefined
+        ) {
+          this.profileService.recordGameResult(active.id, {
+            ...this.buildSessionContext(active),
+            score: event.data.data.score,
+            level: event.data.data.level,
+            health: event.data.data.health,
+          });
         }
         break;
       case 'GAME_SAVE':
         if (event.data.payload) {
-          localStorage.setItem(`smuve_save_${active.id}`, JSON.stringify(event.data.payload));
+          localStorage.setItem(
+            `smuve_save_${active.id}`,
+            JSON.stringify(event.data.payload)
+          );
         }
         break;
       case 'GAME_OVER':
@@ -492,7 +501,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
           ...this.buildSessionContext(active),
           score: event.data.data?.score,
           level: event.data.data?.level,
-          isWin: event.data.data?.isWin
+          isWin: event.data.data?.isWin,
         });
         this.closeGame();
         break;
@@ -697,7 +706,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     const current = this.favorites();
     const updated = current.includes(gameId)
-      ? current.filter(id => id !== gameId)
+      ? current.filter((id) => id !== gameId)
       : [...current, gameId];
     this.favorites.set(updated);
     localStorage.setItem('tha_spot_favorites', JSON.stringify(updated));

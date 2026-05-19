@@ -240,7 +240,10 @@ describe('PianoRollComponent', () => {
     component.newTrackPresetId.set('grand-piano');
 
     component.addTrack();
-    expect(mockMusicManager.addTrack).toHaveBeenCalledWith('New Track', 'grand-piano');
+    expect(mockMusicManager.addTrack).toHaveBeenCalledWith(
+      'New Track',
+      'grand-piano'
+    );
   });
 
   it('replaces the selected track instrument from the project track list', async () => {
