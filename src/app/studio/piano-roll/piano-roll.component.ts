@@ -1,10 +1,10 @@
 import {
   Component,
-  OnInit,
-  AfterViewInit,
   inject,
   signal,
   computed,
+  OnInit,
+  AfterViewInit,
   ViewChild,
   ElementRef,
   HostListener,
@@ -13,18 +13,18 @@ import {
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import {
   MusicManagerService,
-  TrackModel,
   TrackNote,
+  TrackModel,
 } from '../../services/music-manager.service';
 import { AudioSessionService } from '../audio-session.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { InstrumentsService } from '../../services/instruments.service';
 import { HistoryService } from '../../services/history.service';
 import { AiService } from '../../services/ai.service';
-import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { TouchGestureService } from '../../services/touch-gesture.service';
 
 @Component({
@@ -35,41 +35,8 @@ import { TouchGestureService } from '../../services/touch-gesture.service';
   styleUrls: ['./piano-roll.component.css'],
 })
 export class PianoRollComponent implements OnInit, AfterViewInit {
-  private lastPinchDistance: number | null = null;
-
-  @HostListener('touchstart', ['$event'])
-  onTouchStart(event: TouchEvent) {
-    if (event.touches.length === 2) {
-  onDrop(event: DragEvent) {
-    event.preventDefault();
-    const data = event.dataTransfer?.getData("application/json");
-    if (data && this.selectedTrack()) {
-      const { presetId } = JSON.parse(data);
-      this.musicManager.setInstrument(this.selectedTrack()!.id, presetId);
-    }
-  }
-
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-  }
-
-      this.lastPinchDistance = this.touchGestures.handlePinch(event);
-    }
-  }
-
-  @HostListener('touchmove', ['$event'])
-  onTouchMove(event: TouchEvent) {
-    if (event.touches.length === 2 && this.lastPinchDistance) {
-      const distance = this.touchGestures.handlePinch(event);
-      if (distance) {
-        const delta = distance / this.lastPinchDistance;
-        this.touchGestures.zoomLevel.update(z => Math.max(0.5, Math.min(2.0, z * delta)));
-        this.lastPinchDistance = distance;
-      }
-    }
-  }
   public musicManager = inject(MusicManagerService);
-  public audioSession = inject(AudioSessionService);
+  private audioSession = inject(AudioSessionService);
   private audioEngine = inject(AudioEngineService);
   public instrumentsService = inject(InstrumentsService);
   private history = inject(HistoryService);
@@ -147,6 +114,19 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const compact = width < 768;
     this.isMobile.set(compact);
     this.isCompactMobile.set(compact);
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    const data = event.dataTransfer?.getData("application/json");
+    if (data && this.selectedTrack()) {
+      const { presetId } = JSON.parse(data);
+      this.musicManager.setInstrument(this.selectedTrack()!.id, presetId);
+    }
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
   }
 
   togglePlay() {

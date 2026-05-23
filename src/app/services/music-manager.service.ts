@@ -110,7 +110,7 @@ export class MusicManagerService {
   activeLoopBars = signal(4);
   private logger = inject(LoggingService);
   private instruments = inject(InstrumentsService);
-  private engine = inject(AudioEngineService);
+  public engine = inject(AudioEngineService);
   private fileLoader = inject(FileLoaderService);
   private profileService = inject(UserProfileService);
   private audioSession = inject(AudioSessionService);
@@ -278,6 +278,10 @@ export class MusicManagerService {
     });
     if (this.selectedTrackId() == null) this.selectedTrackId.set(id);
     return id;
+  }
+
+  addTrack(name: string, instrumentId: string) {
+    return this.ensureTrack(instrumentId, name);
   }
 
   setInstrument(trackId: number, presetId: string) {
@@ -502,4 +506,48 @@ export class MusicManagerService {
         return { ...t, stepVelocities: velocities };
      }));
   }
+
+  recordLiveNote(note: string, velocity: number) {
+    const selectedId = this.selectedTrackId();
+    if (!selectedId || !this.audioSession.isRecording()) return;
+
+    const names = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
+    ];
+    const octave = parseInt(note.slice(-1));
+    const name = note.slice(0, -1);
+    const midi = (octave + 1) * 12 + names.indexOf(name);
+
+    const beat = this.engine.currentBeat();
+    const stepsPerBeat = this.engine.stepsPerBeat();
+    const currentStepValue = Math.floor(beat * stepsPerBeat) % 64;
+
+    this.addNoteToTrack(selectedId, {
+      midi,
+      step: currentStepValue,
+      length: 1,
+      velocity: velocity,
+    });
+  }
+
+  createPatternSlot(trackId: number, name: string) {}
+  duplicatePatternSlot(trackId: number, slotId: string) {}
+  snapshotPatternVersion(trackId: number, slotId: string, name: string) {}
+  recallPatternSlot(trackId: number, slotId: string) {}
+  fillPatternLane(trackId: number, density: number) {}
+  clearPatternLane(trackId: number) {}
+  rotatePatternLane(trackId: number, shift: number) {}
+  randomizePatternLane(trackId: number, probability: number) {}
+  setTrackQualityMode(trackId: number, mode: 'ultra' | 'performance') {}
 }
