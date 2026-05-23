@@ -50,7 +50,7 @@ export const initialProfile: UserProfile = {
     },
     audio: { masterVolume: 0.8, autoSaveEnabled: true },
     ai: { kbWriteAccess: true, commanderPersona: 'Elite' },
-    security: { twoFactorEnabled: false },
+    security: { twoFactorEnabled: false, endToEndEncryption: false, biometricLock: false, auditLogEnabled: true, sessionTimeout: 3600 },
   },
   artistName: 'New Artist',
   primaryGenre: 'Hip Hop',

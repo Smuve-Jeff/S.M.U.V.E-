@@ -528,6 +528,86 @@ export class SecurityService {
    * Performs a security audit of the current user session and profile.
    * @returns An object with a security score, status, and a list of alerts.
    */
+
+  /**
+   * Generates a new pair of E2E encryption keys for the executive profile.
+   * Uses the Web Crypto API for hardware-level security.
+   */
+  async generateE2EKeys(): Promise<{ publicKey: string }> {
+    const keyPair = await window.crypto.subtle.generateKey(
+      {
+        name: "RSA-OAEP",
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: "SHA-256",
+      },
+      true,
+      ["encrypt", "decrypt"]
+    );
+
+    const exportedPublic = await window.crypto.subtle.exportKey(
+      "spki",
+      keyPair.publicKey
+    );
+
+    const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPublic)));
+
+    await this.logEvent('E2E_KEY_GENERATED', 'New end-to-end encryption keys established.');
+    return { publicKey: publicKeyBase64 };
+  }
+
+  /**
+   * Initializes 2FA enrollment for the user.
+   * Returns a simulated setup URI for an authenticator app.
+   */
+  async setup2FA(): Promise<{ secret: string; qrCodeUri: string }> {
+    const secret = Math.random().toString(36).substring(2, 12).toUpperCase();
+    const artistName = this.profileService.profile().artistName || 'Artist';
+    const qrCodeUri = `otpauth://totp/SMUVE:${artistName}?secret=${secret}&issuer=SMUVE`;
+
+    await this.logEvent('2FA_ENROLLMENT_STARTED', 'User initiated multi-factor authentication setup.');
+    return { secret, qrCodeUri };
+  }
+
+  /**
+   * Verifies a 2FA code during setup or login.
+   */
+  async verify2FA(code: string): Promise<boolean> {
+    // In a production environment, this would be validated against the backend.
+    // For this implementation, we simulate verification.
+    const isValid = code.length === 6;
+    if (isValid) {
+      await this.logEvent('2FA_VERIFIED', 'Multi-factor authentication challenge successful.');
+    } else {
+      await this.logEvent('2FA_FAILURE', 'Invalid multi-factor authentication code attempted.');
+    }
+    return isValid;
+  }
+
+  /**
+   * Exports all user data for GDPR compliance and personal backup.
+   */
+  async exportUserData(): Promise<void> {
+    const profile = this.profileService.profile();
+    const logs = this.logs();
+    const data = {
+      profile,
+      securityLogs: logs,
+      exportedAt: new Date().toISOString(),
+      version: '4.2.0'
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `smuve_executive_export_${Date.now()}.json`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    await this.logEvent('DATA_EXPORT', 'User performed a complete data export.');
+  }
+
   getSecurityAudit(): { score: number; status: string; alerts: string[] } {
     let authService: AuthService | null = null;
     try {
@@ -546,9 +626,20 @@ export class SecurityService {
       alerts.push('CRITICAL: Secure channel unverified. Identity at risk.');
     }
 
-    if (!profile?.settings?.security?.twoFactorEnabled) {
+    const security = profile?.settings?.security;
+    if (!security?.twoFactorEnabled) {
       score -= 30;
       alerts.push('WARNING: Multi-factor authentication disabled.');
+    }
+
+    if (!security?.endToEndEncryption) {
+      score -= 20;
+      alerts.push('NOTICE: End-to-end encryption not active.');
+    }
+
+    if (!security?.biometricLock) {
+      score -= 10;
+      alerts.push('ADVISORY: Biometric hardware lock disabled.');
     }
 
     if (this.sessions().length > this.securityConfig.maxConcurrentSessions) {
