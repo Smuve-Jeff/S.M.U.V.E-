@@ -259,7 +259,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnInit() {
     if (this.uiService.isCompactMobile()) {
-      this.aiService.proactiveStrategicPulse();
+      this.aiService.proactiveSmuvePulse();
     }
     this.pulseInterval = setInterval(() => {
       this.currentBeat.update((v) => v + 1);
