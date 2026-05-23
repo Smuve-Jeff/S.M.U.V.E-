@@ -1,19 +1,26 @@
 import { Injectable, signal, inject } from '@angular/core';
 import * as Tone from 'tone';
 import { LoggingService } from './logging.service';
+import { InstrumentsService, InstrumentPreset } from './instruments.service';
 
-export type LiveInstrumentType = 'poly-synth' | 'mono-lead' | 'fm-bell';
+export type LiveInstrumentType = string;
 
 @Injectable({
   providedIn: 'root',
 })
 export class LiveEngineService {
   private logger = inject(LoggingService);
-  private polySynth: Tone.PolySynth;
-  private monoLead: Tone.MonoSynth;
-  private fmBell: Tone.FMSynth;
+  private instrumentsService = inject(InstrumentsService);
 
-  activeInstrument = signal<LiveInstrumentType>('poly-synth');
+  private currentInstrumentNode:
+    | Tone.PolySynth
+    | Tone.Sampler
+    | Tone.MonoSynth
+    | Tone.FMSynth
+    | null = null;
+  private activePreset: InstrumentPreset | null = null;
+
+  activeInstrument = signal<LiveInstrumentType>('cyber-lead');
   isInitialized = signal(false);
   midiEnabled = signal(false);
   availableMidiInputs = signal<string[]>([]);
@@ -24,37 +31,7 @@ export class LiveEngineService {
   smartChords = signal(false);
 
   constructor() {
-    this.polySynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'sawtooth' },
-      envelope: { attack: 0.05, decay: 0.2, sustain: 0.5, release: 1 },
-    }).toDestination();
-
-    this.monoLead = new Tone.MonoSynth({
-      oscillator: { type: 'square' },
-      envelope: { attack: 0.01, decay: 0.1, sustain: 0.8, release: 0.1 },
-      filterEnvelope: {
-        attack: 0.01,
-        decay: 0.2,
-        sustain: 0.5,
-        release: 0.1,
-        baseFrequency: 200,
-        octaves: 4,
-      },
-    }).toDestination();
-
-    this.fmBell = new Tone.FMSynth({
-      harmonicity: 3.01,
-      modulationIndex: 14,
-      oscillator: { type: 'sine' },
-      envelope: { attack: 0.001, decay: 0.3, sustain: 0.1, release: 1 },
-      modulation: { type: 'square' },
-      modulationEnvelope: {
-        attack: 0.01,
-        decay: 0.5,
-        sustain: 0.2,
-        release: 0.1,
-      },
-    }).toDestination();
+    // Default initialization happens in setInstrument
   }
 
   async initialize() {
@@ -62,7 +39,10 @@ export class LiveEngineService {
     await Tone.start();
     this.isInitialized.set(true);
     this.setupMidi();
-    this.logger.info('Live Engine Initialized');
+
+    // Set initial instrument
+    await this.setInstrument(this.activeInstrument());
+    this.logger.info('Live Engine Initialized with ' + this.activeInstrument());
   }
 
   private setupMidi() {
@@ -87,15 +67,12 @@ export class LiveEngineService {
   private handleMidiMessage(message: any) {
     const [status, data1, data2] = message.data;
     const cmd = status >> 4;
-    const channel = status & 0xf;
     const note = data1;
     const velocity = data2;
 
     if (cmd === 9 && velocity > 0) {
-      // Note On
       this.triggerAttack(this.midiToNote(note), velocity / 127);
     } else if (cmd === 8 || (cmd === 9 && velocity === 0)) {
-      // Note Off
       this.triggerRelease(this.midiToNote(note));
     }
   }
@@ -120,56 +97,96 @@ export class LiveEngineService {
     return `${name}${octave}`;
   }
 
-  setInstrument(type: LiveInstrumentType) {
-    this.activeInstrument.set(type);
+  async setInstrument(presetId: string) {
+    const preset = this.instrumentsService
+      .getPresets()
+      .find((p) => p.id === presetId);
+    if (!preset) {
+      this.logger.error(`Preset ${presetId} not found`);
+      return;
+    }
+
+    this.activeInstrument.set(presetId);
+    this.activePreset = preset;
+
+    // Dispose old instrument
+    if (this.currentInstrumentNode) {
+      this.currentInstrumentNode.dispose();
+    }
+
+    if (preset.type === 'synth' && preset.synth) {
+      const config = preset.synth;
+      this.currentInstrumentNode = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: config.type },
+        envelope: {
+          attack: config.attack,
+          decay: config.decay,
+          sustain: config.sustain,
+          release: config.release,
+        },
+      }).toDestination();
+
+      // Apply filter if specified
+      if (config.cutoff) {
+        const filter = new Tone.Filter({
+          frequency: config.cutoff,
+          type: 'lowpass',
+          Q: config.q || 1,
+        }).toDestination();
+        this.currentInstrumentNode.connect(filter);
+      }
+    } else if (
+      preset.type === 'sample' &&
+      preset.zones &&
+      preset.zones.length > 0
+    ) {
+      const sampleMap: { [key: string]: string } = {};
+      preset.zones.forEach((zone) => {
+        // Map the center of the range for now or just the URL
+        const note = this.midiToNote(zone.midiRange[0]);
+        sampleMap[note] = zone.url;
+      });
+
+      this.currentInstrumentNode = new Tone.Sampler({
+        urls: sampleMap,
+        onload: () => this.logger.info(`Samples loaded for ${preset.name}`),
+        release: 1,
+      }).toDestination();
+    }
   }
 
   triggerAttack(note: string, velocity: number = 0.8) {
-    if (!this.isInitialized()) return;
+    if (!this.isInitialized() || !this.currentInstrumentNode) return;
 
     let notesToPlay = [note];
-
-    // AI: Smart Chords logic
-    if (this.smartChords() && this.activeInstrument() === 'poly-synth') {
+    if (this.smartChords() && this.activePreset?.category !== 'drum') {
       notesToPlay = this.generateSmartChord(note);
     }
 
     const time = Tone.now();
     notesToPlay.forEach((n) => {
-      switch (this.activeInstrument()) {
-        case 'poly-synth':
-          this.polySynth.triggerAttack(n, time, velocity);
-          break;
-        case 'mono-lead':
-          this.monoLead.triggerAttack(n, time, velocity);
-          break;
-        case 'fm-bell':
-          this.fmBell.triggerAttack(n, time, velocity);
-          break;
+      if (this.currentInstrumentNode instanceof Tone.Sampler) {
+        this.currentInstrumentNode.triggerAttack(n, time, velocity);
+      } else if (this.currentInstrumentNode instanceof Tone.PolySynth) {
+        this.currentInstrumentNode.triggerAttack(n, time, velocity);
       }
     });
   }
 
   triggerRelease(note: string) {
-    if (!this.isInitialized()) return;
+    if (!this.isInitialized() || !this.currentInstrumentNode) return;
 
     const time = Tone.now();
     let notesToRelease = [note];
-    if (this.smartChords()) {
+    if (this.smartChords() && this.activePreset?.category !== 'drum') {
       notesToRelease = this.generateSmartChord(note);
     }
 
     notesToRelease.forEach((n) => {
-      switch (this.activeInstrument()) {
-        case 'poly-synth':
-          this.polySynth.triggerRelease(n, time);
-          break;
-        case 'mono-lead':
-          this.monoLead.triggerRelease(time);
-          break;
-        case 'fm-bell':
-          this.fmBell.triggerRelease(time);
-          break;
+      if (this.currentInstrumentNode instanceof Tone.Sampler) {
+        this.currentInstrumentNode.triggerRelease(n, time);
+      } else if (this.currentInstrumentNode instanceof Tone.PolySynth) {
+        this.currentInstrumentNode.triggerRelease(n, time);
       }
     });
   }
@@ -189,12 +206,13 @@ export class LiveEngineService {
       'A#',
       'B',
     ];
-    const octave = parseInt(rootNote.slice(-1));
-    const name = rootNote.slice(0, -1);
+    const octaveMatch = rootNote.match(/\d+$/);
+    if (!octaveMatch) return [rootNote];
+
+    const octave = parseInt(octaveMatch[0]);
+    const name = rootNote.replace(/\d+$/, '');
     const rootMidi = (octave + 1) * 12 + names.indexOf(name);
 
-    // Basic Major/Minor detection based on C Major scale for now
-    const scale = this.currentScale();
     const isMinor = ![0, 5, 7].includes(names.indexOf(name) % 12);
 
     if (isMinor) {
