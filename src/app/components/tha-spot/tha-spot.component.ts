@@ -179,15 +179,35 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   });
 
   neuralSyncScore = computed(() => {
+    // Optimized for S.M.U.V.E 2.0 career trajectory
     return this.profileService.profile()?.strategicHealthScore || 0;
   });
 
   gamingDirectives = computed(() => {
-    return [
-      'ESTABLISH ROOM DOMINANCE',
-      'EXECUTE DAILY TOURNAMENT RUN',
-      'SYNC KNOWLEDGE BASE WITH NEW DROPS',
+    const profile = this.profileService.profile();
+    const active = this.currentGame();
+    const selected = this.selectedGame();
+    const primaryGenre = profile?.primaryGenre || 'Experimental';
+
+    let directives = [
+      `Align session telemetry with ${primaryGenre} performance metrics.`,
+      `Execute high-fidelity runs to boost Strategic Reputation.`,
+      `Analyze cabinet mechanics for production workflow crossover.`,
     ];
+
+    if (active) {
+      directives = [
+        `DOMINATE: High-energy execution required for ${active.name}.`,
+        `NEURAL LINK: Synchronizing inputs with ${active.genre} rhythms.`,
+        `STRATEGY: Use ${active.launchConfig?.controls?.[0] || 'Standard'} controls for peak efficiency.`,
+      ];
+    } else if (selected) {
+      directives.push(
+        `PROSPECT: Evaluating ${selected.name} for career-mode integration.`
+      );
+    }
+
+    return directives;
   });
 
   launchWarning = signal<string>('');

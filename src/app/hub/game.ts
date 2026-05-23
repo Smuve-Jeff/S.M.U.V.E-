@@ -4,6 +4,7 @@ export type EmbedMode = 'inline' | 'external-only';
 export type TelemetryMode = 'frame-only' | 'origin' | 'none';
 
 export interface GameLaunchConfig {
+  controlSchematic?: any;
   difficulty?: string;
   controls?: string[];
   objectives?: string[];

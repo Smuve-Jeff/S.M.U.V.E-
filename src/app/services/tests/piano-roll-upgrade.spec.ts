@@ -22,8 +22,12 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
       onScheduleStep: null,
       isPlaying: () => false,
       ctx: {},
+      getContext: jest.fn(() => ({ destination: {} })),
       playBuffer: jest.fn(),
       playSynth: jest.fn(),
+      setMasterOutputLevel: jest.fn(),
+      start: jest.fn(),
+      stop: jest.fn(),
     };
 
     TestBed.configureTestingModule({

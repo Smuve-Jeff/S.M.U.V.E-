@@ -10,6 +10,11 @@ TestBed.initTestEnvironment(
   platformBrowserDynamicTesting()
 );
 
+(window as any).env = {
+  AUTH_SALT: 'test-auth-salt',
+  ENCRYPTION_KEY: 'test-encryption-key',
+};
+
 // Global Web Audio API Mock
 const createMockNode = () => ({
   gain: {
@@ -78,6 +83,36 @@ class MockAudioContext {
 
 (window as any).AudioContext = MockAudioContext;
 (window as any).webkitAudioContext = MockAudioContext;
+
+jest.mock('tone', () => ({
+  PolySynth: jest.fn().mockImplementation(() => ({
+    toDestination: jest.fn().mockReturnThis(),
+    triggerAttackRelease: jest.fn(),
+    triggerAttack: jest.fn(),
+    triggerRelease: jest.fn(),
+    set: jest.fn(),
+    dispose: jest.fn(),
+  })),
+  MonoSynth: jest.fn().mockImplementation(() => ({
+    toDestination: jest.fn().mockReturnThis(),
+    triggerAttackRelease: jest.fn(),
+    triggerAttack: jest.fn(),
+    triggerRelease: jest.fn(),
+    set: jest.fn(),
+    dispose: jest.fn(),
+  })),
+  FMSynth: jest.fn().mockImplementation(() => ({
+    toDestination: jest.fn().mockReturnThis(),
+    triggerAttackRelease: jest.fn(),
+    triggerAttack: jest.fn(),
+    triggerRelease: jest.fn(),
+    set: jest.fn(),
+    dispose: jest.fn(),
+  })),
+  start: jest.fn().mockResolvedValue(true),
+  now: jest.fn().mockReturnValue(0),
+  Synth: jest.fn(),
+}));
 
 // Mock MediaRecorder
 (window as any).MediaRecorder = class {

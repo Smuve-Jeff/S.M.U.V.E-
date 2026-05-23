@@ -102,13 +102,13 @@ describe('StudioComponent', () => {
     });
   });
 
-  it('navigates to dedicated standalone routes for studio aliases', async () => {
+  it('navigates studio aliases through the canonical studio route', async () => {
     const { component, routerMock } = await createComponent();
 
     component.setActiveView('vocal-suite');
 
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/vocal-suite'], {
-      queryParams: undefined,
+    expect(routerMock.navigate).toHaveBeenCalledWith(['/studio'], {
+      queryParams: { view: 'vocal-suite' },
       replaceUrl: true,
     });
   });

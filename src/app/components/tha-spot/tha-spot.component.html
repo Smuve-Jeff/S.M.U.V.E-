@@ -303,7 +303,22 @@
           {{ launchWarning() }}
         </p>
 
-        <div class="tech-specs glass-v42">
+                <div class="tech-specs glass-v42">
+          <div class="spec-item">
+            <span class="material-symbols-outlined">sports_esports</span>
+            <div class="spec-label">
+              <span>CONTROLS</span>
+              <strong>{{ selected.launchConfig?.controls?.join(', ') || 'Neural Map' }}</strong>
+            </div>
+          </div>
+          <!-- Added Control Mapping Heuristics -->
+          <div class="spec-item" *ngIf="isRetroOrArcade(selected)">
+            <span class="material-symbols-outlined">settings_input_component</span>
+            <div class="spec-label">
+              <span>MAPPING</span>
+              <strong>ELITE v4.2 COMPLIANT</strong>
+            </div>
+          </div>
           <div class="spec-item">
             <span class="material-symbols-outlined">sports_esports</span>
             <div class="spec-label">
@@ -319,6 +334,14 @@
               <span>PERSISTENCE</span>
               <strong>Verified</strong>
             </div>
+          </div>
+                <div class="controls-schematic glass-v42" *ngIf="isRetroOrArcade(selected)">
+          <h4><span class="material-symbols-outlined">videogame_asset</span> CONTROL SCHEMATICS</h4>
+          <div class="mapping-grid">
+            <div class="map-row"><span>Arrow Keys</span> <strong>D-Pad / Movement</strong></div>
+            <div class="map-row"><span>Z / X / C</span> <strong>A / B / C Buttons</strong></div>
+            <div class="map-row"><span>Enter / Space</span> <strong>Start / Select</strong></div>
+            <div class="map-row" *ngIf="selected.tags?.includes('PS2')"><span>Shift / S</span> <strong>L1 / R1 Triggers</strong></div>
           </div>
         </div>
 

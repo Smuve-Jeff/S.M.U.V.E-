@@ -505,13 +505,30 @@ export class GameService {
 
   filterAndSortGames(
     games: Game[],
-    filters: { genre?: string; query?: string },
+    filters: {
+      genre?: string;
+      query?: string;
+      platform?: string;
+      favorites?: string[];
+      quickFilters?: string[];
+    },
     sort: GameSortMode
   ): Game[] {
     let filtered = [...games];
 
-    if (filters.genre) {
+    if (filters.favorites) {
+      filtered = filtered.filter((g) => filters.favorites.includes(g.id));
+    }
+
+    if (filters.genre && filters.genre !== 'all') {
       filtered = filtered.filter((game) => game.genre === filters.genre);
+    }
+
+    if (filters.platform && filters.platform !== 'all') {
+      filtered = filtered.filter((game) => {
+        const isInternal = game.url.startsWith('/assets/');
+        return filters.platform === 'Internal' ? isInternal : !isInternal;
+      });
     }
 
     if (filters.query) {
@@ -519,8 +536,34 @@ export class GameService {
       filtered = filtered.filter(
         (game) =>
           game.name.toLowerCase().includes(query) ||
-          game.description?.toLowerCase().includes(query)
+          game.description?.toLowerCase().includes(query) ||
+          game.tags?.some((t) => t.toLowerCase().includes(query))
       );
+    }
+
+    if (filters.quickFilters?.length) {
+      filtered = filtered.filter((game) => {
+        const tags = (game.tags || []).map((t) => t.toLowerCase());
+        return filters.quickFilters.every((filter) => {
+          switch (filter) {
+            case 'featured':
+              return game.badgeIds?.includes('featured');
+            case 'multiplayer':
+              return (
+                (!!game.multiplayerType && game.multiplayerType !== 'None') ||
+                tags.includes('multiplayer')
+              );
+            case 'instant':
+              return (game.queueEstimateMinutes || 0) === 0;
+            case 'online':
+              return (
+                game.availability === 'Online' || game.availability === 'Hybrid'
+              );
+            default:
+              return true;
+          }
+        });
+      });
     }
 
     switch (sort) {
@@ -543,11 +586,8 @@ export class GameService {
         break;
       case 'Newest':
         filtered.sort((a, b) => {
-          const idA = parseInt(a.id, 10);
-          const idB = parseInt(b.id, 10);
-          if (isNaN(idA) || isNaN(idB)) {
-            return 0;
-          }
+          const idA = parseInt(a.id, 10) || 0;
+          const idB = parseInt(b.id, 10) || 0;
           return idB - idA;
         });
         break;
