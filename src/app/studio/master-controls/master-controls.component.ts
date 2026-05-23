@@ -32,6 +32,8 @@ export class MasterControlsComponent {
   isSoftClipActive = signal(false);
   isFinishing = signal(false);
   isRecording = signal(false);
+  isOfflineRendering = signal(false);
+  selectedFormat = signal<'wav' | 'mp3' | 'aac'>('wav');
   isDropdownOpen = signal(false);
 
   masterVolume = signal(0.8);
@@ -112,11 +114,29 @@ export class MasterControlsComponent {
     }
   }
 
-  finishTrack() {
+  async finishTrack() {
     this.isFinishing.set(true);
-    setTimeout(() => {
+    try {
+      this.notificationService.show('Neural Offline Render: Initializing...', 'info');
+
+      // Step 1: Render the project offline
+      const rawBuffer = await this.exportService.renderProjectOffline();
+
+      // Step 2: Apply S.M.U.V.E. Polish (Mastering)
+      const polishedBuffer = await this.exportService.applySmuvePolish(rawBuffer);
+
+      // Step 3: Convert to desired format
+      const blob = await this.exportService.exportToFormat(polishedBuffer, this.selectedFormat(), 24);
+
+      // Step 4: Download
+      const extension = this.selectedFormat() === 'wav' ? 'wav' : this.selectedFormat() === 'mp3' ? 'mp3' : 'm4a';
+      await this.exportService.downloadBlob(blob, `SMUVE_Mastered_Track_${Date.now()}.${extension}`);
+
+      this.notificationService.show('Mastering Complete: Track Exported & XP Awarded!', 'success');
+    } catch (err) {
+      this.notificationService.show('Mastering Pipeline Failed: Sonic Link Severed.', 'error');
+    } finally {
       this.isFinishing.set(false);
-      this.notificationService.show('Track Exported & XP Awarded!', 'success');
-    }, 3000);
+    }
   }
 }
