@@ -561,7 +561,10 @@ export class SecurityService {
    * Returns a simulated setup URI for an authenticator app.
    */
   async setup2FA(): Promise<{ secret: string; qrCodeUri: string }> {
-    const secret = Math.random().toString(36).substring(2, 12).toUpperCase();
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    const randomBytes = new Uint8Array(10);
+    window.crypto.getRandomValues(randomBytes);
+    const secret = Array.from(randomBytes, (b) => alphabet[b % alphabet.length]).join('');
     const artistName = this.profileService.profile().artistName || 'Artist';
     const qrCodeUri = `otpauth://totp/SMUVE:${artistName}?secret=${secret}&issuer=SMUVE`;
 
