@@ -244,6 +244,13 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   selectPad(pad: DrumPad) {
     this.selectedPad.set(pad);
   }
+  addAutomation(param: string) {
+    const trackId = this.selectedTrackId();
+    if (trackId) {
+      this.musicManager.addAutomationLane(trackId, param);
+    }
+  }
+
 
   playPadSound(pad: DrumPad) {
     const trackId = this.selectedTrackId() || 0;

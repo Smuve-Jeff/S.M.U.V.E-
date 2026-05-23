@@ -1,9 +1,10 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { LiveEngineService } from '../../services/live-engine.service';
+import { HapticService } from '../../services/haptic.service';
 import {
   InstrumentsService,
   InstrumentPreset,
@@ -17,12 +18,19 @@ import {
   styleUrls: ['./performer.component.css'],
 })
 export class PerformerComponent {
-  private musicManager = inject(MusicManagerService);
+  musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
   private liveEngine = inject(LiveEngineService);
+  private haptic = inject(HapticService);
   private instrumentsService = inject(InstrumentsService);
 
-  layout = signal<'keyboard' | 'pads'>('keyboard');
+  layout = signal<'keyboard' | 'pads' | 'matrix'>('keyboard');
+  scenes = signal<any[]>(
+    new Array(8)
+      .fill(null)
+      .map((_, i) => ({ id: i, name: `SCENE ${i + 1}`, color: '#af25f4' }))
+  );
+
   smartChords = signal(false);
   velocity = 0.8;
   octave = signal(0);
@@ -82,8 +90,25 @@ export class PerformerComponent {
     return [1, 3, 6, 8, 10].includes(note);
   }
 
-  setLayout(mode: 'keyboard' | 'pads') {
+  setLayout(mode: 'keyboard' | 'pads' | 'matrix') {
     this.layout.set(mode);
+  }
+
+  launchPattern(trackId: number, slotId: string) {
+    this.musicManager.setActivePatternSlot(trackId, slotId);
+    this.haptic.medium();
+  }
+
+  launchScene(sceneIndex: number) {
+    this.musicManager.tracks().forEach((track) => {
+      if (track.patternSlots && track.patternSlots[sceneIndex]) {
+        this.musicManager.setActivePatternSlot(
+          track.id,
+          track.patternSlots[sceneIndex].id
+        );
+      }
+    });
+    this.haptic.success();
   }
 
   toggleSmartChords() {
@@ -160,7 +185,7 @@ export class PerformerComponent {
       case 'drum':
         return 'reorder';
       default:
-        return 'instument';
+        return 'instrument';
     }
   }
 }

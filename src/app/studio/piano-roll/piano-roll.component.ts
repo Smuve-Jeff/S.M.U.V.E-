@@ -68,7 +68,17 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   numMeasures = 4;
   cells: any[] = new Array(64).fill(0);
 
-  viewportNotes = computed(() => {
+
+  showGhostNotes = signal(true);
+
+  ghostNotes = computed(() => {
+    if (!this.showGhostNotes()) return [];
+    const currentId = this.musicManager.selectedTrackId();
+    return this.musicManager.tracks()
+      .filter(t => t.id !== currentId)
+      .flatMap(t => t.notes.map(n => ({ ...n, trackColor: t.color })));
+  });
+viewportNotes = computed(() => {
     const track = this.selectedTrack();
     return track ? track.notes : [];
   });
@@ -161,6 +171,42 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     if (!track) return;
     this.musicManager.humanizeTrack(track.id);
   }
+  strumSelected() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    this.musicManager.strumTrack(track.id, 0.05);
+  }
+
+  arpeggiateSelected() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    this.musicManager.arpeggiateTrack(track.id);
+  }
+  addChordAt(midi: number, step: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    this.musicManager.generateChord(track.id, midi, 'major', step);
+  }
+
+  setNoteVelocity(note: TrackNote, velocity: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    this.musicManager.setNoteParam(track.id, note.id, 'velocity', velocity);
+  }
+
+  setNoteOffset(note: TrackNote, offset: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    this.musicManager.setNoteParam(track.id, note.id, 'offset', offset);
+  }
+
+  toggleNoteSlide(note: TrackNote) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    this.musicManager.setNoteParam(track.id, note.id, 'isSlide', !note.isSlide);
+  }
+
+
 
   deleteSelected() {
     const ids = this.selectedNoteIds();
@@ -371,6 +417,22 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
       // In a real app, this would call AI service
     }, 2000);
   }
+  toggleGhostNotes() {
+    this.showGhostNotes.update(v => !v);
+  }
+
+  setScale(scaleName: string) {
+    const scales: Record<string, number[]> = {
+      'C Major': [0, 2, 4, 5, 7, 9, 11],
+      'C Minor': [0, 2, 3, 5, 7, 8, 10],
+      'Pentatonic': [0, 2, 4, 7, 9],
+      'Blues': [0, 3, 5, 6, 7, 10]
+    };
+    if (scales[scaleName]) {
+      this.selectedScale.set({ name: scaleName, notes: scales[scaleName] });
+    }
+  }
+
 
   setSelectedNoteLength(len: number) {
     const track = this.selectedTrack();

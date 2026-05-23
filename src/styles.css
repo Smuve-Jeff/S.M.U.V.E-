@@ -846,3 +846,22 @@ body.glow-active::before {
 .view-wrapper {
   contain: content;
 }
+
+.tactile-v42 {
+  transition: transform 0.1s ease-out, filter 0.1s ease-out;
+}
+
+.tactile-v42:active {
+  transform: scale(0.98);
+  filter: brightness(1.2);
+}
+
+input[type="range"].tactile-v42::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--color-neon);
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--color-neon);
+}

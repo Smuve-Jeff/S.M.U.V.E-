@@ -195,3 +195,56 @@
      border-right-width: 2px;
   }
 }
+
+.note-block.slide-note {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  border-top-right-radius: 20px;
+  background: linear-gradient(135deg, var(--color-neon), #00d2ff);
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.6);
+}
+
+.mini-btn.active {
+  background: var(--color-neon);
+  color: white;
+  box-shadow: 0 0 10px var(--color-neon);
+}
+
+.grid-viewport::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0px,
+    rgba(255, 255, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 40px
+  );
+  pointer-events: none;
+}
+
+.grid-row.scale-highlight {
+  background: rgba(168, 85, 247, 0.05);
+}
+
+.ghost-note {
+  border-radius: 2px;
+}
+
+.piano-roll-container {
+  /* Ensure gestures feel responsive */
+  touch-action: none;
+}
+
+.fl-mobile-tools select {
+  outline: none;
+  color: white;
+  font-family: 'Mono', monospace;
+}
+
+.fl-mobile-tools select option {
+  background: #0d0d0d;
+}

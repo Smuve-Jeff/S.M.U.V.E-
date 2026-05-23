@@ -312,3 +312,21 @@
 .clip-item:hover {
   filter: brightness(1.2);
 }
+
+.automation-lane {
+  background: linear-gradient(to bottom, rgba(255,255,255,0.02), transparent);
+  transition: background 0.2s;
+}
+
+.automation-lane:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.automation-lane circle {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.automation-lane circle:active {
+  cursor: grabbing;
+}
