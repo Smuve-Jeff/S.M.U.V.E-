@@ -17,12 +17,12 @@ export class RadarChartComponent {
   private _expertise = signal<ExpertiseLevels | null>(null);
 
   labels = [
-    { key: 'production', label: 'Production' },
-    { key: 'songwriting', label: 'Songwriting' },
-    { key: 'marketing', label: 'Marketing' },
-    { key: 'business', label: 'Business' },
-    { key: 'legal', label: 'Legal' },
-    { key: 'performance', label: 'Performance' },
+    { key: 'production', label: 'MARKET_READINESS' },
+    { key: 'songwriting', label: 'IDENTITY_TRUST' },
+    { key: 'marketing', label: 'CAREER_MOMENTUM' },
+    { key: 'business', label: 'TECH_AUTHORITY' },
+    { key: 'legal', label: 'SYNC_VIABILITY' },
+    { key: 'performance', label: 'TOUR_STABILITY' },
   ];
 
   points = computed(() => {
@@ -36,7 +36,7 @@ export class RadarChartComponent {
     return this.labels
       .map((l, i) => {
         const val = (data as any)[l.key] || 0;
-        const normalizedVal = (val / 10) * radius;
+        const normalizedVal = (val / 100) * radius;
         const x =
           center + normalizedVal * Math.cos(i * angleStep - Math.PI / 2);
         const y =

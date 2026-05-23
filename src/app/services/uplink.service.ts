@@ -87,8 +87,12 @@ export class UplinkService {
       this.addLog('NEURAL SYNC 100%');
 
       // 5. Complete
-      const finalAudit = this.profileService.profile().auditHistory[0];
-      const scoreMsg = finalAudit
+      const finalProfile = this.profileService.profile();
+      const finalAudit = finalProfile.auditHistory[0];
+      const signals = finalProfile.strategicSignals;
+      const scoreMsg = signals
+        ? `Neural Alignment: ${signals.marketReadiness}% Market / ${signals.identityTrust}% Trust`
+        : finalAudit
         ? `Transmission Secure: ${finalAudit.score}% Strength`
         : 'Transmission Secure';
 

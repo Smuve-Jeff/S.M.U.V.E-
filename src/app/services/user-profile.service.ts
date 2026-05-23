@@ -99,6 +99,14 @@ export const initialProfile: UserProfile = {
   pressGallery: [],
   strategicHealthScore: 0,
   criticalDeficits: [],
+  strategicSignals: {
+    marketReadiness: 0,
+    identityTrust: 0,
+    careerMomentum: 0,
+    technicalAuthority: 0,
+    syncViability: 0,
+    touringStability: 0,
+  },
   auditHistory: [],
 
   // Onboarding & UI specific fields
@@ -110,6 +118,24 @@ export const initialProfile: UserProfile = {
   touringDetails: {
     travelPreference: 'Van',
     regions: [],
+    isTourReady: 'Studio Only',
+    hasBackline: 'No',
+  },
+  syncDetails: {
+    isSyncReady: 'Not Started',
+    hasCleanVersions: false,
+    hasInstrumentals: false,
+    hasStems: 'No',
+    oneStopClearance: false,
+    catalogSize: 0,
+    preferredKeywords: [],
+  },
+  legalInfrastructure: {
+    hasRegisteredWorks: false,
+    proAffiliation: "None",
+    hasStandardSplitSheet: "Never",
+    isIncorporated: false,
+    trademarkStatus: "None",
   },
   genreSpecificData: {},
 
@@ -436,6 +462,7 @@ export class UserProfileService {
       headerImage: profile.headerImage,
       pressGallery: profile.pressGallery || [],
       strategicHealthScore: profile.strategicHealthScore || 0,
+      strategicSignals: profile.strategicSignals || initialProfile.strategicSignals,
       criticalDeficits: profile.criticalDeficits || [],
       auditHistory: (profile.auditHistory || []).map((log: any) => ({
         ...log,
@@ -448,6 +475,8 @@ export class UserProfileService {
       strategicGoals: profile.strategicGoals || [],
       performancesPerYear: profile.performancesPerYear || 'None',
       touringDetails: profile.touringDetails || initialProfile.touringDetails,
+      syncDetails: profile.syncDetails || initialProfile.syncDetails,
+      legalInfrastructure: profile.legalInfrastructure || initialProfile.legalInfrastructure,
       genreSpecificData: profile.genreSpecificData || {},
 
       recommendationPreferences: Object.fromEntries(
