@@ -107,6 +107,22 @@ export class MixerComponent {
     this.musicManager.engine.updateTrack(id, { pan });
   }
 
+  updateTrackSendA(id: number, value: number) {
+    const sendA = Math.max(0, Math.min(1, value / 100));
+    this.musicManager.tracks.update((tracks) =>
+      tracks.map((track) => (track.id === id ? { ...track, sendA } : track))
+    );
+    this.musicManager.engine.updateTrack(id, { sendA });
+  }
+
+  updateTrackSendB(id: number, value: number) {
+    const sendB = Math.max(0, Math.min(1, value / 100));
+    this.musicManager.tracks.update((tracks) =>
+      tracks.map((track) => (track.id === id ? { ...track, sendB } : track))
+    );
+    this.musicManager.engine.updateTrack(id, { sendB });
+  }
+
   gainPercent(track: TrackModel): number {
     return Math.round(Math.max(0, Math.min(1, track.gain)) * 100);
   }
@@ -138,9 +154,16 @@ export class MixerComponent {
 
   resetTrack(id: number) {
     this.musicManager.tracks.update((ts) =>
-      ts.map((t) => (t.id === id ? { ...t, gain: 0.9, pan: 0 } : t))
+      ts.map((t) =>
+        t.id === id ? { ...t, gain: 0.9, pan: 0, sendA: 0.1, sendB: 0.05 } : t
+      )
     );
-    this.musicManager.engine.updateTrack(id, { gain: 0.9, pan: 0 });
+    this.musicManager.engine.updateTrack(id, {
+      gain: 0.9,
+      pan: 0,
+      sendA: 0.1,
+      sendB: 0.05,
+    });
   }
 
   onLongPress(event: Event, trackId: number) {

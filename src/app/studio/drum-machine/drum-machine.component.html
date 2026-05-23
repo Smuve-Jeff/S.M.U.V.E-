@@ -1,14 +1,18 @@
-<div class="drum-machine-container glass-v42 retro-flicker">
+<div class="drum-machine-container glass-v42 retro-flicker shadow-v42-xl">
   <!-- Top Control Bar -->
   <div class="drum-header wood-panel">
     <div class="header-branding">
-      <div class="neon-text-sm">DRUM MACHINE v4.2</div>
-      <div class="engine-status">ANALOG ENGINE ACTIVE</div>
+      <div class="neon-text-sm neon-text">DRUM MACHINE v4.2</div>
+      <div class="engine-status neon-accent-primary">ANALOG ENGINE ACTIVE</div>
     </div>
 
     <div class="kit-selector glass-v42">
-      <label>DRUM KIT:</label>
-      <select [ngModel]="selectedKitId()" (ngModelChange)="setKit($event)">
+      <label class="neon-text-xs">DRUM KIT:</label>
+      <select
+        [ngModel]="selectedKitId()"
+        (ngModelChange)="setKit($event)"
+        class="executive-glass"
+      >
         <option *ngFor="let kit of availableKits()" [value]="kit.id">
           {{ kit.name | uppercase }}
         </option>
@@ -16,33 +20,71 @@
     </div>
 
     <div class="quantum-engine-controls" *ngIf="hasQuantumDrumEngine()">
-      <div class="ai-branding">QUANTUM ENGINE</div>
+      <div class="ai-branding neon-accent-secondary">QUANTUM ENGINE</div>
       <div class="ai-actions">
-        <button (click)="generateAiPattern('trap')" class="ai-btn">TRAP</button>
-        <button (click)="generateAiPattern('house')" class="ai-btn">HOUSE</button>
-        <button (click)="generateAiPattern('afrobeat')" class="ai-btn">AFRO</button>
-        <button (click)="generateAiPattern('techno')" class="ai-btn">TECHNO</button>
+        <button
+          (click)="generateAiPattern('trap')"
+          class="ai-btn executive-glass"
+        >
+          TRAP
+        </button>
+        <button
+          (click)="generateAiPattern('house')"
+          class="ai-btn executive-glass"
+        >
+          HOUSE
+        </button>
+        <button
+          (click)="generateAiPattern('afrobeat')"
+          class="ai-btn executive-glass"
+        >
+          AFRO
+        </button>
+        <button
+          (click)="generateAiPattern('techno')"
+          class="ai-btn executive-glass"
+        >
+          TECHNO
+        </button>
       </div>
     </div>
 
-    <button (click)="clearPattern()" class="clear-btn">RESET</button>
+    <button (click)="clearPattern()" class="clear-btn executive-glass">
+      RESET
+    </button>
   </div>
 
   <!-- Evolutionary Engine HUD -->
-  <div class="evolution-hud glass-v42">
-    <div class="hud-label">EVOLUTIONARY ENGINE</div>
+  <div class="evolution-hud glass-v42 holographic-depth">
+    <div class="hud-label neon-text-xs">EVOLUTIONARY ENGINE</div>
     <div class="hud-controls">
       <label class="switch">
-        <input type="checkbox" [ngModel]="evolutionEnabled()" (ngModelChange)="evolutionEnabled.set($event)">
-        <span class="slider round"></span>
+        <input
+          type="checkbox"
+          [ngModel]="evolutionEnabled()"
+          (ngModelChange)="evolutionEnabled.set($event)"
+        />
+        <span class="slider round extreme-glow"></span>
       </label>
       <div class="hud-param">
-        <span>INTENSITY</span>
-        <input type="range" min="0" max="1" step="0.01" [ngModel]="evolutionIntensity()" (ngModelChange)="evolutionIntensity.set($event)">
+        <span class="neon-text-xs">INTENSITY</span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          [ngModel]="evolutionIntensity()"
+          (ngModelChange)="evolutionIntensity.set($event)"
+          class="knob-range"
+        />
       </div>
       <div class="hud-param">
-        <span>SPEED (STP)</span>
-        <select [ngModel]="evolutionSpeed()" (ngModelChange)="evolutionSpeed.set($event)">
+        <span class="neon-text-xs">SPEED</span>
+        <select
+          [ngModel]="evolutionSpeed()"
+          (ngModelChange)="evolutionSpeed.set($event)"
+          class="executive-glass"
+        >
           <option [value]="4">4</option>
           <option [value]="8">8</option>
           <option [value]="16">16</option>
@@ -62,20 +104,28 @@
         (click)="selectPad(pad)"
       >
         <div class="pad-led-container">
-          <div class="pad-led" [style.background-color]="pad.color" [class.glowing]="selectedPad()?.id === pad.id"></div>
+          <div
+            class="pad-led"
+            [style.background-color]="pad.color"
+            [class.glowing]="selectedPad()?.id === pad.id"
+          ></div>
         </div>
         <div class="pad-info">
-          <span class="pad-name">{{ pad.name }}</span>
-          <span class="pad-midi">MIDI {{ pad.midi }}</span>
+          <span class="pad-name neon-text-xs">{{ pad.name }}</span>
+          <span class="pad-midi font-mono">MIDI {{ pad.midi }}</span>
         </div>
       </div>
     </div>
 
     <!-- Main Sequencer Grid -->
-    <div class="sequencer-viewport no-scrollbar">
+    <div class="sequencer-viewport no-scrollbar glass-v42">
       <div class="scanline-overlay"></div>
       <div class="sequencer-grid">
-        <div *ngFor="let pad of pads()" class="sequencer-row" [class.selected-row]="selectedPad()?.id === pad.id">
+        <div
+          *ngFor="let pad of pads()"
+          class="sequencer-row"
+          [class.selected-row]="selectedPad()?.id === pad.id"
+        >
           <div
             *ngFor="let step of pad.steps; let sIdx = index"
             class="step-box"
@@ -91,31 +141,49 @@
     </div>
 
     <!-- Right Param Inspector -->
-    <div class="param-inspector glass-v42 no-scrollbar" *ngIf="selectedPad() as pad">
-       <div class="inspector-title">PAD PARAMS</div>
-       <div class="pad-preview-header" [style.border-color]="pad.color">
-          <span class="neon-text-xs">{{ pad.name }}</span>
-       </div>
+    <div
+      class="param-inspector glass-v42 no-scrollbar shadow-v42-xl"
+      *ngIf="selectedPad() as pad"
+    >
+      <div class="inspector-title neon-text-xs">PAD PARAMS</div>
+      <div class="pad-preview-header" [style.border-color]="pad.color">
+        <span class="neon-text-xs neon-text">{{ pad.name }}</span>
+      </div>
 
-       <div class="param-group">
-          <label>PAN</label>
-          <input type="range" min="-1" max="1" step="0.1" [(ngModel)]="pad.params.pan">
-       </div>
-       <div class="param-group">
-          <label>DECAY</label>
-          <input type="range" min="0.01" max="2" step="0.05" [(ngModel)]="pad.params.decay">
-       </div>
-       <div class="param-group">
-          <label>VELOCITY</label>
-          <div class="velocity-bars">
-             <div *ngFor="let step of pad.steps; let i = index"
-                  class="v-bar"
-                  [class.v-active]="step.active"
-                  [style.height.%]="step.velocity * 100"
-                  (click)="step.velocity = (step.velocity + 0.2) % 1.2">
-             </div>
-          </div>
-       </div>
+      <div class="param-group">
+        <label class="neon-text-xs">PAN</label>
+        <input
+          type="range"
+          min="-1"
+          max="1"
+          step="0.1"
+          [(ngModel)]="pad.params.pan"
+          class="knob-range"
+        />
+      </div>
+      <div class="param-group">
+        <label class="neon-text-xs">DECAY</label>
+        <input
+          type="range"
+          min="0.01"
+          max="2"
+          step="0.05"
+          [(ngModel)]="pad.params.decay"
+          class="knob-range"
+        />
+      </div>
+      <div class="param-group">
+        <label class="neon-text-xs">VELOCITY</label>
+        <div class="velocity-bars">
+          <div
+            *ngFor="let step of pad.steps; let i = index"
+            class="v-bar executive-glass"
+            [class.v-active]="step.active"
+            [style.height.%]="step.velocity * 100"
+            (click)="step.velocity = (step.velocity + 0.2) % 1.2"
+          ></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

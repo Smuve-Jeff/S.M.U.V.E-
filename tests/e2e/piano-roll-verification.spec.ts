@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Piano Roll Refinement Verification', () => {
-  test('should render the refined Bento layout and Analog Engine v4.2 aesthetics', async ({ page }) => {
+  test('should render the refined Bento layout and Analog Engine v4.2 aesthetics', async ({
+    page,
+  }) => {
     // Set viewport to desktop
     await page.setViewportSize({ width: 1440, height: 900 });
 

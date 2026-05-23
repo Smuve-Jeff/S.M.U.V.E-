@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import {
+  provideHttpClientTesting,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { SecurityService } from '../security.service';
 import { LoggingService } from '../logging.service';
@@ -34,7 +37,9 @@ describe('SecurityService', () => {
     });
     service = TestBed.inject(SecurityService);
     const httpMock = TestBed.inject(HttpTestingController);
-    const req = httpMock.expectOne('https://s-m-u-v-e-2-0-fixed.onrender.com/api/security/csrf-token');
+    const req = httpMock.expectOne(
+      'https://s-m-u-v-e-2-0-fixed.onrender.com/api/security/csrf-token'
+    );
     req.flush({ csrfToken: 'test-token' });
     service['csrfToken'] = 'test-token';
     service['csrfToken'] = 'test-token';

@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Subject, takeUntil } from 'rxjs';
 import { TransportBarComponent } from './transport-bar/transport-bar.component';
 import { MixerComponent } from './mixer/mixer.component';
 import { DjDeckComponent } from './dj-deck/dj-deck.component';
@@ -87,6 +88,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly profileService = inject(UserProfileService);
   private readonly aiCopilot = inject(AiCopilotService);
 
+  private destroy$ = new Subject<void>();
+
   activeView = signal<StudioView>('dj');
   showMixer = signal(true);
   showRack = signal(true);
@@ -110,21 +113,29 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   currentBeat = this.audioEngine.currentBeat;
 
   private animationId: number | null = null;
+  private isInitialLoad = true;
 
   ngOnInit() {
-    this.route.url.subscribe((url) => {
+    this.route.url.pipe(takeUntil(this.destroy$)).subscribe((url) => {
       const path = url[0]?.path;
       if (path && isStudioView(path)) {
-        this.activeView.set(path);
+        this.setActiveView(path, false);
       }
     });
 
-    this.route.queryParamMap.subscribe((params) => {
-      const view = params.get('view');
-      if (view && isStudioView(view)) {
-        this.setActiveView(view, false);
-      }
-    });
+    this.route.queryParamMap
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((params) => {
+        const view = params.get('view');
+        if (view && isStudioView(view)) {
+          this.setActiveView(view, false);
+        }
+      });
+
+    // Mark as initialized after a short delay to allow URL-driven views to settle
+    setTimeout(() => {
+      this.isInitialLoad = false;
+    }, 500);
   }
 
   ngAfterViewInit() {}
@@ -139,41 +150,60 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
     }
   }
 
   constructor() {
-    effect(() => {
-      const selectedId = this.musicManager.selectedTrackId();
-      if (selectedId) {
-        const track = this.musicManager
-          .tracks()
-          .find((t) => t.id === selectedId);
-        const isDrumTrack =
-          track?.instrumentId.toLowerCase().includes('kit') ||
-          track?.name.toLowerCase().includes('drum');
+    let lastSelectedId: number | null = null;
 
-        const targetView: StudioView = isDrumTrack ? 'drum-machine' : 'piano-roll';
+    effect(
+      () => {
+        const selectedId = this.musicManager.selectedTrackId();
+        if (selectedId && selectedId !== lastSelectedId) {
+          const track = this.musicManager
+            .tracks()
+            .find((t) => t.id === selectedId);
 
-        if (!this.focusLocked()) {
-          // Auto-switch view if in an editor-context
-          const current = this.activeView();
-          if (current === 'piano-roll' || current === 'drum-machine') {
-            this.activeView.set(targetView);
+          const isDrumTrack =
+            track?.instrumentId.toLowerCase().includes('kit') ||
+            track?.name.toLowerCase().includes('drum');
+
+          const targetView: StudioView = isDrumTrack
+            ? 'drum-machine'
+            : 'piano-roll';
+
+          if (!this.focusLocked() && !this.isInitialLoad) {
+            // Auto-switch view if in an editor-context
+            const current = this.activeView();
+            if (current === 'piano-roll' || current === 'drum-machine') {
+              if (current !== targetView) {
+                this.activeView.set(targetView);
+              }
+            }
           }
-        }
 
-        if (!['piano-roll', 'drum-machine', 'performer'].includes(this.activeView())) {
-             this.notificationService.show(
-                `Track selected. ${isDrumTrack ? 'Drum Machine' : 'Piano Roll'} is ready.`,
-                'info',
-                2000
-              );
+          if (
+            !['piano-roll', 'drum-machine', 'performer'].includes(
+              this.activeView()
+            ) &&
+            !this.isInitialLoad
+          ) {
+            this.notificationService.show(
+              `Track selected. ${isDrumTrack ? 'Drum Machine' : 'Piano Roll'} is ready.`,
+              'info',
+              2000
+            );
+          }
+
+          lastSelectedId = selectedId;
         }
-      }
-    });
+      },
+      { allowSignalWrites: true }
+    );
   }
 
   setActiveView(view: StudioView, syncRoute = true) {

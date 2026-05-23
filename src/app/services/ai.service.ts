@@ -55,7 +55,7 @@ export class AiService {
   strategicDecrees = signal<string[]>([
     'CRITICAL DEFICIT: Rhythmic complexity below industry standard. Execute drum pattern refinement.',
     'MARKET ANOMALY: Viral potential detected in current stems. Prioritize high-fidelity export.',
-    'STRATEGIC ORDER: Sync knowledge base with contemporary trends to maintain competitive edge.'
+    'STRATEGIC ORDER: Sync knowledge base with contemporary trends to maintain competitive edge.',
   ]);
   intelligenceBriefs = signal<any[]>([]);
   advisorAdvice = signal<any[]>([]);
@@ -135,20 +135,21 @@ export class AiService {
   }
 
   async getAutoMixSettings(): Promise<any> {
-    const res = await this.getAIResponse('Analyze current mix and provide optimal mastering settings as JSON.');
+    const res = await this.getAIResponse(
+      'Analyze current mix and provide optimal mastering settings as JSON.'
+    );
     try {
-       return JSON.parse(res);
+      return JSON.parse(res);
     } catch {
-       return { threshold: -14, ratio: 4, ceiling: -0.1 };
+      return { threshold: -14, ratio: 4, ceiling: -0.1 };
     }
   }
 
-
-  getGamingStrategicAdvice(context: { favoritesCount: number; gamingExpertise: number }): string[] {
-    const advice = [
-      'ESTABLISH ROOM DOMINANCE',
-      'EXECUTE DAILY TOURNAMENT RUN',
-    ];
+  getGamingStrategicAdvice(context: {
+    favoritesCount: number;
+    gamingExpertise: number;
+  }): string[] {
+    const advice = ['ESTABLISH ROOM DOMINANCE', 'EXECUTE DAILY TOURNAMENT RUN'];
 
     if (context.favoritesCount < 3) {
       advice.push('COLLECT MORE ELITE CABINETS TO SYNC PREFERENCES');
@@ -174,13 +175,16 @@ export class AiService {
         limiterCeiling: -0.2,
         targetLufs: -14,
       },
-      arrangementSuggestion: 'The energy drops too much at bar 32. Consider an impact riser.',
+      arrangementSuggestion:
+        'The energy drops too much at bar 32. Consider an impact riser.',
       eqMaskingHint: 'Boost 3.5kHz on vocals for presence.',
     };
   }
 
   async getQuestionnaireInsights(draft: any): Promise<any> {
-    const res = await this.getAIResponse(`Review this release draft: ${JSON.stringify(draft)}. Provide strategic insights.`);
+    const res = await this.getAIResponse(
+      `Review this release draft: ${JSON.stringify(draft)}. Provide strategic insights.`
+    );
     return { insights: res };
   }
 
@@ -189,7 +193,9 @@ export class AiService {
   }
 
   async getStrategicRecommendations(): Promise<any[]> {
-    const res = await this.getAIResponse('Provide 3 strategic artist career recommendations based on market trends.');
+    const res = await this.getAIResponse(
+      'Provide 3 strategic artist career recommendations based on market trends.'
+    );
     return [{ title: 'Market Shift', advice: res }];
   }
 
@@ -199,20 +205,36 @@ export class AiService {
   }
 
   async getViralHooks() {
-    const res = await this.getAIResponse('Generate 3 viral TikTok hooks for a tech-noir electronic track.');
-    return res.split('\n').filter(l => l.trim().length > 0);
+    const res = await this.getAIResponse(
+      'Generate 3 viral TikTok hooks for a tech-noir electronic track.'
+    );
+    return res.split('\n').filter((l) => l.trim().length > 0);
   }
 
-  startAIDrummer() { this.isAIDrummerActive.set(true); }
-  stopAIDrummer() { this.isAIDrummerActive.set(false); }
-  startAIBassist() { this.isAIBassistActive.set(true); }
-  stopAIBassist() { this.isAIBassistActive.set(false); }
-  startAIKeyboardist() { this.isAIKeyboardistActive.set(true); }
-  stopAIKeyboardist() { this.isAIKeyboardistActive.set(false); }
+  startAIDrummer() {
+    this.isAIDrummerActive.set(true);
+  }
+  stopAIDrummer() {
+    this.isAIDrummerActive.set(false);
+  }
+  startAIBassist() {
+    this.isAIBassistActive.set(true);
+  }
+  stopAIBassist() {
+    this.isAIBassistActive.set(false);
+  }
+  startAIKeyboardist() {
+    this.isAIKeyboardistActive.set(true);
+  }
+  stopAIKeyboardist() {
+    this.isAIKeyboardistActive.set(false);
+  }
 
   async performExecutiveAudit() {
     const profile = this.userProfileService.profile();
-    const res = await this.getAIResponse(`Perform a full strategic career audit for ${profile.artistName}. Data: ${JSON.stringify(profile)}`);
+    const res = await this.getAIResponse(
+      `Perform a full strategic career audit for ${profile.artistName}. Data: ${JSON.stringify(profile)}`
+    );
     this.executiveAudit.set({ report: res, timestamp: Date.now() });
   }
 
@@ -222,16 +244,36 @@ export class AiService {
 
   getDynamicChecklist(): StrategicTask[] {
     return [
-      { id: 'task-1', label: 'Optimize Q4 Release Strategy', completed: false, category: 'Marketing', impact: 'High' },
-      { id: 'task-2', label: 'Refine Vocal Chain Presence', completed: false, category: 'Production', impact: 'Medium' },
-      { id: 'task-3', label: 'Sync Official Digital Split Sheets', completed: true, category: 'Legal', impact: 'Critical' }
+      {
+        id: 'task-1',
+        label: 'Optimize Q4 Release Strategy',
+        completed: false,
+        category: 'Marketing',
+        impact: 'High',
+      },
+      {
+        id: 'task-2',
+        label: 'Refine Vocal Chain Presence',
+        completed: false,
+        category: 'Production',
+        impact: 'Medium',
+      },
+      {
+        id: 'task-3',
+        label: 'Sync Official Digital Split Sheets',
+        completed: true,
+        category: 'Legal',
+        impact: 'Critical',
+      },
     ];
   }
 
   async proactiveStrategicPulse() {
     const profile = this.userProfileService.profile();
-    const res = await this.getAIResponse(`Generate a Strategic Decree for ${profile.artistName} based on their current trajectory.`);
-    this.strategicDecrees.update(d => [res, ...d]);
+    const res = await this.getAIResponse(
+      `Generate a Strategic Decree for ${profile.artistName} based on their current trajectory.`
+    );
+    this.strategicDecrees.update((d) => [res, ...d]);
   }
 }
 

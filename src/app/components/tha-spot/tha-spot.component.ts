@@ -178,7 +178,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     return resolved.filter((event) => event.roomId === roomId);
   });
 
-  neuralSyncScore = computed(() => { // Optimized for S.M.U.V.E 2.0 career trajectory
+  neuralSyncScore = computed(() => {
+    // Optimized for S.M.U.V.E 2.0 career trajectory
     return this.profileService.profile()?.strategicHealthScore || 0;
   });
 
@@ -191,17 +192,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     let directives = [
       `Align session telemetry with ${primaryGenre} performance metrics.`,
       `Execute high-fidelity runs to boost Strategic Reputation.`,
-      `Analyze cabinet mechanics for production workflow crossover.`
+      `Analyze cabinet mechanics for production workflow crossover.`,
     ];
 
     if (active) {
       directives = [
         `DOMINATE: High-energy execution required for ${active.name}.`,
         `NEURAL LINK: Synchronizing inputs with ${active.genre} rhythms.`,
-        `STRATEGY: Use ${active.launchConfig?.controls?.[0] || 'Standard'} controls for peak efficiency.`
+        `STRATEGY: Use ${active.launchConfig?.controls?.[0] || 'Standard'} controls for peak efficiency.`,
       ];
     } else if (selected) {
-      directives.push(`PROSPECT: Evaluating ${selected.name} for career-mode integration.`);
+      directives.push(
+        `PROSPECT: Evaluating ${selected.name} for career-mode integration.`
+      );
     }
 
     return directives;
@@ -368,10 +371,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private loadGameState(game: Game) {
     const save = localStorage.getItem(`smuve_save_${game.id}`);
     if (save && this.gameIframe?.nativeElement?.contentWindow) {
-      this.gameIframe.nativeElement.contentWindow.postMessage({
-        type: "LOAD_STATE",
-        payload: JSON.parse(save)
-      }, "*");
+      this.gameIframe.nativeElement.contentWindow.postMessage(
+        {
+          type: 'LOAD_STATE',
+          payload: JSON.parse(save),
+        },
+        '*'
+      );
     }
   }
 
@@ -490,18 +496,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         this.loadGameState(active);
         break;
       case 'GAME_UPDATE':
-        if (event.data.data?.score !== undefined || event.data.data?.level !== undefined) {
-           this.profileService.recordGameResult(active.id, {
-             ...this.buildSessionContext(active),
-             score: event.data.data.score,
-             level: event.data.data.level,
-             health: event.data.data.health
-           });
+        if (
+          event.data.data?.score !== undefined ||
+          event.data.data?.level !== undefined
+        ) {
+          this.profileService.recordGameResult(active.id, {
+            ...this.buildSessionContext(active),
+            score: event.data.data.score,
+            level: event.data.data.level,
+            health: event.data.data.health,
+          });
         }
         break;
       case 'GAME_SAVE':
         if (event.data.payload) {
-          localStorage.setItem(`smuve_save_${active.id}`, JSON.stringify(event.data.payload));
+          localStorage.setItem(
+            `smuve_save_${active.id}`,
+            JSON.stringify(event.data.payload)
+          );
         }
         break;
       case 'GAME_OVER':
@@ -509,7 +521,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
           ...this.buildSessionContext(active),
           score: event.data.data?.score,
           level: event.data.data?.level,
-          isWin: event.data.data?.isWin
+          isWin: event.data.data?.isWin,
         });
         this.closeGame();
         break;
@@ -714,7 +726,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     const current = this.favorites();
     const updated = current.includes(gameId)
-      ? current.filter(id => id !== gameId)
+      ? current.filter((id) => id !== gameId)
       : [...current, gameId];
     this.favorites.set(updated);
     localStorage.setItem('tha_spot_favorites', JSON.stringify(updated));

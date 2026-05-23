@@ -42,8 +42,11 @@ describe('LiveEngineService', () => {
     TestBed.configureTestingModule({
       providers: [
         LiveEngineService,
-        { provide: LoggingService, useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } }
-      ]
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        },
+      ],
     });
     service = TestBed.inject(LiveEngineService);
   });

@@ -3,6 +3,7 @@ import {
   inject,
   signal,
   AfterViewInit,
+  OnDestroy,
   ElementRef,
   ViewChild,
 } from '@angular/core';
@@ -27,7 +28,7 @@ interface MasteringBand {
   templateUrl: './mastering-suite.component.html',
   styleUrls: ['./mastering-suite.component.css'],
 })
-export class MasteringSuiteComponent implements AfterViewInit {
+export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   private audioEngine = inject(AudioEngineService);
   public aiService = inject(AiService);
   public uiService = inject(UIService);
@@ -87,11 +88,19 @@ export class MasteringSuiteComponent implements AfterViewInit {
   smartAssistSuggestion = signal<string>('');
   eqMaskingHint = signal<string>('');
 
+  private animationId: number | null = null;
+
   ngAfterViewInit() {
     const targets = (this.audioEngine as any).getMasteringTargets();
     this.targetLufs.set(targets.lufs);
     this.safeCeiling.set(targets.truePeak);
     this.startSpectrogram();
+  }
+
+  ngOnDestroy() {
+    if (this.animationId !== null) {
+      cancelAnimationFrame(this.animationId);
+    }
   }
 
   async processMastering() {
@@ -104,7 +113,6 @@ export class MasteringSuiteComponent implements AfterViewInit {
         transientSharpness: 0.74,
       });
 
-      // Default values to prevent undefined errors
       const corrective = assist?.correctivePreset || {
         compressorThreshold: -14,
         compressorRatio: 4,
@@ -173,17 +181,19 @@ export class MasteringSuiteComponent implements AfterViewInit {
     const dataArray = new Uint8Array(bufferLength);
 
     const draw = () => {
-      requestAnimationFrame(draw);
+      this.animationId = requestAnimationFrame(draw);
       analyser.getByteFrequencyData(dataArray);
 
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = canvas.width;
       tempCanvas.height = canvas.height;
-      tempCanvas.getContext('2d')!.drawImage(canvas, 0, 0);
-
-      ctx.fillStyle = '#0d0d0d';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(tempCanvas, 0, 1);
+      const tempCtx = tempCanvas.getContext('2d');
+      if (tempCtx) {
+        tempCtx.drawImage(canvas, 0, 0);
+        ctx.fillStyle = '#0d0d0d';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(tempCanvas, 0, 1);
+      }
 
       for (let i = 0; i < bufferLength; i++) {
         const value = dataArray[i];

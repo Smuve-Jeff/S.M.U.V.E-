@@ -1,34 +1,36 @@
-<div class="playlist-container">
-  <div class="playlist-header">
+<div class="playlist-container glass-v42 shadow-v42-xl">
+  <div class="playlist-header wood-panel">
     <div class="view-tabs">
-      <button class="tab-btn active">Playlist</button>
-      <button class="tab-btn">Automation</button>
+      <button class="tab-btn active neon-text-xs">Playlist</button>
+      <button class="tab-btn neon-text-xs">Automation</button>
     </div>
     <div class="header-actions">
       <button
         (click)="addTrack()"
-        class="mini-btn"
+        class="mini-btn executive-glass"
         style="width: auto; padding: 0 15px"
       >
-        ADD TRACK
+        + ADD TRACK
       </button>
     </div>
   </div>
 
-  <div class="playlist-content">
-    <div class="track-headers no-scrollbar">
+  <div class="playlist-content no-scrollbar">
+    <div class="track-headers no-scrollbar wood-panel">
       <div
         *ngFor="let track of tracks()"
-        class="track-header"
+        class="track-header glass-v42"
         [class.selected]="isTrackSelected(track.id)"
         (click)="selectTrack(track.id)"
       >
         <div class="track-top">
           <div
             class="track-color-strip"
-            [style.background-color]="track.clips[0]?.color || '#00d2ff'"
+            [style.background-color]="track.color || '#af25f4'"
           ></div>
-          <span class="track-name">{{ track.name }}</span>
+          <span class="track-name neon-text-xs">{{
+            track.name | uppercase
+          }}</span>
           <div class="track-controls">
             <button
               class="mini-btn"
@@ -46,15 +48,22 @@
             </button>
           </div>
         </div>
-        <div class="track-volume-bar">
-          <div class="volume-fill" [style.width.%]="track.mute ? 0 : 75"></div>
+        <div class="track-volume-bar glass-v42">
+          <div
+            class="volume-fill extreme-glow"
+            [style.width.%]="track.mute ? 0 : 75"
+            [style.background-color]="track.color"
+          ></div>
         </div>
       </div>
     </div>
 
-    <div class="grid-viewport no-scrollbar">
-      <div class="time-ruler">
-        <div *ngFor="let bar of [1, 2, 3, 4, 5, 6, 7, 8]" class="ruler-bar">
+    <div class="grid-viewport no-scrollbar glass-v42">
+      <div class="time-ruler wood-panel">
+        <div
+          *ngFor="let bar of [1, 2, 3, 4, 5, 6, 7, 8]"
+          class="ruler-bar neon-text-xs"
+        >
           BAR {{ bar }}
         </div>
       </div>
@@ -63,6 +72,7 @@
         [style.width.px]="gridWidth"
         [style.height.px]="tracks().length * 80"
       >
+        <div class="scanline-overlay"></div>
         <div
           *ngFor="let track of tracks(); let i = index"
           class="lane-row"
@@ -71,14 +81,16 @@
         >
           <div
             *ngFor="let clip of track.clips"
-            class="clip-item"
+            class="clip-item executive-glass shadow-v42-xl"
             [style.left.px]="clip.start * barWidth"
             [style.width.px]="clip.length * barWidth"
-            [style.background-color]="(clip.color || '#00d2ff') + '33'"
-            [style.border-color]="clip.color || '#00d2ff'"
+            [style.background-color]="(clip.color || '#af25f4') + '33'"
+            [style.border-color]="clip.color || '#af25f4'"
             (click)="selectClip(clip.id, $event)"
           >
-            <div class="clip-header">{{ clip.name }}</div>
+            <div class="clip-header neon-text-xs">
+              {{ clip.name | uppercase }}
+            </div>
             <div class="clip-waveform">
               <svg
                 width="100%"
@@ -88,16 +100,17 @@
               >
                 <path
                   d="M0 50 Q 250 10, 500 50 T 1000 50"
-                  [attr.stroke]="clip.color || '#00d2ff'"
+                  [attr.stroke]="clip.color || '#af25f4'"
                   stroke-width="2"
                   fill="none"
+                  class="extreme-glow"
                 />
               </svg>
             </div>
           </div>
         </div>
 
-        <div class="playhead" [style.left.px]="playheadPos()">
+        <div class="playhead extreme-glow" [style.left.px]="playheadPos()">
           <div class="playhead-cap"></div>
         </div>
       </div>

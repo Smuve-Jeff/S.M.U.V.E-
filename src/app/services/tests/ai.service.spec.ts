@@ -9,7 +9,10 @@ import { AnalyticsService } from '../analytics.service';
 import { LoggingService } from '../logging.service';
 import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import {
+  provideHttpClientTesting,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 
 describe('NeuralOrchestratorService', () => {
   let service: NeuralOrchestratorService;

@@ -80,7 +80,13 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to top, #10b981 0%, #10b981 70%, #fbbf24 85%, #ef4444 100%);
+  background: linear-gradient(
+    to top,
+    #10b981 0%,
+    #10b981 70%,
+    #fbbf24 85%,
+    #ef4444 100%
+  );
   transition: height 0.1s ease-out;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
 }

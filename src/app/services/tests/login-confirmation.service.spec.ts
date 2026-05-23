@@ -21,7 +21,10 @@ describe('LoginConfirmationService', () => {
     TestBed.configureTestingModule({
       providers: [
         LoginConfirmationService,
-        { provide: AuthService, useValue: { jwtToken: jest.fn().mockReturnValue('mock-token') } },
+        {
+          provide: AuthService,
+          useValue: { jwtToken: jest.fn().mockReturnValue('mock-token') },
+        },
         provideHttpClient(),
         provideHttpClientTesting(),
         {

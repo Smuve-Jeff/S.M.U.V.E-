@@ -19,7 +19,5 @@ export const APP_SECURITY_CONFIG = {
   auth_salt: env.AUTH_SALT || 'SMUVE_SALT_V4_SECURE_HASH',
   encryption_key: env.ENCRYPTION_KEY || 'SMUVE_V4_ULTRA_ENCRYPTION_SECRET',
   session_timeout: env.SESSION_TIMEOUT || 3600000, // 1 hour
-  api_url:
-    env.API_URL ||
-    'https://s-m-u-v-e-2-0-fixed.onrender.com/api',
+  api_url: env.API_URL || 'https://s-m-u-v-e-2-0-fixed.onrender.com/api',
 };

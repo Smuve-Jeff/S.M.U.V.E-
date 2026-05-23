@@ -126,7 +126,6 @@
           </select>
         </div>
 
-
         <div class="filter-group">
           <label>COLLECTION FILTER</label>
           <button
@@ -134,8 +133,12 @@
             class="glass-v42 w-full py-2 flex items-center justify-center gap-2 transition-all"
             [class.active-fav-filter]="showFavoritesOnly()"
           >
-            <span class="material-symbols-outlined">{{ showFavoritesOnly() ? 'favorite' : 'favorite_border' }}</span>
-            {{ showFavoritesOnly() ? 'SHOWING FAVORITES' : 'SHOW ALL CABINETS' }}
+            <span class="material-symbols-outlined">{{
+              showFavoritesOnly() ? 'favorite' : 'favorite_border'
+            }}</span>
+            {{
+              showFavoritesOnly() ? 'SHOWING FAVORITES' : 'SHOW ALL CABINETS'
+            }}
           </button>
         </div>
 
@@ -300,17 +303,21 @@
           {{ launchWarning() }}
         </p>
 
-                <div class="tech-specs glass-v42">
+        <div class="tech-specs glass-v42">
           <div class="spec-item">
             <span class="material-symbols-outlined">sports_esports</span>
             <div class="spec-label">
               <span>CONTROLS</span>
-              <strong>{{ selected.launchConfig?.controls?.join(', ') || 'Neural Map' }}</strong>
+              <strong>{{
+                selected.launchConfig?.controls?.join(', ') || 'Neural Map'
+              }}</strong>
             </div>
           </div>
           <!-- Added Control Mapping Heuristics -->
           <div class="spec-item" *ngIf="isRetroOrArcade(selected)">
-            <span class="material-symbols-outlined">settings_input_component</span>
+            <span class="material-symbols-outlined"
+              >settings_input_component</span
+            >
             <div class="spec-label">
               <span>MAPPING</span>
               <strong>ELITE v4.2 COMPLIANT</strong>
@@ -332,65 +339,98 @@
               <strong>Verified</strong>
             </div>
           </div>
-                <div class="controls-schematic glass-v42" *ngIf="isRetroOrArcade(selected)">
-          <h4><span class="material-symbols-outlined">videogame_asset</span> CONTROL SCHEMATICS</h4>
-          <div class="mapping-grid">
-            <div class="map-row"><span>Arrow Keys</span> <strong>D-Pad / Movement</strong></div>
-            <div class="map-row"><span>Z / X / C</span> <strong>A / B / C Buttons</strong></div>
-            <div class="map-row"><span>Enter / Space</span> <strong>Start / Select</strong></div>
-            <div class="map-row" *ngIf="selected.tags?.includes('PS2')"><span>Shift / S</span> <strong>L1 / R1 Triggers</strong></div>
+          <div
+            class="controls-schematic glass-v42"
+            *ngIf="isRetroOrArcade(selected)"
+          >
+            <h4>
+              <span class="material-symbols-outlined">videogame_asset</span>
+              CONTROL SCHEMATICS
+            </h4>
+            <div class="mapping-grid">
+              <div class="map-row">
+                <span>Arrow Keys</span> <strong>D-Pad / Movement</strong>
+              </div>
+              <div class="map-row">
+                <span>Z / X / C</span> <strong>A / B / C Buttons</strong>
+              </div>
+              <div class="map-row">
+                <span>Enter / Space</span> <strong>Start / Select</strong>
+              </div>
+              <div class="map-row" *ngIf="selected.tags?.includes('PS2')">
+                <span>Shift / S</span> <strong>L1 / R1 Triggers</strong>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div class="preview-actions">
-          <button class="primary-btn action-pulse" (click)="confirmLaunch()">
-            {{ launchActionLabel(selected) }}
-          </button>
-          <button class="secondary-btn" (click)="closePreview()">ABORT</button>
+          <div class="preview-actions">
+            <button class="primary-btn action-pulse" (click)="confirmLaunch()">
+              {{ launchActionLabel(selected) }}
+            </button>
+            <button class="secondary-btn" (click)="closePreview()">
+              ABORT
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Immersive Session Container -->
-  <div
-    class="immersive-overlay"
-    *ngIf="currentGame() as active"
-    [class.active]="currentGame()"
-  >
-    <div class="game-console-window glass-v42 shadow-v42-xl">
-      <header class="console-header glass-v42">
-        <div class="console-title">
-          {{ active.name | uppercase }}
-          <span class="tag" *ngIf="isRetroOrArcade(active)">[ELITE]</span>
+    <!-- Immersive Session Container -->
+    <div
+      class="immersive-overlay"
+      *ngIf="currentGame() as active"
+      [class.active]="currentGame()"
+    >
+      <div class="game-console-window glass-v42 shadow-v42-xl">
+        <header class="console-header glass-v42">
+          <div class="console-title">
+            {{ active.name | uppercase }}
+            <span class="tag" *ngIf="isRetroOrArcade(active)">[ELITE]</span>
+          </div>
+          <div class="console-actions">
+            <button class="icon-btn" (click)="reloadGame()">
+              <span class="material-symbols-outlined">refresh</span>
+            </button>
+            <button class="icon-btn" (click)="closeGame()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </header>
+        <div
+          class="console-body"
+          [class.retro-flicker]="isRetroOrArcade(active)"
+        >
+          <div class="scanline-overlay" *ngIf="isRetroOrArcade(active)"></div>
+          <iframe
+            [src]="currentSafeUrl()"
+            #gameIframe
+            class="game-frame"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
+            allow="
+              fullscreen;
+              autoplay;
+              gamepad;
+              microphone;
+              camera;
+              midi;
+              clipboard-write;
+              web-share;
+              accelerometer;
+              gyroscope;
+              magnetometer;
+              execution-while-out-of-viewport;
+              execution-while-not-rendered;
+            "
+            allowfullscreen
+          ></iframe>
         </div>
-        <div class="console-actions">
-          <button class="icon-btn" (click)="reloadGame()">
-            <span class="material-symbols-outlined">refresh</span>
-          </button>
-          <button class="icon-btn" (click)="closeGame()">
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
-      </header>
-      <div class="console-body" [class.retro-flicker]="isRetroOrArcade(active)">
-        <div class="scanline-overlay" *ngIf="isRetroOrArcade(active)"></div>
-        <iframe
-          [src]="currentSafeUrl()" #gameIframe
-
-
-          class="game-frame"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
-          allow="fullscreen; autoplay; gamepad; microphone; camera; midi; clipboard-write; web-share; accelerometer; gyroscope; magnetometer; execution-while-out-of-viewport; execution-while-not-rendered"
-          allowfullscreen
-        ></iframe>
+        <footer class="console-footer glass-v42">
+          <div class="telemetry">
+            UPLINK: <span class="success">SECURE</span> | LATENCY: 14ms
+          </div>
+          <button class="terminate-btn" (click)="closeGame()">TERMINATE</button>
+        </footer>
       </div>
-      <footer class="console-footer glass-v42">
-        <div class="telemetry">
-          UPLINK: <span class="success">SECURE</span> | LATENCY: 14ms
-        </div>
-        <button class="terminate-btn" (click)="closeGame()">TERMINATE</button>
-      </footer>
     </div>
   </div>
 </div>

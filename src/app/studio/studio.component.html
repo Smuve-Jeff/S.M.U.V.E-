@@ -1,57 +1,88 @@
 <div
-  class="studio-container {{ studioQualityClass() }}"
+  class="studio-container {{ studioQualityClass() }} retro-flicker"
   [class.holographic]="uiService.holographicMode()"
+  [attr.data-theme]="'analog-v42'"
 >
+  <!-- Scanline Overlay -->
+  <div class="scanline-overlay"></div>
+
   <!-- Neural Foundry Overlay -->
-  <div class="neural-foundry-overlay" *ngIf="showNeuralFoundry()">
+  <div class="neural-foundry-overlay glass-v42" *ngIf="showNeuralFoundry()">
     <app-neural-foundry></app-neural-foundry>
-    <button class="close-foundry-btn" (click)="toggleNeuralFoundry()">
+    <button
+      class="close-foundry-btn executive-glass"
+      (click)="toggleNeuralFoundry()"
+    >
       CLOSE
     </button>
   </div>
 
   <!-- Main Studio UI -->
   <div class="studio-main-content">
-    <header class="studio-header">
-      <h1 class="studio-title">SMUVE <span>STUDIO</span></h1>
+    <header class="studio-header wood-panel shadow-v42-xl">
+      <h1 class="studio-title neon-text">
+        SMUVE <span class="neon-accent-secondary">STUDIO</span>
+      </h1>
       <div class="header-controls">
         <button
-          class="header-btn"
+          class="header-btn glass-v42"
           [class.active]="activeView() === 'dj'"
-          (click)="setActiveView('dj')">DJ DECK</button>
+          (click)="setActiveView('dj')"
+        >
+          DJ DECK
+        </button>
         <button
-          class="header-btn"
+          class="header-btn glass-v42"
           [class.active]="activeView() === 'mixer'"
-          (click)="setActiveView('mixer')">MIXER</button>
+          (click)="setActiveView('mixer')"
+        >
+          MIXER
+        </button>
         <button
-          class="header-btn"
+          class="header-btn glass-v42"
           [class.active]="activeView() === 'piano-roll'"
-          (click)="setActiveView('piano-roll')">PIANO ROLL</button>
+          (click)="setActiveView('piano-roll')"
+        >
+          PIANO ROLL
+        </button>
         <button
-          class="header-btn"
+          class="header-btn glass-v42"
           [class.active]="activeView() === 'drum-machine'"
-          (click)="setActiveView('drum-machine')">DRUMS</button>
+          (click)="setActiveView('drum-machine')"
+        >
+          DRUMS
+        </button>
         <button
-          class="header-btn"
+          class="header-btn glass-v42"
           [class.active]="activeView() === 'performer'"
-          (click)="setActiveView('performer')">PERFORMER</button>
+          (click)="setActiveView('performer')"
+        >
+          PERFORMER
+        </button>
         <button
-          class="header-btn"
+          class="header-btn glass-v42"
           [class.active]="activeView() === 'mastering'"
-          (click)="setActiveView('mastering')">MASTERING</button>
+          (click)="setActiveView('mastering')"
+        >
+          MASTERING
+        </button>
         <button
-          class="header-btn"
+          class="header-btn glass-v42"
           [class.active]="activeView() === 'vocal-suite'"
-          (click)="setActiveView('vocal-suite')">VOCAL SUITE</button>
+          (click)="setActiveView('vocal-suite')"
+        >
+          VOCAL SUITE
+        </button>
         <button
-          class="header-btn header-btn-ai"
-          (click)="toggleNeuralFoundry()">
+          class="header-btn header-btn-ai executive-glass extreme-glow"
+          (click)="toggleNeuralFoundry()"
+        >
           NEURAL FOUNDRY
         </button>
       </div>
     </header>
 
-    <app-transport-bar></app-transport-bar>
+    <app-transport-bar class="holographic-depth"></app-transport-bar>
 
     <main class="studio-workspace">
       <div class="view-wrapper" [class.hidden]="activeView() !== 'dj'">
@@ -75,10 +106,7 @@
         <app-drum-machine></app-drum-machine>
       </div>
 
-      <div
-        class="view-wrapper"
-        [class.hidden]="activeView() !== 'performer'"
-      >
+      <div class="view-wrapper" [class.hidden]="activeView() !== 'performer'">
         <app-performer></app-performer>
       </div>
 

@@ -99,6 +99,8 @@ export class SecurityService {
   private securityConfig = DEFAULT_SECURITY_CONFIG;
   private activityCheckInterval: ReturnType<typeof setInterval> | null = null;
   private csrfToken: string | null = null;
+  private readonly suppressAsyncErrorLogs =
+    typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent);
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -141,7 +143,9 @@ export class SecurityService {
       );
       this.csrfToken = res.csrfToken;
     } catch (error) {
-      this.logger.error('Failed to fetch CSRF token', error);
+      if (!this.suppressAsyncErrorLogs) {
+        this.logger.error('Failed to fetch CSRF token', error);
+      }
       // Fallback to a locally generated one, though this is less secure.
       if (!this.csrfToken) {
         this.csrfToken = this.generateSecureToken(32);
@@ -266,15 +270,15 @@ export class SecurityService {
    * Gets the current CSRF token.
    * @returns The CSRF token string, or null if not available.
    */
-    getSecurityConfig() {
+  getSecurityConfig() {
     return {
       sessionTimeoutMs: this.securityConfig.sessionTimeoutMs,
       inactivityTimeoutMs: this.securityConfig.inactivityTimeoutMs,
-      requireReauthForSensitive: this.securityConfig.requireReauthForSensitive
+      requireReauthForSensitive: this.securityConfig.requireReauthForSensitive,
     };
   }
 
-getCSRFToken(): string | null {
+  getCSRFToken(): string | null {
     return this.csrfToken;
   }
 

@@ -255,7 +255,7 @@
 
       document.getElementById('hitBtn').addEventListener('click', hit);
       document.getElementById('resetBtn').addEventListener('click', reset);
-      window.parent.postMessage({ type: "GAME_READY" }, "*");
+      window.parent.postMessage({ type: 'GAME_READY' }, '*');
       window.addEventListener('keydown', (event) => {
         if (event.code === 'Space') hit();
       });

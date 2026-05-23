@@ -1,6 +1,7 @@
-import { Game as DetailedGame } from './game';
+import { Game as DetailedGame, ThaSpotFeed as GameFeed } from './game';
 
 export type Game = DetailedGame;
+export type ThaSpotFeed = GameFeed;
 
 export interface Challenge {
   id: string;

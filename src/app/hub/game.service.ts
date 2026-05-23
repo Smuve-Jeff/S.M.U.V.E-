@@ -517,7 +517,7 @@ export class GameService {
     let filtered = [...games];
 
     if (filters.favorites) {
-      filtered = filtered.filter(g => filters.favorites.includes(g.id));
+      filtered = filtered.filter((g) => filters.favorites.includes(g.id));
     }
 
     if (filters.genre && filters.genre !== 'all') {
@@ -537,20 +537,30 @@ export class GameService {
         (game) =>
           game.name.toLowerCase().includes(query) ||
           game.description?.toLowerCase().includes(query) ||
-          game.tags?.some(t => t.toLowerCase().includes(query))
+          game.tags?.some((t) => t.toLowerCase().includes(query))
       );
     }
 
     if (filters.quickFilters?.length) {
-      filtered = filtered.filter(game => {
-        const tags = (game.tags || []).map(t => t.toLowerCase());
-        return filters.quickFilters.every(filter => {
+      filtered = filtered.filter((game) => {
+        const tags = (game.tags || []).map((t) => t.toLowerCase());
+        return filters.quickFilters.every((filter) => {
           switch (filter) {
-            case 'featured': return game.badgeIds?.includes('featured');
-            case 'multiplayer': return (!!game.multiplayerType && game.multiplayerType !== 'None') || tags.includes('multiplayer');
-            case 'instant': return (game.queueEstimateMinutes || 0) === 0;
-            case 'online': return game.availability === 'Online' || game.availability === 'Hybrid';
-            default: return true;
+            case 'featured':
+              return game.badgeIds?.includes('featured');
+            case 'multiplayer':
+              return (
+                (!!game.multiplayerType && game.multiplayerType !== 'None') ||
+                tags.includes('multiplayer')
+              );
+            case 'instant':
+              return (game.queueEstimateMinutes || 0) === 0;
+            case 'online':
+              return (
+                game.availability === 'Online' || game.availability === 'Hybrid'
+              );
+            default:
+              return true;
           }
         });
       });
@@ -558,7 +568,9 @@ export class GameService {
 
     switch (sort) {
       case 'Popular':
-        filtered.sort((a, b) => (b.playersOnline || 0) - (a.playersOnline || 0));
+        filtered.sort(
+          (a, b) => (b.playersOnline || 0) - (a.playersOnline || 0)
+        );
         break;
       case 'Rating':
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -567,7 +579,10 @@ export class GameService {
         filtered.sort((a, b) => a.name.localeCompare(b.name));
         break;
       case 'Queue':
-        filtered.sort((a, b) => (a.queueEstimateMinutes || 0) - (b.queueEstimateMinutes || 0));
+        filtered.sort(
+          (a, b) =>
+            (a.queueEstimateMinutes || 0) - (b.queueEstimateMinutes || 0)
+        );
         break;
       case 'Newest':
         filtered.sort((a, b) => {

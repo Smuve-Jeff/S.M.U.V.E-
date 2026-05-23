@@ -49,13 +49,7 @@ describe('SequencerService', () => {
     it('responds to AI musicians', () => {
       aiServiceMock.isAIDrummerActive.set(true);
       service.scheduleTick(0, 10, 0.25);
-      expect(engineMock.playSynth).toHaveBeenCalledWith(
-        0,
-        10,
-        0.25,
-        0.8,
-        0
-      );
+      expect(engineMock.playSynth).toHaveBeenCalledWith(0, 10, 0.25, 0.8, 0);
     });
   });
 });

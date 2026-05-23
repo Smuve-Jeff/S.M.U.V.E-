@@ -21,6 +21,10 @@ module.exports = {
         stringifyContentPathRegex: '\\.html$',
       }),
       setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
+      moduleNameMapper: {
+        '^tone$': '<rootDir>/node_modules/tone/build/Tone.js',
+      },
+      transformIgnorePatterns: ['node_modules/(?!tone|@angular|@ngneat)'],
     },
     {
       displayName: 'server',

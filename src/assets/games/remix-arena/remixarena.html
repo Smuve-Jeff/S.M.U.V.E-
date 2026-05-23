@@ -265,7 +265,7 @@
       }
 
       // Listen for parent messages (e.g. AI interventions)
-      window.parent.postMessage({ type: "GAME_READY" }, "*");
+      window.parent.postMessage({ type: 'GAME_READY' }, '*');
       window.addEventListener('message', (event) => {
         if (event.data.type === 'AI_INTERVENTION') {
           document.getElementById('status').innerText =

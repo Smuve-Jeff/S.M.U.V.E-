@@ -265,7 +265,8 @@
     padding: 5px;
   }
 
-  .pad-name, .pad-midi {
+  .pad-name,
+  .pad-midi {
     display: none;
   }
 

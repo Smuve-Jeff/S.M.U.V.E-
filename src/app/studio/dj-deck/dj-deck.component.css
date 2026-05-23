@@ -12,8 +12,9 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(circle at 50% 0%, rgba(236, 91, 19, 0.05), transparent 70%),
-              var(--studio-bg);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(236, 91, 19, 0.05), transparent 70%),
+    var(--studio-bg);
   padding: 1rem;
   overflow-y: auto;
   font-family: 'Rajdhani', sans-serif;
@@ -185,7 +186,7 @@
   background: radial-gradient(circle at 30% 30%, #2a2a35, #0a0a0f);
   border-radius: 50%;
   border: 2px solid #000;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
   cursor: pointer;
   position: relative;
 }
@@ -228,7 +229,8 @@
     order: 3;
   }
 
-  .btn-cue, .btn-play {
+  .btn-cue,
+  .btn-play {
     width: 65px;
     height: 65px;
   }

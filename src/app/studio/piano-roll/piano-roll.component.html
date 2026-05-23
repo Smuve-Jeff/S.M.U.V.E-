@@ -1,162 +1,182 @@
-<div class="piano-roll-v42-container glass-v42 shadow-v42-xl retro-flicker" [attr.data-theme]="'analog-v42'">
-  <!-- Wood Frame Decoration (Top) -->
-  <div class="wood-frame top"></div>
-
-  <!-- Bento Grid Main Layout -->
-  <div class="bento-grid-pr">
-
-    <!-- Module 1: Header & Transport (Executive HUD style) -->
-    <header class="bento-item header-module glass-v42">
-      <div class="module-header">
-        <span class="material-symbols-outlined neon-text">piano</span>
-        <h2 class="glimmer-text">Executive Piano Roll</h2>
+<div class="piano-roll-container glass-v42 shadow-v42-xl retro-flicker">
+  <div class="piano-roll-header wood-panel">
+    <div class="header-main">
+      <div class="neon-text-sm neon-text">PIANO ROLL v4.2</div>
+      <div class="track-info" *ngIf="selectedTrack() as track">
+        <span class="neon-accent-secondary">{{ track.name | uppercase }}</span>
       </div>
-      <div class="transport-controls">
-        <button (click)="togglePlay()" class="btn-neon" [class.playing]="audioSession.isPlaying()">
-          <span class="material-symbols-outlined">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
+    </div>
+
+    <div class="toolbar glass-v42">
+      <div class="tool-group">
+        <button
+          [class.active]="editMode() === 'draw'"
+          (click)="setEditMode('draw')"
+          title="Draw"
+        >
+          <span class="material-symbols-outlined">edit</span>
         </button>
-        <div class="bpm-badge glass-v42">{{ musicManager.projectBPM() }} <span>BPM</span></div>
-      </div>
-      <div class="header-actions">
-         <button (click)="closeOverlay.emit()" class="btn-ghost" *ngIf="isStudioOverlay">CLOSE</button>
-         <button (click)="goStandalone()" class="btn-ghost" *ngIf="!isStandalone">FULLSCREEN</button>
-      </div>
-    </header>
-
-    <!-- Module 2: Track & AI Intelligence -->
-    <aside class="bento-item sidebar-left glass-v42" [class.mobile-visible]="showTrackSidebar()">
-      <div class="module-content">
-        <div class="section-label">Tracks</div>
-        <div class="track-stack">
-          <div *ngFor="let track of musicManager.tracks()"
-               class="track-blade"
-               [class.active]="track.id === musicManager.selectedTrackId()"
-               (click)="selectTrack(track)">
-            <div class="track-info">
-              <span class="name">{{ track.name }}</span>
-              <span class="preset">{{ instrumentsService.getPresetById(track.instrumentId)?.name }}</span>
-            </div>
-            <button class="btn-icon-mini" (click)="removeTrack(track.id); $event.stopPropagation()">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="ai-intelligence">
-          <div class="section-label">AI Strategy</div>
-          <div class="ai-controls">
-            <select [(ngModel)]="aiStyle" class="glass-input">
-              <option>Ambient</option><option>Jazz</option><option>Electronic</option>
-            </select>
-            <div class="range-group">
-              <label>Complexity</label>
-              <input type="range" min="0.1" max="1" step="0.1" [(ngModel)]="aiComplexity" />
-            </div>
-          </div>
-          <div class="ai-actions-grid">
-            <button (click)="generateSequence('melody')" [disabled]="!selectedTrack()" class="btn-ai-mini">Melody</button>
-            <button (click)="generateSequence('chords')" [disabled]="!selectedTrack()" class="btn-ai-mini">Chords</button>
-          </div>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Module 3: Primary Composition Grid (The "Arena") -->
-    <main class="bento-item grid-module glass-v42">
-      <div class="piano-arena">
-        <div class="piano-keys-v42" [class.mobile-keys]="isMobile()">
-          <div *ngFor="let key of getDisplayKeys()"
-               class="key-v42"
-               [class.black]="isBlackKey(key)"
-               [class.in-scale]="isInScale(key)">
-            <span>{{ getKeyName(key) }}{{ Math.floor(key / 12) - 1 }}</span>
-          </div>
-        </div>
-        <div class="grid-scroll-v42" #scrollContainer (mousedown)="onGridMouseDown($event)">
-          <div class="grid-canvas" [style.width.px]="gridWidth">
-             <!-- Visual Grid Lines -->
-             <div class="grid-lines-overlay"></div>
-
-             <!-- Composition Notes -->
-             <ng-container *ngIf="selectedTrack() as track">
-                <div *ngFor="let note of getVisibleNotes(track)"
-                     class="note-v42"
-                     [class.selected]="selectedNoteIds().has(note.id)"
-                     [style.top.px]="(127 - note.midi) * rowHeight()"
-                     [style.left.px]="note.step * cellWidth()"
-                     [style.width.px]="note.length * cellWidth()"
-                     (mousedown)="onNoteMouseDown($event, note)">
-                  <div class="note-inner"></div>
-                  <div class="velocity-indicator" [style.width.%]="note.velocity * 100"></div>
-                </div>
-             </ng-container>
-
-             <!-- Selection Lasso -->
-             <div class="selection-lasso" *ngIf="selectionBox().active" [style.transform]="getSelectionBoxTransform()"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bottom Control Strip -->
-      <div class="grid-footer-tools glass-v42">
-        <div class="tool-toggle-group">
-          <button [class.active]="editMode() === 'draw'" (click)="setEditMode('draw')" class="btn-tool">
-            <span class="material-symbols-outlined">edit</span>
-          </button>
-          <button [class.active]="editMode() === 'select'" (click)="setEditMode('select')" class="btn-tool">
-            <span class="material-symbols-outlined">near_me</span>
-          </button>
-          <button [class.active]="editMode() === 'erase'" (click)="setEditMode('erase')" class="btn-tool">
-            <span class="material-symbols-outlined">ink_eraser</span>
-          </button>
-        </div>
-        <div class="quick-actions" *ngIf="!isMobile()">
-          <button (click)="quantizeNotes()" class="btn-action">Quantize</button>
-          <button (click)="humanizeSelected()" class="btn-action">Humanize</button>
-        </div>
-        <!-- Mobile Action overflow -->
-        <button class="btn-tool" *ngIf="isMobile()" (click)="showTrackSidebar.update(v => !v)">
-           <span class="material-symbols-outlined">more_vert</span>
+        <button
+          [class.active]="editMode() === 'select'"
+          (click)="setEditMode('select')"
+          title="Select"
+        >
+          <span class="material-symbols-outlined">near_me</span>
+        </button>
+        <button
+          [class.active]="editMode() === 'erase'"
+          (click)="setEditMode('erase')"
+          title="Erase"
+        >
+          <span class="material-symbols-outlined">backspace</span>
         </button>
       </div>
-    </main>
 
-    <!-- Module 4: Executive Inspector -->
-    <aside class="bento-item inspector-module glass-v42" [class.empty]="selectedNoteIds().size === 0" *ngIf="!isMobile() || selectedNoteIds().size > 0">
-      <div class="module-header mini">
-        <span class="material-symbols-outlined">tune</span>
-        <h3>Inspector</h3>
-      </div>
-      <div class="inspector-content" *ngIf="selectedNoteIds().size > 0">
-        <div class="stat-row">
-          <label>Velocity</label>
-          <div class="incrementer">
-            <button (click)="adjustSelectedVelocity(-0.1)">-</button>
-            <span>{{ (selectedTrack()?.notes?.[0]?.velocity || 0) | number:'1.1-1' }}</span>
-            <button (click)="adjustSelectedVelocity(0.1)">+</button>
-          </div>
-        </div>
-        <div class="stat-row">
-          <label>Transpose</label>
-          <div class="transpose-grid">
-            <button (click)="transposeSelected(-1)">-1</button>
-            <button (click)="transposeSelected(1)">+1</button>
-            <button (click)="nudgeSelectedOctave(-1)">-OCT</button>
-            <button (click)="nudgeSelectedOctave(1)">+OCT</button>
-          </div>
-        </div>
-        <button class="btn-danger-mini" (click)="deleteSelected()">Delete</button>
-      </div>
-      <div class="no-selection" *ngIf="selectedNoteIds().size === 0">
-        <p>Select notes</p>
-      </div>
-    </aside>
+      <div class="tool-divider"></div>
 
+      <div class="action-group">
+        <button (click)="quantizeNotes()" title="Quantize">Q</button>
+        <button (click)="humanizeSelected()" title="Humanize">H</button>
+        <button (click)="duplicateSelected()" title="Duplicate Selection">
+          D
+        </button>
+        <button (click)="duplicateNextBar()" title="Duplicate to Next Bar">
+          B
+        </button>
+        <button (click)="deleteSelected()" title="Delete" class="btn-danger">
+          DEL
+        </button>
+      </div>
+    </div>
   </div>
 
-  <!-- Wood Frame Decoration (Bottom) -->
-  <div class="wood-frame bottom"></div>
+  <div class="piano-roll-content">
+    <aside
+      *ngIf="showTrackSidebar()"
+      class="track-sidebar glass-v42 wood-panel"
+    >
+      Sidebar Content
+    </aside>
+    <div class="keys-sidebar no-scrollbar wood-panel">
+      <div
+        *ngFor="let midi of getDisplayKeys()"
+        class="key-item"
+        [class.black-key]="isBlackKey(midi)"
+        [class.in-scale]="isInScale(midi)"
+        [style.height.px]="rowHeight()"
+      >
+        <span class="key-name font-mono"
+          >{{ getKeyName(midi) }}{{ Math.floor(midi / 12) - 1 }}</span
+        >
+      </div>
+    </div>
 
-  <!-- CRT Scanline Overlay -->
-  <div class="scanline-overlay"></div>
+    <div
+      class="grid-viewport no-scrollbar glass-v42"
+      #scrollContainer
+      (mousedown)="onGridMouseDown($event)"
+    >
+      <div class="scanline-overlay"></div>
+      <div
+        class="grid-canvas"
+        [style.width.px]="gridWidth"
+        [style.height.px]="128 * rowHeight()"
+      >
+        <!-- Horizontal Grid Lines -->
+        <div
+          *ngFor="let midi of getDisplayKeys()"
+          class="grid-row"
+          [class.black-row]="isBlackKey(midi)"
+          [style.height.px]="rowHeight()"
+          [style.top.px]="(127 - midi) * rowHeight()"
+        ></div>
+
+        <!-- Vertical Grid Lines -->
+        <div
+          *ngFor="let step of cells; let i = index"
+          class="grid-col"
+          [class.bar-line]="i % 16 === 0"
+          [class.beat-line]="i % 4 === 0"
+          [style.left.px]="i * cellWidth()"
+          [style.width.px]="cellWidth()"
+        ></div>
+
+        <!-- Notes -->
+        <div
+          *ngFor="let note of viewportNotes()"
+          class="note-block executive-glass extreme-glow"
+          [class.selected-note]="selectedNoteIds().has(note.id)"
+          [style.left.px]="note.step * cellWidth()"
+          [style.top.px]="(127 - note.midi) * rowHeight()"
+          [style.width.px]="note.length * cellWidth()"
+          [style.height.px]="rowHeight()"
+          (mousedown)="onNoteMouseDown($event, note)"
+        >
+          <div class="note-handle-start"></div>
+          <div class="note-handle-end"></div>
+        </div>
+
+        <!-- Selection Box -->
+        <div
+          *ngIf="selectionBox().active"
+          class="selection-rect"
+          [style.transform]="getSelectionBoxTransform()"
+          [style.width.px]="selectionBox().width"
+          [style.height.px]="selectionBox().height"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Note Param Sidebar -->
+    <div class="note-params glass-v42 wood-panel no-scrollbar">
+      <div class="neon-text-xs mb-4">NOTE PARAMS</div>
+
+      <div class="param-item">
+        <label class="neon-text-xs">VELOCITY</label>
+        <div class="curve-actions mb-2">
+          <button (click)="applyVelocityCurve('fade-in')" class="mini-btn">
+            /
+          </button>
+          <button (click)="applyVelocityCurve('fade-out')" class="mini-btn">
+            \
+          </button>
+          <button (click)="applyVelocityCurve('random')" class="mini-btn">
+            ?
+          </button>
+        </div>
+        <input
+          type="range"
+          min="0.1"
+          max="1.5"
+          step="0.05"
+          (change)="adjustSelectedVelocity($any($event.target).valueAsNumber)"
+          class="knob-range"
+        />
+      </div>
+
+      <div class="param-item">
+        <label class="neon-text-xs">PROBABILITY</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          (input)="setSelectedNoteProbability($event)"
+          class="knob-range"
+        />
+      </div>
+
+      <div class="param-item">
+        <label class="neon-text-xs">SCALE SNAP</label>
+        <label class="switch">
+          <input
+            type="checkbox"
+            [ngModel]="snapToScale()"
+            (ngModelChange)="snapToScale.set($event)"
+          />
+          <span class="slider round"></span>
+        </label>
+      </div>
+    </div>
+  </div>
 </div>

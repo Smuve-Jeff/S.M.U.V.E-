@@ -12,8 +12,20 @@ import { ThaSpotFeed } from './game';
 const mockFeed: ThaSpotFeed = {
   badges: [],
   rooms: [
-    { id: 'weekend-clash', name: 'Weekend Clash', icon: 'star', description: '', rules: { tags: ['Featured'] } },
-    { id: 'rpg-vault', name: 'RPG Vault', icon: 'book', description: '', rules: { genres: ['RPG'] } }
+    {
+      id: 'weekend-clash',
+      name: 'Weekend Clash',
+      icon: 'star',
+      description: '',
+      rules: { tags: ['Featured'] },
+    },
+    {
+      id: 'rpg-vault',
+      name: 'RPG Vault',
+      icon: 'book',
+      description: '',
+      rules: { genres: ['RPG'] },
+    },
   ],
   liveEvents: [],
   recommendationRails: [],
@@ -30,8 +42,8 @@ const mockFeed: ThaSpotFeed = {
         approvedEmbedUrl: 'https://hextris.github.io/hextris/',
         approvedExternalUrl: 'https://hextris.github.io/hextris/',
         telemetryMode: 'origin',
-        telemetryOrigins: ['https://hextris.github.io']
-      }
+        telemetryOrigins: ['https://hextris.github.io'],
+      },
     },
     {
       id: '13',
@@ -39,7 +51,7 @@ const mockFeed: ThaSpotFeed = {
       genre: 'RPG',
       genres: ['RPG'],
       tags: [],
-      url: '/assets/games/quest-relay/index.html'
+      url: '/assets/games/quest-relay/index.html',
     },
     {
       id: '14',
@@ -48,7 +60,7 @@ const mockFeed: ThaSpotFeed = {
       genres: ['Rhythm'],
       tags: ['Featured'],
       url: '/assets/games/bracket-hero/index.html',
-      releaseDate: '2026-01-01'
+      releaseDate: '2026-01-01',
     },
     {
       id: '15',
@@ -57,8 +69,8 @@ const mockFeed: ThaSpotFeed = {
       genres: ['Strategy'],
       tags: [],
       url: '/assets/games/tempo-lockdown/index.html',
-      releaseDate: '2026-02-01'
-    }
+      releaseDate: '2026-02-01',
+    },
   ],
 };
 
@@ -68,11 +80,7 @@ describe('GameService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        GameService,
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
+      providers: [GameService, provideHttpClient(), provideHttpClientTesting()],
     });
 
     service = TestBed.inject(GameService);
@@ -103,7 +111,7 @@ describe('GameService', () => {
     httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
     const games = await pending;
 
-    const names = games.map(g => g.name);
+    const names = games.map((g) => g.name);
     expect(names).toContain('Hextris');
     expect(names).toContain('Bracket Hero');
   });

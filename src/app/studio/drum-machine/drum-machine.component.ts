@@ -61,7 +61,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   patternBars = 4;
   stepRange = Array.from({ length: 64 }, (_, i) => i);
 
-  // Sound Integration
   availableKits = computed(() =>
     this.instrumentsService.getPresets().filter((p) => p.category === 'drum')
   );
@@ -185,7 +184,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   selectedPad = signal<DrumPad | null>(null);
 
-  // AI Generator & Evolutionary Engine
   isGeneratingPattern = signal(false);
   isGenerating = this.isGeneratingPattern;
   evolutionEnabled = signal(false);
@@ -200,6 +198,13 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       const enabled = this.evolutionEnabled();
       if (enabled && step % this.evolutionSpeed() === 0 && step !== -1) {
         this.evolvePattern();
+      }
+    });
+
+    effect(() => {
+      const track = this.selectedTrack();
+      if (track) {
+        this.syncFromMusicManager(track.notes);
       }
     });
   }
@@ -238,7 +243,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   playPadSound(pad: DrumPad) {
     const trackId = this.selectedTrackId() || 0;
-    // Enhanced triggering using the selected kit
     this.engine.triggerAttack(
       trackId,
       this.musicManager.midiToFreq(pad.midi),
@@ -249,7 +253,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       pad.params.pan,
       0,
       0,
-      { type: 'sine' }, // Fallback synth type
+      { type: 'sine' },
       1
     );
   }
@@ -266,8 +270,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   async generateAiPattern(genre: string = 'house') {
     this.isGeneratingPattern.set(true);
-    // Sophisticated AI logic
-    // const density = genre === "trap" ? 0.4 : 0.25;
 
     this.pads.update((ps) =>
       ps.map((p) => {
@@ -352,14 +354,43 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
     this.musicManager.tracks.update((ts) =>
       ts.map((t) => {
-        if (t.id === trackId) return { ...t, notes: allNotes };
+        if (t.id === trackId)
+          return {
+            ...t,
+            notes: allNotes,
+            steps: this.calculateSteps(allNotes),
+          };
         return t;
       })
     );
   }
 
+  private calculateSteps(notes: TrackNote[]): boolean[] {
+    const steps = new Array(64).fill(false);
+    notes.forEach((n) => {
+      if (n.step >= 0 && n.step < 64) steps[Math.floor(n.step)] = true;
+    });
+    return steps;
+  }
+
+  private syncFromMusicManager(notes: TrackNote[]) {
+    const nextPads = this.pads().map((p) => {
+      const newSteps = this.initSteps();
+      notes.forEach((n) => {
+        if (n.midi === p.midi && n.step < 64) {
+          newSteps[n.step] = { active: true, velocity: n.velocity };
+        }
+      });
+      return { ...p, steps: newSteps };
+    });
+    // Simple deep equality check to prevent loops
+    if (JSON.stringify(nextPads) !== JSON.stringify(this.pads())) {
+      this.pads.set(nextPads);
+    }
+  }
+
   hasQuantumDrumEngine() {
-    return this.aiService.isUnlocked('upg-quantum-drum-engine') || true; // Force for upgrade
+    return this.aiService.isUnlocked('upg-quantum-drum-engine') || true;
   }
 
   isStepActive(midi: number, step: number) {

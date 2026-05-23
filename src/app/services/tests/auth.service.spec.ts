@@ -20,7 +20,8 @@ describe('AuthService', () => {
   let profileServiceMock: any;
   let loginConfirmationServiceMock: any;
 
-  const AUTH_SESSION_URL = 'https://s-m-u-v-e-2-0-fixed.onrender.com/api/auth/session';
+  const AUTH_SESSION_URL =
+    'https://s-m-u-v-e-2-0-fixed.onrender.com/api/auth/session';
 
   beforeEach(() => {
     localStorage.clear();
@@ -97,7 +98,10 @@ describe('AuthService', () => {
 
   it('normalizes email casing and spacing during login', async () => {
     // Register
-    const regPromise = service.register({ email: 'Artist@Example.com', password: 'Secret-pass123!' }, 'Test Artist');
+    const regPromise = service.register(
+      { email: 'Artist@Example.com', password: 'Secret-pass123!' },
+      'Test Artist'
+    );
     await Promise.resolve();
     await Promise.resolve();
     httpMock.expectOne(AUTH_SESSION_URL).flush({ token: 'mock-jwt-token' });
@@ -118,26 +122,31 @@ describe('AuthService', () => {
   });
 
   it('does not send a confirmation email when login fails', async () => {
-     // Register first to have a user
-     const regPromise = service.register({ email: 'artist@example.com', password: 'Secret-pass123!' }, 'Test Artist');
-     await Promise.resolve();
-     await Promise.resolve();
-     httpMock.expectOne(AUTH_SESSION_URL).flush({ token: 'mock-jwt-token' });
-     await regPromise;
+    // Register first to have a user
+    const regPromise = service.register(
+      { email: 'artist@example.com', password: 'Secret-pass123!' },
+      'Test Artist'
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    httpMock.expectOne(AUTH_SESSION_URL).flush({ token: 'mock-jwt-token' });
+    await regPromise;
 
-     // Mock incorrect password hash
-     jest.spyOn(service as any, 'deriveKey').mockResolvedValue('wrong-hash');
+    // Mock incorrect password hash
+    jest.spyOn(service as any, 'deriveKey').mockResolvedValue('wrong-hash');
 
-     const result = await service.login({
-        email: 'artist@example.com',
-        password: 'wrong-pass',
-     });
+    const result = await service.login({
+      email: 'artist@example.com',
+      password: 'wrong-pass',
+    });
 
-     await Promise.resolve();
-     await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
 
-     httpMock.expectNone(AUTH_SESSION_URL);
-     expect(result.success).toBe(false);
-     expect(loginConfirmationServiceMock.sendLoginConfirmation).not.toHaveBeenCalled();
+    httpMock.expectNone(AUTH_SESSION_URL);
+    expect(result.success).toBe(false);
+    expect(
+      loginConfirmationServiceMock.sendLoginConfirmation
+    ).not.toHaveBeenCalled();
   });
 });
