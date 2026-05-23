@@ -7,6 +7,7 @@ import {
 } from '../../services/music-manager.service';
 import { NeuralMixerService } from '../../services/neural-mixer.service';
 import { MixerService } from '../mixer.service';
+import { HapticService } from '../../services/haptic.service';
 import { Clip } from '../instrument.service';
 
 @Component({
@@ -20,6 +21,7 @@ export class MixerComponent {
   private readonly audioSession = inject(AudioSessionService);
   public readonly musicManager = inject(MusicManagerService);
   private readonly neuralMixer = inject(NeuralMixerService);
+  private readonly haptic = inject(HapticService);
   public readonly mixerService = inject(MixerService);
 
   @Input() activeClip: Clip | null = null;
@@ -53,6 +55,16 @@ export class MixerComponent {
 
   updateMasterVolume(newVolume: number): void {
     this.audioSession.updateMasterVolume(newVolume);
+  }
+
+  magicMix(): void {
+    this.haptic.success();
+    this.neuralMixer.applyNeuralMix();
+    this.musicManager.tracks().forEach(t => {
+      if (t.name.toLowerCase().includes("vocal")) {
+        this.musicManager.engine.updateTrack(t.id, { reverb: 0.2, delay: 0.1 });
+      }
+    });
   }
 
   applyNeuralMix(): void {

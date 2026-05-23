@@ -29,7 +29,10 @@ import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
 import { NeuralFoundryComponent } from '../neural-foundry/neural-foundry.component';
 import { AiCopilotService } from './ai-copilot.service';
+import { HapticService } from '../services/haptic.service';
+import { TouchGestureService } from '../services/touch-gesture.service';
 import { PerformerComponent } from './performer/performer.component';
+import { PerformanceGridComponent } from './performance-grid/performance-grid.component';
 
 type StudioView =
   | 'dj'
@@ -39,7 +42,7 @@ type StudioView =
   | 'mastering'
   | 'vocal-suite'
   | 'drum-machine'
-  | 'performer';
+  | 'performer' | 'performance-grid';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'dj',
@@ -50,6 +53,8 @@ const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'vocal-suite',
   'drum-machine',
   'performer',
+  'performance-grid',
+  'performance-grid',
 ]);
 
 function isStudioView(value: string): value is StudioView {
@@ -72,6 +77,7 @@ function isStudioView(value: string): value is StudioView {
     DrumMachineComponent,
     NeuralFoundryComponent,
     PerformerComponent,
+    PerformanceGridComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -87,6 +93,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly musicManager = inject(MusicManagerService);
   public readonly profileService = inject(UserProfileService);
   private readonly aiCopilot = inject(AiCopilotService);
+  private readonly haptic = inject(HapticService);
+  public readonly touchGestures = inject(TouchGestureService);
 
   private destroy$ = new Subject<void>();
 
@@ -207,6 +215,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   setActiveView(view: StudioView, syncRoute = true) {
+    this.haptic.light();
     this.activeView.set(view);
     if (!syncRoute) return;
 

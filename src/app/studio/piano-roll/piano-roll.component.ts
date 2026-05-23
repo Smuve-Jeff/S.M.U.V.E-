@@ -25,6 +25,7 @@ import { InstrumentsService } from '../../services/instruments.service';
 import { HistoryService } from '../../services/history.service';
 import { AiService } from '../../services/ai.service';
 import { FormsModule } from '@angular/forms';
+import { TouchGestureService } from '../../services/touch-gesture.service';
 
 @Component({
   selector: 'app-piano-roll',
@@ -34,6 +35,26 @@ import { FormsModule } from '@angular/forms';
   styleUrls: ['./piano-roll.component.css'],
 })
 export class PianoRollComponent implements OnInit, AfterViewInit {
+  private lastPinchDistance: number | null = null;
+
+  @HostListener('touchstart', ['$event'])
+  onTouchStart(event: TouchEvent) {
+    if (event.touches.length === 2) {
+      this.lastPinchDistance = this.touchGestures.handlePinch(event);
+    }
+  }
+
+  @HostListener('touchmove', ['$event'])
+  onTouchMove(event: TouchEvent) {
+    if (event.touches.length === 2 && this.lastPinchDistance) {
+      const distance = this.touchGestures.handlePinch(event);
+      if (distance) {
+        const delta = distance / this.lastPinchDistance;
+        this.touchGestures.zoomLevel.update(z => Math.max(0.5, Math.min(2.0, z * delta)));
+        this.lastPinchDistance = distance;
+      }
+    }
+  }
   public musicManager = inject(MusicManagerService);
   public audioSession = inject(AudioSessionService);
   private audioEngine = inject(AudioEngineService);
@@ -42,6 +63,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   private aiService = inject(AiService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private touchGestures = inject(TouchGestureService);
 
   @Output() close = new EventEmitter<void>();
   @Output() closeOverlay = new EventEmitter<void>();
@@ -60,8 +82,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     typeof window !== 'undefined' ? window.innerWidth : 1280
   );
 
-  rowHeight = computed(() => (this.isMobile() ? 48 : 24));
-  cellWidth = computed(() => (this.windowWidth() < 1201 ? 32 : 40));
+  rowHeight = computed(() => (this.isMobile() ? 48 : 24) * this.touchGestures.zoomLevel());
+  cellWidth = computed(() => (this.windowWidth() < 1201 ? 32 : 40) * this.touchGestures.zoomLevel());
 
   numMeasures = 4;
   cells: any[] = new Array(64).fill(0);

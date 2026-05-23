@@ -104,7 +104,7 @@
         <!-- Notes -->
         <div
           *ngFor="let note of viewportNotes()"
-          class="note-block executive-glass extreme-glow"
+          class="note-block tactile-v42 executive-glass extreme-glow animate-neon"
           [class.selected-note]="selectedNoteIds().has(note.id)"
           [style.left.px]="note.step * cellWidth()"
           [style.top.px]="(127 - note.midi) * rowHeight()"

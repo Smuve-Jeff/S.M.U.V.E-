@@ -72,14 +72,14 @@
 
           <div class="deck-main-buttons">
             <button
-              class="btn-cue"
+              class="btn-cue tactile-v42"
               [class.active]="isCuePadSet('A', 0)"
               (click)="handlePadPress('A', 0)"
             >
               CUE
             </button>
             <button
-              class="btn-play"
+              class="btn-play tactile-v42"
               [class.active]="deckService.deckA().isPlaying"
               (click)="deckService.togglePlay('A')"
             >
@@ -104,11 +104,11 @@
     <div class="mixer-section">
       <div class="mixer-chassis">
         <div class="mixer-channel">
-          <div class="knob-group">
+          <div class="knob-v42 tactile-v42 knob-group">
             <label>GAIN</label>
             <input
               type="range"
-              class="knob"
+              class="knob-v42 tactile-v42 knob"
               min="0"
               max="1.5"
               step="0.01"
@@ -119,7 +119,7 @@
           <div class="eq-knobs">
             <input
               type="range"
-              class="knob small"
+              class="knob-v42 tactile-v42 knob small"
               min="0"
               max="2"
               step="0.01"
@@ -128,7 +128,7 @@
             />
             <input
               type="range"
-              class="knob small"
+              class="knob-v42 tactile-v42 knob small"
               min="0"
               max="2"
               step="0.01"
@@ -137,7 +137,7 @@
             />
             <input
               type="range"
-              class="knob small"
+              class="knob-v42 tactile-v42 knob small"
               min="0"
               max="2"
               step="0.01"
@@ -173,7 +173,7 @@
             </div>
             <input
               type="range"
-              class="knob"
+              class="knob-v42 tactile-v42 knob"
               min="0"
               max="1.2"
               step="0.01"
@@ -195,11 +195,11 @@
         </div>
 
         <div class="mixer-channel">
-          <div class="knob-group">
+          <div class="knob-v42 tactile-v42 knob-group">
             <label>GAIN</label>
             <input
               type="range"
-              class="knob"
+              class="knob-v42 tactile-v42 knob"
               min="0"
               max="1.5"
               step="0.01"
@@ -210,7 +210,7 @@
           <div class="eq-knobs">
             <input
               type="range"
-              class="knob small"
+              class="knob-v42 tactile-v42 knob small"
               min="0"
               max="2"
               step="0.01"
@@ -219,7 +219,7 @@
             />
             <input
               type="range"
-              class="knob small"
+              class="knob-v42 tactile-v42 knob small"
               min="0"
               max="2"
               step="0.01"
@@ -228,7 +228,7 @@
             />
             <input
               type="range"
-              class="knob small"
+              class="knob-v42 tactile-v42 knob small"
               min="0"
               max="2"
               step="0.01"
@@ -296,14 +296,14 @@
 
           <div class="deck-main-buttons">
             <button
-              class="btn-cue"
+              class="btn-cue tactile-v42"
               [class.active]="isCuePadSet('B', 0)"
               (click)="handlePadPress('B', 0)"
             >
               CUE
             </button>
             <button
-              class="btn-play"
+              class="btn-play tactile-v42"
               [class.active]="deckService.deckB().isPlaying"
               (click)="deckService.togglePlay('B')"
             >
@@ -348,12 +348,12 @@
       </button>
     </div>
 
-    <div class="pads-grid-container">
-      <div class="pads-deck">
-        <div class="pads-grid">
+    <div class="pad tactile-v42s-grid-container">
+      <div class="pad tactile-v42s-deck">
+        <div class="pad tactile-v42s-grid">
           @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {
             <button
-              class="pad"
+              class="pad tactile-v42"
               [class.active]="
                 isCuePadSet('A', i) ||
                 isRollPadActive('A', i) ||
@@ -369,11 +369,11 @@
           }
         </div>
       </div>
-      <div class="pads-deck">
-        <div class="pads-grid">
+      <div class="pad tactile-v42s-deck">
+        <div class="pad tactile-v42s-grid">
           @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {
             <button
-              class="pad"
+              class="pad tactile-v42"
               [class.active]="
                 isCuePadSet('B', i) ||
                 isRollPadActive('B', i) ||

@@ -1,0 +1,85 @@
+.performance-grid-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--studio-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.grid-header {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--studio-border);
+}
+
+.grid-scroll {
+  flex: 1;
+  overflow: auto;
+  background: #050507;
+}
+
+.grid-body {
+  display: flex;
+  padding: 1.5rem;
+  gap: 12px;
+  min-width: min-content;
+}
+
+.grid-column {
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.track-header {
+  text-align: center;
+  padding: 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.clip-cell {
+  height: 80px;
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clip-cell.active {
+  background: rgba(255,255,255,0.08);
+  border-color: #fff;
+  box-shadow: 0 0 20px rgba(255,255,255,0.1);
+}
+
+.clip-led {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0.3;
+}
+
+.clip-cell.active .clip-led {
+  opacity: 1;
+  box-shadow: 0 0 10px currentColor;
+}
+
+@media (max-width: 768px) {
+  .grid-column {
+    width: 90px;
+  }
+  .clip-cell {
+    height: 60px;
+  }
+}

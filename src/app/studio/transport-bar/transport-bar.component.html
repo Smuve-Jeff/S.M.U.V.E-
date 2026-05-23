@@ -12,14 +12,14 @@
     <!-- Main Controls -->
     <div class="transport-main">
       <button
-        class="transport-btn glass-v42"
+        class="transport-btn tactile-v42 glass-v42"
         (click)="stop()"
         [class.active]="isStopped()"
       >
         <span class="material-symbols-outlined">stop</span>
       </button>
       <button
-        class="transport-btn glass-v42"
+        class="transport-btn tactile-v42 glass-v42"
         (click)="togglePlay()"
         [class.active]="isPlaying()"
       >
@@ -28,7 +28,7 @@
         }}</span>
       </button>
       <button
-        class="transport-btn rec-btn glass-v42"
+        class="transport-btn rec-btn tactile-v42 glass-v42"
         (click)="toggleRecord()"
         [class.active]="isRecording()"
       >

@@ -10,7 +10,7 @@
   <div class="neural-foundry-overlay glass-v42" *ngIf="showNeuralFoundry()">
     <app-neural-foundry></app-neural-foundry>
     <button
-      class="close-foundry-btn executive-glass"
+      class="close-foundry-btn executive-glass tactile-v42"
       (click)="toggleNeuralFoundry()"
     >
       CLOSE
@@ -25,56 +25,63 @@
       </h1>
       <div class="header-controls">
         <button
-          class="header-btn glass-v42"
+          class="header-btn tactile-v42 glass-v42"
           [class.active]="activeView() === 'dj'"
           (click)="setActiveView('dj')"
         >
           DJ DECK
         </button>
         <button
-          class="header-btn glass-v42"
+          class="header-btn tactile-v42 glass-v42"
           [class.active]="activeView() === 'mixer'"
           (click)="setActiveView('mixer')"
         >
           MIXER
         </button>
         <button
-          class="header-btn glass-v42"
+          class="header-btn tactile-v42 glass-v42"
           [class.active]="activeView() === 'piano-roll'"
           (click)="setActiveView('piano-roll')"
         >
           PIANO ROLL
         </button>
         <button
-          class="header-btn glass-v42"
+          class="header-btn tactile-v42 glass-v42"
           [class.active]="activeView() === 'drum-machine'"
           (click)="setActiveView('drum-machine')"
         >
           DRUMS
         </button>
         <button
-          class="header-btn glass-v42"
+          class="header-btn tactile-v42 glass-v42"
+          [class.active]="activeView() === 'performance-grid'"
+          (click)="setActiveView('performance-grid')"
+        >
+          GRID
+        </button>
+        <button
+          class="header-btn tactile-v42 glass-v42"
           [class.active]="activeView() === 'performer'"
           (click)="setActiveView('performer')"
         >
           PERFORMER
         </button>
         <button
-          class="header-btn glass-v42"
+          class="header-btn tactile-v42 glass-v42"
           [class.active]="activeView() === 'mastering'"
           (click)="setActiveView('mastering')"
         >
           MASTERING
         </button>
         <button
-          class="header-btn glass-v42"
+          class="header-btn tactile-v42 glass-v42"
           [class.active]="activeView() === 'vocal-suite'"
           (click)="setActiveView('vocal-suite')"
         >
           VOCAL SUITE
         </button>
         <button
-          class="header-btn header-btn-ai executive-glass extreme-glow"
+          class="header-btn header-btn-ai tactile-v42 executive-glass extreme-glow"
           (click)="toggleNeuralFoundry()"
         >
           NEURAL FOUNDRY
@@ -106,6 +113,10 @@
         <app-drum-machine></app-drum-machine>
       </div>
 
+      <div class="view-wrapper" [class.hidden]="activeView() !== 'performance-grid'">
+        <app-performance-grid></app-performance-grid>
+      </div>
+
       <div class="view-wrapper" [class.hidden]="activeView() !== 'performer'">
         <app-performer></app-performer>
       </div>
@@ -119,4 +130,48 @@
       </div>
     </main>
   </div>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-bottom-nav glass-v42-pro" *ngIf="uiService.isCompactMobile()">
+    <button
+      class="mobile-nav-item"
+      [class.active]="activeView() === 'dj'"
+      (click)="setActiveView('dj')"
+    >
+      <span class="material-symbols-outlined">album</span>
+      <span>DJ</span>
+    </button>
+    <button
+      class="mobile-nav-item"
+      [class.active]="activeView() === 'mixer'"
+      (click)="setActiveView('mixer')"
+    >
+      <span class="material-symbols-outlined">tune</span>
+      <span>MIX</span>
+    </button>
+    <button
+      class="mobile-nav-item"
+      [class.active]="activeView() === 'piano-roll'"
+      (click)="setActiveView('piano-roll')"
+    >
+      <span class="material-symbols-outlined">piano</span>
+      <span>EDIT</span>
+    </button>
+    <button
+      class="mobile-nav-item"
+      [class.active]="activeView() === 'performance-grid'"
+      (click)="setActiveView('performance-grid')"
+    >
+      <span class="material-symbols-outlined">grid_view</span>
+      <span>GRID</span>
+    </button>
+    <button
+      class="mobile-nav-item"
+      [class.active]="activeView() === 'performer'"
+      (click)="setActiveView('performer')"
+    >
+      <span class="material-symbols-outlined">music_note</span>
+      <span>PERF</span>
+    </button>
+  </nav>
 </div>
