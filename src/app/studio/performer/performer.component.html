@@ -9,14 +9,14 @@
       <button
         [class.active]="layout() === 'keyboard'"
         (click)="setLayout('keyboard')"
-        class="executive-glass"
+        class="executive-glass tactile-v42"
       >
         KEYBOARD
       </button>
       <button
         [class.active]="layout() === 'pads'"
         (click)="setLayout('pads')"
-        class="executive-glass"
+        class="executive-glass tactile-v42"
       >
         PADS
       </button>
@@ -41,7 +41,7 @@
       <div class="keys-container">
         <div
           *ngFor="let key of keyboardKeys"
-          class="perf-key"
+          class="perf-key tactile-v42"
           [class.black-key]="isBlackKey(key.midi)"
           [class.active]="activeKeys().has(key.midi)"
           (mousedown)="onKeyDown(key.midi)"
@@ -59,7 +59,7 @@
       <div class="perf-pads-grid">
         <div
           *ngFor="let pad of performerPads"
-          class="perf-pad glass-v42 shadow-v42-xl"
+          class="perf-pad tactile-v42 glass-v42 shadow-v42-xl"
           [class.active]="activeKeys().has(pad.midi)"
           [style.--pad-color]="pad.color"
           (mousedown)="onKeyDown(pad.midi)"
@@ -89,9 +89,9 @@
     <div class="footer-param glass-v42">
       <label class="neon-text-xs">OCTAVE</label>
       <div class="octave-controls">
-        <button (click)="nudgeOctave(-1)" class="executive-glass">-</button>
+        <button (click)="nudgeOctave(-1)" class="executive-glass tactile-v42">-</button>
         <span class="font-mono">{{ octave() }}</span>
-        <button (click)="nudgeOctave(1)" class="executive-glass">+</button>
+        <button (click)="nudgeOctave(1)" class="executive-glass tactile-v42">+</button>
       </div>
     </div>
   </div>

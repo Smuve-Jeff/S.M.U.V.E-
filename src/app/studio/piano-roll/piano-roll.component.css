@@ -193,3 +193,26 @@
     height: auto;
   }
 }
+
+/* Portrait Optimization for Piano Roll */
+@media (max-width: 500px) {
+  .piano-roll-v42-container {
+    padding: 4px;
+  }
+
+  .bento-grid-pr {
+    grid-template-rows: 50px 1fr 100px;
+  }
+
+  .piano-keys-v42 {
+    width: 40px;
+  }
+
+  .key-v42 {
+    font-size: 0.5rem;
+  }
+
+  .grid-lines-overlay {
+    background-size: 20px 28px; /* Denser grid for mobile */
+  }
+}

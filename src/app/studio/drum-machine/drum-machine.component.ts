@@ -17,6 +17,7 @@ import {
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { InstrumentsService } from '../../services/instruments.service';
 import { AiService } from '../../services/ai.service';
+import { HapticService } from '../../services/haptic.service';
 
 interface DrumStep {
   active: boolean;
@@ -48,6 +49,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   musicManager = inject(MusicManagerService);
   engine = inject(AudioEngineService);
   instrumentsService = inject(InstrumentsService);
+  haptic = inject(HapticService);
   aiService = inject(AiService);
 
   selectedTrackId = this.musicManager.selectedTrackId;

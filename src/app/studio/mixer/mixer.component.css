@@ -236,3 +236,37 @@
     height: 36px;
   }
 }
+
+/* Portrait Optimization for Mixer */
+@media (max-width: 500px) {
+  .mixer-tracks {
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .mixer-strip {
+    width: 85vw; /* Almost full width for better touch control in portrait */
+    height: 400px;
+    flex-direction: row;
+    padding: 15px;
+    gap: 20px;
+  }
+
+  .strip-body {
+    flex-direction: row;
+    height: 100%;
+    flex: 1;
+  }
+
+  .v-slider-container {
+    width: 60px;
+    height: 100% !important;
+  }
+
+  .strip-bottom {
+    width: 100px;
+    height: 100%;
+    flex-direction: column;
+    justify-content: center;
+  }
+}

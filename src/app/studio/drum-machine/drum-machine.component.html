@@ -99,7 +99,7 @@
     <div class="pads-sidebar no-scrollbar wood-panel">
       <div
         *ngFor="let pad of pads()"
-        class="drum-pad-item glass-v42"
+        class="drum-pad-item tactile-v42 glass-v42"
         [class.selected]="selectedPad()?.id === pad.id"
         (click)="selectPad(pad)"
       >
@@ -128,7 +128,7 @@
         >
           <div
             *ngFor="let step of pad.steps; let sIdx = index"
-            class="step-box"
+            class="step-box tactile-v42"
             [class.active]="step.active"
             [class.current-step]="currentStep() === sIdx"
             [style.--step-color]="pad.color"
