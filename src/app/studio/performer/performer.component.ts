@@ -18,12 +18,13 @@ import {
   styleUrls: ['./performer.component.css'],
 })
 export class PerformerComponent {
-  private musicManager = inject(MusicManagerService);
+  musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
   private liveEngine = inject(LiveEngineService);
   private haptic = inject(HapticService);
-  layout = signal<'keyboard' | 'pads' | 'matrix'>('keyboard');
   private instrumentsService = inject(InstrumentsService);
+
+  layout = signal<'keyboard' | 'pads' | 'matrix'>('keyboard');
   scenes = signal<any[]>(
     new Array(8)
       .fill(null)
