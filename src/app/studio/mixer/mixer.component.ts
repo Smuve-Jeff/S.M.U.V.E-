@@ -9,11 +9,12 @@ import { NeuralMixerService } from '../../services/neural-mixer.service';
 import { MixerService } from '../mixer.service';
 import { HapticService } from '../../services/haptic.service';
 import { Clip } from '../instrument.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-mixer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './mixer.component.html',
   styleUrls: ['./mixer.component.css'],
 })
@@ -29,7 +30,6 @@ export class MixerComponent {
   playbackState = this.audioSession.playbackState;
   isPlaying = this.audioSession.isPlaying;
   isRecording = this.audioSession.isRecording;
-  micChannels = this.audioSession.micChannels;
   masterVolume = this.audioSession.masterVolume;
   selectedTrackId = this.musicManager.selectedTrackId;
   tracks = this.musicManager.tracks;
@@ -39,56 +39,17 @@ export class MixerComponent {
   );
 
   viewMode = signal<'compact' | 'expanded'>('expanded');
-  showVocalSuite = signal(false);
-  showVisualRouting = signal(false);
-  toggleVisualRouting() {
-    this.showVisualRouting.update((v) => !v);
-  }
 
   toggleViewMode() {
     this.viewMode.update((v) => (v === 'compact' ? 'expanded' : 'compact'));
-  }
-
-  toggleVocalSuite() {
-    this.showVocalSuite.update((v) => !v);
   }
 
   updateMasterVolume(newVolume: number): void {
     this.audioSession.updateMasterVolume(newVolume);
   }
 
-  magicMix(): void {
-    this.haptic.success();
-    this.neuralMixer.applyNeuralMix();
-    this.musicManager.tracks().forEach(t => {
-      if (t.name.toLowerCase().includes("vocal")) {
-        this.musicManager.engine.updateTrack(t.id, { reverb: 0.2, delay: 0.1 });
-      }
-    });
-  }
-
   applyNeuralMix(): void {
     this.neuralMixer.applyNeuralMix();
-  }
-
-  suggestTrack(id: number) {
-    this.neuralMixer.suggestForTrack(id);
-  }
-
-  stopTrackSelection(event: Event): void {
-    event.stopPropagation();
-  }
-
-  togglePlayback(): void {
-    this.audioSession.togglePlay();
-  }
-
-  toggleRecording(): void {
-    this.audioSession.toggleRecord();
-  }
-
-  stopPlayback(): void {
-    this.audioSession.stop();
   }
 
   selectTrack(id: number): void {
@@ -104,7 +65,7 @@ export class MixerComponent {
   }
 
   updateTrackVolume(id: number, value: number) {
-    const gain = Math.max(0, Math.min(1, value / 100));
+    const gain = Math.max(0, Math.min(1.5, value / 100));
     this.musicManager.tracks.update((tracks) =>
       tracks.map((track) => (track.id === id ? { ...track, gain } : track))
     );
@@ -119,67 +80,19 @@ export class MixerComponent {
     this.musicManager.engine.updateTrack(id, { pan });
   }
 
-  updateTrackSendA(id: number, value: number) {
-    const sendA = Math.max(0, Math.min(1, value / 100));
-    this.musicManager.tracks.update((tracks) =>
-      tracks.map((track) => (track.id === id ? { ...track, sendA } : track))
-    );
-    this.musicManager.engine.updateTrack(id, { sendA });
-  }
-
-  updateTrackSendB(id: number, value: number) {
-    const sendB = Math.max(0, Math.min(1, value / 100));
-    this.musicManager.tracks.update((tracks) =>
-      tracks.map((track) => (track.id === id ? { ...track, sendB } : track))
-    );
-    this.musicManager.engine.updateTrack(id, { sendB });
-  }
-
   gainPercent(track: TrackModel): number {
-    return Math.round(Math.max(0, Math.min(1, track.gain)) * 100);
+    return Math.round(track.gain * 100);
   }
 
   panPercent(track: TrackModel): number {
-    return Math.round(Math.max(-1, Math.min(1, track.pan)) * 100);
+    return Math.round(track.pan * 100);
   }
 
   isSelected(track: TrackModel): boolean {
     return this.selectedTrackId() === track.id;
   }
 
-  toggleFxSlot(trackId: number, slotId: string) {
-    this.musicManager.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        return {
-          ...t,
-          fxSlots: t.fxSlots.map((s) =>
-            s.id === slotId ? { ...s, enabled: !s.enabled } : s
-          ),
-        };
-      })
-    );
-    const track = this.musicManager.tracks().find((t) => t.id === trackId);
-    if (track)
-      this.musicManager.engine.updateTrack(trackId, { fxSlots: track.fxSlots });
-  }
-
-  resetTrack(id: number) {
-    this.musicManager.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === id ? { ...t, gain: 0.9, pan: 0, sendA: 0.1, sendB: 0.05 } : t
-      )
-    );
-    this.musicManager.engine.updateTrack(id, {
-      gain: 0.9,
-      pan: 0,
-      sendA: 0.1,
-      sendB: 0.05,
-    });
-  }
-
-  onLongPress(event: Event, trackId: number) {
-    event.preventDefault();
-    console.log('Long press on track', trackId);
+  setSidechain(trackId: number, targetId: string) {
+    this.musicManager.setSidechain(trackId, targetId === 'none' ? null : targetId);
   }
 }

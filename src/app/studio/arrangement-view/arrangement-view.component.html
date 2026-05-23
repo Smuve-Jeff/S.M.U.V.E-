@@ -1,8 +1,13 @@
 <div class="playlist-container glass-v42 shadow-v42-xl">
   <div class="playlist-header wood-panel">
-    <div class="view-tabs">
-      <button class="tab-btn active neon-text-xs">Playlist</button>
-      <button class="tab-btn neon-text-xs">Automation</button>
+    <div class="view-tabs flex items-center gap-4">
+      <button class="tab-btn active neon-text-xs">PRO ARRANGEMENT</button>
+      <div class="flex items-center gap-2">
+         <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">SNAP</span>
+         <button (click)="toggleSnap()" class="mini-btn tactile-v42" [class.active-snap]="snapEnabled()">
+           <span class="material-symbols-outlined text-xs">{{ snapEnabled() ? 'grid_on' : 'grid_off' }}</span>
+         </button>
+      </div>
     </div>
     <div class="header-actions">
       <button
@@ -10,7 +15,7 @@
         class="mini-btn tactile-v42 executive-glass"
         style="width: auto; padding: 0 15px"
       >
-        + ADD TRACK
+        + NEW TRACK
       </button>
     </div>
   </div>
@@ -28,10 +33,11 @@
             class="track-color-strip"
             [style.background-color]="track.color || '#af25f4'"
           ></div>
-          <span class="track-name neon-text-xs">{{
-            track.name | uppercase
-          }}</span>
-          <div class="track-controls">
+          <div class="flex flex-col">
+            <span class="track-name neon-text-xs">{{ track.name | uppercase }}</span>
+            <span class="text-[6px] opacity-50 font-mono">{{ track.instrumentId | uppercase }}</span>
+          </div>
+          <div class="track-controls ml-auto">
             <button
               class="mini-btn tactile-v42"
               [class.active-solo]="track.solo"
@@ -48,12 +54,10 @@
             </button>
           </div>
         </div>
-        <div class="track-volume-bar glass-v42">
-          <div
-            class="volume-fill extreme-glow"
-            [style.width.%]="track.mute ? 0 : 75"
-            [style.background-color]="track.color"
-          ></div>
+        <div class="track-meter-container">
+           <div class="meter-bg bg-black/40 h-1 rounded-full overflow-hidden">
+              <div class="meter-fill extreme-glow h-full" [style.width.%]="track.mute ? 0 : 45" [style.background-color]="track.color"></div>
+           </div>
         </div>
       </div>
     </div>
@@ -61,27 +65,36 @@
     <div class="grid-viewport no-scrollbar glass-v42">
       <div class="time-ruler wood-panel">
         <div
-          *ngFor="let bar of [1, 2, 3, 4, 5, 6, 7, 8]"
+          *ngFor="let bar of bars"
           class="ruler-bar neon-text-xs"
+          [style.width.px]="barWidth"
         >
-          BAR {{ bar }}
+          {{ bar + 1 }}
         </div>
       </div>
       <div
         class="grid-canvas"
+        #gridCanvas
         [style.width.px]="gridWidth"
         [style.height.px]="tracks().length * 80"
       >
         <div class="scanline-overlay"></div>
+
+        <!-- Lane Rows for Drop -->
         <div
           *ngFor="let track of tracks(); let i = index"
           class="lane-row"
           [style.top.px]="i * 80"
           [style.height.px]="80"
+          (dragover)="onDragOver($event)"
+          (drop)="onDrop($event, track.id)"
         >
           <div
             *ngFor="let clip of track.clips"
-            class="clip-item executive-glass shadow-v42-xl"
+            class="clip-item executive-glass shadow-v42-xl tactile-v42 group"
+            draggable="true"
+            (dragstart)="onClipDragStart($event, track.id, clip)"
+            (dragend)="onClipDragEnd()"
             [style.left.px]="clip.start * barWidth"
             [style.width.px]="clip.length * barWidth"
             [style.background-color]="(clip.color || '#af25f4') + '33'"
@@ -91,25 +104,20 @@
             <div class="clip-header neon-text-xs">
               {{ clip.name | uppercase }}
             </div>
+
+            <!-- Resize Handles -->
+            <div class="resize-handle right opacity-0 group-hover:opacity-100 transition-opacity"
+                 (mousedown)="$event.stopPropagation(); resizeClip(track.id, clip.id, 0.5)"></div>
+
             <div class="clip-waveform">
-              <svg
-                width="100%"
-                height="100%"
-                preserveAspectRatio="none"
-                viewBox="0 0 1000 100"
-              >
-                <path
-                  d="M0 50 Q 250 10, 500 50 T 1000 50"
-                  [attr.stroke]="clip.color || '#af25f4'"
-                  stroke-width="2"
-                  fill="none"
-                  class="extreme-glow"
-                />
+              <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100">
+                <path d="M0 50 L 10 20 L 20 80 L 30 10 L 40 90 L 50 50 L 60 20 L 70 80 L 80 10 L 90 90 L 100 50" [attr.stroke]="clip.color || '#af25f4'" stroke-width="1" fill="none" class="extreme-glow" />
               </svg>
             </div>
           </div>
         </div>
 
+        <!-- Playhead -->
         <div class="playhead extreme-glow" [style.left.px]="playheadPos()">
           <div class="playhead-cap"></div>
         </div>

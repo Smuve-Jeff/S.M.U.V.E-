@@ -35,6 +35,9 @@ interface DrumPad {
     semitone: number;
     decay: number;
     pan: number;
+    cutoff: number;
+    resonance: number;
+    attack: number;
   };
 }
 
@@ -81,7 +84,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       color: '#ff4d4d',
       type: 'kick',
       steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.5, pan: 0 },
+      params: { semitone: 0, decay: 0.5, pan: 0, cutoff: 800, resonance: 1.0, attack: 0.002 },
     },
     {
       id: '2',
@@ -90,7 +93,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       color: '#ff944d',
       type: 'snare',
       steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.4, pan: 0 },
+      params: { semitone: 0, decay: 0.4, pan: 0, cutoff: 2500, resonance: 1.2, attack: 0.002 },
     },
     {
       id: '3',
@@ -99,7 +102,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       color: '#ffdb4d',
       type: 'clap',
       steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.4, pan: 0.1 },
+      params: { semitone: 0, decay: 0.4, pan: 0.1, cutoff: 3000, resonance: 0.8, attack: 0.005 },
     },
     {
       id: '4',
@@ -108,7 +111,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       color: '#4dff88',
       type: 'closed-hat',
       steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.1, pan: -0.2 },
+      params: { semitone: 0, decay: 0.1, pan: -0.2, cutoff: 8000, resonance: 1.5, attack: 0.001 },
     },
     {
       id: '5',
@@ -117,7 +120,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       color: '#4dffff',
       type: 'open-hat',
       steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.8, pan: 0.2 },
+      params: { semitone: 0, decay: 0.8, pan: 0.2, cutoff: 7500, resonance: 1.0, attack: 0.001 },
     },
     {
       id: '6',
@@ -126,7 +129,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       color: '#4d88ff',
       type: 'tom',
       steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.6, pan: -0.4 },
+      params: { semitone: 0, decay: 0.6, pan: -0.4, cutoff: 600, resonance: 0.9, attack: 0.003 },
     },
     {
       id: '7',
@@ -135,7 +138,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       color: '#944dff',
       type: 'tom',
       steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.6, pan: 0 },
+      params: { semitone: 0, decay: 0.6, pan: 0, cutoff: 800, resonance: 0.9, attack: 0.003 },
     },
     {
       id: '8',
@@ -144,53 +147,16 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       color: '#ff4dff',
       type: 'tom',
       steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.6, pan: 0.4 },
-    },
-    {
-      id: '9',
-      name: 'COWBELL',
-      midi: 56,
-      color: '#ffffff',
-      type: 'cowbell',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.3, pan: 0.3 },
-    },
-    {
-      id: '10',
-      name: 'SHAKER',
-      midi: 70,
-      color: '#aaaaaa',
-      type: 'shaker',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.2, pan: -0.3 },
-    },
-    {
-      id: '11',
-      name: 'RIDE',
-      midi: 51,
-      color: '#ffff00',
-      type: 'ride',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 1.2, pan: 0.5 },
-    },
-    {
-      id: '12',
-      name: 'RIM',
-      midi: 37,
-      color: '#888888',
-      type: 'rim',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.1, pan: -0.1 },
+      params: { semitone: 0, decay: 0.6, pan: 0.4, cutoff: 1200, resonance: 0.9, attack: 0.003 },
     },
   ]);
 
   selectedPad = signal<DrumPad | null>(null);
 
   isGeneratingPattern = signal(false);
-  isGenerating = this.isGeneratingPattern;
   evolutionEnabled = signal(false);
-  evolutionIntensity = signal(0.2); // 0 to 1
-  evolutionSpeed = signal(16); // mutation every X steps
+  evolutionIntensity = signal(0.2);
+  evolutionSpeed = signal(16);
 
   private evolutionEffect?: EffectRef;
 
@@ -247,7 +213,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     const trackId = this.selectedTrackId() || 0;
     this.engine.triggerAttack(
       trackId,
-      this.musicManager.midiToFreq(pad.midi),
+      this.musicManager.midiToFreq(pad.midi + pad.params.semitone),
       this.engine.getContext().currentTime,
       0.8,
       pad.params.decay,
@@ -255,7 +221,12 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       pad.params.pan,
       0,
       0,
-      { type: 'sine' },
+      {
+        type: 'sine',
+        attack: pad.params.attack,
+        cutoff: pad.params.cutoff,
+        q: pad.params.resonance
+      },
       1
     );
   }
@@ -272,45 +243,22 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   async generateAiPattern(genre: string = 'house') {
     this.isGeneratingPattern.set(true);
-
     this.pads.update((ps) =>
       ps.map((p) => {
         const newSteps = this.initSteps();
-
         if (p.name === 'KICK') {
           if (genre === 'house' || genre === 'techno') {
             for (let i = 0; i < 64; i += 4) newSteps[i].active = true;
           } else if (genre === 'trap') {
-            [0, 10, 16, 26, 32, 42, 48, 58].forEach(
-              (i) => (newSteps[i].active = true)
-            );
-          } else if (genre === 'afrobeat') {
-            [0, 6, 12, 16, 22, 28, 32, 38, 44, 48, 54, 60].forEach(
-              (i) => (newSteps[i].active = true)
-            );
+            [0, 10, 16, 26, 32, 42, 48, 58].forEach(i => (newSteps[i].active = true));
           }
         }
-
         if (p.name === 'SNARE' || p.name === 'CLAP') {
-          if (genre === 'house' || genre === 'techno') {
-            for (let i = 4; i < 64; i += 8) newSteps[i].active = true;
-          } else {
-            for (let i = 8; i < 64; i += 16) newSteps[i].active = true;
-          }
+          for (let i = 8; i < 64; i += 16) newSteps[i].active = true;
         }
-
-        if (p.name === 'CH') {
-          const skip = genre === 'trap' ? 2 : 4;
-          for (let i = 0; i < 64; i += skip) {
-            newSteps[i].active = Math.random() < 0.8;
-            newSteps[i].velocity = 0.5 + Math.random() * 0.5;
-          }
-        }
-
         return { ...p, steps: newSteps };
       })
     );
-
     this.syncToMusicManager();
     this.isGeneratingPattern.set(false);
   }
@@ -323,10 +271,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
         for (let i = 0; i < 64; i++) {
           if (Math.random() < intensity * 0.1) {
             newSteps[i].active = !newSteps[i].active;
-            newSteps[i].velocity = Math.max(
-              0.2,
-              Math.min(1.2, newSteps[i].velocity + (Math.random() - 0.5) * 0.2)
-            );
           }
         }
         return { ...p, steps: newSteps };
@@ -338,7 +282,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   private syncToMusicManager() {
     const trackId = this.selectedTrackId();
     if (!trackId) return;
-
     const allNotes: TrackNote[] = [];
     this.pads().forEach((pad) => {
       pad.steps.forEach((step, idx) => {
@@ -353,26 +296,9 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
         }
       });
     });
-
     this.musicManager.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id === trackId)
-          return {
-            ...t,
-            notes: allNotes,
-            steps: this.calculateSteps(allNotes),
-          };
-        return t;
-      })
+      ts.map((t) => (t.id === trackId ? { ...t, notes: allNotes } : t))
     );
-  }
-
-  private calculateSteps(notes: TrackNote[]): boolean[] {
-    const steps = new Array(64).fill(false);
-    notes.forEach((n) => {
-      if (n.step >= 0 && n.step < 64) steps[Math.floor(n.step)] = true;
-    });
-    return steps;
   }
 
   private syncFromMusicManager(notes: TrackNote[]) {
@@ -385,18 +311,26 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       });
       return { ...p, steps: newSteps };
     });
-    // Simple deep equality check to prevent loops
     if (JSON.stringify(nextPads) !== JSON.stringify(this.pads())) {
       this.pads.set(nextPads);
     }
   }
 
   hasQuantumDrumEngine() {
-    return this.aiService.isUnlocked('upg-quantum-drum-engine') || true;
+    return true;
   }
 
-  isStepActive(midi: number, step: number) {
-    const pad = this.pads().find((p) => p.midi === midi);
-    return pad ? pad.steps[step].active : false;
+  onDrop(event: DragEvent, pad: DrumPad) {
+    event.preventDefault();
+    const data = event.dataTransfer?.getData('application/json');
+    if (data) {
+      const { presetId } = JSON.parse(data);
+      console.log(`Setting pad ${pad.name} to ${presetId}`);
+      // Future logic: map pad to specific sample in a kit or individual preset
+    }
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
   }
 }
