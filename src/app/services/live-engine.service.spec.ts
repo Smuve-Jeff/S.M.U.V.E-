@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { LiveEngineService } from './live-engine.service';
 import { LoggingService } from './logging.service';
+import { InstrumentsService } from './instruments.service';
 
 // Mock Tone.js
 jest.mock('tone', () => {
@@ -12,6 +13,7 @@ jest.mock('tone', () => {
       triggerRelease: jest.fn(),
       set: jest.fn(),
       dispose: jest.fn(),
+      connect: jest.fn(),
     })),
     MonoSynth: jest.fn().mockImplementation(() => ({
       toDestination: jest.fn().mockReturnThis(),
@@ -29,6 +31,15 @@ jest.mock('tone', () => {
       set: jest.fn(),
       dispose: jest.fn(),
     })),
+    Sampler: jest.fn().mockImplementation(() => ({
+      toDestination: jest.fn().mockReturnThis(),
+      triggerAttack: jest.fn(),
+      triggerRelease: jest.fn(),
+      dispose: jest.fn(),
+    })),
+    Filter: jest.fn().mockImplementation(() => ({
+      toDestination: jest.fn().mockReturnThis(),
+    })),
     start: jest.fn().mockResolvedValue(true),
     now: jest.fn().mockReturnValue(0),
     Synth: jest.fn(),
@@ -42,6 +53,7 @@ describe('LiveEngineService', () => {
     TestBed.configureTestingModule({
       providers: [
         LiveEngineService,
+        InstrumentsService,
         {
           provide: LoggingService,
           useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
@@ -55,9 +67,9 @@ describe('LiveEngineService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should set instrument', () => {
-    service.setInstrument('mono-lead');
-    expect(service.activeInstrument()).toBe('mono-lead');
+  it('should set instrument', async () => {
+    await service.setInstrument('hard-808');
+    expect(service.activeInstrument()).toBe('hard-808');
   });
 
   it('should convert midi to note', () => {

@@ -19,7 +19,18 @@ export interface InstrumentPreset {
   id: string;
   name: string;
   type: 'sample' | 'synth';
-  category: 'piano' | 'bass' | 'drum' | 'keys' | 'lead' | 'pad' | 'guitar' | 'strings' | 'vfx' | 'perc' | 'other';
+  category:
+    | 'piano'
+    | 'bass'
+    | 'drum'
+    | 'keys'
+    | 'lead'
+    | 'pad'
+    | 'guitar'
+    | 'strings'
+    | 'vfx'
+    | 'perc'
+    | 'other';
   tags: string[];
   previewUrl?: string;
   sampleQuality?: 'standard' | 'high';
@@ -56,12 +67,18 @@ export class InstrumentsService {
       category: 'piano',
       tags: ['classic', 'acoustic', 'high-fidelity'],
       sampleQuality: 'high',
-      fallbackPresetId: 'stage-piano',
-      zones: [{
-        midiRange: [21, 108],
-        url: '/assets/samples/piano/piano_C4.mp3',
-        velLayers: [{ threshold: 0.5, url: '/assets/samples/piano/piano_C4_soft.mp3' }]
-      }]
+      zones: [
+        {
+          midiRange: [21, 108],
+          url: 'https://tonejs.github.io/audio/salamander/C4.mp3', // Fallback to hosted for now if local missing
+          velLayers: [
+            {
+              threshold: 0.5,
+              url: 'https://tonejs.github.io/audio/salamander/C4.mp3',
+            },
+          ],
+        },
+      ],
     },
     {
       id: 'deep-sub-bass',
@@ -76,8 +93,8 @@ export class InstrumentsService {
         sustain: 0.8,
         release: 0.4,
         cutoff: 150,
-        q: 1
-      }
+        q: 1,
+      },
     },
     {
       id: 'hard-808',
@@ -92,8 +109,8 @@ export class InstrumentsService {
         sustain: 0.0,
         release: 0.8,
         cutoff: 500,
-        q: 2.5
-      }
+        q: 2.5,
+      },
     },
     {
       id: 'plucky-bass',
@@ -108,8 +125,8 @@ export class InstrumentsService {
         sustain: 0.2,
         release: 0.2,
         cutoff: 2000,
-        q: 1.2
-      }
+        q: 1.2,
+      },
     },
     {
       id: 'ethereal-pad',
@@ -124,8 +141,8 @@ export class InstrumentsService {
         sustain: 0.7,
         release: 1.5,
         cutoff: 1200,
-        q: 0.5
-      }
+        q: 0.5,
+      },
     },
     {
       id: 'cyber-lead',
@@ -140,8 +157,8 @@ export class InstrumentsService {
         sustain: 0.8,
         release: 0.2,
         cutoff: 6000,
-        q: 1.5
-      }
+        q: 1.5,
+      },
     },
     {
       id: 'lofi-rhodes',
@@ -156,8 +173,72 @@ export class InstrumentsService {
         sustain: 0.6,
         release: 0.3,
         cutoff: 1800,
-        q: 0.8
-      }
+        q: 0.8,
+      },
+    },
+    {
+      id: 'solo-violin',
+      name: 'Solo Violin',
+      type: 'synth',
+      category: 'strings',
+      tags: ['classical', 'expressive', 'orchestral'],
+      synth: {
+        type: 'sawtooth',
+        attack: 0.2,
+        decay: 0.1,
+        sustain: 0.8,
+        release: 0.5,
+        cutoff: 4000,
+        q: 1.5,
+      },
+    },
+    {
+      id: 'cinematic-strings',
+      name: 'Cinematic Strings',
+      type: 'synth',
+      category: 'strings',
+      tags: ['orchestral', 'epic', 'pad'],
+      synth: {
+        type: 'sawtooth',
+        attack: 1.5,
+        decay: 2.0,
+        sustain: 0.7,
+        release: 2.0,
+        cutoff: 2500,
+        q: 0.5,
+      },
+    },
+    {
+      id: 'acoustic-guitar',
+      name: 'Acoustic Guitar',
+      type: 'synth',
+      category: 'guitar',
+      tags: ['folk', 'acoustic', 'pluck'],
+      synth: {
+        type: 'sine',
+        attack: 0.005,
+        decay: 0.8,
+        sustain: 0.0,
+        release: 0.8,
+        cutoff: 3000,
+        q: 1.0,
+      },
+    },
+    {
+      id: 'electric-guitar-clean',
+      name: 'Electric Guitar (Clean)',
+      type: 'synth',
+      category: 'guitar',
+      tags: ['clean', 'jazz', 'funk'],
+      synth: {
+        type: 'triangle',
+        attack: 0.01,
+        decay: 0.6,
+        sustain: 0.2,
+        release: 0.4,
+        cutoff: 5000,
+        q: 1.2,
+      },
     },
     {
       id: 'kit-808-pro',
@@ -165,23 +246,7 @@ export class InstrumentsService {
       type: 'sample',
       category: 'drum',
       tags: ['trap', 'drums', 'classic'],
-      zones: [{ midiRange: [36, 48], url: '/assets/samples/808/kit.mp3' }]
-    },
-    {
-      id: 'kit-trap-pro',
-      name: 'Trap Pro Kit',
-      type: 'sample',
-      category: 'drum',
-      tags: ['trap', 'professional', 'drums'],
-      zones: [{ midiRange: [36, 48], url: '/assets/samples/trap/kit.mp3' }]
-    },
-    {
-      id: 'kit-house-vibe',
-      name: 'House Vibe Kit',
-      type: 'sample',
-      category: 'drum',
-      tags: ['house', 'dance', 'electronic'],
-      zones: [{ midiRange: [36, 48], url: '/assets/samples/house/kit.mp3' }]
+      zones: [{ midiRange: [36, 48], url: '/assets/samples/808/kit.mp3' }],
     },
     {
       id: 'fx-riser',
@@ -196,33 +261,9 @@ export class InstrumentsService {
         sustain: 1.0,
         release: 0.5,
         cutoff: 12000,
-        q: 2.0
-      }
+        q: 2.0,
+      },
     },
-    {
-      id: 'fx-impact',
-      name: 'Dark Impact',
-      type: 'synth',
-      category: 'vfx',
-      tags: ['fx', 'impact', 'cinematic'],
-      synth: {
-        type: 'square',
-        attack: 0.001,
-        decay: 2.0,
-        sustain: 0.0,
-        release: 2.0,
-        cutoff: 400,
-        q: 0.7
-      }
-    },
-    {
-      id: 'perc-conga',
-      name: 'Conga High',
-      type: 'sample',
-      category: 'perc',
-      tags: ['percussion', 'acoustic', 'latin'],
-      zones: [{ midiRange: [60, 60], url: '/assets/samples/perc/conga_h.mp3' }]
-    }
   ];
 
   getPresets() {
