@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { LiveEngineService } from '../../services/live-engine.service';
+import { HapticService } from '../../services/haptic.service';
 
 @Component({
   selector: 'app-performer',
@@ -16,6 +17,7 @@ export class PerformerComponent {
   private musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
   private liveEngine = inject(LiveEngineService);
+  private haptic = inject(HapticService);
 
 
   layout = signal<'keyboard' | 'pads' | 'matrix'>('keyboard');
@@ -67,7 +69,7 @@ export class PerformerComponent {
 
   launchPattern(trackId: number, slotId: string) {
     this.musicManager.setActivePatternSlot(trackId, slotId);
-    this.haptic.impact('medium');
+    this.haptic.medium();
   }
 
   launchScene(sceneIndex: number) {
@@ -76,7 +78,7 @@ export class PerformerComponent {
         this.musicManager.setActivePatternSlot(track.id, track.patternSlots[sceneIndex].id);
       }
     });
-    this.haptic.notification('success');
+    this.haptic.success();
   }
 
 

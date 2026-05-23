@@ -69,7 +69,7 @@
     <!-- Right Param Inspector -->
     <div class="param-inspector glass-v42 no-scrollbar shadow-v42-xl" *ngIf="selectedPad() as pad">
       <div class="inspector-title neon-text-xs">PRO PAD CONTROLS</div>
-      <button (click)="addAutomation("filter.cutoff")" class="mini-btn tactile-v42 mb-4 w-full">AUTO CUTOFF</button>
+      <button (click)="addAutomation('filter.cutoff')" class="mini-btn tactile-v42 mb-4 w-full">AUTO CUTOFF</button>
       <div class="pad-preview-header" [style.border-color]="pad.color">
         <span class="neon-text-xs neon-text">{{ pad.name }}</span>
       </div>

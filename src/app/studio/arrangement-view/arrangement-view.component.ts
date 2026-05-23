@@ -80,7 +80,6 @@ tracks = this.musicManager.tracks;
   @HostListener('window:keyup', ['$event'])
   onKeyUp(event: KeyboardEvent) {
     if (!event.altKey) this.isAltPressed = false;
-  trackHeaderHeight = computed(() => this.showAutomation() ? 160 : 80);
   }
 
   addTrack(): void {
