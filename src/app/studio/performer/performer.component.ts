@@ -5,6 +5,10 @@ import { MusicManagerService } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { LiveEngineService } from '../../services/live-engine.service';
 import { HapticService } from '../../services/haptic.service';
+import {
+  InstrumentsService,
+  InstrumentPreset,
+} from '../../services/instruments.service';
 
 @Component({
   selector: 'app-performer',
@@ -18,22 +22,45 @@ export class PerformerComponent {
   private audioEngine = inject(AudioEngineService);
   private liveEngine = inject(LiveEngineService);
   private haptic = inject(HapticService);
-
-
   layout = signal<'keyboard' | 'pads' | 'matrix'>('keyboard');
-  scenes = signal<any[]>(new Array(8).fill(null).map((_, i) => ({ id: i, name: `SCENE ${i+1}`, color: '#af25f4' })));
+  private instrumentsService = inject(InstrumentsService);
+  scenes = signal<any[]>(
+    new Array(8)
+      .fill(null)
+      .map((_, i) => ({ id: i, name: `SCENE ${i + 1}`, color: '#af25f4' }))
+  );
 
   smartChords = signal(false);
   velocity = 0.8;
   octave = signal(0);
   activeKeys = signal<Set<number>>(new Set());
 
+  availableInstruments = signal<InstrumentPreset[]>([]);
+  activeInstrumentId = this.liveEngine.activeInstrument;
+
   keyboardKeys = this.generateKeyboardKeys();
   performerPads = this.generatePads();
 
+  constructor() {
+    this.availableInstruments.set(this.instrumentsService.getPresets());
+  }
+
   generateKeyboardKeys() {
     const keys = [];
-    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const notes = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
+    ];
     for (let i = 0; i < 24; i++) {
       const midi = 48 + i; // Start from C3
       keys.push({
@@ -62,7 +89,6 @@ export class PerformerComponent {
     return [1, 3, 6, 8, 10].includes(note);
   }
 
-
   setLayout(mode: 'keyboard' | 'pads' | 'matrix') {
     this.layout.set(mode);
   }
@@ -73,21 +99,28 @@ export class PerformerComponent {
   }
 
   launchScene(sceneIndex: number) {
-    this.musicManager.tracks().forEach(track => {
+    this.musicManager.tracks().forEach((track) => {
       if (track.patternSlots && track.patternSlots[sceneIndex]) {
-        this.musicManager.setActivePatternSlot(track.id, track.patternSlots[sceneIndex].id);
+        this.musicManager.setActivePatternSlot(
+          track.id,
+          track.patternSlots[sceneIndex].id
+        );
       }
     });
     this.haptic.success();
   }
 
-
   toggleSmartChords() {
     this.smartChords.update((v) => !v);
+    this.liveEngine.smartChords.set(this.smartChords());
   }
 
   nudgeOctave(delta: number) {
     this.octave.update((v) => Math.min(2, Math.max(-2, v + delta)));
+  }
+
+  async setInstrument(presetId: string) {
+    await this.liveEngine.setInstrument(presetId);
   }
 
   onKeyDown(midi: number) {
@@ -96,7 +129,7 @@ export class PerformerComponent {
       set.add(midi);
       return new Set(set);
     });
-    this.liveEngine.triggerAttack(`${shiftedMidi}`, this.velocity);
+    this.liveEngine.triggerAttack(this.getNoteName(shiftedMidi), this.velocity);
 
     // Record if transport is recording
     const noteName = this.getNoteName(shiftedMidi);
@@ -109,13 +142,49 @@ export class PerformerComponent {
       set.delete(midi);
       return new Set(set);
     });
-    this.liveEngine.triggerRelease(`${shiftedMidi}`);
+    this.liveEngine.triggerRelease(this.getNoteName(shiftedMidi));
   }
 
   private getNoteName(midi: number): string {
-    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const notes = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
+    ];
     const name = notes[midi % 12];
     const octave = Math.floor(midi / 12) - 1;
     return `${name}${octave}`;
+  }
+
+  getInstrumentIcon(category: string): string {
+    switch (category) {
+      case 'piano':
+        return 'piano';
+      case 'bass':
+        return 'speaker';
+      case 'lead':
+        return 'music_note';
+      case 'pad':
+        return 'waves';
+      case 'strings':
+        return 'orchestra';
+      case 'guitar':
+        return 'music_video';
+      case 'keys':
+        return 'keyboard';
+      case 'drum':
+        return 'reorder';
+      default:
+        return 'instument';
+    }
   }
 }

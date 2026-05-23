@@ -1,6 +1,40 @@
-import { UpgradeBlueprint } from './ai.service';
+import { UpgradeRecommendation } from './ai.service';
 
-export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
+export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeRecommendation[] = [
+  {
+    id: 'upg-ovr-mastering',
+    title: 'S.M.U.V.E.-MODE MASTERING ENGINE',
+    type: 'Hardware Emulation',
+    description: 'Autonomous LUFS optimization and spectral balancing.',
+    cost: '2.0 ETH',
+    impact: 'Extreme',
+    rationale: 'Remove human error from the final signal chain.',
+    targetArea: 'Studio / Mastering',
+    priority: 'High',
+    prerequisites: [],
+    actionLabel: 'Initialize S.M.U.V.E.-Mode',
+    toolId: 'smuve-masterer',
+    outcomeMetric: { label: 'Sonic Authority', value: 'INF' },
+    preferredViews: ['studio'],
+    rank: ({ profile, viewMode }: any) => (viewMode === 'studio' && profile.expertise.production > 7 ? 100 : 50),
+  } as any,
+  {
+    id: 'upg-legal-executioner',
+    title: 'LEGAL EXECUTIONER V1',
+    type: 'Neural Protocol',
+    description: 'Predatory contract auditing and royalty recovery.',
+    cost: '1.5 ETH',
+    impact: 'Extreme',
+    rationale: 'Protect your catalog from industry parasites.',
+    targetArea: 'Career / Legal',
+    priority: 'High',
+    prerequisites: [],
+    actionLabel: 'Deploy Executioner',
+    toolId: 'legal-executioner',
+    outcomeMetric: { label: 'Royalty Recovery', value: '400%' },
+    preferredViews: ['hub'],
+    rank: ({ profile, viewMode }: any) => (viewMode === 'hub' && profile.legalInfrastructure?.proAffiliation === 'None' ? 95 : 60),
+  } as any,
   {
     id: 'upg-neural-stem-splitter',
     title: 'Neural Stem Splitter',
@@ -16,6 +50,6 @@ export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeBlueprint[] = [
     toolId: 'stem-splitter',
     outcomeMetric: { label: 'Separation Quality', value: '98%' },
     preferredViews: ['hub', 'studio'],
-    rank: ({ viewMode }) => (viewMode === 'hub' ? 90 : 65),
-  },
+    rank: ({ viewMode }: any) => (viewMode === 'hub' ? 90 : 65),
+  } as any,
 ];
