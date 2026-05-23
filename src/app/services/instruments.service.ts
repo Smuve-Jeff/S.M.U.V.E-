@@ -70,7 +70,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [21, 108],
-          url: 'https://tonejs.github.io/audio/salamander/C4.mp3', // Fallback to hosted for now if local missing
+          url: 'https://tonejs.github.io/audio/salamander/C4.mp3', // Temporary hosted sample until local assets are available
           velLayers: [
             {
               threshold: 0.5,

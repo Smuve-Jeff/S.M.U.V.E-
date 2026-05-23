@@ -184,7 +184,7 @@ export class PerformerComponent {
       case 'drum':
         return 'reorder';
       default:
-        return 'instument';
+        return 'instrument';
     }
   }
 }
