@@ -81,3 +81,15 @@ input[type='range']::-moz-range-thumb {
   cursor: pointer;
   border: none;
 }
+
+.format-btn {
+  color: #64748b;
+}
+
+.format-btn.active {
+  @apply border-fl-blue bg-fl-blue/10 text-fl-blue shadow-[0_0_10px_rgba(33,150,243,0.2)];
+}
+
+.format-btn:hover:not(.active) {
+  @apply border-white/20 bg-white/5 text-slate-300;
+}

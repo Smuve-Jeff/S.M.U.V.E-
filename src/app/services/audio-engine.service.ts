@@ -102,6 +102,18 @@ export class AudioEngineService {
           if (!lane.enabled) return;
           const point = lane.points.find((p: any) => Math.floor(p.step) === step);
           if (point) {
+            this.applyProductionParameter(id.toString(), lane.parameter, point.value, 0.05, time);
+          }
+        });
+      }
+    });
+  }
+    this.tracks.forEach((track, id) => {
+      if (track.automationLanes) {
+        track.automationLanes.forEach((lane: any) => {
+          if (!lane.enabled) return;
+          const point = lane.points.find((p: any) => Math.floor(p.step) === step);
+          if (point) {
             this.applyProductionParameter(id.toString(), lane.parameter, point.value, 0.05);
           }
         });
@@ -114,17 +126,17 @@ export class AudioEngineService {
     this.ctx = new (
       window.AudioContext || (window as any).webkitAudioContext
     )();
-    this.masterGain = this.ctx.createGain();
+    this.masterGain = ctx.createGain();
     this.compressor = this.ctx.createDynamicsCompressor();
     this.saturationNode = this.ctx.createWaveShaper();
     this.limiter = this.ctx.createDynamicsCompressor();
-    this.masterEQ = this.ctx.createBiquadFilter();
-    this.masterShelf = this.ctx.createBiquadFilter();
-    this.masterWidener = this.ctx.createStereoPanner();
+    this.masterEQ = ctx.createBiquadFilter();
+    this.masterShelf = ctx.createBiquadFilter();
+    this.masterWidener = ctx.createStereoPanner();
     this.reverbConvolver = this.ctx.createConvolver();
-    this.reverbWet = this.ctx.createGain();
+    this.reverbWet = ctx.createGain();
     this.delayNode = this.ctx.createDelay(2.0);
-    this.delayWet = this.ctx.createGain();
+    this.delayWet = ctx.createGain();
     this.masterAnalyser = this.ctx.createAnalyser();
 
     this.masterGain.connect(this.compressor);
@@ -232,20 +244,20 @@ export class AudioEngineService {
       buffer: null,
       sources: {},
       gains: {
-        vocals: this.ctx.createGain(),
-        drums: this.ctx.createGain(),
-        bass: this.ctx.createGain(),
-        instrumental: this.ctx.createGain(),
-        other: this.ctx.createGain(),
+        vocals: ctx.createGain(),
+        drums: ctx.createGain(),
+        bass: ctx.createGain(),
+        instrumental: ctx.createGain(),
+        other: ctx.createGain(),
       },
-      eqLow: this.ctx.createBiquadFilter(),
-      eqMid: this.ctx.createBiquadFilter(),
-      eqHigh: this.ctx.createBiquadFilter(),
-      filter: this.ctx.createBiquadFilter(),
-      pan: this.ctx.createStereoPanner(),
-      gain: this.ctx.createGain(),
-      sendA: this.ctx.createGain(),
-      sendB: this.ctx.createGain(),
+      eqLow: ctx.createBiquadFilter(),
+      eqMid: ctx.createBiquadFilter(),
+      eqHigh: ctx.createBiquadFilter(),
+      filter: ctx.createBiquadFilter(),
+      pan: ctx.createStereoPanner(),
+      gain: ctx.createGain(),
+      sendA: ctx.createGain(),
+      sendB: ctx.createGain(),
       analyser: this.ctx.createAnalyser(),
       isPlaying: false,
       startTime: 0,
@@ -300,6 +312,10 @@ export class AudioEngineService {
     this.isPlaying.set(true);
     this.nextNoteTime = this.ctx.currentTime + 0.05;
     this.timerId = setInterval(() => this.scheduler(), 25);
+
+    if (this.isRecording()) {
+      this.recorder.startRecording(this.getMasterStream().stream);
+    }
   }
 
   stop() {
@@ -308,6 +324,9 @@ export class AudioEngineService {
     if (this.timerId) {
       clearInterval(this.timerId);
       this.timerId = null;
+    }
+    if (this.recorder.isRecording()) {
+      this.recorder.stopRecording();
     }
   }
 
@@ -472,9 +491,9 @@ export class AudioEngineService {
     sendB: number = 0
   ) {
     this.resume();
-    const osc = this.ctx.createOscillator();
-    const vca = this.ctx.createGain();
-    const panner = this.ctx.createStereoPanner();
+    const osc = ctx.createOscillator();
+    const vca = ctx.createGain();
+    const panner = ctx.createStereoPanner();
 
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(freq, when);
@@ -488,13 +507,13 @@ export class AudioEngineService {
     osc.connect(vca).connect(panner).connect(this.masterGain);
 
     if (sendA > 0 && this.reverbConvolver) {
-      const sA = this.ctx.createGain();
+      const sA = ctx.createGain();
       sA.gain.value = sendA;
       vca.connect(sA).connect(this.reverbConvolver);
     }
 
     if (sendB > 0 && this.delayNode) {
-      const sB = this.ctx.createGain();
+      const sB = ctx.createGain();
       sB.gain.value = sendB;
       vca.connect(sB).connect(this.delayNode);
     }
@@ -514,14 +533,14 @@ export class AudioEngineService {
     this.resume();
     const src = this.ctx.createBufferSource();
     src.buffer = buffer;
-    const vca = this.ctx.createGain();
+    const vca = ctx.createGain();
     const stopAt = when + duration;
 
     vca.gain.setValueAtTime(0, when);
     vca.gain.linearRampToValueAtTime(velocity, when + 0.005);
     vca.gain.exponentialRampToValueAtTime(0.001, stopAt);
 
-    const p = this.ctx.createStereoPanner();
+    const p = ctx.createStereoPanner();
     p.pan.value = pan;
     src.connect(vca).connect(p).connect(this.masterGain);
     src.start(when);
@@ -539,13 +558,15 @@ export class AudioEngineService {
     sendA: number,
     sendB: number,
     synthParams: any,
-    velocityScale: number = 1
+    velocityScale: number = 1,
+    customCtx?: BaseAudioContext
   ) {
+    const ctx = customCtx || this.ctx;
     this.resume();
-    const osc = this.ctx.createOscillator();
-    const vca = this.ctx.createGain();
-    const panner = this.ctx.createStereoPanner();
-    const filter = this.ctx.createBiquadFilter();
+    const osc = ctx.createOscillator();
+    const vca = ctx.createGain();
+    const panner = ctx.createStereoPanner();
+    const filter = ctx.createBiquadFilter();
 
     osc.type = synthParams.type || "sine";
     osc.frequency.setValueAtTime(freq, when);
@@ -570,26 +591,27 @@ export class AudioEngineService {
     // Add Sub-Oscillator for extra fidelity/weight if requested or for specific types
     let subOsc: OscillatorNode | null = null;
     if (this.performanceTier() === 'ultra' && (osc.type === 'sawtooth' || osc.type === 'square')) {
-      subOsc = this.ctx.createOscillator();
+      subOsc = ctx.createOscillator();
       subOsc.type = 'sine';
       subOsc.frequency.setValueAtTime(freq / 2, when);
-      const subGain = this.ctx.createGain();
+      const subGain = ctx.createGain();
       subGain.gain.setValueAtTime(actualVel * gain * 0.3, when);
       subOsc.connect(subGain).connect(vca);
       subOsc.start(when);
       subOsc.stop(when + duration + release + 0.1);
     }
 
-    osc.connect(filter).connect(vca).connect(panner).connect(this.masterGain);
+        const dest = customCtx ? (customCtx as any).destination : this.masterGain;
+    osc.connect(filter).connect(vca).connect(panner).connect(dest);
 
     if (sendA > 0 && this.reverbConvolver) {
-      const sA = this.ctx.createGain();
+      const sA = ctx.createGain();
       sA.gain.value = sendA;
       vca.connect(sA).connect(this.reverbConvolver);
     }
 
     if (sendB > 0 && this.delayNode) {
-      const sB = this.ctx.createGain();
+      const sB = ctx.createGain();
       sB.gain.value = sendB;
       vca.connect(sB).connect(this.delayNode);
     }
@@ -608,8 +630,8 @@ export class AudioEngineService {
     if (!this.metronomeEnabled()) return;
     this.resume();
 
-    const osc = this.ctx.createOscillator();
-    const vca = this.ctx.createGain();
+    const osc = ctx.createOscillator();
+    const vca = ctx.createGain();
 
     const frequency = isDownbeat ? 1200 : 800;
     const duration = 0.03;
@@ -639,7 +661,7 @@ export class AudioEngineService {
 
   getBus(busId: string): GainNode {
     if (!this.busses.has(busId)) {
-      const bus = this.ctx.createGain();
+      const bus = ctx.createGain();
       bus.connect(this.masterGain);
       this.busses.set(busId, bus);
     }
@@ -663,7 +685,7 @@ export class AudioEngineService {
   private createFxNode(type: string, params: any): AudioNode | null {
     switch (type) {
       case 'filter':
-        const f = this.ctx.createBiquadFilter();
+        const f = ctx.createBiquadFilter();
         f.type = params.type || 'lowpass';
         f.frequency.value = params.frequency || 1000;
         return f;
@@ -774,8 +796,10 @@ export class AudioEngineService {
     trackId: string,
     parameter: string,
     value: number,
-    duration = 0.01
+    duration = 0.01,
+    scheduledTime?: number
   ) {
+    const now = scheduledTime || this.ctx.currentTime;
     const trimmedTrackId = `${trackId}`.trim();
     const isNumericTrackId =
       AudioEngineService.INTEGER_TRACK_ID_PATTERN.test(trimmedTrackId);

@@ -556,7 +556,7 @@ private normalizeTrack(track: any): TrackModel {
       velocity: velocity,
     });
   }
-  playStep(step: number, time: number, duration: number) {
+  playStep(step: number, time: number, duration: number, customCtx?: BaseAudioContext) {
     this.currentStep.set(step);
     this.tracks().forEach(track => {
       if (track.mute) return;
@@ -586,7 +586,8 @@ private normalizeTrack(track: any): TrackModel {
            track.sendA,
            track.sendB,
            track.synthParams || { type: 'sine' },
-           1
+           1,
+           customCtx
          );
       });
     });
