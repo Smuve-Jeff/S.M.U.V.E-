@@ -1,10 +1,8 @@
-import { AudioRecorderService } from '../studio/audio-recorder.service';
-import { Injectable, inject, signal, effect } from '@angular/core';
-import { LoggingService } from './logging.service';
-import { InstrumentsService } from './instruments.service';
+import { Injectable, inject, signal, computed } from '@angular/core';
+import { InstrumentsService, InstrumentPreset } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
+import { LoggingService } from './logging.service';
 import { FileLoaderService } from './file-loader.service';
-import { UserProfileService } from './user-profile.service';
 import { AudioSessionService } from '../studio/audio-session.service';
 
 export interface TrackNote {
@@ -16,23 +14,28 @@ export interface TrackNote {
   probability?: number;
 }
 
+export interface TrackClip {
+  id: string;
+  start: number;
+  length: number;
+  name: string;
+  type: 'midi' | 'audio';
+}
+
+export interface ArrangementClip extends TrackClip {}
+
 export interface PatternVersion {
   id: string;
   name: string;
-  createdAt: number;
-  notes: TrackNote[];
   steps: boolean[];
-  stepVelocities: number[];
+  notes: TrackNote[];
 }
 
 export interface PatternSlot {
   id: string;
   name: string;
-  createdAt: number;
-  notes: TrackNote[];
-  steps: boolean[];
-  stepVelocities: number[];
   versions: PatternVersion[];
+  activeVersionId: string;
 }
 
 export interface FxSlot {
@@ -40,39 +43,15 @@ export interface FxSlot {
   type: string;
   params: any;
   enabled: boolean;
-  bypass?: boolean;
   mix?: number;
-}
-
-export interface GlobalChord {
-  id: string;
-  name: string;
-  midi?: number[];
-  step?: number;
-  duration?: number;
-  startStep?: number;
-  length?: number;
 }
 
 export interface SongSection {
   id: string;
-  name?: string;
-  start?: number;
-  length: number;
-  color: string;
-  label?: string;
-  startBar?: number;
-}
-
-export interface ArrangementClip {
-  id: string;
-  trackId?: number;
+  name: string;
   start: number;
   length: number;
-  name?: string;
   color?: string;
-  type?: string;
-  audioUrl?: string;
 }
 
 export interface TrackModel {
@@ -80,139 +59,66 @@ export interface TrackModel {
   name: string;
   instrumentId: string;
   type: 'midi' | 'audio';
-  qualityMode?: 'ultra' | 'performance';
   color: string;
-  audioUrl?: string;
-  audioBuffer?: AudioBuffer;
   notes: TrackNote[];
-  clips: ArrangementClip[];
+  clips: TrackClip[];
+  fxSlots: FxSlot[];
   gain: number;
   pan: number;
   sendA: number;
   sendB: number;
-  fxSlots: FxSlot[];
-  armed?: boolean;
   mute: boolean;
   solo: boolean;
-  sidechainTargetTrackId?: string | null;
-  synthParams?: any;
   steps: boolean[];
   stepVelocities?: number[];
+  qualityMode?: 'ultra' | 'performance';
+  audioBuffer?: AudioBuffer;
+  synthParams?: any;
+  sidechainTargetTrackId?: string | null;
   patternSlots?: PatternSlot[];
   activePatternSlotId?: string | null;
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class MusicManagerService {
-  projectBPM = signal(120);
-  activeLoopBars = signal(4);
   private logger = inject(LoggingService);
+  public readonly engine = inject(AudioEngineService);
   private instruments = inject(InstrumentsService);
-  public engine = inject(AudioEngineService);
   private fileLoader = inject(FileLoaderService);
-  private profileService = inject(UserProfileService);
   private audioSession = inject(AudioSessionService);
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
-  currentStep = signal(-1);
+  currentStep = signal(0);
+
   structure = signal<SongSection[]>([]);
-  chords = signal<GlobalChord[]>([]);
+  chords = signal<any[]>([]);
+  activeLoopBars = signal(4);
 
   constructor() {
-    this.loadLastSession();
-
-    effect(() => {
-      const state = {
-        tracks: this.tracks(),
-        structure: this.structure(),
-        chords: this.chords(),
-      };
-      localStorage.setItem('smuve_last_session', JSON.stringify(state));
-    });
-
-    this.engine.onScheduleStep = (
-      step: number,
-      time: number,
-      stepDur: number
-    ) => {
-      this.currentStep.set(step);
-      for (const t of this.tracks()) {
-        if (t.mute) continue;
-        if (this.tracks().some((s) => s.solo) && !t.solo) continue;
-
-        if (t.type === 'midi') {
-          for (const n of t.notes) {
-            if (Math.floor(n.step) === step) {
-              if (n.probability !== undefined && Math.random() > n.probability)
-                continue;
-              const velocityScale = t.stepVelocities?.[step] ?? 1;
-              const noteDuration = (n.length || 1) * stepDur;
-              const preset = this.instruments
-                .getPresets()
-                .find((p) => p.id === t.instrumentId);
-
-              const synthParams = t.synthParams || preset?.synth || {
-                type: "triangle",
-                attack: 0.002,
-                decay: 0.08,
-                sustain: 0.7,
-                release: 0.1,
-                cutoff: 7000,
-                q: 0.8,
-              };
-
-              this.engine.triggerAttack(
-                t.id,
-                this.midiToFreq(n.midi),
-                time,
-                n.velocity,
-                noteDuration,
-                t.gain,
-                t.pan,
-                t.sendA,
-                t.sendB,
-                synthParams,
-                velocityScale
-              );
-
-              if (this.audioSession.isRecording()) {
-                this.engine.recorder.pendingMidi.push({
-                  pitch: n.midi,
-                  startTime: time,
-                  duration: noteDuration,
-                  velocity: n.velocity * velocityScale,
-                });
-              }
-            }
-          }
-        }
-      }
-    };
-
-    effect(() => {
-      if (!this.engine.isPlaying()) {
-        this.currentStep.set(-1);
-      }
-    });
+    this.init();
   }
 
-  private loadLastSession() {
-    const saved = localStorage.getItem('smuve_last_session');
+  private init() {
+    const saved = localStorage.getItem('smuve_studio_session');
     if (saved) {
-      const lastSession = JSON.parse(saved);
-      this.tracks.set(
-        lastSession.tracks.map((t: any) => this.normalizeTrack(t))
-      );
-      this.structure.set(lastSession.structure || []);
-      this.chords.set(lastSession.chords || []);
-      if (lastSession.tracks.length > 0) {
-        this.selectedTrackId.set(lastSession.tracks[0].id);
+      try {
+        const lastSession = JSON.parse(saved);
+        this.tracks.set(
+          lastSession.tracks.map((t: any) => this.normalizeTrack(t))
+        );
+        this.structure.set(lastSession.structure || []);
+        this.chords.set(lastSession.chords || []);
+        this.activeLoopBars.set(lastSession.activeLoopBars || 4);
+        if (lastSession.tracks.length > 0) {
+          this.selectedTrackId.set(lastSession.tracks[0].id);
+        }
+      } catch (e) {
+        this.ensureTrack('grand-piano');
       }
     } else {
       this.ensureTrack('grand-piano');
+      this.ensureTrack('kit-808-pro');
     }
   }
 
@@ -222,6 +128,10 @@ export class MusicManagerService {
       notes: track.notes || [],
       clips: track.clips || [],
       fxSlots: track.fxSlots || [],
+      gain: typeof track.gain === 'number' ? track.gain : 0.9,
+      pan: typeof track.pan === 'number' ? track.pan : 0,
+      sendA: typeof track.sendA === 'number' ? track.sendA : 0.1,
+      sendB: typeof track.sendB === 'number' ? track.sendB : 0.05,
       mute: !!track.mute,
       solo: !!track.solo,
       steps: track.steps || new Array(64).fill(false),
@@ -230,6 +140,7 @@ export class MusicManagerService {
       patternSlots: track.patternSlots || [],
       stepVelocities: track.stepVelocities || new Array(64).fill(1),
       synthParams: track.synthParams || null,
+      qualityMode: track.qualityMode || 'ultra',
     };
   }
 
@@ -249,7 +160,6 @@ export class MusicManagerService {
       name: customName || preset.name,
       instrumentId: preset.id,
       type: 'midi',
-      qualityMode: 'ultra',
       color: '#af25f4',
       notes: [],
       clips: [],
@@ -264,7 +174,8 @@ export class MusicManagerService {
       stepVelocities: new Array(64).fill(1),
       patternSlots: [],
       activePatternSlotId: null,
-      synthParams: preset.synth || null
+      synthParams: preset.synth || null,
+      qualityMode: 'ultra'
     };
     this.tracks.update((v) => [...v, track]);
     this.engine.ensureTrack({
@@ -282,6 +193,10 @@ export class MusicManagerService {
 
   addTrack(name: string, instrumentId: string) {
     return this.ensureTrack(instrumentId, name);
+  }
+
+  setTrackColor(trackId: number, color: string) {
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, color } : t));
   }
 
   setInstrument(trackId: number, presetId: string) {
@@ -541,13 +456,76 @@ export class MusicManagerService {
     });
   }
 
-  createPatternSlot(trackId: number, name: string) {}
-  duplicatePatternSlot(trackId: number, slotId: string) {}
-  snapshotPatternVersion(trackId: number, slotId: string, name: string) {}
-  recallPatternSlot(trackId: number, slotId: string) {}
+  createPatternSlot(trackId: number, name: string) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const slot: PatternSlot = {
+        id: `slot-${Date.now()}`,
+        name,
+        versions: [{
+          id: 'v-init',
+          name: 'Initial',
+          steps: [...t.steps],
+          notes: [...t.notes]
+        }],
+        activeVersionId: 'v-init'
+      };
+      return { ...t, patternSlots: [...(t.patternSlots || []), slot], activePatternSlotId: slot.id };
+    }));
+  }
+
+  duplicatePatternSlot(trackId: number, slotId: string) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const slot = t.patternSlots?.find(s => s.id === slotId);
+      if (!slot) return t;
+      const newSlot: PatternSlot = {
+        ...slot,
+        id: `slot-${Date.now()}-${Math.random()}`,
+        name: `${slot.name} Copy`
+      };
+      return { ...t, patternSlots: [...(t.patternSlots || []), newSlot] };
+    }));
+  }
+
+  snapshotPatternVersion(trackId: number, slotId: string, name: string) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return {
+        ...t,
+        patternSlots: t.patternSlots?.map(s => {
+          if (s.id !== slotId) return s;
+          const version: PatternVersion = {
+            id: `v-${Date.now()}`,
+            name,
+            steps: [...t.steps],
+            notes: [...t.notes]
+          };
+          return { ...s, versions: [...s.versions, version], activeVersionId: version.id };
+        })
+      };
+    }));
+  }
+
+  recallPatternSlot(trackId: number, slotId: string) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const slot = t.patternSlots?.find(s => s.id === slotId);
+      if (!slot) return t;
+      const version = slot.versions.find(v => v.id === slot.activeVersionId);
+      if (!version) return t;
+      return { ...t, steps: [...version.steps], notes: [...version.notes], activePatternSlotId: slotId };
+    }));
+  }
+
   fillPatternLane(trackId: number, density: number) {}
-  clearPatternLane(trackId: number) {}
+  clearPatternLane(trackId: number) {
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, steps: new Array(64).fill(false), notes: [] } : t));
+  }
   rotatePatternLane(trackId: number, shift: number) {}
   randomizePatternLane(trackId: number, probability: number) {}
-  setTrackQualityMode(trackId: number, mode: 'ultra' | 'performance') {}
+
+  setTrackQualityMode(trackId: number, mode: 'ultra' | 'performance') {
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, qualityMode: mode } : t));
+  }
 }

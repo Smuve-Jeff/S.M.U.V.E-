@@ -95,4 +95,16 @@ export class MixerComponent {
   setSidechain(trackId: number, targetId: string) {
     this.musicManager.setSidechain(trackId, targetId === 'none' ? null : targetId);
   }
+
+  togglePlayback() {
+    this.audioSession.togglePlay();
+  }
+
+  toggleRecording() {
+    this.audioSession.toggleRecord();
+  }
+
+  stopPlayback() {
+    this.audioSession.stop();
+  }
 }

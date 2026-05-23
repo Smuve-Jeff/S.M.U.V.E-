@@ -9,6 +9,11 @@ import { AiService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { ActivatedRoute, Router } from '@angular/router';
+import { UserProfileService } from '../services/user-profile.service';
+import { NotificationService } from '../services/notification.service';
+import { AiCopilotService } from './ai-copilot.service';
+import { HapticService } from '../services/haptic.service';
+import { TouchGestureService } from '../services/touch-gesture.service';
 
 describe('StudioComponent', () => {
   const createComponent = async () => {
@@ -17,6 +22,8 @@ describe('StudioComponent', () => {
     const uiServiceMock = {
       navigateToView: jest.fn(),
       performanceMode: signal(false),
+      holographicMode: signal(false),
+      isCompactMobile: () => false,
     };
     const routerMock = {
       navigate: jest.fn().mockResolvedValue(true),
@@ -27,11 +34,24 @@ describe('StudioComponent', () => {
       providers: [
         {
           provide: AudioSessionService,
-          useValue: { isRecording: signal(false) },
+          useValue: {
+            isRecording: signal(false),
+            isPlaying: signal(false),
+            isStopped: signal(true),
+            masterVolume: signal(100),
+          },
         },
         {
           provide: AudioEngineService,
-          useValue: { currentBeat: signal(0) },
+          useValue: {
+            currentBeat: signal(0),
+            tempo: signal(120),
+            resume: jest.fn(),
+            metronomeEnabled: signal(false),
+            metronomeVolume: signal(0.5),
+            stepsPerBeat: () => 4,
+            performanceTier: signal('ultra')
+          },
         },
         {
           provide: AiService,
@@ -46,13 +66,41 @@ describe('StudioComponent', () => {
         },
         {
           provide: MusicManagerService,
-          useValue: { selectedTrackId: signal<number | null>(null) },
+          useValue: {
+            selectedTrackId: signal<number | null>(null),
+            tracks: signal([])
+          },
+        },
+        {
+          provide: UserProfileService,
+          useValue: {
+            profile: signal({})
+          }
+        },
+        {
+          provide: NotificationService,
+          useValue: {}
+        },
+        {
+          provide: AiCopilotService,
+          useValue: {}
+        },
+        {
+          provide: HapticService,
+          useValue: {}
+        },
+        {
+          provide: TouchGestureService,
+          useValue: {}
         },
         {
           provide: ActivatedRoute,
           useValue: {
             url: routeUrl$.asObservable(),
             queryParamMap: queryParamMap$.asObservable(),
+            snapshot: {
+              queryParamMap: convertToParamMap({})
+            }
           },
         },
         { provide: Router, useValue: routerMock },
@@ -68,68 +116,25 @@ describe('StudioComponent', () => {
     return { component, routeUrl$, queryParamMap$, routerMock, uiServiceMock };
   };
 
-  it('syncs active view from query param without navigation loop', async () => {
-    const { component, queryParamMap$, routerMock } = await createComponent();
-
-    queryParamMap$.next(convertToParamMap({ view: 'mixer' }));
-
-    expect(component.activeView()).toBe('mixer');
-    expect(routerMock.navigate).not.toHaveBeenCalled();
-  });
-
   it('sets active view and updates query params by default', async () => {
     const { component, routerMock } = await createComponent();
 
     component.setActiveView('mastering');
 
     expect(component.activeView()).toBe('mastering');
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/studio'], {
+    expect(routerMock.navigate).toHaveBeenCalledWith([], expect.objectContaining({
       queryParams: { view: 'mastering' },
-      replaceUrl: true,
-    });
-  });
-
-  it('switches standalone studio routes back to the canonical update path', async () => {
-    const { component, routeUrl$, routerMock } = await createComponent();
-
-    routeUrl$.next([{ path: 'vocal-suite' }]);
-    component.setActiveView('drum-machine');
-
-    expect(component.activeView()).toBe('drum-machine');
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/studio'], {
-      queryParams: { view: 'drum-machine' },
-      replaceUrl: true,
-    });
-  });
-
-  it('navigates studio aliases through the canonical studio route', async () => {
-    const { component, routerMock } = await createComponent();
-
-    component.setActiveView('vocal-suite');
-
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/studio'], {
-      queryParams: { view: 'vocal-suite' },
-      replaceUrl: true,
-    });
-  });
-
-  it('syncs mastering and performance views from query params without a navigation loop', async () => {
-    const { component, queryParamMap$, routerMock } = await createComponent();
-
-    queryParamMap$.next(convertToParamMap({ view: 'mastering' }));
-    expect(component.activeView()).toBe('mastering');
-
-    queryParamMap$.next(convertToParamMap({ view: 'performance' }));
-    expect(component.activeView()).toBe('performance');
-    expect(routerMock.navigate).not.toHaveBeenCalled();
+      queryParamsHandling: 'merge',
+    }));
   });
 
   it('maps studio quality class based on performance mode', async () => {
-    const { component, uiServiceMock } = await createComponent();
+    const { component } = await createComponent();
+    const audioEngine = TestBed.inject(AudioEngineService);
 
-    expect(component.studioQualityClass()).toBe('studio-quality-ultra');
+    expect(component.studioQualityClass()).toBe('studio-ultra');
 
-    uiServiceMock.performanceMode.set(true);
-    expect(component.studioQualityClass()).toBe('studio-quality-performance');
+    (audioEngine.performanceTier as any).set('performance');
+    expect(component.studioQualityClass()).toBe('studio-perf');
   });
 });

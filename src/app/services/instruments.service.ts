@@ -56,7 +56,12 @@ export class InstrumentsService {
       category: 'piano',
       tags: ['classic', 'acoustic', 'high-fidelity'],
       sampleQuality: 'high',
-      zones: [{ midiRange: [21, 108], url: '/assets/samples/piano/piano_C4.mp3' }]
+      fallbackPresetId: 'stage-piano',
+      zones: [{
+        midiRange: [21, 108],
+        url: '/assets/samples/piano/piano_C4.mp3',
+        velLayers: [{ threshold: 0.5, url: '/assets/samples/piano/piano_C4_soft.mp3' }]
+      }]
     },
     {
       id: 'deep-sub-bass',

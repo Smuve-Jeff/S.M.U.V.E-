@@ -7,212 +7,191 @@
   overflow: hidden;
   font-family: 'Rajdhani', sans-serif;
   --color-neon: #a855f7;
-  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border: rgba(255, 255, 255, 0.08);
 }
 
-.piano-roll-v42-container {
+.piano-roll-container {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 8px;
   background: var(--studio-bg);
 }
 
-.bento-grid-pr {
-  display: grid;
-  grid-template-columns: 240px 1fr 280px;
-  grid-template-rows: 60px 1fr;
-  gap: 8px;
-  height: 100%;
-}
-
-.header-module {
-  grid-column: 1 / span 3;
+.piano-roll-header {
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-  border: 1px solid var(--color-border);
 }
 
-.title-section h2 {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 900;
-  margin: 0;
-  letter-spacing: 2px;
-  color: #fff;
-}
-
-.title-section span {
-  color: var(--color-neon);
-  text-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
-}
-
-.sidebar-left {
-  grid-column: 1;
-  grid-row: 2;
+.header-main {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.01);
-  border-radius: 12px;
-  padding: 12px;
-  border: 1px solid var(--color-border);
-  overflow-y: auto;
+  align-items: center;
+  gap: 1.5rem;
 }
 
-.track-blade {
-  padding: 12px;
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 4px 12px;
+  border-radius: 8px;
+}
+
+.tool-group, .action-group {
+  display: flex;
+  gap: 4px;
+}
+
+.tool-group button, .action-group button {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  color: #7a7a9a;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
+  font-size: 0.8rem;
+  font-weight: 800;
 }
 
-.track-blade.active {
-  background: rgba(168, 85, 247, 0.1);
+.tool-group button:hover, .action-group button:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.tool-group button.active {
+  background: rgba(168, 85, 247, 0.15);
+  color: var(--color-neon);
   border-color: var(--color-neon);
-  box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
 }
 
-.grid-module {
-  grid-column: 2;
-  grid-row: 2;
-  display: flex;
-  flex-direction: column;
-  background: #050507;
-  border-radius: 12px;
-  border: 1px solid var(--color-border);
-  overflow: hidden;
-}
-
-.piano-arena {
+.piano-roll-content {
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
 }
 
-.piano-keys-v42 {
+.keys-sidebar {
   width: 60px;
   background: #000;
   border-right: 1px solid #111;
   display: flex;
   flex-direction: column;
+  overflow-y: hidden;
 }
 
-.key-v42 {
-  height: 28px;
-  border-bottom: 1px solid #111;
+.key-item {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   padding-right: 6px;
+  border-bottom: 1px solid #111;
+  background: #1a1a1a;
   font-size: 0.6rem;
   font-weight: 700;
   color: #444;
-  background: #1a1a1a;
-  font-family: var(--font-mono);
 }
 
-.key-v42.black {
+.key-item.black-key {
   background: #0a0a0a;
-  color: #333;
 }
 
-.key-v42.in-scale {
-  background: rgba(168, 85, 247, 0.05);
+.key-item.in-scale {
   color: var(--color-neon);
+  background: rgba(168, 85, 247, 0.05);
 }
 
-.grid-scroll-v42 {
+.grid-viewport {
   flex: 1;
+  position: relative;
   overflow: auto;
+  background: #050507;
+}
+
+.grid-canvas {
   position: relative;
 }
 
-.grid-lines-overlay {
+.grid-row {
   position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 28px;
-  pointer-events: none;
+  left: 0;
+  right: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.015);
 }
 
-.note-v42 {
+.grid-row.black-row {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.grid-col {
   position: absolute;
-  height: 24px;
-  margin-top: 2px;
-  background: var(--color-neon);
+  top: 0;
+  bottom: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.grid-col.beat-line {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.grid-col.bar-line {
+  border-right: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: -1px 0 5px rgba(255, 255, 255, 0.05);
+}
+
+.note-block {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+  background: var(--color-neon);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+  z-index: 10;
   cursor: pointer;
+  transition: box-shadow 0.2s;
 }
 
-.note-v42.selected {
+.note-block.selected-note {
   background: #fff;
   border-color: #fff;
   box-shadow: 0 0 20px rgba(168, 85, 247, 0.8);
-  z-index: 10;
+  z-index: 20;
 }
 
-.inspector-module {
-  grid-column: 3;
-  grid-row: 2;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  border: 1px solid var(--color-border);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.note-params {
+  width: 240px;
+  background: rgba(255, 255, 255, 0.01);
+  border-left: 1px solid var(--color-border);
+  padding: 1rem;
 }
 
-/* Mobile Adjustments */
-@media (max-width: 1024px) {
-  .bento-grid-pr {
-    grid-template-columns: 1fr;
-    grid-template-rows: 60px 1fr auto;
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .keys-sidebar {
+    width: 45px;
   }
 
-  .sidebar-left {
+  .note-params {
     display: none;
   }
 
-  .inspector-module {
-    grid-column: 1;
-    grid-row: 3;
-    flex-direction: row;
-    flex-wrap: wrap;
-    height: auto;
-  }
-}
-
-/* Portrait Optimization for Piano Roll */
-@media (max-width: 500px) {
-  .piano-roll-v42-container {
-    padding: 4px;
+  .piano-roll-header {
+     height: auto;
+     flex-direction: column;
+     padding: 8px;
+     gap: 8px;
   }
 
-  .bento-grid-pr {
-    grid-template-rows: 50px 1fr 100px;
-  }
-
-  .piano-keys-v42 {
-    width: 40px;
-  }
-
-  .key-v42 {
-    font-size: 0.5rem;
-  }
-
-  .grid-lines-overlay {
-    background-size: 20px 28px; /* Denser grid for mobile */
+  .grid-col.beat-line {
+     border-right-width: 2px;
   }
 }
