@@ -117,11 +117,16 @@
 }
 
 .persona-btn {
-  @apply px-4 py-3 rounded-xl border border-border text-[10px] font-black uppercase tracking-tighter text-text-dim transition-all;
+  background-color: rgba(var(--color-bg-rgb), 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+  @apply px-4 py-3 rounded-xl border border-border text-[10px] font-black uppercase tracking-tighter text-text-dim;
 }
 
 .persona-btn:hover {
-  background-color: rgba(var(--color-bg-alt-rgb), 0.5);
+  @apply border-brand-secondary/50;
+  background-color: rgba(var(--color-bg-rgb), 0.4);
 }
 
 .persona-active {
@@ -175,20 +180,8 @@
 }
 
 .security-module {
-  @apply flex flex-col p-6 rounded-3xl border border-border;
+  @apply flex flex-col p-6 rounded-3xl border border-border shadow-v42-sm;
   background-color: rgba(var(--color-bg-rgb), 0.1);
-}
-
-.persona-btn {
-  @apply bg-background/20 backdrop-blur-sm transition-all duration-300;
-}
-
-.persona-btn:hover {
-  @apply border-brand-secondary/50 bg-background/40;
-}
-
-.security-module {
-  @apply shadow-v42-sm;
 }
 
 .permissions-grid {
@@ -207,17 +200,9 @@
   box-shadow: 0 0 15px rgba(14, 165, 233, 0.4);
 }
 
-/* Enhancing existing styles for v4.2 consistency */
 .smuve-input {
-  @apply bg-background/40 border-border rounded-xl px-4 py-3 text-xs font-bold text-text-main focus:border-brand-primary outline-none transition-all;
-}
-
-.settings-container {
-  @apply py-12;
-}
-
-.settings-tab {
-  @apply transition-all duration-500;
+  background-color: rgba(var(--color-bg-rgb), 0.4);
+  @apply border border-border rounded-xl px-4 py-3 text-xs font-bold text-text-main focus:border-brand-primary outline-none transition-all;
 }
 
 .active-tab::after {

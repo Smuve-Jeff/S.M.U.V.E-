@@ -95,7 +95,7 @@ export class SettingsComponent implements OnInit {
       title: 'Clear Local Cache',
       message: 'This will remove all cached audio samples and offline assets. Your projects remain safe.',
       confirmLabel: 'Clear Cache',
-      tone: 'warning'
+      tone: 'default'
     });
     if (confirmed) {
       await this.localStorageService.clearAllCache();
