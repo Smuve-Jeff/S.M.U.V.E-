@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
@@ -19,6 +19,9 @@ export class TransportBarComponent {
   isRecording = this.audioSession.isRecording;
   isStopped = this.audioSession.isStopped;
   masterVolume = this.audioSession.masterVolume;
+
+  showBpmDropdown = signal(false);
+  bpmPresets = [80, 90, 100, 110, 120, 124, 128, 130, 140, 150, 160];
 
   togglePlay(): void {
     this.audioSession.togglePlay();
@@ -43,6 +46,15 @@ export class TransportBarComponent {
       Math.max(20, this.audioEngine.tempo() + delta)
     );
     this.audioEngine.tempo.set(clamped);
+  }
+
+  setTempo(bpm: number): void {
+    this.audioEngine.tempo.set(bpm);
+    this.showBpmDropdown.set(false);
+  }
+
+  toggleBpmDropdown(): void {
+    this.showBpmDropdown.update(v => !v);
   }
 
   onTempoInput(event: Event): void {

@@ -37,12 +37,12 @@ describe('ArrangementViewComponent', () => {
 
   it('should call musicManager.ensureTrack when adding a track', () => {
     component.addTrack();
-    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('Piano');
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('grand-piano');
   });
 
   it('should calculate trackCount from musicManager.tracks', () => {
     mockMusicManager.tracks.set([{ id: 1, name: 'Test', clips: [] }]);
     fixture.detectChanges();
-    expect(component.trackCount()).toBe(1);
+    expect(component.tracks().length).toBe(1);
   });
 });

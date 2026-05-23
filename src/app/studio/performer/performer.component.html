@@ -1,98 +1,119 @@
 <div class="performer-container glass-v42 retro-flicker shadow-v42-xl">
   <div class="performer-header wood-panel">
     <div class="header-branding">
-      <div class="neon-text-sm neon-text">LIVE PERFORMER v4.2</div>
-      <div class="status-badge glass-v42 neon-accent-primary">ACTIVE</div>
+      <div class="neon-text-sm neon-text font-black tracking-widest">LIVE PERFORMER v4.2</div>
+      <div class="status-badge glass-v42 neon-accent-primary animate-pulse">ACTIVE</div>
     </div>
 
-    <div class="layout-selector glass-v42">
+    <div class="layout-selector glass-v42 p-1.5 rounded-xl border border-white/10 flex gap-2">
       <button
         [class.active]="layout() === 'keyboard'"
         (click)="setLayout('keyboard')"
-        class="executive-glass tactile-v42"
+        class="layout-btn tactile-v42 px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-wider transition-all"
       >
+        <span class="material-symbols-outlined text-sm block mb-1">piano</span>
         KEYBOARD
       </button>
       <button
         [class.active]="layout() === 'pads'"
         (click)="setLayout('pads')"
-        class="executive-glass tactile-v42"
+        class="layout-btn tactile-v42 px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-wider transition-all"
       >
-        PADS
+        <span class="material-symbols-outlined text-sm block mb-1">apps</span>
+        DRUM PADS
       </button>
     </div>
 
-    <div class="performer-actions">
+    <div class="performer-actions flex items-center gap-3">
       <button
         (click)="toggleSmartChords()"
         [class.active]="smartChords()"
-        class="executive-glass extreme-glow"
+        class="action-btn executive-glass extreme-glow px-4 py-2 rounded-lg border border-white/10 font-black text-[10px] uppercase transition-all"
       >
         SMART CHORDS
       </button>
     </div>
   </div>
 
-  <div class="performer-content">
+  <div class="performer-content relative">
     <div class="scanline-overlay"></div>
 
-    <!-- Keyboard Layout -->
-    <div *ngIf="layout() === 'keyboard'" class="keyboard-view">
-      <div class="keys-container">
+    <!-- Keyboard Layout (Performance Optimized) -->
+    <div *ngIf="layout() === 'keyboard'" class="keyboard-view h-full flex flex-col justify-center p-6">
+      <div class="keys-container-v42 relative h-80 w-full max-w-6xl mx-auto flex rounded-2xl overflow-hidden shadow-2xl border-4 border-black">
         <div
           *ngFor="let key of keyboardKeys"
-          class="perf-key tactile-v42"
+          class="perf-key-v42 flex-1 relative flex items-end justify-center pb-8 cursor-pointer select-none transition-all active:scale-y-[0.98] active:translate-y-1"
           [class.black-key]="isBlackKey(key.midi)"
           [class.active]="activeKeys().has(key.midi)"
           (mousedown)="onKeyDown(key.midi)"
           (mouseup)="onKeyUp(key.midi)"
+          (mouseleave)="onKeyUp(key.midi)"
           (touchstart)="onKeyDown(key.midi); $event.preventDefault()"
           (touchend)="onKeyUp(key.midi); $event.preventDefault()"
         >
-          <span class="key-label font-mono">{{ key.name }}</span>
+          <div class="key-inner-shadow absolute inset-0 pointer-events-none shadow-inner"></div>
+          <span class="key-label-v42 font-black text-[10px] opacity-30 uppercase tracking-tighter">{{ key.name }}</span>
+          <div *ngIf="activeKeys().has(key.midi)" class="active-glow absolute inset-0 opacity-50 blur-xl bg-current"></div>
         </div>
       </div>
     </div>
 
-    <!-- Pads Layout -->
-    <div *ngIf="layout() === 'pads'" class="pads-view">
-      <div class="perf-pads-grid">
+    <!-- Pads Layout (Performance Optimized) -->
+    <div *ngIf="layout() === 'pads'" class="pads-view h-full flex items-center justify-center p-6">
+      <div class="perf-pads-grid-v42 grid grid-cols-4 gap-6 w-full max-w-4xl aspect-square">
         <div
           *ngFor="let pad of performerPads"
-          class="perf-pad tactile-v42 glass-v42 shadow-v42-xl"
+          class="perf-pad-v42 relative flex flex-col items-center justify-center rounded-2xl border-2 border-white/10 glass-v42 cursor-pointer select-none transition-all active:scale-95 active:shadow-inner overflow-hidden"
           [class.active]="activeKeys().has(pad.midi)"
           [style.--pad-color]="pad.color"
           (mousedown)="onKeyDown(pad.midi)"
           (mouseup)="onKeyUp(pad.midi)"
+          (mouseleave)="onKeyUp(pad.midi)"
           (touchstart)="onKeyDown(pad.midi); $event.preventDefault()"
           (touchend)="onKeyUp(pad.midi); $event.preventDefault()"
         >
-          <div class="pad-led" [style.background-color]="pad.color"></div>
-          <span class="pad-label neon-text-xs">{{ pad.name }}</span>
+          <div class="pad-bg absolute inset-0 transition-all" [style.background-color]="activeKeys().has(pad.midi) ? pad.color : 'transparent'"></div>
+          <div class="pad-led absolute top-3 right-3 w-3 h-3 rounded-full border border-black/50" [style.background-color]="pad.color"></div>
+          <span class="pad-label-v42 font-black text-xs uppercase tracking-widest relative z-10">{{ pad.name }}</span>
+          <div *ngIf="activeKeys().has(pad.midi)" class="pad-glow absolute inset-0 opacity-40 blur-2xl" [style.background-color]="pad.color"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="performer-footer wood-panel">
-    <div class="footer-param glass-v42">
-      <label class="neon-text-xs">VELOCITY</label>
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.01"
-        [(ngModel)]="velocity"
-        class="knob-range"
-      />
-    </div>
-    <div class="footer-param glass-v42">
-      <label class="neon-text-xs">OCTAVE</label>
-      <div class="octave-controls">
-        <button (click)="nudgeOctave(-1)" class="executive-glass tactile-v42">-</button>
-        <span class="font-mono">{{ octave() }}</span>
-        <button (click)="nudgeOctave(1)" class="executive-glass tactile-v42">+</button>
+  <div class="performer-footer wood-panel flex items-center justify-between px-8 py-4 border-t border-white/10">
+    <div class="footer-control-group flex gap-8">
+      <div class="perf-control flex flex-col gap-2">
+        <div class="flex justify-between items-center px-1">
+          <label class="neon-text-xs font-black opacity-50 uppercase tracking-widest">VELOCITY</label>
+          <span class="font-mono text-[10px] text-neon-orange">{{ (velocity * 100) | number:'1.0-0' }}%</span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          [(ngModel)]="velocity"
+          class="perf-range-v42"
+        />
       </div>
+
+      <div class="perf-control flex flex-col gap-2">
+        <label class="neon-text-xs font-black opacity-50 uppercase tracking-widest px-1">OCTAVE SHIFT</label>
+        <div class="octave-panel glass-v42 flex items-center p-1 rounded-xl border border-white/10">
+          <button (click)="nudgeOctave(-1)" class="octave-btn tactile-v42 w-10 h-10 flex items-center justify-center rounded-lg text-lg font-black">-</button>
+          <span class="octave-value font-mono text-xl font-black px-6 min-w-[60px] text-center text-neon-purple">{{ octave() }}</span>
+          <button (click)="nudgeOctave(1)" class="octave-btn tactile-v42 w-10 h-10 flex items-center justify-center rounded-lg text-lg font-black">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="performer-telemetry hidden xl:flex gap-6">
+       <div class="telemetry-item flex flex-col items-end">
+          <span class="text-[8px] font-black opacity-40 uppercase tracking-widest">ENGINE STATUS</span>
+          <span class="text-[10px] font-mono text-emerald-500 font-bold tracking-tighter">NOMINAL // READY</span>
+       </div>
     </div>
   </div>
 </div>

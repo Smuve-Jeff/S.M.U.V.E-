@@ -149,6 +149,42 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       steps: this.initSteps(),
       params: { semitone: 0, decay: 0.6, pan: 0.4, cutoff: 1200, resonance: 0.9, attack: 0.003 },
     },
+    {
+      id: '9',
+      name: 'COWBELL',
+      midi: 56,
+      color: '#ffffff',
+      type: 'cowbell',
+      steps: this.initSteps(),
+      params: { semitone: 0, decay: 0.2, pan: 0, cutoff: 2000, resonance: 0.5, attack: 0.001 },
+    },
+    {
+      id: '10',
+      name: 'SHAKER',
+      midi: 70,
+      color: '#ffff00',
+      type: 'shaker',
+      steps: this.initSteps(),
+      params: { semitone: 0, decay: 0.1, pan: 0, cutoff: 5000, resonance: 0.2, attack: 0.001 },
+    },
+    {
+      id: '11',
+      name: 'RIDE',
+      midi: 51,
+      color: '#00ffff',
+      type: 'ride',
+      steps: this.initSteps(),
+      params: { semitone: 0, decay: 1.0, pan: 0.3, cutoff: 6000, resonance: 0.8, attack: 0.001 },
+    },
+    {
+      id: '12',
+      name: 'PERC',
+      midi: 60,
+      color: '#ff00ff',
+      type: 'perc',
+      steps: this.initSteps(),
+      params: { semitone: 0, decay: 0.3, pan: -0.3, cutoff: 1500, resonance: 0.7, attack: 0.002 },
+    },
   ]);
 
   selectedPad = signal<DrumPad | null>(null);

@@ -1,7 +1,7 @@
 <div class="transport-container wood-panel shadow-v42-xl glass-v42">
   <div class="transport-content">
     <!-- Branding/Status -->
-    <div class="transport-branding">
+    <div class="transport-branding hidden md:flex">
       <div class="neon-text-xs neon-text">ANALOG ENGINE v4.2</div>
       <div class="status-indicator" [class.recording]="isRecording()">
         <span class="dot"></span>
@@ -37,22 +37,41 @@
     </div>
 
     <!-- Tempo/Sync -->
-    <div class="transport-tempo glass-v42">
+    <div class="transport-tempo glass-v42 relative">
       <div class="tempo-controls">
         <button (click)="nudgeTempo(-1)" class="nudge-btn">-</button>
-        <input
-          type="number"
-          [ngModel]="audioEngine.tempo()"
-          (ngModelChange)="audioEngine.tempo.set($event)"
-          class="tempo-input font-mono"
-        />
+        <div class="tempo-display-wrapper" (click)="toggleBpmDropdown()">
+          <input
+            type="number"
+            [ngModel]="audioEngine.tempo()"
+            (ngModelChange)="audioEngine.tempo.set($event)"
+            class="tempo-input font-mono"
+            (click)="$event.stopPropagation()"
+          />
+          <span class="material-symbols-outlined text-[10px] opacity-50">arrow_drop_down</span>
+        </div>
         <button (click)="nudgeTempo(1)" class="nudge-btn">+</button>
       </div>
       <div class="neon-text-xs opacity-50">BPM</div>
+
+      <!-- BPM Dropdown -->
+      <div class="bpm-dropdown glass-v42 shadow-v42-xl" *ngIf="showBpmDropdown()">
+        <div class="dropdown-header neon-text-xs border-b border-white/10 p-2">PRESETS</div>
+        <div class="presets-grid grid grid-cols-3 gap-1 p-2">
+          <button
+            *ngFor="let bpm of bpmPresets"
+            (click)="setTempo(bpm)"
+            class="preset-btn text-[10px] font-mono p-1 rounded hover:bg-white/10 transition-colors"
+            [class.active]="audioEngine.tempo() === bpm"
+          >
+            {{ bpm }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Master Volume -->
-    <div class="transport-master glass-v42">
+    <div class="transport-master glass-v42 hidden sm:flex">
       <span class="material-symbols-outlined text-sm">volume_up</span>
       <input
         type="range"
@@ -62,11 +81,11 @@
         (input)="updateMasterVolume($event)"
         class="volume-slider extreme-glow"
       />
-      <span class="font-mono text-[10px] w-8">{{ masterVolume() }}%</span>
+      <span class="font-mono text-[10px] w-8 text-center">{{ masterVolume() }}%</span>
     </div>
 
     <!-- Metronome -->
-    <div class="transport-metronome glass-v42">
+    <div class="transport-metronome glass-v42 hidden lg:flex">
       <button
         class="metronome-toggle"
         [class.active]="audioEngine.metronomeEnabled()"
