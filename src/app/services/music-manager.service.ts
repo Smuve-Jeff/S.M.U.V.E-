@@ -22,6 +22,8 @@ export interface TrackClip {
   type: 'midi' | 'audio';
 }
 
+export interface ArrangementClip extends TrackClip {}
+
 export interface PatternVersion {
   id: string;
   name: string;
@@ -36,6 +38,22 @@ export interface PatternSlot {
   activeVersionId: string;
 }
 
+export interface FxSlot {
+  id: string;
+  type: string;
+  params: any;
+  enabled: boolean;
+  mix?: number;
+}
+
+export interface SongSection {
+  id: string;
+  name: string;
+  start: number;
+  length: number;
+  color?: string;
+}
+
 export interface TrackModel {
   id: number;
   name: string;
@@ -44,11 +62,11 @@ export interface TrackModel {
   color: string;
   notes: TrackNote[];
   clips: TrackClip[];
+  fxSlots: FxSlot[];
   gain: number;
   pan: number;
   sendA: number;
   sendB: number;
-  fxSlots: any[];
   mute: boolean;
   solo: boolean;
   steps: boolean[];
@@ -64,7 +82,7 @@ export interface TrackModel {
 @Injectable({ providedIn: 'root' })
 export class MusicManagerService {
   private logger = inject(LoggingService);
-  private engine = inject(AudioEngineService);
+  public readonly engine = inject(AudioEngineService);
   private instruments = inject(InstrumentsService);
   private fileLoader = inject(FileLoaderService);
   private audioSession = inject(AudioSessionService);
@@ -73,8 +91,9 @@ export class MusicManagerService {
   selectedTrackId = signal<number | null>(null);
   currentStep = signal(0);
 
-  structure = signal<any[]>([]);
+  structure = signal<SongSection[]>([]);
   chords = signal<any[]>([]);
+  activeLoopBars = signal(4);
 
   constructor() {
     this.init();
@@ -90,6 +109,7 @@ export class MusicManagerService {
         );
         this.structure.set(lastSession.structure || []);
         this.chords.set(lastSession.chords || []);
+        this.activeLoopBars.set(lastSession.activeLoopBars || 4);
         if (lastSession.tracks.length > 0) {
           this.selectedTrackId.set(lastSession.tracks[0].id);
         }
@@ -108,6 +128,10 @@ export class MusicManagerService {
       notes: track.notes || [],
       clips: track.clips || [],
       fxSlots: track.fxSlots || [],
+      gain: typeof track.gain === 'number' ? track.gain : 0.9,
+      pan: typeof track.pan === 'number' ? track.pan : 0,
+      sendA: typeof track.sendA === 'number' ? track.sendA : 0.1,
+      sendB: typeof track.sendB === 'number' ? track.sendB : 0.05,
       mute: !!track.mute,
       solo: !!track.solo,
       steps: track.steps || new Array(64).fill(false),

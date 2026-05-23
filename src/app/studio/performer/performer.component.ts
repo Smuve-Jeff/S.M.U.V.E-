@@ -75,7 +75,7 @@ export class PerformerComponent {
       set.add(midi);
       return new Set(set);
     });
-    this.liveEngine.triggerAttack(shiftedMidi, this.velocity);
+    this.liveEngine.triggerAttack(`${shiftedMidi}`, this.velocity);
 
     // Record if transport is recording
     const noteName = this.getNoteName(shiftedMidi);
@@ -88,7 +88,7 @@ export class PerformerComponent {
       set.delete(midi);
       return new Set(set);
     });
-    this.liveEngine.triggerRelease(shiftedMidi);
+    this.liveEngine.triggerRelease(`${shiftedMidi}`);
   }
 
   private getNoteName(midi: number): string {
