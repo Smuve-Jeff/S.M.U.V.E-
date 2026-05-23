@@ -117,11 +117,16 @@
 }
 
 .persona-btn {
-  @apply px-4 py-3 rounded-xl border border-border text-[10px] font-black uppercase tracking-tighter text-text-dim transition-all;
+  background-color: rgba(var(--color-bg-rgb), 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+  @apply px-4 py-3 rounded-xl border border-border text-[10px] font-black uppercase tracking-tighter text-text-dim;
 }
 
 .persona-btn:hover {
-  background-color: rgba(var(--color-bg-alt-rgb), 0.5);
+  @apply border-brand-secondary/50;
+  background-color: rgba(var(--color-bg-rgb), 0.4);
 }
 
 .persona-active {
@@ -175,6 +180,32 @@
 }
 
 .security-module {
-  @apply flex flex-col p-6 rounded-3xl border border-border;
+  @apply flex flex-col p-6 rounded-3xl border border-border shadow-v42-sm;
   background-color: rgba(var(--color-bg-rgb), 0.1);
+}
+
+.permissions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.storage-progress-bar {
+  @apply relative overflow-hidden;
+  background: rgba(var(--color-bg-alt-rgb), 0.3);
+}
+
+.storage-progress-fill {
+  background: linear-gradient(90deg, var(--color-brand-secondary) 0%, #0ea5e9 100%);
+  box-shadow: 0 0 15px rgba(14, 165, 233, 0.4);
+}
+
+.smuve-input {
+  background-color: rgba(var(--color-bg-rgb), 0.4);
+  @apply border border-border rounded-xl px-4 py-3 text-xs font-bold text-text-main focus:border-brand-primary outline-none transition-all;
+}
+
+.active-tab::after {
+  content: '';
+  @apply absolute bottom-0 left-0 w-full h-0.5 bg-brand-primary shadow-v42-sm;
 }

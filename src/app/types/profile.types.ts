@@ -16,7 +16,13 @@ export interface AppSettings {
   };
   audio: { masterVolume: number; autoSaveEnabled: boolean };
   ai: { kbWriteAccess: boolean; commanderPersona: string };
-  security: { twoFactorEnabled: boolean };
+  security: {
+    twoFactorEnabled: boolean;
+    endToEndEncryption: boolean;
+    biometricLock: boolean;
+    auditLogEnabled: boolean;
+    sessionTimeout: number;
+  };
 }
 
 export interface CatalogItem {

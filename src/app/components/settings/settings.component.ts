@@ -1,3 +1,4 @@
+import { DatabaseService } from '../../services/database.service';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -12,6 +13,8 @@ import { MicrophoneService } from '../../services/microphone.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { AuthService } from '../../services/auth.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
+import { PermissionService } from '../../services/permission.service';
+import { LocalStorageService } from '../../services/local-storage.service';
 
 @Component({
   selector: 'app-settings',
@@ -28,6 +31,9 @@ export class SettingsComponent implements OnInit {
   microphoneService = inject(MicrophoneService);
   audioEngine = inject(AudioEngineService);
   authService = inject(AuthService);
+  permissionService = inject(PermissionService);
+  localStorageService = inject(LocalStorageService);
+  databaseService = inject(DatabaseService);
   dialog = inject(InteractionDialogService);
 
   settings = computed(() => this.profileService.profile().settings);
@@ -59,13 +65,54 @@ export class SettingsComponent implements OnInit {
       },
     ];
   });
-  activeTab = signal<'ui' | 'audio' | 'ai' | 'studio' | 'security'>('ui');
+
+  activeTab = signal<'ui' | 'audio' | 'ai' | 'studio' | 'security' | 'permissions' | 'storage'>('ui');
   audioInputDevices = this.microphoneService.availableDevices;
   selectedAudioInputId = this.microphoneService.selectedDeviceId;
+  storageStats = signal<{ usedBytes: number; totalBytes: number; percentUsed: number } | null>(null);
+  securityAudit = computed(() => this.securityService.getSecurityAudit());
 
   ngOnInit() {
     this.securityService.fetchLogs();
     this.securityService.fetchSessions();
+    this.updateStorageStats();
+  }
+
+
+  async forceSync() {
+    const profile = this.profileService.profile();
+    await this.databaseService.saveUserProfile(profile, 'current');
+    this.notificationService.show('Cloud synchronization forced.', 'success');
+  }
+
+  async updateStorageStats() {
+    const stats = await this.localStorageService.getStorageStats();
+    this.storageStats.set(stats);
+  }
+
+  async clearCache() {
+    const confirmed = await this.dialog.confirm({
+      title: 'Clear Local Cache',
+      message: 'This will remove all cached audio samples and offline assets. Your projects remain safe.',
+      confirmLabel: 'Clear Cache',
+      tone: 'default'
+    });
+    if (confirmed) {
+      await this.localStorageService.clearAllCache();
+      await this.updateStorageStats();
+      this.notificationService.show('Local cache cleared.', 'success');
+    }
+  }
+
+  async exportData() {
+    await this.securityService.exportUserData();
+  }
+
+  async requestPermission(name: string) {
+    const granted = await this.permissionService.requestPermission(name);
+    if (granted) {
+      this.notificationService.show(`Permission granted for ${name}.`, 'success');
+    }
   }
 
   async refreshAudioInputs() {
@@ -113,6 +160,18 @@ export class SettingsComponent implements OnInit {
         2000
       );
       if (category === 'security') {
+        if (key === 'endToEndEncryption' && value === true) {
+          await this.securityService.generateE2EKeys();
+          this.notificationService.show('E2E Encryption keys generated and stored in secure enclave.', 'success');
+        }
+        if (key === 'twoFactorEnabled' && value === true) {
+          const setup = await this.securityService.setup2FA();
+          await this.dialog.alert({
+            title: '2FA Enrollment',
+            message: `Scan this URI in your authenticator app: ${setup.qrCodeUri}. Your secret key is: ${setup.secret}`,
+            confirmLabel: 'I have saved the key'
+          });
+        }
         this.securityService.logEvent(
           'SETTING_CHANGED',
           `Updated ${key} to ${value}`
@@ -127,11 +186,17 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  setTab(tab: 'ui' | 'audio' | 'ai' | 'studio' | 'security') {
+  setTab(tab: 'ui' | 'audio' | 'ai' | 'studio' | 'security' | 'permissions' | 'storage') {
     this.activeTab.set(tab);
     if (tab === 'security') {
       this.securityService.fetchLogs();
       this.securityService.fetchSessions();
+    }
+    if (tab === 'storage') {
+      this.updateStorageStats();
+    }
+    if (tab === 'permissions') {
+      this.permissionService.refreshAllStatuses();
     }
   }
 
