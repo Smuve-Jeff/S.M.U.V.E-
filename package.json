@@ -33,12 +33,16 @@
     "serve": "^14.2.6",
     "tone": "^15.1.22",
     "wait-on": "^9.0.5",
-    "zone.js": "^0.15.1"
+    "zone.js": "^0.15.1",
+    "@angular/cli": "21.2.7",
+    "@angular-devkit/build-angular": "21.2.7",
+    "@angular/compiler-cli": "21.2.9",
+    "typescript": "^5.9.3",
+    "postcss": "^8.5.10",
+    "autoprefixer": "^10.5.0",
+    "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "21.2.7",
-    "@angular/cli": "21.2.7",
-    "@angular/compiler-cli": "21.2.9",
     "@angular/pwa": "21.2.7",
     "@babel/preset-typescript": "^7.28.5",
     "@playwright/test": "^1.59.1",
@@ -47,17 +51,13 @@
     "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.58.2",
     "angular-cli-ghpages": "^3.0.2",
-    "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
     "jest-preset-angular": "^16.1.5",
-    "postcss": "^8.5.10",
     "prettier": "^3.8.3",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.9.3",
     "typescript-eslint": "^8.58.2"
   },
   "overrides": {
