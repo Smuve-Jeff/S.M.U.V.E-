@@ -1,4 +1,4 @@
-import { ThaSpotFeed } from './game';
+import { ThaSpotFeed } from './hub.models';
 
 export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   badges: [
