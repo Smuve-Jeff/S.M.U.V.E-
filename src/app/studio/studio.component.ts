@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject } from 'rxjs';
 import { TransportBarComponent } from './transport-bar/transport-bar.component';
 import { MixerComponent } from './mixer/mixer.component';
 import { DjDeckComponent } from './dj-deck/dj-deck.component';
@@ -25,14 +25,11 @@ import { ChannelRackComponent } from './channel-rack/channel-rack.component';
 import { AiService as NeuralOrchestratorService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
 import { NotificationService } from '../services/notification.service';
-import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
-import { NeuralFoundryComponent } from '../neural-foundry/neural-foundry.component';
 import { AiCopilotService } from './ai-copilot.service';
 import { HapticService } from '../services/haptic.service';
 import { TouchGestureService } from '../services/touch-gesture.service';
 import { PerformerComponent } from './performer/performer.component';
-import { PerformanceGridComponent } from './performance-grid/performance-grid.component';
 import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
 
@@ -42,9 +39,8 @@ type StudioView =
   | 'mixer'
   | 'performance'
   | 'mastering'
-  | 'vocal-suite'
   | 'drum-machine'
-  | 'performer' | 'performance-grid';
+  | 'performer';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'dj',
@@ -52,10 +48,8 @@ const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'mixer',
   'performance',
   'mastering',
-  'vocal-suite',
   'drum-machine',
   'performer',
-  'performance-grid',
 ]);
 
 function isStudioView(value: string): value is StudioView {
@@ -73,12 +67,9 @@ function isStudioView(value: string): value is StudioView {
     ArrangementViewComponent,
     PianoRollComponent,
     MasteringSuiteComponent,
-    VocalSuiteComponent,
     ChannelRackComponent,
     DrumMachineComponent,
-    NeuralFoundryComponent,
     PerformerComponent,
-    PerformanceGridComponent,
     SoundBrowserComponent,
     TrackInspectorComponent,
   ],

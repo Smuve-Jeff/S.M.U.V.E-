@@ -15,7 +15,7 @@
       <input
         type="text"
         [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set()"
+        (ngModelChange)="searchQuery.set($event)"
         placeholder="Search Professional Library..."
         class="w-full bg-black/40 border border-fl-border rounded-lg pl-8 pr-3 py-1.5 text-[10px] text-slate-200 focus:outline-none focus:border-fl-blue/40 transition-all placeholder:text-slate-700 executive-glass"
       />
