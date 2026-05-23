@@ -1,13 +1,14 @@
 import { Component, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RadarChartComponent } from '../radar-chart/radar-chart.component';
 import { UserProfileService } from '../../services/user-profile.service';
 import { AiAuditService } from '../../services/ai-audit.service';
 
 @Component({
   selector: 'app-career-hub',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RadarChartComponent],
   templateUrl: './career-hub.component.html',
   styleUrls: ['./career-hub.component.css'],
 })

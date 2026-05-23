@@ -9,6 +9,7 @@ import { AiService } from '../../services/ai.service';
 import { UplinkService } from '../../services/uplink.service';
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { animate, style, transition, trigger } from '@angular/animations';
+import { StrategicSignals } from '../../types/profile.types';
 
 interface Question {
   id: string;
@@ -45,6 +46,47 @@ interface Question {
   ],
 })
 export class ArtistQuestionnaireComponent {
+  neuralObservationLog = signal<string[]>(['INITIALIZING_NEURAL_OBSERVATION...', 'WAITING_FOR_DATA_VECTORS...']);
+
+
+  strategicSignals = computed<StrategicSignals>(() => {
+    const p = this.profileDraft();
+    const signals: StrategicSignals = {
+      marketReadiness: 0,
+      identityTrust: 0,
+      careerMomentum: 0,
+      technicalAuthority: 0,
+      syncViability: 0,
+      touringStability: 0
+    };
+
+    if (p.primaryGenre) signals.marketReadiness += 20;
+    if (p.brandVoices && p.brandVoices.length > 0) signals.marketReadiness += 20;
+    if (p.strategicGoals && p.strategicGoals.length > 0) signals.marketReadiness += 20;
+    if (p.website) signals.marketReadiness += 20;
+    if (p.expertise && p.expertise.marketing > 5) signals.marketReadiness += 20;
+
+    if (p.expertise) {
+      signals.technicalAuthority = (p.expertise.production * 5) + (p.expertise.technical_mastery || 0) * 5;
+    }
+
+    if (p.catalog && p.catalog.length > 0) signals.careerMomentum += 20;
+    if (p.performancesPerYear && p.performancesPerYear !== 'None') signals.careerMomentum += 20;
+    if (p.strategicGoals && p.strategicGoals.length > 2) signals.careerMomentum += 20;
+
+    if (p.syncDetails?.hasStems === 'Everything Archived') signals.syncViability += 25;
+    if (p.syncDetails?.isSyncReady === 'Full Stem Mastery') signals.syncViability += 50;
+
+    if (p.touringDetails?.isTourReady === 'Global Ready') signals.touringStability += 40;
+    if (p.touringDetails?.hasBackline === 'Full Self-Sustained') signals.touringStability += 30;
+
+    if (p.legalInfrastructure?.hasRegisteredWorks) signals.identityTrust += 30;
+    if (p.legalInfrastructure?.proAffiliation !== 'None') signals.identityTrust += 30;
+
+    Object.keys(signals).forEach(key => { (signals as any)[key] = Math.min(100, (signals as any)[key]); });
+    return signals;
+  });
+
   private userProfileService = inject(UserProfileService);
   private aiService = inject(AiService);
   private uplinkService = inject(UplinkService);
@@ -64,85 +106,63 @@ export class ArtistQuestionnaireComponent {
   isAnalyzing = signal(false);
   analysisResult = signal<any>(null);
   showUplink = signal(false);
+  isGlitching = signal(false);
 
-  questions: Question[] = [
+    questions: Question[] = [
+    {
+      id: 'sync-readiness',
+      type: 'select',
+      text: 'Sync Infrastructure Analysis.',
+      description: 'Is your catalog technically prepared for high-stakes licensing?',
+      options: ['Not Started', 'Basics Ready', 'Full Stem Mastery', 'One-Stop Qualified'],
+      field: 'syncDetails.isSyncReady'
+    },
     {
       id: 'genre',
       type: 'select',
       text: 'Identify your sonic foundation.',
       description: 'Which primary genre defines your current trajectory?',
-      options: [
-        'Hip Hop',
-        'Electronic',
-        'Rock',
-        'R&B',
-        'Pop',
-        'Jazz',
-        'Afrobeats',
-      ],
+      options: ['Hip Hop', 'Electronic', 'Rock', 'R&B', 'Pop', 'Jazz', 'Afrobeats'],
       field: 'primaryGenre',
     },
     {
-      id: 'hiphop-sub',
+      id: 'rock-rig',
       type: 'select',
-      text: 'Deep-dive into the Hip Hop spectrum.',
-      description: 'Where does your sound live?',
-      options: [
-        'Boom Bap',
-        'Trap',
-        'Drill',
-        'Conscious',
-        'Melodic',
-        'Experimental',
-      ],
-      field: 'genreSpecificData.hiphop_sub',
-      condition: (p) => p.primaryGenre === 'Hip Hop',
+      text: 'Signal Chain Architecture.',
+      description: 'How do you define your electric resonance?',
+      options: ['Analog Purity', 'Digital Modelers', 'Hybrid Chaos', 'Studio Direct'],
+      field: 'genreSpecificData.rock_rig',
+      condition: (p) => p.primaryGenre === 'Rock'
     },
     {
-      id: 'hiphop-complexity',
-      type: 'range',
-      text: 'Assess Lyrical Complexity.',
-      description: '1 = Vibe/Melody focused, 10 = Bars/Wordplay heavy.',
-      field: 'genreSpecificData.hiphop_complexity',
-      condition: (p) => p.primaryGenre === 'Hip Hop',
-    },
-    {
-      id: 'elec-sub',
+      id: 'legal-pro',
       type: 'select',
-      text: 'Specify your Electronic frequency.',
-      options: ['Techno', 'House', 'Ambient', 'Dubstep', 'Phonk', 'Synthwave'],
-      field: 'genreSpecificData.elec_sub',
-      condition: (p) => p.primaryGenre === 'Electronic',
+      text: 'PRO Affiliation.',
+      description: 'Which Performance Rights Organization monitors your airplay?',
+      options: ['None', 'ASCAP', 'BMI', 'SESAC', 'PRS', 'GEMA', 'Other'],
+      field: 'legalInfrastructure.proAffiliation'
     },
     {
-      id: 'elec-technical',
-      type: 'range',
-      text: 'Synthesizer Prowess.',
-      description:
-        'How deep into the circuitry do you go? (1 = Presets, 10 = Modular/Custom)',
-      field: 'genreSpecificData.elec_technical',
-      condition: (p) => p.primaryGenre === 'Electronic',
+      id: 'tour-status',
+      type: 'select',
+      text: 'Touring Infrastructure.',
+      description: 'Is your live show ready for deployment?',
+      options: ['Studio Only', 'Local Gigs', 'Regional Ready', 'Global Ready'],
+      field: 'touringDetails.isTourReady'
     },
     {
       id: 'catalyst',
       type: 'select',
       text: 'Identify your primary Creative Catalyst.',
       description: 'What drives the core of your artistic output?',
-      options: [
-        'Nostalgia',
-        'Technical Innovation',
-        'Cultural Commentary',
-        'Emotional Catharsis',
-        'Market Dominance',
-      ],
+      options: ['Nostalgia', 'Technical Innovation', 'Cultural Commentary', 'Emotional Catharsis', 'Market Dominance'],
       field: 'expertise.catalyst',
     },
     {
       id: 'technical-barrier',
       type: 'range',
       text: 'Assess your Technical Mastery.',
-      description:
-        'How complex is your production chain? (1 = Minimalist, 10 = High-End Engineering)',
+      description: 'How complex is your production chain? (1 = Minimalist, 10 = High-End Engineering)',
       field: 'expertise.technical_mastery',
     },
     {
@@ -150,13 +170,7 @@ export class ArtistQuestionnaireComponent {
       type: 'multi-select',
       text: 'Executive Pipeline Focus.',
       description: 'Select up to 3 priority infrastructures to harden.',
-      options: [
-        'Merch Engine',
-        'Record Label Framework',
-        'Legal Vault Hardening',
-        'Sync Catalog Pumping',
-        'Global Touring Route',
-      ],
+      options: ['Merch Engine', 'Record Label Framework', 'Legal Vault Hardening', 'Sync Catalog Pumping', 'Global Touring Route'],
       field: 'strategicGoals',
     },
     {
@@ -164,17 +178,7 @@ export class ArtistQuestionnaireComponent {
       type: 'multi-select',
       text: 'Calibrate your Brand Voice.',
       description: 'Select up to 3 core identifiers.',
-      options: [
-        'Mysterious',
-        'Aggressive',
-        'Sophisticated',
-        'Relatable',
-        'Elite',
-        'Vulnerable',
-        'High-Energy',
-        'Cinematic',
-        'Underground',
-      ],
+      options: ['Mysterious', 'Aggressive', 'Sophisticated', 'Relatable', 'Elite', 'Vulnerable', 'High-Energy', 'Cinematic', 'Underground'],
       field: 'brandVoices',
     },
   ];
@@ -212,6 +216,10 @@ export class ArtistQuestionnaireComponent {
   updateValue(field: string, value: any) {
     this.profileDraft.update((p) => {
       const updated = JSON.parse(JSON.stringify(p));
+      const observation = this.generateNeuralObservation(field, value);
+      if (observation) {
+        this.neuralObservationLog.update(logs => [observation, ...logs].slice(0, 15));
+      }
       const parts = field.split('.');
       let target: any = updated;
 
@@ -255,16 +263,26 @@ export class ArtistQuestionnaireComponent {
   }
 
   next() {
+    this.triggerGlitch();
+    this.triggerGlitch();
     if (this.currentStep() < this.activeQuestions().length - 1) {
-      this.currentStep.update((s) => s + 1);
+      setTimeout(() => {
+        this.currentStep.update((s) => s + 1);
+      }, 100);
     } else {
       this.finalize();
     }
   }
 
+
+
   back() {
+    this.triggerGlitch();
+    this.triggerGlitch();
     if (this.currentStep() > 0) {
-      this.currentStep.update((s) => s - 1);
+      setTimeout(() => {
+        this.currentStep.update((s) => s - 1);
+      }, 100);
     }
   }
 
@@ -281,20 +299,36 @@ export class ArtistQuestionnaireComponent {
     this.isAnalyzing.set(false);
   }
 
+
+
+
+  private triggerGlitch() {
+    this.isGlitching.set(true);
+    setTimeout(() => this.isGlitching.set(false), 200);
+  }
+
+  private generateNeuralObservation(field: string, value: any): string | null {
+    if (field === 'primaryGenre') return `ADAPTING_NEURAL_FILTERS_FOR_${value.toUpperCase()}_TRAJECTORY...`;
+    if (field.includes('expertise')) return `MAPPING_TECHNICAL_AUTHORITY_AT_LEVEL_${value}...`;
+    if (field.includes('isTourReady')) return `CALIBRATING_TOURING_STABILITY_VECTORS...`;
+    if (field.includes('isSyncReady')) return `ANALYZING_SYNC_VIABILITY_MARKERS...`;
+    if (field === 'brandVoices') return `RECOGNIZING_BRAND_RESONANCE:_${value.toUpperCase()}...`;
+    return null;
+  }
+
   private calculateStrategicScore(p: UserProfile): number {
-    let score = 60;
+    const s = this.strategicSignals();
+    const avgSignal = (s.marketReadiness + s.identityTrust + s.careerMomentum + s.technicalAuthority + s.syncViability + s.touringStability) / 6;
+    let score = 50 + (avgSignal / 2);
     if (p.primaryGenre) score += 5;
-    if (p.strategicGoals && p.strategicGoals.length > 0) score += 10;
-    if (p.brandVoices && p.brandVoices.length > 1) score += 5;
-    if ((p.expertise?.technical_mastery || 0) > 7) score += 10;
-    if (p.expertise?.catalyst) score += 5;
-    return Math.min(100, score);
+    return Math.round(Math.min(100, score));
   }
 
   async applyChanges() {
     this.showUplink.set(true);
     const completedProfile = {
       ...this.profileDraft(),
+      strategicSignals: this.strategicSignals(),
       profileSetupCompleted: true,
       profileSetupCompletedAt: Date.now(),
     };

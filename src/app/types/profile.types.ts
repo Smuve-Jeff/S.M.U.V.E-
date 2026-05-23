@@ -35,6 +35,34 @@ export interface CatalogItem {
   updatedAt?: string;
 }
 
+export interface StrategicSignals {
+  marketReadiness: number;
+  identityTrust: number;
+  careerMomentum: number;
+  technicalAuthority: number;
+  syncViability: number;
+  touringStability: number;
+}
+
+export interface SyncDetails {
+  isSyncReady: string;
+  hasCleanVersions: boolean;
+  hasInstrumentals: boolean;
+  hasStems: string;
+  oneStopClearance: boolean;
+  catalogSize: number;
+  preferredKeywords: string[];
+}
+
+export interface LegalInfrastructure {
+  hasRegisteredWorks: boolean;
+  proAffiliation: string;
+  hasStandardSplitSheet: string;
+  isIncorporated: boolean;
+  legalEntityName?: string;
+  trademarkStatus: 'None' | 'Pending' | 'Registered';
+}
+
 export interface ThaSpotEventHistoryEntry {
   eventId: string;
   roomId?: string;
@@ -219,8 +247,9 @@ export interface UserProfile {
   headerImage?: string;
   pressGallery?: string[];
 
-  // AI Audit Support
+  // AI Audit Support & Dynamic Signals
   strategicHealthScore: number;
+  strategicSignals: StrategicSignals;
   criticalDeficits: string[];
   auditHistory: ProfileAuditLog[];
 
@@ -233,7 +262,13 @@ export interface UserProfile {
   touringDetails: {
     travelPreference: string;
     regions: string[];
+    isTourReady: string;
+    hasBackline: string;
+    transportationType?: string;
+    avgSetLength?: number;
   };
+  syncDetails: SyncDetails;
+  legalInfrastructure: LegalInfrastructure;
   genreSpecificData: Record<string, any>;
   profileSetupCompleted?: boolean;
   profileSetupCompletedAt?: number;

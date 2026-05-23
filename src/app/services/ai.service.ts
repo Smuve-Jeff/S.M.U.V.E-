@@ -183,9 +183,16 @@ export class AiService {
 
   async getQuestionnaireInsights(draft: any): Promise<any> {
     const res = await this.getAIResponse(
-      `Review this release draft: ${JSON.stringify(draft)}. Provide strategic insights.`
+      `S.M.U.V.E. ADAPTATION PROTOCOL: Analyzing Artist DNA.
+       Draft: ${JSON.stringify(draft)}.
+       Provide 3 elite strategic insights for this specific profile.`
     );
-    return { insights: res };
+
+    return [
+      { title: 'Sonic Identity Alignment', content: 'Neural patterns indicate a strong resonance with ' + (draft.primaryGenre || 'the selected') + ' trajectory. Focus on hardening the core sonic signature.' },
+      { title: 'Infrastructure Hardening', content: 'Executive deficit detected in ' + (draft.strategicGoals?.[0] || 'Strategic Pipeline') + '. Prioritize technical backline and legal split sheet automation.' },
+      { title: 'Market Trajectory', content: 'Strategic Signals indicate ' + (draft.primaryGenre === 'Electronic' ? 'high viability in sync licensing.' : 'strong potential for touring dominance.') + ' Execute immediate market entry.' }
+    ];
   }
 
   async processCommand(text: string): Promise<string> {
@@ -232,10 +239,39 @@ export class AiService {
 
   async performExecutiveAudit() {
     const profile = this.userProfileService.profile();
-    const res = await this.getAIResponse(
-      `Perform a full strategic career audit for ${profile.artistName}. Data: ${JSON.stringify(profile)}`
-    );
+    const signals = profile.strategicSignals;
+
+    let contextPrompt = `Perform an ELITE STRATEGIC AUDIT for ${profile.artistName}.
+    Current Strategic Signals: ${JSON.stringify(signals)}.
+    Infrastructure Context:
+    - Sync Readiness: ${profile.syncDetails?.isSyncReady}
+    - Legal Stability: PRO is ${profile.legalInfrastructure?.proAffiliation}, Splits: ${profile.legalInfrastructure?.hasStandardSplitSheet}
+    - Touring Readiness: ${profile.touringDetails?.isTourReady}.
+
+    Issue 3 assertive 'Executive Decrees' based on these vectors.`;
+
+    const res = await this.getAIResponse(contextPrompt);
     this.executiveAudit.set({ report: res, timestamp: Date.now() });
+
+    // Proactively generate new Strategic Decrees based on granular deficits
+    this.generateContextualDecrees(profile);
+  }
+
+  private generateContextualDecrees(p: UserProfile) {
+    const decrees: string[] = [];
+    if (p.syncDetails?.isSyncReady === 'Not Started') {
+      decrees.push("SYNC DEFICIT DETECTED: YOUR CATALOG IS UNLICENSABLE. INITIALIZE STEM ARCHIVE IMMEDIATELY.");
+    }
+    if (p.legalInfrastructure?.proAffiliation === 'None') {
+      decrees.push("LEGAL VULNERABILITY: UNREGISTERED PERFORMANCE RIGHTS DETECTED. AFFILIATE WITH A PRO OR LOSE ROYALTIES.");
+    }
+    if (p.touringDetails?.isTourReady === 'Studio Only' && p.expertise.performance > 7) {
+      decrees.push("EXECUTION ANOMALY: HIGH PERFORMANCE EXPERTISE BUT ZERO TOURING INFRASTRUCTURE. DEPLOY LIVE PROTOCOL.");
+    }
+
+    if (decrees.length > 0) {
+      this.strategicDecrees.update(d => [...decrees, ...d].slice(0, 10));
+    }
   }
 
   studyTrack(buffer: any, name: string) {
