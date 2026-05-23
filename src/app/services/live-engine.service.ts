@@ -128,11 +128,11 @@ export class LiveEngineService {
 
       // Apply filter if specified
       if (config.cutoff) {
-        const filter = new Tone.Filter(
-          config.cutoff,
-          'lowpass',
-          config.q || 1
-        ).toDestination();
+        const filter = new Tone.Filter({
+          frequency: config.cutoff,
+          type: 'lowpass',
+          Q: config.q || 1,
+        }).toDestination();
         this.currentInstrumentNode.connect(filter);
       }
     } else if (
