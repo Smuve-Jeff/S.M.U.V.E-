@@ -2,9 +2,9 @@ import { Injectable } from '@angular/core';
 
 export type SampleZone = {
   midiRange: [number, number];
-  url: string; // Audio file URL
-  rr?: number; // round-robin variants count
-  velLayers?: { threshold: number; url: string }[]; // optional velocity layering
+  url: string;
+  rr?: number;
+  velLayers?: { threshold: number; url: string }[];
   quality?: 'standard' | 'high';
 };
 
@@ -19,20 +19,13 @@ export interface InstrumentPreset {
   id: string;
   name: string;
   type: 'sample' | 'synth';
-  category?:
-    | 'piano'
-    | 'bass'
-    | 'drum'
-    | 'keys'
-    | 'lead'
-    | 'pad'
-    | 'guitar'
-    | 'strings'
-    | 'other';
+  category: 'piano' | 'bass' | 'drum' | 'keys' | 'lead' | 'pad' | 'guitar' | 'strings' | 'vfx' | 'perc' | 'other';
+  tags: string[];
+  previewUrl?: string;
   sampleQuality?: 'standard' | 'high';
   fallbackPresetId?: string;
   articulation?: InstrumentArticulation;
-  zones?: SampleZone[]; // for sample-based instruments
+  zones?: SampleZone[];
   defaultFx?: {
     id: string;
     type: string;
@@ -48,289 +41,183 @@ export interface InstrumentPreset {
     release: number;
     cutoff: number;
     q: number;
+    resonance?: number;
+    detune?: number;
   };
 }
 
 @Injectable({ providedIn: 'root' })
 export class InstrumentsService {
-  // Placeholder sample URLs; replace with your licensed sample paths in assets/samples
   presets: InstrumentPreset[] = [
     {
       id: 'grand-piano',
       name: 'Grand Piano',
       type: 'sample',
       category: 'piano',
+      tags: ['classic', 'acoustic', 'high-fidelity'],
       sampleQuality: 'high',
-      fallbackPresetId: 'stage-piano',
-      articulation: {
-        attack: 0.02,
-        release: 0.7,
-        tone: 0.65,
-        character: 0.5,
-      },
-      zones: [
-        {
-          midiRange: [21, 108],
-          url: '/assets/samples/piano/piano_C4.mp3',
-          rr: 3,
-          quality: 'high',
-          velLayers: [
-            { threshold: 0.35, url: '/assets/samples/piano/piano_C4_soft.mp3' },
-            { threshold: 0.75, url: '/assets/samples/piano/piano_C4_med.mp3' },
-            { threshold: 1, url: '/assets/samples/piano/piano_C4_hard.mp3' },
-          ],
-        },
-      ],
-      defaultFx: [
-        {
-          id: 'eq',
-          type: 'filter',
-          params: { type: 'highpass', frequency: 30 },
-          enabled: true,
-        },
-        {
-          id: 'comp',
-          type: 'compressor',
-          params: { threshold: -22 },
-          enabled: true,
-          mix: 0.3,
-        },
-      ],
+      zones: [{ midiRange: [21, 108], url: '/assets/samples/piano/piano_C4.mp3' }]
     },
     {
-      id: 'stage-piano',
-      name: 'Stage Piano',
-      type: 'sample',
-      category: 'piano',
-      sampleQuality: 'standard',
-      articulation: {
-        attack: 0.01,
-        release: 0.45,
-        tone: 0.72,
-        character: 0.42,
-      },
-      zones: [
-        {
-          midiRange: [21, 108],
-          url: '/assets/samples/piano/stage_C4.mp3',
-          rr: 2,
-          quality: 'standard',
-          velLayers: [
-            { threshold: 0.6, url: '/assets/samples/piano/stage_C4_soft.mp3' },
-            { threshold: 1, url: '/assets/samples/piano/stage_C4_hard.mp3' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'acoustic-guitar',
-      name: 'Acoustic Guitar',
-      type: 'sample',
-      category: 'guitar',
-      sampleQuality: 'standard',
-      articulation: {
-        attack: 0.03,
-        release: 0.38,
-        tone: 0.57,
-        character: 0.51,
-      },
-      zones: [
-        { midiRange: [40, 88], url: '/assets/samples/guitar/guitar_E3.mp3' },
-      ],
-    },
-    {
-      id: 'orchestra-strings',
-      name: 'Orchestra Strings',
-      type: 'sample',
-      category: 'strings',
-      sampleQuality: 'high',
-      fallbackPresetId: 'orchestra-ensemble',
-      articulation: {
-        attack: 0.16,
-        release: 0.95,
-        tone: 0.45,
-        character: 0.7,
-      },
-      zones: [
-        { midiRange: [40, 96], url: '/assets/samples/strings/strings_G3.mp3' },
-      ],
-    },
-    {
-      id: 'violin-solo',
-      name: 'Violin Solo',
+      id: 'deep-sub-bass',
+      name: 'Deep Sub Bass',
       type: 'synth',
-      category: 'strings',
-      articulation: {
-        attack: 0.06,
-        release: 0.6,
-        tone: 0.56,
-        character: 0.68,
-      },
+      category: 'bass',
+      tags: ['sub', 'low-end', 'trap', 'minimal'],
       synth: {
-        type: 'sawtooth',
-        attack: 0.02,
-        decay: 0.2,
-        sustain: 0.6,
-        release: 0.6,
-        cutoff: 5200,
-        q: 1.1,
-      },
+        type: 'sine',
+        attack: 0.05,
+        decay: 0.3,
+        sustain: 0.8,
+        release: 0.4,
+        cutoff: 150,
+        q: 1
+      }
     },
     {
-      id: 'electric-guitar',
-      name: 'Electric Guitar',
+      id: 'hard-808',
+      name: 'Hard 808',
       type: 'synth',
-      category: 'guitar',
+      category: 'bass',
+      tags: ['distorted', 'trap', 'drill', 'kick'],
       synth: {
         type: 'square',
-        attack: 0.01,
-        decay: 0.12,
-        sustain: 0.5,
-        release: 0.3,
-        cutoff: 3800,
-        q: 0.9,
-      },
+        attack: 0.002,
+        decay: 0.6,
+        sustain: 0.0,
+        release: 0.8,
+        cutoff: 500,
+        q: 2.5
+      }
     },
     {
-      id: 'orchestra-ensemble',
-      name: 'Orchestra Ensemble',
+      id: 'plucky-bass',
+      name: 'Plucky Bass',
       type: 'synth',
-      category: 'strings',
-      synth: {
-        type: 'sawtooth',
-        attack: 0.18,
-        decay: 0.4,
-        sustain: 0.8,
-        release: 1.1,
-        cutoff: 3600,
-        q: 0.85,
-      },
-    },
-    {
-      id: 'synth-lead',
-      name: 'Synth Lead',
-      type: 'synth',
-      category: 'lead',
+      category: 'bass',
+      tags: ['pluck', 'house', 'dance'],
       synth: {
         type: 'sawtooth',
         attack: 0.005,
-        decay: 0.08,
-        sustain: 0.7,
+        decay: 0.2,
+        sustain: 0.2,
         release: 0.2,
-        cutoff: 8000,
-        q: 0.707,
-      },
+        cutoff: 2000,
+        q: 1.2
+      }
     },
     {
-      id: 'synth-bass',
-      name: 'Synth Bass',
-      type: 'synth',
-      category: 'bass',
-      synth: {
-        type: 'square',
-        attack: 0.004,
-        decay: 0.18,
-        sustain: 0.7,
-        release: 0.2,
-        cutoff: 1400,
-        q: 1.25,
-      },
-    },
-    {
-      id: 'bass-guitar',
-      name: 'Bass Guitar',
-      type: 'synth',
-      category: 'bass',
-      synth: {
-        type: 'triangle',
-        attack: 0.01,
-        decay: 0.15,
-        sustain: 0.65,
-        release: 0.4,
-        cutoff: 1800,
-        q: 1,
-      },
-    },
-    {
-      id: 'synth-pad',
-      name: 'Synth Pad',
+      id: 'ethereal-pad',
+      name: 'Ethereal Pad',
       type: 'synth',
       category: 'pad',
+      tags: ['ambient', 'space', 'lush', 'chill'],
       synth: {
-        type: 'triangle',
-        attack: 0.2,
-        decay: 0.5,
+        type: 'sawtooth',
+        attack: 0.8,
+        decay: 1.2,
+        sustain: 0.7,
+        release: 1.5,
+        cutoff: 1200,
+        q: 0.5
+      }
+    },
+    {
+      id: 'cyber-lead',
+      name: 'Cyber Lead',
+      type: 'synth',
+      category: 'lead',
+      tags: ['edm', 'future', 'aggressive'],
+      synth: {
+        type: 'sawtooth',
+        attack: 0.02,
+        decay: 0.1,
         sustain: 0.8,
-        release: 1.2,
-        cutoff: 4000,
-        q: 0.9,
-      },
-    },
-    {
-      id: 'kit-808',
-      name: '808 Kit',
-      type: 'sample',
-      category: 'drum',
-      sampleQuality: 'standard',
-      articulation: {
-        attack: 0.002,
-        release: 0.22,
-        tone: 0.68,
-        character: 0.74,
-      },
-      zones: [
-        { midiRange: [36, 36], url: '/assets/samples/808/kick.mp3' },
-        { midiRange: [38, 38], url: '/assets/samples/808/snare.mp3' },
-        { midiRange: [39, 39], url: '/assets/samples/808/clap.mp3' },
-        { midiRange: [42, 42], url: '/assets/samples/808/hat-closed.mp3' },
-        { midiRange: [46, 46], url: '/assets/samples/808/hat-open.mp3' },
-      ],
-    },
-    {
-      id: 'kit-studio',
-      name: 'Studio Drums',
-      type: 'sample',
-      category: 'drum',
-      sampleQuality: 'high',
-      fallbackPresetId: 'kit-808',
-      articulation: {
-        attack: 0.002,
         release: 0.2,
-        tone: 0.72,
-        character: 0.58,
-      },
-      zones: [
-        { midiRange: [36, 36], url: '/assets/samples/studio/kick.mp3' },
-        { midiRange: [37, 37], url: '/assets/samples/studio/rim.mp3' },
-        { midiRange: [38, 38], url: '/assets/samples/studio/snare.mp3' },
-        { midiRange: [40, 40], url: '/assets/samples/studio/tom-low.mp3' },
-        { midiRange: [43, 43], url: '/assets/samples/studio/tom-mid.mp3' },
-        { midiRange: [47, 47], url: '/assets/samples/studio/tom-high.mp3' },
-        { midiRange: [42, 42], url: '/assets/samples/studio/hhc.mp3' },
-        { midiRange: [46, 46], url: '/assets/samples/studio/hho.mp3' },
-        { midiRange: [49, 49], url: '/assets/samples/studio/crash.mp3' },
-      ],
+        cutoff: 6000,
+        q: 1.5
+      }
     },
     {
-      id: 'afro-perc-kit',
-      name: 'Afro Perc Kit',
+      id: 'lofi-rhodes',
+      name: 'Lo-Fi Rhodes',
+      type: 'synth',
+      category: 'keys',
+      tags: ['warm', 'vintage', 'chill', 'jazzy'],
+      synth: {
+        type: 'sine',
+        attack: 0.01,
+        decay: 0.2,
+        sustain: 0.6,
+        release: 0.3,
+        cutoff: 1800,
+        q: 0.8
+      }
+    },
+    {
+      id: 'kit-808-pro',
+      name: '808 Pro Kit',
       type: 'sample',
       category: 'drum',
-      sampleQuality: 'high',
-      fallbackPresetId: 'kit-studio',
-      articulation: {
-        attack: 0.003,
-        release: 0.24,
-        tone: 0.63,
-        character: 0.71,
-      },
-      zones: [
-        { midiRange: [36, 36], url: '/assets/samples/afro/kick.mp3', rr: 2 },
-        { midiRange: [38, 38], url: '/assets/samples/afro/snare.mp3', rr: 2 },
-        { midiRange: [42, 42], url: '/assets/samples/afro/shaker.mp3', rr: 3 },
-        { midiRange: [46, 46], url: '/assets/samples/afro/hho.mp3', rr: 2 },
-      ],
+      tags: ['trap', 'drums', 'classic'],
+      zones: [{ midiRange: [36, 48], url: '/assets/samples/808/kit.mp3' }]
     },
+    {
+      id: 'kit-trap-pro',
+      name: 'Trap Pro Kit',
+      type: 'sample',
+      category: 'drum',
+      tags: ['trap', 'professional', 'drums'],
+      zones: [{ midiRange: [36, 48], url: '/assets/samples/trap/kit.mp3' }]
+    },
+    {
+      id: 'kit-house-vibe',
+      name: 'House Vibe Kit',
+      type: 'sample',
+      category: 'drum',
+      tags: ['house', 'dance', 'electronic'],
+      zones: [{ midiRange: [36, 48], url: '/assets/samples/house/kit.mp3' }]
+    },
+    {
+      id: 'fx-riser',
+      name: 'Titan Riser',
+      type: 'synth',
+      category: 'vfx',
+      tags: ['fx', 'transition', 'cinematic'],
+      synth: {
+        type: 'sawtooth',
+        attack: 4.0,
+        decay: 0.1,
+        sustain: 1.0,
+        release: 0.5,
+        cutoff: 12000,
+        q: 2.0
+      }
+    },
+    {
+      id: 'fx-impact',
+      name: 'Dark Impact',
+      type: 'synth',
+      category: 'vfx',
+      tags: ['fx', 'impact', 'cinematic'],
+      synth: {
+        type: 'square',
+        attack: 0.001,
+        decay: 2.0,
+        sustain: 0.0,
+        release: 2.0,
+        cutoff: 400,
+        q: 0.7
+      }
+    },
+    {
+      id: 'perc-conga',
+      name: 'Conga High',
+      type: 'sample',
+      category: 'perc',
+      tags: ['percussion', 'acoustic', 'latin'],
+      zones: [{ midiRange: [60, 60], url: '/assets/samples/perc/conga_h.mp3' }]
+    }
   ];
 
   getPresets() {

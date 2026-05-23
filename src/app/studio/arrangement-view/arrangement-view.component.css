@@ -286,3 +286,29 @@
     padding: 0 1rem;
   }
 }
+.active-snap {
+  background: var(--primary-color, #af25f4) !important;
+  color: #000 !important;
+}
+
+.resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  cursor: ew-resize;
+  z-index: 10;
+}
+
+.resize-handle.right {
+  right: 0;
+  background: linear-gradient(to left, rgba(255,255,255,0.1), transparent);
+}
+
+.resize-handle:hover {
+  background: rgba(255,255,255,0.2) !important;
+}
+
+.clip-item:hover {
+  filter: brightness(1.2);
+}

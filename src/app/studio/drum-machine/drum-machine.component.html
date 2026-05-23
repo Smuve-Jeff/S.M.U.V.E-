@@ -2,96 +2,28 @@
   <!-- Top Control Bar -->
   <div class="drum-header wood-panel">
     <div class="header-branding">
-      <div class="neon-text-sm neon-text">DRUM MACHINE v4.2</div>
+      <div class="neon-text-sm neon-text">PRO DRUM MODULE v4.2</div>
       <div class="engine-status neon-accent-primary">ANALOG ENGINE ACTIVE</div>
     </div>
 
     <div class="kit-selector glass-v42">
       <label class="neon-text-xs">DRUM KIT:</label>
-      <select
-        [ngModel]="selectedKitId()"
-        (ngModelChange)="setKit($event)"
-        class="executive-glass"
-      >
+      <select [ngModel]="selectedKitId()" (ngModelChange)="setKit($event)" class="executive-glass">
         <option *ngFor="let kit of availableKits()" [value]="kit.id">
           {{ kit.name | uppercase }}
         </option>
       </select>
     </div>
 
-    <div class="quantum-engine-controls" *ngIf="hasQuantumDrumEngine()">
-      <div class="ai-branding neon-accent-secondary">QUANTUM ENGINE</div>
+    <div class="quantum-engine-controls">
+      <div class="ai-branding neon-accent-secondary">QUANTUM AI</div>
       <div class="ai-actions">
-        <button
-          (click)="generateAiPattern('trap')"
-          class="ai-btn executive-glass"
-        >
-          TRAP
-        </button>
-        <button
-          (click)="generateAiPattern('house')"
-          class="ai-btn executive-glass"
-        >
-          HOUSE
-        </button>
-        <button
-          (click)="generateAiPattern('afrobeat')"
-          class="ai-btn executive-glass"
-        >
-          AFRO
-        </button>
-        <button
-          (click)="generateAiPattern('techno')"
-          class="ai-btn executive-glass"
-        >
-          TECHNO
-        </button>
+        <button (click)="generateAiPattern('trap')" class="ai-btn executive-glass">TRAP</button>
+        <button (click)="generateAiPattern('house')" class="ai-btn executive-glass">HOUSE</button>
       </div>
     </div>
 
-    <button (click)="clearPattern()" class="clear-btn executive-glass">
-      RESET
-    </button>
-  </div>
-
-  <!-- Evolutionary Engine HUD -->
-  <div class="evolution-hud glass-v42 holographic-depth">
-    <div class="hud-label neon-text-xs">EVOLUTIONARY ENGINE</div>
-    <div class="hud-controls">
-      <label class="switch">
-        <input
-          type="checkbox"
-          [ngModel]="evolutionEnabled()"
-          (ngModelChange)="evolutionEnabled.set($event)"
-        />
-        <span class="slider round extreme-glow"></span>
-      </label>
-      <div class="hud-param">
-        <span class="neon-text-xs">INTENSITY</span>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          [ngModel]="evolutionIntensity()"
-          (ngModelChange)="evolutionIntensity.set($event)"
-          class="knob-range"
-        />
-      </div>
-      <div class="hud-param">
-        <span class="neon-text-xs">SPEED</span>
-        <select
-          [ngModel]="evolutionSpeed()"
-          (ngModelChange)="evolutionSpeed.set($event)"
-          class="executive-glass"
-        >
-          <option [value]="4">4</option>
-          <option [value]="8">8</option>
-          <option [value]="16">16</option>
-          <option [value]="32">32</option>
-        </select>
-      </div>
-    </div>
+    <button (click)="clearPattern()" class="clear-btn executive-glass">RESET</button>
   </div>
 
   <div class="drum-content">
@@ -102,13 +34,11 @@
         class="drum-pad-item tactile-v42 glass-v42"
         [class.selected]="selectedPad()?.id === pad.id"
         (click)="selectPad(pad)"
+        (drop)="onDrop($event, pad)"
+        (dragover)="onDragOver($event)"
       >
         <div class="pad-led-container">
-          <div
-            class="pad-led"
-            [style.background-color]="pad.color"
-            [class.glowing]="selectedPad()?.id === pad.id"
-          ></div>
+          <div class="pad-led" [style.background-color]="pad.color" [class.glowing]="selectedPad()?.id === pad.id"></div>
         </div>
         <div class="pad-info">
           <span class="pad-name neon-text-xs">{{ pad.name }}</span>
@@ -121,11 +51,7 @@
     <div class="sequencer-viewport no-scrollbar glass-v42">
       <div class="scanline-overlay"></div>
       <div class="sequencer-grid">
-        <div
-          *ngFor="let pad of pads()"
-          class="sequencer-row"
-          [class.selected-row]="selectedPad()?.id === pad.id"
-        >
+        <div *ngFor="let pad of pads()" class="sequencer-row" [class.selected-row]="selectedPad()?.id === pad.id">
           <div
             *ngFor="let step of pad.steps; let sIdx = index"
             class="step-box tactile-v42"
@@ -141,39 +67,42 @@
     </div>
 
     <!-- Right Param Inspector -->
-    <div
-      class="param-inspector glass-v42 no-scrollbar shadow-v42-xl"
-      *ngIf="selectedPad() as pad"
-    >
-      <div class="inspector-title neon-text-xs">PAD PARAMS</div>
+    <div class="param-inspector glass-v42 no-scrollbar shadow-v42-xl" *ngIf="selectedPad() as pad">
+      <div class="inspector-title neon-text-xs">PRO PAD CONTROLS</div>
       <div class="pad-preview-header" [style.border-color]="pad.color">
         <span class="neon-text-xs neon-text">{{ pad.name }}</span>
       </div>
 
-      <div class="param-group">
-        <label class="neon-text-xs">PAN</label>
-        <input
-          type="range"
-          min="-1"
-          max="1"
-          step="0.1"
-          [(ngModel)]="pad.params.pan"
-          class="knob-range"
-        />
+      <div class="params-grid">
+        <div class="param-group">
+          <label class="neon-text-xs">PITCH</label>
+          <input type="range" min="-12" max="12" step="1" [(ngModel)]="pad.params.semitone" class="knob-range" />
+          <span class="param-val font-mono">{{ pad.params.semitone > 0 ? '+' : '' }}{{ pad.params.semitone }}</span>
+        </div>
+        <div class="param-group">
+          <label class="neon-text-xs">PAN</label>
+          <input type="range" min="-1" max="1" step="0.1" [(ngModel)]="pad.params.pan" class="knob-range" />
+        </div>
+        <div class="param-group">
+          <label class="neon-text-xs">DECAY</label>
+          <input type="range" min="0.01" max="2" step="0.05" [(ngModel)]="pad.params.decay" class="knob-range" />
+        </div>
+        <div class="param-group">
+          <label class="neon-text-xs">CUTOFF</label>
+          <input type="range" min="20" max="15000" step="100" [(ngModel)]="pad.params.cutoff" class="knob-range" />
+        </div>
+        <div class="param-group">
+          <label class="neon-text-xs">RESONANCE</label>
+          <input type="range" min="0.1" max="10" step="0.1" [(ngModel)]="pad.params.resonance" class="knob-range" />
+        </div>
+        <div class="param-group">
+          <label class="neon-text-xs">ATTACK</label>
+          <input type="range" min="0.001" max="0.5" step="0.001" [(ngModel)]="pad.params.attack" class="knob-range" />
+        </div>
       </div>
-      <div class="param-group">
-        <label class="neon-text-xs">DECAY</label>
-        <input
-          type="range"
-          min="0.01"
-          max="2"
-          step="0.05"
-          [(ngModel)]="pad.params.decay"
-          class="knob-range"
-        />
-      </div>
-      <div class="param-group">
-        <label class="neon-text-xs">VELOCITY</label>
+
+      <div class="velocity-section mt-4">
+        <label class="neon-text-xs">STEP VELOCITIES</label>
         <div class="velocity-bars">
           <div
             *ngFor="let step of pad.steps; let i = index"

@@ -33,6 +33,8 @@ import { HapticService } from '../services/haptic.service';
 import { TouchGestureService } from '../services/touch-gesture.service';
 import { PerformerComponent } from './performer/performer.component';
 import { PerformanceGridComponent } from './performance-grid/performance-grid.component';
+import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
+import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
 
 type StudioView =
   | 'dj'
@@ -53,7 +55,6 @@ const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'vocal-suite',
   'drum-machine',
   'performer',
-  'performance-grid',
   'performance-grid',
 ]);
 
@@ -78,6 +79,8 @@ function isStudioView(value: string): value is StudioView {
     NeuralFoundryComponent,
     PerformerComponent,
     PerformanceGridComponent,
+    SoundBrowserComponent,
+    TrackInspectorComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -99,154 +102,43 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
 
   activeView = signal<StudioView>('dj');
-  showMixer = signal(true);
-  showRack = signal(true);
-  focusLocked = signal(false);
   showNeuralFoundry = signal(false);
 
-  hasArrangementCoPilot = computed(() =>
-    this.neuralOrchestrator.isUnlocked('upg-arranger-ai-co-pilot')
-  );
-  hasHoloMixer = computed(() =>
-    this.neuralOrchestrator.isUnlocked('upg-holographic-mixer')
-  );
+  studioQualityClass = computed(() => {
+    return this.audioEngine.performanceTier() === 'ultra' ? 'studio-ultra' : 'studio-perf';
+  });
 
-  studioQualityClass = computed(() =>
-    this.uiService.performanceMode()
-      ? 'studio-quality-performance'
-      : 'studio-quality-ultra'
-  );
-
-  isRecording = this.audioSession.isRecording;
-  currentBeat = this.audioEngine.currentBeat;
-
-  private animationId: number | null = null;
-  private isInitialLoad = true;
-
-  ngOnInit() {
-    this.route.url.pipe(takeUntil(this.destroy$)).subscribe((url) => {
-      const path = url[0]?.path;
-      if (path && isStudioView(path)) {
-        this.setActiveView(path, false);
+  constructor() {
+    effect(() => {
+      const params = this.route.snapshot.queryParamMap;
+      const view = params.get('view');
+      if (view && isStudioView(view)) {
+        this.activeView.set(view);
       }
     });
+  }
 
-    this.route.queryParamMap
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((params) => {
-        const view = params.get('view');
-        if (view && isStudioView(view)) {
-          this.setActiveView(view, false);
-        }
-      });
-
-    // Mark as initialized after a short delay to allow URL-driven views to settle
-    setTimeout(() => {
-      this.isInitialLoad = false;
-    }, 500);
+  ngOnInit() {
+    this.audioEngine.resume();
   }
 
   ngAfterViewInit() {}
 
-  resolveWithNeuralMix() {
-    this.musicManager.tracks.update((ts) =>
-      ts.map((t) => {
-        return { ...t, gain: t.gain * 0.9 };
-      })
-    );
-    this.notificationService.show('Neural Mix: Signals Optimized', 'success');
-  }
-
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId);
-    }
   }
 
-  constructor() {
-    let lastSelectedId: number | null = null;
-
-    effect(
-      () => {
-        const selectedId = this.musicManager.selectedTrackId();
-        if (selectedId && selectedId !== lastSelectedId) {
-          const track = this.musicManager
-            .tracks()
-            .find((t) => t.id === selectedId);
-
-          const isDrumTrack =
-            track?.instrumentId.toLowerCase().includes('kit') ||
-            track?.name.toLowerCase().includes('drum');
-
-          const targetView: StudioView = isDrumTrack
-            ? 'drum-machine'
-            : 'piano-roll';
-
-          if (!this.focusLocked() && !this.isInitialLoad) {
-            // Auto-switch view if in an editor-context
-            const current = this.activeView();
-            if (current === 'piano-roll' || current === 'drum-machine') {
-              if (current !== targetView) {
-                this.activeView.set(targetView);
-              }
-            }
-          }
-
-          if (
-            !['piano-roll', 'drum-machine', 'performer'].includes(
-              this.activeView()
-            ) &&
-            !this.isInitialLoad
-          ) {
-            this.notificationService.show(
-              `Track selected. ${isDrumTrack ? 'Drum Machine' : 'Piano Roll'} is ready.`,
-              'info',
-              2000
-            );
-          }
-
-          lastSelectedId = selectedId;
-        }
-      },
-      { allowSignalWrites: true }
-    );
-  }
-
-  setActiveView(view: StudioView, syncRoute = true) {
-    this.haptic.light();
+  setActiveView(view: StudioView) {
     this.activeView.set(view);
-    if (!syncRoute) return;
-
-    const targetRoute = ['/studio'];
-    const queryParams = { view };
-
-    this.router.navigate(targetRoute, {
-      queryParams,
-      replaceUrl: true,
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { view },
+      queryParamsHandling: 'merge',
     });
   }
 
   toggleNeuralFoundry() {
     this.showNeuralFoundry.update((v) => !v);
-  }
-
-  updateMetronomeVolume(event: Event) {
-    const vol = (event.target as HTMLInputElement).valueAsNumber;
-    this.audioEngine.setMetronomeVolume(vol);
-  }
-
-  toggleFocusLock() {
-    this.focusLocked.update((v) => !v);
-  }
-
-  invokeArrangementCoPilot() {
-    this.aiCopilot.applySuggestions();
-  }
-
-  activateHolographicConsole() {
-    this.uiService.toggleHolographicMode();
-    this.notificationService.show('Holographic Console Activated', 'success');
   }
 }

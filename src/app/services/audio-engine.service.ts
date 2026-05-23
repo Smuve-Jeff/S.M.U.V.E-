@@ -512,9 +512,15 @@ export class AudioEngineService {
     const osc = this.ctx.createOscillator();
     const vca = this.ctx.createGain();
     const panner = this.ctx.createStereoPanner();
+    const filter = this.ctx.createBiquadFilter();
 
-    osc.type = synthParams.type || 'sine';
+    osc.type = synthParams.type || "sine";
     osc.frequency.setValueAtTime(freq, when);
+    if (synthParams.detune) osc.detune.setValueAtTime(synthParams.detune, when);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(synthParams.cutoff || 20000, when);
+    filter.Q.setValueAtTime(synthParams.q || 1, when);
 
     const actualVel = velocity * velocityScale;
     const attack = synthParams.attack || 0.005;
@@ -523,13 +529,12 @@ export class AudioEngineService {
     vca.gain.setValueAtTime(0, when);
     vca.gain.linearRampToValueAtTime(actualVel * gain, when + attack);
 
-    // Hold until duration, then release
     vca.gain.setValueAtTime(actualVel * gain, when + duration);
     vca.gain.exponentialRampToValueAtTime(0.001, when + duration + release);
 
     panner.pan.setValueAtTime(pan, when);
 
-    osc.connect(vca).connect(panner).connect(this.masterGain);
+    osc.connect(filter).connect(vca).connect(panner).connect(this.masterGain);
 
     if (sendA > 0 && this.reverbConvolver) {
       const sA = this.ctx.createGain();
@@ -542,7 +547,6 @@ export class AudioEngineService {
       sB.gain.value = sendB;
       vca.connect(sB).connect(this.delayNode);
     }
-
     osc.start(when);
     osc.stop(when + duration + release + 0.1);
   }

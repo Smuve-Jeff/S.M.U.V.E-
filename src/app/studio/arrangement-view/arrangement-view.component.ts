@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject } from '@angular/core';
+import { Component, signal, computed, inject, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   MusicManagerService,
@@ -26,9 +26,12 @@ const TRACK_COLORS = [
 export class ArrangementViewComponent {
   private musicManager = inject(MusicManagerService);
 
+  @ViewChild('gridCanvas') gridCanvas!: ElementRef;
+
   bars = Array.from({ length: 64 }, (_, i) => i);
   barWidth = 100;
   gridWidth = 64 * 100;
+  snapEnabled = signal(true);
 
   playheadPos = computed(() => {
     const step = this.musicManager.currentStep();
@@ -38,18 +41,24 @@ export class ArrangementViewComponent {
 
   selectedTrackId = computed(() => this.musicManager.selectedTrackId());
   selectedClipId = signal<string | null>(null);
+  isDragging = signal(false);
 
   tracks = this.musicManager.tracks;
-  structure = this.musicManager.structure;
-  chords = this.musicManager.chords;
 
-  trackCount = computed(() => this.tracks().length);
-  clipCount = computed(() =>
-    this.tracks().reduce((sum, t) => sum + (t.clips?.length || 0), 0)
-  );
+  isAltPressed = false;
+
+  @HostListener('window:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent) {
+    if (event.altKey) this.isAltPressed = true;
+  }
+
+  @HostListener('window:keyup', ['$event'])
+  onKeyUp(event: KeyboardEvent) {
+    if (!event.altKey) this.isAltPressed = false;
+  }
 
   addTrack(): void {
-    this.musicManager.ensureTrack('Piano');
+    this.musicManager.ensureTrack('grand-piano');
   }
 
   removeTrack(trackId: number): void {
@@ -68,40 +77,88 @@ export class ArrangementViewComponent {
     this.musicManager.toggleSolo(trackId);
   }
 
-  addClip(trackId: number): void {
-    const track = this.tracks().find((t) => t.id === trackId);
-    if (!track) return;
-
-    const colorIndex = this.tracks().indexOf(track);
-    const color = TRACK_COLORS[colorIndex % TRACK_COLORS.length];
-
-    const newClip: ArrangementClip = {
-      id: `clip-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      name: 'New Pattern',
-      start: 0,
-      length: 4,
-      color,
-      type: 'midi',
-    };
-
-    this.musicManager.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId ? { ...t, clips: [...(t.clips || []), newClip] } : t
-      )
-    );
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
   }
 
-  removeClip(trackId: number, clipId: string): void {
-    this.musicManager.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId
-          ? { ...t, clips: (t.clips || []).filter((c) => c.id !== clipId) }
-          : t
-      )
-    );
-    if (this.selectedClipId() === clipId) {
-      this.selectedClipId.set(null);
+  onDrop(event: DragEvent, trackId: number) {
+    event.preventDefault();
+    const data = event.dataTransfer?.getData('application/json');
+    if (data) {
+      const payload = JSON.parse(data);
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      const offsetX = event.clientX - rect.left;
+      let startBar = offsetX / this.barWidth;
+
+      if (this.snapEnabled()) {
+        startBar = Math.floor(startBar);
+      }
+
+      if (payload.type === 'arrangement-clip') {
+         if (this.isAltPressed) {
+            this.duplicateClip(payload.clipId, payload.sourceTrackId, trackId, startBar);
+         } else {
+            this.moveClip(payload.clipId, payload.sourceTrackId, trackId, startBar);
+         }
+      }
     }
+  }
+
+  onClipDragStart(event: DragEvent, trackId: number, clip: ArrangementClip) {
+    event.dataTransfer?.setData('application/json', JSON.stringify({
+      type: 'arrangement-clip',
+      clipId: clip.id,
+      sourceTrackId: trackId
+    }));
+    this.isDragging.set(true);
+  }
+
+  onClipDragEnd() {
+    this.isDragging.set(false);
+  }
+
+  moveClip(clipId: string, fromTrackId: number, toTrackId: number, newStart: number) {
+    this.musicManager.tracks.update(tracks => {
+      let clipToMove: ArrangementClip | undefined;
+      const nextTracks = tracks.map(t => {
+        if (t.id === fromTrackId) {
+          const clips = t.clips || [];
+          clipToMove = clips.find(c => c.id === clipId);
+          return { ...t, clips: clips.filter(c => c.id !== clipId) };
+        }
+        return t;
+      });
+      if (!clipToMove) return tracks;
+      return nextTracks.map(t => {
+        if (t.id === toTrackId) {
+          return { ...t, clips: [...(t.clips || []), { ...clipToMove!, start: newStart }] };
+        }
+        return t;
+      });
+    });
+  }
+
+  duplicateClip(clipId: string, fromTrackId: number, toTrackId: number, newStart: number) {
+     this.musicManager.tracks.update(tracks => {
+        const sourceTrack = tracks.find(t => t.id === fromTrackId);
+        const clipToDup = sourceTrack?.clips?.find(c => c.id === clipId);
+        if (!clipToDup) return tracks;
+
+        const newClip = { ...clipToDup, id: `clip-${Date.now()}`, start: newStart };
+        return tracks.map(t => t.id === toTrackId ? { ...t, clips: [...(t.clips || []), newClip] } : t);
+     });
+  }
+
+  resizeClip(trackId: number, clipId: string, delta: number) {
+    this.musicManager.tracks.update(tracks => tracks.map(t => {
+      if (t.id === trackId) {
+        return {
+          ...t,
+          clips: (t.clips || []).map(c => c.id === clipId ? { ...c, length: Math.max(0.5, c.length + delta) } : c)
+        };
+      }
+      return t;
+    }));
   }
 
   selectClip(clipId: string, event: Event): void {
@@ -109,18 +166,11 @@ export class ArrangementViewComponent {
     this.selectedClipId.set(clipId);
   }
 
-  onClipKeydown(clipId: string, event: KeyboardEvent): void {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      this.selectedClipId.set(clipId);
-    }
-  }
-
   isTrackSelected(trackId: number): boolean {
     return this.selectedTrackId() === trackId;
   }
 
-  isClipSelected(clipId: string): boolean {
-    return this.selectedClipId() === clipId;
+  toggleSnap() {
+    this.snapEnabled.update(v => !v);
   }
 }

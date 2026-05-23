@@ -1,5 +1,5 @@
 import { LoggingService } from '../../services/logging.service';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   MusicManagerService,
@@ -7,11 +7,12 @@ import {
 } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { InstrumentsService } from '../../services/instruments.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-channel-rack',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './channel-rack.component.html',
   styleUrls: ['./channel-rack.component.css'],
 })
@@ -23,80 +24,34 @@ export class ChannelRackComponent {
 
   tracks = this.musicManager.tracks;
   currentStep = this.musicManager.currentStep;
-  availablePresets = this.instruments.getPresets();
 
   steps = new Array(16).fill(0);
-
-  selectedIds = signal<Set<number>>(new Set());
-  draggedIndex = -1;
-  selectedPatternSlotId = signal<string | null>(null);
+  selectedTrackId = this.musicManager.selectedTrackId;
 
   toggleStep(track: TrackModel, index: number) {
     this.musicManager.toggleStep(track.id, index);
   }
 
   selectTrack(track: TrackModel) {
-    this.logger.info('ChannelRack: Selecting track:', track.name, track.id);
     this.musicManager.selectedTrackId.set(track.id);
   }
 
-  toggleSelection(trackId: number, event: Event) {
-    event.stopPropagation();
-    const current = new Set(this.selectedIds());
-    if (current.has(trackId)) current.delete(trackId);
-    else current.add(trackId);
-    this.selectedIds.set(current);
-  }
-
   addTrack() {
-    this.musicManager.ensureTrack('synth-lead');
-  }
-
-  importAudio() {
-    this.musicManager.importAudioTrack();
+    this.musicManager.ensureTrack('cyber-lead');
   }
 
   removeTrack(id: number) {
     this.musicManager.removeTrack(id);
   }
 
-  batchMute(mute: boolean) {
-    const ids = Array.from(this.selectedIds());
-    if (ids.length > 0) {
-      ids.forEach((id) => {
-        const track = this.musicManager.tracks().find((t) => t.id === id);
-        if (track && track.mute !== mute) {
-          this.musicManager.toggleMute(id);
-        }
-      });
-    }
-  }
-
-  onDragStart(index: number) {
-    this.draggedIndex = index;
-  }
-
-  onDragOver(event: Event) {
-    event.preventDefault();
-  }
-
-  onDrop(index: number) {
-    if (this.draggedIndex !== -1 && this.draggedIndex !== index) {
-      this.musicManager.reorderTrack(this.draggedIndex, index);
-    }
-    this.draggedIndex = -1;
-  }
-
-  updateVolume(track: TrackModel, event: any) {
-    const val = +event.target.value / 100;
+  updateVolume(track: TrackModel, val: number) {
     this.musicManager.tracks.update((ts) =>
       ts.map((t) => (t.id === track.id ? { ...t, gain: val } : t))
     );
     this.engine.updateTrack(track.id, { gain: val });
   }
 
-  updatePan(track: TrackModel, event: any) {
-    const val = +event.target.value / 100;
+  updatePan(track: TrackModel, val: number) {
     this.musicManager.tracks.update((ts) =>
       ts.map((t) => (t.id === track.id ? { ...t, pan: val } : t))
     );
@@ -107,62 +62,16 @@ export class ChannelRackComponent {
     this.musicManager.toggleMute(track.id);
   }
 
-  updateInstrument(track: TrackModel, presetId: string) {
-    this.musicManager.setInstrument(track.id, presetId);
+  onDrop(event: DragEvent, track: TrackModel) {
+    event.preventDefault();
+    const data = event.dataTransfer?.getData('application/json');
+    if (data) {
+      const { presetId } = JSON.parse(data);
+      this.musicManager.setInstrument(track.id, presetId);
+    }
   }
 
-  createPatternSlot(track: TrackModel) {
-    this.musicManager.createPatternSlot(track.id, `${track.name} Pattern`);
-  }
-
-  duplicatePatternSlot(track: TrackModel) {
-    const slotId = track.activePatternSlotId ?? track.patternSlots?.[0]?.id;
-    if (!slotId) return;
-    this.musicManager.duplicatePatternSlot(track.id, slotId);
-  }
-
-  savePatternVersion(track: TrackModel) {
-    const slotId = track.activePatternSlotId ?? track.patternSlots?.[0]?.id;
-    if (!slotId) return;
-    this.musicManager.snapshotPatternVersion(
-      track.id,
-      slotId,
-      `Version ${Date.now()}`
-    );
-  }
-
-  recallPattern(track: TrackModel, slotId: string) {
-    this.musicManager.recallPatternSlot(track.id, slotId);
-  }
-
-  fillPattern(track: TrackModel) {
-    this.musicManager.fillPatternLane(track.id, 0.5);
-  }
-
-  clearPattern(track: TrackModel) {
-    this.musicManager.clearPatternLane(track.id);
-  }
-
-  rotatePattern(track: TrackModel, shift: number) {
-    this.musicManager.rotatePatternLane(track.id, shift);
-  }
-
-  randomizePattern(track: TrackModel) {
-    this.musicManager.randomizePatternLane(track.id, 0.4);
-  }
-
-  setStepAccent(track: TrackModel, index: number, event: Event) {
-    event.stopPropagation();
-    const current = track.stepVelocities?.[index] ?? 1;
-    const next = current >= 1.2 ? 0.8 : current >= 1 ? 1.2 : 1;
-    this.musicManager.setStepVelocity(track.id, index, next);
-  }
-
-  getStepVelocity(track: TrackModel, index: number): number {
-    return track.stepVelocities?.[index] ?? 1;
-  }
-
-  setTrackQuality(track: TrackModel, mode: 'ultra' | 'performance') {
-    this.musicManager.setTrackQualityMode(track.id, mode);
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
   }
 }

@@ -40,6 +40,19 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   @HostListener('touchstart', ['$event'])
   onTouchStart(event: TouchEvent) {
     if (event.touches.length === 2) {
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    const data = event.dataTransfer?.getData("application/json");
+    if (data && this.selectedTrack()) {
+      const { presetId } = JSON.parse(data);
+      this.musicManager.setInstrument(this.selectedTrack()!.id, presetId);
+    }
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+  }
+
       this.lastPinchDistance = this.touchGestures.handlePinch(event);
     }
   }

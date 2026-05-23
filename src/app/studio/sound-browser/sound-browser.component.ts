@@ -6,6 +6,7 @@ import {
   InstrumentPreset,
 } from '../../services/instruments.service';
 import { MusicManagerService } from '../../services/music-manager.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
 
 @Component({
   selector: 'app-sound-browser',
@@ -17,27 +18,48 @@ import { MusicManagerService } from '../../services/music-manager.service';
 export class SoundBrowserComponent {
   private instruments = inject(InstrumentsService);
   private musicManager = inject(MusicManagerService);
+  private audioEngine = inject(AudioEngineService);
 
   searchQuery = signal('');
-  selectedCategory = signal<'all' | 'synth' | 'sample'>('all');
+  selectedCategory = signal<string>('all');
+  selectedTag = signal<string | null>(null);
+  previewingId = signal<string | null>(null);
+
+  allPresets = computed(() => this.instruments.getPresets());
+
+  categories = [
+    { id: 'all', label: 'All', icon: 'grid_view' },
+    { id: 'drum', label: 'Drums', icon: 'drum' },
+    { id: 'bass', label: 'Bass', icon: 'speaker' },
+    { id: 'keys', label: 'Keys', icon: 'piano' },
+    { id: 'lead', label: 'Leads', icon: 'graphic_eq' },
+    { id: 'pad', label: 'Pads', icon: 'layers' },
+    { id: 'vfx', label: 'FX', icon: 'auto_awesome' },
+  ];
+
+  allTags = computed(() => {
+    const tags = new Set<string>();
+    this.allPresets().forEach(p => p.tags?.forEach(t => tags.add(t)));
+    return Array.from(tags).sort();
+  });
 
   presets = computed(() => {
     const query = this.searchQuery().toLowerCase();
     const cat = this.selectedCategory();
-    return this.instruments.getPresets().filter((p) => {
+    const tag = this.selectedTag();
+
+    return this.allPresets().filter((p) => {
       const matchesSearch =
         p.name.toLowerCase().includes(query) ||
-        p.id.toLowerCase().includes(query);
-      const matchesCat = cat === 'all' || p.type === cat;
-      return matchesSearch && matchesCat;
+        p.id.toLowerCase().includes(query) ||
+        p.tags?.some(t => t.toLowerCase().includes(query));
+
+      const matchesCat = cat === 'all' || p.category === cat;
+      const matchesTag = !tag || p.tags?.includes(tag);
+
+      return matchesSearch && matchesCat && matchesTag;
     });
   });
-
-  categories = [
-    { id: 'all', label: 'All Sounds', icon: 'grid_view' },
-    { id: 'synth', label: 'Synths', icon: 'settings_input_component' },
-    { id: 'sample', label: 'Samples', icon: 'audio_file' },
-  ];
 
   selectPreset(preset: InstrumentPreset) {
     const selectedTrackId = this.musicManager.selectedTrackId();
@@ -52,7 +74,48 @@ export class SoundBrowserComponent {
     this.musicManager.ensureTrack(preset.id);
   }
 
+  previewPreset(preset: InstrumentPreset, event: MouseEvent) {
+    event.stopPropagation();
+    this.previewingId.set(preset.id);
+
+    if (preset.type === 'synth' && preset.synth) {
+      this.audioEngine.playSynth(
+        this.audioEngine.getContext().currentTime,
+        440, // A4
+        0.5,
+        0.8,
+        0,
+        preset.synth
+      );
+    } else {
+       // For sample based, we could trigger a sample preview if we had buffer loading in engine
+       // For now, just simulate
+       console.log('Previewing sample:', preset.name);
+    }
+
+    setTimeout(() => {
+      if (this.previewingId() === preset.id) {
+        this.previewingId.set(null);
+      }
+    }, 500);
+  }
+
+  toggleTag(tag: string) {
+    if (this.selectedTag() === tag) {
+      this.selectedTag.set(null);
+    } else {
+      this.selectedTag.set(tag);
+    }
+  }
+
   importAudio() {
     this.musicManager.importAudioTrack();
+  }
+
+  onDragStart(event: DragEvent, preset: InstrumentPreset) {
+    event.dataTransfer?.setData('application/json', JSON.stringify({
+      type: 'instrument-preset',
+      presetId: preset.id
+    }));
   }
 }
