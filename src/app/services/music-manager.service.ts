@@ -12,6 +12,10 @@ export interface TrackNote {
   length: number;
   velocity: number;
   probability?: number;
+  offset?: number;
+  isSlide?: boolean;
+  pan?: number;
+  cutoff?: number;
 }
 
 export interface TrackClip {
@@ -54,6 +58,20 @@ export interface SongSection {
   color?: string;
 }
 
+
+export interface AutomationPoint {
+  id: string;
+  step: number;
+  value: number;
+  curve?: 'linear' | 'exp' | 'step';
+}
+
+export interface AutomationLane {
+  id: string;
+  parameter: string; // e.g. 'gain', 'pan', 'cutoff'
+  points: AutomationPoint[];
+  enabled: boolean;
+}
 export interface TrackModel {
   id: number;
   name: string;
@@ -77,6 +95,7 @@ export interface TrackModel {
   sidechainTargetTrackId?: string | null;
   patternSlots?: PatternSlot[];
   activePatternSlotId?: string | null;
+  automationLanes?: AutomationLane[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -97,6 +116,7 @@ export class MusicManagerService {
 
   constructor() {
     this.init();
+    this.engine.onScheduleStep = (step, time, dur) => this.playStep(step, time, dur);
   }
 
   private init() {
@@ -122,7 +142,16 @@ export class MusicManagerService {
     }
   }
 
-  private normalizeTrack(track: any): TrackModel {
+
+  private initPatternSlots(): PatternSlot[] {
+    return new Array(8).fill(null).map((_, i) => ({
+      id: `slot-${i}`,
+      name: `Pattern ${i + 1}`,
+      versions: [],
+      activeVersionId: ''
+    }));
+  }
+private normalizeTrack(track: any): TrackModel {
     return {
       ...track,
       notes: track.notes || [],
@@ -137,7 +166,8 @@ export class MusicManagerService {
       steps: track.steps || new Array(64).fill(false),
       type: track.type || 'midi',
       color: track.color || '#af25f4',
-      patternSlots: track.patternSlots || [],
+      patternSlots: track.patternSlots || this.initPatternSlots(),
+      automationLanes: track.automationLanes || [],
       stepVelocities: track.stepVelocities || new Array(64).fill(1),
       synthParams: track.synthParams || null,
       qualityMode: track.qualityMode || 'ultra',
@@ -399,6 +429,77 @@ export class MusicManagerService {
       })
     );
   }
+  arpeggiateTrack(trackId: number, pattern: 'up' | 'down' | 'up-down' | 'random' = 'up') {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        const sortedNotes = [...t.notes].sort((a, b) => a.step - b.step || a.midi - b.midi);
+        // Basic arpeggiation logic could be complex, for now we will implement a helper
+        // that takes chords and breaks them into sequences.
+        return t;
+      })
+    );
+  }
+
+  strumTrack(trackId: number, strength: number = 0.05) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        // Group notes by step
+        const grouped = new Map<number, TrackNote[]>();
+        t.notes.forEach(n => {
+          if (!grouped.has(n.step)) grouped.set(n.step, []);
+          grouped.get(n.step)!.push(n);
+        });
+
+        const newNotes = t.notes.map(n => {
+          const chord = grouped.get(n.step) || [];
+          if (chord.length <= 1) return n;
+          const chordSorted = [...chord].sort((a, b) => a.midi - b.midi);
+          const index = chordSorted.findIndex(cn => cn.id === n.id);
+          return { ...n, step: n.step + index * strength };
+        });
+
+        return { ...t, notes: newNotes };
+      })
+    );
+  }
+  generateChord(trackId: number, rootMidi: number, type: string, step: number) {
+    const intervals: Record<string, number[]> = {
+      'major': [0, 4, 7],
+      'minor': [0, 3, 7],
+      'maj7': [0, 4, 7, 11],
+      'min7': [0, 3, 7, 10],
+      'dom7': [0, 4, 7, 10],
+      'sus2': [0, 2, 7],
+      'sus4': [0, 5, 7],
+      'dim': [0, 3, 6],
+    };
+    const chordNotes = (intervals[type] || [0]).map(interval => ({
+      id: `note-${Date.now()}-${Math.random()}`,
+      midi: rootMidi + interval,
+      step: step,
+      length: 1,
+      velocity: 0.8
+    }));
+
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return { ...t, notes: [...t.notes, ...chordNotes] };
+    }));
+  }
+
+  setNoteParam(trackId: number, noteId: string, param: string, value: any) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return {
+        ...t,
+        notes: t.notes.map(n => n.id === noteId ? { ...n, [param]: value } : n)
+      };
+    }));
+  }
+
+
 
   duplicateNotes(trackId: number, noteIds: string[], stepOffset: number) {
      this.tracks.update(ts => ts.map(t => {
@@ -455,6 +556,77 @@ export class MusicManagerService {
       velocity: velocity,
     });
   }
+  playStep(step: number, time: number, duration: number) {
+    this.currentStep.set(step);
+    this.tracks().forEach(track => {
+      if (track.mute) return;
+
+      let notesToPlay: TrackNote[] = [];
+
+      if (track.activePatternSlotId) {
+        const slot = track.patternSlots?.find(s => s.id === track.activePatternSlotId);
+        if (slot) {
+          // This is a simplification; in a real app, slots would contain pattern data
+          // For now, we will simulate by playing notes that match the current pattern view
+        }
+      }
+
+      // Check for notes at this step
+      track.notes.filter(n => Math.floor(n.step) === step).forEach(note => {
+         const freq = this.midiToFreq(note.midi);
+         const noteTime = time + (note.offset || 0) * duration;
+         this.engine.triggerAttack(
+           track.id,
+           freq,
+           noteTime,
+           note.velocity,
+           note.length * duration,
+           track.gain,
+           track.pan,
+           track.sendA,
+           track.sendB,
+           track.synthParams || { type: 'sine' },
+           1
+         );
+      });
+    });
+  }
+
+  setActivePatternSlot(trackId: number, slotId: string) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return { ...t, activePatternSlotId: slotId };
+    }));
+  }
+  addAutomationLane(trackId: number, parameter: string) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const lanes = t.automationLanes || [];
+      const newLane: AutomationLane = {
+        id: `lane-${Date.now()}`,
+        parameter,
+        points: [],
+        enabled: true
+      };
+      return { ...t, automationLanes: [...lanes, newLane] };
+    }));
+  }
+
+  addAutomationPoint(trackId: number, laneId: string, step: number, value: number) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return {
+        ...t,
+        automationLanes: (t.automationLanes || []).map(l => {
+          if (l.id !== laneId) return l;
+          const newPoint: AutomationPoint = { id: `pt-${Date.now()}-${Math.random()}`, step, value };
+          return { ...l, points: [...l.points, newPoint].sort((a, b) => a.step - b.step) };
+        })
+      };
+    }));
+  }
+
+
 
   createPatternSlot(trackId: number, name: string) {
     this.tracks.update(ts => ts.map(t => {

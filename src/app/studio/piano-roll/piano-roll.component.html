@@ -32,11 +32,24 @@
         </button>
       </div>
 
+      <div class="fl-mobile-tools flex gap-2 ml-4">
+        <button (click)="toggleGhostNotes()" [class.active]="showGhostNotes()" title="Toggle Ghost Notes" class="mini-btn tactile-v42">
+          <span class="material-symbols-outlined text-sm">visibility</span>
+        </button>
+        <select (change)="setScale($any($event.target).value)" class="glass-v42 text-[10px] bg-black/40 border border-white/10 rounded px-2">
+          <option value="C Major">C MAJOR</option>
+          <option value="C Minor">C MINOR</option>
+          <option value="Pentatonic">PENTATONIC</option>
+          <option value="Blues">BLUES</option>
+        </select>
+      </div>
       <div class="tool-divider"></div>
 
       <div class="action-group">
         <button (click)="quantizeNotes()" title="Quantize">Q</button>
         <button (click)="humanizeSelected()" title="Humanize">H</button>
+        <button (click)="strumSelected()" title="Strum">S</button>
+        <button (click)="arpeggiateSelected()" title="Arpeggiate">A</button>
         <button (click)="duplicateSelected()" title="Duplicate Selection">
           D
         </button>
@@ -86,7 +99,7 @@
         <div
           *ngFor="let midi of getDisplayKeys()"
           class="grid-row"
-          [class.black-row]="isBlackKey(midi)"
+          [class.black-row]="isBlackKey(midi)" [class.scale-highlight]="isInScale(midi)"
           [style.height.px]="rowHeight()"
           [style.top.px]="(127 - midi) * rowHeight()"
         ></div>
@@ -101,10 +114,23 @@
           [style.width.px]="cellWidth()"
         ></div>
 
+
+        <!-- Ghost Notes (FL Studio Style) -->
+        <div
+          *ngFor="let note of ghostNotes()"
+          class="ghost-note absolute opacity-20 pointer-events-none"
+          [style.left.px]="note.step * cellWidth()"
+          [style.top.px]="(127 - note.midi) * rowHeight()"
+          [style.width.px]="note.length * cellWidth()"
+          [style.height.px]="rowHeight()"
+          [style.background-color]="note.trackColor"
+          [style.border]="'1px solid ' + note.trackColor"
+        ></div>
+
         <!-- Notes -->
         <div
           *ngFor="let note of viewportNotes()"
-          class="note-block tactile-v42 executive-glass extreme-glow animate-neon"
+          class="note-block tactile-v42 executive-glass extreme-glow animate-neon" [class.slide-note]="note.isSlide"
           [class.selected-note]="selectedNoteIds().has(note.id)"
           [style.left.px]="note.step * cellWidth()"
           [style.top.px]="(127 - note.midi) * rowHeight()"
@@ -114,6 +140,7 @@
         >
           <div class="note-handle-start"></div>
           <div class="note-handle-end"></div>
+          <div *ngIf="note.isSlide" class="slide-indicator absolute top-0 right-0 p-0.5"><span class="material-symbols-outlined text-[10px] text-white">trending_up</span></div>
         </div>
 
         <!-- Selection Box -->
@@ -150,7 +177,7 @@
           max="1.5"
           step="0.05"
           (change)="adjustSelectedVelocity($any($event.target).valueAsNumber)"
-          class="knob-range"
+          class="knob-range tactile-v42"
         />
       </div>
 
@@ -162,11 +189,27 @@
           max="1"
           step="0.05"
           (input)="setSelectedNoteProbability($event)"
-          class="knob-range"
+          class="knob-range tactile-v42"
         />
       </div>
 
       <div class="param-item">
+      <div class="param-item" *ngIf="selectedNoteIds().size === 1">
+        <label class="neon-text-xs">OFFSET</label>
+        <input
+          type="range"
+          min="-0.5"
+          max="0.5"
+          step="0.01"
+          (input)="setNoteOffset($any(viewportNotes()[0]), $any($event.target).valueAsNumber)"
+          class="knob-range tactile-v42"
+        />
+      </div>
+
+      <div class="param-item" *ngIf="selectedNoteIds().size === 1">
+        <label class="neon-text-xs">SLIDE (FL STYLE)</label>
+        <button (click)="toggleNoteSlide($any(viewportNotes()[0]))" [class.active]="viewportNotes()[0]?.isSlide" class="mini-btn">SLIDE</button>
+      </div>
         <label class="neon-text-xs">SCALE SNAP</label>
         <label class="switch">
           <input

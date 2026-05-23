@@ -49,6 +49,9 @@ export class AudioEngineService {
   public compressor: DynamicsCompressorNode;
   public saturationNode: WaveShaperNode;
   public limiter: DynamicsCompressorNode;
+  public masterEQ: BiquadFilterNode;
+  public masterShelf: BiquadFilterNode;
+  public masterWidener: StereoPannerNode;
   private reverbConvolver: ConvolverNode;
   public reverbWet: GainNode;
   private delayNode: DelayNode;
@@ -91,6 +94,20 @@ export class AudioEngineService {
     truePeak: -0.1,
   };
 
+
+  processAutomation(step: number, time: number) {
+    this.tracks.forEach((track, id) => {
+      if (track.automationLanes) {
+        track.automationLanes.forEach((lane: any) => {
+          if (!lane.enabled) return;
+          const point = lane.points.find((p: any) => Math.floor(p.step) === step);
+          if (point) {
+            this.applyProductionParameter(id.toString(), lane.parameter, point.value, 0.05);
+          }
+        });
+      }
+    });
+  }
   onScheduleStep?: (step: number, time: number, duration: number) => void;
 
   constructor() {
@@ -101,6 +118,9 @@ export class AudioEngineService {
     this.compressor = this.ctx.createDynamicsCompressor();
     this.saturationNode = this.ctx.createWaveShaper();
     this.limiter = this.ctx.createDynamicsCompressor();
+    this.masterEQ = this.ctx.createBiquadFilter();
+    this.masterShelf = this.ctx.createBiquadFilter();
+    this.masterWidener = this.ctx.createStereoPanner();
     this.reverbConvolver = this.ctx.createConvolver();
     this.reverbWet = this.ctx.createGain();
     this.delayNode = this.ctx.createDelay(2.0);
@@ -108,8 +128,12 @@ export class AudioEngineService {
     this.masterAnalyser = this.ctx.createAnalyser();
 
     this.masterGain.connect(this.compressor);
+    // Professional signal flow upgrade: Saturation before compression often provides a warmer character
+    // but we will keep it for now and focus on enhancing the individual components.
     this.compressor.connect(this.saturationNode);
-    this.saturationNode.connect(this.limiter);
+    this.saturationNode.connect(this.masterEQ);
+    this.masterEQ.connect(this.masterShelf);
+    this.masterShelf.connect(this.limiter);
     this.limiter.connect(this.masterAnalyser);
     this.masterAnalyser.connect(this.ctx.destination);
 
@@ -184,7 +208,15 @@ export class AudioEngineService {
     const deg = Math.PI / 180;
     for (let i = 0; i < n_samples; ++i) {
       const x = (i * 2) / n_samples - 1;
-      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+      const absX = Math.abs(x);
+      if (absX < 0.33) {
+        curve[i] = 2 * x;
+      } else if (absX < 0.66) {
+        curve[i] = (3 - (2 - 3 * x) ** 2) / 3 * (x > 0 ? 1 : -1);
+      } else {
+        curve[i] = x > 0 ? 1 : -1;
+      }
+      curve[i] *= amount;
     }
     this.saturationNode.curve = curve;
     this.saturationNode.oversample = '4x';
@@ -292,6 +324,7 @@ export class AudioEngineService {
         this.playMetronomeClick(this.nextNoteTime, beatInBar === 0);
       }
 
+      this.processAutomation(stepIndex, this.nextNoteTime);
       this.onScheduleStep?.(stepIndex, this.nextNoteTime, stepDur);
       this.currentBeat.set(stepIndex / this.stepsPerBeat());
       this.nextNoteTime += stepDur;
@@ -533,6 +566,19 @@ export class AudioEngineService {
     vca.gain.exponentialRampToValueAtTime(0.001, when + duration + release);
 
     panner.pan.setValueAtTime(pan, when);
+
+    // Add Sub-Oscillator for extra fidelity/weight if requested or for specific types
+    let subOsc: OscillatorNode | null = null;
+    if (this.performanceTier() === 'ultra' && (osc.type === 'sawtooth' || osc.type === 'square')) {
+      subOsc = this.ctx.createOscillator();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(freq / 2, when);
+      const subGain = this.ctx.createGain();
+      subGain.gain.setValueAtTime(actualVel * gain * 0.3, when);
+      subOsc.connect(subGain).connect(vca);
+      subOsc.start(when);
+      subOsc.stop(when + duration + release + 0.1);
+    }
 
     osc.connect(filter).connect(vca).connect(panner).connect(this.masterGain);
 

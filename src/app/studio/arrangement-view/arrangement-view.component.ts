@@ -43,9 +43,34 @@ export class ArrangementViewComponent {
   selectedClipId = signal<string | null>(null);
   isDragging = signal(false);
 
-  tracks = this.musicManager.tracks;
+
+  showAutomation = signal(false);
+
+  toggleAutomation() {
+    this.showAutomation.update(v => !v);
+  }
+
+  addLane(trackId: number, parameter: string) {
+    this.musicManager.addAutomationLane(trackId, parameter);
+  }
+
+  addPoint(event: MouseEvent, trackId: number, lane: any) {
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const step = (x / this.barWidth) * 16; // 16 steps per bar
+    const value = 1 - (y / rect.height);
+    this.musicManager.addAutomationPoint(trackId, lane.id, step, value);
+  }
+  getLanePoints(lane: any): string {
+    if (!lane.points || lane.points.length === 0) return '';
+    return lane.points.map((pt: any) => `${(pt.step / 16) * this.barWidth},${(1 - pt.value) * 48}`).join(' ');
+  }
+
+tracks = this.musicManager.tracks;
 
   isAltPressed = false;
+  trackHeaderHeight = computed(() => this.showAutomation() ? 160 : 80);
 
   @HostListener('window:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent) {
@@ -55,6 +80,7 @@ export class ArrangementViewComponent {
   @HostListener('window:keyup', ['$event'])
   onKeyUp(event: KeyboardEvent) {
     if (!event.altKey) this.isAltPressed = false;
+  trackHeaderHeight = computed(() => this.showAutomation() ? 160 : 80);
   }
 
   addTrack(): void {

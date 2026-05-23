@@ -24,7 +24,7 @@ describe('AudioEngineService', () => {
         setValueAtTime: jest.fn(),
       },
       pan: { value: 0, setValueAtTime: jest.fn() },
-      Q: { value: 0 },
+      Q: { value: 0, setValueAtTime: jest.fn() },
       threshold: { value: 0, setTargetAtTime: jest.fn() },
       ratio: { value: 0, setTargetAtTime: jest.fn() },
       attack: { value: 0, setTargetAtTime: jest.fn() },
@@ -182,8 +182,10 @@ describe('AudioEngineService', () => {
       release: 0.3,
     });
 
-    const osc = mockAudioContext.createOscillator.mock.results.at(-1)?.value;
-    const vca = mockAudioContext.createGain.mock.results.at(-1)?.value;
+    const oscillators = mockAudioContext.createOscillator.mock.results.map((r: any) => r.value);
+    const osc = oscillators.find((o: any) => o.type === 'square') || oscillators.at(-1);
+    const gains = mockAudioContext.createGain.mock.results.map((r: any) => r.value);
+    const vca = gains.find((g: any) => g.gain.linearRampToValueAtTime.mock.calls.length > 0) || gains.at(-1);
     const panner =
       mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
 
@@ -214,7 +216,8 @@ describe('AudioEngineService', () => {
 
     const source =
       mockAudioContext.createBufferSource.mock.results.at(-1)?.value;
-    const vca = mockAudioContext.createGain.mock.results.at(-1)?.value;
+    const gains = mockAudioContext.createGain.mock.results.map((r: any) => r.value);
+    const vca = gains.find((g: any) => g.gain.linearRampToValueAtTime.mock.calls.length > 0) || gains.at(-1);
     const panner =
       mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
 
@@ -238,7 +241,8 @@ describe('AudioEngineService', () => {
     expect(scheduled).toHaveBeenNthCalledWith(2, 1, 0.175, 0.125);
     expect(service.currentBeat()).toBe(1 / 4);
 
-    const osc = mockAudioContext.createOscillator.mock.results.at(-1)?.value;
+    const oscillators = mockAudioContext.createOscillator.mock.results.map((r: any) => r.value);
+    const osc = oscillators.find((o: any) => o.type === 'square') || oscillators.at(-1);
     expect(osc.frequency.value).toBe(1200);
   });
 
