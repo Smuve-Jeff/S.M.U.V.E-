@@ -144,6 +144,6 @@ describe('NeuralOrchestratorService', () => {
     req.error(new ErrorEvent('Network error'));
 
     const response = await requestPromise;
-    expect(response).toBe('Strategic Link Severed. Offline processing active.');
+    expect(response).toBe('Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.');
   });
 });

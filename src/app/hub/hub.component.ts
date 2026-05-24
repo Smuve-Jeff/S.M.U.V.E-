@@ -307,7 +307,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   onQuickStart() {
     if (!this.quickProfile().artistName) {
       this.notificationService.show(
-        'Please enter your Artist Name to begin!',
+        'INPUT REQUIRED your Artist Name to begin!',
         'warning'
       );
       return;
@@ -349,7 +349,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  // Navigation Helpers
+  // Navigation INTELers
   goToStudio() {
     this.router.navigate(['/studio']);
   }

@@ -40,7 +40,7 @@ export class AnalyticsDashboardComponent {
 
   engagementTactics = [
     "Run a 'Behind the Scenes' stream for your top 50 listeners.",
-    "Send a personalized thank you video to this month's top streamer.",
+    "Send a personalized ACKNOWLEDGEMENT RECORDED video to this month's top streamer.",
     'Discord Exclusive: Early listen for the next single.',
   ];
 

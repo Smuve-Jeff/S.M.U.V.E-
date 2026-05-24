@@ -58,7 +58,19 @@ export class AudioEngineService {
   public delayWet: GainNode;
   private recordingDestination: MediaStreamAudioDestinationNode | null = null;
   public masterAnalyser: AnalyserNode;
-  public getMasterAnalyser() {
+  public getLufs(): number {
+    const data = new Float32Array(this.masterAnalyser.frequencyBinCount);
+    this.masterAnalyser.getFloatTimeDomainData(data);
+    let sumSquares = 0;
+    for (let i = 0; i < data.length; i++) {
+      sumSquares += data[i] * data[i];
+    }
+    const rms = Math.sqrt(sumSquares / data.length);
+    // Rough LUFS estimation (integrated over window)
+    return 20 * Math.log10(rms + 1e-9);
+  }
+
+  getMasterAnalyser() {
     return this.masterAnalyser;
   }
 
@@ -147,6 +159,7 @@ export class AudioEngineService {
     this.compressor.ratio.value = 4;
     this.limiter.threshold.value = -0.5;
     this.limiter.ratio.value = 20;
+    this.setSoftClip(0.5);
 
     this.setupSaturation(0);
     this.initDeck('A');
@@ -963,6 +976,18 @@ export class AudioEngineService {
       this.limiter.connect(this.recordingDestination);
     }
     return this.recordingDestination;
+  }
+
+  setSoftClip(amount: number) {
+    const k = amount * 100;
+    const n = 256;
+    const curve = new Float32Array(n);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < n; i++) {
+      const x = (i * 2) / n - 1;
+      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+    }
+    this.saturationNode.curve = curve;
   }
 
   bitcrushDeck(id: DeckId, bits: number = 8) {

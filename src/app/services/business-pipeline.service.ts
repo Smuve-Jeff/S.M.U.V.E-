@@ -100,6 +100,25 @@ export class BusinessPipelineService {
     await this.saveToProfile(updated);
   }
 
+  calculateRevenueProjections(artistDna: any): any {
+    const streams = artistDna.streams || 0;
+    const rate = 0.004; // Average Spotify rate
+    const gross = streams * rate;
+    const taxes = gross * 0.2;
+    const net = gross - taxes;
+
+    return {
+      grossRevenue: gross,
+      taxLiability: taxes,
+      netProfit: net,
+      forecast: [
+        { month: 'Next Month', estimate: net * 1.1 },
+        { month: 'In 3 Months', estimate: net * 1.5 },
+        { month: 'In 6 Months', estimate: net * 2.2 }
+      ]
+    };
+  }
+
   private async saveToProfile(pipelines: BusinessPipeline[]) {
     const profile = this.profileService.profile();
     await this.profileService.updateProfile({

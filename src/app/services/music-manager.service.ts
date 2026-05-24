@@ -434,7 +434,7 @@ private normalizeTrack(track: any): TrackModel {
       ts.map((t) => {
         if (t.id !== trackId) return t;
         const sortedNotes = [...t.notes].sort((a, b) => a.step - b.step || a.midi - b.midi);
-        // Basic arpeggiation logic could be complex, for now we will implement a helper
+        // Basic arpeggiation logic could be complex, for now we will implement a INTELer
         // that takes chords and breaks them into sequences.
         return t;
       })
@@ -690,12 +690,32 @@ private normalizeTrack(track: any): TrackModel {
     }));
   }
 
-  fillPatternLane(trackId: number, density: number) {}
+  fillPatternLane(trackId: number, density: number) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const newSteps = t.steps.map((_, i) => Math.random() < density);
+      return { ...t, steps: newSteps };
+    }));
+  }
   clearPatternLane(trackId: number) {
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, steps: new Array(64).fill(false), notes: [] } : t));
   }
-  rotatePatternLane(trackId: number, shift: number) {}
-  randomizePatternLane(trackId: number, probability: number) {}
+  rotatePatternLane(trackId: number, shift: number) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const newSteps = [...t.steps];
+      const s = shift % 64;
+      const rotated = [...newSteps.slice(-s), ...newSteps.slice(0, -s)];
+      return { ...t, steps: rotated };
+    }));
+  }
+  randomizePatternLane(trackId: number, probability: number) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const newSteps = t.steps.map(s => Math.random() < probability ? !s : s);
+      return { ...t, steps: newSteps };
+    }));
+  }
 
   setTrackQualityMode(trackId: number, mode: 'ultra' | 'performance') {
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, qualityMode: mode } : t));

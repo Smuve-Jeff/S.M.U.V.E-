@@ -13,40 +13,40 @@ export class AiAuditService {
     if (profile.catalog.length === 0) {
       score -= 30;
       deficits.push(
-        'CRITICAL: Empty Catalog. No assets detected for distribution.'
+        'CRITICAL DEFICIT: CATALOG VACUUM. ZERO ASSETS DETECTED. YOU ARE INVISIBLE.'
       );
       recommendations.push(
-        'Initialize catalog by importing your first master recording or demo.'
+        'IMPORT A MASTER IMMEDIATELY. STOP STALLING.'
       );
     } else if (profile.catalog.length < 5) {
       score -= 10;
-      deficits.push('Low Catalog Depth. Limited inventory for release cycles.');
+      deficits.push('INVENTORY DEPTH: SHALLOW. YOUR RELEASE CYCLE IS FRAGILE.');
       recommendations.push(
-        'Aim for a minimum of 5 completed tracks to sustain a 6-month release strategy.'
+        'GENERATE 5 MASTERS MINIMUM. SUSTAIN THE ONSLAUGHT.'
       );
     }
 
     if (!profile.proName || !profile.proIpi) {
       score -= 15;
-      deficits.push('Legal Invisibility: Missing PRO identifiers (IPI/Name).');
+      deficits.push('LEGAL INVISIBILITY DETECTED. YOU ARE LEAKING ROYALTIES TO THE VOID.');
       recommendations.push(
-        'Register with a Performance Rights Organization (ASCAP, BMI, SESAC) immediately.'
+        'AFFILIATE WITH A PRO. NOW.'
       );
     }
 
     if (!profile.website) {
       score -= 5;
-      deficits.push('Branding Deficit: Missing official website.');
+      deficits.push('BRANDING VOID: OFFICIAL DOMAIN NOT FOUND.');
       recommendations.push(
-        'Establish a canonical website to anchor your digital identity.'
+        'CLAIM YOUR TERRITORY. BUILD THE WEBSITE.'
       );
     }
 
     if (profile.financials.accounts.length === 0) {
       score -= 10;
-      deficits.push('Financial Disconnect: No payout accounts linked.');
+      deficits.push('FINANCIAL ANOMALY: PAYOUT CHANNELS SEVERED.');
       recommendations.push(
-        'Link your DistroKid, PayPal, or Stripe account to enable revenue tracking.'
+        'LINK YOUR ACCOUNTS. COLLECT YOUR TRIBUTE.'
       );
     }
 
@@ -55,25 +55,25 @@ export class AiAuditService {
       profile.catalog.length > 3
     ) {
       score -= 5;
-      deficits.push('Legal Risk: Missing split sheets for catalog items.');
+      deficits.push('LEGAL VULNERABILITY: UNPROTECTED COLLABORATIONS DETECTED.');
       recommendations.push(
-        'Generate and sign split sheets for all collaborative works.'
+        'EXECUTE SPLIT SHEETS. PROTECT THE EQUITY.'
       );
     }
 
     if (profile.team.length === 0) {
       score -= 5;
-      deficits.push('Isolation Alert: No team members identified.');
+      deficits.push('ISOLATION DETECTED. YOU ARE RUNNING A GHOST SHIP.');
       recommendations.push(
-        'Consider adding your manager, lawyer, or key collaborators to your professional circle.'
+        'RECRUIT ELITES. EXPAND YOUR SQUAD.'
       );
     }
 
     if (profile.artistIdentity.fingerprint.trustScore < 60) {
       score -= 10;
-      deficits.push('Identity Fragility: Low trust score in identity graph.');
+      deficits.push('IDENTITY FRAGILITY: YOUR FINGERPRINT IS WEAK.');
       recommendations.push(
-        'Verify your social surfaces and sync your Spotify for Artist profile.'
+        'HARDEN YOUR SURFACES. SYNC THE GRAPH.'
       );
     }
 

@@ -174,9 +174,11 @@ export class AiService {
     Identify every technical, legal, and strategic deficit.
     Be ruthless. Issue a mandatory corrective roadmap.`;
 
-    const res = await this.getAIResponse(auditPrompt);
+    const res = await firstValueFrom(
+      this.http.post<any>('/api/ai/deep-audit', { profile })
+    );
     this.deepAuditResults.set({
-      report: res,
+      report: res.report,
       timestamp: Date.now(),
       status: 'CRITICAL VULNERABILITIES DETECTED'
     });
@@ -189,10 +191,12 @@ export class AiService {
     Deep-search the live music industry for specific competitive advantages related to this query.
     Provide actionable, high-stakes intel that only an Elite-level guru would possess.`;
 
-    const res = await this.getAIResponse(searchPrompt);
+    const res = await firstValueFrom(
+      this.http.post<any>('/api/ai/industry-search', { query })
+    );
     this.industryIntelligence.update(prev => [{
       query,
-      intel: res,
+      intel: res.intel,
       timestamp: Date.now()
     }, ...prev]);
     this.isProcessing.set(false);

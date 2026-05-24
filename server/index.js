@@ -711,6 +711,50 @@ app.post(
 
 // AI Analyze Proxy
 app.post(
+  '/api/ai/deep-audit',
+  aiAnalyzeLimiter,
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { profile } = req.body;
+      const prompt = `PERFORM TOTAL PROJECT AUDIT FOR ${profile.artistName}.
+      Analyze User DNA: ${JSON.stringify(profile)}.
+      Identify every technical, legal, and strategic deficit.
+      Return JSON with fields: report (text), deficits (array), roadmap (array).`;
+
+      const response = await genAI.models.generateContent({
+        model: 'gemini-1.5-pro',
+        contents: prompt,
+      });
+      res.json({ success: true, report: response.text });
+    } catch (err) {
+      res.status(500).json({ error: 'Deep audit failed.' });
+    }
+  }
+);
+
+app.post(
+  '/api/ai/industry-search',
+  aiAnalyzeLimiter,
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { query } = req.body;
+      const prompt = `EXTERNAL INTELLIGENCE GATHERING: ${query}.
+      Provide actionable, high-stakes intel that only an Elite-level guru would possess.`;
+
+      const response = await genAI.models.generateContent({
+        model: 'gemini-1.5-pro',
+        contents: prompt,
+      });
+      res.json({ success: true, intel: response.text });
+    } catch (err) {
+      res.status(500).json({ error: 'Industry search failed.' });
+    }
+  }
+);
+
+app.post(
   '/api/ai/analyze',
   aiAnalyzeLimiter,
   authenticateToken,

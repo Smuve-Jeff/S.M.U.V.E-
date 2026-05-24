@@ -5026,6 +5026,106 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       }
+    },
+    {
+      "id": "mgs-elite",
+      "name": "Metal Gear Solid",
+      "url": "https://www.retrogames.cc/embed/41253-metal-gear-solid-usa.html",
+      "genre": "Stealth",
+      "description": "Tactical Espionage Action. Take on the role of Solid Snake as he infiltrates Shadow Moses Island.",
+      "tags": [
+        "Stealth",
+        "Retro",
+        "PS1",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41253-metal-gear-solid-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 8500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "gt2-elite",
+      "name": "Gran Turismo 2",
+      "url": "https://www.retrogames.cc/embed/41249-gran-turismo-2-usa.html",
+      "genre": "Racing",
+      "description": "The real driving simulator. Over 600 cars and dozens of tracks in this definitive racing classic.",
+      "tags": [
+        "Racing",
+        "Retro",
+        "PS1"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41249-gran-turismo-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 10500,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "silent-hill-elite",
+      "name": "Silent Hill",
+      "url": "https://www.retrogames.cc/embed/41247-silent-hill-usa.html",
+      "genre": "Horror",
+      "description": "Psychological horror at its finest. Harry Mason searches for his daughter in the fog-shrouded town.",
+      "tags": [
+        "Horror",
+        "Retro",
+        "PS1"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41247-silent-hill-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 7200,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
     }
   ],
   "recommendationRails": [
