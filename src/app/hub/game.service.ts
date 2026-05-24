@@ -49,6 +49,10 @@ export type GameSortMode = 'Popular' | 'Rating' | 'Newest' | 'Name' | 'Queue';
 function isManagedGameAssetUrl(url: string) {
   const approvedDomains = [
     'retrogames.cc',
+    'emulatorgames.online',
+    'playclassic.games',
+    'arcadespot.com',
+    'emulatorjs.org',
     'dos.zone',
     'gamepix.com',
     'github.io',
