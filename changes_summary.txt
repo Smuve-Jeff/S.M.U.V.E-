@@ -1,6 +1,4 @@
-import { ThaSpotFeed } from './game';
-
-export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
+{
   "badges": [
     {
       "id": "featured",
@@ -7069,4 +7067,4 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "maxItems": 5
     }
   ]
-};
+}
