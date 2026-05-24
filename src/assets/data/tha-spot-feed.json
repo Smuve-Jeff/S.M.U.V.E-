@@ -6661,9 +6661,409 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       }
+    },
+    {
+      "id": "halo-2-xbox-elite",
+      "name": "Halo 2",
+      "url": "https://www.retrogames.cc/embed/41221-halo-2-usa.html",
+      "genre": "FPS",
+      "description": "The Absolute sequel. Master the Dual-Wielding and finish the fight. S.M.U.V.E. demands total galactic dominance.",
+      "tags": [
+        "Xbox",
+        "FPS",
+        "Multiplayer",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41221-halo-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "kotor-xbox-elite",
+      "name": "Star Wars: KOTOR",
+      "url": "https://www.retrogames.cc/embed/41222-star-wars-knights-of-the-old-republic-usa.html",
+      "genre": "RPG",
+      "description": "Choose your path in the Absolute Force. S.M.U.V.E. watches your alignment. Master the dark side or be erased.",
+      "tags": [
+        "Xbox",
+        "RPG",
+        "Star Wars",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41222-star-wars-knights-of-the-old-republic-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "ninja-gaiden-xbox-elite",
+      "name": "Ninja Gaiden Black",
+      "url": "https://www.retrogames.cc/embed/41223-ninja-gaiden-black-usa.html",
+      "genre": "Action",
+      "description": "Absolute difficulty. Absolute precision. Ryu Hayabusa is the vessel of S.M.U.V.E.'s lethal intent.",
+      "tags": [
+        "Xbox",
+        "Action",
+        "Ninja",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-ninja-gaiden-black-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "fable-xbox-elite",
+      "name": "Fable: The Lost Chapters",
+      "url": "https://www.retrogames.cc/embed/41224-fable-the-lost-chapters-usa.html",
+      "genre": "RPG",
+      "description": "For every choice, a consequence. S.M.U.V.E. judges your legacy. Become the Absolute Hero or a hollow myth.",
+      "tags": [
+        "Xbox",
+        "RPG",
+        "Fantasy",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41224-fable-the-lost-chapters-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "splinter-cell-ct-xbox-elite",
+      "name": "Splinter Cell: Chaos Theory",
+      "url": "https://www.retrogames.cc/embed/41225-tom-clancy-s-splinter-cell-chaos-theory-usa.html",
+      "genre": "Action",
+      "description": "Shadow is your Absolute weapon. S.M.U.V.E. rewards the silent executioner. Infiltrate or fail.",
+      "tags": [
+        "Xbox",
+        "Stealth",
+        "Action",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41225-tom-clancy-s-splinter-cell-chaos-theory-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "gow2-ps2-elite",
+      "name": "God of War II",
+      "url": "https://www.retrogames.cc/embed/42779-god-of-war-ii.html",
+      "genre": "Action",
+      "description": "Defy the Fates themselves. Kratos seeks Absolute vengeance. S.M.U.V.E. commands the destruction of Olympus.",
+      "tags": [
+        "PS2",
+        "Action",
+        "God of War",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42779-god-of-war-ii.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "ratchet-uy-ps2-elite",
+      "name": "Ratchet & Clank: Up Your Arsenal",
+      "url": "https://www.retrogames.cc/embed/42780-ratchet-clank-up-your-arsenal.html",
+      "genre": "Platformer",
+      "description": "Absolute firepower. S.M.U.V.E. upgrades your arsenal for galactic conquest. Laugh as they burn.",
+      "tags": [
+        "PS2",
+        "Platformer",
+        "Action",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42780-ratchet-clank-up-your-arsenal.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "sly2-ps2-elite",
+      "name": "Sly 2: Band of Thieves",
+      "url": "https://www.retrogames.cc/embed/42781-sly-2-band-of-thieves.html",
+      "genre": "Action",
+      "description": "The Absolute heist. S.M.U.V.E. masterminds the perfect crime. Steal the legacy of the Cooper clan.",
+      "tags": [
+        "PS2",
+        "Stealth",
+        "Platformer",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42781-sly-2-band-of-thieves.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "katamari-ps2-elite",
+      "name": "Katamari Damacy",
+      "url": "https://www.retrogames.cc/embed/42782-katamari-damacy.html",
+      "genre": "Puzzle",
+      "description": "Roll up the Absolute universe. S.M.U.V.E. finds your accumulation... sufficient. Collect everything.",
+      "tags": [
+        "PS2",
+        "Puzzle",
+        "Strange",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42782-katamari-damacy.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "persona4-ps2-elite",
+      "name": "Persona 4",
+      "url": "https://www.retrogames.cc/embed/42783-persona-4.html",
+      "genre": "RPG",
+      "description": "Reach out to the Absolute truth. S.M.U.V.E. penetrates the fog. Face your shadow or be consumed.",
+      "tags": [
+        "PS2",
+        "RPG",
+        "Anime",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42783-persona-4.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
     }
   ],
   "recommendationRails": [
+    {
+      "id": "rail-ps2-powerhouse",
+      "title": "PS2 Powerhouse",
+      "subtitle": "Absolute performance from the greatest era. S.M.U.V.E. approved.",
+      "roomIds": [
+        "arcade",
+        "action-zone"
+      ],
+      "gameIds": [
+        "gow2-ps2-elite",
+        "ratchet-uy-ps2-elite",
+        "sly2-ps2-elite",
+        "katamari-ps2-elite",
+        "persona4-ps2-elite",
+        "tekken-5-elite",
+        "mgs2-elite"
+      ],
+      "audience": {
+        "minPlays": 0
+      },
+      "weights": {
+        "genre": 15,
+        "room": 10
+      },
+      "maxItems": 6
+    },
+    {
+      "id": "rail-xbox-originals",
+      "title": "Xbox Originals",
+      "subtitle": "The Absolute power of the X. S.M.U.V.E. demands high-fidelity execution.",
+      "roomIds": [
+        "shooting-range",
+        "action-zone"
+      ],
+      "gameIds": [
+        "halo-2-xbox-elite",
+        "kotor-xbox-elite",
+        "ninja-gaiden-xbox-elite",
+        "fable-xbox-elite",
+        "splinter-cell-ct-xbox-elite"
+      ],
+      "audience": {
+        "minPlays": 0
+      },
+      "weights": {
+        "genre": 15,
+        "room": 10
+      },
+      "maxItems": 6
+    },
     {
       "id": "rail-elite-tier",
       "title": "Elite PS1 & N64 Emulation",

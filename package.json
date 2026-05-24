@@ -17,9 +17,12 @@
     "deploy": "ng build --configuration=ghpages && cp Build/index.html Build/404.html && npx angular-cli-ghpages --dir=Build"
   },
   "dependencies": {
+    "@angular-devkit/build-angular": "21.2.7",
     "@angular/animations": "21.2.9",
+    "@angular/cli": "21.2.7",
     "@angular/common": "21.2.9",
     "@angular/compiler": "21.2.9",
+    "@angular/compiler-cli": "21.2.9",
     "@angular/core": "21.2.9",
     "@angular/forms": "21.2.9",
     "@angular/platform-browser": "21.2.9",
@@ -28,19 +31,16 @@
     "@angular/service-worker": "21.2.9",
     "@google/genai": "^1.48.0",
     "animate.css": "^4.1.1",
+    "autoprefixer": "^10.5.0",
     "playwright": "^1.59.1",
+    "postcss": "^8.5.10",
     "rxjs": "^7.8.2",
     "serve": "^14.2.6",
+    "tailwindcss": "^3.4.17",
     "tone": "^15.1.22",
-    "wait-on": "^9.0.5",
-    "zone.js": "^0.15.1",
-    "@angular/cli": "21.2.7",
-    "@angular-devkit/build-angular": "21.2.7",
-    "@angular/compiler-cli": "21.2.9",
     "typescript": "^5.9.3",
-    "postcss": "^8.5.10",
-    "autoprefixer": "^10.5.0",
-    "tailwindcss": "^3.4.17"
+    "wait-on": "^9.0.5",
+    "zone.js": "^0.15.1"
   },
   "devDependencies": {
     "@angular/pwa": "21.2.7",
