@@ -5126,6 +5126,278 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       }
+    },
+    {
+      "id": "tekken-5-elite",
+      "name": "Tekken 5",
+      "url": "https://www.retrogames.cc/embed/42777-tekken-5.html",
+      "genre": "Fighting",
+      "description": "The Absolute King of Iron Fist. If you can't handle the Jinpachi Mishima pressure, stay out of the ring. Only elite combatants need apply.",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42777-tekken-5.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 15000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "mgs2-elite",
+      "name": "Metal Gear Solid 2: Sons of Liberty",
+      "url": "https://www.retrogames.cc/embed/41220-metal-gear-solid-2-sons-of-liberty-usa.html",
+      "genre": "Stealth",
+      "description": "Hideo Kojima's masterpiece. Infiltrate the Big Shell and face the truth of the Patriots. S.M.U.V.E. doesn't tolerate failure.",
+      "tags": [
+        "Stealth",
+        "Retro",
+        "PS2",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41220-metal-gear-solid-2-sons-of-liberty-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 9500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "sonic-adventure-2-elite",
+      "name": "Sonic Adventure 2",
+      "url": "https://www.retrogames.cc/embed/41227-sonic-adventure-2-usa.html",
+      "genre": "Platformer",
+      "description": "Live and Learn. Speed is the only thing that matters. Master the Chaos Emeralds or get left in the dust of the Absolute speedway.",
+      "tags": [
+        "Platformer",
+        "Retro",
+        "Dreamcast",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41227-sonic-adventure-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 11000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "gta-vice-city-elite",
+      "name": "GTA: Vice City",
+      "url": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
+      "genre": "Action",
+      "description": "The neon-soaked 80s. Build your empire or get crushed by it. S.M.U.V.E. demands total control of the streets.",
+      "tags": [
+        "Action",
+        "Open World",
+        "PS2",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 18000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "thps2-elite",
+      "name": "Tony Hawk's Pro Skater 2",
+      "url": "https://www.retrogames.cc/embed/41258-tony-hawk-s-pro-skater-2-usa.html",
+      "genre": "Sports",
+      "description": "Land the 900 or don't even step on the board. The Absolute skating experience. Shred or be shredded.",
+      "tags": [
+        "Sports",
+        "Retro",
+        "PS1",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41258-tony-hawk-s-pro-skater-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 13000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "ffx-elite",
+      "name": "Final Fantasy X",
+      "url": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html",
+      "genre": "RPG",
+      "description": "A journey through Spira to defeat Sin. This isn't for the weak of heart. Only those with Absolute resolve will survive.",
+      "tags": [
+        "RPG",
+        "Retro",
+        "PS2",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 14000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "re4-elite",
+      "name": "Resident Evil 4",
+      "url": "https://www.retrogames.cc/embed/41225-resident-evil-4-usa.html",
+      "genre": "Horror",
+      "description": "Leon S. Kennedy's nightmare. Survive the Ganados or die. S.M.U.V.E. expects Absolute focus in this survival gauntlet.",
+      "tags": [
+        "Horror",
+        "Action",
+        "PS2",
+        "GameCube"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41225-resident-evil-4-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 16000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "burnout-3-elite",
+      "name": "Burnout 3: Takedown",
+      "url": "https://www.retrogames.cc/embed/41226-burnout-3-takedown-usa.html",
+      "genre": "Racing",
+      "description": "Total destruction. Win at any cost. Aggressive driving is mandatory. S.M.U.V.E. loves the smell of burning rubber.",
+      "tags": [
+        "Racing",
+        "Action",
+        "PS2",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41226-burnout-3-takedown-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
     }
   ],
   "recommendationRails": [
@@ -5148,7 +5420,12 @@
         "room": 5
       },
       "maxItems": 6,
-      "badgeId": "elite"
+      "badgeId": "elite",
+      "gameIds": [
+        "mgs2-elite",
+        "re4-elite",
+        "sonic-adventure-2-elite"
+      ]
     },
     {
       "id": "rail-returning-runs",
@@ -5227,7 +5504,11 @@
         "room": 10,
         "novelty": 2
       },
-      "maxItems": 4
+      "maxItems": 4,
+      "gameIds": [
+        "tekken-5-elite",
+        "burnout-3-elite"
+      ]
     },
     {
       "id": "rail-rpg-depths",
@@ -5240,7 +5521,8 @@
         "zelda-ocarina-of-time",
         "final-fantasy-vii-elite",
         "pokemon-yellow-elite",
-        "final-fantasy-nes"
+        "final-fantasy-nes",
+        "ffx-elite"
       ],
       "audience": {
         "rooms": [
@@ -5272,7 +5554,9 @@
         "sfii-world-warrior",
         "tekken-3-elite",
         "tmnt-turtles-in-time-elite",
-        "gta-san-andreas-elite"
+        "gta-san-andreas-elite",
+        "tekken-5-elite",
+        "gta-vice-city-elite"
       ],
       "audience": {
         "rooms": [
