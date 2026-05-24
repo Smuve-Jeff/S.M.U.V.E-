@@ -21,8 +21,15 @@ export class SpeechSynthesisService {
   // Elite S.M.U.V.E. Archetypes - Dynamic characters as requested
   private readonly SMUVE_ARCHETYPES: SmuveArchetype[] = [
     {
+      name: 'The S.M.U.V.E. Driller',
+      keywords: ['en-gb', 'male', 'david', 'google uk male'],
+      pitch: 0.7,
+      rate: 0.82,
+      volume: 1.0,
+    },
+    {
       name: 'The S.M.U.V.E. Executioner',
-      keywords: ['google uk male', 'male', 'david', 'microsoft james'],
+      keywords: ['google uk male', 'male', 'microsoft james'],
       pitch: 0.6,
       rate: 0.85,
       volume: 1.0,
@@ -48,36 +55,38 @@ export class SpeechSynthesisService {
       rate: 0.9,
       volume: 1.0,
     },
-    {
-      name: 'The S.M.U.V.E. Driller',
-      keywords: ['en-gb', 'male', 'google uk male'],
-      pitch: 0.7,
-      rate: 1.0,
-      volume: 1.0,
-    }
   ];
 
   private currentArchetype: SmuveArchetype | null = null;
+  private conversationVoices = new Map<string, any>();
+  private lastUsedVoice: any = null;
 
   constructor() {}
 
-  speak(text: string, _options?: SpeakOptions): void {
+  speak(text: string, options?: SpeakOptions): void {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis) {
       return;
     }
 
     // Select a random S.M.U.V.E. Archetype for every interaction
-    this.currentArchetype = this.SMUVE_ARCHETYPES[Math.floor(Math.random() * this.SMUVE_ARCHETYPES.length)];
+    this.currentArchetype =
+      this.SMUVE_ARCHETYPES[
+        Math.floor(Math.random() * this.SMUVE_ARCHETYPES.length)
+      ];
 
     // Pronunciation rule: S.M.U.V.E -> Smooth
     const processedText = text
       .replace(/S\.M\.U\.V\.E(?:\s+\d+\.\d+)?/gi, 'Smooth')
-      .replace(/SMUVE/gi, 'Smooth');
+      .replace(/SMUVE/gi, 'Smooth')
+      .replace(
+        /Smooth\s+INITIALIZED\.\s+ROOM DOMINANCE COMMENCING\./i,
+        'Welcome to Smooth'
+      );
 
     this.cancel();
 
     const utterance = new SpeechSynthesisUtterance(processedText);
-    this.configureUtterance(utterance);
+    this.configureUtterance(utterance, options);
 
     utterance.onstart = () => this.isSpeaking.set(true);
     utterance.onend = () => this.isSpeaking.set(false);
@@ -86,13 +95,41 @@ export class SpeechSynthesisService {
     window.speechSynthesis.speak(utterance);
   }
 
-  private configureUtterance(utterance: SpeechSynthesisUtterance) {
+  private configureUtterance(
+    utterance: SpeechSynthesisUtterance,
+    options?: SpeakOptions
+  ) {
     if (!this.currentArchetype) return;
 
     const voices = window.speechSynthesis.getVoices();
-    const selectedVoice = this.pickVoice(voices, this.currentArchetype);
+    const conversationId = options?.conversationId;
+    let selectedVoice: any = null;
+
+    if (conversationId && this.conversationVoices.has(conversationId)) {
+      selectedVoice = this.conversationVoices.get(conversationId);
+    } else {
+      selectedVoice = this.pickVoice(voices, this.currentArchetype);
+
+      if (conversationId && this.lastUsedVoice && selectedVoice) {
+        const pool = this.getVoicePool(voices, this.currentArchetype);
+        if (pool.length > 1 && selectedVoice.name === this.lastUsedVoice.name) {
+          const alternatives = pool.filter(
+            (v) => v.name !== this.lastUsedVoice.name
+          );
+          if (alternatives.length > 0) {
+            selectedVoice =
+              alternatives[Math.floor(Math.random() * alternatives.length)];
+          }
+        }
+      }
+
+      if (conversationId && selectedVoice) {
+        this.conversationVoices.set(conversationId, selectedVoice);
+      }
+    }
 
     if (selectedVoice) {
+      this.lastUsedVoice = selectedVoice;
       this.assignVoiceSafely(utterance, selectedVoice);
     }
 
@@ -101,7 +138,7 @@ export class SpeechSynthesisService {
     utterance.volume = this.currentArchetype.volume;
   }
 
-  private pickVoice(voices: any[], archetype: SmuveArchetype): any | null {
+  private getVoicePool(voices: any[], archetype: SmuveArchetype): any[] {
     const englishVoices = voices.filter((voice) =>
       voice.lang?.toLowerCase().startsWith('en')
     );
@@ -113,7 +150,11 @@ export class SpeechSynthesisService {
       )
     );
 
-    const voicePool = matchingVoices.length ? matchingVoices : basePool;
+    return matchingVoices.length ? matchingVoices : basePool;
+  }
+
+  private pickVoice(voices: any[], archetype: SmuveArchetype): any | null {
+    const voicePool = this.getVoicePool(voices, archetype);
     if (!voicePool.length) return null;
 
     const voiceIndex = Math.floor(Math.random() * voicePool.length);

@@ -41,6 +41,14 @@ describe('StrategyHubComponent', () => {
     intelligenceBriefs: signal([]),
     marketAlerts: signal([]),
     advisorAdvice: signal([]),
+    isScanning: signal(false),
+    isProcessing: signal(false),
+    deepAuditResults: signal(null as any),
+    industryIntelligence: signal([] as any[]),
+    strategicDecrees: signal(['Decree 1', 'Decree 2', 'Decree 3', 'Decree 4']),
+    performDeepAudit: jest.fn().mockResolvedValue(undefined),
+    industryDeepSearch: jest.fn().mockResolvedValue(undefined),
+    unlockUpgrade: jest.fn(),
     getDynamicChecklist: jest.fn().mockReturnValue([
       {
         id: 'task-1',

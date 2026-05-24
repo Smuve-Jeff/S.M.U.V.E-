@@ -20,21 +20,42 @@ export interface LegalDocument {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="modal-content bg-[#1a1a1a] p-6 border border-[#af25f4] shadow-[0_0_20px_rgba(175,37,244,0.3)]">
-      <h3 class="text-2xl font-bold mb-6 text-[#af25f4] uppercase tracking-tighter italic">
+    <div
+      class="modal-content bg-[#1a1a1a] p-6 border border-[#af25f4] shadow-[0_0_20px_rgba(175,37,244,0.3)]"
+    >
+      <h3
+        class="text-2xl font-bold mb-6 text-[#af25f4] uppercase tracking-tighter italic"
+      >
         {{ documentId ? 'REDACT' : 'INITIALIZE' }} LEGAL PROTOCOL
       </h3>
 
       <div class="mb-6">
-        <label class="block text-[10px] uppercase text-[#af25f4] mb-2 opacity-70">Template Selection</label>
+        <label
+          class="block text-[10px] uppercase text-[#af25f4] mb-2 opacity-70"
+          >Template Selection</label
+        >
         <div class="flex gap-2">
-          <button (click)="loadTemplate('Split Sheet')" class="px-3 py-1 bg-[#af25f4]/10 border border-[#af25f4]/30 text-[10px] text-white hover:bg-[#af25f4]/20 transition-colors uppercase">Split Sheet</button>
-          <button (click)="loadTemplate('Work-for-Hire')" class="px-3 py-1 bg-[#af25f4]/10 border border-[#af25f4]/30 text-[10px] text-white hover:bg-[#af25f4]/20 transition-colors uppercase">Work-for-Hire</button>
+          <button
+            (click)="loadTemplate('Split Sheet')"
+            class="px-3 py-1 bg-[#af25f4]/10 border border-[#af25f4]/30 text-[10px] text-white hover:bg-[#af25f4]/20 transition-colors uppercase"
+          >
+            Split Sheet
+          </button>
+          <button
+            (click)="loadTemplate('Work-for-Hire')"
+            class="px-3 py-1 bg-[#af25f4]/10 border border-[#af25f4]/30 text-[10px] text-white hover:bg-[#af25f4]/20 transition-colors uppercase"
+          >
+            Work-for-Hire
+          </button>
         </div>
       </div>
 
       <div class="form-group mb-4">
-        <label for="docTitle" class="block text-[10px] uppercase text-[#af25f4] mb-1">Document Identifier</label>
+        <label
+          for="docTitle"
+          class="block text-[10px] uppercase text-[#af25f4] mb-1"
+          >Document Identifier</label
+        >
         <input
           id="docTitle"
           type="text"
@@ -45,7 +66,11 @@ export interface LegalDocument {
       </div>
 
       <div class="form-group mb-4">
-        <label for="docContent" class="block text-[10px] uppercase text-[#af25f4] mb-1">Legal Clauses & Metadata</label>
+        <label
+          for="docContent"
+          class="block text-[10px] uppercase text-[#af25f4] mb-1"
+          >Legal Clauses & Metadata</label
+        >
         <textarea
           id="docContent"
           [(ngModel)]="content"
@@ -56,8 +81,18 @@ export interface LegalDocument {
       </div>
 
       <div class="flex justify-end gap-3 mt-8">
-        <button (click)="cancel.emit()" class="px-6 py-2 border border-red-900/50 text-red-500 text-xs uppercase hover:bg-red-900/20 transition-all">Abort</button>
-        <button (click)="saveDocument()" class="px-6 py-2 bg-[#af25f4] text-black text-xs font-bold uppercase hover:bg-white transition-all shadow-[0_0_10px_rgba(175,37,244,0.5)]">Execute</button>
+        <button
+          (click)="cancel.emit()"
+          class="px-6 py-2 border border-red-900/50 text-red-500 text-xs uppercase hover:bg-red-900/20 transition-all"
+        >
+          Abort
+        </button>
+        <button
+          (click)="saveDocument()"
+          class="px-6 py-2 bg-[#af25f4] text-black text-xs font-bold uppercase hover:bg-white transition-all shadow-[0_0_10px_rgba(175,37,244,0.5)]"
+        >
+          Execute
+        </button>
       </div>
     </div>
   `,
