@@ -1,7 +1,6 @@
-import { ThaSpotFeed } from './game';
+import { ThaSpotFeed } from './hub.types';
 
 export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
-
   "badges": [
     {
       "id": "featured",
@@ -196,7 +195,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "reward": "Clash Banner Drop",
       "status": "live",
       "windowLabel": "Live now",
-      "featuredGameId": "1",
+      "featuredGameId": "battlefield",
       "badgeId": "tournament-live",
       "schedule": {
         "startAt": "2026-04-04T20:00:00.000Z",
@@ -217,7 +216,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "reward": "Studio skin drop",
       "status": "upcoming",
       "windowLabel": "Starts in 2h",
-      "featuredGameId": "2",
+      "featuredGameId": "remix-arena",
       "badgeId": "new-drop",
       "schedule": {
         "startAt": "2026-04-06T20:00:00.000Z",
@@ -238,7 +237,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "reward": "Weekend tokens",
       "status": "ending-soon",
       "windowLabel": "Ends tonight",
-      "featuredGameId": "6",
+      "featuredGameId": "hextris",
       "badgeId": "featured",
       "schedule": {
         "startAt": "2026-04-05T00:00:00.000Z",
@@ -258,7 +257,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "reward": "Arena title card",
       "status": "live",
       "windowLabel": "Live now",
-      "featuredGameId": "38",
+      "featuredGameId": "arena-clash",
       "badgeId": "tournament-live",
       "schedule": {
         "startAt": "2026-04-11T20:00:00.000Z",
@@ -279,7 +278,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "reward": "Squad token cache",
       "status": "upcoming",
       "windowLabel": "Starts soon",
-      "featuredGameId": "44",
+      "featuredGameId": "mythic-raid-online",
       "badgeId": "featured",
       "schedule": {
         "startAt": "2026-04-12T18:00:00.000Z",
@@ -458,360 +457,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     }
   ],
   "games": [
-{
-      "id": "halo-2-xbox-elite",
-      "name": "Halo 2",
-      "url": "https://www.retrogames.cc/embed/41221-halo-2-usa.html",
-      "genre": "FPS",
-      "description": "The Absolute sequel. Master the Dual-Wielding and finish the fight. S.M.U.V.E. demands total galactic dominance.",
-      "tags": [
-            "Xbox",
-            "FPS",
-            "Multiplayer",
-            "Retro",
-            "Elite"
-      ],
-      "badgeIds": [
-            "classic",
-            "elite"
-      ],
-      "launchConfig": {
-            "approvedEmbedUrl": "https://www.retrogames.cc/embed/41221-halo-2-usa.html",
-            "embedMode": "inline",
-            "secure_mode": "wasm",
-            "controls": [
-                  "Standard Keyboard",
-                  "Gamepad Support"
-            ]
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-            "eyebrow": "S.M.U.V.E Elite",
-            "accentStart": "#af25f4",
-            "accentEnd": "#3d2b1f"
-      }
-},
-{
-      "id": "kotor-xbox-elite",
-      "name": "Star Wars: KOTOR",
-      "url": "https://www.retrogames.cc/embed/41222-star-wars-knights-of-the-old-republic-usa.html",
-      "genre": "RPG",
-      "description": "Choose your path in the Absolute Force. S.M.U.V.E. watches your alignment. Master the dark side or be erased.",
-      "tags": [
-            "Xbox",
-            "RPG",
-            "Star Wars",
-            "Retro",
-            "Elite"
-      ],
-      "badgeIds": [
-            "classic",
-            "elite"
-      ],
-      "launchConfig": {
-            "approvedEmbedUrl": "https://www.retrogames.cc/embed/41222-star-wars-knights-of-the-old-republic-usa.html",
-            "embedMode": "inline",
-            "secure_mode": "wasm",
-            "controls": [
-                  "Standard Keyboard",
-                  "Gamepad Support"
-            ]
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-            "eyebrow": "S.M.U.V.E Elite",
-            "accentStart": "#af25f4",
-            "accentEnd": "#3d2b1f"
-      }
-},
-{
-      "id": "ninja-gaiden-xbox-elite",
-      "name": "Ninja Gaiden Black",
-      "url": "https://www.retrogames.cc/embed/41223-ninja-gaiden-black-usa.html",
-      "genre": "Action",
-      "description": "Absolute difficulty. Absolute precision. Ryu Hayabusa is the vessel of S.M.U.V.E.'s lethal intent.",
-      "tags": [
-            "Xbox",
-            "Action",
-            "Ninja",
-            "Retro",
-            "Elite"
-      ],
-      "badgeIds": [
-            "classic",
-            "elite"
-      ],
-      "launchConfig": {
-            "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-ninja-gaiden-black-usa.html",
-            "embedMode": "inline",
-            "secure_mode": "wasm",
-            "controls": [
-                  "Standard Keyboard",
-                  "Gamepad Support"
-            ]
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-            "eyebrow": "S.M.U.V.E Elite",
-            "accentStart": "#af25f4",
-            "accentEnd": "#3d2b1f"
-      }
-},
-{
-      "id": "fable-xbox-elite",
-      "name": "Fable: The Lost Chapters",
-      "url": "https://www.retrogames.cc/embed/41224-fable-the-lost-chapters-usa.html",
-      "genre": "RPG",
-      "description": "For every choice, a consequence. S.M.U.V.E. judges your legacy. Become the Absolute Hero or a hollow myth.",
-      "tags": [
-            "Xbox",
-            "RPG",
-            "Fantasy",
-            "Retro",
-            "Elite"
-      ],
-      "badgeIds": [
-            "classic",
-            "elite"
-      ],
-      "launchConfig": {
-            "approvedEmbedUrl": "https://www.retrogames.cc/embed/41224-fable-the-lost-chapters-usa.html",
-            "embedMode": "inline",
-            "secure_mode": "wasm",
-            "controls": [
-                  "Standard Keyboard",
-                  "Gamepad Support"
-            ]
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-            "eyebrow": "S.M.U.V.E Elite",
-            "accentStart": "#af25f4",
-            "accentEnd": "#3d2b1f"
-      }
-},
-{
-      "id": "splinter-cell-ct-xbox-elite",
-      "name": "Splinter Cell: Chaos Theory",
-      "url": "https://www.retrogames.cc/embed/41225-tom-clancy-s-splinter-cell-chaos-theory-usa.html",
-      "genre": "Action",
-      "description": "Shadow is your Absolute weapon. S.M.U.V.E. rewards the silent executioner. Infiltrate or fail.",
-      "tags": [
-            "Xbox",
-            "Stealth",
-            "Action",
-            "Retro",
-            "Elite"
-      ],
-      "badgeIds": [
-            "classic",
-            "elite"
-      ],
-      "launchConfig": {
-            "approvedEmbedUrl": "https://www.retrogames.cc/embed/41225-tom-clancy-s-splinter-cell-chaos-theory-usa.html",
-            "embedMode": "inline",
-            "secure_mode": "wasm",
-            "controls": [
-                  "Standard Keyboard",
-                  "Gamepad Support"
-            ]
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-            "eyebrow": "S.M.U.V.E Elite",
-            "accentStart": "#af25f4",
-            "accentEnd": "#3d2b1f"
-      }
-},
-{
-      "id": "gow2-ps2-elite",
-      "name": "God of War II",
-      "url": "https://www.retrogames.cc/embed/42779-god-of-war-ii.html",
-      "genre": "Action",
-      "description": "Defy the Fates themselves. Kratos seeks Absolute vengeance. S.M.U.V.E. commands the destruction of Olympus.",
-      "tags": [
-            "PS2",
-            "Action",
-            "God of War",
-            "Retro",
-            "Elite"
-      ],
-      "badgeIds": [
-            "classic",
-            "elite"
-      ],
-      "launchConfig": {
-            "approvedEmbedUrl": "https://www.retrogames.cc/embed/42779-god-of-war-ii.html",
-            "embedMode": "inline",
-            "secure_mode": "wasm",
-            "controls": [
-                  "Standard Keyboard",
-                  "Gamepad Support"
-            ]
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-            "eyebrow": "S.M.U.V.E Elite",
-            "accentStart": "#af25f4",
-            "accentEnd": "#3d2b1f"
-      }
-},
-{
-      "id": "ratchet-uy-ps2-elite",
-      "name": "Ratchet & Clank: Up Your Arsenal",
-      "url": "https://www.retrogames.cc/embed/42780-ratchet-clank-up-your-arsenal.html",
-      "genre": "Platformer",
-      "description": "Absolute firepower. S.M.U.V.E. upgrades your arsenal for galactic conquest. Laugh as they burn.",
-      "tags": [
-            "PS2",
-            "Platformer",
-            "Action",
-            "Retro",
-            "Elite"
-      ],
-      "badgeIds": [
-            "classic",
-            "elite"
-      ],
-      "launchConfig": {
-            "approvedEmbedUrl": "https://www.retrogames.cc/embed/42780-ratchet-clank-up-your-arsenal.html",
-            "embedMode": "inline",
-            "secure_mode": "wasm",
-            "controls": [
-                  "Standard Keyboard",
-                  "Gamepad Support"
-            ]
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-            "eyebrow": "S.M.U.V.E Elite",
-            "accentStart": "#af25f4",
-            "accentEnd": "#3d2b1f"
-      }
-},
-{
-      "id": "sly2-ps2-elite",
-      "name": "Sly 2: Band of Thieves",
-      "url": "https://www.retrogames.cc/embed/42781-sly-2-band-of-thieves.html",
-      "genre": "Action",
-      "description": "The Absolute heist. S.M.U.V.E. masterminds the perfect crime. Steal the legacy of the Cooper clan.",
-      "tags": [
-            "PS2",
-            "Stealth",
-            "Platformer",
-            "Retro",
-            "Elite"
-      ],
-      "badgeIds": [
-            "classic",
-            "elite"
-      ],
-      "launchConfig": {
-            "approvedEmbedUrl": "https://www.retrogames.cc/embed/42781-sly-2-band-of-thieves.html",
-            "embedMode": "inline",
-            "secure_mode": "wasm",
-            "controls": [
-                  "Standard Keyboard",
-                  "Gamepad Support"
-            ]
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-            "eyebrow": "S.M.U.V.E Elite",
-            "accentStart": "#af25f4",
-            "accentEnd": "#3d2b1f"
-      }
-},
-{
-      "id": "katamari-ps2-elite",
-      "name": "Katamari Damacy",
-      "url": "https://www.retrogames.cc/embed/42782-katamari-damacy.html",
-      "genre": "Puzzle",
-      "description": "Roll up the Absolute universe. S.M.U.V.E. finds your accumulation... sufficient. Collect everything.",
-      "tags": [
-            "PS2",
-            "Puzzle",
-            "Strange",
-            "Retro",
-            "Elite"
-      ],
-      "badgeIds": [
-            "classic",
-            "elite"
-      ],
-      "launchConfig": {
-            "approvedEmbedUrl": "https://www.retrogames.cc/embed/42782-katamari-damacy.html",
-            "embedMode": "inline",
-            "secure_mode": "wasm",
-            "controls": [
-                  "Standard Keyboard",
-                  "Gamepad Support"
-            ]
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-            "eyebrow": "S.M.U.V.E Elite",
-            "accentStart": "#af25f4",
-            "accentEnd": "#3d2b1f"
-      }
-},
-{
-      "id": "persona4-ps2-elite",
-      "name": "Persona 4",
-      "url": "https://www.retrogames.cc/embed/42783-persona-4.html",
-      "genre": "RPG",
-      "description": "Reach out to the Absolute truth. S.M.U.V.E. penetrates the fog. Face your shadow or be consumed.",
-      "tags": [
-            "PS2",
-            "RPG",
-            "Anime",
-            "Retro",
-            "Elite"
-      ],
-      "badgeIds": [
-            "classic",
-            "elite"
-      ],
-      "launchConfig": {
-            "approvedEmbedUrl": "https://www.retrogames.cc/embed/42783-persona-4.html",
-            "embedMode": "inline",
-            "secure_mode": "wasm",
-            "controls": [
-                  "Standard Keyboard",
-                  "Gamepad Support"
-            ]
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-            "eyebrow": "S.M.U.V.E Elite",
-            "accentStart": "#af25f4",
-            "accentEnd": "#3d2b1f"
-      }
-},
-
     {
-      "id": "1",
-      "name": "Tha Battlefield",
+      "id": "battlefield",
+      "name": "Battlefield",
       "url": "/assets/games/battlefield/battlefield.html",
       "description": "Executive rap battle arena with live bracket energy and hybrid queue support.",
       "genre": "Music Battle",
@@ -875,7 +523,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "2",
+      "id": "remix-arena",
       "name": "Remix Arena",
       "url": "/assets/games/remix-arena/remixarena.html",
       "description": "Collaborative sequencing challenge where crews race to flip stems in real time.",
@@ -937,7 +585,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "3",
+      "id": "neon-drift",
       "name": "Neon Drift",
       "url": "/assets/games/neon-drift/neon-drift.html",
       "description": "Precision lane swaps through a neon expressway tuned for instant offline retries.",
@@ -994,7 +642,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "4",
+      "id": "vinyl-vault",
       "name": "Vinyl Vault",
       "url": "/assets/games/vinyl-vault/vinyl-vault.html",
       "description": "Crate-digging memory board with quick restarts and staff-curated puzzle loops.",
@@ -1050,7 +698,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "5",
+      "id": "tempo-lockdown",
       "name": "Tempo Lockdown",
       "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "description": "Responsive rhythm lane built for short focus sprints between sessions.",
@@ -1107,7 +755,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "6",
+      "id": "hextris",
       "name": "Hextris",
       "url": "https://hextris.github.io/hextris/",
       "description": "Trusted online arcade puzzler with premium hex-stack gameplay.",
@@ -1162,7 +810,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "7",
+      "id": "game-2048",
       "name": "2048",
       "url": "https://play2048.co/",
       "description": "Reliable number-combo classic for quick logic resets between creative work.",
@@ -1218,7 +866,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "8",
+      "id": "music-rush",
       "name": "Music Rush",
       "url": "https://www.gamepix.com/play/music-rush",
       "description": "Sprint through glow landscapes synced to the beat with lightweight online launch.",
@@ -1273,59 +921,35 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "9",
+      "id": "pac-man-elite",
       "name": "Pac-Man",
-      "url": "https://pacman.live/play.html",
-      "description": "Definitive arcade classic for pure cabinet energy and route memorization.",
-      "genre": "Classic",
-      "rating": 4.9,
-      "playersOnline": 15400,
+      "url": "https://www.retrogames.cc/embed/10002-pac-man-midway.html",
+      "genre": "Arcade Classic",
+      "description": "The most iconic arcade game in history. High-speed ghost chasing logic.",
       "availability": "Online",
+      "playersOnline": 32000,
+      "rating": 4.8,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
       "tags": [
-        "Classic",
         "Arcade",
         "Retro",
-        "station-cabinet"
-      ],
-      "badgeIds": [
-        "trending"
-      ],
-      "queueEstimateMinutes": 0,
-      "sessionObjectives": [
-        "Clear two boards",
-        "Bank one ghost combo"
-      ],
-      "controlHints": [
-        "Use corners for ghost control",
-        "Commit to power-pellet routes"
+        "WASM"
       ],
       "launchConfig": {
-        "difficulty": "Classic",
-        "controls": [
-          "Arrow keys"
-        ],
-        "objectives": [
-          "Beat your route time",
-          "Convert a full power cycle"
-        ],
-        "modes": [
-          "Solo"
-        ],
-        "inlinePolicy": "trusted",
-        "trustNote": "Allowlisted retro partner.",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10002-pac-man-midway.html",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://pacman.live/play.html",
-        "approvedEmbedUrl": "https://pacman.live/play.html",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://pacman.live"
-        ],
-        "secure_mode": "wasm"
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
       },
       "art": {
-        "eyebrow": "Arcade",
+        "eyebrow": "Namco Elite",
         "accentStart": "#facc15",
-        "accentEnd": "#eab308"
+        "accentEnd": "#a16207"
       }
     },
     {
@@ -1388,7 +1012,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "multiplayerType": "Server"
     },
     {
-      "id": "11",
+      "id": "chess-classic",
       "name": "Chess Classic",
       "url": "https://www.gamepix.com/play/chess-classic",
       "description": "The ultimate strategy board with steady queues and deep tactical play.",
@@ -1444,7 +1068,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "12",
+      "id": "basket-random",
       "name": "Basket Random",
       "url": "https://www.gamepix.com/play/basket-random",
       "description": "Step onto the court for fast high-energy basketball runs.",
@@ -1500,7 +1124,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "13",
+      "id": "soccer-random",
       "name": "Soccer Random",
       "url": "https://www.gamepix.com/play/soccer-random",
       "description": "Global tournament energy with high player counts and quick rematches.",
@@ -1560,8 +1184,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "multiplayerType": "Server"
     },
     {
-      "id": "14",
-      "name": "Solitaire Classic (Station Pod)",
+      "id": "solitaire-classic",
+      "name": "Solitaire Classic",
       "url": "https://www.gamepix.com/play/solitaire-classic",
       "description": "Classic card patience run for low-pressure recovery between bigger sessions.",
       "genre": "Strategy",
@@ -1615,7 +1239,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "15",
+      "id": "cipher-surge",
       "name": "Cipher Surge",
       "url": "/assets/games/cipher-surge/cipher-surge.html",
       "description": "Neural pattern-defense cabinet with polished offline AI memory rounds and fast replay loops.",
@@ -1675,7 +1299,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "16",
+      "id": "kart-fight",
       "name": "Kart Fight",
       "url": "https://www.gamepix.com/play/kart-fight",
       "description": "High-speed multiplayer kart combat with premium arena flow, powerups, and replay-ready matches.",
@@ -1736,7 +1360,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "17",
+      "id": "rail-surfers",
       "name": "Rail Surfers",
       "url": "https://www.gamepix.com/play/temple-run-2",
       "description": "A polished endless runner with top-tier flow, vivid presentation, and instant arcade momentum.",
@@ -1792,7 +1416,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "18",
+      "id": "moto-x3m",
       "name": "Moto X3M",
       "url": "https://www.gamepix.com/play/moto-x3m",
       "description": "Precision stunt racing with highly polished track design, strong readability, and fast restart loops.",
@@ -1848,8 +1472,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "19",
-      "name": "Tomb Runner (Station Pod)",
+      "id": "tomb-runner",
+      "name": "Tomb Runner",
       "url": "https://www.gamepix.com/play/tomb-runner",
       "description": "Cinematic chase runner with premium pacing, polished traversal, and repeat-play flow.",
       "genre": "Runner",
@@ -1904,7 +1528,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "20",
+      "id": "tower-build",
       "name": "Tower Build",
       "url": "https://www.gamepix.com/play/tower-build",
       "description": "Physics-first skyline builder with quick retries and steady score-chasing loops.",
@@ -1960,7 +1584,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "21",
+      "id": "8-ball-billiards",
       "name": "8-Ball Billiards",
       "url": "https://www.gamepix.com/play/8-ball-billiards-classic",
       "description": "Precision cue-sport cabinet with smooth pacing, clean bank shots, and quick rematches.",
@@ -2017,7 +1641,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "22",
+      "id": "mahjong",
       "name": "Mahjong",
       "url": "https://www.gamepix.com/play/mahjong-classic",
       "description": "Late-night tile strategy with clean board readability and calm focus-session pacing.",
@@ -2073,7 +1697,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "23",
+      "id": "tactical-squad",
       "name": "Tactical Squad",
       "url": "https://www.gamepix.com/play/special-strike-operations",
       "description": "First-person shooting precision with high-stakes tactical deployments.",
@@ -2124,7 +1748,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "24",
+      "id": "hero-adventure",
       "name": "Hero Adventure",
       "url": "https://www.gamepix.com/play/hero-adventure",
       "description": "Deep RPG adventure with character progression and boss encounters.",
@@ -2165,83 +1789,72 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "25",
+      "id": "battle-city",
       "name": "Battle City",
-      "url": "https://www.gamepix.com/play/tank-wars",
-      "description": "Vintage arcade combat with strategic positioning and explosive rounds.",
-      "genre": "Classic",
-      "rating": 4.5,
-      "playersOnline": 6800,
+      "url": "https://www.retrogames.cc/embed/18785-battle-city-japan.html",
+      "genre": "Arcade Classic",
+      "description": "Defend your base and destroy enemy tanks in this quintessential multi-directional shooter.",
       "availability": "Online",
+      "playersOnline": 15000,
+      "rating": 4.8,
+      "badgeIds": [
+        "classic"
+      ],
       "tags": [
-        "Classic",
-        "Shooting",
-        "Co-op",
-        "Multiplayer",
-        "station-cabinet"
+        "Arcade",
+        "Retro",
+        "NES",
+        "Shooting"
       ],
       "launchConfig": {
-        "difficulty": "Easy",
-        "controls": [
-          "Touch",
-          "Keyboard"
-        ],
-        "inlinePolicy": "trusted",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18785-battle-city-japan.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tank-wars",
-        "approvedExternalUrl": "https://www.gamepix.com/play/tank-wars",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
       },
-      "multiplayerType": "Server",
       "art": {
-        "eyebrow": "Executive Cabinet",
-        "accentStart": "#ec5b13",
-        "accentEnd": "#a855f7"
+        "eyebrow": "Namco Elite",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#78350f"
       }
     },
     {
-      "id": "26",
+      "id": "league-bowling",
       "name": "League Bowling",
-      "url": "https://www.gamepix.com/play/classic-bowling",
-      "description": "Sports simulation with realistic physics and tournament brackets.",
+      "url": "https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html",
       "genre": "Sports",
-      "rating": 4.6,
-      "playersOnline": 4200,
+      "description": "The most addictive bowling sim ever made. Elite Neo Geo performance with rhythmic physics.",
       "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.7,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
       "tags": [
         "Sports",
-        "Bowling",
-        "Competitive",
-        "station-pod"
+        "Retro",
+        "Neo Geo",
+        "Arcade"
       ],
       "launchConfig": {
-        "difficulty": "Moderate",
-        "controls": [
-          "Touch",
-          "Mouse"
-        ],
-        "inlinePolicy": "trusted",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/classic-bowling",
-        "approvedExternalUrl": "https://www.gamepix.com/play/classic-bowling",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ]
       },
       "art": {
-        "eyebrow": "Executive Cabinet",
-        "accentStart": "#ec5b13",
-        "accentEnd": "#a855f7"
+        "eyebrow": "SNK Elite",
+        "accentStart": "#60a5fa",
+        "accentEnd": "#1d4ed8"
       }
     },
     {
-      "id": "27",
+      "id": "dungeon-fury",
       "name": "Dungeon Fury",
       "url": "https://www.gamepix.com/play/dungeon-field",
       "description": "Fast-paced action RPG through procedurally generated lethal corridors.",
@@ -2282,7 +1895,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "28",
+      "id": "special-strike",
       "name": "Special Strike",
       "url": "https://www.gamepix.com/play/special-strike",
       "description": "Multiplayer shooting arena with customized loadouts and team-based objectives.",
@@ -2333,7 +1946,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "29",
+      "id": "retro-space-invaders",
       "name": "Retro Space Invaders",
       "url": "https://www.gamepix.com/play/space-invaders",
       "description": "Authentic classic arcade shooter with escalating wave intensity.",
@@ -2372,7 +1985,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "30",
+      "id": "basketball-master",
       "name": "Basketball Master",
       "url": "https://www.gamepix.com/play/basketball-master",
       "description": "Precision shooting sports challenge with global leaderboards.",
@@ -2410,46 +2023,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "31",
-      "name": "Soccer Random (Server)",
-      "url": "https://www.gamepix.com/play/soccer-random",
-      "description": "High-stakes physics-based soccer with online co-op support.",
-      "genre": "Sports",
-      "rating": 4.8,
-      "playersOnline": 18000,
-      "availability": "Online",
-      "tags": [
-        "Sports",
-        "Soccer",
-        "Co-op",
-        "Multiplayer",
-        "station-pod"
-      ],
-      "launchConfig": {
-        "difficulty": "Easy",
-        "controls": [
-          "Touch",
-          "Keyboard"
-        ],
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
-        "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
-      },
-      "multiplayerType": "Server",
-      "art": {
-        "eyebrow": "Executive Cabinet",
-        "accentStart": "#ec5b13",
-        "accentEnd": "#a855f7"
-      }
-    },
-    {
-      "id": "32",
+      "id": "cyber-adventure",
       "name": "Cyber Adventure",
       "url": "https://www.gamepix.com/play/cyber-cars-punk-racing",
       "description": "Epic cyberpunk adventure with deep RPG mechanics and offline-first persistence.",
@@ -2487,7 +2061,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "33",
+      "id": "sniper-mission",
       "name": "Sniper Mission",
       "url": "https://www.gamepix.com/play/sniper-clash-3d",
       "description": "Long-range tactical shooting missions with ballistics.",
@@ -2513,7 +2087,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
           "https://www.gamepix.com"
         ],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
-        "approvedExternalUrl": "https://www.gamepix.com/play/sniper-clash-3d"
+        "approvedExternalUrl": "https://www.gamepix.com/play/sniper-clash-3d",
+        "telemetryMode": "origin"
       },
       "art": {
         "eyebrow": "Executive Cabinet",
@@ -2522,7 +2097,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "34",
+      "id": "tower-defense",
       "name": "Tower Defense",
       "url": "https://www.gamepix.com/play/tower-defense",
       "description": "Strategic RPG defense with hero management and spell casting.",
@@ -2548,7 +2123,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
+        "telemetryMode": "origin"
       },
       "art": {
         "eyebrow": "Executive Cabinet",
@@ -2557,42 +2133,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "35",
-      "name": "Solitaire Classic (Station Cabinet)",
-      "url": "https://www.gamepix.com/play/solitaire-classic",
-      "description": "The definitive classic card run for focus training.",
-      "genre": "Classic",
-      "rating": 4.9,
-      "playersOnline": 50000,
-      "availability": "Online",
-      "tags": [
-        "Classic",
-        "Strategy",
-        "Solo",
-        "station-cabinet"
-      ],
-      "launchConfig": {
-        "difficulty": "Moderate",
-        "controls": [
-          "Touch",
-          "Mouse"
-        ],
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
-      },
-      "art": {
-        "eyebrow": "Executive Cabinet",
-        "accentStart": "#ec5b13",
-        "accentEnd": "#a855f7"
-      }
-    },
-    {
-      "id": "36",
+      "id": "ludo-legend",
       "name": "Ludo Legend",
       "url": "https://www.gamepix.com/play/ludo-legend",
       "description": "Global board battle with real-time multiplayer and co-op social play.",
@@ -2619,7 +2160,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
+        "telemetryMode": "origin"
       },
       "multiplayerType": "Server",
       "art": {
@@ -2629,7 +2171,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "37",
+      "id": "zombie-idle-defense",
       "name": "Zombie Idle Defense",
       "url": "https://www.gamepix.com/play/zombie-idle-defense",
       "description": "Intense shooting defense RPG with survivor squads and tech upgrades.",
@@ -2656,7 +2198,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
+        "telemetryMode": "origin"
       },
       "multiplayerType": "Server",
       "queueEstimateMinutes": 3,
@@ -2675,7 +2218,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "38",
+      "id": "arena-clash",
       "name": "Arena Clash",
       "url": "https://www.gamepix.com/play/clash-of-armour",
       "description": "Neon tournament fighter with high-speed strings, ranked ladders, and online rematches.",
@@ -2735,7 +2278,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "39",
+      "id": "tag-team-titans",
       "name": "Tag Team Titans",
       "url": "https://www.gamepix.com/play/teen-titans-go-jump-jousts",
       "description": "Squad-based fighting cabinet where tag timing and assist pressure decide every round.",
@@ -2793,7 +2336,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "40",
+      "id": "gridiron-drive",
       "name": "Gridiron Drive",
       "url": "https://www.gamepix.com/play/gridiron-drive",
       "description": "Prime-time football rushes with season ladders, red-zone decisions, and versus play.",
@@ -2851,7 +2394,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "41",
+      "id": "rally-racquet-tour",
       "name": "Rally Racquet Tour",
       "url": "https://www.gamepix.com/play/rally-racquet-tour",
       "description": "Fast tennis rallies with tournament brackets, precision returns, and court-speed control.",
@@ -2910,7 +2453,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "42",
+      "id": "squad-ops-ghost-protocol",
       "name": "Squad Ops: Ghost Protocol",
       "url": "https://www.gamepix.com/play/special-strike-operations",
       "description": "Online tactical shooting missions built around overwatch lanes, breach timing, and squad calls.",
@@ -2970,7 +2513,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "43",
+      "id": "raid-fireteam-z",
       "name": "Raid Fireteam Z",
       "url": "https://www.gamepix.com/play/raid-fireteam-z",
       "description": "Four-player survival shooting raid with online co-op drops, boss waves, and evac pressure.",
@@ -3030,7 +2573,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "44",
+      "id": "mythic-raid-online",
       "name": "Mythic Raid Online",
       "url": "https://www.gamepix.com/play/raid-heroes-total-war",
       "description": "Party-based action RPG with online dungeon runs, loot drops, and healer-tank-DPS squad loops.",
@@ -3090,7 +2633,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "45",
+      "id": "legends-of-the-rift",
       "name": "Legends of the Rift",
       "url": "https://www.gamepix.com/play/hero-tower-wars",
       "description": "Campaign RPG built around hero progression, boss routing, and long-form world exploration.",
@@ -3168,7 +2711,12 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "controls": [
           "Standard Keyboard"
         ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline"
       },
       "tags": [
         "station-pod"
@@ -3180,8 +2728,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "doom-classic",
-      "name": "DOOM (Classic)",
+      "id": "doom",
+      "name": "DOOM (1993)",
       "url": "https://www.retrogames.cc/embed/41695-doom-v1-1.html",
       "genre": "Shooting",
       "description": "The absolute foundation of tactical FPS. Brutal, fast, and legendary.",
@@ -3254,7 +2802,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gta-elite-wasm",
-      "name": "Grand Theft Auto",
+      "name": "Grand Theft Auto (1997)",
       "url": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
       "genre": "Action",
       "description": "Top-down urban chaos. High-speed chases and tactical missions in the original open-world criminal simulator.",
@@ -3320,7 +2868,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "controls": [
           "Standard Keyboard"
         ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
+        "inlinePolicy": "trusted"
       },
       "art": {
         "eyebrow": "Pro League",
@@ -3357,7 +2906,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "controls": [
           "Standard Keyboard"
         ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
+        "inlinePolicy": "trusted"
       },
       "art": {
         "eyebrow": "Gridiron Elite",
@@ -3404,8 +2954,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "halo-tribute",
-      "name": "Halo: Combat Evolved (WASM Port)",
+      "id": "halo-combat-evolved",
+      "name": "Halo: Combat Evolved (WASM)",
       "url": "https://www.gamepix.com/play/alien-galaxy-war",
       "genre": "Shooting",
       "description": "High-fidelity Spartan combat. Experience the legendary FPS in a stabilized WASM environment.",
@@ -3437,7 +2987,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         ],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
         "approvedExternalUrl": "https://www.gamepix.com/play/alien-galaxy-war",
-        "secure_mode": "wasm"
+        "secure_mode": "wasm",
+        "inlinePolicy": "trusted"
       },
       "art": {
         "eyebrow": "UNSC Command",
@@ -3474,7 +3025,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "controls": [
           "Standard Keyboard"
         ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
+        "inlinePolicy": "trusted"
       },
       "art": {
         "eyebrow": "Main Event",
@@ -3663,42 +3215,37 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "street-fighter-3d",
+      "id": "sfii-world-warrior",
       "name": "Street Fighter II: The World Warrior",
-      "url": "https://www.retrogames.cc/embed/10103-street-fighter-ii-the-world-warrior-world-910522.html",
+      "url": "https://www.retrogames.cc/embed/19018-street-fighter-ii-the-world-warrior-usa.html",
       "genre": "Fighting",
-      "description": "Classic combat, modern engine. Optimized WebGL fighting with low-latency netcode.",
+      "description": "The foundational masterpiece of the fighting genre. Master Ryu, Ken, and Chun-Li in Elite WASM.",
       "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.7,
+      "playersOnline": 35000,
+      "rating": 5.0,
       "badgeIds": [
-        "new-drop"
+        "classic",
+        "elite",
+        "staff-pick"
       ],
       "tags": [
         "Fighting",
-        "Action",
-        "Multiplayer",
         "Retro",
-        "Classic"
+        "SNES",
+        "WASM"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10103-street-fighter-ii-the-world-warrior-world-910522.html",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19018-street-fighter-ii-the-world-warrior-usa.html",
         "embedMode": "inline",
+        "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard"
-        ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10103-street-fighter-ii-the-world-warrior-world-910522.html",
-        "secure_mode": "wasm"
+        ]
       },
       "art": {
-        "eyebrow": "Executive Cabinet",
-        "accentStart": "#ec5b13",
-        "accentEnd": "#a855f7"
+        "eyebrow": "Capcom Elite",
+        "accentStart": "#f87171",
+        "accentEnd": "#b91c1c"
       }
     },
     {
@@ -3729,7 +3276,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
           "Standard Keyboard"
         ],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
-        "approvedExternalUrl": "https://www.gamepix.com/play/moto-x3m"
+        "approvedExternalUrl": "https://www.gamepix.com/play/moto-x3m",
+        "inlinePolicy": "trusted"
       },
       "art": {
         "eyebrow": "Executive Cabinet",
@@ -3764,7 +3312,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "controls": [
           "Standard Keyboard"
         ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
+        "inlinePolicy": "trusted"
       },
       "art": {
         "eyebrow": "Executive Cabinet",
@@ -3915,41 +3464,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "doom-elite",
-      "name": "DOOM (Elite)",
-      "url": "https://www.retrogames.cc/embed/41695-doom-v1-1.html",
-      "genre": "Shooting",
-      "description": "Original FPS carnage. Stabilized DOS emulation with enhanced web execution.",
-      "availability": "Online",
-      "playersOnline": 15000,
-      "rating": 4.9,
-      "badgeIds": [
-        "elite"
-      ],
-      "tags": [
-        "Shooting",
-        "Action",
-        "Retro",
-        "DOS"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41695-doom-v1-1.html",
-        "telemetryMode": "origin",
-        "embedMode": "inline",
-        "controls": [
-          "Standard Keyboard"
-        ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41695-doom-v1-1.html",
-        "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Executive Cabinet",
-        "accentStart": "#ec5b13",
-        "accentEnd": "#a855f7"
-      }
-    },
-    {
       "id": "fnf-music-battle",
       "name": "Friday Night Funkin'",
       "url": "https://www.gamepix.com/play/friday-night-funkin",
@@ -3977,7 +3491,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
           "Standard Keyboard"
         ],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
-        "approvedExternalUrl": "https://www.gamepix.com/play/friday-night-funkin"
+        "approvedExternalUrl": "https://www.gamepix.com/play/friday-night-funkin",
+        "inlinePolicy": "trusted"
       },
       "art": {
         "eyebrow": "Executive Cabinet",
@@ -4013,41 +3528,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         ],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
         "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Executive Cabinet",
-        "accentStart": "#ec5b13",
-        "accentEnd": "#a855f7"
-      }
-    },
-    {
-      "id": "tomb-runner-elite",
-      "name": "Tomb Runner (Elite)",
-      "url": "https://www.gamepix.com/play/tomb-runner",
-      "genre": "Runner",
-      "description": "High-speed tactical running. Fluid WebGL animations and precise touch-based navigation.",
-      "availability": "Online",
-      "playersOnline": 65000,
-      "rating": 4.7,
-      "badgeIds": [
-        "trending"
-      ],
-      "tags": [
-        "Runner",
-        "Action",
-        "3D"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tomb-runner",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ],
-        "embedMode": "inline",
-        "controls": [
-          "Standard Keyboard"
-        ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
@@ -4261,7 +3741,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
           "Mouse"
         ],
         "trustNote": "Allowlisted logic partner.",
-        "approvedExternalUrl": "https://www.gamepix.com/play/dominoes"
+        "approvedExternalUrl": "https://www.gamepix.com/play/dominoes",
+        "inlinePolicy": "trusted"
       },
       "art": {
         "eyebrow": "Board Elite",
@@ -4512,7 +3993,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "tekken-4-tribute",
-      "name": "Tekken 4 Tribute",
+      "name": "Tekken 4",
       "url": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
       "genre": "Fighting",
       "description": "Elite 2D fighting demo. Shinjuku Arena. Stabilized neural combat.",
@@ -4535,7 +4016,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
           "J/K/L to attack"
         ],
         "telemetryMode": "origin",
-        "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
+        "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
+        "secure_mode": "wasm"
       },
       "art": {
         "eyebrow": "Executive Classic",
@@ -4545,7 +4027,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "halo-ce-web",
-      "name": "Halo: CE Web",
+      "name": "Halo: Combat Evolved (Web)",
       "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Shooting",
       "description": "Elite 3D FPS demo. WebGL combat link. Master Chief protocol.",
@@ -4568,213 +4050,13 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
           "Mouse to aim/shoot"
         ],
         "telemetryMode": "origin",
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "secure_mode": "wasm"
       },
       "art": {
         "eyebrow": "Executive Classic",
         "accentStart": "#22d3ee",
         "accentEnd": "#0891b2"
-      }
-    },
-    {
-      "id": "sfii-world-warrior",
-      "name": "Street Fighter II: The World Warrior",
-      "url": "https://www.retrogames.cc/embed/19018-street-fighter-ii-the-world-warrior-usa.html",
-      "genre": "Fighting",
-      "description": "The foundational masterpiece of the fighting genre. Master Ryu, Ken, and Chun-Li in Elite WASM.",
-      "availability": "Online",
-      "playersOnline": 35000,
-      "rating": 5.0,
-      "badgeIds": [
-        "classic",
-        "elite",
-        "staff-pick"
-      ],
-      "tags": [
-        "Fighting",
-        "Retro",
-        "SNES",
-        "WASM"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19018-street-fighter-ii-the-world-warrior-usa.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard"
-        ]
-      },
-      "art": {
-        "eyebrow": "Capcom Elite",
-        "accentStart": "#f87171",
-        "accentEnd": "#b91c1c"
-      }
-    },
-    {
-      "id": "zelda-ocarina-of-time",
-      "name": "The Legend of Zelda: Ocarina of Time",
-      "url": "https://www.retrogames.cc/embed/32446-the-legend-of-zelda-ocarina-of-time-usa.html",
-      "genre": "RPG",
-      "description": "Experience the greatest adventure of all time. High-fidelity N64 emulation on the S.M.U.V.E link.",
-      "availability": "Online",
-      "playersOnline": 52000,
-      "rating": 5.0,
-      "badgeIds": [
-        "classic",
-        "elite",
-        "staff-pick"
-      ],
-      "tags": [
-        "RPG",
-        "Retro",
-        "N64",
-        "Adventure",
-        "WASM"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32446-the-legend-of-zelda-ocarina-of-time-usa.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard"
-        ]
-      },
-      "art": {
-        "eyebrow": "Nintendo Elite",
-        "accentStart": "#10b981",
-        "accentEnd": "#064e3b"
-      }
-    },
-    {
-      "id": "battle-city",
-      "name": "Battle City",
-      "url": "https://www.retrogames.cc/embed/18785-battle-city-japan.html",
-      "genre": "Arcade Classic",
-      "description": "Defend your base and destroy enemy tanks in this quintessential multi-directional shooter.",
-      "availability": "Online",
-      "playersOnline": 15000,
-      "rating": 4.8,
-      "badgeIds": [
-        "classic"
-      ],
-      "tags": [
-        "Arcade",
-        "Retro",
-        "NES",
-        "Shooting"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18785-battle-city-japan.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard"
-        ]
-      },
-      "art": {
-        "eyebrow": "Namco Elite",
-        "accentStart": "#fbbf24",
-        "accentEnd": "#78350f"
-      }
-    },
-    {
-      "id": "league-bowling",
-      "name": "League Bowling",
-      "url": "https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html",
-      "genre": "Sports",
-      "description": "The most addictive bowling sim ever made. Elite Neo Geo performance with rhythmic physics.",
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.7,
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "tags": [
-        "Sports",
-        "Retro",
-        "Neo Geo",
-        "Arcade"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard"
-        ]
-      },
-      "art": {
-        "eyebrow": "SNK Elite",
-        "accentStart": "#60a5fa",
-        "accentEnd": "#1d4ed8"
-      }
-    },
-    {
-      "id": "grand-theft-auto-ps1",
-      "name": "Grand Theft Auto",
-      "url": "https://www.retrogames.cc/embed/41819-grand-theft-auto-usa.html",
-      "genre": "Shooting",
-      "description": "The original top-down crime epic. Dominate the streets in high-performance PS1 emulation.",
-      "availability": "Online",
-      "playersOnline": 28000,
-      "rating": 4.9,
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "tags": [
-        "Shooting",
-        "Retro",
-        "PS1",
-        "Action",
-        "WASM"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41819-grand-theft-auto-usa.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard"
-        ]
-      },
-      "art": {
-        "eyebrow": "Rockstar Elite",
-        "accentStart": "#fb7185",
-        "accentEnd": "#e11d48"
-      }
-    },
-    {
-      "id": "dbz-buyuu-retsuden",
-      "name": "Dragon Ball Z: Buyuu Retsuden",
-      "url": "https://www.retrogames.cc/embed/24151-dragon-ball-z-buyuu-retsuden-japan.html",
-      "genre": "Fighting",
-      "description": "Elite Saiyan combat. Experience the legendary split-screen battles of the Mega Drive classic.",
-      "availability": "Online",
-      "playersOnline": 20000,
-      "rating": 4.9,
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "tags": [
-        "Fighting",
-        "Retro",
-        "Genesis",
-        "Anime"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/24151-dragon-ball-z-buyuu-retsuden-japan.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard"
-        ]
-      },
-      "art": {
-        "eyebrow": "Bandai Elite",
-        "accentStart": "#fb923c",
-        "accentEnd": "#c2410c"
       }
     },
     {
@@ -4810,38 +4092,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "eyebrow": "Square Elite",
         "accentStart": "#38bdf8",
         "accentEnd": "#075985"
-      }
-    },
-    {
-      "id": "pac-man-elite",
-      "name": "Pac-Man",
-      "url": "https://www.retrogames.cc/embed/10002-pac-man-midway.html",
-      "genre": "Arcade Classic",
-      "description": "The most iconic arcade game in history. High-speed ghost chasing logic.",
-      "availability": "Online",
-      "playersOnline": 32000,
-      "rating": 4.8,
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "tags": [
-        "Arcade",
-        "Retro",
-        "WASM"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10002-pac-man-midway.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard"
-        ]
-      },
-      "art": {
-        "eyebrow": "Namco Elite",
-        "accentStart": "#facc15",
-        "accentEnd": "#a16207"
       }
     },
     {
@@ -5482,108 +4732,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "tekken-5-elite",
-      "name": "Tekken 5",
-      "url": "https://www.retrogames.cc/embed/42777-tekken-5.html",
-      "genre": "Fighting",
-      "description": "The Absolute King of Iron Fist. If you can't handle the Jinpachi Mishima pressure, stay out of the ring. Only elite combatants need apply.",
-      "tags": [
-        "Fighting",
-        "Retro",
-        "PS2",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42777-tekken-5.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ]
-      },
-      "availability": "Online",
-      "playersOnline": 15000,
-      "rating": 5.0,
-      "art": {
-        "eyebrow": "S.M.U.V.E Elite",
-        "accentStart": "#af25f4",
-        "accentEnd": "#3d2b1f"
-      }
-    },
-    {
-      "id": "mgs2-elite",
-      "name": "Metal Gear Solid 2: Sons of Liberty",
-      "url": "https://www.retrogames.cc/embed/41220-metal-gear-solid-2-sons-of-liberty-usa.html",
-      "genre": "Stealth",
-      "description": "Hideo Kojima's masterpiece. Infiltrate the Big Shell and face the truth of the Patriots. S.M.U.V.E. doesn't tolerate failure.",
-      "tags": [
-        "Stealth",
-        "Retro",
-        "PS2",
-        "Classic"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41220-metal-gear-solid-2-sons-of-liberty-usa.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ]
-      },
-      "availability": "Online",
-      "playersOnline": 9500,
-      "rating": 5.0,
-      "art": {
-        "eyebrow": "S.M.U.V.E Elite",
-        "accentStart": "#af25f4",
-        "accentEnd": "#3d2b1f"
-      }
-    },
-    {
-      "id": "sonic-adventure-2-elite",
-      "name": "Sonic Adventure 2",
-      "url": "https://www.retrogames.cc/embed/41227-sonic-adventure-2-usa.html",
-      "genre": "Platformer",
-      "description": "Live and Learn. Speed is the only thing that matters. Master the Chaos Emeralds or get left in the dust of the Absolute speedway.",
-      "tags": [
-        "Platformer",
-        "Retro",
-        "Dreamcast",
-        "Classic"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41227-sonic-adventure-2-usa.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ]
-      },
-      "availability": "Online",
-      "playersOnline": 11000,
-      "rating": 4.9,
-      "art": {
-        "eyebrow": "S.M.U.V.E Elite",
-        "accentStart": "#af25f4",
-        "accentEnd": "#3d2b1f"
-      }
-    },
-    {
       "id": "gta-vice-city-elite",
       "name": "GTA: Vice City",
       "url": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
@@ -5610,40 +4758,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "availability": "Online",
       "playersOnline": 18000,
-      "rating": 5.0,
-      "art": {
-        "eyebrow": "S.M.U.V.E Elite",
-        "accentStart": "#af25f4",
-        "accentEnd": "#3d2b1f"
-      }
-    },
-    {
-      "id": "thps2-elite",
-      "name": "Tony Hawk's Pro Skater 2",
-      "url": "https://www.retrogames.cc/embed/41258-tony-hawk-s-pro-skater-2-usa.html",
-      "genre": "Sports",
-      "description": "Land the 900 or don't even step on the board. The Absolute skating experience. Shred or be shredded.",
-      "tags": [
-        "Sports",
-        "Retro",
-        "PS1",
-        "Classic"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41258-tony-hawk-s-pro-skater-2-usa.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ]
-      },
-      "availability": "Online",
-      "playersOnline": 13000,
       "rating": 5.0,
       "art": {
         "eyebrow": "S.M.U.V.E Elite",
@@ -5752,60 +4866,1912 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       }
+    },
+    {
+      "id": "gta-iii-elite",
+      "name": "Grand Theft Auto III",
+      "url": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
+      "genre": "Action",
+      "description": "Liberty City is your playground. Dominate the streets or get erased. S.M.U.V.E. expects Absolute chaos.",
+      "tags": [
+        "Action",
+        "Open World",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 7000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "spider-man-2-elite",
+      "name": "Spider-Man 2",
+      "url": "https://www.retrogames.cc/embed/41234-spider-man-2-usa.html",
+      "genre": "Action",
+      "description": "Swing through Manhattan with Absolute precision. The web is yours to control. S.M.U.V.E. demands Elite agility.",
+      "tags": [
+        "Action",
+        "Open World",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41234-spider-man-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6200,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "jak-and-daxter-elite",
+      "name": "Jak and Daxter: The Precursor Legacy",
+      "url": "https://www.retrogames.cc/embed/41238-jak-and-daxter-the-precursor-legacy-usa.html",
+      "genre": "Platformer",
+      "description": "A seamless world of danger and discovery. Collect the Orbs or face Absolute failure.",
+      "tags": [
+        "Platformer",
+        "Adventure",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41238-jak-and-daxter-the-precursor-legacy-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 8600,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "driver-parallel-lines-elite",
+      "name": "Driver: Parallel Lines",
+      "url": "https://www.retrogames.cc/embed/41243-driver-parallel-lines-usa.html",
+      "genre": "Racing",
+      "description": "The ultimate getaway driver experience. Outrun the law with Absolute speed. S.M.U.V.E. is watching.",
+      "tags": [
+        "Racing",
+        "Action",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41243-driver-parallel-lines-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 7200,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "true-crime-la-elite",
+      "name": "True Crime: Streets of LA",
+      "url": "https://www.retrogames.cc/embed/41245-true-crime-streets-of-la-usa.html",
+      "genre": "Action",
+      "description": "Be the law or break it. S.M.U.V.E. requires Absolute authority on the streets of Los Angeles.",
+      "tags": [
+        "Action",
+        "Open World",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41245-true-crime-streets-of-la-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 7500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "majoras-mask-elite",
+      "name": "The Legend of Zelda: Majora's Mask",
+      "url": "https://www.retrogames.cc/embed/41240-the-legend-of-zelda-majora-s-mask-usa.html",
+      "genre": "Adventure",
+      "description": "Three days to save the world. Time is a weapon. Use it with Absolute mastery or face the moon.",
+      "tags": [
+        "Adventure",
+        "Fantasy",
+        "N64",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41240-the-legend-of-zelda-majora-s-mask-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 8400,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "prince-of-persia-sands-elite",
+      "name": "Prince of Persia: The Sands of Time",
+      "url": "https://www.retrogames.cc/embed/41242-prince-of-persia-the-sands-of-time-usa.html",
+      "genre": "Adventure",
+      "description": "Control the sands, control your destiny. S.M.U.V.E. values Absolute control over time.",
+      "tags": [
+        "Adventure",
+        "Action",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41242-prince-of-persia-the-sands-of-time-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 8500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "beyond-good-evil-elite",
+      "name": "Beyond Good & Evil",
+      "url": "https://www.retrogames.cc/embed/41248-beyond-good-evil-usa.html",
+      "genre": "Adventure",
+      "description": "Uncover the conspiracy. Record the truth. S.M.U.V.E. demands Absolute investigative focus.",
+      "tags": [
+        "Adventure",
+        "Stealth",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41248-beyond-good-evil-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6800,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "ico-elite",
+      "name": "Ico",
+      "url": "https://www.retrogames.cc/embed/41251-ico-usa.html",
+      "genre": "Adventure",
+      "description": "A minimalist masterpiece. Protect the girl or lose your soul. Absolute emotional resonance.",
+      "tags": [
+        "Adventure",
+        "Puzzle",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41251-ico-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 5300,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "okami-elite",
+      "name": "Okami",
+      "url": "https://www.retrogames.cc/embed/41254-okami-usa.html",
+      "genre": "Adventure",
+      "description": "Paint your way to victory. The Celestial Brush is your weapon. S.M.U.V.E. demands Absolute artistry.",
+      "tags": [
+        "Adventure",
+        "Action",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41254-okami-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 5500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "donkey-kong-arcade",
+      "name": "Donkey Kong (Arcade)",
+      "url": "https://www.retrogames.cc/embed/10123-donkey-kong-us-set-1.html",
+      "genre": "Arcade",
+      "description": "The original arcade gauntlet. Climb the girders or fall. S.M.U.V.E. respects the Absolute roots.",
+      "tags": [
+        "Arcade",
+        "Retro",
+        "Arcade",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10123-donkey-kong-us-set-1.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 7000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "dig-dug-arcade",
+      "name": "Dig Dug (Arcade)",
+      "url": "https://www.retrogames.cc/embed/10115-dig-dug-rev-2.html",
+      "genre": "Arcade",
+      "description": "Inflate your enemies or crush them with rocks. S.M.U.V.E. demands Absolute underground dominance.",
+      "tags": [
+        "Arcade",
+        "Retro",
+        "Arcade",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10115-dig-dug-rev-2.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6600,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "frogger-arcade",
+      "name": "Frogger (Arcade)",
+      "url": "https://www.retrogames.cc/embed/10129-frogger.html",
+      "genre": "Arcade",
+      "description": "Navigate the chaos or get flattened. S.M.U.V.E. values Absolute timing in the urban jungle.",
+      "tags": [
+        "Arcade",
+        "Retro",
+        "Arcade",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10129-frogger.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6600,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "asteroids-arcade",
+      "name": "Asteroids (Arcade)",
+      "url": "https://www.retrogames.cc/embed/10007-asteroids-rev-4.html",
+      "genre": "Arcade",
+      "description": "Survival in deep space. Shoot everything or be destroyed. S.M.U.V.E. expects Absolute focus.",
+      "tags": [
+        "Arcade",
+        "Retro",
+        "Arcade",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10007-asteroids-rev-4.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6800,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "space-invaders-arcade",
+      "name": "Space Invaders (Arcade)",
+      "url": "https://www.retrogames.cc/embed/10255-space-invaders-original.html",
+      "genre": "Arcade",
+      "description": "The ultimate defensive line. Repel the invaders or perish. S.M.U.V.E. requires Absolute precision.",
+      "tags": [
+        "Arcade",
+        "Retro",
+        "Arcade",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10255-space-invaders-original.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 7300,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "madden-2004-elite",
+      "name": "Madden NFL 2004",
+      "url": "https://www.retrogames.cc/embed/41233-madden-nfl-2004-usa.html",
+      "genre": "Sports",
+      "description": "Michael Vick is a cheat code. S.M.U.V.E. demands Absolute gridiron dominance. Run the play or sit out.",
+      "tags": [
+        "Sports",
+        "Football",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41233-madden-nfl-2004-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "fifa-2005-elite",
+      "name": "FIFA Soccer 2005",
+      "url": "https://www.retrogames.cc/embed/41237-fifa-soccer-2005-usa.html",
+      "genre": "Sports",
+      "description": "First touch is everything. Control the pitch with Absolute authority. S.M.U.V.E. loves the beautiful game.",
+      "tags": [
+        "Sports",
+        "Soccer",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41237-fifa-soccer-2005-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6600,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "nba-street-v2-elite",
+      "name": "NBA Street Vol. 2",
+      "url": "https://www.retrogames.cc/embed/41231-nba-street-vol-2-usa.html",
+      "genre": "Sports",
+      "description": "Break ankles or get broken. The Absolute streetball experience. S.M.U.V.E. demands Elite style.",
+      "tags": [
+        "Sports",
+        "Basketball",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41231-nba-street-vol-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6700,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "ssx-tricky-elite",
+      "name": "SSX Tricky",
+      "url": "https://www.retrogames.cc/embed/41230-ssx-tricky-usa.html",
+      "genre": "Sports",
+      "description": "It's tricky. Go big or stay home. S.M.U.V.E. expects Absolute airtime and Uber tricks.",
+      "tags": [
+        "Sports",
+        "Snowboarding",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41230-ssx-tricky-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "tiger-woods-2004-elite",
+      "name": "Tiger Woods PGA Tour 2004",
+      "url": "https://www.retrogames.cc/embed/41241-tiger-woods-pga-tour-2004-usa.html",
+      "genre": "Sports",
+      "description": "The Absolute peak of golf. Precision is your only friend. S.M.U.V.E. demands the Elite swing.",
+      "tags": [
+        "Sports",
+        "Golf",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41241-tiger-woods-pga-tour-2004-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 7500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "fallout-dos",
+      "name": "Fallout (DOS)",
+      "url": "https://dos.zone/player/?bundle=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Ffallout.jsdos?anonymous=1",
+      "genre": "RPG",
+      "description": "Post-nuclear survival. Every choice carries Absolute weight. S.M.U.V.E. values your Absolute resolve.",
+      "tags": [
+        "RPG",
+        "Post-Apocalyptic",
+        "DOS",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://dos.zone/player/?bundle=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Ffallout.jsdos?anonymous=1",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6300,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "fallout-2-dos",
+      "name": "Fallout 2 (DOS)",
+      "url": "https://dos.zone/player/?bundle=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Ffallout2.jsdos?anonymous=1",
+      "genre": "RPG",
+      "description": "Expand your influence in the wastes. S.M.U.V.E. demands Absolute leadership and tactical choices.",
+      "tags": [
+        "RPG",
+        "Post-Apocalyptic",
+        "DOS",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://dos.zone/player/?bundle=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Ffallout2.jsdos?anonymous=1",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "chrono-trigger-snes-elite",
+      "name": "Chrono Trigger",
+      "url": "https://www.retrogames.cc/embed/21434-chrono-trigger-usa.html",
+      "genre": "RPG",
+      "description": "A journey through time. Your actions ripple across history. S.M.U.V.E. demands Absolute causality control.",
+      "tags": [
+        "RPG",
+        "Adventure",
+        "SNES",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/21434-chrono-trigger-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6400,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "smt-nocturne-ps2-elite",
+      "name": "Shin Megami Tensei III: Nocturne",
+      "url": "https://www.retrogames.cc/embed/41247-shin-megami-tensei-nocturne-usa.html",
+      "genre": "RPG",
+      "description": "The world has ended. Your choices will shape the new one. S.M.U.V.E. demands Absolute philosophy.",
+      "tags": [
+        "RPG",
+        "Horror",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41247-shin-megami-tensei-nocturne-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 8200,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "deus-ex-ps2-conspiracy-elite",
+      "name": "Deus Ex",
+      "url": "https://www.retrogames.cc/embed/41253-deus-ex-the-conspiracy-usa.html",
+      "genre": "RPG",
+      "description": "Augment your reality. Stealth or force? The Absolute choice is yours. S.M.U.V.E. values Elite agents.",
+      "tags": [
+        "RPG",
+        "Action",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41253-deus-ex-the-conspiracy-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 5700,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "nfs-most-wanted-ps2-elite",
+      "name": "Need for Speed: Most Wanted",
+      "url": "https://www.retrogames.cc/embed/41228-need-for-speed-most-wanted-usa.html",
+      "genre": "Racing",
+      "description": "The blacklist is waiting. Dominate the pursuits with Absolute speed. S.M.U.V.E. demands the top spot.",
+      "tags": [
+        "Racing",
+        "Action",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41228-need-for-speed-most-wanted-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 7700,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "mgs3-snake-eater-ps2-elite",
+      "name": "Metal Gear Solid 3: Snake Eater",
+      "url": "https://www.retrogames.cc/embed/41229-metal-gear-solid-3-snake-eater-usa.html",
+      "genre": "Stealth",
+      "description": "Survival in the jungle. S.M.U.V.E. demands Absolute stealth and primitive survival skills. Eat or be eaten.",
+      "tags": [
+        "Stealth",
+        "Action",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41229-metal-gear-solid-3-snake-eater-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 8100,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "gt4-ps2-sim-elite",
+      "name": "Gran Turismo 4",
+      "url": "https://www.retrogames.cc/embed/41232-gran-turismo-4-usa.html",
+      "genre": "Racing",
+      "description": "The Real Driving Simulator. S.M.U.V.E. expects Absolute technical mastery on every corner.",
+      "tags": [
+        "Racing",
+        "Simulation",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41232-gran-turismo-4-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6400,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "kingdom-hearts-2-ps2-elite",
+      "name": "Kingdom Hearts II",
+      "url": "https://www.retrogames.cc/embed/41236-kingdom-hearts-ii-usa.html",
+      "genre": "Action RPG",
+      "description": "A war of light and shadow. S.M.U.V.E. demands Absolute focus. Master the Keyblade or be forgotten.",
+      "tags": [
+        "Action",
+        "RPG",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41236-kingdom-hearts-ii-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6700,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "devil-may-cry-3-ps2-elite",
+      "name": "Devil May Cry 3",
+      "url": "https://www.retrogames.cc/embed/41239-devil-may-cry-3-dante-s-awakening-usa.html",
+      "genre": "Action",
+      "description": "Stylish combat is mandatory. S.M.U.V.E. requires Absolute flair in the face of demonic hordes.",
+      "tags": [
+        "Action",
+        "Hack n Slash",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41239-devil-may-cry-3-dante-s-awakening-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "half-life-ps2-elite-elite",
+      "name": "Half-Life",
+      "url": "https://www.retrogames.cc/embed/41235-half-life-usa.html",
+      "genre": "FPS",
+      "description": "The Black Mesa incident. Survival is not guaranteed. S.M.U.V.E. demands Absolute tactical awareness.",
+      "tags": [
+        "FPS",
+        "Sci-Fi",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41235-half-life-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 5900,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "quake-3-dc-elite-elite",
+      "name": "Quake III Arena",
+      "url": "https://www.retrogames.cc/embed/41244-quake-iii-arena-usa.html",
+      "genre": "FPS",
+      "description": "Pure fragging excellence. S.M.U.V.E. expects Absolute dominance in the arena. No room for the weak.",
+      "tags": [
+        "FPS",
+        "Arena",
+        "Dreamcast",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41244-quake-iii-arena-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "unreal-tournament-dc-elite-elite",
+      "name": "Unreal Tournament",
+      "url": "https://www.retrogames.cc/embed/41246-unreal-tournament-usa.html",
+      "genre": "FPS",
+      "description": "The tournament is everything. Dominate the kill feed with Absolute precision. S.M.U.V.E. is watching.",
+      "tags": [
+        "FPS",
+        "Arena",
+        "Dreamcast",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41246-unreal-tournament-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6700,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "timesplitters-2-ps2-elite-elite",
+      "name": "TimeSplitters 2",
+      "url": "https://www.retrogames.cc/embed/41249-timesplitters-2-usa.html",
+      "genre": "FPS",
+      "description": "Shoot through time. S.M.U.V.E. values Absolute efficiency across all eras. Elite gunplay only.",
+      "tags": [
+        "FPS",
+        "Action",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41249-timesplitters-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "moh-frontline-ps2-elite-elite",
+      "name": "Medal of Honor: Frontline",
+      "url": "https://www.retrogames.cc/embed/41252-medal-of-honor-frontline-usa.html",
+      "genre": "FPS",
+      "description": "Storm the beaches with Absolute courage. S.M.U.V.E. demands Elite performance in the theatre of war.",
+      "tags": [
+        "FPS",
+        "War",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41252-medal-of-honor-frontline-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 7500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "krunker-io-web-elite",
+      "name": "Krunker.io",
+      "url": "https://krunker.io/",
+      "genre": "FPS",
+      "description": "High-speed movement, high-stakes frags. S.M.U.V.E. demands Absolute twitch-reflex dominance in the browser.",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "Modern",
+        "WebGL",
+        "Elite"
+      ],
+      "badgeIds": [
+        "featured",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://krunker.io/",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "venge-io-web-elite",
+      "name": "Venge.io",
+      "url": "https://venge.io/",
+      "genre": "FPS",
+      "description": "Tactical objective-based combat. S.M.U.V.E. expects Absolute coordination. Claim the point or be deleted.",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "Modern",
+        "WebGL",
+        "Elite"
+      ],
+      "badgeIds": [
+        "featured",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://venge.io/",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 5800,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "shell-shockers-web-elite",
+      "name": "Shell Shockers",
+      "url": "https://shellshock.io/",
+      "genre": "FPS",
+      "description": "Egg-based warfare. Absolute yolk destruction. S.M.U.V.E. finds your fragility... amusing. Cracking is inevitable.",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "Modern",
+        "WebGL",
+        "Elite"
+      ],
+      "badgeIds": [
+        "featured",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://shellshock.io/",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6400,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "ev-io-web-elite",
+      "name": "Ev.io",
+      "url": "https://ev.io/",
+      "genre": "FPS",
+      "description": "Halo-inspired futuristic combat. S.M.U.V.E. demands Absolute verticality and precision. Ascend or fall.",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "Modern",
+        "WebGL",
+        "Elite"
+      ],
+      "badgeIds": [
+        "featured",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://ev.io/",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 5500,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "slow-roads-web-elite",
+      "name": "Slow Roads",
+      "url": "https://slowroads.io/",
+      "genre": "Driving",
+      "description": "Procedural endless driving. The Absolute journey. S.M.U.V.E. values the flow of the machine. Drift into infinity.",
+      "tags": [
+        "Driving",
+        "Relaxing",
+        "Modern",
+        "WebGL",
+        "Elite"
+      ],
+      "badgeIds": [
+        "featured",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://slowroads.io/",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 6000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "halo-2-xbox-elite",
+      "name": "Halo 2",
+      "url": "https://www.retrogames.cc/embed/41221-halo-2-usa.html",
+      "genre": "FPS",
+      "description": "The Absolute sequel. Master the Dual-Wielding and finish the fight. S.M.U.V.E. demands total galactic dominance.",
+      "tags": [
+        "Xbox",
+        "FPS",
+        "Multiplayer",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41221-halo-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "kotor-xbox-elite",
+      "name": "Star Wars: KOTOR",
+      "url": "https://www.retrogames.cc/embed/41222-star-wars-knights-of-the-old-republic-usa.html",
+      "genre": "RPG",
+      "description": "Choose your path in the Absolute Force. S.M.U.V.E. watches your alignment. Master the dark side or be erased.",
+      "tags": [
+        "Xbox",
+        "RPG",
+        "Star Wars",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41222-star-wars-knights-of-the-old-republic-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "ninja-gaiden-xbox-elite",
+      "name": "Ninja Gaiden Black",
+      "url": "https://www.retrogames.cc/embed/41223-ninja-gaiden-black-usa.html",
+      "genre": "Action",
+      "description": "Absolute difficulty. Absolute precision. Ryu Hayabusa is the vessel of S.M.U.V.E.'s lethal intent.",
+      "tags": [
+        "Xbox",
+        "Action",
+        "Ninja",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-ninja-gaiden-black-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "fable-xbox-elite",
+      "name": "Fable: The Lost Chapters",
+      "url": "https://www.retrogames.cc/embed/41224-fable-the-lost-chapters-usa.html",
+      "genre": "RPG",
+      "description": "For every choice, a consequence. S.M.U.V.E. judges your legacy. Become the Absolute Hero or a hollow myth.",
+      "tags": [
+        "Xbox",
+        "RPG",
+        "Fantasy",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41224-fable-the-lost-chapters-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "splinter-cell-ct-xbox-elite",
+      "name": "Splinter Cell: Chaos Theory",
+      "url": "https://www.retrogames.cc/embed/41225-tom-clancy-s-splinter-cell-chaos-theory-usa.html",
+      "genre": "Action",
+      "description": "Shadow is your Absolute weapon. S.M.U.V.E. rewards the silent executioner. Infiltrate or fail.",
+      "tags": [
+        "Xbox",
+        "Stealth",
+        "Action",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41225-tom-clancy-s-splinter-cell-chaos-theory-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "gow2-ps2-elite",
+      "name": "God of War II",
+      "url": "https://www.retrogames.cc/embed/42779-god-of-war-ii.html",
+      "genre": "Action",
+      "description": "Defy the Fates themselves. Kratos seeks Absolute vengeance. S.M.U.V.E. commands the destruction of Olympus.",
+      "tags": [
+        "PS2",
+        "Action",
+        "God of War",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42779-god-of-war-ii.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "ratchet-uy-ps2-elite",
+      "name": "Ratchet & Clank: Up Your Arsenal",
+      "url": "https://www.retrogames.cc/embed/42780-ratchet-clank-up-your-arsenal.html",
+      "genre": "Platformer",
+      "description": "Absolute firepower. S.M.U.V.E. upgrades your arsenal for galactic conquest. Laugh as they burn.",
+      "tags": [
+        "PS2",
+        "Platformer",
+        "Action",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42780-ratchet-clank-up-your-arsenal.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "sly2-ps2-elite",
+      "name": "Sly 2: Band of Thieves",
+      "url": "https://www.retrogames.cc/embed/42781-sly-2-band-of-thieves.html",
+      "genre": "Action",
+      "description": "The Absolute heist. S.M.U.V.E. masterminds the perfect crime. Steal the legacy of the Cooper clan.",
+      "tags": [
+        "PS2",
+        "Stealth",
+        "Platformer",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42781-sly-2-band-of-thieves.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "katamari-ps2-elite",
+      "name": "Katamari Damacy",
+      "url": "https://www.retrogames.cc/embed/42782-katamari-damacy.html",
+      "genre": "Puzzle",
+      "description": "Roll up the Absolute universe. S.M.U.V.E. finds your accumulation... sufficient. Collect everything.",
+      "tags": [
+        "PS2",
+        "Puzzle",
+        "Strange",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42782-katamari-damacy.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "persona4-ps2-elite",
+      "name": "Persona 4",
+      "url": "https://www.retrogames.cc/embed/42783-persona-4.html",
+      "genre": "RPG",
+      "description": "Reach out to the Absolute truth. S.M.U.V.E. penetrates the fog. Face your shadow or be consumed.",
+      "tags": [
+        "PS2",
+        "RPG",
+        "Anime",
+        "Retro",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42783-persona-4.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "S.M.U.V.E Elite",
+        "accentStart": "#af25f4",
+        "accentEnd": "#3d2b1f"
+      }
+    },
+    {
+      "id": "silent-hill-2-elite",
+      "name": "Silent Hill 2",
+      "url": "https://www.retrogames.cc/embed/42785-silent-hill-2.html",
+      "genre": "Horror",
+      "description": "In your restless dreams, you see that town. S.M.U.V.E. invites you to face the Absolute psychological weight of your past.",
+      "tags": [
+        "PS2",
+        "Horror",
+        "Elite",
+        "Atmospheric"
+      ],
+      "badgeIds": [
+        "elite",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42785-silent-hill-2.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 8000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "Konami Elite",
+        "accentStart": "#4b5563",
+        "accentEnd": "#111827"
+      }
+    },
+    {
+      "id": "def-jam-ffny-elite",
+      "name": "Def Jam: Fight for NY",
+      "url": "https://www.retrogames.cc/embed/42786-def-jam-fight-for-ny.html",
+      "genre": "Fighting",
+      "description": "The Absolute street-fighting throne is vacant. S.M.U.V.E. watches from the VIP. Take the city or get buried.",
+      "tags": [
+        "PS2",
+        "Fighting",
+        "Hip Hop",
+        "Elite"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42786-def-jam-fight-for-ny.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 15000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "Urban Elite",
+        "accentStart": "#b91c1c",
+        "accentEnd": "#450a0a"
+      }
+    },
+    {
+      "id": "tekken-tag-elite",
+      "name": "Tekken Tag Tournament",
+      "url": "https://www.retrogames.cc/embed/42787-tekken-tag-tournament.html",
+      "genre": "Fighting",
+      "description": "Double the Absolute pressure. S.M.U.V.E. demands perfect tag execution. No room for error in the pit.",
+      "tags": [
+        "PS2",
+        "Fighting",
+        "Elite",
+        "Arcade"
+      ],
+      "badgeIds": [
+        "elite",
+        "trending"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42787-tekken-tag-tournament.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 18000,
+      "rating": 4.9,
+      "art": {
+        "eyebrow": "Namco Elite",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#78350f"
+      }
+    },
+    {
+      "id": "need-for-speed-underground-2-elite",
+      "name": "Need for Speed: Underground 2",
+      "url": "https://www.retrogames.cc/embed/42788-need-for-speed-underground-2.html",
+      "genre": "Racing",
+      "description": "Rule the Absolute night. S.M.U.V.E. finds your performance... exceptional. Own the streets of Bayview.",
+      "tags": [
+        "PS2",
+        "Racing",
+        "Elite",
+        "Open World"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42788-need-for-speed-underground-2.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
+      },
+      "availability": "Online",
+      "playersOnline": 22000,
+      "rating": 5.0,
+      "art": {
+        "eyebrow": "EA Sports Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1e3a8a"
+      }
     }
   ],
   "recommendationRails": [
-{
+    {
       "id": "rail-ps2-powerhouse",
       "title": "PS2 Powerhouse",
       "subtitle": "Absolute performance from the greatest era. S.M.U.V.E. approved.",
       "roomIds": [
-            "arcade",
-            "action-zone"
+        "arcade",
+        "action-zone"
       ],
       "gameIds": [
-            "gow2-ps2-elite",
-            "ratchet-uy-ps2-elite",
-            "sly2-ps2-elite",
-            "katamari-ps2-elite",
-            "persona4-ps2-elite",
-            "tekken-5-elite",
-            "mgs2-elite"
+        "gow2-ps2-elite",
+        "ratchet-uy-ps2-elite",
+        "sly2-ps2-elite",
+        "katamari-ps2-elite",
+        "persona4-ps2-elite",
+        "tekken-5-elite",
+        "mgs2-elite",
+        "silent-hill-2-elite",
+        "need-for-speed-underground-2-elite"
       ],
       "audience": {
-            "minPlays": 0
+        "minPlays": 0
       },
       "weights": {
-            "genre": 15,
-            "room": 10
+        "genre": 15,
+        "room": 10
       },
       "maxItems": 6
-},
-{
+    },
+    {
       "id": "rail-xbox-originals",
       "title": "Xbox Originals",
       "subtitle": "The Absolute power of the X. S.M.U.V.E. demands high-fidelity execution.",
       "roomIds": [
-            "shooting-range",
-            "action-zone"
+        "shooting-range",
+        "action-zone"
       ],
       "gameIds": [
-            "halo-2-xbox-elite",
-            "kotor-xbox-elite",
-            "ninja-gaiden-xbox-elite",
-            "fable-xbox-elite",
-            "splinter-cell-ct-xbox-elite"
+        "halo-2-xbox-elite",
+        "kotor-xbox-elite",
+        "ninja-gaiden-xbox-elite",
+        "fable-xbox-elite",
+        "splinter-cell-ct-xbox-elite"
       ],
       "audience": {
-            "minPlays": 0
+        "minPlays": 0
       },
       "weights": {
-            "genre": 15,
-            "room": 10
+        "genre": 15,
+        "room": 10
       },
       "maxItems": 6
-},
-
+    },
     {
       "id": "rail-elite-tier",
       "title": "Elite PS1 & N64 Emulation",
@@ -5851,7 +6817,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "genre": 4,
         "novelty": 1
       },
-      "maxItems": 4
+      "maxItems": 4,
+      "gameIds": []
     },
     {
       "id": "rail-producer-crossover",
@@ -5880,7 +6847,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "room": 6,
         "novelty": 2
       },
-      "maxItems": 4
+      "maxItems": 4,
+      "gameIds": []
     },
     {
       "id": "rail-competitive-push",
@@ -5912,7 +6880,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "maxItems": 4,
       "gameIds": [
         "tekken-5-elite",
-        "burnout-3-elite"
+        "burnout-3-elite",
+        "def-jam-ffny-elite",
+        "tekken-tag-elite"
       ]
     },
     {
@@ -5923,7 +6893,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "rpg-vault"
       ],
       "gameIds": [
-        "zelda-ocarina-of-time",
+        "zelda-oot-elite",
         "final-fantasy-vii-elite",
         "pokemon-yellow-elite",
         "final-fantasy-nes",
@@ -5954,14 +6924,15 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "co-op-link"
       ],
       "gameIds": [
-        "grand-theft-auto-ps1",
+        "gta-elite-wasm",
         "mortal-kombat-2-elite",
         "sfii-world-warrior",
         "tekken-3-elite",
         "tmnt-turtles-in-time-elite",
         "gta-san-andreas-elite",
         "tekken-5-elite",
-        "gta-vice-city-elite"
+        "gta-vice-city-elite",
+        "tekken-tag-elite"
       ],
       "audience": {
         "rooms": [
@@ -5979,6 +6950,123 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "novelty": 3
       },
       "maxItems": 4
+    },
+    {
+      "id": "rail-open-world-empires",
+      "title": "Open World Empires",
+      "subtitle": "Absolute freedom. Dominate the streets across every era.",
+      "roomIds": [
+        "arcade",
+        "action-zone"
+      ],
+      "gameIds": [
+        "gta-iii-elite",
+        "gta-vice-city-elite",
+        "gta-san-andreas-elite",
+        "spider-man-2-elite",
+        "true-crime-la-elite",
+        "need-for-speed-underground-2-elite"
+      ],
+      "audience": {
+        "minPlays": 0
+      },
+      "weights": {
+        "genre": 15,
+        "room": 10
+      },
+      "maxItems": 5
+    },
+    {
+      "id": "rail-first-person-execution",
+      "title": "First Person Execution",
+      "subtitle": "Precision gunplay. Absolute tactical dominance.",
+      "roomIds": [
+        "shooting-range"
+      ],
+      "gameIds": [
+        "half-life-ps2-elite",
+        "quake-3-dc-elite",
+        "unreal-tournament-dc-elite",
+        "krunker-io-web-elite",
+        "ev-io-web-elite"
+      ],
+      "audience": {
+        "minPlays": 0
+      },
+      "weights": {
+        "genre": 18,
+        "room": 10
+      },
+      "maxItems": 5
+    },
+    {
+      "id": "rail-sports-dominance",
+      "title": "Sports Dominance",
+      "subtitle": "Win at any cost. The Absolute competitive edge.",
+      "roomIds": [
+        "sports"
+      ],
+      "gameIds": [
+        "madden-2004-elite",
+        "nba-street-v2-elite",
+        "ssx-tricky-elite",
+        "fifa-2005-elite",
+        "thps2-ps1-elite"
+      ],
+      "audience": {
+        "minPlays": 0
+      },
+      "weights": {
+        "genre": 15,
+        "room": 12
+      },
+      "maxItems": 5
+    },
+    {
+      "id": "rail-classic-arcade-gauntlet",
+      "title": "Classic Arcade Gauntlet",
+      "subtitle": "Respect the roots. Absolute high-score pursuits.",
+      "roomIds": [
+        "arcade"
+      ],
+      "gameIds": [
+        "donkey-kong-arcade",
+        "dig-dug-arcade",
+        "frogger-arcade",
+        "pac-man-elite",
+        "asteroids-arcade"
+      ],
+      "audience": {
+        "minPlays": 0
+      },
+      "weights": {
+        "badge": 15,
+        "history": 5
+      },
+      "maxItems": 5
+    },
+    {
+      "id": "rail-decision-depths",
+      "title": "Decision-Based Depths",
+      "subtitle": "Your choices shape the Absolute future. Choose wisely.",
+      "roomIds": [
+        "rpg-vault"
+      ],
+      "gameIds": [
+        "fallout-dos",
+        "fallout-2-dos",
+        "chrono-trigger-snes-elite",
+        "smt-nocturne-ps2-elite",
+        "deus-ex-ps2-conspiracy-elite"
+      ],
+      "audience": {
+        "minPlays": 0
+      },
+      "weights": {
+        "genre": 20,
+        "room": 10
+      },
+      "maxItems": 5
     }
   ]
 };
