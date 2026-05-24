@@ -1,4 +1,4 @@
-import { ThaSpotFeed } from './hub.types';
+import { ThaSpotFeed } from './game';
 
 export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   "badges": [
@@ -130,7 +130,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "spotlight": "Highlights tactical shooters, squad lanes, and live-fire rotations.",
       "rules": {
         "genres": [
-          "Shooting"
+          "Shooting",
+          "FPS"
         ]
       }
     },
@@ -5888,7 +5889,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "half-life-ps2-elite-elite",
+      "id": "half-life-ps2-elite",
       "name": "Half-Life",
       "url": "https://www.retrogames.cc/embed/41235-half-life-usa.html",
       "genre": "FPS",
@@ -5922,7 +5923,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "quake-3-dc-elite-elite",
+      "id": "quake-3-dc-elite",
       "name": "Quake III Arena",
       "url": "https://www.retrogames.cc/embed/41244-quake-iii-arena-usa.html",
       "genre": "FPS",
@@ -5956,7 +5957,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "unreal-tournament-dc-elite-elite",
+      "id": "unreal-tournament-dc-elite",
       "name": "Unreal Tournament",
       "url": "https://www.retrogames.cc/embed/41246-unreal-tournament-usa.html",
       "genre": "FPS",
@@ -5990,7 +5991,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "timesplitters-2-ps2-elite-elite",
+      "id": "timesplitters-2-ps2-elite",
       "name": "TimeSplitters 2",
       "url": "https://www.retrogames.cc/embed/41249-timesplitters-2-usa.html",
       "genre": "FPS",
@@ -6024,7 +6025,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "moh-frontline-ps2-elite-elite",
+      "id": "moh-frontline-ps2-elite",
       "name": "Medal of Honor: Frontline",
       "url": "https://www.retrogames.cc/embed/41252-medal-of-honor-frontline-usa.html",
       "genre": "FPS",
