@@ -66,10 +66,16 @@ export class SettingsComponent implements OnInit {
     ];
   });
 
-  activeTab = signal<'ui' | 'audio' | 'ai' | 'studio' | 'security' | 'permissions' | 'storage'>('ui');
+  activeTab = signal<
+    'ui' | 'audio' | 'ai' | 'studio' | 'security' | 'permissions' | 'storage'
+  >('ui');
   audioInputDevices = this.microphoneService.availableDevices;
   selectedAudioInputId = this.microphoneService.selectedDeviceId;
-  storageStats = signal<{ usedBytes: number; totalBytes: number; percentUsed: number } | null>(null);
+  storageStats = signal<{
+    usedBytes: number;
+    totalBytes: number;
+    percentUsed: number;
+  } | null>(null);
   securityAudit = computed(() => this.securityService.getSecurityAudit());
 
   ngOnInit() {
@@ -77,7 +83,6 @@ export class SettingsComponent implements OnInit {
     this.securityService.fetchSessions();
     this.updateStorageStats();
   }
-
 
   async forceSync() {
     const profile = this.profileService.profile();
@@ -93,9 +98,10 @@ export class SettingsComponent implements OnInit {
   async clearCache() {
     const confirmed = await this.dialog.confirm({
       title: 'Clear Local Cache',
-      message: 'This will remove all cached audio samples and offline assets. Your projects remain safe.',
+      message:
+        'This will remove all cached audio samples and offline assets. Your projects remain safe.',
       confirmLabel: 'Clear Cache',
-      tone: 'default'
+      tone: 'default',
     });
     if (confirmed) {
       await this.localStorageService.clearAllCache();
@@ -111,7 +117,10 @@ export class SettingsComponent implements OnInit {
   async requestPermission(name: string) {
     const granted = await this.permissionService.requestPermission(name);
     if (granted) {
-      this.notificationService.show(`Permission granted for ${name}.`, 'success');
+      this.notificationService.show(
+        `Permission granted for ${name}.`,
+        'success'
+      );
     }
   }
 
@@ -162,14 +171,17 @@ export class SettingsComponent implements OnInit {
       if (category === 'security') {
         if (key === 'endToEndEncryption' && value === true) {
           await this.securityService.generateE2EKeys();
-          this.notificationService.show('E2E Encryption keys generated and stored in secure enclave.', 'success');
+          this.notificationService.show(
+            'E2E Encryption keys generated and stored in secure enclave.',
+            'success'
+          );
         }
         if (key === 'twoFactorEnabled' && value === true) {
           const setup = await this.securityService.setup2FA();
           await this.dialog.alert({
             title: '2FA Enrollment',
             message: `Scan this URI in your authenticator app: ${setup.qrCodeUri}. Your secret key is: ${setup.secret}`,
-            confirmLabel: 'I have saved the key'
+            confirmLabel: 'I have saved the key',
           });
         }
         this.securityService.logEvent(
@@ -186,7 +198,16 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  setTab(tab: 'ui' | 'audio' | 'ai' | 'studio' | 'security' | 'permissions' | 'storage') {
+  setTab(
+    tab:
+      | 'ui'
+      | 'audio'
+      | 'ai'
+      | 'studio'
+      | 'security'
+      | 'permissions'
+      | 'storage'
+  ) {
     this.activeTab.set(tab);
     if (tab === 'security') {
       this.securityService.fetchLogs();

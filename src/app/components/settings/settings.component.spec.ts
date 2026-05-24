@@ -9,6 +9,9 @@ import { MicrophoneService } from '../../services/microphone.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { AuthService } from '../../services/auth.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
+import { PermissionService } from '../../services/permission.service';
+import { LocalStorageService } from '../../services/local-storage.service';
+import { DatabaseService } from '../../services/database.service';
 
 describe('SettingsComponent', () => {
   const createComponent = async () => {
@@ -76,6 +79,12 @@ describe('SettingsComponent', () => {
       revokeSession: jest.fn().mockResolvedValue(undefined),
       sessions: signal([]),
       logs: signal([]),
+      getSecurityAudit: jest.fn().mockReturnValue({
+        score: 100,
+        status: 'FORTIFIED',
+        alerts: [],
+      }),
+      exportUserData: jest.fn().mockResolvedValue(undefined),
     };
 
     const authServiceMock = {
@@ -125,6 +134,30 @@ describe('SettingsComponent', () => {
         { provide: AudioEngineService, useValue: audioEngineMock },
         { provide: AuthService, useValue: authServiceMock },
         { provide: InteractionDialogService, useValue: dialogMock },
+        {
+          provide: PermissionService,
+          useValue: {
+            requestPermission: jest.fn().mockResolvedValue(true),
+            refreshAllStatuses: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: LocalStorageService,
+          useValue: {
+            getStorageStats: jest.fn().mockResolvedValue({
+              usedBytes: 1024,
+              totalBytes: 10240,
+              percentUsed: 10,
+            }),
+            clearAllCache: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: DatabaseService,
+          useValue: {
+            saveUserProfile: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compileComponents();
 

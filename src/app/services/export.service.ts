@@ -39,12 +39,11 @@ export class ExportService {
     return { recorder, result: promise };
   }
 
-
   async startVideoExport(canvas: HTMLCanvasElement, includeHud = true) {
     this.logger.system('INITIALIZING INTEGRATED VIDEO EXPORT UPLINK...');
     this.engine.resume();
 
-    let exportCanvas = canvas;
+    const exportCanvas = canvas;
     if (includeHud) {
       this.logger.info('Injecting S.M.U.V.E. HUD Overlays into stream.');
     }
@@ -56,8 +55,8 @@ export class ExportService {
       .forEach((track) => canvasStream.addTrack(track));
 
     const recorder = new MediaRecorder(canvasStream, {
-      mimeType: 'video/webm;codecs=vp9',
-      videoBitsPerSecond: 12000000,
+      mimeType: 'video/webm',
+      videoBitsPerSecond: 8000000,
     });
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => {
@@ -71,8 +70,6 @@ export class ExportService {
     return { recorder, result: promise };
   }
 
-
-
   async renderProjectOffline(durationSeconds?: number): Promise<AudioBuffer> {
     this.logger.system('INITIALIZING NEURAL OFFLINE RENDER ENGINE...');
     const tempo = this.engine.tempo();
@@ -81,7 +78,7 @@ export class ExportService {
     const stepDur = 60 / tempo / stepsPerBeat;
 
     // Default to one full loop if duration is not specified
-    const totalDuration = durationSeconds || (loopEnd * stepDur);
+    const totalDuration = durationSeconds || loopEnd * stepDur;
     const sampleRate = this.engine.ctx.sampleRate;
 
     const offlineCtx = new OfflineAudioContext(
@@ -98,27 +95,40 @@ export class ExportService {
       currentTime += stepDur;
     }
 
-    this.logger.info(`Neural Offline Render: ${totalDuration.toFixed(2)}s @ ${sampleRate}Hz`);
+    this.logger.info(
+      `Neural Offline Render: ${totalDuration.toFixed(2)}s @ ${sampleRate}Hz`
+    );
     return await offlineCtx.startRendering();
   }
 
-  async exportToFormat(buffer: AudioBuffer, format: 'wav' | 'mp3' | 'aac' = 'wav', bitDepth: 16 | 24 = 16): Promise<Blob> {
+  async exportToFormat(
+    buffer: AudioBuffer,
+    format: 'wav' | 'mp3' | 'aac' = 'wav',
+    bitDepth: 16 | 24 = 16
+  ): Promise<Blob> {
     if (format === 'wav') {
       const wav = this.audioBufferToWav(buffer, bitDepth);
       return new Blob([wav], { type: 'audio/wav' });
     }
 
     // For MP3/AAC, we use a temporary MediaStream and MediaRecorder since we are in the browser
-    const offlineCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const offlineCtx = new (
+      window.AudioContext || (window as any).webkitAudioContext
+    )();
     const source = offlineCtx.createBufferSource();
     source.buffer = buffer;
     const dest = offlineCtx.createMediaStreamDestination();
     source.connect(dest);
 
     const mimeType = format === 'mp3' ? 'audio/mpeg' : 'audio/mp4';
-    const finalMimeType = MediaRecorder.isTypeSupported(mimeType) ? mimeType : 'audio/webm';
+    const finalMimeType = MediaRecorder.isTypeSupported(mimeType)
+      ? mimeType
+      : 'audio/webm';
 
-    const recorder = new MediaRecorder(dest.stream, { mimeType: finalMimeType, audioBitsPerSecond: 320000 });
+    const recorder = new MediaRecorder(dest.stream, {
+      mimeType: finalMimeType,
+      audioBitsPerSecond: 320000,
+    });
     const chunks: Blob[] = [];
 
     return new Promise((resolve) => {
@@ -154,7 +164,7 @@ export class ExportService {
     const curve = new Float32Array(44100);
     for (let i = 0; i < 44100; i++) {
       const x = (i * 2) / 44100 - 1;
-      curve[i] = (3 + x * x) * x / (3 + 3 * x * x);
+      curve[i] = ((3 + x * x) * x) / (3 + 3 * x * x);
     }
     saturator.curve = curve;
 
@@ -166,7 +176,11 @@ export class ExportService {
     limiter.threshold.value = -0.3;
     limiter.ratio.value = 20;
 
-    source.connect(saturator).connect(compressor).connect(limiter).connect(offlineCtx.destination);
+    source
+      .connect(saturator)
+      .connect(compressor)
+      .connect(limiter)
+      .connect(offlineCtx.destination);
 
     source.start(0);
     const polished = await offlineCtx.startRendering();
@@ -185,8 +199,10 @@ export class ExportService {
     URL.revokeObjectURL(url);
   }
 
-
-  public audioBufferToWav(buffer: AudioBuffer, bitDepth: 16 | 24 = 16): ArrayBuffer {
+  public audioBufferToWav(
+    buffer: AudioBuffer,
+    bitDepth: 16 | 24 = 16
+  ): ArrayBuffer {
     const numOfChan = buffer.numberOfChannels;
     const sampleRate = buffer.sampleRate;
     const bytesPerSample = bitDepth / 8;
@@ -226,9 +242,16 @@ export class ExportService {
 
     for (let i = 0; i < buffer.length; i++) {
       for (let channel = 0; channel < numOfChan; channel++) {
-        const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
+        const sample = Math.max(
+          -1,
+          Math.min(1, buffer.getChannelData(channel)[i])
+        );
         if (bitDepth === 16) {
-          view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+          view.setInt16(
+            offset,
+            sample < 0 ? sample * 0x8000 : sample * 0x7fff,
+            true
+          );
           offset += 2;
         } else {
           const s = Math.floor(sample * (sample < 0 ? 0x800000 : 0x7fffff));
@@ -241,5 +264,4 @@ export class ExportService {
     }
     return bufferOut;
   }
-
 }

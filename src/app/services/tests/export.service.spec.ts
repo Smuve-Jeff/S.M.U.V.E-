@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { ExportService } from '../export.service';
 import { AudioEngineService } from '../audio-engine.service';
+import { MusicManagerService } from '../music-manager.service';
+import { LoggingService } from '../logging.service';
 
 describe('ExportService', () => {
   let service: ExportService;
@@ -49,6 +51,19 @@ describe('ExportService', () => {
       providers: [
         ExportService,
         { provide: AudioEngineService, useValue: audioEngineMock },
+        {
+          provide: MusicManagerService,
+          useValue: {
+            playStep: jest.fn(),
+          },
+        },
+        {
+          provide: LoggingService,
+          useValue: {
+            system: jest.fn(),
+            info: jest.fn(),
+          },
+        },
       ],
     });
     service = TestBed.inject(ExportService);

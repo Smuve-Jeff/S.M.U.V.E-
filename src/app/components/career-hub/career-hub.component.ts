@@ -65,8 +65,12 @@ export class CareerHubComponent {
 
   revenueForecast = computed(() => {
     const dna = { streams: this.profile().financials.totalRevenue * 250 }; // Rough stream estimation from revenue
-    const projection = this.businessPipelineService.calculateRevenueProjections(dna);
-    return projection.forecast.map((f: any) => ({ month: f.month, amount: f.estimate }));
+    const projection =
+      this.businessPipelineService.calculateRevenueProjections(dna);
+    return projection.forecast.map((f: any) => ({
+      month: f.month,
+      amount: f.estimate,
+    }));
   });
 
   submitToLabel() {
