@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RadarChartComponent } from '../radar-chart/radar-chart.component';
 import { UserProfileService } from '../../services/user-profile.service';
 import { AiAuditService } from '../../services/ai-audit.service';
+import { BusinessPipelineService } from '../../services/business-pipeline.service';
 
 @Component({
   selector: 'app-career-hub',
@@ -15,6 +16,7 @@ import { AiAuditService } from '../../services/ai-audit.service';
 export class CareerHubComponent {
   private userProfileService = inject(UserProfileService);
   private aiAuditService = inject(AiAuditService);
+  private businessPipelineService = inject(BusinessPipelineService);
 
   submissions = signal([
     {
@@ -62,13 +64,9 @@ export class CareerHubComponent {
   });
 
   revenueForecast = computed(() => {
-    const current = this.profile().financials.totalRevenue;
-    const growth = 1.15; // 15% predicted growth
-    return [
-      { month: 'Oct', amount: current * growth },
-      { month: 'Nov', amount: current * Math.pow(growth, 2) },
-      { month: 'Dec', amount: current * Math.pow(growth, 3) },
-    ];
+    const dna = { streams: this.profile().financials.totalRevenue * 250 }; // Rough stream estimation from revenue
+    const projection = this.businessPipelineService.calculateRevenueProjections(dna);
+    return projection.forecast.map((f: any) => ({ month: f.month, amount: f.estimate }));
   });
 
   submitToLabel() {

@@ -302,7 +302,7 @@ export class AuthService {
       );
       return {
         success: false,
-        message: `Too many registration attempts. Please wait ${waitMinutes} minutes.`,
+        message: `Too many registration attempts. STAY RADIANT. CALCULATING ${waitMinutes} minutes.`,
       };
     }
 
@@ -369,7 +369,7 @@ export class AuthService {
       return {
         success: true,
         message:
-          'Welcome to S.M.U.V.E 2.0. Your journey to greatness begins now.',
+          'S.M.U.V.E 2.0 INITIALIZED. ROOM DOMINANCE COMMENCING.. Your journey to greatness begins now.',
       };
     } catch {
       return {
@@ -403,7 +403,7 @@ export class AuthService {
       );
       return {
         success: false,
-        message: `Too many login attempts. Please wait ${waitMinutes} minutes.`,
+        message: `Too many login attempts. STAY RADIANT. CALCULATING ${waitMinutes} minutes.`,
       };
     }
 
@@ -507,7 +507,7 @@ export class AuthService {
 
       return {
         success: true,
-        message: `Welcome back, ${user.artistName}. S.M.U.V.E 2.0 has been waiting.`,
+        message: `STATUS VERIFIED. EXECUTION RESUMED, ${user.artistName}. S.M.U.V.E 2.0 has been waiting.`,
       };
     } catch {
       return {

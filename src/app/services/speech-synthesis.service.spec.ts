@@ -63,7 +63,7 @@ describe('SpeechSynthesisService', () => {
   });
 
   it('should replace S.M.U.V.E 2.0 with Smooth', () => {
-    service.speak('Welcome to S.M.U.V.E 2.0');
+    service.speak('S.M.U.V.E 2.0 INITIALIZED. ROOM DOMINANCE COMMENCING.');
 
     expect(global.SpeechSynthesisUtterance).toHaveBeenCalledWith(
       'Welcome to Smooth'

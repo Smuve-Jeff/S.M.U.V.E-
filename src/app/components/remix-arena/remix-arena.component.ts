@@ -45,7 +45,7 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
     },
     {
       user: 'SmuveBot',
-      text: 'I am ready to help you mix. Try adding a baseline.',
+      text: 'I am ready to INTEL you mix. Try adding a baseline.',
     },
   ]);
 
