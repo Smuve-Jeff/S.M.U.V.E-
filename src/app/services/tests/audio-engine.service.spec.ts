@@ -1,3 +1,4 @@
+import { signal } from "@angular/core";
 import { TestBed } from '@angular/core/testing';
 import { AudioEngineService } from '../audio-engine.service';
 import { StemSeparationService } from '../stem-separation.service';
@@ -84,10 +85,12 @@ describe('AudioEngineService', () => {
     TestBed.configureTestingModule({
       providers: [
         AudioEngineService,
-        { provide: StemSeparationService, useValue: {} },
+        { provide: StemSeparationService, useValue: {
+            isRecording: signal(false),} },
         {
           provide: AudioRecorderService,
           useValue: {
+            isRecording: signal(false),
             pendingMidi: [],
             startRecording: jest.fn(),
             stopRecording: jest.fn(),
