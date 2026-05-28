@@ -87,9 +87,19 @@ export class AuthService {
     return { isValid: errors.length === 0, errors };
   }
   async verifyEmail(c: string) {
-    return { success: true, message: 'VERIFIED' };
+    return await firstValueFrom(
+      this.http.post<{ success: boolean; message: string }>(
+        `${GLOBAL_SECURITY_CONFIG.api_url}/auth/verify-email`,
+        { code: c }
+      )
+    );
   }
   async resendVerificationCode() {
-    return { success: true, message: 'SENT' };
+    return await firstValueFrom(
+      this.http.post<{ success: boolean; message: string }>(
+        `${GLOBAL_SECURITY_CONFIG.api_url}/auth/resend-verification`,
+        {}
+      )
+    );
   }
 }
