@@ -22,7 +22,11 @@ export class SecurityService {
 
   constructor() {}
 
-  validateSession() { return true; }
+  validateSession(): boolean {
+    if (typeof window === 'undefined') return true;
+    const expires = this.sessionExpiresAt();
+    return !expires || Date.now() < expires;
+  }
   refreshSession() {}
   recordAttempt(k: string) { return { allowed: true, remainingAttempts: 5, blockedUntil: 0 }; }
   clearRateLimit(k: string) {}
