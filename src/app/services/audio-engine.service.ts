@@ -235,7 +235,7 @@ export class AudioEngineService {
       if (absX < 0.33) {
         curve[i] = 2 * x;
       } else if (absX < 0.66) {
-        curve[i] = ((3 - (2 - 3 * x) ** 2) / 3) * (x > 0 ? 1 : -1);
+        curve[i] = ((3 - (2 - 3 * absX) ** 2) / 3) * (x > 0 ? 1 : -1);
       } else {
         curve[i] = x > 0 ? 1 : -1;
       }
