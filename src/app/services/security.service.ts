@@ -30,7 +30,16 @@ export class SecurityService {
   refreshSession() {}
   recordAttempt(k: string) { return { allowed: true, remainingAttempts: 5, blockedUntil: 0 }; }
   clearRateLimit(k: string) {}
-  isValidRedirectUrl(u: string) { return true; }
+  isValidRedirectUrl(url: string): boolean {
+    if (!url || typeof window === 'undefined') return false;
+    const allowedOrigin = window.location.origin;
+    try {
+      const parsedUrl = new URL(url, allowedOrigin);
+      return parsedUrl.origin === allowedOrigin;
+    } catch (e) {
+      return url.startsWith('/') && !url.startsWith('//');
+    }
+  }
   sanitizeInput(i: string) { return i || ''; }
   async logEvent(t: string, d: string, u?: string) {}
   async fetchLogs() {}
