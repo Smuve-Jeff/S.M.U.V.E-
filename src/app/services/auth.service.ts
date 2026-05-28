@@ -82,7 +82,9 @@ export class AuthService {
   }
 
   validatePassword(p: string) {
-    return { isValid: p.length >= 8, errors: [] };
+    const errors: string[] = [];
+    if (p.length < 8) errors.push('Password must be at least 8 characters');
+    return { isValid: errors.length === 0, errors };
   }
   async verifyEmail(c: string) {
     return { success: true, message: 'VERIFIED' };
