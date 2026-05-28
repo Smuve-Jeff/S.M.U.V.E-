@@ -28,7 +28,7 @@ export class LoginConfirmationService {
           : new Date(user.lastLogin).toISOString();
       await firstValueFrom(
         this.http.post(
-          `${this.database.apiUrl}/auth/login-email`,
+          `${this.database.API_URL}/auth/login-email`,
           {
             userId: user.id,
             email: user.email,
