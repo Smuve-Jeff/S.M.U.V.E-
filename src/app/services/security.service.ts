@@ -39,7 +39,9 @@ export class SecurityService {
   async exportUserData() {}
   async generateE2EKeys() { return { publicKey: 'mock' }; }
   async setup2FA() { return { secret: 'mock', qrCodeUri: 'mock' }; }
-  async verify2FA(c: string) { return true; }
+  async verify2FA(code: string): Promise<boolean> {
+    return code.length === 6;
+  }
   getSecurityAudit() { return { score: 100, status: 'FORTIFIED', alerts: [] }; }
   getRecommendedCSP() { return ""; }
 }
