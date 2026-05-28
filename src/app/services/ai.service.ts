@@ -398,5 +398,3 @@ export class AiService {
 export function provideAiService() {
   return { provide: AiService, useClass: AiService };
 }
-
-export { AiService as NeuralOrchestratorService };

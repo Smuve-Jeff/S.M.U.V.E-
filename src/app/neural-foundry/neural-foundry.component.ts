@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
-  NeuralOrchestratorService,
+  AiService,
   UpgradeRecommendation,
 } from '../services/ai.service';
 
@@ -13,7 +13,7 @@ import {
   styleUrls: ['./neural-foundry.component.css'],
 })
 export class NeuralFoundryComponent {
-  private orchestrator = inject(NeuralOrchestratorService);
+  private orchestrator = inject(AiService);
 
   availableUpgrades = this.orchestrator.availableUpgrades;
   isProcessing = this.orchestrator.isProcessing;

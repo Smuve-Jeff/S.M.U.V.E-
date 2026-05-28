@@ -5,7 +5,9 @@ import { StudioRecordingEngineService } from '../studio/studio-recording-engine.
 import { StemSeparationService, Stems } from './stem-separation.service';
 
 export type DeckId = 'A' | 'B';
+import { Injectable, signal, inject, Injector } from '@angular/core';
 
+import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 
 
 
@@ -45,9 +47,14 @@ export class AudioEngineService {
   public sidechainEnabled = signal(false);
   public logger = inject(LoggingService);
   private injector = inject(Injector);
+  private injector = inject(Injector);
+  private injector = inject(Injector);
+  private injector = inject(Injector);
+  private injector = inject(Injector);
+  private injector = inject(Injector);
+  private injector = inject(Injector);
   private stemSeparationService = inject(StemSeparationService);
   public get recorder(): StudioRecordingEngineService { return this.injector.get(StudioRecordingEngineService); }
-  public ctx: AudioContext;
   public masterGain: GainNode;
   public compressor: DynamicsCompressorNode;
   public saturationNode: WaveShaperNode;

@@ -1,7 +1,8 @@
-
 import { Injectable, inject, signal, Injector, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { LoggingService } from './logging.service';
+import { UserProfileService } from './user-profile.service';
+import { AuthService } from './auth.service';
 import { TokenService } from './token.service';
 
 @Injectable({ providedIn: 'root' })
@@ -30,6 +31,7 @@ export class SecurityService {
   refreshSession() {}
   recordAttempt(k: string) { return { allowed: true, remainingAttempts: 5, blockedUntil: 0 }; }
   clearRateLimit(k: string) {}
+  isRateLimited(k: string) { return false; }
   isValidRedirectUrl(url: string): boolean {
     if (!url || typeof window === 'undefined') return false;
     const allowedOrigin = window.location.origin;
@@ -62,4 +64,7 @@ export class SecurityService {
   }
   getSecurityAudit() { return { score: 100, status: 'FORTIFIED', alerts: [] }; }
   getRecommendedCSP() { return ""; }
+  getSecurityConfig() { return { sessionTimeoutMs: 3600000, inactivityTimeoutMs: 1800000, requireReauthForSensitive: true }; }
+  getCSRFToken() { return 'mock-token'; }
+  validateCSRFToken(t: string) { return true; }
 }

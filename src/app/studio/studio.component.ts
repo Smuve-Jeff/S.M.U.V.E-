@@ -22,7 +22,7 @@ import { AudioSessionService } from './audio-session.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { ChannelRackComponent } from './channel-rack/channel-rack.component';
-import { AiService as NeuralOrchestratorService } from '../services/ai.service';
+import { AiService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
 import { NotificationService } from '../services/notification.service';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
@@ -79,7 +79,7 @@ function isStudioView(value: string): value is StudioView {
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly audioSession = inject(AudioSessionService);
   public readonly audioEngine = inject(AudioEngineService);
-  public readonly neuralOrchestrator = inject(NeuralOrchestratorService);
+  public readonly neuralOrchestrator = inject(AiService);
   public readonly uiService = inject(UIService);
   private readonly notificationService = inject(NotificationService);
   private readonly route = inject(ActivatedRoute);

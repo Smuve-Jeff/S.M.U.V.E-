@@ -2,13 +2,12 @@ import { Component, signal, computed, inject, ElementRef, ViewChild, HostListene
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
-import { KnobComponent } from '../shared/knob/knob.component';
 import { MusicManagerService, ArrangementClip } from '../../services/music-manager.service';
 
 @Component({
   selector: 'app-arrangement-view',
   standalone: true,
-  imports: [CommonModule, FormsModule, KnobComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './arrangement-view.component.html',
   styleUrls: ['./arrangement-view.component.css']
 })
