@@ -71,3 +71,56 @@
 .extreme-glow {
   box-shadow: 0 0 10px currentColor;
 }
+
+.fader-cap-pro-elite {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 50%);
+  width: 32px;
+  height: 48px;
+  background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.cap-line {
+  width: 100%;
+  height: 2px;
+  background: #ec5b13;
+  box-shadow: 0 0 8px #ec5b13;
+}
+
+.cap-line.bg-fl-blue {
+  background: #00e5ff;
+  box-shadow: 0 0 8px #00e5ff;
+}
+
+.pro-fader-input {
+  appearance: slider-vertical;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.mixer-strip.selected {
+  background: rgba(236, 91, 19, 0.03);
+  border-color: rgba(236, 91, 19, 0.3);
+}
+
+@media (max-width: 768px) {
+  .mixer-strip {
+    min-width: 80px;
+  }
+  .fader-cap-pro-elite {
+    width: 28px;
+    height: 44px;
+  }
+}

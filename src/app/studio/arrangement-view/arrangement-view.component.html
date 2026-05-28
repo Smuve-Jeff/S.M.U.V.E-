@@ -2,152 +2,45 @@
   <div class="playlist-header wood-panel">
     <div class="view-tabs flex items-center gap-4">
       <button class="tab-btn active neon-text-xs">PRO ARRANGEMENT</button>
-      <div class="flex items-center gap-2">
-         <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">SNAP</span>
-         <button (click)="toggleSnap()" class="mini-btn tactile-v42" [class.active-snap]="snapEnabled()">
-           <span class="material-symbols-outlined text-xs">{{ snapEnabled() ? 'grid_on' : 'grid_off' }}</span>
-         </button>
+    </div>
+
+    <div class="module-transport glass-v42 mx-4">
+      <div class="btn-group flex gap-1">
+        <button class="m-btn tactile-v42" (click)="audioSession.togglePlay()">
+          <span class="material-symbols-outlined text-sm">
+            {{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}
+          </span>
+        </button>
+        <button class="m-btn tactile-v42 rec" [class.active]="audioSession.isRecording()" (click)="audioSession.toggleRecord()">
+          <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+        </button>
       </div>
     </div>
+
     <div class="header-actions">
-      <button
-        (click)="addTrack()"
-        class="mini-btn tactile-v42 executive-glass"
-        style="width: auto; padding: 0 15px"
-      >
-        + NEW TRACK
-      </button>
+      <button (click)="addTrack()" class="mini-btn tactile-v42 executive-glass">+ TRACK</button>
     </div>
   </div>
 
   <div class="playlist-content no-scrollbar">
     <div class="track-headers no-scrollbar wood-panel">
-      <div
-        *ngFor="let track of tracks()"
-        class="track-header tactile-v42 glass-v42" [style.height.px]="trackHeaderHeight()"
-        [class.selected]="isTrackSelected(track.id)"
-        (click)="selectTrack(track.id)"
-      >
-        <div class="track-top">
-          <div
-            class="track-color-strip"
-            [style.background-color]="track.color || '#af25f4'"
-          ></div>
-          <div class="flex flex-col">
-            <span class="track-name neon-text-xs">{{ track.name | uppercase }}</span>
-            <span class="text-[6px] opacity-50 font-mono">{{ track.instrumentId | uppercase }}</span>
-          </div>
-          <div class="track-controls ml-auto">
-            <button
-              class="mini-btn tactile-v42"
-              [class.active-solo]="track.solo"
-              (click)="toggleSolo(track.id); $event.stopPropagation()"
-            >
-              S
-            </button>
-            <button
-              class="mini-btn tactile-v42"
-              [class.active-mute]="track.mute"
-              (click)="toggleMute(track.id); $event.stopPropagation()"
-            >
-              M
-            </button>
-          </div>
-        </div>
-        <div class="track-meter-container">
-           <div class="meter-bg bg-black/40 h-1 rounded-full overflow-hidden">
-              <div class="meter-fill extreme-glow h-full" [style.width.%]="track.mute ? 0 : 45" [style.background-color]="track.color"></div>
-           </div>
+      <div *ngFor="let track of tracks()" class="track-header tactile-v42 glass-v42" [style.height.px]="trackHeaderHeight()" [class.selected]="isTrackSelected(track.id)" (click)="selectTrack(track.id)">
+        <div class="track-top flex items-center p-2">
+          <div class="track-color-strip w-1 h-8 rounded mr-2" [style.background-color]="track.color || '#af25f4'"></div>
+          <span class="track-name neon-text-xs truncate">{{ track.name | uppercase }}</span>
         </div>
       </div>
     </div>
 
     <div class="grid-viewport no-scrollbar glass-v42">
-      <div class="time-ruler wood-panel">
-        <div
-          *ngFor="let bar of bars"
-          class="ruler-bar neon-text-xs"
-          [style.width.px]="barWidth"
-        >
-          {{ bar + 1 }}
-        </div>
-      </div>
-      <div
-        class="grid-canvas"
-        #gridCanvas
-        [style.width.px]="gridWidth"
-        [style.height.px]="tracks().length * (showAutomation() ? 160 : 80)"
-      >
+      <div class="grid-canvas" #gridCanvas [style.width.px]="gridWidth" [style.height.px]="tracks().length * 80">
         <div class="scanline-overlay"></div>
-
-        <!-- Lane Rows for Drop -->
-        <div
-          *ngFor="let track of tracks(); let i = index"
-          class="lane-row"
-          [style.top.px]="i * 80"
-          [style.height.px]="showAutomation() ? 160 : 80"
-          (dragover)="onDragOver($event)"
-          (drop)="onDrop($event, track.id)"
-        >
-          <div
-            *ngFor="let clip of track.clips"
-            class="clip-item executive-glass shadow-v42-xl tactile-v42 group"
-            draggable="true"
-            (dragstart)="onClipDragStart($event, track.id, clip)"
-            (dragend)="onClipDragEnd()"
-            [style.left.px]="clip.start * barWidth"
-            [style.width.px]="clip.length * barWidth"
-            [style.background-color]="(clip.color || '#af25f4') + '33'"
-            [style.border-color]="clip.color || '#af25f4'"
-            (click)="selectClip(clip.id, $event)"
-          >
-            <div class="clip-header neon-text-xs">
-              {{ clip.name | uppercase }}
-            </div>
-
-            <!-- Resize Handles -->
-            <div class="resize-handle right opacity-0 group-hover:opacity-100 transition-opacity"
-                 (mousedown)="$event.stopPropagation(); resizeClip(track.id, clip.id, 0.5)"></div>
-
-            <div class="clip-waveform">
-              <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100">
-                <path d="M0 50 L 10 20 L 20 80 L 30 10 L 40 90 L 50 50 L 60 20 L 70 80 L 80 10 L 90 90 L 100 50" [attr.stroke]="clip.color || '#af25f4'" stroke-width="1" fill="none" class="extreme-glow" />
-              </svg>
-            </div>
+        <div *ngFor="let track of tracks(); let i = index" class="lane-row relative border-b border-white/5" [style.height.px]="80" (dragover)="onDragOver($event)" (drop)="onDrop($event, track.id)">
+          <div *ngFor="let clip of track.clips" class="clip-item absolute executive-glass shadow-v42-xl tactile-v42" [style.left.px]="clip.start * barWidth" [style.width.px]="clip.length * barWidth" [style.background-color]="(clip.color || '#af25f4') + '33'" [style.border-color]="clip.color || '#af25f4'">
+            <div class="clip-header text-[8px] p-1">{{ clip.name | uppercase }}</div>
           </div>
         </div>
-
-        <!-- Playhead -->
-        <div class="playhead extreme-glow" [style.left.px]="playheadPos()">
-          <div class="playhead-cap"></div>
-        </div>
-
-          <!-- Automation Lanes -->
-          <div *ngIf="showAutomation()" class="automation-lanes-container flex flex-col w-full bg-black/20 border-t border-white/5">
-            <div *ngFor="let lane of track.automationLanes" class="automation-lane relative h-12 w-full border-b border-white/5 cursor-crosshair"
-                 (click)="addPoint($event, track.id, lane)">
-              <div class="lane-label absolute left-2 top-1 text-[6px] font-black uppercase opacity-30">{{ lane.parameter }}</div>
-
-              <!-- Automation Line SVG -->
-              <svg class="absolute inset-0 w-full h-full pointer-events-none">
-                <polyline
-                  fill="none"
-                  [attr.stroke]="track.color"
-                  stroke-width="1"
-                  [attr.points]="getLanePoints(lane)"
-                />
-                <circle *ngFor="let pt of lane.points"
-                  [attr.cx]="(pt.step / 16) * barWidth"
-                  [attr.cy]="(1 - pt.value) * 48"
-                  r="2"
-                  [attr.fill]="track.color"
-                  class="extreme-glow"
-                />
-              </svg>
-            </div>
-            <button (click)="addLane(track.id, 'gain')" class="text-[6px] font-black p-1 opacity-20 hover:opacity-100 transition-opacity">+ ADD GAIN AUTO</button>
-          </div>
-
+        <div class="playhead absolute top-0 bottom-0 w-px bg-white extreme-glow" [style.left.px]="playheadPos()"></div>
       </div>
     </div>
   </div>

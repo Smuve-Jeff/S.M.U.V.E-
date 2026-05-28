@@ -235,3 +235,46 @@
     height: 65px;
   }
 }
+
+.eq-knobs-elite {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.channel-fader-elite input[type=range] {
+  appearance: slider-vertical;
+  width: 12px;
+  height: 100px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+}
+
+.master-section-elite {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.crossfader-container-elite input[type=range] {
+  width: 150px;
+  height: 8px;
+}
+
+@media (max-width: 768px) {
+  .dj-console-3d {
+    flex-direction: column;
+    height: auto;
+    overflow-y: auto;
+  }
+  .deck-section {
+    width: 100%;
+    min-height: 300px;
+  }
+  .mixer-section {
+    width: 100%;
+    height: auto;
+    padding: 20px;
+  }
+}

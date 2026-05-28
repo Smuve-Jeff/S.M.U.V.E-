@@ -109,6 +109,8 @@ export class MusicManagerService {
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
   currentStep = signal(0);
+  isPlaying = computed(() => this.engine.isPlaying());
+  isRecording = computed(() => this.engine.isRecording());
 
   structure = signal<SongSection[]>([]);
   chords = signal<any[]>([]);
