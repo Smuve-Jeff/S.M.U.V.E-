@@ -131,7 +131,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     if (this.editMode() === 'select') {
       const next = new Set(this.selectedNoteIds());
       if (e.shiftKey) {
-        next.has(note.id) ? next.delete(note.id) : next.add(note.id);
+        if (next.has(note.id)) {
+          next.delete(note.id);
+        } else {
+          next.add(note.id);
+        }
       } else {
         next.clear();
         next.add(note.id);
