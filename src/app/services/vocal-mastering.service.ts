@@ -5,9 +5,9 @@ import { LoggingService } from './logging.service';
 export interface MasteringParameters {
   deesser: { threshold: number; frequency: number; bypass: boolean };
   multiband: {
-    low: { threshold: number; ratio: number; bypass: boolean };
+    low: { threshold: number; ratio: number; bypass: boolean; frequency: number };
     mid: { threshold: number; ratio: number; bypass: boolean };
-    high: { threshold: number; ratio: number; bypass: boolean };
+    high: { threshold: number; ratio: number; bypass: boolean; frequency: number };
   };
   exciter: { amount: number; frequency: number; bypass: boolean };
   eq: { low: number; mid: number; high: number; bypass: boolean };
@@ -27,16 +27,18 @@ export class VocalMasteringService {
 
   // Mastering Chain Nodes
   private deesserFilter: BiquadFilterNode = this.ctx.createBiquadFilter();
-  private deesserGain: GainNode = this.ctx.createGain(); // Sidechain simulation
 
-  private multibandSplitLow: BiquadFilterNode = this.ctx.createBiquadFilter();
-  private multibandSplitMid: BiquadFilterNode = this.ctx.createBiquadFilter();
-  private multibandSplitHigh: BiquadFilterNode = this.ctx.createBiquadFilter();
+  // 3-Band Spectral Split (Crossover)
+  private lowPass: BiquadFilterNode = this.ctx.createBiquadFilter();
+  private midPassLow: BiquadFilterNode = this.ctx.createBiquadFilter();
+  private midPassHigh: BiquadFilterNode = this.ctx.createBiquadFilter();
+  private highPass: BiquadFilterNode = this.ctx.createBiquadFilter();
 
   private compLow: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
   private compMid: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
-  private compHigh: DynamicsCompressorNode =
-    this.ctx.createDynamicsCompressor();
+  private compHigh: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
+
+  private bandSum: GainNode = this.ctx.createGain();
 
   private harmonicExciter: WaveShaperNode = this.ctx.createWaveShaper();
 
@@ -44,15 +46,14 @@ export class VocalMasteringService {
   private eqMid: BiquadFilterNode = this.ctx.createBiquadFilter();
   private eqHigh: BiquadFilterNode = this.ctx.createBiquadFilter();
 
-  private masterLimiter: DynamicsCompressorNode =
-    this.ctx.createDynamicsCompressor();
+  private masterLimiter: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
 
   params = signal<MasteringParameters>({
     deesser: { threshold: -24, frequency: 6500, bypass: false },
     multiband: {
-      low: { threshold: -20, ratio: 4, bypass: false },
+      low: { threshold: -20, ratio: 4, bypass: false, frequency: 320 },
       mid: { threshold: -18, ratio: 2.5, bypass: false },
-      high: { threshold: -16, ratio: 2, bypass: false },
+      high: { threshold: -16, ratio: 2, bypass: false, frequency: 2500 },
     },
     exciter: { amount: 0.1, frequency: 8000, bypass: false },
     eq: { low: 0, mid: 0, high: 0, bypass: false },
@@ -64,19 +65,34 @@ export class VocalMasteringService {
   }
 
   private buildChain() {
-    // Basic linear chain for simulation:
-    // Input -> Deesser -> Multiband -> Exciter -> EQ -> Limiter -> Output
-
+    // Input -> Deesser
     this.inputNode.connect(this.deesserFilter);
-    this.deesserFilter.connect(this.compMid); // Simplified split routing
-    this.compMid.connect(this.harmonicExciter);
+
+    // Deesser -> 3-Band Crossover
+    // Low Band
+    this.deesserFilter.connect(this.lowPass);
+    this.lowPass.connect(this.compLow);
+    this.compLow.connect(this.bandSum);
+
+    // Mid Band
+    this.deesserFilter.connect(this.midPassLow);
+    this.midPassLow.connect(this.midPassHigh);
+    this.midPassHigh.connect(this.compMid);
+    this.compMid.connect(this.bandSum);
+
+    // High Band
+    this.deesserFilter.connect(this.highPass);
+    this.highPass.connect(this.compHigh);
+    this.compHigh.connect(this.bandSum);
+
+    // Sum -> Exciter -> EQ -> Limiter -> Output
+    this.bandSum.connect(this.harmonicExciter);
     this.harmonicExciter.connect(this.eqLow);
     this.eqLow.connect(this.eqMid);
     this.eqMid.connect(this.eqHigh);
     this.eqHigh.connect(this.masterLimiter);
     this.masterLimiter.connect(this.outputNode);
 
-    // Initial config
     this.updateNodes();
   }
 
@@ -84,33 +100,28 @@ export class VocalMasteringService {
     const p = this.params();
     const now = this.ctx.currentTime;
 
-    // De-esser / vocal cleanup focus
+    // De-esser
     this.deesserFilter.type = 'peaking';
     this.deesserFilter.Q.value = 3.5;
-    this.deesserFilter.frequency.setTargetAtTime(
-      p.deesser.frequency,
-      now,
-      0.05
-    );
-    this.deesserFilter.gain.setTargetAtTime(
-      p.deesser.bypass ? 0 : Math.min(0, p.deesser.threshold / 4),
-      now,
-      0.05
-    );
+    this.deesserFilter.frequency.setTargetAtTime(p.deesser.frequency, now, 0.05);
+    this.deesserFilter.gain.setTargetAtTime(p.deesser.bypass ? 0 : Math.min(0, p.deesser.threshold / 4), now, 0.05);
 
-    // Main vocal compression lane
-    this.compMid.threshold.setTargetAtTime(
-      p.multiband.mid.bypass ? 0 : p.multiband.mid.threshold,
-      now,
-      0.05
-    );
-    this.compMid.ratio.setTargetAtTime(
-      p.multiband.mid.bypass ? 1 : p.multiband.mid.ratio,
-      now,
-      0.05
-    );
-    this.compMid.attack.setTargetAtTime(0.01, now, 0.05);
-    this.compMid.release.setTargetAtTime(0.14, now, 0.05);
+    // Crossover Points
+    this.lowPass.type = 'lowpass';
+    this.lowPass.frequency.setTargetAtTime(p.multiband.low.frequency, now, 0.05);
+
+    this.midPassLow.type = 'highpass';
+    this.midPassLow.frequency.setTargetAtTime(p.multiband.low.frequency, now, 0.05);
+    this.midPassHigh.type = 'lowpass';
+    this.midPassHigh.frequency.setTargetAtTime(p.multiband.high.frequency, now, 0.05);
+
+    this.highPass.type = 'highpass';
+    this.highPass.frequency.setTargetAtTime(p.multiband.high.frequency, now, 0.05);
+
+    // Multiband Compressors
+    this.applyCompParams(this.compLow, p.multiband.low, now);
+    this.applyCompParams(this.compMid, p.multiband.mid, now);
+    this.applyCompParams(this.compHigh, p.multiband.high, now);
 
     // EQ
     this.eqLow.type = 'lowshelf';
@@ -127,18 +138,23 @@ export class VocalMasteringService {
 
     // Limiter
     this.masterLimiter.threshold.setTargetAtTime(p.limiter.ceiling, now, 0.05);
-    this.masterLimiter.ratio.value = 20; // Hard limiting
+    this.masterLimiter.ratio.value = 20;
     this.masterLimiter.attack.value = 0.003;
     this.masterLimiter.release.setTargetAtTime(p.limiter.release, now, 0.05);
 
-    // Exciter (Saturation curve)
+    // Exciter
     if (!p.exciter.bypass) {
-      this.harmonicExciter.curve = this.makeDistortionCurve(
-        p.exciter.amount * 100
-      );
+      this.harmonicExciter.curve = this.makeDistortionCurve(p.exciter.amount * 100);
     } else {
       this.harmonicExciter.curve = null;
     }
+  }
+
+  private applyCompParams(comp: DynamicsCompressorNode, band: any, time: number) {
+    comp.threshold.setTargetAtTime(band.bypass ? 0 : band.threshold, time, 0.05);
+    comp.ratio.setTargetAtTime(band.bypass ? 1 : band.ratio, time, 0.05);
+    comp.attack.setTargetAtTime(0.01, time, 0.05);
+    comp.release.setTargetAtTime(0.14, time, 0.05);
   }
 
   private makeDistortionCurve(amount: number) {
@@ -153,12 +169,8 @@ export class VocalMasteringService {
     return curve;
   }
 
-  getInputNode() {
-    return this.inputNode;
-  }
-  getOutputNode() {
-    return this.outputNode;
-  }
+  getInputNode() { return this.inputNode; }
+  getOutputNode() { return this.outputNode; }
 
   applyToSource(source: AudioNode) {
     source.connect(this.inputNode);

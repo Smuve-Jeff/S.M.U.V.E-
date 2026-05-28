@@ -2,7 +2,7 @@ import { signal } from "@angular/core";
 import { TestBed } from '@angular/core/testing';
 import { AudioEngineService } from '../audio-engine.service';
 import { StemSeparationService } from '../stem-separation.service';
-import { AudioRecorderService } from '../../studio/audio-recorder.service';
+import { StudioRecordingEngineService } from '../../studio/studio-recording-engine.service';
 
 describe('AudioEngineService', () => {
   let service: AudioEngineService;
@@ -88,7 +88,7 @@ describe('AudioEngineService', () => {
         { provide: StemSeparationService, useValue: {
             isRecording: signal(false),} },
         {
-          provide: AudioRecorderService,
+          provide: StudioRecordingEngineService,
           useValue: {
             isRecording: signal(false),
             pendingMidi: [],

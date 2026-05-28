@@ -1,4 +1,4 @@
-import { AudioRecorderService } from '../studio/audio-recorder.service';
+import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { LoggingService } from './logging.service';
 import { Injectable, signal, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
@@ -41,9 +41,9 @@ export class AudioEngineService {
   public outputMode = signal<'speakers' | 'headphones'>('speakers');
   public performanceTier = signal<'ultra' | 'performance'>('ultra');
   public sidechainEnabled = signal(false);
-  private logger = inject(LoggingService);
+  public logger = inject(LoggingService);
   private stemSeparationService = inject(StemSeparationService);
-  public recorder = inject(AudioRecorderService);
+  public recorder = inject(StudioRecordingEngineService);
   public ctx: AudioContext;
   public masterGain: GainNode;
   public compressor: DynamicsCompressorNode;

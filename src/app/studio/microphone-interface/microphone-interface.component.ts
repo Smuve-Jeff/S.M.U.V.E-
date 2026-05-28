@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
 import { MicrophoneService } from '../../services/microphone.service';
 import { VocalMasteringService } from '../../services/vocal-mastering.service';
+import { StudioRecordingEngineService } from '../studio-recording-engine.service';
 
 type VocalProfile = 'crystal' | 'broadcast' | 'warmth';
 
@@ -24,20 +25,24 @@ type VocalProfile = 'crystal' | 'broadcast' | 'warmth';
 })
 export class MicrophoneInterfaceComponent implements OnDestroy {
   private readonly audioSession = inject(AudioSessionService);
-  public readonly micService = inject(MicrophoneService);
+  public readonly micService = inject(MicrophoneService); // Legacy support if needed
+  public readonly recordingEngine = inject(StudioRecordingEngineService);
   public readonly mastering = inject(VocalMasteringService);
 
   @Input() mode: 'compact' | 'full' = 'full';
 
   selectedChannelId = signal<string | null>(null);
-  inputLevel = signal(0);
   vocalProfile = signal<VocalProfile>('crystal');
-
-  private animationId: number | null = null;
 
   channels = this.audioSession.micChannels;
   devices = this.micService.availableDevices;
   params = this.mastering.params;
+
+  // Mirror recording engine state
+  inputLevel = this.recordingEngine.inputLevel;
+  isRecording = this.recordingEngine.isRecording;
+  isPaused = this.recordingEngine.isPaused;
+  recordingTime = this.recordingEngine.recordingTime;
 
   currentChannel = computed(
     () =>
@@ -59,8 +64,8 @@ export class MicrophoneInterfaceComponent implements OnDestroy {
   });
 
   signalReadiness = computed(() => {
-    if (this.micService.isRecording()) return 'recording';
-    if (this.micService.isInitialized()) return 'ready';
+    if (this.isRecording()) return 'recording';
+    if (this.recordingEngine.isInitialized()) return 'ready';
     return 'offline';
   });
 
@@ -86,15 +91,9 @@ export class MicrophoneInterfaceComponent implements OnDestroy {
         this.selectedChannelId.set(preferredChannel.id);
       }
     });
-
-    this.startMetering();
   }
 
-  ngOnDestroy(): void {
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId);
-    }
-  }
+  ngOnDestroy(): void {}
 
   stopTrackSelection(event: Event): void {
     event.stopPropagation();
@@ -116,11 +115,11 @@ export class MicrophoneInterfaceComponent implements OnDestroy {
       this.audioSession.updateChannelDevice(activeChannel.id, resolvedDeviceId);
     }
 
-    await this.micService.initialize(resolvedDeviceId);
-    if (activeChannel && !activeChannel.armed) {
+    const success = await this.recordingEngine.initialize(resolvedDeviceId);
+    if (success && activeChannel && !activeChannel.armed) {
       this.audioSession.toggleChannelArm(activeChannel.id);
     }
-    this.connectMastering();
+    // Note: Mastering integration would happen here if using a real AudioNode source
   }
 
   async updateDevice(deviceId: string): Promise<void> {
@@ -128,23 +127,23 @@ export class MicrophoneInterfaceComponent implements OnDestroy {
   }
 
   toggleRecording(): void {
-    if (!this.micService.isInitialized()) {
+    if (!this.recordingEngine.isInitialized()) {
       void this.initializeInterface();
       return;
     }
 
-    if (this.micService.isRecording()) {
-      this.micService.stopRecording();
+    if (this.isRecording()) {
+      void this.recordingEngine.stopRecording();
     } else {
-      this.micService.startRecording();
+      this.recordingEngine.startRecording();
     }
   }
 
   togglePause(): void {
-    if (this.micService.isPaused()) {
-      this.micService.resumeRecording();
+    if (this.isPaused()) {
+      this.recordingEngine.resumeRecording();
     } else {
-      this.micService.pauseRecording();
+      this.recordingEngine.pauseRecording();
     }
   }
 
@@ -238,35 +237,5 @@ export class MicrophoneInterfaceComponent implements OnDestroy {
 
   capabilityLabel(value: string): string {
     return value.replace(/-/g, ' ');
-  }
-
-  private connectMastering(): void {
-    const source = this.micService.getAnalyserNode();
-    if (source) {
-      this.mastering.applyToSource(source);
-    }
-  }
-
-  private startMetering(): void {
-    const tick = () => {
-      const analyser = this.micService.getAnalyserNode();
-      if (analyser && this.micService.isInitialized()) {
-        const data = new Uint8Array(analyser.fftSize);
-        analyser.getByteTimeDomainData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) {
-          const sample = data[i] / 128 - 1;
-          sum += sample * sample;
-        }
-        const rms = Math.sqrt(sum / data.length);
-        this.inputLevel.set(Math.round(Math.min(100, rms * 250)));
-      } else {
-        this.inputLevel.set(0);
-      }
-
-      this.animationId = requestAnimationFrame(tick);
-    };
-
-    tick();
   }
 }

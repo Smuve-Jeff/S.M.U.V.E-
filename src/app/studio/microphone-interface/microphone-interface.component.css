@@ -1,3 +1,12 @@
-:host {
-  display: block;
+.fl-meter-pro {
+  background: linear-gradient(90deg, #10b981 0%, #10b981 70%, #fbbf24 85%, #ef4444 100%);
+}
+
+.recording-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
