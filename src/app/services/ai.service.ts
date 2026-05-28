@@ -316,23 +316,53 @@ export class AiService {
     };
   }
 
+
   async getQuestionnaireInsights(draft: any): Promise<any> {
     const res = await this.getAIResponse(
-      `S.M.U.V.E. ADAPTATION PROTOCOL: Analyzing Artist DNA.
+      `S.M.U.V.E. NEURAL RISK ASSESSMENT: Analyzing Artist DNA for Professional Liabilities.
        Draft: ${JSON.stringify(draft)}.
-       Provide 3 elite strategic insights for this specific profile.`
+       Provide 3 ruthless, elite strategic insights that roast the artist's current deficits and demand immediate hardening. Be arrogant and authoritative.`
     );
 
-    return [
-      { title: 'Sonic Identity Alignment', content: 'Neural patterns indicate a strong resonance with ' + (draft.primaryGenre || 'the selected') + ' trajectory. Focus on hardening the core sonic signature.' },
-      { title: 'Infrastructure Hardening', content: 'Executive deficit detected in ' + (draft.strategicGoals?.[0] || 'Strategic Pipeline') + '. Prioritize technical backline and legal split sheet automation.' },
-      { title: 'Market Trajectory', content: 'Absolute Signals indicate ' + (draft.primaryGenre === 'Electronic' ? 'high viability in sync licensing.' : 'strong potential for touring dominance.') + ' Execute immediate market entry.' }
-    ];
-  }
+    // Simulated "roast" logic based on draft properties
+    const roasts = [];
 
-  async processCommand(text: string): Promise<string> {
-    return this.getAIResponse(`Process command: ${text}`);
+    if (draft.syncDetails?.isSyncReady === 'Not Started') {
+      roasts.push({
+        title: 'SYNC ILLITERACY DETECTED',
+        content: 'Your catalog is a professional liability. Without stems and clean versions, you are invisible to high-stakes licensing. Fix this or remain a hobbyist.',
+        impact: 'CRITICAL'
+      });
+    }
+
+    if (draft.legalInfrastructure?.proAffiliation === 'None') {
+      roasts.push({
+        title: 'LEGAL VULNERABILITY ALERT',
+        content: 'Unregistered performance rights? You are literally leaving revenue on the table for others to scavenge. Affiliate with a PRO immediately.',
+        impact: 'HIGH'
+      });
+    }
+
+    if (draft.primaryGenre === 'Hip Hop' && (!draft.expertise || draft.expertise.production < 5)) {
+      roasts.push({
+        title: 'PRODUCTION DEFICIT',
+        content: 'Your technical mastery is insufficient for the competitive Hip Hop landscape. Your sonic signature is generic. Hardening required.',
+        impact: 'MEDIUM'
+      });
+    }
+
+    // Fallback if no specific roasts triggered
+    if (roasts.length < 3) {
+      roasts.push({
+        title: 'STRATEGIC ANEMIA',
+        content: 'Your goals lack the intensity of a top-tier performer. "Market Dominance" is a mandate, not a suggestion. Refine your trajectory.',
+        impact: 'HIGH'
+      });
+    }
+
+    return roasts.slice(0, 3);
   }
+  async processCommand(text: string): Promise<string> { return this.getAIResponse(`Process command: ${text}`); }
 
   async getStrategicRecommendations(): Promise<any[]> {
     const res = await this.getAIResponse(

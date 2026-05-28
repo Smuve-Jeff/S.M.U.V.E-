@@ -1,3 +1,33 @@
+import os
+
+def write_file(path, content):
+    with open(path, 'w') as f:
+        f.write(content.strip())
+
+# 1. Update app.security.ts
+write_file('src/app/app.security.ts', """
+interface SmuveEnv {
+  AUTH_SALT?: string;
+  ENCRYPTION_KEY?: string;
+  SESSION_TIMEOUT?: number;
+  API_URL?: string;
+}
+
+const env: SmuveEnv =
+  typeof window !== 'undefined' ? ((window as any).env as SmuveEnv) || {} : {};
+
+export const APP_SECURITY_CONFIG = {
+  auth_salt: env.AUTH_SALT || 'SMUVE_SALT_V4_SECURE_HASH',
+  encryption_key: env.ENCRYPTION_KEY || 'SMUVE_V4_ULTRA_ENCRYPTION_SECRET',
+  session_timeout: env.SESSION_TIMEOUT || 3600000,
+  api_url: env.API_URL || 'https://s-m-u-v-e-2-0-fixed.onrender.com/api',
+  pbkdf2_iterations: 210000,
+  key_length: 512,
+};
+""")
+
+# 2. Update AuthService with real PBKDF2 logic and mock storage
+write_file('src/app/services/auth.service.ts', """
 import { Injectable, inject, signal, Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { LoggingService } from './logging.service';
@@ -69,7 +99,7 @@ export class AuthService {
       }
       const user = JSON.parse(data);
       this.userStore.setUser(user);
-      await this.profileService.loadProfile(user.id);
+      await this.getProfileService().loadProfile(user.id);
     } catch (e) {
       this.logger.error('AUTH_ERROR: NEURAL LINK SEVERED.');
     }
@@ -81,13 +111,6 @@ export class AuthService {
     // Simulate real database lookup
     const storedUserStr = localStorage.getItem(`smuve_db_user_${creds.email.toLowerCase()}`);
     if (!storedUserStr) {
-      // Fallback for "Artist" user for existing tests/demos
-      if (creds.email === 'artist@smuve.com') {
-          const user: AuthUser = { id: 'usr_1', email: creds.email, artistName: 'Artist', role: 'Admin', permissions: ['ALL_ACCESS'], createdAt: new Date(), lastLogin: new Date(), profileCompleteness: 100, emailVerified: true };
-          this.userStore.setUser(user);
-          this.tokenService.setToken('mock-jwt');
-          return { success: true, message: 'STATUS VERIFIED. RESUME THE GRIND.' };
-      }
       await new Promise(r => setTimeout(r, 1000));
       return { success: false, message: 'IDENTIFICATION FAILURE. YOU ARE UNKNOWN TO THIS SYSTEM.' };
     }
@@ -158,6 +181,7 @@ export class AuthService {
 
     localStorage.setItem(`smuve_db_user_${creds.email.toLowerCase()}`, JSON.stringify(newUser));
 
+    // Auto-login after registration for demo purposes
     return this.login(creds);
   }
 
@@ -191,3 +215,4 @@ export class AuthService {
     return { success: true, message: 'TRANSMISSION RE-SENT. DO NOT LOSE IT AGAIN.' };
   }
 }
+""")

@@ -49,7 +49,7 @@ export class UplinkService {
       await this.updateStage(
         'identity_refresh',
         10,
-        'Refreshing Identity Graph...'
+        'INITIALIZING_GENESIS_PROTOCOLS...'
       );
       this.addLog('SCANNING EXTERNAL SURFACES...');
       const identityProfile =
@@ -60,7 +60,7 @@ export class UplinkService {
       await this.updateStage(
         'profile_commit',
         40,
-        'Committing Core Vectors...'
+        'HARDENING_STRATEGIC_INFRASTRUCTURE...'
       );
       this.addLog('WRITING TO DISTRIBUTED LEDGER...');
       await this.profileService.updateProfile(identityProfile);
@@ -70,7 +70,7 @@ export class UplinkService {
       await this.updateStage(
         'strategic_audit',
         70,
-        'Running Executive Audit...'
+        'EXECUTING_SMUVE_SCRUTINY...'
       );
       this.addLog('ANALYZING SONIC DEFICITS...');
       await this.aiService.syncKnowledgeBaseWithProfile();
@@ -80,7 +80,7 @@ export class UplinkService {
       await this.updateStage(
         'neural_sync',
         90,
-        'Synchronizing Neural Vault...'
+        'UPLINKING_TO_S.M.U.V.E._COMMAND...'
       );
       this.addLog('UPLOADING VECTORS TO COMMANDER...');
       await firstValueFrom(timer(800));

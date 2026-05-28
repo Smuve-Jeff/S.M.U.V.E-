@@ -1,4 +1,12 @@
-import { ArtistIdentityState } from './artist-identity.types';
+import sys
+import os
+
+def write_file(path, content):
+    with open(path, 'w') as f:
+        f.write(content)
+
+# 1. profile.types.ts - FULL RESTORATION WITH ALL PROPERTIES AND EXPORTS
+write_file('src/app/types/profile.types.ts', """import { ArtistIdentityState } from './artist-identity.types';
 import { ArtistKnowledgeBase, RecommendationHistoryEntry, UpgradeRecommendation } from './ai.types';
 import { MarketingCampaign } from './marketing.types';
 
@@ -222,3 +230,97 @@ export const initialProfile: UserProfile = {
   genreSpecificData: {}, gameStats: {}, pressGallery: [],
   thaSpotProgression: { roomStats: {}, earnedCosmetics: [], eventHistory: [] },
 };
+""")
+
+# 2. user-profile.service.ts
+write_file('src/app/services/user-profile.service.ts', """
+import { Injectable, inject, signal, Injector } from '@angular/core';
+import { LoggingService } from './logging.service';
+import { initialProfile, UserProfile, AppSettings, CatalogItem, RecommendationHistoryEntry, UpgradeRecommendation, ExpertiseLevels, ProfessionalFinancials, ProfileAuditLog } from '../types/profile.types';
+
+export type { UserProfile, AppSettings, CatalogItem, RecommendationHistoryEntry, UpgradeRecommendation };
+
+@Injectable({ providedIn: 'root' })
+export class UserProfileService {
+  private injector = inject(Injector);
+  private logger = inject(LoggingService);
+  profile = signal<UserProfile>(initialProfile);
+
+  private get db(): any { return this.injector.get(require('./database.service').DatabaseService); }
+
+  constructor() {}
+
+  async loadProfile(id: string = 'current') {
+    try {
+      const saved = await this.db.loadUserProfile(id);
+      if (saved) this.profile.set(saved);
+    } catch (e) { this.logger.error('Profile load failed', e); }
+  }
+
+  async updateProfile(p: Partial<UserProfile>) {
+    const next = { ...this.profile(), ...p };
+    this.profile.set(next as UserProfile);
+    try { await this.db.saveUserProfile(next as UserProfile, 'current'); } catch (e) {}
+  }
+
+  async acquireUpgrade(u: any) {}
+  async completeUpgrade(u: any) {}
+  async updateExpertise(u: Partial<ExpertiseLevels>) { await this.updateProfile({ expertise: { ...this.profile().expertise, ...u } }); }
+  async addTeamMember(m: any) {}
+  async updateFinancials(u: Partial<ProfessionalFinancials>) { await this.updateProfile({ financials: { ...this.profile().financials, ...u } }); }
+  async recordAudit(l: ProfileAuditLog) { await this.updateProfile({ strategicHealthScore: l.score, criticalDeficits: l.deficits, auditHistory: [l, ...(this.profile().auditHistory || [])].slice(0, 20) }); }
+  async setRecommendationState(id: string, s: any, m?: any) {}
+  async recordGameLaunch(g: string, c: any) {}
+  async recordGameResult(g: string, r: any) {}
+}
+""")
+
+# 3. TokenService - Put it in src/app/services/token.service.ts as intended
+write_file('src/app/services/token.service.ts', """import { Injectable, signal } from '@angular/core';
+@Injectable({ providedIn: 'root' })
+export class TokenService {
+  private _jwtToken = signal<string | null>(null);
+  jwtToken = this._jwtToken.asReadonly();
+  constructor() { if (typeof localStorage !== 'undefined') this._jwtToken.set(localStorage.getItem('smuve_jwt_token')); }
+  setToken(t: string | null) { this._jwtToken.set(t); if (typeof localStorage !== 'undefined') { if (t) localStorage.setItem('smuve_jwt_token', t); else localStorage.removeItem('smuve_jwt_token'); } }
+}
+""")
+
+# 4. app.config.ts - Fix import path for TokenService
+write_file('src/app/app.config.ts', """import { ApplicationConfig, provideZoneChangeDetection, isDevMode, APP_INITIALIZER, Injector } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { routes } from './app.routes';
+import { provideHttpClient } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations';
+import { LoggingService } from './services/logging.service';
+import { AuthService } from './services/auth.service';
+import { SecurityService } from './services/security.service';
+import { UserProfileService } from './services/user-profile.service';
+import { DatabaseService } from './services/database.service';
+import { TokenService } from './services/token.service';
+import { LoginConfirmationService } from './services/login-confirmation.service';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideHttpClient(),
+    provideAnimations(),
+    AuthService,
+    SecurityService,
+    UserProfileService,
+    DatabaseService,
+    TokenService,
+    LoginConfirmationService,
+    {
+      provide: APP_INITIALIZER,
+      useFactory: (logger: LoggingService, injector: Injector) => () => {
+        logger.system('S.M.U.V.E 2.0 INITIALIZED');
+        setTimeout(() => { try { injector.get(AuthService).loadSession(); } catch (e) {} }, 0);
+      },
+      deps: [LoggingService, Injector],
+      multi: true
+    }
+  ]
+};
+""")

@@ -240,7 +240,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     return Object.entries(stats)
       .map(([gameId, stat]) => ({
         game: gameLookup.get(gameId),
-        lastPlayedAt: stat.lastPlayedAt || 0,
+        lastPlayedAt: (stat as any).lastPlayedAt || 0,
       }))
       .filter((entry) => !!entry.game)
       .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt)
