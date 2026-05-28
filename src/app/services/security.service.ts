@@ -11,8 +11,8 @@ export class SecurityService {
   private tokenService = inject(TokenService);
   private ngZone = inject(NgZone);
 
-  private get profileService(): any { return this.injector.get(require('./user-profile.service').UserProfileService); }
-  private get authService(): any { return this.injector.get(require('./auth.service').AuthService); }
+  private get profileService(): UserProfileService { return this.injector.get(UserProfileService); }
+  private get authService(): AuthService { return this.injector.get(AuthService); }
 
   sessionExpiresAt = signal<number | null>(null);
   isSessionValid = signal(true);
