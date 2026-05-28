@@ -1,4 +1,4 @@
-<div class="piano-roll-container glass-v42 shadow-v42-xl retro-flicker" (drop)="onDrop($event)" (dragover)="onDragOver($event)">
+<div class="piano-roll-container glass-v42 shadow-v42-xl retro-flicker">
   <div class="piano-roll-header wood-panel">
     <div class="header-main">
       <div class="neon-text-sm neon-text">PIANO ROLL v4.2</div>
@@ -7,219 +7,58 @@
       </div>
     </div>
 
+    <div class="module-transport glass-v42 mx-4">
+      <div class="btn-group flex gap-1">
+        <button class="m-btn tactile-v42" (click)="isLocalPlayback() ? toggleLocalPlay() : audioSession.togglePlay()">
+          <span class="material-symbols-outlined text-sm">
+            {{ (isLocalPlayback() ? isLocalPlaying() : audioSession.isPlaying()) ? 'pause' : 'play_arrow' }}
+          </span>
+        </button>
+        <button class="m-btn tactile-v42" (click)="localSkip()">
+          <span class="material-symbols-outlined text-sm">skip_next</span>
+        </button>
+        <button class="m-btn tactile-v42 rec" [class.active]="isLocalPlayback() ? isLocalRecording() : audioSession.isRecording()" (click)="isLocalPlayback() ? toggleLocalRecord() : audioSession.toggleRecord()">
+          <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+        </button>
+        <button class="m-btn tactile-v42" (click)="localUpload()">
+          <span class="material-symbols-outlined text-sm">cloud_upload</span>
+        </button>
+      </div>
+    </div>
+
     <div class="toolbar glass-v42">
-      <div class="tool-group">
-        <button
-          [class.active]="editMode() === 'draw'"
-          (click)="setEditMode('draw')"
-          title="Draw"
-        >
-          <span class="material-symbols-outlined">edit</span>
-        </button>
-        <button
-          [class.active]="editMode() === 'select'"
-          (click)="setEditMode('select')"
-          title="Select"
-        >
-          <span class="material-symbols-outlined">near_me</span>
-        </button>
-        <button
-          [class.active]="editMode() === 'erase'"
-          (click)="setEditMode('erase')"
-          title="Erase"
-        >
-          <span class="material-symbols-outlined">backspace</span>
-        </button>
+      <div class="tool-group flex gap-1">
+        <button [class.active]="editMode() === 'draw'" (click)="setEditMode('draw')"><span class="material-symbols-outlined text-sm">edit</span></button>
+        <button [class.active]="editMode() === 'select'" (click)="setEditMode('select')"><span class="material-symbols-outlined text-sm">near_me</span></button>
+        <button [class.active]="editMode() === 'erase'" (click)="setEditMode('erase')"><span class="material-symbols-outlined text-sm">backspace</span></button>
       </div>
-
-      <div class="fl-mobile-tools flex gap-2 ml-4">
-        <button (click)="toggleGhostNotes()" [class.active]="showGhostNotes()" title="Toggle Ghost Notes" class="mini-btn tactile-v42">
-          <span class="material-symbols-outlined text-sm">visibility</span>
-        </button>
-        <select (change)="setScale($any($event.target).value)" class="glass-v42 text-[10px] bg-black/40 border border-white/10 rounded px-2">
-          <option value="C Major">C MAJOR</option>
-          <option value="C Minor">C MINOR</option>
-          <option value="Pentatonic">PENTATONIC</option>
-          <option value="Blues">BLUES</option>
-        </select>
-      </div>
-      <div class="tool-divider"></div>
-
-      <div class="action-group">
-        <button (click)="quantizeNotes()" title="Quantize">Q</button>
-        <button (click)="humanizeSelected()" title="Humanize">H</button>
-        <button (click)="strumSelected()" title="Strum">S</button>
-        <button (click)="arpeggiateSelected()" title="Arpeggiate">A</button>
-        <button (click)="duplicateSelected()" title="Duplicate Selection">
-          D
-        </button>
-        <button (click)="duplicateNextBar()" title="Duplicate to Next Bar">
-          B
-        </button>
-        <button (click)="deleteSelected()" title="Delete" class="btn-danger">
-          DEL
-        </button>
+      <div class="action-group flex gap-1 ml-4">
+        <button (click)="quantizeNotes()" class="mini-btn tactile-v42">Q</button>
+        <button (click)="duplicateSelected()" class="mini-btn tactile-v42">D</button>
+        <button (click)="deleteSelected()" class="mini-btn tactile-v42 btn-danger text-red-500">DEL</button>
       </div>
     </div>
   </div>
 
   <div class="piano-roll-content">
-    <aside
-      *ngIf="showTrackSidebar()"
-      class="track-sidebar glass-v42 wood-panel"
-    >
-      Sidebar Content
-    </aside>
     <div class="keys-sidebar no-scrollbar wood-panel">
-      <div
-        *ngFor="let midi of getDisplayKeys()"
-        class="key-item"
-        [class.black-key]="isBlackKey(midi)"
-        [class.in-scale]="isInScale(midi)"
-        [style.height.px]="rowHeight()"
-      >
-        <span class="key-name font-mono"
-          >{{ getKeyName(midi) }}{{ Math.floor(midi / 12) - 1 }}</span
-        >
+      <div *ngFor="let midi of getDisplayKeys()" class="key-item" [class.black-key]="isBlackKey(midi)" [style.height.px]="rowHeight()">
+        <span class="key-name font-mono text-[8px]">{{ getKeyName(midi) }}{{ Math.floor(midi / 12) - 1 }}</span>
       </div>
     </div>
 
-    <div
-      class="grid-viewport no-scrollbar glass-v42"
-      #scrollContainer
-      (mousedown)="onGridMouseDown($event)"
-    >
+    <div class="grid-viewport no-scrollbar glass-v42" #scrollContainer (mousedown)="onGridMouseDown($event)">
       <div class="scanline-overlay"></div>
-      <div
-        class="grid-canvas"
-        [style.width.px]="gridWidth"
-        [style.height.px]="128 * rowHeight()"
-      >
-        <!-- Horizontal Grid Lines -->
-        <div
-          *ngFor="let midi of getDisplayKeys()"
-          class="grid-row"
-          [class.black-row]="isBlackKey(midi)" [class.scale-highlight]="isInScale(midi)"
-          [style.height.px]="rowHeight()"
-          [style.top.px]="(127 - midi) * rowHeight()"
-        ></div>
-
-        <!-- Vertical Grid Lines -->
-        <div
-          *ngFor="let step of cells; let i = index"
-          class="grid-col"
-          [class.bar-line]="i % 16 === 0"
-          [class.beat-line]="i % 4 === 0"
-          [style.left.px]="i * cellWidth()"
-          [style.width.px]="cellWidth()"
-        ></div>
-
-
-        <!-- Ghost Notes (FL Studio Style) -->
-        <div
-          *ngFor="let note of ghostNotes()"
-          class="ghost-note absolute opacity-20 pointer-events-none"
-          [style.left.px]="note.step * cellWidth()"
-          [style.top.px]="(127 - note.midi) * rowHeight()"
-          [style.width.px]="note.length * cellWidth()"
-          [style.height.px]="rowHeight()"
-          [style.background-color]="note.trackColor"
-          [style.border]="'1px solid ' + note.trackColor"
-        ></div>
-
-        <!-- Notes -->
-        <div
-          *ngFor="let note of viewportNotes()"
-          class="note-block tactile-v42 executive-glass extreme-glow animate-neon" [class.slide-note]="note.isSlide"
-          [class.selected-note]="selectedNoteIds().has(note.id)"
-          [style.left.px]="note.step * cellWidth()"
-          [style.top.px]="(127 - note.midi) * rowHeight()"
-          [style.width.px]="note.length * cellWidth()"
-          [style.height.px]="rowHeight()"
-          (mousedown)="onNoteMouseDown($event, note)"
-        >
-          <div class="note-handle-start"></div>
-          <div class="note-handle-end"></div>
-          <div *ngIf="note.isSlide" class="slide-indicator absolute top-0 right-0 p-0.5"><span class="material-symbols-outlined text-[10px] text-white">trending_up</span></div>
-        </div>
-
-        <!-- Selection Box -->
-        <div
-          *ngIf="selectionBox().active"
-          class="selection-rect"
-          [style.transform]="getSelectionBoxTransform()"
-          [style.width.px]="selectionBox().width"
-          [style.height.px]="selectionBox().height"
-        ></div>
+      <div class="grid-canvas" [style.width.px]="gridWidth" [style.height.px]="128 * rowHeight()">
+        <div *ngFor="let midi of getDisplayKeys()" class="grid-row" [class.black-row]="isBlackKey(midi)" [style.height.px]="rowHeight()" [style.top.px]="(127 - midi) * rowHeight()"></div>
+        <div *ngFor="let note of viewportNotes()" class="note-block tactile-v42 executive-glass extreme-glow" [class.selected-note]="selectedNoteIds().has(note.id)" [style.left.px]="note.step * cellWidth()" [style.top.px]="(127 - note.midi) * rowHeight()" [style.width.px]="note.length * cellWidth()" [style.height.px]="rowHeight()" (mousedown)="onNoteMouseDown($event, note)"></div>
       </div>
     </div>
 
-    <!-- Note Param Sidebar -->
     <div class="note-params glass-v42 wood-panel no-scrollbar">
       <div class="neon-text-xs mb-4">NOTE PARAMS</div>
-
-      <div class="param-item">
-        <label class="neon-text-xs">VELOCITY</label>
-        <div class="curve-actions mb-2">
-          <button (click)="applyVelocityCurve('fade-in')" class="mini-btn">
-            /
-          </button>
-          <button (click)="applyVelocityCurve('fade-out')" class="mini-btn">
-            \
-          </button>
-          <button (click)="applyVelocityCurve('random')" class="mini-btn">
-            ?
-          </button>
-        </div>
-        <input
-          type="range"
-          min="0.1"
-          max="1.5"
-          step="0.05"
-          (change)="adjustSelectedVelocity($any($event.target).valueAsNumber)"
-          class="knob-range tactile-v42"
-        />
-      </div>
-
-      <div class="param-item">
-        <label class="neon-text-xs">PROBABILITY</label>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          (input)="setSelectedNoteProbability($event)"
-          class="knob-range tactile-v42"
-        />
-      </div>
-
-      <div class="param-item">
-      <div class="param-item" *ngIf="selectedNoteIds().size === 1">
-        <label class="neon-text-xs">OFFSET</label>
-        <input
-          type="range"
-          min="-0.5"
-          max="0.5"
-          step="0.01"
-          (input)="setNoteOffset($any(viewportNotes()[0]), $any($event.target).valueAsNumber)"
-          class="knob-range tactile-v42"
-        />
-      </div>
-
-      <div class="param-item" *ngIf="selectedNoteIds().size === 1">
-        <label class="neon-text-xs">SLIDE (FL STYLE)</label>
-        <button (click)="toggleNoteSlide($any(viewportNotes()[0]))" [class.active]="viewportNotes()[0]?.isSlide" class="mini-btn">SLIDE</button>
-      </div>
-        <label class="neon-text-xs">SCALE SNAP</label>
-        <label class="switch">
-          <input
-            type="checkbox"
-            [ngModel]="snapToScale()"
-            (ngModelChange)="snapToScale.set($event)"
-          />
-          <span class="slider round"></span>
-        </label>
-      </div>
+      <app-knob label="VEL" [min]="0.1" [max]="1.5" [step]="0.05" [value]="0.8" (valueChange)="adjustSelectedVelocity($event - 0.8)"></app-knob>
+      <app-knob label="PROB" [min]="0" [max]="1" [step]="0.05" [value]="1.0" (valueChange)="setSelectedNoteProbability({target: {value: $event}})"></app-knob>
     </div>
   </div>
 </div>

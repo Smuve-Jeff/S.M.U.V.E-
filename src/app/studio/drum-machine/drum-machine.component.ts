@@ -1,19 +1,9 @@
-import {
-  Component,
-  inject,
-  signal,
-  computed,
-  AfterViewInit,
-  OnDestroy,
-  EffectRef,
-  effect,
-} from '@angular/core';
+import { Component, inject, signal, computed, AfterViewInit, OnDestroy, EffectRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  MusicManagerService,
-  TrackNote,
-} from '../../services/music-manager.service';
+import { AudioSessionService } from '../audio-session.service';
+import { KnobComponent } from '../shared/knob/knob.component';
+import { MusicManagerService, TrackNote } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { InstrumentsService } from '../../services/instruments.service';
 import { AiService } from '../../services/ai.service';
@@ -44,16 +34,21 @@ interface DrumPad {
 @Component({
   selector: 'app-drum-machine',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, KnobComponent],
   templateUrl: './drum-machine.component.html',
   styleUrl: './drum-machine.component.css',
 })
 export class DrumMachineComponent implements AfterViewInit, OnDestroy {
-  musicManager = inject(MusicManagerService);
-  engine = inject(AudioEngineService);
-  instrumentsService = inject(InstrumentsService);
-  haptic = inject(HapticService);
-  aiService = inject(AiService);
+  public readonly musicManager = inject(MusicManagerService);
+  public readonly engine = inject(AudioEngineService);
+  public readonly audioSession = inject(AudioSessionService);
+  private readonly instrumentsService = inject(InstrumentsService);
+  private readonly haptic = inject(HapticService);
+  public readonly aiService = inject(AiService);
+
+  isLocalPlayback = signal(false);
+  isLocalPlaying = signal(false);
+  isLocalRecording = signal(false);
 
   selectedTrackId = this.musicManager.selectedTrackId;
   selectedTrack = computed(() =>
@@ -77,131 +72,27 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   );
 
   pads = signal<DrumPad[]>([
-    {
-      id: '1',
-      name: 'KICK',
-      midi: 36,
-      color: '#ff4d4d',
-      type: 'kick',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.5, pan: 0, cutoff: 800, resonance: 1.0, attack: 0.002 },
-    },
-    {
-      id: '2',
-      name: 'SNARE',
-      midi: 38,
-      color: '#ff944d',
-      type: 'snare',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.4, pan: 0, cutoff: 2500, resonance: 1.2, attack: 0.002 },
-    },
-    {
-      id: '3',
-      name: 'CLAP',
-      midi: 39,
-      color: '#ffdb4d',
-      type: 'clap',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.4, pan: 0.1, cutoff: 3000, resonance: 0.8, attack: 0.005 },
-    },
-    {
-      id: '4',
-      name: 'CH',
-      midi: 42,
-      color: '#4dff88',
-      type: 'closed-hat',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.1, pan: -0.2, cutoff: 8000, resonance: 1.5, attack: 0.001 },
-    },
-    {
-      id: '5',
-      name: 'OH',
-      midi: 46,
-      color: '#4dffff',
-      type: 'open-hat',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.8, pan: 0.2, cutoff: 7500, resonance: 1.0, attack: 0.001 },
-    },
-    {
-      id: '6',
-      name: 'TOM L',
-      midi: 40,
-      color: '#4d88ff',
-      type: 'tom',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.6, pan: -0.4, cutoff: 600, resonance: 0.9, attack: 0.003 },
-    },
-    {
-      id: '7',
-      name: 'TOM M',
-      midi: 43,
-      color: '#944dff',
-      type: 'tom',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.6, pan: 0, cutoff: 800, resonance: 0.9, attack: 0.003 },
-    },
-    {
-      id: '8',
-      name: 'TOM H',
-      midi: 47,
-      color: '#ff4dff',
-      type: 'tom',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.6, pan: 0.4, cutoff: 1200, resonance: 0.9, attack: 0.003 },
-    },
-    {
-      id: '9',
-      name: 'COWBELL',
-      midi: 56,
-      color: '#ffffff',
-      type: 'cowbell',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.2, pan: 0, cutoff: 2000, resonance: 0.5, attack: 0.001 },
-    },
-    {
-      id: '10',
-      name: 'SHAKER',
-      midi: 70,
-      color: '#ffff00',
-      type: 'shaker',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.1, pan: 0, cutoff: 5000, resonance: 0.2, attack: 0.001 },
-    },
-    {
-      id: '11',
-      name: 'RIDE',
-      midi: 51,
-      color: '#00ffff',
-      type: 'ride',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 1.0, pan: 0.3, cutoff: 6000, resonance: 0.8, attack: 0.001 },
-    },
-    {
-      id: '12',
-      name: 'PERC',
-      midi: 60,
-      color: '#ff00ff',
-      type: 'perc',
-      steps: this.initSteps(),
-      params: { semitone: 0, decay: 0.3, pan: -0.3, cutoff: 1500, resonance: 0.7, attack: 0.002 },
-    },
+    { id: '1', name: 'KICK', midi: 36, color: '#ff4d4d', type: 'kick', steps: this.initSteps(), params: { semitone: 0, decay: 0.5, pan: 0, cutoff: 800, resonance: 1.0, attack: 0.002 } },
+    { id: '2', name: 'SNARE', midi: 38, color: '#ff944d', type: 'snare', steps: this.initSteps(), params: { semitone: 0, decay: 0.4, pan: 0, cutoff: 2500, resonance: 1.2, attack: 0.002 } },
+    { id: '3', name: 'CLAP', midi: 39, color: '#ffdb4d', type: 'clap', steps: this.initSteps(), params: { semitone: 0, decay: 0.4, pan: 0.1, cutoff: 3000, resonance: 0.8, attack: 0.005 } },
+    { id: '4', name: 'CH', midi: 42, color: '#4dff88', type: 'closed-hat', steps: this.initSteps(), params: { semitone: 0, decay: 0.1, pan: -0.2, cutoff: 8000, resonance: 1.5, attack: 0.001 } },
+    { id: '5', name: 'OH', midi: 46, color: '#4dffff', type: 'open-hat', steps: this.initSteps(), params: { semitone: 0, decay: 0.8, pan: 0.2, cutoff: 7500, resonance: 1.0, attack: 0.001 } },
+    { id: '6', name: 'TOM L', midi: 40, color: '#4d88ff', type: 'tom', steps: this.initSteps(), params: { semitone: 0, decay: 0.6, pan: -0.4, cutoff: 600, resonance: 0.9, attack: 0.003 } },
+    { id: '7', name: 'TOM M', midi: 43, color: '#944dff', type: 'tom', steps: this.initSteps(), params: { semitone: 0, decay: 0.6, pan: 0, cutoff: 800, resonance: 0.9, attack: 0.003 } },
+    { id: '8', name: 'TOM H', midi: 47, color: '#ff4dff', type: 'tom', steps: this.initSteps(), params: { semitone: 0, decay: 0.6, pan: 0.4, cutoff: 1200, resonance: 0.9, attack: 0.003 } },
+    { id: '9', name: 'COWBELL', midi: 56, color: '#ffffff', type: 'cowbell', steps: this.initSteps(), params: { semitone: 0, decay: 0.2, pan: 0, cutoff: 2000, resonance: 0.5, attack: 0.001 } },
+    { id: '10', name: 'SHAKER', midi: 70, color: '#ffff00', type: 'shaker', steps: this.initSteps(), params: { semitone: 0, decay: 0.1, pan: 0, cutoff: 5000, resonance: 0.2, attack: 0.001 } },
+    { id: '11', name: 'RIDE', midi: 51, color: '#00ffff', type: 'ride', steps: this.initSteps(), params: { semitone: 0, decay: 1.0, pan: 0.3, cutoff: 6000, resonance: 0.8, attack: 0.001 } },
+    { id: '12', name: 'PERC', midi: 60, color: '#ff00ff', type: 'perc', steps: this.initSteps(), params: { semitone: 0, decay: 0.3, pan: -0.3, cutoff: 1500, resonance: 0.7, attack: 0.002 } },
   ]);
 
   selectedPad = signal<DrumPad | null>(null);
-
-  isGeneratingPattern = signal(false);
-  evolutionEnabled = signal(false);
-  evolutionIntensity = signal(0.2);
-  evolutionSpeed = signal(16);
-
   private evolutionEffect?: EffectRef;
 
   constructor() {
     this.evolutionEffect = effect(() => {
       const step = this.currentStep();
-      const enabled = this.evolutionEnabled();
-      if (enabled && step % this.evolutionSpeed() === 0 && step !== -1) {
-        this.evolvePattern();
+      if (false) { // Placeholder for evolution logic if needed
       }
     });
 
@@ -244,13 +135,13 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   selectPad(pad: DrumPad) {
     this.selectedPad.set(pad);
   }
+
   addAutomation(param: string) {
     const trackId = this.selectedTrackId();
     if (trackId) {
       this.musicManager.addAutomationLane(trackId, param);
     }
   }
-
 
   playPadSound(pad: DrumPad) {
     const trackId = this.selectedTrackId() || 0;
@@ -285,7 +176,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   }
 
   async generateAiPattern(genre: string = 'house') {
-    this.isGeneratingPattern.set(true);
     this.pads.update((ps) =>
       ps.map((p) => {
         const newSteps = this.initSteps();
@@ -298,23 +188,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
         }
         if (p.name === 'SNARE' || p.name === 'CLAP') {
           for (let i = 8; i < 64; i += 16) newSteps[i].active = true;
-        }
-        return { ...p, steps: newSteps };
-      })
-    );
-    this.syncToMusicManager();
-    this.isGeneratingPattern.set(false);
-  }
-
-  evolvePattern() {
-    const intensity = this.evolutionIntensity();
-    this.pads.update((ps) =>
-      ps.map((p) => {
-        const newSteps = [...p.steps];
-        for (let i = 0; i < 64; i++) {
-          if (Math.random() < intensity * 0.1) {
-            newSteps[i].active = !newSteps[i].active;
-          }
         }
         return { ...p, steps: newSteps };
       })
@@ -359,21 +232,19 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  hasQuantumDrumEngine() {
-    return true;
+  toggleLocalPlay() {
+    this.isLocalPlaying.update(v => !v);
   }
 
-  onDrop(event: DragEvent, pad: DrumPad) {
-    event.preventDefault();
-    const data = event.dataTransfer?.getData('application/json');
-    if (data) {
-      const { presetId } = JSON.parse(data);
-      console.log(`Setting pad ${pad.name} to ${presetId}`);
-      // Future logic: map pad to specific sample in a kit or individual preset
-    }
+  toggleLocalRecord() {
+    this.isLocalRecording.update(v => !v);
   }
 
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
+  localSkip() {
+    console.log('Local Skip');
+  }
+
+  localUpload() {
+    console.log('Local Upload');
   }
 }

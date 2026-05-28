@@ -330,3 +330,9 @@
 .automation-lane circle:active {
   cursor: grabbing;
 }
+@media (max-width: 768px) {
+  .arrangement-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
