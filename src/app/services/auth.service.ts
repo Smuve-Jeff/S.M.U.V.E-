@@ -21,8 +21,8 @@ export class AuthService {
   isAuthenticated = this.userStore.isAuthenticated;
   jwtToken = this.tokenService.jwtToken;
 
-  private get securityService(): any { return this.injector.get(require('./security.service').SecurityService); }
-  private get profileService(): any { return this.injector.get(require('./user-profile.service').UserProfileService); }
+  private get securityService(): SecurityService { return this.injector.get(SecurityService); }
+  private get profileService(): UserProfileService { return this.injector.get(UserProfileService); }
 
   constructor() {}
 
