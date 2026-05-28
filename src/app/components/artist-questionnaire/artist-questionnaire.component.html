@@ -39,6 +39,21 @@
             </div>
           </div>
         </div>
+
+        <div class="hud-module p-6 space-y-4">
+          <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary opacity-50">
+            Neural_Observation_Log
+          </h3>
+          <div class="space-y-3 max-h-[300px] overflow-hidden">
+            <div *ngFor="let log of neuralObservationLog()" class="text-[9px] font-mono text-emerald-400/60 flex gap-2 animate-fade-in">
+              <span class="shrink-0 text-brand-primary">>></span>
+              <span class="uppercase tracking-tighter">{{ log }}</span>
+            </div>
+            <div *ngIf="neuralObservationLog().length === 0" class="text-[9px] font-mono text-white/20 italic uppercase tracking-tighter">
+              Awaiting data input...
+            </div>
+          </div>
+        </div>
       </aside>
 
       <div class="flex-1 flex flex-col items-center justify-center relative overflow-y-auto custom-scroll">
@@ -129,7 +144,10 @@
               <div *ngFor="let rec of analysisResult().recommendations" class="p-10 protocol-card rounded-[2.5rem] text-left group">
                 <div class="flex items-center gap-4 mb-6">
                   <div class="w-12 h-12 bg-brand-primary/10 rounded-2xl flex items-center justify-center"><i class="fas fa-bolt text-brand-primary text-xl"></i></div>
-                  <h4 class="text-sm font-black uppercase text-white tracking-[0.2em]">{{ rec.title }}</h4>
+                  <div class="flex justify-between items-start w-full">
+                    <h4 class="text-sm font-black uppercase text-white tracking-[0.2em]">{{ rec.title }}</h4>
+                    <span class="text-[8px] font-black px-2 py-1 rounded bg-red-500/10 text-red-500 border border-red-500/20 tracking-widest" *ngIf="rec.impact">{{ rec.impact }}</span>
+                  </div>
                 </div>
                 <p class="text-xs text-slate-400 leading-relaxed uppercase font-medium tracking-wide">{{ rec.content }}</p>
               </div>

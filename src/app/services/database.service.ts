@@ -6,8 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { LocalStorageService } from './local-storage.service';
 import { firstValueFrom } from 'rxjs';
 import { ArtistIdentityState } from '../types/artist-identity.types';
-import { AuthService } from './auth.service';
-import { Injector } from '@angular/core';
+import { TokenService } from './token.service';
 
 @Injectable({
   providedIn: 'root',
@@ -16,16 +15,12 @@ export class DatabaseService {
   private logger = inject(LoggingService);
   private http = inject(HttpClient);
   private localStorageService = inject(LocalStorageService);
-  private injector = inject(Injector);
+  private tokenService = inject(TokenService);
   private API_URL = APP_SECURITY_CONFIG.api_url;
 
   private getHeaders() {
-    try {
-      const token = this.injector.get(AuthService, null)?.jwtToken();
-      return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-    } catch {
-      return {};
-    }
+    const token = this.tokenService.jwtToken();
+    return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
   }
 
   get apiUrl(): string {
@@ -42,23 +37,15 @@ export class DatabaseService {
   }
 
   async saveUserProfile(profile: UserProfile, userId: string): Promise<void> {
-    localStorage.setItem(
-      this.getProfileBackupKey(userId),
-      JSON.stringify(profile)
-    );
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.getProfileBackupKey(userId), JSON.stringify(profile));
+    }
 
-    if (userId && navigator.onLine) {
+    if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       this.isSyncing.set(true);
       try {
         await firstValueFrom(
-          this.http.post(
-            `${this.API_URL}/profile`,
-            {
-              userId,
-              profileData: profile,
-            },
-            this.getHeaders()
-          )
+          this.http.post(`${this.API_URL}/profile`, { userId, profileData: profile }, this.getHeaders())
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -70,19 +57,15 @@ export class DatabaseService {
   }
 
   async loadUserProfile(userId: string): Promise<UserProfile | null> {
-    if (userId && navigator.onLine) {
+    if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
         const profile = await firstValueFrom(
-          this.http.get<UserProfile>(
-            `${this.API_URL}/profile/${userId}`,
-            this.getHeaders()
-          )
+          this.http.get<UserProfile>(`${this.API_URL}/profile/${userId}`, this.getHeaders())
         );
         if (profile) {
-          localStorage.setItem(
-            this.getProfileBackupKey(userId),
-            JSON.stringify(profile)
-          );
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(this.getProfileBackupKey(userId), JSON.stringify(profile));
+          }
           return profile;
         }
       } catch (error) {
@@ -90,18 +73,12 @@ export class DatabaseService {
       }
     }
 
-    const backup =
-      localStorage.getItem(this.getProfileBackupKey(userId)) ||
-      localStorage.getItem(this.getProfileBackupKey());
+    if (typeof localStorage === 'undefined') return null;
+    const backup = localStorage.getItem(this.getProfileBackupKey(userId)) || localStorage.getItem(this.getProfileBackupKey());
     return backup ? JSON.parse(backup) : null;
   }
 
-  async saveProject(
-    projectId: string,
-    title: string,
-    projectData: any,
-    userId: string
-  ): Promise<void> {
+  async saveProject(projectId: string, title: string, projectData: any, userId: string): Promise<void> {
     await this.localStorageService.saveItem('projects', {
       id: projectId,
       title,
@@ -110,20 +87,11 @@ export class DatabaseService {
       updatedAt: Date.now(),
     });
 
-    if (userId && navigator.onLine) {
+    if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       this.isSyncing.set(true);
       try {
         await firstValueFrom(
-          this.http.post(
-            `${this.API_URL}/projects`,
-            {
-              projectId,
-              userId,
-              title,
-              projectData,
-            },
-            this.getHeaders()
-          )
+          this.http.post(`${this.API_URL}/projects`, { projectId, userId, title, projectData }, this.getHeaders())
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -135,16 +103,10 @@ export class DatabaseService {
   }
 
   async listProjects(userId: string): Promise<any[]> {
-    const localProjects =
-      await this.localStorageService.getAllItems('projects');
-    if (userId && navigator.onLine) {
+    const localProjects = await this.localStorageService.getAllItems('projects');
+    if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
-        return await firstValueFrom(
-          this.http.get<any[]>(
-            `${this.API_URL}/projects/${userId}`,
-            this.getHeaders()
-          )
-        );
+        return await firstValueFrom(this.http.get<any[]>(`${this.API_URL}/projects/${userId}`, this.getHeaders()));
       } catch (error) {
         this.logger.error('Failed to list projects from cloud', error);
       }
@@ -152,11 +114,7 @@ export class DatabaseService {
     return localProjects;
   }
 
-  async saveArtistIdentity(
-    userId: string,
-    identity: ArtistIdentityState,
-    profile?: UserProfile
-  ): Promise<void> {
+  async saveArtistIdentity(userId: string, identity: ArtistIdentityState, profile?: UserProfile): Promise<void> {
     await this.localStorageService.saveItem('projects', {
       id: `artist-identity:${userId}`,
       userId,
@@ -165,19 +123,11 @@ export class DatabaseService {
       updatedAt: Date.now(),
     });
 
-    if (userId && navigator.onLine) {
+    if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       this.isSyncing.set(true);
       try {
         await firstValueFrom(
-          this.http.post(
-            `${this.API_URL}/identity`,
-            {
-              userId,
-              identity,
-              profileData: profile,
-            },
-            this.getHeaders()
-          )
+          this.http.post(`${this.API_URL}/identity`, { userId, identity, profileData: profile }, this.getHeaders())
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -188,49 +138,30 @@ export class DatabaseService {
     }
   }
 
-  async loadArtistIdentity(
-    userId: string
-  ): Promise<ArtistIdentityState | null> {
-    if (userId && navigator.onLine) {
+  async loadArtistIdentity(userId: string): Promise<ArtistIdentityState | null> {
+    if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
         const response = await firstValueFrom(
-          this.http.get<{ identity: ArtistIdentityState }>(
-            `${this.API_URL}/identity/${userId}`,
-            this.getHeaders()
-          )
+          this.http.get<{ identity: ArtistIdentityState }>(`${this.API_URL}/identity/${userId}`, this.getHeaders())
         );
-        if (response?.identity) {
-          return response.identity;
-        }
+        if (response?.identity) return response.identity;
       } catch (error) {
         this.logger.error('Failed to load artist identity from cloud', error);
       }
     }
 
-    const backup = await this.localStorageService.getItem(
-      'projects',
-      `artist-identity:${userId}`
-    );
+    const backup = await this.localStorageService.getItem('projects', `artist-identity:${userId}`);
     return backup?.identity || null;
   }
 
   async listConnectorJobs(userId: string): Promise<any[]> {
-    if (userId && navigator.onLine) {
+    if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
-        return await firstValueFrom(
-          this.http.get<any[]>(
-            `${this.API_URL}/identity/${userId}/connectors`,
-            this.getHeaders()
-          )
-        );
+        return await firstValueFrom(this.http.get<any[]>(`${this.API_URL}/identity/${userId}/connectors`, this.getHeaders()));
       } catch (error) {
         this.logger.error('Failed to list connector jobs from cloud', error);
       }
     }
-
-    const localItems = await this.localStorageService.getAllItems('sync_queue');
-    return localItems.filter(
-      (item) => item.userId === userId && item.channel === 'connector'
-    );
+    return [];
   }
 }

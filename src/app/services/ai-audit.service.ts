@@ -82,7 +82,8 @@ export class AiAuditService {
       score: Math.max(0, Math.min(100, score)),
       deficits,
       recommendations,
-      auditType: 'Strategic',
+      status: score >= 90 ? 'FORTIFIED' : 'VULNERABLE',
+      alerts: []
     };
   }
 }
