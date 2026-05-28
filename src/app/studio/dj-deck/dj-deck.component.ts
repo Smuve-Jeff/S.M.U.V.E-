@@ -25,7 +25,7 @@ import { DatabaseService } from '../../services/database.service';
 import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { PlayerService } from '../../services/player.service';
-import { AiService as NeuralOrchestratorService } from '../../services/ai.service';
+import { AiService } from '../../services/ai.service';
 
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
@@ -45,7 +45,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('meterA') meterA!: ElementRef<HTMLCanvasElement>;
   @ViewChild('meterB') meterB!: ElementRef<HTMLCanvasElement>;
 
-  private neuralOrchestrator = inject(NeuralOrchestratorService);
+  private neuralOrchestrator = inject(AiService);
   theme = input<AppTheme>(inject(UIService).activeTheme());
 
   midiEnabled = signal(false);

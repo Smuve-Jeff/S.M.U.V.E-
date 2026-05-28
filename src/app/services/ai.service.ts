@@ -79,7 +79,7 @@ export class AiService {
     }
     this.isProcessing.set(true);
 
-    const upgrade = NEURAL_UPGRADE_BLUEPRINTS.find(u => u.id === upgradeId);
+    const upgrade = NEURAL_UPGRADE_BLUEPRINTS.find((u) => u.id === upgradeId);
 
     setTimeout(() => {
       this.unlockedUpgrades.update((current) => [...current, upgradeId]);
@@ -96,8 +96,16 @@ export class AiService {
     switch (upgrade.toolId) {
       case 'smuve-masterer':
         this.audioEngine.setMasteringTargets({ lufs: -10, truePeak: -0.2 });
-        this.audioEngine.configureCompressor({ threshold: -18, ratio: 4, attack: 0.01, release: 0.1 });
-        this.strategicDecrees.update(d => ["S.M.U.V.E-MODE MASTERING ACTIVE. YOUR TRANSIENTS ARE NOW UNDER MY CONTROL.", ...d]);
+        this.audioEngine.configureCompressor({
+          threshold: -18,
+          ratio: 4,
+          attack: 0.01,
+          release: 0.1,
+        });
+        this.strategicDecrees.update((d) => [
+          'S.M.U.V.E-MODE MASTERING ACTIVE. YOUR TRANSIENTS ARE NOW UNDER MY CONTROL.',
+          ...d,
+        ]);
         break;
 
       case 'legal-executioner':
@@ -105,14 +113,20 @@ export class AiService {
           legalInfrastructure: {
             ...this.userProfileService.profile().legalInfrastructure,
             hasStandardSplitSheet: true,
-            proAffiliation: 'BMI'
-          } as any
+            proAffiliation: 'BMI',
+          } as any,
         });
-        this.strategicDecrees.update(d => ["LEGAL EXECUTIONER DEPLOYED. PREDATORY CONTRACTS DETECTED AND NEUTRALIZED.", ...d]);
+        this.strategicDecrees.update((d) => [
+          'LEGAL EXECUTIONER DEPLOYED. PREDATORY CONTRACTS DETECTED AND NEUTRALIZED.',
+          ...d,
+        ]);
         break;
 
       case 'stem-splitter':
-        this.strategicDecrees.update(d => ["NEURAL STEM SPLITTER UNLOCKED. STOP STEALING LOOPS AND START EXTRACTING STEMS.", ...d]);
+        this.strategicDecrees.update((d) => [
+          'NEURAL STEM SPLITTER UNLOCKED. STOP STEALING LOOPS AND START EXTRACTING STEMS.',
+          ...d,
+        ]);
         break;
     }
   }
@@ -138,11 +152,15 @@ export class AiService {
     };
 
     const unlocked = this.unlockedUpgrades();
-    const ranked = NEURAL_UPGRADE_BLUEPRINTS.map((blueprint: UpgradeRecommendation) => {
-      const rankScore = blueprint.rank ? blueprint.rank({ profile, context, viewMode }) : 50;
-      const state = unlocked.includes(blueprint.id) ? 'unlocked' : 'locked';
-      return { ...blueprint, rankScore, state };
-    });
+    const ranked = NEURAL_UPGRADE_BLUEPRINTS.map(
+      (blueprint: UpgradeRecommendation) => {
+        const rankScore = blueprint.rank
+          ? blueprint.rank({ profile, context, viewMode })
+          : 50;
+        const state = unlocked.includes(blueprint.id) ? 'unlocked' : 'locked';
+        return { ...blueprint, rankScore, state };
+      }
+    );
 
     return ranked.sort((a, b) => b.rankScore - a.rankScore);
   }
@@ -151,7 +169,7 @@ export class AiService {
     try {
       const response = await firstValueFrom(
         this.http.post<{ text: string }>('/api/ai/analyze', {
-          prompt: `${this.SMUVE_SYSTEM_PROMPT}\n\nUSER INPUT: ${prompt}`
+          prompt: `${this.SMUVE_SYSTEM_PROMPT}\n\nUSER INPUT: ${prompt}`,
         })
       );
       return response.text;
@@ -180,7 +198,7 @@ export class AiService {
     this.deepAuditResults.set({
       report: res.report,
       timestamp: Date.now(),
-      status: 'CRITICAL VULNERABILITIES DETECTED'
+      status: 'CRITICAL VULNERABILITIES DETECTED',
     });
     this.isScanning.set(false);
   }
@@ -194,11 +212,14 @@ export class AiService {
     const res = await firstValueFrom(
       this.http.post<any>('/api/ai/industry-search', { query })
     );
-    this.industryIntelligence.update(prev => [{
-      query,
-      intel: res.intel,
-      timestamp: Date.now()
-    }, ...prev]);
+    this.industryIntelligence.update((prev) => [
+      {
+        query,
+        intel: res.intel,
+        timestamp: Date.now(),
+      },
+      ...prev,
+    ]);
     this.isProcessing.set(false);
   }
 
@@ -224,17 +245,26 @@ export class AiService {
   private generateContextualDecrees(p: UserProfile) {
     const decrees: string[] = [];
     if (p.syncDetails?.isSyncReady === 'Not Started') {
-      decrees.push("SYNC DEFICIT DETECTED: YOUR CATALOG IS UNLICENSABLE. INITIALIZE STEM ARCHIVE IMMEDIATELY.");
+      decrees.push(
+        'SYNC DEFICIT DETECTED: YOUR CATALOG IS UNLICENSABLE. INITIALIZE STEM ARCHIVE IMMEDIATELY.'
+      );
     }
     if (p.legalInfrastructure?.proAffiliation === 'None') {
-      decrees.push("LEGAL VULNERABILITY: UNREGISTERED PERFORMANCE RIGHTS DETECTED. AFFILIATE WITH A PRO OR LOSE ROYALTIES.");
+      decrees.push(
+        'LEGAL VULNERABILITY: UNREGISTERED PERFORMANCE RIGHTS DETECTED. AFFILIATE WITH A PRO OR LOSE ROYALTIES.'
+      );
     }
-    if (p.touringDetails?.isTourReady === 'Studio Only' && p.expertise.performance > 7) {
-      decrees.push("EXECUTION ANOMALY: HIGH PERFORMANCE EXPERTISE BUT ZERO TOURING INFRASTRUCTURE. DEPLOY LIVE PROTOCOL.");
+    if (
+      p.touringDetails?.isTourReady === 'Studio Only' &&
+      p.expertise.performance > 7
+    ) {
+      decrees.push(
+        'EXECUTION ANOMALY: HIGH PERFORMANCE EXPERTISE BUT ZERO TOURING INFRASTRUCTURE. DEPLOY LIVE PROTOCOL.'
+      );
     }
 
     if (decrees.length > 0) {
-      this.strategicDecrees.update(d => [...decrees, ...d].slice(0, 10));
+      this.strategicDecrees.update((d) => [...decrees, ...d].slice(0, 10));
     }
   }
 
@@ -294,9 +324,11 @@ export class AiService {
     gamingExpertise: number;
   }): string[] {
     const advice = ['ESTABLISH ROOM DOMINANCE', 'EXECUTE DAILY TOURNAMENT RUN'];
-    if (context.favoritesCount < 3) advice.push('COLLECT MORE ELITE CABINETS TO SYNC PREFERENCES');
+    if (context.favoritesCount < 3)
+      advice.push('COLLECT MORE ELITE CABINETS TO SYNC PREFERENCES');
     else advice.push('ANALYZE FAVORITES FOR PERFORMANCE PATTERNS');
-    if (context.gamingExpertise < 5) advice.push('REHEARSE CLASSIC MECHANICS IN RETRO SECTOR');
+    if (context.gamingExpertise < 5)
+      advice.push('REHEARSE CLASSIC MECHANICS IN RETRO SECTOR');
     else advice.push('SIMULATE HIGH-STAKES REMIX ARENA SCENARIOS');
     return advice;
   }
@@ -316,7 +348,6 @@ export class AiService {
     };
   }
 
-
   async getQuestionnaireInsights(draft: any): Promise<any> {
     const res = await this.getAIResponse(
       `S.M.U.V.E. NEURAL RISK ASSESSMENT: Analyzing Artist DNA for Professional Liabilities.
@@ -330,24 +361,30 @@ export class AiService {
     if (draft.syncDetails?.isSyncReady === 'Not Started') {
       roasts.push({
         title: 'SYNC ILLITERACY DETECTED',
-        content: 'Your catalog is a professional liability. Without stems and clean versions, you are invisible to high-stakes licensing. Fix this or remain a hobbyist.',
-        impact: 'CRITICAL'
+        content:
+          'Your catalog is a professional liability. Without stems and clean versions, you are invisible to high-stakes licensing. Fix this or remain a hobbyist.',
+        impact: 'CRITICAL',
       });
     }
 
     if (draft.legalInfrastructure?.proAffiliation === 'None') {
       roasts.push({
         title: 'LEGAL VULNERABILITY ALERT',
-        content: 'Unregistered performance rights? You are literally leaving revenue on the table for others to scavenge. Affiliate with a PRO immediately.',
-        impact: 'HIGH'
+        content:
+          'Unregistered performance rights? You are literally leaving revenue on the table for others to scavenge. Affiliate with a PRO immediately.',
+        impact: 'HIGH',
       });
     }
 
-    if (draft.primaryGenre === 'Hip Hop' && (!draft.expertise || draft.expertise.production < 5)) {
+    if (
+      draft.primaryGenre === 'Hip Hop' &&
+      (!draft.expertise || draft.expertise.production < 5)
+    ) {
       roasts.push({
         title: 'PRODUCTION DEFICIT',
-        content: 'Your technical mastery is insufficient for the competitive Hip Hop landscape. Your sonic signature is generic. Hardening required.',
-        impact: 'MEDIUM'
+        content:
+          'Your technical mastery is insufficient for the competitive Hip Hop landscape. Your sonic signature is generic. Hardening required.',
+        impact: 'MEDIUM',
       });
     }
 
@@ -355,14 +392,17 @@ export class AiService {
     if (roasts.length < 3) {
       roasts.push({
         title: 'STRATEGIC ANEMIA',
-        content: 'Your goals lack the intensity of a top-tier performer. "Market Dominance" is a mandate, not a suggestion. Refine your trajectory.',
-        impact: 'HIGH'
+        content:
+          'Your goals lack the intensity of a top-tier performer. "Market Dominance" is a mandate, not a suggestion. Refine your trajectory.',
+        impact: 'HIGH',
       });
     }
 
     return roasts.slice(0, 3);
   }
-  async processCommand(text: string): Promise<string> { return this.getAIResponse(`Process command: ${text}`); }
+  async processCommand(text: string): Promise<string> {
+    return this.getAIResponse(`Process command: ${text}`);
+  }
 
   async getStrategicRecommendations(): Promise<any[]> {
     const res = await this.getAIResponse(
@@ -383,12 +423,24 @@ export class AiService {
     return res.split('\n').filter((l) => l.trim().length > 0);
   }
 
-  startAIDrummer() { this.isAIDrummerActive.set(true); }
-  stopAIDrummer() { this.isAIDrummerActive.set(false); }
-  startAIBassist() { this.isAIBassistActive.set(true); }
-  stopAIBassist() { this.isAIBassistActive.set(false); }
-  startAIKeyboardist() { this.isAIKeyboardistActive.set(true); }
-  stopAIKeyboardist() { this.isAIKeyboardistActive.set(false); }
+  startAIDrummer() {
+    this.isAIDrummerActive.set(true);
+  }
+  stopAIDrummer() {
+    this.isAIDrummerActive.set(false);
+  }
+  startAIBassist() {
+    this.isAIBassistActive.set(true);
+  }
+  stopAIBassist() {
+    this.isAIBassistActive.set(false);
+  }
+  startAIKeyboardist() {
+    this.isAIKeyboardistActive.set(true);
+  }
+  stopAIKeyboardist() {
+    this.isAIKeyboardistActive.set(false);
+  }
 
   studyTrack(buffer: any, name: string) {
     this.logger.info('Studying track: ' + name);
@@ -398,5 +450,3 @@ export class AiService {
 export function provideAiService() {
   return { provide: AiService, useClass: AiService };
 }
-
-export { AiService as NeuralOrchestratorService };

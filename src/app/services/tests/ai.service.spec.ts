@@ -1,8 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  NeuralOrchestratorService,
-  UpgradeRecommendation,
-} from '../ai.service';
+import { AiService, UpgradeRecommendation } from '../ai.service';
 import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
 import { AnalyticsService } from '../analytics.service';
@@ -14,8 +11,8 @@ import {
   HttpTestingController,
 } from '@angular/common/http/testing';
 
-describe('NeuralOrchestratorService', () => {
-  let service: NeuralOrchestratorService;
+describe('AiService', () => {
+  let service: AiService;
   let userProfileServiceMock: Partial<UserProfileService>;
   let userContextServiceMock: Partial<UserContextService>;
   let analyticsServiceMock: Partial<AnalyticsService>;
@@ -79,7 +76,7 @@ describe('NeuralOrchestratorService', () => {
 
     TestBed.configureTestingModule({
       providers: [
-        NeuralOrchestratorService,
+        AiService,
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: UserProfileService, useValue: userProfileServiceMock },
@@ -89,7 +86,7 @@ describe('NeuralOrchestratorService', () => {
       ],
     });
 
-    service = TestBed.inject(NeuralOrchestratorService);
+    service = TestBed.inject(AiService);
     httpMock = TestBed.inject(HttpTestingController);
     jest
       .spyOn(service as any, 'getRankedUpgrades')
@@ -144,6 +141,8 @@ describe('NeuralOrchestratorService', () => {
     req.error(new ErrorEvent('Network error'));
 
     const response = await requestPromise;
-    expect(response).toBe('Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.');
+    expect(response).toBe(
+      'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.'
+    );
   });
 });

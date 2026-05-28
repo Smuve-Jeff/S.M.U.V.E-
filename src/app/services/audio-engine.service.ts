@@ -1,6 +1,6 @@
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { LoggingService } from './logging.service';
-import { Injectable, signal, inject } from '@angular/core';
+import { Injectable, signal, inject, Injector } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { StemSeparationService, Stems } from './stem-separation.service';
 
@@ -42,8 +42,11 @@ export class AudioEngineService {
   public performanceTier = signal<'ultra' | 'performance'>('ultra');
   public sidechainEnabled = signal(false);
   public logger = inject(LoggingService);
+  private injector = inject(Injector);
   private stemSeparationService = inject(StemSeparationService);
-  public recorder = inject(StudioRecordingEngineService);
+  public get recorder(): StudioRecordingEngineService {
+    return this.injector.get(StudioRecordingEngineService);
+  }
   public ctx: AudioContext;
   public masterGain: GainNode;
   public compressor: DynamicsCompressorNode;
@@ -106,15 +109,22 @@ export class AudioEngineService {
     truePeak: -0.1,
   };
 
-
   processAutomation(step: number, time: number) {
     this.tracks.forEach((track, id) => {
       if (track.automationLanes) {
         track.automationLanes.forEach((lane: any) => {
           if (!lane.enabled) return;
-          const point = lane.points.find((p: any) => Math.floor(p.step) === step);
+          const point = lane.points.find(
+            (p: any) => Math.floor(p.step) === step
+          );
           if (point) {
-            this.applyProductionParameter(id.toString(), lane.parameter, point.value, 0.05, time);
+            this.applyProductionParameter(
+              id.toString(),
+              lane.parameter,
+              point.value,
+              0.05,
+              time
+            );
           }
         });
       }
@@ -225,7 +235,7 @@ export class AudioEngineService {
       if (absX < 0.33) {
         curve[i] = 2 * x;
       } else if (absX < 0.66) {
-        curve[i] = (3 - (2 - 3 * x) ** 2) / 3 * (x > 0 ? 1 : -1);
+        curve[i] = ((3 - (2 - 3 * x) ** 2) / 3) * (x > 0 ? 1 : -1);
       } else {
         curve[i] = x > 0 ? 1 : -1;
       }
@@ -569,11 +579,11 @@ export class AudioEngineService {
     const panner = this.ctx.createStereoPanner();
     const filter = this.ctx.createBiquadFilter();
 
-    osc.type = synthParams.type || "sine";
+    osc.type = synthParams.type || 'sine';
     osc.frequency.setValueAtTime(freq, when);
     if (synthParams.detune) osc.detune.setValueAtTime(synthParams.detune, when);
 
-    filter.type = "lowpass";
+    filter.type = 'lowpass';
     filter.frequency.setValueAtTime(synthParams.cutoff || 20000, when);
     filter.Q.setValueAtTime(synthParams.q || 1, when);
 
@@ -591,7 +601,10 @@ export class AudioEngineService {
 
     // Add Sub-Oscillator for extra fidelity/weight if requested or for specific types
     let subOsc: OscillatorNode | null = null;
-    if (this.performanceTier() === 'ultra' && (osc.type === 'sawtooth' || osc.type === 'square')) {
+    if (
+      this.performanceTier() === 'ultra' &&
+      (osc.type === 'sawtooth' || osc.type === 'square')
+    ) {
       subOsc = this.ctx.createOscillator();
       subOsc.type = 'sine';
       subOsc.frequency.setValueAtTime(freq / 2, when);
@@ -602,7 +615,7 @@ export class AudioEngineService {
       subOsc.stop(when + duration + release + 0.1);
     }
 
-        const dest = customCtx ? (customCtx as any).destination : this.masterGain;
+    const dest = customCtx ? (customCtx as any).destination : this.masterGain;
     osc.connect(filter).connect(vca).connect(panner).connect(dest);
 
     if (sendA > 0 && this.reverbConvolver) {

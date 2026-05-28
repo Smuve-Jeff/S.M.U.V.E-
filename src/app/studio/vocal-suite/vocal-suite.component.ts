@@ -104,7 +104,9 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
   async initializeMic() {
     const deviceId = this.micService.selectedDeviceId();
-    const success = await this.recordingEngine.initialize(deviceId || undefined);
+    const success = await this.recordingEngine.initialize(
+      deviceId || undefined
+    );
     if (success) {
       const node = this.recordingEngine.getAnalyserNode();
       if (node) {

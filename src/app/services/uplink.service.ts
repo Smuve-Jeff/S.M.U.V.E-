@@ -93,8 +93,8 @@ export class UplinkService {
       const scoreMsg = signals
         ? `Neural Alignment: ${signals.marketReadiness}% Market / ${signals.identityTrust}% Trust`
         : finalAudit
-        ? `Transmission Secure: ${finalAudit.score}% Strength`
-        : 'Transmission Secure';
+          ? `Transmission Secure: ${finalAudit.score}% Strength`
+          : 'Transmission Secure';
 
       await this.updateStage('complete', 100, scoreMsg);
       this.addLog('UPLINK ESTABLISHED. EXECUTIVE COMMAND ACTIVE.');

@@ -11,36 +11,78 @@
             {{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}
           </span>
         </button>
-        <button class="m-btn tactile-v42 rec" [class.active]="audioSession.isRecording()" (click)="audioSession.toggleRecord()">
-          <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+        <button
+          class="m-btn tactile-v42 rec"
+          [class.active]="audioSession.isRecording()"
+          (click)="audioSession.toggleRecord()"
+        >
+          <span class="material-symbols-outlined text-sm"
+            >fiber_manual_record</span
+          >
         </button>
       </div>
     </div>
 
     <div class="header-actions">
-      <button (click)="addTrack()" class="mini-btn tactile-v42 executive-glass">+ TRACK</button>
+      <button (click)="addTrack()" class="mini-btn tactile-v42 executive-glass">
+        + TRACK
+      </button>
     </div>
   </div>
 
   <div class="playlist-content no-scrollbar">
     <div class="track-headers no-scrollbar wood-panel">
-      <div *ngFor="let track of tracks()" class="track-header tactile-v42 glass-v42" [style.height.px]="trackHeaderHeight()" [class.selected]="isTrackSelected(track.id)" (click)="selectTrack(track.id)">
+      <div
+        *ngFor="let track of tracks()"
+        class="track-header tactile-v42 glass-v42"
+        [style.height.px]="trackHeaderHeight()"
+        [class.selected]="isTrackSelected(track.id)"
+        (click)="selectTrack(track.id)"
+      >
         <div class="track-top flex items-center p-2">
-          <div class="track-color-strip w-1 h-8 rounded mr-2" [style.background-color]="track.color || '#af25f4'"></div>
-          <span class="track-name neon-text-xs truncate">{{ track.name | uppercase }}</span>
+          <div
+            class="track-color-strip w-1 h-8 rounded mr-2"
+            [style.background-color]="track.color || '#af25f4'"
+          ></div>
+          <span class="track-name neon-text-xs truncate">{{
+            track.name | uppercase
+          }}</span>
         </div>
       </div>
     </div>
 
     <div class="grid-viewport no-scrollbar glass-v42">
-      <div class="grid-canvas" #gridCanvas [style.width.px]="gridWidth" [style.height.px]="tracks().length * 80">
+      <div
+        class="grid-canvas"
+        #gridCanvas
+        [style.width.px]="gridWidth"
+        [style.height.px]="tracks().length * 80"
+      >
         <div class="scanline-overlay"></div>
-        <div *ngFor="let track of tracks(); let i = index" class="lane-row relative border-b border-white/5" [style.height.px]="80" (dragover)="onDragOver($event)" (drop)="onDrop($event, track.id)">
-          <div *ngFor="let clip of track.clips" class="clip-item absolute executive-glass shadow-v42-xl tactile-v42" [style.left.px]="clip.start * barWidth" [style.width.px]="clip.length * barWidth" [style.background-color]="(clip.color || '#af25f4') + '33'" [style.border-color]="clip.color || '#af25f4'">
-            <div class="clip-header text-[8px] p-1">{{ clip.name | uppercase }}</div>
+        <div
+          *ngFor="let track of tracks(); let i = index"
+          class="lane-row relative border-b border-white/5"
+          [style.height.px]="80"
+          (dragover)="onDragOver($event)"
+          (drop)="onDrop($event, track.id)"
+        >
+          <div
+            *ngFor="let clip of track.clips"
+            class="clip-item absolute executive-glass shadow-v42-xl tactile-v42"
+            [style.left.px]="clip.start * barWidth"
+            [style.width.px]="clip.length * barWidth"
+            [style.background-color]="(clip.color || '#af25f4') + '33'"
+            [style.border-color]="clip.color || '#af25f4'"
+          >
+            <div class="clip-header text-[8px] p-1">
+              {{ clip.name | uppercase }}
+            </div>
           </div>
         </div>
-        <div class="playhead absolute top-0 bottom-0 w-px bg-white extreme-glow" [style.left.px]="playheadPos()"></div>
+        <div
+          class="playhead absolute top-0 bottom-0 w-px bg-white extreme-glow"
+          [style.left.px]="playheadPos()"
+        ></div>
       </div>
     </div>
   </div>

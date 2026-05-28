@@ -50,7 +50,7 @@ describe('StudioComponent', () => {
             metronomeEnabled: signal(false),
             metronomeVolume: signal(0.5),
             stepsPerBeat: () => 4,
-            performanceTier: signal('ultra')
+            performanceTier: signal('ultra'),
           },
         },
         {
@@ -68,30 +68,30 @@ describe('StudioComponent', () => {
           provide: MusicManagerService,
           useValue: {
             selectedTrackId: signal<number | null>(null),
-            tracks: signal([])
+            tracks: signal([]),
           },
         },
         {
           provide: UserProfileService,
           useValue: {
-            profile: signal({})
-          }
+            profile: signal({}),
+          },
         },
         {
           provide: NotificationService,
-          useValue: {}
+          useValue: {},
         },
         {
           provide: AiCopilotService,
-          useValue: {}
+          useValue: {},
         },
         {
           provide: HapticService,
-          useValue: {}
+          useValue: {},
         },
         {
           provide: TouchGestureService,
-          useValue: {}
+          useValue: {},
         },
         {
           provide: ActivatedRoute,
@@ -99,8 +99,8 @@ describe('StudioComponent', () => {
             url: routeUrl$.asObservable(),
             queryParamMap: queryParamMap$.asObservable(),
             snapshot: {
-              queryParamMap: convertToParamMap({})
-            }
+              queryParamMap: convertToParamMap({}),
+            },
           },
         },
         { provide: Router, useValue: routerMock },
@@ -122,10 +122,13 @@ describe('StudioComponent', () => {
     component.setActiveView('mastering');
 
     expect(component.activeView()).toBe('mastering');
-    expect(routerMock.navigate).toHaveBeenCalledWith([], expect.objectContaining({
-      queryParams: { view: 'mastering' },
-      queryParamsHandling: 'merge',
-    }));
+    expect(routerMock.navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({
+        queryParams: { view: 'mastering' },
+        queryParamsHandling: 'merge',
+      })
+    );
   });
 
   it('maps studio quality class based on performance mode', async () => {

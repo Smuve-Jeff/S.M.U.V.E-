@@ -14,7 +14,9 @@ export class TrackInspectorComponent {
   public musicManager = inject(MusicManagerService);
 
   selectedTrack = computed(() =>
-    this.musicManager.tracks().find((t) => t.id === this.musicManager.selectedTrackId())
+    this.musicManager
+      .tracks()
+      .find((t) => t.id === this.musicManager.selectedTrackId())
   );
 
   updateParam(key: string, value: any) {

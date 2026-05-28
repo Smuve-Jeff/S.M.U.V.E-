@@ -67,12 +67,14 @@
   margin-right: -3%;
   z-index: 10;
   border-radius: 0 0 6px 6px;
-  box-shadow: 5px 10px 15px rgba(0,0,0,0.5);
+  box-shadow: 5px 10px 15px rgba(0, 0, 0, 0.5);
 }
 
 .perf-key-v42.active {
   background: #a855f7;
-  box-shadow: 0 0 40px rgba(168, 85, 247, 0.8), inset 0 0 15px rgba(0,0,0,0.3);
+  box-shadow:
+    0 0 40px rgba(168, 85, 247, 0.8),
+    inset 0 0 15px rgba(0, 0, 0, 0.3);
 }
 
 .perf-key-v42.active .key-label-v42 {
@@ -183,9 +185,18 @@
 }
 
 @keyframes pulse {
-  0% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.2); }
-  100% { opacity: 0.5; transform: scale(1); }
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
 }
 
 /* Instrument Selector Styling */

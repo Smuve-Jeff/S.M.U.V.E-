@@ -123,7 +123,7 @@ export class InstrumentsService {
         release: 0.8,
         cutoff: 400,
         q: 3.0,
-        detune: 5
+        detune: 5,
       },
     },
     {
@@ -141,7 +141,7 @@ export class InstrumentsService {
         cutoff: 1500,
         q: 0.3,
       },
-    }
+    },
   ];
 
   getPresets() {
@@ -149,7 +149,7 @@ export class InstrumentsService {
   }
 
   async audition(presetId: string) {
-    const preset = this.presets.find(p => p.id === presetId);
+    const preset = this.presets.find((p) => p.id === presetId);
     if (!preset) return;
 
     const ctx = this.audioEngine.ctx;
@@ -176,8 +176,8 @@ export class InstrumentsService {
       osc.start(now);
       osc.stop(now + 0.5);
     } else if (preset.type === 'sample' && preset.zones?.[0]) {
-        // Sample audition logic would go here, simplified for now
-        this.audioEngine.logger.info(`Auditioning sample: ${preset.name}`);
+      // Sample audition logic would go here, simplified for now
+      this.audioEngine.logger.info(`Auditioning sample: ${preset.name}`);
     }
   }
 }

@@ -5,9 +5,19 @@ import { LoggingService } from './logging.service';
 export interface MasteringParameters {
   deesser: { threshold: number; frequency: number; bypass: boolean };
   multiband: {
-    low: { threshold: number; ratio: number; bypass: boolean; frequency: number };
+    low: {
+      threshold: number;
+      ratio: number;
+      bypass: boolean;
+      frequency: number;
+    };
     mid: { threshold: number; ratio: number; bypass: boolean };
-    high: { threshold: number; ratio: number; bypass: boolean; frequency: number };
+    high: {
+      threshold: number;
+      ratio: number;
+      bypass: boolean;
+      frequency: number;
+    };
   };
   exciter: { amount: number; frequency: number; bypass: boolean };
   eq: { low: number; mid: number; high: number; bypass: boolean };
@@ -36,7 +46,8 @@ export class VocalMasteringService {
 
   private compLow: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
   private compMid: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
-  private compHigh: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
+  private compHigh: DynamicsCompressorNode =
+    this.ctx.createDynamicsCompressor();
 
   private bandSum: GainNode = this.ctx.createGain();
 
@@ -46,7 +57,8 @@ export class VocalMasteringService {
   private eqMid: BiquadFilterNode = this.ctx.createBiquadFilter();
   private eqHigh: BiquadFilterNode = this.ctx.createBiquadFilter();
 
-  private masterLimiter: DynamicsCompressorNode = this.ctx.createDynamicsCompressor();
+  private masterLimiter: DynamicsCompressorNode =
+    this.ctx.createDynamicsCompressor();
 
   params = signal<MasteringParameters>({
     deesser: { threshold: -24, frequency: 6500, bypass: false },
@@ -103,20 +115,44 @@ export class VocalMasteringService {
     // De-esser
     this.deesserFilter.type = 'peaking';
     this.deesserFilter.Q.value = 3.5;
-    this.deesserFilter.frequency.setTargetAtTime(p.deesser.frequency, now, 0.05);
-    this.deesserFilter.gain.setTargetAtTime(p.deesser.bypass ? 0 : Math.min(0, p.deesser.threshold / 4), now, 0.05);
+    this.deesserFilter.frequency.setTargetAtTime(
+      p.deesser.frequency,
+      now,
+      0.05
+    );
+    this.deesserFilter.gain.setTargetAtTime(
+      p.deesser.bypass ? 0 : Math.min(0, p.deesser.threshold / 4),
+      now,
+      0.05
+    );
 
     // Crossover Points
     this.lowPass.type = 'lowpass';
-    this.lowPass.frequency.setTargetAtTime(p.multiband.low.frequency, now, 0.05);
+    this.lowPass.frequency.setTargetAtTime(
+      p.multiband.low.frequency,
+      now,
+      0.05
+    );
 
     this.midPassLow.type = 'highpass';
-    this.midPassLow.frequency.setTargetAtTime(p.multiband.low.frequency, now, 0.05);
+    this.midPassLow.frequency.setTargetAtTime(
+      p.multiband.low.frequency,
+      now,
+      0.05
+    );
     this.midPassHigh.type = 'lowpass';
-    this.midPassHigh.frequency.setTargetAtTime(p.multiband.high.frequency, now, 0.05);
+    this.midPassHigh.frequency.setTargetAtTime(
+      p.multiband.high.frequency,
+      now,
+      0.05
+    );
 
     this.highPass.type = 'highpass';
-    this.highPass.frequency.setTargetAtTime(p.multiband.high.frequency, now, 0.05);
+    this.highPass.frequency.setTargetAtTime(
+      p.multiband.high.frequency,
+      now,
+      0.05
+    );
 
     // Multiband Compressors
     this.applyCompParams(this.compLow, p.multiband.low, now);
@@ -144,14 +180,24 @@ export class VocalMasteringService {
 
     // Exciter
     if (!p.exciter.bypass) {
-      this.harmonicExciter.curve = this.makeDistortionCurve(p.exciter.amount * 100);
+      this.harmonicExciter.curve = this.makeDistortionCurve(
+        p.exciter.amount * 100
+      );
     } else {
       this.harmonicExciter.curve = null;
     }
   }
 
-  private applyCompParams(comp: DynamicsCompressorNode, band: any, time: number) {
-    comp.threshold.setTargetAtTime(band.bypass ? 0 : band.threshold, time, 0.05);
+  private applyCompParams(
+    comp: DynamicsCompressorNode,
+    band: any,
+    time: number
+  ) {
+    comp.threshold.setTargetAtTime(
+      band.bypass ? 0 : band.threshold,
+      time,
+      0.05
+    );
     comp.ratio.setTargetAtTime(band.bypass ? 1 : band.ratio, time, 0.05);
     comp.attack.setTargetAtTime(0.01, time, 0.05);
     comp.release.setTargetAtTime(0.14, time, 0.05);
@@ -169,8 +215,12 @@ export class VocalMasteringService {
     return curve;
   }
 
-  getInputNode() { return this.inputNode; }
-  getOutputNode() { return this.outputNode; }
+  getInputNode() {
+    return this.inputNode;
+  }
+  getOutputNode() {
+    return this.outputNode;
+  }
 
   applyToSource(source: AudioNode) {
     source.connect(this.inputNode);

@@ -287,16 +287,23 @@
 
           <!-- Revenue / Stats -->
 
-
           <!-- Strategic Signals & Market Readiness -->
-          <div class="col-span-12 lg:col-span-8 glass-v42 shadow-v42-xl rounded-2xl md:rounded-3xl p-6 border border-white/10">
+          <div
+            class="col-span-12 lg:col-span-8 glass-v42 shadow-v42-xl rounded-2xl md:rounded-3xl p-6 border border-white/10"
+          >
             <div class="flex items-center justify-between mb-8">
               <div class="flex items-center gap-3 text-brand-primary">
                 <span class="material-symbols-outlined">analytics</span>
-                <h3 class="text-sm font-bold text-white uppercase">Strategic Signals</h3>
+                <h3 class="text-sm font-bold text-white uppercase">
+                  Strategic Signals
+                </h3>
               </div>
-              <div class="px-4 py-2 rounded-full bg-brand-primary/10 border border-brand-primary/20">
-                <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">
+              <div
+                class="px-4 py-2 rounded-full bg-brand-primary/10 border border-brand-primary/20"
+              >
+                <span
+                  class="text-[10px] font-black text-brand-primary uppercase tracking-widest"
+                >
                   READINESS: {{ profile().strategicSignals.marketReadiness }}%
                 </span>
               </div>
@@ -304,22 +311,53 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
               <div class="h-64 flex items-center justify-center">
-                <app-radar-chart [expertise]="profile().strategicSignals"></app-radar-chart>
+                <app-radar-chart
+                  [expertise]="profile().strategicSignals"
+                ></app-radar-chart>
               </div>
               <div class="space-y-6">
-                <div *ngFor="let s of [
-                  { label: 'MARKET_READINESS', val: profile().strategicSignals.marketReadiness },
-                  { label: 'IDENTITY_TRUST', val: profile().strategicSignals.identityTrust },
-                  { label: 'TECH_AUTHORITY', val: profile().strategicSignals.technicalAuthority },
-                  { label: 'SYNC_VIABILITY', val: profile().strategicSignals.syncViability },
-                  { label: 'TOUR_STABILITY', val: profile().strategicSignals.touringStability }
-                ]" class="space-y-2">
-                  <div class="flex justify-between text-[9px] font-black text-white/40 tracking-widest uppercase">
+                <div
+                  *ngFor="
+                    let s of [
+                      {
+                        label: 'MARKET_READINESS',
+                        val: profile().strategicSignals.marketReadiness,
+                      },
+                      {
+                        label: 'IDENTITY_TRUST',
+                        val: profile().strategicSignals.identityTrust,
+                      },
+                      {
+                        label: 'TECH_AUTHORITY',
+                        val: profile().strategicSignals.technicalAuthority,
+                      },
+                      {
+                        label: 'SYNC_VIABILITY',
+                        val: profile().strategicSignals.syncViability,
+                      },
+                      {
+                        label: 'TOUR_STABILITY',
+                        val: profile().strategicSignals.touringStability,
+                      },
+                    ]
+                  "
+                  class="space-y-2"
+                >
+                  <div
+                    class="flex justify-between text-[9px] font-black text-white/40 tracking-widest uppercase"
+                  >
                     <span>{{ s.label }}</span>
-                    <span [class.text-brand-primary]="s.val > 70">{{ s.val }}%</span>
+                    <span [class.text-brand-primary]="s.val > 70"
+                      >{{ s.val }}%</span
+                    >
                   </div>
-                  <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-brand-primary to-purple-600 transition-all duration-1000" [style.width.%]="s.val"></div>
+                  <div
+                    class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden"
+                  >
+                    <div
+                      class="h-full bg-gradient-to-r from-brand-primary to-purple-600 transition-all duration-1000"
+                      [style.width.%]="s.val"
+                    ></div>
                   </div>
                 </div>
               </div>

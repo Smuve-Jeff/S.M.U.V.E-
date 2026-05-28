@@ -9,16 +9,37 @@
 
     <div class="module-transport glass-v42 mx-4">
       <div class="btn-group flex gap-1">
-        <button class="m-btn tactile-v42" (click)="isLocalPlayback() ? toggleLocalPlay() : audioSession.togglePlay()">
+        <button
+          class="m-btn tactile-v42"
+          (click)="
+            isLocalPlayback() ? toggleLocalPlay() : audioSession.togglePlay()
+          "
+        >
           <span class="material-symbols-outlined text-sm">
-            {{ (isLocalPlayback() ? isLocalPlaying() : audioSession.isPlaying()) ? 'pause' : 'play_arrow' }}
+            {{
+              (isLocalPlayback() ? isLocalPlaying() : audioSession.isPlaying())
+                ? 'pause'
+                : 'play_arrow'
+            }}
           </span>
         </button>
         <button class="m-btn tactile-v42" (click)="localSkip()">
           <span class="material-symbols-outlined text-sm">skip_next</span>
         </button>
-        <button class="m-btn tactile-v42 rec" [class.active]="isLocalPlayback() ? isLocalRecording() : audioSession.isRecording()" (click)="isLocalPlayback() ? toggleLocalRecord() : audioSession.toggleRecord()">
-          <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+        <button
+          class="m-btn tactile-v42 rec"
+          [class.active]="
+            isLocalPlayback() ? isLocalRecording() : audioSession.isRecording()
+          "
+          (click)="
+            isLocalPlayback()
+              ? toggleLocalRecord()
+              : audioSession.toggleRecord()
+          "
+        >
+          <span class="material-symbols-outlined text-sm"
+            >fiber_manual_record</span
+          >
         </button>
         <button class="m-btn tactile-v42" (click)="localUpload()">
           <span class="material-symbols-outlined text-sm">cloud_upload</span>
@@ -28,37 +49,107 @@
 
     <div class="toolbar glass-v42">
       <div class="tool-group flex gap-1">
-        <button [class.active]="editMode() === 'draw'" (click)="setEditMode('draw')"><span class="material-symbols-outlined text-sm">edit</span></button>
-        <button [class.active]="editMode() === 'select'" (click)="setEditMode('select')"><span class="material-symbols-outlined text-sm">near_me</span></button>
-        <button [class.active]="editMode() === 'erase'" (click)="setEditMode('erase')"><span class="material-symbols-outlined text-sm">backspace</span></button>
+        <button
+          [class.active]="editMode() === 'draw'"
+          (click)="setEditMode('draw')"
+        >
+          <span class="material-symbols-outlined text-sm">edit</span>
+        </button>
+        <button
+          [class.active]="editMode() === 'select'"
+          (click)="setEditMode('select')"
+        >
+          <span class="material-symbols-outlined text-sm">near_me</span>
+        </button>
+        <button
+          [class.active]="editMode() === 'erase'"
+          (click)="setEditMode('erase')"
+        >
+          <span class="material-symbols-outlined text-sm">backspace</span>
+        </button>
       </div>
       <div class="action-group flex gap-1 ml-4">
-        <button (click)="quantizeNotes()" class="mini-btn tactile-v42">Q</button>
-        <button (click)="duplicateSelected()" class="mini-btn tactile-v42">D</button>
-        <button (click)="deleteSelected()" class="mini-btn tactile-v42 btn-danger text-red-500">DEL</button>
+        <button (click)="quantizeNotes()" class="mini-btn tactile-v42">
+          Q
+        </button>
+        <button (click)="duplicateSelected()" class="mini-btn tactile-v42">
+          D
+        </button>
+        <button
+          (click)="deleteSelected()"
+          class="mini-btn tactile-v42 btn-danger text-red-500"
+        >
+          DEL
+        </button>
       </div>
     </div>
   </div>
 
   <div class="piano-roll-content">
     <div class="keys-sidebar no-scrollbar wood-panel">
-      <div *ngFor="let midi of getDisplayKeys()" class="key-item" [class.black-key]="isBlackKey(midi)" [style.height.px]="rowHeight()">
-        <span class="key-name font-mono text-[8px]">{{ getKeyName(midi) }}{{ Math.floor(midi / 12) - 1 }}</span>
+      <div
+        *ngFor="let midi of getDisplayKeys()"
+        class="key-item"
+        [class.black-key]="isBlackKey(midi)"
+        [style.height.px]="rowHeight()"
+      >
+        <span class="key-name font-mono text-[8px]"
+          >{{ getKeyName(midi) }}{{ Math.floor(midi / 12) - 1 }}</span
+        >
       </div>
     </div>
 
-    <div class="grid-viewport no-scrollbar glass-v42" #scrollContainer (mousedown)="onGridMouseDown($event)">
+    <div
+      class="grid-viewport no-scrollbar glass-v42"
+      #scrollContainer
+      (mousedown)="onGridMouseDown($event)"
+    >
       <div class="scanline-overlay"></div>
-      <div class="grid-canvas" [style.width.px]="gridWidth" [style.height.px]="128 * rowHeight()">
-        <div *ngFor="let midi of getDisplayKeys()" class="grid-row" [class.black-row]="isBlackKey(midi)" [style.height.px]="rowHeight()" [style.top.px]="(127 - midi) * rowHeight()"></div>
-        <div *ngFor="let note of viewportNotes()" class="note-block tactile-v42 executive-glass extreme-glow" [class.selected-note]="selectedNoteIds().has(note.id)" [style.left.px]="note.step * cellWidth()" [style.top.px]="(127 - note.midi) * rowHeight()" [style.width.px]="note.length * cellWidth()" [style.height.px]="rowHeight()" (mousedown)="onNoteMouseDown($event, note)"></div>
+      <div
+        class="grid-canvas"
+        [style.width.px]="gridWidth"
+        [style.height.px]="128 * rowHeight()"
+      >
+        <div
+          *ngFor="let midi of getDisplayKeys()"
+          class="grid-row"
+          [class.black-row]="isBlackKey(midi)"
+          [style.height.px]="rowHeight()"
+          [style.top.px]="(127 - midi) * rowHeight()"
+        ></div>
+        <div
+          *ngFor="let note of viewportNotes()"
+          class="note-block tactile-v42 executive-glass extreme-glow"
+          [class.selected-note]="selectedNoteIds().has(note.id)"
+          [style.left.px]="note.step * cellWidth()"
+          [style.top.px]="(127 - note.midi) * rowHeight()"
+          [style.width.px]="note.length * cellWidth()"
+          [style.height.px]="rowHeight()"
+          (mousedown)="onNoteMouseDown($event, note)"
+        ></div>
       </div>
     </div>
 
     <div class="note-params glass-v42 wood-panel no-scrollbar">
       <div class="neon-text-xs mb-4">NOTE PARAMS</div>
-      <app-knob label="VEL" [min]="0.1" [max]="1.5" [step]="0.05" [value]="0.8" (valueChange)="adjustSelectedVelocity($event - 0.8)"></app-knob>
-      <app-knob label="PROB" [min]="0" [max]="1" [step]="0.05" [value]="1.0" (valueChange)="setSelectedNoteProbability({target: {value: $event}})"></app-knob>
+      <app-knob
+        label="VEL"
+        [min]="0.1"
+        [max]="1.5"
+        [step]="0.05"
+        [value]="0.8"
+        (valueChange)="adjustSelectedVelocity($event - 0.8)"
+      ></app-knob>
+      <app-knob
+        label="PROB"
+        [min]="0"
+        [max]="1"
+        [step]="0.05"
+        [value]="1.0"
+        (valueChange)="
+          setSelectedNoteProbability({ target: { value: $event } })
+        "
+      ></app-knob>
     </div>
   </div>
 </div>

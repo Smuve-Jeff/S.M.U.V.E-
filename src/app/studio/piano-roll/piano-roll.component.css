@@ -41,12 +41,14 @@
   border-radius: 8px;
 }
 
-.tool-group, .action-group {
+.tool-group,
+.action-group {
   display: flex;
   gap: 4px;
 }
 
-.tool-group button, .action-group button {
+.tool-group button,
+.action-group button {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--color-border);
   color: #7a7a9a;
@@ -62,7 +64,8 @@
   font-weight: 800;
 }
 
-.tool-group button:hover, .action-group button:hover {
+.tool-group button:hover,
+.action-group button:hover {
   color: #fff;
   border-color: rgba(255, 255, 255, 0.2);
 }
@@ -185,14 +188,14 @@
   }
 
   .piano-roll-header {
-     height: auto;
-     flex-direction: column;
-     padding: 8px;
-     gap: 8px;
+    height: auto;
+    flex-direction: column;
+    padding: 8px;
+    gap: 8px;
   }
 
   .grid-col.beat-line {
-     border-right-width: 2px;
+    border-right-width: 2px;
   }
 }
 
@@ -210,7 +213,7 @@
 }
 
 .grid-viewport::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -254,8 +257,8 @@
   align-items: center;
   padding: 4px 10px;
   border-radius: 12px;
-  background: rgba(0,0,0,0.2);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .m-btn {
@@ -292,20 +295,20 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255,255,255,0.1);
-  transition: .4s;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: 0.4s;
   border-radius: 14px;
 }
 
 .slider-mini:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 10px;
   width: 10px;
   left: 2px;
   bottom: 2px;
   background-color: white;
-  transition: .4s;
+  transition: 0.4s;
   border-radius: 50%;
 }
 
