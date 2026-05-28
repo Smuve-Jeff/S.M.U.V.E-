@@ -1,36 +1,13 @@
 <div class="drum-machine-container glass-v42 retro-flicker shadow-v42-xl">
   <div class="drum-header wood-panel">
-    <div class="header-branding">
-      <div class="neon-text-sm neon-text">PRO DRUM MODULE v4.2</div>
-    </div>
+    <div class="header-branding"><div class="neon-text-sm neon-text">PRO DRUM MODULE v4.2</div></div>
     <div class="module-transport glass-v42">
       <div class="btn-group flex gap-1">
-        <button
-          class="m-btn tactile-v42"
-          (click)="
-            isLocalPlayback() ? toggleLocalPlay() : audioSession.togglePlay()
-          "
-        >
-          <span class="material-symbols-outlined text-sm">{{
-            (isLocalPlayback() ? isLocalPlaying() : audioSession.isPlaying())
-              ? 'pause'
-              : 'play_arrow'
-          }}</span>
+        <button class="m-btn tactile-v42" (click)="isLocalPlayback() ? toggleLocalPlay() : audioSession.togglePlay()">
+          <span class="material-symbols-outlined text-sm">{{ (isLocalPlayback() ? isLocalPlaying() : audioSession.isPlaying()) ? 'pause' : 'play_arrow' }}</span>
         </button>
-        <button
-          class="m-btn tactile-v42 rec"
-          [class.active]="
-            isLocalPlayback() ? isLocalRecording() : audioSession.isRecording()
-          "
-          (click)="
-            isLocalPlayback()
-              ? toggleLocalRecord()
-              : audioSession.toggleRecord()
-          "
-        >
-          <span class="material-symbols-outlined text-sm"
-            >fiber_manual_record</span
-          >
+        <button class="m-btn tactile-v42 rec" [class.active]="isLocalPlayback() ? isLocalRecording() : audioSession.isRecording()" (click)="isLocalPlayback() ? toggleLocalRecord() : audioSession.toggleRecord()">
+          <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
         </button>
       </div>
     </div>
@@ -39,26 +16,12 @@
     <div class="sequencer-viewport no-scrollbar glass-v42">
       <div class="sequencer-grid">
         <div *ngFor="let pad of pads()" class="sequencer-row">
-          <div
-            *ngFor="let step of pad.steps; let sIdx = index"
-            class="step-box tactile-v42"
-            [class.active]="step.active"
-            (click)="toggleStep(pad, sIdx)"
-          ></div>
+          <div *ngFor="let step of pad.steps; let sIdx = index" class="step-box tactile-v42" [class.active]="step.active" (click)="toggleStep(pad, sIdx)"></div>
         </div>
       </div>
     </div>
-    <div
-      class="param-inspector glass-v42 no-scrollbar shadow-v42-xl"
-      *ngIf="selectedPad() as pad"
-    >
-      <app-knob
-        label="PITCH"
-        [min]="-12"
-        [max]="12"
-        [value]="pad.params.semitone"
-        (valueChange)="pad.params.semitone = $event"
-      ></app-knob>
+    <div class="param-inspector glass-v42 no-scrollbar shadow-v42-xl" *ngIf="selectedPad() as pad">
+      <app-knob label="PITCH" [min]="-12" [max]="12" [value]="pad.params.semitone" (valueChange)="pad.params.semitone = $event"></app-knob>
     </div>
   </div>
 </div>

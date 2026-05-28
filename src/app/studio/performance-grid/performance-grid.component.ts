@@ -8,7 +8,7 @@ import { HapticService } from '../../services/haptic.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './performance-grid.component.html',
-  styleUrls: ['./performance-grid.component.css'],
+  styleUrls: ['./performance-grid.component.css']
 })
 export class PerformanceGridComponent {
   private musicManager = inject(MusicManagerService);
@@ -20,7 +20,7 @@ export class PerformanceGridComponent {
   toggleClip(trackId: number, clipIndex: number) {
     this.haptic.light();
     const clipKey = `${trackId}-${clipIndex}`;
-    this.activeClips.update((prev) => {
+    this.activeClips.update(prev => {
       const next = new Set(prev);
       if (next.has(clipKey)) {
         next.delete(clipKey);

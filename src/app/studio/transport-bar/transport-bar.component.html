@@ -48,22 +48,15 @@
             class="tempo-input font-mono"
             (click)="$event.stopPropagation()"
           />
-          <span class="material-symbols-outlined text-[10px] opacity-50"
-            >arrow_drop_down</span
-          >
+          <span class="material-symbols-outlined text-[10px] opacity-50">arrow_drop_down</span>
         </div>
         <button (click)="nudgeTempo(1)" class="nudge-btn">+</button>
       </div>
       <div class="neon-text-xs opacity-50">BPM</div>
 
       <!-- BPM Dropdown -->
-      <div
-        class="bpm-dropdown glass-v42 shadow-v42-xl"
-        *ngIf="showBpmDropdown()"
-      >
-        <div class="dropdown-header neon-text-xs border-b border-white/10 p-2">
-          PRESETS
-        </div>
+      <div class="bpm-dropdown glass-v42 shadow-v42-xl" *ngIf="showBpmDropdown()">
+        <div class="dropdown-header neon-text-xs border-b border-white/10 p-2">PRESETS</div>
         <div class="presets-grid grid grid-cols-3 gap-1 p-2">
           <button
             *ngFor="let bpm of bpmPresets"
@@ -88,9 +81,7 @@
         (input)="updateMasterVolume($event)"
         class="volume-slider extreme-glow"
       />
-      <span class="font-mono text-[10px] w-8 text-center"
-        >{{ masterVolume() }}%</span
-      >
+      <span class="font-mono text-[10px] w-8 text-center">{{ masterVolume() }}%</span>
     </div>
 
     <!-- Metronome -->

@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { AiService, UpgradeRecommendation } from '../ai.service';
+import {
+  AiService,
+  UpgradeRecommendation,
+} from '../ai.service';
 import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
 import { AnalyticsService } from '../analytics.service';
@@ -141,8 +144,6 @@ describe('AiService', () => {
     req.error(new ErrorEvent('Network error'));
 
     const response = await requestPromise;
-    expect(response).toBe(
-      'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.'
-    );
+    expect(response).toBe('Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.');
   });
 });

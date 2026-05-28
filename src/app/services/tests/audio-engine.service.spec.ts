@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { signal } from "@angular/core";
 import { TestBed } from '@angular/core/testing';
 import { AudioEngineService } from '../audio-engine.service';
 import { StemSeparationService } from '../stem-separation.service';
@@ -85,12 +85,8 @@ describe('AudioEngineService', () => {
     TestBed.configureTestingModule({
       providers: [
         AudioEngineService,
-        {
-          provide: StemSeparationService,
-          useValue: {
-            isRecording: signal(false),
-          },
-        },
+        { provide: StemSeparationService, useValue: {
+            isRecording: signal(false),} },
         {
           provide: StudioRecordingEngineService,
           useValue: {
@@ -189,18 +185,10 @@ describe('AudioEngineService', () => {
       release: 0.3,
     });
 
-    const oscillators = mockAudioContext.createOscillator.mock.results.map(
-      (r: any) => r.value
-    );
-    const osc =
-      oscillators.find((o: any) => o.type === 'square') || oscillators.at(-1);
-    const gains = mockAudioContext.createGain.mock.results.map(
-      (r: any) => r.value
-    );
-    const vca =
-      gains.find(
-        (g: any) => g.gain.linearRampToValueAtTime.mock.calls.length > 0
-      ) || gains.at(-1);
+    const oscillators = mockAudioContext.createOscillator.mock.results.map((r: any) => r.value);
+    const osc = oscillators.find((o: any) => o.type === 'square') || oscillators.at(-1);
+    const gains = mockAudioContext.createGain.mock.results.map((r: any) => r.value);
+    const vca = gains.find((g: any) => g.gain.linearRampToValueAtTime.mock.calls.length > 0) || gains.at(-1);
     const panner =
       mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
 
@@ -231,13 +219,8 @@ describe('AudioEngineService', () => {
 
     const source =
       mockAudioContext.createBufferSource.mock.results.at(-1)?.value;
-    const gains = mockAudioContext.createGain.mock.results.map(
-      (r: any) => r.value
-    );
-    const vca =
-      gains.find(
-        (g: any) => g.gain.linearRampToValueAtTime.mock.calls.length > 0
-      ) || gains.at(-1);
+    const gains = mockAudioContext.createGain.mock.results.map((r: any) => r.value);
+    const vca = gains.find((g: any) => g.gain.linearRampToValueAtTime.mock.calls.length > 0) || gains.at(-1);
     const panner =
       mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
 
@@ -261,11 +244,8 @@ describe('AudioEngineService', () => {
     expect(scheduled).toHaveBeenNthCalledWith(2, 1, 0.175, 0.125);
     expect(service.currentBeat()).toBe(1 / 4);
 
-    const oscillators = mockAudioContext.createOscillator.mock.results.map(
-      (r: any) => r.value
-    );
-    const osc =
-      oscillators.find((o: any) => o.type === 'square') || oscillators.at(-1);
+    const oscillators = mockAudioContext.createOscillator.mock.results.map((r: any) => r.value);
+    const osc = oscillators.find((o: any) => o.type === 'square') || oscillators.at(-1);
     expect(osc.frequency.value).toBe(1200);
   });
 

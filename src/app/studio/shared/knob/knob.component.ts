@@ -1,13 +1,4 @@
-import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
-  ElementRef,
-  ViewChild,
-  HostListener,
-  signal,
-} from '@angular/core';
+import { Component, Input, Output, EventEmitter, ElementRef, ViewChild, HostListener, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -15,18 +6,10 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div
-      class="knob-wrapper"
-      #knobWrapper
-      (mousedown)="startDrag($event)"
-      (touchstart)="startDrag($event)"
-    >
+    <div class="knob-wrapper" #knobWrapper (mousedown)="startDrag($event)" (touchstart)="startDrag($event)">
       <div class="knob-label" *ngIf="label">{{ label }}</div>
       <div class="knob-outer shadow-v42-xl">
-        <div
-          class="knob-face"
-          [style.transform]="'rotate(' + rotation() + 'deg)'"
-        >
+        <div class="knob-face" [style.transform]="'rotate(' + rotation() + 'deg)'">
           <div class="knob-indicator"></div>
           <div class="knob-center-cap"></div>
         </div>
@@ -35,101 +18,95 @@ import { CommonModule } from '@angular/common';
       <div class="knob-value" *ngIf="showValue">{{ displayValue() }}</div>
     </div>
   `,
-  styles: [
-    `
-      :host {
-        display: inline-block;
-      }
-      .knob-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 6px;
-        user-select: none;
-        touch-action: none;
-      }
+  styles: [`
+    :host { display: inline-block; }
+    .knob-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+      touch-action: none;
+    }
+    .knob-outer {
+      width: 52px;
+      height: 52px;
+      position: relative;
+      cursor: ns-resize;
+    }
+    .knob-face {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+      border: 2px solid rgba(255, 255, 255, 0.05);
+      position: relative;
+      z-index: 2;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.1);
+      transition: border-color 0.2s;
+    }
+    .knob-outer:hover .knob-face {
+      border-color: rgba(236, 91, 19, 0.4);
+    }
+    .knob-indicator {
+      width: 3px;
+      height: 10px;
+      background: #ec5b13;
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 2px;
+      box-shadow: 0 0 10px #ec5b13;
+    }
+    .knob-center-cap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #111;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .knob-ring {
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      right: -4px;
+      bottom: -4px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.03);
+      z-index: 1;
+    }
+    .knob-label {
+      font-size: 8px;
+      font-weight: 900;
+      color: #7a7a9a;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .knob-value {
+      font-family: 'Geist Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      color: #ec5b13;
+      background: rgba(0,0,0,0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+      min-width: 40px;
+      text-align: center;
+      border: 1px solid rgba(236, 91, 19, 0.1);
+    }
+    @media (max-width: 640px) {
       .knob-outer {
-        width: 52px;
-        height: 52px;
-        position: relative;
-        cursor: ns-resize;
+        width: 48px;
+        height: 48px;
       }
-      .knob-face {
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
-        border: 2px solid rgba(255, 255, 255, 0.05);
-        position: relative;
-        z-index: 2;
-        box-shadow:
-          0 4px 10px rgba(0, 0, 0, 0.5),
-          inset 0 1px 1px rgba(255, 255, 255, 0.1);
-        transition: border-color 0.2s;
-      }
-      .knob-outer:hover .knob-face {
-        border-color: rgba(236, 91, 19, 0.4);
-      }
-      .knob-indicator {
-        width: 3px;
-        height: 10px;
-        background: #ec5b13;
-        position: absolute;
-        top: 6px;
-        left: 50%;
-        transform: translateX(-50%);
-        border-radius: 2px;
-        box-shadow: 0 0 10px #ec5b13;
-      }
-      .knob-center-cap {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: #111;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-      }
-      .knob-ring {
-        position: absolute;
-        top: -4px;
-        left: -4px;
-        right: -4px;
-        bottom: -4px;
-        border-radius: 50%;
-        border: 1px solid rgba(255, 255, 255, 0.03);
-        z-index: 1;
-      }
-      .knob-label {
-        font-size: 8px;
-        font-weight: 900;
-        color: #7a7a9a;
-        text-transform: uppercase;
-        letter-spacing: 0.15em;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-      }
-      .knob-value {
-        font-family: 'Geist Mono', monospace;
-        font-size: 9px;
-        font-weight: 700;
-        color: #ec5b13;
-        background: rgba(0, 0, 0, 0.4);
-        padding: 2px 6px;
-        border-radius: 4px;
-        min-width: 40px;
-        text-align: center;
-        border: 1px solid rgba(236, 91, 19, 0.1);
-      }
-      @media (max-width: 640px) {
-        .knob-outer {
-          width: 48px;
-          height: 48px;
-        }
-      }
-    `,
-  ],
+    }
+  `]
 })
 export class KnobComponent {
   @Input() label = '';
@@ -161,8 +138,7 @@ export class KnobComponent {
 
   startDrag(event: MouseEvent | TouchEvent) {
     this.isDragging = true;
-    this.startY =
-      event instanceof MouseEvent ? event.clientY : event.touches[0].clientY;
+    this.startY = event instanceof MouseEvent ? event.clientY : event.touches[0].clientY;
     this.startValue = this.value;
   }
 
@@ -171,8 +147,7 @@ export class KnobComponent {
   onDrag(event: MouseEvent | TouchEvent) {
     if (!this.isDragging) return;
 
-    const currentY =
-      event instanceof MouseEvent ? event.clientY : event.touches[0].clientY;
+    const currentY = event instanceof MouseEvent ? event.clientY : event.touches[0].clientY;
     const deltaY = this.startY - currentY;
     const range = this.max - this.min;
     const sensitivity = 200;
@@ -198,7 +173,7 @@ export class KnobComponent {
   private updateFromValue(val: number) {
     const range = this.max - this.min;
     const percent = range === 0 ? 0.5 : (val - this.min) / range;
-    const rot = -135 + percent * 270;
+    const rot = -135 + (percent * 270);
     this.rotation.set(rot);
 
     const formatted = val % 1 === 0 ? val.toString() : val.toFixed(1);

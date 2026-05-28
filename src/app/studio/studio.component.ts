@@ -96,9 +96,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showNeuralFoundry = signal(false);
 
   studioQualityClass = computed(() => {
-    return this.audioEngine.performanceTier() === 'ultra'
-      ? 'studio-ultra'
-      : 'studio-perf';
+    return this.audioEngine.performanceTier() === 'ultra' ? 'studio-ultra' : 'studio-perf';
   });
 
   constructor() {

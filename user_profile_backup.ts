@@ -1,3 +1,4 @@
+
 import { Injectable, inject, signal, Injector } from '@angular/core';
 import { LoggingService } from './logging.service';
 import { DatabaseService } from './database.service';
@@ -32,16 +33,8 @@ export class UserProfileService {
     try { await this.db.saveUserProfile(next, 'current'); } catch (e) {}
   }
 
-  async acquireUpgrade(u: any) {
-    const p = this.profile();
-    if (u.type === 'Gear') p.equipment.push(u.title);
-    if (u.type === 'Software') p.daw.push(u.title);
-    if (u.type === 'Service') p.services.push(u.title);
-    await this.updateProfile(p);
-  }
-  async completeUpgrade(u: any) {
-    await this.acquireUpgrade(u);
-  }
+  async acquireUpgrade(u: any) {}
+  async completeUpgrade(u: any) {}
   async updateExpertise(u: Partial<ExpertiseLevels>) { await this.updateProfile({ expertise: { ...this.profile().expertise, ...u } }); }
   async addTeamMember(m: any) {}
   async updateFinancials(u: Partial<ProfessionalFinancials>) { await this.updateProfile({ financials: { ...this.profile().financials, ...u } }); }

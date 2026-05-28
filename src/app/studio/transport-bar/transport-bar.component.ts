@@ -54,7 +54,7 @@ export class TransportBarComponent {
   }
 
   toggleBpmDropdown(): void {
-    this.showBpmDropdown.update((v) => !v);
+    this.showBpmDropdown.update(v => !v);
   }
 
   onTempoInput(event: Event): void {

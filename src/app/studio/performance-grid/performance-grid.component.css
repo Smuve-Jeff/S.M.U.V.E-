@@ -39,7 +39,7 @@
 .track-header {
   text-align: center;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255,255,255,0.03);
   border-radius: 6px;
   margin-bottom: 4px;
 }
@@ -55,9 +55,9 @@
 }
 
 .clip-cell.active {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255,255,255,0.08);
   border-color: #fff;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 20px rgba(255,255,255,0.1);
 }
 
 .clip-led {

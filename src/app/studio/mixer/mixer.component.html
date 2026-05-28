@@ -1,55 +1,18 @@
-<div
-  class="mixer-container glass-v42 shadow-v42-xl flex flex-col h-full bg-slate-900 font-sans overflow-hidden"
->
+<div class="mixer-container glass-v42 shadow-v42-xl flex flex-col h-full bg-slate-900 font-sans overflow-hidden">
   <div class="mixer-header wood-panel flex items-center justify-between p-3">
-    <h3
-      class="text-[10px] font-black uppercase tracking-[0.2em] text-fl-blue neon-text"
-    >
-      Pro Console v4.2
-    </h3>
+    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-fl-blue neon-text">Pro Console v4.2</h3>
     <div class="module-transport glass-v42">
-      <button class="m-btn tactile-v42" (click)="audioSession.togglePlay()">
-        <span class="material-symbols-outlined text-sm">{{
-          audioSession.isPlaying() ? 'pause' : 'play_arrow'
-        }}</span>
-      </button>
+      <button class="m-btn tactile-v42" (click)="audioSession.togglePlay()"><span class="material-symbols-outlined text-sm">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span></button>
     </div>
   </div>
   <div class="flex-1 flex overflow-x-auto no-scrollbar p-4 gap-3 bg-black/20">
-    <div
-      *ngFor="let track of tracks()"
-      class="mixer-strip group flex flex-col items-center bg-white/[0.02] border border-fl-border/20 rounded-xl transition-all"
-      (click)="selectTrack(track.id)"
-    >
-      <div
-        class="flex-1 flex flex-row items-center justify-center relative w-full pt-4 px-2"
-      >
-        <input
-          type="range"
-          orient="vertical"
-          min="0"
-          max="150"
-          [value]="gainPercent(track)"
-          (input)="updateTrackVolume(track.id, $any($event.target).value)"
-          class="pro-fader-input"
-        />
+    <div *ngFor="let track of tracks()" class="mixer-strip group flex flex-col items-center bg-white/[0.02] border border-fl-border/20 rounded-xl transition-all" (click)="selectTrack(track.id)">
+      <div class="flex-1 flex flex-row items-center justify-center relative w-full pt-4 px-2">
+        <input type="range" orient="vertical" min="0" max="150" [value]="gainPercent(track)" (input)="updateTrackVolume(track.id, $any($event.target).value)" class="pro-fader-input" />
       </div>
-      <div
-        class="w-full p-3 bg-black/40 rounded-b-xl border-t border-fl-border/10 space-y-4"
-      >
-        <app-knob
-          label="PAN"
-          [min]="-100"
-          [max]="100"
-          [value]="panPercent(track)"
-          [showValue]="false"
-          (valueChange)="updateTrackPan(track.id, $event)"
-        ></app-knob>
-        <div class="text-center pb-1">
-          <div class="text-[8px] font-black text-slate-200 truncate uppercase">
-            {{ track.name }}
-          </div>
-        </div>
+      <div class="w-full p-3 bg-black/40 rounded-b-xl border-t border-fl-border/10 space-y-4">
+        <app-knob label="PAN" [min]="-100" [max]="100" [value]="panPercent(track)" [showValue]="false" (valueChange)="updateTrackPan(track.id, $event)"></app-knob>
+        <div class="text-center pb-1"><div class="text-[8px] font-black text-slate-200 truncate uppercase">{{ track.name }}</div></div>
       </div>
     </div>
   </div>

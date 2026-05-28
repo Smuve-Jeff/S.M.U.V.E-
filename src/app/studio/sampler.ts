@@ -1,8 +1,8 @@
 export interface Slice {
   id: string;
   start: number; // in seconds
-  end: number; // in seconds
-  midi: number; // mapped midi note
+  end: number;   // in seconds
+  midi: number;  // mapped midi note
 }
 
 export class Sampler {
@@ -60,13 +60,13 @@ export class Sampler {
       if (Math.abs(data[i]) > threshold) {
         const time = i / buffer.sampleRate;
         if (time - sliceStart > 0.1) {
-          slices.push({
-            id: Math.random().toString(36).substr(2, 9),
-            start: sliceStart,
-            end: time,
-            midi: 60 + slices.length,
-          });
-          sliceStart = time;
+           slices.push({
+             id: Math.random().toString(36).substr(2, 9),
+             start: sliceStart,
+             end: time,
+             midi: 60 + slices.length
+           });
+           sliceStart = time;
         }
       }
     }

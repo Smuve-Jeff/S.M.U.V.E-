@@ -29,16 +29,14 @@ export class PermissionService {
       name: 'notifications',
       label: 'Notifications',
       icon: '🔔',
-      description:
-        'Enables system alerts for export completion and cloud sync status.',
+      description: 'Enables system alerts for export completion and cloud sync status.',
       status: 'prompt',
     },
     {
       name: 'clipboard-read',
       label: 'Clipboard access',
       icon: '📋',
-      description:
-        'Allows pasting of samples, presets, and neural data directly into the shell.',
+      description: 'Allows pasting of samples, presets, and neural data directly into the shell.',
       status: 'prompt',
     },
     {
@@ -52,8 +50,7 @@ export class PermissionService {
       name: 'geolocation',
       label: 'Geospatial Context',
       icon: '📍',
-      description:
-        'Used for localized market intel and touring proximity analysis.',
+      description: 'Used for localized market intel and touring proximity analysis.',
       status: 'prompt',
     },
   ]);
@@ -64,9 +61,7 @@ export class PermissionService {
 
   async refreshAllStatuses() {
     if (typeof navigator === 'undefined' || !navigator.permissions) {
-      this.permissions.update((ps) =>
-        ps.map((p) => ({ ...p, status: 'unsupported' }))
-      );
+      this.permissions.update(ps => ps.map(p => ({ ...p, status: 'unsupported' })));
       return;
     }
 
@@ -89,10 +84,8 @@ export class PermissionService {
   async requestPermission(name: string): Promise<boolean> {
     try {
       if (name === 'microphone') {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        stream.getTracks().forEach((t) => t.stop());
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop());
       } else if (name === 'notifications') {
         const status = await Notification.requestPermission();
         this.refreshAllStatuses();
@@ -100,23 +93,15 @@ export class PermissionService {
       } else if (name === 'geolocation') {
         return new Promise((resolve) => {
           navigator.geolocation.getCurrentPosition(
-            () => {
-              resolve(true);
-              this.refreshAllStatuses();
-            },
-            () => {
-              resolve(false);
-              this.refreshAllStatuses();
-            }
+            () => { resolve(true); this.refreshAllStatuses(); },
+            () => { resolve(false); this.refreshAllStatuses(); }
           );
         });
       }
 
       // For others, we refresh status as many are auto-granted or triggered by other actions
       await this.refreshAllStatuses();
-      return (
-        this.permissions().find((p) => p.name === name)?.status === 'granted'
-      );
+      return this.permissions().find(p => p.name === name)?.status === 'granted';
     } catch (e) {
       this.logger.error(`Failed to request permission: ${name}`, e);
       return false;

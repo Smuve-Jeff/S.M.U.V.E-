@@ -759,23 +759,19 @@ body.glow-active::before {
 /* Tactile V4.2 Refinements - Global */
 .tactile-v42 {
   position: relative;
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(0, 0, 0, 0.1) 100%
-  );
+  background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.1) 100%);
   box-shadow:
-    2px 2px 4px rgba(0, 0, 0, 0.4),
-    -1px -1px 2px rgba(255, 255, 255, 0.05),
-    inset 1px 1px 1px rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+    2px 2px 4px rgba(0,0,0,0.4),
+    -1px -1px 2px rgba(255,255,255,0.05),
+    inset 1px 1px 1px rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.05);
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tactile-v42:active {
   box-shadow:
-    inset 2px 2px 4px rgba(0, 0, 0, 0.6),
-    inset -1px -1px 2px rgba(255, 255, 255, 0.05);
+    inset 2px 2px 4px rgba(0,0,0,0.6),
+    inset -1px -1px 2px rgba(255,255,255,0.05);
   transform: translateY(1px);
 }
 
@@ -800,18 +796,18 @@ body.glow-active::before {
 .knob-v42 {
   background: radial-gradient(circle at 30% 30%, #2a2a35, #0f0f14);
   box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.6),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.1),
-    inset -2px -2px 4px rgba(0, 0, 0, 0.4);
+    0 4px 8px rgba(0,0,0,0.6),
+    inset 2px 2px 4px rgba(255,255,255,0.1),
+    inset -2px -2px 4px rgba(0,0,0,0.4);
   border: 2px solid #1a1a24;
 }
 
 .fader-cap-v42 {
   background: linear-gradient(to right, #1a1a24, #2a2a35, #1a1a24);
   box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.7),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+    0 4px 12px rgba(0,0,0,0.7),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.05);
   border-radius: 4px;
 }
 
@@ -828,18 +824,9 @@ body.glow-active::before {
 }
 
 @keyframes neon-pulse {
-  0% {
-    opacity: 0.8;
-    filter: brightness(1);
-  }
-  50% {
-    opacity: 1;
-    filter: brightness(1.3) blur(1px);
-  }
-  100% {
-    opacity: 0.8;
-    filter: brightness(1);
-  }
+  0% { opacity: 0.8; filter: brightness(1); }
+  50% { opacity: 1; filter: brightness(1.3) blur(1px); }
+  100% { opacity: 0.8; filter: brightness(1); }
 }
 
 .animate-neon {
@@ -847,11 +834,7 @@ body.glow-active::before {
 }
 
 /* Performance Optimizations for 60FPS on Android */
-.fader-cap-v42,
-.knob-v42,
-.note-block,
-.clip-cell,
-.mobile-nav-item {
+.fader-cap-v42, .knob-v42, .note-block, .clip-cell, .mobile-nav-item {
   will-change: transform;
   transform: translateZ(0);
 }
@@ -865,9 +848,7 @@ body.glow-active::before {
 }
 
 .tactile-v42 {
-  transition:
-    transform 0.1s ease-out,
-    filter 0.1s ease-out;
+  transition: transform 0.1s ease-out, filter 0.1s ease-out;
 }
 
 .tactile-v42:active {
@@ -875,7 +856,7 @@ body.glow-active::before {
   filter: brightness(1.2);
 }
 
-input[type='range'].tactile-v42::-webkit-slider-thumb {
+input[type="range"].tactile-v42::-webkit-slider-thumb {
   width: 20px;
   height: 20px;
   background: var(--color-neon);

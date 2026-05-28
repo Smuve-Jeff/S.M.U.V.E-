@@ -302,11 +302,11 @@
 
 .resize-handle.right {
   right: 0;
-  background: linear-gradient(to left, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(to left, rgba(255,255,255,0.1), transparent);
 }
 
 .resize-handle:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255,255,255,0.2) !important;
 }
 
 .clip-item:hover {
@@ -314,16 +314,12 @@
 }
 
 .automation-lane {
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.02),
-    transparent
-  );
+  background: linear-gradient(to bottom, rgba(255,255,255,0.02), transparent);
   transition: background 0.2s;
 }
 
 .automation-lane:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255,255,255,0.05);
 }
 
 .automation-lane circle {

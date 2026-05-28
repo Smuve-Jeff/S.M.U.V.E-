@@ -1,9 +1,7 @@
 <div class="dj-3d-stage" [class.flat-view]="isFlatView()">
   <!-- Top Bar / Global Controls -->
   <div class="dj-top-bar wood-panel">
-    <div class="logo neon-text font-black">
-      SMUVE <span class="neon-accent-secondary">3D</span>
-    </div>
+    <div class="logo neon-text font-black">SMUVE <span class="neon-accent-secondary">3D</span></div>
     <div class="session-notice" [class.active]="sessionNotice()">
       {{ sessionNotice() }}
     </div>
@@ -17,11 +15,7 @@
           </span>
         </button>
         <button class="m-btn tactile-v42" (click)="toggleRecording()">
-          <span
-            class="material-symbols-outlined text-sm"
-            [class.text-red-500]="recording()"
-            >fiber_manual_record</span
-          >
+          <span class="material-symbols-outlined text-sm" [class.text-red-500]="recording()">fiber_manual_record</span>
         </button>
         <button class="m-btn tactile-v42" (click)="loadTrackFor('A')">
           <span class="material-symbols-outlined text-sm">upload</span>
@@ -30,18 +24,10 @@
     </div>
 
     <div class="global-actions">
-      <button
-        (click)="saveSessionSnapshot()"
-        class="tactile-v42"
-        title="Save Session"
-      >
+      <button (click)="saveSessionSnapshot()" class="tactile-v42" title="Save Session">
         <span class="material-symbols-outlined">save</span>
       </button>
-      <button
-        (click)="exportSessionSnapshot()"
-        class="tactile-v42"
-        title="Export JSON"
-      >
+      <button (click)="exportSessionSnapshot()" class="tactile-v42" title="Export JSON">
         <span class="material-symbols-outlined">ios_share</span>
       </button>
       <button
@@ -137,40 +123,12 @@
     <div class="mixer-section">
       <div class="mixer-chassis">
         <div class="mixer-channel">
-          <app-knob
-            label="GAIN"
-            [min]="0"
-            [max]="1.5"
-            [step]="0.01"
-            [value]="deckService.deckA().gain"
-            (valueChange)="setGain('A', $event)"
-          ></app-knob>
+          <app-knob label="GAIN" [min]="0" [max]="1.5" [step]="0.01" [value]="deckService.deckA().gain" (valueChange)="setGain('A', $event)"></app-knob>
 
           <div class="eq-knobs-elite mt-4">
-            <app-knob
-              label="HI"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckA().eqHigh"
-              (valueChange)="updateEq('A', 'high', $event)"
-            ></app-knob>
-            <app-knob
-              label="MID"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckA().eqMid"
-              (valueChange)="updateEq('A', 'mid', $event)"
-            ></app-knob>
-            <app-knob
-              label="LOW"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckA().eqLow"
-              (valueChange)="updateEq('A', 'low', $event)"
-            ></app-knob>
+            <app-knob label="HI" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckA().eqHigh" (valueChange)="updateEq('A', 'high', $event)"></app-knob>
+            <app-knob label="MID" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckA().eqMid" (valueChange)="updateEq('A', 'mid', $event)"></app-knob>
+            <app-knob label="LOW" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckA().eqLow" (valueChange)="updateEq('A', 'low', $event)"></app-knob>
           </div>
 
           <div class="channel-fader-elite mt-6">
@@ -199,13 +157,7 @@
                 [style.height.%]="getDeckLevel('B') * 100"
               ></div>
             </div>
-            <app-knob
-              [min]="0"
-              [max]="1.2"
-              [step]="0.01"
-              [value]="masterVolume()"
-              (valueChange)="setMasterVolume($event)"
-            ></app-knob>
+            <app-knob [min]="0" [max]="1.2" [step]="0.01" [value]="masterVolume()" (valueChange)="setMasterVolume($event)"></app-knob>
           </div>
 
           <div class="crossfader-container-elite mt-8">
@@ -221,40 +173,12 @@
         </div>
 
         <div class="mixer-channel">
-          <app-knob
-            label="GAIN"
-            [min]="0"
-            [max]="1.5"
-            [step]="0.01"
-            [value]="deckService.deckB().gain"
-            (valueChange)="setGain('B', $event)"
-          ></app-knob>
+          <app-knob label="GAIN" [min]="0" [max]="1.5" [step]="0.01" [value]="deckService.deckB().gain" (valueChange)="setGain('B', $event)"></app-knob>
 
           <div class="eq-knobs-elite mt-4">
-            <app-knob
-              label="HI"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckB().eqHigh"
-              (valueChange)="updateEq('B', 'high', $event)"
-            ></app-knob>
-            <app-knob
-              label="MID"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckB().eqMid"
-              (valueChange)="updateEq('B', 'mid', $event)"
-            ></app-knob>
-            <app-knob
-              label="LOW"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckB().eqLow"
-              (valueChange)="updateEq('B', 'low', $event)"
-            ></app-knob>
+            <app-knob label="HI" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckB().eqHigh" (valueChange)="updateEq('B', 'high', $event)"></app-knob>
+            <app-knob label="MID" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckB().eqMid" (valueChange)="updateEq('B', 'mid', $event)"></app-knob>
+            <app-knob label="LOW" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckB().eqLow" (valueChange)="updateEq('B', 'low', $event)"></app-knob>
           </div>
 
           <div class="channel-fader-elite mt-6">

@@ -1,11 +1,5 @@
 .fl-meter-pro {
-  background: linear-gradient(
-    90deg,
-    #10b981 0%,
-    #10b981 70%,
-    #fbbf24 85%,
-    #ef4444 100%
-  );
+  background: linear-gradient(90deg, #10b981 0%, #10b981 70%, #fbbf24 85%, #ef4444 100%);
 }
 
 .recording-pulse {
@@ -13,11 +7,6 @@
 }
 
 @keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }

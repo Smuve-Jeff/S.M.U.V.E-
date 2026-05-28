@@ -447,83 +447,33 @@
 
       <!-- Security Section -->
       <!-- Security Score Dashboard -->
-      <div
-        class="bg-background-alt/40 p-6 rounded-3xl border border-border flex flex-col md:flex-row items-center gap-8 mb-8"
-      >
+      <div class="bg-background-alt/40 p-6 rounded-3xl border border-border flex flex-col md:flex-row items-center gap-8 mb-8">
         <div class="relative w-32 h-32 flex items-center justify-center">
           <svg class="w-full h-full transform -rotate-90">
-            <circle
-              cx="64"
-              cy="64"
-              r="58"
-              stroke="currentColor"
-              stroke-width="8"
-              fill="transparent"
-              class="text-background-alt"
-            ></circle>
-            <circle
-              cx="64"
-              cy="64"
-              r="58"
-              stroke="currentColor"
-              stroke-width="8"
-              fill="transparent"
+            <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" class="text-background-alt"></circle>
+            <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent"
               [attr.stroke-dasharray]="364"
-              [attr.stroke-dashoffset]="
-                364 - (364 * securityAudit().score) / 100
-              "
-              [class]="
-                securityAudit().status === 'FORTIFIED'
-                  ? 'text-brand-primary'
-                  : securityAudit().status === 'VULNERABLE'
-                    ? 'text-yellow-500'
-                    : 'text-red-500'
-              "
-              class="transition-all duration-1000 ease-out"
-            ></circle>
+              [attr.stroke-dashoffset]="364 - (364 * securityAudit().score / 100)"
+              [class]="securityAudit().status === 'FORTIFIED' ? 'text-brand-primary' : (securityAudit().status === 'VULNERABLE' ? 'text-yellow-500' : 'text-red-500')"
+              class="transition-all duration-1000 ease-out"></circle>
           </svg>
           <div class="absolute flex flex-col items-center">
-            <span class="text-2xl font-black text-text-main">{{
-              securityAudit().score
-            }}</span>
-            <span
-              class="text-[8px] font-bold uppercase tracking-widest text-text-dim"
-              >Score</span
-            >
+            <span class="text-2xl font-black text-text-main">{{securityAudit().score}}</span>
+            <span class="text-[8px] font-bold uppercase tracking-widest text-text-dim">Score</span>
           </div>
         </div>
         <div class="flex-1 text-center md:text-left">
-          <h2
-            class="text-xl font-black uppercase tracking-tight mb-2"
-            [class]="
-              securityAudit().status === 'FORTIFIED'
-                ? 'text-brand-primary'
-                : securityAudit().status === 'VULNERABLE'
-                  ? 'text-yellow-500'
-                  : 'text-red-500'
-            "
-          >
-            {{ securityAudit().status }}_PROTOCOL
+          <h2 class="text-xl font-black uppercase tracking-tight mb-2" [class]="securityAudit().status === 'FORTIFIED' ? 'text-brand-primary' : (securityAudit().status === 'VULNERABLE' ? 'text-yellow-500' : 'text-red-500')">
+            {{securityAudit().status}}_PROTOCOL
           </h2>
           <div class="flex flex-col gap-2">
-            <div
-              *ngFor="let alert of securityAudit().alerts"
-              class="text-[10px] font-bold uppercase tracking-tighter flex items-center gap-2"
-            >
-              <span
-                class="w-1.5 h-1.5 rounded-full"
-                [class]="
-                  alert.includes('CRITICAL') ? 'bg-red-500' : 'bg-yellow-500'
-                "
-              ></span>
-              {{ alert }}
+            <div *ngFor="let alert of securityAudit().alerts" class="text-[10px] font-bold uppercase tracking-tighter flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full" [class]="alert.includes('CRITICAL') ? 'bg-red-500' : 'bg-yellow-500'"></span>
+              {{alert}}
             </div>
           </div>
         </div>
-        <button
-          (click)="exportData()"
-          class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
-        >
+        <button (click)="exportData()" class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors">
           Download_Data_Export
         </button>
       </div>
@@ -732,187 +682,95 @@
       </div>
 
       <!-- Permissions Management -->
-      <div
-        *ngIf="activeTab() === 'permissions'"
-        class="flex flex-col gap-8 animate-enter"
-      >
+      <div *ngIf="activeTab() === 'permissions'" class="flex flex-col gap-8 animate-enter">
         <div class="bg-background-alt/30 p-6 rounded-3xl border border-border">
-          <h4
-            class="text-sm font-black text-text-main uppercase tracking-widest mb-6 flex items-center"
-          >
-            <span class="w-1 h-4 bg-brand-primary mr-2"></span>
-            System_Permission_Matrix
+          <h4 class="text-sm font-black text-text-main uppercase tracking-widest mb-6 flex items-center">
+            <span class="w-1 h-4 bg-brand-primary mr-2"></span> System_Permission_Matrix
           </h4>
 
           <div class="permissions-grid">
-            <div
-              *ngFor="let p of permissionService.permissions()"
-              class="p-4 bg-background/40 rounded-2xl border border-border/50 flex flex-col gap-3"
-            >
+            <div *ngFor="let p of permissionService.permissions()" class="p-4 bg-background/40 rounded-2xl border border-border/50 flex flex-col gap-3">
               <div class="flex justify-between items-start">
                 <div class="flex items-center gap-3">
-                  <span class="text-2xl">{{ p.icon }}</span>
+                  <span class="text-2xl">{{p.icon}}</span>
                   <div>
-                    <h5 class="text-xs font-black text-text-main uppercase">
-                      {{ p.label }}
-                    </h5>
+                    <h5 class="text-xs font-black text-text-main uppercase">{{p.label}}</h5>
                     <div class="flex items-center gap-1.5">
-                      <span
-                        class="w-1.5 h-1.5 rounded-full"
-                        [class]="
-                          p.status === 'granted'
-                            ? 'bg-green-500'
-                            : p.status === 'denied'
-                              ? 'bg-red-500'
-                              : 'bg-yellow-500'
-                        "
-                      ></span>
-                      <span
-                        class="text-[9px] font-bold uppercase tracking-widest text-text-dim"
-                        >{{ p.status }}</span
-                      >
+                      <span class="w-1.5 h-1.5 rounded-full"
+                        [class]="p.status === 'granted' ? 'bg-green-500' : (p.status === 'denied' ? 'bg-red-500' : 'bg-yellow-500')"></span>
+                      <span class="text-[9px] font-bold uppercase tracking-widest text-text-dim">{{p.status}}</span>
                     </div>
                   </div>
                 </div>
-                <button
-                  *ngIf="p.status !== 'granted' && p.status !== 'unsupported'"
+                <button *ngIf="p.status !== 'granted' && p.status !== 'unsupported'"
                   (click)="requestPermission(p.name)"
-                  class="px-3 py-1 bg-brand-primary text-white text-[9px] font-black uppercase rounded-lg hover:bg-brand-primary-alt transition-colors"
-                >
+                  class="px-3 py-1 bg-brand-primary text-white text-[9px] font-black uppercase rounded-lg hover:bg-brand-primary-alt transition-colors">
                   Enable
                 </button>
               </div>
-              <p class="text-[10px] text-text-dim leading-relaxed">
-                {{ p.description }}
-              </p>
+              <p class="text-[10px] text-text-dim leading-relaxed">{{p.description}}</p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Storage Management -->
-      <div
-        *ngIf="activeTab() === 'storage'"
-        class="flex flex-col gap-8 animate-enter"
-      >
+      <div *ngIf="activeTab() === 'storage'" class="flex flex-col gap-8 animate-enter">
         <div class="bg-background-alt/30 p-8 rounded-3xl border border-border">
-          <h4
-            class="text-sm font-black text-text-main uppercase tracking-widest mb-8 flex items-center"
-          >
-            <span class="w-1 h-4 bg-brand-secondary mr-2"></span>
-            Local_Storage_Analytics
+          <h4 class="text-sm font-black text-text-main uppercase tracking-widest mb-8 flex items-center">
+            <span class="w-1 h-4 bg-brand-secondary mr-2"></span> Local_Storage_Analytics
           </h4>
 
-          <div
-            class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8"
-            *ngIf="storageStats()"
-          >
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8" *ngIf="storageStats()">
             <div class="flex flex-col gap-2">
-              <span
-                class="text-[9px] font-bold text-text-dim uppercase tracking-widest"
-                >Total Quota</span
-              >
-              <span class="text-2xl font-black text-text-main"
-                >{{
-                  (storageStats()?.totalBytes || 0) / 1024 / 1024 / 1024
-                    | number: '1.1-1'
-                }}
-                GB</span
-              >
+              <span class="text-[9px] font-bold text-text-dim uppercase tracking-widest">Total Quota</span>
+              <span class="text-2xl font-black text-text-main">{{(storageStats()?.totalBytes || 0) / 1024 / 1024 / 1024 | number:'1.1-1'}} GB</span>
             </div>
             <div class="flex flex-col gap-2">
-              <span
-                class="text-[9px] font-bold text-text-dim uppercase tracking-widest"
-                >Used Space</span
-              >
-              <span class="text-2xl font-black text-brand-secondary"
-                >{{
-                  (storageStats()?.usedBytes || 0) / 1024 / 1024
-                    | number: '1.0-0'
-                }}
-                MB</span
-              >
+              <span class="text-[9px] font-bold text-text-dim uppercase tracking-widest">Used Space</span>
+              <span class="text-2xl font-black text-brand-secondary">{{(storageStats()?.usedBytes || 0) / 1024 / 1024 | number:'1.0-0'}} MB</span>
             </div>
             <div class="flex flex-col gap-2">
-              <span
-                class="text-[9px] font-bold text-text-dim uppercase tracking-widest"
-                >Utilization</span
-              >
-              <span class="text-2xl font-black text-text-main"
-                >{{ storageStats()?.percentUsed | number: '1.1-1' }}%</span
-              >
+              <span class="text-[9px] font-bold text-text-dim uppercase tracking-widest">Utilization</span>
+              <span class="text-2xl font-black text-text-main">{{storageStats()?.percentUsed | number:'1.1-1'}}%</span>
             </div>
           </div>
 
           <div class="w-full storage-progress-bar h-2 rounded-full mb-8">
-            <div
-              class="h-full storage-progress-fill transition-all duration-1000"
-              [style.width.%]="storageStats()?.percentUsed"
-            ></div>
+            <div class="h-full storage-progress-fill transition-all duration-1000" [style.width.%]="storageStats()?.percentUsed"></div>
           </div>
 
           <div class="flex flex-wrap gap-4">
-            <button
-              (click)="updateStorageStats()"
-              class="px-6 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-secondary"
-            >
+            <button (click)="updateStorageStats()" class="px-6 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-secondary">
               Recalculate_Usage
             </button>
-            <button
-              (click)="forceSync()"
-              class="px-6 py-2 bg-brand-primary/10 border border-brand-primary/20 text-brand-primary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary/20"
-            >
+            <button (click)="forceSync()" class="px-6 py-2 bg-brand-primary/10 border border-brand-primary/20 text-brand-primary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary/20">
               Force_Cloud_Sync
             </button>
-            <button
-              (click)="clearCache()"
-              class="px-6 py-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-yellow-500/20"
-            >
+            <button (click)="clearCache()" class="px-6 py-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-yellow-500/20">
               Purge_Local_Cache
             </button>
           </div>
         </div>
 
         <div class="permissions-grid">
-          <div
-            class="p-6 bg-background-alt/20 rounded-2xl border border-border"
-          >
-            <h5 class="text-xs font-black text-text-main uppercase mb-2">
-              Cloud_Synchronization
-            </h5>
-            <p class="text-[10px] text-text-dim mb-4 leading-relaxed">
-              Neural assets and project structures are automatically mirrored to
-              our production clusters for cross-device availability.
-            </p>
+          <div class="p-6 bg-background-alt/20 rounded-2xl border border-border">
+            <h5 class="text-xs font-black text-text-main uppercase mb-2">Cloud_Synchronization</h5>
+            <p class="text-[10px] text-text-dim mb-4 leading-relaxed">Neural assets and project structures are automatically mirrored to our production clusters for cross-device availability.</p>
             <div class="flex items-center gap-2">
-              <div
-                class="w-2 h-2 rounded-full bg-green-500 animate-pulse"
-              ></div>
-              <span
-                class="text-[9px] font-bold uppercase tracking-widest text-text-main"
-                >Live_Sync_Active</span
-              >
+              <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              <span class="text-[9px] font-bold uppercase tracking-widest text-text-main">Live_Sync_Active</span>
             </div>
           </div>
-          <div
-            class="p-6 bg-background-alt/20 rounded-2xl border border-border"
-          >
-            <h5 class="text-xs font-black text-text-main uppercase mb-2">
-              Edge_Caching
-            </h5>
-            <p class="text-[10px] text-text-dim mb-4 leading-relaxed">
-              Frequently accessed high-fidelity samples are stored in your local
-              edge node for sub-millisecond playback response.
-            </p>
+          <div class="p-6 bg-background-alt/20 rounded-2xl border border-border">
+            <h5 class="text-xs font-black text-text-main uppercase mb-2">Edge_Caching</h5>
+            <p class="text-[10px] text-text-dim mb-4 leading-relaxed">Frequently accessed high-fidelity samples are stored in your local edge node for sub-millisecond playback response.</p>
             <div class="flex items-center gap-2">
-              <span
-                class="text-[9px] font-bold uppercase tracking-widest text-text-dim"
-                >Cache_Health: 98.4%</span
-              >
+              <span class="text-[9px] font-bold uppercase tracking-widest text-text-dim">Cache_Health: 98.4%</span>
             </div>
           </div>
         </div>
       </div>
-    </div>
+</div>
   </div>
 </div>

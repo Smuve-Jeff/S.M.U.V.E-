@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class TouchGestureService {
   zoomLevel = signal(1.0);
@@ -12,7 +12,7 @@ export class TouchGestureService {
       const touch2 = event.touches[1];
       const distance = Math.sqrt(
         Math.pow(touch2.clientX - touch1.clientX, 2) +
-          Math.pow(touch2.clientY - touch1.clientY, 2)
+        Math.pow(touch2.clientY - touch1.clientY, 2)
       );
       // Implementation logic for zoom scaling
       return distance;

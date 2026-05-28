@@ -1,9 +1,5 @@
 export class WavEncoder {
-  static encode(
-    buffer: Float32Array[],
-    numChannels: number,
-    sampleRate: number
-  ): Blob {
+  static encode(buffer: Float32Array[], numChannels: number, sampleRate: number): Blob {
     const bitDepth = 16;
     const bytesPerSample = bitDepth / 8;
 
@@ -52,7 +48,7 @@ export class WavEncoder {
     for (const chunk of buffer) {
       for (let i = 0; i < chunk.length; i++) {
         const sample = Math.max(-1, Math.min(1, chunk[i]));
-        const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+        const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
         view.setInt16(offset, intSample, true);
         offset += 2;
       }

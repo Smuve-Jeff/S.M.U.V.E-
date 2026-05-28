@@ -58,6 +58,7 @@ export interface SongSection {
   color?: string;
 }
 
+
 export interface AutomationPoint {
   id: string;
   step: number;
@@ -117,8 +118,7 @@ export class MusicManagerService {
 
   constructor() {
     this.init();
-    this.engine.onScheduleStep = (step, time, dur) =>
-      this.playStep(step, time, dur);
+    this.engine.onScheduleStep = (step, time, dur) => this.playStep(step, time, dur);
   }
 
   private init() {
@@ -144,15 +144,16 @@ export class MusicManagerService {
     }
   }
 
+
   private initPatternSlots(): PatternSlot[] {
     return new Array(8).fill(null).map((_, i) => ({
       id: `slot-${i}`,
       name: `Pattern ${i + 1}`,
       versions: [],
-      activeVersionId: '',
+      activeVersionId: ''
     }));
   }
-  private normalizeTrack(track: any): TrackModel {
+private normalizeTrack(track: any): TrackModel {
     return {
       ...track,
       notes: track.notes || [],
@@ -206,7 +207,7 @@ export class MusicManagerService {
       patternSlots: [],
       activePatternSlotId: null,
       synthParams: preset.synth || null,
-      qualityMode: 'ultra',
+      qualityMode: 'ultra'
     };
     this.tracks.update((v) => [...v, track]);
     this.engine.ensureTrack({
@@ -227,9 +228,7 @@ export class MusicManagerService {
   }
 
   setTrackColor(trackId: number, color: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => (t.id === trackId ? { ...t, color } : t))
-    );
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, color } : t));
   }
 
   setInstrument(trackId: number, presetId: string) {
@@ -240,12 +239,7 @@ export class MusicManagerService {
     this.tracks.update((ts) =>
       ts.map((t) =>
         t.id === trackId
-          ? {
-              ...t,
-              instrumentId: resolvedPreset.id,
-              name: resolvedPreset.name,
-              synthParams: resolvedPreset.synth,
-            }
+          ? { ...t, instrumentId: resolvedPreset.id, name: resolvedPreset.name, synthParams: resolvedPreset.synth }
           : t
       )
     );
@@ -256,30 +250,17 @@ export class MusicManagerService {
   }
 
   updateSynthParams(trackId: number, params: any) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId
-          ? { ...t, synthParams: { ...t.synthParams, ...params } }
-          : t
-      )
-    );
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, synthParams: { ...t.synthParams, ...params } } : t));
   }
 
   setSidechain(trackId: number, targetId: string | null) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId ? { ...t, sidechainTargetTrackId: targetId } : t
-      )
-    );
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, sidechainTargetTrackId: targetId } : t));
     if (targetId) {
       this.engine.connectSidechain(`${trackId}`, targetId);
     } else {
-      const track = this.tracks().find((t) => t.id === trackId);
+      const track = this.tracks().find(t => t.id === trackId);
       if (track?.sidechainTargetTrackId) {
-        this.engine.disconnectSidechain(
-          `${trackId}`,
-          track.sidechainTargetTrackId
-        );
+         this.engine.disconnectSidechain(`${trackId}`, track.sidechainTargetTrackId);
       }
     }
   }
@@ -364,10 +345,10 @@ export class MusicManagerService {
             midi: 36, // default C1
             step,
             length: 1,
-            velocity: 0.8,
+            velocity: 0.8
           });
         } else {
-          nextNotes = nextNotes.filter((n) => n.step !== step);
+          nextNotes = nextNotes.filter(n => n.step !== step);
         }
 
         return { ...t, steps: nextSteps, notes: nextNotes };
@@ -444,25 +425,17 @@ export class MusicManagerService {
           notes: t.notes.map((n) => ({
             ...n,
             step: n.step + (Math.random() - 0.5) * 0.1,
-            velocity: Math.max(
-              0.1,
-              Math.min(1, n.velocity + (Math.random() - 0.5) * 0.1)
-            ),
+            velocity: Math.max(0.1, Math.min(1, n.velocity + (Math.random() - 0.5) * 0.1)),
           })),
         };
       })
     );
   }
-  arpeggiateTrack(
-    trackId: number,
-    pattern: 'up' | 'down' | 'up-down' | 'random' = 'up'
-  ) {
+  arpeggiateTrack(trackId: number, pattern: 'up' | 'down' | 'up-down' | 'random' = 'up') {
     this.tracks.update((ts) =>
       ts.map((t) => {
         if (t.id !== trackId) return t;
-        const sortedNotes = [...t.notes].sort(
-          (a, b) => a.step - b.step || a.midi - b.midi
-        );
+        const sortedNotes = [...t.notes].sort((a, b) => a.step - b.step || a.midi - b.midi);
         // Basic arpeggiation logic could be complex, for now we will implement a INTELer
         // that takes chords and breaks them into sequences.
         return t;
@@ -476,16 +449,16 @@ export class MusicManagerService {
         if (t.id !== trackId) return t;
         // Group notes by step
         const grouped = new Map<number, TrackNote[]>();
-        t.notes.forEach((n) => {
+        t.notes.forEach(n => {
           if (!grouped.has(n.step)) grouped.set(n.step, []);
           grouped.get(n.step)!.push(n);
         });
 
-        const newNotes = t.notes.map((n) => {
+        const newNotes = t.notes.map(n => {
           const chord = grouped.get(n.step) || [];
           if (chord.length <= 1) return n;
           const chordSorted = [...chord].sort((a, b) => a.midi - b.midi);
-          const index = chordSorted.findIndex((cn) => cn.id === n.id);
+          const index = chordSorted.findIndex(cn => cn.id === n.id);
           return { ...n, step: n.step + index * strength };
         });
 
@@ -495,71 +468,61 @@ export class MusicManagerService {
   }
   generateChord(trackId: number, rootMidi: number, type: string, step: number) {
     const intervals: Record<string, number[]> = {
-      major: [0, 4, 7],
-      minor: [0, 3, 7],
-      maj7: [0, 4, 7, 11],
-      min7: [0, 3, 7, 10],
-      dom7: [0, 4, 7, 10],
-      sus2: [0, 2, 7],
-      sus4: [0, 5, 7],
-      dim: [0, 3, 6],
+      'major': [0, 4, 7],
+      'minor': [0, 3, 7],
+      'maj7': [0, 4, 7, 11],
+      'min7': [0, 3, 7, 10],
+      'dom7': [0, 4, 7, 10],
+      'sus2': [0, 2, 7],
+      'sus4': [0, 5, 7],
+      'dim': [0, 3, 6],
     };
-    const chordNotes = (intervals[type] || [0]).map((interval) => ({
+    const chordNotes = (intervals[type] || [0]).map(interval => ({
       id: `note-${Date.now()}-${Math.random()}`,
       midi: rootMidi + interval,
       step: step,
       length: 1,
-      velocity: 0.8,
+      velocity: 0.8
     }));
 
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        return { ...t, notes: [...t.notes, ...chordNotes] };
-      })
-    );
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return { ...t, notes: [...t.notes, ...chordNotes] };
+    }));
   }
 
   setNoteParam(trackId: number, noteId: string, param: string, value: any) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        return {
-          ...t,
-          notes: t.notes.map((n) =>
-            n.id === noteId ? { ...n, [param]: value } : n
-          ),
-        };
-      })
-    );
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return {
+        ...t,
+        notes: t.notes.map(n => n.id === noteId ? { ...n, [param]: value } : n)
+      };
+    }));
   }
 
+
+
   duplicateNotes(trackId: number, noteIds: string[], stepOffset: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
+     this.tracks.update(ts => ts.map(t => {
         if (t.id !== trackId) return t;
-        const notesToDup = t.notes.filter((n) => noteIds.includes(n.id));
-        const newNotes = notesToDup.map((n) => ({
-          ...n,
-          id: `note-${Date.now()}-${Math.random()}`,
-          step: n.step + stepOffset,
+        const notesToDup = t.notes.filter(n => noteIds.includes(n.id));
+        const newNotes = notesToDup.map(n => ({
+           ...n,
+           id: `note-${Date.now()}-${Math.random()}`,
+           step: n.step + stepOffset
         }));
         return { ...t, notes: [...t.notes, ...newNotes] };
-      })
-    );
+     }));
   }
 
   setStepVelocity(trackId: number, step: number, velocity: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
+     this.tracks.update(ts => ts.map(t => {
         if (t.id !== trackId) return t;
-        const velocities = t.stepVelocities
-          ? [...t.stepVelocities]
-          : new Array(64).fill(1);
+        const velocities = t.stepVelocities ? [...t.stepVelocities] : new Array(64).fill(1);
         velocities[step] = velocity;
         return { ...t, stepVelocities: velocities };
-      })
-    );
+     }));
   }
 
   recordLiveNote(note: string, velocity: number) {
@@ -595,22 +558,15 @@ export class MusicManagerService {
       velocity: velocity,
     });
   }
-  playStep(
-    step: number,
-    time: number,
-    duration: number,
-    customCtx?: BaseAudioContext
-  ) {
+  playStep(step: number, time: number, duration: number, customCtx?: BaseAudioContext) {
     this.currentStep.set(step);
-    this.tracks().forEach((track) => {
+    this.tracks().forEach(track => {
       if (track.mute) return;
 
       let notesToPlay: TrackNote[] = [];
 
       if (track.activePatternSlotId) {
-        const slot = track.patternSlots?.find(
-          (s) => s.id === track.activePatternSlotId
-        );
+        const slot = track.patternSlots?.find(s => s.id === track.activePatternSlotId);
         if (slot) {
           // This is a simplification; in a real app, slots would contain pattern data
           // For now, we will simulate by playing notes that match the current pattern view
@@ -618,212 +574,153 @@ export class MusicManagerService {
       }
 
       // Check for notes at this step
-      track.notes
-        .filter((n) => Math.floor(n.step) === step)
-        .forEach((note) => {
-          const freq = this.midiToFreq(note.midi);
-          const noteTime = time + (note.offset || 0) * duration;
-          this.engine.triggerAttack(
-            track.id,
-            freq,
-            noteTime,
-            note.velocity,
-            note.length * duration,
-            track.gain,
-            track.pan,
-            track.sendA,
-            track.sendB,
-            track.synthParams || { type: 'sine' },
-            1,
-            customCtx
-          );
-        });
+      track.notes.filter(n => Math.floor(n.step) === step).forEach(note => {
+         const freq = this.midiToFreq(note.midi);
+         const noteTime = time + (note.offset || 0) * duration;
+         this.engine.triggerAttack(
+           track.id,
+           freq,
+           noteTime,
+           note.velocity,
+           note.length * duration,
+           track.gain,
+           track.pan,
+           track.sendA,
+           track.sendB,
+           track.synthParams || { type: 'sine' },
+           1,
+           customCtx
+         );
+      });
     });
   }
 
   setActivePatternSlot(trackId: number, slotId: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        return { ...t, activePatternSlotId: slotId };
-      })
-    );
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return { ...t, activePatternSlotId: slotId };
+    }));
   }
   addAutomationLane(trackId: number, parameter: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        const lanes = t.automationLanes || [];
-        const newLane: AutomationLane = {
-          id: `lane-${Date.now()}`,
-          parameter,
-          points: [],
-          enabled: true,
-        };
-        return { ...t, automationLanes: [...lanes, newLane] };
-      })
-    );
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const lanes = t.automationLanes || [];
+      const newLane: AutomationLane = {
+        id: `lane-${Date.now()}`,
+        parameter,
+        points: [],
+        enabled: true
+      };
+      return { ...t, automationLanes: [...lanes, newLane] };
+    }));
   }
 
-  addAutomationPoint(
-    trackId: number,
-    laneId: string,
-    step: number,
-    value: number
-  ) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        return {
-          ...t,
-          automationLanes: (t.automationLanes || []).map((l) => {
-            if (l.id !== laneId) return l;
-            const newPoint: AutomationPoint = {
-              id: `pt-${Date.now()}-${Math.random()}`,
-              step,
-              value,
-            };
-            return {
-              ...l,
-              points: [...l.points, newPoint].sort((a, b) => a.step - b.step),
-            };
-          }),
-        };
-      })
-    );
+  addAutomationPoint(trackId: number, laneId: string, step: number, value: number) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return {
+        ...t,
+        automationLanes: (t.automationLanes || []).map(l => {
+          if (l.id !== laneId) return l;
+          const newPoint: AutomationPoint = { id: `pt-${Date.now()}-${Math.random()}`, step, value };
+          return { ...l, points: [...l.points, newPoint].sort((a, b) => a.step - b.step) };
+        })
+      };
+    }));
   }
+
+
 
   createPatternSlot(trackId: number, name: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        const slot: PatternSlot = {
-          id: `slot-${Date.now()}`,
-          name,
-          versions: [
-            {
-              id: 'v-init',
-              name: 'Initial',
-              steps: [...t.steps],
-              notes: [...t.notes],
-            },
-          ],
-          activeVersionId: 'v-init',
-        };
-        return {
-          ...t,
-          patternSlots: [...(t.patternSlots || []), slot],
-          activePatternSlotId: slot.id,
-        };
-      })
-    );
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const slot: PatternSlot = {
+        id: `slot-${Date.now()}`,
+        name,
+        versions: [{
+          id: 'v-init',
+          name: 'Initial',
+          steps: [...t.steps],
+          notes: [...t.notes]
+        }],
+        activeVersionId: 'v-init'
+      };
+      return { ...t, patternSlots: [...(t.patternSlots || []), slot], activePatternSlotId: slot.id };
+    }));
   }
 
   duplicatePatternSlot(trackId: number, slotId: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        const slot = t.patternSlots?.find((s) => s.id === slotId);
-        if (!slot) return t;
-        const newSlot: PatternSlot = {
-          ...slot,
-          id: `slot-${Date.now()}-${Math.random()}`,
-          name: `${slot.name} Copy`,
-        };
-        return { ...t, patternSlots: [...(t.patternSlots || []), newSlot] };
-      })
-    );
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const slot = t.patternSlots?.find(s => s.id === slotId);
+      if (!slot) return t;
+      const newSlot: PatternSlot = {
+        ...slot,
+        id: `slot-${Date.now()}-${Math.random()}`,
+        name: `${slot.name} Copy`
+      };
+      return { ...t, patternSlots: [...(t.patternSlots || []), newSlot] };
+    }));
   }
 
   snapshotPatternVersion(trackId: number, slotId: string, name: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        return {
-          ...t,
-          patternSlots: t.patternSlots?.map((s) => {
-            if (s.id !== slotId) return s;
-            const version: PatternVersion = {
-              id: `v-${Date.now()}`,
-              name,
-              steps: [...t.steps],
-              notes: [...t.notes],
-            };
-            return {
-              ...s,
-              versions: [...s.versions, version],
-              activeVersionId: version.id,
-            };
-          }),
-        };
-      })
-    );
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return {
+        ...t,
+        patternSlots: t.patternSlots?.map(s => {
+          if (s.id !== slotId) return s;
+          const version: PatternVersion = {
+            id: `v-${Date.now()}`,
+            name,
+            steps: [...t.steps],
+            notes: [...t.notes]
+          };
+          return { ...s, versions: [...s.versions, version], activeVersionId: version.id };
+        })
+      };
+    }));
   }
 
   recallPatternSlot(trackId: number, slotId: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        const slot = t.patternSlots?.find((s) => s.id === slotId);
-        if (!slot) return t;
-        const version = slot.versions.find(
-          (v) => v.id === slot.activeVersionId
-        );
-        if (!version) return t;
-        return {
-          ...t,
-          steps: [...version.steps],
-          notes: [...version.notes],
-          activePatternSlotId: slotId,
-        };
-      })
-    );
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const slot = t.patternSlots?.find(s => s.id === slotId);
+      if (!slot) return t;
+      const version = slot.versions.find(v => v.id === slot.activeVersionId);
+      if (!version) return t;
+      return { ...t, steps: [...version.steps], notes: [...version.notes], activePatternSlotId: slotId };
+    }));
   }
 
   fillPatternLane(trackId: number, density: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        const newSteps = t.steps.map((_, i) => Math.random() < density);
-        return { ...t, steps: newSteps };
-      })
-    );
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const newSteps = t.steps.map((_, i) => Math.random() < density);
+      return { ...t, steps: newSteps };
+    }));
   }
   clearPatternLane(trackId: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId
-          ? { ...t, steps: new Array(64).fill(false), notes: [] }
-          : t
-      )
-    );
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, steps: new Array(64).fill(false), notes: [] } : t));
   }
   rotatePatternLane(trackId: number, shift: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        const newSteps = [...t.steps];
-        const s = shift % 64;
-        const rotated = [...newSteps.slice(-s), ...newSteps.slice(0, -s)];
-        return { ...t, steps: rotated };
-      })
-    );
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const newSteps = [...t.steps];
+      const s = shift % 64;
+      const rotated = [...newSteps.slice(-s), ...newSteps.slice(0, -s)];
+      return { ...t, steps: rotated };
+    }));
   }
   randomizePatternLane(trackId: number, probability: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        const newSteps = t.steps.map((s) =>
-          Math.random() < probability ? !s : s
-        );
-        return { ...t, steps: newSteps };
-      })
-    );
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const newSteps = t.steps.map(s => Math.random() < probability ? !s : s);
+      return { ...t, steps: newSteps };
+    }));
   }
 
   setTrackQualityMode(trackId: number, mode: 'ultra' | 'performance') {
-    this.tracks.update((ts) =>
-      ts.map((t) => (t.id === trackId ? { ...t, qualityMode: mode } : t))
-    );
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, qualityMode: mode } : t));
   }
 }

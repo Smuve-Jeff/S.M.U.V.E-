@@ -77,7 +77,7 @@ export const INTELLIGENCE_BRIEFS: IntelligenceBrief[] = [
     relevanceScore: 92,
     actionable: true,
     impact: 'High',
-  },
+  }
 ];
 
 export const STRATEGIC_DECREES = [
@@ -103,7 +103,7 @@ export const MARKET_ALERTS: MarketAlert[] = [
     id: 'alert-ovr-01',
     title: 'SYSTEMIC MARKET COLLAPSE',
     message:
-      "Passive playlisting is dead. Direct-to-consumer search is the only metric that matters. If they aren't typing your name, you don't exist.",
+      'Passive playlisting is dead. Direct-to-consumer search is the only metric that matters. If they aren\'t typing your name, you don\'t exist.',
     severity: 'Critical',
     timestamp: Date.now(),
     category: 'Marketing',
@@ -116,7 +116,7 @@ export const MARKET_ALERTS: MarketAlert[] = [
     severity: 'Critical',
     timestamp: Date.now(),
     category: 'Business',
-  },
+  }
 ];
 
 export const PRODUCTION_SECRETS: ProductionSecret[] = [
@@ -146,5 +146,5 @@ export const PRODUCTION_SECRETS: ProductionSecret[] = [
     category: 'marketing',
     metadata: { difficulty: 'Medium' },
     impact: 'High',
-  },
+  }
 ];

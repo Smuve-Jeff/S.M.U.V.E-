@@ -9,15 +9,11 @@
   <div class="grid-scroll no-scrollbar">
     <div class="grid-body">
       <div *ngFor="let track of tracks()" class="grid-column">
-        <div class="track-header neon-text-xs">
-          {{ track.name | uppercase }}
-        </div>
-        <div
-          *ngFor="let row of [0, 1, 2, 3, 4, 5, 6, 7]"
-          class="clip-cell tactile-v42 glass-v42"
-          [class.active]="activeClips().has(track.id + '-' + row)"
-          (click)="toggleClip(track.id, row)"
-        >
+        <div class="track-header neon-text-xs">{{ track.name | uppercase }}</div>
+        <div *ngFor="let row of [0,1,2,3,4,5,6,7]"
+             class="clip-cell tactile-v42 glass-v42"
+             [class.active]="activeClips().has(track.id + '-' + row)"
+             (click)="toggleClip(track.id, row)">
           <div class="clip-led" [style.background-color]="track.color"></div>
           <div class="clip-wave"></div>
         </div>

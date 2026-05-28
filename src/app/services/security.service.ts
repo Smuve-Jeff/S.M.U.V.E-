@@ -12,12 +12,8 @@ export class SecurityService {
   private tokenService = inject(TokenService);
   private ngZone = inject(NgZone);
 
-  private get profileService(): UserProfileService {
-    return this.injector.get(UserProfileService);
-  }
-  private get authService(): AuthService {
-    return this.injector.get(AuthService);
-  }
+  private get profileService(): UserProfileService { return this.injector.get(UserProfileService); }
+  private get authService(): AuthService { return this.injector.get(AuthService); }
 
   sessionExpiresAt = signal<number | null>(null);
   isSessionValid = signal(true);
@@ -33,10 +29,9 @@ export class SecurityService {
     return !expires || Date.now() < expires;
   }
   refreshSession() {}
-  recordAttempt(k: string) {
-    return { allowed: true, remainingAttempts: 5, blockedUntil: 0 };
-  }
+  recordAttempt(k: string) { return { allowed: true, remainingAttempts: 5, blockedUntil: 0 }; }
   clearRateLimit(k: string) {}
+  isRateLimited(k: string) { return false; }
   isValidRedirectUrl(url: string): boolean {
     if (!url || typeof window === 'undefined') return false;
     const allowedOrigin = window.location.origin;
@@ -62,19 +57,14 @@ export class SecurityService {
   async fetchSessions() {}
   async revokeSession(id: string) {}
   async exportUserData() {}
-  async generateE2EKeys() {
-    return { publicKey: 'mock' };
-  }
-  async setup2FA() {
-    return { secret: 'mock', qrCodeUri: 'mock' };
-  }
+  async generateE2EKeys() { return { publicKey: 'mock' }; }
+  async setup2FA() { return { secret: 'mock', qrCodeUri: 'mock' }; }
   async verify2FA(code: string): Promise<boolean> {
     return code.length === 6;
   }
-  getSecurityAudit() {
-    return { score: 100, status: 'FORTIFIED', alerts: [] };
-  }
-  getRecommendedCSP() {
-    return '';
-  }
+  getSecurityAudit() { return { score: 100, status: 'FORTIFIED', alerts: [] }; }
+  getRecommendedCSP() { return ""; }
+  getSecurityConfig() { return { sessionTimeoutMs: 3600000, inactivityTimeoutMs: 1800000, requireReauthForSensitive: true }; }
+  getCSRFToken() { return 'mock-token'; }
+  validateCSRFToken(t: string) { return true; }
 }
