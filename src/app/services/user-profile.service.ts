@@ -15,7 +15,7 @@ export class UserProfileService {
 
   profile = this.store.profile;
 
-  private get db(): any { return this.injector.get(require('./database.service').DatabaseService); }
+  private get db(): DatabaseService { return this.injector.get(DatabaseService); }
 
   constructor() {}
 
