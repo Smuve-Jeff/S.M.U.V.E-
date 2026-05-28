@@ -12,6 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { UIService } from '../../services/ui.service';
 import { MicrophoneService } from '../../services/microphone.service';
+import { StudioRecordingEngineService } from '../studio-recording-engine.service';
 import { VocalMasteringService } from '../../services/vocal-mastering.service';
 import { VocalAiService } from '../../services/vocal-ai.service';
 import { AiService } from '../../services/ai.service';
@@ -39,6 +40,7 @@ type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
 export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   public readonly uiService = inject(UIService);
   public readonly micService = inject(MicrophoneService);
+  public readonly recordingEngine = inject(StudioRecordingEngineService);
   public readonly mastering = inject(VocalMasteringService);
   public readonly vocalAi = inject(VocalAiService);
   public readonly aiService = inject(AiService);
@@ -62,10 +64,10 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   private waveformData: number[] = [];
 
   recordingTimeFormatted = computed(() => {
-    const s = Math.floor(this.micService.recordingTime());
+    const s = Math.floor(this.recordingEngine.recordingTime());
     const m = Math.floor(s / 60);
     const secs = s % 60;
-    const ms = Math.floor((this.micService.recordingTime() % 1) * 10);
+    const ms = Math.floor((this.recordingEngine.recordingTime() % 1) * 10);
     return `${m.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms}`;
   });
 
@@ -95,27 +97,28 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
   setStep(step: PipelineStep) {
     this.currentStep.set(step);
-    if (step === 'record' && !this.micService.isInitialized()) {
+    if (step === 'record' && !this.recordingEngine.isInitialized()) {
       this.initializeMic();
     }
   }
 
   async initializeMic() {
-    await this.micService.initialize(
-      this.micService.selectedDeviceId() || undefined
-    );
-    const node = this.micService.getAnalyserNode();
-    if (node) {
-      this.mastering.applyToSource(node);
+    const deviceId = this.micService.selectedDeviceId();
+    const success = await this.recordingEngine.initialize(deviceId || undefined);
+    if (success) {
+      const node = this.recordingEngine.getAnalyserNode();
+      if (node) {
+        this.mastering.applyToSource(node);
+      }
     }
   }
 
   toggleRecording() {
-    if (this.micService.isRecording()) {
-      this.micService.stopRecording();
+    if (this.recordingEngine.isRecording()) {
+      void this.recordingEngine.stopRecording();
     } else {
       this.waveformData = [];
-      this.micService.startRecording();
+      this.recordingEngine.startRecording();
     }
   }
 
@@ -130,9 +133,9 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
   private drawSpectrograph() {
     const canvas = this.spectrographRef?.nativeElement;
-    if (!canvas || !this.ctx2d || !this.micService.isInitialized()) return;
+    if (!canvas || !this.ctx2d || !this.recordingEngine.isInitialized()) return;
 
-    const analyser = this.micService.getAnalyserNode();
+    const analyser = this.recordingEngine.getAnalyserNode();
     if (!analyser) return;
 
     const width = canvas.width;
@@ -164,8 +167,8 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     const canvas = this.waveformRef?.nativeElement;
     if (!canvas || !this.waveformCtx) return;
 
-    const analyser = this.micService.getAnalyserNode();
-    if (this.micService.isRecording() && analyser) {
+    const analyser = this.recordingEngine.getAnalyserNode();
+    if (this.recordingEngine.isRecording() && analyser) {
       const dataArray = new Uint8Array(analyser.fftSize);
       analyser.getByteTimeDomainData(dataArray);
 
@@ -203,7 +206,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async downloadRecording() {
-    const blob = this.micService.recordedBlob();
+    const blob = this.recordingEngine.recordedBlob();
     if (blob) {
       this.showUplink.set(true);
       const success = await this.uplinkService.initiateUplink(
@@ -214,7 +217,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `SMUVE_Vocal_${Date.now()}.webm`;
+        a.download = `SMUVE_Vocal_${Date.now()}.wav`;
         a.click();
       }
     }

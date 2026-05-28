@@ -74,24 +74,11 @@ export class SoundBrowserComponent {
     this.musicManager.ensureTrack(preset.id);
   }
 
-  previewPreset(preset: InstrumentPreset, event: MouseEvent) {
+  async previewPreset(preset: InstrumentPreset, event: MouseEvent) {
     event.stopPropagation();
     this.previewingId.set(preset.id);
 
-    if (preset.type === 'synth' && preset.synth) {
-      this.audioEngine.playSynth(
-        this.audioEngine.getContext().currentTime,
-        440, // A4
-        0.5,
-        0.8,
-        0,
-        preset.synth
-      );
-    } else {
-       // For sample based, we could trigger a sample preview if we had buffer loading in engine
-       // For now, just simulate
-       console.log('Previewing sample:', preset.name);
-    }
+    await this.instruments.audition(preset.id);
 
     setTimeout(() => {
       if (this.previewingId() === preset.id) {
