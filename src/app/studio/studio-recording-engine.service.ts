@@ -31,6 +31,9 @@ export class StudioRecordingEngineService implements OnDestroy {
   inputLevel = signal(0);
   recordedBlob = signal<Blob | null>(null);
 
+  // MIDI recording support
+  pendingMidi: any[] = [];
+
   // Stream & Nodes
   private mediaStream: MediaStream | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
@@ -83,14 +86,31 @@ export class StudioRecordingEngineService implements OnDestroy {
     }
   }
 
-  startRecording() {
-    if (!this.isInitialized() || this.isRecording()) return;
+  // Allow optional stream for compatibility with AudioEngineService calls
+  startRecording(stream?: MediaStream) {
+    if (this.isRecording()) return;
 
     const ctx = this.audioEngine.ctx;
+
+    // If a stream is provided, use it. Otherwise ensure we are initialized.
+    if (stream) {
+        this.cleanup(); // Close any existing internal stream
+        this.sourceNode = ctx.createMediaStreamSource(stream);
+        this.analyserNode = ctx.createAnalyser();
+        this.analyserNode.fftSize = 2048;
+        this.sourceNode.connect(this.analyserNode);
+        this.isInitialized.set(true);
+        this.startLevelMonitoring();
+    } else if (!this.isInitialized()) {
+        this.logger.error('StudioRecordingEngine: Cannot start recording without initialization or stream');
+        return;
+    }
+
     this.leftChannel = [];
     this.rightChannel = [];
     this.recordingTime.set(0);
     this.recordedBlob.set(null);
+    this.pendingMidi = [];
 
     this.processorNode = ctx.createScriptProcessor(4096, 2, 2);
 
@@ -180,10 +200,11 @@ export class StudioRecordingEngineService implements OnDestroy {
   }
 
   private startLevelMonitoring() {
-    const data = new Uint8Array(this.analyserNode!.frequencyBinCount);
+    if (!this.analyserNode) return;
+    const data = new Uint8Array(this.analyserNode.frequencyBinCount);
     const monitor = () => {
-      if (!this.isInitialized()) return;
-      this.analyserNode!.getByteFrequencyData(data);
+      if (!this.isInitialized() || !this.analyserNode) return;
+      this.analyserNode.getByteFrequencyData(data);
       let sum = 0;
       for (let i = 0; i < data.length; i++) sum += data[i];
       const level = Math.min(100, Math.round((sum / data.length) * 2));
@@ -199,6 +220,9 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.mediaStream?.getTracks().forEach(t => t.stop());
     this.isInitialized.set(false);
     this.isRecording.set(false);
+    this.mediaStream = null;
+    this.sourceNode = null;
+    this.analyserNode = null;
   }
 
   ngOnDestroy() {

@@ -171,6 +171,11 @@ export class VocalMasteringService {
 
   getInputNode() { return this.inputNode; }
   getOutputNode() { return this.outputNode; }
+
+  applyToSource(source: AudioNode) {
+    source.connect(this.inputNode);
+  }
+
   updateParams(newParams: Partial<MasteringParameters>) {
     this.params.update((p) => ({ ...p, ...newParams }));
     this.updateNodes();

@@ -41,7 +41,7 @@ export class AudioEngineService {
   public outputMode = signal<'speakers' | 'headphones'>('speakers');
   public performanceTier = signal<'ultra' | 'performance'>('ultra');
   public sidechainEnabled = signal(false);
-  private logger = inject(LoggingService);
+  public logger = inject(LoggingService);
   private stemSeparationService = inject(StemSeparationService);
   public recorder = inject(StudioRecordingEngineService);
   public ctx: AudioContext;
