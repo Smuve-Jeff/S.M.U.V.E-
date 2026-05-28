@@ -12,7 +12,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
-import { TransportBarComponent } from './transport-bar/transport-bar.component';
+import { UniversalMasterComponent } from './master-controls/universal-master/universal-master.component';
 import { MixerComponent } from './mixer/mixer.component';
 import { DjDeckComponent } from './dj-deck/dj-deck.component';
 import { ArrangementViewComponent } from './arrangement-view/arrangement-view.component';
@@ -61,7 +61,7 @@ function isStudioView(value: string): value is StudioView {
   standalone: true,
   imports: [
     CommonModule,
-    TransportBarComponent,
+    UniversalMasterComponent,
     MixerComponent,
     DjDeckComponent,
     ArrangementViewComponent,

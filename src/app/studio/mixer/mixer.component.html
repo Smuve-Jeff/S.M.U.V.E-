@@ -15,28 +15,21 @@
       *ngFor="let track of tracks()"
       class="mixer-strip group flex flex-col items-center bg-white/[0.02] border border-fl-border/20 rounded-xl transition-all hover:bg-white/[0.04] hover:border-fl-blue/20"
       [class.selected]="isSelected(track)"
-      [style.width.px]="viewMode() === 'expanded' ? 90 : 60"
+      [style.width.px]="viewMode() === 'expanded' ? 100 : 70"
       (click)="selectTrack(track.id)"
     >
       <!-- Top Routing -->
       <div class="w-full p-2 border-b border-fl-border/10 flex flex-col items-center gap-1">
          <div class="text-[7px] font-mono text-slate-500 uppercase tracking-widest">In: MIDI</div>
-         <select (change)="setSidechain(track.id, $any($event.target).value)" (click)="$event.stopPropagation()" class="bg-black/40 text-[6px] border-none text-slate-400 outline-none w-full">
+         <select (change)="setSidechain(track.id, $any($event.target).value)" (click)="$event.stopPropagation()" class="bg-black/40 text-[6px] border-none text-slate-400 outline-none w-full rounded">
             <option value="none">SC: OFF</option>
             <option *ngFor="let t of tracks()" [value]="t.id" [hidden]="t.id === track.id">TO: {{ t.name | uppercase }}</option>
          </select>
       </div>
 
-      <!-- Gain Fader -->
-      <div class="flex-1 flex flex-col items-center justify-center relative w-full pt-4">
-        <div class="vu-meter-container absolute right-2 top-4 bottom-4 w-1.5 bg-black/60 rounded-full overflow-hidden border border-white/5">
-           <div class="vu-meter-fill absolute bottom-0 w-full transition-all duration-75"
-                [style.height.%]="track.mute ? 0 : 45"
-                [style.background]="'linear-gradient(to top, #10b981, #af25f4)'"
-                class="extreme-glow"></div>
-        </div>
-
-        <div class="fader-track-pro w-1 h-3/4 bg-black/60 rounded-full relative">
+      <!-- Gain Fader Area -->
+      <div class="flex-1 flex flex-row items-center justify-center relative w-full pt-4 px-2">
+        <div class="fader-track-pro w-2 h-3/4 bg-black/60 rounded-full relative shadow-inner border border-white/5">
            <input
              type="range"
              orient="vertical"
@@ -46,37 +39,52 @@
              (input)="updateTrackVolume(track.id, $any($event.target).value)"
              class="pro-fader-input"
            />
-           <div class="fader-cap-pro" [style.bottom.%]="gainPercent(track) / 1.5"></div>
+           <div class="fader-cap-pro-elite" [style.bottom.%]="gainPercent(track) / 1.5">
+             <div class="cap-line"></div>
+           </div>
+        </div>
+
+        <div class="vu-meter-container ml-2 h-3/4 w-1.5 bg-black/60 rounded-full overflow-hidden border border-white/5">
+           <div class="vu-meter-fill absolute bottom-0 w-full transition-all duration-75"
+                [style.height.%]="track.mute ? 0 : 45"
+                [style.background]="'linear-gradient(to top, #10b981, #af25f4)'"
+                class="extreme-glow"></div>
         </div>
       </div>
 
       <!-- Bottom Controls -->
-      <div class="w-full p-3 bg-black/40 rounded-b-xl border-t border-fl-border/10 space-y-3">
-        <div class="flex flex-col items-center gap-1">
-           <div class="text-[7px] font-mono text-slate-500 uppercase">Pan</div>
-           <input type="range" min="-100" max="100" [value]="panPercent(track)" (input)="updateTrackPan(track.id, $any($event.target).value)" class="pro-knob-slider" />
+      <div class="w-full p-3 bg-black/40 rounded-b-xl border-t border-fl-border/10 space-y-4">
+        <div class="flex flex-col items-center">
+           <app-knob
+             [label]="'PAN'"
+             [min]="-100"
+             [max]="100"
+             [value]="panPercent(track)"
+             [showValue]="false"
+             (valueChange)="updateTrackPan(track.id, $event)">
+           </app-knob>
         </div>
 
         <div class="flex gap-1">
-           <button (click)="toggleMute(track.id); $event.stopPropagation()" class="flex-1 py-1 rounded bg-black/40 border border-white/5 text-[9px] font-black uppercase transition-all" [class.text-red-500]="track.mute" [class.border-red-500]="track.mute">M</button>
-           <button (click)="toggleSolo(track.id); $event.stopPropagation()" class="flex-1 py-1 rounded bg-black/40 border border-white/5 text-[9px] font-black uppercase transition-all" [class.text-yellow-500]="track.solo" [class.border-yellow-500]="track.solo">S</button>
+           <button (click)="toggleMute(track.id); $event.stopPropagation()" class="flex-1 py-2 rounded-lg bg-black/40 border border-white/5 text-[10px] font-black uppercase transition-all" [class.text-red-500]="track.mute" [class.border-red-500]="track.mute">M</button>
+           <button (click)="toggleSolo(track.id); $event.stopPropagation()" class="flex-1 py-2 rounded-lg bg-black/40 border border-white/5 text-[10px] font-black uppercase transition-all" [class.text-yellow-500]="track.solo" [class.border-yellow-500]="track.solo">S</button>
         </div>
 
-        <div class="text-center">
-           <div class="text-[8px] font-black text-slate-200 truncate uppercase tracking-tighter">{{ track.name }}</div>
-           <div class="text-[6px] font-mono text-fl-blue/60 uppercase">CH-{{ track.id }}</div>
+        <div class="text-center pb-1">
+           <div class="text-[9px] font-black text-slate-200 truncate uppercase tracking-tighter">{{ track.name }}</div>
+           <div class="text-[7px] font-mono text-fl-blue/60 uppercase">CH-{{ track.id }}</div>
         </div>
       </div>
     </div>
 
     <!-- Master Fader -->
-    <div class="mixer-strip master flex flex-col items-center bg-black/40 border border-fl-blue/30 rounded-xl w-24">
+    <div class="mixer-strip master flex flex-col items-center bg-black/40 border border-fl-blue/30 rounded-xl w-28">
        <div class="w-full p-2 border-b border-fl-blue/10 flex justify-center">
-          <div class="text-[8px] font-black text-fl-blue tracking-widest uppercase">Master</div>
+          <div class="text-[9px] font-black text-fl-blue tracking-widest uppercase">Master</div>
        </div>
 
-       <div class="flex-1 flex flex-col items-center justify-center relative w-full py-4">
-          <div class="fader-track-pro w-1.5 h-4/5 bg-fl-blue/10 rounded-full relative">
+       <div class="flex-1 flex flex-col items-center justify-center relative w-full py-4 px-2">
+          <div class="fader-track-pro w-2.5 h-4/5 bg-fl-blue/10 rounded-full relative shadow-inner">
              <input
                type="range"
                orient="vertical"
@@ -86,17 +94,19 @@
                (input)="updateMasterVolume($any($event.target).value)"
                class="pro-fader-input"
              />
-             <div class="fader-cap-pro master-cap" [style.bottom.%]="masterVolume()"></div>
+             <div class="fader-cap-pro-elite master-cap" [style.bottom.%]="masterVolume()">
+                <div class="cap-line bg-fl-blue"></div>
+             </div>
           </div>
        </div>
 
-       <div class="w-full p-3 bg-fl-blue/5 rounded-b-xl border-t border-fl-blue/20">
+       <div class="w-full p-4 bg-fl-blue/5 rounded-b-xl border-t border-fl-blue/20">
           <div class="flex items-center gap-1 mb-2">
-             <div class="flex-1 h-1 bg-black/60 rounded-full overflow-hidden">
+             <div class="flex-1 h-1.5 bg-black/60 rounded-full overflow-hidden">
                 <div class="h-full bg-fl-blue extreme-glow" [style.width.%]="isPlaying() ? 75 : 0"></div>
              </div>
           </div>
-          <div class="text-[7px] font-mono text-fl-blue text-center uppercase">0.0 dBFS</div>
+          <div class="text-[8px] font-mono text-fl-blue text-center uppercase font-bold tracking-widest">0.0 dBFS</div>
        </div>
     </div>
   </div>

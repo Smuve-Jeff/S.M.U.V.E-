@@ -6,8 +6,37 @@
       <div class="engine-status neon-accent-primary">ANALOG ENGINE ACTIVE</div>
     </div>
 
+    <!-- Module-Level Transport -->
+    <div class="module-transport glass-v42">
+      <div class="transport-mode-toggle flex items-center gap-2 mr-2">
+        <span class="text-[8px] font-bold text-slate-500">GLOBAL</span>
+        <label class="switch-mini">
+          <input type="checkbox" [ngModel]="isLocalPlayback()" (ngModelChange)="isLocalPlayback.set($event)">
+          <span class="slider-mini round"></span>
+        </label>
+        <span class="text-[8px] font-bold text-fl-blue">LOCAL</span>
+      </div>
+
+      <div class="btn-group flex gap-1">
+        <button class="m-btn tactile-v42" (click)="isLocalPlayback() ? toggleLocalPlay() : engine.togglePlay()">
+          <span class="material-symbols-outlined text-sm">
+            {{ (isLocalPlayback() ? isLocalPlaying() : engine.isPlaying()) ? 'pause' : 'play_arrow' }}
+          </span>
+        </button>
+        <button class="m-btn tactile-v42" (click)="localSkip()">
+          <span class="material-symbols-outlined text-sm">skip_next</span>
+        </button>
+        <button class="m-btn tactile-v42 rec" [class.active]="isLocalPlayback() ? isLocalRecording() : engine.isRecording()" (click)="isLocalPlayback() ? toggleLocalRecord() : engine.toggleRecord()">
+          <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+        </button>
+        <button class="m-btn tactile-v42" (click)="localUpload()">
+          <span class="material-symbols-outlined text-sm">cloud_upload</span>
+        </button>
+      </div>
+    </div>
+
     <div class="kit-selector glass-v42">
-      <label class="neon-text-xs">DRUM KIT:</label>
+      <label class="neon-text-xs">KIT:</label>
       <select [ngModel]="selectedKitId()" (ngModelChange)="setKit($event)" class="executive-glass">
         <option *ngFor="let kit of availableKits()" [value]="kit.id">
           {{ kit.name | uppercase }}
@@ -74,35 +103,16 @@
         <span class="neon-text-xs neon-text">{{ pad.name }}</span>
       </div>
 
-      <div class="params-grid">
-        <div class="param-group">
-          <label class="neon-text-xs">PITCH</label>
-          <input type="range" min="-12" max="12" step="1" [(ngModel)]="pad.params.semitone" class="knob-range tactile-v42" />
-          <span class="param-val font-mono">{{ pad.params.semitone > 0 ? '+' : '' }}{{ pad.params.semitone }}</span>
-        </div>
-        <div class="param-group">
-          <label class="neon-text-xs">PAN</label>
-          <input type="range" min="-1" max="1" step="0.1" [(ngModel)]="pad.params.pan" class="knob-range tactile-v42" />
-        </div>
-        <div class="param-group">
-          <label class="neon-text-xs">DECAY</label>
-          <input type="range" min="0.01" max="2" step="0.05" [(ngModel)]="pad.params.decay" class="knob-range tactile-v42" />
-        </div>
-        <div class="param-group">
-          <label class="neon-text-xs">CUTOFF</label>
-          <input type="range" min="20" max="15000" step="100" [(ngModel)]="pad.params.cutoff" class="knob-range tactile-v42" />
-        </div>
-        <div class="param-group">
-          <label class="neon-text-xs">RESONANCE</label>
-          <input type="range" min="0.1" max="10" step="0.1" [(ngModel)]="pad.params.resonance" class="knob-range tactile-v42" />
-        </div>
-        <div class="param-group">
-          <label class="neon-text-xs">ATTACK</label>
-          <input type="range" min="0.001" max="0.5" step="0.001" [(ngModel)]="pad.params.attack" class="knob-range tactile-v42" />
-        </div>
+      <div class="params-grid-elite">
+        <app-knob label="PITCH" [min]="-12" [max]="12" [value]="pad.params.semitone" (valueChange)="pad.params.semitone = $event"></app-knob>
+        <app-knob label="PAN" [min]="-1" [max]="1" [step]="0.1" [value]="pad.params.pan" (valueChange)="pad.params.pan = $event"></app-knob>
+        <app-knob label="DECAY" [min]="0.01" [max]="2" [step]="0.05" [value]="pad.params.decay" (valueChange)="pad.params.decay = $event"></app-knob>
+        <app-knob label="CUTOFF" [min]="20" [max]="15000" [step]="100" [value]="pad.params.cutoff" (valueChange)="pad.params.cutoff = $event"></app-knob>
+        <app-knob label="RES" [min]="0.1" [max]="10" [step]="0.1" [value]="pad.params.resonance" (valueChange)="pad.params.resonance = $event"></app-knob>
+        <app-knob label="ATTACK" [min]="0.001" [max]="0.5" [step]="0.001" [value]="pad.params.attack" (valueChange)="pad.params.attack = $event"></app-knob>
       </div>
 
-      <div class="velocity-section mt-4">
+      <div class="velocity-section mt-6">
         <label class="neon-text-xs">STEP VELOCITIES</label>
         <div class="velocity-bars">
           <div

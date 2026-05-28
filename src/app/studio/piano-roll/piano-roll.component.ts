@@ -13,6 +13,7 @@ import {
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { KnobComponent } from '../shared/knob/knob.component';
 import { FormsModule } from '@angular/forms';
 import {
   MusicManagerService,
@@ -30,7 +31,7 @@ import { TouchGestureService } from '../../services/touch-gesture.service';
 @Component({
   selector: 'app-piano-roll',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, KnobComponent],
   templateUrl: './piano-roll.component.html',
   styleUrls: ['./piano-roll.component.css'],
 })
@@ -57,6 +58,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   );
   editMode = signal<'draw' | 'select' | 'erase'>('draw');
   selectedNoteIds = signal<Set<string>>(new Set());
+
+  isLocalPlayback = signal(false);
+  isLocalPlaying = signal(false);
+  isLocalRecording = signal(false);
 
   windowWidth = signal(
     typeof window !== 'undefined' ? window.innerWidth : 1280
@@ -475,5 +480,27 @@ viewportNotes = computed(() => {
 
   replaceTrackInstrument(track: TrackModel, presetId: string) {
     this.musicManager.setInstrument(track.id, presetId);
+  }
+
+  toggleLocalPlay() {
+    this.isLocalPlaying.update(v => !v);
+    if (this.isLocalPlaying()) {
+      console.log('Local Piano Roll Playback Started');
+    } else {
+      console.log('Local Piano Roll Playback Paused');
+    }
+  }
+
+  toggleLocalRecord() {
+    this.isLocalRecording.update(v => !v);
+    console.log('Local Piano Roll Recording:', this.isLocalRecording());
+  }
+
+  localSkip() {
+    console.log('Local Piano Roll Skip');
+  }
+
+  localUpload() {
+    console.log('Local Piano Roll Upload');
   }
 }

@@ -14,7 +14,7 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-mixer',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, KnobComponent],
   templateUrl: './mixer.component.html',
   styleUrls: ['./mixer.component.css'],
 })

@@ -9,6 +9,7 @@ import {
   effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { KnobComponent } from '../shared/knob/knob.component';
 import { FormsModule } from '@angular/forms';
 import {
   MusicManagerService,
@@ -44,7 +45,7 @@ interface DrumPad {
 @Component({
   selector: 'app-drum-machine',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, KnobComponent],
   templateUrl: './drum-machine.component.html',
   styleUrl: './drum-machine.component.css',
 })
@@ -54,6 +55,10 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   instrumentsService = inject(InstrumentsService);
   haptic = inject(HapticService);
   aiService = inject(AiService);
+
+  isLocalPlayback = signal(false);
+  isLocalPlaying = signal(false);
+  isLocalRecording = signal(false);
 
   selectedTrackId = this.musicManager.selectedTrackId;
   selectedTrack = computed(() =>
@@ -375,5 +380,27 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   onDragOver(event: DragEvent) {
     event.preventDefault();
+  }
+
+  toggleLocalPlay() {
+    this.isLocalPlaying.update(v => !v);
+    if (this.isLocalPlaying()) {
+      console.log('Local Drum Machine Playback Started');
+    } else {
+      console.log('Local Drum Machine Playback Paused');
+    }
+  }
+
+  toggleLocalRecord() {
+    this.isLocalRecording.update(v => !v);
+    console.log('Local Drum Machine Recording:', this.isLocalRecording());
+  }
+
+  localSkip() {
+    console.log('Local Drum Machine Skip');
+  }
+
+  localUpload() {
+    console.log('Local Drum Machine Upload');
   }
 }
