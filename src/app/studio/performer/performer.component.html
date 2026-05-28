@@ -4,14 +4,28 @@
       <div class="neon-text-sm neon-text font-black tracking-widest">
         LIVE PERFORMER v4.2
       </div>
-      <div class="status-badge glass-v42 neon-accent-primary animate-pulse">
-        ACTIVE
+    </div>
+
+    <!-- Module-Level Transport -->
+    <div class="module-transport glass-v42 mx-4">
+      <div class="btn-group flex gap-1">
+        <button class="m-btn tactile-v42" (click)="audioSession.togglePlay()">
+          <span class="material-symbols-outlined text-sm">
+            {{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}
+          </span>
+        </button>
+        <button class="m-btn tactile-v42 rec" [class.active]="audioSession.isRecording()" (click)="audioSession.toggleRecord()">
+          <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+        </button>
+        <button class="m-btn tactile-v42" (click)="liveEngine.activeInstrument.set('grand-piano')">
+          <span class="material-symbols-outlined text-sm">upload</span>
+        </button>
       </div>
     </div>
 
     <!-- Instrument Selector (Unified) -->
     <div
-      class="instrument-selector-v42 glass-v42 p-1.5 rounded-xl border border-white/10 flex gap-2 overflow-x-auto max-w-[400px] hide-scrollbar"
+      class="instrument-selector-v42 glass-v42 p-1.5 rounded-xl border border-white/10 flex gap-2 overflow-x-auto max-w-[300px] hide-scrollbar"
     >
       <button
         *ngFor="let inst of availableInstruments()"
@@ -33,26 +47,23 @@
       <button
         [class.active]="layout() === 'keyboard'"
         (click)="setLayout('keyboard')"
-        class="layout-btn tactile-v42 px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-wider transition-all"
+        class="layout-btn tactile-v42 px-4 py-2 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all"
       >
-        <span class="material-symbols-outlined text-sm block mb-1">piano</span>
         KEYBOARD
       </button>
       <button
         [class.active]="layout() === 'pads'"
         (click)="setLayout('pads')"
-        class="layout-btn tactile-v42 px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-wider transition-all"
+        class="layout-btn tactile-v42 px-4 py-2 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all"
       >
-        <span class="material-symbols-outlined text-sm block mb-1">apps</span>
-        DRUM PADS
+        PADS
       </button>
       <button
         [class.active]="layout() === 'matrix'"
         (click)="setLayout('matrix')"
-        class="layout-btn tactile-v42 px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-wider transition-all"
+        class="layout-btn tactile-v42 px-4 py-2 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all"
       >
-        <span class="material-symbols-outlined text-sm block mb-1">grid_view</span>
-        CLIP MATRIX
+        MATRIX
       </button>
     </div>
 
@@ -60,7 +71,7 @@
       <button
         (click)="toggleSmartChords()"
         [class.active]="smartChords()"
-        class="action-btn executive-glass extreme-glow px-4 py-2 rounded-lg border border-white/10 font-black text-[10px] uppercase transition-all"
+        class="action-btn executive-glass extreme-glow px-4 py-2 rounded-lg border border-white/10 font-black text-[9px] uppercase transition-all"
       >
         SMART CHORDS
       </button>
@@ -94,8 +105,7 @@
           ></div>
           <span
             class="key-label-v42 font-black text-[10px] opacity-30 uppercase tracking-tighter"
-            >{{ key.name }}</span
-          >
+            >{{ key.name }}</span>
           <div
             *ngIf="activeKeys().has(key.midi)"
             class="active-glow absolute inset-0 opacity-50 blur-xl bg-current"
@@ -105,7 +115,7 @@
     </div>
 
 
-    <!-- Clip Matrix Layout (New Professional Feature) -->
+    <!-- Clip Matrix Layout -->
     <div *ngIf="layout() === 'matrix'" class="matrix-view h-full flex flex-col p-6 overflow-auto">
       <div class="matrix-grid flex flex-col gap-4">
         <!-- Scene Launchers -->
@@ -137,7 +147,7 @@
       </div>
     </div>
 
-    <!-- Pads Layout (Performance Optimized) -->
+    <!-- Pads Layout -->
     <div
       *ngIf="layout() === 'pads'"
       class="pads-view h-full flex items-center justify-center p-6"
@@ -168,8 +178,7 @@
           ></div>
           <span
             class="pad-label-v42 font-black text-xs uppercase tracking-widest relative z-10"
-            >{{ pad.name }}</span
-          >
+            >{{ pad.name }}</span>
           <div
             *ngIf="activeKeys().has(pad.midi)"
             class="pad-glow absolute inset-0 opacity-40 blur-2xl"
@@ -185,23 +194,7 @@
   >
     <div class="footer-control-group flex gap-8">
       <div class="perf-control flex flex-col gap-2">
-        <div class="flex justify-between items-center px-1">
-          <label
-            class="neon-text-xs font-black opacity-50 uppercase tracking-widest"
-            >VELOCITY</label
-          >
-          <span class="font-mono text-[10px] text-neon-orange"
-            >{{ velocity * 100 | number: '1.0-0' }}%</span
-          >
-        </div>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          [(ngModel)]="velocity"
-          class="perf-range-v42"
-        />
+        <app-knob label="VELOCITY" [min]="0" [max]="1" [step]="0.01" [value]="velocity" (valueChange)="velocity = $event"></app-knob>
       </div>
 
       <div class="perf-control flex flex-col gap-2">
@@ -220,8 +213,7 @@
           </button>
           <span
             class="octave-value font-mono text-xl font-black px-6 min-w-[60px] text-center text-neon-purple"
-            >{{ octave() }}</span
-          >
+            >{{ octave() }}</span>
           <button
             (click)="nudgeOctave(1)"
             class="octave-btn tactile-v42 w-10 h-10 flex items-center justify-center rounded-lg text-lg font-black"

@@ -8,8 +8,12 @@ import { CommonModule } from '@angular/common';
   template: `
     <div class="knob-wrapper" #knobWrapper (mousedown)="startDrag($event)" (touchstart)="startDrag($event)">
       <div class="knob-label" *ngIf="label">{{ label }}</div>
-      <div class="knob-outer" [style.transform]="'rotate(' + rotation() + 'deg)'">
-        <div class="knob-indicator"></div>
+      <div class="knob-outer shadow-v42-xl">
+        <div class="knob-face" [style.transform]="'rotate(' + rotation() + 'deg)'">
+          <div class="knob-indicator"></div>
+          <div class="knob-center-cap"></div>
+        </div>
+        <div class="knob-ring"></div>
       </div>
       <div class="knob-value" *ngIf="showValue">{{ displayValue() }}</div>
     </div>
@@ -20,46 +24,87 @@ import { CommonModule } from '@angular/common';
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       user-select: none;
       touch-action: none;
     }
     .knob-outer {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.05);
-      border: 2px solid rgba(255, 255, 255, 0.1);
+      width: 52px;
+      height: 52px;
       position: relative;
       cursor: ns-resize;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .knob-face {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+      border: 2px solid rgba(255, 255, 255, 0.05);
+      position: relative;
+      z-index: 2;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.1);
       transition: border-color 0.2s;
     }
-    .knob-outer:hover {
-      border-color: #ec5b13;
+    .knob-outer:hover .knob-face {
+      border-color: rgba(236, 91, 19, 0.4);
     }
     .knob-indicator {
-      width: 4px;
-      height: 12px;
+      width: 3px;
+      height: 10px;
       background: #ec5b13;
       position: absolute;
-      top: 4px;
+      top: 6px;
       left: 50%;
       transform: translateX(-50%);
       border-radius: 2px;
-      box-shadow: 0 0 8px #ec5b13;
+      box-shadow: 0 0 10px #ec5b13;
+    }
+    .knob-center-cap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #111;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .knob-ring {
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      right: -4px;
+      bottom: -4px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.03);
+      z-index: 1;
     }
     .knob-label {
       font-size: 8px;
-      font-weight: 800;
+      font-weight: 900;
       color: #7a7a9a;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.15em;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
     }
     .knob-value {
       font-family: 'Geist Mono', monospace;
       font-size: 9px;
+      font-weight: 700;
       color: #ec5b13;
+      background: rgba(0,0,0,0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+      min-width: 40px;
+      text-align: center;
+      border: 1px solid rgba(236, 91, 19, 0.1);
+    }
+    @media (max-width: 640px) {
+      .knob-outer {
+        width: 48px;
+        height: 48px;
+      }
     }
   `]
 })
@@ -95,11 +140,6 @@ export class KnobComponent {
     this.isDragging = true;
     this.startY = event instanceof MouseEvent ? event.clientY : event.touches[0].clientY;
     this.startValue = this.value;
-
-    // Prevent scrolling on mobile
-    if (event instanceof TouchEvent) {
-      // event.preventDefault(); // Might cause issues in some browsers
-    }
   }
 
   @HostListener('window:mousemove', ['$event'])
@@ -110,12 +150,11 @@ export class KnobComponent {
     const currentY = event instanceof MouseEvent ? event.clientY : event.touches[0].clientY;
     const deltaY = this.startY - currentY;
     const range = this.max - this.min;
-    const sensitivity = 200; // Pixels to go from min to max
+    const sensitivity = 200;
 
     let newValue = this.startValue + (deltaY / sensitivity) * range;
     newValue = Math.max(this.min, Math.min(this.max, newValue));
 
-    // Round to step
     newValue = Math.round(newValue / this.step) * this.step;
 
     if (newValue !== this.value) {
@@ -132,13 +171,12 @@ export class KnobComponent {
   }
 
   private updateFromValue(val: number) {
-    const percent = (val - this.min) / (this.max - this.min);
-    // Range from -135 to 135 degrees
+    const range = this.max - this.min;
+    const percent = range === 0 ? 0.5 : (val - this.min) / range;
     const rot = -135 + (percent * 270);
     this.rotation.set(rot);
 
-    // Format display value
-    const formatted = val % 1 === 0 ? val.toString() : val.toFixed(2);
+    const formatted = val % 1 === 0 ? val.toString() : val.toFixed(1);
     this.displayValue.set(formatted + this.unit);
   }
 }

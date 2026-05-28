@@ -1,6 +1,6 @@
 import re
 
-with open('src/app/studio/arrangement-view/arrangement-view.component.ts', 'r') as f:
+with open('src/app/studio/piano-roll/piano-roll.component.ts', 'r') as f:
     content = f.read()
 
 if 'imports: [' in content:
@@ -8,5 +8,5 @@ if 'imports: [' in content:
     end = content.find(']', start)
     content = content[:start] + 'CommonModule, FormsModule, KnobComponent' + content[end:]
 
-with open('src/app/studio/arrangement-view/arrangement-view.component.ts', 'w') as f:
+with open('src/app/studio/piano-roll/piano-roll.component.ts', 'w') as f:
     f.write(content)

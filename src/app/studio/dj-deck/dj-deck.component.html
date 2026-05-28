@@ -1,18 +1,37 @@
 <div class="dj-3d-stage" [class.flat-view]="isFlatView()">
   <!-- Top Bar / Global Controls -->
-  <div class="dj-top-bar">
-    <div class="logo">SMUVE <span>3D</span></div>
+  <div class="dj-top-bar wood-panel">
+    <div class="logo neon-text font-black">SMUVE <span class="neon-accent-secondary">3D</span></div>
     <div class="session-notice" [class.active]="sessionNotice()">
       {{ sessionNotice() }}
     </div>
+
+    <!-- Module-Level Transport -->
+    <div class="module-transport glass-v42">
+      <div class="btn-group flex gap-1">
+        <button class="m-btn tactile-v42" (click)="deckService.togglePlay('A')">
+          <span class="material-symbols-outlined text-sm">
+            {{ deckService.deckA().isPlaying ? 'pause' : 'play_arrow' }}
+          </span>
+        </button>
+        <button class="m-btn tactile-v42" (click)="toggleRecording()">
+          <span class="material-symbols-outlined text-sm" [class.text-red-500]="recording()">fiber_manual_record</span>
+        </button>
+        <button class="m-btn tactile-v42" (click)="loadTrackFor('A')">
+          <span class="material-symbols-outlined text-sm">upload</span>
+        </button>
+      </div>
+    </div>
+
     <div class="global-actions">
-      <button (click)="saveSessionSnapshot()" title="Save Session">
+      <button (click)="saveSessionSnapshot()" class="tactile-v42" title="Save Session">
         <span class="material-symbols-outlined">save</span>
       </button>
-      <button (click)="exportSessionSnapshot()" title="Export JSON">
+      <button (click)="exportSessionSnapshot()" class="tactile-v42" title="Export JSON">
         <span class="material-symbols-outlined">ios_share</span>
       </button>
       <button
+        class="tactile-v42"
         (click)="isFlatView.set(!isFlatView())"
         [title]="isFlatView() ? '3D View' : 'Flat View'"
       >
@@ -104,48 +123,15 @@
     <div class="mixer-section">
       <div class="mixer-chassis">
         <div class="mixer-channel">
-          <div class="knob-v42 tactile-v42 knob-group">
-            <label>GAIN</label>
-            <input
-              type="range"
-              class="knob-v42 tactile-v42 knob"
-              min="0"
-              max="1.5"
-              step="0.01"
-              [value]="deckService.deckA().gain"
-              (input)="setGain('A', $any($event.target).value)"
-            />
+          <app-knob label="GAIN" [min]="0" [max]="1.5" [step]="0.01" [value]="deckService.deckA().gain" (valueChange)="setGain('A', $event)"></app-knob>
+
+          <div class="eq-knobs-elite mt-4">
+            <app-knob label="HI" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckA().eqHigh" (valueChange)="updateEq('A', 'high', $event)"></app-knob>
+            <app-knob label="MID" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckA().eqMid" (valueChange)="updateEq('A', 'mid', $event)"></app-knob>
+            <app-knob label="LOW" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckA().eqLow" (valueChange)="updateEq('A', 'low', $event)"></app-knob>
           </div>
-          <div class="eq-knobs">
-            <input
-              type="range"
-              class="knob-v42 tactile-v42 knob small"
-              min="0"
-              max="2"
-              step="0.01"
-              [value]="deckService.deckA().eqHigh"
-              (input)="updateEq('A', 'high', $any($event.target).value)"
-            />
-            <input
-              type="range"
-              class="knob-v42 tactile-v42 knob small"
-              min="0"
-              max="2"
-              step="0.01"
-              [value]="deckService.deckA().eqMid"
-              (input)="updateEq('A', 'mid', $any($event.target).value)"
-            />
-            <input
-              type="range"
-              class="knob-v42 tactile-v42 knob small"
-              min="0"
-              max="2"
-              step="0.01"
-              [value]="deckService.deckA().eqLow"
-              (input)="updateEq('A', 'low', $any($event.target).value)"
-            />
-          </div>
-          <div class="channel-fader">
+
+          <div class="channel-fader-elite mt-6">
             <input
               type="range"
               orient="vertical"
@@ -159,8 +145,8 @@
         </div>
 
         <div class="mixer-center">
-          <div class="master-section">
-            <label>MASTER</label>
+          <div class="master-section-elite">
+            <label class="neon-text-xs">MASTER</label>
             <div class="master-vu">
               <div
                 class="vu-bar"
@@ -171,18 +157,10 @@
                 [style.height.%]="getDeckLevel('B') * 100"
               ></div>
             </div>
-            <input
-              type="range"
-              class="knob-v42 tactile-v42 knob"
-              min="0"
-              max="1.2"
-              step="0.01"
-              [value]="masterVolume()"
-              (input)="setMasterVolume($any($event.target).value)"
-            />
+            <app-knob [min]="0" [max]="1.2" [step]="0.01" [value]="masterVolume()" (valueChange)="setMasterVolume($event)"></app-knob>
           </div>
 
-          <div class="crossfader-container">
+          <div class="crossfader-container-elite mt-8">
             <input
               type="range"
               min="-1"
@@ -195,48 +173,15 @@
         </div>
 
         <div class="mixer-channel">
-          <div class="knob-v42 tactile-v42 knob-group">
-            <label>GAIN</label>
-            <input
-              type="range"
-              class="knob-v42 tactile-v42 knob"
-              min="0"
-              max="1.5"
-              step="0.01"
-              [value]="deckService.deckB().gain"
-              (input)="setGain('B', $any($event.target).value)"
-            />
+          <app-knob label="GAIN" [min]="0" [max]="1.5" [step]="0.01" [value]="deckService.deckB().gain" (valueChange)="setGain('B', $event)"></app-knob>
+
+          <div class="eq-knobs-elite mt-4">
+            <app-knob label="HI" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckB().eqHigh" (valueChange)="updateEq('B', 'high', $event)"></app-knob>
+            <app-knob label="MID" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckB().eqMid" (valueChange)="updateEq('B', 'mid', $event)"></app-knob>
+            <app-knob label="LOW" [min]="0" [max]="2" [step]="0.01" [value]="deckService.deckB().eqLow" (valueChange)="updateEq('B', 'low', $event)"></app-knob>
           </div>
-          <div class="eq-knobs">
-            <input
-              type="range"
-              class="knob-v42 tactile-v42 knob small"
-              min="0"
-              max="2"
-              step="0.01"
-              [value]="deckService.deckB().eqHigh"
-              (input)="updateEq('B', 'high', $any($event.target).value)"
-            />
-            <input
-              type="range"
-              class="knob-v42 tactile-v42 knob small"
-              min="0"
-              max="2"
-              step="0.01"
-              [value]="deckService.deckB().eqMid"
-              (input)="updateEq('B', 'mid', $any($event.target).value)"
-            />
-            <input
-              type="range"
-              class="knob-v42 tactile-v42 knob small"
-              min="0"
-              max="2"
-              step="0.01"
-              [value]="deckService.deckB().eqLow"
-              (input)="updateEq('B', 'low', $any($event.target).value)"
-            />
-          </div>
-          <div class="channel-fader">
+
+          <div class="channel-fader-elite mt-6">
             <input
               type="range"
               orient="vertical"
@@ -348,57 +293,45 @@
       </button>
     </div>
 
-    <div class="pad tactile-v42s-grid-container">
-      <div class="pad tactile-v42s-deck">
-        <div class="pad tactile-v42s-grid">
-          @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {
-            <button
-              class="pad tactile-v42"
-              [class.active]="
-                isCuePadSet('A', i) ||
-                isRollPadActive('A', i) ||
-                isSamplerPadActive('A', i)
-              "
-              (mousedown)="handlePadDown('A', i, $event)"
-              (mouseup)="handlePadRelease('A', i)"
-              (click)="handlePadPress('A', i)"
-              (contextmenu)="clearPad('A', i, $event)"
-            >
-              {{ getPadLabel(i) }}
-            </button>
-          }
+    <div class="pad-tactile-v42s-grid-container">
+      <div class="pad-tactile-v42s-deck">
+        <div class="pad-tactile-v42s-grid">
+          <button
+            *ngFor="let i of [0, 1, 2, 3, 4, 5, 6, 7]"
+            class="pad tactile-v42"
+            [class.active]="
+              isCuePadSet('A', i) ||
+              isRollPadActive('A', i) ||
+              isSamplerPadActive('A', i)
+            "
+            (mousedown)="handlePadDown('A', i, $event)"
+            (mouseup)="handlePadRelease('A', i)"
+            (click)="handlePadPress('A', i)"
+            (contextmenu)="clearPad('A', i, $event)"
+          >
+            {{ getPadLabel(i) }}
+          </button>
         </div>
       </div>
-      <div class="pad tactile-v42s-deck">
-        <div class="pad tactile-v42s-grid">
-          @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {
-            <button
-              class="pad tactile-v42"
-              [class.active]="
-                isCuePadSet('B', i) ||
-                isRollPadActive('B', i) ||
-                isSamplerPadActive('B', i)
-              "
-              (mousedown)="handlePadDown('B', i, $event)"
-              (mouseup)="handlePadRelease('B', i)"
-              (click)="handlePadPress('B', i)"
-              (contextmenu)="clearPad('B', i, $event)"
-            >
-              {{ getPadLabel(i) }}
-            </button>
-          }
+      <div class="pad-tactile-v42s-deck">
+        <div class="pad-tactile-v42s-grid">
+          <button
+            *ngFor="let i of [0, 1, 2, 3, 4, 5, 6, 7]"
+            class="pad tactile-v42"
+            [class.active]="
+              isCuePadSet('B', i) ||
+              isRollPadActive('B', i) ||
+              isSamplerPadActive('B', i)
+            "
+            (mousedown)="handlePadDown('B', i, $event)"
+            (mouseup)="handlePadRelease('B', i)"
+            (click)="handlePadPress('B', i)"
+            (contextmenu)="clearPad('B', i, $event)"
+          >
+            {{ getPadLabel(i) }}
+          </button>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Load Buttons -->
-  <div class="deck-load-actions">
-    <button (click)="loadTrackFor('A')">
-      <span class="material-symbols-outlined">upload_file</span> LOAD DECK A
-    </button>
-    <button (click)="loadTrackFor('B')">
-      <span class="material-symbols-outlined">upload_file</span> LOAD DECK B
-    </button>
   </div>
 </div>

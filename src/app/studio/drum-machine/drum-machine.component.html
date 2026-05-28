@@ -1,129 +1,27 @@
 <div class="drum-machine-container glass-v42 retro-flicker shadow-v42-xl">
-  <!-- Top Control Bar -->
   <div class="drum-header wood-panel">
-    <div class="header-branding">
-      <div class="neon-text-sm neon-text">PRO DRUM MODULE v4.2</div>
-      <div class="engine-status neon-accent-primary">ANALOG ENGINE ACTIVE</div>
-    </div>
-
-    <!-- Module-Level Transport -->
+    <div class="header-branding"><div class="neon-text-sm neon-text">PRO DRUM MODULE v4.2</div></div>
     <div class="module-transport glass-v42">
-      <div class="transport-mode-toggle flex items-center gap-2 mr-2">
-        <span class="text-[8px] font-bold text-slate-500">GLOBAL</span>
-        <label class="switch-mini">
-          <input type="checkbox" [ngModel]="isLocalPlayback()" (ngModelChange)="isLocalPlayback.set($event)">
-          <span class="slider-mini round"></span>
-        </label>
-        <span class="text-[8px] font-bold text-fl-blue">LOCAL</span>
-      </div>
-
       <div class="btn-group flex gap-1">
-        <button class="m-btn tactile-v42" (click)="isLocalPlayback() ? toggleLocalPlay() : engine.togglePlay()">
-          <span class="material-symbols-outlined text-sm">
-            {{ (isLocalPlayback() ? isLocalPlaying() : engine.isPlaying()) ? 'pause' : 'play_arrow' }}
-          </span>
+        <button class="m-btn tactile-v42" (click)="isLocalPlayback() ? toggleLocalPlay() : audioSession.togglePlay()">
+          <span class="material-symbols-outlined text-sm">{{ (isLocalPlayback() ? isLocalPlaying() : audioSession.isPlaying()) ? 'pause' : 'play_arrow' }}</span>
         </button>
-        <button class="m-btn tactile-v42" (click)="localSkip()">
-          <span class="material-symbols-outlined text-sm">skip_next</span>
-        </button>
-        <button class="m-btn tactile-v42 rec" [class.active]="isLocalPlayback() ? isLocalRecording() : engine.isRecording()" (click)="isLocalPlayback() ? toggleLocalRecord() : engine.toggleRecord()">
+        <button class="m-btn tactile-v42 rec" [class.active]="isLocalPlayback() ? isLocalRecording() : audioSession.isRecording()" (click)="isLocalPlayback() ? toggleLocalRecord() : audioSession.toggleRecord()">
           <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
         </button>
-        <button class="m-btn tactile-v42" (click)="localUpload()">
-          <span class="material-symbols-outlined text-sm">cloud_upload</span>
-        </button>
       </div>
     </div>
-
-    <div class="kit-selector glass-v42">
-      <label class="neon-text-xs">KIT:</label>
-      <select [ngModel]="selectedKitId()" (ngModelChange)="setKit($event)" class="executive-glass">
-        <option *ngFor="let kit of availableKits()" [value]="kit.id">
-          {{ kit.name | uppercase }}
-        </option>
-      </select>
-    </div>
-
-    <div class="quantum-engine-controls">
-      <div class="ai-branding neon-accent-secondary">QUANTUM AI</div>
-      <div class="ai-actions">
-        <button (click)="generateAiPattern('trap')" class="ai-btn executive-glass">TRAP</button>
-        <button (click)="generateAiPattern('house')" class="ai-btn executive-glass">HOUSE</button>
-      </div>
-    </div>
-
-    <button (click)="clearPattern()" class="clear-btn executive-glass">RESET</button>
   </div>
-
   <div class="drum-content">
-    <!-- Left Pad Selection -->
-    <div class="pads-sidebar no-scrollbar wood-panel">
-      <div
-        *ngFor="let pad of pads()"
-        class="drum-pad-item tactile-v42 glass-v42"
-        [class.selected]="selectedPad()?.id === pad.id"
-        (click)="selectPad(pad)"
-        (drop)="onDrop($event, pad)"
-        (dragover)="onDragOver($event)"
-      >
-        <div class="pad-led-container">
-          <div class="pad-led" [style.background-color]="pad.color" [class.glowing]="selectedPad()?.id === pad.id"></div>
-        </div>
-        <div class="pad-info">
-          <span class="pad-name neon-text-xs">{{ pad.name }}</span>
-          <span class="pad-midi font-mono">MIDI {{ pad.midi }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Sequencer Grid -->
     <div class="sequencer-viewport no-scrollbar glass-v42">
-      <div class="scanline-overlay"></div>
       <div class="sequencer-grid">
-        <div *ngFor="let pad of pads()" class="sequencer-row" [class.selected-row]="selectedPad()?.id === pad.id">
-          <div
-            *ngFor="let step of pad.steps; let sIdx = index"
-            class="step-box tactile-v42"
-            [class.active]="step.active"
-            [class.current-step]="currentStep() === sIdx"
-            [style.--step-color]="pad.color"
-            (click)="toggleStep(pad, sIdx)"
-          >
-            <div class="step-indicator" *ngIf="step.active"></div>
-          </div>
+        <div *ngFor="let pad of pads()" class="sequencer-row">
+          <div *ngFor="let step of pad.steps; let sIdx = index" class="step-box tactile-v42" [class.active]="step.active" (click)="toggleStep(pad, sIdx)"></div>
         </div>
       </div>
     </div>
-
-    <!-- Right Param Inspector -->
     <div class="param-inspector glass-v42 no-scrollbar shadow-v42-xl" *ngIf="selectedPad() as pad">
-      <div class="inspector-title neon-text-xs">PRO PAD CONTROLS</div>
-      <button (click)="addAutomation('filter.cutoff')" class="mini-btn tactile-v42 mb-4 w-full">AUTO CUTOFF</button>
-      <div class="pad-preview-header" [style.border-color]="pad.color">
-        <span class="neon-text-xs neon-text">{{ pad.name }}</span>
-      </div>
-
-      <div class="params-grid-elite">
-        <app-knob label="PITCH" [min]="-12" [max]="12" [value]="pad.params.semitone" (valueChange)="pad.params.semitone = $event"></app-knob>
-        <app-knob label="PAN" [min]="-1" [max]="1" [step]="0.1" [value]="pad.params.pan" (valueChange)="pad.params.pan = $event"></app-knob>
-        <app-knob label="DECAY" [min]="0.01" [max]="2" [step]="0.05" [value]="pad.params.decay" (valueChange)="pad.params.decay = $event"></app-knob>
-        <app-knob label="CUTOFF" [min]="20" [max]="15000" [step]="100" [value]="pad.params.cutoff" (valueChange)="pad.params.cutoff = $event"></app-knob>
-        <app-knob label="RES" [min]="0.1" [max]="10" [step]="0.1" [value]="pad.params.resonance" (valueChange)="pad.params.resonance = $event"></app-knob>
-        <app-knob label="ATTACK" [min]="0.001" [max]="0.5" [step]="0.001" [value]="pad.params.attack" (valueChange)="pad.params.attack = $event"></app-knob>
-      </div>
-
-      <div class="velocity-section mt-6">
-        <label class="neon-text-xs">STEP VELOCITIES</label>
-        <div class="velocity-bars">
-          <div
-            *ngFor="let step of pad.steps; let i = index"
-            class="v-bar executive-glass"
-            [class.v-active]="step.active"
-            [style.height.%]="step.velocity * 100"
-            (click)="step.velocity = (step.velocity + 0.2) % 1.2"
-          ></div>
-        </div>
-      </div>
+      <app-knob label="PITCH" [min]="-12" [max]="12" [value]="pad.params.semitone" (valueChange)="pad.params.semitone = $event"></app-knob>
     </div>
   </div>
 </div>
