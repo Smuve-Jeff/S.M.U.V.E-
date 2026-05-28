@@ -1,4 +1,10 @@
-import { ArtistIdentityState } from './artist-identity.types';
+import sys
+
+def write_file(path, content):
+    with open(path, 'w') as f:
+        f.write(content)
+
+write_file('src/app/types/profile.types.ts', """import { ArtistIdentityState } from './artist-identity.types';
 import { ArtistKnowledgeBase, RecommendationHistoryEntry, UpgradeRecommendation } from './ai.types';
 import { MarketingCampaign } from './marketing.types';
 
@@ -196,29 +202,4 @@ export interface UserProfile {
   profileSetupCompleted?: boolean;
   profileSetupCompletedAt?: number;
 }
-
-import { createInitialArtistIdentity } from './artist-identity.types';
-export const initialProfile: UserProfile = {
-  settings: {
-    ui: { theme: 'Dark', performanceMode: false, showScanlines: false, animationsEnabled: true, autoPianoRoll: false },
-    audio: { masterVolume: 0.8, autoSaveEnabled: true },
-    ai: { kbWriteAccess: true, commanderPersona: 'Elite' },
-    security: { twoFactorEnabled: false, endToEndEncryption: false, biometricLock: false, auditLogEnabled: true, sessionTimeout: 3600 },
-  },
-  artistName: 'New Artist', primaryGenre: 'Hip Hop',
-  proName: '', proIpi: '', proData: { workIds: [], affiliations: [], ipiNumber: '' },
-  knowledgeBase: { id: 'kb-initial', artistId: 'new-artist', dataPoints: [], learnedStyles: [], productionSecrets: [], coreTrends: [], strategicDirectives: [], marketIntel: [], genreAnalysis: {}, brandStatus: {}, strategicHealthScore: 0 },
-  careerGoals: [], equipment: [], daw: [], services: [], recommendationPreferences: {}, recommendationHistory: [],
-  expertise: { production: 0, songwriting: 0, marketing: 0, business: 0, legal: 0, performance: 0, catalyst: 0 },
-  team: [], marketingCampaigns: [],
-  financials: { accounts: [], monthlyBudget: 0, totalRevenue: 0, pendingPayouts: 0, splitSheets: [], revenueHistory: [] },
-  catalog: [], artistIdentity: createInitialArtistIdentity('New Artist', 'Hip Hop'),
-  strategicHealthScore: 0, criticalDeficits: [],
-  strategicSignals: { marketReadiness: 0, identityTrust: 0, careerMomentum: 0, technicalAuthority: 0, syncViability: 0, touringStability: 0 },
-  auditHistory: [], skills: [], productionStyles: [], brandVoices: [], strategicGoals: [], performancesPerYear: 'None',
-  touringDetails: { travelPreference: 'Van', regions: [], isTourReady: 'Studio Only', hasBackline: 'No' },
-  syncDetails: { isSyncReady: 'Not Started', hasCleanVersions: false, hasInstrumentals: false, hasStems: 'No', oneStopClearance: false, catalogSize: 0, preferredKeywords: [] },
-  legalInfrastructure: { hasRegisteredWorks: false, proAffiliation: "None", hasStandardSplitSheet: "Never", isIncorporated: false, trademarkStatus: "None" },
-  genreSpecificData: {}, gameStats: {}, pressGallery: [],
-  thaSpotProgression: { roomStats: {}, earnedCosmetics: [], eventHistory: [] },
-};
+""")
