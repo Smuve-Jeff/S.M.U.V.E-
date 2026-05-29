@@ -3,13 +3,15 @@ import { Injectable, signal } from '@angular/core';
 interface SmuveArchetype {
   name: string;
   keywords: string[];
-  pitch: number;
-  rate: number;
-  volume: number;
+  basePitch: number;
+  baseRate: number;
+  baseVolume: number;
+  description: string;
 }
 
 interface SpeakOptions {
   conversationId?: string;
+  forceArchetype?: string;
 }
 
 @Injectable({
@@ -18,43 +20,56 @@ interface SpeakOptions {
 export class SpeechSynthesisService {
   isSpeaking = signal(false);
 
-  // Elite S.M.U.V.E. Archetypes - Dynamic characters as requested
+  // Elite S.M.U.V.E. Archetypes - Expanded for Advanced Vocal Performance
   private readonly SMUVE_ARCHETYPES: SmuveArchetype[] = [
     {
       name: 'The S.M.U.V.E. Driller',
-      keywords: ['en-gb', 'male', 'david', 'google uk male'],
-      pitch: 0.7,
-      rate: 0.82,
-      volume: 1.0,
+      keywords: ['en-gb', 'male', 'david', 'google uk male', 'uk'],
+      basePitch: 0.65,
+      baseRate: 0.85,
+      baseVolume: 1.0,
+      description: 'Aggressive, sharp, fast-paced executioner.'
     },
     {
       name: 'The S.M.U.V.E. Executioner',
-      keywords: ['google uk male', 'male', 'microsoft james'],
-      pitch: 0.6,
-      rate: 0.85,
-      volume: 1.0,
+      keywords: ['google uk male', 'male', 'microsoft james', 'en-us-x-iog-local'],
+      basePitch: 0.55,
+      baseRate: 0.78,
+      baseVolume: 1.0,
+      description: 'Heavy, authoritative, ominous presence.'
     },
     {
       name: 'The S.M.U.V.E. Mogul',
-      keywords: ['male', 'daniel', 'en-us-x-iog-local'],
-      pitch: 0.75,
-      rate: 0.95,
-      volume: 1.0,
+      keywords: ['male', 'daniel', 'en-us-x-iog-local', 'google us male'],
+      basePitch: 0.72,
+      baseRate: 0.92,
+      baseVolume: 1.0,
+      description: 'Calculating, sophisticated, business-dominant.'
     },
     {
       name: 'The S.M.U.V.E. Phantom',
-      keywords: ['deep', 'male', 'bass'],
-      pitch: 0.5,
-      rate: 0.8,
-      volume: 0.9,
+      keywords: ['deep', 'male', 'bass', 'low'],
+      basePitch: 0.45,
+      baseRate: 0.75,
+      baseVolume: 0.95,
+      description: 'Subterranean, spectral, detached intelligence.'
     },
     {
       name: 'The S.M.U.V.E. Architect',
-      keywords: ['google us male', 'male', 'standard-b'],
-      pitch: 0.8,
-      rate: 0.9,
-      volume: 1.0,
+      keywords: ['google us male', 'male', 'standard-b', 'en-us-x-iol-local'],
+      basePitch: 0.85,
+      baseRate: 0.88,
+      baseVolume: 1.0,
+      description: 'Precise, technical, constructing reality.'
     },
+    {
+      name: 'The S.M.U.V.E. Tyrant',
+      keywords: ['male', 'premium', 'neural', 'guy'],
+      basePitch: 0.6,
+      baseRate: 0.8,
+      baseVolume: 1.0,
+      description: 'Absolute dominance, unyielding power.'
+    }
   ];
 
   private currentArchetype: SmuveArchetype | null = null;
@@ -63,30 +78,25 @@ export class SpeechSynthesisService {
 
   constructor() {}
 
+  /**
+   * Speaks the provided text using an advanced S.M.U.V.E. vocal profile.
+   * Tone varies with every message to maintain psychological dominance.
+   */
   speak(text: string, options?: SpeakOptions): void {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis) {
       return;
     }
 
-    // Select a random S.M.U.V.E. Archetype for every interaction
-    this.currentArchetype =
-      this.SMUVE_ARCHETYPES[
-        Math.floor(Math.random() * this.SMUVE_ARCHETYPES.length)
-      ];
+    // Tone varies for every message: pick a new archetype or shift the current one
+    this.currentArchetype = this.selectDynamicArchetype(options);
 
-    // Pronunciation rule: S.M.U.V.E -> Smooth
-    const processedText = text
-      .replace(/S\.M\.U\.V\.E(?:\s+\d+\.\d+)?/gi, 'Smooth')
-      .replace(/SMUVE/gi, 'Smooth')
-      .replace(
-        /Smooth\s+INITIALIZED\.\s+ROOM DOMINANCE COMMENCING\./i,
-        'Welcome to Smooth'
-      );
+    // Pronunciation rule: S.M.U.V.E -> Smooth (with authoritative weight)
+    const processedText = this.applyAuthoritativePronunciation(text);
 
     this.cancel();
 
     const utterance = new SpeechSynthesisUtterance(processedText);
-    this.configureUtterance(utterance, options);
+    this.configureAdvancedUtterance(utterance, options);
 
     utterance.onstart = () => this.isSpeaking.set(true);
     utterance.onend = () => this.isSpeaking.set(false);
@@ -95,7 +105,24 @@ export class SpeechSynthesisService {
     window.speechSynthesis.speak(utterance);
   }
 
-  private configureUtterance(
+  private selectDynamicArchetype(options?: SpeakOptions): SmuveArchetype {
+    if (options?.forceArchetype) {
+      const forced = this.SMUVE_ARCHETYPES.find(a => a.name.includes(options.forceArchetype!));
+      if (forced) return forced;
+    }
+    return this.SMUVE_ARCHETYPES[Math.floor(Math.random() * this.SMUVE_ARCHETYPES.length)];
+  }
+
+  private applyAuthoritativePronunciation(text: string): string {
+    return text
+      .replace(/S\.M\.U\.V\.E(?:\s+\d+\.\d+)?/gi, 'Smooth')
+      .replace(/SMUVE/gi, 'Smooth')
+      .replace(/S\.M\.U\.V\.E\./gi, 'Smooth.')
+      .replace(/Absolute\s+Signals/gi, 'Elite Signals')
+      .replace(/INITIALIZED\./i, 'READY FOR EXECUTION.');
+  }
+
+  private configureAdvancedUtterance(
     utterance: SpeechSynthesisUtterance,
     options?: SpeakOptions
   ) {
@@ -105,71 +132,57 @@ export class SpeechSynthesisService {
     const conversationId = options?.conversationId;
     let selectedVoice: any = null;
 
-    if (conversationId && this.conversationVoices.has(conversationId)) {
-      selectedVoice = this.conversationVoices.get(conversationId);
-    } else {
-      selectedVoice = this.pickVoice(voices, this.currentArchetype);
+    // Even within a conversation, we might want to rotate voices for "variation"
+    // but keep some anchor if conversationId is provided.
+    // However, the requirement is "randomly changes tone for each conversation"
+    // and "tone vary with every message" (from user input).
 
-      if (conversationId && this.lastUsedVoice && selectedVoice) {
-        const pool = this.getVoicePool(voices, this.currentArchetype);
-        if (pool.length > 1 && selectedVoice.name === this.lastUsedVoice.name) {
-          const alternatives = pool.filter(
-            (v) => v.name !== this.lastUsedVoice.name
-          );
-          if (alternatives.length > 0) {
-            selectedVoice =
-              alternatives[Math.floor(Math.random() * alternatives.length)];
-          }
-        }
-      }
-
-      if (conversationId && selectedVoice) {
-        this.conversationVoices.set(conversationId, selectedVoice);
-      }
-    }
+    selectedVoice = this.pickEliteVoice(voices, this.currentArchetype);
 
     if (selectedVoice) {
       this.lastUsedVoice = selectedVoice;
-      this.assignVoiceSafely(utterance, selectedVoice);
+      utterance.voice = selectedVoice;
     }
 
-    utterance.pitch = this.currentArchetype.pitch;
-    utterance.rate = this.currentArchetype.rate;
-    utterance.volume = this.currentArchetype.volume;
+    // Apply "Jitter" to parameters for advanced vocal realism
+    const pitchJitter = (Math.random() - 0.5) * 0.1; // +/- 0.05
+    const rateJitter = (Math.random() - 0.5) * 0.05;  // +/- 0.025
+
+    utterance.pitch = Math.max(0.1, Math.min(2.0, this.currentArchetype.basePitch + pitchJitter));
+    utterance.rate = Math.max(0.1, Math.min(2.0, this.currentArchetype.baseRate + rateJitter));
+    utterance.volume = this.currentArchetype.baseVolume;
+
+    // If it's the Phantom, force lower volume and rate for atmospheric dominance
+    if (this.currentArchetype.name.includes('Phantom')) {
+      utterance.volume *= 0.9;
+    }
   }
 
-  private getVoicePool(voices: any[], archetype: SmuveArchetype): any[] {
+  private pickEliteVoice(voices: any[], archetype: SmuveArchetype): any | null {
     const englishVoices = voices.filter((voice) =>
       voice.lang?.toLowerCase().startsWith('en')
     );
     const basePool = englishVoices.length ? englishVoices : voices;
 
-    const matchingVoices = basePool.filter((voice) =>
+    // Prioritize Male voices explicitly
+    const maleVoices = basePool.filter(v =>
+      v.name.toLowerCase().includes('male') ||
+      v.name.toLowerCase().includes('guy') ||
+      v.name.toLowerCase().includes('david') ||
+      v.name.toLowerCase().includes('james') ||
+      v.name.toLowerCase().includes('daniel')
+    );
+
+    const matchPool = maleVoices.length ? maleVoices : basePool;
+
+    const matchingVoices = matchPool.filter((voice) =>
       archetype.keywords.some((keyword) =>
         voice.name.toLowerCase().includes(keyword)
       )
     );
 
-    return matchingVoices.length ? matchingVoices : basePool;
-  }
-
-  private pickVoice(voices: any[], archetype: SmuveArchetype): any | null {
-    const voicePool = this.getVoicePool(voices, archetype);
-    if (!voicePool.length) return null;
-
-    const voiceIndex = Math.floor(Math.random() * voicePool.length);
-    return voicePool[voiceIndex] ?? null;
-  }
-
-  private assignVoiceSafely(
-    utterance: SpeechSynthesisUtterance,
-    voice: NonNullable<SpeechSynthesisUtterance['voice']>
-  ): void {
-    try {
-      utterance.voice = voice;
-    } catch {
-      // Browser safety
-    }
+    const finalPool = matchingVoices.length ? matchingVoices : matchPool;
+    return finalPool[Math.floor(Math.random() * finalPool.length)] ?? null;
   }
 
   cancel(): void {

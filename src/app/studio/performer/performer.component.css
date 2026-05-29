@@ -215,3 +215,60 @@
   border-color: rgba(16, 185, 129, 0.3);
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
 }
+
+/* New Expressive Controls */
+.expressive-controls-v42 {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+}
+
+.v-slider-v42 {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  outline: none;
+  width: 8px;
+}
+
+.v-slider-v42::-webkit-slider-thumb {
+  appearance: none;
+  width: 24px;
+  height: 12px;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Animations */
+.trigger-animation {
+  box-shadow: 0 0 20px var(--color-neon-cyan);
+}
+
+.pad-trigger-pulse {
+  pointer-events: none;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-ping {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.accent-neon-cyan {
+  accent-color: #00f3ff;
+}
+
+.accent-neon-purple {
+  accent-color: #af25f4;
+}

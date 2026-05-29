@@ -78,6 +78,62 @@ export class InstrumentsService {
       ],
     },
     {
+      id: 'strat-elite-clean',
+      name: 'Strat Elite Clean',
+      type: 'sample',
+      category: 'guitar',
+      tags: ['electric', 'clean', 'stratocaster', 'elite'],
+      sampleQuality: 'high',
+      zones: [
+        {
+          midiRange: [40, 88],
+          url: 'https://tonejs.github.io/audio/casio/G3.mp3', // Placeholder using available Tone.js assets
+        },
+      ],
+    },
+    {
+      id: 'chamber-strings-elite',
+      name: 'Chamber Strings Elite',
+      type: 'sample',
+      category: 'strings',
+      tags: ['orchestral', 'ensemble', 'high-fidelity', 'elite'],
+      sampleQuality: 'high',
+      zones: [
+        {
+          midiRange: [36, 96],
+          url: 'https://tonejs.github.io/audio/berlin/strings_sustain_C4.mp3', // Representational URL
+        },
+      ],
+    },
+    {
+      id: 'p-bass-elite',
+      name: 'P-Bass Elite',
+      type: 'sample',
+      category: 'bass',
+      tags: ['electric', 'bass', 'precision', 'elite'],
+      sampleQuality: 'high',
+      zones: [
+        {
+          midiRange: [28, 64],
+          url: 'https://tonejs.github.io/audio/casio/A1.mp3',
+        },
+      ],
+    },
+    {
+      id: 'solo-violin-elite',
+      name: 'Solo Violin Elite',
+      type: 'sample',
+      category: 'other', // Or adding 'violin' if typed
+      tags: ['acoustic', 'solo', 'virtuoso', 'elite'],
+      sampleQuality: 'high',
+      zones: [
+        {
+          midiRange: [55, 103],
+          url: 'https://tonejs.github.io/audio/berlin/violin_sustain_C4.mp3',
+        },
+      ],
+    },
+    {
       id: 'analog-warmth',
       name: 'Analog Warmth',
       type: 'synth',
@@ -176,7 +232,6 @@ export class InstrumentsService {
       osc.start(now);
       osc.stop(now + 0.5);
     } else if (preset.type === 'sample' && preset.zones?.[0]) {
-        // Sample audition logic would go here, simplified for now
         this.audioEngine.logger.info(`Auditioning sample: ${preset.name}`);
     }
   }
