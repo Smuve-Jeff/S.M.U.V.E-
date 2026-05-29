@@ -190,8 +190,7 @@ body {
 /* Animation Utilities */
 .animate-enter {
   opacity: 1;
-  animation-fill-mode: forwards;
-  animation: slideUp 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+  animation: slideUp 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
 }
 
 @keyframes slideUp {
