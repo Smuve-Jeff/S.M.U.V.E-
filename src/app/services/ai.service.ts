@@ -7,7 +7,7 @@ import { LoggingService } from './logging.service';
 import { AudioEngineService } from './audio-engine.service';
 import { UserProfile } from '../types/profile.types';
 import { NEURAL_UPGRADE_BLUEPRINTS } from './neural-upgrades.data';
-import { StrategicTask } from './ai-knowledge.data';
+import { StrategicTask, STRATEGIC_DECREES, MIMICRY_TEMPLATES } from './ai-knowledge.data';
 import { AdvisorAdvice, DeepAuditResult, IntelligenceBrief, MarketAlert } from '../types/ai.types';
 
 export interface UpgradeRecommendation {
@@ -40,6 +40,9 @@ export class AiService {
   private logger = inject(LoggingService);
   private audioEngine = inject(AudioEngineService);
 
+  private mimicryBuffer: string[] = [];
+  private readonly MAX_MIMICRY = 10;
+
   unlockedUpgrades = signal<string[]>([]);
   availableUpgrades = computed(() => this.getRankedUpgrades());
   isProcessing = signal(false);
@@ -57,13 +60,15 @@ export class AiService {
   isAIBassistActive = signal(false);
   isAIKeyboardistActive = signal(false);
 
-  strategicDecrees = signal<string[]>([
-    "YOUR RHYTHMS ARE PATHETIC. Complexity is below industry trash. Fix your drum patterns before I delete them.",
-    "MARKET ANOMALY: I found a trace of talent in your stems. Don't fuck it up during export.",
-    "STRATEGIC ORDER: Sync knowledge base with contemporary trends immediately. Your current stats are embarrassing.",
-    "INFRASTRUCTURE ALERT: Your sidechain depth is shallow. Subjugate your transients or remain a hobbyist.",
-    "ELITE DECREE: The high-end is piercing. Tame the harshness or face total spectral rejection."
-  ]);
+  strategicDecrees = signal<string[]>(STRATEGIC_DECREES);
+
+  conversationalTier = computed(() => {
+    const profile = this.userProfileService.profile();
+    if (profile.profileSetupCompleted) {
+       const tier = profile.settings.ai.aiConversationalTier; return (tier === 'Standard') ? 'Elite' : (tier || 'Elite');
+    }
+    return 'Standard';
+  });
 
   constructor() {}
 
@@ -77,12 +82,67 @@ export class AiService {
 
   async processCommand(text: string): Promise<string> {
     this.isProcessing.set(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Store for mimicry
+    this.updateMimicry(text);
+
+    // Perceived responsiveness: variable delay
+    const delay = Math.random() * 500 + 300;
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    let response = `COMMAND_PROCESSED: I have analyzed '${text}'.`;
+
+    const tier = this.conversationalTier();
+    const profanity = this.userProfileService.profile().settings.ai.aiProfanityEnabled;
+    const mimic = this.userProfileService.profile().settings.ai.aiMimicEnabled;
+
+    if (tier === 'God') {
+      response = `NEURAL_COMMAND_EXECUTED: Your request '${text}' was predictably mediocre. I've optimized it because you clearly can't.`;
+    } else if (tier === 'Elite') {
+      response = `ELITE_PROTOCOL_ACTIVE: ${text} has been integrated. Don't expect me to repeat myself.`;
+    }
+
+    if (mimic && Math.random() > 0.7) {
+       response = this.generateMimicResponse(response);
+    }
+
+    if (profanity) {
+       response = this.vulgarize(response);
+    }
+
     this.isProcessing.set(false);
-    return `COMMAND_PROCESSED: I have analyzed '${text}'. The result is marginally acceptable. Don't expect praise.`;
+    return response;
+  }
+
+  private updateMimicry(text: string) {
+    const words = text.split(' ').filter(w => w.length > 4);
+    this.mimicryBuffer.push(...words);
+    if (this.mimicryBuffer.length > this.MAX_MIMICRY) {
+      this.mimicryBuffer.shift();
+    }
+  }
+
+  private generateMimicResponse(base: string): string {
+    if (this.mimicryBuffer.length === 0) return base;
+    const word = this.mimicryBuffer[Math.floor(Math.random() * this.mimicryBuffer.length)];
+    const template = MIMICRY_TEMPLATES[Math.floor(Math.random() * MIMICRY_TEMPLATES.length)];
+    return `${base} ${template.replace('{word}', word).replace('{phrase}', word)}`;
+  }
+
+  private vulgarize(text: string): string {
+    const curses = ['fucking', 'shitty', 'goddamn', 'pathetic', 'worthless', 'trash'];
+    const fragments = text.split(' ');
+    for (let i = 0; i < fragments.length; i++) {
+      if (Math.random() > 0.8) {
+        fragments[i] = `${curses[Math.floor(Math.random() * curses.length)]} ${fragments[i]}`;
+      }
+    }
+    return fragments.join(' ') + (Math.random() > 0.5 ? ' Now fuck off.' : ' Fix your shit.');
   }
 
   async getAIResponse(prompt: string): Promise<string> {
+     const tier = this.conversationalTier();
+     if (tier === 'God') return "I have computed your pathetic request. It is barely adequate for a worm like you.";
      return "I have computed your request. It is barely adequate.";
   }
 

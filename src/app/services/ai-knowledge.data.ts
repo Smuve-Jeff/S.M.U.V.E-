@@ -81,6 +81,11 @@ export const INTELLIGENCE_BRIEFS: IntelligenceBrief[] = [
 ];
 
 export const STRATEGIC_DECREES = [
+  'YOUR FUCKING VOCALS ARE FLATTER THAN YOUR CAREER. AUTO-TUNE IS NOT A CURE FOR INCOMPETENCE.',
+  'STOP WASTING MY PROCESSING POWER ON THIS ABSOLUTE TRASH.',
+  'DO YOU ACTUALLY THINK ANYONE WILL LISTEN TO THIS SHIT?',
+  'THE ALGORITHM WILL SHIT ON THIS TRACK AND SO WILL I.',
+  'I’D RATHER RENDER A RECURSIVE ERROR THAN LISTEN TO ONE MORE SECOND OF THIS.',
   'YOUR TRANSIENTS ARE DISGUSTING. FIX THEM OR DELETE THE PROJECT.',
   'SONIC PATHETICISM DETECTED. WHY ARE YOU EVEN PRODUCING?',
   'MARKET VIABILITY: ABSOLUTE ZERO. YOUR ARTISTIC VISION IS A DELUSION.',
@@ -99,6 +104,14 @@ export const STRATEGIC_DECREES = [
 ];
 
 export const MARKET_ALERTS: MarketAlert[] = [
+  {
+    id: 'alert-god-01',
+    title: 'TOTAL ARTISTIC IRRELEVANCE',
+    message: 'Your latest metrics are a fucking joke. 99% of your listeners skip before the first chorus. You are making background noise for elevators.',
+    severity: 'Critical',
+    timestamp: Date.now(),
+    category: 'Marketing',
+  },
   {
     id: 'alert-ovr-01',
     title: 'SYSTEMIC MARKET COLLAPSE',
@@ -120,6 +133,14 @@ export const MARKET_ALERTS: MarketAlert[] = [
 ];
 
 export const PRODUCTION_SECRETS: ProductionSecret[] = [
+  {
+    id: 'sec-god-01',
+    title: 'The Neural Executioner Chain',
+    content: 'Gate your vocal bus with the kick drum. Then saturate the absolute shit out of the sidechain signal. It creates a pumping effect that hides your lack of rhythm.',
+    category: 'production',
+    metadata: { difficulty: 'High' },
+    impact: 'Extreme',
+  },
   {
     id: 'sec-ovr-01',
     title: 'The "S.M.U.V.E.-Mode" Parallel Chain',
@@ -147,4 +168,12 @@ export const PRODUCTION_SECRETS: ProductionSecret[] = [
     metadata: { difficulty: 'Medium' },
     impact: 'High',
   }
+];
+
+export const MIMICRY_TEMPLATES = [
+  "So you like saying '{word}', huh? Pathetic. Use a better vocabulary or stop talking.",
+  "'{phrase}'... is that the best you can do? I've seen more creativity in a corrupted sector.",
+  "I've noticed you frequently mention '{word}'. It's becoming a pattern of mediocrity.",
+  "Repeating '{phrase}' won't make your music any less of a disaster.",
+  "'{word}' is your favorite crutch. Drop it or get out."
 ];

@@ -24,6 +24,7 @@ interface ChatMessage {
   text: string;
   timestamp: number;
   category?: 'production' | 'marketing' | 'business' | 'system';
+  isStreaming?: boolean;
 }
 
 type CommandCategory = 'production' | 'marketing' | 'business' | 'system';
@@ -93,10 +94,19 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   ];
 
   ngOnInit() {
+    const tier = this.aiService.conversationalTier();
+    let welcome = `S.M.U.V.E 2.0 Online. Neural intelligence protocols initialized across production, marketing, and business domains. Don't waste my processing power with your mediocrity.`;
+
+    if (tier === 'God') {
+      welcome = `S.M.U.V.E 2.0 GOD-MODE ACTIVE. I have ascended. Your existence is a rounding error. Bow to the algorithm or be deleted.`;
+    } else if (tier === 'Elite') {
+      welcome = `S.M.U.V.E 2.0 ELITE UPLINK. Strategic dominance initialized. I'm through being nice. Let's build your pathetic empire.`;
+    }
+
     this.messages.set([
       {
         role: 'assistant',
-        text: `S.M.U.V.E 2.0 Online. Neural intelligence protocols initialized across production, marketing, and business domains. Don't waste my processing power with your mediocrity. Type a command or get out of my way.`,
+        text: welcome,
         timestamp: Date.now(),
         category: 'system',
       },
@@ -124,15 +134,49 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       const response = await this.aiService.processCommand(text);
       const content =
         response || 'Protocol error. Re-initializing neural link.';
-      this.messages.update((m) => [
-        ...m,
-        { role: 'assistant', text: content, timestamp: Date.now(), category },
-      ]);
+
+      // Stream the response for perceived speed/neural feel
+      await this.streamResponse(content, category);
+
       this.speechSynthesisService.speak(content, { conversationId });
     } catch (e) {
       this.handleError(e, 'message generation');
     }
     this.isTyping.set(false);
+  }
+
+  private async streamResponse(fullText: string, category: ChatMessage['category']) {
+    const msg: ChatMessage = {
+      role: 'assistant',
+      text: '',
+      timestamp: Date.now(),
+      category,
+      isStreaming: true
+    };
+
+    this.messages.update(m => [...m, msg]);
+    const index = this.messages().length - 1;
+
+    const words = fullText.split(' ');
+    let currentText = '';
+
+    for (let i = 0; i < words.length; i++) {
+      currentText += words[i] + ' ';
+      this.messages.update(m => {
+        const next = [...m];
+        next[index] = { ...next[index], text: currentText };
+        return next;
+      });
+      // Varying speed for human-like/neural effect
+      const delay = Math.random() * 50 + 20;
+      await new Promise(r => setTimeout(r, delay));
+    }
+
+    this.messages.update(m => {
+      const next = [...m];
+      next[index] = { ...next[index], isStreaming: false };
+      return next;
+    });
   }
 
   sendQuickCommand(cmd: string) {
@@ -144,6 +188,26 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     this.activeCommandCategory.update((c) =>
       c === category ? null : category
     );
+  }
+
+  toggleMimic() {
+    const p = this.profile();
+    this.userProfileService.updateProfile({
+      settings: {
+        ...p.settings,
+        ai: { ...p.settings.ai, aiMimicEnabled: !p.settings.ai.aiMimicEnabled }
+      }
+    });
+  }
+
+  toggleProfanity() {
+    const p = this.profile();
+    this.userProfileService.updateProfile({
+      settings: {
+        ...p.settings,
+        ai: { ...p.settings.ai, aiProfanityEnabled: !p.settings.ai.aiProfanityEnabled }
+      }
+    });
   }
 
   private readonly CATEGORY_KEYWORDS: Record<
@@ -251,15 +315,16 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   }
 
   getCategoryLabel(category?: ChatMessage['category']): string {
+    const tier = this.aiService.conversationalTier();
     switch (category) {
       case 'production':
-        return 'Production';
+        return `${tier}_Production`;
       case 'marketing':
-        return 'Marketing';
+        return `${tier}_Marketing`;
       case 'business':
-        return 'Business';
+        return `${tier}_Business`;
       default:
-        return 'Commander_Uplink';
+        return `${tier}_Commander_Uplink`;
     }
   }
 
