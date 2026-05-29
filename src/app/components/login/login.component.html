@@ -1,216 +1,128 @@
-<div
-  class="min-h-screen flex items-center justify-center bg-brand-dark p-6 relative overflow-hidden "
->
-  <div
-    class="absolute inset-0 bg-gradient-to-br from-brand-primary/10 via-transparent to-brand-accent/10 pointer-events-none"
-  ></div>
+<div class="min-h-screen w-full flex items-center justify-center bg-[#020617] p-4 relative overflow-hidden">
+  <div class="scan-line"></div>
+  <!-- Dynamic Background Accents -->
+  <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-blue-600/10 pointer-events-none"></div>
 
-  <div
-    class="w-full max-w-md glass-v42 animate-enter rounded-[2rem] border border-white/10 p-10 shadow-2xl relative z-10"
-  >
-    <div class="text-center mb-10">
-      <div
-        class="w-16 h-16 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6 shadow-lg"
-      >
-        <i class="fas fa-feather-pointed text-3xl"></i>
+  <!-- Main Login Container -->
+  <div class="w-full max-w-md glass-v42-pro rounded-[2.5rem] border border-white/10 p-8 md:p-12 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative z-20">
+
+    <!-- Scanning Line Effect -->
+    <div class="absolute top-0 left-0 w-full h-1 bg-brand-primary/20 animate-pulse-subtle pointer-events-none"></div>
+
+    <div class="text-center mb-12">
+      <div class="w-20 h-20 rounded-3xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+        <span class="material-symbols-outlined text-4xl">security</span>
       </div>
-      <h1
-        class="text-3xl font-black text-white uppercase italic tracking-tighter leading-none"
-      >
+      <h1 class="text-4xl font-black text-white uppercase italic tracking-tighter leading-none">
         S.M.U.V.E.<span class="text-brand-primary">2.0</span>
       </h1>
-      <p
-        class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em] mt-3"
-      >
+      <p class="text-[10px] font-black text-silver-dim uppercase tracking-[0.5em] mt-4 opacity-70">
         Strategic Music Utility Virtual Enterprise
       </p>
     </div>
 
     <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="space-y-6">
-      <div
-        class="rounded-2xl border border-brand-primary/15 bg-brand-primary/5 px-4 py-4"
-      >
-        <p
-          class="text-[9px] font-black uppercase tracking-[0.3em] text-brand-primary"
-        >
-          {{
-            isVerifying()
-              ? 'Secure Channel Verification'
-              : requires2FA()
-                ? 'Two-Factor Authentication'
-                : 'Guided Activation'
-          }}
+      <!-- Status Banner -->
+      <div class="rounded-2xl border border-brand-primary/15 bg-brand-primary/5 px-5 py-5">
+        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">
+          {{ isVerifying() ? 'Transmission Verification' : requires2FA() ? 'Neural Authentication' : 'System Authorization' }}
         </p>
-        <p class="text-[11px] text-silver-dim mt-2 leading-relaxed">
-          {{
-            isVerifying()
-              ? 'A transmission has been sent to your secure channel. Enter the 6-digit authorization cipher to establish the link.'
-              : requires2FA()
-                ? 'Enter the code from your authenticator app to complete login.'
-                : 'New and returning artists now continue into a guided launch flow with profile setup, onboarding questionnaire, and resume-ready workspace suggestions.'
-          }}
+        <p class="text-[11px] text-silver-dim/80 mt-2 leading-relaxed">
+          {{ isVerifying() ? 'Decipher the 6-digit transmission code sent to your secure channel.' : requires2FA() ? 'Confirm identity via your primary authentication device.' : 'Enter your credentials to establish a secure link with the S.M.U.V.E. infrastructure.' }}
         </p>
       </div>
 
       @if (isVerifying()) {
-        <div class="space-y-2">
-          <label
-            class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
-            >Authorization Cipher</label
-          >
-          <input
-            type="text"
-            [(ngModel)]="verificationCode"
-            name="verificationCode"
-            required
-            maxlength="6"
-            placeholder="000000"
-            class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-center text-2xl font-black tracking-[0.5em] focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/20 text-brand-primary"
-          />
+        <div class="space-y-3">
+          <label class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1">Authorization Cipher</label>
+          <input type="text" [(ngModel)]="verificationCode" name="verificationCode" required maxlength="6" placeholder="000000"
+            class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-5 text-center text-3xl font-black tracking-[0.6em] focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/50 outline-none transition-all placeholder:text-white/5 text-brand-primary" />
         </div>
 
-        <button
-          type="submit"
-          [disabled]="isLoading() || verificationCode.length !== 6"
-          class="w-full mt-4 btn-elegant btn-elegant-primary h-14 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-brand-primary/10"
-        >
-          Verify Channel
+        <button type="submit" [disabled]="isLoading() || verificationCode.length !== 6"
+          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-brand-primary/20 active:scale-[0.98] transition-transform">
+          Establish Link
         </button>
 
-        <div class="text-center mt-4">
-          <button
-            type="button"
-            (click)="onResendCode()"
-            [disabled]="isLoading()"
-            class="text-[9px] font-black text-silver-dim hover:text-brand-primary uppercase tracking-[0.2em] transition-all"
-          >
+        <div class="text-center mt-6">
+          <button type="button" (click)="onResendCode()" [disabled]="isLoading()"
+            class="text-[9px] font-black text-silver-dim hover:text-brand-primary uppercase tracking-[0.2em] transition-all opacity-60 hover:opacity-100">
             Resend Transmission
           </button>
         </div>
       } @else if (requires2FA()) {
-        <div class="space-y-2">
-          <label
-            class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
-            >2FA Code</label
-          >
-          <input
-            type="text"
-            [(ngModel)]="credentials.twoFactorCode"
-            name="twoFactorCode"
-            required
-            maxlength="6"
-            placeholder="2FA-CODE"
-            class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-center text-2xl font-black tracking-[0.5em] focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/20 text-brand-primary"
-          />
+        <div class="space-y-3">
+          <label class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1">Neural Key</label>
+          <input type="text" [(ngModel)]="credentials.twoFactorCode" name="twoFactorCode" required maxlength="6" placeholder="******"
+            class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-5 text-center text-3xl font-black tracking-[0.6em] focus:border-brand-primary outline-none transition-all placeholder:text-white/5 text-brand-primary" />
         </div>
-        <button
-          type="submit"
-          [disabled]="
-            !credentials.twoFactorCode || credentials.twoFactorCode.length !== 6
-          "
-          class="w-full mt-4 btn-elegant btn-elegant-primary h-14 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-brand-primary/10"
-        >
-          Confirm & Login
+        <button type="submit" [disabled]="isLoading() || !credentials.twoFactorCode || credentials.twoFactorCode.length !== 6"
+          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-brand-primary/20">
+          Confirm Identity
         </button>
       } @else {
         @if (isRegistering()) {
           <div class="space-y-2">
-            <label
-              class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
-              >Artist Designation</label
-            >
-            <input
-              type="text"
-              [(ngModel)]="artistName"
-              name="artistName"
-              required
-              placeholder="STAGE NAME"
-              class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim uppercase"
-            />
+            <label class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1">Artist Designation</label>
+            <input type="text" [(ngModel)]="artistName" name="artistName" required placeholder="STAGE NAME"
+              class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30 uppercase" />
           </div>
         }
 
         <div class="space-y-2">
-          <label
-            class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
-            >Secure Channel</label
-          >
-          <input
-            type="email"
-            [(ngModel)]="credentials.email"
-            name="email"
-            required
-            placeholder="EMAIL ADDRESS"
-            class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim uppercase"
-          />
+          <label class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1">Secure Channel</label>
+          <input type="email" [(ngModel)]="credentials.email" name="email" required placeholder="EMAIL ADDRESS"
+            class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30 uppercase" />
         </div>
 
         <div class="space-y-2">
-          <label
-            class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
-            >Access Cipher</label
-          >
-          <input
-            type="password"
-            [(ngModel)]="credentials.password"
-            name="password"
-            required
-            placeholder="PASSWORD"
-            class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim"
-          />
+          <label class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1">Access Cipher</label>
+          <input type="password" [(ngModel)]="credentials.password" name="password" required placeholder="PASSWORD"
+            class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30" />
         </div>
 
         @if (isRegistering() && credentials.password) {
-          <div class="px-2 pt-2 space-y-3">
-            <p
-              class="text-[10px] font-bold uppercase tracking-widest"
+          <div class="px-2 pt-2 space-y-2">
+            <p class="text-[9px] font-black uppercase tracking-widest"
               [class.text-brand-primary]="passwordValidation().isValid"
-              [class.text-brand-danger]="!passwordValidation().isValid"
-            >
-              Password Strength
+              [class.text-brand-danger]="!passwordValidation().isValid">
+              Cipher Strength
             </p>
-            <div class="space-y-1.5 text-silver-dim text-xs">
+            <div class="space-y-1 text-silver-dim text-[10px] leading-tight">
               @for (error of passwordValidation().errors; track error) {
-                <p class="text-[10px] text-brand-danger">- {{ error }}</p>
+                <p class="text-brand-danger opacity-80 flex items-start gap-1">
+                  <span class="mt-0.5 material-symbols-outlined text-[10px]">close</span>
+                  {{ error }}
+                </p>
               }
             </div>
           </div>
         }
 
-        <button
-          type="submit"
-          [disabled]="isLoading() || !loginForm.form.valid"
-          class="w-full mt-4 btn-elegant btn-elegant-primary h-14 text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-brand-primary/10"
-        >
+        <button type="submit" [disabled]="isLoading() || !loginForm.form.valid"
+          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-xl shadow-brand-primary/10">
           {{ isRegistering() ? 'Initialize Genesis' : 'Authorize Access' }}
         </button>
       }
     </form>
 
-    <div
-      *ngIf="message()"
-      class="mt-6 p-4 rounded-xl border text-center text-[10px] font-bold uppercase tracking-widest"
-      [class.border-brand-danger]="isError()"
-      [class.text-brand-danger]="isError()"
-      [class.bg-brand-danger/5]="isError()"
-      [class.border-brand-primary]="!isError()"
-      [class.text-brand-primary]="!isError()"
-      [class.bg-brand-primary/5]="!isError()"
-    >
-      {{ message() }}
-    </div>
+    <!-- Feedback Message -->
+    @if (message()) {
+      <div class="mt-8 p-5 rounded-2xl border text-center text-[10px] font-black uppercase tracking-widest animate-pulse-subtle"
+        [class.border-brand-danger]="isError()" [class.text-brand-danger]="isError()" [class.bg-brand-danger/5]="isError()"
+        [class.border-brand-primary]="!isError()" [class.text-brand-primary]="!isError()" [class.bg-brand-primary/5]="!isError()">
+        <div class="flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-sm">{{ isError() ? 'warning' : 'check_circle' }}</span>
+          {{ message() }}
+        </div>
+      </div>
+    }
 
-    <div class="mt-10 pt-8 border-t border-white/10 text-center">
-      <button
-        (click)="toggleMode()"
-        [disabled]="isLoading()"
-        class="text-[9px] font-black text-silver-dim hover:text-brand-primary uppercase tracking-[0.2em] transition-all disabled:opacity-50"
-      >
-        {{
-          isRegistering()
-            ? 'Already an Elite Member? Login'
-            : 'New Artist? Register'
-        }}
+    <!-- Toggle Mode -->
+    <div class="mt-12 pt-8 border-t border-white/5 text-center">
+      <button (click)="toggleMode()" [disabled]="isLoading()"
+        class="text-[10px] font-black text-silver-dim hover:text-brand-primary uppercase tracking-[0.2em] transition-all disabled:opacity-50">
+        {{ isRegistering() ? 'Return to Authorization' : 'New Artist Designation' }}
       </button>
     </div>
   </div>

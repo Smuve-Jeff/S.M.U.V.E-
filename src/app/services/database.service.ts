@@ -1,6 +1,6 @@
 import { APP_SECURITY_CONFIG } from '../app.security';
 import { Injectable, inject, signal } from '@angular/core';
-import { UserProfile } from './user-profile.service';
+import { UserProfile } from '../types/profile.types';
 import { LoggingService } from './logging.service';
 import { HttpClient } from '@angular/common/http';
 import { LocalStorageService } from './local-storage.service';
