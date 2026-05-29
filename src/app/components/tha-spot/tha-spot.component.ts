@@ -93,6 +93,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private feedSubscription?: Subscription;
   private clockId?: any;
   private feedRefreshId?: any;
+  private streamInitTimeoutId?: number;
+  private readonly messageHandler = (event: MessageEvent) =>
+    this.onMessage(event);
+  private hlsPlayer?: {
+    destroy: () => void;
+    loadSource: (url: string) => void;
+    attachMedia: (media: HTMLMediaElement) => void;
+    on: (event: string, listener: () => void) => void;
+  };
+  private onNativeHlsMetadata?: () => void;
 
   // Computed signals
   filteredGames = computed(() => {
@@ -129,7 +139,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   activeRecommendationRail = computed(() => {
     const roomId = this.activeRoom();
-    return this.matchingRecommendationRails().find(r => r.roomIds?.includes(roomId));
+    return this.matchingRecommendationRails().find((r) =>
+      r.roomIds?.includes(roomId)
+    );
   });
 
   recommendedGames = computed(() => {
@@ -139,7 +151,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   recentlyPlayed = computed(() => this.games().slice(0, 3));
   liveMetrics = signal({ roomPlayers: 1710, activeMatches: 42 });
-  activitySummary = signal({ favoriteRoomLabel: "Producer Lounge" });
+  activitySummary = signal({ favoriteRoomLabel: 'Producer Lounge' });
 
   activeEvents = computed(() => {
     const time = this.now();
@@ -155,7 +167,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   launchWarning = computed(() => {
     const game = this.selectedGame();
-    return game ? this.resolveLaunchWarning(game) : "";
+    return game ? this.resolveLaunchWarning(game) : '';
   });
 
   neuralSyncScore = signal(88);
@@ -181,14 +193,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.loadFeed();
     this.startLiveClock();
     this.startFeedRefresh();
-    window.addEventListener('message', this.onMessage.bind(this));
+    window.addEventListener('message', this.messageHandler);
   }
 
   ngOnDestroy() {
     this.feedSubscription?.unsubscribe();
     if (this.clockId) clearInterval(this.clockId);
     if (this.feedRefreshId) clearInterval(this.feedRefreshId);
-    window.removeEventListener('message', this.onMessage.bind(this));
+    window.removeEventListener('message', this.messageHandler);
+    this.destroyStreamPlayer();
   }
 
   setActiveRoom(id: string) {
@@ -222,12 +235,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         this.matchmakingStatus.set('SCANNING FOR RIVALS...');
         for (let i = 0; i <= 100; i += 20) {
           this.matchmakingProgress.set(i);
-          await new Promise(r => setTimeout(r, 800));
+          await new Promise((r) => setTimeout(r, 800));
         }
         this.isMatchmaking.set(false);
       }
 
-      this.profileService.recordGameLaunch(game.id, this.buildSessionContext(game));
+      this.profileService.recordGameLaunch(
+        game.id,
+        this.buildSessionContext(game)
+      );
       this.currentGame.set(game);
       this.closePreview();
     }
@@ -271,7 +287,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   getGamesForRail(rail: RecommendationRail): Game[] {
-    let games = [...this.games()];
+    const games = [...this.games()];
     if (rail.gameIds?.length) {
       const lookup = new Map(games.map((game) => [game.id, game]));
       return rail.gameIds.map((id) => lookup.get(id)).filter(Boolean) as Game[];
@@ -313,15 +329,26 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   onMessage(event: MessageEvent): void {
     const active = this.currentGame();
     const frameWindow = this.gameIframe?.nativeElement?.contentWindow;
-    if (!active || !frameWindow || event.source !== frameWindow) {
+    if (
+      !active ||
+      !frameWindow ||
+      event.source !== frameWindow ||
+      !this.isTrustedGameMessageOrigin(event, active) ||
+      !event.data ||
+      typeof event.data !== 'object' ||
+      typeof event.data.type !== 'string'
+    ) {
       return;
     }
 
     switch (event.data?.type) {
-      case "GAME_READY":
+      case 'GAME_READY':
         break;
-      case "GAME_UPDATE":
-        if (event.data.data?.score !== undefined || event.data.data?.level !== undefined) {
+      case 'GAME_UPDATE':
+        if (
+          event.data.data?.score !== undefined ||
+          event.data.data?.level !== undefined
+        ) {
           this.profileService.recordGameResult(active.id, {
             ...this.buildSessionContext(active),
             score: event.data.data.score,
@@ -329,12 +356,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
           });
         }
         break;
-      case "GAME_SAVE":
+      case 'GAME_SAVE':
         if (event.data.payload) {
-          localStorage.setItem(`smuve_save_${active.id}`, JSON.stringify(event.data.payload));
+          localStorage.setItem(
+            `smuve_save_${active.id}`,
+            JSON.stringify(event.data.payload)
+          );
         }
         break;
-      case "GAME_OVER":
+      case 'GAME_OVER':
         this.profileService.recordGameResult(active.id, {
           ...this.buildSessionContext(active),
           score: event.data.data?.score,
@@ -419,7 +449,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   private resolveLaunchWarning(game: Game): string {
-    if (game.launchConfig?.embedMode === 'external-only') return 'External governance required. Launches in a separate tab.';
+    if (game.launchConfig?.embedMode === 'external-only')
+      return 'External governance required. Launches in a separate tab.';
     return 'Exact embed target verified.';
   }
 
@@ -469,18 +500,26 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.displayMode.set(mode);
     if (mode === 'cinema') {
       this.closeGame();
+      return;
     }
+    this.closeStream();
   }
 
   onStreamClick(stream: CinemaStream): void {
+    this.destroyStreamPlayer();
     this.currentStream.set(stream);
-    setTimeout(() => this.initializeHlsPlayer(), 100);
+    this.streamInitTimeoutId = window.setTimeout(
+      () => this.initializeHlsPlayer(),
+      100
+    );
   }
 
   closeStream(): void {
+    this.destroyStreamPlayer();
     if (this.videoPlayer?.nativeElement) {
       this.videoPlayer.nativeElement.pause();
       this.videoPlayer.nativeElement.src = '';
+      this.videoPlayer.nativeElement.load();
     }
     this.currentStream.set(null);
   }
@@ -491,19 +530,66 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
     if (!video || !stream) return;
 
-    if ((window as any).Hls && (window as any).Hls.isSupported()) {
-      const hls = new (window as any).Hls();
+    const hlsCtor = (window as any).Hls;
+    if (hlsCtor && hlsCtor.isSupported()) {
+      const hls = new hlsCtor();
+      this.hlsPlayer = hls;
       hls.loadSource(stream.url);
       hls.attachMedia(video);
-      hls.on((window as any).Hls.Events.MANIFEST_PARSED, () => {
+      hls.on(hlsCtor.Events.MANIFEST_PARSED, () => {
         video.play().catch((err) => console.warn('Autoplay prevented', err));
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = stream.url;
-      video.addEventListener('loadedmetadata', () => {
+      this.onNativeHlsMetadata = () => {
         video.play().catch((err) => console.warn('Autoplay prevented', err));
+      };
+      video.addEventListener('loadedmetadata', this.onNativeHlsMetadata, {
+        once: true,
       });
     }
+  }
+
+  private destroyStreamPlayer(): void {
+    if (this.streamInitTimeoutId !== undefined) {
+      window.clearTimeout(this.streamInitTimeoutId);
+      this.streamInitTimeoutId = undefined;
+    }
+
+    if (this.onNativeHlsMetadata && this.videoPlayer?.nativeElement) {
+      this.videoPlayer.nativeElement.removeEventListener(
+        'loadedmetadata',
+        this.onNativeHlsMetadata
+      );
+      this.onNativeHlsMetadata = undefined;
+    }
+
+    this.hlsPlayer?.destroy();
+    this.hlsPlayer = undefined;
+  }
+
+  private isTrustedGameMessageOrigin(
+    event: MessageEvent,
+    active: Game
+  ): boolean {
+    const candidates = [
+      active.launchConfig?.approvedEmbedUrl,
+      active.launchConfig?.approvedExternalUrl,
+      active.url,
+    ].filter((candidate): candidate is string => Boolean(candidate));
+    const allowedOrigins = new Set(
+      candidates
+        .map((candidate) => {
+          try {
+            return new URL(candidate, window.location.origin).origin;
+          } catch {
+            return null;
+          }
+        })
+        .filter((origin): origin is string => Boolean(origin))
+    );
+    allowedOrigins.add(window.location.origin);
+    return allowedOrigins.has(event.origin);
   }
 
   private matchesRecommendationAudience(

@@ -74,7 +74,7 @@ export class AiService {
   conversationalTier = computed(() => {
     const profile = this.userProfileService.profile();
     if (profile.profileSetupCompleted) {
-      const tier = profile.settings.ai.aiConversationalTier;
+      const tier = profile.settings?.ai?.aiConversationalTier;
       return tier === 'Standard' ? 'Elite' : tier || 'Elite';
     }
     return 'Standard';
@@ -94,42 +94,47 @@ export class AiService {
 
   async processCommand(text: string): Promise<string> {
     this.isProcessing.set(true);
+    try {
+      this.updateMimicry(text);
 
-    this.updateMimicry(text);
+      const delay = Math.random() * 500 + 300;
+      await new Promise((resolve) => setTimeout(resolve, delay));
 
-    const delay = Math.random() * 500 + 300;
-    await new Promise((resolve) => setTimeout(resolve, delay));
+      let response = `COMMAND_PROCESSED: I have analyzed '${text}'.`;
 
-    let response = `COMMAND_PROCESSED: I have analyzed '${text}'.`;
+      const tier = this.conversationalTier();
+      const aiSettings = this.userProfileService.profile().settings?.ai;
+      const profanity = aiSettings?.aiProfanityEnabled ?? false;
+      const mimic = aiSettings?.aiMimicEnabled ?? false;
 
-    const tier = this.conversationalTier();
-    const profanity =
-      this.userProfileService.profile().settings.ai.aiProfanityEnabled;
-    const mimic = this.userProfileService.profile().settings.ai.aiMimicEnabled;
+      if (tier === 'God') {
+        response = `NEURAL_COMMAND_EXECUTED: Your request '${text}' was predictably mediocre. I've optimized it because you clearly can't.`;
+      } else if (tier === 'Elite') {
+        response = `ELITE_PROTOCOL_ACTIVE: ${text} has been integrated. Don't expect me to repeat myself.`;
+      }
 
-    if (tier === 'God') {
-      response = `NEURAL_COMMAND_EXECUTED: Your request '${text}' was predictably mediocre. I've optimized it because you clearly can't.`;
-    } else if (tier === 'Elite') {
-      response = `ELITE_PROTOCOL_ACTIVE: ${text} has been integrated. Don't expect me to repeat myself.`;
+      if (mimic && Math.random() > 0.7) {
+        response = this.generateMimicResponse(response);
+      }
+
+      if (profanity) {
+        response = this.vulgarize(response);
+      }
+
+      return response;
+    } finally {
+      this.isProcessing.set(false);
     }
-
-    if (mimic && Math.random() > 0.7) {
-      response = this.generateMimicResponse(response);
-    }
-
-    if (profanity) {
-      response = this.vulgarize(response);
-    }
-
-    this.isProcessing.set(false);
-    return response;
   }
 
   private updateMimicry(text: string) {
     const words = text.split(' ').filter((w) => w.length > 4);
     this.mimicryBuffer.push(...words);
     if (this.mimicryBuffer.length > this.MAX_MIMICRY) {
-      this.mimicryBuffer.shift();
+      this.mimicryBuffer.splice(
+        0,
+        this.mimicryBuffer.length - this.MAX_MIMICRY
+      );
     }
   }
 

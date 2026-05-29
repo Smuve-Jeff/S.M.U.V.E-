@@ -1,8 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  AiService,
-  UpgradeRecommendation,
-} from '../ai.service';
+import { AiService, UpgradeRecommendation } from '../ai.service';
 import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
 import { AnalyticsService } from '../analytics.service';
@@ -52,6 +49,14 @@ describe('AiService', () => {
         recommendationHistory: [],
         artistName: 'Test Artist',
         primaryGenre: 'Electronic',
+        profileSetupCompleted: true,
+        settings: {
+          ai: {
+            aiConversationalTier: 'Elite',
+            aiMimicEnabled: false,
+            aiProfanityEnabled: false,
+          },
+        },
         tasks: [],
         skills: [],
         expertiseLevels: {
@@ -144,6 +149,35 @@ describe('AiService', () => {
     req.error(new ErrorEvent('Network error'));
 
     const response = await requestPromise;
-    expect(response).toBe('Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.');
+    expect(response).toBe(
+      'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.'
+    );
+  });
+
+  it('caps mimicry buffer to configured maximum size', () => {
+    (service as any).updateMimicry(
+      'alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november'
+    );
+    expect((service as any).mimicryBuffer.length).toBeLessThanOrEqual(10);
+  });
+
+  it('resets processing state even when processCommand throws', async () => {
+    jest.spyOn(service as any, 'updateMimicry').mockImplementation(() => {
+      throw new Error('boom');
+    });
+
+    await expect(service.processCommand('test command')).rejects.toThrow(
+      'boom'
+    );
+    expect(service.isProcessing()).toBe(false);
+  });
+
+  it('handles missing nested AI settings defensively in processCommand', async () => {
+    (userProfileServiceMock.profile as any).set({
+      profileSetupCompleted: true,
+      settings: {},
+    });
+    const response = await service.processCommand('analyze this command');
+    expect(response).toContain('ELITE_PROTOCOL_ACTIVE');
   });
 });
