@@ -107,14 +107,16 @@
     </form>
 
     <!-- Feedback Message -->
-    <div *ngIf="message()" class="mt-8 p-5 rounded-2xl border text-center text-[10px] font-black uppercase tracking-widest animate-pulse-subtle"
-      [class.border-brand-danger]="isError()" [class.text-brand-danger]="isError()" [class.bg-brand-danger/5]="isError()"
-      [class.border-brand-primary]="!isError()" [class.text-brand-primary]="!isError()" [class.bg-brand-primary/5]="!isError()">
-      <div class="flex items-center justify-center gap-2">
-        <span class="material-symbols-outlined text-sm">{{ isError() ? 'warning' : 'check_circle' }}</span>
-        {{ message() }}
+    @if (message()) {
+      <div class="mt-8 p-5 rounded-2xl border text-center text-[10px] font-black uppercase tracking-widest animate-pulse-subtle"
+        [class.border-brand-danger]="isError()" [class.text-brand-danger]="isError()" [class.bg-brand-danger/5]="isError()"
+        [class.border-brand-primary]="!isError()" [class.text-brand-primary]="!isError()" [class.bg-brand-primary/5]="!isError()">
+        <div class="flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-sm">{{ isError() ? 'warning' : 'check_circle' }}</span>
+          {{ message() }}
+        </div>
       </div>
-    </div>
+    }
 
     <!-- Toggle Mode -->
     <div class="mt-12 pt-8 border-t border-white/5 text-center">
