@@ -5116,6 +5116,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
     },
   ],
+  streams: [],
   recommendationRails: [
     {
       id: 'rail-ps2-powerhouse',

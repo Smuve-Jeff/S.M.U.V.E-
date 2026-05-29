@@ -1,194 +1,85 @@
-import { HttpClient } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { catchError, map, shareReplay } from 'rxjs/operators';
+export type GameSortMode = "Popular" | "Rating" | "Newest" | "Name" | "Queue";
 import {
+ inject, Injectable } from '@angular/core';
+import {
+ HttpClient } from '@angular/common/http';
+import {
+
+  catchError,
+  map,
+  Observable,
+  of,
+  shareReplay,
+} from 'rxjs';
+import {
+
   Game,
   GameBadge,
-  GameLaunchConfig,
   GameRoom,
+
   LiveEvent,
   PromotionCard,
   RecommendationRail,
   SocialPresence,
   ThaSpotFeed,
+  CinemaStream,
 } from './game';
-import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
+import {
+ THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
 
-function escapeSvgText(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+const THA_SPOT_FEED_URL = 'assets/data/tha-spot-feed.json';
+
+function asString(val: any, fallback = ''): string {
+  return typeof val === 'string' ? val : fallback;
 }
 
-function sanitizeSvgColor(value: string) {
-  return /^#[0-9a-f]{6}$/i.test(value) ? value : '#10b981';
+function asNumber(val: any, fallback = 0): number {
+  const num = parseFloat(val);
+  return isNaN(num) ? fallback : num;
 }
 
-function asString(value: unknown, fallback = '') {
-  return typeof value === 'string' ? value : fallback;
-}
-
-function asNumber(value: unknown, fallback = 0) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-}
-
-function asStringArray(value: unknown) {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === 'string')
-    : [];
-}
-
-const COVER_HASH_SEED = 7;
-const THA_SPOT_FEED_URL = '/assets/data/tha-spot-feed.json';
-export type GameSortMode = 'Popular' | 'Rating' | 'Newest' | 'Name' | 'Queue';
-
-function isManagedGameAssetUrl(url: string) {
-  const approvedDomains = [
-    'retrogames.cc',
-    'emulatorgames.online',
-    'playclassic.games',
-    'arcadespot.com',
-    'emulatorjs.org',
-    'dos.zone',
-    'gamepix.com',
-    'github.io',
-    'pacman.live',
-    'play2048.co',
-  ];
-  return (
-    url.startsWith('/assets/games/') ||
-    approvedDomains.some((domain) => {
-      try {
-        const host = new URL(url).hostname;
-        return host === domain || host.endsWith(`.${domain}`);
-      } catch {
-        return false;
-      }
-    })
-  );
-}
-
-function buildGameCover(
-  title: string,
-  eyebrow: string,
-  accentStart: string,
-  accentEnd: string
-) {
-  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const hash = Array.from(
-    `${title}|${eyebrow}|${accentStart}|${accentEnd}`
-  ).reduce(
-    (total, char) => (total * 31 + char.charCodeAt(0)) >>> 0,
-    COVER_HASH_SEED
-  );
-  const gradientId = `g-cover-${slug || 'spot'}-${hash.toString(16)}`;
-  const safeTitle = escapeSvgText(title);
-  const safeEyebrow = escapeSvgText(eyebrow.toUpperCase());
-  const safeAccentStart = sanitizeSvgColor(accentStart);
-  const safeAccentEnd = sanitizeSvgColor(accentEnd);
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" role="img" aria-label="${safeTitle} cover art">
-      <title>${safeTitle} cover art</title>
-      <defs>
-        <linearGradient id="${gradientId}" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="${safeAccentStart}" />
-          <stop offset="100%" stop-color="${safeAccentEnd}" />
-        </linearGradient>
-      </defs>
-      <rect width="300" height="200" rx="24" fill="#020617" />
-      <rect x="12" y="12" width="276" height="176" rx="20" fill="url(#${gradientId})" opacity="0.95" />
-      <circle cx="246" cy="54" r="42" fill="rgba(255,255,255,0.12)" />
-      <circle cx="228" cy="138" r="56" fill="rgba(255,255,255,0.08)" />
-      <text x="26" y="44" fill="rgba(255,255,255,0.82)" font-size="16" font-family="Arial, sans-serif" letter-spacing="2">${safeEyebrow}</text>
-      <text x="26" y="116" fill="#ffffff" font-size="30" font-weight="700" font-family="Arial, sans-serif">${safeTitle}</text>
-      <text x="26" y="152" fill="rgba(255,255,255,0.88)" font-size="14" font-family="Arial, sans-serif">Curated for Tha Spot</text>
-    </svg>
-  `;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
-
-function normalizeLaunchConfig(
-  config: GameLaunchConfig | undefined,
-  fallbackUrl: string
-): GameLaunchConfig {
-  const approvedExternalUrl = asString(
-    config?.approvedExternalUrl,
-    fallbackUrl
-  );
-  const embedUrlCandidate = asString(config?.approvedEmbedUrl, fallbackUrl);
-  const supportsInlineEmbed = isManagedGameAssetUrl(embedUrlCandidate);
-  const inlinePolicy =
-    config?.inlinePolicy || (supportsInlineEmbed ? 'trusted' : 'external-only');
-  const embedMode =
-    supportsInlineEmbed &&
-    config?.embedMode !== 'external-only' &&
-    inlinePolicy !== 'external-only'
-      ? 'inline'
-      : 'external-only';
-  const approvedEmbedUrl =
-    embedMode === 'inline' && supportsInlineEmbed
-      ? embedUrlCandidate
-      : undefined;
-  const telemetryMode =
-    embedMode === 'inline' ? config?.telemetryMode || 'frame-only' : 'none';
-  const baseTrustNote =
-    asString(config?.trustNote) ||
-    (embedMode === 'external-only' ? 'Launches in a separate tab.' : '');
-  const trustNote =
-    embedMode === 'external-only' && baseTrustNote
-      ? `${baseTrustNote} Launches in a separate tab.`
-      : baseTrustNote;
-
-  return {
-    ...config,
-    inlinePolicy,
-    embedMode,
-    approvedEmbedUrl,
-    approvedExternalUrl,
-    telemetryMode,
-    telemetryOrigins: asStringArray(config?.telemetryOrigins),
-    controls: asStringArray(config?.controls),
-    objectives: asStringArray(config?.objectives),
-    modes: asStringArray(config?.modes),
-    trustNote,
-  };
+function asStringArray(val: any): string[] {
+  return Array.isArray(val) ? val.map((v) => asString(v)) : [];
 }
 
 function normalizeGame(game: Game): Game {
-  const eyebrow =
-    game.art?.eyebrow || game.availability || game.genre || 'Tha Spot';
-  const accentStart = game.art?.accentStart || '#10b981';
-  const accentEnd = game.art?.accentEnd || '#38bdf8';
-
   return {
     ...game,
     id: asString(game.id),
-    name: asString(game.name, 'Unknown cabinet'),
+    name: asString(game.name, 'Untitled Cabinet'),
     url: asString(game.url),
+    image: asString(game.image),
     description: asString(game.description),
-    genre: asString(game.genre),
+    genre: asString(game.genre, 'Unknown'),
     tags: asStringArray(game.tags),
     badgeIds: asStringArray(game.badgeIds),
-    sessionObjectives: asStringArray(
-      game.sessionObjectives || game.launchConfig?.objectives
-    ),
-    controlHints: asStringArray(
-      game.controlHints || game.launchConfig?.controls
-    ),
-    queueEstimateMinutes: Math.max(0, asNumber(game.queueEstimateMinutes)),
-    playersOnline: Math.max(0, asNumber(game.playersOnline)),
-    rating: Math.max(0, Math.min(5, asNumber(game.rating))),
-    image:
-      game.image || buildGameCover(game.name, eyebrow, accentStart, accentEnd),
-    launchConfig: normalizeLaunchConfig(game.launchConfig, asString(game.url)),
+    rating: asNumber(game.rating, 5.0),
+    playersOnline: asNumber(game.playersOnline, 0),
+    queueEstimateMinutes: asNumber(game.queueEstimateMinutes, 0),
     art: {
-      eyebrow,
-      accentStart: sanitizeSvgColor(accentStart),
-      accentEnd: sanitizeSvgColor(accentEnd),
+      eyebrow: asString(game.art?.eyebrow, 'Elite Cabinet'),
+      accentStart: asString(game.art?.accentStart, '#af25f4'),
+      accentEnd: asString(game.art?.accentEnd, '#3d2b1f'),
+    },
+  };
+}
+
+function normalizeStream(stream: CinemaStream): CinemaStream {
+  return {
+    ...stream,
+    id: asString(stream.id),
+    name: asString(stream.name, 'Untitled Stream'),
+    url: asString(stream.url),
+    image: asString(stream.image),
+    description: asString(stream.description),
+    genre: asString(stream.genre, 'General'),
+    badgeIds: asStringArray(stream.badgeIds),
+    rating: asNumber(stream.rating, 5.0),
+    viewersOnline: asNumber(stream.viewersOnline, 0),
+    art: {
+      eyebrow: asString(stream.art?.eyebrow, 'S.M.U.V.E. Cinema'),
+      accentStart: asString(stream.art?.accentStart, '#111'),
+      accentEnd: asString(stream.art?.accentEnd, '#000'),
     },
   };
 }
@@ -197,17 +88,14 @@ function normalizeRoom(room: GameRoom): GameRoom {
   return {
     ...room,
     id: asString(room.id),
-    name: asString(room.name, 'Untitled room'),
-    icon: asString(room.icon, 'grid_view'),
+    name: asString(room.name, 'Unknown Room'),
+    icon: asString(room.icon, 'door_open'),
     description: asString(room.description),
-    spotlight: asString(room.spotlight),
     rules: room.rules
       ? {
           genres: asStringArray(room.rules.genres),
           tags: asStringArray(room.rules.tags),
-          availability: Array.isArray(room.rules.availability)
-            ? room.rules.availability.filter(Boolean)
-            : [],
+          availability: (room.rules.availability || []) as any[],
           badgeIds: asStringArray(room.rules.badgeIds),
           featuredOnly: !!room.rules.featuredOnly,
           gameIds: asStringArray(room.rules.gameIds),
@@ -220,9 +108,9 @@ function normalizeEvent(event: LiveEvent): LiveEvent {
   return {
     ...event,
     id: asString(event.id),
-    title: asString(event.title, 'Live event'),
+    title: asString(event.title, 'Live Event'),
     description: asString(event.description),
-    roomId: asString(event.roomId, 'all'),
+    roomId: asString(event.roomId),
     reward: asString(event.reward),
     status: ['live', 'upcoming', 'ending-soon'].includes(event.status)
       ? event.status
@@ -230,23 +118,6 @@ function normalizeEvent(event: LiveEvent): LiveEvent {
     windowLabel: asString(event.windowLabel),
     featuredGameId: asString(event.featuredGameId),
     badgeId: asString(event.badgeId),
-    schedule: event.schedule
-      ? {
-          startAt: asString(event.schedule.startAt),
-          endAt: asString(event.schedule.endAt),
-          recurrence: ['once', 'daily', 'weekend'].includes(
-            event.schedule.recurrence || ''
-          )
-            ? event.schedule.recurrence
-            : 'once',
-          eligibilityTags: asStringArray(event.schedule.eligibilityTags),
-          rewardType: ['cosmetic', 'token'].includes(
-            event.schedule.rewardType || ''
-          )
-            ? event.schedule.rewardType
-            : 'cosmetic',
-        }
-      : undefined,
   };
 }
 
@@ -254,14 +125,14 @@ function normalizePresence(entry: SocialPresence): SocialPresence {
   return {
     ...entry,
     id: asString(entry.id),
-    name: asString(entry.name, 'Unknown crew'),
+    name: asString(entry.name, 'Player'),
     status: ['online', 'queueing', 'in-match', 'hosting', 'invited'].includes(
       entry.status
     )
       ? entry.status
       : 'online',
     activity: asString(entry.activity),
-    roomId: asString(entry.roomId, 'all'),
+    roomId: asString(entry.roomId),
     gameId: asString(entry.gameId),
     relationship: ['friend', 'rival', 'party', 'invite'].includes(
       entry.relationship || ''
@@ -362,6 +233,9 @@ function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
     promotions: (feed.promotions || [])
       .map((card) => normalizePromotion(card))
       .filter((card) => !!card.id),
+    streams: (feed.streams || [])
+      .map((stream) => normalizeStream(stream))
+      .filter((stream) => !!stream.id && !!stream.url),
     recommendationRails: (feed.recommendationRails || [])
       .map((rail) => normalizeRecommendationRail(rail))
       .filter((rail) => !!rail.id),

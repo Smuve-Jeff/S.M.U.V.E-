@@ -1,4 +1,6 @@
-import {
+import sys
+
+content = """import {
   Component,
   OnInit,
   OnDestroy,
@@ -177,7 +179,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.securityService.getCSRFToken();
     this.loadFeed();
     this.startLiveClock();
     this.startFeedRefresh();
@@ -317,32 +318,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       return;
     }
 
-    switch (event.data?.type) {
-      case "GAME_READY":
-        break;
-      case "GAME_UPDATE":
-        if (event.data.data?.score !== undefined || event.data.data?.level !== undefined) {
-          this.profileService.recordGameResult(active.id, {
-            ...this.buildSessionContext(active),
-            score: event.data.data.score,
-            level: event.data.data.level,
-          });
-        }
-        break;
-      case "GAME_SAVE":
-        if (event.data.payload) {
-          localStorage.setItem(`smuve_save_${active.id}`, JSON.stringify(event.data.payload));
-        }
-        break;
-      case "GAME_OVER":
-        this.profileService.recordGameResult(active.id, {
-          ...this.buildSessionContext(active),
-          score: event.data.data?.score,
-          level: event.data.data?.level,
-          isWin: event.data.data?.isWin,
-        });
-        this.closeGame();
-        break;
+    if (event.data?.type === 'GAME_OVER') {
+       this.closeGame();
     }
   }
 
@@ -539,3 +516,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     );
   }
 }
+"""
+
+with open("src/app/components/tha-spot/tha-spot.component.ts", "w") as f:
+    f.write(content)

@@ -3,7 +3,7 @@
   <header class="spot-header glass-v42">
     <div class="brand-sector">
       <span class="material-symbols-outlined">hub</span>
-      <h1>THA SPOT <small>v4.2</small></h1>
+      <h1>THA SPOT <small>v4.2</small></h1><div class="mode-toggles glass-v42"><button class="mode-toggle-btn" [class.active]="displayMode() === 'gaming'" (click)="setMode('gaming')"><span class="material-symbols-outlined">sports_esports</span> GAMING</button><button class="mode-toggle-btn" [class.active]="displayMode() === 'cinema'" (click)="setMode('cinema')"><span class="material-symbols-outlined">movie</span> CINEMA</button></div>
     </div>
 
     <div class="header-controls">
@@ -189,7 +189,16 @@
       </div>
 
       <div class="browse-grid-container custom-scrollbar">
-        <div class="browse-grid">
+        <div class="cinema-grid" *ngIf="displayMode() === 'cinema'">
+          <div class="stream-card glass-v42 storefront-card" *ngFor="let stream of filteredStreams()" (click)="onStreamClick(stream)">
+            <img [src]="stream.image" [alt]="stream.name">
+            <div class="stream-card-overlay">
+              <div class="stream-genre">{{ stream.genre | uppercase }}</div>
+              <div class="stream-card-title">{{ stream.name }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="browse-grid" *ngIf="displayMode() === 'gaming'">
           <div
             class="game-card-compact glass-v42 storefront-card"
             [class.elite-cabinet]="game.badgeIds?.includes('elite')"
@@ -434,3 +443,46 @@
     </div>
   </div>
 </div>
+
+  <!-- Immersive Cinema Overlay -->
+  <div class="immersive-overlay" *ngIf="currentStream() as active" [class.active]="currentStream()">
+    <div class="game-console-window glass-v42 shadow-v42-xl">
+      <header class="console-header glass-v42">
+        <div class="console-title">
+          {{ active.name | uppercase }}
+          <span class="tag">[CINEMA]</span>
+        </div>
+        <div class="console-actions">
+          <button class="icon-btn" (click)="closeStream()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      </header>
+      <div class="console-body">
+        <div class="cinema-player-container">
+          <video #videoPlayer class="smuve-video-player" crossorigin="anonymous"></video>
+          <div class="video-overlay-ui">
+            <div class="video-top-bar">
+              <div class="stream-info">
+                <div class="stream-genre">{{ active.genre | uppercase }}</div>
+                <div class="stream-name">{{ active.name }}</div>
+              </div>
+              <div class="live-indicator">
+                <span class="material-symbols-outlined">sensors</span> LIVE
+              </div>
+            </div>
+            <div class="video-controls-bottom">
+              <span class="material-symbols-outlined">visibility</span> {{ active.viewersOnline | number }} VIEWERS
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer class="console-footer glass-v42">
+        <div class="telemetry">
+          UPLINK: <span class="success">STABILIZED</span> | STREAMING: 1080P
+        </div>
+        <button class="terminate-btn" (click)="closeStream()">TERMINATE SESSION</button>
+      </footer>
+    </div>
+  </div>
+

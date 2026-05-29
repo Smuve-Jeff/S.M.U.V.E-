@@ -48,6 +48,23 @@ export interface Game {
   };
 }
 
+export interface CinemaStream {
+  id: string;
+  name: string;
+  url: string;
+  image?: string;
+  description?: string;
+  genre?: string;
+  badgeIds?: string[];
+  rating?: number;
+  viewersOnline?: number;
+  art?: {
+    eyebrow: string;
+    accentStart: string;
+    accentEnd: string;
+  };
+}
+
 export interface GameBadge {
   id: string;
   label: string;
@@ -158,4 +175,5 @@ export interface ThaSpotFeed {
   promotions: PromotionCard[];
   recommendationRails: RecommendationRail[];
   games: Game[];
+  streams: CinemaStream[];
 }
