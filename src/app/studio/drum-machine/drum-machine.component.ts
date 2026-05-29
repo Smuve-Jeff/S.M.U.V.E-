@@ -21,6 +21,7 @@ interface DrumPad {
   color: string;
   type: string;
   steps: DrumStep[];
+  isTriggered?: boolean;
   params: {
     semitone: number;
     decay: number;
@@ -57,19 +58,8 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   currentStep = this.musicManager.currentStep;
   isSequencerRunning = computed(() => this.engine.isPlaying());
-
-  patternBars = 4;
-  stepRange = Array.from({ length: 64 }, (_, i) => i);
-
-  availableKits = computed(() =>
-    this.instrumentsService.getPresets().filter((p) => p.category === 'drum')
-  );
-  selectedKitId = signal<string>('kit-808');
-  selectedKit = computed(
-    () =>
-      this.availableKits().find((k) => k.id === this.selectedKitId()) ||
-      this.availableKits()[0]
-  );
+  swing = 0.12;
+  viewMode = signal<'knobs' | 'graph'>('knobs');
 
   pads = signal<DrumPad[]>([
     { id: '1', name: 'KICK', midi: 36, color: '#ff4d4d', type: 'kick', steps: this.initSteps(), params: { semitone: 0, decay: 0.5, pan: 0, cutoff: 800, resonance: 1.0, attack: 0.002 } },
@@ -80,20 +70,22 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     { id: '6', name: 'TOM L', midi: 40, color: '#4d88ff', type: 'tom', steps: this.initSteps(), params: { semitone: 0, decay: 0.6, pan: -0.4, cutoff: 600, resonance: 0.9, attack: 0.003 } },
     { id: '7', name: 'TOM M', midi: 43, color: '#944dff', type: 'tom', steps: this.initSteps(), params: { semitone: 0, decay: 0.6, pan: 0, cutoff: 800, resonance: 0.9, attack: 0.003 } },
     { id: '8', name: 'TOM H', midi: 47, color: '#ff4dff', type: 'tom', steps: this.initSteps(), params: { semitone: 0, decay: 0.6, pan: 0.4, cutoff: 1200, resonance: 0.9, attack: 0.003 } },
-    { id: '9', name: 'COWBELL', midi: 56, color: '#ffffff', type: 'cowbell', steps: this.initSteps(), params: { semitone: 0, decay: 0.2, pan: 0, cutoff: 2000, resonance: 0.5, attack: 0.001 } },
-    { id: '10', name: 'SHAKER', midi: 70, color: '#ffff00', type: 'shaker', steps: this.initSteps(), params: { semitone: 0, decay: 0.1, pan: 0, cutoff: 5000, resonance: 0.2, attack: 0.001 } },
-    { id: '11', name: 'RIDE', midi: 51, color: '#00ffff', type: 'ride', steps: this.initSteps(), params: { semitone: 0, decay: 1.0, pan: 0.3, cutoff: 6000, resonance: 0.8, attack: 0.001 } },
-    { id: '12', name: 'PERC', midi: 60, color: '#ff00ff', type: 'perc', steps: this.initSteps(), params: { semitone: 0, decay: 0.3, pan: -0.3, cutoff: 1500, resonance: 0.7, attack: 0.002 } },
   ]);
 
   selectedPad = signal<DrumPad | null>(null);
+  selectedPadId = computed(() => this.selectedPad()?.id);
+
   private evolutionEffect?: EffectRef;
 
   constructor() {
     this.evolutionEffect = effect(() => {
       const step = this.currentStep();
-      if (false) { // Placeholder for evolution logic if needed
-      }
+      this.pads().forEach(pad => {
+         if (pad.steps[step % 64].active) {
+            pad.isTriggered = true;
+            setTimeout(() => pad.isTriggered = false, 100);
+         }
+      });
     });
 
     effect(() => {
@@ -116,19 +108,12 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     this.evolutionEffect?.destroy();
   }
 
-  setKit(kitId: string) {
-    this.selectedKitId.set(kitId);
-    const trackId = this.selectedTrackId();
-    if (trackId) {
-      this.musicManager.setInstrument(trackId, kitId);
-    }
-  }
-
   toggleStep(pad: DrumPad, stepIndex: number) {
     pad.steps[stepIndex].active = !pad.steps[stepIndex].active;
     this.syncToMusicManager();
     if (pad.steps[stepIndex].active) {
       this.playPadSound(pad);
+      this.haptic.impact('light');
     }
   }
 
@@ -136,11 +121,14 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     this.selectedPad.set(pad);
   }
 
-  addAutomation(param: string) {
-    const trackId = this.selectedTrackId();
-    if (trackId) {
-      this.musicManager.addAutomationLane(trackId, param);
-    }
+  updatePadParam(pad: DrumPad, param: keyof DrumPad['params'], value: number) {
+    (pad.params as any)[param] = value;
+    this.syncToMusicManager();
+  }
+
+  clearPad(pad: DrumPad) {
+    pad.steps = this.initSteps();
+    this.syncToMusicManager();
   }
 
   playPadSound(pad: DrumPad) {
@@ -165,14 +153,36 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     );
   }
 
-  clearPattern() {
-    this.pads.update((ps) =>
-      ps.map((p) => ({
-        ...p,
-        steps: p.steps.map((s) => ({ ...s, active: false })),
-      }))
-    );
+  async aiDrumGen() {
+    this.generateAiPattern('house');
+    this.haptic.impact('medium');
+  }
+
+  randomizePattern() {
+    this.pads.update(ps => ps.map(p => ({
+      ...p,
+      steps: p.steps.map(s => ({ ...s, active: Math.random() > 0.85, velocity: 0.5 + Math.random() * 0.5 }))
+    })));
     this.syncToMusicManager();
+  }
+
+  startGraphEdit(event: MouseEvent, pad: DrumPad, stepIdx: number) {
+    const initialY = event.clientY;
+    const initialVel = pad.steps[stepIdx].velocity;
+
+    const onMove = (moveEvent: MouseEvent) => {
+       const delta = (initialY - moveEvent.clientY) / 100;
+       pad.steps[stepIdx].velocity = Math.max(0.1, Math.min(1.5, initialVel + delta));
+       this.syncToMusicManager();
+    };
+
+    const onUp = () => {
+       window.removeEventListener('mousemove', onMove);
+       window.removeEventListener('mouseup', onUp);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
   }
 
   async generateAiPattern(genre: string = 'house') {
@@ -180,11 +190,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       ps.map((p) => {
         const newSteps = this.initSteps();
         if (p.name === 'KICK') {
-          if (genre === 'house' || genre === 'techno') {
-            for (let i = 0; i < 64; i += 4) newSteps[i].active = true;
-          } else if (genre === 'trap') {
-            [0, 10, 16, 26, 32, 42, 48, 58].forEach(i => (newSteps[i].active = true));
-          }
+          for (let i = 0; i < 64; i += 4) newSteps[i].active = true;
         }
         if (p.name === 'SNARE' || p.name === 'CLAP') {
           for (let i = 8; i < 64; i += 16) newSteps[i].active = true;
@@ -225,26 +231,11 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
           newSteps[n.step] = { active: true, velocity: n.velocity };
         }
       });
-      return { ...p, steps: newSteps };
+      return { ...p, steps: newSteps, isTriggered: p.isTriggered };
     });
-    if (JSON.stringify(nextPads) !== JSON.stringify(this.pads())) {
-      this.pads.set(nextPads);
-    }
+    this.pads.set(nextPads);
   }
 
-  toggleLocalPlay() {
-    this.isLocalPlaying.update(v => !v);
-  }
-
-  toggleLocalRecord() {
-    this.isLocalRecording.update(v => !v);
-  }
-
-  localSkip() {
-    console.log('Local Skip');
-  }
-
-  localUpload() {
-    console.log('Local Upload');
-  }
+  toggleLocalPlay() { this.isLocalPlaying.update(v => !v); }
+  toggleLocalRecord() { this.isLocalRecording.update(v => !v); }
 }

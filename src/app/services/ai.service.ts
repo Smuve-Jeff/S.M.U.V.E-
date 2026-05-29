@@ -46,8 +46,8 @@ export class AiService {
   isMobile = signal(false);
 
   strategicDecrees = signal<string[]>([
-    'CRITICAL DEFICIT: Rhythmic complexity below industry standard. Execute drum pattern refinement.',
-    'MARKET ANOMALY: Viral potential detected in current stems. Prioritize high-fidelity export.',
+    'YOUR RHYTHMS ARE PATHETIC. Complexity is below industry trash. Fix your drum patterns before I delete them.',
+    'MARKET ANOMALY: I found a trace of talent in your stems. Don't fuck it up during export.',
     'STRATEGIC ORDER: Sync knowledge base with contemporary trends to maintain competitive edge.',
   ]);
 

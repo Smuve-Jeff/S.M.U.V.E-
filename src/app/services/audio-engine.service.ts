@@ -42,6 +42,9 @@ export class AudioEngineService {
   private static readonly INTEGER_TRACK_ID_PATTERN = /^-?\d+$/;
   public outputMode = signal<'speakers' | 'headphones'>('speakers');
   public performanceTier = signal<'ultra' | 'performance'>('ultra');
+  public recordingLatency = signal(0);
+  private trackOutputs = new Map<number, GainNode>();
+  private trackInputs = new Map<number, GainNode>();
   public sidechainEnabled = signal(false);
   public logger = inject(LoggingService);
   private injector = inject(Injector);
@@ -537,7 +540,7 @@ export class AudioEngineService {
       subOsc.start(when);
       subOsc.stop(when + duration + release + 0.1);
     }
-        const dest = customCtx ? (customCtx as any).destination : this.masterGain;
+        const trackOut = this.getTrackOutput(id); const dest = customCtx ? (customCtx as any).destination : trackOut;
     osc.connect(filter).connect(vca).connect(panner).connect(dest);
     if (sendA > 0 && this.reverbConvolver) {
       const sA = this.ctx.createGain();
@@ -632,6 +635,14 @@ export class AudioEngineService {
     if (t) Object.assign(t, patch);
   }
   removeTrack(id: number) {
+  getTrackOutput(id: number): GainNode {
+    if (!this.trackOutputs.has(id)) {
+      const g = this.ctx.createGain();
+      g.connect(this.masterGain);
+      this.trackOutputs.set(id, g);
+    }
+    return this.trackOutputs.get(id)!;
+  }
     this.tracks.delete(id);
   }
   configureCompressor(params: any) {

@@ -1,32 +1,32 @@
 .sound-browser {
-  height: 100%;
+  background: #07070a;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+.selected-cat {
+  background: rgba(0, 229, 255, 0.1);
+  color: #00e5ff;
+  border-color: rgba(0, 229, 255, 0.2) !important;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.05);
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+.preset-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+.preset-item:active {
+  transform: scale(0.98);
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.1);
+.delay-75 { animation-delay: 75ms; }
+.delay-150 { animation-delay: 150ms; }
+
+/* Custom Scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-.preset-item:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.material-symbols-outlined {
-  font-variation-settings:
-    'FILL' 0,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 20;
+@media (max-width: 768px) {
+  .sound-browser {
+    width: 100% !important;
+  }
 }

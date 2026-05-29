@@ -42,7 +42,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   isLocalRecording = signal(false);
 
   windowWidth = signal(typeof window !== 'undefined' ? window.innerWidth : 1280);
-  rowHeight = computed(() => (this.isMobile() ? 48 : 24) * this.touchGestures.zoomLevel());
+  rowHeight = computed(() => (this.isMobile() ? 40 : 24) * this.touchGestures.zoomLevel());
   cellWidth = computed(() => (this.windowWidth() < 1201 ? 32 : 40) * this.touchGestures.zoomLevel());
 
   numMeasures = 4;
@@ -55,7 +55,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   ghostNotes = computed(() => {
     if (!this.showGhostNotes()) return [];
     const currentId = this.musicManager.selectedTrackId();
-    return this.musicManager.tracks().filter(t => t.id !== currentId).flatMap(t => t.notes.map(n => ({ ...n, trackColor: t.color })));
+    return this.musicManager.tracks()
+      .filter(t => t.id !== currentId)
+      .flatMap(t => t.notes.map(n => ({ ...n, trackColor: t.color })));
   });
 
   viewportNotes = computed(() => this.selectedTrack()?.notes || []);
@@ -64,7 +66,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     if (this.scrollContainer) {
-      this.scrollContainer.nativeElement.scrollTop = (127 - 60) * this.rowHeight() - 200;
+      const top = (127 - 60) * this.rowHeight() - 100;
+      this.scrollContainer.nativeElement.scrollTop = Math.max(0, top);
     }
     this.cdr.detectChanges();
   }
@@ -83,7 +86,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
       const y = e.clientY - rect.top;
       const step = Math.floor(x / this.cellWidth());
       const midi = 127 - Math.floor(y / this.rowHeight());
-      this.musicManager.addNoteToTrack(this.selectedTrack()!.id, { midi, step, length: 1, velocity: 0.8 });
+
+      this.musicManager.addNoteToTrack(this.selectedTrack()!.id, {
+        midi,
+        step,
+        length: 1,
+        velocity: 0.8
+      });
     }
   }
 
@@ -91,8 +100,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     e.stopPropagation();
     if (this.editMode() === 'select') {
       const next = new Set(this.selectedNoteIds());
-      if (e.shiftKey) { next.has(note.id) ? next.delete(note.id) : next.add(note.id); }
-      else { next.clear(); next.add(note.id); }
+      if (e.shiftKey || e.ctrlKey || e.metaKey) {
+        next.has(note.id) ? next.delete(note.id) : next.add(note.id);
+      } else {
+        next.clear();
+        next.add(note.id);
+      }
       this.selectedNoteIds.set(next);
     } else if (this.editMode() === 'erase') {
       this.musicManager.removeNotes(this.selectedTrack()!.id, [note.id]);
@@ -102,14 +115,78 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   isBlackKey(midi: number) { return [1, 3, 6, 8, 10].includes(midi % 12); }
   getKeyName(midi: number) { return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi % 12]; }
   getDisplayKeys() { return Array.from({ length: 128 }, (_, i) => 127 - i); }
+
   setEditMode(mode: 'draw' | 'select' | 'erase') { this.editMode.set(mode); }
-  quantizeNotes() { if (this.selectedTrack()) this.musicManager.quantizeTrack(this.selectedTrack()!.id); }
-  deleteSelected() { if (this.selectedTrack()) this.musicManager.removeNotes(this.selectedTrack()!.id, Array.from(this.selectedNoteIds())); }
-  duplicateSelected() { if (this.selectedTrack()) this.musicManager.duplicateNotes(this.selectedTrack()!.id, Array.from(this.selectedNoteIds()), 1); }
-  adjustSelectedVelocity(delta: number) { /* logic */ }
-  setSelectedNoteProbability(e: any) { /* logic */ }
+
+  quantizeNotes() {
+    if (this.selectedTrack()) this.musicManager.quantizeTrack(this.selectedTrack()!.id);
+  }
+
+  deleteSelected() {
+    if (this.selectedTrack() && this.selectedNoteIds().size > 0) {
+      this.musicManager.removeNotes(this.selectedTrack()!.id, Array.from(this.selectedNoteIds()));
+      this.selectedNoteIds.set(new Set());
+    }
+  }
+
+  duplicateSelected() {
+    if (this.selectedTrack() && this.selectedNoteIds().size > 0) {
+      this.musicManager.duplicateNotes(this.selectedTrack()!.id, Array.from(this.selectedNoteIds()), 1);
+    }
+  }
+
+  adjustSelectedVelocity(delta: number) {
+    const trackId = this.musicManager.selectedTrackId();
+    if (!trackId) return;
+    this.selectedNoteIds().forEach(noteId => {
+      const note = this.selectedTrack()?.notes.find(n => n.id === noteId);
+      if (note) {
+        const newVel = Math.max(0.1, Math.min(1.5, note.velocity + delta));
+        this.musicManager.setNoteParam(trackId, noteId, 'velocity', newVel);
+      }
+    });
+  }
+
+  setSelectedNoteProbability(e: any) {
+    const trackId = this.musicManager.selectedTrackId();
+    if (!trackId) return;
+    const value = e.target ? e.target.value : e;
+    this.selectedNoteIds().forEach(noteId => {
+      this.musicManager.setNoteParam(trackId, noteId, 'probability', value);
+    });
+  }
+
+  toggleSelectedSlide() {
+    const trackId = this.musicManager.selectedTrackId();
+    if (!trackId) return;
+    this.selectedNoteIds().forEach(noteId => {
+      const note = this.selectedTrack()?.notes.find(n => n.id === noteId);
+      if (note) {
+        this.musicManager.setNoteParam(trackId, noteId, 'isSlide', !note.isSlide);
+      }
+    });
+  }
+
+  hasSelectedSlide(): boolean {
+    const ids = Array.from(this.selectedNoteIds());
+    if (ids.length === 0) return false;
+    const note = this.selectedTrack()?.notes.find(n => n.id === ids[0]);
+    return !!note?.isSlide;
+  }
+
+  strumNotes() {
+    if (this.selectedTrack()) this.musicManager.strumTrack(this.selectedTrack()!.id);
+  }
+
+  humanizeNotes() {
+    if (this.selectedTrack()) this.musicManager.humanizeTrack(this.selectedTrack()!.id);
+  }
+
+  arpeggiateNotes() {
+    if (this.selectedTrack()) this.musicManager.arpeggiateTrack(this.selectedTrack()!.id);
+  }
+
   toggleLocalPlay() { this.isLocalPlaying.update(v => !v); }
   toggleLocalRecord() { this.isLocalRecording.update(v => !v); }
   localSkip() { console.log('skip'); }
-  localUpload() { console.log('upload'); }
 }
