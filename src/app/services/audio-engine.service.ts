@@ -119,7 +119,7 @@ export class AudioEngineService {
   constructor() {
     this.ctx = new (
       window.AudioContext || (window as any).webkitAudioContext
-    )({ latencyHint: "interactive" });
+)({ latencyHint: 'interactive' });
     this.masterGain = this.ctx.createGain();
     this.compressor = this.ctx.createDynamicsCompressor();
     this.saturationNode = this.ctx.createWaveShaper();
