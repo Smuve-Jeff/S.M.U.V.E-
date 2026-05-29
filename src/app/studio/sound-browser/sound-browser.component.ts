@@ -99,6 +99,10 @@ export class SoundBrowserComponent {
     this.musicManager.importAudioTrack();
   }
 
+  aiSearch() {
+    console.log("Deep AI Search Triggered");
+  }
+
   onDragStart(event: DragEvent, preset: InstrumentPreset) {
     event.dataTransfer?.setData('application/json', JSON.stringify({
       type: 'instrument-preset',

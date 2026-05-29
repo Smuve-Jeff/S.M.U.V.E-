@@ -1,27 +1,122 @@
-<div class="drum-machine-container glass-v42 retro-flicker shadow-v42-xl">
-  <div class="drum-header wood-panel">
-    <div class="header-branding"><div class="neon-text-sm neon-text">PRO DRUM MODULE v4.2</div></div>
-    <div class="module-transport glass-v42">
+<div class="drum-machine-container glass-v42 retro-flicker shadow-v42-xl h-full flex flex-col">
+  <div class="drum-header wood-panel border-b border-white/10 flex items-center justify-between px-6 py-2">
+    <div class="flex items-center gap-4">
+      <div class="header-branding"><div class="neon-text text-[11px] font-black uppercase tracking-[0.2em]">S.M.U.V.E Percussion v4.2</div></div>
+      <div class="flex gap-2 border-l border-white/10 pl-4 items-center">
+         <button (click)="aiDrumGen()" class="executive-glass text-[8px] px-3 py-1.5 rounded-lg border border-fl-blue/30 text-fl-blue font-black uppercase hover:bg-fl-blue/10 transition-all">AI Pattern</button>
+         <button (click)="randomizePattern()" class="executive-glass text-[8px] px-3 py-1.5 rounded-lg border border-white/10 text-slate-400 font-black uppercase hover:text-white transition-all">Randomize</button>
+
+         <div class="swing-control flex items-center gap-2 border-l border-white/5 pl-4">
+            <span class="text-[7px] font-black text-slate-500 uppercase">Swing</span>
+            <input type="range" min="0" max="1" step="0.01" [(ngModel)]="swing" class="w-16 h-1 accent-fl-blue" />
+         </div>
+      </div>
+    </div>
+
+    <div class="module-transport glass-v42 mx-4">
       <div class="btn-group flex gap-1">
-        <button class="m-btn tactile-v42" (click)="isLocalPlayback() ? toggleLocalPlay() : audioSession.togglePlay()">
-          <span class="material-symbols-outlined text-sm">{{ (isLocalPlayback() ? isLocalPlaying() : audioSession.isPlaying()) ? 'pause' : 'play_arrow' }}</span>
+        <button class="m-btn tactile-v42" (click)="audioSession.togglePlay()">
+          <span class="material-symbols-outlined text-sm">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
         </button>
-        <button class="m-btn tactile-v42 rec" [class.active]="isLocalPlayback() ? isLocalRecording() : audioSession.isRecording()" (click)="isLocalPlayback() ? toggleLocalRecord() : audioSession.toggleRecord()">
+        <button class="m-btn tactile-v42 rec" [class.active]="audioSession.isRecording()" (click)="audioSession.toggleRecord()">
           <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
         </button>
       </div>
     </div>
   </div>
-  <div class="drum-content">
-    <div class="sequencer-viewport no-scrollbar glass-v42">
-      <div class="sequencer-grid">
-        <div *ngFor="let pad of pads()" class="sequencer-row">
-          <div *ngFor="let step of pad.steps; let sIdx = index" class="step-box tactile-v42" [class.active]="step.active" (click)="toggleStep(pad, sIdx)"></div>
+
+  <div class="drum-content flex-1 flex overflow-hidden bg-black/40">
+    <!-- Drum Pads Sidebar -->
+    <div class="pads-sidebar no-scrollbar bg-[#0a0a0f] border-r border-white/10">
+      <div *ngFor="let pad of pads()"
+           class="drum-pad-item flex items-center p-3 gap-3 border-b border-white/5 transition-all group"
+           [class.selected]="selectedPadId() === pad.id"
+           (click)="selectPad(pad)">
+        <div class="w-1.5 h-1.5 rounded-full"
+             [style.background-color]="pad.color"
+             [class.glowing]="pad.isTriggered"></div>
+        <div class="flex-1 min-w-0">
+           <div class="pad-name text-[9px] font-black text-slate-300 truncate uppercase">{{ pad.name }}</div>
+           <div class="text-[7px] text-slate-600 font-mono">{{ pad.midi }}</div>
+        </div>
+        <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+           <span (click)="clearPad(pad); $event.stopPropagation()" class="material-symbols-outlined text-[10px] text-red-500/50 hover:text-red-500">backspace</span>
         </div>
       </div>
     </div>
-    <div class="param-inspector glass-v42 no-scrollbar shadow-v42-xl" *ngIf="selectedPad() as pad">
-      <app-knob label="PITCH" [min]="-12" [max]="12" [value]="pad.params.semitone" (valueChange)="pad.params.semitone = $event"></app-knob>
+
+    <!-- Step Sequencer Grid -->
+    <div class="sequencer-viewport no-scrollbar flex-1 relative bg-[#07070a]">
+       <!-- Time Ruler -->
+       <div class="time-ruler flex border-b border-white/5 bg-black/20 h-6 sticky top-0 z-20">
+          <div *ngFor="let group of [1,2,3,4]" class="flex-1 border-r border-white/10 text-[7px] font-black text-slate-500 flex items-center pl-2">BEAT {{ group }}</div>
+       </div>
+
+       <div class="sequencer-grid p-2">
+         <div *ngFor="let pad of pads()"
+              class="sequencer-row flex gap-1 mb-1 items-center h-8"
+              [class.selected-row]="selectedPadId() === pad.id">
+
+           <div class="flex-1 flex gap-1" *ngFor="let group of [0,1,2,3]">
+              <div *ngFor="let step of [0,1,2,3]; let sIdx = index"
+                   class="step-box flex-1 h-7 rounded-sm transition-all border border-black/20 relative cursor-pointer"
+                   [class.active]="pad.steps[group*4 + sIdx].active"
+                   [class.current-step]="musicManager.currentStep() === (group*4 + sIdx)"
+                   [style.background-color]="pad.steps[group*4 + sIdx].active ? pad.color : (group % 2 === 0 ? '#1e1e26' : '#14141a')"
+                   (click)="toggleStep(pad, group*4 + sIdx)">
+                 <div *ngIf="pad.steps[group*4 + sIdx].active" class="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20" [style.width.%]="pad.steps[group*4 + sIdx].velocity * 100"></div>
+              </div>
+           </div>
+         </div>
+       </div>
+
+       <!-- Playhead -->
+       <div class="playhead absolute top-0 bottom-0 w-0.5 bg-white/10 pointer-events-none" [style.left.%]="(musicManager.currentStep() / 64) * 100"></div>
+    </div>
+
+    <!-- Param Inspector -->
+    <div class="param-inspector glass-v42 wood-panel no-scrollbar border-l border-white/10 flex flex-col gap-6" *ngIf="selectedPad() as pad">
+       <div class="flex justify-between items-center">
+          <div class="neon-text text-[9px] font-black tracking-[0.2em] uppercase">Pad Controls</div>
+          <button (click)="viewMode.set(viewMode() === 'graph' ? 'knobs' : 'graph')" class="text-[7px] font-black text-fl-blue uppercase underline">
+             {{ viewMode() === 'graph' ? 'Show Knobs' : 'Graph Editor' }}
+          </button>
+       </div>
+
+       <div *ngIf="viewMode() === 'knobs'" class="params-grid-elite">
+          <app-knob label="PITCH" [min]="-12" [max]="12" [value]="pad.params.semitone" (valueChange)="updatePadParam(pad, 'semitone', $event)"></app-knob>
+          <app-knob label="DECAY" [min]="0" [max]="100" [value]="pad.params.decay * 100" (valueChange)="updatePadParam(pad, 'decay', $event / 100)"></app-knob>
+          <app-knob label="CUTOFF" [min]="0" [max]="100" [value]="pad.params.cutoff * 100" (valueChange)="updatePadParam(pad, 'cutoff', $event / 100)"></app-knob>
+          <app-knob label="PAN" [min]="-100" [max]="100" [value]="pad.params.pan * 100" (valueChange)="updatePadParam(pad, 'pan', $event / 100)"></app-knob>
+       </div>
+
+       <!-- Graph Editor for Velocity/Pan/etc -->
+       <div *ngIf="viewMode() === 'graph'" class="flex-1 flex flex-col gap-4">
+          <div class="graph-container flex-1 bg-black/40 rounded-xl border border-white/5 flex items-end p-2 gap-0.5">
+             <div *ngFor="let step of pad.steps; let sIdx = index"
+                  class="graph-bar flex-1 bg-white/5 hover:bg-white/20 transition-all rounded-t-sm relative group"
+                  [style.height.%]="step.velocity * 100"
+                  (mousedown)="startGraphEdit($event, pad, sIdx)">
+                <div class="absolute -top-4 left-1/2 -translate-x-1/2 text-[6px] font-mono opacity-0 group-hover:opacity-100 bg-black px-1 rounded">{{ (step.velocity * 100) | number:'1.0-0' }}</div>
+             </div>
+          </div>
+          <div class="flex justify-center gap-4">
+             <button class="text-[7px] font-black uppercase text-slate-500 hover:text-white">Velocity</button>
+             <button class="text-[7px] font-black uppercase text-slate-800">Pan</button>
+             <button class="text-[7px] font-black uppercase text-slate-800">Pitch</button>
+          </div>
+       </div>
+
+       <div class="velocity-editor border-t border-white/5 pt-6" *ngIf="viewMode() === 'knobs'">
+          <div class="text-[7px] font-black text-slate-500 uppercase mb-3">Velocity Matrix</div>
+          <div class="velocity-bars flex items-end gap-0.5 h-16 bg-black/40 p-1 rounded">
+             <div *ngFor="let step of pad.steps; let sIdx = index"
+                  class="v-bar flex-1 bg-white/5"
+                  [class.v-active]="step.active"
+                  [style.height.%]="step.velocity * 100"
+                  [style.background-color]="step.active ? pad.color : null"></div>
+          </div>
+       </div>
     </div>
   </div>
 </div>

@@ -325,3 +325,21 @@ input:checked + .slider-mini:before {
     gap: 8px;
   }
 }
+.midi-tools .mini-btn {
+  background: rgba(255,255,255,0.03);
+  height: 28px;
+}
+
+.midi-tools .mini-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.clip-triangle {
+  clip-path: polygon(100% 0, 0 0, 100% 100%);
+}
+
+.playhead {
+  pointer-events: none;
+  transition: left 0.1s linear;
+}

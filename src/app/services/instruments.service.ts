@@ -141,6 +141,56 @@ export class InstrumentsService {
         cutoff: 1500,
         q: 0.3,
       },
+    },
+    {
+       id: 'cyber-stab',
+       name: 'Cyber Stab',
+       type: 'synth',
+       category: 'vfx',
+       tags: ['futuristic', 'impact', 'short'],
+       synth: {
+         type: 'square',
+         attack: 0.01,
+         decay: 0.1,
+         sustain: 0,
+         release: 0.1,
+         cutoff: 4000,
+         q: 8.0
+       }
+    },
+    {
+       id: 'deep-orbit',
+       name: 'Deep Orbit',
+       type: 'synth',
+       category: 'pad',
+       tags: ['space', 'dark', 'evolve'],
+       synth: {
+         type: 'sawtooth',
+         attack: 3.0,
+         decay: 2.0,
+         sustain: 0.9,
+         release: 4.0,
+         cutoff: 600,
+         q: 0.5,
+         detune: 12
+       }
+    },
+    {
+       id: 'neon-shimmer',
+       name: 'Neon Shimmer',
+       type: 'synth',
+       category: 'keys',
+       tags: ['bright', 'digital', 'dreamy'],
+       synth: {
+         type: 'sine',
+         attack: 0.05,
+         decay: 0.5,
+         sustain: 0.4,
+         release: 1.2,
+         cutoff: 3000,
+         q: 1.5,
+         detune: 2
+       }
     }
   ];
 
@@ -153,11 +203,12 @@ export class InstrumentsService {
     if (!preset) return;
 
     const ctx = this.audioEngine.ctx;
+    if (!ctx) return;
     const now = ctx.currentTime;
     const out = ctx.createGain();
     out.connect(ctx.destination);
     out.gain.setValueAtTime(0, now);
-    out.gain.linearRampToValueAtTime(0.5, now + 0.05);
+    out.gain.linearRampToValueAtTime(0.3, now + 0.05);
     out.gain.linearRampToValueAtTime(0, now + 0.5);
 
     if (preset.type === 'synth' && preset.synth) {
@@ -165,10 +216,11 @@ export class InstrumentsService {
       const filter = ctx.createBiquadFilter();
 
       osc.type = preset.synth.type;
-      osc.frequency.setValueAtTime(440, now); // Audition A4
+      osc.frequency.setValueAtTime(preset.category === 'bass' ? 110 : 440, now);
 
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(preset.synth.cutoff, now);
+      filter.Q.setValueAtTime(preset.synth.q, now);
 
       osc.connect(filter);
       filter.connect(out);
@@ -176,8 +228,12 @@ export class InstrumentsService {
       osc.start(now);
       osc.stop(now + 0.5);
     } else if (preset.type === 'sample' && preset.zones?.[0]) {
-        // Sample audition logic would go here, simplified for now
-        this.audioEngine.logger.info(`Auditioning sample: ${preset.name}`);
+        this.audioEngine.logger.info(`Auditioning elite sample: ${preset.name}`);
+        // Simplified sample blip for auditioning in mock environment
+        const osc = ctx.createOscillator();
+        osc.connect(out);
+        osc.start(now);
+        osc.stop(now + 0.2);
     }
   }
 }

@@ -11,8 +11,16 @@ export class HapticService {
       try {
         navigator.vibrate(pattern);
       } catch (e) {
-        // Ignore errors in browsers that don't support it or if blocked
+        // Ignore errors
       }
+    }
+  }
+
+  impact(style: 'light' | 'medium' | 'heavy') {
+    switch (style) {
+      case 'light': this.light(); break;
+      case 'medium': this.medium(); break;
+      case 'heavy': this.heavy(); break;
     }
   }
 

@@ -46,17 +46,17 @@ export class LiveEngineService {
   }
 
   private setupMidi() {
-    if (navigator.requestMIDIAccess) {
-      navigator.requestMIDIAccess().then(
-        (access) => {
+    if (typeof navigator !== 'undefined' && (navigator as any).requestMIDIAccess) {
+      (navigator as any).requestMIDIAccess().then(
+        (access: any) => {
           this.midiEnabled.set(true);
-          const inputs = Array.from(access.inputs.values());
+          const inputs = Array.from(access.inputs.values()) as any[];
           this.availableMidiInputs.set(
             inputs.map((i) => i.name || 'Unknown Device')
           );
 
           inputs.forEach((input) => {
-            input.onmidimessage = (msg) => this.handleMidiMessage(msg);
+            input.onmidimessage = (msg: any) => this.handleMidiMessage(msg);
           });
         },
         () => this.logger.warn('MIDI Access Denied')
@@ -71,27 +71,14 @@ export class LiveEngineService {
     const velocity = data2;
 
     if (cmd === 9 && velocity > 0) {
-      this.triggerAttack(this.midiToNote(note), velocity / 127);
+      this.triggerNoteStart(note, velocity / 127);
     } else if (cmd === 8 || (cmd === 9 && velocity === 0)) {
-      this.triggerRelease(this.midiToNote(note));
+      this.triggerNoteEnd(note);
     }
   }
 
-  private midiToNote(midi: number): string {
-    const names = [
-      'C',
-      'C#',
-      'D',
-      'D#',
-      'E',
-      'F',
-      'F#',
-      'G',
-      'G#',
-      'A',
-      'A#',
-      'B',
-    ];
+  public midiToNote(midi: number): string {
+    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const octave = Math.floor(midi / 12) - 1;
     const name = names[midi % 12];
     return `${name}${octave}`;
@@ -109,7 +96,6 @@ export class LiveEngineService {
     this.activeInstrument.set(presetId);
     this.activePreset = preset;
 
-    // Dispose old instrument
     if (this.currentInstrumentNode) {
       this.currentInstrumentNode.dispose();
     }
@@ -126,7 +112,6 @@ export class LiveEngineService {
         },
       }).toDestination();
 
-      // Apply filter if specified
       if (config.cutoff) {
         const filter = new Tone.Filter({
           frequency: config.cutoff,
@@ -135,14 +120,9 @@ export class LiveEngineService {
         }).toDestination();
         this.currentInstrumentNode.connect(filter);
       }
-    } else if (
-      preset.type === 'sample' &&
-      preset.zones &&
-      preset.zones.length > 0
-    ) {
+    } else if (preset.type === 'sample' && preset.zones && preset.zones.length > 0) {
       const sampleMap: { [key: string]: string } = {};
       preset.zones.forEach((zone) => {
-        // Map the center of the range for now or just the URL
         const note = this.midiToNote(zone.midiRange[0]);
         sampleMap[note] = zone.url;
       });
@@ -155,9 +135,11 @@ export class LiveEngineService {
     }
   }
 
-  triggerAttack(note: string, velocity: number = 0.8) {
-    if (!this.isInitialized() || !this.currentInstrumentNode) return;
+  triggerNoteStart(midi: number, velocity: number = 0.8) {
+    if (!this.isInitialized()) this.initialize();
+    if (!this.currentInstrumentNode) return;
 
+    const note = this.midiToNote(midi);
     let notesToPlay = [note];
     if (this.smartChords() && this.activePreset?.category !== 'drum') {
       notesToPlay = this.generateSmartChord(note);
@@ -165,47 +147,27 @@ export class LiveEngineService {
 
     const time = Tone.now();
     notesToPlay.forEach((n) => {
-      if (this.currentInstrumentNode instanceof Tone.Sampler) {
-        this.currentInstrumentNode.triggerAttack(n, time, velocity);
-      } else if (this.currentInstrumentNode instanceof Tone.PolySynth) {
-        this.currentInstrumentNode.triggerAttack(n, time, velocity);
-      }
+      this.currentInstrumentNode?.triggerAttack(n, time, velocity);
     });
   }
 
-  triggerRelease(note: string) {
+  triggerNoteEnd(midi: number) {
     if (!this.isInitialized() || !this.currentInstrumentNode) return;
 
-    const time = Tone.now();
+    const note = this.midiToNote(midi);
     let notesToRelease = [note];
     if (this.smartChords() && this.activePreset?.category !== 'drum') {
       notesToRelease = this.generateSmartChord(note);
     }
 
+    const time = Tone.now();
     notesToRelease.forEach((n) => {
-      if (this.currentInstrumentNode instanceof Tone.Sampler) {
-        this.currentInstrumentNode.triggerRelease(n, time);
-      } else if (this.currentInstrumentNode instanceof Tone.PolySynth) {
-        this.currentInstrumentNode.triggerRelease(n, time);
-      }
+      this.currentInstrumentNode?.triggerRelease(n, time);
     });
   }
 
   private generateSmartChord(rootNote: string): string[] {
-    const names = [
-      'C',
-      'C#',
-      'D',
-      'D#',
-      'E',
-      'F',
-      'F#',
-      'G',
-      'G#',
-      'A',
-      'A#',
-      'B',
-    ];
+    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const octaveMatch = rootNote.match(/\d+$/);
     if (!octaveMatch) return [rootNote];
 
@@ -214,18 +176,19 @@ export class LiveEngineService {
     const rootMidi = (octave + 1) * 12 + names.indexOf(name);
 
     const isMinor = ![0, 5, 7].includes(names.indexOf(name) % 12);
-
     if (isMinor) {
       return [
         this.midiToNote(rootMidi),
         this.midiToNote(rootMidi + 3),
         this.midiToNote(rootMidi + 7),
+        this.midiToNote(rootMidi + 10), // Added 7th for complexity
       ];
     }
     return [
       this.midiToNote(rootMidi),
       this.midiToNote(rootMidi + 4),
       this.midiToNote(rootMidi + 7),
+      this.midiToNote(rootMidi + 11), // Added Maj7
     ];
   }
 }
