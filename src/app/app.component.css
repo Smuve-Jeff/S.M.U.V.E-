@@ -320,11 +320,12 @@ footer {
 
 .auth-page {
   z-index: 5000 !important;
-  background-color: #020617 !important;
+  background-color: `#020617` !important;
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
+  height: 100dvh !important;
 }
 
 /* Ensure nothing covers the auth page */
