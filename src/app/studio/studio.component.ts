@@ -77,6 +77,7 @@ function isStudioView(value: string): value is StudioView {
   styleUrls: ['./studio.component.css'],
 })
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
+  private readonly beatsPerBar = 4;
   public readonly audioSession = inject(AudioSessionService);
   public readonly audioEngine = inject(AudioEngineService);
   public readonly neuralOrchestrator = inject(AiService);
@@ -96,7 +97,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showNeuralFoundry = signal(false);
 
   studioQualityClass = computed(() => {
-    return this.audioEngine.performanceTier() === 'ultra' ? 'studio-ultra' : 'studio-perf';
+    return this.audioEngine.performanceTier() === 'ultra'
+      ? 'studio-ultra'
+      : 'studio-perf';
+  });
+
+  currentBar = computed(() => {
+    const stepsPerBar = this.audioEngine.stepsPerBeat() * this.beatsPerBar;
+    return Math.floor(this.musicManager.currentStep() / stepsPerBar) + 1;
   });
 
   constructor() {

@@ -16,7 +16,7 @@ import { HapticService } from '../services/haptic.service';
 import { TouchGestureService } from '../services/touch-gesture.service';
 
 describe('StudioComponent', () => {
-  const createComponent = async () => {
+  const createComponent = async (initialView?: string) => {
     const routeUrl$ = new Subject<any[]>();
     const queryParamMap$ = new Subject<any>();
     const uiServiceMock = {
@@ -50,7 +50,7 @@ describe('StudioComponent', () => {
             metronomeEnabled: signal(false),
             metronomeVolume: signal(0.5),
             stepsPerBeat: () => 4,
-            performanceTier: signal('ultra')
+            performanceTier: signal('ultra'),
           },
         },
         {
@@ -68,30 +68,31 @@ describe('StudioComponent', () => {
           provide: MusicManagerService,
           useValue: {
             selectedTrackId: signal<number | null>(null),
-            tracks: signal([])
+            tracks: signal([]),
+            currentStep: signal(0),
           },
         },
         {
           provide: UserProfileService,
           useValue: {
-            profile: signal({})
-          }
+            profile: signal({}),
+          },
         },
         {
           provide: NotificationService,
-          useValue: {}
+          useValue: {},
         },
         {
           provide: AiCopilotService,
-          useValue: {}
+          useValue: {},
         },
         {
           provide: HapticService,
-          useValue: {}
+          useValue: {},
         },
         {
           provide: TouchGestureService,
-          useValue: {}
+          useValue: {},
         },
         {
           provide: ActivatedRoute,
@@ -99,8 +100,10 @@ describe('StudioComponent', () => {
             url: routeUrl$.asObservable(),
             queryParamMap: queryParamMap$.asObservable(),
             snapshot: {
-              queryParamMap: convertToParamMap({})
-            }
+              queryParamMap: convertToParamMap(
+                initialView ? { view: initialView } : {}
+              ),
+            },
           },
         },
         { provide: Router, useValue: routerMock },
@@ -122,10 +125,19 @@ describe('StudioComponent', () => {
     component.setActiveView('mastering');
 
     expect(component.activeView()).toBe('mastering');
-    expect(routerMock.navigate).toHaveBeenCalledWith([], expect.objectContaining({
-      queryParams: { view: 'mastering' },
-      queryParamsHandling: 'merge',
-    }));
+    expect(routerMock.navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({
+        queryParams: { view: 'mastering' },
+        queryParamsHandling: 'merge',
+      })
+    );
+  });
+
+  it('uses route query param view when valid', async () => {
+    const { component } = await createComponent('piano-roll');
+
+    expect(component.activeView()).toBe('piano-roll');
   });
 
   it('maps studio quality class based on performance mode', async () => {
@@ -136,5 +148,21 @@ describe('StudioComponent', () => {
 
     (audioEngine.performanceTier as any).set('performance');
     expect(component.studioQualityClass()).toBe('studio-perf');
+  });
+
+  it('derives current bar from step position', async () => {
+    const { component } = await createComponent();
+    const musicManager = TestBed.inject(MusicManagerService);
+
+    expect(component.currentBar()).toBe(1);
+
+    (musicManager.currentStep as any).set(16);
+    expect(component.currentBar()).toBe(2);
+
+    (musicManager.currentStep as any).set(31);
+    expect(component.currentBar()).toBe(2);
+
+    (musicManager.currentStep as any).set(64);
+    expect(component.currentBar()).toBe(5);
   });
 });
