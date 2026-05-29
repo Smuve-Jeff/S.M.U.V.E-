@@ -1587,3 +1587,87 @@
   background: rgba(255, 255, 255, 0.05);
   color: white;
 }
+
+/* Cinema Mode & Theater Layout Enhancements */
+.cinema-controls {
+  margin: 1rem 2rem;
+  padding: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  border-radius: 12px;
+}
+
+.layout-toggle-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 0.6rem 1.2rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s;
+}
+
+.layout-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.layout-toggle-btn.active {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+}
+
+.theater-player-container {
+  margin: 0 2rem 2rem 2rem;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  animation: theater-slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes theater-slide-in {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.theater-player-frame {
+  display: flex;
+  flex-direction: column;
+}
+
+.theater-player-frame .console-body {
+  aspect-ratio: 16 / 9;
+  background: #000;
+  position: relative;
+}
+
+.stream-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #000;
+}
+
+.theater-grid {
+  padding-top: 1rem;
+}
+
+.cinema-grid.theater-grid {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+@media (max-width: 1024px) {
+  .theater-player-container {
+    margin: 0 1rem 1rem 1rem;
+  }
+
+  .cinema-grid.theater-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}

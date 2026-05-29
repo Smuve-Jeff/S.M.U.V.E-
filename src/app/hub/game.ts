@@ -58,6 +58,7 @@ export interface CinemaStream {
   badgeIds?: string[];
   rating?: number;
   viewersOnline?: number;
+  type?: "hls" | "iframe";
   art?: {
     eyebrow: string;
     accentStart: string;

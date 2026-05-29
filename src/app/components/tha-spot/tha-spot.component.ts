@@ -60,6 +60,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   readonly displayMode = signal<'gaming' | 'cinema'>('gaming');
   readonly streams = signal<CinemaStream[]>([]);
   readonly currentStream = signal<CinemaStream | null>(null);
+  readonly cinemaLayout = signal<"overlay" | "theater">("overlay");
 
   // Feed Signals
   feed = signal<any>(null);
@@ -158,6 +159,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     return this.liveEvents().map((event) =>
       this.resolveEventStatus(event, time)
     );
+  });
+
+  currentSafeStreamUrl = computed(() => {
+    const stream = this.currentStream();
+    if (!stream || stream.type !== "iframe") return null;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(stream.url);
   });
 
   currentSafeUrl = computed(() => {
@@ -496,6 +503,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   // Cinema Mode Handlers
+  toggleCinemaLayout(): void {
+    this.cinemaLayout.set(this.cinemaLayout() === 'overlay' ? 'theater' : 'overlay');
+  }
+
   setMode(mode: 'gaming' | 'cinema'): void {
     this.displayMode.set(mode);
     if (mode === 'cinema') {
@@ -508,10 +519,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   onStreamClick(stream: CinemaStream): void {
     this.destroyStreamPlayer();
     this.currentStream.set(stream);
-    this.streamInitTimeoutId = window.setTimeout(
-      () => this.initializeHlsPlayer(),
-      100
-    );
+    if (stream.type !== "iframe") {
+      this.streamInitTimeoutId = window.setTimeout(
+        () => this.initializeHlsPlayer(),
+        100
+      );
+    }
   }
 
   closeStream(): void {
