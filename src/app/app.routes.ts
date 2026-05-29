@@ -161,6 +161,16 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'turntable',
+    redirectTo: 'dj',
+    pathMatch: 'full',
+  },
+  {
+    path: 'decks',
+    redirectTo: 'dj',
+    pathMatch: 'full',
+  },
+  {
     path: 'dj',
     loadComponent: () =>
       import('./studio/dj-deck/dj-deck.component').then(

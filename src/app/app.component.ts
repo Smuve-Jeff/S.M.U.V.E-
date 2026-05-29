@@ -214,7 +214,7 @@ export class AppComponent implements ErrorHandler {
     this.isAuthRoute.set(path === 'login');
     this.isFullPageMode.set(
       this.isAuthRoute() ||
-        ['piano-roll', 'tha-spot', 'networking'].includes(path) ||
+        ['dj', 'piano-roll', 'tha-spot', 'networking'].includes(path) ||
         (path === 'studio' && this.isMobile())
     );
   }

@@ -219,9 +219,9 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
   },
   {
     mode: 'dj',
-    routePath: '/studio',
+    routePath: '/dj',
     label: 'DJ',
-    description: 'Alias for Studio.',
+    description: 'Launch the immersive dual-deck mixing surface.',
     icon: 'token',
     category: 'CORE',
     hidden: true,
