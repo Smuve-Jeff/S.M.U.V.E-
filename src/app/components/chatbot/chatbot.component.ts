@@ -356,6 +356,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
         aiMimicEnabled: boolean;
         aiProfanityEnabled: boolean;
         kbWriteAccess: boolean;
+        commanderPersona: string;
+        aiConversationalTier: 'Standard' | 'Elite' | 'God';
       }>;
     };
   }) {
@@ -365,6 +367,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       aiMimicEnabled: aiSettings.aiMimicEnabled ?? false,
       aiProfanityEnabled: aiSettings.aiProfanityEnabled ?? false,
       kbWriteAccess: aiSettings.kbWriteAccess ?? false,
+      commanderPersona: aiSettings.commanderPersona ?? 'Elite',
+      aiConversationalTier: aiSettings.aiConversationalTier ?? 'Standard',
     };
   }
 
