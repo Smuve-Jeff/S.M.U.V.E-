@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService, AuthCredentials } from '../../services/auth.service';
 import { SecurityService } from '../../services/security.service';
 import { OnboardingService } from '../../services/onboarding.service';
+import { LoggingService } from '../../services/logging.service';
 
 @Component({
   selector: 'app-login',
@@ -19,6 +20,7 @@ export class LoginComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private securityService = inject(SecurityService);
   private onboarding = inject(OnboardingService);
+  private logger = inject(LoggingService);
 
   isRegistering = signal(false);
   isLoading = signal(false);
@@ -35,17 +37,24 @@ export class LoginComponent implements OnInit {
   };
   artistName = '';
 
-  passwordValidation = computed(() =>
-    this.authService.validatePassword(this.credentials.password)
-  );
+  get passwordValidation() {
+    return this.authService.validatePassword(this.credentials.password || '');
+  }
 
   ngOnInit() {
-    if (this.authService.isAuthenticated()) {
-      void this.navigateAfterAuth();
+    this.logger.system('LOGIN_SURFACE_INITIALIZED');
+    try {
+      if (this.authService.isAuthenticated()) {
+        void this.navigateAfterAuth();
+      }
+    } catch (err) {
+      this.logger.error('Login initialization failure', err);
     }
   }
 
   async onSubmit() {
+    if (this.isLoading()) return;
+
     this.isLoading.set(true);
     this.message.set('');
     this.isError.set(false);
@@ -55,10 +64,10 @@ export class LoginComponent implements OnInit {
       if (this.isVerifying()) {
         result = await this.authService.verifyEmail(this.verificationCode);
       } else if (this.isRegistering()) {
-        const validation = this.passwordValidation();
+        const validation = this.passwordValidation;
         if (!validation.isValid) {
           this.isError.set(true);
-          this.message.set(validation.errors.join(' '));
+          this.message.set(validation.errors[0]);
           this.isLoading.set(false);
           return;
         }
@@ -70,15 +79,18 @@ export class LoginComponent implements OnInit {
         result = await this.authService.login(this.credentials);
       }
 
-      this.message.set(result.message);
-      if (result.success) {
-        this.handleSuccessfulAuth();
-      } else {
-        this.handleFailedAuth(result);
+      if (result) {
+        this.message.set(result.message);
+        if (result.success) {
+          this.handleSuccessfulAuth();
+        } else {
+          this.handleFailedAuth(result);
+        }
       }
-    } catch (_err) {
+    } catch (err) {
+      this.logger.error('AUTH_FATAL_ERROR', err);
       this.isError.set(true);
-      this.message.set('An unexpected error occurred. System offline.');
+      this.message.set('NEURAL LINK FAILURE. TRY AGAIN.');
     } finally {
       if (!this.isVerifying() && !this.requires2FA()) {
         this.isLoading.set(false);
@@ -94,14 +106,14 @@ export class LoginComponent implements OnInit {
     }
     setTimeout(() => {
       void this.navigateAfterAuth();
-    }, 1500);
+    }, 1000);
   }
 
   private handleFailedAuth(result: { message: string; requires2FA?: boolean }) {
     this.isError.set(true);
     if (result.requires2FA) {
       this.requires2FA.set(true);
-      this.isLoading.set(true); // Keep loading active for 2FA input
+      this.isLoading.set(true);
     } else {
       this.isLoading.set(false);
     }
@@ -113,6 +125,8 @@ export class LoginComponent implements OnInit {
       const result = await this.authService.resendVerificationCode();
       this.message.set(result.message);
       this.isError.set(!result.success);
+    } catch (e) {
+      this.message.set('RESEND FAILED.');
     } finally {
       this.isLoading.set(false);
     }
@@ -127,19 +141,23 @@ export class LoginComponent implements OnInit {
   }
 
   private async navigateAfterAuth(): Promise<void> {
-    const requestedUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-    if (requestedUrl && this.securityService.isValidRedirectUrl(requestedUrl)) {
-      await this.router.navigateByUrl(requestedUrl);
-      return;
-    }
+    try {
+      const requestedUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+      if (requestedUrl && this.securityService.isValidRedirectUrl(requestedUrl)) {
+        await this.router.navigateByUrl(requestedUrl);
+        return;
+      }
 
-    if (this.onboarding.shouldShow()) {
-      await this.router.navigate(['/hub'], {
-        queryParams: { onboarding: '1' },
-      });
-      return;
-    }
+      if (this.onboarding.shouldShow()) {
+        await this.router.navigate(['/hub'], {
+          queryParams: { onboarding: '1' },
+        });
+        return;
+      }
 
-    await this.router.navigateByUrl('/hub');
+      await this.router.navigateByUrl('/hub');
+    } catch (e) {
+      await this.router.navigateByUrl('/hub');
+    }
   }
 }
