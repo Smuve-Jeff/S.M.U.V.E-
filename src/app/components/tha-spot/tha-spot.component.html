@@ -189,7 +189,37 @@
       </div>
 
       <div class="browse-grid-container custom-scrollbar">
-        <div class="cinema-grid" *ngIf="displayMode() === 'cinema'">
+
+    <!-- Theater Mode Active Player -->
+    <div class="theater-player-container glass-v42 shadow-v42-xl" *ngIf="cinemaLayout() === 'theater' && currentStream(); let active">
+      <div class="theater-player-frame">
+        <header class="console-header glass-v42">
+          <div class="console-title">
+            {{ active.name | uppercase }}
+            <span class="tag">[THEATER]</span>
+          </div>
+          <div class="console-actions">
+            <button class="icon-btn" (click)="toggleCinemaLayout()">
+              <span class="material-symbols-outlined">fullscreen</span>
+            </button>
+            <button class="icon-btn" (click)="closeStream()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </header>
+        <div class="console-body">
+          <ng-container *ngTemplateOutlet="streamPlayerTemplate; context: { $implicit: active }"></ng-container>
+        </div>
+      </div>
+    </div>
+
+    <div class="cinema-controls glass-v42" *ngIf="displayMode() === 'cinema'">
+      <button class="layout-toggle-btn" (click)="toggleCinemaLayout()" [class.active]="cinemaLayout() === 'theater'">
+        <span class="material-symbols-outlined">{{ cinemaLayout() === 'theater' ? 'grid_view' : 'tv' }}</span>
+        {{ cinemaLayout() === 'theater' ? 'GRID ONLY' : 'THEATER MODE' }}
+      </button>
+    </div>
+<div class="cinema-grid" *ngIf="displayMode() === 'cinema'" [class.theater-grid]="cinemaLayout() === 'theater'">
           <div class="stream-card glass-v42 storefront-card" *ngFor="let stream of filteredStreams()" (click)="onStreamClick(stream)">
             <img [src]="stream.image" [alt]="stream.name">
             <div class="stream-card-overlay">
@@ -445,7 +475,7 @@
 </div>
 
   <!-- Immersive Cinema Overlay -->
-  <div class="immersive-overlay" *ngIf="currentStream() as active" [class.active]="currentStream()">
+  <div class="immersive-overlay" *ngIf="cinemaLayout() === 'overlay' && currentStream(); let active" [class.active]="currentStream() && cinemaLayout() === 'overlay'">
     <div class="game-console-window glass-v42 shadow-v42-xl">
       <header class="console-header glass-v42">
         <div class="console-title">
@@ -459,23 +489,7 @@
         </div>
       </header>
       <div class="console-body">
-        <div class="cinema-player-container">
-          <video #videoPlayer class="smuve-video-player" crossorigin="anonymous"></video>
-          <div class="video-overlay-ui">
-            <div class="video-top-bar">
-              <div class="stream-info">
-                <div class="stream-genre">{{ active.genre | uppercase }}</div>
-                <div class="stream-name">{{ active.name }}</div>
-              </div>
-              <div class="live-indicator">
-                <span class="material-symbols-outlined">sensors</span> LIVE
-              </div>
-            </div>
-            <div class="video-controls-bottom">
-              <span class="material-symbols-outlined">visibility</span> {{ active.viewersOnline | number }} VIEWERS
-            </div>
-          </div>
-        </div>
+        <ng-container *ngTemplateOutlet="streamPlayerTemplate; context: { $implicit: active }"></ng-container>
       </div>
       <footer class="console-footer glass-v42">
         <div class="telemetry">
@@ -486,3 +500,32 @@
     </div>
   </div>
 
+  <ng-template #streamPlayerTemplate let-active>
+    <div class="cinema-player-container">
+      <iframe *ngIf="active.type === 'iframe'"
+              [src]="currentSafeStreamUrl()"
+              class="stream-iframe"
+              allowfullscreen
+              allow="autoplay; fullscreen"></iframe>
+
+      <video #videoPlayer
+             *ngIf="active.type !== 'iframe'"
+             class="smuve-video-player"
+             crossorigin="anonymous"></video>
+
+      <div class="video-overlay-ui" *ngIf="active.type !== 'iframe'">
+        <div class="video-top-bar">
+          <div class="stream-info">
+            <div class="stream-genre">{{ active.genre | uppercase }}</div>
+            <div class="stream-name">{{ active.name }}</div>
+          </div>
+          <div class="live-indicator">
+            <span class="material-symbols-outlined">sensors</span> LIVE
+          </div>
+        </div>
+        <div class="video-controls-bottom">
+          <span class="material-symbols-outlined">visibility</span> {{ active.viewersOnline | number }} VIEWERS
+        </div>
+      </div>
+    </div>
+  </ng-template>
