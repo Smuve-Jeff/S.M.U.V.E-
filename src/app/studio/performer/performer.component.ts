@@ -116,7 +116,7 @@ export class PerformerComponent implements OnInit, OnDestroy {
     });
 
     this.liveEngine.triggerAttack(noteName, this.velocity);
-    this.haptic.trigger('light');
+    this.haptic.light();
 
     // Live Recording Integration
     if (this.audioSession.isRecording()) {
