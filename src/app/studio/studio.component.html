@@ -56,8 +56,25 @@
           >
             PERFORMER
           </button>
+          <button
+            class="header-btn tactile-v42 glass-v42 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all"
+            [class.active]="activeView() === 'mastering'"
+            (click)="setActiveView('mastering')"
+          >
+            MASTERING
+          </button>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-6">
+           <div class="header-info flex items-center gap-4 border-l border-white/10 pl-6">
+              <div class="info-group flex flex-col items-center">
+                 <span class="text-[7px] font-black text-slate-500 uppercase leading-none">BPM</span>
+                 <span class="text-xs font-mono font-black text-white leading-none">{{ audioEngine.tempo() }}</span>
+              </div>
+              <div class="info-group flex flex-col items-center">
+                 <span class="text-[7px] font-black text-slate-500 uppercase leading-none">BAR</span>
+                 <span class="text-xs font-mono font-black text-white leading-none">{{ (musicManager.currentStep() / 16 | number: '1.0-0') + 1 }}</span>
+              </div>
+           </div>
            <div class="cpu-meter flex items-center gap-2">
               <span class="text-[8px] font-mono text-slate-500">CPU</span>
               <div class="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
@@ -111,20 +128,24 @@
   <!-- Mobile Bottom Navigation -->
   <nav class="mobile-bottom-nav glass-v42-pro flex lg:hidden absolute bottom-0 w-full" *ngIf="uiService.isCompactMobile()">
     <button class="flex-1 flex flex-col items-center py-2" [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')">
-      <span class="material-symbols-outlined">album</span>
+      <span class="material-symbols-outlined text-[20px]">album</span>
       <span class="text-[8px] font-black">DAW</span>
     </button>
     <button class="flex-1 flex flex-col items-center py-2" [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')">
-      <span class="material-symbols-outlined">tune</span>
+      <span class="material-symbols-outlined text-[20px]">tune</span>
       <span class="text-[8px] font-black">MIX</span>
     </button>
     <button class="flex-1 flex flex-col items-center py-2" [class.active]="activeView() === 'piano-roll'" (click)="setActiveView('piano-roll')">
-      <span class="material-symbols-outlined">piano</span>
+      <span class="material-symbols-outlined text-[20px]">piano</span>
       <span class="text-[8px] font-black">EDIT</span>
     </button>
     <button class="flex-1 flex flex-col items-center py-2" [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')">
-       <span class="material-symbols-outlined">drum</span>
+       <span class="material-symbols-outlined text-[20px]">drum</span>
        <span class="text-[8px] font-black">DRUMS</span>
+    </button>
+    <button class="flex-1 flex flex-col items-center py-2" [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')">
+       <span class="material-symbols-outlined text-[20px]">analytics</span>
+       <span class="text-[8px] font-black">MASTER</span>
     </button>
   </nav>
 </div>

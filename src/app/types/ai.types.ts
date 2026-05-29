@@ -208,3 +208,8 @@ export interface CareerMilestone {
   requiredXp: number;
   unlocked: boolean;
 }
+export interface DeepAuditResult {
+  report: string;
+  timestamp: number;
+  status: string;
+}

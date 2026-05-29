@@ -35,10 +35,14 @@ jest.mock('tone', () => {
       toDestination: jest.fn().mockReturnThis(),
       triggerAttack: jest.fn(),
       triggerRelease: jest.fn(),
+      set: jest.fn(),
+      connect: jest.fn(),
       dispose: jest.fn(),
     })),
     Filter: jest.fn().mockImplementation(() => ({
       toDestination: jest.fn().mockReturnThis(),
+      frequency: { rampTo: jest.fn() },
+      dispose: jest.fn(),
     })),
     start: jest.fn().mockResolvedValue(true),
     now: jest.fn().mockReturnValue(0),
@@ -68,8 +72,8 @@ describe('LiveEngineService', () => {
   });
 
   it('should set instrument', async () => {
-    await service.setInstrument('hard-808');
-    expect(service.activeInstrument()).toBe('hard-808');
+    await service.setInstrument('analog-warmth');
+    expect(service.activeInstrument()).toBe('analog-warmth');
   });
 
   it('should convert midi to note', () => {
