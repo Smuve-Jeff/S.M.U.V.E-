@@ -1045,6 +1045,7 @@ export class MusicManagerService {
             ),
           ];
 
+      const slotLookups = new Map<string, Map<number, TrackNote[]>>();
       const notesToPlay: TrackNote[] = [];
       clips.forEach((clip) => {
         const slotId = clip.slotId || track.activePatternSlotId;
@@ -1054,6 +1055,18 @@ export class MusicManagerService {
         );
         if (!version) {
           return;
+        }
+        const lookupKey = slotId || 'active-slot';
+        let noteLookup = slotLookups.get(lookupKey);
+        if (!noteLookup) {
+          noteLookup = new Map<number, TrackNote[]>();
+          version.notes.forEach((note) => {
+            const noteStep = Math.floor(note.step);
+            const bucket = noteLookup?.get(noteStep) || [];
+            bucket.push(note);
+            noteLookup?.set(noteStep, bucket);
+          });
+          slotLookups.set(lookupKey, noteLookup);
         }
 
         const clipStartStep = Math.round(
@@ -1068,9 +1081,9 @@ export class MusicManagerService {
           return;
         }
 
-        version.notes
-          .filter((note) => Math.floor(note.step) === clipRelativeStep)
-          .forEach((note) => notesToPlay.push(note));
+        (noteLookup.get(clipRelativeStep) || []).forEach((note) =>
+          notesToPlay.push(note)
+        );
       });
 
       notesToPlay.forEach((note) => {
