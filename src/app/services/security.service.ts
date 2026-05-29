@@ -1,8 +1,6 @@
 import { Injectable, inject, signal, Injector, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { LoggingService } from './logging.service';
-import { UserProfileService } from './user-profile.service';
-import { AuthService } from './auth.service';
 import { TokenService } from './token.service';
 
 @Injectable({ providedIn: 'root' })
@@ -12,9 +10,6 @@ export class SecurityService {
   private tokenService = inject(TokenService);
   private ngZone = inject(NgZone);
 
-  private get profileService(): UserProfileService { return this.injector.get(UserProfileService); }
-  private get authService(): AuthService { return this.injector.get(AuthService); }
-
   sessionExpiresAt = signal<number | null>(null);
   isSessionValid = signal(true);
   lastActivity = signal(Date.now());
@@ -22,6 +17,16 @@ export class SecurityService {
   sessions = signal<any[]>([]);
 
   constructor() {}
+
+  private getProfileService(): any {
+    const { UserProfileService } = require('./user-profile.service');
+    return this.injector.get(UserProfileService);
+  }
+
+  private getAuthService(): any {
+    const { AuthService } = require('./auth.service');
+    return this.injector.get(AuthService);
+  }
 
   validateSession(): boolean {
     if (typeof window === 'undefined') return true;

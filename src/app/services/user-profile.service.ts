@@ -15,13 +15,16 @@ export class UserProfileService {
 
   profile = this.store.profile;
 
-  private get db(): DatabaseService { return this.injector.get(DatabaseService); }
-
   constructor() {}
+
+  private getDB(): any {
+    const { DatabaseService } = require('./database.service');
+    return this.injector.get(DatabaseService);
+  }
 
   async loadProfile(id: string = 'current') {
     try {
-      const saved = await this.db.loadUserProfile(id);
+      const saved = await this.getDB().loadUserProfile(id);
       if (saved) this.store.setProfile(saved);
     } catch (e) { this.logger.error('Profile load failed', e); }
   }
@@ -29,7 +32,7 @@ export class UserProfileService {
   async updateProfile(p: Partial<UserProfile>) {
     const next = { ...this.profile(), ...p } as UserProfile;
     this.store.setProfile(next);
-    try { await this.db.saveUserProfile(next, 'current'); } catch (e) {}
+    try { await this.getDB().saveUserProfile(next, 'current'); } catch (e) {}
   }
 
   async acquireUpgrade(u: any) {

@@ -1,8 +1,13 @@
+import os
+
+def write_file(path, content):
+    with open(path, 'w') as f:
+        f.write(content.strip())
+
+# 2. Update AuthService with fixed method names
+write_file('src/app/services/auth.service.ts', """
 import { Injectable, inject, signal, Injector } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { SecurityService } from './security.service';
-import { UserProfileService } from './user-profile.service';
 import { LoggingService } from './logging.service';
 import { TokenService } from './token.service';
 import { UserStoreService, AuthUser } from './user-store.service';
@@ -194,3 +199,4 @@ export class AuthService {
     return { success: true, message: 'TRANSMISSION RE-SENT. DO NOT LOSE IT AGAIN.' };
   }
 }
+""")
