@@ -1,128 +1,305 @@
 <div class="piano-roll-container glass-v42 shadow-v42-xl retro-flicker">
   <div class="piano-roll-header wood-panel">
     <div class="header-main">
-      <div class="neon-text-sm neon-text tracking-widest uppercase font-black">PIANO ROLL v4.2</div>
-      <div class="track-info flex items-center gap-2" *ngIf="selectedTrack() as track">
-        <div class="w-1.5 h-1.5 rounded-full" [style.background-color]="track.color"></div>
-        <span class="neon-accent-secondary font-black text-[10px]">{{ track.name | uppercase }}</span>
+      <div class="neon-text-sm neon-text tracking-widest uppercase font-black">
+        PIANO ROLL v4.2
+      </div>
+      <div
+        class="track-info flex items-center gap-2"
+        *ngIf="selectedTrack() as track"
+      >
+        <div
+          class="w-1.5 h-1.5 rounded-full"
+          [style.background-color]="track.color"
+        ></div>
+        <span class="neon-accent-secondary font-black text-[10px]">{{
+          track.name | uppercase
+        }}</span>
       </div>
     </div>
 
-    <!-- MIDI Tools Cluster -->
-    <div class="midi-tools flex items-center gap-2 glass-v42 p-1 rounded-xl border border-white/10 mx-4">
-       <button (click)="strumNotes()" class="mini-btn tactile-v42 px-3 flex items-center gap-1" title="Strum (Alt+S)">
-          <span class="material-symbols-outlined text-xs">format_align_left</span>
-          <span class="text-[7px] font-black uppercase">Strum</span>
-       </button>
-       <button (click)="humanizeNotes()" class="mini-btn tactile-v42 px-3 flex items-center gap-1" title="Humanize (Alt+H)">
-          <span class="material-symbols-outlined text-xs">fluorescent</span>
-          <span class="text-[7px] font-black uppercase">Humanize</span>
-       </button>
-       <button (click)="arpeggiateNotes()" class="mini-btn tactile-v42 px-3 flex items-center gap-1" title="Arp (Alt+A)">
-          <span class="material-symbols-outlined text-xs">reorder</span>
-          <span class="text-[7px] font-black uppercase">Arp</span>
-       </button>
+    <div
+      class="midi-tools flex items-center gap-2 glass-v42 p-1 rounded-xl border border-white/10 mx-4"
+    >
+      <button
+        (click)="strumNotes()"
+        class="mini-btn tactile-v42 px-3 flex items-center gap-1"
+        title="Strum (Alt+S)"
+      >
+        <span class="material-symbols-outlined text-xs">format_align_left</span>
+        <span class="text-[7px] font-black uppercase">Strum</span>
+      </button>
+      <button
+        (click)="humanizeNotes()"
+        class="mini-btn tactile-v42 px-3 flex items-center gap-1"
+        title="Humanize (Alt+H)"
+      >
+        <span class="material-symbols-outlined text-xs">fluorescent</span>
+        <span class="text-[7px] font-black uppercase">Humanize</span>
+      </button>
+      <button
+        (click)="arpeggiateNotes()"
+        class="mini-btn tactile-v42 px-3 flex items-center gap-1"
+        title="Arp (Alt+A)"
+      >
+        <span class="material-symbols-outlined text-xs">reorder</span>
+        <span class="text-[7px] font-black uppercase">Arp</span>
+      </button>
     </div>
 
     <div class="module-transport glass-v42 mx-4">
       <div class="btn-group flex gap-1">
-        <button class="m-btn tactile-v42" (click)="isLocalPlayback() ? toggleLocalPlay() : audioSession.togglePlay()">
+        <button
+          class="m-btn tactile-v42"
+          (click)="isLocalPlayback() ? toggleLocalPlay() : togglePlay()"
+        >
           <span class="material-symbols-outlined text-sm">
-            {{ (isLocalPlayback() ? isLocalPlaying() : audioSession.isPlaying()) ? 'pause' : 'play_arrow' }}
+            {{
+              (isLocalPlayback() ? isLocalPlaying() : audioSession.isPlaying())
+                ? 'pause'
+                : 'play_arrow'
+            }}
           </span>
         </button>
-        <button class="m-btn tactile-v42 rec" [class.active]="isLocalPlayback() ? isLocalRecording() : audioSession.isRecording()" (click)="isLocalPlayback() ? toggleLocalRecord() : audioSession.toggleRecord()">
-          <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+        <button
+          class="m-btn tactile-v42 rec"
+          [class.active]="
+            isLocalPlayback() ? isLocalRecording() : isRecording()
+          "
+          (click)="
+            isLocalPlayback()
+              ? toggleLocalRecord()
+              : audioSession.toggleRecord()
+          "
+        >
+          <span class="material-symbols-outlined text-sm"
+            >fiber_manual_record</span
+          >
         </button>
       </div>
     </div>
 
     <div class="toolbar glass-v42">
       <div class="tool-group flex gap-1">
-        <button [class.active]="editMode() === 'draw'" (click)="setEditMode('draw')" title="Draw (D)"><span class="material-symbols-outlined text-sm">edit</span></button>
-        <button [class.active]="editMode() === 'select'" (click)="setEditMode('select')" title="Select (S)"><span class="material-symbols-outlined text-sm">near_me</span></button>
-        <button [class.active]="editMode() === 'erase'" (click)="setEditMode('erase')" title="Erase (E)"><span class="material-symbols-outlined text-sm">backspace</span></button>
+        <button
+          [class.active]="editMode() === 'draw'"
+          (click)="setEditMode('draw')"
+          title="Draw (D)"
+        >
+          <span class="material-symbols-outlined text-sm">edit</span>
+        </button>
+        <button
+          [class.active]="editMode() === 'select'"
+          (click)="setEditMode('select')"
+          title="Select (S)"
+        >
+          <span class="material-symbols-outlined text-sm">near_me</span>
+        </button>
+        <button
+          [class.active]="editMode() === 'erase'"
+          (click)="setEditMode('erase')"
+          title="Erase (E)"
+        >
+          <span class="material-symbols-outlined text-sm">backspace</span>
+        </button>
       </div>
       <div class="action-group flex gap-1 ml-4 border-l border-white/10 pl-4">
-        <button (click)="quantizeNotes()" class="mini-btn tactile-v42 font-black" title="Quantize (Q)">Q</button>
-        <button (click)="duplicateSelected()" class="mini-btn tactile-v42 font-black" title="Duplicate (Ctrl+B)">D</button>
-        <button (click)="deleteSelected()" class="mini-btn tactile-v42 btn-danger text-red-500 font-black">DEL</button>
+        <button
+          (click)="quantizeNotes()"
+          class="mini-btn tactile-v42 font-black"
+          title="Quantize (Q)"
+        >
+          Q
+        </button>
+        <button
+          (click)="duplicateSelected()"
+          class="mini-btn tactile-v42 font-black"
+          title="Duplicate (Ctrl+B)"
+        >
+          D
+        </button>
+        <button
+          (click)="deleteSelected()"
+          class="mini-btn tactile-v42 btn-danger text-red-500 font-black"
+        >
+          DEL
+        </button>
+      </div>
+      <div class="action-group flex gap-1 ml-4 border-l border-white/10 pl-4">
+        <button
+          (click)="zoomOut()"
+          class="mini-btn tactile-v42 font-black"
+          title="Zoom out"
+        >
+          -
+        </button>
+        <button
+          (click)="resetZoom()"
+          class="mini-btn tactile-v42 font-black"
+          title="Reset zoom"
+        >
+          100%
+        </button>
+        <button
+          (click)="zoomIn()"
+          class="mini-btn tactile-v42 font-black"
+          title="Zoom in"
+        >
+          +
+        </button>
       </div>
     </div>
   </div>
 
   <div class="piano-roll-content">
-    <!-- Keys Sidebar -->
-    <div class="keys-sidebar no-scrollbar bg-black/60">
-      <div *ngFor="let midi of getDisplayKeys()"
-           class="key-item border-b border-black/20"
-           [class.black-key]="isBlackKey(midi)"
-           [style.height.px]="rowHeight()">
-        <span class="key-name font-mono text-[7px] font-black opacity-30">{{ getKeyName(midi) }}{{ Math.floor(midi / 12) - 1 }}</span>
+    <aside *ngIf="showTrackSidebar()" class="track-sidebar"></aside>
+    <div class="keys-sidebar no-scrollbar bg-black/60" #keysSidebar>
+      <div
+        *ngFor="let midi of displayKeys"
+        class="key-item border-b border-black/20"
+        [class.black-key]="isBlackKey(midi)"
+        [style.height.px]="rowHeight()"
+      >
+        <span class="key-name font-mono text-[7px] font-black opacity-30"
+          >{{ getKeyName(midi) }}{{ getOctaveLabel(midi) }}</span
+        >
       </div>
     </div>
 
-    <!-- Grid Viewport -->
-    <div class="grid-viewport no-scrollbar bg-[#050507] relative" #scrollContainer (mousedown)="onGridMouseDown($event)">
-      <div class="grid-canvas" [style.width.px]="gridWidth" [style.height.px]="128 * rowHeight()">
-        <!-- Horizontal grid lines handled by background-image in CSS -->
+    <div
+      class="grid-viewport no-scrollbar bg-[#050507] relative"
+      #scrollContainer
+      (scroll)="syncKeyScroll()"
+      (pointerdown)="onGridPointerDown($event)"
+      (touchstart)="onGridTouchStart($event)"
+      (touchmove)="onGridTouchMove($event)"
+      (touchend)="onGridTouchEnd()"
+      (touchcancel)="onGridTouchEnd()"
+    >
+      <div
+        class="grid-canvas"
+        [style.width.px]="gridWidth()"
+        [style.height.px]="canvasHeight()"
+      >
+        <div
+          *ngFor="let midi of displayKeys"
+          class="grid-row"
+          [class.black-row]="isBlackKey(midi)"
+          [style.top.px]="(127 - midi) * rowHeight()"
+          [style.height.px]="rowHeight()"
+        ></div>
 
-        <!-- Ghost Notes -->
-        <div *ngFor="let note of ghostNotes()"
-             class="note-block ghost-note absolute opacity-10 pointer-events-none"
-             [style.left.px]="note.step * cellWidth()"
-             [style.top.px]="(127 - note.midi) * rowHeight()"
-             [style.width.px]="note.length * cellWidth()"
-             [style.height.px]="rowHeight()"
-             [style.background-color]="note.trackColor"></div>
+        <div
+          *ngFor="let column of gridColumns"
+          class="grid-col"
+          [class.bar-line]="column % 16 === 0"
+          [class.beat-line]="column % 4 === 0 && column % 16 !== 0"
+          [style.left.px]="column * cellWidth()"
+          [style.width.px]="cellWidth()"
+        ></div>
 
-        <!-- Real Notes -->
-        <div *ngFor="let note of viewportNotes()"
-             class="note-block absolute transition-all"
-             [class.selected-note]="selectedNoteIds().has(note.id)"
-             [class.slide-note]="note.isSlide"
-             [style.left.px]="note.step * cellWidth()"
-             [style.top.px]="(127 - note.midi) * rowHeight()"
-             [style.width.px]="note.length * cellWidth()"
-             [style.height.px]="rowHeight()"
-             [style.background-color]="selectedTrack()?.color"
-             (mousedown)="onNoteMouseDown($event, note)">
-          <!-- Slide Indicator -->
-          <div *ngIf="note.isSlide" class="absolute top-0 right-0 w-2 h-2 bg-white/40 clip-triangle shadow-lg"></div>
-          <div class="note-velocity-bar absolute bottom-0 left-0 h-0.5 bg-white/20" [style.width.%]="note.velocity * 100"></div>
+        <div
+          *ngFor="let note of ghostNotes()"
+          class="note-block ghost-note absolute opacity-10 pointer-events-none"
+          [style.left.px]="note.step * cellWidth()"
+          [style.top.px]="(127 - note.midi) * rowHeight()"
+          [style.width.px]="note.length * cellWidth()"
+          [style.height.px]="rowHeight()"
+          [style.background-color]="note.trackColor"
+        ></div>
+
+        <div
+          *ngFor="let note of viewportNotes()"
+          class="note-block absolute transition-all"
+          [class.selected-note]="selectedNoteIds().has(note.id)"
+          [class.slide-note]="note.isSlide"
+          [style.left.px]="note.step * cellWidth()"
+          [style.top.px]="(127 - note.midi) * rowHeight()"
+          [style.width.px]="note.length * cellWidth()"
+          [style.height.px]="rowHeight()"
+          [style.background-color]="selectedTrack()?.color"
+          (pointerdown)="onNotePointerDown($event, note)"
+        >
+          <div
+            *ngIf="note.isSlide"
+            class="absolute top-0 right-0 w-2 h-2 bg-white/40 clip-triangle shadow-lg"
+          ></div>
+          <div
+            class="note-velocity-bar absolute bottom-0 left-0 h-0.5 bg-white/20"
+            [style.width.%]="note.velocity * 100"
+          ></div>
         </div>
 
-        <!-- Playhead -->
-        <div class="playhead absolute top-0 bottom-0 w-0.5 bg-fl-blue shadow-[0_0_10px_#00e5ff] z-30"
-             [style.left.px]="musicManager.currentStep() * cellWidth()"></div>
+        <div
+          class="playhead absolute top-0 bottom-0 w-0.5 bg-fl-blue shadow-[0_0_10px_#00e5ff] z-30"
+          [style.left.px]="
+            (musicManager.currentStep() % cells.length) * cellWidth()
+          "
+        ></div>
       </div>
     </div>
 
-    <!-- Note Params Sidebar -->
-    <div class="note-params glass-v42 wood-panel no-scrollbar border-l border-white/10 flex flex-col gap-8">
-      <div class="neon-text text-[9px] font-black tracking-[0.2em] uppercase">Note Properties</div>
+    <div
+      class="note-params glass-v42 wood-panel no-scrollbar border-l border-white/10 flex flex-col gap-8"
+    >
+      <div class="neon-text text-[9px] font-black tracking-[0.2em] uppercase">
+        Note Properties
+      </div>
 
       <div class="param-group flex flex-col items-center gap-4">
-        <app-knob label="VELOCITY" [min]="0.1" [max]="1.5" [step]="0.05" [value]="0.8" (valueChange)="adjustSelectedVelocity($event - 0.8)"></app-knob>
-        <app-knob label="PROBABILITY" [min]="0" [max]="1" [step]="0.05" [value]="1.0" (valueChange)="setSelectedNoteProbability({target: {value: $event}})"></app-knob>
+        <label class="param-slider">
+          <span>Velocity</span>
+          <input
+            type="range"
+            min="0.1"
+            max="1.5"
+            step="0.05"
+            value="0.8"
+            (input)="adjustSelectedVelocity($any($event.target).value - 0.8)"
+          />
+        </label>
+        <label class="param-slider">
+          <span>Probability</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value="1"
+            (input)="setSelectedNoteProbability($event)"
+          />
+        </label>
       </div>
 
       <div class="flex flex-col gap-4 px-4">
-         <div class="flex items-center justify-between">
-            <span class="text-[8px] font-black text-slate-500 uppercase">Slide (Glide)</span>
-            <button (click)="toggleSelectedSlide()" class="w-6 h-6 rounded-md glass-v42 border border-white/5 flex items-center justify-center">
-               <span class="material-symbols-outlined text-xs" [class.text-fl-blue]="hasSelectedSlide()">check_circle</span>
-            </button>
-         </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[8px] font-black text-slate-500 uppercase"
+            >Slide (Glide)</span
+          >
+          <button
+            (click)="toggleSelectedSlide()"
+            class="w-6 h-6 rounded-md glass-v42 border border-white/5 flex items-center justify-center"
+          >
+            <span
+              class="material-symbols-outlined text-xs"
+              [class.text-fl-blue]="hasSelectedSlide()"
+              >check_circle</span
+            >
+          </button>
+        </div>
       </div>
 
       <div class="flex-1"></div>
 
       <div class="grid-info border-t border-white/5 pt-4">
-         <div class="flex justify-between text-[7px] font-black text-slate-500 uppercase">
-            <span>Grid Snap</span>
-            <span class="text-fl-blue">1/16</span>
-         </div>
+        <div
+          class="flex justify-between text-[7px] font-black text-slate-500 uppercase"
+        >
+          <span>Grid Zoom</span>
+          <span class="text-fl-blue"
+            >{{ (touchGestures.zoomLevel() * 100).toFixed(0) }}%</span
+          >
+        </div>
       </div>
     </div>
   </div>

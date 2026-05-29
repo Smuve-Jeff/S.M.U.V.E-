@@ -20,19 +20,26 @@ export class AutoSaveService {
 
   constructor() {
     effect(() => {
-      const tracks = this.musicManager.tracks();
-      if (tracks.length > 0) {
-        const currentHash = JSON.stringify(tracks);
-        if (currentHash !== this.lastProjectHash) {
-          this.lastProjectHash = currentHash;
-          this.syncProject();
-        }
+      if (!this.musicManager.projectLoaded()) {
+        return;
+      }
+
+      const snapshot = this.musicManager.snapshotProject();
+      if (snapshot.tracks.length === 0) {
+        return;
+      }
+
+      const currentHash = JSON.stringify(snapshot);
+      if (currentHash !== this.lastProjectHash) {
+        this.lastProjectHash = currentHash;
+        void this.syncProject(snapshot);
       }
     });
   }
 
-  private async syncProject() {
-    const tracks = this.musicManager.tracks();
+  private async syncProject(
+    projectData: ReturnType<MusicManagerService['snapshotProject']>
+  ) {
     const profile = this.profileService.profile();
     const userId = profile.id || 'anonymous';
     const projectId = 'project_v4_auto';
@@ -45,7 +52,7 @@ export class AutoSaveService {
       await this.databaseService.saveProject(
         projectId,
         projectTitle,
-        { tracks },
+        projectData,
         userId
       );
       this.lastSavedAt.set(Date.now());

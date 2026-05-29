@@ -159,6 +159,12 @@
       Mix
     </button>
     <button
+      [class.active]="activeView() === 'performer'"
+      (click)="setActiveView('performer')"
+    >
+      Perform
+    </button>
+    <button
       [class.active]="activeView() === 'mastering'"
       (click)="setActiveView('mastering')"
     >

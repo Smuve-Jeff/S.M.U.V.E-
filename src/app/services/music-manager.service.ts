@@ -1,9 +1,10 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
-import { InstrumentsService, InstrumentPreset } from './instruments.service';
+import { Injectable, inject, signal, computed, effect } from '@angular/core';
+import { InstrumentsService } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
-import { FileLoaderService } from './file-loader.service';
 import { AudioSessionService } from '../studio/audio-session.service';
+import { DatabaseService } from './database.service';
+import { UserProfileService } from './user-profile.service';
 
 export interface TrackNote {
   id: string;
@@ -24,9 +25,11 @@ export interface TrackClip {
   length: number;
   name: string;
   type: 'midi' | 'audio';
+  color?: string;
+  slotId?: string | null;
 }
 
-export interface ArrangementClip extends TrackClip {}
+export type ArrangementClip = TrackClip;
 
 export interface PatternVersion {
   id: string;
@@ -40,6 +43,13 @@ export interface PatternSlot {
   name: string;
   versions: PatternVersion[];
   activeVersionId: string;
+}
+
+export interface PerformerScene {
+  id: string;
+  name: string;
+  color: string;
+  slotId: string;
 }
 
 export interface FxSlot {
@@ -98,44 +108,183 @@ export interface TrackModel {
   automationLanes?: AutomationLane[];
 }
 
+export interface StudioProjectData {
+  tracks: TrackModel[];
+  structure: SongSection[];
+  performerScenes: PerformerScene[];
+  selectedTrackId: number | null;
+  activeLoopBars: number;
+  tempo: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class MusicManagerService {
+  private static readonly DEFAULT_SLOT_COUNT = 8;
+  private static readonly PATTERN_STEPS = 64;
+  private static readonly STEPS_PER_BAR = 16;
+  private static readonly DEFAULT_CLIP_LENGTH_BARS = 4;
+
   private instruments = inject(InstrumentsService);
   public engine = inject(AudioEngineService);
   private logger = inject(LoggingService);
-  private fileLoader = inject(FileLoaderService);
   private audioSession = inject(AudioSessionService);
+  private database = inject(DatabaseService);
+  private profileService = inject(UserProfileService);
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
   currentStep = signal(0);
   tempo = computed(() => this.engine.tempo());
-  activeLoopBars = signal(4);
+  activeLoopBars = signal(64);
   structure = signal<SongSection[]>([]);
+  performerScenes = signal<PerformerScene[]>(this.createDefaultScenes());
+  projectLoaded = signal(false);
 
   constructor() {
+    effect(() => {
+      this.engine.setLoopLengthBars(this.activeLoopBars());
+    });
+
     this.initializeDefaultProject();
+    void this.restoreProject();
+  }
+
+  snapshotProject(): StudioProjectData {
+    return {
+      tracks: this.cloneTracks(this.tracks()),
+      structure: this.structure().map((section) => ({ ...section })),
+      performerScenes: this.performerScenes().map((scene) => ({ ...scene })),
+      selectedTrackId: this.selectedTrackId(),
+      activeLoopBars: this.activeLoopBars(),
+      tempo: this.tempo(),
+    };
+  }
+
+  private async restoreProject() {
+    try {
+      const profile = this.profileService.profile();
+      const userId = profile.id || 'anonymous';
+      const project = await this.database.loadProject(
+        'project_v4_auto',
+        userId
+      );
+      if (project?.tracks?.length) {
+        this.hydrateProject(project);
+      } else {
+        this.initializeDefaultProject();
+      }
+    } catch (error) {
+      this.logger.error('Failed to restore project state', error);
+      this.initializeDefaultProject();
+    } finally {
+      this.projectLoaded.set(true);
+    }
   }
 
   private initializeDefaultProject() {
-    this.ensureTrack('grand-piano-v2');
-    this.ensureTrack('trap-808-elite');
-    this.selectedTrackId.set(this.tracks()[0]?.id || null);
+    if (this.tracks().length > 0) {
+      return;
+    }
+
+    const firstTrackId = this.createTrack('grand-piano-v2');
+    this.createTrack('trap-808-elite');
+    this.selectedTrackId.set(firstTrackId);
+    this.structure.set([
+      {
+        id: 'section-intro',
+        name: 'Intro',
+        start: 0,
+        length: 16,
+        color: '#af25f4',
+      },
+      {
+        id: 'section-hook',
+        name: 'Hook',
+        start: 16,
+        length: 16,
+        color: '#ec5b13',
+      },
+      {
+        id: 'section-verse',
+        name: 'Verse',
+        start: 32,
+        length: 16,
+        color: '#00e5ff',
+      },
+      {
+        id: 'section-outro',
+        name: 'Outro',
+        start: 48,
+        length: 16,
+        color: '#10b981',
+      },
+    ]);
+    this.performerScenes.set(this.createDefaultScenes());
+  }
+
+  private hydrateProject(project: Partial<StudioProjectData>) {
+    const normalizedTracks = Array.isArray(project.tracks)
+      ? project.tracks.map((track, index) => this.normalizeTrack(track, index))
+      : [];
+
+    if (normalizedTracks.length === 0) {
+      this.initializeDefaultProject();
+      return;
+    }
+
+    this.tracks.set(normalizedTracks);
+    this.selectedTrackId.set(
+      normalizedTracks.some((track) => track.id === project.selectedTrackId)
+        ? (project.selectedTrackId ?? normalizedTracks[0].id)
+        : normalizedTracks[0].id
+    );
+    this.structure.set(
+      Array.isArray(project.structure) && project.structure.length
+        ? project.structure.map((section) => ({ ...section }))
+        : this.createDefaultStructure()
+    );
+    this.performerScenes.set(this.normalizeScenes(project.performerScenes));
+    this.activeLoopBars.set(
+      Math.max(4, Math.round(project.activeLoopBars ?? 64))
+    );
+    if (typeof project.tempo === 'number') {
+      this.engine.applyProductionParameter('0', 'tempo', project.tempo);
+    }
   }
 
   ensureTrack(instrumentId: string) {
-    const preset = this.instruments.getPresets().find(p => p.id === instrumentId);
-    const id = Date.now();
+    const id = this.createTrack(instrumentId);
+    if (this.selectedTrackId() === null) {
+      this.selectedTrackId.set(id);
+    }
+    return id;
+  }
+
+  private createTrack(instrumentId: string) {
+    const preset = this.instruments
+      .getPresets()
+      .find((candidate) => candidate.id === instrumentId);
+    const id = this.generateTrackId();
+    const color = this.getNextColor();
+    const patternSlots = this.createDefaultPatternSlots();
+    const activePatternSlotId = patternSlots[0].id;
     const newTrack: TrackModel = {
       id,
       name: preset?.name || 'New Track',
       instrumentId,
       type: 'midi',
-      color: this.getNextColor(),
+      color,
       notes: [],
-      clips: [],
+      clips: [
+        this.createDefaultClip(
+          id,
+          patternSlots[0].name,
+          color,
+          activePatternSlotId
+        ),
+      ],
       fxSlots: [],
       gain: 0.8,
       pan: 0,
@@ -143,165 +292,677 @@ export class MusicManagerService {
       sendB: 0,
       mute: false,
       solo: false,
-      steps: new Array(64).fill(false),
-      synthParams: preset?.synth || { type: 'sine', attack: 0.1, decay: 0.2, sustain: 0.5, release: 1.0, cutoff: 2000, q: 1.0 }
+      steps: this.createEmptySteps(),
+      synthParams: preset?.synth || {
+        type: 'sine',
+        attack: 0.1,
+        decay: 0.2,
+        sustain: 0.5,
+        release: 1.0,
+        cutoff: 2000,
+        q: 1.0,
+      },
+      patternSlots,
+      activePatternSlotId,
+      automationLanes: [],
     };
-    this.tracks.update(ts => [...ts, newTrack]);
+    this.tracks.update((current) => [...current, newTrack]);
     return id;
   }
 
+  private normalizeTrack(
+    track: Partial<TrackModel>,
+    index: number
+  ): TrackModel {
+    const id =
+      typeof track.id === 'number' && Number.isFinite(track.id)
+        ? track.id
+        : this.generateTrackId(index);
+    const color = track.color || this.getColorForIndex(index);
+    const notes = this.cloneNotes(track.notes || []);
+    const steps = this.normalizeSteps(track.steps);
+    const patternSlots = this.normalizePatternSlots(
+      track.patternSlots,
+      notes,
+      steps
+    );
+    const activePatternSlotId = this.resolveSlotId(
+      patternSlots,
+      track.activePatternSlotId
+    );
+    const activeVersion = this.getActivePatternVersion(
+      patternSlots,
+      activePatternSlotId
+    );
+    const normalizedNotes = activeVersion
+      ? this.cloneNotes(activeVersion.notes)
+      : notes;
+    const normalizedSteps = activeVersion ? [...activeVersion.steps] : steps;
+
+    return {
+      id,
+      name: track.name || `Track ${index + 1}`,
+      instrumentId: track.instrumentId || 'grand-piano-v2',
+      type: track.type || 'midi',
+      color,
+      notes: normalizedNotes,
+      clips:
+        track.clips && track.clips.length
+          ? track.clips.map((clip, clipIndex) =>
+              this.normalizeClip(clip, clipIndex, color, activePatternSlotId)
+            )
+          : [
+              this.createDefaultClip(
+                id,
+                patternSlots[0].name,
+                color,
+                activePatternSlotId
+              ),
+            ],
+      fxSlots: track.fxSlots || [],
+      gain: track.gain ?? 0.8,
+      pan: track.pan ?? 0,
+      sendA: track.sendA ?? 0,
+      sendB: track.sendB ?? 0,
+      mute: !!track.mute,
+      solo: !!track.solo,
+      steps: normalizedSteps,
+      stepVelocities: track.stepVelocities,
+      qualityMode: track.qualityMode,
+      audioBuffer: track.audioBuffer,
+      synthParams: track.synthParams,
+      sidechainTargetTrackId: track.sidechainTargetTrackId ?? null,
+      patternSlots,
+      activePatternSlotId,
+      automationLanes: track.automationLanes || [],
+    };
+  }
+
+  private normalizePatternSlots(
+    slots: PatternSlot[] | undefined,
+    fallbackNotes: TrackNote[],
+    fallbackSteps: boolean[]
+  ) {
+    if (!Array.isArray(slots) || slots.length === 0) {
+      const nextSlots = this.createDefaultPatternSlots();
+      nextSlots[0].versions[0] = {
+        ...nextSlots[0].versions[0],
+        notes: this.cloneNotes(fallbackNotes),
+        steps: [...fallbackSteps],
+      };
+      return nextSlots;
+    }
+
+    return slots.map((slot, index) => {
+      const versions =
+        Array.isArray(slot.versions) && slot.versions.length
+          ? slot.versions.map((version, versionIndex) => ({
+              id: version.id || `version-${index}-${versionIndex}`,
+              name: version.name || `Take ${versionIndex + 1}`,
+              notes: this.cloneNotes(version.notes || []),
+              steps: this.normalizeSteps(version.steps),
+            }))
+          : [
+              {
+                id: `version-${index}-0`,
+                name: 'Take 1',
+                notes: index === 0 ? this.cloneNotes(fallbackNotes) : [],
+                steps:
+                  index === 0 ? [...fallbackSteps] : this.createEmptySteps(),
+              },
+            ];
+      const activeVersionId = versions.some(
+        (version) => version.id === slot.activeVersionId
+      )
+        ? slot.activeVersionId
+        : versions[0].id;
+
+      return {
+        id: slot.id || `slot-${index}`,
+        name: slot.name || `Slot ${index + 1}`,
+        versions,
+        activeVersionId,
+      };
+    });
+  }
+
+  private normalizeClip(
+    clip: Partial<TrackClip>,
+    index: number,
+    color: string,
+    fallbackSlotId: string
+  ): TrackClip {
+    return {
+      id: clip.id || `clip-${Date.now()}-${index}`,
+      start: Math.max(0, clip.start ?? 0),
+      length: Math.max(
+        0.25,
+        clip.length ?? MusicManagerService.DEFAULT_CLIP_LENGTH_BARS
+      ),
+      name: clip.name || `Clip ${index + 1}`,
+      type: clip.type || 'midi',
+      color: clip.color || color,
+      slotId: clip.slotId || fallbackSlotId,
+    };
+  }
+
+  private normalizeScenes(scenes: PerformerScene[] | undefined) {
+    const defaults = this.createDefaultScenes();
+    if (!Array.isArray(scenes) || scenes.length === 0) {
+      return defaults;
+    }
+
+    return defaults.map((fallback, index) => ({
+      ...fallback,
+      ...scenes[index],
+      slotId: scenes[index]?.slotId || fallback.slotId,
+    }));
+  }
+
+  private createDefaultScenes() {
+    return Array.from(
+      { length: MusicManagerService.DEFAULT_SLOT_COUNT },
+      (_, index) => ({
+        id: `scene-${index}`,
+        name: `Scene ${index + 1}`,
+        color: this.getColorForIndex(index),
+        slotId: `slot-${index}`,
+      })
+    );
+  }
+
+  private createDefaultStructure() {
+    return [
+      {
+        id: 'section-intro',
+        name: 'Intro',
+        start: 0,
+        length: 16,
+        color: '#af25f4',
+      },
+      {
+        id: 'section-hook',
+        name: 'Hook',
+        start: 16,
+        length: 16,
+        color: '#ec5b13',
+      },
+      {
+        id: 'section-verse',
+        name: 'Verse',
+        start: 32,
+        length: 16,
+        color: '#00e5ff',
+      },
+      {
+        id: 'section-outro',
+        name: 'Outro',
+        start: 48,
+        length: 16,
+        color: '#10b981',
+      },
+    ];
+  }
+
+  private createDefaultPatternSlots() {
+    return Array.from(
+      { length: MusicManagerService.DEFAULT_SLOT_COUNT },
+      (_, index) => ({
+        id: `slot-${index}`,
+        name: `Slot ${index + 1}`,
+        versions: [
+          {
+            id: `slot-${index}-version-0`,
+            name: 'Take 1',
+            steps: this.createEmptySteps(),
+            notes: [],
+          },
+        ],
+        activeVersionId: `slot-${index}-version-0`,
+      })
+    );
+  }
+
+  private createDefaultClip(
+    trackId: number,
+    slotName: string,
+    color: string,
+    slotId: string
+  ): TrackClip {
+    return {
+      id: `clip-${trackId}-0`,
+      start: 0,
+      length: MusicManagerService.DEFAULT_CLIP_LENGTH_BARS,
+      name: slotName,
+      type: 'midi',
+      color,
+      slotId,
+    };
+  }
+
+  private createEmptySteps() {
+    return new Array(MusicManagerService.PATTERN_STEPS).fill(false);
+  }
+
+  private normalizeSteps(steps?: boolean[]) {
+    return Array.from(
+      { length: MusicManagerService.PATTERN_STEPS },
+      (_, index) => !!steps?.[index]
+    );
+  }
+
+  private cloneNotes(notes: TrackNote[]) {
+    return (notes || []).map((note) => ({ ...note }));
+  }
+
+  private cloneTracks(tracks: TrackModel[]) {
+    return tracks.map((track) => ({
+      ...track,
+      notes: this.cloneNotes(track.notes),
+      clips: track.clips.map((clip) => ({ ...clip })),
+      fxSlots: track.fxSlots.map((slot) => ({ ...slot })),
+      steps: [...track.steps],
+      patternSlots: (track.patternSlots || []).map((slot) => ({
+        ...slot,
+        versions: slot.versions.map((version) => ({
+          ...version,
+          steps: [...version.steps],
+          notes: this.cloneNotes(version.notes),
+        })),
+      })),
+      automationLanes: (track.automationLanes || []).map((lane) => ({
+        ...lane,
+        points: lane.points.map((point) => ({ ...point })),
+      })),
+    }));
+  }
+
+  private resolveSlotId(patternSlots: PatternSlot[], slotId?: string | null) {
+    return patternSlots.some((slot) => slot.id === slotId)
+      ? slotId || patternSlots[0].id
+      : patternSlots[0].id;
+  }
+
+  private getActivePatternVersion(
+    patternSlots: PatternSlot[] | undefined,
+    slotId: string | null | undefined
+  ) {
+    const slot = (patternSlots || []).find(
+      (candidate) => candidate.id === slotId
+    );
+    if (!slot) {
+      return null;
+    }
+
+    return (
+      slot.versions.find((version) => version.id === slot.activeVersionId) ||
+      slot.versions[0]
+    );
+  }
+
+  private persistActivePattern(track: TrackModel) {
+    const patternSlots = (track.patternSlots || []).map((slot) => {
+      if (slot.id !== track.activePatternSlotId) {
+        return slot;
+      }
+
+      return {
+        ...slot,
+        versions: slot.versions.map((version) =>
+          version.id === slot.activeVersionId
+            ? {
+                ...version,
+                steps: [...track.steps],
+                notes: this.cloneNotes(track.notes),
+              }
+            : version
+        ),
+      };
+    });
+
+    return {
+      ...track,
+      patternSlots,
+    };
+  }
+
+  private getSlotName(track: TrackModel, slotId: string) {
+    return (
+      track.patternSlots?.find((slot) => slot.id === slotId)?.name || 'Pattern'
+    );
+  }
+
+  private getNextClipStart(track: TrackModel) {
+    return track.clips.reduce(
+      (max, clip) => Math.max(max, clip.start + clip.length),
+      0
+    );
+  }
+
+  private getTrackColorForId(trackId: number) {
+    return (
+      this.tracks().find((track) => track.id === trackId)?.color ||
+      this.getNextColor()
+    );
+  }
+
+  private generateTrackId(seed = 0) {
+    const maxId = this.tracks().reduce(
+      (max, track) => Math.max(max, track.id),
+      Date.now() + seed
+    );
+    return maxId + 1;
+  }
+
   private getNextColor(): string {
-    const colors = ['#af25f4', '#ec5b13', '#00e5ff', '#10b981', '#f59e0b', '#f43f5e'];
-    return colors[this.tracks().length % colors.length];
+    return this.getColorForIndex(this.tracks().length);
+  }
+
+  private getColorForIndex(index: number): string {
+    const colors = [
+      '#af25f4',
+      '#ec5b13',
+      '#00e5ff',
+      '#10b981',
+      '#f59e0b',
+      '#f43f5e',
+    ];
+    return colors[index % colors.length];
   }
 
   removeTrack(id: number) {
-    this.tracks.update(ts => ts.filter(t => t.id !== id));
-    if (this.selectedTrackId() === id) this.selectedTrackId.set(null);
+    this.tracks.update((tracks) => tracks.filter((track) => track.id !== id));
+    if (this.selectedTrackId() === id) {
+      this.selectedTrackId.set(this.tracks()[0]?.id || null);
+    }
   }
 
   toggleStep(trackId: number, step: number) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id !== trackId) return t;
-      const steps = [...t.steps];
-      steps[step] = !steps[step];
-      return { ...t, steps };
-    }));
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+
+        const steps = [...track.steps];
+        steps[step] = !steps[step];
+        return this.persistActivePattern({
+          ...track,
+          steps,
+        });
+      })
+    );
   }
 
   addNoteToTrack(trackId: number, note: Partial<TrackNote>) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id !== trackId) return t;
-      const newNote: TrackNote = {
-        id: `note-${Date.now()}-${Math.random()}`,
-        midi: note.midi || 60,
-        step: note.step || 0,
-        length: note.length || 1,
-        velocity: note.velocity || 0.8,
-        ...note
-      };
-      return { ...t, notes: [...t.notes, newNote] };
-    }));
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+
+        const newNote: TrackNote = {
+          id: `note-${Date.now()}-${Math.random()}`,
+          midi: note.midi || 60,
+          step: note.step || 0,
+          length: note.length || 1,
+          velocity: note.velocity || 0.8,
+          ...note,
+        };
+        const nextTrack = {
+          ...track,
+          notes: [...track.notes, newNote],
+        };
+        return this.persistActivePattern(nextTrack);
+      })
+    );
   }
 
   removeNotes(trackId: number, noteIds: string[]) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id !== trackId) return t;
-      return { ...t, notes: t.notes.filter(n => !noteIds.includes(n.id)) };
-    }));
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+
+        const nextTrack = {
+          ...track,
+          notes: track.notes.filter((note) => !noteIds.includes(note.id)),
+        };
+        return this.persistActivePattern(nextTrack);
+      })
+    );
+  }
+
+  addClipToTrack(trackId: number, clip: Partial<TrackClip> = {}) {
+    const track = this.tracks().find((candidate) => candidate.id === trackId);
+    if (!track) {
+      return;
+    }
+
+    const slotId = clip.slotId || track.activePatternSlotId || 'slot-0';
+    const nextClip: TrackClip = {
+      id: clip.id || `clip-${trackId}-${Date.now()}`,
+      start: Math.max(0, clip.start ?? this.getNextClipStart(track)),
+      length: Math.max(
+        0.25,
+        clip.length ?? MusicManagerService.DEFAULT_CLIP_LENGTH_BARS
+      ),
+      name: clip.name || this.getSlotName(track, slotId),
+      type: clip.type || 'midi',
+      color: clip.color || track.color,
+      slotId,
+    };
+
+    this.tracks.update((tracks) =>
+      tracks.map((candidate) =>
+        candidate.id === trackId
+          ? { ...candidate, clips: [...candidate.clips, nextClip] }
+          : candidate
+      )
+    );
+  }
+
+  updateClip(trackId: number, clipId: string, patch: Partial<TrackClip>) {
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+
+        return {
+          ...track,
+          clips: track.clips.map((clip) =>
+            clip.id === clipId
+              ? {
+                  ...clip,
+                  ...patch,
+                  start: Math.max(0, patch.start ?? clip.start),
+                  length: Math.max(0.25, patch.length ?? clip.length),
+                }
+              : clip
+          ),
+        };
+      })
+    );
   }
 
   toggleMute(trackId: number) {
-    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, mute: !t.mute } : t));
+    this.tracks.update((tracks) =>
+      tracks.map((track) =>
+        track.id === trackId ? { ...track, mute: !track.mute } : track
+      )
+    );
   }
 
   toggleSolo(trackId: number) {
-    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, solo: !t.solo } : t));
+    this.tracks.update((tracks) =>
+      tracks.map((track) =>
+        track.id === trackId ? { ...track, solo: !track.solo } : track
+      )
+    );
   }
 
   setInstrument(trackId: number, instrumentId: string) {
-     const preset = this.instruments.getPresets().find(p => p.id === instrumentId);
-     this.tracks.update(ts => ts.map(t => {
-        if (t.id !== trackId) return t;
+    const preset = this.instruments
+      .getPresets()
+      .find((candidate) => candidate.id === instrumentId);
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
         return {
-           ...t,
-           instrumentId,
-           name: preset?.name || t.name,
-           synthParams: preset?.synth || t.synthParams
+          ...track,
+          instrumentId,
+          name: preset?.name || track.name,
+          synthParams: preset?.synth || track.synthParams,
         };
-     }));
+      })
+    );
   }
 
   updateSynthParams(trackId: number, params: any) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id !== trackId) return t;
-      return { ...t, synthParams: { ...t.synthParams, ...params } };
-    }));
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+        return { ...track, synthParams: { ...track.synthParams, ...params } };
+      })
+    );
   }
 
   setSidechain(trackId: number, targetId: string | null) {
-    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, sidechainTargetTrackId: targetId } : t));
+    this.tracks.update((tracks) =>
+      tracks.map((track) =>
+        track.id === trackId
+          ? { ...track, sidechainTargetTrackId: targetId }
+          : track
+      )
+    );
     if (targetId) {
       this.engine.connectSidechain(`${trackId}`, targetId);
     }
   }
 
   quantizeTrack(trackId: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        return {
-          ...t,
-          notes: t.notes.map((n) => ({ ...n, step: Math.round(n.step) })),
-        };
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+
+        return this.persistActivePattern({
+          ...track,
+          notes: track.notes.map((note) => ({
+            ...note,
+            step: Math.round(note.step),
+          })),
+        });
       })
     );
   }
 
   humanizeTrack(trackId: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        return {
-          ...t,
-          notes: t.notes.map((n) => ({
-            ...n,
-            step: n.step + (Math.random() - 0.5) * 0.1,
-            velocity: Math.max(0.1, Math.min(1, n.velocity + (Math.random() - 0.5) * 0.1)),
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+
+        return this.persistActivePattern({
+          ...track,
+          notes: track.notes.map((note) => ({
+            ...note,
+            step: note.step + (Math.random() - 0.5) * 0.1,
+            velocity: Math.max(
+              0.1,
+              Math.min(1, note.velocity + (Math.random() - 0.5) * 0.1)
+            ),
           })),
-        };
+        });
       })
     );
   }
 
   arpeggiateTrack(trackId: number) {
-     this.logger.info(`Arpeggiating track ${trackId}`);
+    this.logger.info(`Arpeggiating track ${trackId}`);
   }
 
   strumTrack(trackId: number, strength: number = 0.05) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
         const grouped = new Map<number, TrackNote[]>();
-        t.notes.forEach(n => {
-          if (!grouped.has(n.step)) grouped.set(n.step, []);
-          grouped.get(n.step)!.push(n);
+        track.notes.forEach((note) => {
+          if (!grouped.has(note.step)) {
+            grouped.set(note.step, []);
+          }
+          grouped.get(note.step)!.push(note);
         });
 
-        const newNotes = t.notes.map(n => {
-          const chord = grouped.get(n.step) || [];
-          if (chord.length <= 1) return n;
-          const chordSorted = [...chord].sort((a, b) => a.midi - b.midi);
-          const index = chordSorted.findIndex(cn => cn.id === n.id);
-          return { ...n, step: n.step + index * strength };
-        });
+        const nextTrack = {
+          ...track,
+          notes: track.notes.map((note) => {
+            const chord = grouped.get(note.step) || [];
+            if (chord.length <= 1) {
+              return note;
+            }
+            const chordSorted = [...chord].sort((a, b) => a.midi - b.midi);
+            const index = chordSorted.findIndex(
+              (candidate) => candidate.id === note.id
+            );
+            return { ...note, step: note.step + index * strength };
+          }),
+        };
 
-        return { ...t, notes: newNotes };
+        return this.persistActivePattern(nextTrack);
       })
     );
   }
 
   setNoteParam(trackId: number, noteId: string, param: string, value: any) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id !== trackId) return t;
-      return {
-        ...t,
-        notes: t.notes.map(n => n.id === noteId ? { ...n, [param]: value } : n)
-      };
-    }));
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+        return this.persistActivePattern({
+          ...track,
+          notes: track.notes.map((note) =>
+            note.id === noteId ? { ...note, [param]: value } : note
+          ),
+        });
+      })
+    );
   }
 
   duplicateNotes(trackId: number, noteIds: string[], stepOffset: number) {
-     this.tracks.update(ts => ts.map(t => {
-        if (t.id !== trackId) return t;
-        const notesToDup = t.notes.filter(n => noteIds.includes(n.id));
-        const newNotes = notesToDup.map(n => ({
-           ...n,
-           id: `note-${Date.now()}-${Math.random()}`,
-           step: n.step + stepOffset
-        }));
-        return { ...t, notes: [...t.notes, ...newNotes] };
-     }));
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+        const notesToDuplicate = track.notes.filter((note) =>
+          noteIds.includes(note.id)
+        );
+        const nextTrack = {
+          ...track,
+          notes: [
+            ...track.notes,
+            ...notesToDuplicate.map((note) => ({
+              ...note,
+              id: `note-${Date.now()}-${Math.random()}`,
+              step: note.step + stepOffset,
+            })),
+          ],
+        };
+        return this.persistActivePattern(nextTrack);
+      })
+    );
   }
 
   recordLiveNote(midi: number, velocity: number) {
@@ -310,13 +971,14 @@ export class MusicManagerService {
 
     const beat = this.engine.currentBeat();
     const stepsPerBeat = this.engine.stepsPerBeat();
-    const currentStepValue = Math.floor(beat * stepsPerBeat) % 64;
+    const currentStepValue =
+      Math.floor(beat * stepsPerBeat) % MusicManagerService.PATTERN_STEPS;
 
     this.addNoteToTrack(selectedId, {
       midi,
       step: currentStepValue,
       length: 1,
-      velocity: velocity,
+      velocity,
     });
   }
 
@@ -325,42 +987,147 @@ export class MusicManagerService {
   }
 
   setActivePatternSlot(trackId: number, slotId: string) {
-    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, activePatternSlotId: slotId } : t));
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId || !track.patternSlots?.length) {
+          return track;
+        }
+
+        const persistedTrack = this.persistActivePattern(track);
+        const nextVersion = this.getActivePatternVersion(
+          persistedTrack.patternSlots,
+          slotId
+        );
+
+        if (!nextVersion) {
+          return persistedTrack;
+        }
+
+        return {
+          ...persistedTrack,
+          activePatternSlotId: slotId,
+          notes: this.cloneNotes(nextVersion.notes),
+          steps: [...nextVersion.steps],
+        };
+      })
+    );
   }
 
-  playStep(step: number, time: number, duration: number, customCtx?: BaseAudioContext) {
+  playStep(
+    step: number,
+    time: number,
+    duration: number,
+    customCtx?: BaseAudioContext
+  ) {
     this.currentStep.set(step);
-    this.tracks().forEach(track => {
-      if (track.mute) return;
-      track.notes.filter(n => Math.floor(n.step) === step).forEach(note => {
-         const freq = this.midiToFreq(note.midi);
-         this.engine.triggerAttack(
-           track.id,
-           freq,
-           time,
-           note.velocity,
-           note.length * duration,
-           track.gain,
-           track.pan,
-           track.sendA,
-           track.sendB,
-           track.synthParams || { type: 'sine' },
-           1,
-           customCtx
-         );
+    const hasSoloTrack = this.tracks().some((track) => track.solo);
+
+    this.tracks().forEach((track) => {
+      if (track.mute || (hasSoloTrack && !track.solo)) {
+        return;
+      }
+
+      const clips = track.clips.length
+        ? track.clips
+        : [
+            this.createDefaultClip(
+              track.id,
+              this.getSlotName(
+                track,
+                track.activePatternSlotId ||
+                  track.patternSlots?.[0]?.id ||
+                  'slot-0'
+              ),
+              track.color,
+              track.activePatternSlotId ||
+                track.patternSlots?.[0]?.id ||
+                'slot-0'
+            ),
+          ];
+
+      const slotLookups = new Map<string, Map<number, TrackNote[]>>();
+      const notesToPlay: TrackNote[] = [];
+      clips.forEach((clip) => {
+        const slotId = clip.slotId || track.activePatternSlotId;
+        const version = this.getActivePatternVersion(
+          track.patternSlots,
+          slotId
+        );
+        if (!version) {
+          return;
+        }
+        const lookupKey = slotId || 'active-slot';
+        let noteLookup = slotLookups.get(lookupKey);
+        if (!noteLookup) {
+          noteLookup = new Map<number, TrackNote[]>();
+          version.notes.forEach((note) => {
+            const noteStep = Math.floor(note.step);
+            const bucket = noteLookup?.get(noteStep) || [];
+            bucket.push(note);
+            noteLookup?.set(noteStep, bucket);
+          });
+          slotLookups.set(lookupKey, noteLookup);
+        }
+
+        const clipStartStep = Math.round(
+          clip.start * MusicManagerService.STEPS_PER_BAR
+        );
+        const clipLengthSteps = Math.max(
+          1,
+          Math.round(clip.length * MusicManagerService.STEPS_PER_BAR)
+        );
+        const clipRelativeStep = step - clipStartStep;
+        if (clipRelativeStep < 0 || clipRelativeStep >= clipLengthSteps) {
+          return;
+        }
+
+        (noteLookup.get(clipRelativeStep) || []).forEach((note) =>
+          notesToPlay.push(note)
+        );
+      });
+
+      notesToPlay.forEach((note) => {
+        const freq = this.midiToFreq(note.midi);
+        this.engine.triggerAttack(
+          track.id,
+          freq,
+          time,
+          note.velocity,
+          note.length * duration,
+          track.gain,
+          track.pan,
+          track.sendA,
+          track.sendB,
+          track.synthParams || { type: 'sine' },
+          1,
+          customCtx
+        );
       });
     });
   }
 
   importAudioTrack() {
-     this.logger.info('Importing audio track...');
+    this.logger.info('Importing audio track...');
   }
 
   addAutomationLane(trackId: number, parameter: string) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id !== trackId) return t;
-      const lanes = t.automationLanes || [];
-      return { ...t, automationLanes: [...lanes, { id: `lane-${Date.now()}`, parameter, points: [], enabled: true }] };
-    }));
+    this.tracks.update((tracks) =>
+      tracks.map((track) => {
+        if (track.id !== trackId) return track;
+        const lanes = track.automationLanes || [];
+        return {
+          ...track,
+          automationLanes: [
+            ...lanes,
+            {
+              id: `lane-${Date.now()}`,
+              parameter,
+              points: [],
+              enabled: true,
+            },
+          ],
+        };
+      })
+    );
   }
 }

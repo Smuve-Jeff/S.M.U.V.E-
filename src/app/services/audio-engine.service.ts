@@ -59,6 +59,7 @@ export class AudioEngineService {
   public performanceTier = signal<'ultra' | 'performance'>('ultra');
   public sidechainEnabled = signal(false);
   public tempo = signal(124);
+  private loopLengthSteps = signal(64);
   public recordingLatency = signal(0);
   public metronomeEnabled = signal(false);
   public metronomeVolume = signal(0.5);
@@ -261,7 +262,17 @@ export class AudioEngineService {
   }
 
   loopEnd() {
-    return 64;
+    return this.loopLengthSteps();
+  }
+
+  setLoopLengthBars(bars: number) {
+    const normalizedBars = Math.max(1, Math.round(bars));
+    const nextLength = normalizedBars * this.stepsPerBeat() * 4;
+    this.loopLengthSteps.set(nextLength);
+    if (this.currentStep >= nextLength) {
+      this.currentStep = this.currentStep % nextLength;
+      this.currentBeat.set(this.currentStep / this.stepsPerBeat());
+    }
   }
 
   private scheduler() {
