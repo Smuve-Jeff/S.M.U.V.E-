@@ -71,8 +71,11 @@ export class AuthService {
           { userId: user.id }
         )
       );
+      if (!session?.token) {
+        throw new Error('Missing token in session response.');
+      }
       this.userStore.setUser(user);
-      this.tokenService.setToken(session?.token ?? 'mock-jwt');
+      this.tokenService.setToken(session.token);
     } catch (_error) {
       this.userStore.setUser(null);
       this.tokenService.setToken(null);
