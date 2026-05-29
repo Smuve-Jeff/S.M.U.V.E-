@@ -36,7 +36,7 @@ describe('InstrumentService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('converts midi notes to frequency when triggering playback', () => {
+  it('converts MIDI notes to frequency when triggering playback', () => {
     service.play(7, 69, 0.5);
 
     expect(engineMock.triggerAttack).toHaveBeenCalledWith(
