@@ -35,10 +35,7 @@ export class ArrangementViewComponent {
   readonly snapEnabled = signal(true);
   readonly tracks = this.musicManager.tracks;
   readonly bars = computed(() =>
-    Array.from(
-      { length: this.musicManager.activeLoopBars() },
-      (_, index) => index
-    )
+    Array.from({ length: this.getLoopBarCount() }, (_, index) => index)
   );
   readonly gridWidth = computed(() => this.bars().length * this.barWidth);
   readonly playheadPos = computed(
@@ -54,6 +51,17 @@ export class ArrangementViewComponent {
     startX: number;
     initialStart: number;
   } | null = null;
+
+  private getLoopBarCount() {
+    const activeLoopBars = (
+      this.musicManager as MusicManagerService & {
+        activeLoopBars: number | (() => number);
+      }
+    ).activeLoopBars;
+    return typeof activeLoopBars === 'function'
+      ? activeLoopBars()
+      : activeLoopBars || 64;
+  }
 
   addTrack(): void {
     this.musicManager.ensureTrack('grand-piano-v2');
@@ -183,7 +191,7 @@ export class ArrangementViewComponent {
   private quantizeBar(value: number) {
     const increment = this.snapEnabled() ? 1 : 0.25;
     const quantized = Math.round(value / increment) * increment;
-    const maxStart = Math.max(0, this.musicManager.activeLoopBars() - 0.25);
+    const maxStart = Math.max(0, this.getLoopBarCount() - 0.25);
     return Math.max(0, Math.min(maxStart, quantized));
   }
 }

@@ -29,7 +29,7 @@ export interface TrackClip {
   slotId?: string | null;
 }
 
-export interface ArrangementClip extends TrackClip {}
+export type ArrangementClip = TrackClip;
 
 export interface PatternVersion {
   id: string;
@@ -147,6 +147,7 @@ export class MusicManagerService {
       this.engine.setLoopLengthBars(this.activeLoopBars());
     });
 
+    this.initializeDefaultProject();
     void this.restoreProject();
   }
 
@@ -183,6 +184,10 @@ export class MusicManagerService {
   }
 
   private initializeDefaultProject() {
+    if (this.tracks().length > 0) {
+      return;
+    }
+
     const firstTrackId = this.createTrack('grand-piano-v2');
     this.createTrack('trap-808-elite');
     this.selectedTrackId.set(firstTrackId);

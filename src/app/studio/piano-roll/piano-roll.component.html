@@ -51,9 +51,7 @@
       <div class="btn-group flex gap-1">
         <button
           class="m-btn tactile-v42"
-          (click)="
-            isLocalPlayback() ? toggleLocalPlay() : audioSession.togglePlay()
-          "
+          (click)="isLocalPlayback() ? toggleLocalPlay() : togglePlay()"
         >
           <span class="material-symbols-outlined text-sm">
             {{
@@ -66,7 +64,7 @@
         <button
           class="m-btn tactile-v42 rec"
           [class.active]="
-            isLocalPlayback() ? isLocalRecording() : audioSession.isRecording()
+            isLocalPlayback() ? isLocalRecording() : isRecording()
           "
           (click)="
             isLocalPlayback()
@@ -154,6 +152,7 @@
   </div>
 
   <div class="piano-roll-content">
+    <aside *ngIf="showTrackSidebar()" class="track-sidebar"></aside>
     <div class="keys-sidebar no-scrollbar bg-black/60" #keysSidebar>
       <div
         *ngFor="let midi of displayKeys"
@@ -162,7 +161,7 @@
         [style.height.px]="rowHeight()"
       >
         <span class="key-name font-mono text-[7px] font-black opacity-30"
-          >{{ getKeyName(midi) }}{{ Math.floor(midi / 12) - 1 }}</span
+          >{{ getKeyName(midi) }}{{ getOctaveLabel(midi) }}</span
         >
       </div>
     </div>
@@ -248,24 +247,28 @@
       </div>
 
       <div class="param-group flex flex-col items-center gap-4">
-        <app-knob
-          label="VELOCITY"
-          [min]="0.1"
-          [max]="1.5"
-          [step]="0.05"
-          [value]="0.8"
-          (valueChange)="adjustSelectedVelocity($event - 0.8)"
-        ></app-knob>
-        <app-knob
-          label="PROBABILITY"
-          [min]="0"
-          [max]="1"
-          [step]="0.05"
-          [value]="1.0"
-          (valueChange)="
-            setSelectedNoteProbability({ target: { value: $event } })
-          "
-        ></app-knob>
+        <label class="param-slider">
+          <span>Velocity</span>
+          <input
+            type="range"
+            min="0.1"
+            max="1.5"
+            step="0.05"
+            value="0.8"
+            (input)="adjustSelectedVelocity($any($event.target).value - 0.8)"
+          />
+        </label>
+        <label class="param-slider">
+          <span>Probability</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value="1"
+            (input)="setSelectedNoteProbability($event)"
+          />
+        </label>
       </div>
 
       <div class="flex flex-col gap-4 px-4">

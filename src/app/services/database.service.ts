@@ -127,7 +127,23 @@ export class DatabaseService {
   }
 
   async loadProject(projectId: string, userId: string): Promise<any | null> {
-    if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
+    const localProject = await this.localStorageService.getItem(
+      'projects',
+      projectId
+    );
+    if (
+      localProject &&
+      (!userId || !localProject.userId || localProject.userId === userId)
+    ) {
+      return localProject.data || null;
+    }
+
+    if (
+      userId &&
+      userId !== 'anonymous' &&
+      typeof navigator !== 'undefined' &&
+      navigator.onLine
+    ) {
       try {
         const project = await firstValueFrom(
           this.http.get<any>(
@@ -152,19 +168,7 @@ export class DatabaseService {
       }
     }
 
-    const localProject = await this.localStorageService.getItem(
-      'projects',
-      projectId
-    );
-    if (!localProject) {
-      return null;
-    }
-
-    if (userId && localProject.userId && localProject.userId !== userId) {
-      return null;
-    }
-
-    return localProject.data || null;
+    return null;
   }
 
   async listProjects(userId: string): Promise<any[]> {

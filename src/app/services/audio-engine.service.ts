@@ -59,6 +59,7 @@ export class AudioEngineService {
   public performanceTier = signal<'ultra' | 'performance'>('ultra');
   public sidechainEnabled = signal(false);
   public tempo = signal(124);
+  private loopLengthSteps = signal(64);
   public recordingLatency = signal(0);
   public metronomeEnabled = signal(false);
   public metronomeVolume = signal(0.5);

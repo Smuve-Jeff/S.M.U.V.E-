@@ -15,7 +15,6 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
-import { KnobComponent } from '../shared/knob/knob.component';
 import {
   MusicManagerService,
   TrackNote,
@@ -25,7 +24,7 @@ import { TouchGestureService } from '../../services/touch-gesture.service';
 @Component({
   selector: 'app-piano-roll',
   standalone: true,
-  imports: [CommonModule, FormsModule, KnobComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './piano-roll.component.html',
   styleUrls: ['./piano-roll.component.css'],
 })
@@ -49,6 +48,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   );
   editMode = signal<'draw' | 'select' | 'erase'>('draw');
   selectedNoteIds = signal<Set<string>>(new Set());
+  showAudioDock = signal(false);
+  audioDockView = signal<'mixer' | 'mastering' | 'drum-machine'>('mixer');
+  showTrackSidebar = signal(false);
+  newTrackPresetId = signal('grand-piano-v2');
 
   isLocalPlayback = signal(false);
   isLocalPlaying = signal(false);
@@ -58,7 +61,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     typeof window !== 'undefined' ? window.innerWidth : 1280
   );
   rowHeight = computed(
-    () => (this.isMobile() ? 40 : 24) * this.touchGestures.zoomLevel()
+    () => (this.isMobile() ? 48 : 24) * this.touchGestures.zoomLevel()
   );
   cellWidth = computed(
     () => (this.windowWidth() < 1201 ? 32 : 40) * this.touchGestures.zoomLevel()
@@ -66,11 +69,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   numMeasures = 4;
   cells = new Array(64).fill(0);
+  gridColumns = Array.from({ length: 64 }, (_, index) => index);
   showGhostNotes = signal(true);
   snapToScale = signal(false);
   isMobile = signal(false);
   displayKeys = Array.from({ length: 128 }, (_, index) => 127 - index);
-  gridColumns = Array.from({ length: 64 }, (_, index) => index);
   gridWidth = computed(() => this.cellWidth() * this.cells.length);
   canvasHeight = computed(() => 128 * this.rowHeight());
 
@@ -184,7 +187,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
         (event as MouseEvent).ctrlKey ||
         (event as MouseEvent).metaKey
       ) {
-        next.has(note.id) ? next.delete(note.id) : next.add(note.id);
+        if (next.has(note.id)) {
+          next.delete(note.id);
+        } else {
+          next.add(note.id);
+        }
       } else {
         next.clear();
         next.add(note.id);
@@ -241,8 +248,103 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     ];
   }
 
+  getOctaveLabel(midi: number) {
+    return Math.floor(midi / 12) - 1;
+  }
+
   setEditMode(mode: 'draw' | 'select' | 'erase') {
     this.editMode.set(mode);
+  }
+
+  togglePlay() {
+    this.audioSession.togglePlay();
+  }
+
+  isRecording() {
+    const session = this.audioSession as AudioSessionService & {
+      isRecording?: () => boolean;
+    };
+    return typeof session.isRecording === 'function'
+      ? session.isRecording()
+      : false;
+  }
+
+  toggleAudioDock() {
+    this.showAudioDock.update((value) => !value);
+  }
+
+  setAudioDockView(view: 'mixer' | 'mastering' | 'drum-machine') {
+    this.audioDockView.set(view);
+    this.showAudioDock.set(true);
+  }
+
+  setPatternLength(measures: number) {
+    this.numMeasures = Math.max(1, Math.min(16, Math.round(measures)));
+    this.cells = new Array(this.numMeasures * 16).fill(0);
+    this.gridColumns = Array.from(
+      { length: this.cells.length },
+      (_, index) => index
+    );
+  }
+
+  arrangementBars() {
+    const notes = this.selectedTrack()?.notes || [];
+    return Array.from({ length: this.numMeasures }, (_, index) => ({
+      index,
+      noteCount: notes.filter((note) => Math.floor(note.step / 16) === index)
+        .length,
+    }));
+  }
+
+  addTrack() {
+    const presetId = this.newTrackPresetId();
+    const manager = this.musicManager as MusicManagerService & {
+      addTrack?: (name: string, instrumentId: string) => void;
+    };
+    if (typeof manager.addTrack === 'function') {
+      manager.addTrack('New Track', presetId);
+      return;
+    }
+    this.musicManager.ensureTrack(presetId);
+  }
+
+  replaceTrackInstrument(track: { id: number }, instrumentId: string) {
+    this.musicManager.setInstrument(track.id, instrumentId);
+  }
+
+  removeTrack(trackId: number) {
+    this.musicManager.removeTrack(trackId);
+    this.selectedNoteIds.set(new Set());
+  }
+
+  transposeSelected(delta: number) {
+    const track = this.selectedTrack();
+    if (!track) {
+      return;
+    }
+
+    this.selectedNoteIds().forEach((noteId) => {
+      const note = track.notes.find((candidate) => candidate.id === noteId);
+      if (!note) {
+        return;
+      }
+
+      const midi = Math.max(0, Math.min(127, note.midi + delta));
+      this.applyNotePatch(track.id, note.id, { midi });
+    });
+  }
+
+  setSelectedNoteLength(length: number) {
+    const track = this.selectedTrack();
+    if (!track) {
+      return;
+    }
+
+    this.selectedNoteIds().forEach((noteId) => {
+      this.applyNotePatch(track.id, noteId, {
+        length: Math.max(1, Math.round(length)),
+      });
+    });
   }
 
   zoomIn() {
@@ -362,5 +464,27 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   localSkip() {
     console.log('skip');
+  }
+
+  private applyNotePatch(
+    trackId: number,
+    noteId: string,
+    patch: Partial<TrackNote>
+  ) {
+    const manager = this.musicManager as MusicManagerService & {
+      updateNote?: (
+        targetTrackId: number,
+        targetNoteId: string,
+        nextPatch: Partial<TrackNote>
+      ) => void;
+    };
+    if (typeof manager.updateNote === 'function') {
+      manager.updateNote(trackId, noteId, patch);
+      return;
+    }
+
+    Object.entries(patch).forEach(([key, value]) => {
+      this.musicManager.setNoteParam(trackId, noteId, key, value);
+    });
   }
 }
