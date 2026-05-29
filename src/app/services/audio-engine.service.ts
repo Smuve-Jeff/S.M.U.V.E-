@@ -71,7 +71,9 @@ export class AudioEngineService {
   private deckB!: DeckChannel;
 
   constructor() {
-    this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
+      latencyHint: 'interactive',
+    });
     this.setupMasterChain();
     this.initDeck('A');
     this.initDeck('B');
@@ -138,14 +140,29 @@ export class AudioEngineService {
     else this.deckB = deck;
   }
 
-  getContext() { return this.ctx; }
-  resume() { if (this.ctx.state === 'suspended') this.ctx.resume(); }
-  isPlayingStatus() { return this.isPlaying(); }
-  start() { this.resume(); this.isPlaying.set(true); }
-  stop() { this.isPlaying.set(false); }
+  getContext() {
+    return this.ctx;
+  }
+  resume() {
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  isPlayingStatus() {
+    return this.isPlaying();
+  }
+  start() {
+    this.resume();
+    this.isPlaying.set(true);
+  }
+  stop() {
+    this.isPlaying.set(false);
+  }
 
-  stepsPerBeat() { return 4; }
-  loopEnd() { return 64; }
+  stepsPerBeat() {
+    return 4;
+  }
+  loopEnd() {
+    return 64;
+  }
 
   triggerAttack(
     id: number,
@@ -195,8 +212,26 @@ export class AudioEngineService {
     osc.stop(when + duration + release + 0.1);
   }
 
-  playSynth(time: number, freq: number, duration: number, velocity: number, pan: number = 0, synthParams: any = { type: 'sine' }) {
-     this.triggerAttack(0, freq, time, velocity, duration, 0.8, pan, 0, 0, synthParams);
+  playSynth(
+    time: number,
+    freq: number,
+    duration: number,
+    velocity: number,
+    pan: number = 0,
+    synthParams: any = { type: 'sine' }
+  ) {
+    this.triggerAttack(
+      0,
+      freq,
+      time,
+      velocity,
+      duration,
+      0.8,
+      pan,
+      0,
+      0,
+      synthParams
+    );
   }
 
   getTrackOutput(id: number): GainNode {
@@ -208,7 +243,9 @@ export class AudioEngineService {
     return this.trackOutputs.get(id)!;
   }
 
-  ensureTrack(track: any) { this.tracksMap.set(track.id, track); }
+  ensureTrack(track: any) {
+    this.tracksMap.set(track.id, track);
+  }
   updateTrack(id: number, patch: any) {
     const t = this.tracksMap.get(id);
     if (t) Object.assign(t, patch);
@@ -219,43 +256,62 @@ export class AudioEngineService {
     this.tracksMap.delete(id);
   }
 
-  setMasterOutputLevel(val: number) { this.masterGain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.01); }
-  setMetronomeVolume(val: number) { this.metronomeVolume.set(val); }
-  toggleMetronome() { this.metronomeEnabled.update(v => !v); }
-  setOutputMode(mode: any) { this.outputMode.set(mode); }
+  setMasterOutputLevel(val: number) {
+    this.masterGain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.01);
+  }
+  setMetronomeVolume(val: number) {
+    this.metronomeVolume.set(val);
+  }
+  toggleMetronome() {
+    this.metronomeEnabled.update((v) => !v);
+  }
+  setOutputMode(mode: any) {
+    this.outputMode.set(mode);
+  }
 
   setSaturation(amount: number) {}
-  getMasteringTargets() { return { lufs: -14, truePeak: -0.1 }; }
+  getMasteringTargets() {
+    return { lufs: -14, truePeak: -0.1 };
+  }
   setMasteringTargets(params: any) {}
-  getMasterAnalyser() { return null; }
-  getAnalyser() { return null; }
+  getMasterAnalyser() {
+    return null;
+  }
+  getAnalyser() {
+    return null;
+  }
   configureCompressor(params: any) {}
   configureLimiter(params: any) {}
 
   connectSidechain(triggerId: string, targetId: string) {
-     this.sidechainEnabled.set(true);
-     if (!this.sidechainMatrix.has(triggerId)) this.sidechainMatrix.set(triggerId, new Set());
-     this.sidechainMatrix.get(triggerId)!.add(targetId);
+    this.sidechainEnabled.set(true);
+    if (!this.sidechainMatrix.has(triggerId))
+      this.sidechainMatrix.set(triggerId, new Set());
+    this.sidechainMatrix.get(triggerId)!.add(targetId);
   }
   disconnectSidechain(triggerId: string, targetId: string) {
-     this.sidechainMatrix.get(triggerId)?.delete(targetId);
+    this.sidechainMatrix.get(triggerId)?.delete(targetId);
   }
 
   getMasterStream() {
-     const dest = this.ctx.createMediaStreamDestination();
-     this.masterGain.connect(dest);
-     return dest;
+    const dest = this.ctx.createMediaStreamDestination();
+    this.masterGain.connect(dest);
+    return dest;
   }
 
   // DJ Deck Methods
-  getDeck(id: DeckId) { return id === 'A' ? this.deckA : this.deckB; }
+  getDeck(id: DeckId) {
+    return id === 'A' ? this.deckA : this.deckB;
+  }
   async loadDeck(id: DeckId, buffer: AudioBuffer) {
     const deck = this.getDeck(id);
     deck.buffer = buffer;
     deck.stems = await this.stemSeparationService.separate(buffer);
   }
   transformDeck(id: DeckId) {}
-  getDeckProgress(id: DeckId) { return { duration: 0, position: 0, isPlaying: false, slipPosition: 0 }; }
+  getDeckProgress(id: DeckId) {
+    return { duration: 0, position: 0, isPlaying: false, slipPosition: 0 };
+  }
   seekDeck(id: DeckId, pos: number) {}
   playDeck(id: DeckId) {}
   pauseDeck(id: DeckId) {}
@@ -263,8 +319,12 @@ export class AudioEngineService {
   setCrossfader(val: number, curve?: any, hamster?: boolean) {}
   brakeDeck(id: DeckId) {}
   spinbackDeck(id: DeckId) {}
-  getDeckWaveformData(id: DeckId) { return new Float32Array(0); }
-  getDeckLevel(id: DeckId) { return 0; }
+  getDeckWaveformData(id: DeckId) {
+    return new Float32Array(0);
+  }
+  getDeckLevel(id: DeckId) {
+    return 0;
+  }
   setDeckRate(id: DeckId, rate: number, param?: any) {}
   setDeckLoop(id: DeckId, state: boolean) {}
   setSlipMode(id: DeckId, state: boolean) {}
@@ -276,7 +336,13 @@ export class AudioEngineService {
   setDeckFilter(id: DeckId, freq: number) {}
   setDeckSend(id: DeckId, send: any, gain: number) {}
 
-  applyProductionParameter(trackId: string, parameter: string, value: number, duration = 0.01, scheduledTime?: number) {
-     this.logger.info(`Applying param ${parameter} to ${trackId}`);
+  applyProductionParameter(
+    trackId: string,
+    parameter: string,
+    value: number,
+    duration = 0.01,
+    scheduledTime?: number
+  ) {
+    this.logger.info(`Applying param ${parameter} to ${trackId}`);
   }
 }

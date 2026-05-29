@@ -17,15 +17,12 @@
         <button class="m-btn tactile-v42 rec" [class.active]="audioSession.isRecording()" (click)="audioSession.toggleRecord()">
           <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
         </button>
-        <button class="m-btn tactile-v42" (click)="liveEngine.activeInstrument.set('grand-piano')">
-          <span class="material-symbols-outlined text-sm">upload</span>
-        </button>
       </div>
     </div>
 
     <!-- Instrument Selector (Unified) -->
     <div
-      class="instrument-selector-v42 glass-v42 p-1.5 rounded-xl border border-white/10 flex gap-2 overflow-x-auto max-w-[300px] hide-scrollbar"
+      class="instrument-selector-v42 glass-v42 p-1.5 rounded-xl border border-white/10 flex gap-2 overflow-x-auto max-w-[350px] hide-scrollbar"
     >
       <button
         *ngFor="let inst of availableInstruments()"
@@ -78,112 +75,106 @@
     </div>
   </div>
 
-  <div class="performer-content relative">
+  <div class="performer-content relative flex">
     <div class="scanline-overlay"></div>
 
-    <!-- Keyboard Layout (Performance Optimized) -->
-    <div
-      *ngIf="layout() === 'keyboard'"
-      class="keyboard-view h-full flex flex-col justify-center p-6"
-    >
-      <div
-        class="keys-container-v42 relative h-80 w-full max-w-6xl mx-auto flex rounded-2xl overflow-hidden shadow-2xl border-4 border-black"
-      >
-        <div
-          *ngFor="let key of keyboardKeys"
-          class="perf-key-v42 flex-1 relative flex items-end justify-center pb-8 cursor-pointer select-none transition-all active:scale-y-[0.98] active:translate-y-1"
-          [class.black-key]="isBlackKey(key.midi)"
-          [class.active]="activeKeys().has(key.midi)"
-          (mousedown)="onKeyDown(key.midi)"
-          (mouseup)="onKeyUp(key.midi)"
-          (mouseleave)="onKeyUp(key.midi)"
-          (touchstart)="onKeyDown(key.midi); $event.preventDefault()"
-          (touchend)="onKeyUp(key.midi); $event.preventDefault()"
-        >
-          <div
-            class="key-inner-shadow absolute inset-0 pointer-events-none shadow-inner"
-          ></div>
-          <span
-            class="key-label-v42 font-black text-[10px] opacity-30 uppercase tracking-tighter"
-            >{{ key.name }}</span>
-          <div
-            *ngIf="activeKeys().has(key.midi)"
-            class="active-glow absolute inset-0 opacity-50 blur-xl bg-current"
-          ></div>
-        </div>
+    <!-- Expressive Controls (Left Sidebar) -->
+    <div class="expressive-controls-v42 w-20 flex flex-col items-center justify-center gap-12 p-4 border-r border-white/10 glass-v42">
+      <div class="control-vertical flex flex-col items-center gap-2">
+        <span class="text-[8px] font-black opacity-40 uppercase vertical-text">PITCH</span>
+        <input type="range" orient="vertical" min="-1" max="1" step="0.01" [value]="pitchBend()" (input)="onPitchBend($event)"
+          class="v-slider-v42 h-32 accent-neon-cyan">
+      </div>
+      <div class="control-vertical flex flex-col items-center gap-2">
+        <span class="text-[8px] font-black opacity-40 uppercase vertical-text">MOD</span>
+        <input type="range" orient="vertical" min="0" max="1" step="0.01" [value]="modWheel()" (input)="onModWheel($event)"
+          class="v-slider-v42 h-32 accent-neon-purple">
       </div>
     </div>
 
-
-    <!-- Clip Matrix Layout -->
-    <div *ngIf="layout() === 'matrix'" class="matrix-view h-full flex flex-col p-6 overflow-auto">
-      <div class="matrix-grid flex flex-col gap-4">
-        <!-- Scene Launchers -->
-        <div class="scenes-row flex gap-4 mb-4">
-          <div class="w-24"></div>
-          <button *ngFor="let scene of scenes(); let i = index"
-            (click)="launchScene(i)"
-            class="scene-btn glass-v42 px-4 py-2 rounded-lg border border-white/20 font-black text-[10px] uppercase tracking-widest hover:bg-neon-purple/20 transition-all">
-            SCENE {{ i + 1 }}
-          </button>
-        </div>
-
-        <!-- Track Rows -->
-        <div *ngFor="let track of musicManager.tracks()" class="track-row flex gap-4 items-center">
-          <div class="w-24 font-black text-[10px] uppercase opacity-50 truncate">{{ track.name }}</div>
-          <div class="clips-container flex gap-4">
-            <button *ngFor="let scene of scenes(); let i = index"
-              (click)="launchPattern(track.id, 'slot-' + i)"
-              class="clip-btn tactile-v42 w-24 h-16 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-1 group overflow-hidden relative"
-              [style.border-left-color]="track.color"
-              [style.border-left-width.px]="4"
-            >
-              <div class="clip-status absolute inset-0 opacity-0 group-hover:opacity-10 bg-white"></div>
-              <span class="text-[8px] font-black opacity-40">SLOT {{ i + 1 }}</span>
-              <div *ngIf="track.activePatternSlotId === 'slot-' + i" class="active-pulse absolute bottom-2 right-2 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>
-            </button>
+    <!-- Layout Container -->
+    <div class="layout-container flex-1 overflow-hidden">
+      <!-- Keyboard Layout -->
+      <div
+        *ngIf="layout() === 'keyboard'"
+        class="keyboard-view h-full flex flex-col justify-center p-6"
+      >
+        <div
+          class="keys-container-v42 relative h-80 w-full max-w-6xl mx-auto flex rounded-2xl overflow-hidden shadow-2xl border-4 border-black bg-black/40"
+        >
+          <div
+            *ngFor="let key of keyboardKeys"
+            class="perf-key-v42 flex-1 relative flex items-end justify-center pb-8 cursor-pointer select-none transition-all active:scale-y-[0.98] active:translate-y-1"
+            [class.black-key]="isBlackKey(key.midi)"
+            [class.active]="activeKeys().has(key.midi)"
+            (mousedown)="onKeyDown(key.midi)"
+            (mouseup)="onKeyUp(key.midi)"
+            (mouseleave)="onKeyUp(key.midi)"
+            (touchstart)="onKeyDown(key.midi); $event.preventDefault()"
+            (touchend)="onKeyUp(key.midi); $event.preventDefault()"
+          >
+            <div class="key-inner-shadow absolute inset-0 pointer-events-none shadow-inner"></div>
+            <span class="key-label-v42 font-black text-[10px] opacity-30 uppercase tracking-tighter z-10">{{ key.name }}</span>
+            <div *ngIf="activeKeys().has(key.midi)" class="active-glow absolute inset-0 opacity-50 blur-xl bg-fl-blue"></div>
+            <div *ngIf="activeKeys().has(key.midi)" class="trigger-animation absolute top-0 left-1/2 -translate-x-1/2 w-1 h-full bg-fl-blue/40"></div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Pads Layout -->
-    <div
-      *ngIf="layout() === 'pads'"
-      class="pads-view h-full flex items-center justify-center p-6"
-    >
+      <!-- Clip Matrix Layout -->
+      <div *ngIf="layout() === 'matrix'" class="matrix-view h-full flex flex-col p-6 overflow-auto">
+        <div class="matrix-grid flex flex-col gap-4">
+          <div class="scenes-row flex gap-4 mb-4">
+            <div class="w-24"></div>
+            <button *ngFor="let scene of scenes(); let i = index"
+              (click)="launchScene(i)"
+              class="scene-btn glass-v42 px-4 py-2 rounded-lg border border-white/20 font-black text-[10px] uppercase tracking-widest hover:bg-hv-secondary/20 transition-all">
+              SCENE {{ i + 1 }}
+            </button>
+          </div>
+          <div *ngFor="let track of musicManager.tracks()" class="track-row flex gap-4 items-center">
+            <div class="w-24 font-black text-[10px] uppercase opacity-50 truncate">{{ track.name }}</div>
+            <div class="clips-container flex gap-4">
+              <button *ngFor="let scene of scenes(); let i = index"
+                (click)="launchPattern(track.id, 'slot-' + i)"
+                class="clip-btn tactile-v42 w-24 h-16 rounded-xl border border-white/5 flex flex-col items-center justify-center gap-1 group overflow-hidden relative"
+                [style.border-left-color]="track.color"
+                [style.border-left-width.px]="4"
+              >
+                <div class="clip-status absolute inset-0 opacity-0 group-hover:opacity-10 bg-white"></div>
+                <span class="text-[8px] font-black opacity-40">SLOT {{ i + 1 }}</span>
+                <div *ngIf="track.activePatternSlotId === 'slot-' + i" class="active-pulse absolute bottom-2 right-2 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pads Layout -->
       <div
-        class="perf-pads-grid-v42 grid grid-cols-4 gap-6 w-full max-w-4xl aspect-square"
+        *ngIf="layout() === 'pads'"
+        class="pads-view h-full flex items-center justify-center p-6"
       >
         <div
-          *ngFor="let pad of performerPads"
-          class="perf-pad-v42 relative flex flex-col items-center justify-center rounded-2xl border-2 border-white/10 glass-v42 cursor-pointer select-none transition-all active:scale-95 active:shadow-inner overflow-hidden"
-          [class.active]="activeKeys().has(pad.midi)"
-          [style.--pad-color]="pad.color"
-          (mousedown)="onKeyDown(pad.midi)"
-          (mouseup)="onKeyUp(pad.midi)"
-          (mouseleave)="onKeyUp(pad.midi)"
-          (touchstart)="onKeyDown(pad.midi); $event.preventDefault()"
-          (touchend)="onKeyUp(pad.midi); $event.preventDefault()"
+          class="perf-pads-grid-v42 grid grid-cols-4 gap-6 w-full max-w-4xl aspect-square"
         >
           <div
-            class="pad-bg absolute inset-0 transition-all"
-            [style.background-color]="
-              activeKeys().has(pad.midi) ? pad.color : 'transparent'
-            "
-          ></div>
-          <div
-            class="pad-led absolute top-3 right-3 w-3 h-3 rounded-full border border-black/50"
-            [style.background-color]="pad.color"
-          ></div>
-          <span
-            class="pad-label-v42 font-black text-xs uppercase tracking-widest relative z-10"
-            >{{ pad.name }}</span>
-          <div
-            *ngIf="activeKeys().has(pad.midi)"
-            class="pad-glow absolute inset-0 opacity-40 blur-2xl"
-            [style.background-color]="pad.color"
-          ></div>
+            *ngFor="let pad of performerPads"
+            class="perf-pad-v42 relative flex flex-col items-center justify-center rounded-2xl border-2 border-white/10 glass-v42 cursor-pointer select-none transition-all active:scale-95 active:shadow-inner overflow-hidden"
+            [class.active]="activeKeys().has(pad.midi)"
+            [style.--pad-color]="pad.color"
+            (mousedown)="onKeyDown(pad.midi)"
+            (mouseup)="onKeyUp(pad.midi)"
+            (mouseleave)="onKeyUp(pad.midi)"
+            (touchstart)="onKeyDown(pad.midi); $event.preventDefault()"
+            (touchend)="onKeyUp(pad.midi); $event.preventDefault()"
+          >
+            <div class="pad-bg absolute inset-0 transition-all" [style.background-color]="activeKeys().has(pad.midi) ? pad.color : 'transparent'"></div>
+            <div class="pad-led absolute top-3 right-3 w-3 h-3 rounded-full border border-black/50" [style.background-color]="pad.color"></div>
+            <span class="pad-label-v42 font-black text-xs uppercase tracking-widest relative z-10">{{ pad.name }}</span>
+            <div *ngIf="activeKeys().has(pad.midi)" class="pad-glow absolute inset-0 opacity-40 blur-2xl" [style.background-color]="pad.color"></div>
+            <div *ngIf="activeKeys().has(pad.midi)" class="pad-trigger-pulse absolute inset-0 border-4 border-white/30 rounded-2xl animate-ping"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -198,41 +189,19 @@
       </div>
 
       <div class="perf-control flex flex-col gap-2">
-        <label
-          class="neon-text-xs font-black opacity-50 uppercase tracking-widest px-1"
-          >OCTAVE SHIFT</label
-        >
-        <div
-          class="octave-panel glass-v42 flex items-center p-1 rounded-xl border border-white/10"
-        >
-          <button
-            (click)="nudgeOctave(-1)"
-            class="octave-btn tactile-v42 w-10 h-10 flex items-center justify-center rounded-lg text-lg font-black"
-          >
-            -
-          </button>
-          <span
-            class="octave-value font-mono text-xl font-black px-6 min-w-[60px] text-center text-neon-purple"
-            >{{ octave() }}</span>
-          <button
-            (click)="nudgeOctave(1)"
-            class="octave-btn tactile-v42 w-10 h-10 flex items-center justify-center rounded-lg text-lg font-black"
-          >
-            +
-          </button>
+        <label class="neon-text-xs font-black opacity-50 uppercase tracking-widest px-1">OCTAVE SHIFT</label>
+        <div class="octave-panel glass-v42 flex items-center p-1 rounded-xl border border-white/10">
+          <button (click)="nudgeOctave(-1)" class="octave-btn tactile-v42 w-10 h-10 flex items-center justify-center rounded-lg text-lg font-black">-</button>
+          <span class="octave-value font-mono text-xl font-black px-6 min-w-[60px] text-center text-hv-secondary">{{ octave() }}</span>
+          <button (click)="nudgeOctave(1)" class="octave-btn tactile-v42 w-10 h-10 flex items-center justify-center rounded-lg text-lg font-black">+</button>
         </div>
       </div>
     </div>
 
     <div class="performer-telemetry hidden xl:flex gap-6">
       <div class="telemetry-item flex flex-col items-end">
-        <span class="text-[8px] font-black opacity-40 uppercase tracking-widest"
-          >ENGINE STATUS</span
-        >
-        <span
-          class="text-[10px] font-mono text-emerald-500 font-bold tracking-tighter"
-          >NOMINAL // READY</span
-        >
+        <span class="text-[8px] font-black opacity-40 uppercase tracking-widest">REAL-TIME STATUS</span>
+        <span class="text-[10px] font-mono text-emerald-500 font-bold tracking-tighter">ELITE AUDIO // LATENCY: &lt; 5MS</span>
       </div>
     </div>
   </div>

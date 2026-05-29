@@ -78,6 +78,62 @@ export class InstrumentsService {
       ],
     },
     {
+      id: 'strat-elite-clean',
+      name: 'Strat Elite Clean',
+      type: 'sample',
+      category: 'guitar',
+      tags: ['electric', 'clean', 'stratocaster', 'elite'],
+      sampleQuality: 'high',
+      zones: [
+        {
+          midiRange: [40, 88],
+          url: 'https://tonejs.github.io/audio/casio/G3.mp3', // Placeholder using available Tone.js assets
+        },
+      ],
+    },
+    {
+      id: 'chamber-strings-elite',
+      name: 'Chamber Strings Elite',
+      type: 'sample',
+      category: 'strings',
+      tags: ['orchestral', 'ensemble', 'high-fidelity', 'elite'],
+      sampleQuality: 'high',
+      zones: [
+        {
+          midiRange: [36, 96],
+          url: 'https://tonejs.github.io/audio/berlin/strings_sustain_C4.mp3', // Representational URL
+        },
+      ],
+    },
+    {
+      id: 'p-bass-elite',
+      name: 'P-Bass Elite',
+      type: 'sample',
+      category: 'bass',
+      tags: ['electric', 'bass', 'precision', 'elite'],
+      sampleQuality: 'high',
+      zones: [
+        {
+          midiRange: [28, 64],
+          url: 'https://tonejs.github.io/audio/casio/A1.mp3',
+        },
+      ],
+    },
+    {
+      id: 'solo-violin-elite',
+      name: 'Solo Violin Elite',
+      type: 'sample',
+      category: 'strings',
+      tags: ['acoustic', 'solo', 'virtuoso', 'elite'],
+      sampleQuality: 'high',
+      zones: [
+        {
+          midiRange: [55, 103],
+          url: 'https://tonejs.github.io/audio/berlin/violin_sustain_C4.mp3',
+        },
+      ],
+    },
+    {
       id: 'analog-warmth',
       name: 'Analog Warmth',
       type: 'synth',
@@ -123,7 +179,7 @@ export class InstrumentsService {
         release: 0.8,
         cutoff: 400,
         q: 3.0,
-        detune: 5
+        detune: 5,
       },
     },
     {
@@ -143,55 +199,55 @@ export class InstrumentsService {
       },
     },
     {
-       id: 'cyber-stab',
-       name: 'Cyber Stab',
-       type: 'synth',
-       category: 'vfx',
-       tags: ['futuristic', 'impact', 'short'],
-       synth: {
-         type: 'square',
-         attack: 0.01,
-         decay: 0.1,
-         sustain: 0,
-         release: 0.1,
-         cutoff: 4000,
-         q: 8.0
-       }
+      id: 'cyber-stab',
+      name: 'Cyber Stab',
+      type: 'synth',
+      category: 'vfx',
+      tags: ['futuristic', 'impact', 'short'],
+      synth: {
+        type: 'square',
+        attack: 0.01,
+        decay: 0.1,
+        sustain: 0,
+        release: 0.1,
+        cutoff: 4000,
+        q: 8.0,
+      },
     },
     {
-       id: 'deep-orbit',
-       name: 'Deep Orbit',
-       type: 'synth',
-       category: 'pad',
-       tags: ['space', 'dark', 'evolve'],
-       synth: {
-         type: 'sawtooth',
-         attack: 3.0,
-         decay: 2.0,
-         sustain: 0.9,
-         release: 4.0,
-         cutoff: 600,
-         q: 0.5,
-         detune: 12
-       }
+      id: 'deep-orbit',
+      name: 'Deep Orbit',
+      type: 'synth',
+      category: 'pad',
+      tags: ['space', 'dark', 'evolve'],
+      synth: {
+        type: 'sawtooth',
+        attack: 3.0,
+        decay: 2.0,
+        sustain: 0.9,
+        release: 4.0,
+        cutoff: 600,
+        q: 0.5,
+        detune: 12,
+      },
     },
     {
-       id: 'neon-shimmer',
-       name: 'Neon Shimmer',
-       type: 'synth',
-       category: 'keys',
-       tags: ['bright', 'digital', 'dreamy'],
-       synth: {
-         type: 'sine',
-         attack: 0.05,
-         decay: 0.5,
-         sustain: 0.4,
-         release: 1.2,
-         cutoff: 3000,
-         q: 1.5,
-         detune: 2
-       }
-    }
+      id: 'neon-shimmer',
+      name: 'Neon Shimmer',
+      type: 'synth',
+      category: 'keys',
+      tags: ['bright', 'digital', 'dreamy'],
+      synth: {
+        type: 'sine',
+        attack: 0.05,
+        decay: 0.5,
+        sustain: 0.4,
+        release: 1.2,
+        cutoff: 3000,
+        q: 1.5,
+        detune: 2,
+      },
+    },
   ];
 
   getPresets() {
@@ -199,7 +255,7 @@ export class InstrumentsService {
   }
 
   async audition(presetId: string) {
-    const preset = this.presets.find(p => p.id === presetId);
+    const preset = this.presets.find((p) => p.id === presetId);
     if (!preset) return;
 
     const ctx = this.audioEngine.ctx;
@@ -228,12 +284,11 @@ export class InstrumentsService {
       osc.start(now);
       osc.stop(now + 0.5);
     } else if (preset.type === 'sample' && preset.zones?.[0]) {
-        this.audioEngine.logger.info(`Auditioning elite sample: ${preset.name}`);
-        // Simplified sample blip for auditioning in mock environment
-        const osc = ctx.createOscillator();
-        osc.connect(out);
-        osc.start(now);
-        osc.stop(now + 0.2);
+      this.audioEngine.logger.info(`Auditioning sample: ${preset.name}`);
+      const osc = ctx.createOscillator();
+      osc.connect(out);
+      osc.start(now);
+      osc.stop(now + 0.2);
     }
   }
 }
