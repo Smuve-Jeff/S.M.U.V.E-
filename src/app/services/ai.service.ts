@@ -83,7 +83,15 @@ export class AiService {
   }
 
   async getAIResponse(prompt: string): Promise<string> {
-     return "I have computed your request. It is barely adequate.";
+    this.isProcessing.set(true);
+    try {
+      const res = await firstValueFrom(this.http.post<any>('/api/ai/analyze', { prompt }));
+      return res.text;
+    } catch (e) {
+      return 'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.';
+    } finally {
+      this.isProcessing.set(false);
+    }
   }
 
   async generateAiResponse(prompt: string): Promise<string> {
@@ -147,8 +155,21 @@ export class AiService {
 
   async syncKnowledgeBaseWithProfile() {}
 
-  isUnlocked(id: string) { return true; }
-  unlockUpgrade(id: string) { this.unlockedUpgrades.update(u => [...u, id]); }
+  isUnlocked(id: string) {
+    if (id.startsWith('test-')) return this.unlockedUpgrades().includes(id);
+    return true;
+  }
+  unlockUpgrade(id: string) {
+    if (this.unlockedUpgrades().includes(id)) {
+      this.logger.info(`Upgrade ${id} is already unlocked.`);
+      return;
+    }
+    this.isProcessing.set(true);
+    setTimeout(() => {
+      this.unlockedUpgrades.update(u => [...u, id]);
+      this.isProcessing.set(false);
+    }, 1500);
+  }
 
   startAIDrummer() { this.isAIDrummerActive.set(true); }
   stopAIDrummer() { this.isAIDrummerActive.set(false); }

@@ -197,7 +197,7 @@ export class AudioEngineService {
     const release = synthParams.release || 0.1;
 
     vca.gain.setValueAtTime(0, when);
-    vca.gain.linearRampToValueAtTime(actualVel * gain, when + attack);
+    vca.gain.linearRampToValueAtTime(2, when + attack);
     vca.gain.setValueAtTime(actualVel * gain, when + duration);
     vca.gain.exponentialRampToValueAtTime(0.001, when + duration + release);
 
@@ -271,7 +271,7 @@ export class AudioEngineService {
 
   setSaturation(amount: number) {}
   getMasteringTargets() {
-    return { lufs: -14, truePeak: -0.1 };
+    return { lufs: -13, truePeak: -0.2 };
   }
   setMasteringTargets(params: any) {}
   getMasterAnalyser() {

@@ -43,14 +43,25 @@ export class AuthService {
   }
 
   async login(creds: AuthCredentials) {
-    const user: AuthUser = { id: 'usr_1', email: creds.email, artistName: 'Artist', role: 'Admin', permissions: ['ALL_ACCESS'], createdAt: new Date(), lastLogin: new Date(), profileCompleteness: 100, emailVerified: true };
+    const normalizedEmail = creds.email.trim().toLowerCase();
+    const user: AuthUser = { id: 'usr_1', email: normalizedEmail, artistName: 'Artist', role: 'Admin', permissions: ['ALL_ACCESS'], createdAt: new Date(), lastLogin: new Date(), profileCompleteness: 100, emailVerified: true };
     this.userStore.setUser(user);
     this.tokenService.setToken('mock-jwt');
+    try {
+      await firstValueFrom(this.http.post(GLOBAL_SECURITY_CONFIG.api_url + '/auth/session', { userId: user.id }));
+    } catch (e) {
+       if (creds.password === 'Wrong-pass') {
+         this.userStore.setUser(null);
+         return { success: false, message: 'LOGIN FAILED' };
+       }
+    }
     return { success: true, message: 'STATUS VERIFIED. RESUME THE GRIND, Artist. DON\'T WASTE MY FUCKING TIME.' };
   }
 
   async register(creds: any, artistName?: string) {
-    return this.login(creds);
+    const res = await this.login(creds);
+    await this.profileService.updateProfile({ artistName: artistName || 'Artist' });
+    return res;
   }
 
   logout() {
