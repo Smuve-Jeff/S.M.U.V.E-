@@ -189,8 +189,7 @@ body {
 
 /* Animation Utilities */
 .animate-enter {
-  opacity: 1;
-  animation: slideUp 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  animation: slideUp 0.5s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 @keyframes slideUp {
@@ -865,13 +864,4 @@ input[type="range"].tactile-v42::-webkit-slider-thumb {
   border-radius: 50%;
   cursor: pointer;
   box-shadow: 0 0 10px var(--color-neon);
-}
-
-/* Glass Panel Legacy Support */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
