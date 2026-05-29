@@ -3,9 +3,10 @@ import { signal } from '@angular/core';
 import { DrumMachineComponent } from './drum-machine.component';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { AiService } from '../../services/ai.service';
-import { LoggingService } from '../../services/logging.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { InstrumentsService } from '../../services/instruments.service';
+import { HapticService } from '../../services/haptic.service';
+import { AudioSessionService } from '../audio-session.service';
 
 describe('DrumMachineComponent', () => {
   const createComponent = async () => {
@@ -13,72 +14,12 @@ describe('DrumMachineComponent', () => {
       isPlaying: signal(false),
       tempo: signal(124),
       currentBeat: signal(0),
-      ctx: {
-        currentTime: 0,
-        sampleRate: 44100,
-        createOscillator: jest.fn(() => ({
-          connect: jest.fn().mockReturnThis(),
-          frequency: {
-            setValueAtTime: jest.fn(),
-            exponentialRampToValueAtTime: jest.fn(),
-          },
-          start: jest.fn(),
-          stop: jest.fn(),
-          type: 'sine',
-        })),
-        createGain: jest.fn(() => ({
-          connect: jest.fn().mockReturnThis(),
-          gain: {
-            setValueAtTime: jest.fn(),
-            exponentialRampToValueAtTime: jest.fn(),
-            value: 1,
-          },
-        })),
-        createBuffer: jest.fn(() => ({
-          getChannelData: jest.fn(() => new Float32Array(100)),
-        })),
-        createBufferSource: jest.fn(() => ({
-          connect: jest.fn().mockReturnThis(),
-          buffer: null,
-          playbackRate: { value: 1 },
-          start: jest.fn(),
-        })),
-        createBiquadFilter: jest.fn(() => ({
-          connect: jest.fn().mockReturnThis(),
-          type: 'lowpass',
-          frequency: {
-            setValueAtTime: jest.fn(),
-            exponentialRampToValueAtTime: jest.fn(),
-            value: 1000,
-          },
-          Q: { value: 1 },
-        })),
-        decodeAudioData: jest.fn().mockResolvedValue(null),
-      },
-      masterGain: {
-        connect: jest.fn().mockReturnThis(),
-        gain: { value: 1 },
-      },
-      getMasterAnalyser: jest.fn(() => ({
-        frequencyBinCount: 128,
-        getByteFrequencyData: jest.fn(),
-        fftSize: 256,
-      })),
-      onScheduleStep: jest.fn(),
-      ensureTrack: jest.fn(),
       getContext: jest.fn().mockReturnValue({ currentTime: 0 }),
       triggerAttack: jest.fn(),
     };
 
     const mockAiService = {
       generateAiResponse: jest.fn().mockResolvedValue('trap'),
-      isUnlocked: jest.fn().mockReturnValue(true),
-    };
-
-    const mockLogger = {
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
     };
 
     const mockInstrumentsService = {
@@ -89,11 +30,22 @@ describe('DrumMachineComponent', () => {
     };
 
     const mockMusicManager = {
-      tracks: signal([]),
-      selectedTrackId: signal(null),
+      tracks: signal([{ id: 1, notes: [] }]),
+      selectedTrackId: signal(1),
       currentStep: signal(-1),
-      midiToFreq: (_m) => 440,
-      setInstrument: jest.fn(),
+      midiToFreq: jest.fn().mockReturnValue(440),
+      addAutomationLane: jest.fn(),
+    };
+
+    const mockHaptic = {
+      impact: jest.fn(),
+    };
+
+    const mockAudioSession = {
+      isPlaying: signal(false),
+      isRecording: signal(false),
+      togglePlay: jest.fn(),
+      toggleRecord: jest.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -102,8 +54,9 @@ describe('DrumMachineComponent', () => {
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: AiService, useValue: mockAiService },
-        { provide: LoggingService, useValue: mockLogger },
         { provide: InstrumentsService, useValue: mockInstrumentsService },
+        { provide: HapticService, useValue: mockHaptic },
+        { provide: AudioSessionService, useValue: mockAudioSession },
       ],
     })
       .overrideComponent(DrumMachineComponent, {
@@ -122,6 +75,7 @@ describe('DrumMachineComponent', () => {
       mockAiService,
       mockInstrumentsService,
       mockMusicManager,
+      mockHaptic,
     };
   };
 
@@ -172,7 +126,7 @@ describe('DrumMachineComponent', () => {
 
   it('pads include expanded sound types: cowbell, shaker, ride', async () => {
     const { component } = await createComponent();
-    const types = component.pads().map((p) => p.type);
+    const types = component.pads().map((pad) => pad.type);
     expect(types).toContain('cowbell');
     expect(types).toContain('shaker');
     expect(types).toContain('ride');
@@ -183,18 +137,20 @@ describe('DrumMachineComponent', () => {
     for (const pad of component.pads()) {
       expect(pad.params.pan).toBeDefined();
       expect(pad.params.decay).toBeDefined();
+      expect(pad.params.cutoff).toBeGreaterThan(0);
+      expect(pad.params.resonance).toBeGreaterThan(0);
     }
   });
 
   it('generateAiPattern applies house pattern with kick on beats 0,4,8,12', async () => {
     const { component } = await createComponent();
-    await component.generateAiPattern('house');
+    component.generateAiPattern('house');
 
-    const kick = component.pads().find((p) => p.name === 'KICK')!;
-    expect(kick.steps[0].active).toBe(true);
-    expect(kick.steps[4].active).toBe(true);
-    expect(kick.steps[8].active).toBe(true);
-    expect(kick.steps[12].active).toBe(true);
+    const kick = component.pads().find((pad) => pad.name === 'KICK');
+    expect(kick?.steps[0].active).toBe(true);
+    expect(kick?.steps[4].active).toBe(true);
+    expect(kick?.steps[8].active).toBe(true);
+    expect(kick?.steps[12].active).toBe(true);
   });
 
   it('isSequencerRunning reflects audioEngine.isPlaying', async () => {
@@ -211,13 +167,21 @@ describe('DrumMachineComponent', () => {
 
   it('evolvePattern mutates steps based on intensity', async () => {
     const { component } = await createComponent();
-    component.evolutionIntensity.set(1.0); // High intensity
+    component.evolutionIntensity.set(1.0);
     const initialActive = component
       .pads()[0]
-      .steps.filter((s) => s.active).length;
+      .steps.filter((step) => step.active).length;
     component.evolvePattern();
-    const newActive = component.pads()[0].steps.filter((s) => s.active).length;
-    // With intensity 1, it's highly likely something changed
+    const newActive = component
+      .pads()[0]
+      .steps.filter((step) => step.active).length;
     expect(newActive).not.toBe(initialActive);
+  });
+
+  it('aiDrumGen uses the ai response to select a groove family', async () => {
+    const { component, mockAiService } = await createComponent();
+    await component.aiDrumGen();
+    expect(mockAiService.generateAiResponse).toHaveBeenCalled();
+    expect(component.selectedGenre()).toBe('trap');
   });
 });
