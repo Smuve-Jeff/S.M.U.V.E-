@@ -40,6 +40,7 @@ export class AuthService {
       const decoded = decodeURIComponent(escape(atob(session)));
       const [data, key] = decoded.split('|');
       if (key !== GLOBAL_SECURITY_CONFIG.auth_salt) {
+        localStorage.removeItem('smuve_auth_session');
         this.logger.error('AUTH_ALERT: SESSION INTEGRITY COMPROMISED.');
         return;
       }
