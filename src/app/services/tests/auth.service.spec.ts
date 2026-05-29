@@ -19,6 +19,7 @@ describe('AuthService', () => {
   let securityServiceMock: any;
   let profileServiceMock: any;
   let loginConfirmationServiceMock: any;
+  let loggingServiceMock: any;
 
   const AUTH_SESSION_URL =
     'https://s-m-u-v-e-2-0-fixed.onrender.com/api/auth/session';
@@ -47,6 +48,7 @@ describe('AuthService', () => {
     loginConfirmationServiceMock = {
       sendLoginConfirmation: jest.fn().mockResolvedValue(undefined),
     };
+    loggingServiceMock = { error: jest.fn(), warn: jest.fn(), info: jest.fn() };
 
     TestBed.configureTestingModule({
       providers: [
@@ -56,7 +58,7 @@ describe('AuthService', () => {
         { provide: SecurityService, useValue: securityServiceMock },
         {
           provide: LoggingService,
-          useValue: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
+          useValue: loggingServiceMock,
         },
         { provide: UserProfileService, useValue: profileServiceMock },
         {
@@ -146,5 +148,23 @@ describe('AuthService', () => {
     httpMock.expectNone(AUTH_SESSION_URL);
     expect(result.success).toBe(false);
     expect(profileServiceMock.updateProfile).not.toHaveBeenCalled();
+  });
+
+  it('falls back to a local session token when remote session creation fails', async () => {
+    const loginPromise = service.login({
+      email: 'artist@example.com',
+      password: 'Secret-pass123!',
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const req = httpMock.expectOne(AUTH_SESSION_URL);
+    req.error(new ErrorEvent('Network error'));
+
+    const result = await loginPromise;
+    expect(result.success).toBe(true);
+    expect(service.currentUser()?.email).toBe('artist@example.com');
+    expect(service.jwtToken()).toMatch(/^local\.usr_1\.\d+\.[a-f0-9]{32}$/);
+    expect(loggingServiceMock.warn).toHaveBeenCalled();
   });
 });

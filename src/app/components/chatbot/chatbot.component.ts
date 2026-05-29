@@ -11,7 +11,10 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
-import { UserProfileService } from '../../services/user-profile.service';
+import {
+  UserProfileService,
+  initialProfile,
+} from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
 import { UserContextService } from '../../services/user-context.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
@@ -20,6 +23,7 @@ import { LoggingService } from '../../services/logging.service';
 import { QUICK_COMMANDS } from './chatbot.commands';
 
 interface ChatMessage {
+  id: string;
   role: 'user' | 'assistant';
   text: string;
   timestamp: number;
@@ -60,6 +64,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   profile = this.userProfileService.profile;
   activeCommandCategory = signal<CommandCategory | null>(null);
   private conversationCounter = 0;
+  private messageCounter = 0;
 
   readonly quickCommands = QUICK_COMMANDS;
 
@@ -105,6 +110,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
 
     this.messages.set([
       {
+        id: this.nextMessageId(),
         role: 'assistant',
         text: welcome,
         timestamp: Date.now(),
@@ -125,7 +131,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     const category = this.detectMessageCategory(text);
     this.messages.update((m) => [
       ...m,
-      { role: 'user', text, timestamp: Date.now(), category },
+      {
+        id: this.nextMessageId(),
+        role: 'user',
+        text,
+        timestamp: Date.now(),
+        category,
+      },
     ]);
     this.userInput = '';
     this.isTyping.set(true);
@@ -145,34 +157,57 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     this.isTyping.set(false);
   }
 
-  private async streamResponse(fullText: string, category: ChatMessage['category']) {
+  private async streamResponse(
+    fullText: string,
+    category: ChatMessage['category']
+  ) {
+    const messageId = this.nextMessageId();
+    let messageIndex = -1;
     const msg: ChatMessage = {
+      id: messageId,
       role: 'assistant',
       text: '',
       timestamp: Date.now(),
       category,
-      isStreaming: true
+      isStreaming: true,
     };
 
-    this.messages.update(m => [...m, msg]);
-    const index = this.messages().length - 1;
+    this.messages.update((m) => {
+      messageIndex = m.length;
+      return [...m, msg];
+    });
 
     const words = fullText.split(' ');
     let currentText = '';
 
     for (let i = 0; i < words.length; i++) {
       currentText += words[i] + ' ';
-      this.messages.update(m => {
+      this.messages.update((m) => {
+        const index =
+          messageIndex >= 0 && m[messageIndex]?.id === messageId
+            ? messageIndex
+            : m.findIndex((entry) => entry.id === messageId);
+        if (index === -1) {
+          return m;
+        }
+        messageIndex = index;
         const next = [...m];
         next[index] = { ...next[index], text: currentText };
         return next;
       });
       // Varying speed for human-like/neural effect
       const delay = Math.random() * 50 + 20;
-      await new Promise(r => setTimeout(r, delay));
+      await new Promise((r) => setTimeout(r, delay));
     }
 
-    this.messages.update(m => {
+    this.messages.update((m) => {
+      const index =
+        messageIndex >= 0 && m[messageIndex]?.id === messageId
+          ? messageIndex
+          : m.findIndex((entry) => entry.id === messageId);
+      if (index === -1) {
+        return m;
+      }
       const next = [...m];
       next[index] = { ...next[index], isStreaming: false };
       return next;
@@ -192,21 +227,28 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
 
   toggleMimic() {
     const p = this.profile();
+    const aiSettings = this.resolveAiSettings(p);
+    const baseSettings = p.settings || initialProfile.settings;
     this.userProfileService.updateProfile({
       settings: {
-        ...p.settings,
-        ai: { ...p.settings.ai, aiMimicEnabled: !p.settings.ai.aiMimicEnabled }
-      }
+        ...baseSettings,
+        ai: { ...aiSettings, aiMimicEnabled: !aiSettings.aiMimicEnabled },
+      },
     });
   }
 
   toggleProfanity() {
     const p = this.profile();
+    const aiSettings = this.resolveAiSettings(p);
+    const baseSettings = p.settings || initialProfile.settings;
     this.userProfileService.updateProfile({
       settings: {
-        ...p.settings,
-        ai: { ...p.settings.ai, aiProfanityEnabled: !p.settings.ai.aiProfanityEnabled }
-      }
+        ...baseSettings,
+        ai: {
+          ...aiSettings,
+          aiProfanityEnabled: !aiSettings.aiProfanityEnabled,
+        },
+      },
     });
   }
 
@@ -292,13 +334,38 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
 
   toggleKbWriteAccess() {
     const p = this.profile();
+    const aiSettings = this.resolveAiSettings(p);
+    const baseSettings = p.settings || initialProfile.settings;
     this.userProfileService.updateProfile({
       ...p,
       settings: {
-        ...p.settings,
-        ai: { ...p.settings.ai, kbWriteAccess: !p.settings.ai.kbWriteAccess },
+        ...baseSettings,
+        ai: { ...aiSettings, kbWriteAccess: !aiSettings.kbWriteAccess },
       },
     });
+  }
+
+  private nextMessageId(): string {
+    this.messageCounter += 1;
+    return `msg-${this.messageCounter}`;
+  }
+
+  private resolveAiSettings(profile: {
+    settings?: {
+      ai?: Partial<{
+        aiMimicEnabled: boolean;
+        aiProfanityEnabled: boolean;
+        kbWriteAccess: boolean;
+      }>;
+    };
+  }) {
+    const aiSettings = profile?.settings?.ai || {};
+    return {
+      ...aiSettings,
+      aiMimicEnabled: aiSettings.aiMimicEnabled ?? false,
+      aiProfanityEnabled: aiSettings.aiProfanityEnabled ?? false,
+      kbWriteAccess: aiSettings.kbWriteAccess ?? false,
+    };
   }
 
   getCategoryAccent(category?: ChatMessage['category']): string {
@@ -343,6 +410,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     this.messages.update((msgs) => [
       ...msgs,
       {
+        id: this.nextMessageId(),
         role: 'assistant',
         text: `A problem occurred with ${context}. Please check the console for details.`,
         timestamp: Date.now(),
