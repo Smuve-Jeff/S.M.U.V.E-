@@ -295,3 +295,36 @@ input:checked + .slider-mini:before {
     grid-template-columns: 1fr 1fr;
   }
 }
+.graph-container {
+  height: 120px;
+  cursor: crosshair;
+}
+
+.graph-bar {
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+}
+
+.graph-bar:hover {
+  background: #00e5ff;
+}
+
+.time-ruler div {
+  transition: background 0.2s;
+}
+
+.playhead {
+  transition: left 0.1s linear;
+}
+
+@media (max-width: 768px) {
+  .pads-sidebar {
+    width: 60px;
+  }
+  .pad-name, .pads-sidebar .text-slate-600 {
+    display: none;
+  }
+  .param-inspector {
+    display: none;
+  }
+}

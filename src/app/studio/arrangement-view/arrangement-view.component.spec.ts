@@ -37,7 +37,7 @@ describe('ArrangementViewComponent', () => {
 
   it('should call musicManager.ensureTrack when adding a track', () => {
     component.addTrack();
-    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('grand-piano');
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('grand-piano-v2');
   });
 
   it('should calculate trackCount from musicManager.tracks', () => {

@@ -10,43 +10,33 @@ import { KnobComponent } from '../../shared/knob/knob.component';
   standalone: true,
   imports: [CommonModule, FormsModule, KnobComponent],
   template: `
-    <div class="universal-master glass-v42 wood-panel shadow-v42-xl">
-      <!-- Branding & Master Status -->
-      <div class="master-header">
-        <div class="branding">
-          <span class="neon-text font-black text-xs tracking-tighter">UNIVERSAL MASTER</span>
-          <span class="version text-[8px] opacity-50">S.M.U.V.E v4.2</span>
-        </div>
-        <div class="master-indicator" [class.active]="isPlaying()">
-          <div class="status-led" [class.recording]="isRecording()"></div>
-          <span class="status-text">{{ isRecording() ? 'RECORDING' : isPlaying() ? 'LIVE' : 'IDLE' }}</span>
-        </div>
-      </div>
+    <div class="universal-master glass-v42 wood-panel shadow-v42-xl border-b border-white/10">
+      <div class="master-grid flex items-center justify-between px-6 py-3 gap-8">
 
-      <div class="master-grid">
         <!-- Transport Cluster -->
-        <div class="transport-cluster glass-v42">
+        <div class="transport-cluster glass-v42 p-1 rounded-xl border border-white/5 flex gap-1">
           <button class="transport-btn tactile-v42" (click)="stop()" [class.active]="isStopped()">
-            <span class="material-symbols-outlined">stop</span>
+            <span class="material-symbols-outlined text-sm">stop</span>
           </button>
           <button class="transport-btn play-pause tactile-v42" (click)="togglePlay()" [class.active]="isPlaying()">
             <span class="material-symbols-outlined">{{ isPlaying() ? 'pause' : 'play_arrow' }}</span>
           </button>
-          <button class="transport-btn skip tactile-v42" (click)="skip()">
-            <span class="material-symbols-outlined">skip_next</span>
-          </button>
           <button class="transport-btn record tactile-v42" (click)="toggleRecord()" [class.recording]="isRecording()">
-            <span class="material-symbols-outlined">fiber_manual_record</span>
-          </button>
-          <button class="transport-btn upload tactile-v42" (click)="upload()">
-            <span class="material-symbols-outlined">cloud_upload</span>
+            <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
           </button>
         </div>
 
+        <!-- Global Macros -->
+        <div class="macro-cluster hidden lg:flex items-center gap-6 border-l border-white/5 pl-8">
+           <app-knob label="GRIT" [min]="0" [max]="100" [value]="30" [showValue]="false" (valueChange)="applyMacro('grit', $event)"></app-knob>
+           <app-knob label="SPACE" [min]="0" [max]="100" [value]="15" [showValue]="false" (valueChange)="applyMacro('space', $event)"></app-knob>
+           <app-knob label="WIDTH" [min]="0" [max]="100" [value]="80" [showValue]="false" (valueChange)="applyMacro('width', $event)"></app-knob>
+        </div>
+
         <!-- Master Knobs -->
-        <div class="knob-cluster">
+        <div class="knob-cluster flex gap-6 items-center flex-1 justify-center">
           <app-knob
-            label="OUTPUT"
+            label="MASTER"
             [min]="0"
             [max]="100"
             [value]="masterVolume()"
@@ -73,10 +63,23 @@ import { KnobComponent } from '../../shared/knob/knob.component';
           </app-knob>
         </div>
 
-        <!-- Advanced Controls Toggle -->
-        <div class="advanced-toggle">
-          <button class="metronome-btn tactile-v42" [class.active]="audioEngine.metronomeEnabled()" (click)="audioEngine.toggleMetronome()">
-            <span class="material-symbols-outlined">metronome</span>
+        <!-- System Stats -->
+        <div class="system-stats hidden xl:flex flex-col gap-1 items-end border-l border-white/5 pl-8">
+           <div class="master-indicator flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 border border-white/5">
+              <div class="status-led" [class.active]="isPlaying()" [class.recording]="isRecording()"></div>
+              <span class="status-text text-[8px] font-black tracking-widest text-slate-500">
+                {{ isRecording() ? 'RECORDING' : isPlaying() ? 'MASTER_LIVE' : 'ENGINE_IDLE' }}
+              </span>
+           </div>
+           <span class="text-[7px] font-mono text-slate-700 uppercase tracking-tighter">S.M.U.V.E Audio Engine v4.2 PRO</span>
+        </div>
+
+        <!-- Metronome Toggle -->
+        <div class="advanced-toggle border-l border-white/5 pl-8">
+          <button class="metronome-btn tactile-v42 w-10 h-10 rounded-lg flex items-center justify-center border border-white/5"
+                  [class.active]="audioEngine.metronomeEnabled()"
+                  (click)="audioEngine.toggleMetronome()">
+            <span class="material-symbols-outlined text-sm">metronome</span>
           </button>
         </div>
       </div>
@@ -84,105 +87,43 @@ import { KnobComponent } from '../../shared/knob/knob.component';
   `,
   styles: [`
     .universal-master {
-      padding: 16px;
-      border-radius: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      min-width: 320px;
       user-select: none;
-    }
-    .master-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    .branding {
-      display: flex;
-      flex-direction: column;
-    }
-    .master-indicator {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(0,0,0,0.3);
-      padding: 4px 10px;
-      border-radius: 100px;
-      border: 1px solid rgba(255,255,255,0.05);
+      z-index: 50;
     }
     .status-led {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
-      background: #333;
+      background: #222;
+      transition: all 0.3s;
     }
-    .master-indicator.active .status-led {
+    .status-led.active {
       background: #10b981;
       box-shadow: 0 0 8px #10b981;
     }
     .status-led.recording {
       background: #ef4444 !important;
-      box-shadow: 0 0 8px #ef4444 !important;
+      box-shadow: 0 0 10px #ef4444 !important;
       animation: pulse 1s infinite;
     }
-    .status-text {
-      font-size: 8px;
-      font-weight: 900;
-      letter-spacing: 0.1em;
-      color: #7a7a9a;
-    }
-    .master-grid {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-    .transport-cluster {
-      display: flex;
-      gap: 8px;
-      padding: 8px;
-      border-radius: 12px;
-      background: rgba(0,0,0,0.2);
-    }
     .transport-btn {
-      width: 48px;
-      height: 48px;
-      border-radius: 10px;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.05);
       color: #7a7a9a;
-      transition: all 0.2s;
     }
     .transport-btn.active {
-      background: rgba(236, 91, 19, 0.1);
-      border-color: #ec5b13;
-      color: #ec5b13;
-      box-shadow: 0 0 15px rgba(236, 91, 19, 0.2);
+      background: rgba(0, 229, 255, 0.1);
+      color: #00e5ff;
+      border-color: #00e5ff;
     }
     .transport-btn.recording.active {
       color: #ef4444;
       border-color: #ef4444;
       background: rgba(239, 68, 68, 0.1);
-    }
-    .knob-cluster {
-      display: flex;
-      gap: 16px;
-    }
-    .metronome-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      color: #7a7a9a;
     }
     .metronome-btn.active {
       color: #a855f7;
@@ -190,19 +131,13 @@ import { KnobComponent } from '../../shared/knob/knob.component';
       box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
     }
     @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.4; }
-      100% { opacity: 1; }
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
-    @media (max-width: 640px) {
-      .universal-master {
-        min-width: 0;
-        width: 100%;
-      }
-      .transport-btn {
-        width: 44px;
-        height: 44px;
-      }
+    @media (max-width: 768px) {
+      .knob-cluster { gap: 10px; }
+      .system-stats, .advanced-toggle, .macro-cluster { display: none; }
+      .master-grid { padding: 10px; justify-content: center; }
     }
   `]
 })
@@ -215,27 +150,9 @@ export class UniversalMasterComponent {
   isStopped = this.audioSession.isStopped;
   masterVolume = this.audioSession.masterVolume;
 
-  togglePlay(): void {
-    this.audioSession.togglePlay();
-  }
-
-  toggleRecord(): void {
-    this.audioSession.toggleRecord();
-  }
-
-  stop(): void {
-    this.audioSession.stop();
-  }
-
-  skip(): void {
-    // Basic skip implementation - forward 1 bar or similar
-    // For now just logging, can be expanded to actual transport skip
-    console.log('Master Skip Triggered');
-  }
-
-  upload(): void {
-    console.log('Master Upload Triggered');
-  }
+  togglePlay(): void { this.audioSession.togglePlay(); }
+  toggleRecord(): void { this.audioSession.toggleRecord(); }
+  stop(): void { this.audioSession.stop(); }
 
   updateMasterVolume(val: number): void {
     this.audioSession.updateMasterVolume(val);
@@ -243,5 +160,18 @@ export class UniversalMasterComponent {
 
   updateMetronomeVolume(val: number): void {
     this.audioEngine.setMetronomeVolume(val / 100);
+  }
+
+  applyMacro(type: string, value: number) {
+    if (type === 'grit') {
+       this.audioEngine.setSaturation(value / 100);
+    } else if (type === 'space') {
+       if (this.audioEngine.reverbWet) {
+          this.audioEngine.reverbWet.gain.setValueAtTime(value / 100, this.audioEngine.ctx.currentTime);
+       }
+    } else if (type === 'width') {
+       // Width logic could involve a mid-side processor or panning spread
+       console.log('Global Width Macro set to', value);
+    }
   }
 }

@@ -1,9 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PerformerComponent } from './performer.component';
+import { AudioSessionService } from '../audio-session.service';
 import { MusicManagerService } from '../../services/music-manager.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
 import { LiveEngineService } from '../../services/live-engine.service';
 import { InstrumentsService } from '../../services/instruments.service';
+import { HapticService } from '../../services/haptic.service';
 import { FormsModule } from '@angular/forms';
 import { signal } from '@angular/core';
 
@@ -14,11 +15,14 @@ describe('PerformerComponent', () => {
 
   beforeEach(async () => {
     mockLiveEngine = {
-      activeInstrument: signal('cyber-lead'),
+      activeInstrument: signal('grand-piano-v2'),
       smartChords: signal(false),
+      initialize: jest.fn().mockResolvedValue(true),
       setInstrument: jest.fn().mockResolvedValue(true),
-      triggerAttack: jest.fn(),
-      triggerRelease: jest.fn(),
+      triggerNoteStart: jest.fn(),
+      triggerNoteEnd: jest.fn(),
+      setPitchBend: jest.fn(),
+      setModulation: jest.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -26,15 +30,28 @@ describe('PerformerComponent', () => {
       providers: [
         {
           provide: MusicManagerService,
-          useValue: { recordLiveNote: jest.fn() },
+          useValue: {
+            recordLiveNote: jest.fn(),
+            setActivePatternSlot: jest.fn(),
+            tracks: signal([]),
+          },
         },
         {
-          provide: AudioEngineService,
-          useValue: {},
+          provide: AudioSessionService,
+          useValue: {
+            isPlaying: signal(false),
+            isRecording: signal(false),
+            togglePlay: jest.fn(),
+            toggleRecord: jest.fn(),
+          },
         },
         {
           provide: LiveEngineService,
           useValue: mockLiveEngine,
+        },
+        {
+          provide: HapticService,
+          useValue: { light: jest.fn(), impact: jest.fn() },
         },
         InstrumentsService,
       ],
@@ -50,8 +67,8 @@ describe('PerformerComponent', () => {
   });
 
   it('should set instrument', async () => {
-    await component.setInstrument('hard-808');
-    expect(mockLiveEngine.setInstrument).toHaveBeenCalledWith('hard-808');
+    await component.setInstrument('analog-warmth');
+    expect(mockLiveEngine.setInstrument).toHaveBeenCalledWith('analog-warmth');
   });
 
   it('should toggle smart chords', () => {
