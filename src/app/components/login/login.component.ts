@@ -37,13 +37,13 @@ export class LoginComponent implements OnInit {
   };
   artistName = '';
 
-  passwordValidation = computed(() => {
+  get passwordValidation() {
     try {
       return this.authService.validatePassword(this.credentials.password || '');
     } catch (e) {
       return { isValid: false, errors: ['Validation engine failure.'] };
     }
-  });
+  }
 
   ngOnInit() {
     this.logger.system('LOGIN_SURFACE_INITIALIZED');
