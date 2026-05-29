@@ -41,6 +41,7 @@ export class PerformerComponent implements OnInit, OnDestroy {
 
   keyboardKeys: any[] = [];
   performerPads: any[] = [];
+  private triggeredNotes = new Map<number, string>();
 
   constructor() {
     this.availableInstruments.set(this.instrumentsService.getPresets());
