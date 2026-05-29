@@ -164,7 +164,7 @@ describe('AuthService', () => {
     const result = await loginPromise;
     expect(result.success).toBe(true);
     expect(service.currentUser()?.email).toBe('artist@example.com');
-    expect(service.jwtToken()).toMatch(/^[A-Za-z0-9+/=]+$/);
+    expect(service.jwtToken()).toMatch(/^local\.usr_1\.\d+\.[a-f0-9]{32}$/);
     expect(loggingServiceMock.warn).toHaveBeenCalled();
   });
 });

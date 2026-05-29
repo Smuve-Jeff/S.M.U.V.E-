@@ -131,10 +131,7 @@ export class AiService {
     const words = text.split(' ').filter((w) => w.length > 4);
     this.mimicryBuffer.push(...words);
     if (this.mimicryBuffer.length > this.MAX_MIMICRY) {
-      this.mimicryBuffer.splice(
-        0,
-        this.mimicryBuffer.length - this.MAX_MIMICRY
-      );
+      this.mimicryBuffer = this.mimicryBuffer.slice(-this.MAX_MIMICRY);
     }
   }
 

@@ -162,6 +162,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     category: ChatMessage['category']
   ) {
     const messageId = this.nextMessageId();
+    let messageIndex = -1;
     const msg: ChatMessage = {
       id: messageId,
       role: 'assistant',
@@ -171,7 +172,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       isStreaming: true,
     };
 
-    this.messages.update((m) => [...m, msg]);
+    this.messages.update((m) => {
+      messageIndex = m.length;
+      return [...m, msg];
+    });
 
     const words = fullText.split(' ');
     let currentText = '';
@@ -179,10 +183,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     for (let i = 0; i < words.length; i++) {
       currentText += words[i] + ' ';
       this.messages.update((m) => {
-        const index = m.findIndex((entry) => entry.id === messageId);
+        const index =
+          messageIndex >= 0 && m[messageIndex]?.id === messageId
+            ? messageIndex
+            : m.findIndex((entry) => entry.id === messageId);
         if (index === -1) {
           return m;
         }
+        messageIndex = index;
         const next = [...m];
         next[index] = { ...next[index], text: currentText };
         return next;
@@ -193,7 +201,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     }
 
     this.messages.update((m) => {
-      const index = m.findIndex((entry) => entry.id === messageId);
+      const index =
+        messageIndex >= 0 && m[messageIndex]?.id === messageId
+          ? messageIndex
+          : m.findIndex((entry) => entry.id === messageId);
       if (index === -1) {
         return m;
       }
@@ -339,12 +350,21 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     return `msg-${this.messageCounter}`;
   }
 
-  private resolveAiSettings(profile: any) {
+  private resolveAiSettings(profile: {
+    settings?: {
+      ai?: Partial<{
+        aiMimicEnabled: boolean;
+        aiProfanityEnabled: boolean;
+        kbWriteAccess: boolean;
+      }>;
+    };
+  }) {
+    const aiSettings = profile?.settings?.ai || {};
     return {
-      aiMimicEnabled: profile?.settings?.ai?.aiMimicEnabled ?? false,
-      aiProfanityEnabled: profile?.settings?.ai?.aiProfanityEnabled ?? false,
-      kbWriteAccess: profile?.settings?.ai?.kbWriteAccess ?? false,
-      ...(profile?.settings?.ai || {}),
+      ...aiSettings,
+      aiMimicEnabled: aiSettings.aiMimicEnabled ?? false,
+      aiProfanityEnabled: aiSettings.aiProfanityEnabled ?? false,
+      kbWriteAccess: aiSettings.kbWriteAccess ?? false,
     };
   }
 

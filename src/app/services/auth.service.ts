@@ -102,13 +102,12 @@ export class AuthService {
   }
 
   private createLocalSessionToken(user: AuthUser): string {
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      issuedAt: Date.now(),
-      iss: 'smuve-local-fallback',
-    };
-    return btoa(JSON.stringify(payload));
+    const randomBytes = new Uint8Array(16);
+    crypto.getRandomValues(randomBytes);
+    const random = Array.from(randomBytes, (value) =>
+      value.toString(16).padStart(2, '0')
+    ).join('');
+    return `local.${user.id}.${Date.now()}.${random}`;
   }
 
   async register(creds: AuthCredentials, artistName?: string) {
