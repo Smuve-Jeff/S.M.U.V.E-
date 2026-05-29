@@ -68,7 +68,7 @@ export class LoginComponent implements OnInit {
       if (this.isVerifying()) {
         result = await this.authService.verifyEmail(this.verificationCode);
       } else if (this.isRegistering()) {
-        const validation = this.passwordValidation();
+        const validation = this.passwordValidation;
         if (!validation.isValid) {
           this.isError.set(true);
           this.message.set(validation.errors[0]);
