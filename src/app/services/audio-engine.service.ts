@@ -71,10 +71,12 @@ export class AudioEngineService {
   private deckB!: DeckChannel;
 
   constructor() {
-    this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    this.setupMasterChain();
-    this.initDeck('A');
-    this.initDeck('B');
+    if (typeof window !== 'undefined') {
+      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.setupMasterChain();
+      this.initDeck('A');
+      this.initDeck('B');
+    }
   }
 
   public get recorder(): StudioRecordingEngineService {

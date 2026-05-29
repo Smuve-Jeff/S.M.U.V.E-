@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject, signal, computed , Injector } from '@angular/core';
 import { InstrumentsService, InstrumentPreset } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
@@ -101,12 +101,13 @@ export interface TrackModel {
 @Injectable({
   providedIn: 'root',
 })
-export class MusicManagerService {
+export class MusicManagerService  {
+  private injector = inject(Injector);
   private instruments = inject(InstrumentsService);
   public engine = inject(AudioEngineService);
   private logger = inject(LoggingService);
   private fileLoader = inject(FileLoaderService);
-  private audioSession = inject(AudioSessionService);
+  private get audioSession(): AudioSessionService { return this.injector.get(AudioSessionService); }
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);

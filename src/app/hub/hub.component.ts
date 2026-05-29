@@ -274,6 +274,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     const update = () => {
       if (this.playerService.isPlaying()) {
         const analyser = this.audioEngine.getAnalyser();
+        if (!analyser) return;
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         analyser.getByteFrequencyData(dataArray);

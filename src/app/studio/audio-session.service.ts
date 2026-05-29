@@ -1,5 +1,5 @@
 import { LoggingService } from '../services/logging.service';
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed, inject , Injector } from '@angular/core';
 import { InstrumentService } from './instrument.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { PlaybackState } from './playback-state';
@@ -19,9 +19,10 @@ export interface MicChannel {
 @Injectable({
   providedIn: 'root',
 })
-export class AudioSessionService {
+export class AudioSessionService  {
+  private injector = inject(Injector);
   private logger = inject(LoggingService);
-  private readonly instrumentService = inject(InstrumentService);
+  private get instrumentService(): InstrumentService { return this.injector.get(InstrumentService); }
   private readonly engine = inject(AudioEngineService);
   private readonly micService = inject(MicrophoneService);
   private readonly recordingEngine = inject(StudioRecordingEngineService);
@@ -54,7 +55,12 @@ export class AudioSessionService {
   availableDevices = this.micService.availableDevices;
 
   constructor() {
-    this.instrumentService.connect(this.engine.getContext().destination);
+    setTimeout(() => {
+      const ctx = this.engine.getContext();
+      if (ctx && ctx.destination) {
+        this.instrumentService.connect(ctx.destination);
+      }
+    }, 0);
     const armed = this.micChannels().find((ch) => ch.armed);
     if (armed) {
       this.initializeMic(armed.id);

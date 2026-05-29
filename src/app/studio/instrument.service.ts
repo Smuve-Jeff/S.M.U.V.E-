@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject , Injector } from '@angular/core';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { MusicManagerService } from '../services/music-manager.service';
 
@@ -11,9 +11,10 @@ export interface Clip {
 @Injectable({
   providedIn: 'root'
 })
-export class InstrumentService {
+export class InstrumentService  {
+  private injector = inject(Injector);
   private engine = inject(AudioEngineService);
-  private musicManager = inject(MusicManagerService);
+  private get musicManager(): MusicManagerService { return this.injector.get(MusicManagerService); }
 
   public get compressor() {
     return this.engine.compressor;
