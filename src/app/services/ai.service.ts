@@ -86,7 +86,7 @@ export class AiService {
     this.isProcessing.set(true);
     try {
       const res = await firstValueFrom(this.http.post<any>('/api/ai/analyze', { prompt }));
-      return res.text;
+      return res?.text || 'Strategic Link Severed. Offline processing active.';
     } catch (e) {
       return 'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.';
     } finally {
