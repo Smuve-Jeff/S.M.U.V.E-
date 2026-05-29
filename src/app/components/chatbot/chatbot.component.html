@@ -27,6 +27,22 @@
     </div>
     <div class="flex items-center gap-3">
       <button
+        (click)="toggleMimic()"
+        class="p-2 rounded-xl transition-all"
+        [class.text-brand-primary]="profile().settings.ai.aiMimicEnabled"
+        [class.text-slate-600]="!profile().settings.ai.aiMimicEnabled"
+        title="Mimic Mode: Tracking your pathetic input">
+        <span class="material-symbols-outlined text-lg">psychology</span>
+      </button>
+      <button
+        (click)="toggleProfanity()"
+        class="p-2 rounded-xl transition-all"
+        [class.text-red-500]="profile().settings.ai.aiProfanityEnabled"
+        [class.text-slate-600]="!profile().settings.ai.aiProfanityEnabled"
+        title="Vulgar Mode: Hardening persona boundaries">
+        <span class="material-symbols-outlined text-lg">mood_bad</span>
+      </button>
+      <button
         (click)="toggleKbWriteAccess()"
         class="p-2 rounded-xl transition-all"
         [class.text-brand-primary]="profile().settings.ai.kbWriteAccess"
@@ -129,8 +145,7 @@
       </div>
       <span
         class="text-[7px] font-black text-slate-700 uppercase tracking-widest px-2"
-        >{{ msg.timestamp | date: 'HH:mm:ss' }}_UTC</span
-      >
+        >{{ msg.timestamp | date: 'HH:mm:ss' }}_UTC</span>
     </div>
     <div
       *ngIf="isTyping()"

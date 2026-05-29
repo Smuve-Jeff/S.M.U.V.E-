@@ -13,7 +13,7 @@ export interface AppSettings {
     autoPianoRoll: boolean;
   };
   audio: { masterVolume: number; autoSaveEnabled: boolean };
-  ai: { kbWriteAccess: boolean; commanderPersona: string };
+  ai: { kbWriteAccess: boolean; commanderPersona: string; aiMimicEnabled: boolean; aiProfanityEnabled: boolean; aiConversationalTier: "Standard" | "Elite" | "God" };
   security: {
     twoFactorEnabled: boolean;
     endToEndEncryption: boolean;
@@ -202,7 +202,7 @@ export const initialProfile: UserProfile = {
   settings: {
     ui: { theme: 'Dark', performanceMode: false, showScanlines: false, animationsEnabled: true, autoPianoRoll: false },
     audio: { masterVolume: 0.8, autoSaveEnabled: true },
-    ai: { kbWriteAccess: true, commanderPersona: 'Elite' },
+    ai: { kbWriteAccess: true, commanderPersona: 'Elite', aiMimicEnabled: false, aiProfanityEnabled: false, aiConversationalTier: 'Standard' },
     security: { twoFactorEnabled: false, endToEndEncryption: false, biometricLock: false, auditLogEnabled: true, sessionTimeout: 3600 },
   },
   artistName: 'New Artist', primaryGenre: 'Hip Hop',
