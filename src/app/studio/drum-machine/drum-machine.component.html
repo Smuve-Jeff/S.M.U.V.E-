@@ -207,8 +207,7 @@
               "
               class="absolute top-1 left-1/2 -translate-x-1/2 text-[6px] font-mono text-white/60"
             >
-              {{ pad.steps[stepIndex].nudge > 0 ? '+' : ''
-              }}{{ pad.steps[stepIndex].nudge | number: '1.2-2' }}
+              {{ formatNudgeDisplay(pad.steps[stepIndex].nudge) }}
             </div>
           </div>
         </div>

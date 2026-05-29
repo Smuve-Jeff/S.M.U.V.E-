@@ -17,7 +17,6 @@ import {
   TrackNote,
 } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
-import { InstrumentsService } from '../../services/instruments.service';
 import { AiService } from '../../services/ai.service';
 import { HapticService } from '../../services/haptic.service';
 
@@ -60,6 +59,10 @@ interface DrumPadBlueprint {
 const TOTAL_STEPS = 64;
 const STEPS_PER_BAR = 16;
 const BAR_COUNT = TOTAL_STEPS / STEPS_PER_BAR;
+const EVOLUTION_HIGH_INTENSITY_THRESHOLD = 0.6;
+const EVOLUTION_TOGGLE_INTENSITY_THRESHOLD = 0.72;
+const GRAPH_EDIT_SENSITIVITY = 120;
+const GRAPH_NUDGE_ACTIVATION_THRESHOLD = 0.01;
 const GENRES: DrumGenre[] = ['house', 'trap', 'afrobeats', 'drill', 'dnb'];
 const BAR_RANGE = Array.from({ length: BAR_COUNT }, (_, index) => index);
 const STEP_RANGE = Array.from({ length: TOTAL_STEPS }, (_, index) => index);
@@ -147,7 +150,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
   {
     id: 'tom-low',
     name: 'TOM L',
-    midi: 41,
+    midi: 40,
     color: '#4d88ff',
     type: 'tom',
     params: {
@@ -262,7 +265,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   public readonly musicManager = inject(MusicManagerService);
   public readonly engine = inject(AudioEngineService);
   public readonly audioSession = inject(AudioSessionService);
-  private readonly instrumentsService = inject(InstrumentsService);
   private readonly haptic = inject(HapticService);
   public readonly aiService = inject(AiService);
 
@@ -309,8 +311,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   private readonly triggeredPadIds = signal<string[]>([]);
 
   constructor() {
-    void this.instrumentsService.getPresets();
-
     this.evolutionEffect = effect(() => {
       const step = this.currentStep();
       if (step < 0) {
@@ -471,13 +471,15 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
         const steps = pad.steps.map((step, stepIndex) => {
           const shouldMutate =
             step.active &&
-            ((stepIndex + padIndex) % 4 === 0 || intensity > 0.6);
+            ((stepIndex + padIndex) % 4 === 0 ||
+              intensity > EVOLUTION_HIGH_INTENSITY_THRESHOLD);
           if (!shouldMutate) {
             return step;
           }
 
           const toggled =
-            intensity > 0.72 && stepIndex % 8 === 7
+            intensity > EVOLUTION_TOGGLE_INTENSITY_THRESHOLD &&
+            stepIndex % 8 === 7
               ? !step.active
               : step.active;
           return {
@@ -518,7 +520,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     const initialValue = this.getGraphValue(pad.steps[stepIndex]);
 
     const onMove = (moveEvent: MouseEvent) => {
-      const delta = (initialY - moveEvent.clientY) / 120;
+      const delta = (initialY - moveEvent.clientY) / GRAPH_EDIT_SENSITIVITY;
       this.pads.update((pads) =>
         pads.map((currentPad) =>
           currentPad.id === pad.id
@@ -548,9 +550,9 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   generateAiPattern(genre: DrumGenre = this.selectedGenre()) {
     this.selectedGenre.set(genre);
     this.pads.update((pads) =>
-      pads.map((pad, index) => ({
+      pads.map((pad) => ({
         ...pad,
-        steps: this.buildGenreSteps(pad, genre, index),
+        steps: this.buildGenreSteps(pad, genre),
       }))
     );
     this.syncToMusicManager();
@@ -590,7 +592,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   getGraphValueLabel(step: DrumStep): string {
     const value = this.getGraphValue(step);
     if (this.graphTarget() === 'nudge') {
-      return `${Math.round(value * 100)} ms`;
+      return this.formatNudgeDisplay(value);
     }
     return `${Math.round(value * 100)}%`;
   }
@@ -669,35 +671,33 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     );
   }
 
-  private buildGenreSteps(
-    pad: DrumPad,
-    genre: DrumGenre,
-    padIndex: number
-  ): DrumStep[] {
+  private buildGenreSteps(pad: DrumPad, genre: DrumGenre): DrumStep[] {
     const steps = this.initSteps();
 
     switch (genre) {
       case 'trap':
-        this.applyTrapPattern(pad, steps, padIndex);
+        this.applyTrapPattern(pad, steps);
         break;
       case 'afrobeats':
-        this.applyAfrobeatsPattern(pad, steps, padIndex);
+        this.applyAfrobeatsPattern(pad, steps);
         break;
       case 'drill':
-        this.applyDrillPattern(pad, steps, padIndex);
+        this.applyDrillPattern(pad, steps);
         break;
       case 'dnb':
-        this.applyDnbPattern(pad, steps, padIndex);
+        this.applyDnbPattern(pad, steps);
         break;
       default:
-        this.applyHousePattern(pad, steps, padIndex);
+        this.applyHousePattern(pad, steps);
         break;
     }
 
     return steps;
   }
 
-  private applyHousePattern(pad: DrumPad, steps: DrumStep[], padIndex: number) {
+  private applyHousePattern(pad: DrumPad, steps: DrumStep[]) {
+    const tomIndex = this.getTomIndex(pad);
+
     if (pad.name === 'KICK') {
       this.repeatBarPattern(steps, [0, 4, 8, 12], { velocity: 0.98 });
     } else if (pad.name === 'SNARE' || pad.name === 'CLAP') {
@@ -735,14 +735,16 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
         probability: 0.64,
       });
     } else if (pad.type === 'tom') {
-      this.applyPattern(steps, [46 + padIndex, 62], {
+      this.applyPattern(steps, [46 + tomIndex * 4, 58 + tomIndex * 2], {
         velocity: 0.74,
         probability: 0.78,
       });
     }
   }
 
-  private applyTrapPattern(pad: DrumPad, steps: DrumStep[], padIndex: number) {
+  private applyTrapPattern(pad: DrumPad, steps: DrumStep[]) {
+    const tomIndex = this.getTomIndex(pad);
+
     if (pad.name === 'KICK') {
       this.repeatPatternWithVariation(steps, [0, 7, 10], [0, 6, 10, 13], {
         velocity: 0.96,
@@ -776,18 +778,20 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     } else if (pad.type === 'ride') {
       this.repeatBarPattern(steps, [12], { velocity: 0.45, probability: 0.65 });
     } else if (pad.type === 'tom') {
-      this.applyPattern(steps, [27 + padIndex, 31, 59], {
-        velocity: 0.8,
-        probability: 0.82,
-      });
+      this.applyPattern(
+        steps,
+        [27 + tomIndex * 2, 31 + tomIndex * 2, 55 + tomIndex],
+        {
+          velocity: 0.8,
+          probability: 0.82,
+        }
+      );
     }
   }
 
-  private applyAfrobeatsPattern(
-    pad: DrumPad,
-    steps: DrumStep[],
-    padIndex: number
-  ) {
+  private applyAfrobeatsPattern(pad: DrumPad, steps: DrumStep[]) {
+    const tomIndex = this.getTomIndex(pad);
+
     if (pad.name === 'KICK') {
       this.repeatPatternWithVariation(steps, [0, 3, 9, 12], [0, 6, 9, 13], {
         velocity: 0.9,
@@ -824,14 +828,20 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
         probability: 0.64,
       });
     } else if (pad.type === 'tom') {
-      this.applyPattern(steps, [29 + padIndex, 45 + padIndex, 61], {
-        velocity: 0.78,
-        probability: 0.8,
-      });
+      this.applyPattern(
+        steps,
+        [29 + tomIndex * 2, 45 + tomIndex * 2, 57 + tomIndex],
+        {
+          velocity: 0.78,
+          probability: 0.8,
+        }
+      );
     }
   }
 
-  private applyDrillPattern(pad: DrumPad, steps: DrumStep[], padIndex: number) {
+  private applyDrillPattern(pad: DrumPad, steps: DrumStep[]) {
+    const tomIndex = this.getTomIndex(pad);
+
     if (pad.name === 'KICK') {
       this.repeatPatternWithVariation(steps, [0, 5, 10, 13], [0, 6, 11, 14], {
         velocity: 0.94,
@@ -871,14 +881,20 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
         probability: 0.66,
       });
     } else if (pad.type === 'tom') {
-      this.applyPattern(steps, [28 + padIndex, 44 + padIndex, 60], {
-        velocity: 0.76,
-        probability: 0.78,
-      });
+      this.applyPattern(
+        steps,
+        [28 + tomIndex * 2, 44 + tomIndex * 2, 56 + tomIndex],
+        {
+          velocity: 0.76,
+          probability: 0.78,
+        }
+      );
     }
   }
 
-  private applyDnbPattern(pad: DrumPad, steps: DrumStep[], padIndex: number) {
+  private applyDnbPattern(pad: DrumPad, steps: DrumStep[]) {
+    const tomIndex = this.getTomIndex(pad);
+
     if (pad.name === 'KICK') {
       this.repeatPatternWithVariation(steps, [0, 10], [0, 9, 10], {
         velocity: 0.98,
@@ -910,10 +926,14 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
         probability: 0.68,
       });
     } else if (pad.type === 'tom') {
-      this.applyPattern(steps, [27 + padIndex, 43 + padIndex, 59], {
-        velocity: 0.74,
-        probability: 0.8,
-      });
+      this.applyPattern(
+        steps,
+        [27 + tomIndex * 2, 43 + tomIndex * 2, 55 + tomIndex],
+        {
+          velocity: 0.74,
+          probability: 0.8,
+        }
+      );
     }
   }
 
@@ -992,7 +1012,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       case 'probability':
         return step.probability;
       case 'nudge':
-        return Math.abs(step.nudge);
+        return step.nudge;
       default:
         return step.velocity;
     }
@@ -1009,8 +1029,9 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
       case 'nudge':
         return {
           ...step,
-          nudge: this.clamp(value - 0.5, -0.5, 0.5),
-          active: step.active || Math.abs(value) > 0,
+          nudge: this.clamp(value, -0.5, 0.5),
+          active:
+            step.active || Math.abs(value) > GRAPH_NUDGE_ACTIVATION_THRESHOLD,
         };
       default:
         return {
@@ -1023,6 +1044,21 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   private clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
+  }
+
+  formatNudgeDisplay(value: number): string {
+    return `${value > 0 ? '+' : ''}${value.toFixed(2)} step`;
+  }
+
+  private getTomIndex(pad: DrumPad): number {
+    switch (pad.id) {
+      case 'tom-mid':
+        return 1;
+      case 'tom-high':
+        return 2;
+      default:
+        return 0;
+    }
   }
 
   private syncToMusicManager() {
