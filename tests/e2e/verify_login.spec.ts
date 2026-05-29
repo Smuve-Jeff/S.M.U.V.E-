@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('login page should be visible and not blank', async ({ page }) => {
-  await page.goto('http://localhost:3000/login');
+  await page.goto('/login');
 
   // Wait for the S.M.U.V.E. text to appear
   const header = page.locator('h1');
