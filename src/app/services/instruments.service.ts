@@ -123,7 +123,7 @@ export class InstrumentsService {
       id: 'solo-violin-elite',
       name: 'Solo Violin Elite',
       type: 'sample',
-      category: 'other', // Or adding 'violin' if typed
+      category: 'strings',
       tags: ['acoustic', 'solo', 'virtuoso', 'elite'],
       sampleQuality: 'high',
       zones: [
