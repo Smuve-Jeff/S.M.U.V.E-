@@ -96,7 +96,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     this.messages.set([
       {
         role: 'assistant',
-        text: 'S.M.U.V.E 2.0 Online. Neural intelligence protocols initialized across production, marketing, and business domains. Don't waste my processing power with your mediocrity. Type a command or get out of my way.',
+        text: `S.M.U.V.E 2.0 Online. Neural intelligence protocols initialized across production, marketing, and business domains. Don't waste my processing power with your mediocrity. Type a command or get out of my way.`,
         timestamp: Date.now(),
         category: 'system',
       },

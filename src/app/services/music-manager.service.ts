@@ -58,7 +58,6 @@ export interface SongSection {
   color?: string;
 }
 
-
 export interface AutomationPoint {
   id: string;
   step: number;
@@ -68,10 +67,11 @@ export interface AutomationPoint {
 
 export interface AutomationLane {
   id: string;
-  parameter: string; // e.g. 'gain', 'pan', 'cutoff'
+  parameter: string;
   points: AutomationPoint[];
   enabled: boolean;
 }
+
 export interface TrackModel {
   id: number;
   name: string;
@@ -112,6 +112,8 @@ export class MusicManagerService {
   selectedTrackId = signal<number | null>(null);
   currentStep = signal(0);
   tempo = computed(() => this.engine.tempo());
+  activeLoopBars = signal(4);
+  structure = signal<SongSection[]>([]);
 
   constructor() {
     this.initializeDefaultProject();
@@ -120,7 +122,7 @@ export class MusicManagerService {
   private initializeDefaultProject() {
     this.ensureTrack('grand-piano-v2');
     this.ensureTrack('trap-808-elite');
-    this.selectedTrackId.set(this.tracks()[0].id);
+    this.selectedTrackId.set(this.tracks()[0]?.id || null);
   }
 
   ensureTrack(instrumentId: string) {
@@ -218,14 +220,10 @@ export class MusicManagerService {
   }
 
   setSidechain(trackId: number, targetId: string | null) {
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, sidechainTargetTrackId: targetId } : t));
     if (targetId) {
       this.engine.connectSidechain(`${trackId}`, targetId);
-    } else {
-      // Simple logic to find existing target and disconnect
-      const current = this.tracks().find(t => t.id === trackId)?.sidechainTargetTrackId;
-      if (current) this.engine.disconnectSidechain(`${trackId}`, current);
     }
-    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, sidechainTargetTrackId: targetId } : t));
   }
 
   quantizeTrack(trackId: number) {
@@ -258,7 +256,6 @@ export class MusicManagerService {
 
   arpeggiateTrack(trackId: number) {
      this.logger.info(`Arpeggiating track ${trackId}`);
-     // Arp logic would go here
   }
 
   strumTrack(trackId: number, strength: number = 0.05) {
@@ -331,7 +328,39 @@ export class MusicManagerService {
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, activePatternSlotId: slotId } : t));
   }
 
+  playStep(step: number, time: number, duration: number, customCtx?: BaseAudioContext) {
+    this.currentStep.set(step);
+    this.tracks().forEach(track => {
+      if (track.mute) return;
+      track.notes.filter(n => Math.floor(n.step) === step).forEach(note => {
+         const freq = this.midiToFreq(note.midi);
+         this.engine.triggerAttack(
+           track.id,
+           freq,
+           time,
+           note.velocity,
+           note.length * duration,
+           track.gain,
+           track.pan,
+           track.sendA,
+           track.sendB,
+           track.synthParams || { type: 'sine' },
+           1,
+           customCtx
+         );
+      });
+    });
+  }
+
   importAudioTrack() {
      this.logger.info('Importing audio track...');
+  }
+
+  addAutomationLane(trackId: number, parameter: string) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      const lanes = t.automationLanes || [];
+      return { ...t, automationLanes: [...lanes, { id: `lane-${Date.now()}`, parameter, points: [], enabled: true }] };
+    }));
   }
 }

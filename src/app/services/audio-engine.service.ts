@@ -1,8 +1,36 @@
 import { LoggingService } from './logging.service';
 import { Injectable, signal, inject, Injector } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { StemSeparationService, Stems } from './stem-separation.service';
+
+export type DeckId = 'A' | 'B';
+
+interface DeckChannel {
+  id: DeckId;
+  buffer: AudioBuffer | null;
+  sources: { [K in keyof Stems]?: AudioBufferSourceNode | null };
+  gains: { [K in keyof Stems]: GainNode };
+  eqLow: BiquadFilterNode;
+  eqMid: BiquadFilterNode;
+  eqHigh: BiquadFilterNode;
+  filter: BiquadFilterNode;
+  pan: StereoPannerNode;
+  gain: GainNode;
+  sendA: GainNode;
+  sendB: GainNode;
+  analyser: AnalyserNode;
+  isPlaying: boolean;
+  startTime: number;
+  pauseOffset: number;
+  rate: number;
+  stems: Stems | null;
+  loopEnabled: boolean;
+  slipEnabled: boolean;
+  slipActive: boolean;
+  slipStartTime: number;
+  slipStartOffset: number;
+  hotCues: (number | null)[];
+}
 
 @Injectable({
   providedIn: 'root',
@@ -16,13 +44,18 @@ export class AudioEngineService {
   public recordingLatency = signal(0);
   public metronomeEnabled = signal(false);
   public metronomeVolume = signal(0.5);
+  public isRecording = signal(false);
+  public currentBeat = signal(0);
+  public isPlaying = signal(false);
 
   public logger = inject(LoggingService);
   private injector = inject(Injector);
+  private stemSeparationService = inject(StemSeparationService);
   public ctx: AudioContext;
 
   public masterGain!: GainNode;
   public compressor!: DynamicsCompressorNode;
+  public limiter!: DynamicsCompressorNode;
   private masterEQ!: BiquadFilterNode;
   public saturationNode!: WaveShaperNode;
   public reverbWet!: GainNode;
@@ -34,9 +67,14 @@ export class AudioEngineService {
   private tracksMap = new Map<number, any>();
   private busses = new Map<string, GainNode>();
 
+  private deckA!: DeckChannel;
+  private deckB!: DeckChannel;
+
   constructor() {
     this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     this.setupMasterChain();
+    this.initDeck('A');
+    this.initDeck('B');
   }
 
   public get recorder(): StudioRecordingEngineService {
@@ -46,6 +84,7 @@ export class AudioEngineService {
   private setupMasterChain() {
     this.masterGain = this.ctx.createGain();
     this.compressor = this.ctx.createDynamicsCompressor();
+    this.limiter = this.ctx.createDynamicsCompressor();
     this.masterEQ = this.ctx.createBiquadFilter();
     this.saturationNode = this.ctx.createWaveShaper();
     this.reverbWet = this.ctx.createGain();
@@ -54,19 +93,57 @@ export class AudioEngineService {
     this.masterGain.connect(this.compressor);
     this.compressor.connect(this.saturationNode);
     this.saturationNode.connect(this.masterEQ);
-    this.masterEQ.connect(this.ctx.destination);
+    this.masterEQ.connect(this.limiter);
+    this.limiter.connect(this.ctx.destination);
 
     this.reverbConvolver.connect(this.reverbWet);
     this.reverbWet.connect(this.masterGain);
   }
 
+  private initDeck(id: DeckId) {
+    const deck: DeckChannel = {
+      id,
+      buffer: null,
+      sources: {},
+      gains: {
+        vocals: this.ctx.createGain(),
+        drums: this.ctx.createGain(),
+        bass: this.ctx.createGain(),
+        instrumental: this.ctx.createGain(),
+        other: this.ctx.createGain(),
+      },
+      eqLow: this.ctx.createBiquadFilter(),
+      eqMid: this.ctx.createBiquadFilter(),
+      eqHigh: this.ctx.createBiquadFilter(),
+      filter: this.ctx.createBiquadFilter(),
+      pan: this.ctx.createStereoPanner(),
+      gain: this.ctx.createGain(),
+      sendA: this.ctx.createGain(),
+      sendB: this.ctx.createGain(),
+      analyser: this.ctx.createAnalyser(),
+      isPlaying: false,
+      startTime: 0,
+      pauseOffset: 0,
+      rate: 1,
+      stems: null,
+      loopEnabled: false,
+      slipEnabled: false,
+      slipActive: false,
+      slipStartTime: 0,
+      slipStartOffset: 0,
+      hotCues: new Array(8).fill(null),
+    };
+    deck.gain.connect(this.masterGain);
+    if (id === 'A') this.deckA = deck;
+    else this.deckB = deck;
+  }
+
   getContext() { return this.ctx; }
   resume() { if (this.ctx.state === 'suspended') this.ctx.resume(); }
-  isPlaying() { return this.ctx.state === 'running'; }
-  start() { this.resume(); }
-  stop() { }
+  isPlayingStatus() { return this.isPlaying(); }
+  start() { this.resume(); this.isPlaying.set(true); }
+  stop() { this.isPlaying.set(false); }
 
-  currentBeat() { return 0; }
   stepsPerBeat() { return 4; }
   loopEnd() { return 64; }
 
@@ -118,8 +195,8 @@ export class AudioEngineService {
     osc.stop(when + duration + release + 0.1);
   }
 
-  playSynth(time: number, freq: number, duration: number, velocity: number) {
-     this.triggerAttack(0, freq, time, velocity, duration, 0.8, 0, 0, 0, { type: 'sine' });
+  playSynth(time: number, freq: number, duration: number, velocity: number, pan: number = 0, synthParams: any = { type: 'sine' }) {
+     this.triggerAttack(0, freq, time, velocity, duration, 0.8, pan, 0, 0, synthParams);
   }
 
   getTrackOutput(id: number): GainNode {
@@ -145,11 +222,13 @@ export class AudioEngineService {
   setMasterOutputLevel(val: number) { this.masterGain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.01); }
   setMetronomeVolume(val: number) { this.metronomeVolume.set(val); }
   toggleMetronome() { this.metronomeEnabled.update(v => !v); }
+  setOutputMode(mode: any) { this.outputMode.set(mode); }
 
   setSaturation(amount: number) {}
   getMasteringTargets() { return { lufs: -14, truePeak: -0.1 }; }
   setMasteringTargets(params: any) {}
   getMasterAnalyser() { return null; }
+  getAnalyser() { return null; }
   configureCompressor(params: any) {}
   configureLimiter(params: any) {}
 
@@ -164,24 +243,38 @@ export class AudioEngineService {
 
   getMasterStream() {
      const dest = this.ctx.createMediaStreamDestination();
-     this.masterEQ.connect(dest);
+     this.masterGain.connect(dest);
      return dest;
   }
 
   // DJ Deck Methods
-  transformDeck(deck: any) {}
-  getDeckProgress(deck: any) { return { duration: 0, position: 0, isPlaying: false, slipPosition: 0 }; }
-  seekDeck(deck: any, pos: number) {}
-  playDeck(deck: any) {}
-  pauseDeck(deck: any) {}
-  setDeckGain(deck: any, gain: number) {}
-  setCrossfader(val: number) {}
-  brakeDeck(deck: any) {}
-  spinbackDeck(deck: any) {}
-  getDeckWaveformData(id: any) { return new Float32Array(0); }
-  getDeckLevel(id: any) { return 0; }
-  setDeckRate(deck: any, rate: number, param?: any) {}
-  getDeck(id: any) { return { buffer: null }; }
+  getDeck(id: DeckId) { return id === 'A' ? this.deckA : this.deckB; }
+  async loadDeck(id: DeckId, buffer: AudioBuffer) {
+    const deck = this.getDeck(id);
+    deck.buffer = buffer;
+    deck.stems = await this.stemSeparationService.separate(buffer);
+  }
+  transformDeck(id: DeckId) {}
+  getDeckProgress(id: DeckId) { return { duration: 0, position: 0, isPlaying: false, slipPosition: 0 }; }
+  seekDeck(id: DeckId, pos: number) {}
+  playDeck(id: DeckId) {}
+  pauseDeck(id: DeckId) {}
+  setDeckGain(id: DeckId, gain: number) {}
+  setCrossfader(val: number, curve?: any, hamster?: boolean) {}
+  brakeDeck(id: DeckId) {}
+  spinbackDeck(id: DeckId) {}
+  getDeckWaveformData(id: DeckId) { return new Float32Array(0); }
+  getDeckLevel(id: DeckId) { return 0; }
+  setDeckRate(id: DeckId, rate: number, param?: any) {}
+  setDeckLoop(id: DeckId, state: boolean) {}
+  setSlipMode(id: DeckId, state: boolean) {}
+  setDeckStemGain(id: DeckId, stem: any, gain: number) {}
+  setHotCue(id: DeckId, slot: number) {}
+  clearHotCue(id: DeckId, slot: number) {}
+  jumpToHotCue(id: DeckId, slot: number) {}
+  setDeckEq(id: DeckId, high: number, mid: number, low: number) {}
+  setDeckFilter(id: DeckId, freq: number) {}
+  setDeckSend(id: DeckId, send: any, gain: number) {}
 
   applyProductionParameter(trackId: string, parameter: string, value: number, duration = 0.01, scheduledTime?: number) {
      this.logger.info(`Applying param ${parameter} to ${trackId}`);
