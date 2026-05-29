@@ -53,6 +53,7 @@ export class AudioEngineService {
   ];
   private static readonly DEFAULT_LOOKAHEAD_SECONDS = 0.2;
   private static readonly DEFAULT_SCHEDULER_INTERVAL_MS = 25;
+  private static readonly MIN_ENVELOPE_GAIN = 0.0001;
 
   public outputMode = signal<'speakers' | 'headphones'>('speakers');
   public performanceTier = signal<'ultra' | 'performance'>('ultra');
@@ -272,7 +273,10 @@ export class AudioEngineService {
       const step = this.currentStep;
       this.onScheduleStep?.(step, this.nextNoteTime, stepDuration);
       this.currentBeat.set(step / this.stepsPerBeat());
-      this.playMetronomeClick(this.nextNoteTime, step % this.stepsPerBeat() === 0);
+      this.playMetronomeClick(
+        this.nextNoteTime,
+        step % this.stepsPerBeat() === 0
+      );
       this.nextNoteTime += stepDuration;
       this.currentStep = (this.currentStep + 1) % this.loopEnd();
     }
@@ -300,9 +304,12 @@ export class AudioEngineService {
     osc.type = 'square';
     osc.frequency.value = frequency;
     osc.frequency.setValueAtTime(frequency, when);
-    vca.gain.setValueAtTime(0.0001, when);
+    vca.gain.setValueAtTime(AudioEngineService.MIN_ENVELOPE_GAIN, when);
     vca.gain.linearRampToValueAtTime(this.metronomeVolume(), when + 0.002);
-    vca.gain.exponentialRampToValueAtTime(0.0001, when + 0.05);
+    vca.gain.exponentialRampToValueAtTime(
+      AudioEngineService.MIN_ENVELOPE_GAIN,
+      when + 0.05
+    );
     osc.connect(vca).connect(this.masterGain);
     osc.start(when);
     osc.stop(when + 0.06);
@@ -411,7 +418,10 @@ export class AudioEngineService {
       this.clamp(gain * velocityScale, 0, 1),
       when + 0.005
     );
-    vca.gain.exponentialRampToValueAtTime(0.001, when + 0.25);
+    vca.gain.exponentialRampToValueAtTime(
+      AudioEngineService.MIN_ENVELOPE_GAIN,
+      when + 0.25
+    );
 
     source.connect(vca).connect(panner).connect(this.getTrackOutput(id));
     source.start(when);
@@ -609,7 +619,9 @@ export class AudioEngineService {
     const deck = this.getDeck(id);
     this.stopDeckSources(deck);
     deck.buffer = buffer;
-    deck.stems = await Promise.resolve(this.stemSeparationService.separate(buffer));
+    deck.stems = await Promise.resolve(
+      this.stemSeparationService.separate(buffer)
+    );
     deck.pauseOffset = 0;
     deck.startTime = this.ctx.currentTime;
     deck.rate = 1;
@@ -644,7 +656,12 @@ export class AudioEngineService {
   seekDeck(id: DeckId, pos: number) {
     const deck = this.getDeck(id);
     const duration = deck.buffer?.duration || 0;
-    const clamped = this.clamp(pos, 0, duration || pos);
+    if (!duration) {
+      deck.pauseOffset = 0;
+      return;
+    }
+
+    const clamped = this.clamp(pos, 0, duration);
     deck.pauseOffset = clamped;
     if (deck.isPlaying) {
       this.restartDeckPlayback(deck, clamped);
@@ -702,7 +719,7 @@ export class AudioEngineService {
     curve: 'linear' | 'power' | 'exp' | 'cut' = 'linear',
     hamster = false
   ) {
-    const position = this.clamp((hamster ? -val : val), -1, 1);
+    const position = this.clamp(hamster ? -val : val, -1, 1);
     this.deckA.crossfadeGain = this.getCrossfadeGain(position, curve, 'A');
     this.deckB.crossfadeGain = this.getCrossfadeGain(position, curve, 'B');
     this.applyDeckOutputGain(this.deckA);
@@ -777,6 +794,8 @@ export class AudioEngineService {
   setDeckRate(id: DeckId, rate: number, smooth = true) {
     const deck = this.getDeck(id);
     const currentPosition = this.getDeckPosition(deck);
+    // Reverse playback is not supported by AudioBufferSourceNode playbackRate,
+    // so platter motion uses seekDeck() for direction and rate only controls speed.
     const safeRate = this.clamp(Math.abs(rate) || 0.05, 0.05, 3);
     deck.rate = safeRate;
 
@@ -931,9 +950,10 @@ export class AudioEngineService {
     }
 
     const elapsed =
-      (this.ctx.currentTime - deck.startTime) * Math.max(0.05, Math.abs(deck.rate));
+      (this.ctx.currentTime - deck.startTime) *
+      Math.max(0.05, Math.abs(deck.rate));
     if (deck.loopEnabled && duration > 0) {
-      return ((deck.pauseOffset + elapsed) % duration + duration) % duration;
+      return this.wrapPosition(deck.pauseOffset + elapsed, duration);
     }
     return this.clamp(deck.pauseOffset + elapsed, 0, duration || elapsed);
   }
@@ -941,11 +961,17 @@ export class AudioEngineService {
   private getSlipPosition(deck: DeckChannel) {
     const duration = deck.buffer?.duration || 0;
     const elapsed =
-      (this.ctx.currentTime - deck.slipStartTime) * Math.max(0.05, Math.abs(deck.rate));
+      (this.ctx.currentTime - deck.slipStartTime) *
+      Math.max(0.05, Math.abs(deck.rate));
     if (deck.loopEnabled && duration > 0) {
-      return ((deck.slipStartOffset + elapsed) % duration + duration) % duration;
+      return this.wrapPosition(deck.slipStartOffset + elapsed, duration);
     }
     return this.clamp(deck.slipStartOffset + elapsed, 0, duration || elapsed);
+  }
+
+  private wrapPosition(position: number, duration: number) {
+    // Normalize wrapped positions into the positive 0..duration range.
+    return ((position % duration) + duration) % duration;
   }
 
   private startDeckSources(deck: DeckChannel, offset: number) {
