@@ -1,45 +1,39 @@
 import { Injectable, inject } from '@angular/core';
 import { AudioEngineService } from '../services/audio-engine.service';
+import { MusicManagerService } from '../services/music-manager.service';
 
 export interface Clip {
   id: string;
   name: string;
-  start: number;
-  length: number;
-  color: string;
   synthParams?: any;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class InstrumentService {
   private engine = inject(AudioEngineService);
+  private musicManager = inject(MusicManagerService);
 
-  getCompressor(): DynamicsCompressorNode {
+  public get compressor() {
     return this.engine.compressor;
   }
 
-  setMasterVolume(volume: number) {
-    this.engine.setMasterOutputLevel(volume / 100);
+  getCompressor() {
+    return this.engine.compressor;
   }
 
-  setReverbMix(mix: number) {
-    const reverbWet = this.engine.reverbWet;
-    if (reverbWet && (reverbWet as any).gain) {
-      (reverbWet as any).gain.setTargetAtTime(
-        mix,
-        this.engine.getContext().currentTime,
-        0.01
-      );
-    }
+  connect(dest: AudioNode) {
+     if (this.engine.masterGain) {
+        this.engine.masterGain.connect(dest);
+     }
   }
 
-  play(time: number, midi: number, velocity: number) {
-    this.engine.playSynth(time, this.midiToFreq(midi), 1, velocity);
+  play(trackId: number, midi: number, velocity: number) {
+     const freq = this.musicManager.midiToFreq(midi);
+     this.engine.triggerAttack(trackId, freq, this.engine.ctx.currentTime, velocity, 0.5, 0.8, 0, 0, 0, { type: 'sine' });
   }
 
-  private midiToFreq(m: number) {
-    return 440 * Math.pow(2, (m - 69) / 12);
-  }
-
-  connect(_dest: any) {}
+  setMasterVolume(val: number) { this.engine.setMasterOutputLevel(val / 100); }
+  setReverbMix(val: number) {}
 }
