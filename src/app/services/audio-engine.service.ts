@@ -271,7 +271,7 @@ export class AudioEngineService {
 
   setSaturation(amount: number) {}
   getMasteringTargets() {
-    return { lufs: -14, truePeak: -0.1 };
+    return { lufs: -13, truePeak: -0.2 };
   }
   setMasteringTargets(params: any) {}
   getMasterAnalyser() {
