@@ -261,7 +261,17 @@ export class AudioEngineService {
   }
 
   loopEnd() {
-    return 64;
+    return this.loopLengthSteps();
+  }
+
+  setLoopLengthBars(bars: number) {
+    const normalizedBars = Math.max(1, Math.round(bars));
+    const nextLength = normalizedBars * this.stepsPerBeat() * 4;
+    this.loopLengthSteps.set(nextLength);
+    if (this.currentStep >= nextLength) {
+      this.currentStep = this.currentStep % nextLength;
+      this.currentBeat.set(this.currentStep / this.stepsPerBeat());
+    }
   }
 
   private scheduler() {

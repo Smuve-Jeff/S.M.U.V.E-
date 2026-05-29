@@ -20,7 +20,7 @@ export class DatabaseService {
 
   private getHeaders() {
     const token = this.tokenService.jwtToken();
-    return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    return token ? { headers: { Authorization: 'Bearer ' + token } } : {};
   }
 
   get apiUrl(): string {
@@ -38,14 +38,21 @@ export class DatabaseService {
 
   async saveUserProfile(profile: UserProfile, userId: string): Promise<void> {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(this.getProfileBackupKey(userId), JSON.stringify(profile));
+      localStorage.setItem(
+        this.getProfileBackupKey(userId),
+        JSON.stringify(profile)
+      );
     }
 
     if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       this.isSyncing.set(true);
       try {
         await firstValueFrom(
-          this.http.post(`${this.API_URL}/profile`, { userId, profileData: profile }, this.getHeaders())
+          this.http.post(
+            `${this.API_URL}/profile`,
+            { userId, profileData: profile },
+            this.getHeaders()
+          )
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -60,11 +67,17 @@ export class DatabaseService {
     if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
         const profile = await firstValueFrom(
-          this.http.get<UserProfile>(`${this.API_URL}/profile/${userId}`, this.getHeaders())
+          this.http.get<UserProfile>(
+            `${this.API_URL}/profile/${userId}`,
+            this.getHeaders()
+          )
         );
         if (profile) {
           if (typeof localStorage !== 'undefined') {
-            localStorage.setItem(this.getProfileBackupKey(userId), JSON.stringify(profile));
+            localStorage.setItem(
+              this.getProfileBackupKey(userId),
+              JSON.stringify(profile)
+            );
           }
           return profile;
         }
@@ -74,11 +87,18 @@ export class DatabaseService {
     }
 
     if (typeof localStorage === 'undefined') return null;
-    const backup = localStorage.getItem(this.getProfileBackupKey(userId)) || localStorage.getItem(this.getProfileBackupKey());
+    const backup =
+      localStorage.getItem(this.getProfileBackupKey(userId)) ||
+      localStorage.getItem(this.getProfileBackupKey());
     return backup ? JSON.parse(backup) : null;
   }
 
-  async saveProject(projectId: string, title: string, projectData: any, userId: string): Promise<void> {
+  async saveProject(
+    projectId: string,
+    title: string,
+    projectData: any,
+    userId: string
+  ): Promise<void> {
     await this.localStorageService.saveItem('projects', {
       id: projectId,
       title,
@@ -91,7 +111,11 @@ export class DatabaseService {
       this.isSyncing.set(true);
       try {
         await firstValueFrom(
-          this.http.post(`${this.API_URL}/projects`, { projectId, userId, title, projectData }, this.getHeaders())
+          this.http.post(
+            `${this.API_URL}/projects`,
+            { projectId, userId, title, projectData },
+            this.getHeaders()
+          )
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -102,11 +126,58 @@ export class DatabaseService {
     }
   }
 
-  async listProjects(userId: string): Promise<any[]> {
-    const localProjects = await this.localStorageService.getAllItems('projects');
+  async loadProject(projectId: string, userId: string): Promise<any | null> {
     if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
-        return await firstValueFrom(this.http.get<any[]>(`${this.API_URL}/projects/${userId}`, this.getHeaders()));
+        const project = await firstValueFrom(
+          this.http.get<any>(
+            `${this.API_URL}/projects/${userId}/${projectId}`,
+            this.getHeaders()
+          )
+        );
+        if (project?.projectData) {
+          return project.projectData;
+        }
+        if (project?.data) {
+          return project.data;
+        }
+        if (project?.tracks || project?.structure) {
+          return project;
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to load project ${projectId} from cloud`,
+          error
+        );
+      }
+    }
+
+    const localProject = await this.localStorageService.getItem(
+      'projects',
+      projectId
+    );
+    if (!localProject) {
+      return null;
+    }
+
+    if (userId && localProject.userId && localProject.userId !== userId) {
+      return null;
+    }
+
+    return localProject.data || null;
+  }
+
+  async listProjects(userId: string): Promise<any[]> {
+    const localProjects =
+      await this.localStorageService.getAllItems('projects');
+    if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
+      try {
+        return await firstValueFrom(
+          this.http.get<any[]>(
+            `${this.API_URL}/projects/${userId}`,
+            this.getHeaders()
+          )
+        );
       } catch (error) {
         this.logger.error('Failed to list projects from cloud', error);
       }
@@ -114,7 +185,11 @@ export class DatabaseService {
     return localProjects;
   }
 
-  async saveArtistIdentity(userId: string, identity: ArtistIdentityState, profile?: UserProfile): Promise<void> {
+  async saveArtistIdentity(
+    userId: string,
+    identity: ArtistIdentityState,
+    profile?: UserProfile
+  ): Promise<void> {
     await this.localStorageService.saveItem('projects', {
       id: `artist-identity:${userId}`,
       userId,
@@ -127,7 +202,11 @@ export class DatabaseService {
       this.isSyncing.set(true);
       try {
         await firstValueFrom(
-          this.http.post(`${this.API_URL}/identity`, { userId, identity, profileData: profile }, this.getHeaders())
+          this.http.post(
+            `${this.API_URL}/identity`,
+            { userId, identity, profileData: profile },
+            this.getHeaders()
+          )
         );
         this.lastSyncTime.set(Date.now());
       } catch (error) {
@@ -138,11 +217,16 @@ export class DatabaseService {
     }
   }
 
-  async loadArtistIdentity(userId: string): Promise<ArtistIdentityState | null> {
+  async loadArtistIdentity(
+    userId: string
+  ): Promise<ArtistIdentityState | null> {
     if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
         const response = await firstValueFrom(
-          this.http.get<{ identity: ArtistIdentityState }>(`${this.API_URL}/identity/${userId}`, this.getHeaders())
+          this.http.get<{ identity: ArtistIdentityState }>(
+            `${this.API_URL}/identity/${userId}`,
+            this.getHeaders()
+          )
         );
         if (response?.identity) return response.identity;
       } catch (error) {
@@ -150,14 +234,22 @@ export class DatabaseService {
       }
     }
 
-    const backup = await this.localStorageService.getItem('projects', `artist-identity:${userId}`);
+    const backup = await this.localStorageService.getItem(
+      'projects',
+      `artist-identity:${userId}`
+    );
     return backup?.identity || null;
   }
 
   async listConnectorJobs(userId: string): Promise<any[]> {
     if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
-        return await firstValueFrom(this.http.get<any[]>(`${this.API_URL}/identity/${userId}/connectors`, this.getHeaders()));
+        return await firstValueFrom(
+          this.http.get<any[]>(
+            `${this.API_URL}/identity/${userId}/connectors`,
+            this.getHeaders()
+          )
+        );
       } catch (error) {
         this.logger.error('Failed to list connector jobs from cloud', error);
       }

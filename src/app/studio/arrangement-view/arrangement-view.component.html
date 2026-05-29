@@ -11,42 +11,142 @@
             {{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}
           </span>
         </button>
-        <button class="m-btn tactile-v42 rec" [class.active]="audioSession.isRecording()" (click)="audioSession.toggleRecord()">
-          <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+        <button
+          class="m-btn tactile-v42 rec"
+          [class.active]="audioSession.isRecording()"
+          (click)="audioSession.toggleRecord()"
+        >
+          <span class="material-symbols-outlined text-sm"
+            >fiber_manual_record</span
+          >
         </button>
       </div>
     </div>
 
-    <div class="header-actions">
-      <button (click)="addTrack()" class="mini-btn tactile-v42 executive-glass">+ TRACK</button>
+    <div class="header-actions flex items-center gap-2">
+      <button
+        (click)="toggleSnap()"
+        class="mini-btn tactile-v42 executive-glass snap-toggle"
+        [class.active-snap]="snapEnabled()"
+      >
+        {{ snapEnabled() ? 'SNAP 1 BAR' : 'SNAP 1/4 BAR' }}
+      </button>
+      <button (click)="addTrack()" class="mini-btn tactile-v42 executive-glass">
+        + TRACK
+      </button>
     </div>
   </div>
 
   <div class="playlist-content no-scrollbar">
     <div class="track-headers no-scrollbar wood-panel">
-      <div *ngFor="let track of tracks()" class="track-header tactile-v42 glass-v42" [style.height.px]="trackHeaderHeight()" [class.selected]="isTrackSelected(track.id)" (click)="selectTrack(track.id)">
+      <div
+        *ngFor="let track of tracks()"
+        class="track-header tactile-v42 glass-v42"
+        [style.height.px]="laneHeight"
+        [class.selected]="isTrackSelected(track.id)"
+        (click)="selectTrack(track.id)"
+      >
         <div class="track-top flex items-center p-2">
-          <div class="track-color-strip w-1 h-8 rounded mr-2" [style.background-color]="track.color || '#af25f4'"></div>
-          <span class="track-name neon-text-xs truncate">{{ track.name | uppercase }}</span>
+          <div
+            class="track-color-strip w-1 h-8 rounded mr-2"
+            [style.background-color]="track.color || '#af25f4'"
+          ></div>
+          <span class="track-name neon-text-xs truncate">{{
+            track.name | uppercase
+          }}</span>
+        </div>
+        <div class="track-controls">
+          <button
+            type="button"
+            class="mini-btn"
+            [class.active-mute]="track.mute"
+            (click)="toggleMute(track.id, $event)"
+          >
+            M
+          </button>
+          <button
+            type="button"
+            class="mini-btn"
+            [class.active-solo]="track.solo"
+            (click)="toggleSolo(track.id, $event)"
+          >
+            S
+          </button>
         </div>
       </div>
     </div>
 
-    <div class="grid-viewport no-scrollbar glass-v42">
-      <div class="grid-canvas" #gridCanvas [style.width.px]="gridWidth" [style.height.px]="tracks().length * 80">
+    <div class="grid-viewport no-scrollbar glass-v42" #gridViewport>
+      <div
+        class="grid-canvas"
+        [style.width.px]="gridWidth()"
+        [style.height.px]="canvasHeight()"
+        [style.background-size]="barWidth + 'px ' + laneHeight + 'px'"
+      >
         <div class="scanline-overlay"></div>
-        <div *ngFor="let track of tracks(); let i = index" class="lane-row relative border-b border-white/5" [style.height.px]="80" (dragover)="onDragOver($event)" (drop)="onDrop($event, track.id)">
-          <div *ngFor="let clip of track.clips" class="clip-item absolute executive-glass shadow-v42-xl tactile-v42" [style.left.px]="clip.start * barWidth" [style.width.px]="clip.length * barWidth" [style.background-color]="(clip.color || '#af25f4') + '33'" [style.border-color]="clip.color || '#af25f4'">
-            <div class="clip-header text-[8px] p-1">{{ clip.name | uppercase }}</div>
+
+        <div class="time-ruler">
+          <div
+            *ngFor="let bar of bars()"
+            class="ruler-bar"
+            [style.width.px]="barWidth"
+          >
+            {{ bar + 1 }}
           </div>
         </div>
-        <div *ngIf="audioSession.isRecording()" class="recording-overlay absolute inset-0 pointer-events-none bg-red-500/5 overflow-hidden">
-           <div class="absolute top-4 right-6 flex items-center gap-2 px-3 py-1 bg-red-600 rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]">
-              <div class="w-2 h-2 rounded-full bg-white"></div>
-              <span class="text-[9px] font-black text-white uppercase tracking-widest">Capture_Active</span>
-           </div>
+
+        <div
+          *ngFor="let track of tracks()"
+          class="lane-row relative border-b border-white/5"
+          [style.height.px]="laneHeight"
+          (pointerdown)="onLanePointerDown($event, track)"
+        >
+          <div
+            *ngFor="let clip of track.clips"
+            class="clip-item absolute executive-glass shadow-v42-xl tactile-v42"
+            [style.left.px]="clip.start * barWidth"
+            [style.width.px]="clip.length * barWidth"
+            [style.background-color]="
+              (clip.color || track.color || '#af25f4') + '33'
+            "
+            [style.border-color]="clip.color || track.color || '#af25f4'"
+            (pointerdown)="onClipPointerDown($event, track.id, clip)"
+          >
+            <div class="clip-header text-[8px] p-1">
+              {{ clipLabel(track, clip) | uppercase }}
+            </div>
+            <div class="clip-meta text-[8px] px-2 opacity-50">
+              {{ clip.length }} bars
+            </div>
+            <button
+              type="button"
+              class="clip-remove"
+              (click)="removeClip($event, track.id, clip.id)"
+            >
+              ×
+            </button>
+          </div>
         </div>
-        <div class="playhead absolute top-0 bottom-0 w-px bg-white extreme-glow" [style.left.px]="playheadPos()"></div>
+
+        <div
+          *ngIf="audioSession.isRecording()"
+          class="recording-overlay absolute inset-0 pointer-events-none bg-red-500/5 overflow-hidden"
+        >
+          <div
+            class="absolute top-4 right-6 flex items-center gap-2 px-3 py-1 bg-red-600 rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+          >
+            <div class="w-2 h-2 rounded-full bg-white"></div>
+            <span
+              class="text-[9px] font-black text-white uppercase tracking-widest"
+              >Capture_Active</span
+            >
+          </div>
+        </div>
+        <div
+          class="playhead absolute bottom-0 w-px bg-white extreme-glow"
+          [style.left.px]="playheadPos()"
+          [style.top.px]="rulerHeight"
+        ></div>
       </div>
     </div>
   </div>
