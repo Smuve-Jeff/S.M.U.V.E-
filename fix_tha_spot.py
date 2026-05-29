@@ -1,4 +1,6 @@
-import {
+import sys
+
+header = """import {
   Component,
   OnInit,
   OnDestroy,
@@ -26,7 +28,6 @@ import {
 } from '../../hub/game';
 import { APP_SECURITY_CONFIG } from '../../app.security';
 import { UserProfileService } from '../../services/user-profile.service';
-import { SecurityService } from '../../services/security.service';
 import { UIService } from '../../services/ui.service';
 
 const DEFAULT_RECOMMENDATION_ITEMS = 8;
@@ -51,9 +52,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private gameService = inject(GameService);
   private profileService = inject(UserProfileService);
   private sanitizer = inject(DomSanitizer);
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
-  private securityService = inject(SecurityService);
   public uiService = inject(UIService);
 
   readonly quickFilterOptions = QUICK_FILTERS;
@@ -127,20 +125,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     );
   });
 
-  activeRecommendationRail = computed(() => {
-    const roomId = this.activeRoom();
-    return this.matchingRecommendationRails().find(r => r.roomIds?.includes(roomId));
-  });
-
-  recommendedGames = computed(() => {
-    const rail = this.activeRecommendationRail();
-    return rail ? this.getGamesForRail(rail) : [];
-  });
-
-  recentlyPlayed = computed(() => this.games().slice(0, 3));
-  liveMetrics = signal({ roomPlayers: 1710, activeMatches: 42 });
-  activitySummary = signal({ favoriteRoomLabel: "Producer Lounge" });
-
   activeEvents = computed(() => {
     const time = this.now();
     return this.liveEvents().map((event) =>
@@ -151,11 +135,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   currentSafeUrl = computed(() => {
     const game = this.currentGame();
     return game ? this.getSafeUrl(game) : null;
-  });
-
-  launchWarning = computed(() => {
-    const game = this.selectedGame();
-    return game ? this.resolveLaunchWarning(game) : "";
   });
 
   neuralSyncScore = signal(88);
@@ -177,7 +156,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.securityService.getCSRFToken();
     this.loadFeed();
     this.startLiveClock();
     this.startFeedRefresh();
@@ -191,23 +169,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     window.removeEventListener('message', this.onMessage.bind(this));
   }
 
-  setActiveRoom(id: string) {
-    this.activeRoom.set(id);
-  }
-
-  previewGame(game: Game) {
-    this.selectedGame.set(game);
-  }
-
   onGameClick(game: Game) {
-    this.previewGame(game);
+    this.selectedGame.set(game);
   }
 
   closePreview() {
     this.selectedGame.set(null);
   }
 
-  async confirmLaunch() {
+  confirmLaunch() {
     const game = this.selectedGame();
     if (!game) return;
 
@@ -216,18 +186,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       window.open(url, '_blank');
       this.closePreview();
     } else {
-      // Logic for multiplayer matchmaking simulation from tests
-      if (this.isMultiplayerGame(game)) {
-        this.isMatchmaking.set(true);
-        this.matchmakingStatus.set('SCANNING FOR RIVALS...');
-        for (let i = 0; i <= 100; i += 20) {
-          this.matchmakingProgress.set(i);
-          await new Promise(r => setTimeout(r, 800));
-        }
-        this.isMatchmaking.set(false);
-      }
-
-      this.profileService.recordGameLaunch(game.id, this.buildSessionContext(game));
       this.currentGame.set(game);
       this.closePreview();
     }
@@ -270,15 +228,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     this.quickFilters.set([]);
   }
 
-  getGamesForRail(rail: RecommendationRail): Game[] {
-    let games = [...this.games()];
-    if (rail.gameIds?.length) {
-      const lookup = new Map(games.map((game) => [game.id, game]));
-      return rail.gameIds.map((id) => lookup.get(id)).filter(Boolean) as Game[];
-    }
-    return games.slice(0, 4);
-  }
-
   isRetroOrArcade(game: Game): boolean {
     const tags = (game.tags || []).map((t) => t.toLowerCase());
     return (
@@ -315,34 +264,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     const frameWindow = this.gameIframe?.nativeElement?.contentWindow;
     if (!active || !frameWindow || event.source !== frameWindow) {
       return;
-    }
-
-    switch (event.data?.type) {
-      case "GAME_READY":
-        break;
-      case "GAME_UPDATE":
-        if (event.data.data?.score !== undefined || event.data.data?.level !== undefined) {
-          this.profileService.recordGameResult(active.id, {
-            ...this.buildSessionContext(active),
-            score: event.data.data.score,
-            level: event.data.data.level,
-          });
-        }
-        break;
-      case "GAME_SAVE":
-        if (event.data.payload) {
-          localStorage.setItem(`smuve_save_${active.id}`, JSON.stringify(event.data.payload));
-        }
-        break;
-      case "GAME_OVER":
-        this.profileService.recordGameResult(active.id, {
-          ...this.buildSessionContext(active),
-          score: event.data.data?.score,
-          level: event.data.data?.level,
-          isWin: event.data.data?.isWin,
-        });
-        this.closeGame();
-        break;
     }
   }
 
@@ -416,32 +337,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       status = 'live';
     }
     return { ...event, status };
-  }
-
-  private resolveLaunchWarning(game: Game): string {
-    if (game.launchConfig?.embedMode === 'external-only') return 'External governance required. Launches in a separate tab.';
-    return 'Exact embed target verified.';
-  }
-
-  private isMultiplayerGame(game: Game): boolean {
-    const tags = (game.tags || []).map((tag) => tag.toLowerCase());
-    return (
-      (game.multiplayerType && game.multiplayerType !== 'None') ||
-      tags.includes('multiplayer')
-    );
-  }
-
-  private buildSessionContext(game: Game) {
-    const event = this.activeEvents().find(
-      (entry) => entry.featuredGameId === game.id
-    );
-
-    return {
-      roomId: this.activeRoom(),
-      eventId: event?.id,
-      reward: event?.reward,
-      rewardType: event?.schedule?.rewardType,
-    };
   }
 
   launchActionLabel(game: Game): string {
@@ -539,3 +434,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     );
   }
 }
+"""
+
+with open("src/app/components/tha-spot/tha-spot.component.ts", "w") as f:
+    f.write(header)
