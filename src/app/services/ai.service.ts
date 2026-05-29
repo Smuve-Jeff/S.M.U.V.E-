@@ -83,12 +83,18 @@ export class AiService {
   }
 
   async getAIResponse(prompt: string): Promise<string> {
-    this.isProcessing.set(true);
-    try {
-      const res = await firstValueFrom(this.http.post<any>('/api/ai/analyze', { prompt }));
-      return res?.text || 'Strategic Link Severed. Offline processing active.';
-    } catch (e) {
-      return 'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.';
+    async getAIResponse(prompt: string): Promise<string> {
+      if (!prompt?.trim()) {
+        return 'A non-empty prompt is required.';
+      }
+      this.isProcessing.set(true);
+      try {
+        const res = await firstValueFrom(this.http.post<any>('/api/ai/analyze', { prompt }));
+        return res?.text || 'Strategic Link Severed. Offline processing active.';
+      } catch (e) {
+        return 'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.';
+      }
+    }
     } finally {
       this.isProcessing.set(false);
     }
