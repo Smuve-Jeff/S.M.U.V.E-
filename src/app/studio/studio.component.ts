@@ -42,6 +42,8 @@ type StudioView =
   | 'drum-machine'
   | 'performer';
 
+type MobileStudioPanel = 'browser' | 'inspector';
+
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'dj',
   'piano-roll',
@@ -94,6 +96,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
 
   activeView = signal<StudioView>('dj');
+  mobilePanel = signal<MobileStudioPanel | null>(null);
   showNeuralFoundry = signal(false);
 
   studioQualityClass = computed(() => {
@@ -130,11 +133,20 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setActiveView(view: StudioView) {
     this.activeView.set(view);
+    this.mobilePanel.set(null);
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { view },
       queryParamsHandling: 'merge',
     });
+  }
+
+  toggleMobilePanel(panel: MobileStudioPanel) {
+    this.mobilePanel.update((current) => (current === panel ? null : panel));
+  }
+
+  closeMobilePanel() {
+    this.mobilePanel.set(null);
   }
 
   toggleNeuralFoundry() {

@@ -134,10 +134,36 @@ describe('StudioComponent', () => {
     );
   });
 
+  it('toggles the compact mobile utility panels', async () => {
+    const { component } = await createComponent();
+
+    component.toggleMobilePanel('browser');
+    expect(component.mobilePanel()).toBe('browser');
+
+    component.toggleMobilePanel('browser');
+    expect(component.mobilePanel()).toBeNull();
+
+    component.toggleMobilePanel('inspector');
+    expect(component.mobilePanel()).toBe('inspector');
+
+    component.closeMobilePanel();
+    expect(component.mobilePanel()).toBeNull();
+  });
+
   it('uses route query param view when valid', async () => {
     const { component } = await createComponent('piano-roll');
 
     expect(component.activeView()).toBe('piano-roll');
+  });
+
+  it('closes the mobile utility panel when switching views', async () => {
+    const { component } = await createComponent();
+
+    component.toggleMobilePanel('browser');
+    component.setActiveView('mixer');
+
+    expect(component.activeView()).toBe('mixer');
+    expect(component.mobilePanel()).toBeNull();
   });
 
   it('maps studio quality class based on performance mode', async () => {

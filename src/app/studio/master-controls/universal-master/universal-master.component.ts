@@ -36,6 +36,7 @@ import { KnobComponent } from '../../shared/knob/knob.component';
         <!-- Master Knobs -->
         <div class="knob-cluster flex gap-6 items-center flex-1 justify-center">
           <app-knob
+            class="master-knob"
             label="MASTER"
             [min]="0"
             [max]="100"
@@ -45,6 +46,7 @@ import { KnobComponent } from '../../shared/knob/knob.component';
           </app-knob>
 
           <app-knob
+            class="master-knob"
             label="TEMPO"
             [min]="20"
             [max]="300"
@@ -54,6 +56,7 @@ import { KnobComponent } from '../../shared/knob/knob.component';
           </app-knob>
 
           <app-knob
+            class="master-knob"
             label="METRO"
             [min]="0"
             [max]="100"
@@ -135,9 +138,43 @@ import { KnobComponent } from '../../shared/knob/knob.component';
       50% { opacity: 0.5; }
     }
     @media (max-width: 768px) {
-      .knob-cluster { gap: 10px; }
       .system-stats, .advanced-toggle, .macro-cluster { display: none; }
-      .master-grid { padding: 10px; justify-content: center; }
+      .master-grid {
+        padding: 10px 12px;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .transport-cluster {
+        order: 1;
+      }
+      .knob-cluster {
+        order: 2;
+        flex: 1 1 100%;
+        width: 100%;
+        gap: 6px;
+        justify-content: space-between;
+      }
+      .master-knob {
+        transform: scale(0.92);
+        transform-origin: center top;
+      }
+    }
+    @media (max-width: 560px) {
+      .master-grid {
+        padding: 8px 10px;
+        gap: 8px;
+      }
+      .transport-cluster {
+        width: 100%;
+        justify-content: center;
+      }
+      .knob-cluster {
+        gap: 2px;
+      }
+      .master-knob {
+        transform: scale(0.82);
+      }
     }
   `]
 })

@@ -80,7 +80,45 @@
       </button>
     </nav>
 
-    <div class="studio-layout">
+    <div
+      class="studio-layout"
+      [class.compact-mobile-layout]="uiService.isCompactMobile()"
+    >
+      <div class="mobile-utility-bar" *ngIf="uiService.isCompactMobile()">
+        <button
+          type="button"
+          [class.active]="mobilePanel() === 'browser'"
+          (click)="toggleMobilePanel('browser')"
+        >
+          Sounds
+        </button>
+        <button
+          type="button"
+          [class.active]="mobilePanel() === 'inspector'"
+          (click)="toggleMobilePanel('inspector')"
+        >
+          Inspector
+        </button>
+        <div class="mobile-view-chip">
+          {{ activeView() === 'piano-roll' ? 'Piano Roll' : activeView() }}
+        </div>
+      </div>
+
+      <section
+        class="mobile-utility-panel no-scrollbar"
+        *ngIf="uiService.isCompactMobile() && mobilePanel() as panel"
+      >
+        <header>
+          <span>{{ panel === 'browser' ? 'Sound Browser' : 'Track Inspector' }}</span>
+          <button type="button" (click)="closeMobilePanel()">Close</button>
+        </header>
+
+        <app-sound-browser *ngIf="panel === 'browser'"></app-sound-browser>
+        <app-track-inspector
+          *ngIf="panel === 'inspector'"
+        ></app-track-inspector>
+      </section>
+
       <aside
         class="studio-panel studio-browser"
         *ngIf="!uiService.isCompactMobile()"
@@ -133,7 +171,7 @@
     </div>
   </div>
 
-  <nav class="mobile-bottom-nav" *ngIf="uiService.isCompactMobile()">
+  <nav class="mobile-bottom-nav no-scrollbar" *ngIf="uiService.isCompactMobile()">
     <button
       [class.active]="activeView() === 'dj'"
       (click)="setActiveView('dj')"
