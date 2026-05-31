@@ -77,13 +77,14 @@
   position: relative;
   overflow: auto;
   padding: 10px;
+  touch-action: pan-x pan-y;
 }
 
 .sequencer-grid {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 1200px;
+  min-width: 920px;
 }
 
 .sequencer-row {
@@ -219,8 +220,8 @@
 }
 
 .m-btn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -291,6 +292,27 @@ input:checked + .slider-mini:before {
     padding: 10px;
     gap: 8px;
   }
+
+  .drum-header-content {
+    width: 100%;
+  }
+
+  .drum-header .module-transport {
+    width: 100%;
+    margin: 0;
+    justify-content: flex-end;
+  }
+
+  .drum-header .btn-group {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .m-btn {
+    width: 44px;
+    height: 44px;
+  }
+
   .params-grid-elite {
     grid-template-columns: 1fr 1fr;
   }
@@ -321,6 +343,19 @@ input:checked + .slider-mini:before {
   .pads-sidebar {
     width: 60px;
   }
+
+  .sequencer-viewport {
+    padding: 8px 6px;
+  }
+
+  .sequencer-grid {
+    min-width: 920px;
+  }
+
+  .step-box {
+    min-width: 18px;
+  }
+
   .pad-name,
   .pads-sidebar .text-slate-600 {
     display: none;

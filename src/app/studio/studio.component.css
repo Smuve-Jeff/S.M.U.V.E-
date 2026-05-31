@@ -1,9 +1,18 @@
 :host {
   display: block;
   height: 100vh;
-  width: 100vw;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
   position: relative;
+}
+
+@supports (height: 100dvh) {
+  :host {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
 }
 
 .studio-container {
@@ -15,6 +24,7 @@
   );
   width: 100%;
   height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   color: #f3f4f6;
@@ -188,6 +198,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  overscroll-behavior: contain;
 }
 
 /* Hide scrollbars but allow scrolling */
@@ -232,9 +243,12 @@
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.35rem;
-  padding: 0.4rem;
+  padding: 0.4rem 0.4rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
   background: rgba(8, 10, 16, 0.96);
   border-top: 1px solid rgba(148, 163, 184, 0.3);
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
 }
 
 .mobile-bottom-nav button {
@@ -310,12 +324,12 @@
     padding: 0.4rem 0.62rem;
   }
 
-  .studio-view-tabs {
-    padding: 0.5rem 0.55rem;
-  }
-
   .studio-layout {
     padding: 0.45rem;
+  }
+
+  .mobile-bottom-nav button {
+    min-height: 2.7rem;
   }
 
   .arrangement-stack {
@@ -325,5 +339,34 @@
   .studio-workspace {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .studio-transport {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .transport-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .transport-actions button {
+    flex: 1;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.35rem;
+  }
+
+  .transport-metrics {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .transport-metrics div {
+    flex: 1;
+    min-width: 0;
   }
 }
