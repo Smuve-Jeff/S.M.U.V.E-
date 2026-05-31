@@ -15,8 +15,6 @@ describe('ThaSpotComponent', () => {
   let fixture: ComponentFixture<ThaSpotComponent>;
   let httpMock: HttpTestingController;
   let removeListenerSpy: jest.SpyInstance;
-  let pauseSpy: jest.SpyInstance;
-  let loadSpy: jest.SpyInstance;
 
   const mockFeed = {
     games: [
@@ -41,7 +39,6 @@ describe('ThaSpotComponent', () => {
     socialPresence: [],
     promotions: [],
     recommendationRails: [],
-    streams: [],
   };
 
   beforeEach(async () => {
@@ -83,12 +80,6 @@ describe('ThaSpotComponent', () => {
     component = fixture.componentInstance;
     httpMock = TestBed.inject(HttpTestingController);
     removeListenerSpy = jest.spyOn(window, 'removeEventListener');
-    pauseSpy = jest
-      .spyOn(HTMLMediaElement.prototype, 'pause')
-      .mockImplementation(() => {});
-    loadSpy = jest
-      .spyOn(HTMLMediaElement.prototype, 'load')
-      .mockImplementation(() => {});
     fixture.detectChanges();
 
     const req = httpMock.expectOne('assets/data/tha-spot-feed.json');
@@ -99,8 +90,6 @@ describe('ThaSpotComponent', () => {
   afterEach(() => {
     fixture.destroy();
     httpMock.verify();
-    pauseSpy.mockRestore();
-    loadSpy.mockRestore();
   });
 
   it('should create', () => {
@@ -113,89 +102,6 @@ describe('ThaSpotComponent', () => {
     expect(component.displayMode()).toBe('cinema');
     component.setMode('gaming');
     expect(component.displayMode()).toBe('gaming');
-  });
-
-
-  it('should not initialize HLS player for iframe streams', () => {
-    const iframeStream: any = {
-      id: 'pluto',
-      name: 'Pluto TV',
-      url: 'https://pluto.tv',
-      type: 'iframe'
-    };
-
-    // Mock HLS
-    (window as any).Hls = class {
-      static isSupported() { return true; }
-      loadSource() {}
-      attachMedia() {}
-      on() {}
-    };
-
-    component.onStreamClick(iframeStream);
-    expect(component.currentStream()).toEqual(iframeStream);
-    // Should not have set timeout for HLS
-    // We can check if initializeHlsPlayer was called if it was public,
-    // but we can just check the signal and assume the guard works.
-  });
-
-  it('should toggle cinema layout', () => {
-    expect(component.cinemaLayout()).toBe('overlay');
-    component.toggleCinemaLayout();
-    expect(component.cinemaLayout()).toBe('theater');
-    component.toggleCinemaLayout();
-    expect(component.cinemaLayout()).toBe('overlay');
-  });
-  it('should initialize HLS player when a stream is clicked', () => {
-    jest.useFakeTimers();
-    const mockStream = { id: 's1', name: 'Stream 1', url: 'http://test.m3u8' };
-    const hls = {
-      loadSource: jest.fn(),
-      attachMedia: jest.fn(),
-      on: jest.fn(),
-      destroy: jest.fn(),
-    };
-    (window as any).Hls = jest.fn(() => hls);
-    (window as any).Hls.isSupported = jest.fn().mockReturnValue(true);
-    (window as any).Hls.Events = { MANIFEST_PARSED: 'manifestParsed' };
-
-    component.onStreamClick(mockStream as any);
-    expect(component.currentStream()).toBe(mockStream);
-    jest.runOnlyPendingTimers();
-    expect(hls.loadSource).toHaveBeenCalledWith('http://test.m3u8');
-    expect(hls.attachMedia).toHaveBeenCalled();
-    jest.useRealTimers();
-  });
-
-  it('destroys active HLS player when closing stream', () => {
-    const hls = {
-      loadSource: jest.fn(),
-      attachMedia: jest.fn(),
-      on: jest.fn(),
-      destroy: jest.fn(),
-    };
-    (window as any).Hls = jest.fn(() => hls);
-    (window as any).Hls.isSupported = jest.fn().mockReturnValue(true);
-    (window as any).Hls.Events = { MANIFEST_PARSED: 'manifestParsed' };
-
-    const video = document.createElement('video');
-    component.videoPlayer = { nativeElement: video } as any;
-
-    jest.useFakeTimers();
-    component.onStreamClick({
-      id: 's1',
-      name: 'Stream 1',
-      url: 'http://test.m3u8',
-    } as any);
-    jest.runOnlyPendingTimers();
-
-    component.closeStream();
-
-    expect(hls.destroy).toHaveBeenCalled();
-    expect(component.currentStream()).toBeNull();
-    expect(pauseSpy).toHaveBeenCalled();
-    expect(loadSpy).toHaveBeenCalled();
-    jest.useRealTimers();
   });
 
   it('ignores game messages from untrusted origins', () => {

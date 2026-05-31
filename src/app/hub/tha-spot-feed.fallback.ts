@@ -5116,24 +5116,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
     },
   ],
-  streams: [
-    {
-      id: 'pluto-tv-standalone',
-      badgeIds: ['featured'],
-      name: 'Pluto TV',
-      url: 'https://pluto.tv/en/live-tv',
-      image: 'https://images.pluto.tv/channels/5db7200778c1870009c9593f/featuredImage.jpg',
-      description: 'Absolute free TV. S.M.U.V.E. approved entertainment hub.',
-      genre: 'Entertainment',
-      type: 'iframe',
-      viewersOnline: 125000,
-      art: {
-        eyebrow: 'S.M.U.V.E. Theater',
-        accentStart: '#fbbf24',
-        accentEnd: '#78350f',
-      },
-    },
-  ],
   recommendationRails: [
     {
       id: 'rail-ps2-powerhouse',
