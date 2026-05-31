@@ -265,7 +265,11 @@
 
 .mobile-bottom-nav button {
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.74), rgba(15, 23, 42, 0.5));
+  background: linear-gradient(
+    180deg,
+    rgba(30, 41, 59, 0.74),
+    rgba(15, 23, 42, 0.5)
+  );
   color: #cbd5e1;
   border-radius: 0.6rem;
   font-size: 0.62rem;
@@ -278,7 +282,11 @@
 .mobile-bottom-nav button.active {
   border-color: rgba(96, 165, 250, 0.65);
   color: #eff6ff;
-  background: linear-gradient(180deg, rgba(30, 64, 175, 0.58), rgba(30, 41, 59, 0.9));
+  background: linear-gradient(
+    180deg,
+    rgba(30, 64, 175, 0.58),
+    rgba(30, 41, 59, 0.9)
+  );
   box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.18);
 }
 
@@ -325,8 +333,12 @@
 
 @media (max-width: 768px) {
   .studio-container {
-    background:
-      radial-gradient(circle at top, #1c1f31 0%, #0a0d16 46%, #040507 100%);
+    background: radial-gradient(
+      circle at top,
+      #1c1f31 0%,
+      #0a0d16 46%,
+      #040507 100%
+    );
   }
 
   .studio-shell {
@@ -364,7 +376,11 @@
     min-height: 2.75rem;
     border-radius: 0.85rem;
     border: 1px solid rgba(96, 165, 250, 0.16);
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(15, 23, 42, 0.54));
+    background: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.86),
+      rgba(15, 23, 42, 0.54)
+    );
     color: #dbeafe;
     font-size: 0.68rem;
     font-weight: 700;
@@ -379,7 +395,11 @@
 
   .mobile-utility-bar button.active {
     border-color: rgba(59, 130, 246, 0.54);
-    background: linear-gradient(180deg, rgba(30, 64, 175, 0.52), rgba(37, 99, 235, 0.24));
+    background: linear-gradient(
+      180deg,
+      rgba(30, 64, 175, 0.52),
+      rgba(37, 99, 235, 0.24)
+    );
     color: #eff6ff;
   }
 
@@ -394,8 +414,11 @@
     overflow: auto;
     border-radius: 1rem;
     border: 1px solid rgba(96, 165, 250, 0.18);
-    background:
-      linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(8, 15, 28, 0.94));
+    background: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.95),
+      rgba(8, 15, 28, 0.94)
+    );
     box-shadow: 0 20px 40px rgba(2, 6, 23, 0.35);
   }
 
