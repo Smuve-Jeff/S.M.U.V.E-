@@ -84,7 +84,7 @@
         <div class="text-[8px] font-black text-fl-blue uppercase tracking-[0.2em]">Master</div>
         <div class="vu-meter-container h-12 bg-black/60 rounded-sm border border-fl-blue/10 mt-2 relative overflow-hidden flex items-end">
            <div class="vu-bar absolute inset-x-0 bottom-0 bg-fl-blue transition-all duration-75"
-                [style.height.%]="audioSession.masterVolume() * 80"></div>
+                [style.height.%]="(audioSession.masterVolume() / 120) * 100"></div>
         </div>
       </div>
       <div class="fader-section flex-1 flex flex-col items-center justify-center py-4 relative">
