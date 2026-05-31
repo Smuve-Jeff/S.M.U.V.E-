@@ -37,13 +37,22 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
   {
     mode: 'studio',
     routePath: '/studio',
-    label: 'Studio',
+    label: 'Pro Arrangement',
     description:
-      'Build, mix, and refine production sessions with live control.',
+      'High-fidelity arrangement and timeline control surface.',
     icon: 'token',
     category: 'CORE',
     mobilePrimary: true,
-    related: ['piano-roll', 'vocal-suite', 'practice', 'lyric-editor'],
+    related: ['piano-roll', 'vocal-suite', 'mixer', 'drum-machine'],
+  },
+  {
+    mode: 'dj',
+    routePath: '/dj',
+    label: 'SMUVE 3D',
+    description: 'Standalone 3D mixing console and turntable surface.',
+    icon: 'album',
+    category: 'CORE',
+    related: ['studio', 'mixer', 'performance'],
   },
   {
     mode: 'vocal-suite',
@@ -252,16 +261,6 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
     icon: 'login',
     category: 'UTILITY',
     hidden: true,
-  },
-  {
-    mode: 'dj',
-    routePath: '/dj',
-    label: 'DJ',
-    description: 'Launch the immersive dual-deck mixing surface.',
-    icon: 'token',
-    category: 'CORE',
-    hidden: true,
-    aliasOf: 'studio',
   },
   {
     mode: 'player',

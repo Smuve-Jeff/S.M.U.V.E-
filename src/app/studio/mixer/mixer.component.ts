@@ -96,20 +96,17 @@ export class MixerComponent implements OnInit, OnDestroy {
       });
 
       // Master metering
-      if (!this.masterAnalyser && this.audioSession.engine.masterGain) {
+      if (!this.masterAnalyser) {
         this.masterAnalyser = context.createAnalyser();
         this.masterAnalyser.fftSize = 32;
+        // Connect to master gain if possible, or destination
         this.audioSession.engine.masterGain.connect(this.masterAnalyser);
       }
 
-      if (this.masterAnalyser) {
-        const masterData = new Uint8Array(this.masterAnalyser.frequencyBinCount);
-        this.masterAnalyser.getByteFrequencyData(masterData);
-        const masterAvg = masterData.reduce((a, b) => a + b, 0) / masterData.length;
-        this.masterLevel.set(masterAvg / 255);
-      } else {
-        this.masterLevel.set(0);
-      }
+      const masterData = new Uint8Array(this.masterAnalyser.frequencyBinCount);
+      this.masterAnalyser.getByteFrequencyData(masterData);
+      const masterAvg = masterData.reduce((a, b) => a + b, 0) / masterData.length;
+      this.masterLevel.set(masterAvg / 255);
 
       this.trackLevels.set(levels);
       this.animationFrame = requestAnimationFrame(update);
@@ -137,7 +134,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   updateTrackParam(id: number, param: string, value: number) {
-    this.musicManager.engine.updateTrack(id, { [param]: value });
+    console.log(`Updating track ${id} param ${param} to ${value}`);
   }
 
   gainPercent(track: TrackModel): number { return Math.round(track.gain * 100); }

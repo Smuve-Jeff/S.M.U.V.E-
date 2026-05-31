@@ -129,12 +129,11 @@
       </aside>
 
       <main class="studio-workspace" [ngSwitch]="activeView()">
-        <div class="view-wrapper" *ngSwitchCase="'dj'">
+        <div class="view-wrapper" *ngSwitchCase="'arrange'">
           <div class="arrangement-stack">
             <app-arrangement-view
               class="arrangement-main"
             ></app-arrangement-view>
-            <app-dj-deck class="arrangement-dock"></app-dj-deck>
           </div>
         </div>
 

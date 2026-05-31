@@ -34,7 +34,7 @@ import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
 
 type StudioView =
-  | 'dj'
+  |  'arrange'
   | 'piano-roll'
   | 'mixer'
   | 'performance'
@@ -45,7 +45,7 @@ type StudioView =
 type MobileStudioPanel = 'browser' | 'inspector';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
-  'dj',
+   'arrange',
   'piano-roll',
   'mixer',
   'performance',
@@ -64,14 +64,14 @@ function isStudioView(value: string): value is StudioView {
   imports: [
     CommonModule,
     UniversalMasterComponent,
-    MixerComponent,
-    DjDeckComponent,
+
+
     ArrangementViewComponent,
     PianoRollComponent,
-    MasteringSuiteComponent,
+
     ChannelRackComponent,
-    DrumMachineComponent,
-    PerformerComponent,
+
+
     SoundBrowserComponent,
     TrackInspectorComponent,
   ],
@@ -95,7 +95,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private destroy$ = new Subject<void>();
 
-  activeView = signal<StudioView>('dj');
+  activeView = signal<StudioView>( 'arrange');
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showNeuralFoundry = signal(false);
 
