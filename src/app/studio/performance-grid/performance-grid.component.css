@@ -1,90 +1,52 @@
 .performance-grid-container {
-  display: flex;
-  flex-direction: column;
   height: 100%;
-  border: 1px solid var(--studio-border);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.grid-header {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  padding: 0 1.5rem;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--studio-border);
-}
-
-.grid-scroll {
-  flex: 1;
-  overflow: auto;
-  background: #050507;
-}
-
-.grid-body {
-  display: flex;
-  padding: 1.5rem;
-  gap: 12px;
-  min-width: min-content;
-}
-
-.grid-column {
-  width: 120px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
-.track-header {
-  text-align: center;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 6px;
-  margin-bottom: 4px;
-}
-
-.clip-cell {
-  height: 80px;
-  border-radius: 10px;
-  position: relative;
+.clip-cell-v42 {
+  height: 72px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: #e2e8f0;
-  padding: 0.5rem;
-  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
-.clip-cell.active {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: #fff;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+.clip-cell-v42:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.4);
 }
 
-.clip-led {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  opacity: 0.3;
+.clip-cell-v42.active {
+  box-shadow: 0 0 25px currentColor;
 }
 
-.clip-cell.active .clip-led {
-  opacity: 1;
+.clip-led-v42.glowing {
   box-shadow: 0 0 10px currentColor;
 }
 
-@media (max-width: 768px) {
-  .grid-column {
-    width: 90px;
-  }
-  .clip-cell {
-    height: 60px;
-  }
+.animate-music-bar-1 { animation: musicBar 0.8s ease-in-out infinite; }
+.animate-music-bar-2 { animation: musicBar 0.5s ease-in-out infinite; }
+.animate-music-bar-3 { animation: musicBar 0.7s ease-in-out infinite; }
+
+@keyframes musicBar {
+  0%, 100% { height: 4px; }
+  50% { height: 12px; }
+}
+
+.grid-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.grid-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.grid-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.grid-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color, #00e5ff);
 }

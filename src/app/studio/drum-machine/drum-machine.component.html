@@ -48,77 +48,36 @@
           (click)="clearPattern()"
           class="executive-glass text-[8px] px-3 py-1.5 rounded-lg border border-red-500/20 text-red-300 font-black uppercase hover:text-white transition-all"
         >
-          Clear All
+          Clear
         </button>
-
-        <label class="flex items-center gap-2 border-l border-white/5 pl-4">
-          <span class="text-[7px] font-black text-slate-500 uppercase"
-            >Style</span
-          >
-          <select
-            [ngModel]="selectedGenre()"
-            (ngModelChange)="generateAiPattern($event)"
-            class="bg-black/40 border border-white/10 rounded px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-slate-200"
-          >
-            <option *ngFor="let genre of availableGenres" [ngValue]="genre">
-              {{ genre }}
-            </option>
-          </select>
-        </label>
-
-        <div
-          class="swing-control flex items-center gap-2 border-l border-white/5 pl-4"
-        >
-          <span class="text-[7px] font-black text-slate-500 uppercase"
-            >Evolve</span
-          >
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            [ngModel]="evolutionIntensity()"
-            (ngModelChange)="evolutionIntensity.set($event)"
-            class="w-16 h-1 accent-fl-blue"
-          />
-        </div>
       </div>
     </div>
 
-    <div class="module-transport glass-v42 mx-4">
-      <div class="btn-group flex gap-1">
-        <button
-          class="m-btn tactile-v42"
-          type="button"
-          (click)="audioSession.togglePlay()"
-        >
-          <span class="material-symbols-outlined text-sm">{{
-            audioSession.isPlaying() ? 'pause' : 'play_arrow'
-          }}</span>
+    <div class="module-transport glass-v42">
+      <div class="transport-group flex items-center gap-3 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5">
+        <button class="m-btn tactile-v42" (click)="audioSession.togglePlay()">
+          <span class="material-symbols-outlined text-sm">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
         </button>
-        <button
-          class="m-btn tactile-v42 rec"
-          type="button"
-          [class.active]="audioSession.isRecording()"
-          (click)="audioSession.toggleRecord()"
-        >
-          <span class="material-symbols-outlined text-sm"
-            >fiber_manual_record</span
-          >
+        <button class="m-btn tactile-v42" (click)="audioSession.stop()">
+          <span class="material-symbols-outlined text-sm">stop</span>
         </button>
+        <div class="v-divider w-[1px] h-4 bg-white/10 mx-1"></div>
+        <div class="bpm-display text-[10px] font-mono text-fl-blue tabular-nums">
+          {{ engine.tempo() }} <span class="opacity-40">BPM</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="drum-content flex-1 flex overflow-hidden bg-black/40">
+  <div class="drum-workspace flex-1 flex overflow-hidden">
     <div
-      class="pads-sidebar no-scrollbar bg-[#0a0a0f] border-r border-white/10"
+      class="pads-sidebar glass-v42 wood-panel w-56 border-r border-white/10 flex flex-col no-scrollbar"
     >
       <button
         *ngFor="let pad of pads()"
         type="button"
-        class="drum-pad-item pad-button flex items-center p-3 gap-3 border-b border-white/5 transition-all group text-left w-full"
-        [class.selected]="selectedPadId() === pad.id"
+        class="pad-button group flex items-center gap-3 px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-all text-left"
+        [class.selected-pad]="selectedPadId() === pad.id"
         (click)="selectPad(pad)"
       >
         <div
@@ -179,7 +138,7 @@
         >
           <div
             *ngFor="let stepIndex of stepRange"
-            class="step-box flex-1 h-7 rounded-sm transition-all border border-black/20 relative cursor-pointer min-w-[18px] md:min-w-[22px]"
+            class="step-box flex-1 h-7 rounded-sm transition-all border border-black/40 relative cursor-pointer min-w-[18px] md:min-w-[22px] bg-slate-900/50"
             [class.active]="pad.steps[stepIndex].active"
             [class.current-step]="playheadStep() === stepIndex"
             [class.bar-boundary]="stepIndex % 16 === 0"
@@ -188,8 +147,8 @@
               pad.steps[stepIndex].active
                 ? pad.color
                 : Math.floor(stepIndex / 4) % 2 === 0
-                  ? '#1e1e26'
-                  : '#14141a'
+                  ? 'rgba(30, 30, 38, 0.6)'
+                  : 'rgba(20, 20, 26, 0.6)'
             "
             [style.opacity]="
               pad.steps[stepIndex].active ? pad.steps[stepIndex].probability : 1
@@ -214,9 +173,19 @@
       </div>
 
       <div
-        class="playhead absolute top-0 bottom-0 w-0.5 bg-white/10 pointer-events-none"
+        class="playhead absolute top-0 bottom-0 w-0.5 bg-fl-blue/40 pointer-events-none z-10"
         [style.left.%]="(playheadStep() / 64) * 100"
       ></div>
+      <div class="grid-overlay absolute inset-0 pointer-events-none">
+        <div class="beat-lines flex h-full">
+           <div *ngFor="let step of stepRange"
+                class="flex-1 border-l"
+                [class.border-white/5]="step % 4 !== 0"
+                [class.border-white/10]="step % 4 === 0 && step % 16 !== 0"
+                [class.border-fl-blue/20]="step % 16 === 0 && step !== 0">
+           </div>
+        </div>
+      </div>
     </div>
 
     <div
@@ -285,21 +254,20 @@
           (valueChange)="updatePadParam(pad, 'pan', $event / 100)"
         ></app-knob>
         <app-knob
-          label="Q"
-          [min]="1"
-          [max]="12"
-          [step]="0.1"
-          [value]="pad.params.resonance"
-          (valueChange)="updatePadParam(pad, 'resonance', $event)"
+          label="GRIT"
+          [min]="0"
+          [max]="100"
+          [step]="1"
+          [value]="pad.params.saturation * 100"
+          (valueChange)="updatePadParam(pad, 'saturation', $event / 100)"
         ></app-knob>
         <app-knob
-          label="ATTACK"
-          [min]="1"
-          [max]="50"
+          label="PUNCH"
+          [min]="0"
+          [max]="100"
           [step]="1"
-          [value]="pad.params.attack * 1000"
-          unit="ms"
-          (valueChange)="updatePadParam(pad, 'attack', $event / 1000)"
+          [value]="pad.params.compression * 100"
+          (valueChange)="updatePadParam(pad, 'compression', $event / 100)"
         ></app-knob>
       </div>
 
