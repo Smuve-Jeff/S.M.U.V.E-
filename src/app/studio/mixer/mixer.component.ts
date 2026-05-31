@@ -1,4 +1,4 @@
-import { Component, Input, inject, signal, computed } from '@angular/core';
+import { Component, Input, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
@@ -16,7 +16,7 @@ import { Clip } from '../instrument.service';
   templateUrl: './mixer.component.html',
   styleUrl: './mixer.component.css'
 })
-export class MixerComponent {
+export class MixerComponent implements OnInit, OnDestroy {
   public readonly audioSession = inject(AudioSessionService);
   public readonly musicManager = inject(MusicManagerService);
   private readonly neuralMixer = inject(NeuralMixerService);
@@ -33,6 +33,86 @@ export class MixerComponent {
 
   selectedTrack = computed(() => this.tracks().find((t) => t.id === this.selectedTrackId()));
   viewMode = signal<'compact' | 'expanded'>('expanded');
+
+  private analysers = new Map<number, AnalyserNode>();
+  private masterAnalyser: AnalyserNode | null = null;
+  private animationFrame: number | null = null;
+  trackLevels = signal<Record<number, number>>({});
+  masterLevel = signal(0);
+
+  ngOnInit() {
+    this.startMetering();
+  }
+
+  ngOnDestroy() {
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+    }
+    this.analysers.forEach(analyser => analyser.disconnect());
+    this.analysers.clear();
+    if (this.masterAnalyser) {
+      this.masterAnalyser.disconnect();
+      this.masterAnalyser = null;
+    }
+  }
+
+  private startMetering() {
+    const update = () => {
+      const levels: Record<number, number> = {};
+      const currentTracks = this.tracks();
+      const currentTrackIds = new Set(currentTracks.map(t => t.id));
+
+      // Clean up analysers for removed tracks
+      this.analysers.forEach((analyser, id) => {
+        if (!currentTrackIds.has(id)) {
+          analyser.disconnect();
+          this.analysers.delete(id);
+        }
+      });
+
+      const context = this.audioSession.engine.getContext();
+      if (!context) return;
+
+      currentTracks.forEach(track => {
+        let analyser = this.analysers.get(track.id);
+        if (!analyser) {
+          const output = this.audioSession.engine.getTrackOutput(track.id);
+          if (output) {
+            analyser = context.createAnalyser();
+            analyser.fftSize = 32;
+            output.connect(analyser);
+            this.analysers.set(track.id, analyser);
+          }
+        }
+
+        if (analyser) {
+          const data = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(data);
+          const avg = data.reduce((a, b) => a + b, 0) / data.length;
+          levels[track.id] = avg / 255;
+        } else {
+          levels[track.id] = 0;
+        }
+      });
+
+      // Master metering
+      if (!this.masterAnalyser) {
+        this.masterAnalyser = context.createAnalyser();
+        this.masterAnalyser.fftSize = 32;
+        // Connect to master gain if possible, or destination
+        this.audioSession.engine.masterGain.connect(this.masterAnalyser);
+      }
+
+      const masterData = new Uint8Array(this.masterAnalyser.frequencyBinCount);
+      this.masterAnalyser.getByteFrequencyData(masterData);
+      const masterAvg = masterData.reduce((a, b) => a + b, 0) / masterData.length;
+      this.masterLevel.set(masterAvg / 255);
+
+      this.trackLevels.set(levels);
+      this.animationFrame = requestAnimationFrame(update);
+    };
+    this.animationFrame = requestAnimationFrame(update);
+  }
 
   toggleViewMode() { this.viewMode.update((v) => (v === 'compact' ? 'expanded' : 'compact')); }
   updateMasterVolume(newVolume: number): void { this.audioSession.updateMasterVolume(newVolume); }
@@ -53,7 +133,12 @@ export class MixerComponent {
     this.musicManager.engine.updateTrack(id, { pan });
   }
 
+  updateTrackParam(id: number, param: string, value: number) {
+    console.log(`Updating track ${id} param ${param} to ${value}`);
+  }
+
   gainPercent(track: TrackModel): number { return Math.round(track.gain * 100); }
   panPercent(track: TrackModel): number { return Math.round(track.pan * 100); }
   isSelected(track: TrackModel): boolean { return this.selectedTrackId() === track.id; }
+  getTrackLevel(id: number): number { return this.trackLevels()[id] || 0; }
 }

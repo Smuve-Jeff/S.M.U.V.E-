@@ -1,29 +1,55 @@
-<div class="performance-grid-container glass-v42 shadow-v42-xl">
-  <div class="grid-header wood-panel">
-    <div class="neon-text-sm">PERFORMANCE GRID v1.0</div>
-    <div class="grid-actions">
-      <span class="neon-text-xs opacity-60">Tap any slot to arm playback</span>
+<div class="performance-grid-container glass-v42 shadow-v42-2xl border-white/5">
+  <div class="grid-header wood-panel flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/40">
+    <div class="header-info">
+      <div class="neon-text text-[10px] font-black uppercase tracking-[0.3em]">Neural Live Engine v2.0</div>
+      <div class="text-[8px] text-slate-500 uppercase tracking-widest mt-1">Tap slot to trigger • Column = Track • Row = Scene</div>
+    </div>
+    <div class="grid-stats flex gap-4">
+      <div class="stat-item text-right">
+        <div class="text-[7px] text-slate-500 uppercase">Quantization</div>
+        <div class="text-[9px] font-bold text-fl-blue">1 BAR</div>
+      </div>
     </div>
   </div>
 
-  <div class="grid-scroll no-scrollbar">
-    <div class="grid-body">
-      <div *ngFor="let track of tracks()" class="grid-column">
-        <div class="track-header neon-text-xs">
-          {{ track.name | uppercase }}
+  <div class="grid-scroll no-scrollbar bg-black/60">
+    <div class="grid-body p-6 flex gap-6">
+      <!-- Tracks / Columns -->
+      <div *ngFor="let track of tracks()" class="grid-column flex flex-col gap-4 min-w-[110px]">
+        <div class="track-header-elite p-3 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col items-center gap-2">
+           <div class="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" [style.color]="track.color || '#00e5ff'" [style.background-color]="track.color || '#00e5ff'"></div>
+           <div class="text-[8px] font-black text-slate-300 uppercase tracking-tighter truncate w-full text-center">
+             {{ track.name }}
+           </div>
         </div>
+
+        <!-- Scene Slots -->
         <button
           *ngFor="let row of rows"
           type="button"
-          class="clip-cell tactile-v42 glass-v42"
+          class="clip-cell-v42 tactile-v42 relative group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 transition-all duration-300 overflow-hidden"
           [class.active]="isActive(track, row)"
+          [style.border-color]="isActive(track, row) ? (track.color || '#00e5ff') : 'rgba(255,255,255,0.03)'"
+          [style.background-color]="isActive(track, row) ? (track.color || '#00e5ff') + '15' : 'rgba(255,255,255,0.01)'"
           (click)="toggleClip(track.id, row)"
         >
-          <div class="clip-led" [style.background-color]="track.color"></div>
-          <div class="clip-wave"></div>
-          <span class="neon-text-xs opacity-70">{{
-            slotName(track, row)
-          }}</span>
+          <div class="clip-led-v42 absolute top-2 right-2 w-2 h-2 rounded-full border border-black/40 transition-all duration-500"
+               [style.background-color]="isActive(track, row) ? (track.color || '#00e5ff') : '#2a2a2a'"
+               [class.glowing]="isActive(track, row)"></div>
+
+          <div class="clip-label text-[7px] font-black uppercase tracking-widest transition-all group-hover:scale-110"
+               [class.text-white]="isActive(track, row)"
+               [class.text-slate-600]="!isActive(track, row)">
+            {{ slotName(track, row) }}
+          </div>
+
+          <div *ngIf="isActive(track, row)" class="wave-animation flex items-end gap-0.5 h-3">
+             <div class="w-0.5 bg-white/40 animate-music-bar-1"></div>
+             <div class="w-0.5 bg-white/60 animate-music-bar-2"></div>
+             <div class="w-0.5 bg-white/40 animate-music-bar-3"></div>
+          </div>
+
+          <div class="clip-overlay absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 pointer-events-none"></div>
         </button>
       </div>
     </div>
