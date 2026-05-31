@@ -640,7 +640,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       return false;
     }
 
-    const plays = profile?.gameStats?.[rail.id]?.playCount || 0;
+    const plays = profile?.gameStats?.[rail.id]?.plays || 0;
     if (audience.minPlays !== undefined && plays < audience.minPlays) {
       return false;
     }
