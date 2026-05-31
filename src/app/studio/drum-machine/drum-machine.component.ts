@@ -43,8 +43,6 @@ interface DrumPad {
     pan: number;
     cutoff: number;
     resonance: number;
-    saturation: number;
-    compression: number;
     attack: number;
   };
 }
@@ -86,7 +84,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: 0,
       cutoff: 900,
       resonance: 1.1,
-      attack: 0.002, saturation: 0.1, compression: 0.2,
+      attack: 0.002,
     },
   },
   {
@@ -101,7 +99,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: 0,
       cutoff: 2600,
       resonance: 1.4,
-      attack: 0.002, saturation: 0.1, compression: 0.2,
+      attack: 0.002,
     },
   },
   {
@@ -116,7 +114,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: 0.08,
       cutoff: 3200,
       resonance: 0.9,
-      attack: 0.004, saturation: 0.15, compression: 0.1,
+      attack: 0.004,
     },
   },
   {
@@ -131,7 +129,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: -0.18,
       cutoff: 9200,
       resonance: 1.7,
-      attack: 0.001, saturation: 0, compression: 0,
+      attack: 0.001,
     },
   },
   {
@@ -146,7 +144,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: 0.24,
       cutoff: 7600,
       resonance: 1.1,
-      attack: 0.001, saturation: 0, compression: 0,
+      attack: 0.001,
     },
   },
   {
@@ -161,7 +159,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: -0.32,
       cutoff: 720,
       resonance: 1.0,
-      attack: 0.003, saturation: 0.05, compression: 0.1,
+      attack: 0.003,
     },
   },
   {
@@ -176,7 +174,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: 0,
       cutoff: 940,
       resonance: 1.0,
-      attack: 0.003, saturation: 0.05, compression: 0.1,
+      attack: 0.003,
     },
   },
   {
@@ -191,7 +189,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: 0.3,
       cutoff: 1300,
       resonance: 1.0,
-      attack: 0.003, saturation: 0.05, compression: 0.1,
+      attack: 0.003,
     },
   },
   {
@@ -206,7 +204,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: -0.12,
       cutoff: 4000,
       resonance: 2.2,
-      attack: 0.001, saturation: 0, compression: 0,
+      attack: 0.001,
     },
   },
   {
@@ -221,7 +219,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: 0.16,
       cutoff: 4800,
       resonance: 2.6,
-      attack: 0.001, saturation: 0, compression: 0,
+      attack: 0.001,
     },
   },
   {
@@ -236,7 +234,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: 0.2,
       cutoff: 9000,
       resonance: 0.8,
-      attack: 0.001, saturation: 0, compression: 0,
+      attack: 0.001,
     },
   },
   {
@@ -251,7 +249,7 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
       pan: 0.12,
       cutoff: 7000,
       resonance: 1.3,
-      attack: 0.001, saturation: 0, compression: 0,
+      attack: 0.001,
     },
   },
 ];
@@ -264,7 +262,6 @@ const DRUM_PAD_BLUEPRINTS: DrumPadBlueprint[] = [
   styleUrl: './drum-machine.component.css',
 })
 export class DrumMachineComponent implements AfterViewInit, OnDestroy {
-  protected readonly Math = Math;
   public readonly musicManager = inject(MusicManagerService);
   public readonly engine = inject(AudioEngineService);
   public readonly audioSession = inject(AudioSessionService);
