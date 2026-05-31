@@ -41,7 +41,7 @@
 
     <app-universal-master class="studio-master-strip"></app-universal-master>
 
-    <nav class="studio-view-tabs no-scrollbar">
+    <nav class="studio-view-tabs no-scrollbar" *ngIf="!uiService.isCompactMobile()">
       <button
         [class.active]="activeView() === 'dj'"
         (click)="setActiveView('dj')"
