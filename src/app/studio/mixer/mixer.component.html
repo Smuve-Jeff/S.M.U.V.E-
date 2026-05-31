@@ -89,13 +89,7 @@
       </div>
       <div class="fader-section flex-1 flex flex-col items-center justify-center py-4 relative">
         <div class="fader-rail w-1.5 h-full bg-black/60 rounded-full border border-fl-blue/10"></div>
-        <input type="range" orient="vertical" min="0" max="120" [value]="audioSession.masterVolume() * 100"
-               (input)="updateMasterVolume($any($event.target).value / 100)"
-               class="pro-fader-input" />
-        <div class="fader-cap-pro-elite master-cap"
-             [style.bottom.%]="audioSession.masterVolume() * 80">
-           <div class="cap-line bg-fl-blue"></div>
-        </div>
+        <input type=
       </div>
       <div class="w-full p-3 bg-black/60 rounded-b-2xl border-t border-fl-blue/10">
          <button (click)="applyNeuralMix()" class="w-full py-1.5 text-[7px] font-black uppercase rounded bg-fl-blue text-black hover:bg-white transition-all">S.M.U.V.E. Polish</button>
