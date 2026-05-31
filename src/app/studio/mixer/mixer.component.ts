@@ -137,7 +137,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   updateTrackParam(id: number, param: string, value: number) {
-    console.log(`Updating track ${id} param ${param} to ${value}`);
+    this.musicManager.engine.updateTrack(id, { [param]: value });
   }
 
   gainPercent(track: TrackModel): number { return Math.round(track.gain * 100); }
