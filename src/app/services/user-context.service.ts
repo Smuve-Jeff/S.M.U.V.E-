@@ -39,6 +39,7 @@ export type MainViewMode =
   | 'drum-machine'
   | 'mastering'
   | 'dj-deck'
+  | 'performance'
   | 'settings';
 
 export interface Stems {

@@ -22,7 +22,7 @@ export interface MicChannel {
 export class AudioSessionService {
   private logger = inject(LoggingService);
   private readonly instrumentService = inject(InstrumentService);
-  private readonly engine = inject(AudioEngineService);
+  public readonly engine = inject(AudioEngineService);
   private readonly micService = inject(MicrophoneService);
   private readonly recordingEngine = inject(StudioRecordingEngineService);
 

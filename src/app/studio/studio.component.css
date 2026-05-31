@@ -218,6 +218,7 @@
 }
 
 .arrangement-stack {
+  z-index: 1;
   height: 100%;
   display: grid;
   grid-template-rows: minmax(0, 1fr) 14rem;
@@ -228,6 +229,7 @@
 }
 
 .arrangement-dock {
+  z-index: 10;
   min-height: 0;
   border-top: 1px solid rgba(148, 163, 184, 0.2);
 }
@@ -467,6 +469,7 @@
   }
 
   .arrangement-stack {
+  z-index: 1;
     grid-template-rows: minmax(0, 1fr) 12rem;
   }
 
