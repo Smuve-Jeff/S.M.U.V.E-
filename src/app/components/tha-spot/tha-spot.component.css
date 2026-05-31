@@ -1671,3 +1671,39 @@
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }
+
+/* Theater Mode Advanced Styling */
+`@media` (min-width: 1025px) {
+  .theater-player-container {
+    border: 1px solid rgba(175, 37, 244, 0.3) !important;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(175, 37, 244, 0.2) !important;
+    max-width: 1400px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+.theater-player-frame .console-header {
+  border-bottom: 1px solid rgba(175, 37, 244, 0.2) !important;
+}
+
+.cinema-controls {
+  padding: 2rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 2rem;
+}
+
+.layout-toggle-btn {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 800 !important;
+}
+
+/* Ensure background dimming in Cinema mode */
+.tha-spot-shell[data-mode="cinema"] {
+  background: #000 !important;
+}
+
+.content-scroller:has(.theater-player-container) {
+  background: rgba(0, 0, 0, 0.8);
+}

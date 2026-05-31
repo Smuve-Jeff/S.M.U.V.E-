@@ -61,6 +61,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   readonly streams = signal<CinemaStream[]>([]);
   readonly currentStream = signal<CinemaStream | null>(null);
   readonly cinemaLayout = signal<"overlay" | "theater">("overlay");
+  readonly showFavoritesOnly = signal<boolean>(false);
 
   // Feed Signals
   feed = signal<any>(null);
@@ -108,13 +109,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   // Computed signals
   filteredGames = computed(() => {
     if (this.displayMode() === 'cinema') return [];
+    let games = this.games();
+    if (this.showFavoritesOnly()) {
+      games = games.filter(g => this.favorites().includes(g.id));
+    }
     return this.gameService.filterAndSortGames(
-      this.games(),
+      games,
       {
         genre: this.activeGenre(),
         query: this.searchQuery(),
         platform: this.activePlatform(),
-        favorites: this.favorites(),
         quickFilters: this.quickFilters(),
       },
       this.sortMode()
@@ -129,6 +133,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         s.description?.toLowerCase().includes(query) ||
         s.genre?.toLowerCase().includes(query)
     );
+  });
+
+  featuredStreams = computed(() => {
+    return this.filteredStreams().filter(s => s.badgeIds?.includes("featured"));
+  });
+
+  allCategories = computed(() => {
+    const genres = new Set<string>();
+    this.games().forEach(g => {
+      if (g.genre) genres.add(g.genre);
+    });
+    return Array.from(genres).sort();
   });
 
   matchingRecommendationRails = computed(() => {
@@ -236,7 +252,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       window.open(url, '_blank');
       this.closePreview();
     } else {
-      // Logic for multiplayer matchmaking simulation from tests
       if (this.isMultiplayerGame(game)) {
         this.isMatchmaking.set(true);
         this.matchmakingStatus.set('SCANNING FOR RIVALS...');
@@ -519,6 +534,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   onStreamClick(stream: CinemaStream): void {
     this.destroyStreamPlayer();
     this.currentStream.set(stream);
+    if (typeof window !== 'undefined' && window.innerWidth > 1024) {
+      this.cinemaLayout.set('theater');
+    }
     if (stream.type !== "iframe") {
       this.streamInitTimeoutId = window.setTimeout(
         () => this.initializeHlsPlayer(),
@@ -577,8 +595,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       this.onNativeHlsMetadata = undefined;
     }
 
-    this.hlsPlayer?.destroy();
-    this.hlsPlayer = undefined;
+    if (this.hlsPlayer) {
+      this.hlsPlayer.destroy();
+      this.hlsPlayer = undefined;
+    }
   }
 
   private isTrustedGameMessageOrigin(
@@ -620,21 +640,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
       return false;
     }
 
-    const totalPlays = this.totalPlays(profile?.gameStats || {});
-    if (audience.minPlays !== undefined && totalPlays < audience.minPlays) {
+    const plays = profile?.gameStats?.[rail.id]?.plays || 0;
+    if (audience.minPlays !== undefined && plays < audience.minPlays) {
       return false;
     }
-    if (audience.maxPlays !== undefined && totalPlays > audience.maxPlays) {
+    if (audience.maxPlays !== undefined && plays > audience.maxPlays) {
       return false;
     }
 
     return true;
-  }
-
-  private totalPlays(stats: Record<string, { plays?: number }>): number {
-    return Object.values(stats).reduce(
-      (sum, entry) => sum + (entry.plays || 0),
-      0
-    );
   }
 }
