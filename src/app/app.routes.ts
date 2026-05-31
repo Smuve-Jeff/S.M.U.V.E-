@@ -184,32 +184,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'mixer',
-    loadComponent: () =>
-      import('./studio/mixer/mixer.component').then((m) => m.MixerComponent),
-  },
-  {
-    path: 'drum-machine',
-    loadComponent: () =>
-      import('./studio/drum-machine/drum-machine.component').then(
-        (m) => m.DrumMachineComponent
-      ),
-  },
-  {
-    path: 'performance',
-    loadComponent: () =>
-      import('./studio/performer/performer.component').then(
-        (m) => m.PerformerComponent
-      ),
-  },
-  {
-    path: 'mastering',
-    loadComponent: () =>
-      import('./studio/mastering-suite/mastering-suite.component').then(
-        (m) => m.MasteringSuiteComponent
-      ),
-  },
-  {
     path: 'networking',
     loadComponent: () =>
       import('./components/tha-spot/tha-spot.component').then(

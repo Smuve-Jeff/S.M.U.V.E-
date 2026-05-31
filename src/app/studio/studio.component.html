@@ -58,22 +58,26 @@
         Piano Roll
       </button>
       <button
-        (click)="uiService.navigateToView('drum-machine')"
+        [class.active]="activeView() === 'drum-machine'"
+        (click)="setActiveView('drum-machine')"
       >
         Drum Machine
       </button>
       <button
-        (click)="uiService.navigateToView('mixer')"
+        [class.active]="activeView() === 'mixer'"
+        (click)="setActiveView('mixer')"
       >
         Mixer
       </button>
       <button
-        (click)="uiService.navigateToView('performance')"
+        [class.active]="activeView() === 'performer'"
+        (click)="setActiveView('performer')"
       >
         Performance
       </button>
       <button
-        (click)="uiService.navigateToView('mastering')"
+        [class.active]="activeView() === 'mastering'"
+        (click)="setActiveView('mastering')"
       >
         Mastering
       </button>
@@ -144,6 +148,22 @@
             <app-piano-roll class="editor-main"></app-piano-roll>
           </div>
         </div>
+
+        <div class="view-wrapper" *ngSwitchCase="'drum-machine'">
+          <app-drum-machine></app-drum-machine>
+        </div>
+
+        <div class="view-wrapper" *ngSwitchCase="'mixer'">
+          <app-mixer></app-mixer>
+        </div>
+
+        <div class="view-wrapper" *ngSwitchCase="'performer'">
+          <app-performer></app-performer>
+        </div>
+
+        <div class="view-wrapper" *ngSwitchCase="'mastering'">
+          <app-mastering-suite></app-mastering-suite>
+        </div>
       </main>
 
       <aside
@@ -173,22 +193,26 @@
       Piano
     </button>
     <button
-      (click)="uiService.navigateToView('drum-machine')"
+      [class.active]="activeView() === 'drum-machine'"
+      (click)="setActiveView('drum-machine')"
     >
       Drums
     </button>
     <button
-      (click)="uiService.navigateToView('mixer')"
+      [class.active]="activeView() === 'mixer'"
+      (click)="setActiveView('mixer')"
     >
       Mix
     </button>
     <button
-      (click)="uiService.navigateToView('performance')"
+      [class.active]="activeView() === 'performer'"
+      (click)="setActiveView('performer')"
     >
       Perform
     </button>
     <button
-      (click)="uiService.navigateToView('mastering')"
+      [class.active]="activeView() === 'mastering'"
+      (click)="setActiveView('mastering')"
     >
       Master
     </button>

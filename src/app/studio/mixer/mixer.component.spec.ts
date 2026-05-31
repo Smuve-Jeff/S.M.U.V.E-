@@ -41,19 +41,6 @@ describe('MixerComponent', () => {
       togglePlay: jest.fn(),
       toggleRecord: jest.fn(),
       stop: jest.fn(),
-      engine: {
-        ctx: {
-          createAnalyser: jest.fn().mockReturnValue({
-            fftSize: 32,
-            frequencyBinCount: 16,
-            getByteFrequencyData: jest.fn(),
-          }),
-        },
-        tempo: signal(124),
-        getTrackOutput: jest.fn().mockReturnValue({
-          connect: jest.fn(),
-        }),
-      },
     };
 
     const musicManagerMock = {
@@ -117,7 +104,11 @@ describe('MixerComponent', () => {
 
   it('delegates transport controls to the audio session', async () => {
     const { component, audioSessionMock } = await createComponent();
-    component.audioSession.togglePlay();
+    component.togglePlayback();
+    component.toggleRecording();
+    component.stopPlayback();
     expect(audioSessionMock.togglePlay).toHaveBeenCalled();
+    expect(audioSessionMock.toggleRecord).toHaveBeenCalled();
+    expect(audioSessionMock.stop).toHaveBeenCalled();
   });
 });

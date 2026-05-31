@@ -1,4 +1,4 @@
-import { Component, Input, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
@@ -16,7 +16,7 @@ import { Clip } from '../instrument.service';
   templateUrl: './mixer.component.html',
   styleUrl: './mixer.component.css'
 })
-export class MixerComponent implements OnInit, OnDestroy {
+export class MixerComponent {
   public readonly audioSession = inject(AudioSessionService);
   public readonly musicManager = inject(MusicManagerService);
   private readonly neuralMixer = inject(NeuralMixerService);
@@ -33,44 +33,6 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   selectedTrack = computed(() => this.tracks().find((t) => t.id === this.selectedTrackId()));
   viewMode = signal<'compact' | 'expanded'>('expanded');
-
-  private analysers = new Map<number, AnalyserNode>();
-  private animationFrame: number | null = null;
-  trackLevels = signal<Record<number, number>>({});
-
-  ngOnInit() {
-    this.startMetering();
-  }
-
-  ngOnDestroy() {
-    if (this.animationFrame) {
-      cancelAnimationFrame(this.animationFrame);
-    }
-  }
-
-  private startMetering() {
-    const update = () => {
-      const levels: Record<number, number> = {};
-      this.tracks().forEach(track => {
-        let analyser = this.analysers.get(track.id);
-        if (!analyser) {
-          analyser = this.audioSession.engine.ctx.createAnalyser();
-          analyser.fftSize = 32;
-          const output = this.audioSession.engine.getTrackOutput(track.id);
-          output.connect(analyser);
-          this.analysers.set(track.id, analyser);
-        }
-
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(data);
-        const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        levels[track.id] = avg / 255;
-      });
-      this.trackLevels.set(levels);
-      this.animationFrame = requestAnimationFrame(update);
-    };
-    this.animationFrame = requestAnimationFrame(update);
-  }
 
   toggleViewMode() { this.viewMode.update((v) => (v === 'compact' ? 'expanded' : 'compact')); }
   updateMasterVolume(newVolume: number): void { this.audioSession.updateMasterVolume(newVolume); }
@@ -91,13 +53,7 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.musicManager.engine.updateTrack(id, { pan });
   }
 
-  updateTrackParam(id: number, param: string, value: number) {
-    // Placeholder for future per-track EQ/Filter wiring
-    console.log(`Updating track ${id} param ${param} to ${value}`);
-  }
-
   gainPercent(track: TrackModel): number { return Math.round(track.gain * 100); }
   panPercent(track: TrackModel): number { return Math.round(track.pan * 100); }
   isSelected(track: TrackModel): boolean { return this.selectedTrackId() === track.id; }
-  getTrackLevel(id: number): number { return this.trackLevels()[id] || 0; }
 }
