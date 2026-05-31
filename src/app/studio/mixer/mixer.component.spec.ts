@@ -42,19 +42,21 @@ describe('MixerComponent', () => {
       toggleRecord: jest.fn(),
       stop: jest.fn(),
       engine: {
-        ctx: {
+        getContext: jest.fn().mockReturnValue({
           createAnalyser: jest.fn().mockReturnValue({
             fftSize: 32,
             frequencyBinCount: 16,
             getByteFrequencyData: jest.fn(),
           }),
-        },
+        }),
         tempo: signal(124),
         getTrackOutput: jest.fn().mockReturnValue({
           connect: jest.fn(),
         }),
+        masterGain: {
+          connect: jest.fn(),
+        },
       },
-    };
 
     const musicManagerMock = {
       tracks,
