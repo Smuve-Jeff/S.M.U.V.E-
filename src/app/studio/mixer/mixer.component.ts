@@ -96,17 +96,20 @@ export class MixerComponent implements OnInit, OnDestroy {
       });
 
       // Master metering
-      if (!this.masterAnalyser) {
+      if (!this.masterAnalyser && this.audioSession.engine.masterGain) {
         this.masterAnalyser = context.createAnalyser();
         this.masterAnalyser.fftSize = 32;
-        // Connect to master gain if possible, or destination
         this.audioSession.engine.masterGain.connect(this.masterAnalyser);
       }
 
-      const masterData = new Uint8Array(this.masterAnalyser.frequencyBinCount);
-      this.masterAnalyser.getByteFrequencyData(masterData);
-      const masterAvg = masterData.reduce((a, b) => a + b, 0) / masterData.length;
-      this.masterLevel.set(masterAvg / 255);
+      if (this.masterAnalyser) {
+        const masterData = new Uint8Array(this.masterAnalyser.frequencyBinCount);
+        this.masterAnalyser.getByteFrequencyData(masterData);
+        const masterAvg = masterData.reduce((a, b) => a + b, 0) / masterData.length;
+        this.masterLevel.set(masterAvg / 255);
+      } else {
+        this.masterLevel.set(0);
+      }
 
       this.trackLevels.set(levels);
       this.animationFrame = requestAnimationFrame(update);
