@@ -5119,6 +5119,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   streams: [
     {
       id: 'pluto-tv-standalone',
+      badgeIds: ['featured'],
       name: 'Pluto TV',
       url: 'https://pluto.tv/en/live-tv',
       image: 'https://images.pluto.tv/channels/5db7200778c1870009c9593f/featuredImage.jpg',
