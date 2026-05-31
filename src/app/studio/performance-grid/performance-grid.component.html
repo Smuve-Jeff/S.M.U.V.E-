@@ -17,7 +17,7 @@
       <!-- Tracks / Columns -->
       <div *ngFor="let track of tracks()" class="grid-column flex flex-col gap-4 min-w-[110px]">
         <div class="track-header-elite p-3 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col items-center gap-2">
-           <div class="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" [style.color]="track.color" [style.background-color]="track.color"></div>
+           <div class="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" [style.color]="track.color || '#00e5ff'" [style.background-color]="track.color || '#00e5ff'"></div>
            <div class="text-[8px] font-black text-slate-300 uppercase tracking-tighter truncate w-full text-center">
              {{ track.name }}
            </div>
