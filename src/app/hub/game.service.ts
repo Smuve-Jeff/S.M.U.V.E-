@@ -1,31 +1,18 @@
 export type GameSortMode = "Popular" | "Rating" | "Newest" | "Name" | "Queue";
+import { inject, Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { catchError, map, Observable, of, shareReplay } from 'rxjs';
 import {
- inject, Injectable } from '@angular/core';
-import {
- HttpClient } from '@angular/common/http';
-import {
-
-  catchError,
-  map,
-  Observable,
-  of,
-  shareReplay,
-} from 'rxjs';
-import {
-
   Game,
   GameBadge,
   GameRoom,
-
   LiveEvent,
   PromotionCard,
   RecommendationRail,
   SocialPresence,
   ThaSpotFeed,
-  CinemaStream,
 } from './game';
-import {
- THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
+import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
 
 const THA_SPOT_FEED_URL = 'assets/data/tha-spot-feed.json';
 
@@ -56,30 +43,11 @@ function normalizeGame(game: Game): Game {
     rating: asNumber(game.rating, 5.0),
     playersOnline: asNumber(game.playersOnline, 0),
     queueEstimateMinutes: asNumber(game.queueEstimateMinutes, 0),
+    availability: asString(game.availability, 'Online') as any,
     art: {
       eyebrow: asString(game.art?.eyebrow, 'Elite Cabinet'),
       accentStart: asString(game.art?.accentStart, '#af25f4'),
       accentEnd: asString(game.art?.accentEnd, '#3d2b1f'),
-    },
-  };
-}
-
-function normalizeStream(stream: CinemaStream): CinemaStream {
-  return {
-    ...stream,
-    id: asString(stream.id),
-    name: asString(stream.name, 'Untitled Stream'),
-    url: asString(stream.url),
-    image: asString(stream.image),
-    description: asString(stream.description),
-    genre: asString(stream.genre, 'General'),
-    badgeIds: asStringArray(stream.badgeIds),
-    rating: asNumber(stream.rating, 5.0),
-    viewersOnline: asNumber(stream.viewersOnline, 0),
-    art: {
-      eyebrow: asString(stream.art?.eyebrow, 'S.M.U.V.E. Cinema'),
-      accentStart: asString(stream.art?.accentStart, '#111'),
-      accentEnd: asString(stream.art?.accentEnd, '#000'),
     },
   };
 }
@@ -233,9 +201,6 @@ function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
     promotions: (feed.promotions || [])
       .map((card) => normalizePromotion(card))
       .filter((card) => !!card.id),
-    streams: (feed.streams || [])
-      .map((stream) => normalizeStream(stream))
-      .filter((stream) => !!stream.id && !!stream.url),
     recommendationRails: (feed.recommendationRails || [])
       .map((rail) => normalizeRecommendationRail(rail))
       .filter((rail) => !!rail.id),
@@ -256,24 +221,14 @@ export class GameService {
         map((feed) => {
           const normalized = normalizeFeed(feed);
           if (!normalized.games || normalized.games.length === 0) {
-            console.warn(
-              'GameService: Feed loaded but contained no games. Using fallback.'
-            );
             return normalizeFeed(THA_SPOT_FALLBACK_FEED);
           }
           return normalized;
         }),
-        catchError((error) => {
-          console.warn(
-            'GameService: failed to load Tha Spot feed, using fallback',
-            error
-          );
-          return of(normalizeFeed(THA_SPOT_FALLBACK_FEED));
-        }),
+        catchError(() => of(normalizeFeed(THA_SPOT_FALLBACK_FEED))),
         shareReplay(1)
       );
     }
-
     return this.feedCache$;
   }
 
@@ -293,9 +248,7 @@ export class GameService {
     return this.getThaSpotFeed().pipe(
       map((feed) => {
         const room = feed.rooms.find((entry) => entry.id === roomId);
-        if (!room) {
-          return this.filterAndSortGames(feed.games, {}, sort);
-        }
+        if (!room) return this.filterAndSortGames(feed.games, {}, sort);
         return this.filterAndSortGames(
           feed.games.filter((game) => this.matchesRoom(game, room)),
           {},
@@ -332,15 +285,9 @@ export class GameService {
   }
 
   matchesRoom(game: Game, room: GameRoom): boolean {
-    if (room.id === 'all') {
-      return true;
-    }
-
+    if (room.id === 'all') return true;
     const rules = room.rules;
-    if (!rules) {
-      return true;
-    }
-
+    if (!rules) return true;
     const normalizedTags = (game.tags || []).map((tag) => tag.toLowerCase());
     const normalizedGenres = (rules.genres || []).map((genre) =>
       genre.toLowerCase()
@@ -351,7 +298,6 @@ export class GameService {
     const normalizedBadges = (game.badgeIds || []).map((badge) =>
       badge.toLowerCase()
     );
-
     const genreMatch =
       !normalizedGenres.length ||
       normalizedGenres.includes((game.genre || '').toLowerCase());
@@ -370,7 +316,6 @@ export class GameService {
       !rules.featuredOnly || !!game.badgeIds?.includes('featured');
     const gameIdMatch =
       !rules.gameIds?.length || rules.gameIds.includes(game.id);
-
     return (
       genreMatch &&
       tagMatch &&
@@ -393,22 +338,18 @@ export class GameService {
     sort: GameSortMode
   ): Game[] {
     let filtered = [...games];
-
     if (filters.favorites) {
       filtered = filtered.filter((g) => filters.favorites.includes(g.id));
     }
-
     if (filters.genre && filters.genre !== 'all') {
       filtered = filtered.filter((game) => game.genre === filters.genre);
     }
-
     if (filters.platform && filters.platform !== 'all') {
       filtered = filtered.filter((game) => {
         const isInternal = game.url.startsWith('/assets/');
         return filters.platform === 'Internal' ? isInternal : !isInternal;
       });
     }
-
     if (filters.query) {
       const query = filters.query.toLowerCase();
       filtered = filtered.filter(
@@ -418,7 +359,6 @@ export class GameService {
           game.tags?.some((t) => t.toLowerCase().includes(query))
       );
     }
-
     if (filters.quickFilters?.length) {
       filtered = filtered.filter((game) => {
         const tags = (game.tags || []).map((t) => t.toLowerCase());
@@ -443,7 +383,6 @@ export class GameService {
         });
       });
     }
-
     switch (sort) {
       case 'Popular':
         filtered.sort(
@@ -463,14 +402,9 @@ export class GameService {
         );
         break;
       case 'Newest':
-        filtered.sort((a, b) => {
-          const idA = parseInt(a.id, 10) || 0;
-          const idB = parseInt(b.id, 10) || 0;
-          return idB - idA;
-        });
+        filtered.sort((a, b) => (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0));
         break;
     }
-
     return filtered;
   }
 }

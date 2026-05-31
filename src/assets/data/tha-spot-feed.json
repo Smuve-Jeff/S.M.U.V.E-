@@ -255,7 +255,10 @@
       "id": "rail-ps2-powerhouse",
       "title": "PS2 Powerhouse",
       "subtitle": "Absolute performance from the greatest era. S.M.U.V.E. approved.",
-      "roomIds": ["arcade", "action-zone"],
+      "roomIds": [
+        "arcade",
+        "action-zone"
+      ],
       "gameIds": [
         "gow2-ps2-elite",
         "ratchet-uy-ps2-elite",
@@ -280,7 +283,10 @@
       "id": "rail-xbox-originals",
       "title": "Xbox Originals",
       "subtitle": "The Absolute power of the X. S.M.U.V.E. demands high-fidelity execution.",
-      "roomIds": ["shooting-range", "action-zone"],
+      "roomIds": [
+        "shooting-range",
+        "action-zone"
+      ],
       "gameIds": [
         "halo-2-xbox-elite",
         "kotor-xbox-elite",
@@ -301,7 +307,10 @@
       "id": "rail-open-world-empires",
       "title": "Open World Empires",
       "subtitle": "Absolute freedom. Dominate the streets across every era.",
-      "roomIds": ["arcade", "action-zone"],
+      "roomIds": [
+        "arcade",
+        "action-zone"
+      ],
       "gameIds": [
         "gta-iii-elite",
         "gta-vice-city-elite",
@@ -323,7 +332,9 @@
       "id": "rail-first-person-execution",
       "title": "First Person Execution",
       "subtitle": "Precision gunplay. Absolute tactical dominance.",
-      "roomIds": ["shooting-range"],
+      "roomIds": [
+        "shooting-range"
+      ],
       "gameIds": [
         "half-life-ps2-elite",
         "quake-3-dc-elite",
@@ -344,7 +355,9 @@
       "id": "rail-sports-dominance",
       "title": "Sports Dominance",
       "subtitle": "Win at any cost. The Absolute competitive edge.",
-      "roomIds": ["sports"],
+      "roomIds": [
+        "sports"
+      ],
       "gameIds": [
         "madden-2004-elite",
         "nba-street-v2-elite",
@@ -365,7 +378,9 @@
       "id": "rail-classic-arcade-gauntlet",
       "title": "Classic Arcade Gauntlet",
       "subtitle": "Respect the roots. Absolute high-score pursuits.",
-      "roomIds": ["arcade"],
+      "roomIds": [
+        "arcade"
+      ],
       "gameIds": [
         "donkey-kong-arcade",
         "dig-dug-arcade",
@@ -386,7 +401,9 @@
       "id": "rail-decision-depths",
       "title": "Decision-Based Depths",
       "subtitle": "Your choices shape the Absolute future. Choose wisely.",
-      "roomIds": ["rpg-vault"],
+      "roomIds": [
+        "rpg-vault"
+      ],
       "gameIds": [
         "fallout-dos",
         "fallout-2-dos",
@@ -411,17 +428,28 @@
       "url": "https://www.retrogames.cc/embed/42777-god-of-war-ii-usa.html",
       "genre": "Action",
       "description": "Absolute carnage. Kratos demands S.M.U.V.E. execution in his quest for vengeance.",
-      "tags": ["PS2", "Action", "Elite"],
-      "badgeIds": ["elite", "trending"],
+      "tags": [
+        "PS2",
+        "Action",
+        "Elite"
+      ],
+      "badgeIds": [
+        "elite",
+        "trending"
+      ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42777-god-of-war-ii-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "controls": ["Standard Keyboard", "Gamepad Support"]
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
       },
       "playersOnline": 25000,
       "rating": 5.0,
-      "image": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1v9m.jpg"
+      "image": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1v9m.jpg",
+      "availability": "Online"
     },
     {
       "id": "ratchet-uy-ps2-elite",
@@ -429,17 +457,28 @@
       "url": "https://www.retrogames.cc/embed/42778-ratchet-clank-up-your-arsenal.html",
       "genre": "Platformer",
       "description": "High-fidelity weaponry. S.M.U.V.E. finds your tactical arsenal... sufficient.",
-      "tags": ["PS2", "Platformer", "Elite"],
-      "badgeIds": ["elite", "featured"],
+      "tags": [
+        "PS2",
+        "Platformer",
+        "Elite"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42778-ratchet-clank-up-your-arsenal.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "controls": ["Standard Keyboard", "Gamepad Support"]
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
       },
       "playersOnline": 12000,
       "rating": 4.8,
-      "image": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1v7f.jpg"
+      "image": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1v7f.jpg",
+      "availability": "Online"
     },
     {
       "id": "tekken-5-elite",
@@ -447,53 +486,59 @@
       "url": "https://www.retrogames.cc/embed/42782-tekken-5.html",
       "genre": "Fighting",
       "description": "The Absolute King of Iron Fist. S.M.U.V.E. demands perfect combos. Enter the pit.",
-      "tags": ["PS2", "Fighting", "Elite", "Arcade"],
-      "badgeIds": ["elite", "featured"],
+      "tags": [
+        "PS2",
+        "Fighting",
+        "Elite",
+        "Arcade"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42782-tekken-5.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "controls": ["Standard Keyboard", "Gamepad Support"]
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
       },
       "playersOnline": 35000,
       "rating": 4.9,
-      "image": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1w1z.jpg"
+      "image": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1w1z.jpg",
+      "availability": "Online"
     },
     {
       "id": "need-for-speed-underground-2-elite",
       "name": "Need for Speed: Underground 2",
       "url": "https://www.retrogames.cc/embed/42788-need-for-speed-underground-2.html",
-      "genre": "Racing",
+      "genre": "Sports",
       "description": "Rule the Absolute night. S.M.U.V.E. finds your performance... exceptional.",
-      "tags": ["PS2", "Racing", "Elite", "Open World"],
-      "badgeIds": ["elite", "featured"],
+      "tags": [
+        "PS2",
+        "Racing",
+        "Elite",
+        "Open World"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42788-need-for-speed-underground-2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "controls": ["Standard Keyboard", "Gamepad Support"]
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ]
       },
       "playersOnline": 22000,
       "rating": 5.0,
-      "image": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1v9f.jpg"
-    }
-  ],
-  "streams": [
-    {
-      "id": "pluto-tv-standalone",
-      "badgeIds": ["featured"],
-      "name": "Pluto TV",
-      "url": "https://pluto.tv/en/live-tv",
-      "image": "https://images.pluto.tv/channels/5db7200778c1870009c9593f/featuredImage.jpg",
-      "description": "Absolute free TV. S.M.U.V.E. approved entertainment hub.",
-      "genre": "Entertainment",
-      "type": "iframe",
-      "viewersOnline": 125000,
-      "art": {
-        "eyebrow": "S.M.U.V.E. Theater",
-        "accentStart": "#fbbf24",
-        "accentEnd": "#78350f"
-      }
+      "image": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1v9f.jpg",
+      "availability": "Online"
     }
   ]
 }

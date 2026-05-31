@@ -1,5 +1,4 @@
 <div class="tha-spot-shell" [attr.data-theme]="'analog-v42'" [attr.data-mode]="displayMode()">
-  <!-- Status Bar Overlay (Analog v4.2) -->
   <header class="spot-header glass-v42">
     <div class="brand-sector">
       <span class="material-symbols-outlined">hub</span>
@@ -9,92 +8,34 @@
           <span class="material-symbols-outlined">sports_esports</span> GAMING
         </button>
         <button class="mode-toggle-btn" [class.active]="displayMode() === 'cinema'" (click)="setMode('cinema')">
-          <span class="material-symbols-outlined">movie</span> CINEMA
+          <span class="material-symbols-outlined">movie</span> PLUTO TV
         </button>
       </div>
     </div>
-
     <div class="header-controls">
-      <div class="terminal-status">
-        <span class="status-indicator"></span>
-        UPLINK ACTIVE
-      </div>
       <button class="icon-btn" (click)="toggleIntel()">
         <span class="material-symbols-outlined">neurology</span>
       </button>
       <button class="icon-btn" (click)="toggleBrowse()">
-        <span class="material-symbols-outlined">{{
-          isBrowseView() ? 'grid_view' : 'search'
-        }}</span>
+        <span class="material-symbols-outlined">{{ isBrowseView() ? 'grid_view' : 'search' }}</span>
       </button>
     </div>
   </header>
 
   <main class="main-content">
-    <!-- Cinema Mode View -->
-    <div class="content-scroller custom-scrollbar" *ngIf="displayMode() === 'cinema'">
-      <!-- Dedicated Pluto TV / Cinema Rail -->
-      <section class="storefront-rail featured-cinema-rail" *ngIf="featuredStreams().length > 0">
-        <div class="rail-header">
-          <h3 class="rail-title">S.M.U.V.E. THEATER</h3>
-        </div>
-        <div class="rail-scroll custom-scrollbar">
-          <div class="stream-card glass-v42 storefront-card featured-stream"
-               *ngFor="let stream of featuredStreams()"
-               (click)="onStreamClick(stream)">
-            <img [src]="stream.image" [alt]="stream.name">
-            <div class="stream-card-overlay">
-              <div class="stream-genre">{{ stream.genre | uppercase }}</div>
-              <div class="stream-card-title">{{ stream.name }}</div>
-              <p class="stream-desc" *ngIf="stream.description">{{ stream.description }}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Theater Mode Player (Desktop/Immersive) -->
-      <div class="theater-player-container glass-v42 shadow-v42-xl" *ngIf="cinemaLayout() === 'theater' && currentStream(); let active">
-        <div class="theater-player-frame">
-          <header class="console-header glass-v42">
-            <div class="console-title">
-              {{ active.name | uppercase }}
-              <span class="tag">[THEATER]</span>
-            </div>
-            <div class="console-actions">
-              <button class="icon-btn" (click)="toggleCinemaLayout()">
-                <span class="material-symbols-outlined">fullscreen</span>
-              </button>
-              <button class="icon-btn" (click)="closeStream()">
-                <span class="material-symbols-outlined">close</span>
-              </button>
-            </div>
-          </header>
-          <div class="console-body">
-            <ng-container *ngTemplateOutlet="streamPlayerTemplate; context: { $implicit: active }"></ng-container>
-          </div>
-        </div>
-      </div>
-
-      <div class="cinema-controls glass-v42">
-        <button class="layout-toggle-btn" (click)="toggleCinemaLayout()" [class.active]="cinemaLayout() === 'theater'">
-          <span class="material-symbols-outlined">{{ cinemaLayout() === 'theater' ? 'grid_view' : 'tv' }}</span>
-          {{ cinemaLayout() === 'theater' ? 'GRID ONLY' : 'THEATER MODE' }}
-        </button>
-      </div>
-
-      <div class="cinema-grid" [class.theater-grid]="cinemaLayout() === 'theater'">
-        <div class="stream-card glass-v42 storefront-card" *ngFor="let stream of filteredStreams()" (click)="onStreamClick(stream)">
-          <img [src]="stream.image" [alt]="stream.name">
-          <div class="stream-card-overlay">
-            <div class="stream-genre">{{ stream.genre | uppercase }}</div>
-            <div class="stream-card-title">{{ stream.name }}</div>
-          </div>
+    <div class="content-scroller pluto-standalone-view" *ngIf="displayMode() === 'cinema'">
+      <div class="pluto-container glass-v42 shadow-v42-xl">
+        <header class="console-header glass-v42">
+          <div class="console-title">PLUTO TV <span class="tag">[THEATER]</span></div>
+          <div class="telemetry">UPLINK: <span class="success">SECURE</span> | STREAM: 1080P</div>
+        </header>
+        <div class="pluto-body">
+          <iframe [src]="safePlutoUrl()" class="pluto-frame" allow="autoplay; fullscreen; picture-in-picture; orientation-lock;" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
         </div>
       </div>
     </div>
 
-    <!-- Gaming Storefront View -->
-    <div class="content-scroller custom-scrollbar" *ngIf="displayMode() === 'gaming' && !isBrowseView()">
+    <div class="content-scroller custom-scrollbar" *ngIf="displayMode() === 'gaming'">
       <section class="storefront-grid">
         <div class="hero-intel glass-v42 shadow-v42-xl">
           <div class="hero-copy">
@@ -102,388 +43,70 @@
             <p>Strategic gaming sector primed for artist performance.</p>
           </div>
         </div>
-
-        <div class="room-pill-nav">
-          <button
-            class="room-pill glass-v42"
-            *ngFor="let room of gamingRooms()"
-            [class.active]="activeRoom() === room.id"
-            (click)="setActiveRoom(room.id)"
-          >
-            <span class="material-symbols-outlined">{{ room.icon }}</span>
-            {{ room.name | uppercase }}
-          </button>
-        </div>
       </section>
 
       <div class="rails-container">
-        <section
-          class="storefront-rail"
-          *ngFor="let rail of matchingRecommendationRails()"
-        >
-          <div class="rail-header">
-            <h3 class="rail-title">{{ rail.title | uppercase }}</h3>
-          </div>
-
+        <section class="storefront-rail" *ngFor="let rail of matchingRecommendationRails()">
+          <div class="rail-header"><h3 class="rail-title">{{ rail.title | uppercase }}</h3></div>
           <div class="rail-scroll custom-scrollbar">
-            <div
-              class="game-card-compact glass-v42 storefront-card"
-              [class.elite-cabinet]="game.badgeIds?.includes('elite')"
-              [class.elite-tier]="game.badgeIds?.includes('elite')"
-              *ngFor="let game of getGamesForRail(rail)"
-              (click)="onGameClick(game)"
-            >
+            <div class="game-card-compact glass-v42 storefront-card" *ngFor="let game of games()" (click)="onGameClick(game)">
               <div class="card-art">
                 <img [src]="game.image" [alt]="game.name" />
-                <div
-                  class="card-badge elite"
-                  *ngIf="game.badgeIds?.includes('elite')"
-                >
-                  ELITE
-                </div>
-                <div
-                  class="card-badge new"
-                  *ngIf="game.badgeIds?.includes('new-drop')"
-                >
-                  NEW
-                </div>
+                <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
               </div>
               <div class="card-info">
                 <h4>{{ game.name }}</h4>
-                <div class="card-meta">
-                  <span class="genre">{{ game.genre }}</span>
-                  <span class="players">{{ game.playersOnline | number }} LIVE</span>
-                </div>
+                <div class="card-meta"><span class="genre">{{ game.genre }}</span></div>
               </div>
             </div>
           </div>
         </section>
       </div>
     </div>
-
-    <!-- Gaming Browse View -->
-    <div class="browse-view" *ngIf="displayMode() === 'gaming' && isBrowseView()">
-      <div class="filter-sidebar glass-v42">
-        <div class="filter-group">
-          <label>PLATFORM SECTOR</label>
-          <select [ngModel]="activePlatform()" (ngModelChange)="setActivePlatform($event)" class="glass-v42">
-            <option value="all">ALL SYSTEMS</option>
-            <option value="Internal">ELITE INTERNAL</option>
-            <option value="External">EXTERNAL UPLINK</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>COLLECTION FILTER</label>
-          <button
-            (click)="showFavoritesOnly.set(!showFavoritesOnly())"
-            class="glass-v42 w-full py-2 flex items-center justify-center gap-2 transition-all"
-            [class.active-fav-filter]="showFavoritesOnly()"
-          >
-            <span class="material-symbols-outlined">{{
-              showFavoritesOnly() ? 'favorite' : 'favorite_border'
-            }}</span>
-            {{
-              showFavoritesOnly() ? 'SHOWING FAVORITES' : 'SHOW ALL CABINETS'
-            }}
-          </button>
-        </div>
-
-        <div class="filter-group">
-          <label>GENRE SECTOR</label>
-          <select [ngModel]="activeGenre()" (ngModelChange)="setActiveGenre($event)" class="glass-v42">
-            <option value="all">ALL SECTORS</option>
-            <option *ngFor="let g of allCategories()" [value]="g">
-              {{ g | uppercase }}
-            </option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>SEARCH CABINETS</label>
-          <div class="search-input-wrapper glass-v42">
-            <span class="material-symbols-outlined">search</span>
-            <input type="text" [ngModel]="searchQuery()" (ngModelChange)="setSearchQuery($event)" placeholder="Filter by name..." />
-          </div>
-        </div>
-
-        <div class="filter-group">
-          <label>QUICK FILTERS</label>
-          <div class="filter-pills">
-            <button *ngFor="let f of quickFilterOptions" [class.active]="quickFilters().includes(f)" (click)="toggleQuickFilter(f)" class="glass-v42">
-              {{ f | uppercase }}
-            </button>
-          </div>
-        </div>
-
-        <div class="filter-group">
-          <label>SORT MODE</label>
-          <select [ngModel]="sortMode()" (ngModelChange)="setSortMode($event)" class="glass-v42">
-            <option value="Popular">POPULARITY</option>
-            <option value="Rating">TOP RATED</option>
-            <option value="Newest">RECENT DROPS</option>
-            <option value="Name">ALPHABETICAL</option>
-          </select>
-        </div>
-
-        <button class="secondary-btn" (click)="toggleBrowse()">
-          BACK TO HUB
-        </button>
-      </div>
-
-      <div class="browse-grid-container custom-scrollbar">
-        <div class="browse-grid">
-          <div
-            class="game-card-compact glass-v42 storefront-card"
-            [class.elite-cabinet]="game.badgeIds?.includes('elite')"
-            [class.elite-tier]="game.badgeIds?.includes('elite')"
-            *ngFor="let game of filteredGames()"
-            (click)="onGameClick(game)"
-          >
-            <div class="card-art">
-              <img [src]="game.image" [alt]="game.name" />
-              <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
-              <div class="card-badge new" *ngIf="game.badgeIds?.includes('new-drop')">NEW</div>
-            </div>
-            <div class="card-info">
-              <h4>{{ game.name }}</h4>
-              <div class="card-meta">
-                <span class="genre">{{ game.genre }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </main>
 
-  <!-- Intel Sidebar (Strategic Heuristics) -->
   <aside class="executive-sidebar glass-v42" [class.active]="showIntelPanel()">
     <header class="sidebar-header">
-      <span class="material-symbols-outlined">neurology</span>
-      STRATEGIC INTEL
-      <button class="close-intel" (click)="toggleIntel()">
-        <span class="material-symbols-outlined">close</span>
-      </button>
+      <span class="material-symbols-outlined">neurology</span> STRATEGIC INTEL
+      <button class="close-intel" (click)="toggleIntel()"><span class="material-symbols-outlined">close</span></button>
     </header>
-
     <div class="sidebar-content custom-scrollbar">
       <div class="intel-card glass-v42">
-        <div class="sync-score">
-          <div class="label">NEURAL SYNC</div>
-          <div class="value">{{ neuralSyncScore() }}%</div>
-        </div>
-        <div class="sync-bar">
-          <div class="fill" [style.width.%]="neuralSyncScore()"></div>
-        </div>
+        <div class="sync-score"><div class="label">NEURAL SYNC</div><div class="value">{{ neuralSyncScore() }}%</div></div>
+        <div class="sync-bar"><div class="fill" [style.width.%]="neuralSyncScore()"></div></div>
       </div>
-
       <div class="directives-section">
         <h4>DIRECTIVES</h4>
-        <div class="directive-item" *ngFor="let d of gamingDirectives()">
-          <span class="bullet"></span> {{ d }}
-        </div>
-      </div>
-
-      <div class="social-presence">
-        <h4>CREW STATUS</h4>
-        <div
-          class="presence-item"
-          *ngFor="let p of socialPresence().slice(0, 5)"
-        >
-          <div class="presence-avatar"></div>
-          <div class="presence-info">
-            <span class="name">{{ p.name }}</span>
-            <span class="activity">{{ p.activity }}</span>
-          </div>
-          <span class="status-dot" [class]="p.status"></span>
-        </div>
+        <div class="directive-item" *ngFor="let d of gamingDirectives()"><span class="bullet"></span> {{ d }}</div>
       </div>
     </div>
   </aside>
 
-  <!-- Matchmaking Overlay -->
-  <div class="matchmaking-overlay" *ngIf="isMatchmaking()">
-    <div class="matchmaking-container">
-      <div class="scanning-circle">
-        <div class="scan-ring"></div>
-        <div class="center-icon">
-          <span class="material-symbols-outlined">satellite_alt</span>
-        </div>
-      </div>
-      <h2 class="status-title">{{ matchmakingStatus() }}</h2>
-      <div class="progress-bar-small">
-        <div class="fill" [style.width.%]="matchmakingProgress()"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Preview Overlay (Intel & Specs) -->
   <div class="preview-overlay" *ngIf="selectedGame() as selected">
     <div class="overlay-backdrop" (click)="closePreview()"></div>
     <div class="preview-card glass-v42 holographic-depth shadow-v42-xl">
-      <div class="preview-media">
-        <img [src]="selected.image" [alt]="selected.name" />
-      </div>
+      <div class="preview-media"><img [src]="selected.image" [alt]="selected.name" /></div>
       <div class="preview-copy">
-        <div class="preview-topline">
-          <span class="availability-badge">{{ selected.availability }}</span>
-          <span class="genre-badge">{{ selected.genre }}</span>
-        </div>
         <h2>{{ selected.name }}</h2>
         <p>{{ selected.description }}</p>
-        <p class="launch-warning" *ngIf="launchWarning()">
-          {{ launchWarning() }}
-        </p>
-
-        <div class="tech-specs glass-v42">
-          <div class="spec-item">
-            <span class="material-symbols-outlined">sports_esports</span>
-            <div class="spec-label">
-              <span>CONTROLS</span>
-              <strong>{{
-                selected.launchConfig?.controls?.join(', ') || 'Neural Map'
-              }}</strong>
-            </div>
-          </div>
-          <div class="spec-item" *ngIf="isRetroOrArcade(selected)">
-            <span class="material-symbols-outlined">settings_input_component</span>
-            <div class="spec-label">
-              <span>MAPPING</span>
-              <strong>ELITE v4.2 COMPLIANT</strong>
-            </div>
-          </div>
-          <div class="spec-item">
-            <span class="material-symbols-outlined">cloud_sync</span>
-            <div class="spec-label">
-              <span>PERSISTENCE</span>
-              <strong>Verified</strong>
-            </div>
-          </div>
-          <div class="controls-schematic glass-v42" *ngIf="isRetroOrArcade(selected)">
-            <h4>
-              <span class="material-symbols-outlined">videogame_asset</span>
-              CONTROL SCHEMATICS
-            </h4>
-            <div class="mapping-grid">
-              <div class="map-row">
-                <span>Arrow Keys</span> <strong>D-Pad / Movement</strong>
-              </div>
-              <div class="map-row">
-                <span>Z / X / C</span> <strong>A / B / C Buttons</strong>
-              </div>
-              <div class="map-row">
-                <span>Enter / Space</span> <strong>Start / Select</strong>
-              </div>
-              <div class="map-row" *ngIf="selected.tags?.includes('PS2')">
-                <span>Shift / S</span> <strong>L1 / R1 Triggers</strong>
-              </div>
-            </div>
-          </div>
-
-          <div class="preview-actions">
-            <button class="primary-btn action-pulse" (click)="confirmLaunch()">
-              {{ launchActionLabel(selected) }}
-            </button>
-            <button class="secondary-btn" (click)="closePreview()">
-              ABORT
-            </button>
-          </div>
+        <div class="preview-actions">
+          <button class="primary-btn action-pulse" (click)="confirmLaunch()">{{ launchActionLabel(selected) }}</button>
+          <button class="secondary-btn" (click)="closePreview()">ABORT</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Immersive Session Container -->
   <div class="immersive-overlay" *ngIf="currentGame() as active" [class.active]="currentGame()">
     <div class="game-console-window glass-v42 shadow-v42-xl">
       <header class="console-header glass-v42">
-        <div class="console-title">
-          {{ active.name | uppercase }}
-          <span class="tag" *ngIf="isRetroOrArcade(active)">[ELITE]</span>
-        </div>
-        <div class="console-actions">
-          <button class="icon-btn" (click)="reloadGame()">
-            <span class="material-symbols-outlined">refresh</span>
-          </button>
-          <button class="icon-btn" (click)="closeGame()">
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
-      </header>
-      <div class="console-body" [class.retro-flicker]="isRetroOrArcade(active)">
-        <div class="scanline-overlay" *ngIf="isRetroOrArcade(active)"></div>
-        <iframe
-          [src]="currentSafeUrl()"
-          #gameIframe
-          class="game-frame"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
-          allow="fullscreen; autoplay; gamepad; microphone; camera; midi; clipboard-write; web-share; accelerometer; gyroscope; magnetometer; execution-while-out-of-viewport; execution-while-not-rendered;"
-          allowfullscreen
-        ></iframe>
-      </div>
-      <footer class="console-footer glass-v42">
-        <div class="telemetry">
-          UPLINK: <span class="success">SECURE</span> | LATENCY: 14ms
-        </div>
-        <button class="terminate-btn" (click)="closeGame()">TERMINATE</button>
-      </footer>
-    </div>
-  </div>
-
-  <!-- Immersive Cinema Overlay (Legacy/Other) -->
-  <div class="immersive-overlay" *ngIf="cinemaLayout() === 'overlay' && currentStream(); let active" [class.active]="currentStream() && cinemaLayout() === 'overlay'">
-    <div class="game-console-window glass-v42 shadow-v42-xl">
-      <header class="console-header glass-v42">
-        <div class="console-title">
-          {{ active.name | uppercase }}
-          <span class="tag">[CINEMA]</span>
-        </div>
-        <div class="console-actions">
-          <button class="icon-btn" (click)="closeStream()">
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
+        <div class="console-title">{{ active.name | uppercase }}</div>
+        <div class="console-actions"><button class="icon-btn" (click)="closeGame()"><span class="material-symbols-outlined">close</span></button></div>
       </header>
       <div class="console-body">
-        <ng-container *ngTemplateOutlet="streamPlayerTemplate; context: { $implicit: active }"></ng-container>
+        <iframe [src]="currentSafeUrl()" #gameIframe class="game-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads" allowfullscreen></iframe>
       </div>
-      <footer class="console-footer glass-v42">
-        <div class="telemetry">
-          UPLINK: <span class="success">STABILIZED</span> | STREAMING: 1080P
-        </div>
-        <button class="terminate-btn" (click)="closeStream()">TERMINATE SESSION</button>
-      </footer>
+      <footer class="console-footer glass-v42"><button class="terminate-btn" (click)="closeGame()">TERMINATE</button></footer>
     </div>
   </div>
-
-  <ng-template #streamPlayerTemplate let-active>
-    <div class="cinema-player-container">
-      <iframe *ngIf="active.type === 'iframe'"
-              [src]="currentSafeStreamUrl()"
-              class="stream-iframe"
-              allowfullscreen
-              allow="autoplay; fullscreen"></iframe>
-
-      <video #videoPlayer
-             *ngIf="active.type !== 'iframe'"
-             class="smuve-video-player"
-             crossorigin="anonymous"></video>
-
-      <div class="video-overlay-ui" *ngIf="active.type !== 'iframe'">
-        <div class="video-top-bar">
-          <div class="stream-info">
-            <div class="stream-genre">{{ active.genre | uppercase }}</div>
-            <div class="stream-name">{{ active.name }}</div>
-          </div>
-          <div class="live-indicator">
-            <span class="material-symbols-outlined">sensors</span> LIVE
-          </div>
-        </div>
-        <div class="video-controls-bottom">
-          <span class="material-symbols-outlined">visibility</span> {{ active.viewersOnline | number }} VIEWERS
-        </div>
-      </div>
-    </div>
-  </ng-template>
 </div>
