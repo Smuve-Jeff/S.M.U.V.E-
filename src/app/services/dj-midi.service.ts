@@ -30,6 +30,7 @@ export class DjMidiService {
   }
 
   private handleMidi(message: any) {
+    if (!message?.data || message.data.length < 2) return;
     const [status, data1, data2] = message.data;
     const cmd = status >> 4;
     const channel = status & 0xf;
