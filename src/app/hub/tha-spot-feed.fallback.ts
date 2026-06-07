@@ -456,7 +456,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "campaignType": "intel"
         }
     ],
-    "leaderboards": [],
     "games": [
         {
             "id": "1",
