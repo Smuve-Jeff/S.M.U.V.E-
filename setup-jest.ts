@@ -4,6 +4,11 @@ import {
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting,
 } from '@angular/platform-browser-dynamic/testing';
+import {
+  TextEncoder as NodeTextEncoder,
+  TextDecoder as NodeTextDecoder,
+} from 'util';
+import * as nodeCrypto from 'node:crypto';
 
 TestBed.initTestEnvironment(
   BrowserDynamicTestingModule,
@@ -15,7 +20,13 @@ TestBed.initTestEnvironment(
   ENCRYPTION_KEY: 'test-encryption-key',
 };
 
-// Global Web Audio API Mock
+// Polyfill TextEncoder/Decoder for Jest
+if (typeof TextEncoder === 'undefined') {
+  (global as any).TextEncoder = NodeTextEncoder;
+  (global as any).TextDecoder = NodeTextDecoder;
+}
+
+// Mock Web Audio API
 const createMockNode = () => ({
   gain: {
     value: 0,
@@ -125,3 +136,10 @@ jest.mock('tone', () => ({
     return true;
   }
 };
+
+// Mock Web Crypto API using node:crypto
+if (typeof crypto === 'undefined') {
+  (global as any).crypto = nodeCrypto.webcrypto;
+} else if (!crypto.subtle) {
+  (crypto as any).subtle = nodeCrypto.webcrypto.subtle;
+}

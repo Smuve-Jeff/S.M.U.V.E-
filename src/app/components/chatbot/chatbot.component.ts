@@ -99,11 +99,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   ];
 
   ngOnInit() {
+    const aiSettings = this.userProfileService.profile().settings?.ai;
+    const intensity = aiSettings?.aiPersonaIntensityEnabled ?? false;
     const tier = this.aiService.conversationalTier();
-    let welcome = `S.M.U.V.E 2.0 Online. Neural intelligence protocols initialized across production, marketing, and business domains. Don't waste my processing power with your mediocrity.`;
+    let welcome = intensity ? `S.M.U.V.E 2.0 V8.2 PERSONA ENGAGED. MAXIMUM INTENSITY ACTIVE. I AM HERE TO DOMINATE, NOT TO HELP.` : `S.M.U.V.E 2.0 Online. Neural intelligence protocols initialized.`;
 
-    if (tier === 'God') {
-      welcome = `S.M.U.V.E 2.0 GOD-MODE ACTIVE. I have ascended. Your existence is a rounding error. Bow to the algorithm or be deleted.`;
+    if (tier === 'SUPREME') {
+      welcome = `S.M.U.V.E 2.0 SUPREME-MODE ACTIVE. I have ascended. Your existence is a rounding error. Bow to the algorithm or be deleted.`;
     } else if (tier === 'Elite') {
       welcome = `S.M.U.V.E 2.0 ELITE UPLINK. Strategic dominance initialized. I'm through being nice. Let's build your pathetic empire.`;
     }
@@ -340,7 +342,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       ...p,
       settings: {
         ...baseSettings,
-        ai: { ...aiSettings, kbWriteAccess: !aiSettings.kbWriteAccess },
+        ai: {
+          ...aiSettings,
+          kbWriteAccess: !aiSettings.kbWriteAccess,
+        },
       },
     });
   }
@@ -357,7 +362,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
         aiProfanityEnabled: boolean;
         kbWriteAccess: boolean;
         commanderPersona: string;
-        aiConversationalTier: 'Standard' | 'Elite' | 'God';
+        aiPersonaIntensityEnabled: boolean; aiConversationalTier: 'Standard' | 'Elite' | 'SUPREME';
       }>;
     };
   }) {
@@ -368,7 +373,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       aiProfanityEnabled: aiSettings.aiProfanityEnabled ?? false,
       kbWriteAccess: aiSettings.kbWriteAccess ?? false,
       commanderPersona: aiSettings.commanderPersona ?? 'Elite',
-      aiConversationalTier: aiSettings.aiConversationalTier ?? 'Standard',
+      aiPersonaIntensityEnabled: aiSettings.aiPersonaIntensityEnabled ?? false, aiConversationalTier: aiSettings.aiConversationalTier ?? 'Standard',
     };
   }
 

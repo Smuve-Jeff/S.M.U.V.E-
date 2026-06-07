@@ -3498,17 +3498,17 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
     },
     {
-      id: 'god-of-war-elite',
-      name: 'God of War',
-      url: 'https://www.retrogames.cc/embed/43325-god-of-war.html',
+      id: 'supreme-of-war-elite',
+      name: 'Supreme of War',
+      url: 'https://www.retrogames.cc/embed/43325-supreme-of-war.html',
       genre: 'Action',
       description:
-        'The birth of a legend. Kratos takes on the gods of Olympus in an epic tale of vengeance and brutality.',
-      tags: ['Action', 'Retro', 'PS2'],
+        'The birth of a legend. Kratos takes on the forces of Olympus in an epic tale of vengeance and brutality.',
+      tags: ['Action', 'Retro', 'PS2', 'WASM', 'High-Perf'],
       badgeIds: ['classic', 'elite'],
       launchConfig: {
         approvedEmbedUrl:
-          'https://www.retrogames.cc/embed/43325-god-of-war.html',
+          'https://www.retrogames.cc/embed/43325-supreme-of-war.html',
         embedMode: 'inline',
         secure_mode: 'wasm',
         controls: ['Standard Keyboard', 'Gamepad Support'],
@@ -4892,16 +4892,24 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gow2-ps2-elite',
-      name: 'God of War II',
-      url: 'https://www.retrogames.cc/embed/42779-god-of-war-ii.html',
+      name: 'Supreme of War II',
+      url: 'https://www.retrogames.cc/embed/42779-supreme-of-war-ii.html',
       genre: 'Action',
       description:
         'Defy the Fates themselves. Kratos seeks Absolute vengeance. S.M.U.V.E. commands the destruction of Olympus.',
-      tags: ['PS2', 'Action', 'God of War', 'Retro', 'Elite'],
+      tags: [
+        'PS2',
+        'Action',
+        'Supreme of War',
+        'Retro',
+        'Elite',
+        'WASM',
+        'High-Perf',
+      ],
       badgeIds: ['classic', 'elite'],
       launchConfig: {
         approvedEmbedUrl:
-          'https://www.retrogames.cc/embed/42779-god-of-war-ii.html',
+          'https://www.retrogames.cc/embed/42779-supreme-of-war-ii.html',
         embedMode: 'inline',
         secure_mode: 'wasm',
         controls: ['Standard Keyboard', 'Gamepad Support'],

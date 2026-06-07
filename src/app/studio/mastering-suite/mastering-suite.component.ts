@@ -31,6 +31,7 @@ interface MasteringBand {
 export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   private audioEngine = inject(AudioEngineService);
   public aiService = inject(AiService);
+  masteringRoast = signal<string>('Analyzing dynamics...');
   public uiService = inject(UIService);
 
   @ViewChild('spectrogram') spectrogramRef!: ElementRef<HTMLCanvasElement>;
@@ -104,6 +105,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async processMastering() {
+    this.masteringRoast.set(this.aiService.getMasteringRoast());
     this.isProcessing.set(true);
     try {
       const settings = await this.aiService.getAutoMixSettings();

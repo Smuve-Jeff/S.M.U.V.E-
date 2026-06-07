@@ -118,7 +118,7 @@ export class PerformerComponent {
   async setInstrument(presetId: string) {
     await this.liveEngine.initialize();
     await this.liveEngine.setInstrument(presetId);
-    this.haptic.impact('light');
+    this.haptic.light();
   }
 
   async onKeyDown(midi: number) {
@@ -200,12 +200,12 @@ export class PerformerComponent {
     this.musicManager.tracks().forEach((track) => {
       this.musicManager.setActivePatternSlot(track.id, scene.slotId);
     });
-    this.haptic.impact('medium');
+    this.haptic.medium();
   }
 
   launchPattern(trackId: number, slotId: string) {
     this.musicManager.setActivePatternSlot(trackId, slotId);
-    this.haptic.impact('light');
+    this.haptic.light();
   }
 
   isSceneActive(scene: PerformerScene) {
