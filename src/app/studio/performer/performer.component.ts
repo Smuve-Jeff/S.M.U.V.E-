@@ -200,7 +200,7 @@ export class PerformerComponent {
     this.musicManager.tracks().forEach((track) => {
       this.musicManager.setActivePatternSlot(track.id, scene.slotId);
     });
-    this.haptic.impact('medium');
+    this.haptic.medium();
   }
 
   launchPattern(trackId: number, slotId: string) {

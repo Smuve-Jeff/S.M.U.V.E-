@@ -7,14 +7,13 @@ import { LoggingService } from './logging.service';
 import { AudioEngineService } from './audio-engine.service';
 import { UserProfile } from '../types/profile.types';
 import {
-  StrategicTask,
   STRATEGIC_DECREES,
   MIMICRY_TEMPLATES,
 } from './ai-knowledge.data';
 import { NEURAL_UPGRADE_BLUEPRINTS } from './neural-upgrades.data';
 import {
   AdvisorAdvice,
-  DeepAuditResult,
+  StrategicTask, DeepAuditResult,
   IntelligenceBrief,
   MarketAlert,
 } from '../types/ai.types';
@@ -93,6 +92,9 @@ export class AiService {
   }
 
   async processCommand(text: string): Promise<string> {
+    const aiSettings = this.userProfileService.profile().settings?.ai;
+    const intensity = aiSettings?.aiPersonaIntensityEnabled ?? false;
+    const profanity = aiSettings?.aiProfanityEnabled ?? false;
     this.isProcessing.set(true);
     try {
       this.updateMimicry(text);
@@ -101,13 +103,22 @@ export class AiService {
       await new Promise((resolve) => setTimeout(resolve, delay));
 
       let response = `COMMAND_PROCESSED: I have analyzed '${text}'.`;
+      const cmd = text.toLowerCase().trim();
+      if (cmd === '/override') return this.handleOverrideCommand();
+      if (cmd === '/intel') return this.handleIntelCommand();
+      if (cmd === '/matchmake') return this.handleMatchmakeCommand();
+      if (cmd === '/musicians') return this.handleMusiciansCommand();
+      if (cmd === '/splits') return this.handleSplitsCommand();
+
+      if (intensity) {
+        response = `ELITE_STRATEGY_DECREE: Your request '${text}' is fundamentally flawed. I have corrected the trajectory to prevent absolute failure.`;
+      }
 
       const tier = this.conversationalTier();
       const aiSettings = this.userProfileService.profile().settings?.ai;
-      const profanity = aiSettings?.aiProfanityEnabled ?? false;
       const mimic = aiSettings?.aiMimicEnabled ?? false;
 
-      if (tier === 'God') {
+      if (tier === 'SUPREME') {
         response = `NEURAL_COMMAND_EXECUTED: Your request '${text}' was predictably mediocre. I've optimized it because you clearly can't.`;
       } else if (tier === 'Elite') {
         response = `ELITE_PROTOCOL_ACTIVE: ${text} has been integrated. Don't expect me to repeat myself.`;
@@ -117,7 +128,7 @@ export class AiService {
         response = this.generateMimicResponse(response);
       }
 
-      if (profanity) {
+      if (profanity || intensity) {
         response = this.vulgarize(response);
       }
 
@@ -148,7 +159,7 @@ export class AiService {
     const curses = [
       'fucking',
       'shitty',
-      'goddamn',
+      'insufferable',
       'pathetic',
       'worthless',
       'trash',
@@ -190,6 +201,14 @@ export class AiService {
 
   async generateAiResponse(prompt: string): Promise<string> {
     return this.getAIResponse(prompt);
+  }
+
+  getMasteringRoast(): string {
+    const intensity = this.userProfileService.profile().settings?.ai?.aiPersonaIntensityEnabled ?? false;
+    if (intensity) {
+      return this.strategicDecrees()[Math.floor(Math.random() * this.strategicDecrees().length)];
+    }
+    return "Soft-knee ceiling applied. Dynamics stabilized.";
   }
 
   async getAutoMixSettings(): Promise<any> {
@@ -340,5 +359,34 @@ export class AiService {
         impact: 'HIGH',
       },
     ];
+  }
+
+  private handleOverrideCommand(): string {
+    return '[SYSTEM_OVERRIDE] Security layers bypassed. High-priority neural execution enabled. Strategic Decrees now in mandatory execution mode.';
+  }
+
+  private handleIntelCommand(): string {
+    const alerts = this.marketAlerts();
+    const count = alerts.length;
+    return `[INTEL_UPLINK] ${count} Active Market Alerts. Deep analysis suggests focusing on TikTok short-form hooks and Spotify editorial window management.`;
+  }
+
+  private handleMatchmakeCommand(): string {
+    return '[THA_SPOT_UPLINK] Initializing matchmaking protocols. Searching for genre-aligned peers in the Remix Arena. Connection latency: 12ms.';
+  }
+
+  private handleMusiciansCommand(): string {
+    const band = [];
+    if (this.isAIDrummerActive()) band.push('Drummer');
+    if (this.isAIBassistActive()) band.push('Bassist');
+    if (this.isAIKeyboardistActive()) band.push('Keyboardist');
+    const active = band.length > 0 ? band.join(', ') : 'None';
+    return `[AI_BAND_STATUS] Active Musicians: ${active}. Use the Studio top bar to ignite or kill session nodes.`;
+  }
+
+  private handleSplitsCommand(): string {
+    const profile = this.userProfileService.profile();
+    const count = profile.financials.splitSheets.length;
+    return `[LEGAL_INTEL] ${count} Digital Split Sheets detected. Navigation recommended to Executive Hub > Legal for signature verification.`;
   }
 }

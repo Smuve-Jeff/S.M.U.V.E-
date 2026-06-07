@@ -64,7 +64,7 @@ export class InstrumentsService {
 
   presets: InstrumentPreset[] = [
     {
-      id: 'grand-piano-v2',
+      id: 'grand-piano',
       name: 'Grand Piano Elite',
       type: 'sample',
       category: 'piano',
