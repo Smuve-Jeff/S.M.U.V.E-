@@ -23,6 +23,7 @@ export interface AppSettings {
     aiMimicEnabled: boolean;
     aiProfanityEnabled: boolean;
     aiPersonaIntensityEnabled: boolean;
+    autoAuditEnabled: boolean;
     aiConversationalTier: 'Standard' | 'Elite' | 'SUPREME';
   };
   studio: {
@@ -237,6 +238,7 @@ export const initialProfile: UserProfile = {
       aiMimicEnabled: false,
       aiProfanityEnabled: false,
       aiPersonaIntensityEnabled: false,
+      autoAuditEnabled: false,
       aiConversationalTier: 'Standard',
     },
     studio: {

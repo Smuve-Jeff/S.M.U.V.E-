@@ -206,6 +206,7 @@ export class SettingsComponent implements OnInit {
       | 'audio'
       | 'ai'
       | 'studio'
+      | 'dj'
       | 'security'
       | 'permissions'
       | 'storage'
