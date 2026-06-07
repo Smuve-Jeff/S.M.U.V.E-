@@ -739,7 +739,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Classic",
             "rating": 4.8,
             "playersOnline": 5200,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Classic",
                 "Arcade",
@@ -780,7 +780,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
                 ]
             },
             "art": {
-                "eyebrow": "Online",
+                "eyebrow": "Web",
                 "accentStart": "#06b6d4",
                 "accentEnd": "#2563eb"
             },
@@ -794,7 +794,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Puzzle",
             "rating": 4.7,
             "playersOnline": 6300,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Classic",
                 "AI",
@@ -837,7 +837,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
                 ]
             },
             "art": {
-                "eyebrow": "Online",
+                "eyebrow": "Web",
                 "accentStart": "#f97316",
                 "accentEnd": "#ea580c"
             },
@@ -851,7 +851,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Runner",
             "rating": 4.5,
             "playersOnline": 2100,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Arcade",
                 "Reflex",
@@ -892,7 +892,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
                 ]
             },
             "art": {
-                "eyebrow": "Online",
+                "eyebrow": "Web",
                 "accentStart": "#ec4899",
                 "accentEnd": "#db2777"
             },
@@ -906,7 +906,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Classic",
             "rating": 4.9,
             "playersOnline": 15400,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Classic",
                 "Arcade",
@@ -962,7 +962,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Fighting",
             "rating": 4.7,
             "playersOnline": 4500,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Combat",
                 "Arcade",
@@ -1021,7 +1021,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Strategy",
             "rating": 4.9,
             "playersOnline": 32400,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Strategy",
                 "Logic",
@@ -1078,7 +1078,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Sports",
             "rating": 4.5,
             "playersOnline": 7800,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Sports",
                 "Basketball",
@@ -1135,7 +1135,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Sports",
             "rating": 4.8,
             "playersOnline": 42000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Sports",
                 "Soccer",
@@ -1196,7 +1196,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Strategy",
             "rating": 4.8,
             "playersOnline": 45000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Cards",
                 "Logic",
@@ -1309,7 +1309,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Racing",
             "rating": 4.8,
             "playersOnline": 28000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Multiplayer",
                 "Versus",
@@ -1370,7 +1370,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Runner",
             "rating": 4.8,
             "playersOnline": 47000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Arcade",
                 "Reflex",
@@ -1426,7 +1426,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Racing",
             "rating": 4.8,
             "playersOnline": 18500,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Arcade",
                 "Reflex",
@@ -1482,7 +1482,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Runner",
             "rating": 4.7,
             "playersOnline": 39500,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Arcade",
                 "Reflex",
@@ -1538,7 +1538,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Puzzle",
             "rating": 4.6,
             "playersOnline": 9600,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Puzzle",
                 "Arcade",
@@ -1594,7 +1594,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Sports",
             "rating": 4.7,
             "playersOnline": 12800,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Sports",
                 "Pool",
@@ -1652,7 +1652,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Puzzle",
             "rating": 4.7,
             "playersOnline": 8400,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Puzzle",
                 "Classic",
@@ -1709,7 +1709,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Shooting",
             "rating": 4.8,
             "playersOnline": 15000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Shooting",
                 "Action",
@@ -1761,7 +1761,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "RPG",
             "rating": 4.7,
             "playersOnline": 9200,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "RPG",
                 "Adventure",
@@ -1803,7 +1803,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Classic",
             "rating": 4.5,
             "playersOnline": 6800,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Classic",
                 "Shooting",
@@ -1843,7 +1843,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Sports",
             "rating": 4.6,
             "playersOnline": 4200,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Sports",
                 "Bowling",
@@ -1881,7 +1881,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "RPG",
             "rating": 4.7,
             "playersOnline": 11000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "RPG",
                 "Action",
@@ -1923,7 +1923,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Shooting",
             "rating": 4.8,
             "playersOnline": 22000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Shooting",
                 "Multiplayer",
@@ -1975,7 +1975,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Classic",
             "rating": 4.5,
             "playersOnline": 5400,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Classic",
                 "Shooting",
@@ -2014,7 +2014,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Sports",
             "rating": 4.6,
             "playersOnline": 7200,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Sports",
                 "Basketball",
@@ -2053,7 +2053,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Sports",
             "rating": 4.8,
             "playersOnline": 18000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Sports",
                 "Soccer",
@@ -2132,7 +2132,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Shooting",
             "rating": 4.7,
             "playersOnline": 8000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Shooting",
                 "Action",
@@ -2167,7 +2167,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "RPG",
             "rating": 4.8,
             "playersOnline": 14000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "RPG",
                 "Strategy",
@@ -2203,7 +2203,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Classic",
             "rating": 4.9,
             "playersOnline": 50000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Classic",
                 "Strategy",
@@ -2239,7 +2239,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Classic",
             "rating": 4.6,
             "playersOnline": 25000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Classic",
                 "Multiplayer",
@@ -2277,7 +2277,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Shooting",
             "rating": 4.7,
             "playersOnline": 19000,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Shooting",
                 "RPG",
@@ -2324,7 +2324,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Fighting",
             "rating": 4.8,
             "playersOnline": 16800,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Fighting",
                 "Combat",
@@ -2385,7 +2385,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Fighting",
             "rating": 4.7,
             "playersOnline": 11200,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Fighting",
                 "Co-op",
@@ -2444,7 +2444,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Sports",
             "rating": 4.7,
             "playersOnline": 13400,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Sports",
                 "Football",
@@ -2503,7 +2503,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Sports",
             "rating": 4.6,
             "playersOnline": 9600,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Sports",
                 "Tennis",
@@ -2563,7 +2563,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Shooting",
             "rating": 4.8,
             "playersOnline": 21400,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Shooting",
                 "Tactical",
@@ -2624,7 +2624,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Shooting",
             "rating": 4.7,
             "playersOnline": 17800,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Shooting",
                 "Action",
@@ -2805,7 +2805,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.gamepix.com/play/sonic-racing",
             "genre": "Racing",
             "description": "High-velocity hedgehog racing with drift-enabled controls and tactical loop shortcuts.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 15200,
             "rating": 4.9,
             "badgeIds": [
@@ -2836,7 +2836,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
             "genre": "Shooting",
             "description": "The absolute foundation of tactical FPS. Brutal, fast, and legendary.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 8900,
             "rating": 5.0,
             "badgeIds": [
@@ -2867,7 +2867,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html",
             "genre": "Classic",
             "description": "The definitive platformer experience. Run, jump, and save the kingdom in this high-fidelity retro emulation.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 25400,
             "rating": 5.0,
             "badgeIds": [
@@ -2902,7 +2902,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1",
             "genre": "Action",
             "description": "Top-down urban chaos. High-speed chases and tactical missions in the original open-world criminal simulator.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 12800,
             "rating": 4.9,
             "badgeIds": [
@@ -2937,7 +2937,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.gamepix.com/play/basketball-stars",
             "genre": "Sports",
             "description": "Elite WebGL basketball with fluid 3D animations, shot timing, and competitive street-ball mechanics.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 45000,
             "rating": 4.8,
             "badgeIds": [
@@ -2975,7 +2975,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.gamepix.com/play/touchdown-rush",
             "genre": "Sports",
             "description": "High-intensity gridiron action. Manage the clock and execute perfect plays in this premium football simulator.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 32000,
             "rating": 4.7,
             "badgeIds": [
@@ -3013,7 +3013,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
             "genre": "Fighting",
             "description": "Legendary Saiyan combat. High-speed martial arts and energy blasts in this classic fighting emulation.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 18500,
             "rating": 4.9,
             "badgeIds": [
@@ -3048,7 +3048,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.gamepix.com/play/cyber-adventure",
             "genre": "Shooting",
             "description": "Tactical 2.5D sci-fi combat. Lead your squad through hostile zones in this elite futuristic shooter tribute.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 15000,
             "rating": 4.6,
             "badgeIds": [
@@ -3086,7 +3086,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.gamepix.com/play/boxing-stars",
             "genre": "Fighting",
             "description": "Elite heavyweight boxing. Master the sweet science with realistic 3D WebGL physics and career depth.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 21000,
             "rating": 4.8,
             "badgeIds": [
@@ -3124,7 +3124,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/40238-tekken-3.html",
             "genre": "Fighting",
             "description": "The king of iron fist tournament. High-fidelity PS1 emulation with buttery smooth 60fps combat.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 15600,
             "rating": 5.0,
             "badgeIds": [
@@ -3161,7 +3161,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html",
             "genre": "Fighting",
             "description": "Original N64 crossover chaos. Pixel-perfect emulation with enhanced controller mapping.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 22400,
             "rating": 5.0,
             "badgeIds": [
@@ -3197,7 +3197,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
             "genre": "Racing",
             "description": "Drift through nostalgia. N64 racing legend with stable multiplayer performance.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 18900,
             "rating": 4.9,
             "badgeIds": [
@@ -3233,7 +3233,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
             "genre": "Racing",
             "description": "High-octane marsupial racing. Elite PS1 speed with precision touch controls.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 14200,
             "rating": 4.9,
             "badgeIds": [
@@ -3267,7 +3267,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
             "genre": "RPG",
             "description": "The masterpiece redefined. N64 RPG excellence with saved-state cloud sync support.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 31000,
             "rating": 5.0,
             "badgeIds": [
@@ -3302,7 +3302,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.gamepix.com/play/street-fighter-2",
             "genre": "Fighting",
             "description": "Classic combat, modern engine. Optimized WebGL fighting with low-latency netcode.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 12000,
             "rating": 4.7,
             "badgeIds": [
@@ -3338,7 +3338,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.gamepix.com/play/moto-x3m-pool-party",
             "genre": "Racing",
             "description": "High-fidelity bike stunts with fluid 60fps physics and responsive touch zones.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 52000,
             "rating": 4.8,
             "badgeIds": [
@@ -3374,7 +3374,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.gamepix.com/play/chess-grandmaster",
             "genre": "Strategy",
             "description": "Elite tactical intelligence. Advanced AI opponents in a high-fidelity 3D environment.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 8500,
             "rating": 4.9,
             "badgeIds": [
@@ -3410,7 +3410,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
             "genre": "Shooting",
             "description": "The definitive N64 shooter. High-fidelity emulation with optimized mouse/touch mapping for elite runs.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 28400,
             "rating": 5.0,
             "badgeIds": [
@@ -3446,7 +3446,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
             "genre": "Sports",
             "description": "Elite skating excellence. PS1 legend with stabilized frame rates and high-fidelity textures.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 19500,
             "rating": 5.0,
             "badgeIds": [
@@ -3481,7 +3481,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/40662-parappa-the-rapper.html",
             "genre": "Rhythm",
             "description": "I gotta believe! Original PS1 rhythm mastery with low-latency audio sync.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 11000,
             "rating": 4.8,
             "badgeIds": [
@@ -3515,7 +3515,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
             "genre": "Classic",
             "description": "The Blue Blur at his best. High-speed Genesis emulation with perfect touch responsiveness.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 34000,
             "rating": 4.9,
             "badgeIds": [
@@ -3550,7 +3550,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
             "genre": "Shooting",
             "description": "Original FPS carnage. Stabilized DOS emulation with enhanced web execution.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 15000,
             "rating": 4.9,
             "badgeIds": [
@@ -3584,7 +3584,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.gamepix.com/play/friday-night-funkin",
             "genre": "Music Battle",
             "description": "High-intensity rap battles with precision timing and elite soundtrack depth.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 42000,
             "rating": 4.8,
             "badgeIds": [
@@ -3620,7 +3620,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.retrogames.cc/embed/18814-tetris-usa.html",
             "genre": "Puzzle",
             "description": "The definitive puzzle experience. Classic NES logic with elite-tier responsive input.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 28000,
             "rating": 5.0,
             "badgeIds": [
@@ -3655,7 +3655,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "url": "https://www.gamepix.com/play/tomb-runner",
             "genre": "Runner",
             "description": "High-speed tactical running. Fluid WebGL animations and precise touch-based navigation.",
-            "availability": "Online",
+            "availability": "Web",
             "playersOnline": 65000,
             "rating": 4.7,
             "badgeIds": [
@@ -3767,7 +3767,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Fighting",
             "rating": 4.9,
             "playersOnline": 2500,
-            "availability": "Online",
+            "availability": "Web",
             "tags": [
                 "Fighting",
                 "Versus",

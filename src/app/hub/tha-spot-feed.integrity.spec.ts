@@ -44,7 +44,7 @@ describe('Tha Spot feed integrity', () => {
       expect(game.name).not.toMatch(/^Game\s+\d+$/i);
       expect(game.description).toBeTruthy();
       expect(game.genre).toBeTruthy();
-      expect(['Offline', 'Online', 'Hybrid']).toContain(game.availability);
+      expect(['Offline', 'Online', 'Hybrid', 'Web', 'Embed']).toContain(game.availability);
       expect(game.tags?.length).toBeGreaterThan(0);
       expect(game.launchConfig).toBeTruthy();
       expect(
