@@ -3,58 +3,189 @@ import { ThaSpotFeed } from './game';
 export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   badges: [
     {
-      id: 'featured',
-      label: 'Featured',
-      tone: 'primary',
+        "id": "featured",
+        "label": "Featured",
+        "tone": "primary"
     },
     {
-      id: 'trending',
-      label: 'Trending',
-      tone: 'secondary',
+        "id": "trending",
+        "label": "Trending",
+        "tone": "secondary"
     },
     {
-      id: 'new-drop',
-      label: 'New Drop',
-      tone: 'warning',
+        "id": "new-drop",
+        "label": "New Drop",
+        "tone": "warning"
     },
     {
-      id: 'tournament-live',
-      label: 'Tournament Live',
-      tone: 'secondary',
+        "id": "tournament-live",
+        "label": "Tournament Live",
+        "tone": "secondary"
     },
     {
-      id: 'staff-pick',
-      label: 'Staff Pick',
-      tone: 'accent',
+        "id": "staff-pick",
+        "label": "Staff Pick",
+        "tone": "accent"
     },
     {
-      id: 'elite',
-      label: 'ELITE TIER',
-      tone: 'accent',
+        "id": "elite",
+        "label": "ELITE TIER",
+        "tone": "accent"
     },
     {
-      id: 'classic',
-      label: 'Classic',
-      tone: 'primary',
-    },
-  ],
+        "id": "classic",
+        "label": "Classic",
+        "tone": "primary"
+    }
+],
   rooms: [
     {
-      id: 'all',
-      name: 'All Games',
-      icon: 'grid_view',
-      description:
-        'Dynamic command deck for every active Tha Spot cabinet and live floor.',
+        "id": "all",
+        "name": "All Games",
+        "icon": "grid_view",
+        "description": "Dynamic command deck for every active Tha Spot cabinet and live floor."
     },
     {
-      id: 'producer-lounge',
-      name: 'Producer Lounge',
-      icon: 'music_note',
-      description:
-        'Music-first picks for creators moving between beats, sessions, and challenges.',
-      spotlight: 'Best for artists coming straight from Studio.',
-      rules: {
-        genres: ['Music Battle', 'Rhythm'],
+        "id": "producer-lounge",
+        "name": "Producer Lounge",
+        "icon": "music_note",
+        "description": "Music-first picks for creators moving between beats, sessions, and challenges.",
+        "spotlight": "Best for artists coming straight from Studio.",
+        "rules": {
+            "genres": [
+                "Music Battle",
+                "Rhythm"
+            ],
+            "tags": [
+                "Original",
+                "Rhythm",
+                "AI"
+            ]
+        }
+    },
+    {
+        "id": "arcade",
+        "name": "Arcade",
+        "icon": "joystick",
+        "description": "Fast rotations, reflex-first play, and short-session focus runs.",
+        "rules": {
+            "tags": [
+                "Arcade",
+                "Reflex",
+                "Retro"
+            ]
+        }
+    },
+    {
+        "id": "versus-night",
+        "name": "Versus Night",
+        "icon": "sports_kabaddi",
+        "description": "Competitive rooms with PvP, bracket pressure, and live match queues.",
+        "spotlight": "Queue times update from active multiplayer titles.",
+        "rules": {
+            "tags": [
+                "PvP",
+                "Combat",
+                "Multiplayer",
+                "Versus"
+            ],
+            "badgeIds": [
+                "tournament-live"
+            ]
+        }
+    },
+    {
+        "id": "sports",
+        "name": "Sports",
+        "icon": "sports_basketball",
+        "description": "Athletic sims, head-to-head runs, and tournament ladders.",
+        "rules": {
+            "genres": [
+                "Sports"
+            ],
+            "tags": [
+                "Basketball",
+                "Soccer",
+                "Football"
+            ]
+        }
+    },
+    {
+        "id": "fighting-pit",
+        "name": "Fighting",
+        "icon": "sports_mma",
+        "description": "Combo-first cabinets, bracket tension, and head-to-head pressure sets.",
+        "spotlight": "Built for versus specialists and live fight-night rotations.",
+        "rules": {
+            "genres": [
+                "Fighting"
+            ]
+        }
+    },
+    {
+        "id": "shooting-range",
+        "name": "Shooting",
+        "icon": "my_location",
+        "description": "Aim drills, tactical firefights, and high-pressure ranged runs.",
+        "spotlight": "Highlights tactical shooters, squad lanes, and live-fire rotations.",
+        "rules": {
+            "genres": [
+                "Shooting"
+            ]
+        }
+    },
+    {
+        "id": "rpg-vault",
+        "name": "RPG",
+        "icon": "shield",
+        "description": "Progression-heavy adventures, hero builds, raids, and campaign depth.",
+        "spotlight": "Curates every cabinet tagged for RPG progression and boss-run depth.",
+        "rules": {
+            "tags": [
+                "RPG"
+            ]
+        }
+    },
+    {
+        "id": "co-op-link",
+        "name": "Online Co-op",
+        "icon": "groups",
+        "description": "Squad-first cabinets tuned for online co-op, raids, and shared objectives.",
+        "spotlight": "Live squad matchmaking prioritizes shared online objectives.",
+        "rules": {
+            "tags": [
+                "Co-op"
+            ]
+        }
+    },
+    {
+        "id": "strategy",
+        "name": "Strategy",
+        "icon": "psychology",
+        "description": "High-IQ play, puzzle solving, and room-based mind games.",
+        "rules": {
+            "genres": [
+                "Strategy",
+                "Puzzle",
+                "Classic"
+            ]
+        }
+    },
+    {
+        "id": "weekend-clash",
+        "name": "Weekend Clash",
+        "icon": "bolt",
+        "description": "Limited-time event room rotating around featured and live tournament games.",
+        "limitedTime": true,
+        "spotlight": "Rotates with live events and staff promotions.",
+        "rules": {
+            "badgeIds": [
+                "featured",
+                "tournament-live"
+            ]
+        }
+    }
+],
         tags: ['Original', 'Rhythm', 'AI'],
       },
     },
@@ -400,24 +531,3327 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   ],
   games: [
     {
-      id: 'battlefield',
-      name: 'Battlefield',
-      url: '/assets/games/battlefield/battlefield.html',
-      description:
-        'Executive rap battle arena with live bracket energy and hybrid queue support.',
-      genre: 'Music Battle',
-      rating: 4.9,
-      playersOnline: 1250,
-      availability: 'Hybrid',
-      tags: [
-        'Multiplayer',
-        'Original',
-        'PvP',
-        'Combat',
-        'Elite',
-        'Internal',
-        'WASM',
-      ],
+        "id": "1",
+        "name": "Tha Battlefield",
+        "url": "/assets/games/battlefield/battlefield.html",
+        "description": "Executive rap battle arena with live bracket energy and hybrid queue support.",
+        "genre": "Music Battle",
+        "rating": 4.9,
+        "playersOnline": 1250,
+        "availability": "Hybrid",
+        "tags": [
+            "Multiplayer",
+            "Original",
+            "PvP",
+            "Combat"
+        ],
+        "multiplayerType": "Server",
+        "aiSupportLevel": "Advanced",
+        "aiBriefing": "Establish dominance in the rap battle arena. Neural sync is tuned for rhythm precision.",
+        "badgeIds": [
+            "featured",
+            "tournament-live"
+        ],
+        "queueEstimateMinutes": 3,
+        "sessionObjectives": [
+            "Win two call-and-response rounds",
+            "Hold a perfect timing chain"
+        ],
+        "controlHints": [
+            "Use lane prompts to answer bars",
+            "Save your boost for chorus clashes"
+        ],
+        "launchConfig": {
+            "difficulty": "Competitive",
+            "controls": [
+                "Keyboard lanes",
+                "Space to trigger boosts"
+            ],
+            "objectives": [
+                "Finish top 3 in the lobby",
+                "Maintain 90% rhythm accuracy"
+            ],
+            "modes": [
+                "Solo",
+                "Versus",
+                "Tournament"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Hybrid internal cabinet with live bracket telemetry.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "/assets/games/battlefield/battlefield.html",
+            "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html",
+            "telemetryMode": "frame-only"
+        },
+        "art": {
+            "eyebrow": "Hybrid",
+            "accentStart": "#10b981",
+            "accentEnd": "#0f766e"
+        },
+        "image": "https://images.unsplash.com/photo-1514525253361-bee8718a300c?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "2",
+        "name": "Remix Arena",
+        "url": "/assets/games/remix-arena/remixarena.html",
+        "description": "Collaborative sequencing challenge where crews race to flip stems in real time.",
+        "genre": "Rhythm",
+        "rating": 4.7,
+        "playersOnline": 850,
+        "availability": "Hybrid",
+        "tags": [
+            "Multiplayer",
+            "Original",
+            "Co-op",
+            "Rhythm"
+        ],
+        "multiplayerType": "Server",
+        "aiSupportLevel": "Neural",
+        "aiBriefing": "Collaborative remix engine is live. S.M.U.V.E. is balancing the sonic stems.",
+        "badgeIds": [
+            "staff-pick"
+        ],
+        "queueEstimateMinutes": 2,
+        "sessionObjectives": [
+            "Land 3 clean transitions",
+            "Chain a team combo"
+        ],
+        "controlHints": [
+            "Swap stems before tension peaks",
+            "Watch teammate cue indicators"
+        ],
+        "launchConfig": {
+            "difficulty": "Crew",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "objectives": [
+                "Keep crowd energy above 80%",
+                "Hit one perfect drop"
+            ],
+            "modes": [
+                "Co-op",
+                "Versus"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Internal remix cabinet with shared beat telemetry.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "/assets/games/remix-arena/remixarena.html",
+            "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html",
+            "telemetryMode": "frame-only"
+        },
+        "art": {
+            "eyebrow": "Hybrid",
+            "accentStart": "#22c55e",
+            "accentEnd": "#14b8a6"
+        },
+        "image": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "3",
+        "name": "Neon Drift X",
+        "url": "/assets/games/neon-drift/neon-drift.html",
+        "description": "Precision lane swaps through a neon expressway tuned for instant offline retries.",
+        "genre": "Racing",
+        "rating": 4.8,
+        "playersOnline": 420,
+        "availability": "Offline",
+        "tags": [
+            "Arcade",
+            "Offline",
+            "Reflex"
+        ],
+        "badgeIds": [
+            "featured"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Survive 90 seconds",
+            "Complete a 12-lane chain"
+        ],
+        "controlHints": [
+            "Feather turns early",
+            "Stay centered before boosts"
+        ],
+        "launchConfig": {
+            "difficulty": "Medium",
+            "controls": [
+                "Arrow keys"
+            ],
+            "objectives": [
+                "Finish the first sector clean",
+                "Hold one flawless boost chain"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Offline cabinet validated for embedded launch.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
+            "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html",
+            "telemetryMode": "frame-only"
+        },
+        "art": {
+            "eyebrow": "Offline",
+            "accentStart": "#38bdf8",
+            "accentEnd": "#6366f1"
+        },
+        "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "4",
+        "name": "Vinyl Vault",
+        "url": "/assets/games/vinyl-vault/vinyl-vault.html",
+        "description": "Crate-digging memory board with quick restarts and staff-curated puzzle loops.",
+        "genre": "Puzzle",
+        "rating": 4.7,
+        "playersOnline": 260,
+        "availability": "Offline",
+        "tags": [
+            "Puzzle",
+            "Offline",
+            "Memory"
+        ],
+        "badgeIds": [
+            "staff-pick"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Clear the board in under 2 minutes",
+            "Miss fewer than 3 flips"
+        ],
+        "controlHints": [
+            "Map card clusters before flipping",
+            "Work outer lanes first"
+        ],
+        "launchConfig": {
+            "difficulty": "Accessible",
+            "controls": [
+                "Mouse"
+            ],
+            "objectives": [
+                "Land a clean memory cycle",
+                "Reveal every pair without rushing"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Offline cabinet with direct local launch.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "/assets/games/vinyl-vault/vinyl-vault.html",
+            "approvedEmbedUrl": "/assets/games/vinyl-vault/vinyl-vault.html",
+            "telemetryMode": "frame-only"
+        },
+        "art": {
+            "eyebrow": "Offline",
+            "accentStart": "#f59e0b",
+            "accentEnd": "#f97316"
+        },
+        "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "5",
+        "name": "Tempo Lockdown",
+        "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "description": "Responsive rhythm lane built for short focus sprints between sessions.",
+        "genre": "Rhythm",
+        "rating": 4.8,
+        "playersOnline": 390,
+        "availability": "Offline",
+        "tags": [
+            "Rhythm",
+            "Arcade",
+            "Original"
+        ],
+        "badgeIds": [
+            "new-drop"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Hold a clean 25-note run",
+            "Stay above 95% timing"
+        ],
+        "controlHints": [
+            "Watch the lane color shifts",
+            "Trigger boosts on downbeats"
+        ],
+        "launchConfig": {
+            "difficulty": "Adaptive",
+            "controls": [
+                "Lane keys"
+            ],
+            "objectives": [
+                "Keep the pulse meter green",
+                "Finish one perfect chorus"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Internal rhythm cabinet with fast recovery.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+            "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+            "telemetryMode": "frame-only"
+        },
+        "art": {
+            "eyebrow": "Offline",
+            "accentStart": "#34d399",
+            "accentEnd": "#059669"
+        },
+        "image": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "6",
+        "name": "Hextris",
+        "url": "https://hextris.github.io/hextris/",
+        "description": "Trusted online arcade puzzler with premium hex-stack gameplay.",
+        "genre": "Classic",
+        "rating": 4.8,
+        "playersOnline": 5200,
+        "availability": "Online",
+        "tags": [
+            "Classic",
+            "Arcade",
+            "Retro"
+        ],
+        "badgeIds": [
+            "trending"
+        ],
+        "queueEstimateMinutes": 1,
+        "sessionObjectives": [
+            "Hold the ring for 4 minutes",
+            "Clear one high-speed cycle"
+        ],
+        "controlHints": [
+            "Rotate early",
+            "Keep two lanes open for recovery"
+        ],
+        "launchConfig": {
+            "difficulty": "Reflex",
+            "controls": [
+                "Left / Right arrows"
+            ],
+            "objectives": [
+                "Beat the daily board",
+                "Stabilize after speed spikes"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Embedded from an allowlisted partner domain.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://hextris.github.io/hextris/",
+            "approvedEmbedUrl": "https://hextris.github.io/hextris/",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://hextris.github.io"
+            ]
+        },
+        "art": {
+            "eyebrow": "Online",
+            "accentStart": "#06b6d4",
+            "accentEnd": "#2563eb"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "7",
+        "name": "2048 Championship",
+        "url": "https://play2048.co/",
+        "description": "Reliable number-combo classic for quick logic resets between creative work.",
+        "genre": "Puzzle",
+        "rating": 4.7,
+        "playersOnline": 6300,
+        "availability": "Online",
+        "tags": [
+            "Classic",
+            "AI",
+            "Logic"
+        ],
+        "aiSupportLevel": "Neural",
+        "aiBriefing": "S.M.U.V.E. is analyzing the logic matrix for optimal number combination strategies.",
+        "badgeIds": [
+            "staff-pick"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Hit 2048 in under 10 minutes",
+            "Finish with fewer than 5 dead turns"
+        ],
+        "controlHints": [
+            "Build from one corner",
+            "Avoid vertical resets too early"
+        ],
+        "launchConfig": {
+            "difficulty": "Thinking",
+            "controls": [
+                "Arrow keys"
+            ],
+            "objectives": [
+                "Protect one anchor lane",
+                "Finish a clean merge path"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted logic partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://play2048.co/",
+            "approvedEmbedUrl": "https://play2048.co/",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://play2048.co"
+            ]
+        },
+        "art": {
+            "eyebrow": "Online",
+            "accentStart": "#f97316",
+            "accentEnd": "#ea580c"
+        },
+        "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "8",
+        "name": "Beat Runner",
+        "url": "https://www.gamepix.com/play/music-rush",
+        "description": "Sprint through glow landscapes synced to the beat with lightweight online launch.",
+        "genre": "Runner",
+        "rating": 4.5,
+        "playersOnline": 2100,
+        "availability": "Online",
+        "tags": [
+            "Arcade",
+            "Reflex",
+            "Rhythm"
+        ],
+        "badgeIds": [
+            "featured"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Hold a clean combo for 60 seconds",
+            "Clear one hazard rush"
+        ],
+        "controlHints": [
+            "Jump on offbeats",
+            "Use slides to reset timing"
+        ],
+        "launchConfig": {
+            "difficulty": "Fast",
+            "controls": [
+                "Keyboard"
+            ],
+            "objectives": [
+                "Protect your streak",
+                "Stay centered during doubles"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted arcade partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://htmlgames.com/game/Beat+Runner",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/music-rush",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Online",
+            "accentStart": "#ec4899",
+            "accentEnd": "#db2777"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "9",
+        "name": "Pac-Man Classic",
+        "url": "https://pacman.live/play.html",
+        "description": "Definitive arcade classic for pure cabinet energy and route memorization.",
+        "genre": "Classic",
+        "rating": 4.9,
+        "playersOnline": 15400,
+        "availability": "Online",
+        "tags": [
+            "Classic",
+            "Arcade",
+            "Retro",
+            "station-cabinet"
+        ],
+        "badgeIds": [
+            "trending"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Clear two boards",
+            "Bank one ghost combo"
+        ],
+        "controlHints": [
+            "Use corners for ghost control",
+            "Commit to power-pellet routes"
+        ],
+        "launchConfig": {
+            "difficulty": "Classic",
+            "controls": [
+                "Arrow keys"
+            ],
+            "objectives": [
+                "Beat your route time",
+                "Convert a full power cycle"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted retro partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://pacman.live/play.html",
+            "approvedEmbedUrl": "https://pacman.live/play.html",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://pacman.live"
+            ]
+        },
+        "art": {
+            "eyebrow": "Arcade",
+            "accentStart": "#facc15",
+            "accentEnd": "#eab308"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "super-street-fighter",
+        "name": "Super Street Fighter II",
+        "url": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
+        "description": "The legendary world warrior tournament returns with the New Challengers. Master the classic combat that defined a generation.",
+        "genre": "Fighting",
+        "rating": 4.7,
+        "playersOnline": 4500,
+        "availability": "Online",
+        "tags": [
+            "Combat",
+            "Arcade",
+            "Classic",
+            "Fighting",
+            "station-cabinet"
+        ],
+        "badgeIds": [
+            "tournament-live"
+        ],
+        "queueEstimateMinutes": 2,
+        "sessionObjectives": [
+            "Defeat 4 opponents in arcade mode",
+            "Land a Super Combo finisher"
+        ],
+        "controlHints": [
+            "Master the quarter-circle forward motion",
+            "Use heavy attacks to break high guards"
+        ],
+        "launchConfig": {
+            "difficulty": "Bracket",
+            "controls": [
+                "Keyboard"
+            ],
+            "objectives": [
+                "Survive the first bracket round",
+                "Convert one punish cleanly"
+            ],
+            "modes": [
+                "Solo",
+                "Versus"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Executive-grade retro combat cabinet.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.retrogames.cc"
+            ]
+        },
+        "art": {
+            "eyebrow": "Combat",
+            "accentStart": "#f97316",
+            "accentEnd": "#c2410c"
+        },
+        "multiplayerType": "Server",
+        "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "11",
+        "name": "Grandmaster Chess",
+        "url": "https://www.gamepix.com/play/chess-classic",
+        "description": "The ultimate strategy board with steady queues and deep tactical play.",
+        "genre": "Strategy",
+        "rating": 4.9,
+        "playersOnline": 32400,
+        "availability": "Online",
+        "tags": [
+            "Strategy",
+            "Logic",
+            "Classic",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "trending"
+        ],
+        "queueEstimateMinutes": 1,
+        "sessionObjectives": [
+            "Win material by move 15",
+            "Close one endgame cleanly"
+        ],
+        "controlHints": [
+            "Review checks, captures, threats",
+            "Protect your king before expanding"
+        ],
+        "launchConfig": {
+            "difficulty": "Ranked",
+            "controls": [
+                "Mouse"
+            ],
+            "objectives": [
+                "Hold tempo",
+                "Convert one structural edge"
+            ],
+            "modes": [
+                "Solo",
+                "Versus"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted strategy partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/chess-classic",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/chess-classic",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Strategy",
+            "accentStart": "#f8fafc",
+            "accentEnd": "#1e293b"
+        },
+        "image": "https://images.unsplash.com/photo-1553481187-be93c21490a9?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "12",
+        "name": "Pro Hoops 2K",
+        "url": "https://www.gamepix.com/play/basket-random",
+        "description": "Step onto the court for fast high-energy basketball runs.",
+        "genre": "Sports",
+        "rating": 4.5,
+        "playersOnline": 7800,
+        "availability": "Online",
+        "tags": [
+            "Sports",
+            "Basketball",
+            "Competitive",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "featured"
+        ],
+        "queueEstimateMinutes": 1,
+        "sessionObjectives": [
+            "Win by 5",
+            "Land three clean possessions in a row"
+        ],
+        "controlHints": [
+            "Save boost for fast breaks",
+            "Defend the paint first"
+        ],
+        "launchConfig": {
+            "difficulty": "Competitive",
+            "controls": [
+                "Keyboard"
+            ],
+            "objectives": [
+                "Control tempo",
+                "Close the game in the final minute"
+            ],
+            "modes": [
+                "Solo",
+                "Versus"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted sports partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/basket-random",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/basket-random",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Sports",
+            "accentStart": "#f97316",
+            "accentEnd": "#7c2d12"
+        },
+        "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "13",
+        "name": "Soccer Stars",
+        "url": "https://www.gamepix.com/play/soccer-random",
+        "description": "Global tournament energy with high player counts and quick rematches.",
+        "genre": "Sports",
+        "rating": 4.8,
+        "playersOnline": 42000,
+        "availability": "Online",
+        "tags": [
+            "Sports",
+            "Soccer",
+            "Tournament",
+            "Multiplayer",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "tournament-live",
+            "trending"
+        ],
+        "queueEstimateMinutes": 2,
+        "sessionObjectives": [
+            "Keep a clean sheet",
+            "Finish two fast breaks"
+        ],
+        "controlHints": [
+            "Switch fields early",
+            "Exploit wide channels on counters"
+        ],
+        "launchConfig": {
+            "difficulty": "Tournament",
+            "controls": [
+                "Keyboard"
+            ],
+            "objectives": [
+                "Survive extra time",
+                "Hold your lead under pressure"
+            ],
+            "modes": [
+                "Solo",
+                "Versus",
+                "Tournament"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted tournament partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Sports",
+            "accentStart": "#10b981",
+            "accentEnd": "#064e3b"
+        },
+        "multiplayerType": "Server",
+        "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "14",
+        "name": "Executive Solitaire",
+        "url": "https://www.gamepix.com/play/solitaire-classic",
+        "description": "Classic card patience run for low-pressure recovery between bigger sessions.",
+        "genre": "Strategy",
+        "rating": 4.8,
+        "playersOnline": 45000,
+        "availability": "Online",
+        "tags": [
+            "Cards",
+            "Logic",
+            "Classic",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "staff-pick"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Finish one clean board",
+            "Beat your last completion time"
+        ],
+        "controlHints": [
+            "Expose hidden stacks early",
+            "Save kings for flexible columns"
+        ],
+        "launchConfig": {
+            "difficulty": "Calm",
+            "controls": [
+                "Mouse"
+            ],
+            "objectives": [
+                "Finish under par",
+                "Keep the board open"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted classic partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/solitaire-classic",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Cards",
+            "accentStart": "#ef4444",
+            "accentEnd": "#b91c1c"
+        },
+        "image": "https://images.unsplash.com/photo-1553481187-be93c21490a9?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "15",
+        "name": "Cipher Surge",
+        "url": "/assets/games/cipher-surge/cipher-surge.html",
+        "description": "Neural pattern-defense cabinet with polished offline AI memory rounds and fast replay loops.",
+        "genre": "Puzzle",
+        "rating": 4.8,
+        "playersOnline": 510,
+        "availability": "Offline",
+        "tags": [
+            "Puzzle",
+            "AI",
+            "Original",
+            "Logic",
+            "station-pod"
+        ],
+        "aiSupportLevel": "Advanced",
+        "aiBriefing": "Adaptive sequence logic sharpens each round and rewards clean recall under pressure.",
+        "badgeIds": [
+            "new-drop",
+            "staff-pick"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Clear five neural rounds",
+            "Finish with at least 70% integrity"
+        ],
+        "controlHints": [
+            "Watch the full sequence before reacting",
+            "Prioritize rhythm over speed on longer chains"
+        ],
+        "launchConfig": {
+            "difficulty": "Adaptive",
+            "controls": [
+                "Mouse or touch"
+            ],
+            "objectives": [
+                "Hold integrity above 70%",
+                "Perfect one full pattern chain"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Internal AI puzzle cabinet tuned for embedded offline play.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "/assets/games/cipher-surge/cipher-surge.html",
+            "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html",
+            "telemetryMode": "frame-only"
+        },
+        "art": {
+            "eyebrow": "AI Puzzle",
+            "accentStart": "#8b5cf6",
+            "accentEnd": "#4c1d95"
+        },
+        "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "16",
+        "name": "Smash Karts X",
+        "url": "https://www.gamepix.com/play/kart-fight",
+        "description": "High-speed multiplayer kart combat with premium arena flow, powerups, and replay-ready matches.",
+        "genre": "Racing",
+        "rating": 4.8,
+        "playersOnline": 28000,
+        "availability": "Online",
+        "tags": [
+            "Multiplayer",
+            "Versus",
+            "Combat",
+            "Arcade",
+            "station-pod"
+        ],
+        "multiplayerType": "Server",
+        "badgeIds": [
+            "featured",
+            "tournament-live"
+        ],
+        "queueEstimateMinutes": 2,
+        "sessionObjectives": [
+            "Win one arena set",
+            "Land three clean powerup eliminations"
+        ],
+        "controlHints": [
+            "Save rockets for straightaways",
+            "Drift out of crowded corners early"
+        ],
+        "launchConfig": {
+            "difficulty": "Competitive",
+            "controls": [
+                "Keyboard"
+            ],
+            "objectives": [
+                "Stay alive for the full round",
+                "Chain one clean boost finish"
+            ],
+            "modes": [
+                "Solo",
+                "Versus",
+                "Tournament"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted competitive kart partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/kart-fight",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/kart-fight",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Kart Combat",
+            "accentStart": "#fb7185",
+            "accentEnd": "#be123c"
+        },
+        "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "17",
+        "name": "Subway Surfers Live",
+        "url": "https://www.gamepix.com/play/rail-surfers",
+        "description": "A polished endless runner with top-tier flow, vivid presentation, and instant arcade momentum.",
+        "genre": "Runner",
+        "rating": 4.8,
+        "playersOnline": 47000,
+        "availability": "Online",
+        "tags": [
+            "Arcade",
+            "Reflex",
+            "Trending",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "trending"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Hold one clean streak for 90 seconds",
+            "Recover from a near miss without dropping pace"
+        ],
+        "controlHints": [
+            "Read lane changes early",
+            "Jump late to keep coin lines active"
+        ],
+        "launchConfig": {
+            "difficulty": "Fast",
+            "controls": [
+                "Keyboard"
+            ],
+            "objectives": [
+                "Beat your last distance",
+                "Hold a stable combo through traffic spikes"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted premium runner partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/rail-surfers",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/rail-surfers",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Runner",
+            "accentStart": "#22c55e",
+            "accentEnd": "#0f766e"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "18",
+        "name": "Moto X3M Nitro",
+        "url": "https://www.gamepix.com/play/moto-x3m",
+        "description": "Precision stunt racing with highly polished track design, strong readability, and fast restart loops.",
+        "genre": "Racing",
+        "rating": 4.8,
+        "playersOnline": 18500,
+        "availability": "Online",
+        "tags": [
+            "Arcade",
+            "Reflex",
+            "Stunts",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "featured"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Clear one stunt run without crashing",
+            "Bank a perfect landing chain"
+        ],
+        "controlHints": [
+            "Feather acceleration before jumps",
+            "Rotate early to set up clean landings"
+        ],
+        "launchConfig": {
+            "difficulty": "Skill",
+            "controls": [
+                "Keyboard"
+            ],
+            "objectives": [
+                "Finish clean under par time",
+                "Reset quickly after failed landings"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted stunt racing partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/moto-x3m",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Stunt Racing",
+            "accentStart": "#f97316",
+            "accentEnd": "#9a3412"
+        },
+        "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "19",
+        "name": "Temple Run 2 Prime",
+        "url": "https://www.gamepix.com/play/tomb-runner",
+        "description": "Cinematic chase runner with premium pacing, polished traversal, and repeat-play flow.",
+        "genre": "Runner",
+        "rating": 4.7,
+        "playersOnline": 39500,
+        "availability": "Online",
+        "tags": [
+            "Arcade",
+            "Reflex",
+            "Adventure",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "staff-pick"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Survive the opening chase cleanly",
+            "Hold one long coin lane through a hazard section"
+        ],
+        "controlHints": [
+            "Swipe-equivalent inputs work best before corners",
+            "Commit to one lane before bridge gaps"
+        ],
+        "launchConfig": {
+            "difficulty": "Endless",
+            "controls": [
+                "Keyboard"
+            ],
+            "objectives": [
+                "Beat your previous run distance",
+                "Keep momentum through one full hazard cycle"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted endless runner partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/tomb-runner",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/tomb-runner",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Adventure Runner",
+            "accentStart": "#14b8a6",
+            "accentEnd": "#155e75"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "20",
+        "name": "Tower Build",
+        "url": "https://www.gamepix.com/play/tower-build",
+        "description": "Physics-first skyline builder with quick retries and steady score-chasing loops.",
+        "genre": "Puzzle",
+        "rating": 4.6,
+        "playersOnline": 9600,
+        "availability": "Online",
+        "tags": [
+            "Puzzle",
+            "Arcade",
+            "Physics",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "staff-pick"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Hold a balanced tower through 12 drops",
+            "Beat your highest skyline height"
+        ],
+        "controlHints": [
+            "Release blocks late to reduce drift",
+            "Build a stable center before chasing width"
+        ],
+        "launchConfig": {
+            "difficulty": "Focus",
+            "controls": [
+                "Mouse or touch"
+            ],
+            "objectives": [
+                "Finish one clean tower run",
+                "Recover after one risky placement"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted arcade builder partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/tower-build",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Skyline Builder",
+            "accentStart": "#38bdf8",
+            "accentEnd": "#0f172a"
+        },
+        "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "21",
+        "name": "8-Ball Billiards Classic",
+        "url": "https://www.gamepix.com/play/8-ball-billiards-classic",
+        "description": "Precision cue-sport cabinet with smooth pacing, clean bank shots, and quick rematches.",
+        "genre": "Sports",
+        "rating": 4.7,
+        "playersOnline": 12800,
+        "availability": "Online",
+        "tags": [
+            "Sports",
+            "Pool",
+            "Precision",
+            "Classic",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "featured"
+        ],
+        "queueEstimateMinutes": 1,
+        "sessionObjectives": [
+            "Clear solids or stripes without a scratch",
+            "Close one rack with a clean 8-ball finish"
+        ],
+        "controlHints": [
+            "Feather power on long bank attempts",
+            "Set up the next ball before calling the pocket"
+        ],
+        "launchConfig": {
+            "difficulty": "Competitive",
+            "controls": [
+                "Mouse"
+            ],
+            "objectives": [
+                "Win one full rack",
+                "Protect cue-ball position after contact"
+            ],
+            "modes": [
+                "Solo",
+                "Versus"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted precision sports partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Cue Sports",
+            "accentStart": "#14b8a6",
+            "accentEnd": "#164e63"
+        },
+        "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "22",
+        "name": "Mahjong Classic",
+        "url": "https://www.gamepix.com/play/mahjong-classic",
+        "description": "Late-night tile strategy with clean board readability and calm focus-session pacing.",
+        "genre": "Puzzle",
+        "rating": 4.7,
+        "playersOnline": 8400,
+        "availability": "Online",
+        "tags": [
+            "Puzzle",
+            "Classic",
+            "Logic",
+            "Strategy",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "staff-pick"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Clear the outer rows first",
+            "Finish a board without using hints"
+        ],
+        "controlHints": [
+            "Expose stacked matches early",
+            "Track duplicate tiles before opening the center"
+        ],
+        "launchConfig": {
+            "difficulty": "Thinking",
+            "controls": [
+                "Mouse or touch"
+            ],
+            "objectives": [
+                "Finish one clean board",
+                "Keep two match options available"
+            ],
+            "modes": [
+                "Solo"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted puzzle partner with inline launch support.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/mahjong-classic",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/mahjong-classic",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Logic Tiles",
+            "accentStart": "#a855f7",
+            "accentEnd": "#312e81"
+        },
+        "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "23",
+        "name": "Tactical Squad",
+        "url": "https://www.gamepix.com/play/tactical-squad",
+        "description": "Elite first-person shooting precision with high-stakes tactical deployments.",
+        "genre": "Shooting",
+        "rating": 4.8,
+        "playersOnline": 15000,
+        "availability": "Online",
+        "tags": [
+            "Shooting",
+            "Action",
+            "Tactical",
+            "Multiplayer",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "featured"
+        ],
+        "launchConfig": {
+            "difficulty": "Hard",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/tactical-squad",
+            "approvedExternalUrl": "https://www.gamepix.com/play/tactical-squad",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "multiplayerType": "Server",
+        "queueEstimateMinutes": 3,
+        "sessionObjectives": [
+            "Hold a clean extraction lane",
+            "Clear one tactical breach without losing momentum"
+        ],
+        "controlHints": [
+            "Slice corners before crossing open lanes",
+            "Reload on cover transitions"
+        ],
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "24",
+        "name": "Quest of Heroes",
+        "url": "https://www.gamepix.com/play/hero-adventure",
+        "description": "Deep RPG adventure with character progression and elite boss encounters.",
+        "genre": "RPG",
+        "rating": 4.7,
+        "playersOnline": 9200,
+        "availability": "Online",
+        "tags": [
+            "RPG",
+            "Adventure",
+            "Progressive",
+            "Solo",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "staff-pick"
+        ],
+        "launchConfig": {
+            "difficulty": "Moderate",
+            "controls": [
+                "Touch",
+                "Keyboard"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/hero-adventure",
+            "approvedExternalUrl": "https://www.gamepix.com/play/hero-adventure",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "25",
+        "name": "Classic Tank Wars",
+        "url": "https://www.gamepix.com/play/tank-wars",
+        "description": "Vintage arcade combat with strategic positioning and explosive rounds.",
+        "genre": "Classic",
+        "rating": 4.5,
+        "playersOnline": 6800,
+        "availability": "Online",
+        "tags": [
+            "Classic",
+            "Shooting",
+            "Co-op",
+            "Multiplayer",
+            "station-cabinet"
+        ],
+        "launchConfig": {
+            "difficulty": "Easy",
+            "controls": [
+                "Touch",
+                "Keyboard"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/tank-wars",
+            "approvedExternalUrl": "https://www.gamepix.com/play/tank-wars",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "multiplayerType": "Server",
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "26",
+        "name": "Super Bowling Pro",
+        "url": "https://www.gamepix.com/play/classic-bowling",
+        "description": "Elite sports simulation with realistic physics and tournament brackets.",
+        "genre": "Sports",
+        "rating": 4.6,
+        "playersOnline": 4200,
+        "availability": "Online",
+        "tags": [
+            "Sports",
+            "Bowling",
+            "Competitive",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "difficulty": "Moderate",
+            "controls": [
+                "Touch",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/classic-bowling",
+            "approvedExternalUrl": "https://www.gamepix.com/play/classic-bowling",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "27",
+        "name": "Dungeon Crawler X",
+        "url": "https://www.gamepix.com/play/dungeon-fury",
+        "description": "Fast-paced action RPG through procedurally generated lethal corridors.",
+        "genre": "RPG",
+        "rating": 4.7,
+        "playersOnline": 11000,
+        "availability": "Online",
+        "tags": [
+            "RPG",
+            "Action",
+            "Adventure",
+            "Solo",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "trending"
+        ],
+        "launchConfig": {
+            "difficulty": "Hard",
+            "controls": [
+                "Touch",
+                "Keyboard"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/dungeon-fury",
+            "approvedExternalUrl": "https://www.gamepix.com/play/dungeon-fury",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "28",
+        "name": "Strike Force",
+        "url": "https://www.gamepix.com/play/special-strike",
+        "description": "Multiplayer shooting arena with customized loadouts and team-based objectives.",
+        "genre": "Shooting",
+        "rating": 4.8,
+        "playersOnline": 22000,
+        "availability": "Online",
+        "tags": [
+            "Shooting",
+            "Multiplayer",
+            "Co-op",
+            "Action",
+            "station-pod"
+        ],
+        "badgeIds": [
+            "featured"
+        ],
+        "launchConfig": {
+            "difficulty": "Competitive",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/special-strike",
+            "approvedExternalUrl": "https://www.gamepix.com/play/special-strike",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "multiplayerType": "Server",
+        "queueEstimateMinutes": 4,
+        "sessionObjectives": [
+            "Win one objective round with your squad",
+            "Stack two loadout streaks in a single session"
+        ],
+        "controlHints": [
+            "Rotate with team pings before flanks collapse",
+            "Build around one reliable mid-range weapon"
+        ],
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "29",
+        "name": "Retro Space Invaders",
+        "url": "https://www.gamepix.com/play/space-invaders",
+        "description": "Authentic classic arcade shooter with escalating wave intensity.",
+        "genre": "Classic",
+        "rating": 4.5,
+        "playersOnline": 5400,
+        "availability": "Online",
+        "tags": [
+            "Classic",
+            "Shooting",
+            "Arcade",
+            "Solo",
+            "station-cabinet"
+        ],
+        "launchConfig": {
+            "difficulty": "Moderate",
+            "controls": [
+                "Touch",
+                "Keyboard"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/space-invaders",
+            "approvedExternalUrl": "https://www.gamepix.com/play/space-invaders",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "30",
+        "name": "Basketball Master",
+        "url": "https://www.gamepix.com/play/basketball-master",
+        "description": "Precision shooting sports challenge with global leaderboards.",
+        "genre": "Sports",
+        "rating": 4.6,
+        "playersOnline": 7200,
+        "availability": "Online",
+        "tags": [
+            "Sports",
+            "Basketball",
+            "Solo",
+            "Competitive",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "difficulty": "Moderate",
+            "controls": [
+                "Touch",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/basketball-master",
+            "approvedExternalUrl": "https://www.gamepix.com/play/basketball-master",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "31",
+        "name": "Soccer Random X",
+        "url": "https://www.gamepix.com/play/soccer-random",
+        "description": "High-stakes physics-based soccer with online co-op support.",
+        "genre": "Sports",
+        "rating": 4.8,
+        "playersOnline": 18000,
+        "availability": "Online",
+        "tags": [
+            "Sports",
+            "Soccer",
+            "Co-op",
+            "Multiplayer",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "difficulty": "Easy",
+            "controls": [
+                "Touch",
+                "Keyboard"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
+            "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "multiplayerType": "Server",
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "32",
+        "name": "Cyber Adventure RPG",
+        "url": "https://www.gamepix.com/play/cyber-adventure",
+        "description": "Epic cyberpunk adventure with deep RPG mechanics and offline-first persistence.",
+        "genre": "RPG",
+        "rating": 4.9,
+        "playersOnline": 12000,
+        "availability": "Hybrid",
+        "tags": [
+            "RPG",
+            "Adventure",
+            "Cyberpunk",
+            "Solo",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "difficulty": "Hard",
+            "controls": [
+                "Touch",
+                "Keyboard"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
+            "approvedExternalUrl": "https://www.gamepix.com/play/cyber-adventure",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "33",
+        "name": "Elite Sniper",
+        "url": "https://www.gamepix.com/play/sniper-mission",
+        "description": "Long-range tactical shooting missions with elite ballistics.",
+        "genre": "Shooting",
+        "rating": 4.7,
+        "playersOnline": 8000,
+        "availability": "Online",
+        "tags": [
+            "Shooting",
+            "Action",
+            "Tactical",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "difficulty": "Hard",
+            "controls": [
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/sniper-mission",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "34",
+        "name": "Kingdom Defense",
+        "url": "https://www.gamepix.com/play/tower-defense",
+        "description": "Strategic RPG defense with hero management and spell casting.",
+        "genre": "RPG",
+        "rating": 4.8,
+        "playersOnline": 14000,
+        "availability": "Online",
+        "tags": [
+            "RPG",
+            "Strategy",
+            "Adventure",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "difficulty": "Moderate",
+            "controls": [
+                "Touch",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/tower-defense",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "35",
+        "name": "Classic Solitaire",
+        "url": "https://www.gamepix.com/play/solitaire-classic",
+        "description": "The definitive classic card run for elite focus training.",
+        "genre": "Classic",
+        "rating": 4.9,
+        "playersOnline": 50000,
+        "availability": "Online",
+        "tags": [
+            "Classic",
+            "Strategy",
+            "Solo",
+            "station-cabinet"
+        ],
+        "launchConfig": {
+            "difficulty": "Moderate",
+            "controls": [
+                "Touch",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "36",
+        "name": "Multiplayer Ludo",
+        "url": "https://www.gamepix.com/play/ludo-legend",
+        "description": "Global board battle with real-time multiplayer and co-op social play.",
+        "genre": "Classic",
+        "rating": 4.6,
+        "playersOnline": 25000,
+        "availability": "Online",
+        "tags": [
+            "Classic",
+            "Multiplayer",
+            "Co-op",
+            "Strategy",
+            "station-cabinet"
+        ],
+        "launchConfig": {
+            "difficulty": "Easy",
+            "controls": [
+                "Touch",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/ludo-legend",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "multiplayerType": "Server",
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "37",
+        "name": "Zombie Survival",
+        "url": "https://www.gamepix.com/play/zombie-idle-defense",
+        "description": "Intense shooting defense RPG with survivor squads and tech upgrades.",
+        "genre": "Shooting",
+        "rating": 4.7,
+        "playersOnline": 19000,
+        "availability": "Online",
+        "tags": [
+            "Shooting",
+            "RPG",
+            "Action",
+            "Multiplayer",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "difficulty": "Moderate",
+            "controls": [
+                "Touch",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "embedMode": "inline",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/zombie-idle-defense",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "multiplayerType": "Server",
+        "queueEstimateMinutes": 3,
+        "sessionObjectives": [
+            "Survive two elite waves with the squad alive",
+            "Upgrade one survivor lane before the boss push"
+        ],
+        "controlHints": [
+            "Balance barricade repairs with tech upgrades",
+            "Keep ranged units behind your tank lane"
+        ],
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "38",
+        "name": "Arena Clash X",
+        "url": "https://www.gamepix.com/play/arena-clash-x",
+        "description": "Neon tournament fighter with high-speed strings, ranked ladders, and online rematches.",
+        "genre": "Fighting",
+        "rating": 4.8,
+        "playersOnline": 16800,
+        "availability": "Online",
+        "tags": [
+            "Fighting",
+            "Combat",
+            "Versus",
+            "Multiplayer",
+            "station-cabinet"
+        ],
+        "multiplayerType": "Server",
+        "badgeIds": [
+            "featured",
+            "trending"
+        ],
+        "queueEstimateMinutes": 3,
+        "sessionObjectives": [
+            "Win a best-of-three set",
+            "Confirm one punish combo off a counter-hit"
+        ],
+        "controlHints": [
+            "Spend meter to close rounds, not to start them",
+            "Watch wake-up spacing before pressing forward"
+        ],
+        "launchConfig": {
+            "difficulty": "Tournament",
+            "controls": [
+                "Keyboard"
+            ],
+            "objectives": [
+                "Climb one ranked division",
+                "Finish a set without dropping neutral control"
+            ],
+            "modes": [
+                "Versus",
+                "Ranked",
+                "Tournament"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted fight-night partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/arena-clash-x",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/arena-clash-x",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Fight Night",
+            "accentStart": "#ef4444",
+            "accentEnd": "#7f1d1d"
+        },
+        "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "39",
+        "name": "Tag Team Titans",
+        "url": "https://www.gamepix.com/play/tag-team-titans",
+        "description": "Squad-based fighting cabinet where tag timing and assist pressure decide every round.",
+        "genre": "Fighting",
+        "rating": 4.7,
+        "playersOnline": 11200,
+        "availability": "Online",
+        "tags": [
+            "Fighting",
+            "Co-op",
+            "Multiplayer",
+            "Combat",
+            "station-cabinet"
+        ],
+        "multiplayerType": "Server",
+        "badgeIds": [
+            "staff-pick"
+        ],
+        "queueEstimateMinutes": 2,
+        "sessionObjectives": [
+            "Land one assist extension cleanly",
+            "Win a round after a mid-fight tag swap"
+        ],
+        "controlHints": [
+            "Tag before your lead fighter burns out",
+            "Use assist calls to trap corners"
+        ],
+        "launchConfig": {
+            "difficulty": "Squad",
+            "controls": [
+                "Keyboard"
+            ],
+            "objectives": [
+                "Coordinate one perfect tag finish",
+                "Protect both fighters through the final round"
+            ],
+            "modes": [
+                "Co-op",
+                "Versus"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted tag-fighter partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/tag-team-titans",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/tag-team-titans",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Tag Battle",
+            "accentStart": "#fb7185",
+            "accentEnd": "#9f1239"
+        },
+        "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "40",
+        "name": "Gridiron Drive",
+        "url": "https://www.gamepix.com/play/gridiron-drive",
+        "description": "Prime-time football rushes with season ladders, red-zone decisions, and versus play.",
+        "genre": "Sports",
+        "rating": 4.7,
+        "playersOnline": 13400,
+        "availability": "Online",
+        "tags": [
+            "Sports",
+            "Football",
+            "Multiplayer",
+            "Competitive",
+            "station-pod"
+        ],
+        "multiplayerType": "Server",
+        "badgeIds": [
+            "featured"
+        ],
+        "queueEstimateMinutes": 2,
+        "sessionObjectives": [
+            "Convert two third downs in one drive",
+            "Hold a late-game lead inside the red zone"
+        ],
+        "controlHints": [
+            "Save your sprint for broken-field cuts",
+            "Read the blitz before snapping the ball"
+        ],
+        "launchConfig": {
+            "difficulty": "Competitive",
+            "controls": [
+                "Keyboard"
+            ],
+            "objectives": [
+                "Finish a drive without a turnover",
+                "Control the fourth quarter clock"
+            ],
+            "modes": [
+                "Versus",
+                "Season"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted football partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/gridiron-drive",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/gridiron-drive",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Prime Sports",
+            "accentStart": "#22c55e",
+            "accentEnd": "#14532d"
+        },
+        "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "41",
+        "name": "Rally Racquet Tour",
+        "url": "https://www.gamepix.com/play/rally-racquet-tour",
+        "description": "Fast tennis rallies with tournament brackets, precision returns, and court-speed control.",
+        "genre": "Sports",
+        "rating": 4.6,
+        "playersOnline": 9600,
+        "availability": "Online",
+        "tags": [
+            "Sports",
+            "Tennis",
+            "Competitive",
+            "Solo",
+            "station-pod"
+        ],
+        "multiplayerType": "None",
+        "badgeIds": [
+            "new-drop"
+        ],
+        "queueEstimateMinutes": 1,
+        "sessionObjectives": [
+            "Break serve once per set",
+            "Win a rally with a clean cross-court finish"
+        ],
+        "controlHints": [
+            "Charge early on baseline returns",
+            "Pull opponents wide before attacking the net"
+        ],
+        "launchConfig": {
+            "difficulty": "Tour",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "objectives": [
+                "Advance one round in the bracket",
+                "Close a deuce game without errors"
+            ],
+            "modes": [
+                "Solo",
+                "Tournament"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted court-sports partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/rally-racquet-tour",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/rally-racquet-tour",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Court Tour",
+            "accentStart": "#38bdf8",
+            "accentEnd": "#0f766e"
+        },
+        "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "42",
+        "name": "Squad Ops: Ghost Protocol",
+        "url": "https://www.gamepix.com/play/squad-ops-ghost-protocol",
+        "description": "Online tactical shooting missions built around overwatch lanes, breach timing, and squad calls.",
+        "genre": "Shooting",
+        "rating": 4.8,
+        "playersOnline": 21400,
+        "availability": "Online",
+        "tags": [
+            "Shooting",
+            "Tactical",
+            "Multiplayer",
+            "Co-op",
+            "station-pod"
+        ],
+        "multiplayerType": "Server",
+        "badgeIds": [
+            "featured",
+            "staff-pick"
+        ],
+        "queueEstimateMinutes": 4,
+        "sessionObjectives": [
+            "Secure one objective room without losing the squad lead",
+            "Land a clean breach-and-clear cycle"
+        ],
+        "controlHints": [
+            "Stack on doors before forcing entry",
+            "Hold crossfires instead of chasing picks"
+        ],
+        "launchConfig": {
+            "difficulty": "Elite",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "objectives": [
+                "Extract with the full squad alive",
+                "Chain two objective clears in one run"
+            ],
+            "modes": [
+                "Co-op",
+                "Squad Ops"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted squad-ops partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/squad-ops-ghost-protocol",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/squad-ops-ghost-protocol",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Squad Fire",
+            "accentStart": "#06b6d4",
+            "accentEnd": "#164e63"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "43",
+        "name": "Raid Fireteam Z",
+        "url": "https://www.gamepix.com/play/raid-fireteam-z",
+        "description": "Four-player survival shooting raid with online co-op drops, boss waves, and evac pressure.",
+        "genre": "Shooting",
+        "rating": 4.7,
+        "playersOnline": 17800,
+        "availability": "Online",
+        "tags": [
+            "Shooting",
+            "Action",
+            "Co-op",
+            "Multiplayer",
+            "RPG",
+            "station-pod"
+        ],
+        "multiplayerType": "Server",
+        "badgeIds": [
+            "trending"
+        ],
+        "queueEstimateMinutes": 3,
+        "sessionObjectives": [
+            "Complete one raid phase without a downed teammate",
+            "Hold the evac lane through the final swarm"
+        ],
+        "controlHints": [
+            "Rotate utility before elite waves stack",
+            "Focus the same target to burn bosses faster"
+        ],
+        "launchConfig": {
+            "difficulty": "Raid",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "objectives": [
+                "Survive the final extraction",
+                "Upgrade one squad role before the boss room"
+            ],
+            "modes": [
+                "Co-op",
+                "Survival"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted online raid partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/raid-fireteam-z",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/raid-fireteam-z",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Raid Ops",
+            "accentStart": "#f97316",
+            "accentEnd": "#7c2d12"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "44",
+        "name": "Mythic Raid Online",
+        "url": "https://www.gamepix.com/play/mythic-raid-online",
+        "description": "Party-based action RPG with online dungeon runs, loot drops, and healer-tank-DPS squad loops.",
+        "genre": "RPG",
+        "rating": 4.8,
+        "playersOnline": 14600,
+        "availability": "Hybrid",
+        "tags": [
+            "RPG",
+            "Adventure",
+            "Co-op",
+            "Multiplayer",
+            "station-pod"
+        ],
+        "multiplayerType": "Server",
+        "badgeIds": [
+            "featured"
+        ],
+        "queueEstimateMinutes": 2,
+        "sessionObjectives": [
+            "Clear one raid wing without losing the support lane",
+            "Equip one upgraded relic before the boss"
+        ],
+        "controlHints": [
+            "Ping boss mechanics before they rotate",
+            "Anchor your squad around one clean cooldown cycle"
+        ],
+        "launchConfig": {
+            "difficulty": "Raid",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "objectives": [
+                "Finish one online dungeon",
+                "Keep the party alive through the final phase"
+            ],
+            "modes": [
+                "Co-op",
+                "Raid",
+                "Adventure"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted co-op RPG partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/mythic-raid-online",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/mythic-raid-online",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Raid RPG",
+            "accentStart": "#8b5cf6",
+            "accentEnd": "#4c1d95"
+        },
+        "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "45",
+        "name": "Legends of the Rift",
+        "url": "https://www.gamepix.com/play/legends-of-the-rift",
+        "description": "Campaign RPG built around hero progression, boss routing, and long-form world exploration.",
+        "genre": "RPG",
+        "rating": 4.9,
+        "playersOnline": 12500,
+        "availability": "Hybrid",
+        "tags": [
+            "RPG",
+            "Adventure",
+            "Progressive",
+            "Solo",
+            "station-pod"
+        ],
+        "multiplayerType": "None",
+        "badgeIds": [
+            "staff-pick",
+            "new-drop"
+        ],
+        "queueEstimateMinutes": 0,
+        "sessionObjectives": [
+            "Unlock one class upgrade path",
+            "Defeat a boss without using emergency items"
+        ],
+        "controlHints": [
+            "Bank healing items before elite rooms",
+            "Spec your build around one primary damage type"
+        ],
+        "launchConfig": {
+            "difficulty": "Epic",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "objectives": [
+                "Finish one campaign chapter",
+                "Unlock one legendary loadout bonus"
+            ],
+            "modes": [
+                "Solo",
+                "Adventure"
+            ],
+            "inlinePolicy": "trusted",
+            "trustNote": "Allowlisted campaign RPG partner.",
+            "embedMode": "inline",
+            "approvedExternalUrl": "https://www.gamepix.com/play/legends-of-the-rift",
+            "approvedEmbedUrl": "https://www.gamepix.com/play/legends-of-the-rift",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ]
+        },
+        "art": {
+            "eyebrow": "Campaign RPG",
+            "accentStart": "#6366f1",
+            "accentEnd": "#312e81"
+        },
+        "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "sonic-racing",
+        "name": "Sonic Racing Elite",
+        "url": "https://www.gamepix.com/play/sonic-racing",
+        "genre": "Racing",
+        "description": "High-velocity hedgehog racing with drift-enabled controls and tactical loop shortcuts.",
+        "availability": "Online",
+        "playersOnline": 15200,
+        "rating": 4.9,
+        "badgeIds": [
+            "featured",
+            "trending"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.gamepix.com/play/sonic-racing",
+            "telemetryMode": "none",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "tags": [
+            "station-pod"
+        ],
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "doom-classic",
+        "name": "Doom: Elite Protocol",
+        "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
+        "genre": "Shooting",
+        "description": "The absolute foundation of tactical FPS. Brutal, fast, and legendary.",
+        "availability": "Online",
+        "playersOnline": 8900,
+        "rating": 5.0,
+        "badgeIds": [
+            "staff-pick"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
+            "telemetryMode": "none",
+            "embedMode": "external-only",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "tags": [
+            "station-pod"
+        ],
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "mario-classic",
+        "name": "Super Mario: Classic World",
+        "url": "https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html",
+        "genre": "Classic",
+        "description": "The definitive platformer experience. Run, jump, and save the kingdom in this high-fidelity retro emulation.",
+        "availability": "Online",
+        "playersOnline": 25400,
+        "rating": 5.0,
+        "badgeIds": [
+            "featured",
+            "staff-pick"
+        ],
+        "tags": [
+            "Classic",
+            "Platformer",
+            "Retro",
+            "station-cabinet"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Nintendo Elite",
+            "accentStart": "#ef4444",
+            "accentEnd": "#7f1d1d"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "gta-legacy",
+        "name": "GTA: Legacy City",
+        "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1",
+        "genre": "Action",
+        "description": "Top-down urban chaos. High-speed chases and tactical missions in the original open-world criminal simulator.",
+        "availability": "Online",
+        "playersOnline": 12800,
+        "rating": 4.9,
+        "badgeIds": [
+            "featured",
+            "staff-pick"
+        ],
+        "tags": [
+            "Action",
+            "Open World",
+            "Retro",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1",
+            "telemetryMode": "none",
+            "embedMode": "external-only",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Rockstar Legacy",
+            "accentStart": "#facc15",
+            "accentEnd": "#713f12"
+        },
+        "image": "https://images.unsplash.com/photo-1552084117-56a987666449?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "nba-pro-3d",
+        "name": "NBA: Pro Basketball 3D",
+        "url": "https://www.gamepix.com/play/basketball-stars",
+        "genre": "Sports",
+        "description": "Elite WebGL basketball with fluid 3D animations, shot timing, and competitive street-ball mechanics.",
+        "availability": "Online",
+        "playersOnline": 45000,
+        "rating": 4.8,
+        "badgeIds": [
+            "featured",
+            "staff-pick"
+        ],
+        "tags": [
+            "Sports",
+            "Basketball",
+            "3D",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.gamepix.com/play/basketball-stars",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Pro League",
+            "accentStart": "#ea580c",
+            "accentEnd": "#7c2d12"
+        },
+        "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "nfl-redzone-rush",
+        "name": "NFL: Redzone Rush",
+        "url": "https://www.gamepix.com/play/touchdown-rush",
+        "genre": "Sports",
+        "description": "High-intensity gridiron action. Manage the clock and execute perfect plays in this premium football simulator.",
+        "availability": "Online",
+        "playersOnline": 32000,
+        "rating": 4.7,
+        "badgeIds": [
+            "featured",
+            "staff-pick"
+        ],
+        "tags": [
+            "Sports",
+            "Football",
+            "Action",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.gamepix.com/play/touchdown-rush",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Gridiron Elite",
+            "accentStart": "#2563eb",
+            "accentEnd": "#1e3a8a"
+        },
+        "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "dbz-retro-combat",
+        "name": "DBZ: Retro Combat",
+        "url": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
+        "genre": "Fighting",
+        "description": "Legendary Saiyan combat. High-speed martial arts and energy blasts in this classic fighting emulation.",
+        "availability": "Online",
+        "playersOnline": 18500,
+        "rating": 4.9,
+        "badgeIds": [
+            "featured",
+            "staff-pick"
+        ],
+        "tags": [
+            "Fighting",
+            "Anime",
+            "Retro",
+            "station-cabinet"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Saiyan Saga",
+            "accentStart": "#f97316",
+            "accentEnd": "#7c2d12"
+        },
+        "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "halo-tribute",
+        "name": "Halo: Spartan Strike",
+        "url": "https://www.gamepix.com/play/cyber-adventure",
+        "genre": "Shooting",
+        "description": "Tactical 2.5D sci-fi combat. Lead your squad through hostile zones in this elite futuristic shooter tribute.",
+        "availability": "Online",
+        "playersOnline": 15000,
+        "rating": 4.6,
+        "badgeIds": [
+            "featured",
+            "staff-pick"
+        ],
+        "tags": [
+            "Shooting",
+            "Sci-Fi",
+            "Action",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "UNSC Command",
+            "accentStart": "#16a34a",
+            "accentEnd": "#14532d"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "boxing-heavyweight",
+        "name": "Boxing: Heavyweight Champion",
+        "url": "https://www.gamepix.com/play/boxing-stars",
+        "genre": "Fighting",
+        "description": "Elite heavyweight boxing. Master the sweet science with realistic 3D WebGL physics and career depth.",
+        "availability": "Online",
+        "playersOnline": 21000,
+        "rating": 4.8,
+        "badgeIds": [
+            "featured",
+            "staff-pick"
+        ],
+        "tags": [
+            "Fighting",
+            "Sports",
+            "3D",
+            "station-pod"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.gamepix.com/play/boxing-stars",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Main Event",
+            "accentStart": "#dc2626",
+            "accentEnd": "#7f1d1d"
+        },
+        "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "tekken-3-elite",
+        "name": "Tekken 3: Iron Fist",
+        "url": "https://www.retrogames.cc/embed/40238-tekken-3.html",
+        "genre": "Fighting",
+        "description": "The king of iron fist tournament. High-fidelity PS1 emulation with buttery smooth 60fps combat.",
+        "availability": "Online",
+        "playersOnline": 15600,
+        "rating": 5.0,
+        "badgeIds": [
+            "featured",
+            "staff-pick",
+            "elite"
+        ],
+        "tags": [
+            "Fighting",
+            "Retro",
+            "PS1",
+            "Multiplayer",
+            "Controller"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/40238-tekken-3.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Namco Elite",
+            "accentStart": "#ef4444",
+            "accentEnd": "#7f1d1d"
+        },
+        "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "smash-bros-elite",
+        "name": "Super Smash Bros. 64",
+        "url": "https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html",
+        "genre": "Fighting",
+        "description": "Original N64 crossover chaos. Pixel-perfect emulation with enhanced controller mapping.",
+        "availability": "Online",
+        "playersOnline": 22400,
+        "rating": 5.0,
+        "badgeIds": [
+            "featured",
+            "elite"
+        ],
+        "tags": [
+            "Fighting",
+            "Retro",
+            "N64",
+            "Multiplayer",
+            "Controller"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Nintendo Elite",
+            "accentStart": "#3b82f6",
+            "accentEnd": "#1e3a8a"
+        },
+        "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "mario-kart-64-elite",
+        "name": "Mario Kart 64: Pro",
+        "url": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
+        "genre": "Racing",
+        "description": "Drift through nostalgia. N64 racing legend with stable multiplayer performance.",
+        "availability": "Online",
+        "playersOnline": 18900,
+        "rating": 4.9,
+        "badgeIds": [
+            "trending",
+            "elite"
+        ],
+        "tags": [
+            "Racing",
+            "Retro",
+            "N64",
+            "Multiplayer",
+            "Controller"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Grand Prix Elite",
+            "accentStart": "#22c55e",
+            "accentEnd": "#14532d"
+        },
+        "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "ctr-ps1-elite",
+        "name": "Crash Team Racing",
+        "url": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
+        "genre": "Racing",
+        "description": "High-octane marsupial racing. Elite PS1 speed with precision touch controls.",
+        "availability": "Online",
+        "playersOnline": 14200,
+        "rating": 4.9,
+        "badgeIds": [
+            "elite"
+        ],
+        "tags": [
+            "Racing",
+            "Retro",
+            "PS1",
+            "Controller"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Naughty Dog Legacy",
+            "accentStart": "#f97316",
+            "accentEnd": "#7c2d12"
+        },
+        "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "zelda-oot-elite",
+        "name": "Zelda: Ocarina of Time",
+        "url": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
+        "genre": "RPG",
+        "description": "The masterpiece redefined. N64 RPG excellence with saved-state cloud sync support.",
+        "availability": "Online",
+        "playersOnline": 31000,
+        "rating": 5.0,
+        "badgeIds": [
+            "featured",
+            "elite"
+        ],
+        "tags": [
+            "RPG",
+            "Retro",
+            "N64",
+            "Adventure"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Hyrule Command",
+            "accentStart": "#16a34a",
+            "accentEnd": "#14532d"
+        },
+        "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "street-fighter-3d",
+        "name": "Street Fighter: Arena",
+        "url": "https://www.gamepix.com/play/street-fighter-2",
+        "genre": "Fighting",
+        "description": "Classic combat, modern engine. Optimized WebGL fighting with low-latency netcode.",
+        "availability": "Online",
+        "playersOnline": 12000,
+        "rating": 4.7,
+        "badgeIds": [
+            "new-drop"
+        ],
+        "tags": [
+            "Fighting",
+            "Action",
+            "Multiplayer"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.gamepix.com/play/street-fighter-2",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "moto-x3m-3d",
+        "name": "Moto X3M: Pool Party",
+        "url": "https://www.gamepix.com/play/moto-x3m-pool-party",
+        "genre": "Racing",
+        "description": "High-fidelity bike stunts with fluid 60fps physics and responsive touch zones.",
+        "availability": "Online",
+        "playersOnline": 52000,
+        "rating": 4.8,
+        "badgeIds": [
+            "trending"
+        ],
+        "tags": [
+            "Racing",
+            "Sports",
+            "Action"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m-pool-party",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "3d-chess-elite",
+        "name": "Grandmaster Chess 3D",
+        "url": "https://www.gamepix.com/play/chess-grandmaster",
+        "genre": "Strategy",
+        "description": "Elite tactical intelligence. Advanced AI opponents in a high-fidelity 3D environment.",
+        "availability": "Online",
+        "playersOnline": 8500,
+        "rating": 4.9,
+        "badgeIds": [
+            "staff-pick"
+        ],
+        "tags": [
+            "Strategy",
+            "Puzzle",
+            "3D"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.gamepix.com/play/chess-grandmaster",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1553481187-be93c21490a9?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "goldeneye-007-elite",
+        "name": "GoldenEye 007",
+        "url": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
+        "genre": "Shooting",
+        "description": "The definitive N64 shooter. High-fidelity emulation with optimized mouse/touch mapping for elite runs.",
+        "availability": "Online",
+        "playersOnline": 28400,
+        "rating": 5.0,
+        "badgeIds": [
+            "featured",
+            "elite"
+        ],
+        "tags": [
+            "Shooting",
+            "Retro",
+            "N64",
+            "Multiplayer",
+            "Controller"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "MI6 Command",
+            "accentStart": "#fbbf24",
+            "accentEnd": "#92400e"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "thps2-ps1-elite",
+        "name": "Tony Hawk's Pro Skater 2",
+        "url": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
+        "genre": "Sports",
+        "description": "Elite skating excellence. PS1 legend with stabilized frame rates and high-fidelity textures.",
+        "availability": "Online",
+        "playersOnline": 19500,
+        "rating": 5.0,
+        "badgeIds": [
+            "staff-pick",
+            "elite"
+        ],
+        "tags": [
+            "Sports",
+            "Retro",
+            "PS1",
+            "Controller"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Neversoft Legacy",
+            "accentStart": "#8b5cf6",
+            "accentEnd": "#4c1d95"
+        },
+        "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "parappa-ps1-elite",
+        "name": "PaRappa the Rapper",
+        "url": "https://www.retrogames.cc/embed/40662-parappa-the-rapper.html",
+        "genre": "Rhythm",
+        "description": "I gotta believe! Original PS1 rhythm mastery with low-latency audio sync.",
+        "availability": "Online",
+        "playersOnline": 11000,
+        "rating": 4.8,
+        "badgeIds": [
+            "elite"
+        ],
+        "tags": [
+            "Rhythm",
+            "Retro",
+            "PS1",
+            "Music"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/40662-parappa-the-rapper.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Rhythm Elite",
+            "accentStart": "#ec4899",
+            "accentEnd": "#831843"
+        },
+        "image": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "sonic-genesis-elite",
+        "name": "Sonic the Hedgehog",
+        "url": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
+        "genre": "Classic",
+        "description": "The Blue Blur at his best. High-speed Genesis emulation with perfect touch responsiveness.",
+        "availability": "Online",
+        "playersOnline": 34000,
+        "rating": 4.9,
+        "badgeIds": [
+            "trending",
+            "elite"
+        ],
+        "tags": [
+            "Classic",
+            "Platformer",
+            "Retro",
+            "Genesis"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Sega Speed",
+            "accentStart": "#3b82f6",
+            "accentEnd": "#1e3a8a"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "doom-elite",
+        "name": "DOOM: Ultimate",
+        "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
+        "genre": "Shooting",
+        "description": "Original FPS carnage. Stabilized DOS emulation with enhanced web execution.",
+        "availability": "Online",
+        "playersOnline": 15000,
+        "rating": 4.9,
+        "badgeIds": [
+            "elite"
+        ],
+        "tags": [
+            "Shooting",
+            "Action",
+            "Retro",
+            "DOS"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
+            "telemetryMode": "none",
+            "embedMode": "external-only",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "fnf-music-battle",
+        "name": "Rhythm Legends: Funkin",
+        "url": "https://www.gamepix.com/play/friday-night-funkin",
+        "genre": "Music Battle",
+        "description": "High-intensity rap battles with precision timing and elite soundtrack depth.",
+        "availability": "Online",
+        "playersOnline": 42000,
+        "rating": 4.8,
+        "badgeIds": [
+            "trending"
+        ],
+        "tags": [
+            "Music Battle",
+            "Rhythm",
+            "Multiplayer"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.gamepix.com/play/friday-night-funkin",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1514525253361-bee8718a300c?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "tetris-classic-elite",
+        "name": "Tetris: Grand Master",
+        "url": "https://www.retrogames.cc/embed/18814-tetris-usa.html",
+        "genre": "Puzzle",
+        "description": "The definitive puzzle experience. Classic NES logic with elite-tier responsive input.",
+        "availability": "Online",
+        "playersOnline": 28000,
+        "rating": 5.0,
+        "badgeIds": [
+            "classic",
+            "elite"
+        ],
+        "tags": [
+            "Puzzle",
+            "Classic",
+            "Retro",
+            "NES"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/18814-tetris-usa.html",
+            "telemetryMode": "none",
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "tomb-runner-elite",
+        "name": "Tomb Runner: Elite",
+        "url": "https://www.gamepix.com/play/tomb-runner",
+        "genre": "Runner",
+        "description": "High-speed tactical running. Fluid WebGL animations and precise touch-based navigation.",
+        "availability": "Online",
+        "playersOnline": 65000,
+        "rating": 4.7,
+        "badgeIds": [
+            "trending"
+        ],
+        "tags": [
+            "Runner",
+            "Action",
+            "3D"
+        ],
+        "launchConfig": {
+            "approvedEmbedUrl": "https://www.gamepix.com/play/tomb-runner",
+            "telemetryMode": "origin",
+            "telemetryOrigins": [
+                "https://www.gamepix.com"
+            ],
+            "embedMode": "inline",
+            "controls": [
+                "Standard Keyboard"
+            ],
+            "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+        },
+        "art": {
+            "eyebrow": "Executive Cabinet",
+            "accentStart": "#ec5b13",
+            "accentEnd": "#a855f7"
+        },
+        "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+        "id": "minecraft-classic",
+        "name": "Minecraft Classic",
+        "url": "https://classic.minecraft.net/",
+        "description": "The original Minecraft creative mode, playable in your browser. Build anything you can imagine.",
+        "genre": "Sandbox",
+        "rating": 4.8,
+        "playersOnline": 5000,
+        "availability": "Web",
+        "tags": [
+            "Multiplayer",
+            "Creative",
+            "Sandbox"
+        ],
+        "badgeIds": [
+            "classic",
+            "featured"
+        ]
+    },
+    {
+        "id": "prince-of-persia",
+        "name": "Prince of Persia",
+        "url": "https://princejs.com/",
+        "description": "The legendary cinematic platformer perfectly recreated in JavaScript. 60 minutes to save the princess.",
+        "genre": "Platformer",
+        "rating": 4.7,
+        "playersOnline": 300,
+        "availability": "Web",
+        "tags": [
+            "Classic",
+            "Retro",
+            "Adventure"
+        ],
+        "badgeIds": [
+            "classic"
+        ]
+    },
+    {
+        "id": "diablo-web",
+        "name": "Diablo Web",
+        "url": "https://d07riv.github.io/diablo-web/",
+        "description": "The original Diablo (1996) shareware version running in your browser. Experience the depths of Tristram.",
+        "genre": "Action RPG",
+        "rating": 4.9,
+        "playersOnline": 800,
+        "availability": "Web",
+        "tags": [
+            "RPG",
+            "Classic",
+            "Dungeon Crawler"
+        ],
+        "badgeIds": [
+            "classic",
+            "elite"
+        ]
+    },
+    {
+        "id": "quakejs",
+        "name": "QuakeJS",
+        "url": "http://www.quakejs.com/",
+        "description": "Legendary fast-paced arena shooter. Frag your friends in this web-based port of Quake.",
+        "genre": "FPS",
+        "rating": 4.8,
+        "playersOnline": 1200,
+        "availability": "Web",
+        "tags": [
+            "FPS",
+            "Multiplayer",
+            "Arena"
+        ],
+        "badgeIds": [
+            "elite"
+        ]
+    },
+    {
+        "id": "street-fighter-2-ce",
+        "name": "Street Fighter II: CE",
+        "url": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
+        "description": "The definitive fighting game experience. Master the Hadouken and climb the world tournament.",
+        "genre": "Fighting",
+        "rating": 4.9,
+        "playersOnline": 2500,
+        "availability": "Embed",
+        "tags": [
+            "Fighting",
+            "Versus",
+            "Classic"
+        ],
+        "badgeIds": [
+            "classic",
+            "tournament-live"
+        ]
+    }
+],
       multiplayerType: 'Server',
       aiSupportLevel: 'Advanced',
       aiBriefing:
@@ -5179,7 +8613,154 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       subtitle: 'High-fidelity retro runs with stabilized controller links.',
       audience: {
         minPlays: 0,
-        rooms: ['all'],
+        rooms: [
+    {
+        "id": "all",
+        "name": "All Games",
+        "icon": "grid_view",
+        "description": "Dynamic command deck for every active Tha Spot cabinet and live floor."
+    },
+    {
+        "id": "producer-lounge",
+        "name": "Producer Lounge",
+        "icon": "music_note",
+        "description": "Music-first picks for creators moving between beats, sessions, and challenges.",
+        "spotlight": "Best for artists coming straight from Studio.",
+        "rules": {
+            "genres": [
+                "Music Battle",
+                "Rhythm"
+            ],
+            "tags": [
+                "Original",
+                "Rhythm",
+                "AI"
+            ]
+        }
+    },
+    {
+        "id": "arcade",
+        "name": "Arcade",
+        "icon": "joystick",
+        "description": "Fast rotations, reflex-first play, and short-session focus runs.",
+        "rules": {
+            "tags": [
+                "Arcade",
+                "Reflex",
+                "Retro"
+            ]
+        }
+    },
+    {
+        "id": "versus-night",
+        "name": "Versus Night",
+        "icon": "sports_kabaddi",
+        "description": "Competitive rooms with PvP, bracket pressure, and live match queues.",
+        "spotlight": "Queue times update from active multiplayer titles.",
+        "rules": {
+            "tags": [
+                "PvP",
+                "Combat",
+                "Multiplayer",
+                "Versus"
+            ],
+            "badgeIds": [
+                "tournament-live"
+            ]
+        }
+    },
+    {
+        "id": "sports",
+        "name": "Sports",
+        "icon": "sports_basketball",
+        "description": "Athletic sims, head-to-head runs, and tournament ladders.",
+        "rules": {
+            "genres": [
+                "Sports"
+            ],
+            "tags": [
+                "Basketball",
+                "Soccer",
+                "Football"
+            ]
+        }
+    },
+    {
+        "id": "fighting-pit",
+        "name": "Fighting",
+        "icon": "sports_mma",
+        "description": "Combo-first cabinets, bracket tension, and head-to-head pressure sets.",
+        "spotlight": "Built for versus specialists and live fight-night rotations.",
+        "rules": {
+            "genres": [
+                "Fighting"
+            ]
+        }
+    },
+    {
+        "id": "shooting-range",
+        "name": "Shooting",
+        "icon": "my_location",
+        "description": "Aim drills, tactical firefights, and high-pressure ranged runs.",
+        "spotlight": "Highlights tactical shooters, squad lanes, and live-fire rotations.",
+        "rules": {
+            "genres": [
+                "Shooting"
+            ]
+        }
+    },
+    {
+        "id": "rpg-vault",
+        "name": "RPG",
+        "icon": "shield",
+        "description": "Progression-heavy adventures, hero builds, raids, and campaign depth.",
+        "spotlight": "Curates every cabinet tagged for RPG progression and boss-run depth.",
+        "rules": {
+            "tags": [
+                "RPG"
+            ]
+        }
+    },
+    {
+        "id": "co-op-link",
+        "name": "Online Co-op",
+        "icon": "groups",
+        "description": "Squad-first cabinets tuned for online co-op, raids, and shared objectives.",
+        "spotlight": "Live squad matchmaking prioritizes shared online objectives.",
+        "rules": {
+            "tags": [
+                "Co-op"
+            ]
+        }
+    },
+    {
+        "id": "strategy",
+        "name": "Strategy",
+        "icon": "psychology",
+        "description": "High-IQ play, puzzle solving, and room-based mind games.",
+        "rules": {
+            "genres": [
+                "Strategy",
+                "Puzzle",
+                "Classic"
+            ]
+        }
+    },
+    {
+        "id": "weekend-clash",
+        "name": "Weekend Clash",
+        "icon": "bolt",
+        "description": "Limited-time event room rotating around featured and live tournament games.",
+        "limitedTime": true,
+        "spotlight": "Rotates with live events and staff promotions.",
+        "rules": {
+            "badgeIds": [
+                "featured",
+                "tournament-live"
+            ]
+        }
+    }
+],
       },
       weights: {
         badge: 15,
@@ -5200,7 +8781,154 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       audience: {
         minPlays: 1,
         maxPlays: 999,
-        rooms: ['all'],
+        rooms: [
+    {
+        "id": "all",
+        "name": "All Games",
+        "icon": "grid_view",
+        "description": "Dynamic command deck for every active Tha Spot cabinet and live floor."
+    },
+    {
+        "id": "producer-lounge",
+        "name": "Producer Lounge",
+        "icon": "music_note",
+        "description": "Music-first picks for creators moving between beats, sessions, and challenges.",
+        "spotlight": "Best for artists coming straight from Studio.",
+        "rules": {
+            "genres": [
+                "Music Battle",
+                "Rhythm"
+            ],
+            "tags": [
+                "Original",
+                "Rhythm",
+                "AI"
+            ]
+        }
+    },
+    {
+        "id": "arcade",
+        "name": "Arcade",
+        "icon": "joystick",
+        "description": "Fast rotations, reflex-first play, and short-session focus runs.",
+        "rules": {
+            "tags": [
+                "Arcade",
+                "Reflex",
+                "Retro"
+            ]
+        }
+    },
+    {
+        "id": "versus-night",
+        "name": "Versus Night",
+        "icon": "sports_kabaddi",
+        "description": "Competitive rooms with PvP, bracket pressure, and live match queues.",
+        "spotlight": "Queue times update from active multiplayer titles.",
+        "rules": {
+            "tags": [
+                "PvP",
+                "Combat",
+                "Multiplayer",
+                "Versus"
+            ],
+            "badgeIds": [
+                "tournament-live"
+            ]
+        }
+    },
+    {
+        "id": "sports",
+        "name": "Sports",
+        "icon": "sports_basketball",
+        "description": "Athletic sims, head-to-head runs, and tournament ladders.",
+        "rules": {
+            "genres": [
+                "Sports"
+            ],
+            "tags": [
+                "Basketball",
+                "Soccer",
+                "Football"
+            ]
+        }
+    },
+    {
+        "id": "fighting-pit",
+        "name": "Fighting",
+        "icon": "sports_mma",
+        "description": "Combo-first cabinets, bracket tension, and head-to-head pressure sets.",
+        "spotlight": "Built for versus specialists and live fight-night rotations.",
+        "rules": {
+            "genres": [
+                "Fighting"
+            ]
+        }
+    },
+    {
+        "id": "shooting-range",
+        "name": "Shooting",
+        "icon": "my_location",
+        "description": "Aim drills, tactical firefights, and high-pressure ranged runs.",
+        "spotlight": "Highlights tactical shooters, squad lanes, and live-fire rotations.",
+        "rules": {
+            "genres": [
+                "Shooting"
+            ]
+        }
+    },
+    {
+        "id": "rpg-vault",
+        "name": "RPG",
+        "icon": "shield",
+        "description": "Progression-heavy adventures, hero builds, raids, and campaign depth.",
+        "spotlight": "Curates every cabinet tagged for RPG progression and boss-run depth.",
+        "rules": {
+            "tags": [
+                "RPG"
+            ]
+        }
+    },
+    {
+        "id": "co-op-link",
+        "name": "Online Co-op",
+        "icon": "groups",
+        "description": "Squad-first cabinets tuned for online co-op, raids, and shared objectives.",
+        "spotlight": "Live squad matchmaking prioritizes shared online objectives.",
+        "rules": {
+            "tags": [
+                "Co-op"
+            ]
+        }
+    },
+    {
+        "id": "strategy",
+        "name": "Strategy",
+        "icon": "psychology",
+        "description": "High-IQ play, puzzle solving, and room-based mind games.",
+        "rules": {
+            "genres": [
+                "Strategy",
+                "Puzzle",
+                "Classic"
+            ]
+        }
+    },
+    {
+        "id": "weekend-clash",
+        "name": "Weekend Clash",
+        "icon": "bolt",
+        "description": "Limited-time event room rotating around featured and live tournament games.",
+        "limitedTime": true,
+        "spotlight": "Rotates with live events and staff promotions.",
+        "rules": {
+            "badgeIds": [
+                "featured",
+                "tournament-live"
+            ]
+        }
+    }
+],
       },
       weights: {
         history: 18,
@@ -5220,7 +8948,154 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         'Music-first cabinets tuned for artists bouncing out of Studio.',
       audience: {
         primaryGenres: ['Hip Hop', 'R&B', 'Pop'],
-        rooms: ['producer-lounge', 'arcade'],
+        rooms: [
+    {
+        "id": "all",
+        "name": "All Games",
+        "icon": "grid_view",
+        "description": "Dynamic command deck for every active Tha Spot cabinet and live floor."
+    },
+    {
+        "id": "producer-lounge",
+        "name": "Producer Lounge",
+        "icon": "music_note",
+        "description": "Music-first picks for creators moving between beats, sessions, and challenges.",
+        "spotlight": "Best for artists coming straight from Studio.",
+        "rules": {
+            "genres": [
+                "Music Battle",
+                "Rhythm"
+            ],
+            "tags": [
+                "Original",
+                "Rhythm",
+                "AI"
+            ]
+        }
+    },
+    {
+        "id": "arcade",
+        "name": "Arcade",
+        "icon": "joystick",
+        "description": "Fast rotations, reflex-first play, and short-session focus runs.",
+        "rules": {
+            "tags": [
+                "Arcade",
+                "Reflex",
+                "Retro"
+            ]
+        }
+    },
+    {
+        "id": "versus-night",
+        "name": "Versus Night",
+        "icon": "sports_kabaddi",
+        "description": "Competitive rooms with PvP, bracket pressure, and live match queues.",
+        "spotlight": "Queue times update from active multiplayer titles.",
+        "rules": {
+            "tags": [
+                "PvP",
+                "Combat",
+                "Multiplayer",
+                "Versus"
+            ],
+            "badgeIds": [
+                "tournament-live"
+            ]
+        }
+    },
+    {
+        "id": "sports",
+        "name": "Sports",
+        "icon": "sports_basketball",
+        "description": "Athletic sims, head-to-head runs, and tournament ladders.",
+        "rules": {
+            "genres": [
+                "Sports"
+            ],
+            "tags": [
+                "Basketball",
+                "Soccer",
+                "Football"
+            ]
+        }
+    },
+    {
+        "id": "fighting-pit",
+        "name": "Fighting",
+        "icon": "sports_mma",
+        "description": "Combo-first cabinets, bracket tension, and head-to-head pressure sets.",
+        "spotlight": "Built for versus specialists and live fight-night rotations.",
+        "rules": {
+            "genres": [
+                "Fighting"
+            ]
+        }
+    },
+    {
+        "id": "shooting-range",
+        "name": "Shooting",
+        "icon": "my_location",
+        "description": "Aim drills, tactical firefights, and high-pressure ranged runs.",
+        "spotlight": "Highlights tactical shooters, squad lanes, and live-fire rotations.",
+        "rules": {
+            "genres": [
+                "Shooting"
+            ]
+        }
+    },
+    {
+        "id": "rpg-vault",
+        "name": "RPG",
+        "icon": "shield",
+        "description": "Progression-heavy adventures, hero builds, raids, and campaign depth.",
+        "spotlight": "Curates every cabinet tagged for RPG progression and boss-run depth.",
+        "rules": {
+            "tags": [
+                "RPG"
+            ]
+        }
+    },
+    {
+        "id": "co-op-link",
+        "name": "Online Co-op",
+        "icon": "groups",
+        "description": "Squad-first cabinets tuned for online co-op, raids, and shared objectives.",
+        "spotlight": "Live squad matchmaking prioritizes shared online objectives.",
+        "rules": {
+            "tags": [
+                "Co-op"
+            ]
+        }
+    },
+    {
+        "id": "strategy",
+        "name": "Strategy",
+        "icon": "psychology",
+        "description": "High-IQ play, puzzle solving, and room-based mind games.",
+        "rules": {
+            "genres": [
+                "Strategy",
+                "Puzzle",
+                "Classic"
+            ]
+        }
+    },
+    {
+        "id": "weekend-clash",
+        "name": "Weekend Clash",
+        "icon": "bolt",
+        "description": "Limited-time event room rotating around featured and live tournament games.",
+        "limitedTime": true,
+        "spotlight": "Rotates with live events and staff promotions.",
+        "rules": {
+            "badgeIds": [
+                "featured",
+                "tournament-live"
+            ]
+        }
+    }
+],
       },
       roomIds: ['producer-lounge', 'arcade'],
       weights: {
@@ -5241,7 +9116,154 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         'High-pressure picks for rivals, sports runs, fighters, and tactical shooters.',
       audience: {
         minPlays: 0,
-        rooms: ['versus-night', 'sports', 'fighting-pit', 'shooting-range'],
+        rooms: [
+    {
+        "id": "all",
+        "name": "All Games",
+        "icon": "grid_view",
+        "description": "Dynamic command deck for every active Tha Spot cabinet and live floor."
+    },
+    {
+        "id": "producer-lounge",
+        "name": "Producer Lounge",
+        "icon": "music_note",
+        "description": "Music-first picks for creators moving between beats, sessions, and challenges.",
+        "spotlight": "Best for artists coming straight from Studio.",
+        "rules": {
+            "genres": [
+                "Music Battle",
+                "Rhythm"
+            ],
+            "tags": [
+                "Original",
+                "Rhythm",
+                "AI"
+            ]
+        }
+    },
+    {
+        "id": "arcade",
+        "name": "Arcade",
+        "icon": "joystick",
+        "description": "Fast rotations, reflex-first play, and short-session focus runs.",
+        "rules": {
+            "tags": [
+                "Arcade",
+                "Reflex",
+                "Retro"
+            ]
+        }
+    },
+    {
+        "id": "versus-night",
+        "name": "Versus Night",
+        "icon": "sports_kabaddi",
+        "description": "Competitive rooms with PvP, bracket pressure, and live match queues.",
+        "spotlight": "Queue times update from active multiplayer titles.",
+        "rules": {
+            "tags": [
+                "PvP",
+                "Combat",
+                "Multiplayer",
+                "Versus"
+            ],
+            "badgeIds": [
+                "tournament-live"
+            ]
+        }
+    },
+    {
+        "id": "sports",
+        "name": "Sports",
+        "icon": "sports_basketball",
+        "description": "Athletic sims, head-to-head runs, and tournament ladders.",
+        "rules": {
+            "genres": [
+                "Sports"
+            ],
+            "tags": [
+                "Basketball",
+                "Soccer",
+                "Football"
+            ]
+        }
+    },
+    {
+        "id": "fighting-pit",
+        "name": "Fighting",
+        "icon": "sports_mma",
+        "description": "Combo-first cabinets, bracket tension, and head-to-head pressure sets.",
+        "spotlight": "Built for versus specialists and live fight-night rotations.",
+        "rules": {
+            "genres": [
+                "Fighting"
+            ]
+        }
+    },
+    {
+        "id": "shooting-range",
+        "name": "Shooting",
+        "icon": "my_location",
+        "description": "Aim drills, tactical firefights, and high-pressure ranged runs.",
+        "spotlight": "Highlights tactical shooters, squad lanes, and live-fire rotations.",
+        "rules": {
+            "genres": [
+                "Shooting"
+            ]
+        }
+    },
+    {
+        "id": "rpg-vault",
+        "name": "RPG",
+        "icon": "shield",
+        "description": "Progression-heavy adventures, hero builds, raids, and campaign depth.",
+        "spotlight": "Curates every cabinet tagged for RPG progression and boss-run depth.",
+        "rules": {
+            "tags": [
+                "RPG"
+            ]
+        }
+    },
+    {
+        "id": "co-op-link",
+        "name": "Online Co-op",
+        "icon": "groups",
+        "description": "Squad-first cabinets tuned for online co-op, raids, and shared objectives.",
+        "spotlight": "Live squad matchmaking prioritizes shared online objectives.",
+        "rules": {
+            "tags": [
+                "Co-op"
+            ]
+        }
+    },
+    {
+        "id": "strategy",
+        "name": "Strategy",
+        "icon": "psychology",
+        "description": "High-IQ play, puzzle solving, and room-based mind games.",
+        "rules": {
+            "genres": [
+                "Strategy",
+                "Puzzle",
+                "Classic"
+            ]
+        }
+    },
+    {
+        "id": "weekend-clash",
+        "name": "Weekend Clash",
+        "icon": "bolt",
+        "description": "Limited-time event room rotating around featured and live tournament games.",
+        "limitedTime": true,
+        "spotlight": "Rotates with live events and staff promotions.",
+        "rules": {
+            "badgeIds": [
+                "featured",
+                "tournament-live"
+            ]
+        }
+    }
+],
       },
       roomIds: ['versus-night', 'sports', 'fighting-pit', 'shooting-range'],
       weights: {
@@ -5274,7 +9296,154 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         'ffx-elite',
       ],
       audience: {
-        rooms: ['rpg-vault'],
+        rooms: [
+    {
+        "id": "all",
+        "name": "All Games",
+        "icon": "grid_view",
+        "description": "Dynamic command deck for every active Tha Spot cabinet and live floor."
+    },
+    {
+        "id": "producer-lounge",
+        "name": "Producer Lounge",
+        "icon": "music_note",
+        "description": "Music-first picks for creators moving between beats, sessions, and challenges.",
+        "spotlight": "Best for artists coming straight from Studio.",
+        "rules": {
+            "genres": [
+                "Music Battle",
+                "Rhythm"
+            ],
+            "tags": [
+                "Original",
+                "Rhythm",
+                "AI"
+            ]
+        }
+    },
+    {
+        "id": "arcade",
+        "name": "Arcade",
+        "icon": "joystick",
+        "description": "Fast rotations, reflex-first play, and short-session focus runs.",
+        "rules": {
+            "tags": [
+                "Arcade",
+                "Reflex",
+                "Retro"
+            ]
+        }
+    },
+    {
+        "id": "versus-night",
+        "name": "Versus Night",
+        "icon": "sports_kabaddi",
+        "description": "Competitive rooms with PvP, bracket pressure, and live match queues.",
+        "spotlight": "Queue times update from active multiplayer titles.",
+        "rules": {
+            "tags": [
+                "PvP",
+                "Combat",
+                "Multiplayer",
+                "Versus"
+            ],
+            "badgeIds": [
+                "tournament-live"
+            ]
+        }
+    },
+    {
+        "id": "sports",
+        "name": "Sports",
+        "icon": "sports_basketball",
+        "description": "Athletic sims, head-to-head runs, and tournament ladders.",
+        "rules": {
+            "genres": [
+                "Sports"
+            ],
+            "tags": [
+                "Basketball",
+                "Soccer",
+                "Football"
+            ]
+        }
+    },
+    {
+        "id": "fighting-pit",
+        "name": "Fighting",
+        "icon": "sports_mma",
+        "description": "Combo-first cabinets, bracket tension, and head-to-head pressure sets.",
+        "spotlight": "Built for versus specialists and live fight-night rotations.",
+        "rules": {
+            "genres": [
+                "Fighting"
+            ]
+        }
+    },
+    {
+        "id": "shooting-range",
+        "name": "Shooting",
+        "icon": "my_location",
+        "description": "Aim drills, tactical firefights, and high-pressure ranged runs.",
+        "spotlight": "Highlights tactical shooters, squad lanes, and live-fire rotations.",
+        "rules": {
+            "genres": [
+                "Shooting"
+            ]
+        }
+    },
+    {
+        "id": "rpg-vault",
+        "name": "RPG",
+        "icon": "shield",
+        "description": "Progression-heavy adventures, hero builds, raids, and campaign depth.",
+        "spotlight": "Curates every cabinet tagged for RPG progression and boss-run depth.",
+        "rules": {
+            "tags": [
+                "RPG"
+            ]
+        }
+    },
+    {
+        "id": "co-op-link",
+        "name": "Online Co-op",
+        "icon": "groups",
+        "description": "Squad-first cabinets tuned for online co-op, raids, and shared objectives.",
+        "spotlight": "Live squad matchmaking prioritizes shared online objectives.",
+        "rules": {
+            "tags": [
+                "Co-op"
+            ]
+        }
+    },
+    {
+        "id": "strategy",
+        "name": "Strategy",
+        "icon": "psychology",
+        "description": "High-IQ play, puzzle solving, and room-based mind games.",
+        "rules": {
+            "genres": [
+                "Strategy",
+                "Puzzle",
+                "Classic"
+            ]
+        }
+    },
+    {
+        "id": "weekend-clash",
+        "name": "Weekend Clash",
+        "icon": "bolt",
+        "description": "Limited-time event room rotating around featured and live tournament games.",
+        "limitedTime": true,
+        "spotlight": "Rotates with live events and staff promotions.",
+        "rules": {
+            "badgeIds": [
+                "featured",
+                "tournament-live"
+            ]
+        }
+    }
+],
         minPlays: 0,
         maxPlays: 999,
       },
@@ -5306,7 +9475,154 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         'tekken-tag-elite',
       ],
       audience: {
-        rooms: ['co-op-link'],
+        rooms: [
+    {
+        "id": "all",
+        "name": "All Games",
+        "icon": "grid_view",
+        "description": "Dynamic command deck for every active Tha Spot cabinet and live floor."
+    },
+    {
+        "id": "producer-lounge",
+        "name": "Producer Lounge",
+        "icon": "music_note",
+        "description": "Music-first picks for creators moving between beats, sessions, and challenges.",
+        "spotlight": "Best for artists coming straight from Studio.",
+        "rules": {
+            "genres": [
+                "Music Battle",
+                "Rhythm"
+            ],
+            "tags": [
+                "Original",
+                "Rhythm",
+                "AI"
+            ]
+        }
+    },
+    {
+        "id": "arcade",
+        "name": "Arcade",
+        "icon": "joystick",
+        "description": "Fast rotations, reflex-first play, and short-session focus runs.",
+        "rules": {
+            "tags": [
+                "Arcade",
+                "Reflex",
+                "Retro"
+            ]
+        }
+    },
+    {
+        "id": "versus-night",
+        "name": "Versus Night",
+        "icon": "sports_kabaddi",
+        "description": "Competitive rooms with PvP, bracket pressure, and live match queues.",
+        "spotlight": "Queue times update from active multiplayer titles.",
+        "rules": {
+            "tags": [
+                "PvP",
+                "Combat",
+                "Multiplayer",
+                "Versus"
+            ],
+            "badgeIds": [
+                "tournament-live"
+            ]
+        }
+    },
+    {
+        "id": "sports",
+        "name": "Sports",
+        "icon": "sports_basketball",
+        "description": "Athletic sims, head-to-head runs, and tournament ladders.",
+        "rules": {
+            "genres": [
+                "Sports"
+            ],
+            "tags": [
+                "Basketball",
+                "Soccer",
+                "Football"
+            ]
+        }
+    },
+    {
+        "id": "fighting-pit",
+        "name": "Fighting",
+        "icon": "sports_mma",
+        "description": "Combo-first cabinets, bracket tension, and head-to-head pressure sets.",
+        "spotlight": "Built for versus specialists and live fight-night rotations.",
+        "rules": {
+            "genres": [
+                "Fighting"
+            ]
+        }
+    },
+    {
+        "id": "shooting-range",
+        "name": "Shooting",
+        "icon": "my_location",
+        "description": "Aim drills, tactical firefights, and high-pressure ranged runs.",
+        "spotlight": "Highlights tactical shooters, squad lanes, and live-fire rotations.",
+        "rules": {
+            "genres": [
+                "Shooting"
+            ]
+        }
+    },
+    {
+        "id": "rpg-vault",
+        "name": "RPG",
+        "icon": "shield",
+        "description": "Progression-heavy adventures, hero builds, raids, and campaign depth.",
+        "spotlight": "Curates every cabinet tagged for RPG progression and boss-run depth.",
+        "rules": {
+            "tags": [
+                "RPG"
+            ]
+        }
+    },
+    {
+        "id": "co-op-link",
+        "name": "Online Co-op",
+        "icon": "groups",
+        "description": "Squad-first cabinets tuned for online co-op, raids, and shared objectives.",
+        "spotlight": "Live squad matchmaking prioritizes shared online objectives.",
+        "rules": {
+            "tags": [
+                "Co-op"
+            ]
+        }
+    },
+    {
+        "id": "strategy",
+        "name": "Strategy",
+        "icon": "psychology",
+        "description": "High-IQ play, puzzle solving, and room-based mind games.",
+        "rules": {
+            "genres": [
+                "Strategy",
+                "Puzzle",
+                "Classic"
+            ]
+        }
+    },
+    {
+        "id": "weekend-clash",
+        "name": "Weekend Clash",
+        "icon": "bolt",
+        "description": "Limited-time event room rotating around featured and live tournament games.",
+        "limitedTime": true,
+        "spotlight": "Rotates with live events and staff promotions.",
+        "rules": {
+            "badgeIds": [
+                "featured",
+                "tournament-live"
+            ]
+        }
+    }
+],
         minPlays: 0,
         maxPlays: 999,
       },

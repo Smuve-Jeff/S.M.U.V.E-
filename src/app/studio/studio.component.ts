@@ -98,6 +98,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   activeView = signal<StudioView>('dj');
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showNeuralFoundry = signal(false);
+  headerCollapsed = signal(false);
 
   studioQualityClass = computed(() => {
     return this.audioEngine.performanceTier() === 'ultra'
@@ -147,6 +148,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   closeMobilePanel() {
     this.mobilePanel.set(null);
+  }
+
+  toggleHeader() {
+    this.headerCollapsed.update((v) => !v);
   }
 
   toggleNeuralFoundry() {
