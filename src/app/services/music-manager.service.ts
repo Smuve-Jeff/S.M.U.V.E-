@@ -1137,7 +1137,7 @@ export class MusicManagerService {
     );
   }
 
-  setTrackQualityMode(trackId: number, mode: 'performance' | 'standard' | 'hd') {
+  setTrackQualityMode(trackId: number, mode: 'performance' | 'ultra') {
     this.tracks.update((current) =>
       current.map((track) =>
         track.id === trackId ? { ...track, qualityMode: mode } : track
@@ -1149,7 +1149,9 @@ export class MusicManagerService {
     this.tracks.update((current) =>
       current.map((track) => {
         if (track.id === trackId) {
-          const stepVelocities = { ...(track.stepVelocities || {}) };
+          const stepVelocities = track.stepVelocities
+            ? [...track.stepVelocities]
+            : Array(64).fill(1.0);
           stepVelocities[step] = velocity;
           return { ...track, stepVelocities };
         }
@@ -1169,7 +1171,12 @@ export class MusicManagerService {
   reorderTrack(fromIndex: number, toIndex: number) {
     this.tracks.update((current) => {
       const next = [...current];
-      if (fromIndex < 0 || fromIndex >= next.length || toIndex < 0 || toIndex >= next.length) {
+      if (
+        fromIndex < 0 ||
+        fromIndex >= next.length ||
+        toIndex < 0 ||
+        toIndex >= next.length
+      ) {
         return current;
       }
       const [removed] = next.splice(fromIndex, 1);
@@ -1183,17 +1190,19 @@ export class MusicManagerService {
       current.map((track) => {
         if (track.id !== trackId) return track;
         const slots = [...(track.patternSlots || [])];
+        const versionId = `version-${Date.now()}-${Math.random()}`;
         const newSlot = {
           id: `slot-${Date.now()}-${Math.random()}`,
           name,
           versions: [
             {
-              id: `version-${Date.now()}-${Math.random()}`,
+              id: versionId,
               name: 'Take 1',
               notes: [],
               steps: this.createEmptySteps(),
             },
           ],
+          activeVersionId: versionId,
         };
         slots.push(newSlot);
         return { ...track, patternSlots: slots };

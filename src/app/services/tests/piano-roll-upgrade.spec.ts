@@ -1,10 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  MusicManagerService,
-  TrackModel,
-  GlobalChord,
-  SongSection,
-} from '../music-manager.service';
+import { MusicManagerService } from '../music-manager.service';
 import { AudioEngineService } from '../audio-engine.service';
 import { InstrumentsService } from '../instruments.service';
 import { UserProfileService } from '../user-profile.service';
@@ -15,7 +10,6 @@ import { signal } from '@angular/core';
 
 describe('PianoRoll & ChannelRack Upgrades', () => {
   let service: MusicManagerService;
-  let instruments: InstrumentsService;
 
   beforeEach(() => {
     const mockEngine = {
@@ -32,7 +26,10 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
       getContext: () => ({
         destination: {},
         currentTime: 0,
-        createGain: () => ({ gain: { setValueAtTime: () => {} }, connect: () => {} }),
+        createGain: () => ({
+          gain: { setValueAtTime: () => {} },
+          connect: () => {},
+        }),
       }),
     };
 
@@ -48,7 +45,6 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
       ],
     });
     service = TestBed.inject(MusicManagerService);
-    instruments = TestBed.inject(InstrumentsService);
   });
 
   it('should support audio tracks and track coloring', () => {
@@ -101,7 +97,10 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
     service.recallPatternSlot(id, mainSlot.id);
 
     const recalledTrack = service.tracks().find((t) => t.id === id);
-    expect(recalledTrack?.patternSlots?.find((s) => s.name === 'Main')?.versions.length).toBe(2);
+    expect(
+      recalledTrack?.patternSlots?.find((s) => s.name === 'Main')?.versions
+        .length
+    ).toBe(2);
     expect(recalledTrack?.steps[0]).toBe(true);
     expect(recalledTrack?.steps[1]).toBe(true);
   });
