@@ -72,6 +72,18 @@ export class PlayerService implements OnDestroy {
     this.deckService.togglePlay('A');
   }
 
+  play() {
+    if (!this.isPlaying()) {
+      this.togglePlay();
+    }
+  }
+
+  pause() {
+    if (this.isPlaying()) {
+      this.togglePlay();
+    }
+  }
+
   next() {
     const playlist = this.playlist();
     if (playlist.length === 0) return;
@@ -131,7 +143,7 @@ export class PlayerService implements OnDestroy {
 
           if (this.currentIndex() === targetIndex) {
             this.deckService.loadDeckBuffer('A', buffer, track.title);
-      this.updateMediaSessionMetadata();
+            this.updateMediaSessionMetadata();
             if (!this.isPlaying()) this.togglePlay();
           }
         } catch (err) {
@@ -171,7 +183,7 @@ export class PlayerService implements OnDestroy {
         this.playlist.update((p) => [newTrack, ...p]);
         this.currentIndex.set(0);
         this.deckService.loadDeckBuffer('A', buffer, file.name);
-      this.updateMediaSessionMetadata();
+        this.updateMediaSessionMetadata();
         if (!this.isPlaying()) this.togglePlay();
       }
     } catch (err) {
@@ -205,8 +217,8 @@ export class PlayerService implements OnDestroy {
       artist: track.artist,
       album: 'S.M.U.V.E. 2.0',
       artwork: [
-        { src: 'assets/favicon.png', sizes: '512x512', type: 'image/png' }
-      ]
+        { src: 'assets/favicon.png', sizes: '512x512', type: 'image/png' },
+      ],
     });
   }
 
@@ -214,12 +226,12 @@ export class PlayerService implements OnDestroy {
     if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
 
     navigator.mediaSession.setActionHandler('play', () => {
-      this.togglePlay();
+      this.play();
       this.audioEngine.updatePlaybackState('playing');
     });
 
     navigator.mediaSession.setActionHandler('pause', () => {
-      this.togglePlay();
+      this.pause();
       this.audioEngine.updatePlaybackState('paused');
     });
 
