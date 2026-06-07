@@ -33,6 +33,9 @@ export class AuthService {
   }
 
   private async deriveKey(password: string, salt: string): Promise<string> {
+    if (!password || !salt) {
+      throw new Error('Password and salt are required for key derivation');
+    }
     const encoder = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
       'raw',
@@ -52,7 +55,7 @@ export class AuthService {
       GLOBAL_SECURITY_CONFIG.key_length
     );
     return Array.from(new Uint8Array(derivedBits))
-      .map(b => b.toString(16).padStart(2, '0'))
+      .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
   }
 
