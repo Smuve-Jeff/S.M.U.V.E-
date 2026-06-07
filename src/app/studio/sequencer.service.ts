@@ -11,6 +11,12 @@ export class SequencerService {
   private engine = inject(AudioEngineService);
   private aiService = inject(AiService);
 
+  constructor() {
+    this.engine.onScheduleStep = (step, time, duration) => {
+      this.tick(step, time, duration);
+    };
+  }
+
   tick(stepIndex: number, time: number, duration: number) {
     if (this.aiService.isAIDrummerActive() && stepIndex % 4 === 0) {
     }
