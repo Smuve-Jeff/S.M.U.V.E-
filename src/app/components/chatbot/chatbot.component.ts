@@ -234,7 +234,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     this.userProfileService.updateProfile({
       settings: {
         ...baseSettings,
-        ai: { ...aiSettings, aiMimicEnabled: !aiSettings.aiMimicEnabled, aiPersonaIntensityEnabled: aiSettings.aiPersonaIntensityEnabled },
+        ai: { ...aiSettings, aiMimicEnabled: !aiSettings.aiMimicEnabled },
       },
     });
   }
