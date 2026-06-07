@@ -374,6 +374,34 @@
               {{ p }}
             </button>
           </div>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">V8.2 PERSONA INTENSITY</h3>
+            <p class="text-xs text-text-dim">
+              ENABLE MAXIMUM ARROGANCE AND STRATEGIC INSULTS.
+            </p>
+          </div>
+        <div class="setting-group mt-6">
+          <label class="setting-label">Intelligence Conversational Tier</label>
+          <div class="grid grid-cols-3 gap-3 mt-2">
+            <button
+              *ngFor="let t of ['Standard', 'Elite', 'SUPREME']"
+              (click)="updateSetting('ai', 'aiConversationalTier', t)"
+              [class.persona-active]="settings().ai.aiConversationalTier === t"
+              class="persona-btn"
+            >
+              {{ t }}
+            </button>
+          </div>
+        </div>
+          <button
+            (click)="updateSetting('ai', 'aiPersonaIntensityEnabled', !settings().ai.aiPersonaIntensityEnabled)"
+            class="toggle-btn"
+            [class.on]="settings().ai.aiPersonaIntensityEnabled"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
         </div>
 
         <div class="setting-item">

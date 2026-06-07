@@ -15,7 +15,14 @@ TestBed.initTestEnvironment(
   ENCRYPTION_KEY: 'test-encryption-key',
 };
 
-// Global Web Audio API Mock
+// Polyfill TextEncoder/Decoder for Jest
+if (typeof TextEncoder === 'undefined') {
+  const { TextEncoder, TextDecoder } = require('util');
+  (global as any).TextEncoder = TextEncoder;
+  (global as any).TextDecoder = TextDecoder;
+}
+
+// Mock Web Audio API Mock
 const createMockNode = () => ({
   gain: {
     value: 0,
@@ -125,3 +132,11 @@ jest.mock('tone', () => ({
     return true;
   }
 };
+
+// Mock Web Crypto API using node:crypto
+const nodeCrypto = require('node:crypto');
+if (typeof crypto === 'undefined') {
+  (global as any).crypto = nodeCrypto.webcrypto;
+} else if (!crypto.subtle) {
+  (crypto as any).subtle = nodeCrypto.webcrypto.subtle;
+}
