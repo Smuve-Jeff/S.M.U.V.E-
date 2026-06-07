@@ -450,19 +450,34 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   }
 
   async aiDrumGen() {
-    let genre: DrumGenre = this.selectedGenre();
+    this.haptic.impact('medium');
+    const profile = this.aiService['userProfileService'].profile();
+    const prompt = `As S.M.U.V.E 2.0, analyze this artist (Expertise: ${profile.expertise.production}/10) and pick a dominant drum genre from: house, trap, afrobeats, drill, dnb. Be abrasive.`;
 
     try {
-      const response = await this.aiService.generateAiResponse(
-        'Return one genre only for a pro drum groove: house, trap, afrobeats, drill, or dnb.'
-      );
-      genre = this.extractGenre(response) ?? genre;
-    } catch {
-      genre = this.selectedGenre();
-    }
+      const response = await this.aiService.generateAiResponse(prompt);
+      const genre = this.extractGenre(response) || this.selectedGenre();
+      this.selectedGenre.set(genre);
 
-    this.generateAiPattern(genre);
-    this.haptic.impact('medium');
+      // Upgrade logic: Higher intensity if artist is 'Elite'
+      const complexity = profile.expertise.production > 7 ? 0.8 : 0.4;
+      this.generateAiPattern(genre);
+
+      if (complexity > 0.5) {
+        // Add random ghost hits for 'Elite' complexity
+        this.pads.update(pads => pads.map(pad => ({
+          ...pad,
+          steps: pad.steps.map((step, i) =>
+            !step.active && Math.random() < 0.15 ? { ...step, active: true, velocity: 0.3 } : step
+          )
+        })));
+        this.syncToMusicManager();
+      }
+
+      this.aiService.strategicDecrees.update(d => [`DRUM_GENERATION_COMPLETE: I've mapped a ${genre.toUpperCase()} groove. Try to keep up, amateur.`, ...d]);
+    } catch {
+      this.generateAiPattern(this.selectedGenre());
+    }
   }
 
   randomizePattern() {

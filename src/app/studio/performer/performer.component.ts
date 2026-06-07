@@ -31,6 +31,7 @@ export class PerformerComponent {
   private readonly instrumentsService = inject(InstrumentsService);
 
   layout = signal<'keyboard' | 'pads' | 'matrix'>('keyboard');
+  private readonly PATTERN_STEPS = 64;
   scenes = this.musicManager.performerScenes;
   smartChords = signal(false);
   velocity = 0.8;
@@ -42,6 +43,7 @@ export class PerformerComponent {
   modWheel = signal(0);
 
   private readonly activePointers = new Map<number, number>();
+  private readonly recordingNotes = new Map<number, { id: string, startStep: number }>();
 
   keyboardKeys = this.generateKeyboardKeys();
   performerPads = this.generatePads();
@@ -128,7 +130,13 @@ export class PerformerComponent {
     this.haptic.light();
 
     if (this.audioSession.isRecording()) {
-      this.musicManager.recordLiveNote(actualMidi, this.velocity);
+      const noteId = this.musicManager.recordLiveNote(actualMidi, this.velocity);
+      if (noteId) {
+        const beat = this.musicManager.engine.currentBeat();
+        const stepsPerBeat = this.musicManager.engine.stepsPerBeat();
+        const startStep = Math.floor(beat * stepsPerBeat) % this.PATTERN_STEPS;
+        this.recordingNotes.set(midi, { id: noteId, startStep });
+      }
     }
 
     this.activeKeys.update((keys) => {
@@ -141,6 +149,22 @@ export class PerformerComponent {
   onKeyUp(midi: number) {
     const actualMidi = midi + this.octave() * 12;
     this.liveEngine.triggerNoteEnd(actualMidi);
+    
+    if (this.audioSession.isRecording()) {
+      const recNote = this.recordingNotes.get(midi);
+      const selectedId = this.musicManager.selectedTrackId();
+      if (recNote && selectedId) {
+        const beat = this.musicManager.engine.currentBeat();
+        const stepsPerBeat = this.musicManager.engine.stepsPerBeat();
+        const currentStep = Math.floor(beat * stepsPerBeat);
+        // Calculate length based on current step relative to start step, handling wrap-around
+        let length = (currentStep - recNote.startStep + this.PATTERN_STEPS) % this.PATTERN_STEPS;
+        if (length === 0) length = this.PATTERN_STEPS;
+        this.musicManager.setNoteParam(selectedId, recNote.id, 'length', length);
+      }
+      this.recordingNotes.delete(midi);
+    }
+
     this.activeKeys.update((keys) => {
       const next = new Set(keys);
       next.delete(midi);

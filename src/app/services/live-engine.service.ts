@@ -224,38 +224,44 @@ export class LiveEngineService {
   }
 
   private generateSmartChord(rootNote: string): string[] {
-    const names = [
-      'C',
-      'C#',
-      'D',
-      'D#',
-      'E',
-      'F',
-      'F#',
-      'G',
-      'G#',
-      'A',
-      'A#',
-      'B',
-    ];
+    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const octaveMatch = rootNote.match(/\d+$/);
     if (!octaveMatch) return [rootNote];
 
     const octave = parseInt(octaveMatch[0]);
     const name = rootNote.replace(/\d+$/, '');
     const rootMidi = (octave + 1) * 12 + names.indexOf(name);
-    const isMinor = ![0, 5, 7].includes(names.indexOf(name) % 12);
-    if (isMinor) {
-      return [
-        this.midiToNote(rootMidi),
-        this.midiToNote(rootMidi + 3),
-        this.midiToNote(rootMidi + 7),
-      ];
+
+    // Elite Voicings: Maj7, m7, 7, 9, etc.
+    const noteInScale = names.indexOf(name) % 12;
+
+    // C Major Scale Context
+    if (noteInScale === 0) { // I (Maj9)
+      return [rootMidi, rootMidi + 4, rootMidi + 7, rootMidi + 11, rootMidi + 14].map(m => this.midiToNote(m));
     }
-    return [
-      this.midiToNote(rootMidi),
-      this.midiToNote(rootMidi + 4),
-      this.midiToNote(rootMidi + 7),
-    ];
+    if (noteInScale === 2) { // ii (m9)
+      return [rootMidi, rootMidi + 3, rootMidi + 7, rootMidi + 10, rootMidi + 14].map(m => this.midiToNote(m));
+    }
+    if (noteInScale === 4) { // iii (m7)
+      return [rootMidi, rootMidi + 3, rootMidi + 7, rootMidi + 10].map(m => this.midiToNote(m));
+    }
+    if (noteInScale === 5) { // IV (Maj9)
+      return [rootMidi, rootMidi + 4, rootMidi + 7, rootMidi + 11, rootMidi + 14].map(m => this.midiToNote(m));
+    }
+    if (noteInScale === 7) { // V (9)
+      return [rootMidi, rootMidi + 4, rootMidi + 7, rootMidi + 10, rootMidi + 14].map(m => this.midiToNote(m));
+    }
+    if (noteInScale === 9) { // vi (m9)
+      return [rootMidi, rootMidi + 3, rootMidi + 7, rootMidi + 10, rootMidi + 14].map(m => this.midiToNote(m));
+    }
+    if (noteInScale === 11) { // vii (m7b5)
+      return [rootMidi, rootMidi + 3, rootMidi + 6, rootMidi + 10].map(m => this.midiToNote(m));
+    }
+
+    // Fallback Triad
+    const isMinor = ![0, 5, 7].includes(noteInScale);
+    return isMinor
+      ? [rootMidi, rootMidi + 3, rootMidi + 7].map(m => this.midiToNote(m))
+      : [rootMidi, rootMidi + 4, rootMidi + 7].map(m => this.midiToNote(m));
   }
 }

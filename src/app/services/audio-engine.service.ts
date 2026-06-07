@@ -99,11 +99,11 @@ export class AudioEngineService {
   private masteringTargets: MasteringTargets = { lufs: -13, truePeak: -0.2 };
   constructor() {
     this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
-      latencyHint: "interactive",
+      latencyHint: 'interactive',
     });
     this.setupMasterChain();
-    this.initDeck("A");
-    this.initDeck("B");
+    this.initDeck('A');
+    this.initDeck('B');
     this.updateAvailableOutputDevices();
     this.setupMediaSession();
   }
@@ -241,7 +241,7 @@ export class AudioEngineService {
   start() {
     this.resume();
     this.isPlaying.set(true);
-    this.updatePlaybackState("playing");
+    this.updatePlaybackState('playing');
     if (this.nextNoteTime <= this.ctx.currentTime) {
       this.nextNoteTime = this.ctx.currentTime + 0.05;
     }
@@ -255,7 +255,7 @@ export class AudioEngineService {
 
   stop() {
     this.isPlaying.set(false);
-    this.updatePlaybackState("paused");
+    this.updatePlaybackState('paused');
     if (this.schedulerHandle) {
       clearInterval(this.schedulerHandle);
       this.schedulerHandle = null;
@@ -635,9 +635,7 @@ export class AudioEngineService {
     const deck = this.getDeck(id);
     this.stopDeckSources(deck);
     deck.buffer = buffer;
-    deck.stems = await Promise.resolve(
-      this.stemSeparationService.separate(buffer)
-    );
+    deck.stems = await this.stemSeparationService.separate(buffer);
     deck.pauseOffset = 0;
     deck.startTime = this.ctx.currentTime;
     deck.rate = 1;
@@ -1100,14 +1098,7 @@ export class AudioEngineService {
 
   private setupMediaSession() {
     if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
-
-    navigator.mediaSession.setActionHandler('play', () => {
-      this.playDeck('A');
-    });
-    navigator.mediaSession.setActionHandler('pause', () => {
-      this.pauseDeck('A');
-    });
-    // Add other handlers as needed
+    this.updatePlaybackState('paused');
   }
 
   updatePlaybackState(state: 'playing' | 'paused') {

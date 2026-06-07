@@ -2,6 +2,7 @@ import { DatabaseService } from '../../services/database.service';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HowToOverlayComponent } from './how-to-overlay.component';
 import {
   UserProfileService,
   AppSettings,
@@ -19,7 +20,7 @@ import { LocalStorageService } from '../../services/local-storage.service';
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HowToOverlayComponent],
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.css'],
 })
@@ -35,6 +36,7 @@ export class SettingsComponent implements OnInit {
   localStorageService = inject(LocalStorageService);
   databaseService = inject(DatabaseService);
   dialog = inject(InteractionDialogService);
+  showHowTo = signal(false);
 
   settings = computed(() => this.profileService.profile().settings);
   themeOptions = computed(() => this.uiService.getAvailableThemes());
@@ -67,7 +69,7 @@ export class SettingsComponent implements OnInit {
   });
 
   activeTab = signal<
-    'ui' | 'audio' | 'ai' | 'studio' | 'security' | 'permissions' | 'storage'
+    'ui' | 'audio' | 'ai' | 'studio' | 'dj' | 'security' | 'permissions' | 'storage'
   >('ui');
   audioInputDevices = this.microphoneService.availableDevices;
   audioOutputDevices = this.audioEngine.availableOutputDevices;
@@ -211,6 +213,7 @@ export class SettingsComponent implements OnInit {
       | 'audio'
       | 'ai'
       | 'studio'
+      | 'dj'
       | 'security'
       | 'permissions'
       | 'storage'

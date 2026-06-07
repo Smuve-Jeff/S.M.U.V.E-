@@ -1,4 +1,9 @@
-export type GameAvailability = 'Offline' | 'Online' | 'Hybrid' | 'Web' | 'Embed';
+export type GameAvailability =
+  | 'Offline'
+  | 'Online'
+  | 'Hybrid'
+  | 'Web'
+  | 'Embed';
 export type GameMode = 'duel' | 'team' | 'solo';
 export type EmbedMode = 'inline' | 'external-only';
 export type TelemetryMode = 'frame-only' | 'origin' | 'none';

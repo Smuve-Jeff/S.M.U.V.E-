@@ -289,6 +289,14 @@
       <div class="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
         <button
           type="button"
+          (click)="goBack()"
+          class="shell-icon-button w-10 h-10 rounded-lg hover:bg-background-alt text-text-dim hover:text-text-main transition-all flex items-center justify-center group shrink-0"
+          title="Go Back"
+        >
+          <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        </button>
+        <button
+          type="button"
           (click)="toggleSidebar()"
           class="shell-icon-button w-10 h-10 rounded-lg hover:bg-background-alt text-text-dim hover:text-text-main transition-all flex items-center justify-center group shrink-0"
           [attr.aria-label]="

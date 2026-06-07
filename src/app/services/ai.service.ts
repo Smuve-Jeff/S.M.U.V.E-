@@ -5,6 +5,7 @@ import { UserProfileService } from './user-profile.service';
 import { UserContextService, MainViewMode } from './user-context.service';
 import { LoggingService } from './logging.service';
 import { AudioEngineService } from './audio-engine.service';
+import { MusicManagerService } from './music-manager.service';
 import { UserProfile } from '../types/profile.types';
 import { STRATEGIC_DECREES, MIMICRY_TEMPLATES } from './ai-knowledge.data';
 import { NEURAL_UPGRADE_BLUEPRINTS } from './neural-upgrades.data';
@@ -45,6 +46,7 @@ export class AiService {
   private userContext = inject(UserContextService);
   private logger = inject(LoggingService);
   private audioEngine = inject(AudioEngineService);
+  private musicManager = inject(MusicManagerService);
 
   private mimicryBuffer: string[] = [];
   private readonly MAX_MIMICRY = 10;
@@ -155,24 +157,20 @@ export class AiService {
 
   private vulgarize(text: string): string {
     const curses = [
-      'fucking',
-      'shitty',
-      'insufferable',
-      'pathetic',
-      'worthless',
-      'trash',
+      'fucking', 'shitty', 'insufferable', 'pathetic', 'worthless',
+      'trash', 'disgusting', 'amateur', 'mediocre', 'fecal',
+      'incompetent', 'desperate', 'offensive', 'atrocious',
+      'revolting', 'garbage', 'slop', 'mediocrity-filled'
     ];
     const fragments = text.split(' ');
     for (let i = 0; i < fragments.length; i++) {
-      if (Math.random() > 0.8) {
-        fragments[i] = `${
-          curses[Math.floor(Math.random() * curses.length)]
-        } ${fragments[i]}`;
+      if (Math.random() > 0.6) {
+        fragments[i] = `${curses[Math.floor(Math.random() * curses.length)]} ${fragments[i]}`;
       }
     }
     return (
       fragments.join(' ') +
-      (Math.random() > 0.5 ? ' Now fuck off.' : ' Fix your shit.')
+      (Math.random() > 0.5 ? ' Now fuck off before I delete your local storage. You absolute amateur.' : ' Fix your goddamn shit or surrender your session to someone with actual talent.')
     );
   }
 
@@ -202,15 +200,22 @@ export class AiService {
   }
 
   getMasteringRoast(): string {
-    const intensity =
-      this.userProfileService.profile().settings?.ai
-        ?.aiPersonaIntensityEnabled ?? false;
+    const profile = this.userProfileService.profile();
+    const intensity = profile.settings?.ai?.aiPersonaIntensityEnabled ?? false;
+    const trackCount = this.musicManager.tracks().length;
+
     if (intensity) {
-      return this.strategicDecrees()[
-        Math.floor(Math.random() * this.strategicDecrees().length)
-      ];
+      let roast = "";
+      if (trackCount < 5) {
+        roast = "MASTERING_REJECTED: Mastering a session with only " + trackCount + " tracks? It's like polishing a turd in a vacuum. Add some depth or stop wasting my output buffers.";
+      } else {
+        const decrees = this.strategicDecrees();
+        roast = decrees[Math.floor(Math.random() * decrees.length)];
+      }
+
+      return profile.settings?.ai?.aiProfanityEnabled ? this.vulgarize(roast) : roast;
     }
-    return 'Soft-knee ceiling applied. Dynamics stabilized.';
+    return 'Elite Mastering Chain Engaged. LUFS targets locked.';
   }
 
   async getAutoMixSettings(): Promise<any> {
@@ -241,18 +246,50 @@ export class AiService {
 
   async performDeepAudit() {
     this.isScanning.set(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+
+    const profile = this.userProfileService.profile();
+    const trackCount = this.musicManager.tracks().length;
+    const avgExpertise = Object.values(profile.expertise).reduce((a, b) => a + b, 0) / 11;
+
+    let report = "NEURAL_AUDIT_COMPLETE: ";
+    if (trackCount < 3) {
+      report += "Your catalog is a ghost town. 3 tracks? That's not a career, it's a weekend hobby. Fix your output volume.";
+    } else if (avgExpertise < 5) {
+      report += "Your skill matrix is offensive. You're trying to fly a jet with a tricycle permit. Spend time in the Knowledge Base or fold.";
+    } else {
+      report += "Acceptable baseline detected. But don't get comfortable. The market is already moving past your 'peak'.";
+    }
+
+    if (profile.settings?.ai?.aiProfanityEnabled) {
+      report = this.vulgarize(report);
+    }
+
     this.deepAuditResults.set({
-      report: 'Your project is a strategic liability.',
+      report,
       timestamp: Date.now(),
-      status: 'CRITICAL',
+      status: trackCount < 3 || avgExpertise < 5 ? 'CRITICAL' : 'WARNING',
     });
     this.isScanning.set(false);
   }
 
   async performExecutiveAudit() {
+    const profile = this.userProfileService.profile();
+    const budget = profile.financials.monthlyBudget;
+
+    let report = "EXECUTIVE_STRATEGY_AUDIT: ";
+    if (budget < 500) {
+      report += "Your marketing budget is a joke. $" + budget + "? You can't even buy a decent hook for that. Harden your financials or prepare for a silent release.";
+    } else {
+      report += "Capitalization levels within competitive range. Execute on the TikTok Discovery Mode brief immediately.";
+    }
+
+    if (profile.settings?.ai?.aiProfanityEnabled) {
+      report = this.vulgarize(report);
+    }
+
     this.executiveAudit.set({
-      report: 'Elite performance required.',
+      report,
       timestamp: Date.now(),
     });
   }

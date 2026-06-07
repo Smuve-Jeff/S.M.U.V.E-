@@ -700,7 +700,8 @@ export class MusicManagerService {
     );
   }
 
-  addNoteToTrack(trackId: number, note: Partial<TrackNote>) {
+  addNoteToTrack(trackId: number, note: Partial<TrackNote>): string | undefined {
+    let createdNoteId: string | undefined;
     this.tracks.update((tracks) =>
       tracks.map((track) => {
         if (track.id !== trackId) {
@@ -715,6 +716,7 @@ export class MusicManagerService {
           velocity: note.velocity || 0.8,
           ...note,
         };
+        createdNoteId = newNote.id;
         const nextTrack = {
           ...track,
           notes: [...track.notes, newNote],
@@ -722,6 +724,7 @@ export class MusicManagerService {
         return this.persistActivePattern(nextTrack);
       })
     );
+    return createdNoteId;
   }
 
   removeNotes(trackId: number, noteIds: string[]) {
@@ -870,30 +873,43 @@ export class MusicManagerService {
     );
   }
 
-  humanizeTrack(trackId: number) {
+  humanizeTrack(trackId: number, intensity: number = 0.08) {
     this.tracks.update((tracks) =>
       tracks.map((track) => {
-        if (track.id !== trackId) {
-          return track;
-        }
-
+        if (track.id !== trackId) return track;
         return this.persistActivePattern({
           ...track,
           notes: track.notes.map((note) => ({
             ...note,
-            step: note.step + (Math.random() - 0.5) * 0.1,
-            velocity: Math.max(
-              0.1,
-              Math.min(1, note.velocity + (Math.random() - 0.5) * 0.1)
-            ),
-          })),
+            step: note.step + (Math.random() - 0.5) * intensity,
+            velocity: Math.max(0.1, Math.min(1.2, note.velocity + (Math.random() - 0.5) * intensity * 2)),
+            offset: (note.offset || 0) + (Math.random() - 0.5) * 0.02
+          }))
         });
       })
     );
   }
 
-  arpeggiateTrack(trackId: number) {
-    this.logger.info(`Arpeggiating track ${trackId}`);
+  arpeggiateTrack(trackId: number, pattern: number[] = [0, 4, 7, 12]) {
+    this.tracks.update(tracks => tracks.map(track => {
+      if (track.id !== trackId) return track;
+      const sortedNotes = [...track.notes].sort((a, b) => a.step - b.step);
+      if (sortedNotes.length === 0) return track;
+
+      const nextNotes: TrackNote[] = [];
+      sortedNotes.forEach((note, i) => {
+        pattern.forEach((interval, j) => {
+          nextNotes.push({
+            ...note,
+            id: `arp-${note.id}-${j}`,
+            midi: note.midi + interval,
+            step: note.step + (j * 0.25),
+            length: 0.2
+          });
+        });
+      });
+      return this.persistActivePattern({ ...track, notes: nextNotes });
+    }));
   }
 
   strumTrack(trackId: number, strength: number = 0.05) {
@@ -971,16 +987,16 @@ export class MusicManagerService {
     );
   }
 
-  recordLiveNote(midi: number, velocity: number) {
+  recordLiveNote(midi: number, velocity: number): string | undefined {
     const selectedId = this.selectedTrackId();
-    if (!selectedId || !this.audioSession.isRecording()) return;
+    if (!selectedId || !this.audioSession.isRecording()) return undefined;
 
     const beat = this.engine.currentBeat();
     const stepsPerBeat = this.engine.stepsPerBeat();
     const currentStepValue =
       Math.floor(beat * stepsPerBeat) % MusicManagerService.PATTERN_STEPS;
 
-    this.addNoteToTrack(selectedId, {
+    return this.addNoteToTrack(selectedId, {
       midi,
       step: currentStepValue,
       length: 1,

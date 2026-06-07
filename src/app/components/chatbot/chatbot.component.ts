@@ -370,6 +370,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
         kbWriteAccess: boolean;
         commanderPersona: string;
         aiPersonaIntensityEnabled: boolean;
+        autoAuditEnabled: boolean;
         aiConversationalTier: 'Standard' | 'Elite' | 'SUPREME';
       }>;
     };
@@ -383,6 +384,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       commanderPersona: aiSettings.commanderPersona ?? 'Elite',
       aiPersonaIntensityEnabled: aiSettings.aiPersonaIntensityEnabled ?? false,
       aiConversationalTier: aiSettings.aiConversationalTier ?? 'Standard',
+      autoAuditEnabled: aiSettings.autoAuditEnabled ?? false,
     };
   }
 
