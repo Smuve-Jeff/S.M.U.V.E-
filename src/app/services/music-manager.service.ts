@@ -700,7 +700,8 @@ export class MusicManagerService {
     );
   }
 
-  addNoteToTrack(trackId: number, note: Partial<TrackNote>) {
+  addNoteToTrack(trackId: number, note: Partial<TrackNote>): string | undefined {
+    let createdNoteId: string | undefined;
     this.tracks.update((tracks) =>
       tracks.map((track) => {
         if (track.id !== trackId) {
@@ -715,6 +716,7 @@ export class MusicManagerService {
           velocity: note.velocity || 0.8,
           ...note,
         };
+        createdNoteId = newNote.id;
         const nextTrack = {
           ...track,
           notes: [...track.notes, newNote],
@@ -722,6 +724,7 @@ export class MusicManagerService {
         return this.persistActivePattern(nextTrack);
       })
     );
+    return createdNoteId;
   }
 
   removeNotes(trackId: number, noteIds: string[]) {
@@ -984,16 +987,16 @@ export class MusicManagerService {
     );
   }
 
-  recordLiveNote(midi: number, velocity: number) {
+  recordLiveNote(midi: number, velocity: number): string | undefined {
     const selectedId = this.selectedTrackId();
-    if (!selectedId || !this.audioSession.isRecording()) return;
+    if (!selectedId || !this.audioSession.isRecording()) return undefined;
 
     const beat = this.engine.currentBeat();
     const stepsPerBeat = this.engine.stepsPerBeat();
     const currentStepValue =
       Math.floor(beat * stepsPerBeat) % MusicManagerService.PATTERN_STEPS;
 
-    this.addNoteToTrack(selectedId, {
+    return this.addNoteToTrack(selectedId, {
       midi,
       step: currentStepValue,
       length: 1,

@@ -48,10 +48,16 @@
       *ngIf="!uiService.isCompactMobile()"
     >
       <button
+        [class.active]="activeView() === 'arrangement'"
+        (click)="setActiveView('arrangement')"
+      >
+        Arrangement
+      </button>
+      <button
         [class.active]="activeView() === 'dj'"
         (click)="setActiveView('dj')"
       >
-        Arrangement
+        DJ Deck
       </button>
       <button
         [class.active]="activeView() === 'piano-roll'"
@@ -119,12 +125,15 @@
       </aside>
 
       <main class="studio-workspace" [ngSwitch]="activeView()">
+        <div class="view-wrapper" *ngSwitchCase="'arrangement'">
+          <div class="arrangement-stack">
+            <app-arrangement-view class="arrangement-main"></app-arrangement-view>
+          </div>
+        </div>
+
         <div class="view-wrapper" *ngSwitchCase="'dj'">
           <div class="arrangement-stack">
-            <app-arrangement-view
-              class="arrangement-main"
-            ></app-arrangement-view>
-            <app-dj-deck class="arrangement-dock"></app-dj-deck>
+            <app-dj-deck class="arrangement-main"></app-dj-deck>
           </div>
         </div>
 
@@ -151,10 +160,16 @@
     *ngIf="uiService.isCompactMobile()"
   >
     <button
+      [class.active]="activeView() === 'arrangement'"
+      (click)="setActiveView('arrangement')"
+    >
+      Arrange
+    </button>
+    <button
       [class.active]="activeView() === 'dj'"
       (click)="setActiveView('dj')"
     >
-      Arrange
+      DJ
     </button>
     <button
       [class.active]="activeView() === 'piano-roll'"
