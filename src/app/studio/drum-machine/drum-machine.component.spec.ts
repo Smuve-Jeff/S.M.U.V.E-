@@ -18,8 +18,15 @@ describe('DrumMachineComponent', () => {
       triggerAttack: jest.fn(),
     };
 
-    const mockAiService = {
+        const mockAiService = {
       generateAiResponse: jest.fn().mockResolvedValue('trap'),
+      userProfileService: {
+        profile: jest.fn().mockReturnValue({
+          expertise: { production: 5 },
+          settings: { ai: {} }
+        })
+      },
+      strategicDecrees: signal([])
     };
 
     const mockInstrumentsService = {
