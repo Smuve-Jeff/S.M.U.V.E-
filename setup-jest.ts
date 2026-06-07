@@ -22,7 +22,7 @@ if (typeof TextEncoder === 'undefined') {
   (global as any).TextDecoder = TextDecoder;
 }
 
-// Mock Web Audio API Mock
+// Mock Web Audio API
 const createMockNode = () => ({
   gain: {
     value: 0,
