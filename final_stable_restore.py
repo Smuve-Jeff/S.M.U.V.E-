@@ -1,238 +1,579 @@
-import sys
 import os
+import re
 
-def write_file(path, content):
-    with open(path, 'w') as f:
-        f.write(content)
+file_path = 'src/app/services/audio-engine.service.ts'
+with open('audio_engine_backup.ts', 'r') as f:
+    backup = f.read()
 
-# 1. profile.types.ts - FULL RESTORATION
-write_file('src/app/types/profile.types.ts', """import { ArtistIdentityState } from './artist-identity.types';
-import { ArtistKnowledgeBase, RecommendationHistoryEntry, UpgradeRecommendation } from './ai.types';
-import { MarketingCampaign } from './marketing.types';
+# We'll re-read the original file to get a clean state if possible,
+# but I've already modified it many times.
+# Let's try to reconstruct the class properly.
 
-export type { RecommendationHistoryEntry, UpgradeRecommendation };
+# 1. Start with the core structure and imports from a known good state or the backup.
+# The backup seems mostly complete for DAW.
 
-export interface AppSettings {
-  ui: { theme: string; performanceMode: boolean; showScanlines: boolean; animationsEnabled: boolean; autoPianoRoll: boolean; };
-  audio: { masterVolume: number; autoSaveEnabled: boolean };
-  ai: { kbWriteAccess: boolean; commanderPersona: string };
-  security: { twoFactorEnabled: boolean; endToEndEncryption: boolean; biometricLock: boolean; auditLogEnabled: boolean; sessionTimeout: number; };
+header = """import { LoggingService } from './logging.service';
+import { Injectable, signal, inject, Injector } from '@angular/core';
+import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
+import { StemSeparationService, Stems } from './stem-separation.service';
+
+export type DeckId = 'A' | 'B';
+
+interface DeckChannel {
+  id: DeckId;
+  buffer: AudioBuffer | null;
+  sources: { [K in keyof Stems]?: AudioBufferSourceNode | null };
+  gains: { [K in keyof Stems]: GainNode };
+  eqLow: BiquadFilterNode;
+  eqMid: BiquadFilterNode;
+  eqHigh: BiquadFilterNode;
+  filter: BiquadFilterNode;
+  pan: StereoPannerNode;
+  gain: GainNode;
+  sendA: GainNode;
+  sendB: GainNode;
+  analyser: AnalyserNode;
+  isPlaying: boolean;
+  startTime: number;
+  pauseOffset: number;
+  rate: number;
+  stems: Stems | null;
+  loopEnabled: boolean;
+  slipEnabled: boolean;
+  slipActive: boolean;
+  slipStartTime: number;
+  slipStartOffset: number;
+  hotCues: (number | null)[];
+  channelGain: number;
+  crossfadeGain: number;
+  // DJ Expansion
+  cueGain: GainNode;
+  flangerNode: BiquadFilterNode;
+  phaserNode: BiquadFilterNode;
+  pingPongDelay: DelayNode;
+  pingPongFeedback: GainNode;
+  pingPongPan: StereoPannerNode;
+  detectedBpm: number;
+  isCueing: boolean;
 }
 
-export interface CatalogItem {
-  id: string; title: string; artist?: string; genre?: string; status?: string; category?: string; bpm?: number; key?: string; duration?: number; url?: string; metadata?: any; createdAt?: string; updatedAt?: string;
+interface MasteringTargets {
+  lufs: number;
+  truePeak: number;
 }
+"""
 
-export interface StrategicSignals { marketReadiness: number; identityTrust: number; careerMomentum: number; technicalAuthority: number; syncViability: number; touringStability: number; }
+class_start = """
+@Injectable({
+  providedIn: 'root',
+})
+export class AudioEngineService {
+  public cueMaster!: GainNode;
+  public headphoneGain = signal(0.7);
 
-export interface SyncDetails { isSyncReady: string; hasCleanVersions: boolean; hasInstrumentals: boolean; hasStems: string; oneStopClearance: boolean; catalogSize: number; preferredKeywords: string[]; }
+  private static readonly INTEGER_TRACK_ID_PATTERN = /^-?\\d+$/;
+  private static readonly STEM_ORDER: (keyof Stems)[] = [
+    'vocals',
+    'drums',
+    'bass',
+    'instrumental',
+    'other',
+  ];
+  private static readonly DEFAULT_LOOKAHEAD_SECONDS = 0.2;
+  private static readonly DEFAULT_SCHEDULER_INTERVAL_MS = 25;
 
-export interface LegalInfrastructure { hasRegisteredWorks: boolean; proAffiliation: string; hasStandardSplitSheet: string; isIncorporated: boolean; legalEntityName?: string; trademarkStatus: 'None' | 'Pending' | 'Registered'; }
+  public outputMode = signal<'speakers' | 'headphones'>('speakers');
+  public performanceTier = signal<'ultra' | 'performance'>('ultra');
+  public sidechainEnabled = signal(false);
+  public tempo = signal(124);
+  private loopLengthSteps = signal(64);
+  public recordingLatency = signal(0);
+  public metronomeEnabled = signal(false);
+  public metronomeVolume = signal(0.5);
+  public isRecording = signal(false);
+  public currentBeat = signal(0);
+  public isPlaying = signal(false);
+  public onScheduleStep:
+    | ((step: number, when: number, stepDuration: number) => void)
+    | null = null;
 
-export interface ThaSpotEventHistoryEntry { eventId: string; roomId?: string; reward?: string; rewardType?: 'access' | 'cosmetic' | 'token'; participatedAt: number; }
-
-export interface ThaSpotRoomStat { plays?: number; highScore?: number; bestLevel?: number; lastPlayedAt?: number; }
-
-export interface ThaSpotGameStat { plays?: number; highScore?: number; bestLevel?: number; lastPlayedAt?: number; lastRoomId?: string; roomPlays?: Record<string, number>; earnedCosmetics?: string[]; eventHistory?: ThaSpotEventHistoryEntry[]; }
-
-export interface ThaSpotProgression { lastSessionAt?: number; lastRoomId?: string; favoriteRoomId?: string; roomStats: Record<string, ThaSpotRoomStat>; earnedCosmetics: string[]; eventHistory: ThaSpotEventHistoryEntry[]; }
-
-export interface ThaSpotSessionContext { roomId: string; startedAt: number; gameId?: string; mode?: string; }
-
-export interface ExpertiseLevels { production: number; songwriting: number; marketing: number; business: number; legal: number; performance: number; catalyst: any; technical_mastery?: number; }
-
-export interface TeamMember { id: string; name: string; role: string; email?: string; share: number; bio?: string; joinedAt: string; }
-
-export interface ProfessionalFinancials { accounts: any[]; monthlyBudget: number; totalRevenue: number; pendingPayouts: number; splitSheets: any[]; revenueHistory: any[]; }
-
-export interface ProfileAuditLog {
-  score: number;
-  status: string;
-  alerts: string[];
-  deficits: string[];
-  timestamp: number;
-  recommendations?: any[];
-  auditType?: string;
-}
-
-export interface UserProfile {
-  id?: string; artistName: string; primaryGenre: string; website?: string; proIpi?: string; proName?: string;
-  proData?: { workIds: any[]; affiliations: any[]; ipiNumber?: string; };
-  skills?: string[]; productionStyles?: string[]; brandVoices?: string[]; strategicGoals?: string[]; performancesPerYear?: string;
-  settings: AppSettings; knowledgeBase: ArtistKnowledgeBase; careerGoals: string[]; equipment: string[]; daw: string[]; services: string[]; recommendationPreferences: any; recommendationHistory: RecommendationHistoryEntry[]; expertise: ExpertiseLevels;
-  team: TeamMember[]; marketingCampaigns: MarketingCampaign[]; financials: ProfessionalFinancials; catalog: CatalogItem[]; artistIdentity: ArtistIdentityState; avatarImage?: string; headerImage?: string; pressGallery: string[]; strategicHealthScore: number; criticalDeficits: string[]; strategicSignals: StrategicSignals; auditHistory: ProfileAuditLog[];
-  touringDetails?: any; syncDetails?: any; legalInfrastructure?: any; genreSpecificData?: any; gameStats?: any; thaSpotProgression?: any;
-  profileSetupCompleted?: boolean; profileSetupCompletedAt?: number;
-}
-
-import { createInitialArtistIdentity } from './artist-identity.types';
-export const initialProfile: UserProfile = {
-  settings: {
-    ui: { theme: 'Dark', performanceMode: false, showScanlines: false, animationsEnabled: true, autoPianoRoll: false },
-    audio: { masterVolume: 0.8, autoSaveEnabled: true },
-    ai: { kbWriteAccess: true, commanderPersona: 'Elite' },
-    security: { twoFactorEnabled: false, endToEndEncryption: false, biometricLock: false, auditLogEnabled: true, sessionTimeout: 3600 },
-  },
-  artistName: 'New Artist', primaryGenre: 'Hip Hop',
-  proName: '', proIpi: '', proData: { workIds: [], affiliations: [], ipiNumber: '' },
-  knowledgeBase: { id: 'kb-initial', artistId: 'new-artist', dataPoints: [], learnedStyles: [], productionSecrets: [], coreTrends: [], strategicDirectives: [], marketIntel: [], genreAnalysis: {}, brandStatus: {}, strategicHealthScore: 0 },
-  careerGoals: [], equipment: [], daw: [], services: [], recommendationPreferences: {}, recommendationHistory: [],
-  expertise: { production: 0, songwriting: 0, marketing: 0, business: 0, legal: 0, performance: 0, catalyst: 0 },
-  team: [], marketingCampaigns: [],
-  financials: { accounts: [], monthlyBudget: 0, totalRevenue: 0, pendingPayouts: 0, splitSheets: [], revenueHistory: [] },
-  catalog: [], artistIdentity: createInitialArtistIdentity('New Artist', 'Hip Hop'),
-  strategicHealthScore: 0, criticalDeficits: [],
-  strategicSignals: { marketReadiness: 0, identityTrust: 0, careerMomentum: 0, technicalAuthority: 0, syncViability: 0, touringStability: 0 },
-  auditHistory: [], skills: [], productionStyles: [], brandVoices: [], strategicGoals: [], performancesPerYear: 'None',
-  touringDetails: { travelPreference: 'Van', regions: [], isTourReady: 'Studio Only', hasBackline: 'No' },
-  syncDetails: { isSyncReady: 'Not Started', hasCleanVersions: false, hasInstrumentals: false, hasStems: 'No', oneStopClearance: false, catalogSize: 0, preferredKeywords: [] },
-  legalInfrastructure: { hasRegisteredWorks: false, proAffiliation: "None", hasStandardSplitSheet: "Never", isIncorporated: false, trademarkStatus: "None" },
-  genreSpecificData: {}, gameStats: {}, pressGallery: [],
-  thaSpotProgression: { roomStats: {}, earnedCosmetics: [], eventHistory: [] },
-};
-""")
-
-# 2. user-profile.service.ts
-write_file('src/app/services/user-profile.service.ts', """import { Injectable, inject, signal, Injector } from '@angular/core';
-import { LoggingService } from './logging.service';
-import { UserProfile, initialProfile, AppSettings, CatalogItem, RecommendationHistoryEntry, UpgradeRecommendation, ExpertiseLevels, ProfessionalFinancials, ProfileAuditLog } from '../types/profile.types';
-
-export type { UserProfile, AppSettings, CatalogItem, RecommendationHistoryEntry, UpgradeRecommendation };
-export { initialProfile };
-
-@Injectable({ providedIn: 'root' })
-export class UserProfileService {
+  public logger = inject(LoggingService);
   private injector = inject(Injector);
-  private logger = inject(LoggingService);
-  profile = signal<UserProfile>(initialProfile);
+  private stemSeparationService = inject(StemSeparationService);
+  public ctx: AudioContext;
 
-  private get db(): any {
-    // Break circular dependency by requiring at runtime or just using injector if it's already provided
-    return this.injector.get(require('./database.service').DatabaseService);
-  }
+  public masterGain!: GainNode;
+  public compressor!: DynamicsCompressorNode;
+  public limiter!: DynamicsCompressorNode;
+  private masterEQ!: BiquadFilterNode;
+  public saturationNode!: WaveShaperNode;
+  public reverbWet!: GainNode;
+  private reverbConvolver!: ConvolverNode;
+  private delayNode!: DelayNode;
+
+  private trackOutputs = new Map<number, GainNode>();
+  private sidechainMatrix = new Map<string, Set<string>>();
+  private tracks = new Map<number, any>();
+
+  private deckA!: DeckChannel;
+  private deckB!: DeckChannel;
+  private schedulerHandle: ReturnType<typeof setInterval> | null = null;
+  private nextNoteTime = 0;
+  private currentStep = 0;
+  private masteringTargets: MasteringTargets = { lufs: -13, truePeak: -0.2 };
 
   constructor() {
-    if (typeof window !== 'undefined' && !(typeof process !== 'undefined' && !!process.env.JEST_WORKER_ID)) {
-      setTimeout(() => void this.loadProfile(), 0);
+    this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
+      latencyHint: 'interactive',
+    });
+    this.setupMasterChain();
+    this.initDeck('A');
+    this.initDeck('B');
+  }
+
+  public get recorder(): StudioRecordingEngineService {
+    return this.injector.get(StudioRecordingEngineService);
+  }
+
+  private setupMasterChain() {
+    this.cueMaster = this.ctx.createGain();
+    this.cueMaster.connect(this.ctx.destination);
+
+    this.masterGain = this.ctx.createGain();
+    this.compressor = this.ctx.createDynamicsCompressor();
+    this.limiter = this.ctx.createDynamicsCompressor();
+    this.masterEQ = this.ctx.createBiquadFilter();
+    this.saturationNode = this.ctx.createWaveShaper();
+    this.reverbWet = this.ctx.createGain();
+    this.reverbConvolver = this.ctx.createConvolver();
+    this.delayNode = this.ctx.createDelay();
+
+    this.masterGain.gain.value = 0.85;
+    this.masterEQ.type = 'highshelf';
+    this.masterEQ.frequency.value = 12000;
+    this.masterEQ.gain.value = 0;
+    this.reverbWet.gain.value = 0;
+    this.delayNode.delayTime.value = 0.18;
+
+    this.masterGain.connect(this.compressor);
+    this.compressor.connect(this.saturationNode);
+    this.saturationNode.connect(this.masterEQ);
+    this.masterEQ.connect(this.limiter);
+    this.limiter.connect(this.ctx.destination);
+
+    this.reverbConvolver.connect(this.reverbWet);
+    this.reverbWet.connect(this.masterGain);
+    this.delayNode.connect(this.masterGain);
+
+    this.configureLimiter({
+      ceiling: this.masteringTargets.truePeak,
+      release: 0.25,
+    });
+
+    this.setupSaturation(0);
+  }
+
+  private initDeck(id: DeckId) {
+    const deck: DeckChannel = {
+      id,
+      buffer: null,
+      sources: {},
+      gains: {
+        vocals: this.ctx.createGain(),
+        drums: this.ctx.createGain(),
+        bass: this.ctx.createGain(),
+        instrumental: this.ctx.createGain(),
+        other: this.ctx.createGain(),
+      },
+      eqLow: this.ctx.createBiquadFilter(),
+      eqMid: this.ctx.createBiquadFilter(),
+      eqHigh: this.ctx.createBiquadFilter(),
+      filter: this.ctx.createBiquadFilter(),
+      pan: this.ctx.createStereoPanner(),
+      gain: this.ctx.createGain(),
+      sendA: this.ctx.createGain(),
+      sendB: this.ctx.createGain(),
+      analyser: this.ctx.createAnalyser(),
+      isPlaying: false,
+      startTime: 0,
+      pauseOffset: 0,
+      rate: 1,
+      stems: null,
+      loopEnabled: false,
+      slipEnabled: false,
+      slipActive: false,
+      slipStartTime: 0,
+      slipStartOffset: 0,
+      hotCues: new Array(8).fill(null),
+      channelGain: 1,
+      crossfadeGain: id === 'A' ? 1 : 0,
+      cueGain: this.ctx.createGain(),
+      flangerNode: this.ctx.createBiquadFilter(),
+      phaserNode: this.ctx.createBiquadFilter(),
+      pingPongDelay: this.ctx.createDelay(),
+      pingPongFeedback: this.ctx.createGain(),
+      pingPongPan: this.ctx.createStereoPanner(),
+      detectedBpm: 0,
+      isCueing: false,
+    };
+
+    deck.eqLow.type = 'lowshelf';
+    deck.eqLow.frequency.value = 320;
+    deck.eqMid.type = 'peaking';
+    deck.eqMid.frequency.value = 1200;
+    deck.eqMid.Q.value = 0.9;
+    deck.eqHigh.type = 'highshelf';
+    deck.eqHigh.frequency.value = 3200;
+    deck.filter.type = 'lowpass';
+    deck.filter.frequency.value = 20000;
+    deck.filter.Q.value = 0.707;
+    deck.analyser.fftSize = 1024;
+    deck.sendA.gain.value = 0;
+    deck.sendB.gain.value = 0;
+    deck.cueGain.gain.value = 0;
+    deck.flangerNode.type = 'allpass';
+    deck.phaserNode.type = 'allpass';
+    deck.pingPongDelay.delayTime.value = 0.375;
+    deck.pingPongFeedback.gain.value = 0.4;
+    deck.pingPongDelay.connect(deck.pingPongFeedback);
+    deck.pingPongFeedback.connect(deck.pingPongDelay);
+    deck.pingPongDelay.connect(deck.pingPongPan);
+    deck.pingPongPan.connect(deck.analyser);
+
+    for (const stem of AudioEngineService.STEM_ORDER) {
+      deck.gains[stem].gain.value = 1;
+      deck.gains[stem]
+        .connect(deck.eqLow)
+        .connect(deck.eqMid)
+        .connect(deck.eqHigh)
+        .connect(deck.filter)
+        .connect(deck.flangerNode)
+        .connect(deck.phaserNode)
+        .connect(deck.pingPongDelay)
+        .connect(deck.pan)
+        .connect(deck.analyser);
+    }
+
+    deck.analyser.connect(deck.gain);
+    deck.analyser.connect(deck.cueGain);
+    deck.cueGain.connect(this.cueMaster);
+    deck.gain.connect(this.masterGain);
+    deck.gain.connect(deck.sendA);
+    deck.gain.connect(deck.sendB);
+    deck.sendA.connect(this.reverbConvolver);
+    deck.sendB.connect(this.delayNode);
+
+    if (id === 'A') this.deckA = deck;
+    else this.deckB = deck;
+
+    this.applyDeckOutputGain(deck);
+  }
+
+  getContext() { return this.ctx; }
+  resume() { if (this.ctx.state === 'suspended') void this.ctx.resume(); }
+  isPlayingStatus() { return this.isPlaying(); }
+  stepsPerBeat() { return 4; }
+
+  start() {
+    this.resume();
+    this.isPlaying.set(true);
+    if (this.nextNoteTime <= this.ctx.currentTime) this.nextNoteTime = this.ctx.currentTime + 0.05;
+    if (!this.schedulerHandle) {
+      this.schedulerHandle = setInterval(() => this.scheduler(), AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS);
     }
   }
 
-  async loadProfile(id: string = 'current') {
-    try {
-      const saved = await this.db.loadUserProfile(id);
-      if (saved) this.profile.set(saved);
-    } catch (e) { this.logger.error('Profile load failed', e); }
+  stop() {
+    this.isPlaying.set(false);
+    if (this.schedulerHandle) {
+      clearInterval(this.schedulerHandle);
+      this.schedulerHandle = null;
+    }
   }
 
-  async updateProfile(p: Partial<UserProfile>) {
-    const next = { ...this.profile(), ...p } as UserProfile;
-    this.profile.set(next);
-    try { await this.db.saveUserProfile(next, 'current'); } catch (e) {}
+  setLoopLengthBars(bars: number) {
+    const nextLength = bars * 16;
+    this.loopLengthSteps.set(nextLength);
+    if (this.currentStep >= nextLength) this.currentStep = 0;
   }
 
-  async acquireUpgrade(u: any) { await this.updateProfile({ strategicHealthScore: (this.profile().strategicHealthScore || 0) + 5 }); }
-  async completeUpgrade(u: any) { await this.updateProfile({ strategicHealthScore: (this.profile().strategicHealthScore || 0) + 10 }); }
-  async updateExpertise(u: Partial<ExpertiseLevels>) { await this.updateProfile({ expertise: { ...this.profile().expertise, ...u } }); }
-  async addTeamMember(m: any) { await this.updateProfile({ team: [...(this.profile().team || []), m] }); }
-  async updateFinancials(u: Partial<ProfessionalFinancials>) { await this.updateProfile({ financials: { ...this.profile().financials, ...u } }); }
-  async recordAudit(l: ProfileAuditLog) { await this.updateProfile({ strategicHealthScore: l.score, criticalDeficits: l.deficits, auditHistory: [l, ...(this.profile().auditHistory || [])].slice(0, 20) }); }
-  async setRecommendationState(id: string, s: any, m?: any) {}
-  async recordGameLaunch(g: string, c: any) {}
-  async recordGameResult(g: string, r: any) {}
+  private scheduler() {
+    const stepDuration = 60 / this.tempo() / 4;
+    while (this.nextNoteTime < this.ctx.currentTime + AudioEngineService.DEFAULT_LOOKAHEAD_SECONDS) {
+      const step = this.currentStep;
+      this.onScheduleStep?.(step, this.nextNoteTime, stepDuration);
+      this.currentBeat.set(step / 4);
+      this.playMetronomeClick(this.nextNoteTime, step % 4 === 0);
+      this.nextNoteTime += stepDuration;
+      this.currentStep = (this.currentStep + 1) % this.loopLengthSteps();
+    }
+  }
+
+  private playMetronomeClick(when: number, accent: boolean) {
+    if (!this.metronomeEnabled()) return;
+    const osc = this.ctx.createOscillator();
+    const env = this.ctx.createGain();
+    osc.frequency.setValueAtTime(accent ? 1000 : 500, when);
+    env.gain.setValueAtTime(this.metronomeVolume(), when);
+    env.gain.exponentialRampToValueAtTime(0.001, when + 0.05);
+    osc.connect(env).connect(this.masterGain);
+    osc.start(when);
+    osc.stop(when + 0.05);
+  }
+
+  toggleMetronome() { this.metronomeEnabled.set(!this.metronomeEnabled()); }
+  setMetronomeVolume(val: number) { this.metronomeVolume.set(this.clamp(val, 0, 1)); }
+
+  getTrackOutput(id: number): GainNode {
+    if (!this.trackOutputs.has(id)) {
+      const gain = this.ctx.createGain();
+      gain.connect(this.masterGain);
+      this.trackOutputs.set(id, gain);
+    }
+    return this.trackOutputs.get(id)!;
+  }
+
+  updateTrack(id: number, data: any) {
+    const t = this.tracks.get(id);
+    if (t) Object.assign(t, data);
+    else this.tracks.set(id, data);
+  }
+
+  connectSidechain(sourceId: string, targetId: string) {
+    if (!this.sidechainMatrix.has(sourceId)) this.sidechainMatrix.set(sourceId, new Set());
+    this.sidechainMatrix.get(sourceId)!.add(targetId);
+    this.sidechainEnabled.set(true);
+  }
+
+  getDeck(id: DeckId): DeckChannel { return id === 'A' ? this.deckA : this.deckB; }
+
+  async loadDeck(id: DeckId, buffer: AudioBuffer) {
+    const deck = this.getDeck(id);
+    this.stopDeckSources(deck);
+    deck.buffer = buffer;
+    deck.stems = await this.stemSeparationService.separate(buffer);
+    deck.pauseOffset = 0;
+    deck.startTime = this.ctx.currentTime;
+    deck.rate = 1;
+    deck.isPlaying = false;
+    deck.hotCues = new Array(8).fill(null);
+  }
+
+  getDeckProgress(id: DeckId) {
+    const deck = this.getDeck(id);
+    const duration = deck.buffer?.duration || 0;
+    const position = this.getDeckPosition(deck);
+    return { duration, position, isPlaying: deck.isPlaying, slipPosition: deck.slipActive ? this.getSlipPosition(deck) : position };
+  }
+
+  seekDeck(id: DeckId, pos: number) {
+    const deck = this.getDeck(id);
+    const duration = deck.buffer?.duration || 0;
+    if (!duration) return;
+    const clamped = this.clamp(pos, 0, duration);
+    deck.pauseOffset = clamped;
+    if (deck.isPlaying) this.restartDeckPlayback(deck, clamped);
+  }
+
+  playDeck(id: DeckId) {
+    const deck = this.getDeck(id);
+    if (!deck.buffer || deck.isPlaying) return;
+    this.resume();
+    const startOffset = (deck.buffer.duration && deck.pauseOffset >= deck.buffer.duration) ? 0 : deck.pauseOffset;
+    deck.pauseOffset = startOffset;
+    deck.startTime = this.ctx.currentTime - startOffset / Math.max(0.05, Math.abs(deck.rate));
+    deck.isPlaying = true;
+    this.startDeckSources(deck, startOffset);
+  }
+
+  pauseDeck(id: DeckId) {
+    const deck = this.getDeck(id);
+    if (!deck.isPlaying) return;
+    const pos = this.getDeckPosition(deck);
+    deck.pauseOffset = pos;
+    deck.isPlaying = false;
+    this.stopDeckSources(deck);
+    if (deck.slipEnabled) {
+      deck.slipActive = true;
+      deck.slipStartTime = this.ctx.currentTime;
+      deck.slipStartOffset = pos;
+    }
+  }
+
+  setDeckGain(id: DeckId, gain: number) {
+    const deck = this.getDeck(id);
+    deck.channelGain = this.clamp(gain, 0, 2);
+    this.applyDeckOutputGain(deck);
+  }
+
+  setCrossfader(val: number, curve: string = 'linear', hamster = false) {
+    const pos = this.clamp(hamster ? -val : val, -1, 1);
+    this.deckA.crossfadeGain = this.getCrossfadeGain(pos, curve, 'A');
+    this.deckB.crossfadeGain = this.getCrossfadeGain(pos, curve, 'B');
+    this.applyDeckOutputGain(this.deckA);
+    this.applyDeckOutputGain(this.deckB);
+  }
+
+  private getCrossfadeGain(val: number, curve: string, deckId: DeckId) {
+    const norm = (val + 1) / 2;
+    if (curve === 'power') return deckId === 'A' ? Math.cos(norm * Math.PI * 0.5) : Math.sin(norm * Math.PI * 0.5);
+    return deckId === 'A' ? 1 - norm : norm;
+  }
+
+  setDeckRate(id: DeckId, rate: number, smooth = true) {
+    const deck = this.getDeck(id);
+    const pos = this.getDeckPosition(deck);
+    const safeRate = this.clamp(Math.abs(rate) || 0.05, 0.05, 3);
+    deck.rate = safeRate;
+    if (deck.isPlaying) deck.startTime = this.ctx.currentTime - pos / safeRate;
+    for (const stem of AudioEngineService.STEM_ORDER) {
+      const source = deck.sources[stem];
+      if (source) {
+        if (smooth) source.playbackRate.setTargetAtTime(safeRate, this.ctx.currentTime, 0.01);
+        else source.playbackRate.setValueAtTime(safeRate, this.ctx.currentTime);
+      }
+    }
+  }
+
+  setDeckLoop(id: DeckId, state: boolean) {
+    const deck = this.getDeck(id);
+    deck.loopEnabled = state;
+    for (const stem of AudioEngineService.STEM_ORDER) {
+      if (deck.sources[stem]) deck.sources[stem]!.loop = state;
+    }
+  }
+
+  setSlipMode(id: DeckId, state: boolean) {
+    const deck = this.getDeck(id);
+    deck.slipEnabled = state;
+    if (!state) deck.slipActive = false;
+  }
+
+  setDeckStemGain(id: DeckId, stem: keyof Stems, gain: number) {
+    this.getDeck(id).gains[stem].gain.setTargetAtTime(this.clamp(gain, 0, 2), this.ctx.currentTime, 0.01);
+  }
+
+  setHotCue(id: DeckId, slot: number) { this.getDeck(id).hotCues[slot] = this.getDeckPosition(this.getDeck(id)); }
+  clearHotCue(id: DeckId, slot: number) { this.getDeck(id).hotCues[slot] = null; }
+  jumpToHotCue(id: DeckId, slot: number) { const cue = this.getDeck(id).hotCues[slot]; if (cue !== null) this.seekDeck(id, cue); }
+
+  setDeckEq(id: DeckId, high: number, mid: number, low: number) {
+    const deck = this.getDeck(id);
+    deck.eqHigh.gain.setTargetAtTime(this.eqValueToDb(high), this.ctx.currentTime, 0.01);
+    deck.eqMid.gain.setTargetAtTime(this.eqValueToDb(mid), this.ctx.currentTime, 0.01);
+    deck.eqLow.gain.setTargetAtTime(this.eqValueToDb(low), this.ctx.currentTime, 0.01);
+  }
+
+  setDeckFilter(id: DeckId, freq: number) {
+    this.getDeck(id).filter.frequency.setTargetAtTime(this.clamp(freq, 20, 20000), this.ctx.currentTime, 0.01);
+  }
+
+  setDeckSend(id: DeckId, send: 'A' | 'B', gain: number) {
+    const target = send === 'A' ? this.getDeck(id).sendA : this.getDeck(id).sendB;
+    target.gain.setTargetAtTime(this.clamp(gain, 0, 1), this.ctx.currentTime, 0.01);
+  }
+
+  applyProductionParameter(trackId: string, parameter: string, value: number, duration = 0.01, scheduledTime?: number) {
+    if (trackId === '0' && parameter === 'tempo') { this.tempo.set(value); return; }
+    if (!AudioEngineService.INTEGER_TRACK_ID_PATTERN.test(trackId)) return;
+    const id = Number(trackId);
+    this.updateTrack(id, { [parameter]: value });
+    if (parameter === 'gain') this.getTrackOutput(id).gain.setTargetAtTime(value, scheduledTime ?? this.ctx.currentTime, duration);
+  }
+
+  private applyDeckOutputGain(deck: DeckChannel) { deck.gain.gain.setTargetAtTime(deck.channelGain * deck.crossfadeGain, this.ctx.currentTime, 0.01); }
+
+  private getDeckPosition(deck: DeckChannel) {
+    const duration = deck.buffer?.duration || 0;
+    if (!deck.isPlaying) return this.clamp(deck.pauseOffset, 0, duration || deck.pauseOffset);
+    const elapsed = (this.ctx.currentTime - deck.startTime) * deck.rate;
+    if (deck.loopEnabled && duration > 0) return ((deck.pauseOffset + elapsed) % duration + duration) % duration;
+    return this.clamp(deck.pauseOffset + elapsed, 0, duration || elapsed);
+  }
+
+  private getSlipPosition(deck: DeckChannel) {
+    const duration = deck.buffer?.duration || 0;
+    const elapsed = (this.ctx.currentTime - deck.slipStartTime) * deck.rate;
+    if (deck.loopEnabled && duration > 0) return ((deck.slipStartOffset + elapsed) % duration + duration) % duration;
+    return this.clamp(deck.slipStartOffset + elapsed, 0, duration || elapsed);
+  }
+
+  private startDeckSources(deck: DeckChannel, offset: number) {
+    for (const stem of AudioEngineService.STEM_ORDER) {
+      const buf = deck.stems?.[stem] ?? (stem === 'instrumental' ? deck.buffer : null);
+      if (!buf) continue;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf; src.loop = deck.loopEnabled; src.playbackRate.value = deck.rate;
+      src.connect(deck.gains[stem]); src.start(0, offset); deck.sources[stem] = src;
+    }
+  }
+
+  private stopDeckSources(deck: DeckChannel) {
+    for (const stem of AudioEngineService.STEM_ORDER) {
+      const src = deck.sources[stem];
+      if (src) { try { src.stop(); } catch {} src.disconnect(); deck.sources[stem] = null; }
+    }
+  }
+
+  private restartDeckPlayback(deck: DeckChannel, offset: number) { this.stopDeckSources(deck); deck.pauseOffset = offset; deck.startTime = this.ctx.currentTime - offset / deck.rate; this.startDeckSources(deck, offset); }
+
+  private clamp(v: number, min: number, max: number) { return Math.min(max, Math.max(min, v)); }
+  private eqValueToDb(v: number) { return (this.clamp(v, 0, 2) - 1) * 18; }
+
+  setDeckCue(id: DeckId, active: boolean) { this.getDeck(id).isCueing = active; this.getDeck(id).cueGain.gain.setTargetAtTime(active ? 1 : 0, this.ctx.currentTime, 0.05); }
+  setHeadphoneGain(val: number) { this.headphoneGain.set(val); this.cueMaster.gain.setTargetAtTime(val, this.ctx.currentTime, 0.05); }
+
+  async detectBpm(id: DeckId): Promise<number> { this.getDeck(id).detectedBpm = 124; return 124; }
+  scratch(id: DeckId, delta: number) { const deck = this.getDeck(id); if (!deck.buffer) return; this.setDeckRate(id, delta * 25, false); this.seekDeck(id, this.getDeckPosition(deck) + delta); }
+
+  setAdvancedFX(id: DeckId, type: 'flanger' | 'phaser' | 'delay', value: number) {
+    const deck = this.getDeck(id); const now = this.ctx.currentTime;
+    if (type === 'flanger') { deck.flangerNode.frequency.setTargetAtTime(500 + value * 5000, now, 0.1); deck.flangerNode.Q.setTargetAtTime(value * 10, now, 0.1); }
+    else if (type === 'phaser') { deck.phaserNode.frequency.setTargetAtTime(200 + value * 3000, now, 0.1); deck.phaserNode.Q.setTargetAtTime(value * 20, now, 0.1); }
+    else if (type === 'delay') { deck.pingPongDelay.delayTime.setTargetAtTime(0.1 + value * 0.9, now, 0.1); deck.pingPongFeedback.gain.setTargetAtTime(value * 0.8, now, 0.1); }
+  }
+
+  syncDecks(masterId: DeckId, slaveId: DeckId) {
+    const m = this.getDeck(masterId); const s = this.getDeck(slaveId);
+    if (m.detectedBpm && s.detectedBpm) this.setDeckRate(slaveId, m.detectedBpm / s.detectedBpm);
+  }
+
+  async setOutputDevice(deviceId: string) { if (typeof (this.ctx as any).setSinkId === 'function') await (this.ctx as any).setSinkId(deviceId); }
+  public setSaturation(amount: number) { this.setupSaturation(amount); }
+  private setupSaturation(amount: number) {
+    const k = amount * 100, n = 256, curve = new Float32Array(n), deg = Math.PI / 180;
+    for (let i = 0; i < n; i++) { const x = (i * 2) / n - 1; curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x)); }
+    this.saturationNode.curve = curve;
+  }
+  setMasterOutputLevel(normalized: number) { this.masterGain.gain.setTargetAtTime(normalized, this.ctx.currentTime, 0.01); }
+  getAnalyser() { return this.masterGain; }
+  setOutputMode(mode: 'speakers' | 'headphones') { this.outputMode.set(mode); }
+
+  triggerAttack(trackId: number, freq: number, when: number, velocity: number, duration: number, gain: number, pan: number, sendA: number, sendB: number, synthParams: any, velocityScale: number = 1, customCtx?: BaseAudioContext) {
+    const ctx = customCtx || this.ctx; this.resume();
+    const osc = ctx.createOscillator(), vca = ctx.createGain(), panner = ctx.createStereoPanner(), filter = ctx.createBiquadFilter();
+    osc.type = synthParams.type || 'sine'; osc.frequency.setValueAtTime(freq, when);
+    filter.type = 'lowpass'; filter.frequency.setValueAtTime(synthParams.cutoff || 20000, when); filter.Q.setValueAtTime(synthParams.q || 1, when);
+    const actualVel = velocity * velocityScale, attack = synthParams.attack || 0.005, release = synthParams.release || 0.1;
+    vca.gain.setValueAtTime(0, when); vca.gain.linearRampToValueAtTime(actualVel * gain, when + attack); vca.gain.setValueAtTime(actualVel * gain, when + duration); vca.gain.exponentialRampToValueAtTime(0.001, when + duration + release);
+    panner.pan.setValueAtTime(pan, when);
+    const dest = customCtx ? (customCtx as any).destination : this.masterGain;
+    osc.connect(filter).connect(vca).connect(panner).connect(dest);
+    osc.start(when); osc.stop(when + duration + release + 0.1);
+  }
+
+  brakeDeck(id: DeckId) { this.setDeckRate(id, 0.001, false); setTimeout(() => this.stopDeck(id), 500); }
+  spinbackDeck(id: DeckId) { this.setDeckRate(id, -2, false); setTimeout(() => this.stopDeck(id), 500); }
+  transformDeck(id: DeckId) { const deck = this.getDeck(id); const now = this.ctx.currentTime; for (let i = 0; i < 8; i++) { deck.gain.gain.setValueAtTime(0, now + i * 0.1); deck.gain.gain.setValueAtTime(1, now + i * 0.1 + 0.05); } }
+  getDeckLevel(id: DeckId): number { const deck = this.getDeck(id); const values = new Uint8Array(deck.analyser.frequencyBinCount); deck.analyser.getByteTimeDomainData(values); let sum = 0; for (const v of values) { const c = (v - 128) / 128; sum += c * c; } return Math.min(1, Math.sqrt(sum / values.length) * 2.5); }
+  getDeckWaveformData(id: DeckId): Float32Array { const deck = this.getDeck(id); if (!deck.buffer) return new Float32Array(0); const chan = deck.buffer.getChannelData(0); const bucks = 256, seg = Math.max(1, Math.floor(chan.length / bucks)), wf = new Float32Array(bucks); for (let i = 0; i < bucks; i++) { const start = i * seg, end = Math.min(chan.length, start + seg); let peak = 0; for (let j = start; j < end; j++) peak = Math.max(peak, Math.abs(chan[j])); wf[i] = peak; } return wf; }
+  private stopDeck(id: DeckId) { this.pauseDeck(id); this.setDeckRate(id, 1); }
+
+  configureLimiter(config: any) {
+    if (config.ceiling !== undefined) this.limiter.threshold.setTargetAtTime(config.ceiling, this.ctx.currentTime, 0.01);
+    if (config.release !== undefined) this.limiter.release.setTargetAtTime(config.release, this.ctx.currentTime, 0.01);
+    if (config.threshold !== undefined) this.limiter.threshold.setValueAtTime(config.threshold, this.ctx.currentTime);
+    if (config.ratio !== undefined) this.limiter.ratio.setValueAtTime(config.ratio, this.ctx.currentTime);
+    if (config.attack !== undefined) this.limiter.attack.setValueAtTime(config.attack, this.ctx.currentTime);
+  }
 }
-""")
-
-# 3. auth.service.ts
-write_file('src/app/services/auth.service.ts', """import { Injectable, inject, signal, Injector } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { LoggingService } from './logging.service';
-import { TokenService } from './token.service';
-import { APP_SECURITY_CONFIG as GLOBAL_SECURITY_CONFIG } from '../app.security';
-
-export interface AuthCredentials { email: string; password: string; twoFactorCode?: string; }
-export interface AuthUser { id: string; email: string; artistName: string; role: string; permissions: string[]; createdAt: Date; lastLogin: Date; profileCompleteness: number; emailVerified: boolean; }
-
-@Injectable({ providedIn: 'root' })
-export class AuthService {
-  private injector = inject(Injector);
-  private logger = inject(LoggingService);
-  private tokenService = inject(TokenService);
-  private http = inject(HttpClient);
-
-  currentUser = signal<AuthUser | null>(null);
-  isAuthenticated = signal(false);
-  jwtToken = this.tokenService.jwtToken;
-
-  private get securityService(): any { return this.injector.get(require('./security.service').SecurityService); }
-  private get profileService(): any { return this.injector.get(require('./user-profile.service').UserProfileService); }
-  private get loginConfirm(): any { return this.injector.get(require('./login-confirmation.service').LoginConfirmationService); }
-
-  constructor() {}
-
-  async loadSession() {
-    if (typeof localStorage === 'undefined') return;
-    const session = localStorage.getItem('smuve_auth_session');
-    if (!session) return;
-    try {
-      const decoded = decodeURIComponent(escape(atob(session)));
-      const [data, key] = decoded.split('|');
-      if (key !== GLOBAL_SECURITY_CONFIG.auth_salt) return;
-      const user = JSON.parse(data);
-      this.currentUser.set(user);
-      this.isAuthenticated.set(true);
-      await this.profileService.loadProfile(user.id);
-    } catch (e) {}
-  }
-
-  async login(creds: AuthCredentials) {
-    const user: AuthUser = { id: 'usr_1', email: creds.email, artistName: 'Artist', role: 'Admin', permissions: ['ALL_ACCESS'], createdAt: new Date(), lastLogin: new Date(), profileCompleteness: 100, emailVerified: true };
-    this.currentUser.set(user);
-    this.isAuthenticated.set(true);
-    this.tokenService.setToken('mock-jwt');
-    const msg = 'STATUS VERIFIED. RESUME THE GRIND, Artist. DON\\'T WASTE MY FUCKING TIME.';
-    void this.loginConfirm.sendLoginConfirmation(user);
-    return { success: true, message: msg };
-  }
-
-  async register(c: AuthCredentials, n: string) { return { success: true, message: 'S.M.U.V.E 2.0 INITIALIZED.' }; }
-  logout() { this.currentUser.set(null); this.isAuthenticated.set(false); this.tokenService.setToken(null); }
-  validatePassword(p: string) { return { isValid: p.length >= 8, errors: [] }; }
-  async verifyEmail(c: string) { return { success: true, message: 'VERIFIED' }; }
-  async resendVerificationCode() { return { success: true, message: 'SENT' }; }
-}
-""")
-
-# 4. security.service.ts
-write_file('src/app/services/security.service.ts', """import { Injectable, inject, signal, Injector } from '@angular/core';
-import { LoggingService } from './logging.service';
-@Injectable({ providedIn: 'root' })
-export class SecurityService {
-  private injector = inject(Injector);
-  private logger = inject(LoggingService);
-
-  sessionExpiresAt = signal<number | null>(null);
-  isSessionValid = signal(true);
-  lastActivity = signal(Date.now());
-  logs = signal<any[]>([]);
-  sessions = signal<any[]>([]);
-
-  constructor() {}
-
-  validateSession() { return true; }
-  refreshSession() {}
-  recordAttempt(k: string) { return { allowed: true, remainingAttempts: 5, blockedUntil: 0 }; }
-  clearRateLimit(k: string) {}
-  isValidRedirectUrl(u: string) { return true; }
-  sanitizeInput(i: string) { return i; }
-  async logEvent(t: string, d: string, u?: string) {}
-  async fetchLogs() {}
-  async fetchSessions() {}
-  async revokeSession(id: string) {}
-  async exportUserData() {}
-  async generateE2EKeys() { return { publicKey: 'mock' }; }
-  async setup2FA() { return { secret: 'mock', qrCodeUri: 'mock' }; }
-  async verify2FA(c: string) { return true; }
-  getSecurityAudit() { return { score: 100, status: 'FORTIFIED', alerts: [] }; }
-  getRecommendedCSP() { return ""; }
-}
-""")

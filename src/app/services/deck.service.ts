@@ -6,6 +6,7 @@ import { Stems, DeckState, initialDeckState } from './user-context.service';
   providedIn: 'root',
 })
 export class DeckService {
+  automixEnabled = signal(false);
   deckA = signal<DeckState>({ ...initialDeckState, playbackRate: 1 });
   deckB = signal<DeckState>({ ...initialDeckState, playbackRate: 1 });
   crossfade = signal(0);
@@ -21,12 +22,38 @@ export class DeckService {
         this.hamster()
       );
     });
+
     effect(() => {
       this.engine.setDeckRate('A', this.deckA().playbackRate);
     });
+
     effect(() => {
       this.engine.setDeckRate('B', this.deckB().playbackRate);
     });
+
+    effect(() => {
+      if (this.automixEnabled()) {
+        const progressA = this.deckA().progress;
+        const durationA = this.deckA().duration;
+        const isPlayingA = this.deckA().isPlaying;
+
+        const progressB = this.deckB().progress;
+        const durationB = this.deckB().duration;
+        const isPlayingB = this.deckB().isPlaying;
+
+        if (isPlayingA && durationA > 0 && durationA - progressA < 10 && this.crossfade() < 0.9) {
+          if (!isPlayingB) this.togglePlay('B');
+          this.engine.syncDecks('A', 'B');
+          this.crossfade.set(Math.min(1, this.crossfade() + 0.01));
+        }
+
+        if (isPlayingB && durationB > 0 && durationB - progressB < 10 && this.crossfade() > -0.9) {
+          if (!isPlayingA) this.togglePlay('A');
+          this.engine.syncDecks('B', 'A');
+          this.crossfade.set(Math.max(-1, this.crossfade() - 0.01));
+        }
+      }
+    }, { allowSignalWrites: true });
   }
 
   toggleLoop(deck: DeckId) {
@@ -37,15 +64,10 @@ export class DeckService {
   }
 
   toggleSlip(deck: DeckId) {
-    if (deck === 'A') {
-      const newState = !this.deckA().slip;
-      this.deckA.update((d) => ({ ...d, slip: newState }));
-      this.engine.setSlipMode('A', newState);
-    } else {
-      const newState = !this.deckB().slip;
-      this.deckB.update((d) => ({ ...d, slip: newState }));
-      this.engine.setSlipMode('B', newState);
-    }
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    const newState = !target().slip;
+    target.update((d) => ({ ...d, slip: newState }));
+    this.engine.setSlipMode(deck, newState);
   }
 
   toggleViewMode() {
@@ -81,47 +103,27 @@ export class DeckService {
     vinylUrl?: string
   ) {
     this.engine.loadDeck(deck, buffer);
-    if (deck === 'A') {
-      this.deckA.update((d) => ({
-        ...d,
-        track: { ...d.track, name: fileName, url: '' },
-        duration: buffer.duration,
-        hotCues: new Array(8).fill(null),
-        samplerPads: new Array(8).fill(null),
-        progress: 0,
-        vinylImageUrl:
-          vinylUrl || 'https://picsum.photos/seed/' + fileName + '/200',
-      }));
-    } else {
-      this.deckB.update((d) => ({
-        ...d,
-        track: { ...d.track, name: fileName, url: '' },
-        duration: buffer.duration,
-        hotCues: new Array(8).fill(null),
-        samplerPads: new Array(8).fill(null),
-        progress: 0,
-        vinylImageUrl:
-          vinylUrl || 'https://picsum.photos/seed/' + fileName + '/200',
-      }));
-    }
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({
+      ...d,
+      track: { ...d.track, name: fileName, url: '' },
+      duration: buffer.duration,
+      hotCues: new Array(8).fill(null),
+      samplerPads: { drums: new Array(8).fill(null), fx: new Array(8).fill(null), vocals: new Array(8).fill(null) },
+      progress: 0,
+      vinylImageUrl: vinylUrl || 'https://picsum.photos/seed/' + fileName + '/200',
+    }));
   }
 
   setHotCue(deck: DeckId, slot: number) {
     this.engine.setHotCue(deck, slot);
     const pos = this.engine.getDeckProgress(deck).position;
-    if (deck === 'A') {
-      this.deckA.update((d) => {
-        const cues = [...d.hotCues];
-        cues[slot] = pos;
-        return { ...d, hotCues: cues };
-      });
-    } else {
-      this.deckB.update((d) => {
-        const cues = [...d.hotCues];
-        cues[slot] = pos;
-        return { ...d, hotCues: cues };
-      });
-    }
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => {
+      const cues = [...d.hotCues];
+      cues[slot] = pos;
+      return { ...d, hotCues: cues };
+    });
   }
 
   clearHotCue(deck: DeckId, slot: number) {
@@ -134,21 +136,23 @@ export class DeckService {
     });
   }
 
-  setSamplerPad(deck: DeckId, slot: number, position?: number) {
+  setSamplerPad(deck: DeckId, slot: number, category: 'drums' | 'fx' | 'vocals' = 'drums', position?: number) {
     const pos = position ?? this.engine.getDeckProgress(deck).position;
     const target = deck === 'A' ? this.deckA : this.deckB;
     target.update((d) => {
-      const samplerPads = [...d.samplerPads];
-      samplerPads[slot] = pos;
+      const samplerPads = { ...d.samplerPads };
+      samplerPads[category] = [...samplerPads[category]];
+      samplerPads[category][slot] = pos;
       return { ...d, samplerPads };
     });
   }
 
-  clearSamplerPad(deck: DeckId, slot: number) {
+  clearSamplerPad(deck: DeckId, slot: number, category: 'drums' | 'fx' | 'vocals' = 'drums') {
     const target = deck === 'A' ? this.deckA : this.deckB;
     target.update((d) => {
-      const samplerPads = [...d.samplerPads];
-      samplerPads[slot] = null;
+      const samplerPads = { ...d.samplerPads };
+      samplerPads[category] = [...samplerPads[category]];
+      samplerPads[category][slot] = null;
       return { ...d, samplerPads };
     });
   }
@@ -160,71 +164,40 @@ export class DeckService {
 
   setDeckEq(deck: DeckId, high: number, mid: number, low: number) {
     this.engine.setDeckEq(deck, high, mid, low);
-    if (deck === 'A')
-      this.deckA.update((d) => ({
-        ...d,
-        eqHigh: high,
-        eqMid: mid,
-        eqLow: low,
-      }));
-    else
-      this.deckB.update((d) => ({
-        ...d,
-        eqHigh: high,
-        eqMid: mid,
-        eqLow: low,
-      }));
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({ ...d, eqHigh: high, eqMid: mid, eqLow: low }));
   }
 
   setDeckFilter(deck: DeckId, freq: number) {
     this.engine.setDeckFilter(deck, freq);
-    if (deck === 'A') this.deckA.update((d) => ({ ...d, filterFreq: freq }));
-    else this.deckB.update((d) => ({ ...d, filterFreq: freq }));
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({ ...d, filterFreq: freq }));
   }
 
   setDeckSend(deck: DeckId, send: 'A' | 'B', gain: number) {
     this.engine.setDeckSend(deck, send, gain);
-    if (deck === 'A')
-      this.deckA.update((d) => ({
-        ...d,
-        [send === 'A' ? 'sendA' : 'sendB']: gain,
-      }));
-    else
-      this.deckB.update((d) => ({
-        ...d,
-        [send === 'A' ? 'sendA' : 'sendB']: gain,
-      }));
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({ ...d, [send === 'A' ? 'sendA' : 'sendB']: gain }));
   }
 
   setBpm(deck: DeckId, bpm: number) {
-    if (deck === 'A') this.deckA.update((d) => ({ ...d, bpm }));
-    else this.deckB.update((d) => ({ ...d, bpm }));
-  }
-
-  setBeatGridOffset(deck: DeckId, offset: number) {
-    if (deck === 'A')
-      this.deckA.update((d) => ({ ...d, beatGridOffset: offset }));
-    else this.deckB.update((d) => ({ ...d, beatGridOffset: offset }));
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({ ...d, bpm }));
   }
 
   setDeckGain(deck: DeckId, gain: number) {
     this.engine.setDeckGain(deck, gain);
-    if (deck === 'A') this.deckA.update((d) => ({ ...d, gain }));
-    else this.deckB.update((d) => ({ ...d, gain }));
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({ ...d, gain }));
   }
 
   sync(id: DeckId) {
-    const target = id === 'A' ? this.deckB() : this.deckA();
-    if (id === 'A') {
-      this.deckA.update((d) => ({ ...d, bpm: target.bpm }));
-    } else {
-      this.deckB.update((d) => ({ ...d, bpm: target.bpm }));
-    }
+    const master = id === 'A' ? this.deckB() : this.deckA();
+    const slave = id === 'A' ? this.deckA : this.deckB;
+    slave.update((d) => ({ ...d, bpm: master.bpm }));
   }
 
   syncProgress() {
-    // In a real app we would use an analyzer for BPM detection
-    // for now we just sync the positions and playing state
     this.syncDeckState('A');
     this.syncDeckState('B');
   }
@@ -233,7 +206,6 @@ export class DeckService {
     const progress = this.engine.getDeckProgress(deck);
     const playbackRate = this.engine.getDeck(deck).rate;
     const target = deck === 'A' ? this.deckA : this.deckB;
-
     target.update((d) => ({
       ...d,
       progress: progress.position,
@@ -241,5 +213,37 @@ export class DeckService {
       isPlaying: progress.isPlaying,
       playbackRate,
     }));
+  }
+
+  toggleCue(deck: DeckId) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    const newState = !target().isCueing;
+    target.update((d) => ({ ...d, isCueing: newState }));
+    this.engine.setDeckCue(deck, newState);
+  }
+
+  setFx(deck: DeckId, type: 'none' | 'flanger' | 'phaser' | 'delay', amount: number) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({ ...d, activeFx: type, fxAmount: amount }));
+    if (type !== 'none') this.engine.setAdvancedFX(deck, type, amount);
+  }
+
+  scratch(deck: DeckId, delta: number) {
+    this.engine.scratch(deck, delta);
+    this.syncDeckState(deck);
+  }
+
+  async autoSync(deck: DeckId) {
+    const masterId = deck === 'A' ? 'B' : 'A';
+    this.engine.syncDecks(masterId, deck);
+    this.syncDeckState(deck);
+  }
+
+  setHeadphoneGain(val: number) {
+    this.engine.setHeadphoneGain(val);
+  }
+
+  toggleAutomix() {
+    this.automixEnabled.update(v => !v);
   }
 }

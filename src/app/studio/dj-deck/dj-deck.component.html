@@ -107,7 +107,7 @@
             <button
               class="btn-cue tactile-v42"
               [class.active]="isCuePadSet('A', 0)"
-              (click)="handlePadPress('A', 0)"
+              (click)="toggleCue('A')"
             >
               CUE
             </button>
@@ -187,6 +187,11 @@
         </div>
 
         <div class="mixer-center">
+          <div class="dj-utility-btns mb-4">
+            <button class="btn-sm tactile-v42" [class.active]="deckService.automixEnabled()" (click)="toggleAutomix()">AUTOMIX</button>
+            <button class="btn-sm tactile-v42" (click)="syncDeck('A')">SYNC A</button>
+            <button class="btn-sm tactile-v42" (click)="syncDeck('B')">SYNC B</button>
+          </div>
           <div class="master-section-elite">
             <label class="neon-text-xs">MASTER</label>
             <div class="master-vu">
@@ -319,7 +324,7 @@
             <button
               class="btn-cue tactile-v42"
               [class.active]="isCuePadSet('B', 0)"
-              (click)="handlePadPress('B', 0)"
+              (click)="toggleCue('B')"
             >
               CUE
             </button>
@@ -348,25 +353,38 @@
 
   <!-- Performance Pads Section -->
   <div class="performance-section">
+    <div class="fx-performance-panel glass-v42 mb-4 p-4">
+      <div class="fx-header flex justify-between items-center mb-2">
+        <span class="neon-text-xs">ADVANCED PERFORMANCE FX</span>
+        <div class="fx-selectors flex gap-2">
+          <button class="btn-xs" [class.active]="fxMode() === 'flanger'" (click)="fxMode.set('flanger')">FLANGER</button>
+          <button class="btn-xs" [class.active]="fxMode() === 'phaser'" (click)="fxMode.set('phaser')">PHASER</button>
+          <button class="btn-xs" [class.active]="fxMode() === 'delay'" (click)="fxMode.set('delay')">DELAY</button>
+        </div>
+      </div>
+      <div class="fx-grid flex gap-8">
+        <div class="fx-control-deck">
+           <label class="text-[10px] opacity-50">DECK A FX</label>
+           <input type="range" min="0" max="1" step="0.01" [value]="deckService.deckA().fxAmount" (input)="setFxAmount('A', $any($event.target).value)">
+        </div>
+        <div class="fx-control-deck">
+           <label class="text-[10px] opacity-50">DECK B FX</label>
+           <input type="range" min="0" max="1" step="0.01" [value]="deckService.deckB().fxAmount" (input)="setFxAmount('B', $any($event.target).value)">
+        </div>
+      </div>
+    </div>
+
     <div class="performance-tabs">
-      <button
-        [class.active]="performanceMode() === 'cue'"
-        (click)="performanceMode.set('cue')"
-      >
-        HOT CUES
-      </button>
-      <button
-        [class.active]="performanceMode() === 'roll'"
-        (click)="performanceMode.set('roll')"
-      >
-        ROLL
-      </button>
-      <button
-        [class.active]="performanceMode() === 'sampler'"
-        (click)="performanceMode.set('sampler')"
-      >
-        SAMPLER
-      </button>
+      <button [class.active]="performanceMode() === 'cue'" (click)="performanceMode.set('cue')">HOT CUES</button>
+      <button [class.active]="performanceMode() === 'roll'" (click)="performanceMode.set('roll')">ROLL</button>
+      <div class="sampler-tab-group flex items-center">
+        <button [class.active]="performanceMode() === 'sampler'" (click)="performanceMode.set('sampler')">SAMPLER</button>
+        <select *ngIf="performanceMode() === 'sampler'" class="sampler-cat-select ml-2 bg-transparent border-none text-[10px]" [ngModel]="samplerCategory()" (ngModelChange)="setSamplerCategory($event)">
+          <option value="drums">DRUMS</option>
+          <option value="fx">FX</option>
+          <option value="vocals">VOCALS</option>
+        </select>
+      </div>
     </div>
 
     <div class="pad-tactile-v42s-grid-container">
