@@ -131,7 +131,7 @@ export class PlayerService implements OnDestroy {
 
           if (this.currentIndex() === targetIndex) {
             this.deckService.loadDeckBuffer('A', buffer, track.title);
-      this.updateMediaSessionMetadata();
+            this.updateMediaSessionMetadata();
             if (!this.isPlaying()) this.togglePlay();
           }
         } catch (err) {
@@ -171,7 +171,7 @@ export class PlayerService implements OnDestroy {
         this.playlist.update((p) => [newTrack, ...p]);
         this.currentIndex.set(0);
         this.deckService.loadDeckBuffer('A', buffer, file.name);
-      this.updateMediaSessionMetadata();
+        this.updateMediaSessionMetadata();
         if (!this.isPlaying()) this.togglePlay();
       }
     } catch (err) {
@@ -205,8 +205,12 @@ export class PlayerService implements OnDestroy {
       artist: track.artist,
       album: 'S.M.U.V.E. 2.0',
       artwork: [
-        { src: 'assets/favicon.png', sizes: '512x512', type: 'image/png' }
-      ]
+        {
+          src: 'assets/favicon.png',
+          sizes: '512x512',
+          type: 'image/png',
+        },
+      ],
     });
   }
 
@@ -214,13 +218,15 @@ export class PlayerService implements OnDestroy {
     if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
 
     navigator.mediaSession.setActionHandler('play', () => {
-      this.togglePlay();
-      this.audioEngine.updatePlaybackState('playing');
+      if (!this.isPlaying()) {
+        this.togglePlay();
+      }
     });
 
     navigator.mediaSession.setActionHandler('pause', () => {
-      this.togglePlay();
-      this.audioEngine.updatePlaybackState('paused');
+      if (this.isPlaying()) {
+        this.togglePlay();
+      }
     });
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {

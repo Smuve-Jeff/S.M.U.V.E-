@@ -136,7 +136,6 @@ export class SettingsComponent implements OnInit {
   }
 
   async selectAudioOutput(deviceId: string | null) {
-    if (!deviceId) return;
     await this.audioEngine.setOutputDevice(deviceId);
   }
 
