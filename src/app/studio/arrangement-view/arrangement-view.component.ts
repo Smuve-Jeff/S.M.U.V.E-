@@ -30,8 +30,7 @@ export class ArrangementViewComponent {
   @ViewChild('gridViewport') gridViewport!: ElementRef<HTMLDivElement>;
 
   readonly barWidth = 100;
-  readonly isMobile = window.innerWidth <= 1024;
-  readonly laneHeight = this.isMobile ? 110 : 80;
+  readonly laneHeight = 80;
   readonly rulerHeight = 35;
   readonly snapEnabled = signal(true);
   readonly tracks = this.musicManager.tracks;
@@ -51,17 +50,7 @@ export class ArrangementViewComponent {
     clipId: string;
     startX: number;
     initialStart: number;
-    startY: number;
   } | null = null;
-
-  private resizingClip: {
-    trackId: number;
-    clipId: string;
-    startX: number;
-    initialLength: number;
-  } | null = null;
-
-  selectedClipIds = signal<Set<string>>(new Set());
 
   private getLoopBarCount() {
     const activeLoopBars = (
@@ -132,40 +121,12 @@ export class ArrangementViewComponent {
   ) {
     event.preventDefault();
     event.stopPropagation();
-
-    const target = event.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const offsetX = event.clientX - rect.left;
-    const isResize = offsetX > rect.width - 20;
-
-    if (isResize) {
-      this.resizingClip = {
-        trackId,
-        clipId: clip.id,
-        startX: event.clientX,
-        initialLength: clip.length,
-      };
-    } else {
-      this.draggingClip = {
-        trackId,
-        clipId: clip.id,
-        startX: event.clientX,
-        startY: event.clientY,
-        initialStart: clip.start,
-      };
-
-      if (!event.shiftKey) {
-        this.selectedClipIds.set(new Set([clip.id]));
-      } else {
-        this.selectedClipIds.update(s => {
-          const next = new Set(s);
-          if (next.has(clip.id)) next.delete(clip.id);
-          else next.add(clip.id);
-          return next;
-        });
-      }
-    }
-    this.selectTrack(trackId);
+    this.draggingClip = {
+      trackId,
+      clipId: clip.id,
+      startX: event.clientX,
+      initialStart: clip.start,
+    };
   }
 
   removeClip(event: Event, trackId: number, clipId: string) {
@@ -217,7 +178,6 @@ export class ArrangementViewComponent {
   @HostListener('window:pointercancel')
   stopDragging() {
     this.draggingClip = null;
-    this.resizingClip = null;
   }
 
   private resolveBarFromEvent(event: PointerEvent) {
@@ -233,28 +193,5 @@ export class ArrangementViewComponent {
     const quantized = Math.round(value / increment) * increment;
     const maxStart = Math.max(0, this.getLoopBarCount() - 0.25);
     return Math.max(0, Math.min(maxStart, quantized));
-  }
-
-  splitAtPlayhead() {
-    const currentBar = this.musicManager.currentStep() / 16;
-    this.tracks().forEach(track => {
-      const selectedInTrack = track.clips.filter(c => this.selectedClipIds().has(c.id));
-      selectedInTrack.forEach(clip => {
-        this.musicManager.splitClip(track.id, clip.id, currentBar);
-      });
-    });
-  }
-
-  duplicateSelected() {
-    this.tracks().forEach(track => {
-      const selected = track.clips.filter(c => this.selectedClipIds().has(c.id));
-      selected.forEach(clip => {
-        this.musicManager.addClipToTrack(track.id, {
-          ...clip,
-          id: undefined,
-          start: clip.start + clip.length
-        });
-      });
-    });
   }
 }

@@ -78,7 +78,6 @@ export class AudioEngineService {
   public isRecording = signal(false);
   public currentBeat = signal(0);
   public isPlaying = signal(false);
-  public visualStep = signal(0);
   public onScheduleStep:
     | ((step: number, when: number, stepDuration: number) => void)
     | null = null;
@@ -324,11 +323,7 @@ export class AudioEngineService {
     ) {
       const step = this.currentStep;
       this.onScheduleStep?.(step, this.nextNoteTime, stepDuration);
-      const delay = Math.max(0, (this.nextNoteTime - this.ctx.currentTime) * 1000);
-      setTimeout(() => {
-        this.currentBeat.set(step / this.stepsPerBeat());
-        this.visualStep.set(step);
-      }, delay);
+      this.currentBeat.set(step / this.stepsPerBeat());
       this.playMetronomeClick(
         this.nextNoteTime,
         step % this.stepsPerBeat() === 0

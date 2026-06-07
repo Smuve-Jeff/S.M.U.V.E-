@@ -3,10 +3,10 @@ import {
   Input,
   Output,
   EventEmitter,
+  ElementRef,
+  ViewChild,
   HostListener,
   signal,
-  OnChanges,
-  OnInit
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -17,6 +17,7 @@ import { CommonModule } from '@angular/common';
   template: `
     <div
       class="knob-wrapper"
+      #knobWrapper
       (mousedown)="startDrag($event)"
       (touchstart)="startDrag($event)"
     >
@@ -48,8 +49,8 @@ import { CommonModule } from '@angular/common';
         touch-action: none;
       }
       .knob-outer {
-        width: 64px;
-        height: 64px;
+        width: 52px;
+        height: 52px;
         position: relative;
         cursor: ns-resize;
       }
@@ -121,19 +122,16 @@ import { CommonModule } from '@angular/common';
         text-align: center;
         border: 1px solid rgba(236, 91, 19, 0.1);
       }
-      @media (max-width: 1024px) {
+      @media (max-width: 640px) {
         .knob-outer {
-          width: 72px;
-          height: 72px;
-        }
-        .knob-label {
-          font-size: 10px;
+          width: 48px;
+          height: 48px;
         }
       }
     `,
   ],
 })
-export class KnobComponent implements OnInit, OnChanges {
+export class KnobComponent {
   @Input() label = '';
   @Input() min = 0;
   @Input() max = 100;
@@ -164,24 +162,24 @@ export class KnobComponent implements OnInit, OnChanges {
   startDrag(event: MouseEvent | TouchEvent) {
     this.isDragging = true;
     this.startY =
-      event instanceof MouseEvent ? event.clientY : (event as TouchEvent).touches[0].clientY;
+      event instanceof MouseEvent ? event.clientY : event.touches[0].clientY;
     this.startValue = this.value;
   }
 
-  @HostListener('window:mousemove', [''])
-  @HostListener('window:touchmove', [''])
+  @HostListener('window:mousemove', ['$event'])
+  @HostListener('window:touchmove', ['$event'])
   onDrag(event: MouseEvent | TouchEvent) {
     if (!this.isDragging) return;
 
     const currentY =
-      event instanceof MouseEvent ? event.clientY : (event as TouchEvent).touches[0].clientY;
+      event instanceof MouseEvent ? event.clientY : event.touches[0].clientY;
     const deltaY = this.startY - currentY;
     const range = this.max - this.min;
-    const isMobile = typeof window !== "undefined" && window.innerWidth <= 1024;
-    const sensitivity = isMobile ? 350 : 200;
+    const sensitivity = 200;
 
     let newValue = this.startValue + (deltaY / sensitivity) * range;
     newValue = Math.max(this.min, Math.min(this.max, newValue));
+
     newValue = Math.round(newValue / this.step) * this.step;
 
     if (newValue !== this.value) {
