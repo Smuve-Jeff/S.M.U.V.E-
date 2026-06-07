@@ -34,26 +34,31 @@ export class AudioRecorderService {
     };
 
     this.mediaRecorder.onstop = async () => {
-      const blob = new Blob(this.recordedBlobs, { type: 'audio/webm' });
-      const id = `rec_${Date.now()}`;
+      try {
+        const blob = new Blob(this.recordedBlobs, { type: 'audio/webm' });
+        const id = `rec_${Date.now()}`;
 
-      await this.localStorageService.saveItem('audio_blobs', {
-        id,
-        blob,
-        name: `Recording ${new Date().toLocaleTimeString()}`,
-        timestamp: Date.now(),
-        settings: { gain: 1.0, trimmed: false },
-      });
+        await this.localStorageService.saveItem('audio_blobs', {
+          id,
+          blob,
+          name: `Recording ${new Date().toLocaleTimeString()}`,
+          timestamp: Date.now(),
+          settings: { gain: 1.0, trimmed: false },
+        });
 
-      this.logger.info(`Recording ${id} saved.`);
-      const url = URL.createObjectURL(blob);
-      this.recordingFinished$.next({
-        id,
-        blob,
-        url,
-        midi: [...this.pendingMidi],
-      });
-      this.pendingMidi = [];
+        this.logger.info(`Recording ${id} saved.`);
+        const url = URL.createObjectURL(blob);
+        this.recordingFinished$.next({
+          id,
+          blob,
+          url,
+          midi: [...this.pendingMidi],
+        });
+        this.pendingMidi = [];
+      } catch (error) {
+        this.logger.error('Failed to save recording', error);
+        this.isRecording.set(false);
+      }
     };
 
     this.mediaRecorder.start();
