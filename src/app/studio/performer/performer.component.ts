@@ -133,7 +133,7 @@ export class PerformerComponent {
       if (noteId) {
         const beat = this.musicManager.engine.currentBeat();
         const stepsPerBeat = this.musicManager.engine.stepsPerBeat();
-        const startStep = Math.floor(beat * stepsPerBeat) % (this.musicManager.tracks()[0]?.patternSlots ? 64 : 64);
+        const startStep = Math.floor(beat * stepsPerBeat) % 64;
         // Using generic 64 steps, or we could just use engine
         this.recordingNotes.set(midi, { id: noteId, startStep });
       }
@@ -157,8 +157,10 @@ export class PerformerComponent {
         const beat = this.musicManager.engine.currentBeat();
         const stepsPerBeat = this.musicManager.engine.stepsPerBeat();
         const currentStep = Math.floor(beat * stepsPerBeat);
-        // Calculate length based on current step relative to start step
-        let length = currentStep - recNote.startStep;
+        // Calculate length based on current step relative to start step, handling wrap-around
+        const totalSteps = 64; // Fallback to 64 steps
+        let length = (currentStep - recNote.startStep + totalSteps) % totalSteps;
+        if (length === 0) length = totalSteps; // Or 1 depending on logic, but at least > 0
         if (length <= 0) length = 1;
         this.musicManager.setNoteParam(selectedId, recNote.id, 'length', length);
       }
