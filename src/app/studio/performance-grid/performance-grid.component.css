@@ -24,13 +24,24 @@
   box-shadow: 0 0 10px currentColor;
 }
 
-.animate-music-bar-1 { animation: musicBar 0.8s ease-in-out infinite; }
-.animate-music-bar-2 { animation: musicBar 0.5s ease-in-out infinite; }
-.animate-music-bar-3 { animation: musicBar 0.7s ease-in-out infinite; }
+.animate-music-bar-1 {
+  animation: musicBar 0.8s ease-in-out infinite;
+}
+.animate-music-bar-2 {
+  animation: musicBar 0.5s ease-in-out infinite;
+}
+.animate-music-bar-3 {
+  animation: musicBar 0.7s ease-in-out infinite;
+}
 
 @keyframes musicBar {
-  0%, 100% { height: 4px; }
-  50% { height: 12px; }
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 12px;
+  }
 }
 
 .grid-scroll::-webkit-scrollbar {

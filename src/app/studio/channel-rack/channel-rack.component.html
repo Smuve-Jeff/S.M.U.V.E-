@@ -1,7 +1,16 @@
 <div class="rack-container glass-v42 shadow-v42-xl h-full flex flex-col">
-  <div class="rack-header wood-panel flex items-center justify-between px-4 border-b border-fl-border">
-    <div class="rack-title neon-text text-[10px] font-black tracking-widest">CHANNEL RACK</div>
-    <button (click)="addTrack()" class="executive-glass text-[9px] px-3 py-1.5 rounded-lg border border-white/10 hover:border-neon-orange/50 transition-all">+ ADD CHANNEL</button>
+  <div
+    class="rack-header wood-panel flex items-center justify-between px-4 border-b border-fl-border"
+  >
+    <div class="rack-title neon-text text-[10px] font-black tracking-widest">
+      CHANNEL RACK
+    </div>
+    <button
+      (click)="addTrack()"
+      class="executive-glass text-[9px] px-3 py-1.5 rounded-lg border border-white/10 hover:border-neon-orange/50 transition-all"
+    >
+      + ADD CHANNEL
+    </button>
   </div>
 
   <div class="channel-list flex-1 overflow-y-auto no-scrollbar p-2 space-y-2">
@@ -13,7 +22,9 @@
       (drop)="onDrop($event, track)"
       (dragover)="onDragOver($event)"
     >
-      <div class="absolute inset-0 bg-gradient-to-r from-transparent to-white/[0.02] pointer-events-none"></div>
+      <div
+        class="absolute inset-0 bg-gradient-to-r from-transparent to-white/[0.02] pointer-events-none"
+      ></div>
 
       <!-- Mute/Solo LED Controls -->
       <div class="flex flex-col gap-1.5">
@@ -36,23 +47,52 @@
       <!-- Controls (Vol/Pan) -->
       <div class="flex flex-col gap-2 w-14">
         <div class="flex items-center gap-1.5">
-           <span class="text-[7px] font-black font-mono opacity-40">VOL</span>
-           <input type="range" min="0" max="1.5" step="0.01" [ngModel]="track.gain" (ngModelChange)="updateVolume(track, $event)" class="rack-fader-pro" (click)="$event.stopPropagation()" />
+          <span class="text-[7px] font-black font-mono opacity-40">VOL</span>
+          <input
+            type="range"
+            min="0"
+            max="1.5"
+            step="0.01"
+            [ngModel]="track.gain"
+            (ngModelChange)="updateVolume(track, $event)"
+            class="rack-fader-pro"
+            (click)="$event.stopPropagation()"
+          />
         </div>
         <div class="flex items-center gap-1.5">
-           <span class="text-[7px] font-black font-mono opacity-40">PAN</span>
-           <input type="range" min="-1" max="1" step="0.1" [ngModel]="track.pan" (ngModelChange)="updatePan(track, $event)" class="rack-fader-pro" (click)="$event.stopPropagation()" />
+          <span class="text-[7px] font-black font-mono opacity-40">PAN</span>
+          <input
+            type="range"
+            min="-1"
+            max="1"
+            step="0.1"
+            [ngModel]="track.pan"
+            (ngModelChange)="updatePan(track, $event)"
+            class="rack-fader-pro"
+            (click)="$event.stopPropagation()"
+          />
         </div>
       </div>
 
       <!-- Track Label -->
       <div class="flex-1 min-w-0">
-        <div class="channel-name neon-text-sm truncate uppercase tracking-tight font-black leading-none mb-1">{{ track.name }}</div>
-        <div class="text-[7px] font-mono opacity-30 truncate uppercase tracking-widest">{{ track.instrumentId }}</div>
+        <div
+          class="channel-name neon-text-sm truncate uppercase tracking-tight font-black leading-none mb-1"
+        >
+          {{ track.name }}
+        </div>
+        <div
+          class="text-[7px] font-mono opacity-30 truncate uppercase tracking-widest"
+        >
+          {{ track.instrumentId }}
+        </div>
       </div>
 
       <!-- Step Sequencer (Professional FL-Style) -->
-      <div class="flex gap-1 items-center bg-black/20 p-1.5 rounded-lg border border-white/5" *ngIf="track.type === 'midi'">
+      <div
+        class="flex gap-1 items-center bg-black/20 p-1.5 rounded-lg border border-white/5"
+        *ngIf="track.type === 'midi'"
+      >
         <div
           *ngFor="let step of steps; let sIdx = index"
           class="w-2.5 h-7 rounded-sm transition-all shadow-lg cursor-crosshair"

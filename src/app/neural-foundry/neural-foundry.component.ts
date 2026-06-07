@@ -1,9 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  AiService,
-  UpgradeRecommendation,
-} from '../services/ai.service';
+import { AiService, UpgradeRecommendation } from '../services/ai.service';
 
 @Component({
   selector: 'app-neural-foundry',

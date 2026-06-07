@@ -64,16 +64,27 @@ export class InstrumentsService {
 
   presets: InstrumentPreset[] = [
     {
-      id: 'grand-piano-v2',
+      id: 'grand-piano',
       name: 'Grand Piano Elite',
       type: 'sample',
       category: 'piano',
       tags: ['classic', 'acoustic', 'high-fidelity', 'elite'],
       sampleQuality: 'high',
+      fallbackPresetId: 'stage-piano',
       zones: [
         {
           midiRange: [21, 108],
           url: 'https://tonejs.github.io/audio/salamander/C4.mp3',
+          velLayers: [
+            {
+              threshold: 64,
+              url: 'https://tonejs.github.io/audio/salamander/C4_vel1.mp3',
+            },
+            {
+              threshold: 127,
+              url: 'https://tonejs.github.io/audio/salamander/C4_vel2.mp3',
+            },
+          ],
         },
       ],
     },

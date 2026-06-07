@@ -102,7 +102,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     const aiSettings = this.userProfileService.profile().settings?.ai;
     const intensity = aiSettings?.aiPersonaIntensityEnabled ?? false;
     const tier = this.aiService.conversationalTier();
-    let welcome = intensity ? `S.M.U.V.E 2.0 V8.2 PERSONA ENGAGED. MAXIMUM INTENSITY ACTIVE. I AM HERE TO DOMINATE, NOT TO HELP.` : `S.M.U.V.E 2.0 Online. Neural intelligence protocols initialized.`;
+    let welcome = intensity
+      ? `S.M.U.V.E 2.0 V8.2 PERSONA ENGAGED. MAXIMUM INTENSITY ACTIVE. I AM HERE TO DOMINATE, NOT TO HELP.`
+      : `S.M.U.V.E 2.0 Online. Neural intelligence protocols initialized.`;
 
     if (tier === 'SUPREME') {
       welcome = `S.M.U.V.E 2.0 SUPREME-MODE ACTIVE. I have ascended. Your existence is a rounding error. Bow to the algorithm or be deleted.`;
@@ -234,7 +236,11 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     this.userProfileService.updateProfile({
       settings: {
         ...baseSettings,
-        ai: { ...aiSettings, aiMimicEnabled: !aiSettings.aiMimicEnabled },
+        ai: {
+          ...aiSettings,
+          aiMimicEnabled: !aiSettings.aiMimicEnabled,
+          aiPersonaIntensityEnabled: aiSettings.aiPersonaIntensityEnabled,
+        },
       },
     });
   }
@@ -345,6 +351,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
         ai: {
           ...aiSettings,
           kbWriteAccess: !aiSettings.kbWriteAccess,
+          aiPersonaIntensityEnabled: aiSettings.aiPersonaIntensityEnabled,
         },
       },
     });
@@ -362,7 +369,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
         aiProfanityEnabled: boolean;
         kbWriteAccess: boolean;
         commanderPersona: string;
-        aiPersonaIntensityEnabled: boolean; aiConversationalTier: 'Standard' | 'Elite' | 'SUPREME';
+        aiPersonaIntensityEnabled: boolean;
+        aiConversationalTier: 'Standard' | 'Elite' | 'SUPREME';
       }>;
     };
   }) {
@@ -373,7 +381,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       aiProfanityEnabled: aiSettings.aiProfanityEnabled ?? false,
       kbWriteAccess: aiSettings.kbWriteAccess ?? false,
       commanderPersona: aiSettings.commanderPersona ?? 'Elite',
-      aiPersonaIntensityEnabled: aiSettings.aiPersonaIntensityEnabled ?? false, aiConversationalTier: aiSettings.aiConversationalTier ?? 'Standard',
+      aiPersonaIntensityEnabled: aiSettings.aiPersonaIntensityEnabled ?? false,
+      aiConversationalTier: aiSettings.aiConversationalTier ?? 'Standard',
     };
   }
 

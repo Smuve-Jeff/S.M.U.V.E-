@@ -64,7 +64,7 @@ export class StudioRecordingEngineService implements OnDestroy {
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
-        }
+        },
       };
 
       this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -94,16 +94,18 @@ export class StudioRecordingEngineService implements OnDestroy {
 
     // If a stream is provided, use it. Otherwise ensure we are initialized.
     if (stream) {
-        this.cleanup(); // Close any existing internal stream
-        this.sourceNode = ctx.createMediaStreamSource(stream);
-        this.analyserNode = ctx.createAnalyser();
-        this.analyserNode.fftSize = 2048;
-        this.sourceNode.connect(this.analyserNode);
-        this.isInitialized.set(true);
-        this.startLevelMonitoring();
+      this.cleanup(); // Close any existing internal stream
+      this.sourceNode = ctx.createMediaStreamSource(stream);
+      this.analyserNode = ctx.createAnalyser();
+      this.analyserNode.fftSize = 2048;
+      this.sourceNode.connect(this.analyserNode);
+      this.isInitialized.set(true);
+      this.startLevelMonitoring();
     } else if (!this.isInitialized()) {
-        this.logger.error('StudioRecordingEngine: Cannot start recording without initialization or stream');
-        return;
+      this.logger.error(
+        'StudioRecordingEngine: Cannot start recording without initialization or stream'
+      );
+      return;
     }
 
     this.leftChannel = [];
@@ -123,7 +125,7 @@ export class StudioRecordingEngineService implements OnDestroy {
       this.leftChannel.push(new Float32Array(left));
       this.rightChannel.push(new Float32Array(right));
 
-      this.recordingTime.update(t => t + e.inputBuffer.duration);
+      this.recordingTime.update((t) => t + e.inputBuffer.duration);
     };
 
     this.sourceNode?.connect(this.processorNode);
@@ -166,13 +168,13 @@ export class StudioRecordingEngineService implements OnDestroy {
       duration: this.recordingTime(),
       format: 'wav',
       bitDepth: 16,
-      sampleRate
+      sampleRate,
     };
 
     await this.localStorage.saveItem('audio_blobs', {
       id,
       blob: wavBlob,
-      ...metadata
+      ...metadata,
     });
 
     const url = URL.createObjectURL(wavBlob);
@@ -184,7 +186,10 @@ export class StudioRecordingEngineService implements OnDestroy {
     return this.analyserNode;
   }
 
-  private interleave(left: Float32Array[], right: Float32Array[]): Float32Array {
+  private interleave(
+    left: Float32Array[],
+    right: Float32Array[]
+  ): Float32Array {
     let totalLength = 0;
     for (const chunk of left) totalLength += chunk.length;
 
@@ -217,7 +222,7 @@ export class StudioRecordingEngineService implements OnDestroy {
   private cleanup() {
     this.processorNode?.disconnect();
     this.sourceNode?.disconnect();
-    this.mediaStream?.getTracks().forEach(t => t.stop());
+    this.mediaStream?.getTracks().forEach((t) => t.stop());
     this.isInitialized.set(false);
     this.isRecording.set(false);
     this.mediaStream = null;

@@ -213,21 +213,25 @@
 /* Tactile V4.2 Refinements */
 .tactile-v42 {
   position: relative;
-  background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.1) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
   box-shadow:
-    2px 2px 4px rgba(0,0,0,0.4),
-    -1px -1px 2px rgba(255,255,255,0.05),
-    inset 1px 1px 1px rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.05);
+    2px 2px 4px rgba(0, 0, 0, 0.4),
+    -1px -1px 2px rgba(255, 255, 255, 0.05),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tactile-v42:active {
   box-shadow:
-    inset 2px 2px 4px rgba(0,0,0,0.6),
-    inset -1px -1px 2px rgba(255,255,255,0.05);
+    inset 2px 2px 4px rgba(0, 0, 0, 0.6),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.05);
   transform: translateY(1px);
- }
+}
 
 /* Mobile Bottom Navigation Styles */
 .mobile-bottom-nav {

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class HapticService {
   private enabled = true;
@@ -18,9 +18,15 @@ export class HapticService {
 
   impact(style: 'light' | 'medium' | 'heavy') {
     switch (style) {
-      case 'light': this.light(); break;
-      case 'medium': this.medium(); break;
-      case 'heavy': this.heavy(); break;
+      case 'light':
+        this.light();
+        break;
+      case 'medium':
+        this.medium();
+        break;
+      case 'heavy':
+        this.heavy();
+        break;
     }
   }
 

@@ -1,4 +1,4 @@
-import { Injectable, inject, Injector } from '@angular/core';
+import { Injectable, inject, signal, Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { LoggingService } from './logging.service';
 import { TokenService } from './token.service';
@@ -67,7 +67,7 @@ export class AuthService {
 
   async loadSession() {
     if (typeof localStorage === 'undefined') return;
-    const session = localStorage.getItem('smuve_auth_session');
+    const session = sessionStorage.getItem('smuve_auth_session');
     if (!session) return;
     try {
       const decodedBytes = Uint8Array.from(atob(session), (c) =>
@@ -76,7 +76,6 @@ export class AuthService {
       const decoded = new TextDecoder().decode(decodedBytes);
       const [data, key] = decoded.split('|');
       if (key !== GLOBAL_SECURITY_CONFIG.auth_salt) {
-        localStorage.removeItem('smuve_auth_session');
         this.logger.error('AUTH_ALERT: SESSION INTEGRITY COMPROMISED.');
         return;
       }
@@ -90,7 +89,7 @@ export class AuthService {
       this.userStore.setUser(user);
       await this.profileService.loadProfile(user.id);
     } catch {
-      localStorage.removeItem('smuve_auth_session');
+      sessionStorage.removeItem('smuve_auth_session');
       this.logger.error('AUTH_ERROR: NEURAL LINK SEVERED.');
     }
   }
@@ -164,7 +163,7 @@ export class AuthService {
     const salted = btoa(
       String.fromCharCode(...new TextEncoder().encode(sessionStr))
     );
-    localStorage.setItem('smuve_auth_session', salted);
+    sessionStorage.setItem('smuve_auth_session', salted);
 
     return {
       success: true,
@@ -206,7 +205,7 @@ export class AuthService {
     const newUser = {
       id: userId,
       email: creds.email,
-      artistName,
+      artistName: artistName || 'NEW_RECRUIT',
       passwordHash,
       role: 'Artist',
       permissions: ['STANDARD'],
@@ -230,8 +229,8 @@ export class AuthService {
   logout() {
     this.userStore.setUser(null);
     this.tokenService.setToken(null);
-    if (typeof localStorage !== 'undefined')
-      localStorage.removeItem('smuve_auth_session');
+    if (typeof sessionStorage !== 'undefined')
+      sessionStorage.removeItem('smuve_auth_session');
     this.logger.info('AUTH_LOG: SESSION TERMINATED.');
   }
 

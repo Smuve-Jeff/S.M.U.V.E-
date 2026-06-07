@@ -1,4 +1,10 @@
-import { ApplicationConfig, provideZoneChangeDetection, isDevMode, APP_INITIALIZER, Injector } from '@angular/core';
+import {
+  ApplicationConfig,
+  provideZoneChangeDetection,
+  isDevMode,
+  APP_INITIALIZER,
+  Injector,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideHttpClient } from '@angular/common/http';
@@ -27,10 +33,14 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: (logger: LoggingService, injector: Injector) => () => {
         logger.system('S.M.U.V.E 2.0 INITIALIZED');
-        setTimeout(() => { try { injector.get(AuthService).loadSession(); } catch (e) {} }, 0);
+        setTimeout(() => {
+          try {
+            injector.get(AuthService).loadSession();
+          } catch (e) {}
+        }, 0);
       },
       deps: [LoggingService, Injector],
-      multi: true
-    }
-  ]
+      multi: true,
+    },
+  ],
 };

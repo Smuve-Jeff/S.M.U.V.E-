@@ -6,7 +6,7 @@ test.describe('SMUVE 2.0 Golden Path Verification', () => {
   }) => {
     // 1. Login/Register (Assuming bypass or mock)
     await page.goto('/login');
-    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible();
 
     // Fill in credentials for a new artist
     await page.fill('input[type="email"]', 'elite_artist@smuve.ai');

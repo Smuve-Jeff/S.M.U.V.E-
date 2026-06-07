@@ -2,9 +2,24 @@ import { Injectable, inject, signal, Injector } from '@angular/core';
 import { LoggingService } from './logging.service';
 import { DatabaseService } from './database.service';
 import { ProfileStoreService } from './profile-store.service';
-import { initialProfile, UserProfile, ProfileAuditLog, ExpertiseLevels, ProfessionalFinancials, CatalogItem, AppSettings } from '../types/profile.types';
+import {
+  initialProfile,
+  UserProfile,
+  ProfileAuditLog,
+  ExpertiseLevels,
+  ProfessionalFinancials,
+  CatalogItem,
+  AppSettings,
+} from '../types/profile.types';
 
-export type { UserProfile, ProfileAuditLog, ExpertiseLevels, ProfessionalFinancials, CatalogItem, AppSettings };
+export type {
+  UserProfile,
+  ProfileAuditLog,
+  ExpertiseLevels,
+  ProfessionalFinancials,
+  CatalogItem,
+  AppSettings,
+};
 export { initialProfile };
 
 @Injectable({ providedIn: 'root' })
@@ -47,17 +62,21 @@ export class UserProfileService {
     await this.acquireUpgrade(u);
   }
   async updateExpertise(u: Partial<ExpertiseLevels>) {
-    await this.updateProfile({ expertise: { ...this.profile().expertise, ...u } });
+    await this.updateProfile({
+      expertise: { ...this.profile().expertise, ...u },
+    });
   }
   async addTeamMember(m: any) {}
   async updateFinancials(u: Partial<ProfessionalFinancials>) {
-    await this.updateProfile({ financials: { ...this.profile().financials, ...u } });
+    await this.updateProfile({
+      financials: { ...this.profile().financials, ...u },
+    });
   }
   async recordAudit(l: ProfileAuditLog) {
     await this.updateProfile({
       strategicHealthScore: l.score,
       criticalDeficits: l.deficits,
-      auditHistory: [l, ...(this.profile().auditHistory || [])].slice(0, 20)
+      auditHistory: [l, ...(this.profile().auditHistory || [])].slice(0, 20),
     });
   }
   async setRecommendationState(id: string, s: any, m?: any) {}

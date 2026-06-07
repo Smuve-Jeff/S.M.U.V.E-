@@ -39,7 +39,7 @@ export class SoundBrowserComponent {
 
   allTags = computed(() => {
     const tags = new Set<string>();
-    this.allPresets().forEach(p => p.tags?.forEach(t => tags.add(t)));
+    this.allPresets().forEach((p) => p.tags?.forEach((t) => tags.add(t)));
     return Array.from(tags).sort();
   });
 
@@ -52,7 +52,7 @@ export class SoundBrowserComponent {
       const matchesSearch =
         p.name.toLowerCase().includes(query) ||
         p.id.toLowerCase().includes(query) ||
-        p.tags?.some(t => t.toLowerCase().includes(query));
+        p.tags?.some((t) => t.toLowerCase().includes(query));
 
       const matchesCat = cat === 'all' || p.category === cat;
       const matchesTag = !tag || p.tags?.includes(tag);
@@ -100,13 +100,16 @@ export class SoundBrowserComponent {
   }
 
   aiSearch() {
-    console.log("Deep AI Search Triggered");
+    console.log('Deep AI Search Triggered');
   }
 
   onDragStart(event: DragEvent, preset: InstrumentPreset) {
-    event.dataTransfer?.setData('application/json', JSON.stringify({
-      type: 'instrument-preset',
-      presetId: preset.id
-    }));
+    event.dataTransfer?.setData(
+      'application/json',
+      JSON.stringify({
+        type: 'instrument-preset',
+        presetId: preset.id,
+      })
+    );
   }
 }

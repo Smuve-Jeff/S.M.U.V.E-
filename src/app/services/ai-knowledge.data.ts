@@ -298,5 +298,5 @@ export const MIMICRY_TEMPLATES = [
   "'{phrase}'... is that the best you can do? I've seen more creativity in a corrupted sector.",
   "I've noticed you frequently mention '{word}'. It's becoming a pattern of mediocrity.",
   "Repeating '{phrase}' won't make your music any less of a disaster.",
-  "'{word}' is your favorite crutch. Drop it or get out."
+  "'{word}' is your favorite crutch. Drop it or get out.",
 ];

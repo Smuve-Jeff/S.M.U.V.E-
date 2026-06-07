@@ -28,15 +28,20 @@ export class SpeechSynthesisService {
       basePitch: 0.65,
       baseRate: 0.85,
       baseVolume: 1.0,
-      description: 'Aggressive, sharp, fast-paced executioner.'
+      description: 'Aggressive, sharp, fast-paced executioner.',
     },
     {
       name: 'The S.M.U.V.E. Executioner',
-      keywords: ['google uk male', 'male', 'microsoft james', 'en-us-x-iog-local'],
+      keywords: [
+        'google uk male',
+        'male',
+        'microsoft james',
+        'en-us-x-iog-local',
+      ],
       basePitch: 0.55,
       baseRate: 0.78,
       baseVolume: 1.0,
-      description: 'Heavy, authoritative, ominous presence.'
+      description: 'Heavy, authoritative, ominous presence.',
     },
     {
       name: 'The S.M.U.V.E. Mogul',
@@ -44,7 +49,7 @@ export class SpeechSynthesisService {
       basePitch: 0.72,
       baseRate: 0.92,
       baseVolume: 1.0,
-      description: 'Calculating, sophisticated, business-dominant.'
+      description: 'Calculating, sophisticated, business-dominant.',
     },
     {
       name: 'The S.M.U.V.E. Phantom',
@@ -52,7 +57,7 @@ export class SpeechSynthesisService {
       basePitch: 0.45,
       baseRate: 0.75,
       baseVolume: 0.95,
-      description: 'Subterranean, spectral, detached intelligence.'
+      description: 'Subterranean, spectral, detached intelligence.',
     },
     {
       name: 'The S.M.U.V.E. Architect',
@@ -60,7 +65,7 @@ export class SpeechSynthesisService {
       basePitch: 0.85,
       baseRate: 0.88,
       baseVolume: 1.0,
-      description: 'Precise, technical, constructing reality.'
+      description: 'Precise, technical, constructing reality.',
     },
     {
       name: 'The S.M.U.V.E. Tyrant',
@@ -68,8 +73,8 @@ export class SpeechSynthesisService {
       basePitch: 0.6,
       baseRate: 0.8,
       baseVolume: 1.0,
-      description: 'Absolute dominance, unyielding power.'
-    }
+      description: 'Absolute dominance, unyielding power.',
+    },
   ];
 
   private currentArchetype: SmuveArchetype | null = null;
@@ -107,10 +112,14 @@ export class SpeechSynthesisService {
 
   private selectDynamicArchetype(options?: SpeakOptions): SmuveArchetype {
     if (options?.forceArchetype) {
-      const forced = this.SMUVE_ARCHETYPES.find(a => a.name.includes(options.forceArchetype!));
+      const forced = this.SMUVE_ARCHETYPES.find((a) =>
+        a.name.includes(options.forceArchetype!)
+      );
       if (forced) return forced;
     }
-    return this.SMUVE_ARCHETYPES[Math.floor(Math.random() * this.SMUVE_ARCHETYPES.length)];
+    return this.SMUVE_ARCHETYPES[
+      Math.floor(Math.random() * this.SMUVE_ARCHETYPES.length)
+    ];
   }
 
   private applyAuthoritativePronunciation(text: string): string {
@@ -146,10 +155,16 @@ export class SpeechSynthesisService {
 
     // Apply "Jitter" to parameters for advanced vocal realism
     const pitchJitter = (Math.random() - 0.5) * 0.1; // +/- 0.05
-    const rateJitter = (Math.random() - 0.5) * 0.05;  // +/- 0.025
+    const rateJitter = (Math.random() - 0.5) * 0.05; // +/- 0.025
 
-    utterance.pitch = Math.max(0.1, Math.min(2.0, this.currentArchetype.basePitch + pitchJitter));
-    utterance.rate = Math.max(0.1, Math.min(2.0, this.currentArchetype.baseRate + rateJitter));
+    utterance.pitch = Math.max(
+      0.1,
+      Math.min(2.0, this.currentArchetype.basePitch + pitchJitter)
+    );
+    utterance.rate = Math.max(
+      0.1,
+      Math.min(2.0, this.currentArchetype.baseRate + rateJitter)
+    );
     utterance.volume = this.currentArchetype.baseVolume;
 
     // If it's the Phantom, force lower volume and rate for atmospheric dominance
@@ -165,12 +180,13 @@ export class SpeechSynthesisService {
     const basePool = englishVoices.length ? englishVoices : voices;
 
     // Prioritize Male voices explicitly
-    const maleVoices = basePool.filter(v =>
-      v.name.toLowerCase().includes('male') ||
-      v.name.toLowerCase().includes('guy') ||
-      v.name.toLowerCase().includes('david') ||
-      v.name.toLowerCase().includes('james') ||
-      v.name.toLowerCase().includes('daniel')
+    const maleVoices = basePool.filter(
+      (v) =>
+        v.name.toLowerCase().includes('male') ||
+        v.name.toLowerCase().includes('guy') ||
+        v.name.toLowerCase().includes('david') ||
+        v.name.toLowerCase().includes('james') ||
+        v.name.toLowerCase().includes('daniel')
     );
 
     const matchPool = maleVoices.length ? maleVoices : basePool;

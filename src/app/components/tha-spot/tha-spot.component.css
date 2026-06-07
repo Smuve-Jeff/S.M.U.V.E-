@@ -121,7 +121,7 @@
   background: #3d2b1f !important;
   color: #facc15 !important;
   border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
-  font-family: "Courier New", Courier, monospace !important;
+  font-family: 'Courier New', Courier, monospace !important;
   text-transform: uppercase !important;
   letter-spacing: 2px !important;
 }
@@ -178,7 +178,7 @@
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
 }
 
-.tha-spot-shell[data-mode="cinema"] {
+.tha-spot-shell[data-mode='cinema'] {
   background: #000 !important;
 }
 
@@ -350,7 +350,6 @@
   filter: brightness(1.2);
   box-shadow: 0 0 20px rgba(175, 37, 244, 0.4);
 }
-
 
 .empty-results {
   display: flex;

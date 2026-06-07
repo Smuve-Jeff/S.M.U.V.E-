@@ -1,5 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { MusicManagerService } from '../music-manager.service';
+import {
+  MusicManagerService,
+  TrackModel,
+  GlobalChord,
+  SongSection,
+} from '../music-manager.service';
 import { AudioEngineService } from '../audio-engine.service';
 import { InstrumentsService } from '../instruments.service';
 import { UserProfileService } from '../user-profile.service';
@@ -10,6 +15,7 @@ import { signal } from '@angular/core';
 
 describe('PianoRoll & ChannelRack Upgrades', () => {
   let service: MusicManagerService;
+  let instruments: InstrumentsService;
 
   beforeEach(() => {
     const mockEngine = {
@@ -45,6 +51,7 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
       ],
     });
     service = TestBed.inject(MusicManagerService);
+    instruments = TestBed.inject(InstrumentsService);
   });
 
   it('should support audio tracks and track coloring', () => {
@@ -103,5 +110,14 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
     ).toBe(2);
     expect(recalledTrack?.steps[0]).toBe(true);
     expect(recalledTrack?.steps[1]).toBe(true);
+  });
+
+  it('provides instrument quality metadata and fallback for sample presets', () => {
+    const grandPiano = instruments
+      .getPresets()
+      .find((p) => p.id === 'grand-piano');
+    expect(grandPiano?.sampleQuality).toBe('high');
+    expect(grandPiano?.fallbackPresetId).toBe('stage-piano');
+    expect(grandPiano?.zones?.[0]?.velLayers?.length).toBeGreaterThan(0);
   });
 });

@@ -9,8 +9,6 @@ import { Injectable, signal, inject, Injector } from '@angular/core';
 
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 
-
-
 interface DeckChannel {
   id: DeckId;
   buffer: AudioBuffer | null;
@@ -54,7 +52,9 @@ export class AudioEngineService {
   private injector = inject(Injector);
   private injector = inject(Injector);
   private stemSeparationService = inject(StemSeparationService);
-  public get recorder(): StudioRecordingEngineService { return this.injector.get(StudioRecordingEngineService); }
+  public get recorder(): StudioRecordingEngineService {
+    return this.injector.get(StudioRecordingEngineService);
+  }
   public masterGain: GainNode;
   public compressor: DynamicsCompressorNode;
   public saturationNode: WaveShaperNode;
@@ -114,9 +114,17 @@ export class AudioEngineService {
       if (track.automationLanes) {
         track.automationLanes.forEach((lane: any) => {
           if (!lane.enabled) return;
-          const point = lane.points.find((p: any) => Math.floor(p.step) === step);
+          const point = lane.points.find(
+            (p: any) => Math.floor(p.step) === step
+          );
           if (point) {
-            this.applyProductionParameter(id.toString(), lane.parameter, point.value, 0.05, time);
+            this.applyProductionParameter(
+              id.toString(),
+              lane.parameter,
+              point.value,
+              0.05,
+              time
+            );
           }
         });
       }
@@ -217,7 +225,7 @@ export class AudioEngineService {
       if (absX < 0.33) {
         curve[i] = 2 * x;
       } else if (absX < 0.66) {
-        curve[i] = (3 - (2 - 3 * x) ** 2) / 3 * (x > 0 ? 1 : -1);
+        curve[i] = ((3 - (2 - 3 * x) ** 2) / 3) * (x > 0 ? 1 : -1);
       } else {
         curve[i] = x > 0 ? 1 : -1;
       }
@@ -518,10 +526,10 @@ export class AudioEngineService {
     const vca = this.ctx.createGain();
     const panner = this.ctx.createStereoPanner();
     const filter = this.ctx.createBiquadFilter();
-    osc.type = synthParams.type || "sine";
+    osc.type = synthParams.type || 'sine';
     osc.frequency.setValueAtTime(freq, when);
     if (synthParams.detune) osc.detune.setValueAtTime(synthParams.detune, when);
-    filter.type = "lowpass";
+    filter.type = 'lowpass';
     filter.frequency.setValueAtTime(synthParams.cutoff || 20000, when);
     filter.Q.setValueAtTime(synthParams.q || 1, when);
     const actualVel = velocity * velocityScale;
@@ -534,7 +542,10 @@ export class AudioEngineService {
     panner.pan.setValueAtTime(pan, when);
     // Add Sub-Oscillator for extra fidelity/weight if requested or for specific types
     let subOsc: OscillatorNode | null = null;
-    if (this.performanceTier() === 'ultra' && (osc.type === 'sawtooth' || osc.type === 'square')) {
+    if (
+      this.performanceTier() === 'ultra' &&
+      (osc.type === 'sawtooth' || osc.type === 'square')
+    ) {
       subOsc = this.ctx.createOscillator();
       subOsc.type = 'sine';
       subOsc.frequency.setValueAtTime(freq / 2, when);
@@ -544,7 +555,7 @@ export class AudioEngineService {
       subOsc.start(when);
       subOsc.stop(when + duration + release + 0.1);
     }
-        const dest = customCtx ? (customCtx as any).destination : this.masterGain;
+    const dest = customCtx ? (customCtx as any).destination : this.masterGain;
     osc.connect(filter).connect(vca).connect(panner).connect(dest);
     if (sendA > 0 && this.reverbConvolver) {
       const sA = this.ctx.createGain();

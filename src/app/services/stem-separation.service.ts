@@ -26,11 +26,27 @@ export class StemSeparationService {
     const channels = buffer.numberOfChannels;
 
     const stems: Stems = {
-      vocals: new AudioBuffer({ length, sampleRate, numberOfChannels: channels }),
-      drums: new AudioBuffer({ length, sampleRate, numberOfChannels: channels }),
+      vocals: new AudioBuffer({
+        length,
+        sampleRate,
+        numberOfChannels: channels,
+      }),
+      drums: new AudioBuffer({
+        length,
+        sampleRate,
+        numberOfChannels: channels,
+      }),
       bass: new AudioBuffer({ length, sampleRate, numberOfChannels: channels }),
-      instrumental: new AudioBuffer({ length, sampleRate, numberOfChannels: channels }),
-      other: new AudioBuffer({ length, sampleRate, numberOfChannels: channels }),
+      instrumental: new AudioBuffer({
+        length,
+        sampleRate,
+        numberOfChannels: channels,
+      }),
+      other: new AudioBuffer({
+        length,
+        sampleRate,
+        numberOfChannels: channels,
+      }),
     };
 
     // Frequency-based crude separation logic
@@ -47,13 +63,13 @@ export class StemSeparationService {
         const sample = data[i];
 
         // Bass: Sub focus (simple low-pass approximation via down-sampling simulation)
-        bData[i] = (i % 4 === 0) ? sample * 0.9 : 0;
+        bData[i] = i % 4 === 0 ? sample * 0.9 : 0;
 
         // Drums: High-energy transient focus
         dData[i] = Math.abs(sample) > 0.4 ? sample : sample * 0.05;
 
         // Vocals: Mid-frequency focus (simulation)
-        vData[i] = (i % 2 !== 0 && Math.abs(sample) < 0.6) ? sample * 0.7 : 0;
+        vData[i] = i % 2 !== 0 && Math.abs(sample) < 0.6 ? sample * 0.7 : 0;
 
         // Instrumental: Balanced composite
         iData[i] = sample * 0.5;

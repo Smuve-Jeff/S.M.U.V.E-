@@ -469,7 +469,7 @@
   }
 
   .arrangement-stack {
-  z-index: 1;
+    z-index: 1;
     grid-template-rows: minmax(0, 1fr) 12rem;
   }
 

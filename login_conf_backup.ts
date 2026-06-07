@@ -1,4 +1,3 @@
-
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -22,11 +21,28 @@ export class LoginConfirmationService {
   async sendLoginConfirmation(user: AuthUser): Promise<void> {
     if (!user?.email || !user.lastLogin) return;
     try {
-      const loginAt = user.lastLogin instanceof Date ? user.lastLogin.toISOString() : new Date(user.lastLogin).toISOString();
-      await firstValueFrom(this.http.post(`${this.database.apiUrl}/auth/login-email`, {
-        userId: user.id, email: user.email, artistName: user.artistName, loginAt,
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
-      }, this.getHeaders()));
-    } catch (e) { this.logger.warn('Login confirmation failed', e); }
+      const loginAt =
+        user.lastLogin instanceof Date
+          ? user.lastLogin.toISOString()
+          : new Date(user.lastLogin).toISOString();
+      await firstValueFrom(
+        this.http.post(
+          `${this.database.apiUrl}/auth/login-email`,
+          {
+            userId: user.id,
+            email: user.email,
+            artistName: user.artistName,
+            loginAt,
+            userAgent:
+              typeof navigator !== 'undefined'
+                ? navigator.userAgent
+                : 'unknown',
+          },
+          this.getHeaders()
+        )
+      );
+    } catch (e) {
+      this.logger.warn('Login confirmation failed', e);
+    }
   }
 }

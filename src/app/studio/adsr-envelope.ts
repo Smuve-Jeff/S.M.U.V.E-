@@ -14,9 +14,15 @@ export class AdsrEnvelope {
     gainNode.gain.setValueAtTime(0, now);
     gainNode.gain.linearRampToValueAtTime(velocity, now + this.attack);
     if (this.exponential) {
-       gainNode.gain.exponentialRampToValueAtTime(Math.max(0.0001, this.sustain * velocity), now + this.attack + this.decay);
+      gainNode.gain.exponentialRampToValueAtTime(
+        Math.max(0.0001, this.sustain * velocity),
+        now + this.attack + this.decay
+      );
     } else {
-       gainNode.gain.linearRampToValueAtTime(this.sustain * velocity, now + this.attack + this.decay);
+      gainNode.gain.linearRampToValueAtTime(
+        this.sustain * velocity,
+        now + this.attack + this.decay
+      );
     }
   }
 
@@ -25,7 +31,10 @@ export class AdsrEnvelope {
     param.cancelScheduledValues(now);
     param.setValueAtTime(min, now);
     param.linearRampToValueAtTime(max * velocity, now + this.attack);
-    param.exponentialRampToValueAtTime(Math.max(0.0001, min + (max - min) * this.sustain), now + this.attack + this.decay);
+    param.exponentialRampToValueAtTime(
+      Math.max(0.0001, min + (max - min) * this.sustain),
+      now + this.attack + this.decay
+    );
   }
 
   releaseEnvelope(gainNode: GainNode) {
@@ -39,7 +48,10 @@ export class AdsrEnvelope {
     const now = this.context.currentTime;
     param.cancelScheduledValues(now);
     param.setValueAtTime(param.value, now);
-    param.exponentialRampToValueAtTime(Math.max(0.0001, min), now + this.release);
+    param.exponentialRampToValueAtTime(
+      Math.max(0.0001, min),
+      now + this.release
+    );
   }
 }
 

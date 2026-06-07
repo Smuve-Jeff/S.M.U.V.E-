@@ -147,7 +147,10 @@ export class LoginComponent implements OnInit {
   private async navigateAfterAuth(): Promise<void> {
     try {
       const requestedUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-      if (requestedUrl && this.securityService.isValidRedirectUrl(requestedUrl)) {
+      if (
+        requestedUrl &&
+        this.securityService.isValidRedirectUrl(requestedUrl)
+      ) {
         await this.router.navigateByUrl(requestedUrl);
         return;
       }
