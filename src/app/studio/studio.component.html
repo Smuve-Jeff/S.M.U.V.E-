@@ -65,14 +65,14 @@
       >
         Piano Roll
       </button>
-      <button (click)="uiService.navigateToView('drum-machine')">
+      <button [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')">
         Drum Machine
       </button>
-      <button (click)="uiService.navigateToView('mixer')">Mixer</button>
-      <button (click)="uiService.navigateToView('performance')">
+      <button [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')">Mixer</button>
+      <button [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')">
         Performance
       </button>
-      <button (click)="uiService.navigateToView('mastering')">Mastering</button>
+      <button [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')">Mastering</button>
     </nav>
 
     <div
@@ -125,6 +125,21 @@
       </aside>
 
       <main class="studio-workspace" [ngSwitch]="activeView()">
+        <div class="view-wrapper" *ngSwitchCase="'drum-machine'">
+          <app-drum-machine class="arrangement-main"></app-drum-machine>
+        </div>
+
+        <div class="view-wrapper" *ngSwitchCase="'mixer'">
+          <app-mixer class="arrangement-main"></app-mixer>
+        </div>
+
+        <div class="view-wrapper" *ngSwitchCase="'performance'">
+          <app-performer class="arrangement-main"></app-performer>
+        </div>
+
+        <div class="view-wrapper" *ngSwitchCase="'mastering'">
+          <app-mastering-suite class="arrangement-main"></app-mastering-suite>
+        </div>
         <div class="view-wrapper" *ngSwitchCase="'arrangement'">
           <div class="arrangement-stack">
             <app-arrangement-view class="arrangement-main"></app-arrangement-view>
@@ -177,9 +192,9 @@
     >
       Piano
     </button>
-    <button (click)="uiService.navigateToView('drum-machine')">Drums</button>
-    <button (click)="uiService.navigateToView('mixer')">Mix</button>
-    <button (click)="uiService.navigateToView('performance')">Perform</button>
-    <button (click)="uiService.navigateToView('mastering')">Master</button>
+    <button [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')">Drums</button>
+    <button [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')">Mix</button>
+    <button [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')">Perform</button>
+    <button [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')">Master</button>
   </nav>
 </div>
