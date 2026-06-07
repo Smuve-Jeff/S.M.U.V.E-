@@ -34,6 +34,7 @@ import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
 
 type StudioView =
+  | 'arrangement'
   | 'dj'
   | 'piano-roll'
   | 'mixer'
@@ -45,6 +46,7 @@ type StudioView =
 type MobileStudioPanel = 'browser' | 'inspector';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
+  'arrangement',
   'dj',
   'piano-roll',
   'mixer',
@@ -95,7 +97,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private destroy$ = new Subject<void>();
 
-  activeView = signal<StudioView>('dj');
+  activeView = signal<StudioView>('arrangement');
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showNeuralFoundry = signal(false);
   headerCollapsed = signal(false);

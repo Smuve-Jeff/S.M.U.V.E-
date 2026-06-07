@@ -220,6 +220,16 @@ export class AuthService {
       JSON.stringify(newUser)
     );
 
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    localStorage.setItem(`smuve_verification_${creds.email.toLowerCase()}`, verificationCode);
+    console.log(`[SYSTEM MAIL] Verification code for ${creds.email}: ${verificationCode}`);
+    
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        alert(`S.M.U.V.E. TRANSMISSION:\nYour verification cipher is: ${verificationCode}`);
+      }, 500);
+    }
+
     await new Promise((r) => setTimeout(r, registrationDelay));
 
     // Auto-login after registration for demo purposes
@@ -236,9 +246,9 @@ export class AuthService {
 
   validatePassword(p: string) {
     const errors = [];
-    if (p.length < 12)
+    if (p.length < 8)
       errors.push(
-        'PASSWORD TOO SHORT. I REQUIRE AT LEAST 12 CHARACTERS OF ENTROPY.'
+        'PASSWORD TOO SHORT. I REQUIRE AT LEAST 8 CHARACTERS OF ENTROPY.'
       );
     if (!/[A-Z]/.test(p)) errors.push('MISSING UPPERCASE INTENSITY.');
     if (!/[a-z]/.test(p)) errors.push('MISSING LOWERCASE SONICS.');
@@ -249,11 +259,20 @@ export class AuthService {
     return { isValid: errors.length === 0, errors };
   }
 
-  async verifyEmail(code: string) {
+  async verifyEmail(code: string, email?: string) {
     await new Promise((r) => setTimeout(r, 800));
-    if (code === '000000') {
-      return { success: false, message: 'INVALID CIPHER. STOP GUESSING.' };
+    
+    if (email) {
+      const storedCode = localStorage.getItem(`smuve_verification_${email.toLowerCase()}`);
+      if (storedCode && code !== storedCode) {
+        return { success: false, message: 'INVALID CIPHER. STOP GUESSING.' };
+      }
+    } else {
+      if (code === '000000') {
+        return { success: false, message: 'INVALID CIPHER. STOP GUESSING.' };
+      }
     }
+    
     return { success: true, message: 'CHANNEL SECURE. WELCOME TO THE ELITE.' };
   }
 

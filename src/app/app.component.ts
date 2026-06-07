@@ -9,7 +9,7 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import {
   RouterLink,
   RouterOutlet,
@@ -81,6 +81,7 @@ export class AppComponent implements ErrorHandler {
   commandPalette = inject(CommandPaletteService);
   profileService = inject(UserProfileService);
   offlineSync = inject(OfflineSyncService);
+  location = inject(Location);
   dialog = inject(InteractionDialogService);
   swUpdate = inject(SwUpdate, { optional: true });
   router = inject(Router);
@@ -288,6 +289,10 @@ export class AppComponent implements ErrorHandler {
 
   toggleSidebar() {
     this.isSidebarOpen.update((v) => !v);
+  }
+
+  goBack() {
+    this.location.back();
   }
 
   toggleChatbot() {

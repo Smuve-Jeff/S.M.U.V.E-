@@ -127,7 +127,7 @@
             (click)="onGameClick(game)"
           >
             <div class="card-art">
-              <img [src]="game.image" [alt]="game.name" loading="lazy" />
+              <img [src]="game.image || 'assets/desktop_hub.png'" [alt]="game.name" loading="lazy" />
               <div
                 class="card-badge elite"
                 *ngIf="game.badgeIds?.includes('elite')"
@@ -209,7 +209,7 @@
                 (click)="onGameClick(game)"
               >
                 <div class="card-art">
-                  <img [src]="game.image" [alt]="game.name" loading="lazy" />
+                  <img [src]="game.image || 'assets/desktop_hub.png'" [alt]="game.name" loading="lazy" />
                   <div
                     class="card-badge elite"
                     *ngIf="game.badgeIds?.includes('elite')"
@@ -262,7 +262,7 @@
     <div class="overlay-backdrop" (click)="closePreview()"></div>
     <div class="preview-card glass-v42 holographic-depth shadow-v42-xl">
       <div class="preview-media">
-        <img [src]="selected.image" [alt]="selected.name" />
+        <img [src]="selected.image || 'assets/desktop_hub.png'" [alt]="selected.name" />
       </div>
       <div class="preview-copy">
         <h2>{{ selected.name }}</h2>
