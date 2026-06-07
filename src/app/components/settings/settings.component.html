@@ -1,15 +1,21 @@
 <div class="settings-container animate-fade-in">
   <div class="glass-v42 rounded-3xl overflow-hidden shadow-v42-xl">
     <div class="p-8 border-b border-border bg-background-alt/30">
-      <h1 class="text-2xl font-black text-text-main tracking-tight uppercase">
-        Executive_Settings
-        <span class="text-brand-primary text-sm ml-2">v2.0</span>
-      </h1>
-      <p
-        class="text-[10px] text-text-dim font-bold tracking-[0.3em] uppercase mt-2"
-      >
-        Configuration and System Synchronization
-      </p>
+      <div class="flex items-center gap-4 w-full">
+        <div class="flex flex-col">
+          <h1 class="text-2xl font-black text-text-main tracking-tight uppercase">
+            Executive_Settings
+            <span class="text-brand-primary text-sm ml-2">v2.0</span>
+          </h1>
+          <p class="text-[10px] text-text-dim font-bold tracking-[0.3em] uppercase mt-2">
+            Configuration and System Synchronization
+          </p>
+        </div>
+        <button (click)="showHowTo.set(true)" class="ml-auto flex items-center gap-2 px-4 py-2 bg-brand-primary/10 border border-brand-primary/20 text-brand-primary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary/20 transition-all">
+          <span class="text-lg">?</span>
+          How To Use
+        </button>
+      </div>
     </div>
 
     <!-- Navigation Tabs -->
@@ -45,6 +51,13 @@
         Studio Pro
       </button>
       <button
+        (click)="setTab('dj')"
+        [class.active-tab]="activeTab() === 'dj'"
+        class="settings-tab"
+      >
+        DJ Deck
+      </button>
+      <button
         (click)="setTab('security')"
         [class.active-tab]="activeTab() === 'security'"
         class="settings-tab"
@@ -69,8 +82,7 @@
 
     <div
       class="p-8 settings-content-area custom-scrollbar overflow-y-auto max-h-[70vh]"
-    >
-      <!-- Interface Section -->
+    ><!-- Interface Section -->
       <div
         *ngIf="activeTab() === 'ui'"
         class="flex flex-col gap-6 animate-enter"
@@ -136,7 +148,126 @@
               <span class="appearance-summary-label">{{ item.label }}</span>
               <strong class="appearance-summary-value">{{ item.value }}</strong>
               <p class="appearance-summary-detail">{{ item.detail }}</p>
-            </div>
+
+
+      <!-- Intelligence Section -->
+      <div *ngIf="activeTab() === 'ai'" class="flex flex-col gap-6 animate-enter">
+        <div class="setting-group">
+          <label class="setting-label">Advisor Behavioral Persona</label>
+          <p class="text-[10px] text-text-dim mb-2">Configure how the S.M.U.V.E. AI communicates with you.</p>
+          <div class="grid grid-cols-3 gap-3 mt-2">
+            <button type="button" *ngFor="let p of ['Elite', 'Balanced', 'Supportive']" (click)="updateSetting('ai', 'commanderPersona', p)" [class.persona-active]="settings().ai.commanderPersona === p" class="persona-btn">
+              {{ p }}
+            </button>
+          </div>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Intelligence Conversational Tier</label>
+          <p class="text-[10px] text-text-dim mb-2">Higher tiers enable deeper analytical depth and more complex reasoning.</p>
+          <div class="grid grid-cols-3 gap-3 mt-2">
+            <button *ngFor="let t of ['Standard', 'Elite', 'SUPREME']" (click)="updateSetting('ai', 'aiConversationalTier', t)" [class.persona-active]="settings().ai.aiConversationalTier === t" class="persona-btn">
+              {{ t }}
+            </button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">V8.2 Persona Intensity</h3>
+            <p class="text-xs text-text-dim">Enable maximum strategic arrogance and blunt critique modes.</p>
+          </div>
+          <button (click)="updateSetting('ai', 'aiPersonaIntensityEnabled', !settings().ai.aiPersonaIntensityEnabled)" class="toggle-btn" [class.on]="settings().ai.aiPersonaIntensityEnabled">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">AI Knowledge Base Write Access</h3>
+            <p class="text-xs text-text-dim">Allow the system to autonomously learn from your session interactions.</p>
+          </div>
+          <button (click)="updateSetting('ai', 'kbWriteAccess', !settings().ai.kbWriteAccess)" class="toggle-btn" [class.on]="settings().ai.kbWriteAccess">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+      </div>
+      <!-- Studio Pro Section -->
+      <div *ngIf="activeTab() === 'studio'" class="flex flex-col gap-6 animate-enter">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="setting-group">
+            <label class="setting-label">Default Quantize Resolution</label>
+            <p class="text-[10px] text-text-dim mb-2">Base grid resolution for MIDI and arrangement snapping.</p>
+            <select [ngModel]="settings().studio.defaultQuantize" (ngModelChange)="updateSetting('studio', 'defaultQuantize', $event)" class="smuve-input w-full">
+              <option value="1/4">1/4 Note</option>
+              <option value="1/8">1/8 Note</option>
+              <option value="1/16">1/16 Note</option>
+              <option value="1/32">1/32 Note</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label class="setting-label">Latency Compensation (ms)</label>
+            <p class="text-[10px] text-text-dim mb-2">Adjust for audio interface buffer lag during recording.</p>
+            <input type="number" [ngModel]="settings().studio.latencyCompensation" (ngModelChange)="updateSetting('studio', 'latencyCompensation', $event)" class="smuve-input w-full">
+          </div>
+        </div>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Intelligent Auto-Mix</h3>
+            <p class="text-xs text-text-dim">Enable neural-driven leveling and frequency balancing across tracks.</p>
+          </div>
+          <button (click)="updateSetting('studio', 'autoMixEnabled', !settings().studio.autoMixEnabled)" class="toggle-btn" [class.on]="settings().studio.autoMixEnabled">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">High-Fidelity Offline Export</h3>
+            <p class="text-xs text-text-dim">Apply S.M.U.V.E. Polish and 32-bit float rendering on export.</p>
+          </div>
+          <button (click)="updateSetting('studio', 'highFidelityExport', !settings().studio.highFidelityExport)" class="toggle-btn" [class.on]="settings().studio.highFidelityExport">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+      </div>
+      <!-- DJ Deck Section -->
+      <div *ngIf="activeTab() === 'dj'" class="flex flex-col gap-6 animate-enter">
+        <div class="setting-group">
+          <label class="setting-label">Crossfader Curve</label>
+          <div class="grid grid-cols-4 gap-2 mt-2">
+            <button *ngFor="let curve of ['linear', 'power', 'exp', 'cut']" (click)="updateSetting('dj', 'crossfaderCurve', curve)" [class.bg-brand-primary]="settings().dj.crossfaderCurve === curve" [class.text-white]="settings().dj.crossfaderCurve === curve" class="px-3 py-2 border border-border rounded-lg text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-all">
+              {{ curve }}
+            </button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Hamster Mode (Reverse Crossfader)</h3>
+            <p class="text-xs text-text-dim">Swap the orientation of the crossfader channels.</p>
+          </div>
+          <button (click)="updateSetting('dj', 'hamsterMode', !settings().dj.hamsterMode)" class="toggle-btn" [class.on]="settings().dj.hamsterMode">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Vinyl Platter Simulation</h3>
+            <p class="text-xs text-text-dim">Enable realistic inertia and scratching physics on deck platters.</p>
+          </div>
+          <button (click)="updateSetting('dj', 'vinylMode', !settings().dj.vinylMode)" class="toggle-btn" [class.on]="settings().dj.vinylMode">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Visual Cue Points</h3>
+            <p class="text-xs text-text-dim">Overlay hot-cue indicators directly on the spinning platter.</p>
+          </div>
+          <button (click)="updateSetting('dj', 'visualCuePoints', !settings().dj.visualCuePoints)" class="toggle-btn" [class.on]="settings().dj.visualCuePoints">
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+      </div>
+
+
+</div>
           </div>
         </div>
 
@@ -358,12 +489,14 @@
       </div>
 
       <!-- AI Strategic Section -->
+            <!-- Intelligence Section -->
       <div
         *ngIf="activeTab() === 'ai'"
         class="flex flex-col gap-6 animate-enter"
       >
         <div class="setting-group">
           <label class="setting-label">Advisor Behavioral Persona</label>
+          <p class="text-[10px] text-text-dim mb-2">Configure how the S.M.U.V.E. AI communicates with you.</p>
           <div class="grid grid-cols-3 gap-3 mt-2">
             <button
               type="button"
@@ -375,6 +508,51 @@
               {{ p }}
             </button>
           </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Intelligence Conversational Tier</label>
+          <p class="text-[10px] text-text-dim mb-2">Higher tiers enable deeper analytical depth and more complex reasoning.</p>
+          <div class="grid grid-cols-3 gap-3 mt-2">
+            <button
+              *ngFor="let t of ['Standard', 'Elite', 'SUPREME']"
+              (click)="updateSetting('ai', 'aiConversationalTier', t)"
+              [class.persona-active]="settings().ai.aiConversationalTier === t"
+              class="persona-btn"
+            >
+              {{ t }}
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">V8.2 Persona Intensity</h3>
+            <p class="text-xs text-text-dim">Enable maximum strategic arrogance and blunt critique modes.</p>
+          </div>
+          <button
+            (click)="updateSetting('ai', 'aiPersonaIntensityEnabled', !settings().ai.aiPersonaIntensityEnabled)"
+            class="toggle-btn"
+            [class.on]="settings().ai.aiPersonaIntensityEnabled"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">AI Knowledge Base Write Access</h3>
+            <p class="text-xs text-text-dim">Allow the system to autonomously learn from your session interactions.</p>
+          </div>
+          <button
+            (click)="updateSetting('ai', 'kbWriteAccess', !settings().ai.kbWriteAccess)"
+            class="toggle-btn"
+            [class.on]="settings().ai.kbWriteAccess"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+      </div>
           <div class="setting-item">
             <div>
               <h3 class="setting-title">V8.2 PERSONA INTENSITY</h3>
@@ -476,19 +654,19 @@
       </div>
 
       <!-- Studio Preferences -->
+            <!-- Studio Pro Section -->
       <div
         *ngIf="activeTab() === 'studio'"
         class="flex flex-col gap-6 animate-enter"
       >
-        <div class="grid grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="setting-group">
-            <label class="setting-label">Standard Quantize</label>
+            <label class="setting-label">Default Quantize Resolution</label>
+            <p class="text-[10px] text-text-dim mb-2">Base grid resolution for MIDI and arrangement snapping.</p>
             <select
               [ngModel]="settings().studio.defaultQuantize"
-              (ngModelChange)="
-                updateSetting('studio', 'defaultQuantize', $event)
-              "
-              class="smuve-input w-full mt-2"
+              (ngModelChange)="updateSetting('studio', 'defaultQuantize', $event)"
+              class="smuve-input w-full"
             >
               <option value="1/4">1/4 Note</option>
               <option value="1/8">1/8 Note</option>
@@ -496,6 +674,47 @@
               <option value="1/32">1/32 Note</option>
             </select>
           </div>
+
+          <div class="setting-group">
+            <label class="setting-label">Latency Compensation (ms)</label>
+            <p class="text-[10px] text-text-dim mb-2">Adjust for audio interface buffer lag during recording.</p>
+            <input
+              type="number"
+              [ngModel]="settings().studio.latencyCompensation"
+              (ngModelChange)="updateSetting('studio', 'latencyCompensation', $event)"
+              class="smuve-input w-full"
+            >
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Intelligent Auto-Mix</h3>
+            <p class="text-xs text-text-dim">Enable neural-driven leveling and frequency balancing across tracks.</p>
+          </div>
+          <button
+            (click)="updateSetting('studio', 'autoMixEnabled', !settings().studio.autoMixEnabled)"
+            class="toggle-btn"
+            [class.on]="settings().studio.autoMixEnabled"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">High-Fidelity Offline Export</h3>
+            <p class="text-xs text-text-dim">Apply S.M.U.V.E. Polish and 32-bit float rendering on export.</p>
+          </div>
+          <button
+            (click)="updateSetting('studio', 'highFidelityExport', !settings().studio.highFidelityExport)"
+            class="toggle-btn"
+            [class.on]="settings().studio.highFidelityExport"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+      </div>
         </div>
 
         <div class="setting-item">
@@ -519,7 +738,6 @@
             <div class="toggle-handle"></div>
           </button>
         </div>
-      </div>
 
       <!-- Security Section -->
       <!-- Security Score Dashboard -->
@@ -989,6 +1207,6 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
+
+
+<app-how-to-overlay *ngIf="showHowTo()" (close)="showHowTo.set(false)"></app-how-to-overlay>
