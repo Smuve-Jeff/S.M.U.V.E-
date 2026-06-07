@@ -220,14 +220,13 @@ export class AuthService {
       JSON.stringify(newUser)
     );
 
-    const array = new Uint32Array(1);
-    const randomValue = (typeof crypto !== 'undefined' && crypto.getRandomValues)
-      ? crypto.getRandomValues(array)[0] / (0xffffffff + 1)
-      : Math.random();
-    
     const MIN_CODE = 100000;
     const CODE_RANGE = 900000;
-    const verificationCode = Math.floor(MIN_CODE + randomValue * CODE_RANGE).toString();
+    const verificationCodeNumber =
+      (typeof crypto !== 'undefined' && typeof (crypto as any).randomInt === 'function')
+        ? (crypto as any).randomInt(MIN_CODE, MIN_CODE + CODE_RANGE)
+        : Math.floor(MIN_CODE + Math.random() * CODE_RANGE);
+    const verificationCode = verificationCodeNumber.toString();
     localStorage.setItem(`smuve_verification_${creds.email.toLowerCase()}`, verificationCode);
     console.log(`[SYSTEM MAIL] Verification code for ${creds.email}: ${verificationCode}`);
     
