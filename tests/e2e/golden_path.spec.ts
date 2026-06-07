@@ -1,10 +1,19 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('SMUVE 2.0 Golden Path Verification', () => {
+<<<<<<< HEAD
   test('should complete the full artist onboarding and enter studio', async ({ page }) => {
     // 1. Login/Register (Assuming bypass or mock)
     await page.goto('/login');
     await expect(page.locator('body')).toBeVisible();
+=======
+  test('should complete the full artist onboarding and enter studio', async ({
+    page,
+  }) => {
+    // 1. Login/Register (Assuming bypass or mock)
+    await page.goto('/login');
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+>>>>>>> origin/main
 
     // Fill in credentials for a new artist
     await page.fill('input[type="email"]', 'elite_artist@smuve.ai');

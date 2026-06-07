@@ -80,8 +80,19 @@
       "icon": "sports_basketball",
       "description": "Athletic sims, head-to-head runs, and tournament ladders.",
       "rules": {
+<<<<<<< HEAD
         "genres": ["Sports"],
         "tags": ["Basketball", "Soccer", "Football"]
+=======
+        "genres": [
+          "Sports"
+        ],
+        "tags": [
+          "Basketball",
+          "Soccer",
+          "Football"
+        ]
+>>>>>>> origin/main
       }
     },
     {
@@ -91,7 +102,13 @@
       "description": "Combo-first cabinets, bracket tension, and head-to-head pressure sets.",
       "spotlight": "Built for versus specialists and live fight-night rotations.",
       "rules": {
+<<<<<<< HEAD
         "genres": ["Fighting"]
+=======
+        "genres": [
+          "Fighting"
+        ]
+>>>>>>> origin/main
       }
     },
     {
@@ -101,7 +118,13 @@
       "description": "Aim drills, tactical firefights, and high-pressure ranged runs.",
       "spotlight": "Highlights tactical shooters, squad lanes, and live-fire rotations.",
       "rules": {
+<<<<<<< HEAD
         "genres": ["Shooting"]
+=======
+        "genres": [
+          "Shooting"
+        ]
+>>>>>>> origin/main
       }
     },
     {
@@ -111,7 +134,13 @@
       "description": "Progression-heavy adventures, hero builds, raids, and campaign depth.",
       "spotlight": "Curates every cabinet tagged for RPG progression and boss-run depth.",
       "rules": {
+<<<<<<< HEAD
         "tags": ["RPG"]
+=======
+        "tags": [
+          "RPG"
+        ]
+>>>>>>> origin/main
       }
     },
     {
@@ -121,7 +150,13 @@
       "description": "Squad-first cabinets tuned for online co-op, raids, and shared objectives.",
       "spotlight": "Live squad matchmaking prioritizes shared online objectives.",
       "rules": {
+<<<<<<< HEAD
         "tags": ["Co-op"]
+=======
+        "tags": [
+          "Co-op"
+        ]
+>>>>>>> origin/main
       }
     },
     {
@@ -130,7 +165,15 @@
       "icon": "psychology",
       "description": "High-IQ play, puzzle solving, and room-based mind games.",
       "rules": {
+<<<<<<< HEAD
         "genres": ["Strategy", "Puzzle", "Classic"]
+=======
+        "genres": [
+          "Strategy",
+          "Puzzle",
+          "Classic"
+        ]
+>>>>>>> origin/main
       }
     },
     {
@@ -141,7 +184,14 @@
       "limitedTime": true,
       "spotlight": "Rotates with live events and staff promotions.",
       "rules": {
+<<<<<<< HEAD
         "badgeIds": ["featured", "tournament-live"]
+=======
+        "badgeIds": [
+          "featured",
+          "tournament-live"
+        ]
+>>>>>>> origin/main
       }
     }
   ],
@@ -160,7 +210,14 @@
         "startAt": "2026-04-04T20:00:00.000Z",
         "endAt": "2026-04-07T05:00:00.000Z",
         "recurrence": "weekend",
+<<<<<<< HEAD
         "eligibilityTags": ["Multiplayer", "PvP"],
+=======
+        "eligibilityTags": [
+          "Multiplayer",
+          "PvP"
+        ],
+>>>>>>> origin/main
         "rewardType": "cosmetic"
       }
     },
@@ -178,7 +235,14 @@
         "startAt": "2026-04-06T20:00:00.000Z",
         "endAt": "2026-04-07T20:00:00.000Z",
         "recurrence": "daily",
+<<<<<<< HEAD
         "eligibilityTags": ["Rhythm", "Original"],
+=======
+        "eligibilityTags": [
+          "Rhythm",
+          "Original"
+        ],
+>>>>>>> origin/main
         "rewardType": "cosmetic"
       }
     },
@@ -196,7 +260,13 @@
         "startAt": "2026-04-05T00:00:00.000Z",
         "endAt": "2026-04-07T12:00:00.000Z",
         "recurrence": "weekend",
+<<<<<<< HEAD
         "eligibilityTags": ["Featured"],
+=======
+        "eligibilityTags": [
+          "Featured"
+        ],
+>>>>>>> origin/main
         "rewardType": "token"
       }
     },
@@ -214,7 +284,14 @@
         "startAt": "2026-04-11T20:00:00.000Z",
         "endAt": "2026-04-14T04:00:00.000Z",
         "recurrence": "weekend",
+<<<<<<< HEAD
         "eligibilityTags": ["Fighting", "Multiplayer"],
+=======
+        "eligibilityTags": [
+          "Fighting",
+          "Multiplayer"
+        ],
+>>>>>>> origin/main
         "rewardType": "cosmetic"
       }
     },
@@ -232,7 +309,14 @@
         "startAt": "2026-04-12T18:00:00.000Z",
         "endAt": "2026-04-13T06:00:00.000Z",
         "recurrence": "daily",
+<<<<<<< HEAD
         "eligibilityTags": ["Co-op", "Multiplayer"],
+=======
+        "eligibilityTags": [
+          "Co-op",
+          "Multiplayer"
+        ],
+>>>>>>> origin/main
         "rewardType": "token"
       }
     }
@@ -345,11 +429,27 @@
       "route": "/studio",
       "icon": "tune",
       "cta": "Open Studio",
+<<<<<<< HEAD
       "roomIds": ["producer-lounge"],
       "audienceTags": ["producer", "returning"],
       "priority": 10,
       "campaignType": "studio",
       "gameIds": ["2", "5"]
+=======
+      "roomIds": [
+        "producer-lounge"
+      ],
+      "audienceTags": [
+        "producer",
+        "returning"
+      ],
+      "priority": 10,
+      "campaignType": "studio",
+      "gameIds": [
+        "2",
+        "5"
+      ]
+>>>>>>> origin/main
     },
     {
       "id": "promo-2",
@@ -358,11 +458,29 @@
       "route": "/remix-arena",
       "icon": "equalizer",
       "cta": "Go to Remix Arena",
+<<<<<<< HEAD
       "roomIds": ["versus-night", "weekend-clash"],
       "audienceTags": ["competitive", "social"],
       "priority": 9,
       "campaignType": "arena",
       "gameIds": ["1", "super-street-fighter", "13"]
+=======
+      "roomIds": [
+        "versus-night",
+        "weekend-clash"
+      ],
+      "audienceTags": [
+        "competitive",
+        "social"
+      ],
+      "priority": 9,
+      "campaignType": "arena",
+      "gameIds": [
+        "1",
+        "super-street-fighter",
+        "13"
+      ]
+>>>>>>> origin/main
     },
     {
       "id": "promo-3",
@@ -371,8 +489,19 @@
       "route": "/strategy",
       "icon": "analytics",
       "cta": "Open Intel",
+<<<<<<< HEAD
       "roomIds": ["strategy", "sports"],
       "audienceTags": ["competitive", "returning"],
+=======
+      "roomIds": [
+        "strategy",
+        "sports"
+      ],
+      "audienceTags": [
+        "competitive",
+        "returning"
+      ],
+>>>>>>> origin/main
       "priority": 8,
       "campaignType": "intel"
     }
@@ -388,11 +517,27 @@
       "rating": 4.9,
       "playersOnline": 1250,
       "availability": "Hybrid",
+<<<<<<< HEAD
       "tags": ["Multiplayer", "Original", "PvP", "Combat"],
       "multiplayerType": "Server",
       "aiSupportLevel": "Advanced",
       "aiBriefing": "Establish dominance in the rap battle arena. Neural sync is tuned for rhythm precision.",
       "badgeIds": ["featured", "tournament-live"],
+=======
+      "tags": [
+        "Multiplayer",
+        "Original",
+        "PvP",
+        "Combat"
+      ],
+      "multiplayerType": "Server",
+      "aiSupportLevel": "Advanced",
+      "aiBriefing": "Establish dominance in the rap battle arena. Neural sync is tuned for rhythm precision.",
+      "badgeIds": [
+        "featured",
+        "tournament-live"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 3,
       "sessionObjectives": [
         "Win two call-and-response rounds",
@@ -404,12 +549,27 @@
       ],
       "launchConfig": {
         "difficulty": "Competitive",
+<<<<<<< HEAD
         "controls": ["Keyboard lanes", "Space to trigger boosts"],
+=======
+        "controls": [
+          "Keyboard lanes",
+          "Space to trigger boosts"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Finish top 3 in the lobby",
           "Maintain 90% rhythm accuracy"
         ],
+<<<<<<< HEAD
         "modes": ["Solo", "Versus", "Tournament"],
+=======
+        "modes": [
+          "Solo",
+          "Versus",
+          "Tournament"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Hybrid internal cabinet with live bracket telemetry.",
         "embedMode": "inline",
@@ -421,7 +581,12 @@
         "eyebrow": "Hybrid",
         "accentStart": "#10b981",
         "accentEnd": "#0f766e"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1514525253361-bee8718a300c?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "2",
@@ -432,6 +597,7 @@
       "rating": 4.7,
       "playersOnline": 850,
       "availability": "Hybrid",
+<<<<<<< HEAD
       "tags": ["Multiplayer", "Original", "Co-op", "Rhythm"],
       "multiplayerType": "Server",
       "aiSupportLevel": "Neural",
@@ -439,15 +605,49 @@
       "badgeIds": ["staff-pick"],
       "queueEstimateMinutes": 2,
       "sessionObjectives": ["Land 3 clean transitions", "Chain a team combo"],
+=======
+      "tags": [
+        "Multiplayer",
+        "Original",
+        "Co-op",
+        "Rhythm"
+      ],
+      "multiplayerType": "Server",
+      "aiSupportLevel": "Neural",
+      "aiBriefing": "Collaborative remix engine is live. S.M.U.V.E. is balancing the sonic stems.",
+      "badgeIds": [
+        "staff-pick"
+      ],
+      "queueEstimateMinutes": 2,
+      "sessionObjectives": [
+        "Land 3 clean transitions",
+        "Chain a team combo"
+      ],
+>>>>>>> origin/main
       "controlHints": [
         "Swap stems before tension peaks",
         "Watch teammate cue indicators"
       ],
       "launchConfig": {
         "difficulty": "Crew",
+<<<<<<< HEAD
         "controls": ["Keyboard", "Mouse"],
         "objectives": ["Keep crowd energy above 80%", "Hit one perfect drop"],
         "modes": ["Co-op", "Versus"],
+=======
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+        "objectives": [
+          "Keep crowd energy above 80%",
+          "Hit one perfect drop"
+        ],
+        "modes": [
+          "Co-op",
+          "Versus"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Internal remix cabinet with shared beat telemetry.",
         "embedMode": "inline",
@@ -459,7 +659,12 @@
         "eyebrow": "Hybrid",
         "accentStart": "#22c55e",
         "accentEnd": "#14b8a6"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "3",
@@ -470,6 +675,7 @@
       "rating": 4.8,
       "playersOnline": 420,
       "availability": "Offline",
+<<<<<<< HEAD
       "tags": ["Arcade", "Offline", "Reflex"],
       "badgeIds": ["featured"],
       "queueEstimateMinutes": 0,
@@ -478,11 +684,41 @@
       "launchConfig": {
         "difficulty": "Medium",
         "controls": ["Arrow keys"],
+=======
+      "tags": [
+        "Arcade",
+        "Offline",
+        "Reflex"
+      ],
+      "badgeIds": [
+        "featured"
+      ],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Survive 90 seconds",
+        "Complete a 12-lane chain"
+      ],
+      "controlHints": [
+        "Feather turns early",
+        "Stay centered before boosts"
+      ],
+      "launchConfig": {
+        "difficulty": "Medium",
+        "controls": [
+          "Arrow keys"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Finish the first sector clean",
           "Hold one flawless boost chain"
         ],
+<<<<<<< HEAD
         "modes": ["Solo"],
+=======
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Offline cabinet validated for embedded launch.",
         "embedMode": "inline",
@@ -494,7 +730,12 @@
         "eyebrow": "Offline",
         "accentStart": "#38bdf8",
         "accentEnd": "#6366f1"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "4",
@@ -505,8 +746,19 @@
       "rating": 4.7,
       "playersOnline": 260,
       "availability": "Offline",
+<<<<<<< HEAD
       "tags": ["Puzzle", "Offline", "Memory"],
       "badgeIds": ["staff-pick"],
+=======
+      "tags": [
+        "Puzzle",
+        "Offline",
+        "Memory"
+      ],
+      "badgeIds": [
+        "staff-pick"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Clear the board in under 2 minutes",
@@ -518,12 +770,24 @@
       ],
       "launchConfig": {
         "difficulty": "Accessible",
+<<<<<<< HEAD
         "controls": ["Mouse"],
+=======
+        "controls": [
+          "Mouse"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Land a clean memory cycle",
           "Reveal every pair without rushing"
         ],
+<<<<<<< HEAD
         "modes": ["Solo"],
+=======
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Offline cabinet with direct local launch.",
         "embedMode": "inline",
@@ -535,7 +799,12 @@
         "eyebrow": "Offline",
         "accentStart": "#f59e0b",
         "accentEnd": "#f97316"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "5",
@@ -546,8 +815,19 @@
       "rating": 4.8,
       "playersOnline": 390,
       "availability": "Offline",
+<<<<<<< HEAD
       "tags": ["Rhythm", "Arcade", "Original"],
       "badgeIds": ["new-drop"],
+=======
+      "tags": [
+        "Rhythm",
+        "Arcade",
+        "Original"
+      ],
+      "badgeIds": [
+        "new-drop"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Hold a clean 25-note run",
@@ -559,12 +839,24 @@
       ],
       "launchConfig": {
         "difficulty": "Adaptive",
+<<<<<<< HEAD
         "controls": ["Lane keys"],
+=======
+        "controls": [
+          "Lane keys"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Keep the pulse meter green",
           "Finish one perfect chorus"
         ],
+<<<<<<< HEAD
         "modes": ["Solo"],
+=======
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Internal rhythm cabinet with fast recovery.",
         "embedMode": "inline",
@@ -576,7 +868,12 @@
         "eyebrow": "Offline",
         "accentStart": "#34d399",
         "accentEnd": "#059669"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "6",
@@ -587,32 +884,73 @@
       "rating": 4.8,
       "playersOnline": 5200,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Classic", "Arcade", "Retro"],
       "badgeIds": ["trending"],
+=======
+      "tags": [
+        "Classic",
+        "Arcade",
+        "Retro"
+      ],
+      "badgeIds": [
+        "trending"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 1,
       "sessionObjectives": [
         "Hold the ring for 4 minutes",
         "Clear one high-speed cycle"
       ],
+<<<<<<< HEAD
       "controlHints": ["Rotate early", "Keep two lanes open for recovery"],
       "launchConfig": {
         "difficulty": "Reflex",
         "controls": ["Left / Right arrows"],
         "objectives": ["Beat the daily board", "Stabilize after speed spikes"],
         "modes": ["Solo"],
+=======
+      "controlHints": [
+        "Rotate early",
+        "Keep two lanes open for recovery"
+      ],
+      "launchConfig": {
+        "difficulty": "Reflex",
+        "controls": [
+          "Left / Right arrows"
+        ],
+        "objectives": [
+          "Beat the daily board",
+          "Stabilize after speed spikes"
+        ],
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Embedded from an allowlisted partner domain.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://hextris.github.io/hextris/",
         "approvedEmbedUrl": "https://hextris.github.io/hextris/",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://hextris.github.io"]
+=======
+        "telemetryOrigins": [
+          "https://hextris.github.io"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Online",
         "accentStart": "#06b6d4",
         "accentEnd": "#2563eb"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "7",
@@ -623,10 +961,23 @@
       "rating": 4.7,
       "playersOnline": 6300,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Classic", "AI", "Logic"],
       "aiSupportLevel": "Neural",
       "aiBriefing": "S.M.U.V.E. is analyzing the logic matrix for optimal number combination strategies.",
       "badgeIds": ["staff-pick"],
+=======
+      "tags": [
+        "Classic",
+        "AI",
+        "Logic"
+      ],
+      "aiSupportLevel": "Neural",
+      "aiBriefing": "S.M.U.V.E. is analyzing the logic matrix for optimal number combination strategies.",
+      "badgeIds": [
+        "staff-pick"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Hit 2048 in under 10 minutes",
@@ -638,22 +989,46 @@
       ],
       "launchConfig": {
         "difficulty": "Thinking",
+<<<<<<< HEAD
         "controls": ["Arrow keys"],
         "objectives": ["Protect one anchor lane", "Finish a clean merge path"],
         "modes": ["Solo"],
+=======
+        "controls": [
+          "Arrow keys"
+        ],
+        "objectives": [
+          "Protect one anchor lane",
+          "Finish a clean merge path"
+        ],
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted logic partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://play2048.co/",
         "approvedEmbedUrl": "https://play2048.co/",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://play2048.co"]
+=======
+        "telemetryOrigins": [
+          "https://play2048.co"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Online",
         "accentStart": "#f97316",
         "accentEnd": "#ea580c"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "8",
@@ -664,32 +1039,73 @@
       "rating": 4.5,
       "playersOnline": 2100,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Arcade", "Reflex", "Rhythm"],
       "badgeIds": ["featured"],
+=======
+      "tags": [
+        "Arcade",
+        "Reflex",
+        "Rhythm"
+      ],
+      "badgeIds": [
+        "featured"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Hold a clean combo for 60 seconds",
         "Clear one hazard rush"
       ],
+<<<<<<< HEAD
       "controlHints": ["Jump on offbeats", "Use slides to reset timing"],
       "launchConfig": {
         "difficulty": "Fast",
         "controls": ["Keyboard"],
         "objectives": ["Protect your streak", "Stay centered during doubles"],
         "modes": ["Solo"],
+=======
+      "controlHints": [
+        "Jump on offbeats",
+        "Use slides to reset timing"
+      ],
+      "launchConfig": {
+        "difficulty": "Fast",
+        "controls": [
+          "Keyboard"
+        ],
+        "objectives": [
+          "Protect your streak",
+          "Stay centered during doubles"
+        ],
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted arcade partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://htmlgames.com/game/Beat+Runner",
         "approvedEmbedUrl": "https://www.gamepix.com/play/music-rush",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Online",
         "accentStart": "#ec4899",
         "accentEnd": "#db2777"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "9",
@@ -700,32 +1116,73 @@
       "rating": 4.9,
       "playersOnline": 15400,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Classic", "Arcade", "Retro", "station-cabinet"],
       "badgeIds": ["trending"],
       "queueEstimateMinutes": 0,
       "sessionObjectives": ["Clear two boards", "Bank one ghost combo"],
+=======
+      "tags": [
+        "Classic",
+        "Arcade",
+        "Retro",
+        "station-cabinet"
+      ],
+      "badgeIds": [
+        "trending"
+      ],
+      "queueEstimateMinutes": 0,
+      "sessionObjectives": [
+        "Clear two boards",
+        "Bank one ghost combo"
+      ],
+>>>>>>> origin/main
       "controlHints": [
         "Use corners for ghost control",
         "Commit to power-pellet routes"
       ],
       "launchConfig": {
         "difficulty": "Classic",
+<<<<<<< HEAD
         "controls": ["Arrow keys"],
         "objectives": ["Beat your route time", "Convert a full power cycle"],
         "modes": ["Solo"],
+=======
+        "controls": [
+          "Arrow keys"
+        ],
+        "objectives": [
+          "Beat your route time",
+          "Convert a full power cycle"
+        ],
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted retro partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://pacman.live/play.html",
         "approvedEmbedUrl": "https://pacman.live/play.html",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://pacman.live"]
+=======
+        "telemetryOrigins": [
+          "https://pacman.live"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Arcade",
         "accentStart": "#facc15",
         "accentEnd": "#eab308"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "super-street-fighter",
@@ -736,8 +1193,21 @@
       "rating": 4.7,
       "playersOnline": 4500,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Combat", "Arcade", "Classic", "Fighting", "station-cabinet"],
       "badgeIds": ["tournament-live"],
+=======
+      "tags": [
+        "Combat",
+        "Arcade",
+        "Classic",
+        "Fighting",
+        "station-cabinet"
+      ],
+      "badgeIds": [
+        "tournament-live"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 2,
       "sessionObjectives": [
         "Defeat 4 opponents in arcade mode",
@@ -749,26 +1219,50 @@
       ],
       "launchConfig": {
         "difficulty": "Bracket",
+<<<<<<< HEAD
         "controls": ["Keyboard"],
+=======
+        "controls": [
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Survive the first bracket round",
           "Convert one punish cleanly"
         ],
+<<<<<<< HEAD
         "modes": ["Solo", "Versus"],
+=======
+        "modes": [
+          "Solo",
+          "Versus"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Executive-grade retro combat cabinet.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.retrogames.cc"]
+=======
+        "telemetryOrigins": [
+          "https://www.retrogames.cc"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Combat",
         "accentStart": "#f97316",
         "accentEnd": "#c2410c"
       },
+<<<<<<< HEAD
       "multiplayerType": "Server"
+=======
+      "multiplayerType": "Server",
+      "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "11",
@@ -779,8 +1273,20 @@
       "rating": 4.9,
       "playersOnline": 32400,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Strategy", "Logic", "Classic", "station-pod"],
       "badgeIds": ["trending"],
+=======
+      "tags": [
+        "Strategy",
+        "Logic",
+        "Classic",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "trending"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 1,
       "sessionObjectives": [
         "Win material by move 15",
@@ -792,22 +1298,47 @@
       ],
       "launchConfig": {
         "difficulty": "Ranked",
+<<<<<<< HEAD
         "controls": ["Mouse"],
         "objectives": ["Hold tempo", "Convert one structural edge"],
         "modes": ["Solo", "Versus"],
+=======
+        "controls": [
+          "Mouse"
+        ],
+        "objectives": [
+          "Hold tempo",
+          "Convert one structural edge"
+        ],
+        "modes": [
+          "Solo",
+          "Versus"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted strategy partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/chess-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/chess-classic",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Strategy",
         "accentStart": "#f8fafc",
         "accentEnd": "#1e293b"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1553481187-be93c21490a9?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "12",
@@ -818,32 +1349,75 @@
       "rating": 4.5,
       "playersOnline": 7800,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Sports", "Basketball", "Competitive", "station-pod"],
       "badgeIds": ["featured"],
+=======
+      "tags": [
+        "Sports",
+        "Basketball",
+        "Competitive",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "featured"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 1,
       "sessionObjectives": [
         "Win by 5",
         "Land three clean possessions in a row"
       ],
+<<<<<<< HEAD
       "controlHints": ["Save boost for fast breaks", "Defend the paint first"],
       "launchConfig": {
         "difficulty": "Competitive",
         "controls": ["Keyboard"],
         "objectives": ["Control tempo", "Close the game in the final minute"],
         "modes": ["Solo", "Versus"],
+=======
+      "controlHints": [
+        "Save boost for fast breaks",
+        "Defend the paint first"
+      ],
+      "launchConfig": {
+        "difficulty": "Competitive",
+        "controls": [
+          "Keyboard"
+        ],
+        "objectives": [
+          "Control tempo",
+          "Close the game in the final minute"
+        ],
+        "modes": [
+          "Solo",
+          "Versus"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted sports partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/basket-random",
         "approvedEmbedUrl": "https://www.gamepix.com/play/basket-random",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Sports",
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "13",
@@ -854,33 +1428,78 @@
       "rating": 4.8,
       "playersOnline": 42000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Sports", "Soccer", "Tournament", "Multiplayer", "station-pod"],
       "badgeIds": ["tournament-live", "trending"],
       "queueEstimateMinutes": 2,
       "sessionObjectives": ["Keep a clean sheet", "Finish two fast breaks"],
+=======
+      "tags": [
+        "Sports",
+        "Soccer",
+        "Tournament",
+        "Multiplayer",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "tournament-live",
+        "trending"
+      ],
+      "queueEstimateMinutes": 2,
+      "sessionObjectives": [
+        "Keep a clean sheet",
+        "Finish two fast breaks"
+      ],
+>>>>>>> origin/main
       "controlHints": [
         "Switch fields early",
         "Exploit wide channels on counters"
       ],
       "launchConfig": {
         "difficulty": "Tournament",
+<<<<<<< HEAD
         "controls": ["Keyboard"],
         "objectives": ["Survive extra time", "Hold your lead under pressure"],
         "modes": ["Solo", "Versus", "Tournament"],
+=======
+        "controls": [
+          "Keyboard"
+        ],
+        "objectives": [
+          "Survive extra time",
+          "Hold your lead under pressure"
+        ],
+        "modes": [
+          "Solo",
+          "Versus",
+          "Tournament"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted tournament partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
         "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Sports",
         "accentStart": "#10b981",
         "accentEnd": "#064e3b"
       },
+<<<<<<< HEAD
       "multiplayerType": "Server"
+=======
+      "multiplayerType": "Server",
+      "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "14",
@@ -891,8 +1510,20 @@
       "rating": 4.8,
       "playersOnline": 45000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Cards", "Logic", "Classic", "station-pod"],
       "badgeIds": ["staff-pick"],
+=======
+      "tags": [
+        "Cards",
+        "Logic",
+        "Classic",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "staff-pick"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Finish one clean board",
@@ -904,22 +1535,46 @@
       ],
       "launchConfig": {
         "difficulty": "Calm",
+<<<<<<< HEAD
         "controls": ["Mouse"],
         "objectives": ["Finish under par", "Keep the board open"],
         "modes": ["Solo"],
+=======
+        "controls": [
+          "Mouse"
+        ],
+        "objectives": [
+          "Finish under par",
+          "Keep the board open"
+        ],
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted classic partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/solitaire-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Cards",
         "accentStart": "#ef4444",
         "accentEnd": "#b91c1c"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1553481187-be93c21490a9?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "15",
@@ -930,10 +1585,26 @@
       "rating": 4.8,
       "playersOnline": 510,
       "availability": "Offline",
+<<<<<<< HEAD
       "tags": ["Puzzle", "AI", "Original", "Logic", "station-pod"],
       "aiSupportLevel": "Advanced",
       "aiBriefing": "Adaptive sequence logic sharpens each round and rewards clean recall under pressure.",
       "badgeIds": ["new-drop", "staff-pick"],
+=======
+      "tags": [
+        "Puzzle",
+        "AI",
+        "Original",
+        "Logic",
+        "station-pod"
+      ],
+      "aiSupportLevel": "Advanced",
+      "aiBriefing": "Adaptive sequence logic sharpens each round and rewards clean recall under pressure.",
+      "badgeIds": [
+        "new-drop",
+        "staff-pick"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Clear five neural rounds",
@@ -945,12 +1616,24 @@
       ],
       "launchConfig": {
         "difficulty": "Adaptive",
+<<<<<<< HEAD
         "controls": ["Mouse or touch"],
+=======
+        "controls": [
+          "Mouse or touch"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Hold integrity above 70%",
           "Perfect one full pattern chain"
         ],
+<<<<<<< HEAD
         "modes": ["Solo"],
+=======
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Internal AI puzzle cabinet tuned for embedded offline play.",
         "embedMode": "inline",
@@ -962,7 +1645,12 @@
         "eyebrow": "AI Puzzle",
         "accentStart": "#8b5cf6",
         "accentEnd": "#4c1d95"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "16",
@@ -973,9 +1661,24 @@
       "rating": 4.8,
       "playersOnline": 28000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Multiplayer", "Versus", "Combat", "Arcade", "station-pod"],
       "multiplayerType": "Server",
       "badgeIds": ["featured", "tournament-live"],
+=======
+      "tags": [
+        "Multiplayer",
+        "Versus",
+        "Combat",
+        "Arcade",
+        "station-pod"
+      ],
+      "multiplayerType": "Server",
+      "badgeIds": [
+        "featured",
+        "tournament-live"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 2,
       "sessionObjectives": [
         "Win one arena set",
@@ -987,25 +1690,50 @@
       ],
       "launchConfig": {
         "difficulty": "Competitive",
+<<<<<<< HEAD
         "controls": ["Keyboard"],
+=======
+        "controls": [
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Stay alive for the full round",
           "Chain one clean boost finish"
         ],
+<<<<<<< HEAD
         "modes": ["Solo", "Versus", "Tournament"],
+=======
+        "modes": [
+          "Solo",
+          "Versus",
+          "Tournament"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted competitive kart partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/kart-fight",
         "approvedEmbedUrl": "https://www.gamepix.com/play/kart-fight",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Kart Combat",
         "accentStart": "#fb7185",
         "accentEnd": "#be123c"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "17",
@@ -1016,8 +1744,20 @@
       "rating": 4.8,
       "playersOnline": 47000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Arcade", "Reflex", "Trending", "station-pod"],
       "badgeIds": ["trending"],
+=======
+      "tags": [
+        "Arcade",
+        "Reflex",
+        "Trending",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "trending"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Hold one clean streak for 90 seconds",
@@ -1029,25 +1769,48 @@
       ],
       "launchConfig": {
         "difficulty": "Fast",
+<<<<<<< HEAD
         "controls": ["Keyboard"],
+=======
+        "controls": [
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Beat your last distance",
           "Hold a stable combo through traffic spikes"
         ],
+<<<<<<< HEAD
         "modes": ["Solo"],
+=======
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted premium runner partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/rail-surfers",
         "approvedEmbedUrl": "https://www.gamepix.com/play/rail-surfers",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Runner",
         "accentStart": "#22c55e",
         "accentEnd": "#0f766e"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "18",
@@ -1058,8 +1821,20 @@
       "rating": 4.8,
       "playersOnline": 18500,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Arcade", "Reflex", "Stunts", "station-pod"],
       "badgeIds": ["featured"],
+=======
+      "tags": [
+        "Arcade",
+        "Reflex",
+        "Stunts",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "featured"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Clear one stunt run without crashing",
@@ -1071,25 +1846,48 @@
       ],
       "launchConfig": {
         "difficulty": "Skill",
+<<<<<<< HEAD
         "controls": ["Keyboard"],
+=======
+        "controls": [
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Finish clean under par time",
           "Reset quickly after failed landings"
         ],
+<<<<<<< HEAD
         "modes": ["Solo"],
+=======
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted stunt racing partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/moto-x3m",
         "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Stunt Racing",
         "accentStart": "#f97316",
         "accentEnd": "#9a3412"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "19",
@@ -1100,8 +1898,20 @@
       "rating": 4.7,
       "playersOnline": 39500,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Arcade", "Reflex", "Adventure", "station-pod"],
       "badgeIds": ["staff-pick"],
+=======
+      "tags": [
+        "Arcade",
+        "Reflex",
+        "Adventure",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "staff-pick"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Survive the opening chase cleanly",
@@ -1113,25 +1923,48 @@
       ],
       "launchConfig": {
         "difficulty": "Endless",
+<<<<<<< HEAD
         "controls": ["Keyboard"],
+=======
+        "controls": [
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Beat your previous run distance",
           "Keep momentum through one full hazard cycle"
         ],
+<<<<<<< HEAD
         "modes": ["Solo"],
+=======
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted endless runner partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/tomb-runner",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tomb-runner",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Adventure Runner",
         "accentStart": "#14b8a6",
         "accentEnd": "#155e75"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "20",
@@ -1142,8 +1975,20 @@
       "rating": 4.6,
       "playersOnline": 9600,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Puzzle", "Arcade", "Physics", "station-pod"],
       "badgeIds": ["staff-pick"],
+=======
+      "tags": [
+        "Puzzle",
+        "Arcade",
+        "Physics",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "staff-pick"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Hold a balanced tower through 12 drops",
@@ -1155,25 +2000,48 @@
       ],
       "launchConfig": {
         "difficulty": "Focus",
+<<<<<<< HEAD
         "controls": ["Mouse or touch"],
+=======
+        "controls": [
+          "Mouse or touch"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Finish one clean tower run",
           "Recover after one risky placement"
         ],
+<<<<<<< HEAD
         "modes": ["Solo"],
+=======
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted arcade builder partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/tower-build",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-build",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Skyline Builder",
         "accentStart": "#38bdf8",
         "accentEnd": "#0f172a"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "21",
@@ -1184,8 +2052,21 @@
       "rating": 4.7,
       "playersOnline": 12800,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Sports", "Pool", "Precision", "Classic", "station-pod"],
       "badgeIds": ["featured"],
+=======
+      "tags": [
+        "Sports",
+        "Pool",
+        "Precision",
+        "Classic",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "featured"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 1,
       "sessionObjectives": [
         "Clear solids or stripes without a scratch",
@@ -1197,25 +2078,49 @@
       ],
       "launchConfig": {
         "difficulty": "Competitive",
+<<<<<<< HEAD
         "controls": ["Mouse"],
+=======
+        "controls": [
+          "Mouse"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Win one full rack",
           "Protect cue-ball position after contact"
         ],
+<<<<<<< HEAD
         "modes": ["Solo", "Versus"],
+=======
+        "modes": [
+          "Solo",
+          "Versus"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted precision sports partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Cue Sports",
         "accentStart": "#14b8a6",
         "accentEnd": "#164e63"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "22",
@@ -1226,8 +2131,21 @@
       "rating": 4.7,
       "playersOnline": 8400,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Puzzle", "Classic", "Logic", "Strategy", "station-pod"],
       "badgeIds": ["staff-pick"],
+=======
+      "tags": [
+        "Puzzle",
+        "Classic",
+        "Logic",
+        "Strategy",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "staff-pick"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Clear the outer rows first",
@@ -1239,25 +2157,48 @@
       ],
       "launchConfig": {
         "difficulty": "Thinking",
+<<<<<<< HEAD
         "controls": ["Mouse or touch"],
+=======
+        "controls": [
+          "Mouse or touch"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Finish one clean board",
           "Keep two match options available"
         ],
+<<<<<<< HEAD
         "modes": ["Solo"],
+=======
+        "modes": [
+          "Solo"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted puzzle partner with inline launch support.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/mahjong-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/mahjong-classic",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Logic Tiles",
         "accentStart": "#a855f7",
         "accentEnd": "#312e81"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "23",
@@ -1268,17 +2209,42 @@
       "rating": 4.8,
       "playersOnline": 15000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Shooting", "Action", "Tactical", "Multiplayer", "station-pod"],
       "badgeIds": ["featured"],
       "launchConfig": {
         "difficulty": "Hard",
         "controls": ["Keyboard", "Mouse"],
+=======
+      "tags": [
+        "Shooting",
+        "Action",
+        "Tactical",
+        "Multiplayer",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "featured"
+      ],
+      "launchConfig": {
+        "difficulty": "Hard",
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tactical-squad",
         "approvedExternalUrl": "https://www.gamepix.com/play/tactical-squad",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
@@ -1295,7 +2261,12 @@
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "24",
@@ -1306,24 +2277,54 @@
       "rating": 4.7,
       "playersOnline": 9200,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["RPG", "Adventure", "Progressive", "Solo", "station-pod"],
       "badgeIds": ["staff-pick"],
       "launchConfig": {
         "difficulty": "Moderate",
         "controls": ["Touch", "Keyboard"],
+=======
+      "tags": [
+        "RPG",
+        "Adventure",
+        "Progressive",
+        "Solo",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/hero-adventure",
         "approvedExternalUrl": "https://www.gamepix.com/play/hero-adventure",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "25",
@@ -1343,13 +2344,26 @@
       ],
       "launchConfig": {
         "difficulty": "Easy",
+<<<<<<< HEAD
         "controls": ["Touch", "Keyboard"],
+=======
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tank-wars",
         "approvedExternalUrl": "https://www.gamepix.com/play/tank-wars",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
@@ -1357,7 +2371,12 @@
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "26",
@@ -1368,23 +2387,49 @@
       "rating": 4.6,
       "playersOnline": 4200,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Sports", "Bowling", "Competitive", "station-pod"],
       "launchConfig": {
         "difficulty": "Moderate",
         "controls": ["Touch", "Mouse"],
+=======
+      "tags": [
+        "Sports",
+        "Bowling",
+        "Competitive",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/classic-bowling",
         "approvedExternalUrl": "https://www.gamepix.com/play/classic-bowling",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "27",
@@ -1395,24 +2440,54 @@
       "rating": 4.7,
       "playersOnline": 11000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["RPG", "Action", "Adventure", "Solo", "station-pod"],
       "badgeIds": ["trending"],
       "launchConfig": {
         "difficulty": "Hard",
         "controls": ["Touch", "Keyboard"],
+=======
+      "tags": [
+        "RPG",
+        "Action",
+        "Adventure",
+        "Solo",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "trending"
+      ],
+      "launchConfig": {
+        "difficulty": "Hard",
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/dungeon-fury",
         "approvedExternalUrl": "https://www.gamepix.com/play/dungeon-fury",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "28",
@@ -1423,17 +2498,42 @@
       "rating": 4.8,
       "playersOnline": 22000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Shooting", "Multiplayer", "Co-op", "Action", "station-pod"],
       "badgeIds": ["featured"],
       "launchConfig": {
         "difficulty": "Competitive",
         "controls": ["Keyboard", "Mouse"],
+=======
+      "tags": [
+        "Shooting",
+        "Multiplayer",
+        "Co-op",
+        "Action",
+        "station-pod"
+      ],
+      "badgeIds": [
+        "featured"
+      ],
+      "launchConfig": {
+        "difficulty": "Competitive",
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/special-strike",
         "approvedExternalUrl": "https://www.gamepix.com/play/special-strike",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
@@ -1450,7 +2550,12 @@
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "29",
@@ -1461,23 +2566,50 @@
       "rating": 4.5,
       "playersOnline": 5400,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Classic", "Shooting", "Arcade", "Solo", "station-cabinet"],
       "launchConfig": {
         "difficulty": "Moderate",
         "controls": ["Touch", "Keyboard"],
+=======
+      "tags": [
+        "Classic",
+        "Shooting",
+        "Arcade",
+        "Solo",
+        "station-cabinet"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/space-invaders",
         "approvedExternalUrl": "https://www.gamepix.com/play/space-invaders",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "30",
@@ -1488,23 +2620,50 @@
       "rating": 4.6,
       "playersOnline": 7200,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Sports", "Basketball", "Solo", "Competitive", "station-pod"],
       "launchConfig": {
         "difficulty": "Moderate",
         "controls": ["Touch", "Mouse"],
+=======
+      "tags": [
+        "Sports",
+        "Basketball",
+        "Solo",
+        "Competitive",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/basketball-master",
         "approvedExternalUrl": "https://www.gamepix.com/play/basketball-master",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "31",
@@ -1515,16 +2674,38 @@
       "rating": 4.8,
       "playersOnline": 18000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Sports", "Soccer", "Co-op", "Multiplayer", "station-pod"],
       "launchConfig": {
         "difficulty": "Easy",
         "controls": ["Touch", "Keyboard"],
+=======
+      "tags": [
+        "Sports",
+        "Soccer",
+        "Co-op",
+        "Multiplayer",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "difficulty": "Easy",
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
         "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
@@ -1532,7 +2713,12 @@
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "32",
@@ -1543,23 +2729,50 @@
       "rating": 4.9,
       "playersOnline": 12000,
       "availability": "Hybrid",
+<<<<<<< HEAD
       "tags": ["RPG", "Adventure", "Cyberpunk", "Solo", "station-pod"],
       "launchConfig": {
         "difficulty": "Hard",
         "controls": ["Touch", "Keyboard"],
+=======
+      "tags": [
+        "RPG",
+        "Adventure",
+        "Cyberpunk",
+        "Solo",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "difficulty": "Hard",
+        "controls": [
+          "Touch",
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
         "approvedExternalUrl": "https://www.gamepix.com/play/cyber-adventure",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "33",
@@ -1570,6 +2783,7 @@
       "rating": 4.7,
       "playersOnline": 8000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Shooting", "Action", "Tactical", "station-pod"],
       "launchConfig": {
         "difficulty": "Hard",
@@ -1578,13 +2792,37 @@
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/sniper-mission",
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+      "tags": [
+        "Shooting",
+        "Action",
+        "Tactical",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "difficulty": "Hard",
+        "controls": [
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/sniper-mission",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "34",
@@ -1595,6 +2833,7 @@
       "rating": 4.8,
       "playersOnline": 14000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["RPG", "Strategy", "Adventure", "station-pod"],
       "launchConfig": {
         "difficulty": "Moderate",
@@ -1603,13 +2842,38 @@
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-defense",
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+      "tags": [
+        "RPG",
+        "Strategy",
+        "Adventure",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tower-defense",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "35",
@@ -1620,6 +2884,7 @@
       "rating": 4.9,
       "playersOnline": 50000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Classic", "Strategy", "Solo", "station-cabinet"],
       "launchConfig": {
         "difficulty": "Moderate",
@@ -1628,13 +2893,38 @@
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+      "tags": [
+        "Classic",
+        "Strategy",
+        "Solo",
+        "station-cabinet"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "36",
@@ -1654,11 +2944,24 @@
       ],
       "launchConfig": {
         "difficulty": "Easy",
+<<<<<<< HEAD
         "controls": ["Touch", "Mouse"],
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/ludo-legend",
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/ludo-legend",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
@@ -1666,7 +2969,12 @@
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "37",
@@ -1677,6 +2985,7 @@
       "rating": 4.7,
       "playersOnline": 19000,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Shooting", "RPG", "Action", "Multiplayer", "station-pod"],
       "launchConfig": {
         "difficulty": "Moderate",
@@ -1685,6 +2994,27 @@
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/zombie-idle-defense",
         "telemetryOrigins": ["https://www.gamepix.com"],
+=======
+      "tags": [
+        "Shooting",
+        "RPG",
+        "Action",
+        "Multiplayer",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "difficulty": "Moderate",
+        "controls": [
+          "Touch",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/zombie-idle-defense",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "multiplayerType": "Server",
@@ -1701,7 +3031,12 @@
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "38",
@@ -1720,7 +3055,14 @@
         "station-cabinet"
       ],
       "multiplayerType": "Server",
+<<<<<<< HEAD
       "badgeIds": ["featured", "trending"],
+=======
+      "badgeIds": [
+        "featured",
+        "trending"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 3,
       "sessionObjectives": [
         "Win a best-of-three set",
@@ -1732,25 +3074,50 @@
       ],
       "launchConfig": {
         "difficulty": "Tournament",
+<<<<<<< HEAD
         "controls": ["Keyboard"],
+=======
+        "controls": [
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Climb one ranked division",
           "Finish a set without dropping neutral control"
         ],
+<<<<<<< HEAD
         "modes": ["Versus", "Ranked", "Tournament"],
+=======
+        "modes": [
+          "Versus",
+          "Ranked",
+          "Tournament"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted fight-night partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/arena-clash-x",
         "approvedEmbedUrl": "https://www.gamepix.com/play/arena-clash-x",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Fight Night",
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "39",
@@ -1761,9 +3128,23 @@
       "rating": 4.7,
       "playersOnline": 11200,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Fighting", "Co-op", "Multiplayer", "Combat", "station-cabinet"],
       "multiplayerType": "Server",
       "badgeIds": ["staff-pick"],
+=======
+      "tags": [
+        "Fighting",
+        "Co-op",
+        "Multiplayer",
+        "Combat",
+        "station-cabinet"
+      ],
+      "multiplayerType": "Server",
+      "badgeIds": [
+        "staff-pick"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 2,
       "sessionObjectives": [
         "Land one assist extension cleanly",
@@ -1775,25 +3156,49 @@
       ],
       "launchConfig": {
         "difficulty": "Squad",
+<<<<<<< HEAD
         "controls": ["Keyboard"],
+=======
+        "controls": [
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Coordinate one perfect tag finish",
           "Protect both fighters through the final round"
         ],
+<<<<<<< HEAD
         "modes": ["Co-op", "Versus"],
+=======
+        "modes": [
+          "Co-op",
+          "Versus"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted tag-fighter partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/tag-team-titans",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tag-team-titans",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Tag Battle",
         "accentStart": "#fb7185",
         "accentEnd": "#9f1239"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "40",
@@ -1812,7 +3217,13 @@
         "station-pod"
       ],
       "multiplayerType": "Server",
+<<<<<<< HEAD
       "badgeIds": ["featured"],
+=======
+      "badgeIds": [
+        "featured"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 2,
       "sessionObjectives": [
         "Convert two third downs in one drive",
@@ -1824,25 +3235,49 @@
       ],
       "launchConfig": {
         "difficulty": "Competitive",
+<<<<<<< HEAD
         "controls": ["Keyboard"],
+=======
+        "controls": [
+          "Keyboard"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Finish a drive without a turnover",
           "Control the fourth quarter clock"
         ],
+<<<<<<< HEAD
         "modes": ["Versus", "Season"],
+=======
+        "modes": [
+          "Versus",
+          "Season"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted football partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/gridiron-drive",
         "approvedEmbedUrl": "https://www.gamepix.com/play/gridiron-drive",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Prime Sports",
         "accentStart": "#22c55e",
         "accentEnd": "#14532d"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "41",
@@ -1853,9 +3288,23 @@
       "rating": 4.6,
       "playersOnline": 9600,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Sports", "Tennis", "Competitive", "Solo", "station-pod"],
       "multiplayerType": "None",
       "badgeIds": ["new-drop"],
+=======
+      "tags": [
+        "Sports",
+        "Tennis",
+        "Competitive",
+        "Solo",
+        "station-pod"
+      ],
+      "multiplayerType": "None",
+      "badgeIds": [
+        "new-drop"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 1,
       "sessionObjectives": [
         "Break serve once per set",
@@ -1867,25 +3316,50 @@
       ],
       "launchConfig": {
         "difficulty": "Tour",
+<<<<<<< HEAD
         "controls": ["Keyboard", "Mouse"],
+=======
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Advance one round in the bracket",
           "Close a deuce game without errors"
         ],
+<<<<<<< HEAD
         "modes": ["Solo", "Tournament"],
+=======
+        "modes": [
+          "Solo",
+          "Tournament"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted court-sports partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/rally-racquet-tour",
         "approvedEmbedUrl": "https://www.gamepix.com/play/rally-racquet-tour",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Court Tour",
         "accentStart": "#38bdf8",
         "accentEnd": "#0f766e"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "42",
@@ -1896,9 +3370,24 @@
       "rating": 4.8,
       "playersOnline": 21400,
       "availability": "Online",
+<<<<<<< HEAD
       "tags": ["Shooting", "Tactical", "Multiplayer", "Co-op", "station-pod"],
       "multiplayerType": "Server",
       "badgeIds": ["featured", "staff-pick"],
+=======
+      "tags": [
+        "Shooting",
+        "Tactical",
+        "Multiplayer",
+        "Co-op",
+        "station-pod"
+      ],
+      "multiplayerType": "Server",
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 4,
       "sessionObjectives": [
         "Secure one objective room without losing the squad lead",
@@ -1910,25 +3399,50 @@
       ],
       "launchConfig": {
         "difficulty": "Elite",
+<<<<<<< HEAD
         "controls": ["Keyboard", "Mouse"],
+=======
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Extract with the full squad alive",
           "Chain two objective clears in one run"
         ],
+<<<<<<< HEAD
         "modes": ["Co-op", "Squad Ops"],
+=======
+        "modes": [
+          "Co-op",
+          "Squad Ops"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted squad-ops partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/squad-ops-ghost-protocol",
         "approvedEmbedUrl": "https://www.gamepix.com/play/squad-ops-ghost-protocol",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Squad Fire",
         "accentStart": "#06b6d4",
         "accentEnd": "#164e63"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "43",
@@ -1948,7 +3462,13 @@
         "station-pod"
       ],
       "multiplayerType": "Server",
+<<<<<<< HEAD
       "badgeIds": ["trending"],
+=======
+      "badgeIds": [
+        "trending"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 3,
       "sessionObjectives": [
         "Complete one raid phase without a downed teammate",
@@ -1960,25 +3480,50 @@
       ],
       "launchConfig": {
         "difficulty": "Raid",
+<<<<<<< HEAD
         "controls": ["Keyboard", "Mouse"],
+=======
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Survive the final extraction",
           "Upgrade one squad role before the boss room"
         ],
+<<<<<<< HEAD
         "modes": ["Co-op", "Survival"],
+=======
+        "modes": [
+          "Co-op",
+          "Survival"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted online raid partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/raid-fireteam-z",
         "approvedEmbedUrl": "https://www.gamepix.com/play/raid-fireteam-z",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Raid Ops",
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "44",
@@ -1989,9 +3534,23 @@
       "rating": 4.8,
       "playersOnline": 14600,
       "availability": "Hybrid",
+<<<<<<< HEAD
       "tags": ["RPG", "Adventure", "Co-op", "Multiplayer", "station-pod"],
       "multiplayerType": "Server",
       "badgeIds": ["featured"],
+=======
+      "tags": [
+        "RPG",
+        "Adventure",
+        "Co-op",
+        "Multiplayer",
+        "station-pod"
+      ],
+      "multiplayerType": "Server",
+      "badgeIds": [
+        "featured"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 2,
       "sessionObjectives": [
         "Clear one raid wing without losing the support lane",
@@ -2003,25 +3562,51 @@
       ],
       "launchConfig": {
         "difficulty": "Raid",
+<<<<<<< HEAD
         "controls": ["Keyboard", "Mouse"],
+=======
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Finish one online dungeon",
           "Keep the party alive through the final phase"
         ],
+<<<<<<< HEAD
         "modes": ["Co-op", "Raid", "Adventure"],
+=======
+        "modes": [
+          "Co-op",
+          "Raid",
+          "Adventure"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted co-op RPG partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/mythic-raid-online",
         "approvedEmbedUrl": "https://www.gamepix.com/play/mythic-raid-online",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Raid RPG",
         "accentStart": "#8b5cf6",
         "accentEnd": "#4c1d95"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "45",
@@ -2032,9 +3617,24 @@
       "rating": 4.9,
       "playersOnline": 12500,
       "availability": "Hybrid",
+<<<<<<< HEAD
       "tags": ["RPG", "Adventure", "Progressive", "Solo", "station-pod"],
       "multiplayerType": "None",
       "badgeIds": ["staff-pick", "new-drop"],
+=======
+      "tags": [
+        "RPG",
+        "Adventure",
+        "Progressive",
+        "Solo",
+        "station-pod"
+      ],
+      "multiplayerType": "None",
+      "badgeIds": [
+        "staff-pick",
+        "new-drop"
+      ],
+>>>>>>> origin/main
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
         "Unlock one class upgrade path",
@@ -2046,25 +3646,50 @@
       ],
       "launchConfig": {
         "difficulty": "Epic",
+<<<<<<< HEAD
         "controls": ["Keyboard", "Mouse"],
+=======
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+>>>>>>> origin/main
         "objectives": [
           "Finish one campaign chapter",
           "Unlock one legendary loadout bonus"
         ],
+<<<<<<< HEAD
         "modes": ["Solo", "Adventure"],
+=======
+        "modes": [
+          "Solo",
+          "Adventure"
+        ],
+>>>>>>> origin/main
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted campaign RPG partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/legends-of-the-rift",
         "approvedEmbedUrl": "https://www.gamepix.com/play/legends-of-the-rift",
         "telemetryMode": "origin",
+<<<<<<< HEAD
         "telemetryOrigins": ["https://www.gamepix.com"]
+=======
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ]
+>>>>>>> origin/main
       },
       "art": {
         "eyebrow": "Campaign RPG",
         "accentStart": "#6366f1",
         "accentEnd": "#312e81"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "sonic-racing",
@@ -2075,6 +3700,7 @@
       "availability": "Online",
       "playersOnline": 15200,
       "rating": 4.9,
+<<<<<<< HEAD
       "badgeIds": ["featured", "trending"],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/sonic-racing",
@@ -2083,11 +3709,33 @@
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "tags": ["station-pod"],
+=======
+      "badgeIds": [
+        "featured",
+        "trending"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/sonic-racing",
+        "telemetryMode": "none",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "tags": [
+        "station-pod"
+      ],
+>>>>>>> origin/main
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "doom-classic",
@@ -2098,20 +3746,42 @@
       "availability": "Online",
       "playersOnline": 8900,
       "rating": 5.0,
+<<<<<<< HEAD
       "badgeIds": ["staff-pick"],
+=======
+      "badgeIds": [
+        "staff-pick"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
         "telemetryMode": "none",
         "embedMode": "external-only",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "tags": ["station-pod"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
+      },
+      "tags": [
+        "station-pod"
+      ],
+>>>>>>> origin/main
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "mario-classic",
@@ -2122,20 +3792,44 @@
       "availability": "Online",
       "playersOnline": 25400,
       "rating": 5.0,
+<<<<<<< HEAD
       "badgeIds": ["featured", "staff-pick"],
       "tags": ["Classic", "Platformer", "Retro", "station-cabinet"],
+=======
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Classic",
+        "Platformer",
+        "Retro",
+        "station-cabinet"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Nintendo Elite",
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "gta-legacy",
@@ -2146,20 +3840,44 @@
       "availability": "Online",
       "playersOnline": 12800,
       "rating": 4.9,
+<<<<<<< HEAD
       "badgeIds": ["featured", "staff-pick"],
       "tags": ["Action", "Open World", "Retro", "station-pod"],
+=======
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Action",
+        "Open World",
+        "Retro",
+        "station-pod"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fgta.jsdos?anonymous=1",
         "telemetryMode": "none",
         "embedMode": "external-only",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Rockstar Legacy",
         "accentStart": "#facc15",
         "accentEnd": "#713f12"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1552084117-56a987666449?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "nba-pro-3d",
@@ -2170,6 +3888,7 @@
       "availability": "Online",
       "playersOnline": 45000,
       "rating": 4.8,
+<<<<<<< HEAD
       "badgeIds": ["featured", "staff-pick"],
       "tags": ["Sports", "Basketball", "3D", "station-pod"],
       "launchConfig": {
@@ -2178,13 +3897,40 @@
         "telemetryOrigins": ["https://www.gamepix.com"],
         "embedMode": "inline",
         "controls": ["Standard Keyboard"],
+=======
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Sports",
+        "Basketball",
+        "3D",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/basketball-stars",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Pro League",
         "accentStart": "#ea580c",
         "accentEnd": "#7c2d12"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "nfl-redzone-rush",
@@ -2195,6 +3941,7 @@
       "availability": "Online",
       "playersOnline": 32000,
       "rating": 4.7,
+<<<<<<< HEAD
       "badgeIds": ["featured", "staff-pick"],
       "tags": ["Sports", "Football", "Action", "station-pod"],
       "launchConfig": {
@@ -2203,13 +3950,40 @@
         "telemetryOrigins": ["https://www.gamepix.com"],
         "embedMode": "inline",
         "controls": ["Standard Keyboard"],
+=======
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Sports",
+        "Football",
+        "Action",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/touchdown-rush",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Gridiron Elite",
         "accentStart": "#2563eb",
         "accentEnd": "#1e3a8a"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "dbz-retro-combat",
@@ -2220,20 +3994,44 @@
       "availability": "Online",
       "playersOnline": 18500,
       "rating": 4.9,
+<<<<<<< HEAD
       "badgeIds": ["featured", "staff-pick"],
       "tags": ["Fighting", "Anime", "Retro", "station-cabinet"],
+=======
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Fighting",
+        "Anime",
+        "Retro",
+        "station-cabinet"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Saiyan Saga",
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "halo-tribute",
@@ -2244,6 +4042,7 @@
       "availability": "Online",
       "playersOnline": 15000,
       "rating": 4.6,
+<<<<<<< HEAD
       "badgeIds": ["featured", "staff-pick"],
       "tags": ["Shooting", "Sci-Fi", "Action", "station-pod"],
       "launchConfig": {
@@ -2252,13 +4051,40 @@
         "telemetryOrigins": ["https://www.gamepix.com"],
         "embedMode": "inline",
         "controls": ["Standard Keyboard"],
+=======
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Shooting",
+        "Sci-Fi",
+        "Action",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/cyber-adventure",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "UNSC Command",
         "accentStart": "#16a34a",
         "accentEnd": "#14532d"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "boxing-heavyweight",
@@ -2269,6 +4095,7 @@
       "availability": "Online",
       "playersOnline": 21000,
       "rating": 4.8,
+<<<<<<< HEAD
       "badgeIds": ["featured", "staff-pick"],
       "tags": ["Fighting", "Sports", "3D", "station-pod"],
       "launchConfig": {
@@ -2277,13 +4104,40 @@
         "telemetryOrigins": ["https://www.gamepix.com"],
         "embedMode": "inline",
         "controls": ["Standard Keyboard"],
+=======
+      "badgeIds": [
+        "featured",
+        "staff-pick"
+      ],
+      "tags": [
+        "Fighting",
+        "Sports",
+        "3D",
+        "station-pod"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/boxing-stars",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Main Event",
         "accentStart": "#dc2626",
         "accentEnd": "#7f1d1d"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "tekken-3-elite",
@@ -2294,20 +4148,46 @@
       "availability": "Online",
       "playersOnline": 15600,
       "rating": 5.0,
+<<<<<<< HEAD
       "badgeIds": ["featured", "staff-pick", "elite"],
       "tags": ["Fighting", "Retro", "PS1", "Multiplayer", "Controller"],
+=======
+      "badgeIds": [
+        "featured",
+        "staff-pick",
+        "elite"
+      ],
+      "tags": [
+        "Fighting",
+        "Retro",
+        "PS1",
+        "Multiplayer",
+        "Controller"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40238-tekken-3.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Namco Elite",
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "smash-bros-elite",
@@ -2318,20 +4198,45 @@
       "availability": "Online",
       "playersOnline": 22400,
       "rating": 5.0,
+<<<<<<< HEAD
       "badgeIds": ["featured", "elite"],
       "tags": ["Fighting", "Retro", "N64", "Multiplayer", "Controller"],
+=======
+      "badgeIds": [
+        "featured",
+        "elite"
+      ],
+      "tags": [
+        "Fighting",
+        "Retro",
+        "N64",
+        "Multiplayer",
+        "Controller"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Nintendo Elite",
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "mario-kart-64-elite",
@@ -2342,20 +4247,45 @@
       "availability": "Online",
       "playersOnline": 18900,
       "rating": 4.9,
+<<<<<<< HEAD
       "badgeIds": ["trending", "elite"],
       "tags": ["Racing", "Retro", "N64", "Multiplayer", "Controller"],
+=======
+      "badgeIds": [
+        "trending",
+        "elite"
+      ],
+      "tags": [
+        "Racing",
+        "Retro",
+        "N64",
+        "Multiplayer",
+        "Controller"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Grand Prix Elite",
         "accentStart": "#22c55e",
         "accentEnd": "#14532d"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "ctr-ps1-elite",
@@ -2366,20 +4296,43 @@
       "availability": "Online",
       "playersOnline": 14200,
       "rating": 4.9,
+<<<<<<< HEAD
       "badgeIds": ["elite"],
       "tags": ["Racing", "Retro", "PS1", "Controller"],
+=======
+      "badgeIds": [
+        "elite"
+      ],
+      "tags": [
+        "Racing",
+        "Retro",
+        "PS1",
+        "Controller"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Naughty Dog Legacy",
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "zelda-oot-elite",
@@ -2390,20 +4343,44 @@
       "availability": "Online",
       "playersOnline": 31000,
       "rating": 5.0,
+<<<<<<< HEAD
       "badgeIds": ["featured", "elite"],
       "tags": ["RPG", "Retro", "N64", "Adventure"],
+=======
+      "badgeIds": [
+        "featured",
+        "elite"
+      ],
+      "tags": [
+        "RPG",
+        "Retro",
+        "N64",
+        "Adventure"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Hyrule Command",
         "accentStart": "#16a34a",
         "accentEnd": "#14532d"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1533236897111-3e94666b2edf?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "street-fighter-3d",
@@ -2414,6 +4391,7 @@
       "availability": "Online",
       "playersOnline": 12000,
       "rating": 4.7,
+<<<<<<< HEAD
       "badgeIds": ["new-drop"],
       "tags": ["Fighting", "Action", "Multiplayer"],
       "launchConfig": {
@@ -2422,13 +4400,38 @@
         "telemetryOrigins": ["https://www.gamepix.com"],
         "embedMode": "inline",
         "controls": ["Standard Keyboard"],
+=======
+      "badgeIds": [
+        "new-drop"
+      ],
+      "tags": [
+        "Fighting",
+        "Action",
+        "Multiplayer"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/street-fighter-2",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "moto-x3m-3d",
@@ -2439,6 +4442,7 @@
       "availability": "Online",
       "playersOnline": 52000,
       "rating": 4.8,
+<<<<<<< HEAD
       "badgeIds": ["trending"],
       "tags": ["Racing", "Sports", "Action"],
       "launchConfig": {
@@ -2447,13 +4451,38 @@
         "telemetryOrigins": ["https://www.gamepix.com"],
         "embedMode": "inline",
         "controls": ["Standard Keyboard"],
+=======
+      "badgeIds": [
+        "trending"
+      ],
+      "tags": [
+        "Racing",
+        "Sports",
+        "Action"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m-pool-party",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "3d-chess-elite",
@@ -2464,6 +4493,7 @@
       "availability": "Online",
       "playersOnline": 8500,
       "rating": 4.9,
+<<<<<<< HEAD
       "badgeIds": ["staff-pick"],
       "tags": ["Strategy", "Puzzle", "3D"],
       "launchConfig": {
@@ -2472,13 +4502,38 @@
         "telemetryOrigins": ["https://www.gamepix.com"],
         "embedMode": "inline",
         "controls": ["Standard Keyboard"],
+=======
+      "badgeIds": [
+        "staff-pick"
+      ],
+      "tags": [
+        "Strategy",
+        "Puzzle",
+        "3D"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/chess-grandmaster",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1553481187-be93c21490a9?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "goldeneye-007-elite",
@@ -2489,20 +4544,45 @@
       "availability": "Online",
       "playersOnline": 28400,
       "rating": 5.0,
+<<<<<<< HEAD
       "badgeIds": ["featured", "elite"],
       "tags": ["Shooting", "Retro", "N64", "Multiplayer", "Controller"],
+=======
+      "badgeIds": [
+        "featured",
+        "elite"
+      ],
+      "tags": [
+        "Shooting",
+        "Retro",
+        "N64",
+        "Multiplayer",
+        "Controller"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "MI6 Command",
         "accentStart": "#fbbf24",
         "accentEnd": "#92400e"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "thps2-ps1-elite",
@@ -2513,20 +4593,44 @@
       "availability": "Online",
       "playersOnline": 19500,
       "rating": 5.0,
+<<<<<<< HEAD
       "badgeIds": ["staff-pick", "elite"],
       "tags": ["Sports", "Retro", "PS1", "Controller"],
+=======
+      "badgeIds": [
+        "staff-pick",
+        "elite"
+      ],
+      "tags": [
+        "Sports",
+        "Retro",
+        "PS1",
+        "Controller"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Neversoft Legacy",
         "accentStart": "#8b5cf6",
         "accentEnd": "#4c1d95"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1461896704190-3213c021199a?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "parappa-ps1-elite",
@@ -2537,20 +4641,43 @@
       "availability": "Online",
       "playersOnline": 11000,
       "rating": 4.8,
+<<<<<<< HEAD
       "badgeIds": ["elite"],
       "tags": ["Rhythm", "Retro", "PS1", "Music"],
+=======
+      "badgeIds": [
+        "elite"
+      ],
+      "tags": [
+        "Rhythm",
+        "Retro",
+        "PS1",
+        "Music"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40662-parappa-the-rapper.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Rhythm Elite",
         "accentStart": "#ec4899",
         "accentEnd": "#831843"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "sonic-genesis-elite",
@@ -2561,20 +4688,44 @@
       "availability": "Online",
       "playersOnline": 34000,
       "rating": 4.9,
+<<<<<<< HEAD
       "badgeIds": ["trending", "elite"],
       "tags": ["Classic", "Platformer", "Retro", "Genesis"],
+=======
+      "badgeIds": [
+        "trending",
+        "elite"
+      ],
+      "tags": [
+        "Classic",
+        "Platformer",
+        "Retro",
+        "Genesis"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Sega Speed",
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "doom-elite",
@@ -2585,20 +4736,43 @@
       "availability": "Online",
       "playersOnline": 15000,
       "rating": 4.9,
+<<<<<<< HEAD
       "badgeIds": ["elite"],
       "tags": ["Shooting", "Action", "Retro", "DOS"],
+=======
+      "badgeIds": [
+        "elite"
+      ],
+      "tags": [
+        "Shooting",
+        "Action",
+        "Retro",
+        "DOS"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Fdoom.jsdos?anonymous=1",
         "telemetryMode": "none",
         "embedMode": "external-only",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "fnf-music-battle",
@@ -2609,6 +4783,7 @@
       "availability": "Online",
       "playersOnline": 42000,
       "rating": 4.8,
+<<<<<<< HEAD
       "badgeIds": ["trending"],
       "tags": ["Music Battle", "Rhythm", "Multiplayer"],
       "launchConfig": {
@@ -2617,13 +4792,38 @@
         "telemetryOrigins": ["https://www.gamepix.com"],
         "embedMode": "inline",
         "controls": ["Standard Keyboard"],
+=======
+      "badgeIds": [
+        "trending"
+      ],
+      "tags": [
+        "Music Battle",
+        "Rhythm",
+        "Multiplayer"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/friday-night-funkin",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1514525253361-bee8718a300c?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "tetris-classic-elite",
@@ -2634,20 +4834,44 @@
       "availability": "Online",
       "playersOnline": 28000,
       "rating": 5.0,
+<<<<<<< HEAD
       "badgeIds": ["classic", "elite"],
       "tags": ["Puzzle", "Classic", "Retro", "NES"],
+=======
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Puzzle",
+        "Classic",
+        "Retro",
+        "NES"
+      ],
+>>>>>>> origin/main
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18814-tetris-usa.html",
         "telemetryMode": "none",
         "embedMode": "inline",
+<<<<<<< HEAD
         "controls": ["Standard Keyboard"],
+=======
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     },
     {
       "id": "tomb-runner-elite",
@@ -2658,6 +4882,7 @@
       "availability": "Online",
       "playersOnline": 65000,
       "rating": 4.7,
+<<<<<<< HEAD
       "badgeIds": ["trending"],
       "tags": ["Runner", "Action", "3D"],
       "launchConfig": {
@@ -2666,13 +4891,38 @@
         "telemetryOrigins": ["https://www.gamepix.com"],
         "embedMode": "inline",
         "controls": ["Standard Keyboard"],
+=======
+      "badgeIds": [
+        "trending"
+      ],
+      "tags": [
+        "Runner",
+        "Action",
+        "3D"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tomb-runner",
+        "telemetryMode": "origin",
+        "telemetryOrigins": [
+          "https://www.gamepix.com"
+        ],
+        "embedMode": "inline",
+        "controls": [
+          "Standard Keyboard"
+        ],
+>>>>>>> origin/main
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink."
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
+<<<<<<< HEAD
       }
+=======
+      },
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+>>>>>>> origin/main
     }
   ],
   "recommendationRails": [
@@ -2682,7 +4932,13 @@
       "subtitle": "High-fidelity retro runs with stabilized controller links.",
       "audience": {
         "minPlays": 0,
+<<<<<<< HEAD
         "rooms": ["all"]
+=======
+        "rooms": [
+          "all"
+        ]
+>>>>>>> origin/main
       },
       "weights": {
         "badge": 15,
@@ -2699,6 +4955,7 @@
       "id": "rail-returning-runs",
       "title": "Return to your hot cabinets",
       "subtitle": "History-weighted picks for sessions already in motion.",
+<<<<<<< HEAD
       "audience": {
         "minPlays": 1,
         "maxPlays": 999,
@@ -2711,10 +4968,118 @@
         "room": 4,
         "genre": 4,
         "novelty": 1
+=======
+      "audience": {
+        "minPlays": 1,
+        "maxPlays": 999,
+        "rooms": [
+          "all"
+        ]
+      },
+      "weights": {
+        "history": 18,
+        "crowd": 5,
+        "badge": 4,
+        "room": 4,
+        "genre": 4,
+        "novelty": 1
       },
       "maxItems": 4
     },
     {
+      "id": "rail-producer-crossover",
+      "title": "Producer crossover",
+      "subtitle": "Music-first cabinets tuned for artists bouncing out of Studio.",
+      "audience": {
+        "primaryGenres": [
+          "Hip Hop",
+          "R&B",
+          "Pop"
+        ],
+        "rooms": [
+          "producer-lounge",
+          "arcade"
+        ]
+      },
+      "roomIds": [
+        "producer-lounge",
+        "arcade"
+      ],
+      "weights": {
+        "genre": 16,
+        "history": 7,
+        "crowd": 3,
+        "badge": 5,
+        "room": 6,
+        "novelty": 2
+      },
+      "maxItems": 4
+    },
+    {
+      "id": "rail-competitive-push",
+      "title": "Competitive live floor",
+      "subtitle": "High-pressure picks for rivals, sports runs, fighters, and tactical shooters.",
+      "audience": {
+        "minPlays": 0,
+        "rooms": [
+          "versus-night",
+          "sports",
+          "fighting-pit",
+          "shooting-range"
+        ]
+      },
+      "roomIds": [
+        "versus-night",
+        "sports",
+        "fighting-pit",
+        "shooting-range"
+      ],
+      "weights": {
+        "genre": 6,
+        "history": 8,
+        "crowd": 8,
+        "badge": 10,
+        "room": 10,
+        "novelty": 2
+      },
+      "maxItems": 4
+    },
+    {
+      "id": "rail-rpg-depths",
+      "title": "RPG deep runs",
+      "subtitle": "Campaign-heavy picks with boss routing, loot growth, and session depth.",
+      "roomIds": [
+        "rpg-vault"
+      ],
+      "gameIds": [
+        "24",
+        "27",
+        "32",
+        "34",
+        "43",
+        "44",
+        "45"
+      ],
+      "audience": {
+        "rooms": [
+          "rpg-vault"
+        ],
+        "minPlays": 0,
+        "maxPlays": 999
+      },
+      "weights": {
+        "genre": 12,
+        "history": 10,
+        "crowd": 4,
+        "badge": 5,
+        "room": 9,
+        "novelty": 3
+>>>>>>> origin/main
+      },
+      "maxItems": 4
+    },
+    {
+<<<<<<< HEAD
       "id": "rail-producer-crossover",
       "title": "Producer crossover",
       "subtitle": "Music-first cabinets tuned for artists bouncing out of Studio.",
@@ -2792,6 +5157,40 @@
         "room": 10,
         "novelty": 3
       },
+=======
+      "id": "rail-squad-link",
+      "title": "Squad link-up",
+      "subtitle": "Online co-op cabinets tuned for party chat, raids, and synced objectives.",
+      "roomIds": [
+        "co-op-link"
+      ],
+      "gameIds": [
+        "2",
+        "25",
+        "28",
+        "31",
+        "36",
+        "39",
+        "42",
+        "43",
+        "44"
+      ],
+      "audience": {
+        "rooms": [
+          "co-op-link"
+        ],
+        "minPlays": 0,
+        "maxPlays": 999
+      },
+      "weights": {
+        "genre": 4,
+        "history": 8,
+        "crowd": 9,
+        "badge": 6,
+        "room": 10,
+        "novelty": 3
+      },
+>>>>>>> origin/main
       "maxItems": 4
     }
   ]

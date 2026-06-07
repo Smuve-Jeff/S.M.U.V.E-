@@ -342,7 +342,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       ...p,
       settings: {
         ...baseSettings,
+<<<<<<< HEAD
         ai: { ...aiSettings, kbWriteAccess: !aiSettings.kbWriteAccess, aiPersonaIntensityEnabled: aiSettings.aiPersonaIntensityEnabled },
+=======
+        ai: {
+          ...aiSettings,
+          kbWriteAccess: !aiSettings.kbWriteAccess,
+        },
+>>>>>>> origin/main
       },
     });
   }

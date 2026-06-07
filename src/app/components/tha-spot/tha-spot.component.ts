@@ -73,7 +73,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   // Selection & UI Signals
   selectedGame = signal<Game | null>(null);
   currentGame = signal<Game | null>(null);
-  isBrowseView = signal<boolean>(false);
+  isBrowseView = signal<boolean>(true);
   showIntelPanel = signal<boolean>(false);
   now = signal<number>(Date.now());
   isMatchmaking = signal<boolean>(false);
@@ -297,6 +297,20 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   launchActionLabel(game: Game): string {
     return game.launchConfig?.embedMode === 'external-only' ? 'OPEN EXTERNALLY' : 'INITIALIZE';
+  }
+
+  getGamesForRail(rail: RecommendationRail): Game[] {
+    const allGames = this.games();
+    if (rail.gameIds?.length) {
+      return allGames.filter(g => rail.gameIds!.includes(g.id));
+    }
+    if (rail.audience?.primaryGenres?.length) {
+      return allGames.filter(g => rail.audience!.primaryGenres!.includes(g.genre || ""));
+    }
+    if (rail.badgeId) {
+      return allGames.filter(g => g.badgeIds?.includes(rail.badgeId!));
+    }
+    return allGames.slice(0, rail.maxItems || 4);
   }
 
   private matchesRecommendationAudience(rail: RecommendationRail, profile: any): boolean {

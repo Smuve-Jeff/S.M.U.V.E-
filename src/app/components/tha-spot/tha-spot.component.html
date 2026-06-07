@@ -13,16 +13,17 @@
       </div>
     </div>
     <div class="header-controls">
-      <button class="icon-btn" (click)="toggleIntel()">
+      <button class="icon-btn" (click)="toggleIntel()" title="Strategic Intel">
         <span class="material-symbols-outlined">neurology</span>
       </button>
-      <button class="icon-btn" (click)="toggleBrowse()">
-        <span class="material-symbols-outlined">{{ isBrowseView() ? 'grid_view' : 'search' }}</span>
+      <button class="icon-btn" (click)="toggleBrowse()" [title]="isBrowseView() ? 'View Rails' : 'Browse Catalog'">
+        <span class="material-symbols-outlined">{{ isBrowseView() ? 'view_carousel' : 'grid_view' }}</span>
       </button>
     </div>
   </header>
 
   <main class="main-content">
+    <!-- Cinema Mode -->
     <div class="content-scroller pluto-standalone-view" *ngIf="displayMode() === 'cinema'">
       <div class="pluto-container glass-v42 shadow-v42-xl">
         <header class="console-header glass-v42">
@@ -35,36 +36,104 @@
       </div>
     </div>
 
+    <!-- Gaming Mode -->
     <div class="content-scroller custom-scrollbar" *ngIf="displayMode() === 'gaming'">
-      <section class="storefront-grid">
-        <div class="hero-intel glass-v42 shadow-v42-xl">
-          <div class="hero-copy">
-            <h2>{{ getActiveRoomName() | uppercase }}</h2>
-            <p>Strategic gaming sector primed for artist performance.</p>
-          </div>
-        </div>
-      </section>
 
-      <div class="rails-container">
-        <section class="storefront-rail" *ngFor="let rail of matchingRecommendationRails()">
-          <div class="rail-header"><h3 class="rail-title">{{ rail.title | uppercase }}</h3></div>
-          <div class="rail-scroll custom-scrollbar">
-            <div class="game-card-compact glass-v42 storefront-card" *ngFor="let game of games()" (click)="onGameClick(game)">
-              <div class="card-art">
-                <img [src]="game.image" [alt]="game.name" />
-                <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
-              </div>
-              <div class="card-info">
-                <h4>{{ game.name }}</h4>
-                <div class="card-meta"><span class="genre">{{ game.genre }}</span></div>
+      <!-- Catalog / Search View -->
+      <div class="catalog-container animate-enter" *ngIf="isBrowseView()">
+        <header class="catalog-header">
+          <div class="search-box">
+            <span class="material-symbols-outlined">search</span>
+            <input type="text"
+                   [ngModel]="searchQuery()"
+                   (ngModelChange)="searchQuery.set()"
+                   placeholder="Search all cabinets..." />
+          </div>
+
+          <div class="filter-bar">
+            <select class="filter-select" [ngModel]="activeGenre()" (ngModelChange)="activeGenre.set()">
+              <option value="all">All Genres</option>
+              <option *ngFor="let genre of allCategories()" [value]="genre">{{ genre }}</option>
+            </select>
+
+            <select class="filter-select" [ngModel]="activePlatform()" (ngModelChange)="activePlatform.set()">
+              <option value="all">All Platforms</option>
+              <option value="Internal">Internal (Native)</option>
+              <option value="External">External (Cloud)</option>
+            </select>
+
+            <select class="filter-select" [ngModel]="sortMode()" (ngModelChange)="sortMode.set()">
+              <option value="Popular">Popular</option>
+              <option value="Rating">Top Rated</option>
+              <option value="Name">A-Z</option>
+              <option value="Newest">New Drops</option>
+            </select>
+          </div>
+        </header>
+
+        <div class="catalog-grid">
+          <div class="game-card-compact grid-style glass-v42 holographic-depth"
+               *ngFor="let game of filteredGames()"
+               (click)="onGameClick(game)">
+            <div class="card-art">
+              <img [src]="game.image" [alt]="game.name" loading="lazy" />
+              <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
+              <div class="card-badge featured" *ngIf="game.badgeIds?.includes('featured')">FEATURED</div>
+            </div>
+            <div class="card-info">
+              <h4>{{ game.name }}</h4>
+              <div class="card-meta">
+                <span class="genre-tag">{{ game.genre }}</span>
+                <span class="players" *ngIf="game.playersOnline"><span class="material-symbols-outlined" style="font-size: 0.8rem">person</span> {{ game.playersOnline }}</span>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+
+        <div class="empty-results glass-v42" *ngIf="filteredGames().length === 0">
+          <span class="material-symbols-outlined">search_off</span>
+          <p>No cabinets found matching your current filters.</p>
+          <button class="secondary-btn" (click)="searchQuery.set(''); activeGenre.set('all'); activePlatform.set('all')">CLEAR ALL</button>
+        </div>
       </div>
+
+      <!-- Featured / Rails View -->
+      <div class="rails-view animate-enter" *ngIf="!isBrowseView()">
+        <section class="storefront-grid">
+          <div class="hero-intel glass-v42 shadow-v42-xl">
+            <div class="hero-copy">
+              <h2>{{ getActiveRoomName() | uppercase }}</h2>
+              <p>Strategic gaming sector primed for artist performance. Select a room to refine your focus.</p>
+            </div>
+          </div>
+        </section>
+
+        <div class="rails-container">
+          <section class="storefront-rail" *ngFor="let rail of matchingRecommendationRails()">
+            <div class="rail-header">
+              <h3 class="rail-title">{{ rail.title | uppercase }}</h3>
+              <small class="rail-subtitle" *ngIf="rail.subtitle">{{ rail.subtitle }}</small>
+            </div>
+            <div class="rail-scroll custom-scrollbar">
+              <div class="game-card-compact glass-v42 storefront-card" *ngFor="let game of getGamesForRail(rail)" (click)="onGameClick(game)">
+                <div class="card-art">
+                  <img [src]="game.image" [alt]="game.name" loading="lazy" />
+                  <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
+                </div>
+                <div class="card-info">
+                  <h4>{{ game.name }}</h4>
+                  <div class="card-meta"><span class="genre">{{ game.genre }}</span></div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
     </div>
   </main>
 
+  <!-- Sidebar / Overlays (Unchanged Logic) -->
   <aside class="executive-sidebar glass-v42" [class.active]="showIntelPanel()">
     <header class="sidebar-header">
       <span class="material-symbols-outlined">neurology</span> STRATEGIC INTEL
@@ -101,7 +170,10 @@
     <div class="game-console-window glass-v42 shadow-v42-xl">
       <header class="console-header glass-v42">
         <div class="console-title">{{ active.name | uppercase }}</div>
-        <div class="console-actions"><button class="icon-btn" (click)="closeGame()"><span class="material-symbols-outlined">close</span></button></div>
+        <div class="console-actions">
+          <button class="icon-btn" (click)="reloadGame()"><span class="material-symbols-outlined">refresh</span></button>
+          <button class="icon-btn" (click)="closeGame()"><span class="material-symbols-outlined">close</span></button>
+        </div>
       </header>
       <div class="console-body">
         <iframe [src]="currentSafeUrl()" #gameIframe class="game-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads" allowfullscreen></iframe>

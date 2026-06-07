@@ -206,7 +206,11 @@ export class AiService {
   getMasteringRoast(): string {
     const intensity = this.userProfileService.profile().settings?.ai?.aiPersonaIntensityEnabled ?? false;
     if (intensity) {
+<<<<<<< HEAD
       return this.strategicDecrees()[Math.floor(Math.random() * this.strategicDecrees().length)];
+=======
+      return STRATEGIC_DECREES[Math.floor(Math.random() * STRATEGIC_DECREES.length)];
+>>>>>>> origin/main
     }
     return "Soft-knee ceiling applied. Dynamics stabilized.";
   }
