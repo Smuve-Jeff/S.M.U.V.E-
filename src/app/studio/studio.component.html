@@ -1,11 +1,13 @@
 <div
-  class="studio-container {{ studioQualityClass() }}"
+  class="studio-container {{ studioQualityClass() }}" [class.header-collapsed]="headerCollapsed()"
   [class.holographic]="uiService.holographicMode()"
   [attr.data-theme]="'analog-v42'"
 >
   <div class="studio-shell">
-    <header class="studio-transport">
+    <button type="button" class="header-toggle" (click)="toggleHeader()" [class.floating]="headerCollapsed()" [title]="headerCollapsed() ? 'Expand Header' : 'Collapse Header'"><span class="material-icons">{{ headerCollapsed() ? 'expand_more' : 'expand_less' }}</span></button>
+    <header class="studio-transport" [class.collapsed]="headerCollapsed()">
       <div class="transport-brand">
+
         <h1>SMUVE Studio</h1>
         <p>Production workspace</p>
       </div>
