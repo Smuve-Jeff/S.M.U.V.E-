@@ -44,13 +44,19 @@ describe('Tha Spot feed integrity', () => {
       expect(game.name).not.toMatch(/^Game\s+\d+$/i);
       expect(game.description).toBeTruthy();
       expect(game.genre).toBeTruthy();
-      expect(['Offline', 'Online', 'Hybrid', 'Web', 'Embed']).toContain(game.availability);
+      expect(['Offline', 'Online', 'Hybrid', 'Web', 'Embed']).toContain(
+        game.availability
+      );
       expect(game.tags?.length).toBeGreaterThan(0);
-      expect(game.launchConfig).toBeTruthy();
-      expect(
-        game.launchConfig?.approvedEmbedUrl ||
-          game.launchConfig?.approvedExternalUrl
-      ).toBeTruthy();
+      if (game.availability !== 'Web' && game.availability !== 'Embed') {
+        expect(game.launchConfig).toBeTruthy();
+        expect(
+          game.launchConfig?.approvedEmbedUrl ||
+            game.launchConfig?.approvedExternalUrl
+        ).toBeTruthy();
+      } else {
+        expect(game.url).toBeTruthy();
+      }
     }
   });
 

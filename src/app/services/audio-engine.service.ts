@@ -99,11 +99,11 @@ export class AudioEngineService {
   private masteringTargets: MasteringTargets = { lufs: -13, truePeak: -0.2 };
   constructor() {
     this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
-      latencyHint: "interactive",
+      latencyHint: 'interactive',
     });
     this.setupMasterChain();
-    this.initDeck("A");
-    this.initDeck("B");
+    this.initDeck('A');
+    this.initDeck('B');
     this.updateAvailableOutputDevices();
     this.setupMediaSession();
   }
@@ -241,7 +241,7 @@ export class AudioEngineService {
   start() {
     this.resume();
     this.isPlaying.set(true);
-    this.updatePlaybackState("playing");
+    this.updatePlaybackState('playing');
     if (this.nextNoteTime <= this.ctx.currentTime) {
       this.nextNoteTime = this.ctx.currentTime + 0.05;
     }
@@ -255,7 +255,7 @@ export class AudioEngineService {
 
   stop() {
     this.isPlaying.set(false);
-    this.updatePlaybackState("paused");
+    this.updatePlaybackState('paused');
     if (this.schedulerHandle) {
       clearInterval(this.schedulerHandle);
       this.schedulerHandle = null;
@@ -1075,37 +1075,42 @@ export class AudioEngineService {
     if (typeof window === 'undefined' || !navigator.mediaDevices) return;
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const outputs = devices.filter((d) => d.kind === 'audiooutput');
+      const outputs = devices
+        .filter((d) => d.kind === 'audiooutput')
+        .map(
+          (d, index) =>
+            ({
+              deviceId: d.deviceId,
+              kind: d.kind,
+              label: d.label || `Audio Output ${index + 1}`,
+              groupId: d.groupId,
+            }) as MediaDeviceInfo
+        );
       this.availableOutputDevices.set(outputs);
     } catch (err) {
       this.logger.error('Failed to enumerate output devices', err);
     }
   }
 
-  async setOutputDevice(deviceId: string) {
+  async setOutputDevice(deviceId: string | null) {
     if (typeof (this.ctx as any).setSinkId !== 'function') {
       this.logger.warn('setSinkId is not supported in this browser');
       return;
     }
     try {
-      await (this.ctx as any).setSinkId(deviceId);
+      const targetId = deviceId || '';
+      await (this.ctx as any).setSinkId(targetId);
       this.outputDeviceId.set(deviceId);
-      this.logger.info(`Audio output device changed to: ${deviceId}`);
+      this.logger.info(
+        `Audio output device changed to: ${targetId || 'default'}`
+      );
     } catch (err) {
       this.logger.error('Failed to set audio output device', err);
     }
   }
 
   private setupMediaSession() {
-    if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
-
-    navigator.mediaSession.setActionHandler('play', () => {
-      this.playDeck('A');
-    });
-    navigator.mediaSession.setActionHandler('pause', () => {
-      this.pauseDeck('A');
-    });
-    // Add other handlers as needed
+    // Media Session action handlers are managed centrally by PlayerService to avoid conflicts.
   }
 
   updatePlaybackState(state: 'playing' | 'paused') {
