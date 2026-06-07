@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
@@ -7,7 +7,6 @@ import {
   MusicManagerService,
   PerformerScene,
   TrackModel,
-  TrackNote,
 } from '../../services/music-manager.service';
 import { LiveEngineService } from '../../services/live-engine.service';
 import { HapticService } from '../../services/haptic.service';
@@ -41,7 +40,6 @@ export class PerformerComponent {
   availableInstruments = signal<InstrumentPreset[]>([]);
   activeInstrumentId = this.liveEngine.activeInstrument;
   pitchBend = signal(0);
-  selectedTrack = computed(() => this.musicManager.tracks().find(t => t.id === this.musicManager.selectedTrackId()));
   modWheel = signal(0);
 
   private readonly activePointers = new Map<number, number>();
@@ -56,12 +54,25 @@ export class PerformerComponent {
 
   generateKeyboardKeys() {
     const keys = [];
-    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const names = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
+    ];
     for (let i = 0; i < 25; i++) {
       const midi = 48 + i;
       keys.push({
         midi,
-        name: "" + names[midi % 12] + (Math.floor(midi / 12) - 1),
+        name: `${names[midi % 12]}${Math.floor(midi / 12) - 1}`,
       });
     }
     return keys;
@@ -69,36 +80,41 @@ export class PerformerComponent {
 
   generatePads() {
     const pads = [];
-    const colors = ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', '#6366f1', '#3b82f6', '#0ea5e9'];
+    const colors = [
+      '#f43f5e',
+      '#ec4899',
+      '#d946ef',
+      '#a855f7',
+      '#8b5cf6',
+      '#6366f1',
+      '#3b82f6',
+      '#0ea5e9',
+    ];
     for (let i = 0; i < 16; i++) {
       pads.push({
         midi: 36 + i,
-        name: 'Pad ' + (i + 1),
+        name: `Pad ${i + 1}`,
         color: colors[i % colors.length],
       });
     }
     return pads;
   }
 
-  isBlackKey(midi: number): boolean { return [1, 3, 6, 8, 10].includes(midi % 12); }
-  setLayout(mode: 'keyboard' | 'pads' | 'matrix') { this.layout.set(mode); }
-  toggleSmartChords() { this.smartChords.update((value) => !value); this.liveEngine.smartChords.set(this.smartChords()); }
-  nudgeOctave(delta: number) { this.octave.update((value) => Math.min(2, Math.max(-2, value + delta))); }
-
-  updateTrackVolume(val: number) {
-    const trackId = this.musicManager.selectedTrackId();
-    if (trackId !== null) {
-      this.musicManager.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, gain: val / 100 } : t));
-      this.musicManager.engine.updateTrack(trackId, { gain: val / 100 });
-    }
+  isBlackKey(midi: number): boolean {
+    return [1, 3, 6, 8, 10].includes(midi % 12);
   }
 
-  updateTrackPan(val: number) {
-    const trackId = this.musicManager.selectedTrackId();
-    if (trackId !== null) {
-      this.musicManager.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, pan: val / 100 } : t));
-      this.musicManager.engine.updateTrack(trackId, { pan: val / 100 });
-    }
+  setLayout(mode: 'keyboard' | 'pads' | 'matrix') {
+    this.layout.set(mode);
+  }
+
+  toggleSmartChords() {
+    this.smartChords.update((value) => !value);
+    this.liveEngine.smartChords.set(this.smartChords());
+  }
+
+  nudgeOctave(delta: number) {
+    this.octave.update((value) => Math.min(2, Math.max(-2, value + delta)));
   }
 
   async setInstrument(presetId: string) {
@@ -141,8 +157,9 @@ export class PerformerComponent {
         const beat = this.musicManager.engine.currentBeat();
         const stepsPerBeat = this.musicManager.engine.stepsPerBeat();
         const currentStep = Math.floor(beat * stepsPerBeat);
-        let length = (currentStep - recNote.startStep + 1024) % 1024;
-        if (length <= 0) length = 1;
+        // Calculate length based on current step relative to start step, handling wrap-around
+        let length = (currentStep - recNote.startStep + this.PATTERN_STEPS) % this.PATTERN_STEPS;
+        if (length === 0) length = this.PATTERN_STEPS;
         this.musicManager.setNoteParam(selectedId, recNote.id, 'length', length);
       }
       this.recordingNotes.delete(midi);
@@ -159,23 +176,35 @@ export class PerformerComponent {
     event.preventDefault();
     event.stopPropagation();
     const currentMidi = this.activePointers.get(event.pointerId);
-    if (currentMidi !== undefined && currentMidi !== midi) this.onKeyUp(currentMidi);
+    if (currentMidi !== undefined && currentMidi !== midi) {
+      this.onKeyUp(currentMidi);
+    }
     this.activePointers.set(event.pointerId, midi);
     void this.onKeyDown(midi);
   }
 
   onPadPointerEnter(event: PointerEvent, midi: number) {
-    if (!this.activePointers.has(event.pointerId) && event.buttons === 0) return;
+    if (!this.activePointers.has(event.pointerId) && event.buttons === 0) {
+      return;
+    }
+
     const currentMidi = this.activePointers.get(event.pointerId);
-    if (currentMidi === midi) return;
-    if (currentMidi !== undefined) this.onKeyUp(currentMidi);
+    if (currentMidi === midi) {
+      return;
+    }
+
+    if (currentMidi !== undefined) {
+      this.onKeyUp(currentMidi);
+    }
     this.activePointers.set(event.pointerId, midi);
     void this.onKeyDown(midi);
   }
 
   onPadPointerUp(event: PointerEvent, midi: number) {
     event.preventDefault();
-    if (this.activePointers.get(event.pointerId) === midi) this.activePointers.delete(event.pointerId);
+    if (this.activePointers.get(event.pointerId) === midi) {
+      this.activePointers.delete(event.pointerId);
+    }
     this.onKeyUp(midi);
   }
 
@@ -204,23 +233,38 @@ export class PerformerComponent {
   }
 
   isSceneActive(scene: PerformerScene) {
-    return this.musicManager.tracks().every((track) => track.activePatternSlotId === scene.slotId);
+    return this.musicManager
+      .tracks()
+      .every((track) => track.activePatternSlotId === scene.slotId);
   }
 
-  trackSlots(track: TrackModel) { return track.patternSlots || []; }
-  isSlotActive(track: TrackModel, slotId: string) { return track.activePatternSlotId === slotId; }
+  trackSlots(track: TrackModel) {
+    return track.patternSlots || [];
+  }
+
+  isSlotActive(track: TrackModel, slotId: string) {
+    return track.activePatternSlotId === slotId;
+  }
 
   getInstrumentIcon(category: string): string {
     switch (category) {
-      case 'piano': return 'piano';
-      case 'guitar': return 'reorder';
-      case 'strings': return 'layers';
-      case 'bass': return 'vertical_align_bottom';
-      case 'drum': return 'grid_view';
+      case 'piano':
+        return 'piano';
+      case 'guitar':
+        return 'reorder';
+      case 'strings':
+        return 'layers';
+      case 'bass':
+        return 'vertical_align_bottom';
+      case 'drum':
+        return 'grid_view';
       case 'synth':
-      case 'lead': return 'tune';
-      case 'brass': return 'campaign';
-      default: return 'music_note';
+      case 'lead':
+        return 'tune';
+      case 'brass':
+        return 'campaign';
+      default:
+        return 'music_note';
     }
   }
 }

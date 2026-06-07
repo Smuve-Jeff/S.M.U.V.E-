@@ -73,9 +73,11 @@
 }
 
 .sequencer-viewport {
+  flex: 1;
+  position: relative;
   overflow: auto;
+  padding: 10px;
   touch-action: pan-x pan-y;
-  -webkit-overflow-scrolling: touch;
 }
 
 .sequencer-grid {

@@ -32,7 +32,6 @@ import { TouchGestureService } from '../services/touch-gesture.service';
 import { PerformerComponent } from './performer/performer.component';
 import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
-import { SequencerService } from './sequencer.service';
 
 type StudioView =
   | 'arrangement'
@@ -95,7 +94,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly aiCopilot = inject(AiCopilotService);
   private readonly haptic = inject(HapticService);
   public readonly touchGestures = inject(TouchGestureService);
-  private readonly sequencer = inject(SequencerService);
 
   private destroy$ = new Subject<void>();
 

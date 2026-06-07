@@ -296,13 +296,12 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   public readonly aiService = inject(AiService);
 
   readonly selectedTrackId = this.musicManager.selectedTrackId;
-  readonly drumTrack = computed(() => this.musicManager.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID));
   readonly selectedTrack = computed(() =>
     this.musicManager
       .tracks()
       .find((track) => track.id === this.selectedTrackId())
   );
-  readonly currentStep = this.engine.visualStep;
+  readonly currentStep = this.musicManager.currentStep;
   readonly isSequencerRunning = computed(() => this.engine.isPlaying());
 
   readonly pads = signal<DrumPad[]>(this.createDefaultPads());
@@ -340,10 +339,22 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   constructor() {
     this.evolutionEffect = effect(() => {
-      const track = this.drumTrack();
+      const step = this.currentStep();
+      if (step < 0) {
+        return;
+      }
+
+      const normalizedStep = this.normalizeStep(step);
+      this.pads().forEach((pad) => {
+        if (pad.steps[normalizedStep]?.active) {
+          this.markPadTriggered(pad.id);
+        }
+      });
+    });
+
+    effect(() => {
+      const track = this.selectedTrack();
       if (track) {
-        // Only sync from MM if we are not the one who just updated it (avoid loops)
-        // For now, simple sync is fine as syncFromMusicManager recreates steps
         this.syncFromMusicManager(track.notes);
       }
     });
@@ -440,7 +451,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   async aiDrumGen() {
     this.haptic.impact('medium');
-    const profile = (this.aiService as any).userProfileService.profile();
+    const profile = this.aiService['userProfileService'].profile();
     const prompt = `As S.M.U.V.E 2.0, analyze this artist (Expertise: ${profile.expertise.production}/10) and pick a dominant drum genre from: house, trap, afrobeats, drill, dnb. Be abrasive.`;
 
     try {
@@ -681,7 +692,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   }
 
   private playPadSound(pad: DrumPad, velocity: number = 0.8) {
-    const trackId = MusicManagerService.DRUM_TRACK_ID;
+    const trackId = this.selectedTrackId() ?? 0;
     this.engine.triggerAttack(
       trackId,
       this.musicManager.midiToFreq(pad.midi + pad.params.semitone),
@@ -1093,12 +1104,19 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   }
 
   private syncToMusicManager() {
-    const trackId = MusicManagerService.DRUM_TRACK_ID;
+    const trackId = this.selectedTrackId();
+    if (trackId === null) {
+      return;
+    }
 
     const allNotes: TrackNote[] = [];
+
     this.pads().forEach((pad) => {
       pad.steps.forEach((step, index) => {
-        if (!step.active) return;
+        if (!step.active) {
+          return;
+        }
+
         allNotes.push({
           id: `drum-${pad.id}-${index}`,
           midi: pad.midi,
@@ -1108,27 +1126,15 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
           probability: step.probability,
           offset: step.nudge,
           pan: pad.params.pan,
-          cutoff: pad.params.cutoff
+          cutoff: pad.params.cutoff,
         });
       });
     });
 
-    this.musicManager.tracks.update(tracks =>
-      tracks.map(t => {
-        if (t.id !== trackId) return t;
-        const updatedTrack = { ...t, notes: allNotes };
-        // Also update the active pattern slot so clips play the new notes
-        if (updatedTrack.patternSlots && updatedTrack.activePatternSlotId) {
-          updatedTrack.patternSlots = updatedTrack.patternSlots.map(slot => {
-            if (slot.id !== updatedTrack.activePatternSlotId) return slot;
-            return {
-              ...slot,
-              versions: slot.versions.map(v => v.id === slot.activeVersionId ? { ...v, notes: [...allNotes] } : v)
-            };
-          });
-        }
-        return updatedTrack;
-      })
+    this.musicManager.tracks.update((tracks) =>
+      tracks.map((track) =>
+        track.id === trackId ? { ...track, notes: allNotes } : track
+      )
     );
   }
 
