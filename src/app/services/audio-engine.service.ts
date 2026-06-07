@@ -55,6 +55,8 @@ export class AudioEngineService {
   private static readonly DEFAULT_SCHEDULER_INTERVAL_MS = 25;
   private static readonly MIN_ENVELOPE_GAIN = 0.0001;
 
+  public outputDeviceId = signal<string | null>(null);
+  public availableOutputDevices = signal<MediaDeviceInfo[]>([]);
   public outputMode = signal<'speakers' | 'headphones'>('speakers');
   public performanceTier = signal<'ultra' | 'performance'>('ultra');
   public sidechainEnabled = signal(false);
@@ -95,14 +97,15 @@ export class AudioEngineService {
   private nextNoteTime = 0;
   private currentStep = 0;
   private masteringTargets: MasteringTargets = { lufs: -13, truePeak: -0.2 };
-
   constructor() {
     this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
-      latencyHint: 'interactive',
+      latencyHint: "interactive",
     });
     this.setupMasterChain();
-    this.initDeck('A');
-    this.initDeck('B');
+    this.initDeck("A");
+    this.initDeck("B");
+    this.updateAvailableOutputDevices();
+    this.setupMediaSession();
   }
 
   public get recorder(): StudioRecordingEngineService {
@@ -138,9 +141,9 @@ export class AudioEngineService {
 
     this.configureLimiter({
       threshold: this.masteringTargets.truePeak,
-      ratio: 20,
-      attack: 0.001,
-      release: 0.1,
+      ratio: 12,
+      attack: 0.003,
+      release: 0.25,
     });
   }
 
@@ -238,6 +241,7 @@ export class AudioEngineService {
   start() {
     this.resume();
     this.isPlaying.set(true);
+    this.updatePlaybackState("playing");
     if (this.nextNoteTime <= this.ctx.currentTime) {
       this.nextNoteTime = this.ctx.currentTime + 0.05;
     }
@@ -251,6 +255,7 @@ export class AudioEngineService {
 
   stop() {
     this.isPlaying.set(false);
+    this.updatePlaybackState("paused");
     if (this.schedulerHandle) {
       clearInterval(this.schedulerHandle);
       this.schedulerHandle = null;
@@ -1066,5 +1071,47 @@ export class AudioEngineService {
 
   private clamp(value: number, min: number, max: number) {
     return Math.min(max, Math.max(min, value));
+  }
+
+  async updateAvailableOutputDevices() {
+    if (typeof window === 'undefined' || !navigator.mediaDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const outputs = devices.filter((d) => d.kind === 'audiooutput');
+      this.availableOutputDevices.set(outputs);
+    } catch (err) {
+      this.logger.error('Failed to enumerate output devices', err);
+    }
+  }
+
+  async setOutputDevice(deviceId: string) {
+    if (typeof (this.ctx as any).setSinkId !== 'function') {
+      this.logger.warn('setSinkId is not supported in this browser');
+      return;
+    }
+    try {
+      await (this.ctx as any).setSinkId(deviceId);
+      this.outputDeviceId.set(deviceId);
+      this.logger.info(`Audio output device changed to: ${deviceId}`);
+    } catch (err) {
+      this.logger.error('Failed to set audio output device', err);
+    }
+  }
+
+  private setupMediaSession() {
+    if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+
+    navigator.mediaSession.setActionHandler('play', () => {
+      this.playDeck('A');
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      this.pauseDeck('A');
+    });
+    // Add other handlers as needed
+  }
+
+  updatePlaybackState(state: 'playing' | 'paused') {
+    if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+    navigator.mediaSession.playbackState = state;
   }
 }

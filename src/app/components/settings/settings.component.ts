@@ -70,6 +70,8 @@ export class SettingsComponent implements OnInit {
     'ui' | 'audio' | 'ai' | 'studio' | 'security' | 'permissions' | 'storage'
   >('ui');
   audioInputDevices = this.microphoneService.availableDevices;
+  audioOutputDevices = this.audioEngine.availableOutputDevices;
+  selectedAudioOutputId = this.audioEngine.outputDeviceId;
   selectedAudioInputId = this.microphoneService.selectedDeviceId;
   storageStats = signal<{
     usedBytes: number;
@@ -131,6 +133,11 @@ export class SettingsComponent implements OnInit {
   async selectAudioInput(deviceId: string | null) {
     if (!deviceId) return;
     await this.microphoneService.initialize(deviceId);
+  }
+
+  async selectAudioOutput(deviceId: string | null) {
+    if (!deviceId) return;
+    await this.audioEngine.setOutputDevice(deviceId);
   }
 
   setOutputMode(mode: 'speakers' | 'headphones') {
