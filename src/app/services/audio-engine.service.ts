@@ -344,6 +344,10 @@ export class AudioEngineService {
   async setOutputDevice(deviceId: string) { if (typeof (this.ctx as any).setSinkId === 'function') await (this.ctx as any).setSinkId(deviceId); }
   public setSaturation(amount: number) { this.setupSaturation(amount); }
   private setupSaturation(amount: number) {
+    if (amount === 0) {
+      this.saturationNode.curve = null;
+      return;
+    }
     const k = amount * 100, n = 256, curve = new Float32Array(n), deg = Math.PI / 180;
     for (let i = 0; i < n; i++) { const x = (i * 2) / n - 1; curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x)); }
     this.saturationNode.curve = curve;
