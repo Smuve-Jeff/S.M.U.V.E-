@@ -133,6 +133,7 @@ export class AuthService {
     }
 
     if (localStorage.getItem(`smuve_db_user_${creds.email.toLowerCase()}`)) {
+      await new Promise(r => setTimeout(r, 1500));
       return { success: false, message: 'CONFLICT: THIS IDENTITY ALREADY EXISTS IN THE VAULT.' };
     }
 
