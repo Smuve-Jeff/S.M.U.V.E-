@@ -92,8 +92,8 @@ export class AuthService {
     const hashedInput = await this.deriveKey(creds.password, GLOBAL_SECURITY_CONFIG.auth_salt);
 
     if (hashedInput !== storedUser.passwordHash) {
-      await new Promise(r => setTimeout(r, 1500));
       return { success: false, message: 'AUTHORIZATION DENIED. YOUR CREDENTIALS ARE AS WEAK AS YOUR MIX.' };
+    }
     }
 
     if (storedUser.requires2FA && !creds.twoFactorCode) {
