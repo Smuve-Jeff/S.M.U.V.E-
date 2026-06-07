@@ -4,6 +4,8 @@ import { LoggingService } from './logging.service';
 import { TokenService } from './token.service';
 import { UserStoreService, AuthUser } from './user-store.service';
 import { APP_SECURITY_CONFIG as GLOBAL_SECURITY_CONFIG } from '../app.security';
+import { SecurityService } from './security.service';
+import { UserProfileService } from './user-profile.service';
 
 export interface AuthCredentials { email: string; password: string; twoFactorCode?: string; }
 export type { AuthUser };
@@ -16,25 +18,23 @@ export class AuthService {
   private http = inject(HttpClient);
   private logger = inject(LoggingService);
 
+  private securityService = inject(SecurityService);
+  private profileService = inject(UserProfileService);
+
   currentUser = this.userStore.user;
   isAuthenticated = this.userStore.isAuthenticated;
   jwtToken = this.tokenService.jwtToken;
 
   constructor() {}
 
-  private get securityService(): any {
-    const { SecurityService } = require('./security.service');
-    return this.injector.get(SecurityService);
-  }
-
-  private get profileService(): any {
-    const { UserProfileService } = require('./user-profile.service');
-    return this.injector.get(UserProfileService);
-  }
-
   private async deriveKey(password: string, salt: string): Promise<string> {
-    if (!password || !salt) {
-      throw new Error('Password and salt are required for key derivation');
+    if (
+      typeof password !== 'string' ||
+      password.trim().length === 0 ||
+      typeof salt !== 'string' ||
+      salt.trim().length === 0
+    ) {
+      throw new Error('Password and salt must be non-empty strings for key derivation');
     }
     const encoder = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
@@ -67,33 +67,50 @@ export class AuthService {
       const decoded = decodeURIComponent(escape(atob(session)));
       const [data, key] = decoded.split('|');
       if (key !== GLOBAL_SECURITY_CONFIG.auth_salt) {
+        localStorage.removeItem('smuve_auth_session');
         this.logger.error('AUTH_ALERT: SESSION INTEGRITY COMPROMISED.');
         return;
       }
       const user = JSON.parse(data);
+      // SECURITY NOTICE: This is a client-side demo implementation.
+      // To prevent role/permission forgery, we explicitly ignore any permission or role fields 
+      // from the client-supplied payload, and enforce standard 'Artist' role and 'STANDARD' permissions.
+      user.role = 'Artist';
+      user.permissions = ['STANDARD'];
+
       this.userStore.setUser(user);
       await this.profileService.loadProfile(user.id);
     } catch (e) {
+      localStorage.removeItem('smuve_auth_session');
       this.logger.error('AUTH_ERROR: NEURAL LINK SEVERED.');
     }
   }
 
   async login(creds: AuthCredentials) {
     this.logger.info('AUTH_EXECUTION: INITIATING CRYPTOGRAPHIC VALIDATION...');
+    const AUTH_FAILURE_DELAY_MS = 1200;
 
-    // Simulate real database lookup
-    const emailKey = creds.email.trim().toLowerCase();
+    if (typeof localStorage === 'undefined') {
+      return { success: false, message: 'STORAGE UNAVAILABLE. NEURAL LINK FAILS.' };
+    }
+
+    const emailKey = (creds.email || '').trim().toLowerCase();
     const storedUserStr = localStorage.getItem(`smuve_db_user_${emailKey}`);
+
+    // To prevent timing attacks, always perform key derivation even if user doesn't exist
+    const passwordToDerive = creds.password || 'dummy_password_for_equal_timing';
+    const hashedInput = await this.deriveKey(passwordToDerive, GLOBAL_SECURITY_CONFIG.auth_salt);
+
     if (!storedUserStr) {
+      await new Promise(r => setTimeout(r, AUTH_FAILURE_DELAY_MS));
       return { success: false, message: 'IDENTIFICATION FAILURE. YOU ARE UNKNOWN TO THIS SYSTEM.' };
     }
 
     const storedUser = JSON.parse(storedUserStr);
-    const hashedInput = await this.deriveKey(creds.password, GLOBAL_SECURITY_CONFIG.auth_salt);
 
     if (hashedInput !== storedUser.passwordHash) {
+      await new Promise(r => setTimeout(r, AUTH_FAILURE_DELAY_MS));
       return { success: false, message: 'AUTHORIZATION DENIED. YOUR CREDENTIALS ARE AS WEAK AS YOUR MIX.' };
-    }
     }
 
     if (storedUser.requires2FA && !creds.twoFactorCode) {
@@ -127,13 +144,19 @@ export class AuthService {
   async register(creds: AuthCredentials, artistName: string) {
     this.logger.info('AUTH_EXECUTION: INITIALIZING GENESIS PROTOCOL...');
 
+    if (typeof localStorage === 'undefined') {
+      return { success: false, message: 'STORAGE UNAVAILABLE. NEURAL LINK FAILS.' };
+    }
+
     const validation = this.validatePassword(creds.password);
     if (!validation.isValid) {
       return { success: false, message: 'REJECTED: ' + validation.errors[0] };
     }
 
+    const registrationDelay = 1000 + Math.random() * 500;
+
     if (localStorage.getItem(`smuve_db_user_${creds.email.toLowerCase()}`)) {
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, registrationDelay));
       return { success: false, message: 'CONFLICT: THIS IDENTITY ALREADY EXISTS IN THE VAULT.' };
     }
 
@@ -143,7 +166,7 @@ export class AuthService {
     const newUser = {
       id: userId,
       email: creds.email,
-      artistName: artistName || 'NEW_RECRUIT',
+      artistName,
       passwordHash,
       role: 'Artist',
       permissions: ['STANDARD'],
@@ -154,6 +177,8 @@ export class AuthService {
     };
 
     localStorage.setItem(`smuve_db_user_${creds.email.toLowerCase()}`, JSON.stringify(newUser));
+
+    await new Promise(r => setTimeout(r, registrationDelay));
 
     // Auto-login after registration for demo purposes
     return this.login(creds);
@@ -172,7 +197,7 @@ export class AuthService {
     if (!/[A-Z]/.test(p)) errors.push('MISSING UPPERCASE INTENSITY.');
     if (!/[a-z]/.test(p)) errors.push('MISSING LOWERCASE SONICS.');
     if (!/[0-9]/.test(p)) errors.push('MISSING NUMERIC DATA POINTS.');
-    if (!/[!@#$%^&*]/.test(p)) errors.push('MISSING SPECIAL CHARACTER SYMBOLS.');
+    if (!/[^A-Za-z0-9]/.test(p)) errors.push('MISSING SPECIAL CHARACTER SYMBOLS.');
 
     return { isValid: errors.length === 0, errors };
   }

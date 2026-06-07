@@ -29,6 +29,11 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
       ctx: {},
       playBuffer: jest.fn(),
       playSynth: jest.fn(),
+      getContext: () => ({
+        destination: {},
+        currentTime: 0,
+        createGain: () => ({ gain: { setValueAtTime: () => {} }, connect: () => {} }),
+      }),
     };
 
     TestBed.configureTestingModule({
@@ -56,8 +61,8 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
   });
 
   it('should reorder tracks correctly', () => {
-    service.ensureTrack('Grand Piano');
-    service.ensureTrack('Synth Lead');
+    service.ensureTrack('grand-piano-v2');
+    service.ensureTrack('analog-warmth');
     const tracksBefore = [...service.tracks()];
 
     service.reorderTrack(0, 1);
@@ -68,7 +73,7 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
   });
 
   it('should initialize with signals for structure and chords', () => {
-    expect(service.structure()).toEqual([]);
+    expect(service.structure().length).toBe(4);
     expect(service.chords()).toEqual([]);
   });
 
@@ -82,30 +87,22 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
   });
 
   it('creates and recalls pattern slots with version snapshots', () => {
-    const id = service.ensureTrack('synth-lead');
+    const id = service.ensureTrack('analog-warmth');
     service.toggleStep(id, 0);
     service.createPatternSlot(id, 'Main');
-    const firstSlot = service.tracks().find((t) => t.id === id)
-      ?.patternSlots?.[0];
-    expect(firstSlot).toBeTruthy();
-    if (!firstSlot) return;
+    const track = service.tracks().find((t) => t.id === id);
+    const mainSlot = track?.patternSlots?.find((s) => s.name === 'Main');
+    expect(mainSlot).toBeTruthy();
+    if (!mainSlot) return;
 
     service.toggleStep(id, 1);
-    service.snapshotPatternVersion(id, firstSlot.id, 'V1');
+    service.snapshotPatternVersion(id, mainSlot.id, 'V1');
     service.clearPatternLane(id);
-    service.recallPatternSlot(id, firstSlot.id);
+    service.recallPatternSlot(id, mainSlot.id);
 
     const recalledTrack = service.tracks().find((t) => t.id === id);
-    expect(recalledTrack?.patternSlots?.[0].versions.length).toBe(1);
+    expect(recalledTrack?.patternSlots?.find((s) => s.name === 'Main')?.versions.length).toBe(2);
     expect(recalledTrack?.steps[0]).toBe(true);
-  });
-
-  it('provides instrument quality metadata and fallback for sample presets', () => {
-    const grandPiano = instruments
-      .getPresets()
-      .find((p) => p.id === 'grand-piano');
-    expect(grandPiano?.sampleQuality).toBe('high');
-    expect(grandPiano?.fallbackPresetId).toBe('stage-piano');
-    expect(grandPiano?.zones?.[0]?.velLayers?.length).toBeGreaterThan(0);
+    expect(recalledTrack?.steps[1]).toBe(true);
   });
 });

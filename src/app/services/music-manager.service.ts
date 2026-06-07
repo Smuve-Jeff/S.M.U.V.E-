@@ -60,6 +60,11 @@ export interface FxSlot {
   mix?: number;
 }
 
+export interface GlobalChord {
+  time: number;
+  notes: number[];
+}
+
 export interface SongSection {
   id: string;
   name: string;
@@ -139,6 +144,7 @@ export class MusicManagerService {
   tempo = computed(() => this.engine.tempo());
   activeLoopBars = signal(64);
   structure = signal<SongSection[]>([]);
+  chords = signal<GlobalChord[]>([]);
   performerScenes = signal<PerformerScene[]>(this.createDefaultScenes());
   projectLoaded = signal(false);
 
@@ -1126,6 +1132,121 @@ export class MusicManagerService {
               enabled: true,
             },
           ],
+        };
+      })
+    );
+  }
+
+  setTrackQualityMode(trackId: number, mode: 'performance' | 'standard' | 'hd') {
+    this.tracks.update((current) =>
+      current.map((track) =>
+        track.id === trackId ? { ...track, qualityMode: mode } : track
+      )
+    );
+  }
+
+  setStepVelocity(trackId: number, step: number, velocity: number) {
+    this.tracks.update((current) =>
+      current.map((track) => {
+        if (track.id === trackId) {
+          const stepVelocities = { ...(track.stepVelocities || {}) };
+          stepVelocities[step] = velocity;
+          return { ...track, stepVelocities };
+        }
+        return track;
+      })
+    );
+  }
+
+  setTrackColor(trackId: number, color: string) {
+    this.tracks.update((current) =>
+      current.map((track) =>
+        track.id === trackId ? { ...track, color } : track
+      )
+    );
+  }
+
+  reorderTrack(fromIndex: number, toIndex: number) {
+    this.tracks.update((current) => {
+      const next = [...current];
+      if (fromIndex < 0 || fromIndex >= next.length || toIndex < 0 || toIndex >= next.length) {
+        return current;
+      }
+      const [removed] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, removed);
+      return next;
+    });
+  }
+
+  createPatternSlot(trackId: number, name: string) {
+    this.tracks.update((current) =>
+      current.map((track) => {
+        if (track.id !== trackId) return track;
+        const slots = [...(track.patternSlots || [])];
+        const newSlot = {
+          id: `slot-${Date.now()}-${Math.random()}`,
+          name,
+          versions: [
+            {
+              id: `version-${Date.now()}-${Math.random()}`,
+              name: 'Take 1',
+              notes: [],
+              steps: this.createEmptySteps(),
+            },
+          ],
+        };
+        slots.push(newSlot);
+        return { ...track, patternSlots: slots };
+      })
+    );
+  }
+
+  snapshotPatternVersion(trackId: number, slotId: string, name: string) {
+    this.tracks.update((current) =>
+      current.map((track) => {
+        if (track.id !== trackId) return track;
+        const slots = (track.patternSlots || []).map((slot) => {
+          if (slot.id !== slotId) return slot;
+          const versions = [...slot.versions];
+          const newVersion = {
+            id: `version-${Date.now()}-${Math.random()}`,
+            name,
+            notes: this.cloneNotes(track.notes),
+            steps: [...track.steps],
+          };
+          versions.push(newVersion);
+          return { ...slot, versions };
+        });
+        return { ...track, patternSlots: slots };
+      })
+    );
+  }
+
+  clearPatternLane(trackId: number) {
+    this.tracks.update((current) =>
+      current.map((track) => {
+        if (track.id !== trackId) return track;
+        return {
+          ...track,
+          notes: [],
+          steps: this.createEmptySteps(),
+        };
+      })
+    );
+  }
+
+  recallPatternSlot(trackId: number, slotId: string) {
+    this.tracks.update((current) =>
+      current.map((track) => {
+        if (track.id !== trackId) return track;
+        const slot = track.patternSlots?.find((s) => s.id === slotId);
+        if (!slot) return track;
+        const latestVersion = slot.versions[slot.versions.length - 1];
+        return {
+          ...track,
+          activePatternSlotId: slotId,
+          notes: this.cloneNotes(latestVersion.notes),
+          steps: [...latestVersion.steps],
         };
       })
     );

@@ -366,6 +366,7 @@
           <label class="setting-label">Advisor Behavioral Persona</label>
           <div class="grid grid-cols-3 gap-3 mt-2">
             <button
+              type="button"
               *ngFor="let p of ['Elite', 'Balanced', 'Supportive']"
               (click)="updateSetting('ai', 'commanderPersona', p)"
               [class.persona-active]="settings().ai.commanderPersona === p"
@@ -374,6 +375,8 @@
               {{ p }}
             </button>
           </div>
+        </div>
+
         <div class="setting-item">
           <div>
             <h3 class="setting-title">V8.2 PERSONA INTENSITY</h3>
@@ -381,10 +384,27 @@
               ENABLE MAXIMUM ARROGANCE AND STRATEGIC INSULTS.
             </p>
           </div>
-        <div class="setting-group mt-6">
+          <button
+            type="button"
+            (click)="
+              updateSetting(
+                'ai',
+                'aiPersonaIntensityEnabled',
+                !settings().ai.aiPersonaIntensityEnabled
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().ai.aiPersonaIntensityEnabled"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-group">
           <label class="setting-label">Intelligence Conversational Tier</label>
           <div class="grid grid-cols-3 gap-3 mt-2">
             <button
+              type="button"
               *ngFor="let t of ['Standard', 'Elite', 'SUPREME']"
               (click)="updateSetting('ai', 'aiConversationalTier', t)"
               [class.persona-active]="settings().ai.aiConversationalTier === t"
@@ -393,14 +413,6 @@
               {{ t }}
             </button>
           </div>
-        </div>
-          <button
-            (click)="updateSetting('ai', 'aiPersonaIntensityEnabled', !settings().ai.aiPersonaIntensityEnabled)"
-            class="toggle-btn"
-            [class.on]="settings().ai.aiPersonaIntensityEnabled"
-          >
-            <div class="toggle-handle"></div>
-          </button>
         </div>
         <div class="setting-item">
           <div>

@@ -4,6 +4,8 @@ import {
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting,
 } from '@angular/platform-browser-dynamic/testing';
+import { TextEncoder as NodeTextEncoder, TextDecoder as NodeTextDecoder } from 'util';
+import * as nodeCrypto from 'node:crypto';
 
 TestBed.initTestEnvironment(
   BrowserDynamicTestingModule,
@@ -17,9 +19,8 @@ TestBed.initTestEnvironment(
 
 // Polyfill TextEncoder/Decoder for Jest
 if (typeof TextEncoder === 'undefined') {
-  const { TextEncoder, TextDecoder } = require('util');
-  (global as any).TextEncoder = TextEncoder;
-  (global as any).TextDecoder = TextDecoder;
+  (global as any).TextEncoder = NodeTextEncoder;
+  (global as any).TextDecoder = NodeTextDecoder;
 }
 
 // Mock Web Audio API
@@ -134,7 +135,6 @@ jest.mock('tone', () => ({
 };
 
 // Mock Web Crypto API using node:crypto
-const nodeCrypto = require('node:crypto');
 if (typeof crypto === 'undefined') {
   (global as any).crypto = nodeCrypto.webcrypto;
 } else if (!crypto.subtle) {

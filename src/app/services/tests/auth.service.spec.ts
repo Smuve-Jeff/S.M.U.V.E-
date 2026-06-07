@@ -38,6 +38,12 @@ describe('AuthService (Hardened)', () => {
     expect(userStore.isAuthenticated()).toBe(true);
     expect(userStore.user()?.email).toBe('test@example.com');
     expect(localStorage.getItem('smuve_db_user_test@example.com')).toBeTruthy();
+    expect(localStorage.getItem('smuve_auth_session')).toBeTruthy();
+    const session = localStorage.getItem('smuve_auth_session');
+    const decoded = decodeURIComponent(escape(atob(session!)));
+    const [data] = decoded.split('|');
+    const parsedUser = JSON.parse(data);
+    expect(parsedUser.email).toBe('test@example.com');
   });
 
   it('should fail registration with weak password', async () => {
@@ -60,6 +66,12 @@ describe('AuthService (Hardened)', () => {
     expect(result.success).toBe(true);
     expect(userStore.isAuthenticated()).toBe(true);
     expect(userStore.user()?.artistName).toBe('Login Artist');
+    expect(localStorage.getItem('smuve_auth_session')).toBeTruthy();
+    const session = localStorage.getItem('smuve_auth_session');
+    const decoded = decodeURIComponent(escape(atob(session!)));
+    const [data] = decoded.split('|');
+    const parsedUser = JSON.parse(data);
+    expect(parsedUser.email).toBe('login@example.com');
   });
 
   it('should fail login with incorrect password', async () => {
