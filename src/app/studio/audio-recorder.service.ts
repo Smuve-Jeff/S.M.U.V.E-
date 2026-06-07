@@ -76,12 +76,24 @@ export class AudioRecorderService {
     return await this.localStorageService.getAllItems('audio_blobs');
   }
 
-  async applyOfflineEdit(id: string, edits: any) {
-    const item = await this.localStorageService.getItem('audio_blobs', id);
-    if (item) {
-      item.settings = { ...item.settings, ...edits };
-      await this.localStorageService.saveItem('audio_blobs', item);
-      this.logger.info(`Offline edits applied to recording ${id}.`);
+  interface RecordingSettings {
+    gain?: number;
+    trimmed?: boolean;
+    [key: string]: any;
+  }
+
+  async applyOfflineEdit(id: string, edits: Partial<RecordingSettings>) {
+    try {
+      const item = await this.localStorageService.getItem('audio_blobs', id);
+      if (item) {
+        item.settings = { ...item.settings, ...edits };
+        await this.localStorageService.saveItem('audio_blobs', item);
+        this.logger.info(`Offline edits applied to recording ${id}.`);
+      } else {
+        this.logger.warn(`Recording ${id} not found for editing`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to apply edits to recording ${id}`, error);
     }
   }
 }
