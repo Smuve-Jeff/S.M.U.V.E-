@@ -3683,6 +3683,99 @@
         "accentEnd": "#a855f7"
       },
       "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+      "id": "minecraft-classic",
+      "name": "Minecraft Classic",
+      "url": "https://classic.minecraft.net/",
+      "description": "The original Minecraft creative mode, playable in your browser. Build anything you can imagine.",
+      "genre": "Sandbox",
+      "rating": 4.8,
+      "playersOnline": 5000,
+      "availability": "Web",
+      "tags": [
+        "Multiplayer",
+        "Creative",
+        "Sandbox"
+      ],
+      "badgeIds": [
+        "classic",
+        "featured"
+      ]
+    },
+    {
+      "id": "prince-of-persia",
+      "name": "Prince of Persia",
+      "url": "https://princejs.com/",
+      "description": "The legendary cinematic platformer perfectly recreated in JavaScript. 60 minutes to save the princess.",
+      "genre": "Platformer",
+      "rating": 4.7,
+      "playersOnline": 300,
+      "availability": "Web",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Adventure"
+      ],
+      "badgeIds": [
+        "classic"
+      ]
+    },
+    {
+      "id": "diablo-web",
+      "name": "Diablo Web",
+      "url": "https://d07riv.github.io/diablo-web/",
+      "description": "The original Diablo (1996) shareware version running in your browser. Experience the depths of Tristram.",
+      "genre": "Action RPG",
+      "rating": 4.9,
+      "playersOnline": 800,
+      "availability": "Web",
+      "tags": [
+        "RPG",
+        "Classic",
+        "Dungeon Crawler"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ]
+    },
+    {
+      "id": "quakejs",
+      "name": "QuakeJS",
+      "url": "http://www.quakejs.com/",
+      "description": "Legendary fast-paced arena shooter. Frag your friends in this web-based port of Quake.",
+      "genre": "FPS",
+      "rating": 4.8,
+      "playersOnline": 1200,
+      "availability": "Web",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "Arena"
+      ],
+      "badgeIds": [
+        "elite"
+      ]
+    },
+    {
+      "id": "street-fighter-2-ce",
+      "name": "Street Fighter II: CE",
+      "url": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
+      "description": "The definitive fighting game experience. Master the Hadouken and climb the world tournament.",
+      "genre": "Fighting",
+      "rating": 4.9,
+      "playersOnline": 2500,
+      "availability": "Embed",
+      "tags": [
+        "Fighting",
+        "Versus",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic",
+        "tournament-live"
+      ]
     }
   ],
   "recommendationRails": [
