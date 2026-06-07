@@ -1,5 +1,5 @@
-import {
-  Component,
+import { DjMidiService } from '../../services/dj-midi.service';
+import { Component,
   ChangeDetectionStrategy,
   signal,
   input,
@@ -40,6 +40,10 @@ const MIN_SAMPLER_RETURN_MILLIS = 80;
   imports: [CommonModule, FormsModule, KnobComponent],
 })
 export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
+  samplerCategory = signal<"drums" | "fx" | "vocals">("drums");
+  fxMode = signal<"flanger" | "phaser" | "delay">("flanger");
+  private djMidiService = inject(DjMidiService);
+  private aiService = inject(AiService);
   @ViewChild('waveformA') waveformA!: ElementRef<HTMLCanvasElement>;
   @ViewChild('waveformB') waveformB!: ElementRef<HTMLCanvasElement>;
   @ViewChild('meterA') meterA!: ElementRef<HTMLCanvasElement>;
@@ -179,6 +183,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   ) {}
 
   ngOnInit() {
+    this.djMidiService.initMidi();
     this.checkMobile();
     this.configureSyncInterval();
   }
@@ -426,8 +431,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (mode === 'roll') return;
 
-    if (d.samplerPads[index] === null) {
-      this.deckService.setSamplerPad(deck, index);
+    if (d.samplerPads[this.samplerCategory()][index] === null) {
+      this.deckService.setSamplerPad(deck, index, this.samplerCategory());
       this.sessionNotice.set(`Deck ${deck} sample pad ${index + 1} armed.`);
       return;
     }
@@ -451,7 +456,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     if (this.performanceMode() === 'sampler') {
-      this.deckService.clearSamplerPad(deck, index);
+      this.deckService.clearSamplerPad(deck, index, this.samplerCategory());
       this.clearSamplerActivePad(deck);
       this.sessionNotice.set(`Deck ${deck} sample pad ${index + 1} cleared.`);
       return;
@@ -464,7 +469,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const mode = this.performanceMode();
     if (mode === 'cue') return `Cue ${index + 1}`;
     if (mode === 'roll') return `${this.rollPadLabels[index] || '1'} Roll`;
-    return `Shot ${index + 1}`;
+    return `${this.samplerCategory().substring(0, 3).toUpperCase()} ${index + 1}`;
   }
 
   isCuePadSet(deck: 'A' | 'B', index: number) {
@@ -481,11 +486,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     );
   }
 
-  isSamplerPadActive(deck: 'A' | 'B', index: number) {
-    return (
-      (deck === 'A' ? this.activeSamplerPadA() : this.activeSamplerPadB()) ===
-      index
-    );
+  isSamplerPadActive(deck: 'A' | 'B', index: number, category?: 'drums' | 'fx' | 'vocals') {
+    const cat = category || this.samplerCategory();
+    return (deck === 'A' ? this.activeSamplerPadA() : this.activeSamplerPadB()) === index;
   }
 
   setPlaybackRate(deck: 'A' | 'B', rate: any) {
@@ -664,6 +667,14 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const lastAngle = deck === 'A' ? this.lastAngleA : this.lastAngleB;
     let delta = angle - lastAngle;
 
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+
+    // Use the advanced scratch engine
+    const scratchDelta = (delta / 360) * 2; // Arbitrary scaling for feel
+    this.deckService.scratch(deck, scratchDelta);
+
+
     if (delta > Math.PI) delta -= 2 * Math.PI;
     if (delta < -Math.PI) delta += 2 * Math.PI;
 
@@ -787,7 +798,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       eqLow: deck.eqLow,
       slip: deck.slip,
       hotCues: [...deck.hotCues],
-      samplerPads: [...deck.samplerPads],
+      samplerPads: { ...deck.samplerPads },
     });
 
     return {
@@ -917,7 +928,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private triggerSamplerPad(deck: 'A' | 'B', index: number) {
     const deckState = this.getDeckState(deck);
-    const cuePosition = deckState.samplerPads[index];
+    const cuePosition = deckState.samplerPads[this.samplerCategory()][index];
     if (cuePosition === null) return;
 
     const progress = this.engine.getDeckProgress(deck);
@@ -1017,4 +1028,26 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.deckService.crossfade.set(cf);
     this.engine.setCrossfader(cf);
   }
+
+  setSamplerCategory(cat: 'drums' | 'fx' | 'vocals') {
+    this.samplerCategory.set(cat);
+  }
+
+  toggleCue(deck: 'A' | 'B') {
+    this.deckService.toggleCue(deck);
+  }
+
+  setFxAmount(deck: 'A' | 'B', amount: any) {
+    const val = parseFloat(amount);
+    this.deckService.setFx(deck, this.fxMode(), val);
+  }
+
+  toggleAutomix() {
+    this.deckService.toggleAutomix();
+  }
+
+  syncDeck(deck: 'A' | 'B') {
+    this.deckService.autoSync(deck);
+  }
+
 }

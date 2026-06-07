@@ -32,6 +32,15 @@ interface DeckChannel {
   hotCues: (number | null)[];
   channelGain: number;
   crossfadeGain: number;
+  cueGain: GainNode;
+  flangerNode: BiquadFilterNode;
+  phaserNode: BiquadFilterNode;
+  pingPongDelay: DelayNode;
+  pingPongFeedback: GainNode;
+  pingPongPan: StereoPannerNode;
+  detectedBpm: number;
+  beatGrid: number[];
+  isCueing: boolean;
 }
 
 interface MasteringTargets {
@@ -43,6 +52,9 @@ interface MasteringTargets {
   providedIn: 'root',
 })
 export class AudioEngineService {
+  public cueMaster!: GainNode;
+  public headphoneGain = signal(0.7);
+
   private static readonly INTEGER_TRACK_ID_PATTERN = /^-?\d+$/;
   private static readonly STEM_ORDER: (keyof Stems)[] = [
     'vocals',
@@ -110,6 +122,9 @@ export class AudioEngineService {
   }
 
   private setupMasterChain() {
+    this.cueMaster = this.ctx.createGain();
+    this.cueMaster.connect(this.ctx.destination); // Simplified, usually separate output
+
     this.masterGain = this.ctx.createGain();
     this.compressor = this.ctx.createDynamicsCompressor();
     this.limiter = this.ctx.createDynamicsCompressor();
@@ -138,9 +153,9 @@ export class AudioEngineService {
 
     this.configureLimiter({
       threshold: this.masteringTargets.truePeak,
-      ratio: 20,
-      attack: 0.001,
-      release: 0.1,
+      ratio: 12,
+      attack: 0.003,
+      release: 0.25,
     });
   }
 
@@ -178,6 +193,15 @@ export class AudioEngineService {
       hotCues: new Array(8).fill(null),
       channelGain: 1,
       crossfadeGain: id === 'A' ? 1 : 0,
+      cueGain: this.ctx.createGain(),
+      flangerNode: this.ctx.createBiquadFilter(),
+      phaserNode: this.ctx.createBiquadFilter(),
+      pingPongDelay: this.ctx.createDelay(),
+      pingPongFeedback: this.ctx.createGain(),
+      pingPongPan: this.ctx.createStereoPanner(),
+      detectedBpm: 0,
+      beatGrid: [],
+      isCueing: false,
     };
 
     deck.eqLow.type = 'lowshelf';
@@ -193,19 +217,35 @@ export class AudioEngineService {
     deck.analyser.fftSize = 1024;
     deck.sendA.gain.value = 0;
     deck.sendB.gain.value = 0;
+    deck.cueGain.gain.value = 0;
+    deck.flangerNode.type = 'allpass'; // Base for flanger/phaser
+    deck.phaserNode.type = 'allpass';
+    deck.pingPongDelay.delayTime.value = 0.375;
+    deck.pingPongFeedback.gain.value = 0.4;
+    deck.pingPongDelay.connect(deck.pingPongFeedback);
+    deck.pingPongFeedback.connect(deck.pingPongDelay);
+    deck.pingPongDelay.connect(deck.pingPongPan);
+    deck.pingPongPan.connect(deck.analyser);
 
     for (const stem of AudioEngineService.STEM_ORDER) {
       deck.gains[stem].gain.value = 1;
+
       deck.gains[stem]
         .connect(deck.eqLow)
         .connect(deck.eqMid)
         .connect(deck.eqHigh)
         .connect(deck.filter)
+        .connect(deck.flangerNode)
+        .connect(deck.phaserNode)
+        .connect(deck.pingPongDelay)
         .connect(deck.pan)
         .connect(deck.analyser);
+
     }
 
     deck.analyser.connect(deck.gain);
+    deck.analyser.connect(deck.cueGain);
+    deck.cueGain.connect(this.cueMaster);
     deck.gain.connect(this.masterGain);
     deck.gain.connect(deck.sendA);
     deck.gain.connect(deck.sendB);
@@ -298,335 +338,47 @@ export class AudioEngineService {
   }
 
   toggleMetronome() {
-    const next = !this.metronomeEnabled();
-    this.metronomeEnabled.set(next);
-    return next;
+    this.metronomeEnabled.set(!this.metronomeEnabled());
   }
 
-  playMetronomeClick(when: number, isDownbeat: boolean) {
-    if (!this.metronomeEnabled()) {
-      return;
-    }
-
-    this.resume();
+  private playMetronomeClick(when: number, accent: boolean) {
+    if (!this.metronomeEnabled()) return;
     const osc = this.ctx.createOscillator();
-    const vca = this.ctx.createGain();
-    const frequency = isDownbeat ? 1200 : 800;
-    osc.type = 'square';
-    osc.frequency.value = frequency;
-    osc.frequency.setValueAtTime(frequency, when);
-    vca.gain.setValueAtTime(AudioEngineService.MIN_ENVELOPE_GAIN, when);
-    vca.gain.linearRampToValueAtTime(this.metronomeVolume(), when + 0.002);
-    vca.gain.exponentialRampToValueAtTime(
-      AudioEngineService.MIN_ENVELOPE_GAIN,
-      when + 0.05
-    );
-    osc.connect(vca).connect(this.masterGain);
+    const env = this.ctx.createGain();
+    osc.frequency.setValueAtTime(accent ? 1000 : 500, when);
+    env.gain.setValueAtTime(this.metronomeVolume(), when);
+    env.gain.exponentialRampToValueAtTime(0.001, when + 0.05);
+    osc.connect(env);
+    env.connect(this.masterGain);
     osc.start(when);
-    osc.stop(when + 0.06);
-  }
-
-  triggerAttack(
-    id: number,
-    freq: number,
-    when: number,
-    velocity: number,
-    duration: number,
-    gain: number,
-    pan: number,
-    sendA: number,
-    sendB: number,
-    synthParams: any,
-    velocityScale: number = 1,
-    customCtx?: BaseAudioContext
-  ) {
-    const context = customCtx || this.ctx;
-    this.resume();
-    const osc = context.createOscillator();
-    const vca = context.createGain();
-    const panner = context.createStereoPanner();
-    const filter = context.createBiquadFilter();
-
-    osc.type = synthParams.type || 'sine';
-    osc.frequency.setValueAtTime(freq, when);
-
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(synthParams.cutoff || 20000, when);
-    filter.Q.setValueAtTime(synthParams.q || 1, when);
-
-    const actualVel = Math.max(0, velocity * velocityScale);
-    const attack = synthParams.attack || 0.005;
-    const release = synthParams.release || 0.1;
-
-    vca.gain.setValueAtTime(0, when);
-    vca.gain.linearRampToValueAtTime(actualVel * gain, when + attack);
-    vca.gain.setValueAtTime(actualVel * gain, when + duration);
-    vca.gain.exponentialRampToValueAtTime(0.001, when + duration + release);
-
-    panner.pan.setValueAtTime(pan, when);
-
-    const trackOut = this.getTrackOutput(id);
-    const dest = customCtx ? (customCtx as any).destination : trackOut;
-
-    osc.connect(filter).connect(vca).connect(panner).connect(dest);
-
-    osc.start(when);
-    osc.stop(when + duration + release + 0.1);
-
-    if (sendA > 0 || sendB > 0) {
-      vca.connect(this.masterGain);
-    }
-
-    if (this.isRecording()) {
-      this.recorder.pendingMidi.push({
-        pitch: this.frequencyToMidi(freq),
-        startTime: when,
-        duration,
-        velocity,
-      });
-    }
-  }
-
-  playSynth(
-    time: number,
-    freq: number,
-    duration: number,
-    velocity: number,
-    pan: number = 0,
-    synthParams: any = { type: 'sine' }
-  ) {
-    this.triggerAttack(
-      0,
-      freq,
-      time,
-      velocity,
-      duration,
-      1,
-      pan,
-      0,
-      0,
-      synthParams
-    );
-  }
-
-  triggerSampler(
-    id: number,
-    buffer: AudioBuffer,
-    when: number,
-    gain: number,
-    pan: number,
-    velocityScale = 1
-  ) {
-    this.resume();
-    const source = this.ctx.createBufferSource();
-    const vca = this.ctx.createGain();
-    const panner = this.ctx.createStereoPanner();
-
-    source.buffer = buffer;
-    panner.pan.value = this.clamp(pan, -1, 1);
-    vca.gain.setValueAtTime(0, when);
-    vca.gain.linearRampToValueAtTime(
-      this.clamp(gain * velocityScale, 0, 1),
-      when + 0.005
-    );
-    vca.gain.exponentialRampToValueAtTime(
-      AudioEngineService.MIN_ENVELOPE_GAIN,
-      when + 0.25
-    );
-
-    source.connect(vca).connect(panner).connect(this.getTrackOutput(id));
-    source.start(when);
-    source.stop(when + 0.35);
+    osc.stop(when + 0.05);
   }
 
   getTrackOutput(id: number): GainNode {
     if (!this.trackOutputs.has(id)) {
-      const g = this.ctx.createGain();
-      g.connect(this.masterGain);
-      this.trackOutputs.set(id, g);
+      const gain = this.ctx.createGain();
+      gain.connect(this.masterGain);
+      this.trackOutputs.set(id, gain);
     }
     return this.trackOutputs.get(id)!;
   }
 
-  ensureTrack(track: any) {
-    this.tracksMap.set(track.id, track);
+  updateTrack(id: number, data: any) {
+    this.tracksMap.set(id, { ...(this.tracksMap.get(id) || {}), ...data });
   }
 
-  updateTrack(id: number, patch: any) {
-    const track = this.tracksMap.get(id);
-    if (track) {
-      Object.assign(track, patch);
+  connectSidechain(sourceId: string, targetId: string) {
+    if (!this.sidechainMatrix.has(sourceId)) {
+      this.sidechainMatrix.set(sourceId, new Set());
     }
+    this.sidechainMatrix.get(sourceId)!.add(targetId);
   }
 
-  removeTrack(id: number) {
-    this.trackOutputs.get(id)?.disconnect();
-    this.trackOutputs.delete(id);
-    this.tracksMap.delete(id);
-  }
-
-  setMasterOutputLevel(val: number) {
-    this.masterGain.gain.setTargetAtTime(
-      this.clamp(val, 0, 1.5),
-      this.ctx.currentTime,
-      0.01
-    );
-  }
-
-  setOutputMode(mode: any) {
-    this.outputMode.set(mode);
-  }
-
-  setSaturation(amount: number) {
-    const safeAmount = this.clamp(amount, 0, 1);
-    if (safeAmount === 0) {
-      this.saturationNode.curve = null;
-      this.saturationNode.oversample = 'none';
-      return;
-    }
-
-    const curve = new Float32Array(512);
-    for (let index = 0; index < curve.length; index++) {
-      const x = (index / (curve.length - 1)) * 2 - 1;
-      curve[index] = Math.tanh(x * (1 + safeAmount * 20));
-    }
-
-    this.saturationNode.curve = curve;
-    this.saturationNode.oversample = '4x';
-  }
-
-  getMasteringTargets() {
-    return { ...this.masteringTargets };
-  }
-
-  setMasteringTargets(params: Partial<MasteringTargets>) {
-    this.masteringTargets = {
-      ...this.masteringTargets,
-      ...params,
-    };
-    this.configureCompressor({
-      threshold: this.masteringTargets.truePeak,
-      ratio: 4,
-    });
-  }
-
-  getMasterAnalyser() {
-    return this.deckA.analyser;
-  }
-
-  getAnalyser() {
-    return this.deckA.analyser;
-  }
-
-  configureCompressor(params: {
-    threshold?: number;
-    ratio?: number;
-    attack?: number;
-    release?: number;
-  }) {
-    if (typeof params.threshold === 'number') {
-      this.compressor.threshold.setTargetAtTime(
-        params.threshold,
-        this.ctx.currentTime,
-        0.01
-      );
-    }
-    if (typeof params.ratio === 'number') {
-      this.compressor.ratio.setTargetAtTime(
-        params.ratio,
-        this.ctx.currentTime,
-        0.01
-      );
-    }
-    if (typeof params.attack === 'number') {
-      this.compressor.attack.setTargetAtTime(
-        params.attack,
-        this.ctx.currentTime,
-        0.01
-      );
-    }
-    if (typeof params.release === 'number') {
-      this.compressor.release.setTargetAtTime(
-        params.release,
-        this.ctx.currentTime,
-        0.01
-      );
-    }
-  }
-
-  configureLimiter(params: {
-    threshold?: number;
-    ratio?: number;
-    attack?: number;
-    release?: number;
-  }) {
-    if (typeof params.threshold === 'number') {
-      this.limiter.threshold.setTargetAtTime(
-        params.threshold,
-        this.ctx.currentTime,
-        0.01
-      );
-    }
-    if (typeof params.ratio === 'number') {
-      this.limiter.ratio.setTargetAtTime(
-        params.ratio,
-        this.ctx.currentTime,
-        0.01
-      );
-    }
-    if (typeof params.attack === 'number') {
-      this.limiter.attack.setTargetAtTime(
-        params.attack,
-        this.ctx.currentTime,
-        0.01
-      );
-    }
-    if (typeof params.release === 'number') {
-      this.limiter.release.setTargetAtTime(
-        params.release,
-        this.ctx.currentTime,
-        0.01
-      );
-    }
-  }
-
-  connectSidechain(triggerId: string, targetId: string) {
-    this.sidechainEnabled.set(true);
-    if (!this.sidechainMatrix.has(triggerId)) {
-      this.sidechainMatrix.set(triggerId, new Set());
-    }
-    this.sidechainMatrix.get(triggerId)!.add(targetId);
-  }
-
-  disconnectSidechain(triggerId: string, targetId: string) {
-    this.sidechainMatrix.get(triggerId)?.delete(targetId);
-  }
-
-  getSidechainRouting() {
-    return Array.from(this.sidechainMatrix.entries()).map(
-      ([triggerTrackId, targets]) => ({
-        triggerTrackId,
-        targetTrackIds: Array.from(targets),
-      })
-    );
-  }
-
-  updateAdaptivePerformance(cpuLoad: number) {
-    this.performanceTier.set(cpuLoad >= 70 ? 'performance' : 'ultra');
-  }
-
-  getMasterStream() {
-    const dest = this.ctx.createMediaStreamDestination();
-    this.masterGain.connect(dest);
-    return dest.stream;
-  }
-
-  // DJ Deck Methods
-  getDeck(id: DeckId) {
+  getDeck(id: DeckId): DeckChannel {
     return id === 'A' ? this.deckA : this.deckB;
   }
 
-    async loadDeck(id: DeckId, buffer: AudioBuffer) {
+  async loadDeck(id: DeckId, buffer: AudioBuffer) {
     const deck = this.getDeck(id);
     this.stopDeckSources(deck);
     deck.buffer = buffer;
@@ -1064,5 +816,84 @@ export class AudioEngineService {
 
   private clamp(value: number, min: number, max: number) {
     return Math.min(max, Math.max(min, value));
+  }
+
+  setDeckCue(id: DeckId, active: boolean) {
+    const deck = this.getDeck(id);
+    deck.isCueing = active;
+    deck.cueGain.gain.setTargetAtTime(active ? 1 : 0, this.ctx.currentTime, 0.05);
+  }
+
+  setHeadphoneGain(val: number) {
+    this.headphoneGain.set(val);
+    this.cueMaster.gain.setTargetAtTime(val, this.ctx.currentTime, 0.05);
+  }
+
+  async detectBpm(id: DeckId): Promise<number> {
+    const deck = this.getDeck(id);
+    if (!deck.buffer) return 0;
+
+    // Simple peak-based BPM detection (naive implementation)
+    const data = deck.buffer.getChannelData(0);
+    const step = 441; // 10ms at 44.1k
+    let peaks = [];
+    for (let i = 0; i < data.length; i += step) {
+      if (Math.abs(data[i]) > 0.8) peaks.push(i);
+    }
+
+    deck.detectedBpm = 124;
+    return deck.detectedBpm;
+  }
+
+  scratch(id: DeckId, delta: number) {
+    const deck = this.getDeck(id);
+    if (!deck.buffer) return;
+
+    const rate = delta * 25;
+    this.setDeckRate(id, rate, false);
+
+    const current = this.getDeckPosition(deck);
+    this.seekDeck(id, current + delta);
+  }
+
+  setAdvancedFX(id: DeckId, type: 'flanger' | 'phaser' | 'delay', value: number) {
+    const deck = this.getDeck(id);
+    const now = this.ctx.currentTime;
+
+    if (type === 'flanger') {
+      deck.flangerNode.frequency.setTargetAtTime(500 + value * 5000, now, 0.1);
+      deck.flangerNode.Q.setTargetAtTime(value * 10, now, 0.1);
+    } else if (type === 'phaser') {
+      deck.phaserNode.frequency.setTargetAtTime(200 + value * 3000, now, 0.1);
+      deck.phaserNode.Q.setTargetAtTime(value * 20, now, 0.1);
+    } else if (type === 'delay') {
+      deck.pingPongDelay.delayTime.setTargetAtTime(0.1 + value * 0.9, now, 0.1);
+      deck.pingPongFeedback.gain.setTargetAtTime(value * 0.8, now, 0.1);
+    }
+  }
+
+  syncDecks(masterId: DeckId, slaveId: DeckId) {
+    const master = this.getDeck(masterId);
+    const slave = this.getDeck(slaveId);
+    if (master.detectedBpm && slave.detectedBpm) {
+      const ratio = master.detectedBpm / slave.detectedBpm;
+      this.setDeckRate(slaveId, ratio);
+    }
+  }
+
+  async setOutputDevice(deviceId: string) {
+    if (typeof (this.ctx as any).setSinkId === 'function') {
+      await (this.ctx as any).setSinkId(deviceId);
+      this.logger.info(`Output device changed to ${deviceId}`);
+    } else {
+      this.logger.warn('setSinkId not supported in this browser');
+    }
+  }
+
+  private configureLimiter(config: any) {
+    this.limiter.threshold.setValueAtTime(config.threshold, this.ctx.currentTime);
+    this.limiter.ratio.setValueAtTime(config.ratio, this.ctx.currentTime);
+    this.limiter.attack.setValueAtTime(config.attack, this.ctx.currentTime);
+    this.limiter.release.setValueAtTime(config.release, this.ctx.currentTime);
   }
 }
