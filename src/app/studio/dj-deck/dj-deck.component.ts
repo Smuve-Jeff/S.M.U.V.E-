@@ -667,16 +667,12 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const lastAngle = deck === 'A' ? this.lastAngleA : this.lastAngleB;
     let delta = angle - lastAngle;
 
-    if (delta > 180) delta -= 360;
-    if (delta < -180) delta += 360;
-
-    // Use the advanced scratch engine
-    const scratchDelta = (delta / 360) * 2; // Arbitrary scaling for feel
-    this.deckService.scratch(deck, scratchDelta);
-
-
     if (delta > Math.PI) delta -= 2 * Math.PI;
     if (delta < -Math.PI) delta += 2 * Math.PI;
+
+    // Use the advanced scratch engine with radian-based delta
+    const scratchDelta = (delta / (2 * Math.PI)) * 2; // Scale based on fraction of rotation
+    this.deckService.scratch(deck, scratchDelta);
 
     const scrubSecondsPerRadian = 1.8 / (2 * Math.PI);
     const scrub = delta * scrubSecondsPerRadian;
