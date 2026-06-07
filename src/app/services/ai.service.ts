@@ -5,6 +5,7 @@ import { UserProfileService } from './user-profile.service';
 import { UserContextService, MainViewMode } from './user-context.service';
 import { LoggingService } from './logging.service';
 import { AudioEngineService } from './audio-engine.service';
+import { MusicManagerService } from './music-manager.service';
 import { UserProfile } from '../types/profile.types';
 import { STRATEGIC_DECREES, MIMICRY_TEMPLATES } from './ai-knowledge.data';
 import { NEURAL_UPGRADE_BLUEPRINTS } from './neural-upgrades.data';
@@ -45,6 +46,7 @@ export class AiService {
   private userContext = inject(UserContextService);
   private logger = inject(LoggingService);
   private audioEngine = inject(AudioEngineService);
+  private musicManager = inject(MusicManagerService);
 
   private mimicryBuffer: string[] = [];
   private readonly MAX_MIMICRY = 10;
@@ -273,7 +275,7 @@ export class AiService {
 
   async performExecutiveAudit() {
     const profile = this.userProfileService.profile();
-    const budget = profile.financials.marketingBudget;
+    const budget = profile.financials.monthlyBudget;
 
     let report = "EXECUTIVE_STRATEGY_AUDIT: ";
     if (budget < 500) {

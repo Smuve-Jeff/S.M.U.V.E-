@@ -3694,7 +3694,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Sandbox",
             "rating": 4.8,
             "playersOnline": 5000,
-            "availability": "Web",
+            "availability": "Online",
             "tags": [
                 "Multiplayer",
                 "Creative",
@@ -3713,7 +3713,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Platformer",
             "rating": 4.7,
             "playersOnline": 300,
-            "availability": "Web",
+            "availability": "Online",
             "tags": [
                 "Classic",
                 "Retro",
@@ -3731,7 +3731,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Action RPG",
             "rating": 4.9,
             "playersOnline": 800,
-            "availability": "Web",
+            "availability": "Online",
             "tags": [
                 "RPG",
                 "Classic",
@@ -3750,7 +3750,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "FPS",
             "rating": 4.8,
             "playersOnline": 1200,
-            "availability": "Web",
+            "availability": "Online",
             "tags": [
                 "FPS",
                 "Multiplayer",
@@ -3768,7 +3768,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "genre": "Fighting",
             "rating": 4.9,
             "playersOnline": 2500,
-            "availability": "Embed",
+            "availability": "Online",
             "tags": [
                 "Fighting",
                 "Versus",

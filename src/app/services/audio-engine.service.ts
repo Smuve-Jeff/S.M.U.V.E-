@@ -626,13 +626,11 @@ export class AudioEngineService {
     return id === 'A' ? this.deckA : this.deckB;
   }
 
-  async loadDeck(id: DeckId, buffer: AudioBuffer) {
+    async loadDeck(id: DeckId, buffer: AudioBuffer) {
     const deck = this.getDeck(id);
     this.stopDeckSources(deck);
     deck.buffer = buffer;
-    deck.stems = await
-      this.stemSeparationService.separate(buffer)
-    );
+    deck.stems = await this.stemSeparationService.separate(buffer);
     deck.pauseOffset = 0;
     deck.startTime = this.ctx.currentTime;
     deck.rate = 1;
