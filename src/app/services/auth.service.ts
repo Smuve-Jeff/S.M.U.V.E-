@@ -225,12 +225,15 @@ export class AuthService {
       ? crypto.getRandomValues(array)[0] / (0xffffffff + 1)
       : Math.random();
     
-    const verificationCode = Math.floor(100000 + randomValue * 900000).toString();
+    const MIN_CODE = 100000;
+    const CODE_RANGE = 900000;
+    const verificationCode = Math.floor(MIN_CODE + randomValue * CODE_RANGE).toString();
     localStorage.setItem(`smuve_verification_${creds.email.toLowerCase()}`, verificationCode);
     console.log(`[SYSTEM MAIL] Verification code for ${creds.email}: ${verificationCode}`);
     
     if (typeof window !== 'undefined') {
       setTimeout(() => {
+        console.warn(`[DEVELOPMENT ONLY] S.M.U.V.E. TRANSMISSION:\nYour verification cipher is: ${verificationCode}`);
         alert(`S.M.U.V.E. TRANSMISSION:\nYour verification cipher is: ${verificationCode}`);
       }, 500);
     }

@@ -31,6 +31,7 @@ export class PerformerComponent {
   private readonly instrumentsService = inject(InstrumentsService);
 
   layout = signal<'keyboard' | 'pads' | 'matrix'>('keyboard');
+  private readonly PATTERN_STEPS = 64;
   scenes = this.musicManager.performerScenes;
   smartChords = signal(false);
   velocity = 0.8;
@@ -133,8 +134,7 @@ export class PerformerComponent {
       if (noteId) {
         const beat = this.musicManager.engine.currentBeat();
         const stepsPerBeat = this.musicManager.engine.stepsPerBeat();
-        const startStep = Math.floor(beat * stepsPerBeat) % 64;
-        // Using generic 64 steps, or we could just use engine
+        const startStep = Math.floor(beat * stepsPerBeat) % this.PATTERN_STEPS;
         this.recordingNotes.set(midi, { id: noteId, startStep });
       }
     }
@@ -158,10 +158,8 @@ export class PerformerComponent {
         const stepsPerBeat = this.musicManager.engine.stepsPerBeat();
         const currentStep = Math.floor(beat * stepsPerBeat);
         // Calculate length based on current step relative to start step, handling wrap-around
-        const totalSteps = 64; // Fallback to 64 steps
-        let length = (currentStep - recNote.startStep + totalSteps) % totalSteps;
-        if (length === 0) length = totalSteps; // Or 1 depending on logic, but at least > 0
-        if (length <= 0) length = 1;
+        let length = (currentStep - recNote.startStep + this.PATTERN_STEPS) % this.PATTERN_STEPS;
+        if (length === 0) length = this.PATTERN_STEPS;
         this.musicManager.setNoteParam(selectedId, recNote.id, 'length', length);
       }
       this.recordingNotes.delete(midi);
