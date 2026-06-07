@@ -13,6 +13,7 @@ mixer_center_add = """<div class="mixer-center">
             <button class="btn-sm tactile-v42" (click)="syncDeck('A')">SYNC A</button>
             <button class="btn-sm tactile-v42" (click)="syncDeck('B')">SYNC B</button>
           </div>
+\1
           <div class="master-section-elite">"""
 content = re.sub(mixer_center_pattern, mixer_center_add, content)
 
