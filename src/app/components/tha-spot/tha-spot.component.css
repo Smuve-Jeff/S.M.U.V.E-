@@ -181,3 +181,222 @@
 .tha-spot-shell[data-mode="cinema"] {
   background: #000 !important;
 }
+
+/* Grid Catalog View */
+.catalog-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding-bottom: 4rem;
+}
+
+.catalog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search-box {
+  position: relative;
+  min-width: 300px;
+}
+
+.search-box input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.6rem 1rem 0.6rem 2.5rem;
+  border-radius: 8px;
+  color: white;
+  font-family: 'Rajdhani', sans-serif;
+  outline: none;
+}
+
+.search-box span {
+  position: absolute;
+  left: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #7a7a9a;
+  font-size: 1.2rem;
+}
+
+.filter-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  color: white;
+  font-family: 'Rajdhani', sans-serif;
+  outline: none;
+  cursor: pointer;
+}
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+}
+
+.game-card-compact.grid-style {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-card-compact.grid-style .card-art {
+  position: relative;
+}
+
+.card-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: #af25f4;
+  font-size: 0.6rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.card-info {
+  padding: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card-info h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.7rem;
+  color: #7a7a9a;
+}
+
+.genre-tag {
+  color: #af25f4;
+  font-weight: 600;
+}
+
+.storefront-rail {
+  margin-bottom: 3rem;
+}
+
+.rail-scroll {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  padding: 1rem 0;
+  scroll-behavior: smooth;
+}
+
+.rail-scroll .game-card-compact {
+  flex: 0 0 200px;
+}
+
+/* UI Helpers */
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: #7a7a9a;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s;
+}
+
+.icon-btn:hover {
+  color: #af25f4;
+  transform: scale(1.1);
+}
+
+.icon-btn .material-symbols-outlined {
+  font-size: 1.5rem;
+}
+
+.primary-btn {
+  background: #af25f4;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.primary-btn:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 20px rgba(175, 37, 244, 0.4);
+}
+
+
+.empty-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  border-radius: 16px;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.empty-results .material-symbols-outlined {
+  font-size: 4rem;
+  color: #7a7a9a;
+  margin-bottom: 1rem;
+}
+
+.empty-results p {
+  color: #7a7a9a;
+  margin-bottom: 2rem;
+}
+
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.card-badge.featured {
+  top: auto;
+  bottom: 0.5rem;
+  background: #22c55e;
+}
+
+.players {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
