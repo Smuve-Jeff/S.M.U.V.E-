@@ -3692,7 +3692,7 @@
       "genre": "Sandbox",
       "rating": 4.8,
       "playersOnline": 5000,
-      "availability": "Web",
+      "availability": "Online",
       "tags": [
         "Multiplayer",
         "Creative",
@@ -3701,7 +3701,17 @@
       "badgeIds": [
         "classic",
         "featured"
-      ]
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "approvedExternalUrl": "https://classic.minecraft.net/",
+        "approvedEmbedUrl": "https://classic.minecraft.net/"
+      }
     },
     {
       "id": "prince-of-persia",
@@ -3711,7 +3721,7 @@
       "genre": "Platformer",
       "rating": 4.7,
       "playersOnline": 300,
-      "availability": "Web",
+      "availability": "Online",
       "tags": [
         "Classic",
         "Retro",
@@ -3719,7 +3729,17 @@
       ],
       "badgeIds": [
         "classic"
-      ]
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "approvedExternalUrl": "https://princejs.com/",
+        "approvedEmbedUrl": "https://princejs.com/"
+      }
     },
     {
       "id": "diablo-web",
@@ -3729,7 +3749,7 @@
       "genre": "Action RPG",
       "rating": 4.9,
       "playersOnline": 800,
-      "availability": "Web",
+      "availability": "Online",
       "tags": [
         "RPG",
         "Classic",
@@ -3738,7 +3758,16 @@
       "badgeIds": [
         "classic",
         "elite"
-      ]
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "approvedExternalUrl": "https://d07riv.github.io/diablo-web/"
+      }
     },
     {
       "id": "quakejs",
@@ -3748,7 +3777,7 @@
       "genre": "FPS",
       "rating": 4.8,
       "playersOnline": 1200,
-      "availability": "Web",
+      "availability": "Online",
       "tags": [
         "FPS",
         "Multiplayer",
@@ -3756,7 +3785,16 @@
       ],
       "badgeIds": [
         "elite"
-      ]
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "approvedExternalUrl": "http://www.quakejs.com/"
+      }
     },
     {
       "id": "street-fighter-2-ce",
@@ -3766,7 +3804,7 @@
       "genre": "Fighting",
       "rating": 4.9,
       "playersOnline": 2500,
-      "availability": "Embed",
+      "availability": "Online",
       "tags": [
         "Fighting",
         "Versus",
@@ -3775,7 +3813,17 @@
       "badgeIds": [
         "classic",
         "tournament-live"
-      ]
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Keyboard",
+          "Mouse"
+        ],
+        "inlinePolicy": "trusted",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html"
+      }
     }
   ],
   "recommendationRails": [

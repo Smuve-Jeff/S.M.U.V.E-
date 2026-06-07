@@ -3864,7 +3864,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "genre": "Sandbox",
         "rating": 4.8,
         "playersOnline": 5000,
-        "availability": "Web",
+        "availability": "Online",
         "tags": [
             "Multiplayer",
             "Creative",
@@ -3873,7 +3873,17 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "badgeIds": [
             "classic",
             "featured"
-        ]
+        ],
+        "launchConfig": {
+            "difficulty": "Elite",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "approvedExternalUrl": "https://classic.minecraft.net/",
+            "approvedEmbedUrl": "https://classic.minecraft.net/"
+        }
     },
     {
         "id": "prince-of-persia",
@@ -3883,7 +3893,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "genre": "Platformer",
         "rating": 4.7,
         "playersOnline": 300,
-        "availability": "Web",
+        "availability": "Online",
         "tags": [
             "Classic",
             "Retro",
@@ -3891,7 +3901,17 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         ],
         "badgeIds": [
             "classic"
-        ]
+        ],
+        "launchConfig": {
+            "difficulty": "Elite",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "approvedExternalUrl": "https://princejs.com/",
+            "approvedEmbedUrl": "https://princejs.com/"
+        }
     },
     {
         "id": "diablo-web",
@@ -3901,7 +3921,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "genre": "Action RPG",
         "rating": 4.9,
         "playersOnline": 800,
-        "availability": "Web",
+        "availability": "Online",
         "tags": [
             "RPG",
             "Classic",
@@ -3910,7 +3930,16 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "badgeIds": [
             "classic",
             "elite"
-        ]
+        ],
+        "launchConfig": {
+            "difficulty": "Elite",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "approvedExternalUrl": "https://d07riv.github.io/diablo-web/"
+        }
     },
     {
         "id": "quakejs",
@@ -3920,7 +3949,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "genre": "FPS",
         "rating": 4.8,
         "playersOnline": 1200,
-        "availability": "Web",
+        "availability": "Online",
         "tags": [
             "FPS",
             "Multiplayer",
@@ -3928,7 +3957,16 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         ],
         "badgeIds": [
             "elite"
-        ]
+        ],
+        "launchConfig": {
+            "difficulty": "Elite",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "approvedExternalUrl": "http://www.quakejs.com/"
+        }
     },
     {
         "id": "street-fighter-2-ce",
@@ -3938,7 +3976,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "genre": "Fighting",
         "rating": 4.9,
         "playersOnline": 2500,
-        "availability": "Embed",
+        "availability": "Online",
         "tags": [
             "Fighting",
             "Versus",
@@ -3947,7 +3985,17 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "badgeIds": [
             "classic",
             "tournament-live"
-        ]
+        ],
+        "launchConfig": {
+            "difficulty": "Elite",
+            "controls": [
+                "Keyboard",
+                "Mouse"
+            ],
+            "inlinePolicy": "trusted",
+            "approvedEmbedUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
+            "approvedExternalUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html"
+        }
     }
 ]
 };
