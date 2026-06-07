@@ -219,14 +219,18 @@ export class PlayerService implements OnDestroy {
 
     navigator.mediaSession.setActionHandler('play', () => {
       if (!this.isPlaying()) {
+    navigator.mediaSession.setActionHandler('play', () => {
+      if (!this.isPlaying()) {
         this.togglePlay();
       }
+      this.audioEngine.updatePlaybackState('playing');
     });
 
     navigator.mediaSession.setActionHandler('pause', () => {
       if (this.isPlaying()) {
         this.togglePlay();
       }
+      this.audioEngine.updatePlaybackState('paused');
     });
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {
