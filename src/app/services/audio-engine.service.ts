@@ -630,7 +630,7 @@ export class AudioEngineService {
     const deck = this.getDeck(id);
     this.stopDeckSources(deck);
     deck.buffer = buffer;
-    deck.stems = await Promise.resolve(
+    deck.stems = await
       this.stemSeparationService.separate(buffer)
     );
     deck.pauseOffset = 0;
