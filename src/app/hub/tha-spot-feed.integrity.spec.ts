@@ -48,14 +48,13 @@ describe('Tha Spot feed integrity', () => {
         game.availability
       );
       expect(game.tags?.length).toBeGreaterThan(0);
+      expect(game.url).toBeTruthy();
       if (game.availability !== 'Web' && game.availability !== 'Embed') {
         expect(game.launchConfig).toBeTruthy();
         expect(
           game.launchConfig?.approvedEmbedUrl ||
             game.launchConfig?.approvedExternalUrl
         ).toBeTruthy();
-      } else {
-        expect(game.url).toBeTruthy();
       }
     }
   });
