@@ -82,9 +82,9 @@ export class AuthService {
     this.logger.info('AUTH_EXECUTION: INITIATING CRYPTOGRAPHIC VALIDATION...');
 
     // Simulate real database lookup
-    const storedUserStr = localStorage.getItem(`smuve_db_user_${creds.email.toLowerCase()}`);
+    const emailKey = creds.email.trim().toLowerCase();
+    const storedUserStr = localStorage.getItem(`smuve_db_user_${emailKey}`);
     if (!storedUserStr) {
-      await new Promise(r => setTimeout(r, 1000));
       return { success: false, message: 'IDENTIFICATION FAILURE. YOU ARE UNKNOWN TO THIS SYSTEM.' };
     }
 
