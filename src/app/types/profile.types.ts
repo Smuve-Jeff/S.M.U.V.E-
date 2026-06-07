@@ -25,6 +25,18 @@ export interface AppSettings {
     aiPersonaIntensityEnabled: boolean;
     aiConversationalTier: 'Standard' | 'Elite' | 'SUPREME';
   };
+  studio: {
+    defaultQuantize: string;
+    autoMixEnabled: boolean;
+    latencyCompensation: number;
+    highFidelityExport: boolean;
+  };
+  dj: {
+    crossfaderCurve: 'linear' | 'power' | 'exp' | 'cut';
+    hamsterMode: boolean;
+    vinylMode: boolean;
+    visualCuePoints: boolean;
+  };
   security: {
     twoFactorEnabled: boolean;
     endToEndEncryption: boolean;
@@ -226,6 +238,18 @@ export const initialProfile: UserProfile = {
       aiProfanityEnabled: false,
       aiPersonaIntensityEnabled: false,
       aiConversationalTier: 'Standard',
+    },
+    studio: {
+      defaultQuantize: '1/16',
+      autoMixEnabled: false,
+      latencyCompensation: 0,
+      highFidelityExport: true,
+    },
+    dj: {
+      crossfaderCurve: 'linear',
+      hamsterMode: false,
+      vinylMode: true,
+      visualCuePoints: true,
     },
     security: {
       twoFactorEnabled: false,
