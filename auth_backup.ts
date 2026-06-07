@@ -1,4 +1,3 @@
-
 import { Injectable, inject, signal, Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { SecurityService } from './security.service';
@@ -8,7 +7,11 @@ import { TokenService } from './token.service';
 import { UserStoreService, AuthUser } from './user-store.service';
 import { APP_SECURITY_CONFIG as GLOBAL_SECURITY_CONFIG } from '../app.security';
 
-export interface AuthCredentials { email: string; password: string; twoFactorCode?: string; }
+export interface AuthCredentials {
+  email: string;
+  password: string;
+  twoFactorCode?: string;
+}
 export type { AuthUser };
 
 @Injectable({ providedIn: 'root' })
@@ -23,8 +26,12 @@ export class AuthService {
   isAuthenticated = this.userStore.isAuthenticated;
   jwtToken = this.tokenService.jwtToken;
 
-  private get securityService(): SecurityService { return this.injector.get(SecurityService); }
-  private get profileService(): UserProfileService { return this.injector.get(UserProfileService); }
+  private get securityService(): SecurityService {
+    return this.injector.get(SecurityService);
+  }
+  private get profileService(): UserProfileService {
+    return this.injector.get(UserProfileService);
+  }
 
   constructor() {}
 
@@ -43,10 +50,24 @@ export class AuthService {
   }
 
   async login(creds: AuthCredentials) {
-    const user: AuthUser = { id: 'usr_1', email: creds.email, artistName: 'Artist', role: 'Admin', permissions: ['ALL_ACCESS'], createdAt: new Date(), lastLogin: new Date(), profileCompleteness: 100, emailVerified: true };
+    const user: AuthUser = {
+      id: 'usr_1',
+      email: creds.email,
+      artistName: 'Artist',
+      role: 'Admin',
+      permissions: ['ALL_ACCESS'],
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      profileCompleteness: 100,
+      emailVerified: true,
+    };
     this.userStore.setUser(user);
     this.tokenService.setToken('mock-jwt');
-    return { success: true, message: 'STATUS VERIFIED. RESUME THE GRIND, Artist. DON\'T WASTE MY FUCKING TIME.' };
+    return {
+      success: true,
+      message:
+        "STATUS VERIFIED. RESUME THE GRIND, Artist. DON'T WASTE MY FUCKING TIME.",
+    };
   }
 
   async register(creds: any, artistName?: string) {
@@ -56,10 +77,17 @@ export class AuthService {
   logout() {
     this.userStore.setUser(null);
     this.tokenService.setToken(null);
-    if (typeof localStorage !== 'undefined') localStorage.removeItem('smuve_auth_session');
+    if (typeof localStorage !== 'undefined')
+      localStorage.removeItem('smuve_auth_session');
   }
 
-  validatePassword(p: string) { return { isValid: p.length >= 8, errors: [] }; }
-  async verifyEmail(c: string) { return { success: true, message: 'VERIFIED' }; }
-  async resendVerificationCode() { return { success: true, message: 'SENT' }; }
+  validatePassword(p: string) {
+    return { isValid: p.length >= 8, errors: [] };
+  }
+  async verifyEmail(c: string) {
+    return { success: true, message: 'VERIFIED' };
+  }
+  async resendVerificationCode() {
+    return { success: true, message: 'SENT' };
+  }
 }

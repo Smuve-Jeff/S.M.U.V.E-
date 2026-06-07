@@ -4,7 +4,7 @@ import { AudioEngineService } from '../services/audio-engine.service';
 import { AiService } from '../services/ai.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SequencerService {
   private musicManager = inject(MusicManagerService);

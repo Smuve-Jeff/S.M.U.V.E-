@@ -1,4 +1,4 @@
-export type GameSortMode = "Popular" | "Rating" | "Newest" | "Name" | "Queue";
+export type GameSortMode = 'Popular' | 'Rating' | 'Newest' | 'Name' | 'Queue';
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { catchError, map, Observable, of, shareReplay } from 'rxjs';
@@ -402,7 +402,9 @@ export class GameService {
         );
         break;
       case 'Newest':
-        filtered.sort((a, b) => (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0));
+        filtered.sort(
+          (a, b) => (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0)
+        );
         break;
     }
     return filtered;

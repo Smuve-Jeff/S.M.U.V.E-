@@ -31,7 +31,12 @@ import { UIService } from '../../services/ui.service';
 const FEED_REFRESH_INTERVAL_MS = 300000;
 const LIVE_CLOCK_INTERVAL_MS = 60000;
 type QuickFilter = 'featured' | 'multiplayer' | 'instant' | 'online';
-const QUICK_FILTERS: QuickFilter[] = ['featured', 'multiplayer', 'instant', 'online'];
+const QUICK_FILTERS: QuickFilter[] = [
+  'featured',
+  'multiplayer',
+  'instant',
+  'online',
+];
 
 @Component({
   selector: 'app-tha-spot',
@@ -47,8 +52,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private securityService = inject(SecurityService);
   public uiService = inject(UIService);
 
-  readonly plutoTvUrl = signal<string>("https://pluto.tv/en/live-tv");
-  readonly safePlutoUrl = computed(() => this.sanitizer.bypassSecurityTrustResourceUrl(this.plutoTvUrl()));
+  readonly plutoTvUrl = signal<string>('https://pluto.tv/en/live-tv');
+  readonly safePlutoUrl = computed(() =>
+    this.sanitizer.bypassSecurityTrustResourceUrl(this.plutoTvUrl())
+  );
   readonly displayMode = signal<'gaming' | 'cinema'>('gaming');
   readonly showFavoritesOnly = signal<boolean>(false);
 
@@ -85,14 +92,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private feedSubscription?: Subscription;
   private clockId?: any;
   private feedRefreshId?: any;
-  private readonly messageHandler = (event: MessageEvent) => this.onMessage(event);
+  private readonly messageHandler = (event: MessageEvent) =>
+    this.onMessage(event);
 
   // Computed signals
   filteredGames = computed(() => {
     if (this.displayMode() === 'cinema') return [];
     let games = this.games();
     if (this.showFavoritesOnly()) {
-      games = games.filter(g => this.favorites().includes(g.id));
+      games = games.filter((g) => this.favorites().includes(g.id));
     }
     return this.gameService.filterAndSortGames(
       games,
@@ -108,7 +116,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   allCategories = computed(() => {
     const genres = new Set<string>();
-    this.games().forEach(g => { if (g.genre) genres.add(g.genre); });
+    this.games().forEach((g) => {
+      if (g.genre) genres.add(g.genre);
+    });
     return Array.from(genres).sort();
   });
 
@@ -121,7 +131,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   activeEvents = computed(() => {
     const time = this.now();
-    return this.liveEvents().map((event) => this.resolveEventStatus(event, time));
+    return this.liveEvents().map((event) =>
+      this.resolveEventStatus(event, time)
+    );
   });
 
   currentSafeUrl = computed(() => {
@@ -135,7 +147,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   });
 
   neuralSyncScore = computed(() => 85);
-  gamingDirectives = computed(() => ['Execute daily challenge', 'Maintain rank']);
+  gamingDirectives = computed(() => [
+    'Execute daily challenge',
+    'Maintain rank',
+  ]);
 
   constructor() {
     const savedFavs = localStorage.getItem('tha_spot_favorites');
@@ -162,12 +177,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     if (mode === 'cinema') this.closeGame();
   }
 
-  setActiveRoom(id: string) { this.activeRoom.set(id); }
-  onGameClick(game: Game) { this.selectedGame.set(game); }
-  closePreview() { this.selectedGame.set(null); }
-  closeGame() { this.currentGame.set(null); }
-  toggleIntel() { this.showIntelPanel.update((v) => !v); }
-  toggleBrowse() { this.isBrowseView.update((v) => !v); }
+  setActiveRoom(id: string) {
+    this.activeRoom.set(id);
+  }
+  onGameClick(game: Game) {
+    this.selectedGame.set(game);
+  }
+  closePreview() {
+    this.selectedGame.set(null);
+  }
+  closeGame() {
+    this.currentGame.set(null);
+  }
+  toggleIntel() {
+    this.showIntelPanel.update((v) => !v);
+  }
+  toggleBrowse() {
+    this.isBrowseView.update((v) => !v);
+  }
 
   async confirmLaunch() {
     const game = this.selectedGame();
@@ -186,7 +213,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         }
         this.isMatchmaking.set(false);
       }
-      this.profileService.recordGameLaunch(game.id, this.buildSessionContext(game));
+      this.profileService.recordGameLaunch(
+        game.id,
+        this.buildSessionContext(game)
+      );
       this.currentGame.set(game);
       this.closePreview();
     }
@@ -202,28 +232,39 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   getActiveRoomName(): string {
-    return this.gamingRooms().find((r) => r.id === this.activeRoom())?.name || 'All Games';
+    return (
+      this.gamingRooms().find((r) => r.id === this.activeRoom())?.name ||
+      'All Games'
+    );
   }
 
   private loadFeed(forceRefresh = false) {
     this.feedSubscription?.unsubscribe();
-    this.feedSubscription = this.gameService.getThaSpotFeed(forceRefresh).subscribe((feed) => {
-      this.games.set(feed.games);
-      this.gamingRooms.set(feed.rooms);
-      this.badges.set(feed.badges);
-      this.liveEvents.set(feed.liveEvents);
-      this.socialPresence.set(feed.socialPresence);
-      this.promotions.set(feed.promotions);
-      this.recommendationRails.set(feed.recommendationRails);
-    });
+    this.feedSubscription = this.gameService
+      .getThaSpotFeed(forceRefresh)
+      .subscribe((feed) => {
+        this.games.set(feed.games);
+        this.gamingRooms.set(feed.rooms);
+        this.badges.set(feed.badges);
+        this.liveEvents.set(feed.liveEvents);
+        this.socialPresence.set(feed.socialPresence);
+        this.promotions.set(feed.promotions);
+        this.recommendationRails.set(feed.recommendationRails);
+      });
   }
 
   private startLiveClock(): void {
-    this.clockId = window.setInterval(() => this.now.set(Date.now()), LIVE_CLOCK_INTERVAL_MS);
+    this.clockId = window.setInterval(
+      () => this.now.set(Date.now()),
+      LIVE_CLOCK_INTERVAL_MS
+    );
   }
 
   private startFeedRefresh(): void {
-    this.feedRefreshId = window.setInterval(() => this.loadFeed(true), FEED_REFRESH_INTERVAL_MS);
+    this.feedRefreshId = window.setInterval(
+      () => this.loadFeed(true),
+      FEED_REFRESH_INTERVAL_MS
+    );
   }
 
   getSafeUrl(game: Game): SafeResourceUrl | null {
@@ -238,14 +279,23 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   private onMessage(event: MessageEvent): void {
     const active = this.currentGame();
-    if (!active || !this.gameIframe?.nativeElement?.contentWindow || event.source !== this.gameIframe.nativeElement.contentWindow || !this.isTrustedGameMessageOrigin(event, active)) return;
+    if (
+      !active ||
+      !this.gameIframe?.nativeElement?.contentWindow ||
+      event.source !== this.gameIframe.nativeElement.contentWindow ||
+      !this.isTrustedGameMessageOrigin(event, active)
+    )
+      return;
     if (event.data?.type === 'GAME_OVER') {
-      this.profileService.recordGameResult(active.id, { ...this.buildSessionContext(active), score: event.data.data?.score });
+      this.profileService.recordGameResult(active.id, {
+        ...this.buildSessionContext(active),
+        score: event.data.data?.score,
+      });
       this.closeGame();
     }
   }
 
-    isTrustedGameMessageOrigin(event: MessageEvent, active: Game): boolean {
+  isTrustedGameMessageOrigin(event: MessageEvent, active: Game): boolean {
     const candidates = [
       active.launchConfig?.approvedEmbedUrl,
       active.launchConfig?.approvedExternalUrl,
@@ -269,7 +319,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private resolveEventStatus(event: LiveEvent, now: number): LiveEvent {
     if (!event.schedule?.startAt) return event;
     const start = new Date(event.schedule.startAt).getTime();
-    const end = event.schedule.endAt ? new Date(event.schedule.endAt).getTime() : null;
+    const end = event.schedule.endAt
+      ? new Date(event.schedule.endAt).getTime()
+      : null;
     let status: LiveEvent['status'] = event.status;
     if (now < start) status = 'upcoming';
     else if (end && now > end) status = 'ending-soon';
@@ -278,12 +330,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   private resolveLaunchWarning(game: Game): string {
-    return game.launchConfig?.embedMode === 'external-only' ? 'External governance required.' : 'Verified.';
+    return game.launchConfig?.embedMode === 'external-only'
+      ? 'External governance required.'
+      : 'Verified.';
   }
 
   isRetroOrArcade(game: Game): boolean {
-    const tags = (game.tags || []).map(t => t.toLowerCase());
-    return tags.includes('retro') || tags.includes('arcade') || game.badgeIds?.includes('elite') === true;
+    const tags = (game.tags || []).map((t) => t.toLowerCase());
+    return (
+      tags.includes('retro') ||
+      tags.includes('arcade') ||
+      game.badgeIds?.includes('elite') === true
+    );
   }
 
   private isMultiplayerGame(game: Game): boolean {
@@ -291,29 +349,40 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   }
 
   private buildSessionContext(game: Game) {
-    const event = this.activeEvents().find(e => e.featuredGameId === game.id);
-    return { roomId: this.activeRoom(), eventId: event?.id, reward: event?.reward };
+    const event = this.activeEvents().find((e) => e.featuredGameId === game.id);
+    return {
+      roomId: this.activeRoom(),
+      eventId: event?.id,
+      reward: event?.reward,
+    };
   }
 
   launchActionLabel(game: Game): string {
-    return game.launchConfig?.embedMode === 'external-only' ? 'OPEN EXTERNALLY' : 'INITIALIZE';
+    return game.launchConfig?.embedMode === 'external-only'
+      ? 'OPEN EXTERNALLY'
+      : 'INITIALIZE';
   }
 
   getGamesForRail(rail: RecommendationRail): Game[] {
     const allGames = this.games();
     if (rail.gameIds?.length) {
-      return allGames.filter(g => rail.gameIds!.includes(g.id));
+      return allGames.filter((g) => rail.gameIds!.includes(g.id));
     }
     if (rail.audience?.primaryGenres?.length) {
-      return allGames.filter(g => rail.audience!.primaryGenres!.includes(g.genre || ""));
+      return allGames.filter((g) =>
+        rail.audience!.primaryGenres!.includes(g.genre || '')
+      );
     }
     if (rail.badgeId) {
-      return allGames.filter(g => g.badgeIds?.includes(rail.badgeId!));
+      return allGames.filter((g) => g.badgeIds?.includes(rail.badgeId!));
     }
     return allGames.slice(0, rail.maxItems || 4);
   }
 
-  private matchesRecommendationAudience(rail: RecommendationRail, profile: any): boolean {
+  private matchesRecommendationAudience(
+    rail: RecommendationRail,
+    profile: any
+  ): boolean {
     return true;
   }
 }

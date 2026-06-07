@@ -22,20 +22,11 @@ TestBed.initTestEnvironment(
 
 // Polyfill TextEncoder/Decoder for Jest
 if (typeof TextEncoder === 'undefined') {
-<<<<<<< HEAD
-  const { TextEncoder, TextDecoder } = require('util');
-  (global as any).TextEncoder = TextEncoder;
-  (global as any).TextDecoder = TextDecoder;
-}
-
-// Mock Web Audio API Mock
-=======
   (global as any).TextEncoder = NodeTextEncoder;
   (global as any).TextDecoder = NodeTextDecoder;
 }
 
 // Mock Web Audio API
->>>>>>> origin/main
 const createMockNode = () => ({
   gain: {
     value: 0,
@@ -147,10 +138,6 @@ jest.mock('tone', () => ({
 };
 
 // Mock Web Crypto API using node:crypto
-<<<<<<< HEAD
-const nodeCrypto = require('node:crypto');
-=======
->>>>>>> origin/main
 if (typeof crypto === 'undefined') {
   (global as any).crypto = nodeCrypto.webcrypto;
 } else if (!crypto.subtle) {

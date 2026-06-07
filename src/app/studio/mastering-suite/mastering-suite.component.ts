@@ -31,11 +31,7 @@ interface MasteringBand {
 export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   private audioEngine = inject(AudioEngineService);
   public aiService = inject(AiService);
-<<<<<<< HEAD
-  masteringRoast = signal<string>("Analyzing dynamics...");
-=======
   masteringRoast = signal<string>('Analyzing dynamics...');
->>>>>>> origin/main
   public uiService = inject(UIService);
 
   @ViewChild('spectrogram') spectrogramRef!: ElementRef<HTMLCanvasElement>;

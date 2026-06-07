@@ -142,11 +142,7 @@ export const STRATEGIC_DECREES = [
   'YOUR REPUTATION IS IRRELEVANT. ONLY PERFORMANCE MATTERS.',
   'YOUR TIKTOK HOOK LACKS NEURAL HOOKS. REGENERATE OR FADE INTO OBSCURITY.',
   'YOUR TRANSIENTS ARE DISGUSTING. FIX THEM OR DELETE THE PROJECT.',
-<<<<<<< HEAD
-  'YOUR TRANSIENTS ARE UNDISCIPLINED. CORRECT THEM OR ABANDON THE TRACK.'
-=======
   'YOUR TRANSIENTS ARE UNDISCIPLINED. CORRECT THEM OR ABANDON THE TRACK.',
->>>>>>> origin/main
 ];
 
 export const MARKET_ALERTS: MarketAlert[] = [
@@ -302,5 +298,5 @@ export const MIMICRY_TEMPLATES = [
   "'{phrase}'... is that the best you can do? I've seen more creativity in a corrupted sector.",
   "I've noticed you frequently mention '{word}'. It's becoming a pattern of mediocrity.",
   "Repeating '{phrase}' won't make your music any less of a disaster.",
-  "'{word}' is your favorite crutch. Drop it or get out."
+  "'{word}' is your favorite crutch. Drop it or get out.",
 ];

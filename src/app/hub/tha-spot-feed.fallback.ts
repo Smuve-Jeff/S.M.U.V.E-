@@ -3504,11 +3504,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       genre: 'Action',
       description:
         'The birth of a legend. Kratos takes on the forces of Olympus in an epic tale of vengeance and brutality.',
-<<<<<<< HEAD
-      tags: ['Action', 'Retro', 'PS2'],
-=======
       tags: ['Action', 'Retro', 'PS2', 'WASM', 'High-Perf'],
->>>>>>> origin/main
       badgeIds: ['classic', 'elite'],
       launchConfig: {
         approvedEmbedUrl:
@@ -4901,9 +4897,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       genre: 'Action',
       description:
         'Defy the Fates themselves. Kratos seeks Absolute vengeance. S.M.U.V.E. commands the destruction of Olympus.',
-<<<<<<< HEAD
-      tags: ['PS2', 'Action', 'Supreme of War', 'Retro', 'Elite'],
-=======
       tags: [
         'PS2',
         'Action',
@@ -4913,7 +4906,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         'WASM',
         'High-Perf',
       ],
->>>>>>> origin/main
       badgeIds: ['classic', 'elite'],
       launchConfig: {
         approvedEmbedUrl:

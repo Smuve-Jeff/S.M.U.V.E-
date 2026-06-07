@@ -21,9 +21,7 @@ describe('InstrumentsService', () => {
   });
 
   it('provides instrument quality metadata for sample presets', () => {
-    const grandPiano = service
-      .getPresets()
-      .find((p) => p.id === 'grand-piano-v2');
+    const grandPiano = service.getPresets().find((p) => p.id === 'grand-piano');
     expect(grandPiano?.sampleQuality).toBe('high');
     expect(grandPiano?.zones?.length).toBeGreaterThan(0);
   });

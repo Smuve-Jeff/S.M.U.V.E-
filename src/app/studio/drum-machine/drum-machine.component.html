@@ -54,15 +54,21 @@
     </div>
 
     <div class="module-transport glass-v42">
-      <div class="transport-group flex items-center gap-3 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5">
+      <div
+        class="transport-group flex items-center gap-3 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5"
+      >
         <button class="m-btn tactile-v42" (click)="audioSession.togglePlay()">
-          <span class="material-symbols-outlined text-sm">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
+          <span class="material-symbols-outlined text-sm">{{
+            audioSession.isPlaying() ? 'pause' : 'play_arrow'
+          }}</span>
         </button>
         <button class="m-btn tactile-v42" (click)="audioSession.stop()">
           <span class="material-symbols-outlined text-sm">stop</span>
         </button>
         <div class="v-divider w-[1px] h-4 bg-white/10 mx-1"></div>
-        <div class="bpm-display text-[10px] font-mono text-fl-blue tabular-nums">
+        <div
+          class="bpm-display text-[10px] font-mono text-fl-blue tabular-nums"
+        >
           {{ engine.tempo() }} <span class="opacity-40">BPM</span>
         </div>
       </div>
@@ -178,12 +184,13 @@
       ></div>
       <div class="grid-overlay absolute inset-0 pointer-events-none">
         <div class="beat-lines flex h-full">
-           <div *ngFor="let step of stepRange"
-                class="flex-1 border-l"
-                [class.border-white/5]="step % 4 !== 0"
-                [class.border-white/10]="step % 4 === 0 && step % 16 !== 0"
-                [class.border-fl-blue/20]="step % 16 === 0 && step !== 0">
-           </div>
+          <div
+            *ngFor="let step of stepRange"
+            class="flex-1 border-l"
+            [class.border-white/5]="step % 4 !== 0"
+            [class.border-white/10]="step % 4 === 0 && step % 16 !== 0"
+            [class.border-fl-blue/20]="step % 16 === 0 && step !== 0"
+          ></div>
         </div>
       </div>
     </div>

@@ -17,8 +17,12 @@
   transform: scale(0.98);
 }
 
-.delay-75 { animation-delay: 75ms; }
-.delay-150 { animation-delay: 150ms; }
+.delay-75 {
+  animation-delay: 75ms;
+}
+.delay-150 {
+  animation-delay: 150ms;
+}
 
 /* Custom Scrollbars */
 .no-scrollbar::-webkit-scrollbar {

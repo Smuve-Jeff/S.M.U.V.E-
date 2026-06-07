@@ -414,7 +414,9 @@ input:checked + .slider-mini:before {
 /* Enhanced Grid Visibility */
 .step-box {
   border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: transform 0.1s ease, background-color 0.2s ease;
+  transition:
+    transform 0.1s ease,
+    background-color 0.2s ease;
 }
 
 .step-box:hover {
@@ -423,7 +425,9 @@ input:checked + .slider-mini:before {
 }
 
 .step-box.active {
-  box-shadow: 0 0 12px currentColor, inset 0 0 4px rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 0 12px currentColor,
+    inset 0 0 4px rgba(255, 255, 255, 0.5);
   border-color: rgba(255, 255, 255, 0.3);
 }
 

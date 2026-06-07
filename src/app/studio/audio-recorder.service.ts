@@ -3,8 +3,6 @@ import { Injectable, inject, signal } from '@angular/core';
 import { LocalStorageService } from '../services/local-storage.service';
 import { LoggingService } from '../services/logging.service';
 
-<<<<<<< HEAD
-=======
 export interface RecordingSettings {
   gain?: number;
   trimmed?: boolean;
@@ -19,7 +17,6 @@ export interface RecordingItem {
   settings: RecordingSettings;
 }
 
->>>>>>> origin/main
 @Injectable({
   providedIn: 'root',
 })
@@ -38,13 +35,6 @@ export class AudioRecorderService {
   }>();
 
   mediaRecorder: MediaRecorder | null = null;
-<<<<<<< HEAD
-
-  async startRecording(stream: MediaStream) {
-    this.recordedBlobs = [];
-    const options = { mimeType: 'audio/webm' };
-    this.mediaRecorder = new MediaRecorder(stream, options);
-=======
   private activeUrls = new Set<string>();
 
   revokeRecordingUrl(url: string) {
@@ -90,7 +80,6 @@ export class AudioRecorderService {
       this.logger.error('Failed to instantiate MediaRecorder', recorderError);
       throw recorderError;
     }
->>>>>>> origin/main
 
     this.mediaRecorder.ondataavailable = (event) => {
       if (event.data && event.data.size > 0) {
@@ -99,28 +88,6 @@ export class AudioRecorderService {
     };
 
     this.mediaRecorder.onstop = async () => {
-<<<<<<< HEAD
-      const blob = new Blob(this.recordedBlobs, { type: 'audio/webm' });
-      const id = `rec_${Date.now()}`;
-
-      await this.localStorageService.saveItem('audio_blobs', {
-        id,
-        blob,
-        name: `Recording ${new Date().toLocaleTimeString()}`,
-        timestamp: Date.now(),
-        settings: { gain: 1.0, trimmed: false },
-      });
-
-      this.logger.info(`Recording ${id} saved.`);
-      const url = URL.createObjectURL(blob);
-      this.recordingFinished$.next({
-        id,
-        blob,
-        url,
-        midi: [...this.pendingMidi],
-      });
-      this.pendingMidi = [];
-=======
       try {
         const blob = new Blob(this.recordedBlobs, {
           type: 'audio/webm;codecs=opus',
@@ -159,7 +126,6 @@ export class AudioRecorderService {
         this.isRecording.set(false);
         this.pendingMidi = [];
       }
->>>>>>> origin/main
     };
 
     this.mediaRecorder.start();
@@ -168,10 +134,6 @@ export class AudioRecorderService {
 
   stopRecording() {
     if (this.mediaRecorder) {
-<<<<<<< HEAD
-      this.mediaRecorder.stop();
-      this.isRecording.set(false);
-=======
       try {
         if (this.mediaRecorder.state !== 'inactive') {
           this.mediaRecorder.stop();
@@ -180,7 +142,6 @@ export class AudioRecorderService {
         this.logger.error('Error stopping MediaRecorder', error);
         this.isRecording.set(false);
       }
->>>>>>> origin/main
     }
   }
 
@@ -188,14 +149,6 @@ export class AudioRecorderService {
     return await this.localStorageService.getAllItems('audio_blobs');
   }
 
-<<<<<<< HEAD
-  async applyOfflineEdit(id: string, edits: any) {
-    const item = await this.localStorageService.getItem('audio_blobs', id);
-    if (item) {
-      item.settings = { ...item.settings, ...edits };
-      await this.localStorageService.saveItem('audio_blobs', item);
-      this.logger.info(`Offline edits applied to recording ${id}.`);
-=======
   async applyOfflineEdit(id: string, edits: Partial<RecordingSettings>) {
     try {
       const item = (await this.localStorageService.getItem(
@@ -212,7 +165,6 @@ export class AudioRecorderService {
     } catch (error) {
       this.logger.error(`Failed to apply edits to recording ${id}`, error);
       throw error;
->>>>>>> origin/main
     }
   }
 }

@@ -18,24 +18,24 @@ describe('ChatbotComponent', () => {
   beforeEach(async () => {
     userProfileServiceMock = {
       profile: signal(initialProfile),
-      updateProfile: jest.fn()
+      updateProfile: jest.fn(),
     };
 
     aiServiceMock = {
       conversationalTier: signal('Standard'),
-      processCommand: jest.fn()
+      processCommand: jest.fn(),
     };
 
     const uiServiceMock = {
-      isMobile: signal(false)
+      isMobile: signal(false),
     };
 
     const audioEngineServiceMock = {};
     const speechSynthesisServiceMock = {
-      speak: jest.fn()
+      speak: jest.fn(),
     };
     const loggingServiceMock = {
-      error: jest.fn()
+      error: jest.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -45,9 +45,12 @@ describe('ChatbotComponent', () => {
         { provide: AiService, useValue: aiServiceMock },
         { provide: UIService, useValue: uiServiceMock },
         { provide: AudioEngineService, useValue: audioEngineServiceMock },
-        { provide: SpeechSynthesisService, useValue: speechSynthesisServiceMock },
+        {
+          provide: SpeechSynthesisService,
+          useValue: speechSynthesisServiceMock,
+        },
         { provide: LoggingService, useValue: loggingServiceMock },
-      ]
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ChatbotComponent);
@@ -61,40 +64,46 @@ describe('ChatbotComponent', () => {
 
   it('should toggle mimic settings correctly with all required AI properties', () => {
     component.toggleMimic();
-    expect(userProfileServiceMock.updateProfile).toHaveBeenCalledWith(expect.objectContaining({
-      settings: expect.objectContaining({
-        ai: expect.objectContaining({
-          aiMimicEnabled: true,
-          commanderPersona: 'Elite',
-          aiConversationalTier: 'Standard'
-        })
+    expect(userProfileServiceMock.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          ai: expect.objectContaining({
+            aiMimicEnabled: true,
+            commanderPersona: 'Elite',
+            aiConversationalTier: 'Standard',
+          }),
+        }),
       })
-    }));
+    );
   });
 
   it('should toggle profanity settings correctly with all required AI properties', () => {
     component.toggleProfanity();
-    expect(userProfileServiceMock.updateProfile).toHaveBeenCalledWith(expect.objectContaining({
-      settings: expect.objectContaining({
-        ai: expect.objectContaining({
-          aiProfanityEnabled: true,
-          commanderPersona: 'Elite',
-          aiConversationalTier: 'Standard'
-        })
+    expect(userProfileServiceMock.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          ai: expect.objectContaining({
+            aiProfanityEnabled: true,
+            commanderPersona: 'Elite',
+            aiConversationalTier: 'Standard',
+          }),
+        }),
       })
-    }));
+    );
   });
 
   it('should toggle KB write access correctly with all required AI properties', () => {
     component.toggleKbWriteAccess();
-    expect(userProfileServiceMock.updateProfile).toHaveBeenCalledWith(expect.objectContaining({
-      settings: expect.objectContaining({
-        ai: expect.objectContaining({
-          kbWriteAccess: false, // initial is true
-          commanderPersona: 'Elite',
-          aiConversationalTier: 'Standard'
-        })
+    expect(userProfileServiceMock.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          ai: expect.objectContaining({
+            kbWriteAccess: false, // initial is true
+            commanderPersona: 'Elite',
+            aiConversationalTier: 'Standard',
+          }),
+        }),
       })
-    }));
+    );
   });
 });

@@ -114,8 +114,8 @@ export class BusinessPipelineService {
       forecast: [
         { month: 'Next Month', estimate: net * 1.1 },
         { month: 'In 3 Months', estimate: net * 1.5 },
-        { month: 'In 6 Months', estimate: net * 2.2 }
-      ]
+        { month: 'In 6 Months', estimate: net * 2.2 },
+      ],
     };
   }
 

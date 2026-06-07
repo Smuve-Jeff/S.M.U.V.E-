@@ -6,14 +6,12 @@ import { UserContextService, MainViewMode } from './user-context.service';
 import { LoggingService } from './logging.service';
 import { AudioEngineService } from './audio-engine.service';
 import { UserProfile } from '../types/profile.types';
-import {
-  STRATEGIC_DECREES,
-  MIMICRY_TEMPLATES,
-} from './ai-knowledge.data';
+import { STRATEGIC_DECREES, MIMICRY_TEMPLATES } from './ai-knowledge.data';
 import { NEURAL_UPGRADE_BLUEPRINTS } from './neural-upgrades.data';
 import {
   AdvisorAdvice,
-  StrategicTask, DeepAuditResult,
+  StrategicTask,
+  DeepAuditResult,
   IntelligenceBrief,
   MarketAlert,
 } from '../types/ai.types';
@@ -204,15 +202,15 @@ export class AiService {
   }
 
   getMasteringRoast(): string {
-    const intensity = this.userProfileService.profile().settings?.ai?.aiPersonaIntensityEnabled ?? false;
+    const intensity =
+      this.userProfileService.profile().settings?.ai
+        ?.aiPersonaIntensityEnabled ?? false;
     if (intensity) {
-<<<<<<< HEAD
-      return this.strategicDecrees()[Math.floor(Math.random() * this.strategicDecrees().length)];
-=======
-      return STRATEGIC_DECREES[Math.floor(Math.random() * STRATEGIC_DECREES.length)];
->>>>>>> origin/main
+      return this.strategicDecrees()[
+        Math.floor(Math.random() * this.strategicDecrees().length)
+      ];
     }
-    return "Soft-knee ceiling applied. Dynamics stabilized.";
+    return 'Soft-knee ceiling applied. Dynamics stabilized.';
   }
 
   async getAutoMixSettings(): Promise<any> {

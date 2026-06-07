@@ -1,21 +1,34 @@
-<div class="sound-browser h-full flex flex-col bg-[#07070a] border-r border-white/10 font-sans overflow-hidden glass-v42 shadow-v42-xl">
+<div
+  class="sound-browser h-full flex flex-col bg-[#07070a] border-r border-white/10 font-sans overflow-hidden glass-v42 shadow-v42-xl"
+>
   <div class="p-4 border-b border-fl-border bg-black/20 wood-panel">
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-[11px] font-black uppercase tracking-[0.2em] text-fl-blue neon-text">
+      <h3
+        class="text-[11px] font-black uppercase tracking-[0.2em] text-fl-blue neon-text"
+      >
         Elite Sound Matrix
       </h3>
       <div class="flex gap-2">
-         <button (click)="aiSearch()" class="text-[9px] font-black text-fl-blue/60 hover:text-fl-blue uppercase flex items-center gap-1 transition-all border border-fl-blue/20 px-2 py-0.5 rounded bg-fl-blue/5">
-           Deep AI
-         </button>
-         <button (click)="importAudio()" class="text-[9px] font-black text-slate-500 hover:text-white uppercase flex items-center gap-1 transition-all">
-           Import
-         </button>
+        <button
+          (click)="aiSearch()"
+          class="text-[9px] font-black text-fl-blue/60 hover:text-fl-blue uppercase flex items-center gap-1 transition-all border border-fl-blue/20 px-2 py-0.5 rounded bg-fl-blue/5"
+        >
+          Deep AI
+        </button>
+        <button
+          (click)="importAudio()"
+          class="text-[9px] font-black text-slate-500 hover:text-white uppercase flex items-center gap-1 transition-all"
+        >
+          Import
+        </button>
       </div>
     </div>
 
     <div class="relative group">
-      <span class="material-symbols-outlined absolute left-2.5 top-2 text-slate-600 text-sm group-focus-within:text-fl-blue transition-colors">search</span>
+      <span
+        class="material-symbols-outlined absolute left-2.5 top-2 text-slate-600 text-sm group-focus-within:text-fl-blue transition-colors"
+        >search</span
+      >
       <input
         type="text"
         [ngModel]="searchQuery()"
@@ -27,7 +40,9 @@
   </div>
 
   <!-- Category Grid -->
-  <div class="grid grid-cols-4 gap-1 p-2 bg-white/[0.02] border-b border-white/5">
+  <div
+    class="grid grid-cols-4 gap-1 p-2 bg-white/[0.02] border-b border-white/5"
+  >
     <button
       *ngFor="let cat of categories"
       (click)="selectedCategory.set(cat.id)"
@@ -41,7 +56,9 @@
   </div>
 
   <!-- Active Tags -->
-  <div class="flex gap-1 p-2 no-scrollbar overflow-x-auto whitespace-nowrap bg-black/20 border-b border-white/5">
+  <div
+    class="flex gap-1 p-2 no-scrollbar overflow-x-auto whitespace-nowrap bg-black/20 border-b border-white/5"
+  >
     <button
       *ngFor="let tag of allTags()"
       (click)="toggleTag(tag)"
@@ -63,56 +80,109 @@
       (dragstart)="onDragStart($event, preset)"
     >
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-black/60 border border-white/5 flex items-center justify-center group-hover:border-fl-blue/40 transition-all relative">
-          <span class="material-symbols-outlined text-lg" [class.text-fl-blue]="preset.type === 'synth'">
-            {{ preset.type === 'synth' ? 'settings_input_component' : 'audio_file' }}
+        <div
+          class="w-10 h-10 rounded-xl bg-black/60 border border-white/5 flex items-center justify-center group-hover:border-fl-blue/40 transition-all relative"
+        >
+          <span
+            class="material-symbols-outlined text-lg"
+            [class.text-fl-blue]="preset.type === 'synth'"
+          >
+            {{
+              preset.type === 'synth'
+                ? 'settings_input_component'
+                : 'audio_file'
+            }}
           </span>
-          <div *ngIf="previewingId() === preset.id" class="absolute inset-0 bg-fl-blue/20 flex items-center justify-center animate-pulse">
-             <div class="w-1 h-4 bg-fl-blue rounded-full mx-0.5 animate-bounce"></div>
-             <div class="w-1 h-6 bg-fl-blue rounded-full mx-0.5 animate-bounce delay-75"></div>
-             <div class="w-1 h-4 bg-fl-blue rounded-full mx-0.5 animate-bounce delay-150"></div>
+          <div
+            *ngIf="previewingId() === preset.id"
+            class="absolute inset-0 bg-fl-blue/20 flex items-center justify-center animate-pulse"
+          >
+            <div
+              class="w-1 h-4 bg-fl-blue rounded-full mx-0.5 animate-bounce"
+            ></div>
+            <div
+              class="w-1 h-6 bg-fl-blue rounded-full mx-0.5 animate-bounce delay-75"
+            ></div>
+            <div
+              class="w-1 h-4 bg-fl-blue rounded-full mx-0.5 animate-bounce delay-150"
+            ></div>
           </div>
         </div>
 
         <div class="flex-1 min-w-0">
-          <div class="text-[10px] font-black text-slate-200 truncate uppercase tracking-tight group-hover:text-white transition-colors">
+          <div
+            class="text-[10px] font-black text-slate-200 truncate uppercase tracking-tight group-hover:text-white transition-colors"
+          >
             {{ preset.name }}
           </div>
           <div class="flex gap-1 overflow-hidden mt-1 opacity-40">
-             <span class="text-[6px] font-mono text-fl-blue uppercase">{{ preset.type }}</span>
-             <span *ngFor="let tag of preset.tags" class="text-[6px] font-mono text-slate-500 uppercase">/ {{ tag }}</span>
+            <span class="text-[6px] font-mono text-fl-blue uppercase">{{
+              preset.type
+            }}</span>
+            <span
+              *ngFor="let tag of preset.tags"
+              class="text-[6px] font-mono text-slate-500 uppercase"
+              >/ {{ tag }}</span
+            >
           </div>
         </div>
 
-        <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-          <button (click)="previewPreset(preset, $event)" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-fl-blue/20 flex items-center justify-center transition-all">
-            <span class="material-symbols-outlined text-xs">{{ previewingId() === preset.id ? 'stop' : 'play_arrow' }}</span>
+        <div
+          class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0"
+        >
+          <button
+            (click)="previewPreset(preset, $event)"
+            class="w-8 h-8 rounded-lg bg-white/5 hover:bg-fl-blue/20 flex items-center justify-center transition-all"
+          >
+            <span class="material-symbols-outlined text-xs">{{
+              previewingId() === preset.id ? 'stop' : 'play_arrow'
+            }}</span>
           </button>
-          <button (click)="$event.stopPropagation(); addAsNewTrack(preset)" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-emerald-500 hover:text-black flex items-center justify-center transition-all">
+          <button
+            (click)="$event.stopPropagation(); addAsNewTrack(preset)"
+            class="w-8 h-8 rounded-lg bg-white/5 hover:bg-emerald-500 hover:text-black flex items-center justify-center transition-all"
+          >
             <span class="material-symbols-outlined text-xs">add</span>
           </button>
         </div>
       </div>
 
       <!-- Quality Indicator -->
-      <div *ngIf="preset.sampleQuality === 'high'" class="absolute top-1 right-1">
-         <div class="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]"></div>
+      <div
+        *ngIf="preset.sampleQuality === 'high'"
+        class="absolute top-1 right-1"
+      >
+        <div
+          class="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]"
+        ></div>
       </div>
     </div>
 
-    <div *ngIf="presets().length === 0" class="flex flex-col items-center justify-center py-20 opacity-10">
+    <div
+      *ngIf="presets().length === 0"
+      class="flex flex-col items-center justify-center py-20 opacity-10"
+    >
       <span class="material-symbols-outlined text-6xl mb-4">search_off</span>
-      <span class="text-[11px] font-black uppercase tracking-[0.4em]">Infrastructure Empty</span>
+      <span class="text-[11px] font-black uppercase tracking-[0.4em]"
+        >Infrastructure Empty</span
+      >
     </div>
   </div>
 
   <div class="p-4 bg-black/40 border-t border-white/5 wood-panel">
     <div class="flex justify-between items-center mb-3">
-       <span class="text-[8px] font-black uppercase tracking-widest text-slate-500">Asset Fidelity</span>
-       <span class="text-[7px] font-mono text-fl-blue font-black uppercase">24-BIT // 96KHZ</span>
+      <span
+        class="text-[8px] font-black uppercase tracking-widest text-slate-500"
+        >Asset Fidelity</span
+      >
+      <span class="text-[7px] font-mono text-fl-blue font-black uppercase"
+        >24-BIT // 96KHZ</span
+      >
     </div>
     <div class="h-1 bg-white/5 rounded-full overflow-hidden">
-       <div class="h-full bg-gradient-to-r from-fl-blue to-accent-magenta w-[92%] shadow-[0_0_10px_rgba(0,229,255,0.4)]"></div>
+      <div
+        class="h-full bg-gradient-to-r from-fl-blue to-accent-magenta w-[92%] shadow-[0_0_10px_rgba(0,229,255,0.4)]"
+      ></div>
     </div>
   </div>
 </div>

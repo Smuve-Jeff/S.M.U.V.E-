@@ -16,7 +16,8 @@ export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeRecommendation[] = [
     toolId: 'smuve-masterer',
     outcomeMetric: { label: 'Sonic Authority', value: 'INF' },
     preferredViews: ['studio'],
-    rank: ({ profile, viewMode }: any) => (viewMode === 'studio' && profile.expertise.production > 7 ? 100 : 50),
+    rank: ({ profile, viewMode }: any) =>
+      viewMode === 'studio' && profile.expertise.production > 7 ? 100 : 50,
   } as any,
   {
     id: 'upg-legal-executioner',
@@ -33,7 +34,11 @@ export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeRecommendation[] = [
     toolId: 'legal-executioner',
     outcomeMetric: { label: 'Royalty Recovery', value: '400%' },
     preferredViews: ['hub'],
-    rank: ({ profile, viewMode }: any) => (viewMode === 'hub' && profile.legalInfrastructure?.proAffiliation === 'None' ? 95 : 60),
+    rank: ({ profile, viewMode }: any) =>
+      viewMode === 'hub' &&
+      profile.legalInfrastructure?.proAffiliation === 'None'
+        ? 95
+        : 60,
   } as any,
   {
     id: 'upg-neural-stem-splitter',
