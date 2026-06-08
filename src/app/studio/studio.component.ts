@@ -33,6 +33,7 @@ import { PerformerComponent } from './performer/performer.component';
 import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
 import { SequencerService } from './sequencer.service';
+import { InteractionDialogService } from '../services/interaction-dialog.service';
 
 type StudioView =
   | 'arrangement'
@@ -96,6 +97,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly haptic = inject(HapticService);
   public readonly touchGestures = inject(TouchGestureService);
   private readonly sequencer = inject(SequencerService);
+  private readonly dialog = inject(InteractionDialogService);
 
   private destroy$ = new Subject<void>();
 
@@ -156,6 +158,23 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   toggleHeader() {
     this.headerCollapsed.update((v) => !v);
+  }
+
+
+  async adjustBpm() {
+    const result = await this.dialog.prompt({
+      title: 'Adjust Tempo',
+      message: 'Enter new BPM (20-300):',
+      initialValue: this.audioEngine.tempo().toString(),
+      placeholder: '124'
+    });
+
+    if (result) {
+      const val = parseInt(result, 10);
+      if (!isNaN(val) && val >= 20 && val <= 300) {
+        this.audioEngine.tempo.set(val);
+      }
+    }
   }
 
   toggleNeuralFoundry() {

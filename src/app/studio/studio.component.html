@@ -32,7 +32,7 @@
       <div class="transport-metrics">
         <div>
           <span>BPM</span>
-          <strong>{{ audioEngine.tempo() }}</strong>
+          <strong class="cursor-pointer hover:text-brand-primary transition-colors" (click)="adjustBpm()">{{ audioEngine.tempo() }}</strong>
         </div>
         <div>
           <span>BAR</span>

@@ -320,7 +320,7 @@ footer {
 
 .auth-page {
   z-index: 5000 !important;
-  background-color: `#020617` !important;
+  background-color: #020617 !important;
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
