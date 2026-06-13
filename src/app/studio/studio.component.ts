@@ -158,11 +158,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.mobilePanel.set(null);
   }
 
-  toggleHeader() {
   toggleMobileDrawer() {
     this.mobileDrawerOpen.update(v => !v);
   }
 
+  toggleHeader() {
     this.headerCollapsed.update((v) => !v);
   }
 
