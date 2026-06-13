@@ -425,7 +425,7 @@ export class MusicManagerService {
       }
     }
   }
-\n  newProject() {
+  newProject() {
     this.tracks.set([]);
     this.setupInitialTracks();
     this.structure.set([]);
