@@ -207,7 +207,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async playTake(take: any) {
-    const blobs = await this.recordingEngine['localStorage'].getItem('audio_blobs', take.id);
+    const blobs = await this.localStorage.getItem('audio_blobs', take.id);
     if (blobs && blobs.blob) {
       const url = URL.createObjectURL(blobs.blob);
       const audio = new Audio(url);
@@ -216,9 +216,9 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async deleteTake(take: any) {
-    if (confirm()) {
+    if (confirm('Are you sure you want to delete this take?')) {
       this.recordingEngine.takes.update(ts => ts.filter(t => t.id !== take.id));
-      await this.recordingEngine['localStorage'].removeItem('audio_blobs', take.id);
+      await this.localStorage.removeItem('audio_blobs', take.id);
     }
   }
 
