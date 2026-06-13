@@ -62,7 +62,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   readonly safePlutoUrl = computed(() =>
     this.sanitizer.bypassSecurityTrustResourceUrl(this.plutoTvUrl())
   );
-  readonly displayMode = signal<'gaming' | 'cinema'>('gaming');
+  readonly displayMode = signal<'gaming' |  'pluto'>('gaming');
   readonly showFavoritesOnly = signal<boolean>(false);
   readonly showRivalHub = signal<boolean>(false);
   readonly onlineUsers = this.socialService.onlineUsers;
@@ -109,7 +109,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
 
   // Computed signals
   filteredGames = computed(() => {
-    if (this.displayMode() === 'cinema') return [];
+    if (this.displayMode() ===  'pluto') return [];
     let games = this.games();
     if (this.showFavoritesOnly()) {
       games = games.filter((g) => this.favorites().includes(g.id));
@@ -198,9 +198,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
     window.removeEventListener('message', this.messageHandler);
   }
 
-  setMode(mode: 'gaming' | 'cinema'): void {
+  setMode(mode: 'gaming' |  'pluto'): void {
     this.displayMode.set(mode);
-    if (mode === 'cinema') this.closeGame();
+    if (mode ===  'pluto') this.closeGame();
   }
 
   setActiveRoom(id: string) {
