@@ -1,11 +1,8 @@
 :host {
   display: block;
   height: 100%;
-  width: 100%;
-  background-color: var(--studio-bg, #07070a);
-  color: #f0f0f5;
-  overflow: hidden;
-  font-family: 'Rajdhani', sans-serif;
+  background: transparent;
+  user-select: none;
 }
 
 .playlist-container {
@@ -15,294 +12,154 @@
 }
 
 .playlist-header {
-  min-height: 50px;
-  background: rgba(255, 255, 255, 0.02);
   display: flex;
   align-items: center;
-  padding: 0 1.5rem;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--studio-border);
+  padding: 0.5rem 1rem;
+  background: rgba(15, 23, 42, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   gap: 1rem;
-}
-
-.view-tabs {
-  display: flex;
-  gap: 1.5rem;
-}
-
-.tab-btn {
-  background: transparent;
-  border: none;
-  color: #7a7a9a;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  font-family: var(--font-display);
-  cursor: pointer;
-  padding: 10px 0;
-  position: relative;
-  letter-spacing: 1px;
-}
-
-.tab-btn.active {
-  color: #ec5b13;
-}
-
-.tab-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #ec5b13;
-  box-shadow: 0 0 10px #ec5b13;
 }
 
 .playlist-content {
   flex: 1;
   display: flex;
+  min-height: 0;
   overflow: hidden;
 }
 
 .track-headers {
-  width: 220px;
-  background: rgba(0, 0, 0, 0.2);
-  border-right: 1px solid var(--studio-border);
+  width: 12rem;
+  flex-shrink: 0;
   overflow-y: auto;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(15, 23, 42, 0.4);
 }
 
 .track-header {
-  border-bottom: 1px solid var(--studio-border);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 12px;
-  position: relative;
-  background: rgba(255, 255, 255, 0.01);
-  transition: all 0.2s;
+  padding: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background 0.2s;
 }
 
 .track-header.selected {
-  background: rgba(236, 91, 19, 0.05);
-  border-left: 4px solid #ec5b13;
+  background: rgba(56, 189, 248, 0.1);
 }
 
 .track-top {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.track-color-strip {
-  width: 4px;
-  height: 24px;
-  border-radius: 2px;
-  box-shadow: 0 0 8px currentColor;
+  gap: 0.5rem;
 }
 
 .track-name {
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  color: #f0f0f5;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: var(--font-display);
-}
-
-.track-controls {
-  display: flex;
-  gap: 6px;
-}
-
-.mini-btn {
-  min-width: 28px;
-  height: 28px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--studio-border);
-  color: #7a7a9a;
   font-size: 0.65rem;
-  font-weight: 900;
-  font-family: var(--font-display);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  padding: 0 0.65rem;
-}
-
-.mini-btn.active-solo {
-  background: rgba(255, 193, 7, 0.1);
-  color: #ffc107;
-  border-color: #ffc107;
-}
-
-.mini-btn.active-mute {
-  background: rgba(244, 67, 54, 0.1);
-  color: #f44336;
-  border-color: #f44336;
+  font-weight: 800;
+  color: #94a3b8;
 }
 
 .grid-viewport {
   flex: 1;
-  background: #050507;
-  position: relative;
   overflow: auto;
-  -webkit-overflow-scrolling: touch;
+  position: relative;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
 }
 
 .grid-canvas {
   position: relative;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  min-height: 100%;
 }
 
 .time-ruler {
-  height: 35px;
-  background: rgba(0, 0, 0, 0.4);
-  border-bottom: 1px solid var(--studio-border);
+  height: 2rem;
   display: flex;
+  background: rgba(15, 23, 42, 0.9);
   position: sticky;
   top: 0;
   z-index: 20;
-  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .ruler-bar {
-  border-right: 1px solid var(--studio-border);
-  padding: 8px 12px;
-  font-size: 0.65rem;
-  font-weight: 900;
-  color: #94a3b8;
-  font-family: var(--font-mono);
-  letter-spacing: 1px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #64748b;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .lane-row {
-  touch-action: manipulation;
+  width: 100%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
 }
 
 .clip-item {
-  position: absolute;
-  height: 70px;
-  top: 5px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(236, 91, 19, 0.15);
+  height: 80%;
+  top: 10%;
+  border-radius: 0.4rem;
+  border: 1px solid;
+  cursor: pointer;
   overflow: hidden;
-  cursor: grab;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  transition: transform 0.1s;
-  touch-action: none;
+  display: flex;
+  flex-direction: column;
 }
 
-.clip-item:hover {
-  filter: brightness(1.2);
+.clip-item.selected-clip {
+  box-shadow: 0 0 15px currentColor;
+  border-width: 2px;
 }
 
 .clip-header {
-  height: 20px;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 0 10px;
-  display: flex;
-  align-items: center;
   font-size: 0.6rem;
   font-weight: 900;
-  text-transform: uppercase;
-  color: #f0f0f5;
-  font-family: var(--font-display);
-}
-
-.clip-meta {
-  padding-top: 0.35rem;
-}
-
-.clip-remove {
-  position: absolute;
-  top: 0.2rem;
-  right: 0.35rem;
-  border: none;
-  background: transparent;
-  color: #f8fafc;
-  font-size: 0.9rem;
-  line-height: 1;
-  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .playhead {
   position: absolute;
+  top: 2rem;
+  bottom: 0;
   width: 2px;
-  background: #fff;
-  box-shadow: 0 0 15px #fff;
-  z-index: 15;
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+  z-index: 10;
   pointer-events: none;
+}
+
+.mini-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.3rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+}
+
+.mini-btn.active-snap {
+  border-color: #38bdf8;
+  color: #38bdf8;
 }
 
 @media (max-width: 768px) {
   .track-headers {
-    width: 90px;
-  }
-
-  .track-header {
-    padding: 8px;
+    width: 5rem;
   }
 
   .track-name {
-    font-size: 0.62rem;
+    display: none;
   }
 
-  .playlist-header {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 0.75rem 1rem;
+  .track-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
   }
-
-  .header-actions,
-  .module-transport {
-    width: 100%;
-  }
-}
-
-.active-snap {
-  background: var(--primary-color, #af25f4) !important;
-  color: #000 !important;
-}
-
-.selected-clip {
-  border: 2px solid white !important;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-  z-index: 5;
-}
-
-.resize-handle {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 10px;
-  cursor: ew-resize;
-  background: rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.resize-handle::after {
-  content: '';
-  width: 1px;
-  height: 20%;
-  background: rgba(255, 255, 255, 0.4);
-}
-
-.clip-item:hover .resize-handle {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.edit-tools button {
-  padding: 2px 8px;
-  border-radius: 4px;
 }

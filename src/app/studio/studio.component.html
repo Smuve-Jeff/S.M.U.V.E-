@@ -2,79 +2,102 @@
   class="studio-container {{ studioQualityClass() }}" [class.header-collapsed]="headerCollapsed()"
   [class.holographic]="uiService.holographicMode()"
   [attr.data-theme]="'analog-v42'"
+  [class.mobile-drawer-open]="mobileDrawerOpen()"
 >
   <div class="studio-shell">
+    <!-- Drawer Toggle (Mobile Only) -->
+    <button *ngIf="uiService.isCompactMobile()" type="button" class="mobile-drawer-toggle" (click)="toggleMobileDrawer()">
+      <span class="material-icons">{{ mobileDrawerOpen() ? 'close' : 'menu' }}</span>
+    </button>
+
     <button type="button" class="header-toggle" (click)="toggleHeader()" [class.floating]="headerCollapsed()" [title]="headerCollapsed() ? 'Expand Header' : 'Collapse Header'"><span class="material-icons">{{ headerCollapsed() ? 'expand_more' : 'expand_less' }}</span></button>
+
     <header class="studio-transport" [class.collapsed]="headerCollapsed()">
       <div class="transport-brand">
-
-        <h1>SMUVE Studio</h1>
-        <p>Production workspace</p>
+        <h1>SMUVE</h1>
+        <p>Studio 2.0</p>
       </div>
       <div class="transport-actions">
         <button type="button" class="export-btn" (click)="musicManager.exportProject()" title="Export Project"><span class="material-icons">download</span></button>
         <button type="button" class="import-btn" (click)="fileInput.click()" title="Import Project"><span class="material-icons">upload</span></button>
-        <input #fileInput type="file" accept=".json" class="hidden" (change)="handleImport($event)">
+        <input #fileInput type="file" accept=".json" class="hidden" (change)="handleImport()">
         <button
           type="button"
           [class.active]="audioSession.isPlaying()"
           (click)="audioSession.togglePlay()"
         >
-          {{ audioSession.isPlaying() ? 'Pause' : 'Play' }}
+          <span class="material-icons">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
         </button>
-        <button type="button" (click)="audioSession.stop()">Stop</button>
+        <button type="button" (click)="audioSession.stop()"><span class="material-icons">stop</span></button>
         <button
           type="button"
           class="record"
           [class.active]="audioSession.isRecording()"
           (click)="audioSession.toggleRecord()"
         >
-          Rec
+          <span class="material-icons">fiber_manual_record</span>
         </button>
       </div>
       <div class="transport-metrics">
-        <div>
+        <div class="metric-group">
           <span>BPM</span>
-          <strong class="cursor-pointer hover:text-brand-primary transition-colors" (click)="adjustBpm()">{{ audioEngine.tempo() }}</strong>
+          <strong (click)="adjustBpm()">{{ audioEngine.tempo() }}</strong>
         </div>
-        <div>
+        <div class="metric-group">
           <span>BAR</span>
           <strong>{{ currentBar() }}</strong>
         </div>
       </div>
     </header>
 
+    <!-- Slide-out Drawer for Module Switching (Mobile Only) -->
+    <div class="mobile-drawer-overlay" *ngIf="mobileDrawerOpen()" (click)="toggleMobileDrawer()"></div>
+    <aside class="mobile-module-drawer" [class.open]="mobileDrawerOpen()">
+      <header>
+        <span class="brand-text">S.M.U.V.E.</span>
+        <button (click)="toggleMobileDrawer()"><span class="material-icons">close</span></button>
+      </header>
+      <nav class="drawer-nav">
+        <button [class.active]="activeView() === 'arrangement'" (click)="setActiveView('arrangement')">
+          <span class="material-icons">view_quilt</span> Arrangement
+        </button>
+        <button [class.active]="activeView() === 'piano-roll'" (click)="setActiveView('piano-roll')">
+          <span class="material-icons">piano</span> Piano Roll
+        </button>
+        <button [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')">
+          <span class="material-icons">grid_view</span> Drum Machine
+        </button>
+        <button [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')">
+          <span class="material-icons">tune</span> Mixer
+        </button>
+        <button [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')">
+          <span class="material-icons">speed</span> Mastering
+        </button>
+        <button [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')">
+          <span class="material-icons">interpreter_mode</span> Performance
+        </button>
+        <button [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')">
+          <span class="material-icons">album</span> DJ Deck
+        </button>
+      </nav>
+      <footer>
+         <button (click)="toggleNeuralFoundry()"><span class="material-icons">psychology</span> Neural Foundry</button>
+      </footer>
+    </aside>
+
     <app-universal-master class="studio-master-strip"></app-universal-master>
 
+    <!-- Desktop Tabs -->
     <nav
       class="studio-view-tabs no-scrollbar"
       *ngIf="!uiService.isCompactMobile()"
     >
-      <button
-        [class.active]="activeView() === 'arrangement'"
-        (click)="setActiveView('arrangement')"
-      >
-        Arrangement
-      </button>
-      <button
-        [class.active]="activeView() === 'dj'"
-        (click)="setActiveView('dj')"
-      >
-        DJ Deck
-      </button>
-      <button
-        [class.active]="activeView() === 'piano-roll'"
-        (click)="setActiveView('piano-roll')"
-      >
-        Piano Roll
-      </button>
-      <button [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')">
-        Drum Machine
-      </button>
+      <button [class.active]="activeView() === 'arrangement'" (click)="setActiveView('arrangement')">Arrangement</button>
+      <button [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')">DJ Deck</button>
+      <button [class.active]="activeView() === 'piano-roll'" (click)="setActiveView('piano-roll')">Piano Roll</button>
+      <button [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')">Drum Machine</button>
       <button [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')">Mixer</button>
-      <button [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')">
-        Performance
-      </button>
+      <button [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')">Performance</button>
       <button [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')">Mastering</button>
     </nav>
 
@@ -82,43 +105,36 @@
       class="studio-layout"
       [class.compact-mobile-layout]="uiService.isCompactMobile()"
     >
-      <div class="mobile-utility-bar" *ngIf="uiService.isCompactMobile()">
-        <button
-          type="button"
-          [class.active]="mobilePanel() === 'browser'"
-          (click)="toggleMobilePanel('browser')"
-        >
-          Sounds
+      <!-- Mobile Quick Tools Toggle -->
+      <div class="mobile-tool-tabs" *ngIf="uiService.isCompactMobile()">
+        <button type="button" [class.active]="mobilePanel() === 'browser'" (click)="toggleMobilePanel('browser')">
+          <span class="material-icons">library_music</span>
         </button>
-        <button
-          type="button"
-          [class.active]="mobilePanel() === 'inspector'"
-          (click)="toggleMobilePanel('inspector')"
-        >
-          Inspector
+        <button type="button" [class.active]="mobilePanel() === 'inspector'" (click)="toggleMobilePanel('inspector')">
+          <span class="material-icons">info</span>
         </button>
-        <div class="mobile-view-chip">
-          {{ activeView() === 'piano-roll' ? 'Piano Roll' : activeView() }}
-        </div>
+        <div class="view-indicator">{{ activeView() | uppercase }}</div>
       </div>
 
+      <!-- Slide-over Utility Drawers (Mobile) -->
       <section
-        class="mobile-utility-panel no-scrollbar"
-        *ngIf="uiService.isCompactMobile() && mobilePanel() as panel"
+        class="mobile-utility-drawer no-scrollbar"
+        [class.open]="uiService.isCompactMobile() && mobilePanel() !== null"
       >
-        <header>
-          <span>{{
-            panel === 'browser' ? 'Sound Browser' : 'Track Inspector'
-          }}</span>
-          <button type="button" (click)="closeMobilePanel()">Close</button>
+        <header *ngIf="mobilePanel() as panel">
+          <span class="drawer-title">{{ panel === 'browser' ? 'SOUNDS' : 'INSPECTOR' }}</span>
+          <button type="button" class="close-drawer" (click)="closeMobilePanel()">
+            <span class="material-icons">close</span>
+          </button>
         </header>
 
-        <app-sound-browser *ngIf="panel === 'browser'"></app-sound-browser>
-        <app-track-inspector
-          *ngIf="panel === 'inspector'"
-        ></app-track-inspector>
+        <div class="drawer-content" [ngSwitch]="mobilePanel()">
+          <app-sound-browser *ngSwitchCase="'browser'"></app-sound-browser>
+          <app-track-inspector *ngSwitchCase="'inspector'"></app-track-inspector>
+        </div>
       </section>
 
+      <!-- Desktop Sidebar Panels -->
       <aside
         class="studio-panel studio-browser"
         *ngIf="!uiService.isCompactMobile()"
@@ -131,33 +147,24 @@
         <div class="view-wrapper" *ngSwitchCase="'drum-machine'">
           <app-drum-machine class="arrangement-main"></app-drum-machine>
         </div>
-
         <div class="view-wrapper" *ngSwitchCase="'mixer'">
           <app-mixer class="arrangement-main"></app-mixer>
         </div>
-
         <div class="view-wrapper" *ngSwitchCase="'performance'">
           <app-performer class="arrangement-main"></app-performer>
         </div>
-
         <div class="view-wrapper" *ngSwitchCase="'mastering'">
           <app-mastering-suite class="arrangement-main"></app-mastering-suite>
         </div>
         <div class="view-wrapper" *ngSwitchCase="'arrangement'">
-          <div class="arrangement-stack">
-            <app-arrangement-view class="arrangement-main"></app-arrangement-view>
-          </div>
+          <app-arrangement-view class="arrangement-main"></app-arrangement-view>
         </div>
-
         <div class="view-wrapper" *ngSwitchCase="'dj'">
-          <div class="arrangement-stack">
-            <app-dj-deck class="arrangement-main"></app-dj-deck>
-          </div>
+          <app-dj-deck class="arrangement-main"></app-dj-deck>
         </div>
-
         <div class="view-wrapper" *ngSwitchCase="'piano-roll'">
           <div class="editor-stack">
-            <app-channel-rack class="editor-channel-rack"></app-channel-rack>
+            <app-channel-rack class="editor-channel-rack" *ngIf="!uiService.isCompactMobile()"></app-channel-rack>
             <app-piano-roll class="editor-main"></app-piano-roll>
           </div>
         </div>
@@ -172,32 +179,4 @@
       </aside>
     </div>
   </div>
-
-  <nav
-    class="mobile-bottom-nav no-scrollbar"
-    *ngIf="uiService.isCompactMobile()"
-  >
-    <button
-      [class.active]="activeView() === 'arrangement'"
-      (click)="setActiveView('arrangement')"
-    >
-      Arrange
-    </button>
-    <button
-      [class.active]="activeView() === 'dj'"
-      (click)="setActiveView('dj')"
-    >
-      DJ
-    </button>
-    <button
-      [class.active]="activeView() === 'piano-roll'"
-      (click)="setActiveView('piano-roll')"
-    >
-      Piano
-    </button>
-    <button [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')">Drums</button>
-    <button [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')">Mix</button>
-    <button [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')">Perform</button>
-    <button [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')">Master</button>
-  </nav>
 </div>

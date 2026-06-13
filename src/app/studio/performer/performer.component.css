@@ -1,119 +1,31 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
 .performer-container {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #07070a;
-}
-
-.performer-header {
-  min-height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  gap: 0.75rem;
-}
-
-.performer-content {
-  flex: 1;
-  position: relative;
+  background: #020617;
   overflow: hidden;
 }
 
-.keyboard-view {
-  background: radial-gradient(circle at center, #1a1a24 0%, #07070a 100%);
+/* Touch targets for performance pads */
+.performer-pad {
+  min-width: 64px;
+  min-height: 64px;
 }
 
-.keyboard-container {
-  display: flex;
-  height: 320px;
-  position: relative;
-}
-
-.perf-key-v42 {
-  flex: 1;
-  min-width: 40px;
-  background: #fff;
-  border: 1px solid #000;
-  color: #000;
-  z-index: 1;
-  touch-action: none;
-  cursor: pointer;
-  border-radius: 0 0 6px 6px;
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.perf-key-v42.black-key {
-  background: #000;
-  color: #fff;
-  z-index: 2;
-  min-width: 24px;
-  margin-left: -12px;
-  margin-right: -12px;
-  height: 60%;
-  border-radius: 0 0 4px 4px;
-}
-
-.perf-key-v42.active {
-  background: #00e5ff;
-  box-shadow: 0 0 30px rgba(0, 229, 255, 0.6), inset 0 0 10px rgba(255,255,255,0.5);
-  transform: translateY(4px);
-}
-
-.keyboard-scroll {
-  padding-bottom: 2rem;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.perf-pad-v42 {
-  aspect-ratio: 1;
-  transition: all 0.1s;
-  touch-action: none;
-}
-
-.perf-pad-v42.active {
-  transform: scale(0.95);
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-}
-
-.layout-btn.active {
-  background: #fff;
-  color: #000;
-}
-
-.scene-btn.active {
-  background: rgba(168, 85, 247, 0.16);
-  color: #fff;
-  box-shadow: 0 0 15px rgba(168, 85, 247, 0.25);
-}
-
-.pitch-slider, .mod-slider {
-  appearance: none;
-  background: rgba(255,255,255,0.1);
-  height: 4px;
-  border-radius: 2px;
-  outline: none;
-}
-
-.pitch-slider::-webkit-slider-thumb, .mod-slider::-webkit-slider-thumb {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  background: #fff;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 0 10px rgba(0,229,255,0.5);
-}
-
-@media (max-width: 768px) {
-  .keyboard-container {
-    height: 240px;
+@media (pointer: coarse) {
+  .performer-pad {
+    min-width: 80px;
+    min-height: 80px;
   }
-  .perf-key-v42 {
-    min-width: 32px;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .performer-grid {
+    grid-template-columns: repeat(8, 1fr) !important;
   }
 }

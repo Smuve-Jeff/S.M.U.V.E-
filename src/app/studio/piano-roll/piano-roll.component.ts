@@ -187,6 +187,19 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     this.pinchDistance = null;
   }
 
+  onNotePointerDownTouch(event: TouchEvent, note: TrackNote) {
+    event.stopPropagation();
+    const touch = event.touches[0];
+    const now = Date.now();
+    if (this.lastTap && (now - this.lastTap < 300)) {
+      this.musicManager.removeNotes(this.selectedTrack()?.id!, [note.id]);
+      this.lastTap = 0;
+      return;
+    }
+    this.lastTap = now;
+  }
+  private lastTap = 0;
+
   onNotePointerDown(event: MouseEvent | PointerEvent, note: TrackNote) {
     event.stopPropagation();
     if (this.editMode() === 'select') {

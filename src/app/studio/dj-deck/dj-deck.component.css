@@ -149,6 +149,17 @@
 }
 
 .btn-cue,
+.btn-play,
+.dj-utility-btns .btn-sm,
+.fx-selectors .btn-xs { min-width: 44px; min-height: 44px; }
+.btn-cue,
+.btn-cue,
+.btn-play,
+.dj-utility-btns .btn-sm,
+.fx-selectors .btn-xs {
+  min-width: 44px;
+  min-height: 44px;
+}
 .btn-play {
   width: 55px;
   height: 55px;
@@ -230,6 +241,17 @@
   }
 
   .btn-cue,
+.btn-play,
+.dj-utility-btns .btn-sm,
+.fx-selectors .btn-xs { min-width: 44px; min-height: 44px; }
+.btn-cue,
+.btn-cue,
+.btn-play,
+.dj-utility-btns .btn-sm,
+.fx-selectors .btn-xs {
+  min-width: 44px;
+  min-height: 44px;
+}
   .btn-play {
     width: 65px;
     height: 65px;
@@ -347,4 +369,29 @@
   border-radius: 4px;
   cursor: pointer;
   outline: none;
+}
+
+/* Landscape Mobile DJ Deck */
+@media (orientation: landscape) and (max-height: 600px) {
+  .dj-console-3d {
+    flex-direction: row !important;
+    gap: 1rem;
+  }
+
+  .deck-section {
+    max-width: 300px;
+  }
+
+  .deck-plinth {
+    padding: 1rem;
+  }
+
+  .mixer-section {
+    width: 200px;
+    padding: 1rem;
+  }
+
+  .platter-container {
+    width: 60%;
+  }
 }

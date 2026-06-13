@@ -1,3 +1,8 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
 .drum-machine-container {
   display: flex;
   flex-direction: column;
@@ -11,7 +16,7 @@
   height: 60px;
   display: flex;
   align-items: center;
-  padding: 0 2rem;
+  padding: 0 1rem;
   background: rgba(255, 255, 255, 0.02);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -30,6 +35,8 @@
   aspect-ratio: 1;
   background: rgba(255, 255, 255, 0.03);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.02);
+  min-width: 64px;
+  min-height: 64px;
 }
 
 .hw-pad-v42.active-hw {
@@ -55,56 +62,22 @@
   box-shadow: 0 0 15px rgba(236, 91, 19, 0.4);
 }
 
-.mini-tab-btn {
-  padding: 4px 12px;
-  font-size: 8px;
-  font-weight: 900;
-  text-transform: uppercase;
-  color: #7a7a9a;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.mini-tab-btn.active {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-.step-v42.active-step {
-  box-shadow: 0 0 12px currentColor, inset 0 0 8px rgba(255, 255, 255, 0.4);
-}
-
-.step-v42.current-step {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
-  z-index: 10;
-}
-
-.pad-strip.selected-strip {
-  border-color: #ec5b13;
-  background: rgba(236, 91, 19, 0.05);
-}
-
-.v-bar-pro.active-v-bar {
-  box-shadow: 0 0 10px currentColor;
-}
-
-.m-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #7a7a9a;
-}
-
-.m-btn.rec.active {
-  color: #ef4444;
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+/* Touch targets */
+@media (pointer: coarse) {
+  .m-btn, .mini-tab-btn, .bar-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 @media (max-width: 768px) {
+  .drum-header {
+    height: auto;
+    padding: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
   .drum-content {
     flex-direction: column;
     overflow-y: auto;
@@ -118,6 +91,7 @@
 
   .pads-hardware-grid {
     width: 100% !important;
+    padding: 1rem !important;
   }
 
   .pad-inspector {
@@ -128,5 +102,17 @@
 
   .sequencer-panel {
     min-height: 400px;
+  }
+}
+
+/* Landscape Mobile */
+@media (orientation: landscape) and (max-height: 600px) {
+  .pads-hardware-grid {
+    grid-template-columns: repeat(8, 1fr) !important;
+  }
+
+  .hw-pad-v42 {
+    min-width: 48px;
+    min-height: 48px;
   }
 }

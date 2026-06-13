@@ -105,6 +105,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showNeuralFoundry = signal(false);
   headerCollapsed = signal(false);
+  mobileDrawerOpen = signal(false);
 
   studioQualityClass = computed(() => {
     return this.audioEngine.performanceTier() === 'ultra'
@@ -139,6 +140,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   setActiveView(view: StudioView) {
+    this.mobileDrawerOpen.set(false);
     this.activeView.set(view);
     this.mobilePanel.set(null);
     this.router.navigate([], {
@@ -157,6 +159,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   toggleHeader() {
+  toggleMobileDrawer() {
+    this.mobileDrawerOpen.update(v => !v);
+  }
+
     this.headerCollapsed.update((v) => !v);
   }
 

@@ -207,7 +207,7 @@
           [style.width.px]="note.length * cellWidth()"
           [style.height.px]="rowHeight()"
           [style.background-color]="selectedTrack()?.color"
-          (pointerdown)="onNotePointerDown($event, note)"
+          (pointerdown)="onNotePointerDown($event, note)" (touchstart)="onNotePointerDownTouch($event, note)"
         >
           <div
             *ngIf="note.isSlide"
