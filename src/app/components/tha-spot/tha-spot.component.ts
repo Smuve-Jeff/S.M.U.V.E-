@@ -86,6 +86,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   isMatchmaking = signal<boolean>(false);
   matchmakingStatus = signal<string>('');
   matchmakingProgress = signal<number>(0);
+  isWasmLoading = signal<boolean>(false);
 
   @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
 
@@ -213,7 +214,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
         }
         this.isMatchmaking.set(false);
       }
+
+      if (this.isRetroOrArcade(game)) {
+        this.isWasmLoading.set(true);
+        await new Promise(r => setTimeout(r, 1200)); // Simulate WASM core initialization
+        this.isWasmLoading.set(false);
+      }
       this.profileService.recordGameLaunch(
+
         game.id,
         this.buildSessionContext(game)
       );
