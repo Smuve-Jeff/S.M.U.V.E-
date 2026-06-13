@@ -1,6 +1,6 @@
 <div class="tha-spot-shell glass-v42-pro" [attr.data-mode]="displayMode()">
-  <!-- Elite Header -->
-  <header class="spot-header">
+  <!-- Elite Header - Hidden in Pluto Mode -->
+  <header class="spot-header" *ngIf="displayMode() !==  'pluto'">
     <div class="brand-sector">
       <h1>S.M.U.V.E. <span class="neon-accent-secondary">SPOT</span></h1>
       <div class="mode-toggles">
@@ -13,10 +13,10 @@
         </button>
         <button
           class="mode-toggle-btn"
-          [class.active]="displayMode() === 'cinema'"
-          (click)="setMode('cinema')"
+          [class.active]="displayMode() === 'pluto'"
+          (click)="setMode('pluto')"
         >
-          <span class="material-symbols-outlined">theater_comedy</span> CINEMA
+          <span class="material-symbols-outlined">live_tv</span> PLUTO TV
         </button>
       </div>
     </div>
@@ -44,35 +44,26 @@
     </div>
   </header>
 
-  <main class="main-content">
-    <!-- Cinema Mode (FAST Streams) -->
-    <div class="content-scroller pluto-standalone-view" *ngIf="displayMode() === 'cinema'">
-      <div class="pluto-container glass-v42 holographic-depth shadow-v42-xl">
-        <header class="console-header glass-v42">
-          <div class="console-title">
-            <span class="material-symbols-outlined" style="vertical-align: middle">broadcast_on_home</span>
-            S.M.U.V.E. THEATER <span class="tag">FAST</span>
-          </div>
-          <div class="telemetry">
-            LATENCY: <span class="success">2ms</span> | RESOLUTION: 4K
-          </div>
-        </header>
-        <div class="pluto-body">
-          <iframe
-            [src]="safePlutoUrl()"
-            class="pluto-frame"
-            allow="autoplay; fullscreen; picture-in-picture; orientation-lock"
-            allowfullscreen
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-          ></iframe>
-        </div>
-      </div>
+  <main class="main-content" [class.full-standalone]="displayMode() ===  'pluto'">
+    <!-- Pluto TV Standalone View -->
+    <div class="pluto-standalone-experience" *ngIf="displayMode() ===  'pluto'">
+      <iframe
+        [src]="safePlutoUrl()"
+        class="pluto-standalone-frame"
+        allow="autoplay; fullscreen; picture-in-picture; orientation-lock"
+        allowfullscreen
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+      ></iframe>
+
+      <!-- Discreet Exit Control -->
+      <button class="exit-pluto-btn glass-v42" (click)="setMode('gaming')" title="Back to Gaming">
+        <span class="material-symbols-outlined">close</span>
+        EXIT PLUTO TV
+      </button>
     </div>
 
     <!-- Gaming Mode -->
     <div class="content-scroller custom-scrollbar" *ngIf="displayMode() === 'gaming'">
-      <!-- Catalog / Search View -->
-
       <!-- Room Navigator -->
       <nav class="room-navigator">
         <button
@@ -85,6 +76,7 @@
           {{ room.name | uppercase }}
         </button>
       </nav>
+
       <div class="catalog-container animate-enter" *ngIf="isBrowseView()">
         <header class="catalog-header">
           <div class="search-box">
@@ -98,10 +90,13 @@
           </div>
 
           <div class="filter-bar">
-            <select class="filter-select" [ngModel]="activeGenre()" (ngModelChange)="activeGenre.set($event)">
-              <option value="all">ALL GENRES</option>
-              <option *ngFor="let genre of allCategories()" [value]="genre">{{ genre | uppercase }}</option>
-            </select>
+            <button
+              class="filter-chip"
+              [class.active]="showFavoritesOnly()"
+              (click)="showFavoritesOnly.set(!showFavoritesOnly())"
+            >
+              FAVORITES
+            </button>
             <select class="filter-select" [ngModel]="sortMode()" (ngModelChange)="sortMode.set($event)">
               <option value="Popular">POPULAR</option>
               <option value="Rating">TOP RATED</option>
@@ -135,20 +130,7 @@
         </div>
       </div>
 
-      <!-- Featured / Rails View -->
-
-      <!-- Room Navigator -->
-      <nav class="room-navigator">
-        <button
-          *ngFor="let room of gamingRooms()"
-          class="room-chip glass-v42"
-          [class.active]="activeRoom() === room.id"
-          (click)="setActiveRoom(room.id)"
-        >
-          <span class="material-symbols-outlined">{{ room.icon || 'door_open' }}</span>
-          {{ room.name | uppercase }}
-        </button>
-      </nav>
+      <!-- Rails View -->
       <div class="rails-view animate-enter" *ngIf="!isBrowseView()">
         <div class="rails-container">
           <section class="storefront-rail" *ngFor="let rail of matchingRecommendationRails()">
@@ -181,7 +163,7 @@
   </main>
 
   <!-- Sidebar Intel Panel -->
-  <aside class="executive-sidebar glass-v42-pro" [class.active]="showIntelPanel()">
+  <aside class="executive-sidebar glass-v42-pro" [class.active]="showIntelPanel() && displayMode() !==  'pluto'">
     <header class="sidebar-header">
       <span class="material-symbols-outlined">neurology</span> STRATEGIC INTEL
       <button class="close-intel" (click)="toggleIntel()">
@@ -232,8 +214,6 @@
     </div>
   </div>
 
-  <!-- Immersive Immersive Game Console Overlay -->
-
   <div class="wasm-loader-overlay" *ngIf="isWasmLoading()">
     <div class="loader-content glass-v42-pro">
       <div class="scanner-line"></div>
@@ -277,8 +257,8 @@
   </div>
 </div>
 
-  <!-- Rival Hub Sidebar (Multiplayer & Social) -->
-  <aside class="executive-sidebar glass-v42-pro rival-hub" [class.active]="showRivalHub()">
+  <!-- Rival Hub Sidebar -->
+  <aside class="executive-sidebar glass-v42-pro rival-hub" [class.active]="showRivalHub() && displayMode() !==  'pluto'">
     <header class="sidebar-header">
       <span class="material-symbols-outlined">diversity_3</span> RIVAL HUB
       <button class="close-intel" (click)="toggleRivalHub()">
@@ -308,9 +288,6 @@
               <span class="material-symbols-outlined">crossed_swords</span>
             </button>
           </div>
-        </div>
-        <div class="empty-state" *ngIf="onlineUsers().length === 0">
-          SCANNING FOR TARGETS... NO RIVALS DETECTED.
         </div>
       </div>
 
