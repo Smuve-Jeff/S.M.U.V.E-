@@ -194,6 +194,7 @@
 }
 
 .view-wrapper {
+  animation: view-enter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   height: 100%;
   width: 100%;
   overflow-y: auto;
@@ -461,6 +462,7 @@
   }
 
   .view-wrapper {
+  animation: view-enter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     padding-bottom: calc(var(--studio-mobile-nav-height) + 0.85rem);
   }
 
@@ -625,4 +627,47 @@
 .studio-shell {
   min-height: 0;
   height: 100%;
+}
+@keyframes view-enter { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+.holographic-glimmer {
+  position: relative;
+  overflow: hidden;
+}
+.holographic-glimmer::after {
+  content: "";
+  position: absolute;
+  top: -50%; left: -50%; width: 200%; height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 0%,
+    rgba(0, 229, 255, 0.05) 30%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(0, 229, 255, 0.05) 70%,
+    transparent 100%
+  );
+  animation: glimmer 4s infinite linear;
+  pointer-events: none;
+}
+@keyframes glimmer {
+  0% { transform: rotate(0deg) translate(-10%, -10%); }
+  100% { transform: rotate(360deg) translate(-10%, -10%); }
+}
+
+
+.pro-meter {
+  background: linear-gradient(0deg, #00e5ff 0%, #00e5ff 80%, #ff4d4d 95%) !important;
+}
+
+
+.studio-workspace::before {
+  content: " ";
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+              linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 100;
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+  opacity: 0.15;
 }

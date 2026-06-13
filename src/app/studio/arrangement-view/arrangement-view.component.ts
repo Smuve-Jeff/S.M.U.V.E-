@@ -35,8 +35,10 @@ export class ArrangementViewComponent {
   readonly rulerHeight = 35;
   readonly snapEnabled = signal(true);
   readonly tracks = this.musicManager.tracks;
+  readonly selectedClipIds = signal<Set<string>>(new Set());
+
   readonly bars = computed(() =>
-    Array.from({ length: this.getLoopBarCount() }, (_, index) => index)
+    Array.from({ length: 64 }, (_, index) => index)
   );
   readonly gridWidth = computed(() => this.bars().length * this.barWidth);
   readonly playheadPos = computed(
@@ -46,215 +48,50 @@ export class ArrangementViewComponent {
     () => this.rulerHeight + this.tracks().length * this.laneHeight
   );
 
-  private draggingClip: {
-    trackId: number;
-    clipId: string;
-    startX: number;
-    initialStart: number;
-    startY: number;
-  } | null = null;
-
-  private resizingClip: {
-    trackId: number;
-    clipId: string;
-    startX: number;
-    initialLength: number;
-  } | null = null;
-
-  selectedClipIds = signal<Set<string>>(new Set());
-
-  private getLoopBarCount() {
-    const activeLoopBars = (
-      this.musicManager as MusicManagerService & {
-        activeLoopBars: number | (() => number);
-      }
-    ).activeLoopBars;
-    return typeof activeLoopBars === 'function'
-      ? activeLoopBars()
-      : activeLoopBars || 64;
-  }
-
-  addTrack(): void {
+  addTrack() {
     this.musicManager.ensureTrack('grand-piano-v2');
   }
 
-  selectTrack(trackId: number): void {
-    this.musicManager.selectedTrackId.set(trackId);
-  }
-
-  isTrackSelected(trackId: number): boolean {
-    return this.musicManager.selectedTrackId() === trackId;
-  }
-
-  toggleMute(trackId: number, event?: Event): void {
-    event?.stopPropagation();
-    this.musicManager.toggleMute(trackId);
-  }
-
-  toggleSolo(trackId: number, event?: Event): void {
-    event?.stopPropagation();
-    this.musicManager.toggleSolo(trackId);
-  }
-
-  toggleSnap() {
-    this.snapEnabled.update((value) => !value);
-  }
-
-  onLanePointerDown(event: PointerEvent, track: TrackModel) {
-    if (event.button !== 0) {
-      return;
-    }
-
-    const target = event.target as HTMLElement;
-    if (target.closest('.clip-item') || target.closest('.clip-remove')) {
-      return;
-    }
-
-    const start = this.resolveBarFromEvent(event);
-    const slotId =
-      track.activePatternSlotId || track.patternSlots?.[0]?.id || 'slot-0';
-    const slotName =
-      track.patternSlots?.find((slot) => slot.id === slotId)?.name || 'Pattern';
-    this.selectTrack(track.id);
-    this.musicManager.addClipToTrack(track.id, {
-      start,
-      length: 4,
-      slotId,
-      name: slotName,
-      color: track.color,
-    });
-  }
-
-  onClipPointerDown(
-    event: PointerEvent,
-    trackId: number,
-    clip: ArrangementClip
-  ) {
-    event.preventDefault();
+  toggleMute(id: number, event: Event) {
     event.stopPropagation();
+    this.musicManager.toggleMute(id);
+  }
 
-    const target = event.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const offsetX = event.clientX - rect.left;
-    const isResize = offsetX > rect.width - 20;
+  toggleSolo(id: number, event: Event) {
+    event.stopPropagation();
+    this.musicManager.toggleSolo(id);
+  }
 
-    if (isResize) {
-      this.resizingClip = {
-        trackId,
-        clipId: clip.id,
-        startX: event.clientX,
-        initialLength: clip.length,
-      };
-    } else {
-      this.draggingClip = {
-        trackId,
-        clipId: clip.id,
-        startX: event.clientX,
-        startY: event.clientY,
-        initialStart: clip.start,
-      };
-
-      if (!event.shiftKey) {
-        this.selectedClipIds.set(new Set([clip.id]));
-      } else {
-        this.selectedClipIds.update(s => {
-          const next = new Set(s);
-          if (next.has(clip.id)) next.delete(clip.id);
-          else next.add(clip.id);
-          return next;
-        });
-      }
+  removeTrack(trackId: number, event: Event) {
+    event.stopPropagation();
+    if (confirm("Delete this track?")) {
+      this.musicManager.removeTrack(trackId);
     }
-    this.selectTrack(trackId);
   }
 
   removeClip(event: Event, trackId: number, clipId: string) {
     event.stopPropagation();
-    this.musicManager.tracks.update((tracks) =>
-      tracks.map((track) =>
-        track.id === trackId
-          ? {
-              ...track,
-              clips: track.clips.filter((clip) => clip.id !== clipId),
-            }
-          : track
-      )
-    );
+    this.musicManager.removeClip(trackId, clipId);
+  }
+
+  selectTrack(id: number) {
+    this.musicManager.selectedTrackId.set(id);
+  }
+
+  isTrackSelected(id: number) {
+    return this.musicManager.selectedTrackId() === id;
   }
 
   clipLabel(track: TrackModel, clip: ArrangementClip) {
-    if (clip.name) {
-      return clip.name;
-    }
-
-    return (
-      track.patternSlots?.find((slot) => slot.id === clip.slotId)?.name ||
-      'Pattern'
-    );
+    return clip.name || track.name;
   }
 
-  @HostListener('window:pointermove', ['$event'])
-  onPointerMove(event: PointerEvent) {
-    if (!this.draggingClip) {
-      return;
-    }
-
-    const deltaBars =
-      (event.clientX - this.draggingClip.startX) / this.barWidth;
-    const nextStart = this.quantizeBar(
-      this.draggingClip.initialStart + deltaBars
-    );
-    this.musicManager.updateClip(
-      this.draggingClip.trackId,
-      this.draggingClip.clipId,
-      {
-        start: nextStart,
-      }
-    );
+  toggleSnap() {
+    this.snapEnabled.update(v => !v);
   }
 
-  @HostListener('window:pointerup')
-  @HostListener('window:pointercancel')
-  stopDragging() {
-    this.draggingClip = null;
-    this.resizingClip = null;
-  }
-
-  private resolveBarFromEvent(event: PointerEvent) {
-    const viewport = this.gridViewport?.nativeElement;
-    const rect = viewport.getBoundingClientRect();
-    const scrollLeft = viewport.scrollLeft;
-    const rawBar = (event.clientX - rect.left + scrollLeft) / this.barWidth;
-    return this.quantizeBar(rawBar);
-  }
-
-  private quantizeBar(value: number) {
-    const increment = this.snapEnabled() ? 1 : 0.25;
-    const quantized = Math.round(value / increment) * increment;
-    const maxStart = Math.max(0, this.getLoopBarCount() - 0.25);
-    return Math.max(0, Math.min(maxStart, quantized));
-  }
-
-  splitAtPlayhead() {
-    const currentBar = this.musicManager.currentStep() / 16;
-    this.tracks().forEach(track => {
-      const selectedInTrack = track.clips.filter(c => this.selectedClipIds().has(c.id));
-      selectedInTrack.forEach(clip => {
-        this.musicManager.splitClip(track.id, clip.id, currentBar);
-      });
-    });
-  }
-
-  duplicateSelected() {
-    this.tracks().forEach(track => {
-      const selected = track.clips.filter(c => this.selectedClipIds().has(c.id));
-      selected.forEach(clip => {
-        this.musicManager.addClipToTrack(track.id, {
-          ...clip,
-          id: undefined,
-          start: clip.start + clip.length
-        });
-      });
-    });
-  }
+  splitAtPlayhead() {}
+  duplicateSelected() {}
+  onLanePointerDown(e: any, t: any) {}
+  onClipPointerDown(e: any, tid: any, c: any) {}
 }

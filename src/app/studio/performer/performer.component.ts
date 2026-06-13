@@ -57,6 +57,7 @@ export class PerformerComponent {
   generateKeyboardKeys() {
     const keys = [];
     const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    // 2 octaves + 1 note
     for (let i = 0; i < 25; i++) {
       const midi = 48 + i;
       keys.push({
@@ -158,69 +159,37 @@ export class PerformerComponent {
   onPadPointerDown(event: PointerEvent, midi: number) {
     event.preventDefault();
     event.stopPropagation();
-    const currentMidi = this.activePointers.get(event.pointerId);
-    if (currentMidi !== undefined && currentMidi !== midi) this.onKeyUp(currentMidi);
-    this.activePointers.set(event.pointerId, midi);
-    void this.onKeyDown(midi);
+    this.onKeyDown(midi);
   }
 
   onPadPointerEnter(event: PointerEvent, midi: number) {
-    if (!this.activePointers.has(event.pointerId) && event.buttons === 0) return;
-    const currentMidi = this.activePointers.get(event.pointerId);
-    if (currentMidi === midi) return;
-    if (currentMidi !== undefined) this.onKeyUp(currentMidi);
-    this.activePointers.set(event.pointerId, midi);
-    void this.onKeyDown(midi);
+    if (event.buttons === 1) {
+      this.onKeyDown(midi);
+    }
   }
 
   onPadPointerUp(event: PointerEvent, midi: number) {
-    event.preventDefault();
-    if (this.activePointers.get(event.pointerId) === midi) this.activePointers.delete(event.pointerId);
     this.onKeyUp(midi);
   }
 
-  onPitchBend(event: Event) {
-    const value = parseFloat((event.target as HTMLInputElement).value);
-    this.pitchBend.set(value);
-    this.liveEngine.setPitchBend(value);
+  onPitchBend(event: any) {
+    const val = parseFloat(event.target.value);
+    this.pitchBend.set(val);
+    this.liveEngine.setPitchBend(val);
   }
 
-  onModWheel(event: Event) {
-    const value = parseFloat((event.target as HTMLInputElement).value);
-    this.modWheel.set(value);
-    this.liveEngine.setModulation(value);
+  onModWheel(event: any) {
+    const val = parseFloat(event.target.value);
+    this.modWheel.set(val);
+    this.liveEngine.setModWheel(val);
   }
 
   launchScene(scene: PerformerScene) {
-    this.musicManager.tracks().forEach((track) => {
-      this.musicManager.setActivePatternSlot(track.id, scene.slotId);
-    });
+    this.musicManager.launchScene(scene.id);
     this.haptic.medium();
   }
 
-  launchPattern(trackId: number, slotId: string) {
-    this.musicManager.setActivePatternSlot(trackId, slotId);
-    this.haptic.light();
-  }
-
-  isSceneActive(scene: PerformerScene) {
-    return this.musicManager.tracks().every((track) => track.activePatternSlotId === scene.slotId);
-  }
-
-  trackSlots(track: TrackModel) { return track.patternSlots || []; }
-  isSlotActive(track: TrackModel, slotId: string) { return track.activePatternSlotId === slotId; }
-
-  getInstrumentIcon(category: string): string {
-    switch (category) {
-      case 'piano': return 'piano';
-      case 'guitar': return 'reorder';
-      case 'strings': return 'layers';
-      case 'bass': return 'vertical_align_bottom';
-      case 'drum': return 'grid_view';
-      case 'synth':
-      case 'lead': return 'tune';
-      case 'brass': return 'campaign';
-      default: return 'music_note';
-    }
+  isSceneActive(scene: PerformerScene): boolean {
+    return this.musicManager.activeSceneId() === scene.id;
   }
 }

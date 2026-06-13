@@ -48,18 +48,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   );
   editMode = signal<'draw' | 'select' | 'erase'>('draw');
   selectedNoteIds = signal<Set<string>>(new Set());
-  showAudioDock = signal(false);
-  audioDockView = signal<'mixer' | 'mastering' | 'drum-machine'>('mixer');
-  showTrackSidebar = signal(false);
-  newTrackPresetId = signal('grand-piano-v2');
+  windowWidth = signal(typeof window !== 'undefined' ? window.innerWidth : 1280);
 
-  isLocalPlayback = signal(false);
-  isLocalPlaying = signal(false);
-  isLocalRecording = signal(false);
-
-  windowWidth = signal(
-    typeof window !== 'undefined' ? window.innerWidth : 1280
-  );
   rowHeight = computed(
     () => (this.isMobile() ? 48 : 24) * this.touchGestures.zoomLevel()
   );
@@ -81,13 +71,17 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   ghostNotes = computed(() => {
     if (!this.showGhostNotes()) return [];
-    const currentId = this.musicManager.selectedTrackId();
-    return this.musicManager
+    const currentTrackId = this.musicManager.selectedTrackId();
+    const otherTracks = this.musicManager
       .tracks()
-      .filter((track) => track.id !== currentId)
-      .flatMap((track) =>
-        track.notes.map((note) => ({ ...note, trackColor: track.color }))
-      );
+      .filter((t) => t.id !== currentTrackId);
+    const notes: any[] = [];
+    otherTracks.forEach((t) => {
+      t.notes.forEach((n) => {
+        notes.push({ ...n, trackColor: t.color });
+      });
+    });
+    return notes;
   });
 
   viewportNotes = computed(() => this.selectedTrack()?.notes || []);
@@ -116,20 +110,35 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     if (!this.scrollContainer || !this.keysSidebar) {
       return;
     }
+    this.keysSidebar.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollTop;
+    if (this.isMobile()) {
+      this.keysSidebar.nativeElement.scrollLeft = this.scrollContainer.nativeElement.scrollLeft;
+    }
+  }
 
-    this.keysSidebar.nativeElement.scrollTop =
-      this.scrollContainer.nativeElement.scrollTop;
+  fitToPage() {
+    const notes = this.selectedTrack()?.notes || [];
+    if (notes.length === 0) return;
+    const midis = notes.map(n => n.midi);
+    const minMidi = Math.min(...midis);
+    const maxMidi = Math.max(...midis);
+    const noteRange = maxMidi - minMidi + 1;
+    const viewportHeight = this.scrollContainer.nativeElement.clientHeight;
+    const idealRowHeight = Math.floor(viewportHeight / (noteRange + 4));
+    const baseRowHeight = this.isMobile() ? 48 : 24;
+    const newZoom = Math.max(0.5, Math.min(2, idealRowHeight / baseRowHeight));
+    this.touchGestures.zoomLevel.set(newZoom);
+    setTimeout(() => {
+      const targetScrollTop = (127 - maxMidi - 2) * this.rowHeight();
+      this.scrollContainer.nativeElement.scrollTop = Math.max(0, targetScrollTop);
+      this.syncKeyScroll();
+    }, 50);
   }
 
   onGridPointerDown(event: PointerEvent) {
-    if (this.editMode() !== 'draw') {
-      return;
-    }
-
+    if (this.editMode() !== "draw") return;
     const target = event.target as HTMLElement;
-    if (target.closest('.note-block')) {
-      return;
-    }
+    if (target.closest(".note-block")) return;
 
     event.preventDefault();
     this.createNoteAtPoint(
@@ -182,55 +191,35 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     event.stopPropagation();
     if (this.editMode() === 'select') {
       const next = new Set(this.selectedNoteIds());
-      if (
-        (event as MouseEvent).shiftKey ||
-        (event as MouseEvent).ctrlKey ||
-        (event as MouseEvent).metaKey
-      ) {
-        if (next.has(note.id)) {
-          next.delete(note.id);
-        } else {
-          next.add(note.id);
-        }
+      if (event.shiftKey) {
+        if (next.has(note.id)) next.delete(note.id);
+        else next.add(note.id);
       } else {
         next.clear();
         next.add(note.id);
       }
       this.selectedNoteIds.set(next);
-    } else if (this.editMode() === 'erase' && this.selectedTrack()) {
-      this.musicManager.removeNotes(this.selectedTrack()!.id, [note.id]);
+    } else if (this.editMode() === 'erase') {
+      this.musicManager.removeNotes(this.selectedTrack()?.id!, [note.id]);
     }
   }
 
-  private createNoteAtPoint(
-    clientX: number,
-    clientY: number,
-    container: HTMLElement
-  ) {
-    const track = this.selectedTrack();
-    if (!track) {
-      return;
-    }
-
+  createNoteAtPoint(x: number, y: number, container: HTMLElement) {
     const rect = container.getBoundingClientRect();
-    const scrollLeft = this.scrollContainer?.nativeElement.scrollLeft || 0;
-    const scrollTop = this.scrollContainer?.nativeElement.scrollTop || 0;
-    const x = clientX - rect.left + scrollLeft;
-    const y = clientY - rect.top + scrollTop;
-    const step = Math.max(0, Math.min(63, Math.floor(x / this.cellWidth())));
+    const scrollLeft = container.scrollLeft;
+    const scrollTop = container.scrollTop;
+
+    const relX = x - rect.left + scrollLeft;
+    const relY = y - rect.top + scrollTop;
+
+    const step = Math.max(0, Math.min(63, Math.floor(relX / this.cellWidth())));
     const midi = Math.max(
       0,
-      Math.min(127, 127 - Math.floor(y / this.rowHeight()))
+      Math.min(127, 127 - Math.floor(relY / this.rowHeight()))
     );
 
-    const existingNote = track.notes.find(
-      (note) => Math.floor(note.step) === step && note.midi === midi
-    );
-    if (existingNote) {
-      return;
-    }
-
-    this.musicManager.addNoteToTrack(track.id, {
+    this.musicManager.addNoteToTrack(this.selectedTrack()?.id!, {
+      id: 'note-' + Date.now(),
       midi,
       step,
       length: 1,
@@ -238,253 +227,139 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     });
   }
 
-  isBlackKey(midi: number) {
-    return [1, 3, 6, 8, 10].includes(midi % 12);
+  updateNotePosition(note: TrackNote, step: number, midi: number) {
+    this.musicManager.updateNote(this.selectedTrack()?.id!, note.id, {
+      step,
+      midi,
+    });
   }
 
-  getKeyName(midi: number) {
-    return ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][
-      midi % 12
+  applyNotePatch(trackId: number, noteId: string, patch: Partial<TrackNote>) {
+    this.musicManager.updateNote(trackId, noteId, patch);
+  }
+
+  quantizeNotes() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    this.musicManager.quantizeTrack(track.id);
+  }
+
+  duplicateSelected() {
+    const track = this.selectedTrack();
+    if (!track || this.selectedNoteIds().size === 0) return;
+    this.musicManager.duplicateNotes(
+      track.id,
+      Array.from(this.selectedNoteIds()),
+      1
+    );
+  }
+
+  isBlackKey(midi: number): boolean {
+    const note = midi % 12;
+    return [1, 3, 6, 8, 10].includes(note);
+  }
+
+  getKeyName(midi: number): string {
+    const names = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
     ];
+    return names[midi % 12];
   }
 
-  getOctaveLabel(midi: number) {
-    return Math.floor(midi / 12) - 1;
+  getOctaveLabel(midi: number): string {
+    return Math.floor(midi / 12 - 1).toString();
+  }
+
+  toggleSelectedSlide() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const hasSlide = this.hasSelectedSlide();
+    this.selectedNoteIds().forEach((id) => {
+      this.applyNotePatch(track.id, id, { isSlide: !hasSlide });
+    });
+  }
+
+  hasSelectedSlide(): boolean {
+    const track = this.selectedTrack();
+    if (!track) return false;
+    return Array.from(this.selectedNoteIds()).some((id) => {
+      const note = track.notes.find((n) => n.id === id);
+      return note?.isSlide;
+    });
+  }
+
+  adjustSelectedVelocity(delta: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    this.selectedNoteIds().forEach((id) => {
+      const note = track.notes.find((n) => n.id === id);
+      if (note) {
+        const velocity = Math.max(0.1, Math.min(1.5, note.velocity + delta));
+        this.applyNotePatch(track.id, id, { velocity });
+      }
+    });
+  }
+
+  setSelectedNoteProbability(event: any) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const prob = parseFloat(event.target.value);
+    this.selectedNoteIds().forEach((id) => {
+      this.applyNotePatch(track.id, id, { probability: prob });
+    });
+  }
+
+  clearNotes() {
+    const track = this.selectedTrack();
+    if (track && confirm('Clear all notes in this pattern?')) {
+      this.musicManager.removeNotes(
+        track.id,
+        track.notes.map((n) => n.id)
+      );
+      this.selectedNoteIds.set(new Set());
+    }
   }
 
   setEditMode(mode: 'draw' | 'select' | 'erase') {
     this.editMode.set(mode);
   }
 
-  togglePlay() {
-    this.audioSession.togglePlay();
-  }
-
-  isRecording() {
-    const session = this.audioSession as AudioSessionService & {
-      isRecording?: () => boolean;
-    };
-    return typeof session.isRecording === 'function'
-      ? session.isRecording()
-      : false;
-  }
-
-  toggleAudioDock() {
-    this.showAudioDock.update((value) => !value);
-  }
-
-  setAudioDockView(view: 'mixer' | 'mastering' | 'drum-machine') {
-    this.audioDockView.set(view);
-    this.showAudioDock.set(true);
-  }
-
-  setPatternLength(measures: number) {
-    this.numMeasures = Math.max(1, Math.min(16, Math.round(measures)));
-    this.cells = new Array(this.numMeasures * 16).fill(0);
-    this.gridColumns = Array.from(
-      { length: this.cells.length },
-      (_, index) => index
-    );
-  }
-
-  arrangementBars() {
-    const notes = this.selectedTrack()?.notes || [];
-    return Array.from({ length: this.numMeasures }, (_, index) => ({
-      index,
-      noteCount: notes.filter((note) => Math.floor(note.step / 16) === index)
-        .length,
-    }));
-  }
-
-  addTrack() {
-    const presetId = this.newTrackPresetId();
-    const manager = this.musicManager as MusicManagerService & {
-      addTrack?: (name: string, instrumentId: string) => void;
-    };
-    if (typeof manager.addTrack === 'function') {
-      manager.addTrack('New Track', presetId);
-      return;
-    }
-    this.musicManager.ensureTrack(presetId);
-  }
-
-  replaceTrackInstrument(track: { id: number }, instrumentId: string) {
-    this.musicManager.setInstrument(track.id, instrumentId);
-  }
-
-  removeTrack(trackId: number) {
-    this.musicManager.removeTrack(trackId);
-    this.selectedNoteIds.set(new Set());
-  }
-
-  transposeSelected(delta: number) {
-    const track = this.selectedTrack();
-    if (!track) {
-      return;
-    }
-
-    this.selectedNoteIds().forEach((noteId) => {
-      const note = track.notes.find((candidate) => candidate.id === noteId);
-      if (!note) {
-        return;
-      }
-
-      const midi = Math.max(0, Math.min(127, note.midi + delta));
-      this.applyNotePatch(track.id, note.id, { midi });
-    });
-  }
-
-  setSelectedNoteLength(length: number) {
-    const track = this.selectedTrack();
-    if (!track) {
-      return;
-    }
-
-    this.selectedNoteIds().forEach((noteId) => {
-      this.applyNotePatch(track.id, noteId, {
-        length: Math.max(1, Math.round(length)),
-      });
-    });
-  }
-
-  zoomIn() {
-    this.touchGestures.adjustZoom(0.15);
-  }
-
-  zoomOut() {
-    this.touchGestures.adjustZoom(-0.15);
-  }
-
-  resetZoom() {
-    this.touchGestures.resetZoom();
-  }
-
-  quantizeNotes() {
-    if (this.selectedTrack())
-      this.musicManager.quantizeTrack(this.selectedTrack()!.id);
-  }
-
-  deleteSelected() {
-    if (this.selectedTrack() && this.selectedNoteIds().size > 0) {
-      this.musicManager.removeNotes(
-        this.selectedTrack()!.id,
-        Array.from(this.selectedNoteIds())
-      );
-      this.selectedNoteIds.set(new Set());
-    }
-  }
-
-  duplicateSelected() {
-    if (this.selectedTrack() && this.selectedNoteIds().size > 0) {
-      this.musicManager.duplicateNotes(
-        this.selectedTrack()!.id,
-        Array.from(this.selectedNoteIds()),
-        1
-      );
-    }
-  }
-
-  adjustSelectedVelocity(delta: number) {
-    const trackId = this.musicManager.selectedTrackId();
-    if (!trackId) return;
-    this.selectedNoteIds().forEach((noteId) => {
-      const note = this.selectedTrack()?.notes.find(
-        (candidate) => candidate.id === noteId
-      );
-      if (note) {
-        const newVelocity = Math.max(0.1, Math.min(1.5, note.velocity + delta));
-        this.musicManager.setNoteParam(
-          trackId,
-          noteId,
-          'velocity',
-          newVelocity
-        );
-      }
-    });
-  }
-
-  setSelectedNoteProbability(event: any) {
-    const trackId = this.musicManager.selectedTrackId();
-    if (!trackId) return;
-    const value = event.target ? event.target.value : event;
-    this.selectedNoteIds().forEach((noteId) => {
-      this.musicManager.setNoteParam(trackId, noteId, 'probability', value);
-    });
-  }
-
-  toggleSelectedSlide() {
-    const trackId = this.musicManager.selectedTrackId();
-    if (!trackId) return;
-    this.selectedNoteIds().forEach((noteId) => {
-      const note = this.selectedTrack()?.notes.find(
-        (candidate) => candidate.id === noteId
-      );
-      if (note) {
-        this.musicManager.setNoteParam(
-          trackId,
-          noteId,
-          'isSlide',
-          !note.isSlide
-        );
-      }
-    });
-  }
-
-  hasSelectedSlide(): boolean {
-    const ids = Array.from(this.selectedNoteIds());
-    if (ids.length === 0) return false;
-    const note = this.selectedTrack()?.notes.find(
-      (candidate) => candidate.id === ids[0]
-    );
-    return !!note?.isSlide;
-  }
-
   strumNotes() {
-    if (this.selectedTrack())
-      this.musicManager.strumTrack(this.selectedTrack()!.id);
+    const track = this.selectedTrack();
+    if (track) this.musicManager.strumTrack(track.id);
   }
 
   humanizeNotes() {
-    if (this.selectedTrack())
-      this.musicManager.humanizeTrack(this.selectedTrack()!.id);
+    const track = this.selectedTrack();
+    if (track) this.musicManager.humanizeTrack(track.id);
   }
 
   arpeggiateNotes() {
-    if (this.selectedTrack())
-      this.musicManager.arpeggiateTrack(this.selectedTrack()!.id);
+    const track = this.selectedTrack();
+    if (track) this.musicManager.arpeggiateTrack(track.id);
   }
 
-  toggleLocalPlay() {
-    this.isLocalPlaying.update((value) => !value);
+  zoomIn() {
+    this.touchGestures.zoomLevel.update((z) => Math.min(2, z + 0.1));
   }
 
-  toggleLocalRecord() {
-    this.isLocalRecording.update((value) => !value);
+  zoomOut() {
+    this.touchGestures.zoomLevel.update((z) => Math.max(0.5, z - 0.1));
   }
 
-  localSkip() {
-    console.log('skip');
-  }
-
-  private applyNotePatch(
-    trackId: number,
-    noteId: string,
-    patch: Partial<TrackNote>
-  ) {
-    const manager = this.musicManager as MusicManagerService & {
-      updateNote?: (
-        targetTrackId: number,
-        targetNoteId: string,
-        nextPatch: Partial<TrackNote>
-      ) => void;
-    };
-    if (typeof manager.updateNote === 'function') {
-      manager.updateNote(trackId, noteId, patch);
-      return;
-    }
-
-    Object.entries(patch).forEach(([key, value]) => {
-      this.musicManager.setNoteParam(trackId, noteId, key, value);
-    });
+  closePianoRoll() {
+    this.close.emit();
+    this.closeOverlay.emit();
   }
 }

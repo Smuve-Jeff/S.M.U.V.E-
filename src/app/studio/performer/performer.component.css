@@ -25,28 +25,48 @@
   background: radial-gradient(circle at center, #1a1a24 0%, #07070a 100%);
 }
 
+.keyboard-container {
+  display: flex;
+  height: 320px;
+  position: relative;
+}
+
 .perf-key-v42 {
+  flex: 1;
+  min-width: 40px;
   background: #fff;
   border: 1px solid #000;
   color: #000;
   z-index: 1;
   touch-action: none;
+  cursor: pointer;
+  border-radius: 0 0 6px 6px;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .perf-key-v42.black-key {
   background: #000;
   color: #fff;
   z-index: 2;
-  margin-left: -2%;
-  margin-right: -2%;
+  min-width: 24px;
+  margin-left: -12px;
+  margin-right: -12px;
   height: 60%;
   border-radius: 0 0 4px 4px;
 }
 
 .perf-key-v42.active {
   background: #00e5ff;
-  box-shadow: 0 0 30px rgba(0, 229, 255, 0.6);
-  transform: translateY(2px);
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.6), inset 0 0 10px rgba(255,255,255,0.5);
+  transform: translateY(4px);
+}
+
+.keyboard-scroll {
+  padding-bottom: 2rem;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 .perf-pad-v42 {
@@ -60,197 +80,40 @@
   box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
 }
 
-.inst-btn.active {
-  background: rgba(0, 229, 255, 0.1);
-  color: #00e5ff;
-  border-color: #00e5ff;
-}
-
 .layout-btn.active {
   background: #fff;
   color: #000;
 }
 
-.action-btn.active,
-.scene-btn.active,
-.clip-btn.active {
+.scene-btn.active {
   background: rgba(168, 85, 247, 0.16);
   color: #fff;
   box-shadow: 0 0 15px rgba(168, 85, 247, 0.25);
 }
 
-.active-pulse {
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.2);
-  }
-}
-
-.expressive-controls-v42 {
-  width: 5.5rem;
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.vertical-text {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  transform: rotate(180deg);
-}
-
-.slider-shell {
-  width: 2.5rem;
-  height: 8.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.v-slider-v42 {
+.pitch-slider, .mod-slider {
   appearance: none;
-  width: 8rem;
-  height: 0.5rem;
-  transform: rotate(-90deg);
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
+  background: rgba(255,255,255,0.1);
+  height: 4px;
+  border-radius: 2px;
   outline: none;
 }
 
-.v-slider-v42::-webkit-slider-thumb {
+.pitch-slider::-webkit-slider-thumb, .mod-slider::-webkit-slider-thumb {
   appearance: none;
-  width: 1rem;
-  height: 1rem;
+  width: 16px;
+  height: 16px;
   background: #fff;
-  border-radius: 999px;
+  border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-.v-slider-v42::-moz-range-thumb {
-  width: 1rem;
-  height: 1rem;
-  background: #fff;
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.trigger-animation {
-  box-shadow: 0 0 20px var(--color-neon-cyan);
-}
-
-.pad-trigger-pulse {
-  pointer-events: none;
-}
-
-@keyframes ping {
-  75%,
-  100% {
-    transform: scale(2);
-    opacity: 0;
-  }
-}
-
-.animate-ping {
-  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-.accent-neon-cyan {
-  accent-color: #00f3ff;
-}
-
-.accent-neon-purple {
-  accent-color: #af25f4;
-}
-
-.matrix-view {
-  background: radial-gradient(
-    circle at top,
-    rgba(40, 40, 60, 0.35),
-    transparent 60%
-  );
-}
-
-.session-grid-panel {
-  min-height: 22rem;
-}
-
-@media (max-width: 1024px) {
-  .performer-footer {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-
-  .footer-control-group {
-    justify-content: space-between;
-  }
+  box-shadow: 0 0 10px rgba(0,229,255,0.5);
 }
 
 @media (max-width: 768px) {
-  .performer-header {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 10px;
-    gap: 8px;
+  .keyboard-container {
+    height: 240px;
   }
-
-  .instrument-selector-v42,
-  .layout-selector,
-  .performer-actions {
-    width: 100%;
-  }
-
-  .performer-content {
-    flex-direction: column;
-  }
-
-  .expressive-controls-v42 {
-    width: 100%;
-    flex-direction: row;
-    gap: 1rem;
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .control-vertical {
-    flex-direction: row;
-  }
-
-  .vertical-text {
-    writing-mode: horizontal-tb;
-    transform: none;
-  }
-
-  .slider-shell {
-    width: 8rem;
-    height: 2.5rem;
-  }
-
-  .v-slider-v42 {
-    transform: none;
-    width: 100%;
-  }
-
-  .keys-container-v42 {
-    height: 16rem;
-  }
-
-  .perf-pads-grid-v42 {
-    gap: 1rem;
-  }
-
-  .matrix-view,
-  .keyboard-view,
-  .pads-view {
-    padding: 1rem;
+  .perf-key-v42 {
+    min-width: 32px;
   }
 }
