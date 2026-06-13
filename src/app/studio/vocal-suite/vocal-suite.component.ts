@@ -22,6 +22,7 @@ import { UplinkConsoleComponent } from '../../components/uplink-console/uplink-c
 import { FormsModule } from '@angular/forms';
 import { MicrophoneInterfaceComponent } from '../microphone-interface/microphone-interface.component';
 import { AudioSessionService } from '../audio-session.service';
+import { LocalStorageService } from '../../services/local-storage.service';
 
 type ViewMode = 'pipeline' | 'console';
 type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
