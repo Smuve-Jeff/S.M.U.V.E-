@@ -723,3 +723,76 @@
   background: var(--elite-neon-purple);
   box-shadow: 0 0 10px var(--elite-neon-purple);
 }
+
+.rival-hub {
+  right: auto;
+  left: -400px;
+  border-right: 1px solid var(--elite-gold-alpha);
+  border-left: none;
+}
+
+.rival-hub.active {
+  left: 0;
+}
+
+.rival-item, .msg-item, .challenge-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 4px;
+}
+
+.rival-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rival-name {
+  color: var(--elite-gold);
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.status-indicator.online {
+  width: 8px;
+  height: 8px;
+  background: var(--success-green);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--success-green);
+}
+
+.rival-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn.mini {
+  padding: 4px;
+}
+
+.terminate-btn.mini {
+  padding: 4px 8px;
+  font-size: 0.7rem;
+}
+
+.voice-active-indicator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--superior-crimson);
+  font-weight: 700;
+  animation: pulse 2s infinite;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}

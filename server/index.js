@@ -778,18 +778,85 @@ app.post(
   }
 );
 
-const startServer = async (port = process.env.PORT || 3000) => {
-  await initDb();
-  return app.listen(port, () => {
-    console.log(`S.M.U.V.E 2.0 Backend running on port ${port}`);
+
+
+// SOCKET.IO INTEGRATION FOR RIVAL HUB & SOCIAL NETWORKING
+const { Server } = require("socket.io");
+const setupSocketIO = (server) => {
+  const io = new Server(server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
   });
+
+  const onlineUsers = new Map(); // userId -> socketId
+
+  io.on("connection", (socket) => {
+    console.log("Elite user connected:", socket.id);
+
+    socket.on("register_presence", (userId) => {
+      onlineUsers.set(userId, socket.id);
+      io.emit("users_online", Array.from(onlineUsers.keys()));
+      console.log(`User ${userId} registered.`);
+    });
+
+    socket.on("send_message", (data) => {
+      const { toUserId, message, fromUserId } = data;
+      const targetSocketId = onlineUsers.get(toUserId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("private_message", { fromUserId, message });
+      }
+    });
+
+    socket.on("challenge_player", (data) => {
+      const { toUserId, fromUserId, gameId } = data;
+      const targetSocketId = onlineUsers.get(toUserId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("incoming_challenge", { fromUserId, gameId });
+      }
+    });
+
+    socket.on("voice_signal", (data) => {
+      const { toUserId, signal, fromUserId } = data;
+      const targetSocketId = onlineUsers.get(toUserId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("voice_signal", { fromUserId, signal });
+      }
+    });
+
+    socket.on("disconnect", () => {
+      onlineUsers.forEach((id, userId) => {
+        if (id === socket.id) {
+          onlineUsers.delete(userId);
+        }
+      });
+      io.emit("users_online", Array.from(onlineUsers.keys()));
+      console.log("Elite user disconnected:", socket.id);
+    });
+  });
+
+  return io;
+};
+
+// Replace app.listen with a version that integrates Socket.IO
+const http = require("node:http");
+const startEliteServer = async (port = process.env.PORT || 3000) => {
+  await initDb();
+  const server = http.createServer(app);
+  const io = setupSocketIO(server);
+  server.listen(port, () => {
+    console.log(`S.M.U.V.E 2.0 Elite Server running on port ${port}`);
+  });
+  return { server, io };
+};
+
+// Update module exports to use startEliteServer
+module.exports = {
+  app,
+  startServer: startEliteServer,
 };
 
 if (require.main === module) {
-  void startServer();
+  void startEliteServer();
 }
-
-module.exports = {
-  app,
-  startServer,
-};
