@@ -98,8 +98,8 @@ describe('ThaSpotComponent', () => {
 
   it('should toggle between gaming and Pluto TV mode', () => {
     expect(component.displayMode()).toBe('gaming');
-    component.setMode( 'pluto');
-    expect(component.displayMode()).toBe( 'pluto');
+    component.setMode('pluto');
+    expect(component.displayMode()).toBe('pluto');
     component.setMode('gaming');
     expect(component.displayMode()).toBe('gaming');
   });
