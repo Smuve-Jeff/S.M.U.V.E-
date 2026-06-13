@@ -49,6 +49,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   private uplinkService = inject(UplinkService);
   private profileService = inject(UserProfileService);
   public readonly audioSession = inject(AudioSessionService);
+  private readonly localStorage = inject(LocalStorageService);
   showUplink = signal(false);
 
   @ViewChild('spectrograph') spectrographRef!: ElementRef<HTMLCanvasElement>;
