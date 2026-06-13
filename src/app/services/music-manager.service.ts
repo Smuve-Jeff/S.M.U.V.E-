@@ -136,7 +136,7 @@ export class MusicManagerService {
 
   private setupInitialTracks() {
     this.addTrack('Lead Synth', 'grand-piano-v2');
-    this.addTrack('S.M.U.V.E. DRUMS', 'trap-808-elite');
+    this.addTrack('S.M.U.V.E. DRUMS', 'trap-808-elite', MusicManagerService.DRUM_TRACK_ID);
     this.selectedTrackId.set(0);
   }
 
