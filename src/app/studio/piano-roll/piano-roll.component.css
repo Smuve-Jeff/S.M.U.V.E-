@@ -121,6 +121,7 @@
   flex: 1;
   position: relative;
   overflow: auto;
+  overscroll-behavior: contain;
   background: #050507;
   -webkit-overflow-scrolling: touch;
 }

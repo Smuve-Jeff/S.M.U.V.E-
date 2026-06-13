@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../../audio-session.service';
@@ -47,6 +47,12 @@ import { KnobComponent } from '../../shared/knob/knob.component';
           </button>
         </div>
 
+        <!-- Mastering Visualizer -->
+        <div class="mastering-viz flex-1 h-12 bg-black/60 rounded-lg border border-white/5 relative overflow-hidden hidden md:block">
+           <canvas #vizCanvas class="w-full h-full"></canvas>
+           <div class="absolute top-1 left-2 text-[6px] font-black text-fl-blue/40 uppercase tracking-[0.2em]">Master Output Spectrum</div>
+        </div>
+
         <!-- Global Macros -->
         <div
           class="macro-cluster hidden lg:flex items-center gap-6 border-l border-white/5 pl-8"
@@ -78,7 +84,7 @@ import { KnobComponent } from '../../shared/knob/knob.component';
         </div>
 
         <!-- Master Knobs -->
-        <div class="knob-cluster flex gap-6 items-center flex-1 justify-center">
+        <div class="knob-cluster flex gap-6 items-center justify-center">
           <app-knob
             class="master-knob"
             label="MASTER"
@@ -98,17 +104,6 @@ import { KnobComponent } from '../../shared/knob/knob.component';
             [value]="audioEngine.tempo()"
             unit=" BPM"
             (valueChange)="audioEngine.tempo.set($event)"
-          >
-          </app-knob>
-
-          <app-knob
-            class="master-knob"
-            label="METRO"
-            [min]="0"
-            [max]="100"
-            [value]="audioEngine.metronomeVolume() * 100"
-            unit="%"
-            (valueChange)="updateMetronomeVolume($event)"
           >
           </app-knob>
         </div>
@@ -142,17 +137,6 @@ import { KnobComponent } from '../../shared/knob/knob.component';
             >S.M.U.V.E Audio Engine v4.2 PRO</span
           >
         </div>
-
-        <!-- Metronome Toggle -->
-        <div class="advanced-toggle border-l border-white/5 pl-8">
-          <button
-            class="metronome-btn tactile-v42 w-10 h-10 rounded-lg flex items-center justify-center border border-white/5"
-            [class.active]="audioEngine.metronomeEnabled()"
-            (click)="audioEngine.toggleMetronome()"
-          >
-            <span class="material-symbols-outlined text-sm">metronome</span>
-          </button>
-        </div>
       </div>
     </div>
   `,
@@ -170,8 +154,8 @@ import { KnobComponent } from '../../shared/knob/knob.component';
         transition: all 0.3s;
       }
       .status-led.active {
-        background: #10b981;
-        box-shadow: 0 0 8px #10b981;
+        background: #00e5ff;
+        box-shadow: 0 0 8px #00e5ff;
       }
       .status-led.recording {
         background: #ef4444 !important;
@@ -192,96 +176,73 @@ import { KnobComponent } from '../../shared/knob/knob.component';
         color: #00e5ff;
         border-color: #00e5ff;
       }
-      .transport-btn.recording.active {
-        color: #ef4444;
-        border-color: #ef4444;
-        background: rgba(239, 68, 68, 0.1);
-      }
-      .metronome-btn.active {
-        color: #a855f7;
-        border-color: #a855f7;
-        box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
-      }
       @keyframes pulse {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.5;
-        }
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
       }
       @media (max-width: 768px) {
-        .system-stats,
-        .advanced-toggle,
-        .macro-cluster {
-          display: none;
-        }
-        .master-grid {
-          padding: 10px 12px;
-          gap: 12px;
-          flex-wrap: wrap;
-          justify-content: center;
-        }
-        .transport-cluster {
-          order: 1;
-        }
-        .knob-cluster {
-          order: 2;
-          flex: 1 1 100%;
-          width: 100%;
-          gap: 6px;
-          justify-content: space-between;
-        }
-        .master-knob {
-          transform: scale(0.92);
-          transform-origin: center top;
-        }
-      }
-      @media (max-width: 560px) {
-        .master-grid {
-          padding: 8px 10px;
-          gap: 8px;
-        }
-        .transport-cluster {
-          width: 100%;
-          justify-content: center;
-        }
-        .knob-cluster {
-          gap: 2px;
-        }
-        .master-knob {
-          transform: scale(0.82);
-        }
+        .system-stats, .macro-cluster { display: none; }
+        .master-grid { flex-wrap: wrap; padding: 10px; }
       }
     `,
   ],
 })
-export class UniversalMasterComponent {
+export class UniversalMasterComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly audioSession = inject(AudioSessionService);
   readonly audioEngine = inject(AudioEngineService);
+
+  @ViewChild('vizCanvas') vizCanvas!: ElementRef<HTMLCanvasElement>;
 
   isPlaying = this.audioSession.isPlaying;
   isRecording = this.audioSession.isRecording;
   isStopped = this.audioSession.isStopped;
   masterVolume = this.audioSession.masterVolume;
 
-  togglePlay(): void {
-    this.audioSession.togglePlay();
+  private animationFrame?: number;
+
+  ngOnInit() {}
+
+  ngAfterViewInit() {
+    this.startVisualizer();
   }
-  toggleRecord(): void {
-    this.audioSession.toggleRecord();
+
+  ngOnDestroy() {
+    if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
   }
-  stop(): void {
-    this.audioSession.stop();
+
+  private startVisualizer() {
+    const canvas = this.vizCanvas.nativeElement;
+    const ctx = canvas.getContext('2d')!;
+    const analyser = this.audioEngine.masterAnalyser;
+
+    const draw = () => {
+      this.animationFrame = requestAnimationFrame(draw);
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyser.getByteFrequencyData(dataArray);
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const barWidth = (canvas.width / bufferLength) * 2.5;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = (dataArray[i] / 255) * canvas.height;
+        ctx.fillStyle = `rgba(0, 229, 255, ${dataArray[i] / 255})`;
+        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+        x += barWidth + 1;
+      }
+    };
+    draw();
   }
+
+  togglePlay(): void { this.audioSession.togglePlay(); }
+  toggleRecord(): void { this.audioSession.toggleRecord(); }
+  stop(): void { this.audioSession.stop(); }
 
   updateMasterVolume(val: number): void {
     this.audioSession.updateMasterVolume(val);
-  }
-
-  updateMetronomeVolume(val: number): void {
-    this.audioEngine.setMetronomeVolume(val / 100);
   }
 
   applyMacro(type: string, value: number) {
@@ -289,14 +250,8 @@ export class UniversalMasterComponent {
       this.audioEngine.setSaturation(value / 100);
     } else if (type === 'space') {
       if (this.audioEngine.reverbWet) {
-        this.audioEngine.reverbWet.gain.setValueAtTime(
-          value / 100,
-          this.audioEngine.ctx.currentTime
-        );
+        this.audioEngine.reverbWet.gain.setValueAtTime(value / 100, this.audioEngine.ctx.currentTime);
       }
-    } else if (type === 'width') {
-      // Width logic could involve a mid-side processor or panning spread
-      console.log('Global Width Macro set to', value);
     }
   }
 }

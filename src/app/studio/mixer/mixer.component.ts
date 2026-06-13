@@ -18,6 +18,7 @@ import {
 import { NeuralMixerService } from '../../services/neural-mixer.service';
 import { MixerService } from '../mixer.service';
 import { HapticService } from '../../services/haptic.service';
+import { AiService } from '../../services/ai.service';
 import { Clip } from '../instrument.service';
 
 @Component({
@@ -33,6 +34,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   private readonly neuralMixer = inject(NeuralMixerService);
   private readonly haptic = inject(HapticService);
   public readonly mixerService = inject(MixerService);
+  public readonly aiService = inject(AiService);
 
   @Input() activeClip: Clip | null = null;
 
@@ -48,8 +50,8 @@ export class MixerComponent implements OnInit, OnDestroy {
   viewMode = signal<'compact' | 'expanded'>('expanded');
 
   private analysers = new Map<number, AnalyserNode>();
-  private animationFrame: number | null = null;
-  trackLevels = signal<Record<number, number>>({});
+  private trackLevels = signal<Record<number, number>>({});
+  private animationFrame?: number;
 
   ngOnInit() {
     this.startMetering();
@@ -102,6 +104,13 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
   toggleSolo(id: number) {
     this.musicManager.toggleSolo(id);
+  }
+
+  removeTrack(id: number, event: Event) {
+    event.stopPropagation();
+    if (confirm("Permanently remove this mixer track?")) {
+      this.musicManager.removeTrack(id);
+    }
   }
 
   updateTrackVolume(id: number, value: number) {

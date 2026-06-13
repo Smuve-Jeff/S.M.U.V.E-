@@ -43,7 +43,7 @@
         <div class="keyboard-scroll flex-1 overflow-x-auto overflow-y-hidden no-scrollbar px-10 flex items-end pb-12">
           <div class="keyboard-container relative flex h-[320px] md:h-[400px]">
             <div *ngFor="let key of keyboardKeys"
-                 class="key-v42 relative transition-all duration-75"
+                 class="perf-key-v42 relative transition-all duration-75"
                  [class.black-key]="isBlackKey(key.midi)"
                  [class.white-key]="!isBlackKey(key.midi)"
                  [class.active]="activeKeys().has(key.midi)"

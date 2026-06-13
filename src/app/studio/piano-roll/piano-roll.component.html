@@ -51,26 +51,16 @@
       <div class="btn-group flex gap-1">
         <button
           class="m-btn tactile-v42"
-          (click)="isLocalPlayback() ? toggleLocalPlay() : togglePlay()"
+          (click)="audioSession.togglePlay()"
         >
           <span class="material-symbols-outlined text-sm">
-            {{
-              (isLocalPlayback() ? isLocalPlaying() : audioSession.isPlaying())
-                ? 'pause'
-                : 'play_arrow'
-            }}
+            {{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}
           </span>
         </button>
         <button
           class="m-btn tactile-v42 rec"
-          [class.active]="
-            isLocalPlayback() ? isLocalRecording() : isRecording()
-          "
-          (click)="
-            isLocalPlayback()
-              ? toggleLocalRecord()
-              : audioSession.toggleRecord()
-          "
+          [class.active]="audioSession.isRecording()"
+          (click)="audioSession.toggleRecord()"
         >
           <span class="material-symbols-outlined text-sm"
             >fiber_manual_record</span
@@ -112,6 +102,13 @@
           Q
         </button>
         <button
+          (click)="fitToPage()"
+          class="mini-btn tactile-v42"
+          title="Fit to Page"
+        >
+          <span class="material-symbols-outlined text-sm">fit_screen</span>
+        </button>
+        <button
           (click)="duplicateSelected()"
           class="mini-btn tactile-v42 font-black"
           title="Duplicate (Ctrl+B)"
@@ -119,7 +116,7 @@
           D
         </button>
         <button
-          (click)="deleteSelected()"
+          (click)="clearNotes()"
           class="mini-btn tactile-v42 btn-danger text-red-500 font-black"
         >
           DEL
@@ -134,13 +131,6 @@
           -
         </button>
         <button
-          (click)="resetZoom()"
-          class="mini-btn tactile-v42 font-black"
-          title="Reset zoom"
-        >
-          100%
-        </button>
-        <button
           (click)="zoomIn()"
           class="mini-btn tactile-v42 font-black"
           title="Zoom in"
@@ -152,7 +142,6 @@
   </div>
 
   <div class="piano-roll-content">
-    <aside *ngIf="showTrackSidebar()" class="track-sidebar"></aside>
     <div class="keys-sidebar no-scrollbar bg-black/60" #keysSidebar>
       <div
         *ngFor="let midi of displayKeys"

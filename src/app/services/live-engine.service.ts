@@ -203,6 +203,12 @@ export class LiveEngineService {
     });
   }
 
+  setModWheel(value: number) {
+    if (this.currentInstrumentNode && (this.currentInstrumentNode as any).modulationIndex) {
+      (this.currentInstrumentNode as any).modulationIndex.value = value * 10;
+    }
+  }
+
   setPitchBend(value: number) {
     if (!this.currentInstrumentNode) return;
     // value is -1 to 1. Usually pitch bend is +/- 2 semitones.
