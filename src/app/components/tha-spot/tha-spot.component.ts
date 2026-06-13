@@ -51,7 +51,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private gameService = inject(GameService);
   private profileService = inject(UserProfileService);
   private socialService = inject(SocialNetworkingService);
-  private peerService = inject(PeerNetworkingService);
+  public peerService = inject(PeerNetworkingService);
   private sanitizer = inject(DomSanitizer);
   private securityService = inject(SecurityService);
   public uiService = inject(UIService);
