@@ -161,24 +161,23 @@ export class KnobComponent implements OnInit, OnChanges {
   rotation = signal(-135);
   displayValue = signal('0');
 
-  percent = computed(() => {
+  percent() {
     const range = this.max - this.min;
     return range === 0 ? 0.5 : (this.value - this.min) / range;
-  });
+  }
 
-  dashArray = computed(() => {
+  dashArray() {
     const circumference = 2 * Math.PI * 32;
     const fill = (this.percent() * 270 / 360) * circumference;
     return `${fill} ${circumference}`;
-  });
+  }
 
-  ringColor = computed(() => {
+  ringColor() {
     const p = this.percent();
     if (p > 0.8) return '#ff4d4d'; // Warning
     if (p > 0.5) return '#ec5b13'; // Active
     return '#00e5ff'; // Normal
-  });
-
+  }
   private isDragging = false;
   private startY = 0;
   private startValue = 0;
