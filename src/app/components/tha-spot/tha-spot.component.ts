@@ -27,6 +27,8 @@ import { APP_SECURITY_CONFIG } from '../../app.security';
 import { UserProfileService } from '../../services/user-profile.service';
 import { SecurityService } from '../../services/security.service';
 import { UIService } from '../../services/ui.service';
+import { SocialNetworkingService } from '../../services/social-networking.service';
+import { PeerNetworkingService } from '../../services/peer-networking.service';
 
 const FEED_REFRESH_INTERVAL_MS = 300000;
 const LIVE_CLOCK_INTERVAL_MS = 60000;
@@ -48,6 +50,8 @@ const QUICK_FILTERS: QuickFilter[] = [
 export class ThaSpotComponent implements OnInit, OnDestroy {
   private gameService = inject(GameService);
   private profileService = inject(UserProfileService);
+  private socialService = inject(SocialNetworkingService);
+  private peerService = inject(PeerNetworkingService);
   private sanitizer = inject(DomSanitizer);
   private securityService = inject(SecurityService);
   public uiService = inject(UIService);
@@ -58,6 +62,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   );
   readonly displayMode = signal<'gaming' | 'cinema'>('gaming');
   readonly showFavoritesOnly = signal<boolean>(false);
+  readonly showRivalHub = signal<boolean>(false);
+  readonly onlineUsers = this.socialService.onlineUsers;
+  readonly messages = this.socialService.messages;
+  readonly challenges = this.socialService.challenges;
+  readonly isCallActive = this.peerService.isCallActive;
 
   // Feed Signals
   games = signal<Game[]>([]);
@@ -393,4 +402,23 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   ): boolean {
     return true;
   }
+
+
+// RIVAL HUB METHODS
+  toggleRivalHub() {
+    this.showRivalHub.update(v => !v);
+  }
+
+  sendChallenge(userId: string, gameId: string) {
+    this.socialService.challengePlayer(userId, gameId);
+  }
+
+  startVoiceChat(userId: string) {
+    this.peerService.startCall(userId);
+  }
+
+  endVoiceChat() {
+    this.peerService.endCall();
+  }
+
 }

@@ -26,6 +26,9 @@
         <span class="label">NEURAL LINK:</span>
         <span class="value success">STABLE</span>
       </div>
+      <button class="icon-btn" (click)="toggleRivalHub()" title="Rival Hub" [class.active]="showRivalHub()">
+        <span class="material-symbols-outlined">group</span>
+      </button>
       <button class="icon-btn" (click)="toggleIntel()" title="Strategic Intel">
         <span class="material-symbols-outlined">neurology</span>
       </button>
@@ -273,3 +276,60 @@
     </div>
   </div>
 </div>
+
+  <!-- Rival Hub Sidebar (Multiplayer & Social) -->
+  <aside class="executive-sidebar glass-v42-pro rival-hub" [class.active]="showRivalHub()">
+    <header class="sidebar-header">
+      <span class="material-symbols-outlined">diversity_3</span> RIVAL HUB
+      <button class="close-intel" (click)="toggleRivalHub()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="sidebar-content custom-scrollbar">
+      <div class="intel-card glass-v42" *ngIf="isCallActive()">
+        <div class="voice-active-indicator">
+          <span class="material-symbols-outlined pulse">mic</span> VOICE COMMS ACTIVE
+          <button class="terminate-btn mini" (click)="endVoiceChat()">DISCONNECT</button>
+        </div>
+      </div>
+
+      <div class="directives-section">
+        <h4>ELITE OPERATIVES ONLINE</h4>
+        <div class="rival-item glass-v42" *ngFor="let user of onlineUsers()">
+          <div class="rival-info">
+            <span class="rival-name">{{ user }}</span>
+            <span class="status-indicator online"></span>
+          </div>
+          <div class="rival-actions">
+            <button class="icon-btn mini" (click)="startVoiceChat(user)" title="Voice Comm">
+              <span class="material-symbols-outlined">call</span>
+            </button>
+            <button class="icon-btn mini" (click)="sendChallenge(user, 'current')" title="Challenge">
+              <span class="material-symbols-outlined">crossed_swords</span>
+            </button>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="onlineUsers().length === 0">
+          SCANNING FOR TARGETS... NO RIVALS DETECTED.
+        </div>
+      </div>
+
+      <div class="directives-section">
+        <h4>COMMUNICATIONS</h4>
+        <div class="msg-item glass-v42" *ngFor="let msg of messages()">
+          <span class="msg-from">{{ msg.fromUserId }}:</span> {{ msg.message }}
+        </div>
+      </div>
+
+      <div class="directives-section">
+        <h4>ACTIVE CHALLENGES</h4>
+        <div class="challenge-item glass-v42 pulse" *ngFor="let chal of challenges()">
+          <span class="rival-name">{{ chal.fromUserId }}</span> CHALLENGED YOU ON <span class="game-id">{{ chal.gameId }}</span>
+          <button class="primary-btn mini" (click)="confirmLaunch()">ACCEPT</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- P2P Voice Stream -->
+  <audio #remoteAudio [srcObject]="peerService.remoteStream()" autoplay *ngIf="peerService.remoteStream()"></audio>

@@ -3160,43 +3160,6 @@
       "image": "assets/games/smash-bros-elite.png"
     },
     {
-      "id": "mario-kart-64-elite",
-      "name": "Mario Kart 64",
-      "url": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
-      "genre": "Racing",
-      "description": "Drift through nostalgia. N64 racing legend with stable multiplayer performance.",
-      "availability": "Online",
-      "playersOnline": 18900,
-      "rating": 4.9,
-      "badgeIds": [
-        "trending",
-        "elite"
-      ],
-      "tags": [
-        "Racing",
-        "Retro",
-        "N64",
-        "Multiplayer",
-        "Controller"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32298-mario-kart-64-usa.html",
-        "telemetryMode": "origin",
-        "embedMode": "inline",
-        "controls": [
-          "Standard Keyboard"
-        ],
-        "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
-        "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Grand Prix Elite",
-        "accentStart": "#22c55e",
-        "accentEnd": "#14532d"
-      },
-      "image": "assets/games/mario-kart-64-elite.png"
-    },
-    {
       "id": "ctr-ps1-elite",
       "name": "Crash Team Racing",
       "url": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
@@ -5568,41 +5531,6 @@
       "image": "assets/games/fifa-2005-elite.png"
     },
     {
-      "id": "nba-street-v2-elite",
-      "name": "NBA Street Vol. 2",
-      "url": "https://www.retrogames.cc/embed/41231-nba-street-vol-2-usa.html",
-      "genre": "Sports",
-      "description": "Break ankles or get broken. The Absolute streetball experience. S.M.U.V.E. demands Elite style.",
-      "tags": [
-        "Sports",
-        "Basketball",
-        "PS2",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41231-nba-street-vol-2-usa.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ]
-      },
-      "availability": "Online",
-      "playersOnline": 6700,
-      "rating": 5,
-      "art": {
-        "eyebrow": "S.M.U.V.E Elite",
-        "accentStart": "#af25f4",
-        "accentEnd": "#3d2b1f"
-      },
-      "image": "assets/games/nba-street-v2-elite.png"
-    },
-    {
       "id": "ssx-tricky-elite",
       "name": "SSX Tricky",
       "url": "https://www.retrogames.cc/embed/41230-ssx-tricky-usa.html",
@@ -6976,6 +6904,330 @@
         "tournament-live"
       ],
       "image": "assets/games/street-fighter-2-ce.png"
+    },
+    {
+      "id": "fifa-05-elite",
+      "name": "FIFA Soccer 2005",
+      "url": "https://www.retrogames.cc/embed/42704-fifa-05-usa.html",
+      "description": "The Absolute football experience. Master the pitch with FIFA 05. S.M.U.V.E. demands perfection.",
+      "genre": "Sports",
+      "rating": 4.9,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Football",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42704-fifa-05-usa.html",
+        "embedMode": "external-only",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "nba-street-v2-elite",
+      "name": "NBA Street Vol. 2",
+      "url": "https://www.retrogames.cc/embed/41231-nba-street-vol-2-usa.html",
+      "description": "Break ankles. Absolute streetball dominance. S.M.U.V.E. approved high-fidelity run.",
+      "genre": "Sports",
+      "rating": 5.0,
+      "playersOnline": 18000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Basketball",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41231-nba-street-vol-2-usa.html",
+        "embedMode": "external-only",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "moba-arena-of-valor",
+      "name": "Arena of Valor",
+      "url": "https://www.arenaofvalor.com/",
+      "description": "Top-tier MOBA experience. 5v5 tactical dominance. S.M.U.V.E. strategic grade.",
+      "genre": "MOBA",
+      "rating": 4.8,
+      "playersOnline": 120000,
+      "availability": "Online",
+      "tags": [
+        "MOBA",
+        "Strategy",
+        "Multiplayer",
+        "Elite"
+      ],
+      "badgeIds": [
+        "trending",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.arenaofvalor.com/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "moba-legends-community",
+      "name": "Legends of the Rift (MOBA)",
+      "url": "https://moba.js.org/",
+      "description": "High-quality community-led MOBA project. S.M.U.V.E. approved tactical sim.",
+      "genre": "MOBA",
+      "rating": 4.7,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "tags": [
+        "MOBA",
+        "Strategy",
+        "Community",
+        "Elite"
+      ],
+      "badgeIds": [
+        "new-drop",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://moba.js.org/",
+        "embedMode": "inline"
+      }
+    },
+    {
+      "id": "soccer-skills-world-cup",
+      "name": "Soccer Skills World Cup",
+      "url": "https://www.gamepix.com/play/soccer-skills-world-cup",
+      "description": "High-fidelity modern WebGL football simulation. Smooth 3D gameplay.",
+      "genre": "Sports",
+      "rating": 4.8,
+      "playersOnline": 25000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Football",
+        "3D",
+        "Modern"
+      ],
+      "badgeIds": [
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-skills-world-cup",
+        "embedMode": "inline"
+      }
+    },
+    {
+      "id": "god-of-war-ps2-elite",
+      "name": "God of War (Elite Edition)",
+      "url": "https://www.retrogames.cc/embed/41220-god-of-war-usa.html",
+      "description": "The Absolute god of war experience. High-fidelity PS2 emulation for Kratos' journey. S.M.U.V.E. demands rage.",
+      "genre": "Action-Adventure",
+      "rating": 5.0,
+      "playersOnline": 22000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Adventure",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41220-god-of-war-usa.html",
+        "embedMode": "external-only",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "tekken-5-elite-alt",
+      "name": "Tekken 5 (High Fidelity)",
+      "url": "https://www.retrogames.cc/embed/41258-tekken-5-usa.html",
+      "description": "The Absolute fighting game. Master the iron fist. High-performance PS2 core.",
+      "genre": "Fighting",
+      "rating": 4.9,
+      "playersOnline": 14000,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Versus",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite",
+        "tournament-live"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41258-tekken-5-usa.html",
+        "embedMode": "external-only",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "mgs3-snake-eater-elite",
+      "name": "Metal Gear Solid 3: Snake Eater",
+      "url": "https://www.retrogames.cc/embed/41250-metal-gear-solid-3-snake-eater-usa.html",
+      "description": "Tactical Espionage Action. The Absolute origins. S.M.U.V.E. demands stealth mastery.",
+      "genre": "Adventure",
+      "rating": 5.0,
+      "playersOnline": 9000,
+      "availability": "Online",
+      "tags": [
+        "Stealth",
+        "Adventure",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41250-metal-gear-solid-3-snake-eater-usa.html",
+        "embedMode": "external-only",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "tony-hawk-pro-skater-4-elite",
+      "name": "Tony Hawk's Pro Skater 4",
+      "url": "https://www.retrogames.cc/embed/41235-tony-hawk-s-pro-skater-4-usa.html",
+      "description": "Absolute skating freedom. Land the combo or face S.M.U.V.E. deletion.",
+      "genre": "Sports",
+      "rating": 4.8,
+      "playersOnline": 7000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Skating",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41235-tony-hawk-s-pro-skater-4-usa.html",
+        "embedMode": "external-only",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "dragon-ball-z-budokai-3-elite",
+      "name": "Dragon Ball Z: Budokai 3",
+      "url": "https://www.retrogames.cc/embed/41261-dragon-ball-z-budokai-3-usa.html",
+      "description": "High-intensity anime combat. S.M.U.V.E. power levels are Absolute.",
+      "genre": "Fighting",
+      "rating": 4.9,
+      "playersOnline": 11000,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Versus",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41261-dragon-ball-z-budokai-3-usa.html",
+        "embedMode": "external-only",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "halo-2-xbox-elite-alt",
+      "name": "Halo 2 (Absolute Edition)",
+      "url": "https://www.retrogames.cc/embed/41215-halo-2-usa.html",
+      "description": "The Absolute shooter. Master the Chief. S.M.U.V.E. demands tactical superiority.",
+      "genre": "FPS",
+      "rating": 5.0,
+      "playersOnline": 30000,
+      "availability": "Online",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "Xbox",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41215-halo-2-usa.html",
+        "embedMode": "external-only",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "re4-ps2-elite",
+      "name": "Resident Evil 4 (Elite)",
+      "url": "https://www.retrogames.cc/embed/41252-resident-evil-4-usa.html",
+      "description": "Absolute survival horror. S.M.U.V.E. demands high-stakes precision.",
+      "genre": "Survival Horror",
+      "rating": 5.0,
+      "playersOnline": 12000,
+      "availability": "Online",
+      "tags": [
+        "Horror",
+        "Adventure",
+        "PS2",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41252-resident-evil-4-usa.html",
+        "embedMode": "external-only",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "mario-kart-64-elite",
+      "name": "Mario Kart 64 (Elite)",
+      "url": "https://www.retrogames.cc/embed/32333-mario-kart-64-usa.html",
+      "description": "The Absolute racer. S.M.U.V.E. speed levels initialized.",
+      "genre": "Racing",
+      "rating": 4.9,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "Racing",
+        "Multiplayer",
+        "N64",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32333-mario-kart-64-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
     }
   ],
   "recommendationRails": [
