@@ -10,48 +10,59 @@ export class AdsrEnvelope {
 
   apply(gainNode: GainNode, velocity: number) {
     const now = this.context.currentTime;
-    gainNode.gain.cancelScheduledValues(now);
-    gainNode.gain.setValueAtTime(0, now);
-    gainNode.gain.linearRampToValueAtTime(velocity, now + this.attack);
+    if (gainNode.gain.cancelScheduledValues) gainNode.gain.cancelScheduledValues(now);
+    if (gainNode.gain.setValueAtTime) gainNode.gain.setValueAtTime(0, now);
+    if (gainNode.gain.linearRampToValueAtTime) gainNode.gain.linearRampToValueAtTime(velocity, now + this.attack);
+
     if (this.exponential) {
-      gainNode.gain.exponentialRampToValueAtTime(
-        Math.max(0.0001, this.sustain * velocity),
-        now + this.attack + this.decay
-      );
+      if (gainNode.gain.exponentialRampToValueAtTime) {
+        gainNode.gain.exponentialRampToValueAtTime(
+          Math.max(0.0001, this.sustain * velocity),
+          now + this.attack + this.decay
+        );
+      }
     } else {
-      gainNode.gain.linearRampToValueAtTime(
-        this.sustain * velocity,
-        now + this.attack + this.decay
-      );
+      if (gainNode.gain.linearRampToValueAtTime) {
+        gainNode.gain.linearRampToValueAtTime(
+          this.sustain * velocity,
+          now + this.attack + this.decay
+        );
+      }
     }
   }
 
   applyToParam(param: AudioParam, velocity: number, min: number, max: number) {
     const now = this.context.currentTime;
-    param.cancelScheduledValues(now);
-    param.setValueAtTime(min, now);
-    param.linearRampToValueAtTime(max * velocity, now + this.attack);
-    param.exponentialRampToValueAtTime(
-      Math.max(0.0001, min + (max - min) * this.sustain),
-      now + this.attack + this.decay
-    );
+    if (param.cancelScheduledValues) param.cancelScheduledValues(now);
+    if (param.setValueAtTime) param.setValueAtTime(min, now);
+    if (param.linearRampToValueAtTime) param.linearRampToValueAtTime(max * velocity, now + this.attack);
+    if (param.exponentialRampToValueAtTime) {
+      param.exponentialRampToValueAtTime(
+        Math.max(0.0001, min + (max - min) * this.sustain),
+        now + this.attack + this.decay
+      );
+    }
   }
 
   releaseEnvelope(gainNode: GainNode) {
     const now = this.context.currentTime;
-    gainNode.gain.cancelScheduledValues(now);
-    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + this.release);
+    if (gainNode.gain.cancelScheduledValues) gainNode.gain.cancelScheduledValues(now);
+    if (gainNode.gain.setValueAtTime) gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+    if (gainNode.gain.exponentialRampToValueAtTime) {
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + this.release);
+    }
   }
 
   releaseParam(param: AudioParam, min: number) {
     const now = this.context.currentTime;
-    param.cancelScheduledValues(now);
-    param.setValueAtTime(param.value, now);
-    param.exponentialRampToValueAtTime(
-      Math.max(0.0001, min),
-      now + this.release
-    );
+    if (param.cancelScheduledValues) param.cancelScheduledValues(now);
+    if (param.setValueAtTime) param.setValueAtTime(param.value, now);
+    if (param.exponentialRampToValueAtTime) {
+      param.exponentialRampToValueAtTime(
+        Math.max(0.0001, min),
+        now + this.release
+      );
+    }
   }
 }
 

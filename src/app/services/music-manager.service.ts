@@ -118,6 +118,7 @@ export interface StudioProjectData {
   structure: SongSection[];
   performerScenes: PerformerScene[];
   selectedTrackId: number | null;
+  bpm?: number;
   activeLoopBars: number;
   tempo: number;
 }
@@ -1023,4 +1024,37 @@ export class MusicManagerService {
   }
 
   importAudioTrack() { this.logger.info('Importing audio track...'); }
+
+  exportProject() {
+    const data: StudioProjectData = {
+      tracks: this.tracks(),
+      structure: (this as any).structure ? (this as any).structure() : [],
+      performerScenes: (this as any).performerScenes ? (this as any).performerScenes() : [],
+      selectedTrackId: this.selectedTrackId(),
+      bpm: this.engine.tempo(),
+      activeLoopBars: (this as any).activeLoopBars ? (this as any).activeLoopBars() : 64,
+      tempo: this.engine.tempo()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SMUVE_Project_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.logger.info('Project exported successfully');
+  }
+
+  async importProject(file: File) {
+    try {
+      const text = await file.text();
+      const data: StudioProjectData & { bpm?: number } = JSON.parse(text);
+      if (data.tracks) this.tracks.set(data.tracks);
+      if (data.selectedTrackId) this.selectedTrackId.set(data.selectedTrackId);
+      if (data.bpm) this.engine.tempo.set(data.bpm);
+      this.logger.info('Project imported successfully');
+    } catch (e) {
+      this.logger.error('Failed to import project', e);
+    }
+  }
 }

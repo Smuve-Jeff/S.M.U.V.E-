@@ -51,7 +51,7 @@
         *ngFor="let track of tracks()"
         class="track-header tactile-v42 glass-v42"
         [style.height.px]="laneHeight"
-        [class.selected]="isTrackSelected(track.id)" [class.clip-selected]="selectedClipIds().has(clip.id)"
+        [class.selected]="isTrackSelected(track.id)"
         (click)="selectTrack(track.id)"
       >
         <div class="track-top flex items-center p-2">

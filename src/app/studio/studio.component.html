@@ -12,6 +12,9 @@
         <p>Production workspace</p>
       </div>
       <div class="transport-actions">
+        <button type="button" class="export-btn" (click)="musicManager.exportProject()" title="Export Project"><span class="material-icons">download</span></button>
+        <button type="button" class="import-btn" (click)="fileInput.click()" title="Import Project"><span class="material-icons">upload</span></button>
+        <input #fileInput type="file" accept=".json" class="hidden" (change)="handleImport($event)">
         <button
           type="button"
           [class.active]="audioSession.isPlaying()"

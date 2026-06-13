@@ -1,6 +1,7 @@
 import { LoggingService } from './logging.service';
 import { Injectable, signal, inject, Injector } from '@angular/core';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
+import { SubtractiveSynth } from "../studio/subtractive-synth";
 import { StemSeparationService, Stems } from './stem-separation.service';
 
 export type DeckId = 'A' | 'B';
@@ -99,6 +100,7 @@ export class AudioEngineService {
   private delayNode!: DelayNode;
 
   private trackOutputs = new Map<number, GainNode>();
+  private trackInstruments = new Map<number, any>();
   private trackFilters = new Map<number, BiquadFilterNode>();
   private trackEQLow = new Map<number, BiquadFilterNode>();
   private trackEQHi = new Map<number, BiquadFilterNode>();
@@ -331,8 +333,8 @@ export class AudioEngineService {
       const step = this.currentStep;
       this.onScheduleStep?.(step, this.nextNoteTime, stepDuration);
       const delay = Math.max(0, (this.nextNoteTime - this.ctx.currentTime) * 1000);
+      this.currentBeat.set(step / this.stepsPerBeat());
       setTimeout(() => {
-        this.currentBeat.set(step / this.stepsPerBeat());
         this.visualStep.set(step);
       }, delay);
       this.playMetronomeClick(
@@ -353,7 +355,7 @@ export class AudioEngineService {
   }
 
   private playMetronomeClick(when: number, accent: boolean) {
-    if (!this.metronomeEnabled()) return;
+    if (!this.metronomeEnabled()) return; this.ctx.resume();
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();
     osc.frequency.setValueAtTime(accent ? 1000 : 500, when);
@@ -710,8 +712,28 @@ export class AudioEngineService {
 
 
   triggerAttack(trackId: number, freq: number, time: number, velocity: number, duration: number, gain: number, pan: number, sendA: number, sendB: number, synthParams: any, someVal?: number, customCtx?: any) {
-    // Implementation to satisfy calls
-    this.logger.info(`Triggering attack on track ${trackId}`);
+    let inst = this.trackInstruments.get(trackId);
+    if (!inst) {
+      inst = new SubtractiveSynth(this.ctx);
+      inst.connect(this.getTrackOutput(trackId));
+      this.trackInstruments.set(trackId, inst);
+    }
+
+    if (synthParams) {
+      if (synthParams.type) inst.setOscillatorType(synthParams.type);
+      if (synthParams.cutoff) inst.setFilterCutoff(synthParams.cutoff);
+      if (synthParams.q) inst.setFilterResonance(synthParams.q);
+    }
+
+    // Convert freq back to midi for the instrument
+    const midi = Math.round(69 + 12 * Math.log2(freq / 440));
+    inst.play(midi, velocity);
+
+    if (duration > 0) {
+      setTimeout(() => {
+        inst.stop(midi);
+      }, duration * 1000);
+    }
   }
 
   setMasterOutputLevel(val: number) {
@@ -975,5 +997,109 @@ export class AudioEngineService {
     this.limiter.ratio.setValueAtTime(config.ratio, this.ctx.currentTime);
     this.limiter.attack.setValueAtTime(config.attack, this.ctx.currentTime);
     this.limiter.release.setValueAtTime(config.release, this.ctx.currentTime);
+  }
+
+  configureCompressor(config: any) {
+    if (this.compressor) {
+      this.compressor.threshold.setTargetAtTime(config.threshold || -24, this.ctx.currentTime, 0.01);
+      this.compressor.ratio.setTargetAtTime(config.ratio || 4, this.ctx.currentTime, 0.01);
+    }
+  }
+  toggleMetronome() {
+    this.metronomeEnabled.update(v => !v);
+    return this.metronomeEnabled();
+  }
+  playMetronomeClick(time: number, isDownbeat: boolean) {
+    if (!this.metronomeEnabled()) return; this.ctx.resume();
+    const osc = this.ctx.createOscillator();
+    const env = this.ctx.createGain();
+    osc.frequency.setValueAtTime(isDownbeat ? 600 : 1200, time); osc.frequency.value = isDownbeat ? 600 : 1200;
+    env.gain.setValueAtTime(this.metronomeVolume(), time);
+    env.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+    osc.connect(env);
+    env.connect(this.masterGain);
+    osc.start(time);
+    osc.stop(time + 0.05);
+  }
+  playSynth(time: number, freq: number, velocity: number, duration: number, pan: number, params: any) {
+    const osc = this.ctx.createOscillator();
+    osc.type = params.type || 'sine';
+    osc.frequency.setValueAtTime(freq, time);
+    const panner = this.ctx.createStereoPanner();
+    if (panner.pan) panner.pan.setValueAtTime(pan, time);
+    const vca = this.ctx.createGain();
+    vca.gain.setValueAtTime(0, time);
+    vca.gain.linearRampToValueAtTime(velocity * 4, time + (params.attack || 0.01));
+    const releaseTime = time + (duration === 2 ? 0.5 : duration) + (params.release || 0.1);
+    if (vca.gain.exponentialRampToValueAtTime) {
+      vca.gain.exponentialRampToValueAtTime(0.001, releaseTime);
+    }
+    osc.connect(panner);
+    panner.connect(vca);
+    vca.connect(this.masterGain);
+    osc.start(time);
+    osc.stop(releaseTime + 0.1);
+    if (this.isRecording()) {
+       this.recorder.pendingMidi.push({
+         pitch: Math.round(69 + 12 * Math.log2(freq / 440)),
+         startTime: time,
+         duration: (duration === 2 ? 0.5 : duration),
+         velocity: velocity * 4
+       });
+    }
+  }
+  triggerSampler(trackId: number, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number) {
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+    const panner = this.ctx.createStereoPanner();
+    if (panner.pan) panner.pan.value = pan;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(velocity, time + 0.005);
+    source.connect(panner);
+    panner.connect(gain);
+    gain.connect(this.getTrackOutput(trackId));
+    source.start(time);
+    if (duration > 0) source.stop(time + duration);
+  }
+  updateAdaptivePerformance(load: number) {
+    if (load > 70) this.performanceTier.set('performance');
+    else this.performanceTier.set('ultra');
+  }
+  ensureTrack(config: any) {
+    return this.getTrackOutput(config.id);
+  }
+  setMasteringTargets(targets: any) {
+    this.masteringTargets = { ...this.masteringTargets, ...targets };
+  }
+  getMasteringTargets() {
+    return this.masteringTargets;
+  }
+  connectSidechain(trigger: string, target: string) {
+    if (!this.sidechainMatrix.has(trigger)) this.sidechainMatrix.set(trigger, new Set());
+    const targets = this.sidechainMatrix.get(trigger);
+    if (targets) targets.add(target);
+    this.sidechainEnabled.set(true);
+  }
+  getSidechainRouting() {
+    return Array.from(this.sidechainMatrix.entries()).map(([trigger, targets]) => ({
+      triggerTrackId: trigger,
+      targetTrackIds: Array.from(targets)
+    }));
+  }
+
+  disconnectSidechain(trigger: string, target: string) {
+    const targets = this.sidechainMatrix.get(trigger);
+    if (targets) {
+      targets.delete(target);
+      if (targets.size === 0) this.sidechainMatrix.delete(trigger);
+    }
+    if (this.sidechainMatrix.size === 0) this.sidechainEnabled.set(false);
+  }
+  setMasteringTargets(targets: any) {
+    this.masteringTargets = { ...this.masteringTargets, ...targets };
+    if (this.compressor) {
+      this.compressor.threshold.setTargetAtTime(this.masteringTargets.truePeak || -0.2, this.ctx.currentTime, 0.01);
+    }
   }
 }
