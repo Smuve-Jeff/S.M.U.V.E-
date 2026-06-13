@@ -1028,11 +1028,11 @@ export class MusicManagerService {
   exportProject() {
     const data: StudioProjectData = {
       tracks: this.tracks(),
-      structure: (this as any).structure ? (this as any).structure() : [],
-      performerScenes: (this as any).performerScenes ? (this as any).performerScenes() : [],
+      structure: this.structure(),
+      performerScenes: this.performerScenes(),
       selectedTrackId: this.selectedTrackId(),
       bpm: this.engine.tempo(),
-      activeLoopBars: (this as any).activeLoopBars ? (this as any).activeLoopBars() : 64,
+      activeLoopBars: this.activeLoopBars(),
       tempo: this.engine.tempo()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
