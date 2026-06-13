@@ -62,7 +62,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   readonly safePlutoUrl = computed(() =>
     this.sanitizer.bypassSecurityTrustResourceUrl(this.plutoTvUrl())
   );
-  readonly displayMode = signal<'gaming' |  'pluto'>('gaming');
+  readonly displayMode = signal<'gaming' | 'pluto'>('gaming');
   readonly showFavoritesOnly = signal<boolean>(false);
   readonly showRivalHub = signal<boolean>(false);
   readonly onlineUsers = this.socialService.onlineUsers;
