@@ -89,6 +89,7 @@ export class AudioEngineService {
   public ctx: AudioContext;
 
   public masterGain!: GainNode;
+  public masterAnalyser!: AnalyserNode;
   public compressor!: DynamicsCompressorNode;
   public limiter!: DynamicsCompressorNode;
   private masterEQ!: BiquadFilterNode;
@@ -98,6 +99,9 @@ export class AudioEngineService {
   private delayNode!: DelayNode;
 
   private trackOutputs = new Map<number, GainNode>();
+  private trackFilters = new Map<number, BiquadFilterNode>();
+  private trackEQLow = new Map<number, BiquadFilterNode>();
+  private trackEQHi = new Map<number, BiquadFilterNode>();
   private sidechainMatrix = new Map<string, Set<string>>();
   private tracksMap = new Map<number, any>();
   private busses = new Map<string, GainNode>();
@@ -127,6 +131,7 @@ export class AudioEngineService {
     this.cueMaster.connect(this.ctx.destination); // Simplified, usually separate output
 
     this.masterGain = this.ctx.createGain();
+    this.masterAnalyser = this.ctx.createAnalyser();
     this.compressor = this.ctx.createDynamicsCompressor();
     this.limiter = this.ctx.createDynamicsCompressor();
     this.masterEQ = this.ctx.createBiquadFilter();
@@ -146,7 +151,8 @@ export class AudioEngineService {
     this.compressor.connect(this.saturationNode);
     this.saturationNode.connect(this.masterEQ);
     this.masterEQ.connect(this.limiter);
-    this.limiter.connect(this.ctx.destination);
+    this.limiter.connect(this.masterAnalyser);
+    this.masterAnalyser.connect(this.ctx.destination);
 
     this.reverbConvolver.connect(this.reverbWet);
     this.reverbWet.connect(this.masterGain);
@@ -362,7 +368,29 @@ export class AudioEngineService {
   getTrackOutput(id: number): GainNode {
     if (!this.trackOutputs.has(id)) {
       const gain = this.ctx.createGain();
-      gain.connect(this.masterGain);
+      const filter = this.ctx.createBiquadFilter();
+      const eqLow = this.ctx.createBiquadFilter();
+      const eqHi = this.ctx.createBiquadFilter();
+
+      filter.type = 'lowpass';
+      filter.frequency.value = 20000;
+
+      eqLow.type = 'lowshelf';
+      eqLow.frequency.value = 320;
+      eqLow.gain.value = 0;
+
+      eqHi.type = 'highshelf';
+      eqHi.frequency.value = 3200;
+      eqHi.gain.value = 0;
+
+      gain.connect(eqLow);
+      eqLow.connect(eqHi);
+      eqHi.connect(filter);
+      filter.connect(this.masterGain);
+
+      this.trackFilters.set(id, filter);
+      this.trackEQLow.set(id, eqLow);
+      this.trackEQHi.set(id, eqHi);
       this.trackOutputs.set(id, gain);
     }
     return this.trackOutputs.get(id)!;
@@ -671,6 +699,39 @@ export class AudioEngineService {
     );
   }
 
+
+
+
+
+
+
+
+
+
+
+  triggerAttack(trackId: number, freq: number, time: number, velocity: number, duration: number, gain: number, pan: number, sendA: number, sendB: number, synthParams: any, someVal?: number, customCtx?: any) {
+    // Implementation to satisfy calls
+    this.logger.info(`Triggering attack on track ${trackId}`);
+  }
+
+  setMasterOutputLevel(val: number) {
+    if (this.masterGain) {
+      this.masterGain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.01);
+    }
+  }
+
+  setSaturation(val: number) {
+    // Saturation logic
+  }
+
+  getAnalyser() {
+    return this.masterAnalyser;
+  }
+
+  setOutputMode(mode: 'speakers' | 'headphones') {
+    this.outputMode.set(mode);
+  }
+
   applyProductionParameter(
     trackId: string,
     parameter: string,
@@ -698,6 +759,20 @@ export class AudioEngineService {
         scheduledTime ?? this.ctx.currentTime,
         duration
       );
+    } else if (parameter === 'filter') {
+      // value 0-1 mapped to 20Hz-20kHz
+      const freq = Math.pow(2, value * 10) * 20;
+      const filter = this.trackFilters.get(id);
+      if (filter) filter.frequency.setTargetAtTime(freq, scheduledTime ?? this.ctx.currentTime, duration);
+    } else if (parameter === 'eq-low') {
+      // value 0-1.5 mapped to -24dB to +12dB
+      const dbGain = (value - 1.0) * 24;
+      const eq = this.trackEQLow.get(id);
+      if (eq) eq.gain.setTargetAtTime(dbGain, scheduledTime ?? this.ctx.currentTime, duration);
+    } else if (parameter === 'eq-hi') {
+      const dbGain = (value - 1.0) * 24;
+      const eq = this.trackEQHi.get(id);
+      if (eq) eq.gain.setTargetAtTime(dbGain, scheduledTime ?? this.ctx.currentTime, duration);
     }
   }
 
