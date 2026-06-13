@@ -182,6 +182,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (file) {
       this.musicManager.importProject(file);
     }
+    event.target.value = '';
   }
 
   toggleNeuralFoundry() {
