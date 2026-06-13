@@ -117,7 +117,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   }
 
   fitToPage() {
-    if (!this.scrollContainer) return;
     const notes = this.selectedTrack()?.notes || [];
     if (notes.length === 0) return;
     const midis = notes.map(n => n.midi);

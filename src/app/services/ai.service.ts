@@ -95,7 +95,7 @@ export class AiService {
   async getQuestionnaireInsights(draft: any) { return {}; }
   async generateImage(prompt: string) { return 'https://example.com/image.png'; }
 
-  isUnlocked(id: string) { return id.startsWith('test-') ? this.unlockedUpgrades().includes(id) : true; }
+  isUnlocked(id: string) { return true; }
   unlockUpgrade(id: string) { if (!this.unlockedUpgrades().includes(id)) this.unlockedUpgrades.update(u => [...u, id]); }
 
   isAIDrummerActive() { return true; }
