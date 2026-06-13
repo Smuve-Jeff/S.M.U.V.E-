@@ -799,10 +799,10 @@
 
 /* Pluto TV Standalone Mode */
 .full-standalone {
-  padding: 0 !important;
-  margin: 0 !important;
-  height: 100vh !important;
-  width: 100vw !important;
+  padding: 0;
+  margin: 0;
+  height: 100vh;
+  width: 100vw;
   position: fixed;
   inset: 0;
   z-index: 500;
