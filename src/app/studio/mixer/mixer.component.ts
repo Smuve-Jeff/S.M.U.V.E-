@@ -48,6 +48,7 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.tracks().find((t) => t.id === this.selectedTrackId())
   );
   viewMode = signal<'compact' | 'expanded'>('expanded');
+  activeRackId = signal<number | null>(null);
 
   private analysers = new Map<number, AnalyserNode>();
   private trackLevels = signal<Record<number, number>>({});
@@ -85,6 +86,31 @@ export class MixerComponent implements OnInit, OnDestroy {
       this.animationFrame = requestAnimationFrame(update);
     };
     this.animationFrame = requestAnimationFrame(update);
+  }
+
+  toggleRack(id: number, event: Event) {
+    event.stopPropagation();
+    this.activeRackId.update(current => current === id ? null : id);
+  }
+
+  updateTrackFX(id: number, type: string, value: number) {
+    this.musicManager.tracks.update(ts => ts.map(t => {
+      if (t.id !== id) return t;
+      const fxSlots = [...t.fxSlots];
+      let slot = fxSlots.find(s => s.type === type);
+      if (slot) {
+        slot.params.amount = value;
+      } else {
+        fxSlots.push({ id: , type, params: { amount: value }, enabled: true });
+      }
+      return { ...t, fxSlots };
+    }));
+    this.audioSession.engine.updateTrackInsert(id, type, value);
+  }
+
+  getFXAmount(track: any, type: string): number {
+    const slot = track.fxSlots?.find((s: any) => s.type === type);
+    return slot?.params?.amount || 0;
   }
 
   toggleViewMode() {

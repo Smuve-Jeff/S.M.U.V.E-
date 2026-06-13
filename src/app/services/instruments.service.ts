@@ -55,6 +55,8 @@ export interface InstrumentPreset {
     q: number;
     resonance?: number;
     detune?: number;
+    lfoRate?: number;
+    lfoAmount?: number;
   };
 }
 
@@ -157,7 +159,7 @@ export class InstrumentsService {
         sustain: 0.5,
         release: 0.4,
         cutoff: 800,
-        q: 2.0,
+        q: 2.0, lfoRate: 5, lfoAmount: 20,
       },
     },
     {

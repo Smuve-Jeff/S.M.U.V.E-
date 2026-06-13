@@ -306,3 +306,19 @@
   padding: 2px 8px;
   border-radius: 4px;
 }
+
+.recording-waveform {
+  height: 60%;
+  display: flex;
+  align-items: center;
+}
+
+.extreme-glow {
+  box-shadow: 0 0 15px #fff, 0 0 5px #fff;
+  z-index: 40;
+}
+
+.selected-clip {
+  outline: 2px solid #fff;
+  z-index: 30;
+}

@@ -1,7 +1,7 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
-
+import { PitchCorrectionService } from '../studio/pitch-correction.service';\n
 export interface MasteringParameters {
   deesser: { threshold: number; frequency: number; bypass: boolean };
   multiband: {
@@ -30,6 +30,7 @@ export interface MasteringParameters {
 export class VocalMasteringService {
   private logger = inject(LoggingService);
   private audioEngine = inject(AudioEngineService);
+  private pitchCorrection = inject(PitchCorrectionService);
 
   private ctx = this.audioEngine.ctx;
   private inputNode = this.ctx.createGain();

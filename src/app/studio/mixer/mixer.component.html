@@ -63,9 +63,37 @@
       </div>
 
       <!-- Effects Rack Indicator (Expanded) -->
-      <div *ngIf="viewMode() === 'expanded'" class="rack-summary px-1 py-2 space-y-1 bg-black/60 border-t border-white/5">
-         <div class="text-[5px] text-slate-500 font-black uppercase text-center mb-1">INSERTS</div>
-         <div *ngFor="let i of [1,2,3,4]" class="h-1.5 w-full bg-white/5 rounded-full border border-white/5"></div>
+      <div *ngIf="viewMode() === 'expanded'"
+           (click)="toggleRack(track.id, $event)"
+           class="rack-summary px-1 py-2 space-y-1 bg-black/60 border-t border-white/5 cursor-pointer hover:bg-black/40 transition-all">
+         <div class="text-[5px] text-slate-500 font-black uppercase text-center mb-1">ELITE RACK</div>
+         <div class="h-1.5 w-full bg-fl-blue/20 rounded-full border border-fl-blue/20 overflow-hidden relative">
+            <div class="absolute inset-y-0 left-0 bg-fl-blue transition-all" [style.width.%]="getFXAmount(track, 'saturation') * 100"></div>
+         </div>
+         <div *ngFor="let i of [1,2,3]" class="h-1.5 w-full bg-white/5 rounded-full border border-white/5"></div>
+      </div>
+
+      <!-- FX Rack Overlay -->
+      <div *ngIf="activeRackId() === track.id" class="absolute inset-0 z-50 bg-black/90 backdrop-blur-md p-4 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex justify-between items-center border-b border-white/10 pb-2">
+          <span class="text-[8px] font-black text-fl-blue uppercase">Channel Rack</span>
+          <button (click)="toggleRack(track.id, \$event)" class="material-icons text-xs text-white/40">close</button>
+        </div>
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <div class="flex justify-between text-[7px] font-bold text-white uppercase">
+              <span>Heat (Saturation)</span>
+              <span class="text-fl-blue">{{ (getFXAmount(track, 'saturation') * 100).toFixed(0) }}%</span>
+            </div>
+            <app-knob size="sm" [min]="0" [max]="1" [value]="getFXAmount(track, 'saturation')" (valueChange)="updateTrackFX(track.id, 'saturation', \$event)"></app-knob>
+          </div>
+          <div class="space-y-1">
+             <div class="text-[6px] text-slate-500 font-black uppercase">Spectral Dynamics</div>
+             <div class="h-10 bg-white/5 rounded border border-white/5 flex items-center justify-center">
+                <span class="text-[7px] text-slate-600 italic">Multi-band Comp Coming Soon</span>
+             </div>
+          </div>
+        </div>
       </div>
 
       <!-- Bottom Controls -->

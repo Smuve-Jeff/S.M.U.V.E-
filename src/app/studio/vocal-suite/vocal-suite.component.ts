@@ -21,6 +21,7 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { UplinkConsoleComponent } from '../../components/uplink-console/uplink-console.component';
 import { FormsModule } from '@angular/forms';
 import { MicrophoneInterfaceComponent } from '../microphone-interface/microphone-interface.component';
+import { AudioSessionService } from '../audio-session.service';
 
 type ViewMode = 'pipeline' | 'console';
 type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
@@ -44,8 +45,10 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   public readonly mastering = inject(VocalMasteringService);
   public readonly vocalAi = inject(VocalAiService);
   public readonly aiService = inject(AiService);
+  public readonly pitchCorrection = inject(PitchCorrectionService);
   private uplinkService = inject(UplinkService);
   private profileService = inject(UserProfileService);
+  public readonly audioSession = inject(AudioSessionService);
   showUplink = signal(false);
 
   @ViewChild('spectrograph') spectrographRef!: ElementRef<HTMLCanvasElement>;
@@ -116,12 +119,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   toggleRecording() {
-    if (this.recordingEngine.isRecording()) {
-      void this.recordingEngine.stopRecording();
-    } else {
-      this.waveformData = [];
-      this.recordingEngine.startRecording();
-    }
+    this.audioSession.toggleRecord();
   }
 
   private startVisualization() {
@@ -205,6 +203,22 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
       );
     }
     this.waveformCtx.stroke();
+  }
+
+  async playTake(take: any) {
+    const blobs = await this.recordingEngine['localStorage'].getItem('audio_blobs', take.id);
+    if (blobs && blobs.blob) {
+      const url = URL.createObjectURL(blobs.blob);
+      const audio = new Audio(url);
+      audio.play();
+    }
+  }
+
+  async deleteTake(take: any) {
+    if (confirm()) {
+      this.recordingEngine.takes.update(ts => ts.filter(t => t.id !== take.id));
+      await this.recordingEngine['localStorage'].removeItem('audio_blobs', take.id);
+    }
   }
 
   async downloadRecording() {

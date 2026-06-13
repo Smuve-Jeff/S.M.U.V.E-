@@ -109,7 +109,7 @@
             <span
               class="text-sm font-black uppercase tracking-tighter"
               [class.text-vocal-primary]="currentStep() === s"
-              >{{ s }}</span
+              >{{ s === "edit" ? "Elite FX" : s }}</span
             >
           </div>
         </button>
@@ -187,7 +187,7 @@
             >
             <span
               class="text-[10px] font-bold text-rose-500 animate-pulse uppercase tracking-[0.2em]"
-              *ngIf="micService.isRecording()"
+              *ngIf="recordingEngine.isRecording()"
               >Recording Live</span
             >
           </div>
@@ -209,30 +209,30 @@
           <div class="flex justify-center gap-8 items-center">
             <button
               (click)="toggleRecording()"
-              [class.bg-fl-blue]="micService.isRecording()"
+              [class.bg-fl-blue]="recordingEngine.isRecording()"
               class="size-20 rounded-full bg-vocal-primary flex items-center justify-center shadow-[0_0_30px_rgba(157,0,255,0.4)] hover:scale-105 transition-all"
             >
               <span class="material-symbols-outlined text-4xl text-white">{{
-                micService.isRecording() ? 'stop' : 'fiber_manual_record'
+                recordingEngine.isRecording() ? 'stop' : 'fiber_manual_record'
               }}</span>
             </button>
             <button
-              *ngIf="micService.isRecording()"
+              *ngIf="recordingEngine.isRecording()"
               (click)="
-                micService.isPaused()
-                  ? micService.resumeRecording()
-                  : micService.pauseRecording()
+                recordingEngine.isPaused()
+                  ? recordingEngine.resumeRecording()
+                  : recordingEngine.pauseRecording()
               "
               class="size-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
             >
               <span class="material-symbols-outlined text-white">{{
-                micService.isPaused() ? 'play_arrow' : 'pause'
+                recordingEngine.isPaused() ? 'play_arrow' : 'pause'
               }}</span>
             </button>
           </div>
         </div>
 
-        <div class="flex justify-end" *ngIf="micService.recordedBlob()">
+        <div class="flex justify-end" *ngIf="recordingEngine.recordedBlob()">
           <button
             (click)="setStep('edit')"
             class="px-8 py-3 bg-white text-vocal-obsidian font-black uppercase tracking-widest text-xs rounded-xl hover:bg-slate-200 transition-all"
@@ -437,6 +437,73 @@
           </div>
 
           <!-- Mastering Intel Sidebar -->
+          <!-- Recording Takes Sidebar -->
+          <div class="space-y-4">
+            <div class="bg-vocal-oled/80 border border-vocal-primary/30 rounded-2xl p-6 backdrop-blur-xl">
+              <h3 class="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-vocal-primary text-sm">history</span>
+                RECORDING TAKES
+              </h3>
+              <div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                <div *ngFor="let take of recordingEngine.takes(); let i = index" class="p-3 bg-white/5 rounded-lg border border-white/10 hover:border-vocal-primary transition-all flex items-center justify-between group">
+                  <div class="flex flex-col">
+                    <span class="text-[10px] text-white font-bold uppercase">{{ take.name }}</span>
+                    <span class="text-[8px] text-slate-500 font-mono">{{ take.duration.toFixed(1) }}s</span>
+                  </div>
+                  <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button (click)="playTake(take)" class="material-symbols-outlined text-sm text-vocal-primary">play_arrow</button>
+                    <button (click)="deleteTake(take)" class="material-symbols-outlined text-sm text-rose-500">delete</button>
+                  </div>
+                </div>
+                <div *ngIf="recordingEngine.takes().length === 0" class="text-[10px] text-slate-500 italic text-center py-4">
+                  No takes recorded yet.
+                </div>
+              </div>
+            </div>
+
+            <!-- Elite Pitch Correction HUD -->
+            <div class="bg-vocal-oled/80 border border-fl-blue/30 rounded-2xl p-6 backdrop-blur-xl">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                  <span class="material-symbols-outlined text-fl-blue text-sm">graphic_eq</span>
+                  ELITE AUTO-TUNE
+                </h3>
+                <button
+                  (click)="pitchCorrection.enabled.set(!pitchCorrection.enabled())"
+                  [class.bg-fl-blue]="pitchCorrection.enabled()"
+                  class="w-10 h-5 bg-white/10 rounded-full relative transition-all"
+                >
+                  <div
+                    class="absolute top-1 left-1 size-3 bg-white rounded-full transition-all"
+                    [class.translate-x-5]="pitchCorrection.enabled()"
+                  ></div>
+                </button>
+              </div>
+              <div class="space-y-4" [class.opacity-50]="!pitchCorrection.enabled()">
+                <div class="space-y-2">
+                  <div class="flex justify-between text-[8px] font-black uppercase text-slate-400">
+                    <span>Correction Amount</span>
+                    <span>{{ (pitchCorrection.amount() * 100).toFixed(0) }}%</span>
+                  </div>
+                  <input type="range" [ngModel]="pitchCorrection.amount()" (ngModelChange)="pitchCorrection.amount.set($event)" min="0" max="1" step="0.01" [disabled]="!pitchCorrection.enabled()" class="w-full h-1 bg-white/5 rounded-full appearance-none accent-fl-blue cursor-pointer">
+                </div>
+                <div class="space-y-2">
+                  <div class="flex justify-between text-[8px] font-black uppercase text-slate-400">
+                    <span>Retune Speed</span>
+                    <span>{{ (pitchCorrection.speed() * 100).toFixed(0) }}%</span>
+                  </div>
+                  <input type="range" [ngModel]="pitchCorrection.speed()" (ngModelChange)="pitchCorrection.speed.set($event)" min="0" max="1" step="0.01" [disabled]="!pitchCorrection.enabled()" class="w-full h-1 bg-white/5 rounded-full appearance-none accent-fl-blue cursor-pointer">
+                </div>
+                <div class="pt-2">
+                  <select [ngModel]="pitchCorrection.scale()" (ngModelChange)="pitchCorrection.scale.set($event)" class="w-full bg-white/5 border border-white/10 rounded p-2 text-[10px] font-bold text-white uppercase">
+                    <option value="C Major">C Major</option>
+                    <option value="C Minor">C Minor</option>
+                    <option value="Chromatic">Chromatic</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="space-y-6">
             <div
               class="bg-vocal-oled/80 border border-vocal-fl-blue/30 rounded-2xl p-6 backdrop-blur-xl"
@@ -527,7 +594,7 @@
                 class="px-8 py-3 bg-fl-blue rounded-xl text-white font-black uppercase tracking-widest text-[10px] shadow-[0_0_20px_rgba(225,29,72,0.3)] hover:scale-105 transition-all"
               >
                 {{
-                  micService.isRecording() ? 'Stop Engine' : 'Ignite Capture'
+                  recordingEngine.isRecording() ? 'Stop Engine' : 'Ignite Capture'
                 }}
               </button>
               <button

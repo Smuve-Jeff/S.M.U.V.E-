@@ -30,6 +30,9 @@ export class StudioRecordingEngineService implements OnDestroy {
   recordingTime = signal(0);
   inputLevel = signal(0);
   recordedBlob = signal<Blob | null>(null);
+  monitoringEnabled = signal(true);
+  monitoringVolume = signal(0.5);
+  takes = signal<RecordingMetadata[]>([]);
 
   // MIDI recording support
   pendingMidi: any[] = [];
@@ -39,11 +42,11 @@ export class StudioRecordingEngineService implements OnDestroy {
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   private processorNode: ScriptProcessorNode | null = null;
   private analyserNode: AnalyserNode | null = null;
+  private monitoringGainNode: GainNode | null = null;
 
   // Data Buffers
   private leftChannel: Float32Array[] = [];
   private rightChannel: Float32Array[] = [];
-  private timerInterval: any;
 
   // Events
   recordingFinished$ = new Subject<{
@@ -74,6 +77,13 @@ export class StudioRecordingEngineService implements OnDestroy {
       this.analyserNode = ctx.createAnalyser();
       this.analyserNode.fftSize = 2048;
 
+      this.monitoringGainNode = ctx.createGain();
+      this.monitoringGainNode.gain.setValueAtTime(this.monitoringVolume(), ctx.currentTime);
+      this.sourceNode.connect(this.monitoringGainNode);
+      if (this.monitoringEnabled()) {
+        this.monitoringGainNode.connect(ctx.destination);
+      }
+
       this.sourceNode.connect(this.analyserNode);
 
       this.isInitialized.set(true);
@@ -86,15 +96,13 @@ export class StudioRecordingEngineService implements OnDestroy {
     }
   }
 
-  // Allow optional stream for compatibility with AudioEngineService calls
   startRecording(stream?: MediaStream) {
     if (this.isRecording()) return;
 
     const ctx = this.audioEngine.ctx;
 
-    // If a stream is provided, use it. Otherwise ensure we are initialized.
     if (stream) {
-      this.cleanup(); // Close any existing internal stream
+      this.cleanup();
       this.sourceNode = ctx.createMediaStreamSource(stream);
       this.analyserNode = ctx.createAnalyser();
       this.analyserNode.fftSize = 2048;
@@ -102,9 +110,7 @@ export class StudioRecordingEngineService implements OnDestroy {
       this.isInitialized.set(true);
       this.startLevelMonitoring();
     } else if (!this.isInitialized()) {
-      this.logger.error(
-        'StudioRecordingEngine: Cannot start recording without initialization or stream'
-      );
+      this.logger.error('StudioRecordingEngine: Cannot start recording without initialization or stream');
       return;
     }
 
@@ -115,16 +121,12 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.pendingMidi = [];
 
     this.processorNode = ctx.createScriptProcessor(4096, 2, 2);
-
     this.processorNode.onaudioprocess = (e) => {
       if (!this.isRecording() || this.isPaused()) return;
-
       const left = e.inputBuffer.getChannelData(0);
       const right = e.inputBuffer.getChannelData(1);
-
       this.leftChannel.push(new Float32Array(left));
       this.rightChannel.push(new Float32Array(right));
-
       this.recordingTime.update((t) => t + e.inputBuffer.duration);
     };
 
@@ -137,15 +139,11 @@ export class StudioRecordingEngineService implements OnDestroy {
   }
 
   pauseRecording() {
-    if (this.isRecording()) {
-      this.isPaused.set(true);
-    }
+    if (this.isRecording()) this.isPaused.set(true);
   }
 
   resumeRecording() {
-    if (this.isRecording() && this.isPaused()) {
-      this.isPaused.set(false);
-    }
+    if (this.isRecording() && this.isPaused()) this.isPaused.set(false);
   }
 
   async stopRecording() {
@@ -163,7 +161,7 @@ export class StudioRecordingEngineService implements OnDestroy {
     const id = `studio_rec_${Date.now()}`;
     const metadata: RecordingMetadata = {
       id,
-      name: `Studio Session ${new Date().toLocaleTimeString()}`,
+      name: `Take ${this.takes().length + 1} (${new Date().toLocaleTimeString()})`,
       timestamp: Date.now(),
       duration: this.recordingTime(),
       format: 'wav',
@@ -176,23 +174,39 @@ export class StudioRecordingEngineService implements OnDestroy {
       blob: wavBlob,
       ...metadata,
     });
+    this.takes.update(t => [...t, metadata]);
 
     const url = URL.createObjectURL(wavBlob);
     this.recordingFinished$.next({ id, blob: wavBlob, url, metadata });
     this.logger.info('StudioRecordingEngine: Lossless recording saved as WAV.');
   }
 
+  setMonitoring(enabled: boolean) {
+    this.monitoringEnabled.set(enabled);
+    if (this.monitoringGainNode) {
+      this.monitoringGainNode.disconnect();
+      if (enabled) {
+        this.monitoringGainNode.connect(this.audioEngine.ctx.destination);
+      }
+    }
+  }
+
+  setMonitoringVolume(vol: number) {
+    this.monitoringVolume.set(vol);
+    this.monitoringGainNode?.gain.setTargetAtTime(vol, this.audioEngine.ctx.currentTime, 0.05);
+  }
+
+  clearTakes() {
+    this.takes.set([]);
+  }
+
   getAnalyserNode(): AnalyserNode | null {
     return this.analyserNode;
   }
 
-  private interleave(
-    left: Float32Array[],
-    right: Float32Array[]
-  ): Float32Array {
+  private interleave(left: Float32Array[], right: Float32Array[]): Float32Array {
     let totalLength = 0;
     for (const chunk of left) totalLength += chunk.length;
-
     const result = new Float32Array(totalLength * 2);
     let offset = 0;
     for (let i = 0; i < left.length; i++) {
@@ -222,12 +236,14 @@ export class StudioRecordingEngineService implements OnDestroy {
   private cleanup() {
     this.processorNode?.disconnect();
     this.sourceNode?.disconnect();
+    this.monitoringGainNode?.disconnect();
     this.mediaStream?.getTracks().forEach((t) => t.stop());
     this.isInitialized.set(false);
     this.isRecording.set(false);
     this.mediaStream = null;
     this.sourceNode = null;
     this.analyserNode = null;
+    this.monitoringGainNode = null;
   }
 
   ngOnDestroy() {

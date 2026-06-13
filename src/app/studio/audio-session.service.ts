@@ -87,9 +87,10 @@ export class AudioSessionService {
       void this.recordingEngine.stopRecording();
       this.playbackState.set('stopped');
     } else {
-      this.engine.start();
-      this.recordingEngine.startRecording();
-      this.playbackState.set('recording');
+      this.engine.start(true).then(() => {
+        this.recordingEngine.startRecording();
+        this.playbackState.set('recording');
+      });
     }
   }
 

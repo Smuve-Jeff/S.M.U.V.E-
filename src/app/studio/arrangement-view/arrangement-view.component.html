@@ -149,13 +149,24 @@
           class="recording-overlay absolute inset-0 pointer-events-none bg-red-500/5 overflow-hidden"
         >
           <div
-            class="absolute top-4 right-6 flex items-center gap-2 px-3 py-1 bg-red-600 rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+            class="absolute top-4 right-6 flex items-center gap-2 px-3 py-1 bg-red-600 rounded-full animate-pulse z-50 shadow-[0_0_15px_rgba(239,68,68,0.5)]"
           >
             <div class="w-2 h-2 rounded-full bg-white"></div>
             <span
               class="text-[9px] font-black text-white uppercase tracking-widest"
-              >Capture_Active</span
-            >
+              >Capture_Active</span>
+          </div>
+
+          <!-- Real-time Recording Lane Visual -->
+          <div class="absolute inset-x-0 bg-red-500/10 pointer-events-none flex flex-col justify-center"
+               [style.top.px]="rulerHeight + (musicManager.selectedTrackId() || 0) * laneHeight"
+               [style.height.px]="laneHeight">
+             <div class="h-1 bg-red-500/40 absolute bottom-0 left-0 transition-all" [style.width.px]="playheadPos()"></div>
+             <div class="recording-waveform flex items-center gap-[2px] px-4 overflow-hidden">
+                <div *ngFor="let v of [40,60,80,30,90,50,70,40,60,20,50,80]"
+                     class="w-1 bg-red-500 rounded-full animate-pulse"
+                     [style.height.px]="v * (laneHeight/150)"></div>
+             </div>
           </div>
         </div>
         <div

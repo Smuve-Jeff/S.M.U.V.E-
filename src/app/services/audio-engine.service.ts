@@ -79,6 +79,7 @@ export class AudioEngineService {
   public isRecording = signal(false);
   public currentBeat = signal(0);
   public isPlaying = signal(false);
+  isCountIn = signal(false);
   public visualStep = signal(0);
   public onScheduleStep:
     | ((step: number, when: number, stepDuration: number) => void)
@@ -100,6 +101,7 @@ export class AudioEngineService {
   private delayNode!: DelayNode;
 
   private trackOutputs = new Map<number, GainNode>();
+  private trackInserts = new Map<number, WaveShaperNode>();
   private trackInstruments = new Map<number, any>();
   private trackFilters = new Map<number, BiquadFilterNode>();
   private trackEQLow = new Map<number, BiquadFilterNode>();
@@ -247,7 +249,15 @@ export class AudioEngineService {
     return this.isPlaying();
   }
 
-  start() {
+  async start(useCountIn: boolean = false) {
+    if (useCountIn) {
+      this.isCountIn.set(true);
+      for (let i = 0; i < 4; i++) {
+        this.playMetronomeClick(this.ctx.currentTime + i * (60 / this.tempo()), i === 0);
+        await new Promise(r => setTimeout(r, (60 / this.tempo()) * 1000));
+      }
+      this.isCountIn.set(false);
+    }
     this.resume();
     if (this.isPlaying()) return;
     this.isPlaying.set(true);
@@ -334,12 +344,17 @@ export class AudioEngineService {
       eqHi.frequency.value = 4500;
       eqHi.gain.value = 0;
 
+      const saturation = this.ctx.createWaveShaper();
+      saturation.curve = null;
+
       gain.connect(eqLow);
       eqLow.connect(eqHi);
       eqHi.connect(filter);
-      filter.connect(this.masterGain);
+      filter.connect(saturation);
+      saturation.connect(this.masterGain);
 
       this.trackOutputs.set(id, gain);
+      this.trackInserts.set(id, saturation);
       this.trackFilters.set(id, filter);
       this.trackEQLow.set(id, eqLow);
       this.trackEQHi.set(id, eqHi);
@@ -812,6 +827,17 @@ export class AudioEngineService {
     const osc = this.ctx.createOscillator();
     osc.type = params.type || 'sine';
     osc.frequency.setValueAtTime(freq, time);
+
+    if (params.lfoRate && params.lfoAmount) {
+      const lfo = this.ctx.createOscillator();
+      const lfoGain = this.ctx.createGain();
+      lfo.frequency.setValueAtTime(params.lfoRate, time);
+      lfoGain.gain.setValueAtTime(params.lfoAmount, time);
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+      lfo.start(time);
+      lfo.stop(time + duration + 1);
+    }
     const panner = this.ctx.createStereoPanner();
     if (panner.pan) panner.pan.setValueAtTime(pan, time);
     const vca = this.ctx.createGain();
@@ -893,6 +919,20 @@ export class AudioEngineService {
     }
   }
 
+  private createSaturator(amount: number) {
+    const k = amount * 100;
+    const n_samples = 44100;
+    const curve = new Float32Array(n_samples);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < n_samples; ++i) {
+      const x = (i * 2) / n_samples - 1;
+      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+    }
+    const shaper = this.ctx.createWaveShaper();
+    shaper.curve = curve;
+    return shaper;
+  }
+
   private configureLimiter(config: any) {
     this.limiter.threshold.setValueAtTime(config.threshold, this.ctx.currentTime);
     this.limiter.ratio.setValueAtTime(config.ratio, this.ctx.currentTime);
@@ -941,3 +981,23 @@ export class AudioEngineService {
     return deckId === 'A' ? a : b;
   }
 }
+
+  updateTrackInsert(id: number, type: string, amount: number) {
+    const node = this.trackInserts.get(id);
+    if (!node) return;
+    if (type === 'saturation') {
+       if (amount === 0) {
+         node.curve = null;
+       } else {
+         const k = amount * 100;
+         const n_samples = 44100;
+         const curve = new Float32Array(n_samples);
+         const deg = Math.PI / 180;
+         for (let i = 0; i < n_samples; ++i) {
+           const x = (i * 2) / n_samples - 1;
+           curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+         }
+         node.curve = curve;
+       }
+    }
+  }

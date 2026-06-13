@@ -96,6 +96,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly aiCopilot = inject(AiCopilotService);
   private readonly haptic = inject(HapticService);
   public readonly touchGestures = inject(TouchGestureService);
+  private readonly templateService = inject(ProjectTemplateService);
   private readonly sequencer = inject(SequencerService);
   private readonly dialog = inject(InteractionDialogService);
 
@@ -129,6 +130,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnInit() {
     this.audioEngine.resume();
+    this.musicManager.loadAutosave();
   }
 
   ngAfterViewInit() {}
@@ -183,6 +185,30 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.musicManager.importProject(file);
     }
     event.target.value = '';
+  }
+
+  async createNewProject() {
+    const templates = this.templateService.templates;
+    const options = templates.map(t => t.name);
+    options.unshift("Blank Project");
+
+    const choice = await this.dialog.prompt({
+      title: "New Project",
+      message: "Select a project starting point:",
+      initialValue: "Blank Project",
+      placeholder: "Select template..."
+    });
+
+    if (choice) {
+      if (choice === "Blank Project") {
+        this.musicManager.newProject();
+      } else {
+        const template = templates.find(t => t.name === choice);
+        if (template) {
+          this.templateService.applyTemplate(template.id);
+        }
+      }
+    }
   }
 
   toggleNeuralFoundry() {
