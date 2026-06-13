@@ -37,7 +37,7 @@ export class SocialNetworkingService {
 
   private initializeSocket(userId: string) {
     // In a real env, this would be the actual backend URL
-    const backendUrl = window.location.origin.replace(':3000', ':3000'); // Assuming same port for now
+    const backendUrl = window.location.origin; // Assuming same port for now
     this.socket = io(backendUrl);
 
     this.socket.on('connect', () => {
