@@ -220,7 +220,7 @@
           <div class="meta-item"><span class="label">RATING</span><span class="value">{{ selected.rating }}/5.0</span></div>
         </div>
         <div class="preview-actions">
-          <button class="primary-btn action-pulse" (click)="confirmLaunch()">
+          <button class="primary-btn action-pulse" (click)="confirmLaunch()" [disabled]="isMatchmaking() || isWasmLoading()">
             {{ launchActionLabel(selected) }}
           </button>
           <button class="secondary-btn" (click)="closePreview()">ABORT MISSION</button>
