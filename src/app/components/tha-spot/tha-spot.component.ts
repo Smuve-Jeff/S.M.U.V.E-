@@ -29,6 +29,7 @@ import { SecurityService } from '../../services/security.service';
 import { UIService } from '../../services/ui.service';
 import { SocialNetworkingService } from '../../services/social-networking.service';
 import { PeerNetworkingService } from '../../services/peer-networking.service';
+import { GamepadService } from '../../services/gamepad.service';
 
 const FEED_REFRESH_INTERVAL_MS = 300000;
 const LIVE_CLOCK_INTERVAL_MS = 60000;
