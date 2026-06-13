@@ -1,5 +1,11 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
 .mixer-container {
   user-select: none;
+  height: 100%;
 }
 
 .fl-strip {
@@ -30,10 +36,43 @@
 
 .master-strip {
   box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+  background: rgba(56, 189, 248, 0.05);
+}
+
+/* Touch Ergonomics */
+@media (pointer: coarse) {
+  .mixer-strip {
+    min-width: 90px;
+  }
+
+  .fader-knob > div {
+    width: 44px !important;
+    height: 20px !important;
+  }
+
+  .m-btn, .mini-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 @media (max-width: 768px) {
   .mixer-strip {
     min-width: 80px;
+  }
+
+  .mixer-header h3 {
+    font-size: 7px;
+  }
+}
+
+/* Landscape Mobile */
+@media (orientation: landscape) and (max-height: 600px) {
+  .fader-section {
+    min-height: 100px !important;
+  }
+
+  .mixer-header {
+    padding: 0.25rem 0.5rem;
   }
 }

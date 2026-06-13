@@ -142,7 +142,7 @@ export class AudioEngineService {
     this.reverbConvolver = this.ctx.createConvolver();
     this.delayNode = this.ctx.createDelay();
 
-    this.masterGain.gain.value = 0.85;
+    this.masterGain.gain.value = 1.0;
     this.masterEQ.type = 'highshelf';
     this.masterEQ.frequency.value = 12000;
     this.masterEQ.gain.value = 0;
@@ -327,17 +327,21 @@ export class AudioEngineService {
       filter.frequency.value = 20000;
 
       eqLow.type = 'lowshelf';
-      eqLow.frequency.value = 320;
+      eqLow.frequency.value = 180;
       eqLow.gain.value = 0;
 
       eqHi.type = 'highshelf';
-      eqHi.frequency.value = 4500;
+      eqHi.frequency.value = 8000;
       eqHi.gain.value = 0;
 
       gain.connect(eqLow);
       eqLow.connect(eqHi);
       eqHi.connect(filter);
-      filter.connect(this.masterGain);
+      const saturator = this.ctx.createWaveShaper();
+      saturator.curve = this.makeDistortionCurve(5);
+      filter.connect(saturator);
+      saturator.connect(this.masterGain);
+
 
       this.trackOutputs.set(id, gain);
       this.trackFilters.set(id, filter);
@@ -606,7 +610,7 @@ export class AudioEngineService {
         duration
       );
     } else if (parameter === 'filter') {
-      const freq = Math.pow(2, value * 10) * 20;
+      const freq = Math.pow(10, value * 3) * 20;
       const filter = this.trackFilters.get(id);
       if (filter) filter.frequency.setTargetAtTime(freq, scheduledTime ?? this.ctx.currentTime, duration);
     } else if (parameter === 'eq-low') {
@@ -716,6 +720,17 @@ export class AudioEngineService {
     return Math.round(69 + 12 * Math.log2(freq / 440));
   }
 
+  private makeDistortionCurve(amount: number) {
+    const n_samples = 44100;
+    const curve = new Float32Array(n_samples);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < n_samples; ++i) {
+      const x = (i * 2) / n_samples - 1;
+      curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+    }
+    return curve;
+  }
+
   private clamp(value: number, min: number, max: number) {
     return Math.min(max, Math.max(min, value));
   }
@@ -816,7 +831,7 @@ export class AudioEngineService {
     if (panner.pan) panner.pan.setValueAtTime(pan, time);
     const vca = this.ctx.createGain();
     vca.gain.setValueAtTime(0, time);
-    vca.gain.linearRampToValueAtTime(velocity * 4, time + (params.attack || 0.01));
+    vca.gain.setTargetAtTime(velocity * 1.5, time, params.attack || 0.01);
     const releaseTime = time + (duration === 2 ? 0.5 : duration) + (params.release || 0.1);
     if (vca.gain.exponentialRampToValueAtTime) {
       vca.gain.exponentialRampToValueAtTime(0.001, releaseTime);
@@ -827,12 +842,14 @@ export class AudioEngineService {
     osc.start(time);
     osc.stop(releaseTime + 0.1);
     if (this.isRecording()) {
-       this.recorder.pendingMidi.push({
-         pitch: Math.round(69 + 12 * Math.log2(freq / 440)),
-         startTime: time,
-         duration: (duration === 2 ? 0.5 : duration),
-         velocity: velocity * 4
-       });
+       if (this.recorder && this.recorder.pendingMidi) {
+         this.recorder.pendingMidi.push({
+           pitch: Math.round(69 + 12 * Math.log2(freq / 440)),
+           startTime: time,
+           duration: (duration === 2 ? 0.5 : duration),
+           velocity: velocity * 4
+         });
+       }
     }
   }
 
@@ -843,7 +860,7 @@ export class AudioEngineService {
     if (panner.pan) panner.pan.value = pan;
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(velocity, time + 0.005);
+    gain.gain.setTargetAtTime(velocity, time, 0.005);
     source.connect(panner);
     panner.connect(gain);
     gain.connect(this.getTrackOutput(trackId));

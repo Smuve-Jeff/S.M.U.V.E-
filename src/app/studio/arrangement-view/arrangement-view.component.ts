@@ -37,6 +37,8 @@ export class ArrangementViewComponent {
   readonly tracks = this.musicManager.tracks;
   readonly selectedClipIds = signal<Set<string>>(new Set());
 
+  private longPressTimeout: any;
+
   readonly bars = computed(() =>
     Array.from({ length: 64 }, (_, index) => index)
   );
@@ -90,8 +92,68 @@ export class ArrangementViewComponent {
     this.snapEnabled.update(v => !v);
   }
 
-  splitAtPlayhead() {}
-  duplicateSelected() {}
-  onLanePointerDown(e: any, t: any) {}
-  onClipPointerDown(e: any, tid: any, c: any) {}
+  splitAtPlayhead() {
+    if (this.selectedClipIds().size === 0) return;
+    const playheadStep = this.musicManager.currentStep();
+
+    this.tracks().forEach(track => {
+      const selectedClip = track.clips.find(c => this.selectedClipIds().has(c.id));
+      if (selectedClip) {
+        const clipStartStep = selectedClip.start * 16;
+        const clipEndStep = (selectedClip.start + selectedClip.length) * 16;
+
+        if (playheadStep > clipStartStep && playheadStep < clipEndStep) {
+           this.musicManager.splitClip(track.id, selectedClip.id, playheadStep / 16);
+        }
+      }
+    });
+  }
+
+  duplicateSelected() {
+     this.selectedClipIds().forEach(id => {
+       // Logic to duplicate clips would go here
+     });
+  }
+
+  onLanePointerDown(e: any, track: TrackModel) {
+    if (e.pointerType === 'touch') {
+      this.longPressTimeout = setTimeout(() => {
+        const rect = this.gridViewport.nativeElement.getBoundingClientRect();
+        const offsetX = (e.clientX - rect.left + this.gridViewport.nativeElement.scrollLeft);
+        const startBar = Math.floor(offsetX / this.barWidth);
+        this.musicManager.addClipToTrack(track.id, {
+          id: crypto.randomUUID(),
+          start: startBar,
+          length: 2,
+          name: 'New Clip'
+        });
+      }, 500);
+    }
+  }
+
+  @HostListener('pointerup')
+  onPointerUp() {
+    clearTimeout(this.longPressTimeout);
+  }
+
+  onClipPointerDown(e: PointerEvent, trackId: number, clip: ArrangementClip) {
+    e.stopPropagation();
+    const isMultiSelect = e.shiftKey;
+
+    this.selectedClipIds.update(current => {
+      const next = isMultiSelect ? new Set(current) : new Set<string>();
+      if (next.has(clip.id)) {
+        next.delete(clip.id);
+      } else {
+        next.add(clip.id);
+      }
+      return next;
+    });
+
+    if (e.pointerType === 'touch') {
+       this.longPressTimeout = setTimeout(() => {
+         this.splitAtPlayhead();
+       }, 800);
+    }
+  }
 }
