@@ -121,7 +121,7 @@ export class ArrangementViewComponent {
         const rect = this.gridViewport.nativeElement.getBoundingClientRect();
         const offsetX = (e.clientX - rect.left + this.gridViewport.nativeElement.scrollLeft);
         const startBar = Math.floor(offsetX / this.barWidth);
-        this.musicManager.addClip(track.id, {
+        this.musicManager.addClipToTrack(track.id, {
           id: crypto.randomUUID(),
           start: startBar,
           length: 2,

@@ -151,6 +151,11 @@
 .btn-cue,
 .btn-play,
 .dj-utility-btns .btn-sm,
+.fx-selectors .btn-xs { min-width: 44px; min-height: 44px; }
+.btn-cue,
+.btn-cue,
+.btn-play,
+.dj-utility-btns .btn-sm,
 .fx-selectors .btn-xs {
   min-width: 44px;
   min-height: 44px;
