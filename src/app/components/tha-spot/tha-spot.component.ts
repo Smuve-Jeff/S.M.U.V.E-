@@ -48,11 +48,11 @@ const QUICK_FILTERS: QuickFilter[] = [
   styleUrls: ['./tha-spot.component.css'],
 })
 export class ThaSpotComponent implements OnInit, OnDestroy {
-  private gameService = inject(GameService);
-  private profileService = inject(UserProfileService);
-  private socialService = inject(SocialNetworkingService);
-  private peerService = inject(PeerNetworkingService);
-  private gamepadService = inject(GamepadService);
+  public gameService = inject(GameService);
+  public profileService = inject(UserProfileService);
+  public socialService = inject(SocialNetworkingService);
+  public peerService = inject(PeerNetworkingService);
+  public gamepadService = inject(GamepadService);
   private sanitizer = inject(DomSanitizer);
   private securityService = inject(SecurityService);
   public uiService = inject(UIService);
