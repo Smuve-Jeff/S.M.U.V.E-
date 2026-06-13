@@ -3,7 +3,7 @@ import {
   OnInit,
   OnDestroy,
   inject,
-  signal,
+  signal, effect,
   computed,
   ViewChild,
   ElementRef,
@@ -51,7 +51,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   private gameService = inject(GameService);
   private profileService = inject(UserProfileService);
   private socialService = inject(SocialNetworkingService);
-  public peerService = inject(PeerNetworkingService);
+  private peerService = inject(PeerNetworkingService);
+  private gamepadService = inject(GamepadService);
   private sanitizer = inject(DomSanitizer);
   private securityService = inject(SecurityService);
   public uiService = inject(UIService);
@@ -165,6 +166,20 @@ export class ThaSpotComponent implements OnInit, OnDestroy {
   constructor() {
     const savedFavs = localStorage.getItem('tha_spot_favorites');
     if (savedFavs) this.favorites.set(JSON.parse(savedFavs));
+    effect(() => {
+      const gp = this.gamepadService.connectedGamepad();
+      if (gp) {
+        // Handle button 0 (typically 'A' or 'X') to launch selected game
+        if (gp.buttons[0]) {
+          this.confirmLaunch();
+        }
+        // Handle button 1 (typically 'B' or 'Circle') to close preview/game
+        if (gp.buttons[1]) {
+          this.closePreview();
+          this.closeGame();
+        }
+      }
+    });
   }
 
   ngOnInit() {
