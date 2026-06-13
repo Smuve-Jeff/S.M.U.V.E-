@@ -1,4 +1,4 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MusicManagerService } from '../../services/music-manager.service';
@@ -12,6 +12,11 @@ import { MusicManagerService } from '../../services/music-manager.service';
 })
 export class TrackInspectorComponent {
   public musicManager = inject(MusicManagerService);
+  showAdvanced = signal(false);
+
+  toggleAdvanced() {
+    this.showAdvanced.update(v => !v);
+  }
 
   selectedTrack = computed(() =>
     this.musicManager

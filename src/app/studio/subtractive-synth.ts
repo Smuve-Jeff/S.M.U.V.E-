@@ -18,7 +18,7 @@ export class SubtractiveSynth extends Instrument {
     0.2,
     0.8,
     0.5,
-    true // Use exponential curves
+    true
   );
   private readonly filterEnvelope = new ADSREnvelope(
     this.audioContext,
@@ -31,11 +31,11 @@ export class SubtractiveSynth extends Instrument {
   private voices: Map<number, Voice> = new Map();
   private masterFilter: BiquadFilterNode;
   private oscillatorType: OscillatorType = 'sawtooth';
-  private numOscillators: number = 2; // Unison voices
-  private detune: number = 10; // Detune amount in cents
-  private subOscillatorLevel: number = 0.3; // Sub oscillator mix
+  private numOscillators: number = 2;
+  private detuneValue: number = 10;
+  private subOscillatorLevel: number = 0.3;
   private filterCutoff: number = 2000;
-  private filterEnvelopeAmount: number = 3000; // How much envelope affects filter
+  private filterEnvelopeAmount: number = 3000;
 
   constructor(audioContext: AudioContext) {
     super(audioContext);
@@ -50,31 +50,25 @@ export class SubtractiveSynth extends Instrument {
     const frequency = 440 * Math.pow(2, (note - 69) / 12);
     const oscillators: OscillatorNode[] = [];
 
-    // Create multiple detuned oscillators for richer sound
     for (let i = 0; i < this.numOscillators; i++) {
       const oscillator = this.audioContext.createOscillator();
       oscillator.type = this.oscillatorType;
       oscillator.frequency.value = frequency;
-
-      // Spread detune symmetrically around center
       const detuneOffset =
         this.numOscillators > 1
-          ? (i - (this.numOscillators - 1) / 2) * this.detune
+          ? (i - (this.numOscillators - 1) / 2) * this.detuneValue
           : 0;
-      oscillator.detune.value = detuneOffset;
-
+      if (oscillator.detune) oscillator.detune.value = detuneOffset;
       oscillators.push(oscillator);
     }
 
-    // Create sub-oscillator (one octave below)
     let subOscillator: OscillatorNode | null = null;
     if (this.subOscillatorLevel > 0) {
       subOscillator = this.audioContext.createOscillator();
-      subOscillator.type = 'sine'; // Sub is always sine for warmth
+      subOscillator.type = 'sine';
       subOscillator.frequency.value = frequency / 2;
     }
 
-    // Create per-voice filter for envelope modulation
     const voiceFilter = this.audioContext.createBiquadFilter();
     voiceFilter.type = 'lowpass';
     voiceFilter.frequency.value = this.filterCutoff;
@@ -88,10 +82,8 @@ export class SubtractiveSynth extends Instrument {
       1.0 /
       (this.numOscillators + (subOscillator ? this.subOscillatorLevel : 0));
 
-    // Apply amplitude envelope
     this.envelope.apply(gain, velocity);
 
-    // Apply filter envelope
     const filterMin = this.filterCutoff;
     const filterMax = Math.min(
       this.filterCutoff + this.filterEnvelopeAmount,
@@ -104,13 +96,11 @@ export class SubtractiveSynth extends Instrument {
       filterMax
     );
 
-    // Connect oscillators
     oscillators.forEach((osc) => {
       osc.connect(gain);
       osc.start();
     });
 
-    // Connect sub-oscillator with level control
     if (subOscillator) {
       const subGain = this.audioContext.createGain();
       subGain.gain.value = this.subOscillatorLevel;
@@ -119,7 +109,6 @@ export class SubtractiveSynth extends Instrument {
       subOscillator.start();
     }
 
-    // Signal chain: gain -> voice filter -> filter gain -> master filter
     gain.connect(voiceFilter);
     voiceFilter.connect(filterGain);
     filterGain.connect(this.masterFilter);
@@ -142,12 +131,17 @@ export class SubtractiveSynth extends Instrument {
         this.filterCutoff
       );
 
-      const stopTime = this.audioContext.currentTime + 0.5;
+      const stopTime = this.audioContext.currentTime + this.envelope.release;
       voice.oscillators.forEach((osc) => osc.stop(stopTime));
       if (voice.subOscillator) {
         voice.subOscillator.stop(stopTime);
       }
-      this.voices.delete(note);
+      setTimeout(() => {
+        voice.oscillators.forEach(osc => osc.disconnect());
+        voice.gain.disconnect();
+        voice.filter.disconnect();
+        this.voices.delete(note);
+      }, this.envelope.release * 1000 + 100);
     }
   }
 
@@ -169,7 +163,7 @@ export class SubtractiveSynth extends Instrument {
   }
 
   setDetune(cents: number): void {
-    this.detune = Math.max(0, Math.min(cents, 50));
+    this.detuneValue = Math.max(0, Math.min(cents, 50));
   }
 
   setSubOscillatorLevel(level: number): void {
@@ -178,5 +172,21 @@ export class SubtractiveSynth extends Instrument {
 
   setNumOscillators(num: number): void {
     this.numOscillators = Math.max(1, Math.min(num, 4));
+  }
+
+  setAttack(value: number): void {
+    this.envelope.attack = value;
+  }
+
+  setRelease(value: number): void {
+    this.envelope.release = value;
+  }
+
+  setDecay(value: number): void {
+    this.envelope.decay = value;
+  }
+
+  setSustain(value: number): void {
+    this.envelope.sustain = value;
   }
 }

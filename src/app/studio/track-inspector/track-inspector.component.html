@@ -1,133 +1,157 @@
-<div
-  class="inspector-container glass-v42 h-full flex flex-col font-sans overflow-hidden"
->
-  <div class="p-3 border-b border-fl-border bg-black/20 wood-panel">
-    <h3
-      class="text-[10px] font-black uppercase tracking-[0.2em] text-fl-blue neon-text"
-    >
+<div class="inspector-container glass-v42 h-full flex flex-col font-sans overflow-hidden">
+  <div class="p-3 border-b border-fl-border bg-black/20 wood-panel flex justify-between items-center">
+    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-fl-blue neon-text">
       Track Inspector
     </h3>
+    <button (click)="toggleAdvanced()" class="text-[8px] font-bold text-slate-500 uppercase hover:text-white transition-colors">
+      {{ showAdvanced() ? 'Basic' : 'Advanced' }}
+    </button>
   </div>
 
-  <div
-    class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-4"
-    *ngIf="selectedTrack() as track; else noTrack"
-  >
-    <div class="track-header-mini">
-      <div class="text-[12px] font-black text-white uppercase">
-        {{ track.name }}
+  <div class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-6" *ngIf="selectedTrack() as track; else noTrack">
+    <!-- Header -->
+    <div class="track-header-mini glass-v42 p-2 rounded border border-white/5 bg-white/5">
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 rounded-full" [style.background-color]="track.color"></div>
+        <div class="text-[12px] font-black text-white uppercase truncate">{{ track.name }}</div>
       </div>
-      <div class="text-[8px] font-mono text-slate-500 uppercase">
-        {{ track.instrumentId }}
+      <div class="text-[8px] font-mono text-slate-500 uppercase mt-1">
+        Node ID: {{ track.id }} | {{ track.instrumentId }}
       </div>
     </div>
 
-    <!-- Synth Parameters -->
-    <div class="section space-y-3" *ngIf="track.type === 'midi'">
-      <div
-        class="text-[8px] font-black text-slate-500 uppercase tracking-widest border-b border-fl-border/10 pb-1"
-      >
-        Synth Engine
+    <!-- Synth Engine -->
+    <div class="section space-y-4" *ngIf="track.type === 'midi'">
+      <div class="flex items-center justify-between border-b border-fl-border/10 pb-1">
+        <div class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Synth Engine</div>
+        <div class="text-[8px] font-mono text-fl-blue">{{ track.instrumentId }}</div>
       </div>
 
-      <div class="param-row">
-        <label class="text-[8px] text-slate-400 uppercase">Oscillator</label>
-        <select
-          [ngModel]="getParam('type')"
-          (ngModelChange)="updateParam('type', $event)"
-          class="inspector-select"
-        >
-          <option value="sine">Sine</option>
-          <option value="square">Square</option>
-          <option value="sawtooth">Sawtooth</option>
-          <option value="triangle">Triangle</option>
-        </select>
+      <!-- Oscillator Section -->
+      <div class="space-y-3">
+        <div class="param-row flex items-center justify-between">
+          <label class="text-[8px] text-slate-400 uppercase">Waveform</label>
+          <select [ngModel]="getParam('type')" (ngModelChange)="updateParam('type', $event)" class="inspector-select bg-black/40 border-fl-border/20 text-[10px] py-1 px-2 rounded outline-none focus:border-fl-blue">
+            <option value="sine">Sine</option>
+            <option value="square">Square</option>
+            <option value="sawtooth">Sawtooth</option>
+            <option value="triangle">Triangle</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4" *ngIf="showAdvanced()">
+          <div class="param-group">
+            <label class="text-[7px] text-slate-500 uppercase block mb-1">Unison Voices</label>
+            <input type="range" min="1" max="4" step="1" [ngModel]="getParam('numOscillators')" (ngModelChange)="updateParam('numOscillators', $event)" class="inspector-slider tactile-v42 w-full" />
+            <div class="text-[7px] font-mono text-right text-slate-400">{{ getParam('numOscillators') }}</div>
+          </div>
+          <div class="param-group">
+            <label class="text-[7px] text-slate-500 uppercase block mb-1">Detune</label>
+            <input type="range" min="0" max="50" step="1" [ngModel]="getParam('detune')" (ngModelChange)="updateParam('detune', $event)" class="inspector-slider tactile-v42 w-full" />
+            <div class="text-[7px] font-mono text-right text-slate-400">{{ getParam('detune') }}¢</div>
+          </div>
+        </div>
+
+        <div class="param-group" *ngIf="showAdvanced()">
+          <label class="text-[7px] text-slate-500 uppercase block mb-1">Sub Level</label>
+          <input type="range" min="0" max="1" step="0.05" [ngModel]="getParam('subLevel')" (ngModelChange)="updateParam('subLevel', $event)" class="inspector-slider tactile-v42 w-full" />
+        </div>
+      </div>
+
+      <!-- Envelope Section -->
+      <div class="space-y-3 bg-black/20 p-2 rounded">
+        <div class="text-[7px] font-black text-slate-600 uppercase tracking-tighter mb-2">Amp Envelope (ADSR)</div>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+          <div class="param-group">
+            <label class="text-[7px] text-slate-500 uppercase block mb-1">Attack</label>
+            <input type="range" min="0.001" max="2" step="0.01" [ngModel]="getParam('attack')" (ngModelChange)="updateParam('attack', $event)" class="inspector-slider tactile-v42 w-full" />
+          </div>
+          <div class="param-group">
+            <label class="text-[7px] text-slate-500 uppercase block mb-1">Decay</label>
+            <input type="range" min="0.01" max="2" step="0.01" [ngModel]="getParam('decay')" (ngModelChange)="updateParam('decay', $event)" class="inspector-slider tactile-v42 w-full" />
+          </div>
+          <div class="param-group">
+            <label class="text-[7px] text-slate-500 uppercase block mb-1">Sustain</label>
+            <input type="range" min="0" max="1" step="0.01" [ngModel]="getParam('sustain')" (ngModelChange)="updateParam('sustain', $event)" class="inspector-slider tactile-v42 w-full" />
+          </div>
+          <div class="param-group">
+            <label class="text-[7px] text-slate-500 uppercase block mb-1">Release</label>
+            <input type="range" min="0.01" max="4" step="0.05" [ngModel]="getParam('release')" (ngModelChange)="updateParam('release', $event)" class="inspector-slider tactile-v42 w-full" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Section -->
+      <div class="space-y-3">
+        <div class="text-[7px] font-black text-slate-600 uppercase tracking-tighter mb-2">Filter & Modulation</div>
+        <div class="param-group">
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-[7px] text-slate-500 uppercase">Cutoff</label>
+            <div class="text-[7px] font-mono text-fl-blue">{{ getParam('cutoff') }} Hz</div>
+          </div>
+          <input type="range" min="20" max="15000" step="100" [ngModel]="getParam('cutoff')" (ngModelChange)="updateParam('cutoff', $event)" class="inspector-slider tactile-v42 w-full" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="param-group">
+            <label class="text-[7px] text-slate-500 uppercase block mb-1">Resonance</label>
+            <input type="range" min="0.1" max="20" step="0.1" [ngModel]="getParam('q')" (ngModelChange)="updateParam('q', $event)" class="inspector-slider tactile-v42 w-full" />
+          </div>
+          <div class="param-group">
+            <label class="text-[7px] text-slate-500 uppercase block mb-1">Env Amount</label>
+            <input type="range" min="0" max="10000" step="100" [ngModel]="getParam('envAmount')" (ngModelChange)="updateParam('envAmount', $event)" class="inspector-slider tactile-v42 w-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio Sample Manipulation -->
+    <div class="section space-y-4" *ngIf="track.type === 'audio'">
+      <div class="text-[8px] font-black text-slate-400 uppercase tracking-widest border-b border-fl-border/10 pb-1">
+        Sample Processor
+      </div>
+
+      <div class="waveform-mini glass-v42 h-16 rounded overflow-hidden relative bg-black/40">
+        <!-- Mock waveform -->
+        <div class="absolute inset-0 flex items-center justify-around px-1 opacity-40">
+          <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12]" class="w-1 bg-fl-blue rounded-full" [style.height.%]="20 + (i * 7 % 60)"></div>
+        </div>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <span class="text-[8px] font-black text-white/50 uppercase">Visualizer Active</span>
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <div class="param-group">
-          <label class="text-[7px] text-slate-500 uppercase">Attack</label>
-          <input
-            type="range"
-            min="0.001"
-            max="2"
-            step="0.01"
-            [ngModel]="getParam('attack')"
-            (ngModelChange)="updateParam('attack', $event)"
-            class="inspector-slider tactile-v42"
-          />
-        </div>
-        <div class="param-group">
-          <label class="text-[7px] text-slate-500 uppercase">Release</label>
-          <input
-            type="range"
-            min="0.01"
-            max="4"
-            step="0.05"
-            [ngModel]="getParam('release')"
-            (ngModelChange)="updateParam('release', $event)"
-            class="inspector-slider tactile-v42"
-          />
-        </div>
+        <button class="glass-v42 py-2 text-[8px] font-black uppercase text-slate-300 hover:bg-fl-blue/20 transition-all border border-white/5">
+          Auto Slice
+        </button>
+        <button class="glass-v42 py-2 text-[8px] font-black uppercase text-slate-300 hover:bg-fl-blue/20 transition-all border border-white/5">
+          Normalize
+        </button>
       </div>
 
       <div class="param-group">
-        <label class="text-[7px] text-slate-500 uppercase">Filter Cutoff</label>
-        <input
-          type="range"
-          min="20"
-          max="15000"
-          step="100"
-          [ngModel]="getParam('cutoff')"
-          (ngModelChange)="updateParam('cutoff', $event)"
-          class="inspector-slider tactile-v42"
-        />
-        <div class="text-[7px] font-mono text-fl-blue text-right">
-          {{ getParam('cutoff') }} Hz
-        </div>
-      </div>
-
-      <div class="param-group">
-        <label class="text-[7px] text-slate-500 uppercase">Resonance (Q)</label>
-        <input
-          type="range"
-          min="0.1"
-          max="20"
-          step="0.1"
-          [ngModel]="getParam('q')"
-          (ngModelChange)="updateParam('q', $event)"
-          class="inspector-slider tactile-v42"
-        />
+        <label class="text-[7px] text-slate-500 uppercase block mb-1">Pitch Shift (Semitones)</label>
+        <input type="range" min="-12" max="12" step="1" [ngModel]="getParam('pitch')" (ngModelChange)="updateParam('pitch', $event)" class="inspector-slider tactile-v42 w-full" />
+        <div class="text-[7px] font-mono text-right text-fl-blue">{{ getParam('pitch') > 0 ? '+' : '' }}{{ getParam('pitch') }}</div>
       </div>
     </div>
 
     <!-- FX Chain -->
     <div class="section space-y-3">
-      <div
-        class="text-[8px] font-black text-slate-500 uppercase tracking-widest border-b border-fl-border/10 pb-1"
-      >
+      <div class="text-[8px] font-black text-slate-400 uppercase tracking-widest border-b border-fl-border/10 pb-1">
         FX Chain
       </div>
       <div class="fx-slot-list space-y-1">
-        <div
-          *ngFor="let slot of track.fxSlots"
-          class="fx-slot glass-v42 p-2 flex items-center justify-between rounded border border-white/5"
-        >
-          <span class="text-[8px] font-black uppercase text-slate-300">{{
-            slot.type
-          }}</span>
-          <div class="flex gap-2">
-            <div
-              class="w-1.5 h-1.5 rounded-full"
-              [class.bg-green-500]="slot.enabled"
-              [class.bg-slate-700]="!slot.enabled"
-            ></div>
+        <div *ngFor="let slot of track.fxSlots" class="fx-slot glass-v42 p-2 flex items-center justify-between rounded border border-white/5 bg-black/20">
+          <div class="flex items-center gap-2">
+            <div class="w-1.5 h-1.5 rounded-full" [class.bg-green-500]="slot.enabled" [class.bg-slate-700]="!slot.enabled"></div>
+            <span class="text-[9px] font-black uppercase text-slate-200">{{ slot.type }}</span>
           </div>
+          <button class="text-[8px] text-slate-500 hover:text-white">EDIT</button>
         </div>
-        <button
-          class="w-full py-1.5 border border-dashed border-fl-border/40 rounded text-[7px] font-black text-slate-500 hover:text-fl-blue hover:border-fl-blue transition-all"
-        >
-          + ADD EFFECT
+        <button class="w-full py-2 border border-dashed border-fl-border/30 rounded text-[7px] font-black text-slate-500 hover:text-fl-blue hover:border-fl-blue transition-all bg-white/2">
+          + ADD EFFECT SLOT
         </button>
       </div>
     </div>
@@ -135,8 +159,8 @@
 
   <ng-template #noTrack>
     <div class="flex-1 flex flex-col items-center justify-center opacity-20">
-      <span class="material-symbols-outlined text-4xl mb-2">info</span>
-      <div class="text-[10px] font-black uppercase">No Track Selected</div>
+      <span class="material-symbols-outlined text-4xl mb-2 text-slate-500">tune</span>
+      <div class="text-[10px] font-black uppercase tracking-widest">Select a track to inspect</div>
     </div>
   </ng-template>
 </div>
