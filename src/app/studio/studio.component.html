@@ -1,26 +1,42 @@
 <div
-  class="studio-container {{ studioQualityClass() }}" [class.header-collapsed]="headerCollapsed()"
+  class="studio-container {{ studioQualityClass() }}" 
+  [class.header-collapsed]="headerCollapsed()"
   [class.holographic]="uiService.holographicMode()"
   [attr.data-theme]="'analog-v42'"
   [class.mobile-drawer-open]="mobileDrawerOpen()"
   [class.mobile-mode]="uiService.isCompactMobile()"
 >
   <div class="studio-shell">
+    <!-- Offline Indicator -->
+    <app-offline-indicator></app-offline-indicator>
+
     <!-- Drawer Toggle (Mobile Only) -->
     <button *ngIf="uiService.isCompactMobile()" type="button" class="mobile-drawer-toggle" (click)="toggleMobileDrawer()">
       <span class="material-icons">{{ mobileDrawerOpen() ? 'close' : 'menu' }}</span>
     </button>
 
-    <button type="button" class="header-toggle" (click)="toggleHeader()" [class.floating]="headerCollapsed()" [title]="headerCollapsed() ? 'Expand Header' : 'Collapse Header'"><span class="material-icons">{{ headerCollapsed() ? 'expand_more' : 'expand_less' }}</span></button>
+    <!-- Header Toggle -->
+    <button type="button" class="header-toggle" (click)="toggleHeader()" [class.floating]="headerCollapsed()" [title]="headerCollapsed() ? 'Expand Header' : 'Collapse Header'">
+      <span class="material-icons">{{ headerCollapsed() ? 'expand_more' : 'expand_less' }}</span>
+    </button>
 
+    <!-- Studio Transport Header -->
     <header class="studio-transport" [class.collapsed]="headerCollapsed()">
       <div class="transport-brand">
         <h1>SMUVE</h1>
         <p>Studio 2.0</p>
       </div>
       <div class="transport-actions">
-        <button type="button" class="export-btn" (click)="musicManager.exportProject()" title="Export Project"><span class="material-icons">download</span></button>
-        <button type="button" class="import-btn" (click)="fileInput.click()" title="Import Project"><span class="material-icons">upload</span></button>
+        <!-- Search Button (Mobile) -->
+        <button *ngIf="uiService.isCompactMobile()" type="button" class="search-btn" (click)="openSearch()" title="Search">
+          <span class="material-icons">search</span>
+        </button>
+        <button type="button" class="export-btn" (click)="musicManager.exportProject()" title="Export Project">
+          <span class="material-icons">download</span>
+        </button>
+        <button type="button" class="import-btn" (click)="fileInput.click()" title="Import Project">
+          <span class="material-icons">upload</span>
+        </button>
         <input #fileInput type="file" accept=".json" class="hidden" (change)="handleImport($event)">
         <button
           type="button"
@@ -29,7 +45,9 @@
         >
           <span class="material-icons">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
         </button>
-        <button type="button" (click)="audioSession.stop()"><span class="material-icons">stop</span></button>
+        <button type="button" (click)="audioSession.stop()">
+          <span class="material-icons">stop</span>
+        </button>
         <button
           type="button"
           class="record"
@@ -82,7 +100,9 @@
         </button>
       </nav>
       <footer>
-         <button (click)="toggleNeuralFoundry()"><span class="material-icons">psychology</span> Neural Foundry</button>
+         <button (click)="toggleNeuralFoundry()">
+           <span class="material-icons">psychology</span> Neural Foundry
+         </button>
       </footer>
     </aside>
 
@@ -196,6 +216,9 @@
     [visible]="showFab()"
     (fabClick)="onFabClick()"
   ></app-fab>
+
+  <!-- Search Overlay -->
+  <app-search-overlay></app-search-overlay>
 
   <!-- Snackbar -->
   <app-snackbar></app-snackbar>
