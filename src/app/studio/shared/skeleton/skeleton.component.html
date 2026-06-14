@@ -1,0 +1,15 @@
+<div class="skeleton-container">
+  <div 
+    *ngFor="let _ of items"
+    class="skeleton"
+    [class.skeleton-text]="type() === 'text'"
+    [class.skeleton-card]="type() === 'card'"
+    [class.skeleton-preset]="type() === 'preset'"
+    [class.skeleton-track]="type() === 'track'"
+    [class.skeleton-circle]="type() === 'circle'"
+    [style.width]="width()"
+    [style.height]="height()"
+  >
+    <div class="skeleton-shimmer"></div>
+  </div>
+</div>
