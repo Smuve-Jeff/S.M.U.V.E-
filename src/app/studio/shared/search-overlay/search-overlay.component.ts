@@ -1,4 +1,4 @@
-import { Component, output, signal, OnInit, inject } from '@angular/core';
+import { Component, output, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -51,7 +51,6 @@ export class SearchOverlayComponent implements OnInit {
       return;
     }
     
-    // Mock search results - replace with actual search logic
     const mockResults: SearchResult[] = [
       { id: '1', title: 'Deep Bass Synth', subtitle: 'Synth Preset', type: 'preset', icon: 'settings_input_component' },
       { id: '2', title: 'Reverb Hall', subtitle: 'Effect', type: 'effect', icon: 'graphic_eq' },

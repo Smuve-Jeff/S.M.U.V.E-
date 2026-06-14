@@ -21,7 +21,6 @@
     </div>
     
     <div class="search-content">
-      <!-- Recent Searches -->
       <div class="recent-section" *ngIf="recentSearches().length > 0 && !query()">
         <div class="section-header">
           <span class="section-title">Recent Searches</span>
@@ -40,7 +39,6 @@
         </div>
       </div>
       
-      <!-- Search Results -->
       <div class="results-section" *ngIf="query()">
         <div class="section-header" *ngIf="results().length > 0">
           <span class="section-title">Results ({{ results().length }})</span>

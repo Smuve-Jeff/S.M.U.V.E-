@@ -47,11 +47,6 @@
   justify-content: center;
   min-width: 48px;
   min-height: 48px;
-  transition: background 0.2s ease;
-}
-
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
 }
 
 .search-input-wrapper {
@@ -91,8 +86,6 @@
   cursor: pointer;
   padding: 4px;
   display: flex;
-  align-items: center;
-  justify-content: center;
   min-width: 32px;
   min-height: 32px;
 }
@@ -146,12 +139,7 @@
   color: #cbd5e1;
   cursor: pointer;
   text-align: left;
-  transition: background 0.2s ease;
   min-height: 48px;
-}
-
-.recent-item:hover {
-  background: rgba(255, 255, 255, 0.05);
 }
 
 .recent-item .material-icons {
@@ -181,14 +169,7 @@
   color: #f8fafc;
   cursor: pointer;
   text-align: left;
-  transition: all 0.2s ease;
   min-height: 64px;
-}
-
-.result-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(56, 189, 248, 0.3);
-  transform: translateX(4px);
 }
 
 .result-icon {
@@ -199,7 +180,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
 .result-icon .material-icons {
@@ -209,7 +189,6 @@
 
 .result-content {
   flex: 1;
-  min-width: 0;
 }
 
 .result-title {
@@ -226,14 +205,12 @@
 .result-arrow {
   color: #64748b;
   font-size: 20px;
-  flex-shrink: 0;
 }
 
 .no-results {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   padding: 64px 16px;
   text-align: center;
   color: #64748b;
@@ -243,19 +220,4 @@
   font-size: 64px;
   margin-bottom: 16px;
   opacity: 0.3;
-}
-
-.no-results p {
-  font-size: 14px;
-  margin: 0;
-}
-
-@media (min-width: 769px) {
-  .search-container {
-    max-width: 640px;
-    margin: 0 auto;
-    border-radius: 16px;
-    margin-top: 48px;
-    height: calc(100% - 96px);
-  }
 }
