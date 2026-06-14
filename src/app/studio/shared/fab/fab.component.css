@@ -79,9 +79,3 @@
     bottom: 24px;
   }
 }
-
-@media (max-width: 768px) {
-  .fab {
-    bottom: 80px;
-  }
-}

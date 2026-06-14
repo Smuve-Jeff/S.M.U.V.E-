@@ -52,10 +52,6 @@
   background: rgba(56, 189, 248, 0.1);
 }
 
-.snackbar-action:active {
-  transform: scale(0.95);
-}
-
 .snackbar-close {
   background: transparent;
   border: none;
@@ -76,10 +72,6 @@
   color: #f8fafc;
 }
 
-.snackbar-close .material-icons {
-  font-size: 18px;
-}
-
 .snackbar-success {
   background: #065f46;
   border-left: 4px solid #10b981;
@@ -98,12 +90,6 @@
 .snackbar-info {
   background: #1e293b;
   border-left: 4px solid #38bdf8;
-}
-
-@media (min-width: 769px) {
-  .snackbar {
-    bottom: 24px;
-  }
 }
 
 @media (max-width: 768px) {
