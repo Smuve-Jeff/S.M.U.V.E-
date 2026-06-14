@@ -406,3 +406,75 @@
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+
+
+/* Mobile Mode Adjustments */
+.studio-container.mobile-mode {
+  padding-bottom: 64px; /* Space for bottom nav */
+}
+
+.studio-container.mobile-mode .studio-layout {
+  padding-bottom: 0;
+}
+
+/* Enhanced Touch Targets for Mobile */
+@media (max-width: 768px) {
+  .transport-actions button,
+  .mobile-tool-tabs button,
+  .drawer-nav button {
+    min-width: 48px;
+    min-height: 48px;
+  }
+  
+  .studio-workspace {
+    margin-bottom: 0;
+  }
+  
+  /* Ensure content doesn't hide behind bottom nav */
+  .view-wrapper {
+    padding-bottom: 80px;
+  }
+}
+
+/* Landscape Mode Optimizations */
+@media (orientation: landscape) and (max-width: 896px) {
+  .studio-transport {
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .transport-brand h1 {
+    font-size: 0.75rem;
+  }
+  
+  .transport-brand p {
+    display: none;
+  }
+  
+  .studio-layout {
+    grid-template-columns: 12rem 1fr 12rem;
+  }
+  
+  .mobile-utility-drawer {
+    height: 70vh;
+  }
+}
+
+/* Improved Scrolling Performance */
+.studio-workspace,
+.view-wrapper,
+.mobile-utility-drawer {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Card-based Layout Enhancements */
+.studio-panel {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 768px) {
+  .studio-panel {
+    border-radius: 16px;
+  }
+}

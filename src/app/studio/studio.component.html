@@ -3,6 +3,7 @@
   [class.holographic]="uiService.holographicMode()"
   [attr.data-theme]="'analog-v42'"
   [class.mobile-drawer-open]="mobileDrawerOpen()"
+  [class.mobile-mode]="uiService.isCompactMobile()"
 >
   <div class="studio-shell">
     <!-- Drawer Toggle (Mobile Only) -->
@@ -179,4 +180,23 @@
       </aside>
     </div>
   </div>
+
+  <!-- Bottom Navigation (Mobile Only) -->
+  <app-bottom-nav
+    *ngIf="uiService.isCompactMobile()"
+    [items]="bottomNavItems()"
+    [activeId]="activeView()"
+    (itemClick)="onBottomNavClick($event)"
+  ></app-bottom-nav>
+
+  <!-- Floating Action Button -->
+  <app-fab
+    *ngIf="uiService.isCompactMobile() && showFab()"
+    [icon]="fabIcon()"
+    [visible]="showFab()"
+    (fabClick)="onFabClick()"
+  ></app-fab>
+
+  <!-- Snackbar -->
+  <app-snackbar></app-snackbar>
 </div>

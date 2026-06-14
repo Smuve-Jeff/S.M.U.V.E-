@@ -1,0 +1,74 @@
+<div class="search-overlay" [class.visible]="visible()" (click)="hide()">
+  <div class="search-container" (click)="$event.stopPropagation()">
+    <div class="search-header">
+      <button class="back-btn" (click)="hide()" type="button">
+        <span class="material-icons">arrow_back</span>
+      </button>
+      <div class="search-input-wrapper">
+        <span class="material-icons search-icon">search</span>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search sounds, effects, actions..."
+          [(ngModel)]="query"
+          (ngModelChange)="onSearch($event)"
+          autofocus
+        />
+        <button *ngIf="query()" class="clear-btn" (click)="query.set(''); onSearch('')" type="button">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+    </div>
+    
+    <div class="search-content">
+      <!-- Recent Searches -->
+      <div class="recent-section" *ngIf="recentSearches().length > 0 && !query()">
+        <div class="section-header">
+          <span class="section-title">Recent Searches</span>
+          <button class="clear-all-btn" (click)="clearRecentSearches()" type="button">Clear</button>
+        </div>
+        <div class="recent-list">
+          <button
+            *ngFor="let search of recentSearches()"
+            class="recent-item"
+            (click)="onRecentSearchClick(search)"
+            type="button"
+          >
+            <span class="material-icons">history</span>
+            <span class="recent-text">{{ search }}</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Search Results -->
+      <div class="results-section" *ngIf="query()">
+        <div class="section-header" *ngIf="results().length > 0">
+          <span class="section-title">Results ({{ results().length }})</span>
+        </div>
+        
+        <div class="results-list" *ngIf="results().length > 0">
+          <button
+            *ngFor="let result of results()"
+            class="result-item"
+            (click)="onSelectResult(result)"
+            type="button"
+          >
+            <div class="result-icon">
+              <span class="material-icons">{{ result.icon }}</span>
+            </div>
+            <div class="result-content">
+              <div class="result-title">{{ result.title }}</div>
+              <div class="result-subtitle" *ngIf="result.subtitle">{{ result.subtitle }}</div>
+            </div>
+            <span class="material-icons result-arrow">arrow_forward</span>
+          </button>
+        </div>
+        
+        <div class="no-results" *ngIf="results().length === 0">
+          <span class="material-icons">search_off</span>
+          <p>No results found for "{{ query() }}"</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
