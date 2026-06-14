@@ -38,6 +38,8 @@ import { InteractionDialogService } from '../services/interaction-dialog.service
 import { BottomNavComponent, BottomNavItem } from './shared/bottom-nav/bottom-nav.component';
 import { FabComponent } from './shared/fab/fab.component';
 import { SnackbarComponent } from './shared/snackbar/snackbar.component';
+import { SearchOverlayComponent } from './shared/search-overlay/search-overlay.component';
+import { OfflineIndicatorComponent } from './shared/offline-indicator/offline-indicator.component';
 import { SnackbarService } from '../services/snackbar.service';
 import { EnhancedTouchGestureService } from '../services/enhanced-touch-gesture.service';
 
@@ -87,12 +89,15 @@ function isStudioView(value: string): value is StudioView {
     BottomNavComponent,
     FabComponent,
     SnackbarComponent,
+    SearchOverlayComponent,
+    OfflineIndicatorComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
 })
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
+  @ViewChild(SearchOverlayComponent) searchOverlay?: SearchOverlayComponent;
   
   private readonly beatsPerBar = 4;
   public readonly audioSession = inject(AudioSessionService);
@@ -177,7 +182,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setActiveView(view: StudioView) {
     this.mobileDrawerOpen.set(false);
-    const previousView = this.activeView();
     this.activeView.set(view);
     this.mobilePanel.set(null);
     
@@ -225,7 +229,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   addTrack() {
-    // Add track logic
     this.snackbarService.success('Track added successfully', 'UNDO');
   }
 
@@ -246,6 +249,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleMobileDrawer() {
     this.haptic.light();
     this.mobileDrawerOpen.update(v => !v);
+  }
+
+  openSearch() {
+    this.haptic.light();
+    this.searchOverlay?.show();
   }
 
   async adjustBpm() {
