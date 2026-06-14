@@ -57,7 +57,7 @@ export interface FxSlot {
   id: string;
   type: string;
   params: any;
-  enabled: boolea
+  enabled: boolean;
   mix?: number;
 }
 
@@ -80,7 +80,7 @@ export interface AutomationLane {
   id: string;
   parameter: string;
   points: AutomationPoint[];
-  enabled: boolea
+  enabled: boolean;
 }
 
 export interface TrackModel {
@@ -96,8 +96,8 @@ export interface TrackModel {
   pan: number;
   sendA: number;
   sendB: number;
-  mute: boolea
-  solo: boolea
+  mute: boolean;
+  solo: boolean;
   steps: boolean[];
   synthParams?: any;
   patternSlots?: PatternSlot[];
@@ -396,7 +396,7 @@ export class MusicManagerService {
     this.currentStep.set(step);
     const hasSolo = this.tracks().some(t => t.solo);
     this.tracks().forEach(t => {
-      if (t.mute || (hasSolo && !t.solo)) retur
+      if (t.mute || (hasSolo && !t.solo)) return;
       t.notes.filter(n => Math.floor(n.step) === step % 64).forEach(n => {
         const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
         const params = t.id === MusicManagerService.DRUM_TRACK_ID ? { ...t.synthParams, ...(n.params || {}) } : t.synthParams;
