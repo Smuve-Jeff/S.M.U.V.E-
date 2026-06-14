@@ -211,9 +211,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     if (blobs && blobs.blob) {
       const url = URL.createObjectURL(blobs.blob);
       const audio = new Audio(url);
-      audio.onended = () => URL.revokeObjectURL(url);
-      audio.onerror = () => URL.revokeObjectURL(url);
-      void audio.play().catch(() => URL.revokeObjectURL(url));
+      audio.play();
     }
   }
 

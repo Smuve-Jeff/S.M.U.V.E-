@@ -1,3 +1,4 @@
+import { ProjectTemplateService } from './project-template.service';
 import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { InstrumentsService } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
@@ -56,7 +57,7 @@ export interface FxSlot {
   id: string;
   type: string;
   params: any;
-  enabled: boolean;
+  enabled: boolea
   mix?: number;
 }
 
@@ -79,7 +80,7 @@ export interface AutomationLane {
   id: string;
   parameter: string;
   points: AutomationPoint[];
-  enabled: boolean;
+  enabled: boolea
 }
 
 export interface TrackModel {
@@ -95,8 +96,8 @@ export interface TrackModel {
   pan: number;
   sendA: number;
   sendB: number;
-  mute: boolean;
-  solo: boolean;
+  mute: boolea
+  solo: boolea
   steps: boolean[];
   synthParams?: any;
   patternSlots?: PatternSlot[];
@@ -395,7 +396,7 @@ export class MusicManagerService {
     this.currentStep.set(step);
     const hasSolo = this.tracks().some(t => t.solo);
     this.tracks().forEach(t => {
-      if (t.mute || (hasSolo && !t.solo)) return;
+      if (t.mute || (hasSolo && !t.solo)) retur
       t.notes.filter(n => Math.floor(n.step) === step % 64).forEach(n => {
         const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
         const params = t.id === MusicManagerService.DRUM_TRACK_ID ? { ...t.synthParams, ...(n.params || {}) } : t.synthParams;

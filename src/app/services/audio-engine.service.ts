@@ -950,7 +950,7 @@ export class AudioEngineService {
     this.applyDeckOutputGain(this.deckB);
   }
 
-    private getCrossfadeGain(
+  private getCrossfadeGain(
     value: number,
     curve: 'linear' | 'power' | 'exp' | 'cut',
     deckId: DeckId

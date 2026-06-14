@@ -60,7 +60,6 @@ export class ProjectTemplateService {
     template.tracks.forEach(t => {
       this.musicManager.addTrack(t.name, t.instrumentId);
     });
-    this.musicManager.selectedTrackId.set(this.musicManager.tracks()[0]?.id ?? null);
     this.musicManager.engine.tempo.set(template.bpm);
     this.logger.info(`ProjectTemplateService: Applied template ${template.name}`);
   }
