@@ -49,23 +49,19 @@ export class SwipeContainerComponent implements AfterViewInit, OnDestroy {
     const deltaY = endY - this.startY;
     const deltaTime = Date.now() - this.startTime;
     
-    // Only trigger if swipe is fast enough (< 300ms)
     if (deltaTime > 300) return;
     
     const absX = Math.abs(deltaX);
     const absY = Math.abs(deltaY);
     const thresh = this.threshold();
     
-    // Horizontal swipe
     if (absX > absY && absX > thresh) {
       if (deltaX > 0) {
         this.swipeRight.emit();
       } else {
         this.swipeLeft.emit();
       }
-    }
-    // Vertical swipe
-    else if (absY > absX && absY > thresh) {
+    } else if (absY > absX && absY > thresh) {
       if (deltaY > 0) {
         this.swipeDown.emit();
       } else {
