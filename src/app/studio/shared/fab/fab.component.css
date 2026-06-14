@@ -10,9 +10,10 @@
   gap: 8px;
   padding: 0 16px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 900;
+  -webkit-tap-highlight-color: transparent;
   min-width: 56px;
   min-height: 56px;
 }
@@ -39,6 +40,7 @@
 
 .fab:hover {
   transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.3);
 }
 
 .fab:active {
@@ -48,6 +50,7 @@
 .fab-hidden {
   transform: scale(0);
   opacity: 0;
+  pointer-events: none;
 }
 
 .fab .material-icons {
@@ -59,6 +62,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .fab:has(.fab-label) {
@@ -67,7 +71,17 @@
 }
 
 @media (min-width: 769px) {
-  .fab-bottom-right, .fab-bottom-left {
+  .fab-bottom-right {
     bottom: 24px;
+  }
+  
+  .fab-bottom-left {
+    bottom: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .fab {
+    bottom: 80px;
   }
 }

@@ -6,6 +6,7 @@
   height: 64px;
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-around;
@@ -36,6 +37,7 @@
   transition: all 0.2s ease;
   min-width: 48px;
   min-height: 48px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bottom-nav-item:active {
