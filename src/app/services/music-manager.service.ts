@@ -1,3 +1,4 @@
+import { ProjectTemplateService } from './project-template.service';
 import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { InstrumentsService } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';

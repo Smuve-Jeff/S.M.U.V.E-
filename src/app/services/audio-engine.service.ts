@@ -950,7 +950,7 @@ export class AudioEngineService {
     this.applyDeckOutputGain(this.deckB);
   }
 
-  private getCrossfadeGain(
+    private getCrossfadeGain(
     value: number,
     curve: 'linear' | 'power' | 'exp' | 'cut',
     deckId: DeckId
@@ -974,6 +974,10 @@ export class AudioEngineService {
         return normalized < 0.45 ? 1 : normalized > 0.55 ? 0 : 0.5;
       }
       return normalized > 0.55 ? 1 : normalized < 0.45 ? 0 : 0.5;
+    }
+
+    return deckId === 'A' ? a : b;
+  }
 
   updateTrackInsert(id: number, type: string, amount: number) {
     const node = this.trackInserts.get(id);
