@@ -8,6 +8,7 @@ import {
   OnInit,
   OnDestroy,
   AfterViewInit,
+  ViewChild,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -34,6 +35,11 @@ import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
 import { SequencerService } from './sequencer.service';
 import { InteractionDialogService } from '../services/interaction-dialog.service';
+import { BottomNavComponent, BottomNavItem } from './shared/bottom-nav/bottom-nav.component';
+import { FabComponent } from './shared/fab/fab.component';
+import { SnackbarComponent } from './shared/snackbar/snackbar.component';
+import { SnackbarService } from '../services/snackbar.service';
+import { EnhancedTouchGestureService } from '../services/enhanced-touch-gesture.service';
 
 type StudioView =
   | 'arrangement'
@@ -78,11 +84,16 @@ function isStudioView(value: string): value is StudioView {
     PerformerComponent,
     SoundBrowserComponent,
     TrackInspectorComponent,
+    BottomNavComponent,
+    FabComponent,
+    SnackbarComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
 })
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
+  
   private readonly beatsPerBar = 4;
   public readonly audioSession = inject(AudioSessionService);
   public readonly audioEngine = inject(AudioEngineService);
@@ -96,8 +107,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly aiCopilot = inject(AiCopilotService);
   private readonly haptic = inject(HapticService);
   public readonly touchGestures = inject(TouchGestureService);
+  private readonly enhancedGestures = inject(EnhancedTouchGestureService);
   private readonly sequencer = inject(SequencerService);
   private readonly dialog = inject(InteractionDialogService);
+  private readonly snackbarService = inject(SnackbarService);
 
   private destroy$ = new Subject<void>();
 
@@ -116,6 +129,29 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   currentBar = computed(() => {
     const stepsPerBar = this.audioEngine.stepsPerBeat() * this.beatsPerBar;
     return Math.floor(this.musicManager.currentStep() / stepsPerBar) + 1;
+  });
+
+  // Bottom Nav Items
+  bottomNavItems = computed<BottomNavItem[]>(() => [
+    { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },
+    { id: 'piano-roll', label: 'Piano', icon: 'piano' },
+    { id: 'drum-machine', label: 'Drums', icon: 'grid_view' },
+    { id: 'mixer', label: 'Mix', icon: 'tune' },
+    { id: 'performance', label: 'Perform', icon: 'interpreter_mode' },
+  ]);
+
+  // FAB visibility based on view
+  showFab = computed(() => {
+    const view = this.activeView();
+    return ['arrangement', 'piano-roll', 'drum-machine'].includes(view);
+  });
+
+  fabIcon = computed(() => {
+    const view = this.activeView();
+    if (view === 'arrangement') return 'add';
+    if (view === 'piano-roll') return 'edit_note';
+    if (view === 'drum-machine') return 'album';
+    return 'add';
   });
 
   constructor() {
@@ -141,8 +177,27 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setActiveView(view: StudioView) {
     this.mobileDrawerOpen.set(false);
+    const previousView = this.activeView();
     this.activeView.set(view);
     this.mobilePanel.set(null);
+    
+    // Haptic feedback on view change
+    this.haptic.light();
+    
+    // Show snackbar notification
+    const viewNames: Record<StudioView, string> = {
+      'arrangement': 'Arrangement View',
+      'piano-roll': 'Piano Roll',
+      'drum-machine': 'Drum Machine',
+      'mixer': 'Mixer',
+      'performance': 'Performance Mode',
+      'mastering': 'Mastering Suite',
+      'dj': 'DJ Deck',
+      'performer': 'Performer'
+    };
+    
+    this.snackbarService.info(`Switched to ${viewNames[view]}`);
+    
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { view },
@@ -150,7 +205,32 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
+  onBottomNavClick(viewId: string) {
+    if (isStudioView(viewId)) {
+      this.setActiveView(viewId);
+    }
+  }
+
+  onFabClick() {
+    const view = this.activeView();
+    this.haptic.medium();
+    
+    if (view === 'arrangement') {
+      this.addTrack();
+    } else if (view === 'piano-roll') {
+      this.snackbarService.info('Draw mode activated', 'OK');
+    } else if (view === 'drum-machine') {
+      this.snackbarService.info('New pattern created', 'UNDO');
+    }
+  }
+
+  addTrack() {
+    // Add track logic
+    this.snackbarService.success('Track added successfully', 'UNDO');
+  }
+
   toggleMobilePanel(panel: MobileStudioPanel) {
+    this.haptic.light();
     this.mobilePanel.update((current) => (current === panel ? null : panel));
   }
 
@@ -159,13 +239,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   toggleHeader() {
+    this.haptic.light();
     this.headerCollapsed.update((v) => !v);
   }
 
   toggleMobileDrawer() {
+    this.haptic.light();
     this.mobileDrawerOpen.update(v => !v);
   }
-
 
   async adjustBpm() {
     const result = await this.dialog.prompt({
@@ -179,6 +260,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const val = parseInt(result, 10);
       if (!isNaN(val) && val >= 20 && val <= 300) {
         this.audioEngine.tempo.set(val);
+        this.haptic.medium();
+        this.snackbarService.success(`Tempo set to ${val} BPM`);
+      } else {
+        this.snackbarService.error('Invalid BPM value');
       }
     }
   }
@@ -187,11 +272,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const file = event.target.files?.[0];
     if (file) {
       this.musicManager.importProject(file);
+      this.snackbarService.success('Project imported successfully');
+      this.haptic.medium();
     }
     event.target.value = '';
   }
 
   toggleNeuralFoundry() {
+    this.haptic.light();
     this.showNeuralFoundry.update((v) => !v);
   }
 }
