@@ -1,11 +1,6 @@
 <div class="snackbar" [class.visible]="visible()" [class]="'snackbar-' + type()">
   <span class="snackbar-message">{{ message() }}</span>
-  <button
-    *ngIf="action()"
-    class="snackbar-action"
-    (click)="onAction()"
-    type="button"
-  >
+  <button *ngIf="action()" class="snackbar-action" (click)="onAction()" type="button">
     {{ action() }}
   </button>
   <button class="snackbar-close" (click)="hide()" type="button">
