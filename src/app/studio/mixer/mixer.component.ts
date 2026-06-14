@@ -96,12 +96,19 @@ export class MixerComponent implements OnInit, OnDestroy {
   updateTrackFX(id: number, type: string, value: number) {
     this.musicManager.tracks.update(ts => ts.map(t => {
       if (t.id !== id) return t;
-      const fxSlots = [...t.fxSlots];
-      let slot = fxSlots.find(s => s.type === type);
-      if (slot) {
-        slot.params.amount = value;
+      const fxSlots = [...(t.fxSlots ?? [])];
+      const slotIndex = fxSlots.findIndex(s => s.type === type);
+      if (slotIndex >= 0) {
+        const existing = fxSlots[slotIndex];
+        fxSlots[slotIndex] = {
+          ...existing,
+          params: { ...(existing.params ?? {}), amount: value },
+        };
       } else {
         fxSlots.push({ id: `fx-${Date.now()}`, type, params: { amount: value }, enabled: true });
+      }
+      return { ...t, fxSlots };
+    }));
       }
       return { ...t, fxSlots };
     }));
