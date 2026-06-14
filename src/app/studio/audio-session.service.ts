@@ -90,9 +90,6 @@ export class AudioSessionService {
       this.engine.start(true).then(() => {
         this.recordingEngine.startRecording();
         this.playbackState.set('recording');
-      }).catch((err: unknown) => {
-        this.logger.error('AudioSession: Engine failed to start for recording', err);
-        this.playbackState.set('stopped');
       });
     }
   }

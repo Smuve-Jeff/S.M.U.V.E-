@@ -207,26 +207,22 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async playTake(take: any) {
-    const blobs = await this.recordingEngine.getTakeBlob(take.id);
+    const blobs = await this.recordingEngine['localStorage'].getItem('audio_blobs', take.id);
     if (blobs && blobs.blob) {
       const url = URL.createObjectURL(blobs.blob);
       const audio = new Audio(url);
-      audio.addEventListener('ended', () => URL.revokeObjectURL(url), { once: true });
       audio.play();
     }
   }
 
   async deleteTake(take: any) {
     if (confirm()) {
-      try {
-        await this.recordingEngine.deleteTakeById(take);
-      } catch (err) {
-        console.error('Failed to delete take from storage', err);
-      }
+      this.recordingEngine.takes.update(ts => ts.filter(t => t.id !== take.id));
+      await this.recordingEngine['localStorage'].deleteItem('audio_blobs', take.id);
     }
   }
 
-
+  async downloadRecording() {
     const blob = this.recordingEngine.recordedBlob();
     if (blob) {
       this.showUplink.set(true);

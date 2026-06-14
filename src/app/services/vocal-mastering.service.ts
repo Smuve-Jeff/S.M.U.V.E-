@@ -113,8 +113,6 @@ export class VocalMasteringService {
   updateNodes() {
     const p = this.params();
     const now = this.ctx.currentTime;
-    // Pitch correction params are read here; full DSP integration requires an AudioWorklet.
-    const _pitchParams = this.pitchCorrection.getProcessingParams();
 
     // De-esser
     this.deesserFilter.type = 'peaking';

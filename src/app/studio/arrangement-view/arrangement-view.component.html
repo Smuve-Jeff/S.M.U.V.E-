@@ -159,11 +159,11 @@
 
           <!-- Real-time Recording Lane Visual -->
           <div class="absolute inset-x-0 bg-red-500/10 pointer-events-none flex flex-col justify-center"
-               [style.top.px]="rulerHeight + selectedTrackIndex() * laneHeight"
+               [style.top.px]="rulerHeight + (musicManager.selectedTrackId() || 0) * laneHeight"
                [style.height.px]="laneHeight">
              <div class="h-1 bg-red-500/40 absolute bottom-0 left-0 transition-all" [style.width.px]="playheadPos()"></div>
              <div class="recording-waveform flex items-center gap-[2px] px-4 overflow-hidden">
-                <div *ngFor="let v of waveformBars()"
+                <div *ngFor="let v of [40,60,80,30,90,50,70,40,60,20,50,80]"
                      class="w-1 bg-red-500 rounded-full animate-pulse"
                      [style.height.px]="v * (laneHeight/150)"></div>
              </div>

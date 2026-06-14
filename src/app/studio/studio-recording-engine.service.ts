@@ -200,15 +200,6 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.takes.set([]);
   }
 
-  async getTakeBlob(takeId: string): Promise<{ blob: Blob } | null> {
-    return this.localStorage.getItem('audio_blobs', takeId);
-  }
-
-  async deleteTakeById(take: RecordingMetadata): Promise<void> {
-    await this.localStorage.deleteItem('audio_blobs', take.id);
-    this.takes.update(ts => ts.filter(t => t.id !== take.id));
-  }
-
   getAnalyserNode(): AnalyserNode | null {
     return this.analyserNode;
   }

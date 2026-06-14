@@ -57,7 +57,7 @@ export interface FxSlot {
   id: string;
   type: string;
   params: any;
-  enabled: boolean;
+  enabled: boolea
   mix?: number;
 }
 
@@ -80,7 +80,7 @@ export interface AutomationLane {
   id: string;
   parameter: string;
   points: AutomationPoint[];
-  enabled: boolean;
+  enabled: boolea
 }
 
 export interface TrackModel {
@@ -96,8 +96,8 @@ export interface TrackModel {
   pan: number;
   sendA: number;
   sendB: number;
-  mute: boolean;
-  solo: boolean;
+  mute: boolea
+  solo: boolea
   steps: boolean[];
   synthParams?: any;
   patternSlots?: PatternSlot[];
@@ -405,18 +405,6 @@ export class MusicManagerService {
     });
   }
 
-  private validateTakes(raw: any[]): import('../studio/studio-recording-engine.service').RecordingMetadata[] {
-    if (!Array.isArray(raw)) return [];
-    return raw.filter(t =>
-      t && typeof t === 'object' &&
-      typeof t.id === 'string' &&
-      typeof t.name === 'string' &&
-      typeof t.timestamp === 'number' &&
-      typeof t.duration === 'number' &&
-      typeof t.sampleRate === 'number'
-    );
-  }
-
   snapshotProject(): StudioProjectData {
     return { tracks: this.tracks(), selectedTrackId: this.selectedTrackId(), bpm: this.engine.tempo(), takes: this.recordingEngine.takes() };
   }
@@ -430,7 +418,7 @@ export class MusicManagerService {
         this.tracks.set(data.tracks);
         this.selectedTrackId.set(data.selectedTrackId);
         this.engine.tempo.set(data.bpm);
-        this.recordingEngine.takes.set(this.validateTakes(data.takes ?? []));
+        if (data.takes) this.recordingEngine.takes.set(data.takes);
         this.logger.info("Elite Studio: Autosave restored.");
       } catch (e) {
         this.logger.error("Failed to restore autosave", e);
@@ -444,7 +432,6 @@ export class MusicManagerService {
     this.performerScenes.set(this.createDefaultScenes());
     this.activeSceneId.set(null);
     this.engine.tempo.set(124);
-    this.recordingEngine.takes.set([]);
     this.logger.info("Elite Studio: New project initialized.");
   }
 
@@ -457,7 +444,9 @@ export class MusicManagerService {
           this.tracks.set(data.tracks);
           this.selectedTrackId.set(data.selectedTrackId);
           this.engine.tempo.set(data.bpm);
-          this.recordingEngine.takes.set(this.validateTakes(data.takes ?? []));
+          if (data.takes) {
+            this.recordingEngine.takes.set(data.takes);
+          }
           this.logger.info("Project imported successfully.");
         }
       } catch (err) {
