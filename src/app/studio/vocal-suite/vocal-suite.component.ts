@@ -1,3 +1,4 @@
+import { LocalStorageService } from '../../services/local-storage.service';
 import {
   Component,
   signal,
@@ -49,6 +50,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   public readonly pitchCorrection = inject(PitchCorrectionService);
   private uplinkService = inject(UplinkService);
   private profileService = inject(UserProfileService);
+  private localStorageService = inject(LocalStorageService);
   public readonly audioSession = inject(AudioSessionService);
   showUplink = signal(false);
 
@@ -216,9 +218,9 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async deleteTake(take: any) {
-    if (confirm()) {
+    if (confirm('Delete this take?')) {
       this.recordingEngine.takes.update(ts => ts.filter(t => t.id !== take.id));
-      await this.recordingEngine['localStorage'].deleteItem('audio_blobs', take.id);
+      await this.localStorageService.deleteItem('audio_blobs', take.id);
     }
   }
 
