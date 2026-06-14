@@ -1,0 +1,14 @@
+<button
+  class="fab"
+  [class.fab-hidden]="!visible()"
+  [class.fab-bottom-right]="position() === 'bottom-right'"
+  [class.fab-bottom-left]="position() === 'bottom-left'"
+  [class.fab-primary]="color() === 'primary'"
+  [class.fab-accent]="color() === 'accent'"
+  (click)="fabClick.emit()"
+  type="button"
+  [attr.aria-label]="label() || 'Action button'"
+>
+  <span class="material-icons">{{ icon() }}</span>
+  <span class="fab-label" *ngIf="label()">{{ label() }}</span>
+</button>

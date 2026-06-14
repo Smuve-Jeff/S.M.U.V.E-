@@ -1,0 +1,87 @@
+.fab {
+  position: fixed;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 900;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 56px;
+  min-height: 56px;
+}
+
+.fab-bottom-right {
+  bottom: 80px;
+  right: 24px;
+}
+
+.fab-bottom-left {
+  bottom: 80px;
+  left: 24px;
+}
+
+.fab-primary {
+  background: #10b981;
+  color: white;
+}
+
+.fab-accent {
+  background: #38bdf8;
+  color: #0f172a;
+}
+
+.fab:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+.fab-hidden {
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fab .material-icons {
+  font-size: 24px;
+}
+
+.fab-label {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.fab:has(.fab-label) {
+  width: auto;
+  padding: 0 20px;
+}
+
+@media (min-width: 769px) {
+  .fab-bottom-right {
+    bottom: 24px;
+  }
+  
+  .fab-bottom-left {
+    bottom: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .fab {
+    bottom: 80px;
+  }
+}

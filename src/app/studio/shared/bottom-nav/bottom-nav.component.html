@@ -1,0 +1,13 @@
+<nav class="bottom-nav-bar" [class.hidden]="!visible()">
+  <button
+    *ngFor="let item of items()"
+    class="bottom-nav-item"
+    [class.active]="activeId() === item.id"
+    (click)="itemClick.emit(item.id)"
+    type="button"
+  >
+    <span class="material-icons">{{ item.icon }}</span>
+    <span class="nav-label">{{ item.label }}</span>
+    <span class="nav-badge" *ngIf="item.badge">{{ item.badge }}</span>
+  </button>
+</nav>
