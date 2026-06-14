@@ -22,7 +22,7 @@ import { UplinkConsoleComponent } from '../../components/uplink-console/uplink-c
 import { FormsModule } from '@angular/forms';
 import { MicrophoneInterfaceComponent } from '../microphone-interface/microphone-interface.component';
 import { AudioSessionService } from '../audio-session.service';
-import { LocalStorageService } from '../../services/local-storage.service';
+import { PitchCorrectionService } from '../pitch-correction.service';
 
 type ViewMode = 'pipeline' | 'console';
 type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
@@ -50,7 +50,6 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   private uplinkService = inject(UplinkService);
   private profileService = inject(UserProfileService);
   public readonly audioSession = inject(AudioSessionService);
-  private readonly localStorage = inject(LocalStorageService);
   showUplink = signal(false);
 
   @ViewChild('spectrograph') spectrographRef!: ElementRef<HTMLCanvasElement>;
@@ -208,7 +207,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async playTake(take: any) {
-    const blobs = await this.localStorage.getItem('audio_blobs', take.id);
+    const blobs = await this.recordingEngine['localStorage'].getItem('audio_blobs', take.id);
     if (blobs && blobs.blob) {
       const url = URL.createObjectURL(blobs.blob);
       const audio = new Audio(url);
@@ -217,9 +216,9 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async deleteTake(take: any) {
-    if (confirm('Are you sure you want to delete this take?')) {
+    if (confirm()) {
       this.recordingEngine.takes.update(ts => ts.filter(t => t.id !== take.id));
-      await this.localStorage.removeItem('audio_blobs', take.id);
+      await this.recordingEngine['localStorage'].deleteItem('audio_blobs', take.id);
     }
   }
 

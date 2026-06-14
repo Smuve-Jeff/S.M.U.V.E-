@@ -604,11 +604,9 @@ export class AudioEngineService {
 
     if (trackId === '0' && parameter === 'tempo') {
       this.tempo.set(value);
-      return;
     }
 
     if (!AudioEngineService.INTEGER_TRACK_ID_PATTERN.test(trackId)) {
-      return;
     }
 
     const id = Number(trackId);
@@ -976,11 +974,6 @@ export class AudioEngineService {
         return normalized < 0.45 ? 1 : normalized > 0.55 ? 0 : 0.5;
       }
       return normalized > 0.55 ? 1 : normalized < 0.45 ? 0 : 0.5;
-    }
-
-    return deckId === 'A' ? a : b;
-  }
-}
 
   updateTrackInsert(id: number, type: string, amount: number) {
     const node = this.trackInserts.get(id);
@@ -1001,3 +994,4 @@ export class AudioEngineService {
        }
     }
   }
+}

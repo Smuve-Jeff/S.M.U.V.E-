@@ -77,7 +77,7 @@
       <div *ngIf="activeRackId() === track.id" class="absolute inset-0 z-50 bg-black/90 backdrop-blur-md p-4 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
         <div class="flex justify-between items-center border-b border-white/10 pb-2">
           <span class="text-[8px] font-black text-fl-blue uppercase">Channel Rack</span>
-          <button (click)="toggleRack(track.id, \$event)" class="material-icons text-xs text-white/40">close</button>
+          <button (click)="toggleRack(track.id, $event)" class="material-icons text-xs text-white/40">close</button>
         </div>
         <div class="space-y-4">
           <div class="space-y-2">
@@ -85,7 +85,7 @@
               <span>Heat (Saturation)</span>
               <span class="text-fl-blue">{{ (getFXAmount(track, 'saturation') * 100).toFixed(0) }}%</span>
             </div>
-            <app-knob size="sm" [min]="0" [max]="1" [value]="getFXAmount(track, 'saturation')" (valueChange)="updateTrackFX(track.id, 'saturation', \$event)"></app-knob>
+            <app-knob size="sm" [min]="0" [max]="1" [value]="getFXAmount(track, 'saturation')" (valueChange)="updateTrackFX(track.id, 'saturation', $event)"></app-knob>
           </div>
           <div class="space-y-1">
              <div class="text-[6px] text-slate-500 font-black uppercase">Spectral Dynamics</div>

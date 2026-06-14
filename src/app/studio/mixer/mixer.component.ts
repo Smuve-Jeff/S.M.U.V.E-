@@ -101,7 +101,7 @@ export class MixerComponent implements OnInit, OnDestroy {
       if (slot) {
         slot.params.amount = value;
       } else {
-        fxSlots.push({ id: `${type}-${Date.now()}`, type, params: { amount: value }, enabled: true });
+        fxSlots.push({ id: `fx-${Date.now()}`, type, params: { amount: value }, enabled: true });
       }
       return { ...t, fxSlots };
     }));

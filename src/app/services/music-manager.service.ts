@@ -131,14 +131,13 @@ export class MusicManagerService {
   structure = signal<SongSection[]>([]);
   performerScenes = signal<PerformerScene[]>(this.createDefaultScenes());
   projectLoaded = signal(true);
-  activeSceneId = signal<string | null>(null);\n
+  activeSceneId = signal<string | null>(null);
   private setupAutosave() {
     effect(() => {
       const data = this.snapshotProject();
       localStorage.setItem('elite_studio_autosave', JSON.stringify(data));
     });
   }
-
 
   constructor() {
     this.setupInitialTracks();

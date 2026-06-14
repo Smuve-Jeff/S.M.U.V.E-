@@ -34,6 +34,7 @@ import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
 import { SequencerService } from './sequencer.service';
 import { InteractionDialogService } from '../services/interaction-dialog.service';
+import { ProjectTemplateService } from '../services/project-template.service';
 
 type StudioView =
   | 'arrangement'
