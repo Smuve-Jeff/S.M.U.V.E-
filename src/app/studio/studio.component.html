@@ -12,12 +12,12 @@
 
     <!-- Drawer Toggle (Mobile Only) -->
     <button *ngIf="uiService.isCompactMobile()" type="button" class="mobile-drawer-toggle" (click)="toggleMobileDrawer()">
-      <span class="material-icons">{{ mobileDrawerOpen() ? 'close' : 'menu' }}</span>
+      <span class="material-symbols-outlined">{{ mobileDrawerOpen() ? 'close' : 'menu' }}</span>
     </button>
 
     <!-- Header Toggle -->
     <button type="button" class="header-toggle" (click)="toggleHeader()" [class.floating]="headerCollapsed()" [title]="headerCollapsed() ? 'Expand Header' : 'Collapse Header'">
-      <span class="material-icons">{{ headerCollapsed() ? 'expand_more' : 'expand_less' }}</span>
+      <span class="material-symbols-outlined">{{ headerCollapsed() ? 'expand_more' : 'expand_less' }}</span>
     </button>
 
     <!-- Studio Transport Header -->
@@ -29,13 +29,13 @@
       <div class="transport-actions">
         <!-- Search Button (Mobile) -->
         <button *ngIf="uiService.isCompactMobile()" type="button" class="search-btn" (click)="openSearch()" title="Search">
-          <span class="material-icons">search</span>
+          <span class="material-symbols-outlined">search</span>
         </button>
         <button type="button" class="export-btn" (click)="musicManager.exportProject()" title="Export Project">
-          <span class="material-icons">download</span>
+          <span class="material-symbols-outlined">download</span>
         </button>
         <button type="button" class="import-btn" (click)="fileInput.click()" title="Import Project">
-          <span class="material-icons">upload</span>
+          <span class="material-symbols-outlined">upload</span>
         </button>
         <input #fileInput type="file" accept=".json" class="hidden" (change)="handleImport($event)">
         <button
@@ -43,10 +43,10 @@
           [class.active]="audioSession.isPlaying()"
           (click)="audioSession.togglePlay()"
         >
-          <span class="material-icons">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
+          <span class="material-symbols-outlined">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
         </button>
         <button type="button" (click)="audioSession.stop()">
-          <span class="material-icons">stop</span>
+          <span class="material-symbols-outlined">stop</span>
         </button>
         <button
           type="button"
@@ -54,7 +54,7 @@
           [class.active]="audioSession.isRecording()"
           (click)="audioSession.toggleRecord()"
         >
-          <span class="material-icons">fiber_manual_record</span>
+          <span class="material-symbols-outlined">fiber_manual_record</span>
         </button>
       </div>
       <div class="transport-metrics">
@@ -74,34 +74,34 @@
     <aside class="mobile-module-drawer" [class.open]="mobileDrawerOpen()">
       <header>
         <span class="brand-text">S.M.U.V.E.</span>
-        <button (click)="toggleMobileDrawer()"><span class="material-icons">close</span></button>
+        <button (click)="toggleMobileDrawer()"><span class="material-symbols-outlined">close</span></button>
       </header>
       <nav class="drawer-nav">
         <button [class.active]="activeView() === 'arrangement'" (click)="setActiveView('arrangement')">
-          <span class="material-icons">view_quilt</span> Arrangement
+          <span class="material-symbols-outlined">view_quilt</span> Arrangement
         </button>
         <button [class.active]="activeView() === 'piano-roll'" (click)="setActiveView('piano-roll')">
-          <span class="material-icons">piano</span> Piano Roll
+          <span class="material-symbols-outlined">piano</span> Piano Roll
         </button>
         <button [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')">
-          <span class="material-icons">grid_view</span> Drum Machine
+          <span class="material-symbols-outlined">grid_view</span> Drum Machine
         </button>
         <button [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')">
-          <span class="material-icons">tune</span> Mixer
+          <span class="material-symbols-outlined">tune</span> Mixer
         </button>
         <button [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')">
-          <span class="material-icons">speed</span> Mastering
+          <span class="material-symbols-outlined">speed</span> Mastering
         </button>
         <button [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')">
-          <span class="material-icons">interpreter_mode</span> Performance
+          <span class="material-symbols-outlined">interpreter_mode</span> Performance
         </button>
         <button [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')">
-          <span class="material-icons">album</span> DJ Deck
+          <span class="material-symbols-outlined">album</span> DJ Deck
         </button>
       </nav>
       <footer>
          <button (click)="toggleNeuralFoundry()">
-           <span class="material-icons">psychology</span> Neural Foundry
+           <span class="material-symbols-outlined">psychology</span> Neural Foundry
          </button>
       </footer>
     </aside>
@@ -123,16 +123,16 @@
     </nav>
 
     <div
-      class="studio-layout"
+      class="studio-layout" [class.browser-collapsed]="browserCollapsed()" [class.inspector-collapsed]="inspectorCollapsed()"
       [class.compact-mobile-layout]="uiService.isCompactMobile()"
     >
       <!-- Mobile Quick Tools Toggle -->
       <div class="mobile-tool-tabs" *ngIf="uiService.isCompactMobile()">
         <button type="button" [class.active]="mobilePanel() === 'browser'" (click)="toggleMobilePanel('browser')">
-          <span class="material-icons">library_music</span>
+          <span class="material-symbols-outlined">library_music</span>
         </button>
         <button type="button" [class.active]="mobilePanel() === 'inspector'" (click)="toggleMobilePanel('inspector')">
-          <span class="material-icons">info</span>
+          <span class="material-symbols-outlined">info</span>
         </button>
         <div class="view-indicator">{{ activeView() | uppercase }}</div>
       </div>
@@ -145,7 +145,7 @@
         <header *ngIf="mobilePanel() as panel">
           <span class="drawer-title">{{ panel === 'browser' ? 'SOUNDS' : 'INSPECTOR' }}</span>
           <button type="button" class="close-drawer" (click)="closeMobilePanel()">
-            <span class="material-icons">close</span>
+            <span class="material-symbols-outlined">close</span>
           </button>
         </header>
 
@@ -160,8 +160,13 @@
         class="studio-panel studio-browser"
         *ngIf="!uiService.isCompactMobile()"
       >
-        <header>Browser</header>
-        <app-sound-browser></app-sound-browser>
+        <header>
+          <span *ngIf="!browserCollapsed()">Browser</span>
+          <button type="button" class="panel-toggle" (click)="toggleBrowser()" [title]="browserCollapsed() ? 'Expand Browser' : 'Collapse Browser'">
+            <span class="material-symbols-outlined">{{ browserCollapsed() ? 'chevron_right' : 'chevron_left' }}</span>
+          </button>
+        </header>
+        <app-sound-browser *ngIf="!browserCollapsed()"></app-sound-browser>
       </aside>
 
       <main class="studio-workspace" [ngSwitch]="activeView()">
@@ -195,8 +200,13 @@
         class="studio-panel studio-inspector"
         *ngIf="!uiService.isCompactMobile()"
       >
-        <header>Inspector</header>
-        <app-track-inspector></app-track-inspector>
+        <header>
+          <button type="button" class="panel-toggle" (click)="toggleInspector()" [title]="inspectorCollapsed() ? 'Expand Inspector' : 'Collapse Inspector'">
+            <span class="material-symbols-outlined">{{ inspectorCollapsed() ? 'chevron_left' : 'chevron_right' }}</span>
+          </button>
+          <span *ngIf="!inspectorCollapsed()">Inspector</span>
+        </header>
+        <app-track-inspector *ngIf="!inspectorCollapsed()"></app-track-inspector>
       </aside>
     </div>
   </div>

@@ -88,7 +88,7 @@ describe('StudioComponent', () => {
         },
         {
           provide: HapticService,
-          useValue: {},
+          useValue: { light: jest.fn(), medium: jest.fn(), heavy: jest.fn() },
         },
         {
           provide: TouchGestureService,
@@ -190,5 +190,24 @@ describe('StudioComponent', () => {
 
     (musicManager.currentStep as any).set(64);
     expect(component.currentBar()).toBe(5);
+  });
+
+  it('toggles collapsible desktop panels', async () => {
+    const { component } = await createComponent();
+
+    expect(component.browserCollapsed()).toBe(false);
+    expect(component.inspectorCollapsed()).toBe(false);
+
+    component.toggleBrowser();
+    expect(component.browserCollapsed()).toBe(true);
+
+    component.toggleBrowser();
+    expect(component.browserCollapsed()).toBe(false);
+
+    component.toggleInspector();
+    expect(component.inspectorCollapsed()).toBe(true);
+
+    component.toggleInspector();
+    expect(component.inspectorCollapsed()).toBe(false);
   });
 });
