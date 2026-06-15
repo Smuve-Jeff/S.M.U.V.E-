@@ -228,15 +228,15 @@
 }
 
 .studio-layout.browser-collapsed {
-  grid-template-columns: 3rem 1fr 16rem !important;
+  grid-template-columns: 3rem 1fr 16rem;
 }
 
 .studio-layout.inspector-collapsed {
-  grid-template-columns: 16rem 1fr 3rem !important;
+  grid-template-columns: 16rem 1fr 3rem;
 }
 
 .studio-layout.browser-collapsed.inspector-collapsed {
-  grid-template-columns: 3rem 1fr 3rem !important;
+  grid-template-columns: 3rem 1fr 3rem;
 }
 
 
