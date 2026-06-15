@@ -166,7 +166,7 @@
             <span class="material-symbols-outlined">{{ browserCollapsed() ? 'chevron_right' : 'chevron_left' }}</span>
           </button>
         </header>
-        <app-sound-browser *ngIf="!browserCollapsed()"></app-sound-browser>
+        <app-sound-browser></app-sound-browser>
       </aside>
 
       <main class="studio-workspace" [ngSwitch]="activeView()">
