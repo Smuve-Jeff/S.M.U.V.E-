@@ -124,6 +124,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showNeuralFoundry = signal(false);
   headerCollapsed = signal(false);
   mobileDrawerOpen = signal(false);
+  browserCollapsed = signal(false);
+  inspectorCollapsed = signal(false);
 
   studioQualityClass = computed(() => {
     return this.audioEngine.performanceTier() === 'ultra'
@@ -284,6 +286,16 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.haptic.medium();
     }
     event.target.value = '';
+  }
+
+  toggleBrowser() {
+    this.haptic.light();
+    this.browserCollapsed.update(v => !v);
+  }
+
+  toggleInspector() {
+    this.haptic.light();
+    this.inspectorCollapsed.update(v => !v);
   }
 
   toggleNeuralFoundry() {
