@@ -52,9 +52,9 @@ export class SearchOverlayComponent implements OnInit {
     }
     
     const mockResults: SearchResult[] = [
-      { id: '1', title: 'Deep Bass Synth', subtitle: 'Synth Preset', type: 'preset', icon: 'settings_input_component' },
-      { id: '2', title: 'Reverb Hall', subtitle: 'Effect', type: 'effect', icon: 'graphic_eq' },
-      { id: '3', title: 'Add New Track', subtitle: 'Action', type: 'action', icon: 'add' },
+      { id: '1', title: 'Deep Bass Synth', subtitle: 'Synth Preset', type: 'preset' as const, icon: 'settings_input_component' },
+      { id: '2', title: 'Reverb Hall', subtitle: 'Effect', type: 'effect' as const, icon: 'graphic_eq' },
+      { id: '3', title: 'Add New Track', subtitle: 'Action', type: 'action' as const, icon: 'add' },
     ].filter(r => r.title.toLowerCase().includes(value.toLowerCase()));
     
     this.results.set(mockResults);
