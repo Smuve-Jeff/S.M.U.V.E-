@@ -134,7 +134,7 @@ export class ArrangementViewComponent {
     const offsetX = (e.clientX - rect.left + this.gridViewport.nativeElement.scrollLeft);
     const startBar = this.snapEnabled() ? Math.floor(offsetX / this.barWidth) : offsetX / this.barWidth;
 
-    if (this.activeTool() !== 'select') return;
+    if (this.activeTool() === 'blade') return;
 
     if (e.pointerType === 'touch') {
       this.longPressTimeout = setTimeout(() => {
@@ -159,16 +159,14 @@ export class ArrangementViewComponent {
       if (this.snapEnabled()) {
         splitBar = Math.round(splitBar * 4) / 4;
       }
-      if (splitBar > clip.start && splitBar < clip.start + clip.length) {
-        this.musicManager.splitClip(trackId, clip.id, splitBar);
-      }
+      this.musicManager.splitClip(trackId, clip.id, splitBar);
       return;
     }
 
-
+    if (this.activeTool() === 'glue') {
       const track = this.tracks().find(t => t.id === trackId);
       if (track) {
-        const nextClip = track.clips.find(c => c.type === clip.type && Math.abs(c.start - (clip.start + clip.length)) < 0.1);
+        const nextClip = track.clips.find(c => Math.abs(c.start - (clip.start + clip.length)) < 0.1);
         if (nextClip) {
           this.musicManager.updateClip(trackId, clip.id, { length: clip.length + nextClip.length });
           this.musicManager.removeClip(trackId, nextClip.id);
@@ -260,8 +258,8 @@ export class ArrangementViewComponent {
 
   // AI & Advanced Features
   aiVariation() {
-    for (const id of this.selectedClipIds()) {
-      for (const track of this.tracks()) {
+    this.selectedClipIds().forEach(id => {
+      this.tracks().forEach(track => {
         const clip = track.clips.find(c => c.id === id);
         if (clip) {
           const varId = crypto.randomUUID();
@@ -273,10 +271,9 @@ export class ArrangementViewComponent {
             color: '#f59e0b'
           });
           this.selectedClipIds.update(s => new Set(s).add(varId));
-          break;
         }
-      }
-    }
+      });
+    });
   }
 
   aiSuggestArrangement() {
@@ -291,11 +288,8 @@ export class ArrangementViewComponent {
     ];
 
     let currentBar = 0;
-    const firstTrack = this.tracks()[0];
-    if (!firstTrack) return;
-
     structure.forEach(section => {
-      this.musicManager.addClipToTrack(firstTrack.id, {
+      this.musicManager.addClipToTrack(this.tracks()[0].id, {
         id: crypto.randomUUID(),
         name: `[ ${section.name} ]`,
         start: currentBar,
