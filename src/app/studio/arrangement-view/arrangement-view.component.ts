@@ -159,11 +159,13 @@ export class ArrangementViewComponent {
       if (this.snapEnabled()) {
         splitBar = Math.round(splitBar * 4) / 4;
       }
-      this.musicManager.splitClip(trackId, clip.id, splitBar);
+      if (splitBar > clip.start && splitBar < clip.start + clip.length) {
+        this.musicManager.splitClip(trackId, clip.id, splitBar);
+      }
       return;
     }
 
-    if (this.activeTool() === 'glue') {
+
       const track = this.tracks().find(t => t.id === trackId);
       if (track) {
         const nextClip = track.clips.find(c => c.type === clip.type && Math.abs(c.start - (clip.start + clip.length)) < 0.1);
