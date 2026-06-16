@@ -166,7 +166,7 @@ export class ArrangementViewComponent {
     if (this.activeTool() === 'glue') {
       const track = this.tracks().find(t => t.id === trackId);
       if (track) {
-        const nextClip = track.clips.find(c => Math.abs(c.start - (clip.start + clip.length)) < 0.1);
+        const nextClip = track.clips.find(c => c.type === clip.type && Math.abs(c.start - (clip.start + clip.length)) < 0.1);
         if (nextClip) {
           this.musicManager.updateClip(trackId, clip.id, { length: clip.length + nextClip.length });
           this.musicManager.removeClip(trackId, nextClip.id);
