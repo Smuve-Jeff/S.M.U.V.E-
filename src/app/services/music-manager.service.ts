@@ -26,6 +26,7 @@ export interface TrackClip {
   type: 'midi' | 'audio';
   color?: string;
   slotId?: string | null;
+  loop?: boolean;
 }
 
 export type ArrangementClip = TrackClip;

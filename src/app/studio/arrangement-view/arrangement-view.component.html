@@ -1,12 +1,12 @@
-<div class="playlist-container glass-v42 shadow-v42-xl">
+<div class="playlist-container glass-v42 shadow-v42-xl" [class.tool-blade]="activeTool() === 'blade'" [class.tool-glue]="activeTool() === 'glue'">
   <div class="playlist-header wood-panel">
     <div class="view-tabs flex items-center gap-4">
-      <button class="tab-btn active neon-text-xs">PRO ARRANGEMENT</button>
+      <button class="tab-btn active neon-text-xs">ARRANGEMENT ELITE v4.2</button>
     </div>
 
     <div class="module-transport glass-v42 mx-4">
       <div class="btn-group flex gap-1">
-        <button class="m-btn tactile-v42" (click)="audioSession.togglePlay()">
+        <button class="m-btn tactile-v42" (click)="audioSession.togglePlay()" [title]="audioSession.isPlaying() ? 'Pause' : 'Play'">
           <span class="material-symbols-outlined text-sm">
             {{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}
           </span>
@@ -15,12 +15,23 @@
           class="m-btn tactile-v42 rec"
           [class.active]="audioSession.isRecording()"
           (click)="audioSession.toggleRecord()"
+          title="Record to Arrangement"
         >
-          <span class="material-symbols-outlined text-sm"
-            >fiber_manual_record</span
-          >
+          <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
         </button>
       </div>
+    </div>
+
+    <div class="tool-selector flex gap-1 mx-2">
+      <button *ngFor="let tool of ['select', 'blade', 'glue']"
+              (click)="activeTool.set(tool)"
+              class="tool-btn tactile-v42"
+              [class.active]="activeTool() === tool"
+              [title]="(tool === 'select' ? 'Selection Tool (V)' : tool === 'blade' ? 'Blade Tool (B)' : 'Glue Tool (G)')">
+        <span class="material-symbols-outlined text-xs">
+          {{ tool === 'select' ? 'near_me' : tool === 'blade' ? 'content_cut' : 'link' }}
+        </span>
+      </button>
     </div>
 
     <div class="header-actions flex items-center gap-2">
@@ -31,13 +42,26 @@
         <button (click)="duplicateSelected()" class="mini-btn tactile-v42 executive-glass" title="Duplicate">
           <span class="material-symbols-outlined text-[10px]">content_copy</span>
         </button>
+        <button (click)="aiVariation()" class="mini-btn tactile-v42 executive-glass ai-sparkle" title="AI Variation Generator">
+          <span class="material-symbols-outlined text-[10px]">psychology</span>
+        </button>
       </div>
+
+      <div class="ai-group flex gap-1">
+        <button (click)="aiSuggestArrangement()" class="mini-btn tactile-v42 executive-glass ai-sparkle" title="AI Smart Arrangement">
+          <span class="material-symbols-outlined text-[10px] mr-1">auto_awesome</span> ARRANGE
+        </button>
+        <button (click)="aiMixTransition()" class="mini-btn tactile-v42 executive-glass ai-sparkle" title="AI Transition Assistant">
+          <span class="material-symbols-outlined text-[10px] mr-1">Waves</span> MIX
+        </button>
+      </div>
+
       <button
         (click)="toggleSnap()"
         class="mini-btn tactile-v42 executive-glass snap-toggle"
         [class.active-snap]="snapEnabled()"
       >
-        {{ snapEnabled() ? 'SNAP 1 BAR' : 'SNAP 1/4 BAR' }}
+        {{ snapEnabled() ? 'SNAP ON' : 'SNAP OFF' }}
       </button>
       <button (click)="addTrack()" class="mini-btn tactile-v42 executive-glass">
         + TRACK
@@ -69,17 +93,13 @@
             class="mini-btn"
             [class.active-mute]="track.mute"
             (click)="toggleMute(track.id, $event)"
-          >
-            M
-          </button>
+          >M</button>
           <button
             type="button"
             class="mini-btn"
             [class.active-solo]="track.solo"
             (click)="toggleSolo(track.id, $event)"
-          >
-            S
-          </button>
+          >S</button>
           <button
             type="button"
             class="mini-btn"
@@ -118,29 +138,57 @@
         >
           <div
             *ngFor="let clip of track.clips"
-            class="clip-item absolute executive-glass shadow-v42-xl tactile-v42" [class.selected-clip]="selectedClipIds().has(clip.id)"
+            class="clip-item absolute executive-glass shadow-v42-xl tactile-v42"
+            [class.selected-clip]="selectedClipIds().has(clip.id)"
+            [class.ghost-clip]="clip.name?.includes('[')"
             [style.left.px]="clip.start * barWidth"
             [style.width.px]="clip.length * barWidth"
             [style.background-color]="
-              (clip.color || track.color || '#af25f4') + '33'
+              (clip.color || track.color || '#af25f4') + '44'
             "
             [style.border-color]="clip.color || track.color || '#af25f4'"
             (pointerdown)="onClipPointerDown($event, track.id, clip)"
           >
-            <div class="clip-header text-[8px] p-1">
-              {{ clipLabel(track, clip) | uppercase }}
+            <div class="clip-header flex justify-between items-center px-1 py-0.5">
+              <span class="clip-title truncate">{{ clipLabel(track, clip) | uppercase }}</span>
+              <div class="clip-actions flex items-center gap-1">
+                <button class="clip-loop-btn text-[8px]" [class.text-blue-400]="clip.loop" (click)="toggleLoop(track.id, clip.id, $event)">
+                   <span class="material-symbols-outlined text-[10px]">repeat</span>
+                </button>
+                <button
+                  type="button"
+                  class="clip-remove-btn text-[10px] opacity-60 hover:opacity-100"
+                  (click)="removeClip($event, track.id, clip.id)"
+                >×</button>
+              </div>
             </div>
-            <div class="clip-meta text-[8px] px-2 opacity-50">
-              {{ clip.length }} bars
+
+            <div class="clip-content relative flex-1 overflow-hidden pointer-events-none">
+               <div *ngIf="clip.type === 'midi'" class="midi-ghost-container absolute inset-0 opacity-40">
+                  <div *ngFor="let g of ghostNotesMap().get(clip.id)"
+                       class="ghost-note absolute bg-white/80 h-[2px] rounded-full"
+                       [style.left]="g.left"
+                       [style.top]="g.top"
+                       [style.width]="g.width">
+                  </div>
+               </div>
+
+               <div *ngIf="clip.type === 'audio'" class="audio-waveform-container absolute inset-0 opacity-40 flex items-center">
+                  <div class="waveform-svg w-full h-full p-1">
+                    <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100">
+                      <path d="M 0 50 Q 2 20 4 50 Q 6 80 8 50 Q 10 20 12 50 Q 14 80 16 50 Q 18 20 20 50 Q 22 80 24 50 Q 26 20 28 50 Q 30 80 32 50 Q 34 20 36 50 Q 38 80 40 50 Q 42 20 44 50 Q 46 80 48 50 Q 50 20 52 50 Q 54 80 56 50 Q 58 20 60 50 Q 62 80 64 50 Q 66 20 68 50 Q 70 80 72 50 Q 74 20 76 50 Q 78 80 80 50 Q 82 20 84 50 Q 86 80 88 50 Q 90 20 92 50 Q 94 80 96 50 Q 98 20 100 50"
+                            stroke="white" fill="transparent" stroke-width="0.8" />
+                    </svg>
+                  </div>
+               </div>
+            </div>
+
+            <div class="clip-footer flex justify-between items-center px-1 text-[7px] font-black opacity-60 pointer-events-none">
+              <span>{{ clip.length.toFixed(2) }} BARS</span>
+              <span *ngIf="clip.loop" class="text-blue-400">SYNCED_LOOP</span>
+            </div>
+
             <div class="resize-handle"></div>
-            </div>
-            <button
-              type="button"
-              class="clip-remove"
-              (click)="removeClip($event, track.id, clip.id)"
-            >
-              ×
-            </button>
           </div>
         </div>
 
@@ -154,7 +202,7 @@
             <div class="w-2 h-2 rounded-full bg-white"></div>
             <span
               class="text-[9px] font-black text-white uppercase tracking-widest"
-              >Capture_Active</span
+              >Arrangement_Capture_On</span
             >
           </div>
         </div>
