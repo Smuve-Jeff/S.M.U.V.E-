@@ -74,7 +74,7 @@
     <aside class="mobile-module-drawer" [class.open]="mobileDrawerOpen()">
       <header>
         <span class="brand-text">S.M.U.V.E.</span>
-        <button (click)="toggleMobileDrawer()"><span class="material-symbols-outlined">close</span></button>
+        <button type="button" (click)="toggleMobileDrawer()"><span class="material-symbols-outlined">close</span></button>
       </header>
       <nav class="drawer-nav">
         <button [class.active]="activeView() === 'arrangement'" (click)="setActiveView('arrangement')">
