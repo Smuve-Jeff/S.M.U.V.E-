@@ -15,7 +15,7 @@ describe('AudioEngineService', () => {
         value: 0,
         setTargetAtTime: jest.fn(),
         setValueAtTime: jest.fn(),
-        linearRampToValueAtTime: jest.fn(),
+        setTargetAtTime: jest.fn(),
         exponentialRampToValueAtTime: jest.fn(),
       },
       delayTime: { value: 0, setTargetAtTime: jest.fn() },
@@ -35,7 +35,7 @@ describe('AudioEngineService', () => {
         setTargetAtTime: jest.fn(),
         cancelScheduledValues: jest.fn(),
         setValueAtTime: jest.fn(),
-        linearRampToValueAtTime: jest.fn(),
+        setTargetAtTime: jest.fn(),
       },
       knee: { value: 0 },
       curve: null,
@@ -199,7 +199,7 @@ describe('AudioEngineService', () => {
     );
     const vca =
       gains.find(
-        (g: any) => g.gain.linearRampToValueAtTime.mock.calls.length > 0
+        (g: any) => g.gain.setTargetAtTime.mock.calls.length > 0
       ) || gains.at(-1);
     const panner =
       mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
@@ -207,7 +207,7 @@ describe('AudioEngineService', () => {
     expect(osc.type).toBe('square');
     expect(osc.frequency.setValueAtTime).toHaveBeenCalledWith(440, 1.25);
     expect(panner.pan.setValueAtTime).toHaveBeenCalledWith(-0.25, 1.25);
-    expect(vca.gain.linearRampToValueAtTime).toHaveBeenCalledWith(2, 1.27);
+    expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(0.75, 1.25, 0.02);
     expect(vca.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
       0.001,
       1.25 + 0.5 + 0.3
@@ -236,14 +236,14 @@ describe('AudioEngineService', () => {
     );
     const vca =
       gains.find(
-        (g: any) => g.gain.linearRampToValueAtTime.mock.calls.length > 0
+        (g: any) => g.gain.setTargetAtTime.mock.calls.length > 0
       ) || gains.at(-1);
     const panner =
       mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
 
     expect(source.buffer).toBe(buffer);
     expect(panner.pan.value).toBe(0.4);
-    expect(vca.gain.linearRampToValueAtTime).toHaveBeenCalledWith(0.8, 2.005);
+    expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(0.8, 2, 0.005);
     expect(source.start).toHaveBeenCalledWith(2);
   });
 
