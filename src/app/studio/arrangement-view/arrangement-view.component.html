@@ -165,7 +165,7 @@
 
             <div class="clip-content relative flex-1 overflow-hidden pointer-events-none">
                <div *ngIf="clip.type === 'midi'" class="midi-ghost-container absolute inset-0 opacity-40">
-                  <div *ngFor="let g of generateGhostNotes(clip)"
+                  <div *ngFor="let g of ghostNotes"
                        class="ghost-note absolute bg-white/80 h-[2px] rounded-full"
                        [style.left]="g.left"
                        [style.top]="g.top"
