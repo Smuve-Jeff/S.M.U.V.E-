@@ -264,6 +264,41 @@
 }
 
 .mobile-tool-tabs {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 2.5rem;
+}
+
+.studio-panel.collapsed header {
+  justify-content: center;
+  padding: 0.5rem 0;
+  border-bottom: none;
+}
+
+.panel-toggle {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.panel-toggle:hover {
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+}
+
+.panel-toggle .material-symbols-outlined {
+  font-size: 1.25rem;
+}
+
+.mobile-tool-tabs {
   min-height: 0;
   transition: width 0.3s;
 }
