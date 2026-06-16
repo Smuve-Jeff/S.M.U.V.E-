@@ -37,6 +37,11 @@ export class ArrangementViewComponent {
   readonly tracks = this.musicManager.tracks;
   readonly selectedClipIds = signal<Set<string>>(new Set());
   readonly activeTool = signal<'select' | 'blade' | 'glue'>('select');
+  readonly ghostNotes = Array.from({ length: 8 }, (_, i) => ({
+    left: (i * 12.5) + '%',
+    top: (Math.sin(i) * 30 + 50) + '%',
+    width: '10%'
+  }));
 
   // Interaction State
   private draggingClip: { trackId: number; clipId: string; startX: number; startY: number; originalStart: number; offsetBars: number; clipData: ArrangementClip } | null = null;
@@ -114,19 +119,17 @@ export class ArrangementViewComponent {
   }
 
   duplicateSelected() {
-     this.selectedClipIds().forEach(id => {
-       this.tracks().forEach(track => {
-         const clip = track.clips.find(c => c.id === id);
-         if (clip) {
-           this.musicManager.addClipToTrack(track.id, {
-             ...clip,
-             id: crypto.randomUUID(),
-             start: clip.start + clip.length,
-             name: clip.name + ' (COPY)'
-           });
-         }
-       });
-     });
+    this.selectedClipIds().forEach(id => {
+      const result = this.findClipWithTrack(id);
+      if (result) {
+        this.musicManager.addClipToTrack(result.track.id, {
+          ...result.clip,
+          id: crypto.randomUUID(),
+          start: result.clip.start + result.clip.length,
+          name: result.clip.name + ' (COPY)'
+        });
+      }
+    });
   }
 
   onLanePointerDown(e: PointerEvent, track: TrackModel) {
@@ -134,7 +137,7 @@ export class ArrangementViewComponent {
     const offsetX = (e.clientX - rect.left + this.gridViewport.nativeElement.scrollLeft);
     const startBar = this.snapEnabled() ? Math.floor(offsetX / this.barWidth) : offsetX / this.barWidth;
 
-    if (this.activeTool() === 'blade') return;
+    if (this.activeTool() !== 'select') return;
 
     if (e.pointerType === 'touch') {
       this.longPressTimeout = setTimeout(() => {
@@ -159,14 +162,16 @@ export class ArrangementViewComponent {
       if (this.snapEnabled()) {
         splitBar = Math.round(splitBar * 4) / 4;
       }
-      this.musicManager.splitClip(trackId, clip.id, splitBar);
+      if (splitBar > clip.start && splitBar < clip.start + clip.length) {
+        this.musicManager.splitClip(trackId, clip.id, splitBar);
+      }
       return;
     }
 
     if (this.activeTool() === 'glue') {
       const track = this.tracks().find(t => t.id === trackId);
       if (track) {
-        const nextClip = track.clips.find(c => Math.abs(c.start - (clip.start + clip.length)) < 0.1);
+        const nextClip = track.clips.find(c => c.type === clip.type && Math.abs(c.start - (clip.start + clip.length)) < 0.1);
         if (nextClip) {
           this.musicManager.updateClip(trackId, clip.id, { length: clip.length + nextClip.length });
           this.musicManager.removeClip(trackId, nextClip.id);
@@ -256,27 +261,36 @@ export class ArrangementViewComponent {
     this.resizingClip = null;
   }
 
+  private findClipWithTrack(clipId: string): { track: TrackModel; clip: ArrangementClip } | null {
+    for (const track of this.tracks()) {
+      const clip = track.clips.find(c => c.id === clipId);
+      if (clip) return { track, clip };
+    }
+    return null;
+  }
+
   // AI & Advanced Features
   aiVariation() {
-    this.selectedClipIds().forEach(id => {
-      this.tracks().forEach(track => {
-        const clip = track.clips.find(c => c.id === id);
-        if (clip) {
-          const varId = crypto.randomUUID();
-          this.musicManager.addClipToTrack(track.id, {
-            ...clip,
-            id: varId,
-            name: (clip.name || 'Pattern') + ' (AI VAR)',
-            start: clip.start + clip.length,
-            color: '#f59e0b'
-          });
-          this.selectedClipIds.update(s => new Set(s).add(varId));
-        }
-      });
-    });
+    for (const id of this.selectedClipIds()) {
+      const result = this.findClipWithTrack(id);
+      if (result) {
+        const varId = crypto.randomUUID();
+        this.musicManager.addClipToTrack(result.track.id, {
+          ...result.clip,
+          id: varId,
+          name: (result.clip.name || 'Pattern') + ' (AI VAR)',
+          start: result.clip.start + result.clip.length,
+          color: '#f59e0b'
+        });
+        this.selectedClipIds.update(s => new Set(s).add(varId));
+      }
+    }
   }
 
   aiSuggestArrangement() {
+    const firstTrack = this.tracks()[0];
+    if (!firstTrack) return;
+
     const structure = [
       { name: 'INTRO', len: 4 },
       { name: 'VERSE 1', len: 8 },
@@ -287,9 +301,8 @@ export class ArrangementViewComponent {
       { name: 'OUTRO', len: 4 }
     ];
 
-    let currentBar = 0;
-    structure.forEach(section => {
-      this.musicManager.addClipToTrack(this.tracks()[0].id, {
+    structure.reduce((currentBar, section) => {
+      this.musicManager.addClipToTrack(firstTrack.id, {
         id: crypto.randomUUID(),
         name: `[ ${section.name} ]`,
         start: currentBar,
@@ -297,8 +310,8 @@ export class ArrangementViewComponent {
         type: 'midi',
         color: '#38bdf8'
       });
-      currentBar += section.len;
-    });
+      return currentBar + section.len;
+    }, 0);
   }
 
   aiMixTransition() {
@@ -308,23 +321,11 @@ export class ArrangementViewComponent {
     // This could add automation lanes or FX nodes in a real implementation
   }
 
-  generateGhostNotes(clip: ArrangementClip) {
-    return Array.from({ length: 8 }, (_, i) => ({
-      left: (i * 12.5) + '%',
-      top: (Math.sin(i) * 30 + 50) + '%',
-      width: '10%'
-    }));
-  }
-
   toggleLoop(trackId: number, clipId: string, event: Event) {
     event.stopPropagation();
-    this.tracks().forEach(t => {
-      if (t.id === trackId) {
-        const clip = t.clips.find(c => c.id === clipId);
-        if (clip) {
-          this.musicManager.updateClip(trackId, clipId, { loop: !clip.loop });
-        }
-      }
-    });
+    const clip = this.tracks().find(t => t.id === trackId)?.clips.find(c => c.id === clipId);
+    if (clip) {
+      this.musicManager.updateClip(trackId, clipId, { loop: !clip.loop });
+    }
   }
 }

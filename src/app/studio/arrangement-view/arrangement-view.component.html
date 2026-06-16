@@ -151,7 +151,7 @@
           >
             <div class="clip-header flex justify-between items-center px-1 py-0.5">
               <span class="clip-title truncate">{{ clipLabel(track, clip) | uppercase }}</span>
-              <div class="clip-actions flex items-center gap-1">
+              <div class="clip-actions flex items-center gap-1" (pointerdown)="$event.stopPropagation()">
                 <button class="clip-loop-btn text-[8px]" [class.text-blue-400]="clip.loop" (click)="toggleLoop(track.id, clip.id, $event)">
                    <span class="material-symbols-outlined text-[10px]">repeat</span>
                 </button>
@@ -165,7 +165,7 @@
 
             <div class="clip-content relative flex-1 overflow-hidden pointer-events-none">
                <div *ngIf="clip.type === 'midi'" class="midi-ghost-container absolute inset-0 opacity-40">
-                  <div *ngFor="let g of generateGhostNotes(clip)"
+                  <div *ngFor="let g of ghostNotes"
                        class="ghost-note absolute bg-white/80 h-[2px] rounded-full"
                        [style.left]="g.left"
                        [style.top]="g.top"
