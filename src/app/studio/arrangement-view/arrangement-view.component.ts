@@ -258,8 +258,8 @@ export class ArrangementViewComponent {
 
   // AI & Advanced Features
   aiVariation() {
-    this.selectedClipIds().forEach(id => {
-      this.tracks().forEach(track => {
+    for (const id of this.selectedClipIds()) {
+      for (const track of this.tracks()) {
         const clip = track.clips.find(c => c.id === id);
         if (clip) {
           const varId = crypto.randomUUID();
@@ -271,9 +271,10 @@ export class ArrangementViewComponent {
             color: '#f59e0b'
           });
           this.selectedClipIds.update(s => new Set(s).add(varId));
+          break;
         }
-      });
-    });
+      }
+    }
   }
 
   aiSuggestArrangement() {
