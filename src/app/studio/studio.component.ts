@@ -234,6 +234,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.snackbarService.success('Track added successfully', 'UNDO');
   }
 
+  private toggleSignal(s: ReturnType<typeof signal<boolean>>) {
+    this.haptic.light();
+    s.update(v => !v);
+  }
+
   toggleMobilePanel(panel: MobileStudioPanel) {
     this.haptic.light();
     this.mobilePanel.update((current) => (current === panel ? null : panel));
@@ -243,15 +248,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.mobilePanel.set(null);
   }
 
-  toggleHeader() {
-    this.haptic.light();
-    this.headerCollapsed.update((v) => !v);
-  }
-
-  toggleMobileDrawer() {
-    this.haptic.light();
-    this.mobileDrawerOpen.update(v => !v);
-  }
+  toggleHeader() { this.toggleSignal(this.headerCollapsed); }
+  toggleMobileDrawer() { this.toggleSignal(this.mobileDrawerOpen); }
 
   openSearch() {
     this.haptic.light();
@@ -288,18 +286,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     event.target.value = '';
   }
 
-  toggleBrowser() {
-    this.haptic.light();
-    this.browserCollapsed.update(v => !v);
-  }
-
-  toggleInspector() {
-    this.haptic.light();
-    this.inspectorCollapsed.update(v => !v);
-  }
-
-  toggleNeuralFoundry() {
-    this.haptic.light();
-    this.showNeuralFoundry.update((v) => !v);
-  }
+  toggleBrowser() { this.toggleSignal(this.browserCollapsed); }
+  toggleInspector() { this.toggleSignal(this.inspectorCollapsed); }
+  toggleNeuralFoundry() { this.toggleSignal(this.showNeuralFoundry); }
 }

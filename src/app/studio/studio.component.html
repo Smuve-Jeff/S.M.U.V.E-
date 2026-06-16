@@ -96,38 +96,15 @@
           <span class="material-symbols-outlined">interpreter_mode</span> Performance
         </button>
         <button type="button" [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')">
-        <button (click)="toggleMobileDrawer()"><span class="material-symbols-outlined">close</span></button>
-      </header>
-      <nav class="drawer-nav">
-        <button [class.active]="activeView() === 'arrangement'" (click)="setActiveView('arrangement')">
-          <span class="material-symbols-outlined">view_quilt</span> Arrangement
-        </button>
-        <button [class.active]="activeView() === 'piano-roll'" (click)="setActiveView('piano-roll')">
-          <span class="material-symbols-outlined">piano</span> Piano Roll
-        </button>
-        <button [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')">
-          <span class="material-symbols-outlined">grid_view</span> Drum Machine
-        </button>
-        <button [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')">
-          <span class="material-symbols-outlined">tune</span> Mixer
-        </button>
-        <button [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')">
-          <span class="material-symbols-outlined">speed</span> Mastering
-        </button>
-        <button [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')">
-          <span class="material-symbols-outlined">interpreter_mode</span> Performance
-        </button>
-        <button [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')">
           <span class="material-symbols-outlined">album</span> DJ Deck
         </button>
       </nav>
       <footer>
-         <button type="button" (click)="toggleNeuralFoundry()">
-         <button (click)="toggleNeuralFoundry()">
-           <span class="material-symbols-outlined">psychology</span> Neural Foundry
-         </button>
+        <button type="button" (click)="toggleNeuralFoundry()">
+          <span class="material-symbols-outlined">psychology</span> Neural Foundry
+        </button>
       </footer>
-
+    </aside>
 
     <app-universal-master class="studio-master-strip"></app-universal-master>
 
