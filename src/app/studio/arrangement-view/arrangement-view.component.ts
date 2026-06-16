@@ -134,7 +134,7 @@ export class ArrangementViewComponent {
     const offsetX = (e.clientX - rect.left + this.gridViewport.nativeElement.scrollLeft);
     const startBar = this.snapEnabled() ? Math.floor(offsetX / this.barWidth) : offsetX / this.barWidth;
 
-    if (this.activeTool() === 'blade') return;
+    if (this.activeTool() !== 'select') return;
 
     if (e.pointerType === 'touch') {
       this.longPressTimeout = setTimeout(() => {
