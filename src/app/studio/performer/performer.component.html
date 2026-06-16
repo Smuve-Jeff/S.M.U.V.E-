@@ -2,7 +2,7 @@
   <div class="performer-header wood-panel border-b border-white/10 px-8 py-4 flex items-center justify-between">
     <div class="header-main flex items-center gap-8">
       <div class="visualizer-mini h-8 flex items-end gap-0.5 mb-2">
-        <div *ngFor="let val of spectrumData()" class="w-1 bg-fl-blue/40 rounded-t-full transition-all" [style.height.%]="val * 100"></div>
+        <div *ngFor="let val of spectrumData(); trackBy: trackByIndex" class="w-1 bg-fl-blue/40 rounded-t-full transition-all" [style.height.%]="val * 100"></div>
       </div>
       <h2 class="neon-text text-xs font-black uppercase tracking-[0.4em]">Neural Performance Interface</h2>
       <div class="performance-ticker executive-glass px-4 py-1 rounded-full flex gap-3 overflow-hidden">
