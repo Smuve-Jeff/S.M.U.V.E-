@@ -288,8 +288,11 @@ export class ArrangementViewComponent {
     ];
 
     let currentBar = 0;
+    const firstTrack = this.tracks()[0];
+    if (!firstTrack) return;
+
     structure.forEach(section => {
-      this.musicManager.addClipToTrack(this.tracks()[0].id, {
+      this.musicManager.addClipToTrack(firstTrack.id, {
         id: crypto.randomUUID(),
         name: `[ ${section.name} ]`,
         start: currentBar,
