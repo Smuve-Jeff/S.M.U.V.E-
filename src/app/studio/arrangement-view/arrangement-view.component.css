@@ -127,6 +127,7 @@
   font-weight: 900;
   padding: 0.25rem 0.5rem;
   background: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
 }
 
 .clip-meta {
@@ -175,6 +176,23 @@
 .mini-btn.active-snap {
   border-color: #38bdf8;
   color: #38bdf8;
+}
+
+.clip-remove {
+  position: absolute;
+  top: 2px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: white;
+  opacity: 0.5;
+  font-size: 12px;
+  cursor: pointer;
+  z-index: 6;
+}
+
+.clip-remove:hover {
+  opacity: 1;
 }
 
 @media (max-width: 768px) {

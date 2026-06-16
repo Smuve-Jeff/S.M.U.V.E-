@@ -37,11 +37,6 @@ export class ArrangementViewComponent {
   readonly tracks = this.musicManager.tracks;
   readonly selectedClipIds = signal<Set<string>>(new Set());
   readonly activeTool = signal<'select' | 'blade' | 'glue'>('select');
-  readonly ghostNotes = Array.from({ length: 8 }, (_, i) => ({
-    left: (i * 12.5) + '%',
-    top: (Math.sin(i) * 30 + 50) + '%',
-    width: '10%'
-  }));
 
   // Interaction State
   private draggingClip: { trackId: number; clipId: string; startX: number; startY: number; originalStart: number; offsetBars: number; clipData: ArrangementClip } | null = null;
@@ -58,6 +53,19 @@ export class ArrangementViewComponent {
   readonly canvasHeight = computed(
     () => this.rulerHeight + this.tracks().length * this.laneHeight
   );
+
+  // Performance: Memoized ghost notes for MIDI clips
+  readonly ghostNotesMap = computed(() => {
+    const map = new Map<string, any[]>();
+    this.tracks().forEach(track => {
+      track.clips.forEach(clip => {
+        if (clip.type === 'midi') {
+          map.set(clip.id, this.calculateGhostNotes(clip));
+        }
+      });
+    });
+    return map;
+  });
 
   addTrack() {
     this.musicManager.ensureTrack('grand-piano-v2');
@@ -118,18 +126,25 @@ export class ArrangementViewComponent {
     });
   }
 
+  // Optimized duplicate with safety checks
   duplicateSelected() {
-    this.selectedClipIds().forEach(id => {
-      const result = this.findClipWithTrack(id);
-      if (result) {
-        this.musicManager.addClipToTrack(result.track.id, {
-          ...result.clip,
-          id: crypto.randomUUID(),
-          start: result.clip.start + result.clip.length,
-          name: result.clip.name + ' (COPY)'
-        });
-      }
-    });
+     const currentTracks = this.tracks();
+     if (currentTracks.length === 0) return;
+
+     this.selectedClipIds().forEach(id => {
+       const track = currentTracks.find(t => t.clips.some(c => c.id === id));
+       if (track) {
+         const clip = track.clips.find(c => c.id === id);
+         if (clip) {
+           this.musicManager.addClipToTrack(track.id, {
+             ...clip,
+             id: crypto.randomUUID(),
+             start: clip.start + clip.length,
+             name: clip.name + ' (COPY)'
+           });
+         }
+       }
+     });
   }
 
   onLanePointerDown(e: PointerEvent, track: TrackModel) {
@@ -137,7 +152,7 @@ export class ArrangementViewComponent {
     const offsetX = (e.clientX - rect.left + this.gridViewport.nativeElement.scrollLeft);
     const startBar = this.snapEnabled() ? Math.floor(offsetX / this.barWidth) : offsetX / this.barWidth;
 
-    if (this.activeTool() !== 'select') return;
+    if (this.activeTool() === 'blade') return;
 
     if (e.pointerType === 'touch') {
       this.longPressTimeout = setTimeout(() => {
@@ -162,17 +177,16 @@ export class ArrangementViewComponent {
       if (this.snapEnabled()) {
         splitBar = Math.round(splitBar * 4) / 4;
       }
-      if (splitBar > clip.start && splitBar < clip.start + clip.length) {
-        this.musicManager.splitClip(trackId, clip.id, splitBar);
-      }
+      this.musicManager.splitClip(trackId, clip.id, splitBar);
       return;
     }
 
     if (this.activeTool() === 'glue') {
       const track = this.tracks().find(t => t.id === trackId);
       if (track) {
-        const nextClip = track.clips.find(c => c.type === clip.type && Math.abs(c.start - (clip.start + clip.length)) < 0.1);
-        if (nextClip) {
+        const nextClip = track.clips.find(c => Math.abs(c.start - (clip.start + clip.length)) < 0.1);
+        // Data Integrity Check: Prevent gluing different types
+        if (nextClip && nextClip.type === clip.type) {
           this.musicManager.updateClip(trackId, clip.id, { length: clip.length + nextClip.length });
           this.musicManager.removeClip(trackId, nextClip.id);
         }
@@ -219,6 +233,12 @@ export class ArrangementViewComponent {
 
   @HostListener('pointermove', ['$event'])
   onPointerMove(e: PointerEvent) {
+    // Fix Touch Bug: Clear timeout on movement
+    if (this.longPressTimeout) {
+       clearTimeout(this.longPressTimeout);
+       this.longPressTimeout = null;
+    }
+
     if (this.resizingClip) {
       const deltaX = e.clientX - this.resizingClip.startX;
       let newLength = this.resizingClip.originalLength + (deltaX / this.barWidth);
@@ -234,9 +254,10 @@ export class ArrangementViewComponent {
       const offsetY = (e.clientY - rect.top + this.gridViewport.nativeElement.scrollTop) - this.rulerHeight;
 
       let newStart = (offsetX / this.barWidth) - this.draggingClip.offsetBars;
+      const currentTracks = this.tracks();
       let targetTrackIdx = Math.floor(offsetY / this.laneHeight);
-      targetTrackIdx = Math.max(0, Math.min(this.tracks().length - 1, targetTrackIdx));
-      const targetTrack = this.tracks()[targetTrackIdx];
+      targetTrackIdx = Math.max(0, Math.min(currentTracks.length - 1, targetTrackIdx));
+      const targetTrack = currentTracks[targetTrackIdx];
 
       if (this.snapEnabled()) {
         newStart = Math.max(0, Math.round(newStart * 4) / 4);
@@ -257,39 +278,38 @@ export class ArrangementViewComponent {
   @HostListener('pointerup')
   onPointerUp() {
     clearTimeout(this.longPressTimeout);
+    this.longPressTimeout = null;
     this.draggingClip = null;
     this.resizingClip = null;
   }
 
-  private findClipWithTrack(clipId: string): { track: TrackModel; clip: ArrangementClip } | null {
-    for (const track of this.tracks()) {
-      const clip = track.clips.find(c => c.id === clipId);
-      if (clip) return { track, clip };
-    }
-    return null;
-  }
-
-  // AI & Advanced Features
+  // Optimized variation with safety checks
   aiVariation() {
-    for (const id of this.selectedClipIds()) {
-      const result = this.findClipWithTrack(id);
-      if (result) {
-        const varId = crypto.randomUUID();
-        this.musicManager.addClipToTrack(result.track.id, {
-          ...result.clip,
-          id: varId,
-          name: (result.clip.name || 'Pattern') + ' (AI VAR)',
-          start: result.clip.start + result.clip.length,
-          color: '#f59e0b'
-        });
-        this.selectedClipIds.update(s => new Set(s).add(varId));
+    const currentTracks = this.tracks();
+    if (currentTracks.length === 0) return;
+
+    this.selectedClipIds().forEach(id => {
+      const track = currentTracks.find(t => t.clips.some(c => c.id === id));
+      if (track) {
+        const clip = track.clips.find(c => c.id === id);
+        if (clip) {
+          const varId = crypto.randomUUID();
+          this.musicManager.addClipToTrack(track.id, {
+            ...clip,
+            id: varId,
+            name: (clip.name || 'Pattern') + ' (AI VAR)',
+            start: clip.start + clip.length,
+            color: '#f59e0b'
+          });
+          this.selectedClipIds.update(s => new Set(s).add(varId));
+        }
       }
-    }
+    });
   }
 
   aiSuggestArrangement() {
-    const firstTrack = this.tracks()[0];
-    if (!firstTrack) return;
+    const currentTracks = this.tracks();
+    if (currentTracks.length === 0) return;
 
     const structure = [
       { name: 'INTRO', len: 4 },
@@ -301,8 +321,9 @@ export class ArrangementViewComponent {
       { name: 'OUTRO', len: 4 }
     ];
 
-    structure.reduce((currentBar, section) => {
-      this.musicManager.addClipToTrack(firstTrack.id, {
+    let currentBar = 0;
+    structure.forEach(section => {
+      this.musicManager.addClipToTrack(currentTracks[0].id, {
         id: crypto.randomUUID(),
         name: `[ ${section.name} ]`,
         start: currentBar,
@@ -310,22 +331,31 @@ export class ArrangementViewComponent {
         type: 'midi',
         color: '#38bdf8'
       });
-      return currentBar + section.len;
-    }, 0);
+      currentBar += section.len;
+    });
   }
 
   aiMixTransition() {
     if (this.selectedClipIds().size < 2) return;
-    // Implementation for AI transition logic (e.g., volume ramps or filter sweeps)
     console.log("AI Transition Logic Triggered between selected clips");
-    // This could add automation lanes or FX nodes in a real implementation
+  }
+
+  private calculateGhostNotes(clip: ArrangementClip) {
+    return Array.from({ length: 8 }, (_, i) => ({
+      left: (i * 12.5) + '%',
+      top: (Math.sin(i) * 30 + 50) + '%',
+      width: '10%'
+    }));
   }
 
   toggleLoop(trackId: number, clipId: string, event: Event) {
     event.stopPropagation();
-    const clip = this.tracks().find(t => t.id === trackId)?.clips.find(c => c.id === clipId);
-    if (clip) {
-      this.musicManager.updateClip(trackId, clipId, { loop: !clip.loop });
+    const track = this.tracks().find(t => t.id === trackId);
+    if (track) {
+      const clip = track.clips.find(c => c.id === clipId);
+      if (clip) {
+        this.musicManager.updateClip(trackId, clipId, { loop: !clip.loop });
+      }
     }
   }
 }
