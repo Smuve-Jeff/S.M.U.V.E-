@@ -104,22 +104,52 @@
   top: 10%;
   border-radius: 0.4rem;
   border: 1px solid;
-  cursor: pointer;
+  cursor: grab;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: absolute;
+  transition: box-shadow 0.2s;
+}
+
+.clip-item:active {
+  cursor: grabbing;
 }
 
 .clip-item.selected-clip {
   box-shadow: 0 0 15px currentColor;
   border-width: 2px;
+  z-index: 5;
 }
 
 .clip-header {
   font-size: 0.6rem;
   font-weight: 900;
   padding: 0.25rem 0.5rem;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.clip-meta {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  cursor: ew-resize;
+  background: rgba(255, 255, 255, 0.1);
+  pointer-events: auto;
+}
+
+.resize-handle:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .playhead {
@@ -148,6 +178,23 @@
   color: #38bdf8;
 }
 
+.clip-remove {
+  position: absolute;
+  top: 2px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: white;
+  opacity: 0.5;
+  font-size: 12px;
+  cursor: pointer;
+  z-index: 6;
+}
+
+.clip-remove:hover {
+  opacity: 1;
+}
+
 @media (max-width: 768px) {
   .track-headers {
     width: 5rem;
@@ -162,4 +209,71 @@
     flex-direction: column;
     gap: 0.2rem;
   }
+}
+
+/* Tool Selector & AI Sparkle */
+.tool-selector {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.2rem;
+  border-radius: 0.5rem;
+}
+
+.tool-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.3rem;
+  transition: all 0.2s;
+}
+
+.tool-btn.active {
+  background: #38bdf8;
+  color: #0f172a;
+}
+
+.ai-sparkle {
+  position: relative;
+  overflow: hidden;
+  border-color: #f59e0b !important;
+  color: #f59e0b !important;
+}
+
+.ai-sparkle::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(245, 158, 11, 0.2), transparent);
+  transform: rotate(45deg);
+  animation: sparkle-sweep 3s infinite linear;
+}
+
+@keyframes sparkle-sweep {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
+
+.tool-blade .grid-viewport {
+  cursor: cell;
+}
+
+.ghost-clip {
+  opacity: 0.5;
+  border-style: dashed !important;
+}
+
+.midi-ghost-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px;
+}
+
+.audio-waveform-container {
+  background: linear-gradient(90deg, transparent 50%, rgba(255,255,255,0.05) 50%);
+  background-size: 4px 100%;
 }
