@@ -1,12 +1,12 @@
 <div class="performer-container glass-v42 flex flex-col h-full bg-slate-950 overflow-hidden select-none">
   <div class="performer-header wood-panel border-b border-white/10 px-8 py-4 flex items-center justify-between">
-    <div class="header-main">
+    <div class="header-main flex items-center gap-8">
+      <div class="visualizer-mini h-8 flex items-end gap-0.5 mb-2">
+        <div *ngFor="let val of spectrumData()" class="w-1 bg-fl-blue/40 rounded-t-full transition-all" [style.height.%]="val * 100"></div>
+      </div>
       <h2 class="neon-text text-xs font-black uppercase tracking-[0.4em]">Neural Performance Interface</h2>
-      <div class="flex items-center gap-4 mt-1">
-        <div class="latency-indicator flex items-center gap-2">
-          <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span class="text-[8px] text-slate-400 uppercase font-black">System Engine: Active</span>
-        </div>
+      <div class="performance-ticker executive-glass px-4 py-1 rounded-full flex gap-3 overflow-hidden">
+        <span *ngFor="let note of performanceLog()" class="text-[8px] font-mono text-fl-blue animate-pulse">{{ note }}</span>
       </div>
     </div>
 
@@ -32,24 +32,39 @@
         </div>
         <app-knob label="VOL" [min]="0" [max]="150" [value]="track.gain * 100" (valueChange)="updateTrackVolume($event)"></app-knob>
         <app-knob label="PAN" [min]="-100" [max]="100" [value]="track.pan * 100" (valueChange)="updateTrackPan($event)"></app-knob>
+        <div class="granular-rack flex items-center gap-4 ml-6 border-l border-white/10 pl-6">
+          <app-knob label="CUTOFF" [min]="20" [max]="20000" [value]="20000" (valueChange)="liveEngine.updateParameter('cutoff', $event)"></app-knob>
+          <app-knob label="RESO" [min]="0" [max]="20" [value]="1" (valueChange)="liveEngine.updateParameter('resonance', $event)"></app-knob>
+          <app-knob label="ATT" [min]="0.001" [max]="2" [value]="0.01" (valueChange)="liveEngine.updateParameter('attack', $event)"></app-knob>
+          <app-knob label="REL" [min]="0.01" [max]="5" [value]="0.5" (valueChange)="liveEngine.updateParameter('release', $event)"></app-knob>
+        </div>
       </div>
       <div class="performance-toggles flex items-center gap-2">
-        <button (click)="toggleSmartChords()" class="tactile-v42 px-3 py-1.5 text-[8px] font-black uppercase rounded-lg border border-white/10" [class.bg-fl-blue]="smartChords()" [class.text-black]="smartChords()">Smart Chords</button>
+        <button (click)="toggleSmartChords()" class="tactile-v42 px-3 py-1.5 text-[8px] font-black uppercase rounded-lg border border-white/10" [class.active]="smartChords()">Smart Chords</button>
+        <button (click)="liveEngine.arpeggiatorEnabled.update(v => !v)" class="tactile-v42 px-3 py-1.5 text-[8px] font-black uppercase rounded-lg border border-white/10" [class.active]="liveEngine.arpeggiatorEnabled()">Arp</button>
+        <button (click)="liveEngine.scaleLock.update(v => !v)" class="tactile-v42 px-3 py-1.5 text-[8px] font-black uppercase rounded-lg border border-white/10" [class.active]="liveEngine.scaleLock()">Scale Lock</button>
+        <select [ngModel]="liveEngine.scaleMode()" (ngModelChange)="liveEngine.setScale($event)" class="executive-glass text-[8px] px-3 py-1.5 rounded-lg border-white/10 uppercase font-black">
+          <option value="major">Major</option>
+          <option value="minor">Minor</option>
+          <option value="blues">Blues</option>
+          <option value="pentatonic">Penta</option>
+        </select>
       </div>
     </div>
 
     <div class="view-viewport flex-1 relative overflow-hidden">
       <div *ngIf="layout() === 'keyboard'" class="keyboard-view h-full flex flex-col">
-        <div class="keyboard-scroll flex-1 overflow-x-auto overflow-y-hidden no-scrollbar px-10 flex items-end pb-12">
+        <div class="keyboard-scroll flex-1 overflow-x-auto overflow-y-hidden no-scrollbar px-10 flex items-start pt-12">
           <div class="keyboard-container relative flex" style="height: 300px;">
             <div *ngFor="let key of keyboardKeys"
-                 class="perf-key-v42 relative transition-all duration-75"
+                 class="perf-key-v42 transition-all duration-75"
                  [class.black-key]="isBlackKey(key.midi)"
                  [class.white-key]="!isBlackKey(key.midi)"
                  [class.active]="activeKeys().has(key.midi)"
-                 (pointerdown)="onKeyDown(key.midi)"
-                 (pointerup)="onKeyUp(key.midi)"
-                 (pointerleave)="onKeyUp(key.midi)">
+                 (pointerdown)="onKeyDown(key.midi, $event)"
+                 (pointerup)="onKeyUp(key.midi, $event)"
+                 (pointerleave)="onKeyUp(key.midi, $event)"
+                 (pointermove)="onKeyDown(key.midi, $event)">
               <span class="key-label absolute bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase pointer-events-none opacity-30">{{ key.name }}</span>
             </div>
           </div>
