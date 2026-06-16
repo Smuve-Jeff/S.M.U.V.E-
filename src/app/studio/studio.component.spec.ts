@@ -194,6 +194,7 @@ describe('StudioComponent', () => {
 
   it('toggles collapsible desktop panels', async () => {
     const { component } = await createComponent();
+    const haptic = TestBed.inject(HapticService) as { light: jest.Mock };
 
     expect(component.browserCollapsed()).toBe(false);
     expect(component.inspectorCollapsed()).toBe(false);
@@ -209,5 +210,6 @@ describe('StudioComponent', () => {
 
     component.toggleInspector();
     expect(component.inspectorCollapsed()).toBe(false);
+    expect(haptic.light).toHaveBeenCalledTimes(4);
   });
 });
