@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
@@ -24,7 +24,7 @@ import { PerformanceGridComponent } from '../performance-grid/performance-grid.c
   templateUrl: './performer.component.html',
   styleUrls: ['./performer.component.css'],
 })
-export class PerformerComponent {
+export class PerformerComponent implements OnDestroy {
   public readonly audioSession = inject(AudioSessionService);
   public readonly musicManager = inject(MusicManagerService);
   public readonly liveEngine = inject(LiveEngineService);
@@ -43,6 +43,9 @@ export class PerformerComponent {
   pitchBend = signal(0);
   selectedTrack = computed(() => this.musicManager.tracks().find(t => t.id === this.musicManager.selectedTrackId()));
   modWheel = signal(0);
+  spectrumData = signal<number[]>(new Array(64).fill(0));
+  performanceLog = signal<string[]>([]);
+  private visualizerFrame: number | null = null;
 
   private readonly activePointers = new Map<number, number>();
   private readonly recordingNotes = new Map<number, { id: string, startStep: number }>();
@@ -52,12 +55,34 @@ export class PerformerComponent {
 
   constructor() {
     this.availableInstruments.set(this.instrumentsService.getPresets());
+    this.startVisualizer();
+  }
+
+  ngOnDestroy() {
+    if (this.visualizerFrame) cancelAnimationFrame(this.visualizerFrame);
+  }
+
+  private startVisualizer() {
+    const update = () => {
+      const analyser = this.musicManager.engine.masterAnalyser;
+      if (analyser) {
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+        const downsampled = [];
+        const step = Math.floor(data.length / 64);
+        for (let i = 0; i < 64; i++) {
+          downsampled.push(data[i * step] / 255);
+        }
+        this.spectrumData.set(downsampled);
+      }
+      this.visualizerFrame = requestAnimationFrame(update);
+    };
+    this.visualizerFrame = requestAnimationFrame(update);
   }
 
   generateKeyboardKeys() {
     const keys = [];
     const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    // 2 octaves + 1 note
     for (let i = 0; i < 25; i++) {
       const midi = 48 + i;
       keys.push({
@@ -108,7 +133,14 @@ export class PerformerComponent {
     this.haptic.light();
   }
 
-  async onKeyDown(midi: number) {
+  async onKeyDown(midi: number, event?: PointerEvent) {
+    if (event && event.pointerType === 'touch') {
+       const prevMidi = this.activePointers.get(event.pointerId);
+       if (prevMidi !== undefined && prevMidi !== midi) {
+          this.onKeyUp(prevMidi, event);
+       }
+       this.activePointers.set(event.pointerId, midi);
+    }
     await this.liveEngine.initialize();
     const actualMidi = midi + this.octave() * 12;
     this.liveEngine.triggerNoteStart(actualMidi, this.velocity);
@@ -129,9 +161,10 @@ export class PerformerComponent {
       next.add(midi);
       return next;
     });
+    this.performanceLog.update(log => [this.liveEngine.midiToNote(actualMidi), ...log.slice(0, 9)]);
   }
 
-  onKeyUp(midi: number) {
+  onKeyUp(midi: number, event?: PointerEvent) {
     const actualMidi = midi + this.octave() * 12;
     this.liveEngine.triggerNoteEnd(actualMidi);
     
@@ -159,17 +192,17 @@ export class PerformerComponent {
   onPadPointerDown(event: PointerEvent, midi: number) {
     event.preventDefault();
     event.stopPropagation();
-    this.onKeyDown(midi);
+    this.onKeyDown(midi, event);
   }
 
   onPadPointerEnter(event: PointerEvent, midi: number) {
     if (event.buttons === 1) {
-      this.onKeyDown(midi);
+      this.onKeyDown(midi, event);
     }
   }
 
   onPadPointerUp(event: PointerEvent, midi: number) {
-    this.onKeyUp(midi);
+    this.onKeyUp(midi, event);
   }
 
   onPitchBend(event: any) {
