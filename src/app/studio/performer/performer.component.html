@@ -41,7 +41,7 @@
     <div class="view-viewport flex-1 relative overflow-hidden">
       <div *ngIf="layout() === 'keyboard'" class="keyboard-view h-full flex flex-col">
         <div class="keyboard-scroll flex-1 overflow-x-auto overflow-y-hidden no-scrollbar px-10 flex items-end pb-12">
-          <div class="keyboard-container relative flex h-[320px] md:h-[400px]">
+          <div class="keyboard-container relative flex" style="height: 300px;">
             <div *ngFor="let key of keyboardKeys"
                  class="perf-key-v42 relative transition-all duration-75"
                  [class.black-key]="isBlackKey(key.midi)"
