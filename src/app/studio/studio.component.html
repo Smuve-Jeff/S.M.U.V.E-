@@ -52,6 +52,7 @@
           <button type="button" [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')" title="Mastering">
             <span class="material-symbols-outlined">speed</span>
           </button>
+          </button>
         </nav>
       </div>
 
@@ -101,12 +102,53 @@
           </div>
         </div>
 
+        <div class="v-divider"></div>
+
+        <div class="btn-group transport-controls">
+          <button
+            type="button"
+            [class.active]="audioSession.isPlaying()"
+            (click)="audioSession.togglePlay()"
+          >
+            <span class="material-symbols-outlined">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
+          </button>
+          <button type="button" (click)="audioSession.stop()">
+            <span class="material-symbols-outlined">stop</span>
+          </button>
+          <button
+            type="button"
+            class="record"
+            [class.active]="audioSession.isRecording()"
+            (click)="audioSession.toggleRecord()"
+          >
+            <span class="material-symbols-outlined">fiber_manual_record</span>
+          </button>
+        </div>
+
         <button type="button" class="foundry-toggle-btn" (click)="toggleNeuralFoundry()" title="Neural Foundry">
           <span class="material-symbols-outlined">psychology</span>
         </button>
       </div>
 
       <input `#fileInput` type="file" accept=".json" class="hidden" aria-label="Import project JSON file" (change)="handleImport($event)">
+      <div class="header-section-right">
+        <div class="transport-metrics compact-metrics">
+          <div class="metric-block" (click)="adjustBpm()">
+            <span class="label">BPM</span>
+            <span class="value">{{ audioEngine.tempo() }}</span>
+          </div>
+          <div class="metric-block">
+            <span class="label">BAR</span>
+            <span class="value">{{ currentBar() }}</span>
+          </div>
+        </div>
+
+        <button type="button" class="foundry-toggle-btn" (click)="toggleNeuralFoundry()" title="Neural Foundry">
+          <span class="material-symbols-outlined">psychology</span>
+        </button>
+      </div>
+
+      <input #fileInput type="file" accept=".json" class="hidden" (change)="handleImport($event)">
     </header>
 
     <!-- Slide-out Drawer for Module Switching (Mobile Only) -->

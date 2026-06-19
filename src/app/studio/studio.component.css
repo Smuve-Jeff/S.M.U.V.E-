@@ -251,6 +251,11 @@
 .studio-layout {
   flex: 1;
   display: flex !important;
+/* Studio Layout - Professional Grid */
+.studio-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 260px 1fr 300px;
   min-height: 0;
   background: #0f172a;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -270,6 +275,38 @@
 
 .studio-layout.resizing .studio-panel {
   transition: none;
+}
+
+.studio-browser header, .studio-inspector header {
+  background: #1f2937;
+  height: 32px;
+  padding: 0 0.5rem;
+  border-bottom: 1px solid #374151;
+}
+
+  gap: 1px; /* Subtle separation */
+}
+
+.studio-layout.browser-collapsed {
+  grid-template-columns: 3rem 1fr 300px;
+}
+
+.studio-layout.inspector-collapsed {
+  grid-template-columns: 260px 1fr 3rem;
+}
+
+.studio-layout.browser-collapsed.inspector-collapsed {
+  grid-template-columns: 3rem 1fr 3rem;
+}
+
+.studio-panel {
+  display: flex;
+  flex-direction: column;
+  background: #111827;
+  border-right: 1px solid #1f2937;
+  overflow: hidden;
+  position: relative;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .studio-browser header, .studio-inspector header {
