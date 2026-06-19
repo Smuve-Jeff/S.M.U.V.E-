@@ -261,11 +261,15 @@
 .studio-panel {
   display: flex;
   flex-direction: column;
-  background: #111827;
-  border-right: 1px solid #1f2937;
+  background: `#111827`;
+  border-right: 1px solid `#1f2937`;
   overflow: hidden;
   position: relative;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.studio-layout.resizing .studio-panel {
+  transition: none;
 }
 
 .studio-browser header, .studio-inspector header {
