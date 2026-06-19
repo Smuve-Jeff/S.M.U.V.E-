@@ -56,6 +56,13 @@ export class SocialNetworkingService {
 
   private currentRoomId: string | null = null;
 
+
+  private getSecureRandom(): number {
+    const array = new Uint32Array(1);
+    (window as any).crypto.getRandomValues(array);
+    return array[0] / (0xffffffff + 1);
+  }
+
   constructor() {
     effect(() => {
       const profile = this.profileService.profile();
@@ -66,7 +73,7 @@ export class SocialNetworkingService {
   }
 
   private initializeSocket(userId: string) {
-    const backendUrl = window.location.origin.replace(':3000', ':3000');
+    const backendUrl = window.location.origin;
     this.socket = io(backendUrl);
 
     this.socket.on('connect', () => {
@@ -137,7 +144,7 @@ export class SocialNetworkingService {
 
     this.streamInterval = setInterval(() => {
       this.updateStreamTelemetry(platform);
-      if (Math.random() > 0.6) {
+      if (this.getSecureRandom() > 0.6) {
         this.generateSimulatedComment();
       }
     }, 3000);
@@ -153,9 +160,9 @@ export class SocialNetworkingService {
     this.streamTelemetry.update(t => ({
       ...t,
       platform,
-      viewers: t.viewers + Math.floor(Math.random() * 5),
-      bitrate: `${5500 + Math.floor(Math.random() * 500)} kbps`,
-      health: Math.random() > 0.9 ? 'Fair' : 'Good'
+      viewers: t.viewers + Math.floor(this.getSecureRandom() * 5),
+      bitrate: `${5500 + Math.floor(this.getSecureRandom() * 500)} kbps`,
+      health: this.getSecureRandom() > 0.9 ? 'Fair' : 'Good'
     }));
   }
 
@@ -175,8 +182,8 @@ export class SocialNetworkingService {
     const newComment: RoomMessage = {
       roomId: 'simulated',
       fromUserId: 'fan',
-      fromUserName: fans[Math.floor(Math.random() * fans.length)],
-      message: comments[Math.floor(Math.random() * comments.length)],
+      fromUserName: fans[Math.floor(this.getSecureRandom() * fans.length)],
+      message: comments[Math.floor(this.getSecureRandom() * comments.length)],
       timestamp: Date.now()
     };
 
