@@ -1,27 +1,52 @@
 :host {
   display: block;
   height: 100%;
+  background: #020617;
+  overflow: hidden;
 }
 
 .mixer-container {
   user-select: none;
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-.fl-strip {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.4) 100%);
-  border-left: 1px solid rgba(255, 255, 255, 0.05);
-  border-right: 1px solid rgba(0, 0, 0, 0.4);
+.mixer-strip {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 1) 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: background 0.2s;
+  min-width: 100px; /* Wider for touch */
 }
 
 .selected-track {
-  background: rgba(0, 229, 255, 0.08);
-  border-left-color: rgba(0, 229, 255, 0.4);
-  box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.1);
+  background: rgba(56, 189, 248, 0.1);
+  box-shadow: inset 0 4px 0 #38bdf8;
+}
+
+.mixer-header {
+  min-height: 48px;
 }
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+.vu-meter-container {
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.vu-bar {
+  box-shadow: 0 0 15px #38bdf8;
+}
+
+.fader-section {
+  position: relative;
+  touch-action: none;
 }
 
 .mixer-fader-pro {
@@ -30,49 +55,37 @@
   height: 100%;
 }
 
-.vu-bar {
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+.fader-rail {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+}
+
+.fader-knob > div {
+  width: 48px !important; /* Chunky fader */
+  height: 24px !important;
+  background: #f8fafc !important;
+  border: 1px solid #94a3b8 !important;
+  border-radius: 4px !important;
 }
 
 .master-strip {
-  box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+  border-left: 2px solid #38bdf8;
   background: rgba(56, 189, 248, 0.05);
+  min-width: 110px;
 }
 
 /* Touch Ergonomics */
-@media (pointer: coarse) {
+@media (max-width: 768px) {
   .mixer-strip {
     min-width: 90px;
   }
 
-  .fader-knob > div {
-    width: 44px !important;
-    height: 20px !important;
-  }
-
-  .m-btn, .mini-btn {
-    min-width: 44px;
-    min-height: 44px;
-  }
-}
-
-@media (max-width: 768px) {
-  .mixer-strip {
-    min-width: 80px;
-  }
-
-  .mixer-header h3 {
-    font-size: 7px;
-  }
-}
-
-/* Landscape Mobile */
-@media (orientation: landscape) and (max-height: 600px) {
   .fader-section {
-    min-height: 100px !important;
+    min-height: 160px !important;
   }
 
-  .mixer-header {
-    padding: 0.25rem 0.5rem;
+  .fader-knob > div {
+    width: 52px !important;
+    height: 28px !important;
   }
 }

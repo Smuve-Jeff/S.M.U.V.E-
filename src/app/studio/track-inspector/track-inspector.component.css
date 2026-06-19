@@ -1,44 +1,87 @@
+:host {
+  display: block;
+  height: 100%;
+  background: #020617;
+  overflow: hidden;
+}
+
 .inspector-container {
-  background: var(--neutral-color, #020617);
-  border-left: 1px solid var(--studio-border, rgba(255, 255, 255, 0.07));
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  background: #020617;
 }
 
 .inspector-select {
   width: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(15, 23, 42, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
-  font-size: 8px;
-  padding: 4px;
-  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 8px;
+  border-radius: 8px;
   outline: none;
+  text-transform: uppercase;
 }
 
 .inspector-slider {
   -webkit-appearance: none;
   width: 100%;
-  height: 2px;
+  height: 4px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+  border-radius: 4px;
   outline: none;
+  margin: 12px 0;
 }
 
 .inspector-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 8px;
-  height: 8px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: var(--primary-color, #af25f4);
+  background: #38bdf8;
   cursor: pointer;
-  box-shadow: 0 0 5px var(--primary-color, #af25f4);
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+  border: 2px solid white;
 }
 
 .param-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
-.fx-slot:hover {
-  background: rgba(255, 255, 255, 0.05);
+.fx-slot {
+  transition: all 0.2s;
 }
+
+.fx-slot:active {
+  transform: scale(0.98);
+  background: rgba(56, 189, 248, 0.1) !important;
+}
+
+@media (max-width: 768px) {
+  .inspector-container {
+    border-left: none;
+  }
+
+  .inspector-slider::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+  }
+
+  .inspector-select {
+    padding: 12px;
+    font-size: 12px;
+  }
+}
+
+.track-header-mini {
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+}
+
+.custom-scrollbar::-webkit-scrollbar { display: none; }

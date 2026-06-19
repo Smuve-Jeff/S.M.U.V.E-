@@ -6,8 +6,6 @@ import { KnobComponent } from '../shared/knob/knob.component';
 import {
   MusicManagerService,
   PerformerScene,
-  TrackModel,
-  TrackNote,
 } from '../../services/music-manager.service';
 import { LiveEngineService } from '../../services/live-engine.service';
 import { HapticService } from '../../services/haptic.service';
@@ -32,7 +30,6 @@ export class PerformerComponent implements OnDestroy {
   private readonly instrumentsService = inject(InstrumentsService);
 
   layout = signal<'keyboard' | 'pads' | 'matrix'>('keyboard');
-  private readonly PATTERN_STEPS = 64;
   scenes = this.musicManager.performerScenes;
   smartChords = signal(false);
   velocity = 0.8;
@@ -48,7 +45,6 @@ export class PerformerComponent implements OnDestroy {
   private visualizerFrame: number | null = null;
 
   private readonly activePointers = new Map<number, number>();
-  private readonly recordingNotes = new Map<number, { id: string, startStep: number }>();
 
   keyboardKeys = this.generateKeyboardKeys();
   performerPads = this.generatePads();
@@ -107,6 +103,8 @@ export class PerformerComponent implements OnDestroy {
   }
 
   isBlackKey(midi: number): boolean { return [1, 3, 6, 8, 10].includes(midi % 12); }
+  isKeyPressed(midi: number): boolean { return this.activeKeys().has(midi); }
+
   setLayout(mode: 'keyboard' | 'pads' | 'matrix') { this.layout.set(mode); }
   toggleSmartChords() { this.smartChords.update((value) => !value); this.liveEngine.smartChords.set(this.smartChords()); }
   nudgeOctave(delta: number) { this.octave.update((value) => Math.min(2, Math.max(-2, value + delta))); }
@@ -146,16 +144,6 @@ export class PerformerComponent implements OnDestroy {
     this.liveEngine.triggerNoteStart(actualMidi, this.velocity);
     this.haptic.light();
 
-    if (this.audioSession.isRecording()) {
-      const noteId = this.musicManager.recordLiveNote(actualMidi, this.velocity);
-      if (noteId) {
-        const beat = this.musicManager.engine.currentBeat();
-        const stepsPerBeat = this.musicManager.engine.stepsPerBeat();
-        const startStep = Math.floor(beat * stepsPerBeat) % this.PATTERN_STEPS;
-        this.recordingNotes.set(midi, { id: noteId, startStep });
-      }
-    }
-
     this.activeKeys.update((keys) => {
       const next = new Set(keys);
       next.add(midi);
@@ -168,20 +156,6 @@ export class PerformerComponent implements OnDestroy {
     const actualMidi = midi + this.octave() * 12;
     this.liveEngine.triggerNoteEnd(actualMidi);
     
-    if (this.audioSession.isRecording()) {
-      const recNote = this.recordingNotes.get(midi);
-      const selectedId = this.musicManager.selectedTrackId();
-      if (recNote && selectedId) {
-        const beat = this.musicManager.engine.currentBeat();
-        const stepsPerBeat = this.musicManager.engine.stepsPerBeat();
-        const currentStep = Math.floor(beat * stepsPerBeat);
-        let length = (currentStep - recNote.startStep + 1024) % 1024;
-        if (length <= 0) length = 1;
-        this.musicManager.setNoteParam(selectedId, recNote.id, 'length', length);
-      }
-      this.recordingNotes.delete(midi);
-    }
-
     this.activeKeys.update((keys) => {
       const next = new Set(keys);
       next.delete(midi);
@@ -193,12 +167,6 @@ export class PerformerComponent implements OnDestroy {
     event.preventDefault();
     event.stopPropagation();
     this.onKeyDown(midi, event);
-  }
-
-  onPadPointerEnter(event: PointerEvent, midi: number) {
-    if (event.buttons === 1) {
-      this.onKeyDown(midi, event);
-    }
   }
 
   onPadPointerUp(event: PointerEvent, midi: number) {
