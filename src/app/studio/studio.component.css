@@ -247,28 +247,16 @@
   box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
 }
 
-/* Studio Layout - Professional Grid */
+/* Studio Layout - Flex (panel widths controlled via signal bindings) */
 .studio-layout {
   flex: 1;
-  display: grid;
-  grid-template-columns: 260px 1fr 300px;
+  display: flex;
+  overflow: hidden;
   min-height: 0;
   background: #0f172a;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  gap: 1px; /* Subtle separation */
-}
-
-.studio-layout.browser-collapsed {
-  grid-template-columns: 3rem 1fr 300px;
-}
-
-.studio-layout.inspector-collapsed {
-  grid-template-columns: 260px 1fr 3rem;
-}
-
-.studio-layout.browser-collapsed.inspector-collapsed {
-  grid-template-columns: 3rem 1fr 3rem;
+  gap: 1px;
 }
 
 .studio-panel {
@@ -503,7 +491,7 @@
 /* Orientation handling */
 @media (max-width: 1024px) {
   .studio-layout {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 }
 
@@ -578,16 +566,10 @@
   left: 0;
 }
 
-.studio-layout {
-  /* Switch to flexible grid since widths are now dynamic */
-  display: flex !important;
-  overflow: hidden;
-}
-
 .studio-workspace {
   flex: 1;
   min-width: 0;
-}
+
 
 .studio-panel {
   flex-shrink: 0;
