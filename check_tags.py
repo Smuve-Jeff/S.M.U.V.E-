@@ -18,9 +18,12 @@ if open_buttons != close_buttons:
         # Very naive tag tracking
         opens = re.findall(r'<button', line)
         closes = re.findall(r'</button>', line)
-        for _ in opens: stack.append(i+1)
+        for _ in opens:
+            stack.append(i + 1)
         for _ in closes:
-            if stack: stack.pop()
-            else: print(f"Unmatched closing tag at line {i+1}")
+            if stack:
+                stack.pop()
+            else:
+                print(f"Unmatched closing tag at line {i + 1}")
     if stack:
         print(f"Unmatched opening tags at lines: {stack}")
