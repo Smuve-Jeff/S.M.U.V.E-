@@ -106,7 +106,7 @@
         </button>
       </div>
 
-      <input #fileInput type="file" accept=".json" class="hidden" (change)="handleImport($event)">
+      <input `#fileInput` type="file" accept=".json" class="hidden" aria-label="Import project JSON file" (change)="handleImport($event)">
     </header>
 
     <!-- Slide-out Drawer for Module Switching (Mobile Only) -->
