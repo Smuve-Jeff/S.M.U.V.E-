@@ -13,12 +13,13 @@
 }
 
 .drum-header {
-  height: 60px;
+  height: 56px;
   display: flex;
   align-items: center;
   padding: 0 1rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(15, 23, 42, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 1rem;
 }
 
 .drum-content {
@@ -29,53 +30,63 @@
 
 .pads-grid-container {
   border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.3);
+  overflow-y: auto;
 }
 
 .hw-pad-v42 {
   aspect-ratio: 1;
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.02);
-  min-width: 64px;
-  min-height: 64px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  min-width: 80px; /* Larger for touch */
+  min-height: 80px;
+}
+
+.hw-pad-v42:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .hw-pad-v42.active-hw {
   border-color: var(--pad-color);
-  box-shadow: 0 0 20px var(--pad-color), inset 0 0 10px var(--pad-color);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.pad-led.glowing {
-  box-shadow: 0 0 15px currentColor;
-  filter: brightness(1.5);
+  box-shadow: 0 0 25px var(--pad-color), inset 0 0 15px var(--pad-color);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .sequencer-panel {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
-.bar-btn.active-bar {
-  background: #ec5b13;
-  color: black;
-  border-color: #ec5b13;
-  box-shadow: 0 0 15px rgba(236, 91, 19, 0.4);
+.seq-grid-container {
+  flex: 1;
+  overflow: auto;
 }
 
-/* Touch targets */
-@media (pointer: coarse) {
-  .m-btn, .mini-tab-btn, .bar-btn {
-    min-height: 44px;
-    min-width: 44px;
-  }
+/* Touch targets for buttons */
+.m-btn, .mini-tab-btn, .bar-btn {
+  min-height: 40px;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
 }
 
 @media (max-width: 768px) {
   .drum-header {
-    height: auto;
-    padding: 0.5rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    height: 48px;
+    padding: 0 0.75rem;
   }
 
   .drum-content {
@@ -87,32 +98,17 @@
     width: 100%;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 50%;
   }
 
-  .pads-hardware-grid {
-    width: 100% !important;
-    padding: 1rem !important;
+  .hw-pad-v42 {
+    min-width: 72px;
+    min-height: 72px;
   }
 
   .pad-inspector {
     width: 100% !important;
     border-left: none;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .sequencer-panel {
-    min-height: 400px;
-  }
-}
-
-/* Landscape Mobile */
-@media (orientation: landscape) and (max-height: 600px) {
-  .pads-hardware-grid {
-    grid-template-columns: repeat(8, 1fr) !important;
-  }
-
-  .hw-pad-v42 {
-    min-width: 48px;
-    min-height: 48px;
   }
 }
