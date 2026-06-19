@@ -144,6 +144,10 @@ export class PerformerComponent implements OnDestroy {
     this.liveEngine.triggerNoteStart(actualMidi, this.velocity);
     this.haptic.light();
 
+    if (this.audioSession.isRecording()) {
+      this.musicManager.recordLiveNote(actualMidi, this.velocity);
+    }
+
     this.activeKeys.update((keys) => {
       const next = new Set(keys);
       next.add(midi);

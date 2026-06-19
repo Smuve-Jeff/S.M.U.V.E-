@@ -286,6 +286,44 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     event.target.value = '';
   }
 
+  browserWidth = signal(260);
+  inspectorWidth = signal(300);
+
+  private resizingPanel: 'browser' | 'inspector' | null = null;
+
+  startResizing(event: PointerEvent, panel: 'browser' | 'inspector') {
+    event.preventDefault();
+    this.resizingPanel = panel;
+    this.haptic.light();
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      if (!this.resizingPanel) return;
+
+      if (this.resizingPanel === 'browser') {
+        const newWidth = Math.max(120, Math.min(600, moveEvent.clientX));
+        this.browserWidth.set(newWidth);
+        if (newWidth < 160) this.browserCollapsed.set(true);
+        else if (this.browserCollapsed()) this.browserCollapsed.set(false);
+      } else {
+        const newWidth = Math.max(120, Math.min(600, window.innerWidth - moveEvent.clientX));
+        this.inspectorWidth.set(newWidth);
+        if (newWidth < 160) this.inspectorCollapsed.set(true);
+        else if (this.inspectorCollapsed()) this.inspectorCollapsed.set(false);
+      }
+    };
+
+    const onPointerUp = () => {
+      this.resizingPanel = null;
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      document.body.style.cursor = 'default';
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    document.body.style.cursor = 'col-resize';
+  }
+
   toggleBrowser() { this.toggleSignal(this.browserCollapsed); }
   toggleInspector() { this.toggleSignal(this.inspectorCollapsed); }
   toggleNeuralFoundry() { this.toggleSignal(this.showNeuralFoundry); }
