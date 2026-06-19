@@ -180,6 +180,18 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+
+    // Clean up resize listeners to prevent memory leaks
+    if (this.onPointerMove) {
+      window.removeEventListener('pointermove', this.onPointerMove);
+      this.onPointerMove = null;
+    }
+    if (this.onPointerUp) {
+      window.removeEventListener('pointerup', this.onPointerUp);
+      this.onPointerUp = null;
+    }
+    this.resizingPanel = null;
+    document.body.style.cursor = 'default';
   }
 
   setActiveView(view: StudioView) {
@@ -290,13 +302,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   inspectorWidth = signal(300);
 
   private resizingPanel: 'browser' | 'inspector' | null = null;
+  private onPointerMove: ((event: PointerEvent) => void) | null = null;
+  private onPointerUp: (() => void) | null = null;
 
   startResizing(event: PointerEvent, panel: 'browser' | 'inspector') {
     event.preventDefault();
     this.resizingPanel = panel;
     this.haptic.light();
 
-    const onPointerMove = (moveEvent: PointerEvent) => {
+    this.onPointerMove = (moveEvent: PointerEvent) => {
       if (!this.resizingPanel) return;
 
       if (this.resizingPanel === 'browser') {
@@ -312,15 +326,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     };
 
-    const onPointerUp = () => {
+    this.onPointerUp = () => {
       this.resizingPanel = null;
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
+      if (this.onPointerMove) {
+        window.removeEventListener('pointermove', this.onPointerMove);
+        this.onPointerMove = null;
+      }
+      if (this.onPointerUp) {
+        window.removeEventListener('pointerup', this.onPointerUp);
+        this.onPointerUp = null;
+      }
       document.body.style.cursor = 'default';
     };
 
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointermove', this.onPointerMove);
+    window.addEventListener('pointerup', this.onPointerUp);
     document.body.style.cursor = 'col-resize';
   }
 

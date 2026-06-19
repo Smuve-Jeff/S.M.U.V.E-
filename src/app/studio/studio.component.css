@@ -578,14 +578,7 @@
   left: 0;
 }
 
-.studio-layout {
-  /* Switch to flexible grid since widths are now dynamic */
-  display: flex !important;
-  overflow: hidden;
-}
-
 .studio-workspace {
-  flex: 1;
   min-width: 0;
 }
 
