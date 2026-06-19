@@ -30,27 +30,28 @@
 
         <!-- Compact View Switcher (Desktop Only) -->
         <nav class="compact-view-tabs" *ngIf="!uiService.isCompactMobile()">
-          <button [class.active]="activeView() === 'arrangement'" (click)="setActiveView('arrangement')" title="Playlist">
+          <button type="button" [class.active]="activeView() === 'arrangement'" (click)="setActiveView('arrangement')" title="Playlist">
             <span class="material-symbols-outlined">view_quilt</span>
           </button>
-          <button [class.active]="activeView() === 'piano-roll'" (click)="setActiveView('piano-roll')" title="Piano Roll">
+          <button type="button" [class.active]="activeView() === 'piano-roll'" (click)="setActiveView('piano-roll')" title="Piano Roll">
             <span class="material-symbols-outlined">piano</span>
           </button>
-          <button [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')" title="Channel Rack">
+          <button type="button" [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')" title="Channel Rack">
             <span class="material-symbols-outlined">grid_view</span>
           </button>
-          <button [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')" title="Mixer">
+          <button type="button" [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')" title="Mixer">
             <span class="material-symbols-outlined">tune</span>
           </button>
-          <button [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')" title="Performance">
+          <button type="button" [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')" title="Performance">
             <span class="material-symbols-outlined">interpreter_mode</span>
           </button>
           <div class="v-divider"></div>
-          <button [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')" title="DJ Deck">
+          <button type="button" [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')" title="DJ Deck">
             <span class="material-symbols-outlined">album</span>
           </button>
-          <button [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')" title="Mastering">
+          <button type="button" [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')" title="Mastering">
             <span class="material-symbols-outlined">speed</span>
+          </button>
           </button>
         </nav>
       </div>
