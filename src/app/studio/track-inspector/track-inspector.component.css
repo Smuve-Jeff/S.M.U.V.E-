@@ -85,3 +85,13 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Firefox Compatibility */
+input[type=range]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #38bdf8;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid white;
+}
