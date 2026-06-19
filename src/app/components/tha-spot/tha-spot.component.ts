@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { GameService } from '../../hub/game.service';
-import { Game, GameSortMode, QuickFilter } from '../../hub/game';
-import { RecommendationRail, LiveEvent } from '../../hub/hub.models';
+import { Game } from '../../hub/game';
+import { GameSortMode } from '../../hub/game.service';
+import { RecommendationRail, LiveEvent } from '../../hub/game';
 import { UserProfileService } from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
 import { GamepadService } from '../../services/gamepad.service';
-import { SecurityService } from '../../app.security';
+import { SecurityService } from '../../services/security.service';
 import { APP_SECURITY_CONFIG } from '../../app.security';
 import { SocialNetworkingService, RoomMessage, PrivateMessage } from '../../services/social-networking.service';
 import { PeerNetworkingService } from '../../services/peer-networking.service';
@@ -49,7 +50,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   searchQuery = signal<string>('');
   showFavoritesOnly = signal<boolean>(false);
   sortMode = signal<GameSortMode>('Popular');
-  quickFilters = signal<QuickFilter[]>([]);
+  quickFilters = signal<string[]>([]);
   favorites = signal<string[]>([]);
 
   // Selection & UI Signals
