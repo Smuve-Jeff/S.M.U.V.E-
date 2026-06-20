@@ -33,7 +33,7 @@ export class ProjectService {
 
   private async loadProjects() {
     try {
-      const projects = await this.storage.getItem<Project[]>('studio_projects') || [];
+      const projects = await this.storage.getAllItems('studio_projects') || [];
       this._list.next(projects);
     } catch (e) {
       this.logger.error('ProjectService: Failed to load projects from storage', e);

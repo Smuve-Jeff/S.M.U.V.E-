@@ -182,6 +182,14 @@
         </div>
 
         <!-- Incoming Knock -->
+        <!-- Incoming Challenges -->
+        <div class="challenge-item glass-v42-pro animate-enter" *ngFor="let c of challenges()">
+            <div class="challenge-header">INCOMING CHALLENGE: {{ c.fromUserName || 'RIVAL' }}</div>
+            <div class="challenge-actions">
+                <button class="accept-btn" (click)="confirmLaunch()">ACCEPT & INITIALIZE</button>
+                <button class="decline-btn">DECLINE</button>
+            </div>
+        </div>
         <div class="incoming-knock glass-v42-pro animate-enter" *ngIf="isKnocking()">
             <div class="knock-header">VOICE UPLINK REQUESTED</div>
             <div class="knock-actions">

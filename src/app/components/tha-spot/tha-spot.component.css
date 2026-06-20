@@ -1267,6 +1267,29 @@
   text-align: center;
 }
 
+.challenge-item {
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 12px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid #fbbf24;
+  text-align: center;
+}
+
+.challenge-header {
+  font-weight: 900;
+  font-size: 0.7rem;
+  margin-bottom: 1rem;
+  letter-spacing: 2px;
+  color: #fbbf24;
+}
+
+.challenge-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
 .knock-header {
   font-weight: 900;
   font-size: 0.7rem;

@@ -30,6 +30,7 @@ export class StudioRecordingEngineService implements OnDestroy {
   inputLevel = signal(0);
   recordedBlob = signal<Blob | null>(null);
   takes = signal<any[]>([]);
+  pendingMidi: any[] = [];
 
   private mediaStream: MediaStream | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
@@ -102,6 +103,7 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.leftChannel = [];
     this.rightChannel = [];
     this.recordingTime.set(0);
+    this.pendingMidi = [];
     this.recordedBlob.set(null);
 
     this.workletNode = new AudioWorkletNode(ctx, 'recording-processor');

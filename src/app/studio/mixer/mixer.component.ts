@@ -65,7 +65,7 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   private startMetering() {
     const update = () => {
-      const levels: Record<number, number> = {};
+      const levels: Record<string, number> = {};
       this.tracks().forEach((track) => {
         let analyser = this.analysers.get(track.id);
         if (!analyser) {
@@ -87,6 +87,22 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.animationFrame = requestAnimationFrame(update);
   }
 
+  toggleMixerWidth() { this.toggleViewMode(); }
+  isPeaking(id: string) { return (this.trackLevels()[id] || 0) > 0.95; }
+  startFaderDrag(event: PointerEvent, track: TrackModel) {
+    const initialY = event.clientY;
+    const initialVol = track.volume;
+    const onMove = (moveEvent: PointerEvent) => {
+      const delta = (initialY - moveEvent.clientY) / 100;
+      this.musicManager.updateVolume(track.id, Math.max(0, Math.min(1.5, initialVol + delta)));
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
   toggleViewMode() {
     this.viewMode.update((v) => (v === 'compact' ? 'expanded' : 'compact'));
   }
