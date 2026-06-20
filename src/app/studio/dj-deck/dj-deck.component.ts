@@ -1,5 +1,6 @@
 import { DjMidiService } from '../../services/dj-midi.service';
-import { Component,
+import {
+  Component,
   ChangeDetectionStrategy,
   signal,
   input,
@@ -30,6 +31,8 @@ import { AiService } from '../../services/ai.service';
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
 const MIN_SAMPLER_RETURN_MILLIS = 80;
+type SamplerCategory = 'drums' | 'fx' | 'vocals';
+type FxMode = 'flanger' | 'phaser' | 'delay';
 
 @Component({
   selector: 'app-dj-deck',
@@ -40,8 +43,12 @@ const MIN_SAMPLER_RETURN_MILLIS = 80;
   imports: [CommonModule, FormsModule, KnobComponent],
 })
 export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
-  samplerCategory = signal<"drums" | "fx" | "vocals">("drums");
-  fxMode = signal<"flanger" | "phaser" | "delay">("flanger");
+  readonly deckIds: ('A' | 'B')[] = ['A', 'B'];
+  readonly performancePads = [0, 1, 2, 3, 4, 5, 6, 7];
+  readonly fxModes: FxMode[] = ['flanger', 'phaser', 'delay'];
+  readonly samplerCategories: SamplerCategory[] = ['drums', 'fx', 'vocals'];
+  samplerCategory = signal<SamplerCategory>('drums');
+  fxMode = signal<FxMode>('flanger');
   private djMidiService = inject(DjMidiService);
   private aiService = inject(AiService);
   @ViewChild('waveformA') waveformA!: ElementRef<HTMLCanvasElement>;
@@ -137,8 +144,14 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   });
   activeRollPadA = signal<number | null>(null);
   activeRollPadB = signal<number | null>(null);
-  activeSamplerPadA = signal<number | null>(null);
-  activeSamplerPadB = signal<number | null>(null);
+  activeSamplerPadA = signal<{
+    index: number;
+    category: SamplerCategory;
+  } | null>(null);
+  activeSamplerPadB = signal<{
+    index: number;
+    category: SamplerCategory;
+  } | null>(null);
   isFlatView = signal(false);
   private lastAngleA = 0;
   private lastAngleB = 0;
@@ -477,7 +490,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   isSamplerPadSet(deck: 'A' | 'B', index: number) {
-    return this.getDeckState(deck).samplerPads[index] !== null;
+    return (
+      this.getDeckState(deck).samplerPads[this.samplerCategory()][index] !==
+      null
+    );
   }
 
   isRollPadActive(deck: 'A' | 'B', index: number) {
@@ -486,9 +502,15 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     );
   }
 
-  isSamplerPadActive(deck: 'A' | 'B', index: number, category?: 'drums' | 'fx' | 'vocals') {
+  isSamplerPadActive(
+    deck: 'A' | 'B',
+    index: number,
+    category?: SamplerCategory
+  ) {
     const cat = category || this.samplerCategory();
-    return (deck === 'A' ? this.activeSamplerPadA() : this.activeSamplerPadB()) === index;
+    const active =
+      deck === 'A' ? this.activeSamplerPadA() : this.activeSamplerPadB();
+    return active?.index === index && active.category === cat;
   }
 
   setPlaybackRate(deck: 'A' | 'B', rate: any) {
@@ -673,7 +695,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     // Use the advanced scratch engine
     const scratchDelta = (delta / 360) * 2; // Arbitrary scaling for feel
     this.deckService.scratch(deck, scratchDelta);
-
 
     if (delta > Math.PI) delta -= 2 * Math.PI;
     if (delta < -Math.PI) delta += 2 * Math.PI;
@@ -969,8 +990,48 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     );
   }
 
-  private getDeckState(deck: 'A' | 'B') {
+  getDeckState(deck: 'A' | 'B') {
     return deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+  }
+
+  isDeckVisible(deck: 'A' | 'B') {
+    return !this.isMobile() || this.activeMobileDeck() === deck;
+  }
+
+  setActiveDeck(deck: 'A' | 'B') {
+    this.activeMobileDeck.set(deck);
+  }
+
+  deckTrackName(deck: 'A' | 'B') {
+    return this.getDeckState(deck).track?.name || 'Load track';
+  }
+
+  deckPitchLabel(deck: 'A' | 'B') {
+    const rate = this.getDeckState(deck).playbackRate || 1;
+    return `${((rate - 1) * 100).toFixed(1)}%`;
+  }
+
+  deckElapsedLabel(deck: 'A' | 'B') {
+    return this.formatTrackClock(this.getDeckState(deck).progress);
+  }
+
+  deckRemainingLabel(deck: 'A' | 'B') {
+    const state = this.getDeckState(deck);
+    return this.formatTrackClock(Math.max(0, state.duration - state.progress));
+  }
+
+  deckProgressLabel(deck: 'A' | 'B') {
+    return `${Math.round(this.deckProgressPercent(deck) * 100)}%`;
+  }
+
+  samplerSlotLabel(deck: 'A' | 'B', index: number) {
+    const cuePosition =
+      this.getDeckState(deck).samplerPads[this.samplerCategory()][index];
+    return cuePosition === null ? 'Empty' : this.formatTrackClock(cuePosition);
+  }
+
+  private formatTrackClock(seconds: number) {
+    return this.formatDuration(Math.max(0, seconds) * 1000);
   }
 
   private getBeatWindowSeconds(deck: 'A' | 'B', beats: number) {
@@ -989,9 +1050,14 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     else this.activeRollPadB.set(index);
   }
 
-  private setActiveSamplerPad(deck: 'A' | 'B', index: number | null) {
-    if (deck === 'A') this.activeSamplerPadA.set(index);
-    else this.activeSamplerPadB.set(index);
+  private setActiveSamplerPad(
+    deck: 'A' | 'B',
+    index: number | null,
+    category: SamplerCategory = this.samplerCategory()
+  ) {
+    const payload = index === null ? null : { index, category };
+    if (deck === 'A') this.activeSamplerPadA.set(payload);
+    else this.activeSamplerPadB.set(payload);
   }
 
   private clearRollInterval(deck: 'A' | 'B') {
@@ -1026,10 +1092,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   updateCrossfader(value: any) {
     const cf = parseFloat(value);
     this.deckService.crossfade.set(cf);
-    this.engine.setCrossfader(cf);
   }
 
-  setSamplerCategory(cat: 'drums' | 'fx' | 'vocals') {
+  setSamplerCategory(cat: SamplerCategory) {
     this.samplerCategory.set(cat);
   }
 
@@ -1046,8 +1111,11 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.deckService.toggleAutomix();
   }
 
+  toggleHamster() {
+    this.deckService.hamster.update((value) => !value);
+  }
+
   syncDeck(deck: 'A' | 'B') {
     this.deckService.autoSync(deck);
   }
-
 }

@@ -55,6 +55,9 @@ describe('DeckService', () => {
       setDeckSend: jest.fn(),
       setDeckGain: jest.fn(),
       setDeckStemGain: jest.fn(),
+      setDeckCue: jest.fn(),
+      setAdvancedFX: jest.fn(),
+      syncDecks: jest.fn(),
       seekDeck: jest.fn(),
     };
 
@@ -169,7 +172,11 @@ describe('DeckService', () => {
     service.deckA.update((d) => ({
       ...d,
       hotCues: [24, null, null, null, null, null, null, null],
-      samplerPads: new Array(8).fill(null),
+      samplerPads: {
+        drums: new Array(8).fill(null),
+        fx: new Array(8).fill(null),
+        vocals: new Array(8).fill(null),
+      },
     }));
     mockEngine.getDeckProgress.mockReturnValueOnce({
       position: 48,
@@ -178,15 +185,15 @@ describe('DeckService', () => {
       slipPosition: 48,
     });
 
-    service.setSamplerPad('A', 0);
+    service.setSamplerPad('A', 0, 'drums');
 
     expect(service.deckA().hotCues[0]).toBe(24);
-    expect(service.deckA().samplerPads[0]).toBe(48);
+    expect(service.deckA().samplerPads.drums[0]).toBe(48);
 
-    service.clearSamplerPad('A', 0);
+    service.clearSamplerPad('A', 0, 'drums');
 
     expect(service.deckA().hotCues[0]).toBe(24);
-    expect(service.deckA().samplerPads[0]).toBeNull();
+    expect(service.deckA().samplerPads.drums[0]).toBeNull();
   });
 
   it('loads deck buffers and resets progress-sensitive state', () => {
@@ -195,7 +202,11 @@ describe('DeckService', () => {
       ...d,
       progress: 32,
       hotCues: [12, 24, null, null, null, null, null, null],
-      samplerPads: [4, null, null, null, null, null, null, null],
+      samplerPads: {
+        drums: [4, null, null, null, null, null, null, null],
+        fx: new Array(8).fill(null),
+        vocals: new Array(8).fill(null),
+      },
     }));
 
     service.loadDeckBuffer('A', buffer, 'anthem.wav', 'vinyl://anthem');
@@ -205,7 +216,42 @@ describe('DeckService', () => {
     expect(service.deckA().duration).toBe(245);
     expect(service.deckA().progress).toBe(0);
     expect(service.deckA().hotCues).toEqual(new Array(8).fill(null));
-    expect(service.deckA().samplerPads).toEqual(new Array(8).fill(null));
+    expect(service.deckA().samplerPads).toEqual({
+      drums: new Array(8).fill(null),
+      fx: new Array(8).fill(null),
+      vocals: new Array(8).fill(null),
+    });
     expect(service.deckA().vinylImageUrl).toBe('vinyl://anthem');
+  });
+
+  it('routes advanced FX changes into the engine and deck state', () => {
+    service.setFx('B', 'phaser', 0.42);
+
+    expect(service.deckB().fxAmount).toBe(0.42);
+    expect(service.deckB().activeFx).toBe('phaser');
+    expect(mockEngine.setAdvancedFX).toHaveBeenCalledWith('B', 'phaser', 0.42);
+  });
+
+  it('keeps automix state persistent and syncs the inactive deck', () => {
+    service.deckA.update((d) => ({
+      ...d,
+      isPlaying: true,
+      bpm: 128,
+      detectedBpm: 128,
+      playbackRate: 1,
+    }));
+    service.deckB.update((d) => ({
+      ...d,
+      bpm: 100,
+      detectedBpm: 100,
+      playbackRate: 1,
+    }));
+
+    service.toggleAutomix();
+
+    expect(service.automixEnabled()).toBe(true);
+    expect(mockEngine.syncDecks).toHaveBeenCalledWith('A', 'B');
+    expect(service.deckB().bpm).toBe(128);
+    expect(service.deckB().playbackRate).toBeCloseTo(1.28, 5);
   });
 });

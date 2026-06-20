@@ -11,6 +11,8 @@ import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { PlayerService } from '../../services/player.service';
 import { initialDeckState } from '../../services/user-context.service';
+import { DjMidiService } from '../../services/dj-midi.service';
+import { AiService } from '../../services/ai.service';
 
 describe('DjDeckComponent', () => {
   let component: DjDeckComponent;
@@ -32,7 +34,11 @@ describe('DjDeckComponent', () => {
         ...initialDeckState,
         track: { name: 'Track A', url: '' },
         hotCues: [12, null, null, null, null, null, null, null],
-        samplerPads: [24, null, null, null, null, null, null, null],
+        samplerPads: {
+          drums: [24, null, null, null, null, null, null, null],
+          fx: new Array(8).fill(null),
+          vocals: new Array(8).fill(null),
+        },
         progress: 16,
         duration: 120,
         bpm: 120,
@@ -45,6 +51,9 @@ describe('DjDeckComponent', () => {
         bpm: 128,
       }),
       crossfade: signal(0.2),
+      automixEnabled: signal(false),
+      hamster: signal(false),
+      xfCurve: signal<'linear' | 'power' | 'exp' | 'cut'>('linear'),
       viewMode: signal<'functional' | 'flat'>('functional'),
       syncProgress: jest.fn(),
       setHotCue: jest.fn(),
@@ -55,12 +64,18 @@ describe('DjDeckComponent', () => {
       toggleViewMode: jest.fn(),
       toggleSlip: jest.fn(),
       togglePlay: jest.fn(),
+      toggleCue: jest.fn(),
+      toggleLoop: jest.fn(),
+      toggleAutomix: jest.fn(),
+      setFx: jest.fn(),
       setDeckEq: jest.fn(),
       setDeckFilter: jest.fn(),
       setDeckGain: jest.fn(),
       setDeckSend: jest.fn(),
       setBpm: jest.fn(),
+      onStemGainChange: jest.fn(),
       sync: jest.fn(),
+      autoSync: jest.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -75,6 +90,11 @@ describe('DjDeckComponent', () => {
         },
         { provide: ExportService, useValue: mockExportService },
         { provide: LibraryService, useValue: {} },
+        { provide: DjMidiService, useValue: { initMidi: jest.fn() } },
+        {
+          provide: AiService,
+          useValue: { isUnlocked: jest.fn().mockReturnValue(false) },
+        },
         { provide: DeckService, useValue: mockDeckService },
         {
           provide: AudioEngineService,
@@ -95,6 +115,7 @@ describe('DjDeckComponent', () => {
             setDeckRate: jest.fn(),
             setSaturation: jest.fn(),
             setMasterOutputLevel: jest.fn(),
+            setCrossfader: jest.fn(),
             brakeDeck: jest.fn(),
             spinbackDeck: jest.fn(),
             transformDeck: jest.fn(),
@@ -159,7 +180,7 @@ describe('DjDeckComponent', () => {
     await component.saveSessionSnapshot();
 
     const [, , payload] = mockDatabaseService.saveProject.mock.calls[0];
-    expect(payload.deckA.samplerPads[0]).toBe(24);
+    expect(payload.deckA.samplerPads.drums[0]).toBe(24);
   });
 
   it('clears a hot cue through the deck service', () => {
@@ -204,19 +225,27 @@ describe('DjDeckComponent', () => {
     component.performanceMode.set('sampler');
     mockDeckService.deckA.update((d: typeof initialDeckState) => ({
       ...d,
-      samplerPads: new Array(8).fill(null),
+      samplerPads: {
+        drums: new Array(8).fill(null),
+        fx: new Array(8).fill(null),
+        vocals: new Array(8).fill(null),
+      },
       hotCues: [12, null, null, null, null, null, null, null],
     }));
 
     component.handlePadPress('A', 1);
 
-    expect(mockDeckService.setSamplerPad).toHaveBeenCalledWith('A', 1);
+    expect(mockDeckService.setSamplerPad).toHaveBeenCalledWith('A', 1, 'drums');
     expect(mockDeckService.setHotCue).not.toHaveBeenCalled();
 
     const event = { preventDefault: jest.fn() } as unknown as MouseEvent;
     component.clearPad('A', 1, event);
 
-    expect(mockDeckService.clearSamplerPad).toHaveBeenCalledWith('A', 1);
+    expect(mockDeckService.clearSamplerPad).toHaveBeenCalledWith(
+      'A',
+      1,
+      'drums'
+    );
     expect(mockDeckService.clearHotCue).not.toHaveBeenCalledWith('A', 1);
   });
 });

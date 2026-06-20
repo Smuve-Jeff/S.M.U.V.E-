@@ -1,74 +1,163 @@
-<div class="dj-3d-stage" [class.flat-view]="isFlatView()">
-  <!-- Top Bar / Global Controls -->
-  <div class="dj-top-bar wood-panel">
-    <div class="logo neon-text font-black">
-      SMUVE <span class="neon-accent-secondary">3D</span>
-    </div>
-    <div class="session-notice" [class.active]="sessionNotice()">
-      {{ sessionNotice() }}
+<div class="dj-workstation" [class.flat-view]="isFlatView()">
+  <header class="studio-header panel-surface">
+    <div class="studio-header__brand">
+      <p class="eyebrow">Professional live mixing studio</p>
+      <h1>SMUVE DJ Console</h1>
+      <span>Android mobile-first · Chrome desktop ready</span>
     </div>
 
-    <!-- Module-Level Transport -->
-    <div class="module-transport glass-v42">
-      <div class="btn-group flex gap-1">
-        <button class="m-btn tactile-v42" (click)="deckService.togglePlay('A')">
-          <span class="material-symbols-outlined text-sm">
-            {{ deckService.deckA().isPlaying ? 'pause' : 'play_arrow' }}
-          </span>
-        </button>
-        <button class="m-btn tactile-v42" (click)="toggleRecording()">
-          <span
-            class="material-symbols-outlined text-sm"
-            [class.text-red-500]="recording()"
-            >fiber_manual_record</span
-          >
-        </button>
-        <button class="m-btn tactile-v42" (click)="loadTrackFor('A')">
-          <span class="material-symbols-outlined text-sm">upload</span>
-        </button>
+    <div class="studio-header__status">
+      <div class="recording-pill" [class.recording]="recording()">
+        <span class="dot"></span>
+        <div>
+          <strong>{{
+            recording() ? 'Recording live mix' : 'Ready to record'
+          }}</strong>
+          <span>{{
+            recording() ? recordingDurationLabel() : 'Arm mix capture'
+          }}</span>
+        </div>
+      </div>
+
+      <div class="session-notice" [class.active]="sessionNotice()">
+        {{ sessionNotice() }}
       </div>
     </div>
 
-    <div class="global-actions">
+    <div class="studio-header__actions">
       <button
-        (click)="saveSessionSnapshot()"
-        class="tactile-v42"
-        title="Save Session"
+        type="button"
+        class="action-chip accent-record"
+        (click)="toggleRecording()"
       >
+        <span class="material-symbols-outlined">fiber_manual_record</span>
+        <span>{{ recording() ? 'Stop' : 'Record' }}</span>
+      </button>
+      <button type="button" class="action-chip" (click)="saveSessionSnapshot()">
         <span class="material-symbols-outlined">save</span>
+        <span>Save</span>
       </button>
       <button
+        type="button"
+        class="action-chip"
         (click)="exportSessionSnapshot()"
-        class="tactile-v42"
-        title="Export JSON"
       >
         <span class="material-symbols-outlined">ios_share</span>
+        <span>Export</span>
       </button>
       <button
-        class="tactile-v42"
+        type="button"
+        class="action-chip"
         (click)="isFlatView.set(!isFlatView())"
-        [title]="isFlatView() ? '3D View' : 'Flat View'"
+        [attr.aria-pressed]="isFlatView()"
       >
-        <span class="material-symbols-outlined">{{
-          isFlatView() ? '3d_rotation' : 'view_stream'
-        }}</span>
+        <span class="material-symbols-outlined">
+          {{ isFlatView() ? '3d_rotation' : 'view_in_ar' }}
+        </span>
+        <span>{{ isFlatView() ? '3D view' : 'Flat view' }}</span>
       </button>
     </div>
-  </div>
+  </header>
 
-  <div
-    class="dj-console-3d"
-    [class.is-scratching]="isScratchingA() || isScratchingB()"
-  >
-    <!-- Left Deck (A) -->
-    <div class="deck-section deck-left" id="deck-a">
-      <div class="deck-plinth">
+  <section class="mobile-deck-switcher panel-surface" *ngIf="isMobile()">
+    <button
+      type="button"
+      class="deck-toggle deck-toggle-a"
+      [class.active]="activeMobileDeck() === 'A'"
+      (click)="setActiveDeck('A')"
+    >
+      <span>Deck A</span>
+      <strong>{{ deckService.deckA().bpm | number: '1.0-0' }} BPM</strong>
+    </button>
+    <button
+      type="button"
+      class="deck-toggle deck-toggle-b"
+      [class.active]="activeMobileDeck() === 'B'"
+      (click)="setActiveDeck('B')"
+    >
+      <span>Deck B</span>
+      <strong>{{ deckService.deckB().bpm | number: '1.0-0' }} BPM</strong>
+    </button>
+  </section>
+
+  <section class="console-grid">
+    <article
+      class="deck-panel deck-a panel-surface"
+      [class.deck-hidden]="!isDeckVisible('A')"
+    >
+      <div class="deck-panel__header">
+        <div class="deck-badge">Deck A</div>
+        <div class="deck-title">
+          <span class="deck-state" [class.live]="deckService.deckA().isPlaying">
+            {{ deckService.deckA().isPlaying ? 'LIVE' : 'READY' }}
+          </span>
+          <h2>{{ deckTrackName('A') }}</h2>
+          <p>{{ deckElapsedLabel('A') }} / -{{ deckRemainingLabel('A') }}</p>
+        </div>
+        <button
+          type="button"
+          class="load-track-button"
+          (click)="loadTrackFor('A')"
+        >
+          Load
+        </button>
+      </div>
+
+      <div class="deck-status-strip">
+        <div class="status-chip">
+          <span>BPM</span>
+          <strong>{{ deckService.deckA().bpm | number: '1.0-0' }}</strong>
+        </div>
+        <div class="status-chip">
+          <span>Pitch</span>
+          <strong>{{ deckPitchLabel('A') }}</strong>
+        </div>
+        <div class="status-chip">
+          <span>Progress</span>
+          <strong>{{ deckProgressLabel('A') }}</strong>
+        </div>
+        <div class="status-chip" [class.active]="deckService.deckA().isCueing">
+          <span>Cue</span>
+          <strong>{{ deckService.deckA().isCueing ? 'On' : 'Off' }}</strong>
+        </div>
+        <div class="status-chip" [class.active]="deckService.deckA().slip">
+          <span>Slip</span>
+          <strong>{{ deckService.deckA().slip ? 'On' : 'Off' }}</strong>
+        </div>
+        <div class="status-chip" [class.active]="deckService.deckA().loop">
+          <span>Loop</span>
+          <strong>{{ deckService.deckA().loop ? 'On' : 'Off' }}</strong>
+        </div>
+      </div>
+
+      <div class="waveform-module">
+        <div class="module-label">
+          <span>Waveform monitor</span>
+          <strong>{{
+            deckService.deckA().track?.name ? 'Track loaded' : 'Awaiting audio'
+          }}</strong>
+        </div>
+        <div class="waveform-shell">
+          <canvas #waveformA class="waveform-canvas"></canvas>
+          <div class="meter-rail">
+            <canvas #meterA></canvas>
+          </div>
+        </div>
+        <div class="waveform-progress">
+          <div
+            class="waveform-progress__fill deck-a-fill"
+            [style.width.%]="deckProgressPercent('A') * 100"
+          ></div>
+        </div>
+      </div>
+
+      <div class="deck-performance">
         <div
-          class="platter-container"
+          class="platter-shell"
           (mousedown)="onPlatterDown('A', $event)"
           (touchstart)="onPlatterDown('A', $event)"
         >
-          <div class="platter-base"></div>
+          <div class="platter-ring"></div>
           <div
             class="platter-vinyl"
             [style.transform]="'rotate(' + rotationA() + 'deg)'"
@@ -83,209 +172,429 @@
                 {{ deckService.deckA().track?.name || 'SMUVE' }}
               </div>
             </div>
-            <div class="platter-strobe"></div>
           </div>
-          <div class="platter-spindle"></div>
+          <div class="platter-center"></div>
         </div>
 
-        <div class="deck-controls-surface">
-          <div class="pitch-fader-container">
-            <div class="fader-track">
-              <input
-                type="range"
-                min="0.9"
-                max="1.1"
-                step="0.001"
-                [value]="deckService.deckA().playbackRate"
-                (input)="setPlaybackRate('A', $any($event.target).value)"
-              />
-            </div>
-            <label>PITCH</label>
-          </div>
-
-          <div class="deck-main-buttons">
+        <div class="transport-panel">
+          <div class="transport-buttons">
             <button
-              class="btn-cue tactile-v42"
-              [class.active]="isCuePadSet('A', 0)"
+              type="button"
+              class="transport-button cue"
+              [class.active]="deckService.deckA().isCueing"
               (click)="toggleCue('A')"
             >
-              CUE
+              Cue
             </button>
             <button
-              class="btn-play tactile-v42"
+              type="button"
+              class="transport-button play"
               [class.active]="deckService.deckA().isPlaying"
               (click)="deckService.togglePlay('A')"
             >
-              <span class="material-symbols-outlined">{{
-                deckService.deckA().isPlaying ? 'pause' : 'play_arrow'
-              }}</span>
+              {{ deckService.deckA().isPlaying ? 'Pause' : 'Play' }}
+            </button>
+            <button
+              type="button"
+              class="transport-button sync"
+              (click)="syncDeck('A')"
+            >
+              Sync
+            </button>
+          </div>
+
+          <div class="transport-buttons transport-buttons--secondary">
+            <button
+              type="button"
+              class="transport-button utility"
+              [class.active]="deckService.deckA().slip"
+              (click)="deckService.toggleSlip('A')"
+            >
+              Slip
+            </button>
+            <button
+              type="button"
+              class="transport-button utility"
+              [class.active]="deckService.deckA().loop"
+              (click)="toggleLoop('A')"
+            >
+              Loop
+            </button>
+            <button
+              type="button"
+              class="transport-button utility"
+              (click)="tapBpm('A')"
+            >
+              Tap
+            </button>
+          </div>
+
+          <div class="pitch-panel">
+            <div class="module-label">
+              <span>Tempo fader</span>
+              <strong>{{ pitchAPercentage() }}</strong>
+            </div>
+            <input
+              type="range"
+              min="0.9"
+              max="1.1"
+              step="0.001"
+              [value]="deckService.deckA().playbackRate"
+              (input)="setPlaybackRate('A', $any($event.target).value)"
+            />
+          </div>
+
+          <div class="scratch-fx-row">
+            <button
+              type="button"
+              class="mini-action"
+              (click)="applyScratchFx('A', 'brake')"
+            >
+              Brake
+            </button>
+            <button
+              type="button"
+              class="mini-action"
+              (click)="applyScratchFx('A', 'spinback')"
+            >
+              Spinback
+            </button>
+            <button
+              type="button"
+              class="mini-action"
+              (click)="applyScratchFx('A', 'transform')"
+            >
+              Transform
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Deck A Visualizers -->
-      <div class="deck-visuals">
-        <canvas #waveformA class="waveform-canvas"></canvas>
-        <div class="level-meter">
-          <canvas #meterA></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- Center Mixer -->
-    <div class="mixer-section">
-      <div class="mixer-chassis">
-        <div class="mixer-channel">
+      <div class="deck-mix-strip">
+        <div class="knob-row">
           <app-knob
-            label="GAIN"
+            label="Gain"
             [min]="0"
             [max]="1.5"
             [step]="0.01"
             [value]="deckService.deckA().gain"
             (valueChange)="setGain('A', $event)"
           ></app-knob>
-
-          <div class="eq-knobs-elite mt-4">
-            <app-knob
-              label="HI"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckA().eqHigh"
-              (valueChange)="updateEq('A', 'high', $event)"
-            ></app-knob>
-            <app-knob
-              label="MID"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckA().eqMid"
-              (valueChange)="updateEq('A', 'mid', $event)"
-            ></app-knob>
-            <app-knob
-              label="LOW"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckA().eqLow"
-              (valueChange)="updateEq('A', 'low', $event)"
-            ></app-knob>
-          </div>
-
-          <div class="channel-fader-elite mt-6">
-            <input
-              type="range"
-              orient="vertical"
-              min="0"
-              max="1.2"
-              step="0.01"
-              [value]="deckService.deckA().gain"
-              (input)="setGain('A', $any($event.target).value)"
-            />
-          </div>
+          <app-knob
+            label="Filter"
+            [min]="400"
+            [max]="20000"
+            [step]="100"
+            [value]="deckService.deckA().filterFreq"
+            (valueChange)="updateFilter('A', $event)"
+          ></app-knob>
+          <app-knob
+            label="High"
+            [min]="0"
+            [max]="2"
+            [step]="0.01"
+            [value]="deckService.deckA().eqHigh"
+            (valueChange)="updateEq('A', 'high', $event)"
+          ></app-knob>
+          <app-knob
+            label="Mid"
+            [min]="0"
+            [max]="2"
+            [step]="0.01"
+            [value]="deckService.deckA().eqMid"
+            (valueChange)="updateEq('A', 'mid', $event)"
+          ></app-knob>
+          <app-knob
+            label="Low"
+            [min]="0"
+            [max]="2"
+            [step]="0.01"
+            [value]="deckService.deckA().eqLow"
+            (valueChange)="updateEq('A', 'low', $event)"
+          ></app-knob>
         </div>
 
-        <div class="mixer-center">
-          <div class="dj-utility-btns mb-4">
-            <button class="btn-sm tactile-v42" [class.active]="deckService.automixEnabled()" (click)="toggleAutomix()">AUTOMIX</button>
-            <button class="btn-sm tactile-v42" (click)="syncDeck('A')">SYNC A</button>
-            <button class="btn-sm tactile-v42" (click)="syncDeck('B')">SYNC B</button>
-          </div>
-          <div class="master-section-elite">
-            <label class="neon-text-xs">MASTER</label>
-            <div class="master-vu">
+        <div class="stem-strip">
+          <label class="stem-control" *ngFor="let stem of stems">
+            <span>{{ stem }}</span>
+            <input
+              type="range"
+              min="0"
+              max="1.4"
+              step="0.01"
+              [value]="deckService.deckA().stemGains[stem]"
+              (input)="setStemGain('A', stem, $event)"
+            />
+          </label>
+        </div>
+      </div>
+    </article>
+
+    <aside class="mixer-panel panel-surface">
+      <div class="mixer-panel__header">
+        <div>
+          <p class="eyebrow">Central mixer</p>
+          <h2>Master bus & FX rack</h2>
+        </div>
+        <div class="mixer-status-badges">
+          <span
+            class="status-chip"
+            [class.active]="deckService.automixEnabled()"
+            >Automix</span
+          >
+          <span class="status-chip" [class.active]="deckService.hamster()"
+            >Hamster</span
+          >
+        </div>
+      </div>
+
+      <div class="mixer-module recording-module">
+        <div class="module-label">
+          <span>Recording</span>
+          <strong>{{
+            recording() ? recordingDurationLabel() : 'Armed standby'
+          }}</strong>
+        </div>
+        <button
+          type="button"
+          class="wide-action accent-record"
+          (click)="toggleRecording()"
+        >
+          {{ recording() ? 'Stop live capture' : 'Start live capture' }}
+        </button>
+      </div>
+
+      <div class="mixer-module">
+        <div class="module-label">
+          <span>Crossfader</span>
+          <strong>{{ deckService.crossfade() | number: '1.2-2' }}</strong>
+        </div>
+        <div class="crossfader-labels">
+          <span>Deck A</span>
+          <span>Blend</span>
+          <span>Deck B</span>
+        </div>
+        <input
+          class="crossfader"
+          type="range"
+          min="-1"
+          max="1"
+          step="0.01"
+          [value]="deckService.crossfade()"
+          (input)="updateCrossfader($any($event.target).value)"
+        />
+        <div class="curve-buttons">
+          <button
+            type="button"
+            class="mini-action"
+            [class.active]="deckService.xfCurve() === 'linear'"
+            (click)="deckService.xfCurve.set('linear')"
+          >
+            Linear
+          </button>
+          <button
+            type="button"
+            class="mini-action"
+            [class.active]="deckService.xfCurve() === 'power'"
+            (click)="deckService.xfCurve.set('power')"
+          >
+            Power
+          </button>
+          <button
+            type="button"
+            class="mini-action"
+            [class.active]="deckService.xfCurve() === 'exp'"
+            (click)="deckService.xfCurve.set('exp')"
+          >
+            Exp
+          </button>
+          <button
+            type="button"
+            class="mini-action"
+            [class.active]="deckService.xfCurve() === 'cut'"
+            (click)="deckService.xfCurve.set('cut')"
+          >
+            Cut
+          </button>
+        </div>
+      </div>
+
+      <div class="mixer-module master-module">
+        <div class="module-label">
+          <span>Master level</span>
+          <strong>{{ masterVolume() | number: '1.2-2' }}</strong>
+        </div>
+        <div class="master-module__body">
+          <div class="master-meter">
+            <div class="meter-stack">
               <div
-                class="vu-bar"
+                class="meter-bar deck-a-fill"
                 [style.height.%]="getDeckLevel('A') * 100"
               ></div>
+            </div>
+            <div class="meter-stack">
               <div
-                class="vu-bar"
+                class="meter-bar deck-b-fill"
                 [style.height.%]="getDeckLevel('B') * 100"
               ></div>
             </div>
-            <app-knob
-              [min]="0"
-              [max]="1.2"
-              [step]="0.01"
-              [value]="masterVolume()"
-              (valueChange)="setMasterVolume($event)"
-            ></app-knob>
           </div>
-
-          <div class="crossfader-container-elite mt-8">
-            <input
-              type="range"
-              min="-1"
-              max="1"
-              step="0.01"
-              [value]="deckService.crossfade()"
-              (input)="updateCrossfader($any($event.target).value)"
-            />
-          </div>
-        </div>
-
-        <div class="mixer-channel">
           <app-knob
-            label="GAIN"
+            label="Master"
             [min]="0"
-            [max]="1.5"
+            [max]="1.2"
             [step]="0.01"
-            [value]="deckService.deckB().gain"
-            (valueChange)="setGain('B', $event)"
+            [value]="masterVolume()"
+            (valueChange)="setMasterVolume($event)"
           ></app-knob>
-
-          <div class="eq-knobs-elite mt-4">
-            <app-knob
-              label="HI"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckB().eqHigh"
-              (valueChange)="updateEq('B', 'high', $event)"
-            ></app-knob>
-            <app-knob
-              label="MID"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckB().eqMid"
-              (valueChange)="updateEq('B', 'mid', $event)"
-            ></app-knob>
-            <app-knob
-              label="LOW"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckB().eqLow"
-              (valueChange)="updateEq('B', 'low', $event)"
-            ></app-knob>
-          </div>
-
-          <div class="channel-fader-elite mt-6">
-            <input
-              type="range"
-              orient="vertical"
-              min="0"
-              max="1.2"
-              step="0.01"
-              [value]="deckService.deckB().gain"
-              (input)="setGain('B', $any($event.target).value)"
-            />
-          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Right Deck (B) -->
-    <div class="deck-section deck-right" id="deck-b">
-      <div class="deck-plinth">
+      <div class="mixer-module">
+        <div class="module-label">
+          <span>Performance FX</span>
+          <strong>{{ fxMode() | uppercase }}</strong>
+        </div>
+        <div class="fx-mode-buttons">
+          <button
+            type="button"
+            class="mini-action"
+            *ngFor="let mode of fxModes"
+            [class.active]="fxMode() === mode"
+            (click)="fxMode.set(mode)"
+          >
+            {{ mode }}
+          </button>
+        </div>
+        <div class="fx-deck-control">
+          <label>
+            <span
+              >Deck A {{ deckService.deckA().fxAmount | number: '1.2-2' }}</span
+            >
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              [value]="deckService.deckA().fxAmount"
+              (input)="setFxAmount('A', $any($event.target).value)"
+            />
+          </label>
+          <label>
+            <span
+              >Deck B {{ deckService.deckB().fxAmount | number: '1.2-2' }}</span
+            >
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              [value]="deckService.deckB().fxAmount"
+              (input)="setFxAmount('B', $any($event.target).value)"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div class="mixer-module quick-actions">
+        <button
+          type="button"
+          class="wide-action"
+          [class.active]="deckService.automixEnabled()"
+          (click)="toggleAutomix()"
+        >
+          {{
+            deckService.automixEnabled() ? 'Disable automix' : 'Enable automix'
+          }}
+        </button>
+        <button
+          type="button"
+          class="wide-action"
+          [class.active]="deckService.hamster()"
+          (click)="toggleHamster()"
+        >
+          {{ deckService.hamster() ? 'Hamster on' : 'Hamster off' }}
+        </button>
+      </div>
+    </aside>
+
+    <article
+      class="deck-panel deck-b panel-surface"
+      [class.deck-hidden]="!isDeckVisible('B')"
+    >
+      <div class="deck-panel__header">
+        <div class="deck-badge">Deck B</div>
+        <div class="deck-title">
+          <span class="deck-state" [class.live]="deckService.deckB().isPlaying">
+            {{ deckService.deckB().isPlaying ? 'LIVE' : 'READY' }}
+          </span>
+          <h2>{{ deckTrackName('B') }}</h2>
+          <p>{{ deckElapsedLabel('B') }} / -{{ deckRemainingLabel('B') }}</p>
+        </div>
+        <button
+          type="button"
+          class="load-track-button"
+          (click)="loadTrackFor('B')"
+        >
+          Load
+        </button>
+      </div>
+
+      <div class="deck-status-strip">
+        <div class="status-chip">
+          <span>BPM</span>
+          <strong>{{ deckService.deckB().bpm | number: '1.0-0' }}</strong>
+        </div>
+        <div class="status-chip">
+          <span>Pitch</span>
+          <strong>{{ deckPitchLabel('B') }}</strong>
+        </div>
+        <div class="status-chip">
+          <span>Progress</span>
+          <strong>{{ deckProgressLabel('B') }}</strong>
+        </div>
+        <div class="status-chip" [class.active]="deckService.deckB().isCueing">
+          <span>Cue</span>
+          <strong>{{ deckService.deckB().isCueing ? 'On' : 'Off' }}</strong>
+        </div>
+        <div class="status-chip" [class.active]="deckService.deckB().slip">
+          <span>Slip</span>
+          <strong>{{ deckService.deckB().slip ? 'On' : 'Off' }}</strong>
+        </div>
+        <div class="status-chip" [class.active]="deckService.deckB().loop">
+          <span>Loop</span>
+          <strong>{{ deckService.deckB().loop ? 'On' : 'Off' }}</strong>
+        </div>
+      </div>
+
+      <div class="waveform-module">
+        <div class="module-label">
+          <span>Waveform monitor</span>
+          <strong>{{
+            deckService.deckB().track?.name ? 'Track loaded' : 'Awaiting audio'
+          }}</strong>
+        </div>
+        <div class="waveform-shell">
+          <canvas #waveformB class="waveform-canvas"></canvas>
+          <div class="meter-rail">
+            <canvas #meterB></canvas>
+          </div>
+        </div>
+        <div class="waveform-progress">
+          <div
+            class="waveform-progress__fill deck-b-fill"
+            [style.width.%]="deckProgressPercent('B') * 100"
+          ></div>
+        </div>
+      </div>
+
+      <div class="deck-performance">
         <div
-          class="platter-container"
+          class="platter-shell"
           (mousedown)="onPlatterDown('B', $event)"
           (touchstart)="onPlatterDown('B', $event)"
         >
-          <div class="platter-base"></div>
+          <div class="platter-ring"></div>
           <div
             class="platter-vinyl"
             [style.transform]="'rotate(' + rotationB() + 'deg)'"
@@ -300,99 +609,224 @@
                 {{ deckService.deckB().track?.name || 'SMUVE' }}
               </div>
             </div>
-            <div class="platter-strobe"></div>
           </div>
-          <div class="platter-spindle"></div>
+          <div class="platter-center"></div>
         </div>
 
-        <div class="deck-controls-surface">
-          <div class="pitch-fader-container">
-            <div class="fader-track">
-              <input
-                type="range"
-                min="0.9"
-                max="1.1"
-                step="0.001"
-                [value]="deckService.deckB().playbackRate"
-                (input)="setPlaybackRate('B', $any($event.target).value)"
-              />
-            </div>
-            <label>PITCH</label>
-          </div>
-
-          <div class="deck-main-buttons">
+        <div class="transport-panel">
+          <div class="transport-buttons">
             <button
-              class="btn-cue tactile-v42"
-              [class.active]="isCuePadSet('B', 0)"
+              type="button"
+              class="transport-button cue"
+              [class.active]="deckService.deckB().isCueing"
               (click)="toggleCue('B')"
             >
-              CUE
+              Cue
             </button>
             <button
-              class="btn-play tactile-v42"
+              type="button"
+              class="transport-button play"
               [class.active]="deckService.deckB().isPlaying"
               (click)="deckService.togglePlay('B')"
             >
-              <span class="material-symbols-outlined">{{
-                deckService.deckB().isPlaying ? 'pause' : 'play_arrow'
-              }}</span>
+              {{ deckService.deckB().isPlaying ? 'Pause' : 'Play' }}
+            </button>
+            <button
+              type="button"
+              class="transport-button sync"
+              (click)="syncDeck('B')"
+            >
+              Sync
+            </button>
+          </div>
+
+          <div class="transport-buttons transport-buttons--secondary">
+            <button
+              type="button"
+              class="transport-button utility"
+              [class.active]="deckService.deckB().slip"
+              (click)="deckService.toggleSlip('B')"
+            >
+              Slip
+            </button>
+            <button
+              type="button"
+              class="transport-button utility"
+              [class.active]="deckService.deckB().loop"
+              (click)="toggleLoop('B')"
+            >
+              Loop
+            </button>
+            <button
+              type="button"
+              class="transport-button utility"
+              (click)="tapBpm('B')"
+            >
+              Tap
+            </button>
+          </div>
+
+          <div class="pitch-panel">
+            <div class="module-label">
+              <span>Tempo fader</span>
+              <strong>{{ pitchBPercentage() }}</strong>
+            </div>
+            <input
+              type="range"
+              min="0.9"
+              max="1.1"
+              step="0.001"
+              [value]="deckService.deckB().playbackRate"
+              (input)="setPlaybackRate('B', $any($event.target).value)"
+            />
+          </div>
+
+          <div class="scratch-fx-row">
+            <button
+              type="button"
+              class="mini-action"
+              (click)="applyScratchFx('B', 'brake')"
+            >
+              Brake
+            </button>
+            <button
+              type="button"
+              class="mini-action"
+              (click)="applyScratchFx('B', 'spinback')"
+            >
+              Spinback
+            </button>
+            <button
+              type="button"
+              class="mini-action"
+              (click)="applyScratchFx('B', 'transform')"
+            >
+              Transform
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Deck B Visualizers -->
-      <div class="deck-visuals">
-        <canvas #waveformB class="waveform-canvas"></canvas>
-        <div class="level-meter">
-          <canvas #meterB></canvas>
+      <div class="deck-mix-strip">
+        <div class="knob-row">
+          <app-knob
+            label="Gain"
+            [min]="0"
+            [max]="1.5"
+            [step]="0.01"
+            [value]="deckService.deckB().gain"
+            (valueChange)="setGain('B', $event)"
+          ></app-knob>
+          <app-knob
+            label="Filter"
+            [min]="400"
+            [max]="20000"
+            [step]="100"
+            [value]="deckService.deckB().filterFreq"
+            (valueChange)="updateFilter('B', $event)"
+          ></app-knob>
+          <app-knob
+            label="High"
+            [min]="0"
+            [max]="2"
+            [step]="0.01"
+            [value]="deckService.deckB().eqHigh"
+            (valueChange)="updateEq('B', 'high', $event)"
+          ></app-knob>
+          <app-knob
+            label="Mid"
+            [min]="0"
+            [max]="2"
+            [step]="0.01"
+            [value]="deckService.deckB().eqMid"
+            (valueChange)="updateEq('B', 'mid', $event)"
+          ></app-knob>
+          <app-knob
+            label="Low"
+            [min]="0"
+            [max]="2"
+            [step]="0.01"
+            [value]="deckService.deckB().eqLow"
+            (valueChange)="updateEq('B', 'low', $event)"
+          ></app-knob>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Performance Pads Section -->
-  <div class="performance-section">
-    <div class="fx-performance-panel glass-v42 mb-4 p-4">
-      <div class="fx-header flex justify-between items-center mb-2">
-        <span class="neon-text-xs">ADVANCED PERFORMANCE FX</span>
-        <div class="fx-selectors flex gap-2">
-          <button class="btn-xs" [class.active]="fxMode() === 'flanger'" (click)="fxMode.set('flanger')">FLANGER</button>
-          <button class="btn-xs" [class.active]="fxMode() === 'phaser'" (click)="fxMode.set('phaser')">PHASER</button>
-          <button class="btn-xs" [class.active]="fxMode() === 'delay'" (click)="fxMode.set('delay')">DELAY</button>
+        <div class="stem-strip">
+          <label class="stem-control" *ngFor="let stem of stems">
+            <span>{{ stem }}</span>
+            <input
+              type="range"
+              min="0"
+              max="1.4"
+              step="0.01"
+              [value]="deckService.deckB().stemGains[stem]"
+              (input)="setStemGain('B', stem, $event)"
+            />
+          </label>
         </div>
       </div>
-      <div class="fx-grid flex gap-8">
-        <div class="fx-control-deck">
-           <label class="text-[10px] opacity-50">DECK A FX</label>
-           <input type="range" min="0" max="1" step="0.01" [value]="deckService.deckA().fxAmount" (input)="setFxAmount('A', $any($event.target).value)">
-        </div>
-        <div class="fx-control-deck">
-           <label class="text-[10px] opacity-50">DECK B FX</label>
-           <input type="range" min="0" max="1" step="0.01" [value]="deckService.deckB().fxAmount" (input)="setFxAmount('B', $any($event.target).value)">
-        </div>
-      </div>
-    </div>
+    </article>
+  </section>
 
-    <div class="performance-tabs">
-      <button [class.active]="performanceMode() === 'cue'" (click)="performanceMode.set('cue')">HOT CUES</button>
-      <button [class.active]="performanceMode() === 'roll'" (click)="performanceMode.set('roll')">ROLL</button>
-      <div class="sampler-tab-group flex items-center">
-        <button [class.active]="performanceMode() === 'sampler'" (click)="performanceMode.set('sampler')">SAMPLER</button>
-        <select *ngIf="performanceMode() === 'sampler'" class="sampler-cat-select ml-2 bg-transparent border-none text-[10px]" [ngModel]="samplerCategory()" (ngModelChange)="setSamplerCategory($event)">
-          <option value="drums">DRUMS</option>
-          <option value="fx">FX</option>
-          <option value="vocals">VOCALS</option>
+  <section class="pad-bank panel-surface">
+    <div class="pad-bank__header">
+      <div>
+        <p class="eyebrow">Performance controls</p>
+        <h2>Hot cues, roll pads, and sampler grid</h2>
+      </div>
+
+      <div class="pad-mode-switches">
+        <button
+          type="button"
+          class="mode-button"
+          [class.active]="performanceMode() === 'cue'"
+          (click)="performanceMode.set('cue')"
+        >
+          Hot cues
+        </button>
+        <button
+          type="button"
+          class="mode-button"
+          [class.active]="performanceMode() === 'roll'"
+          (click)="performanceMode.set('roll')"
+        >
+          Slip roll
+        </button>
+        <button
+          type="button"
+          class="mode-button"
+          [class.active]="performanceMode() === 'sampler'"
+          (click)="performanceMode.set('sampler')"
+        >
+          Sampler
+        </button>
+        <select
+          *ngIf="performanceMode() === 'sampler'"
+          class="sampler-select"
+          [ngModel]="samplerCategory()"
+          (ngModelChange)="setSamplerCategory($event)"
+        >
+          <option *ngFor="let category of samplerCategories" [value]="category">
+            {{ category | uppercase }}
+          </option>
         </select>
       </div>
     </div>
 
-    <div class="pad-tactile-v42s-grid-container">
-      <div class="pad-tactile-v42s-deck">
-        <div class="pad-tactile-v42s-grid">
+    <div class="pad-grid-layout">
+      <div class="pad-grid-panel" [class.deck-hidden]="!isDeckVisible('A')">
+        <div class="pad-grid-panel__header">
+          <span>Deck A</span>
+          <strong>{{ performanceMode() | uppercase }}</strong>
+        </div>
+        <div class="pad-grid">
           <button
-            *ngFor="let i of [0, 1, 2, 3, 4, 5, 6, 7]"
-            class="pad tactile-v42"
+            type="button"
+            *ngFor="let i of performancePads"
+            class="performance-pad deck-a-pad"
+            [class.mode-cue]="performanceMode() === 'cue'"
+            [class.mode-roll]="performanceMode() === 'roll'"
+            [class.mode-sampler]="performanceMode() === 'sampler'"
             [class.active]="
               isCuePadSet('A', i) ||
               isRollPadActive('A', i) ||
@@ -400,18 +834,33 @@
             "
             (mousedown)="handlePadDown('A', i, $event)"
             (mouseup)="handlePadRelease('A', i)"
+            (touchstart)="handlePadDown('A', i, $event)"
+            (touchend)="handlePadRelease('A', i)"
             (click)="handlePadPress('A', i)"
             (contextmenu)="clearPad('A', i, $event)"
           >
-            {{ getPadLabel(i) }}
+            <span class="performance-pad__index">{{ i + 1 }}</span>
+            <strong>{{ getPadLabel(i) }}</strong>
+            <small *ngIf="performanceMode() === 'sampler'">{{
+              samplerSlotLabel('A', i)
+            }}</small>
           </button>
         </div>
       </div>
-      <div class="pad-tactile-v42s-deck">
-        <div class="pad-tactile-v42s-grid">
+
+      <div class="pad-grid-panel" [class.deck-hidden]="!isDeckVisible('B')">
+        <div class="pad-grid-panel__header">
+          <span>Deck B</span>
+          <strong>{{ performanceMode() | uppercase }}</strong>
+        </div>
+        <div class="pad-grid">
           <button
-            *ngFor="let i of [0, 1, 2, 3, 4, 5, 6, 7]"
-            class="pad tactile-v42"
+            type="button"
+            *ngFor="let i of performancePads"
+            class="performance-pad deck-b-pad"
+            [class.mode-cue]="performanceMode() === 'cue'"
+            [class.mode-roll]="performanceMode() === 'roll'"
+            [class.mode-sampler]="performanceMode() === 'sampler'"
             [class.active]="
               isCuePadSet('B', i) ||
               isRollPadActive('B', i) ||
@@ -419,13 +868,19 @@
             "
             (mousedown)="handlePadDown('B', i, $event)"
             (mouseup)="handlePadRelease('B', i)"
+            (touchstart)="handlePadDown('B', i, $event)"
+            (touchend)="handlePadRelease('B', i)"
             (click)="handlePadPress('B', i)"
             (contextmenu)="clearPad('B', i, $event)"
           >
-            {{ getPadLabel(i) }}
+            <span class="performance-pad__index">{{ i + 1 }}</span>
+            <strong>{{ getPadLabel(i) }}</strong>
+            <small *ngIf="performanceMode() === 'sampler'">{{
+              samplerSlotLabel('B', i)
+            }}</small>
           </button>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 </div>

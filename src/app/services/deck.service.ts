@@ -12,6 +12,7 @@ export class DeckService {
   xfCurve = signal<'linear' | 'power' | 'exp' | 'cut'>('linear');
   hamster = signal(false);
   viewMode = signal<'functional' | 'flat'>('functional');
+  automixEnabled = signal(false);
 
   constructor(private engine: AudioEngineService) {
     effect(() => {
@@ -74,11 +75,10 @@ export class DeckService {
     this.engine.setDeckStemGain(deck, event.stem, event.gain);
   }
 
-
   toggleCue(deck: DeckId) {
     const target = deck === 'A' ? this.deckA : this.deckB;
     const newState = !target().isCueing;
-    target.update(d => ({ ...d, isCueing: newState }));
+    target.update((d) => ({ ...d, isCueing: newState }));
     this.engine.setDeckCue(deck, newState);
   }
 
@@ -91,24 +91,53 @@ export class DeckService {
     this.engine.scratch(deck, delta);
   }
 
-  setFx(deck: DeckId, mode: string, val: number) {
-     const target = deck === 'A' ? this.deckA : this.deckB;
-     target.update(d => ({ ...d, fxAmount: val }));
-     // this.engine.setAdvancedFX(...)
+  setFx(deck: DeckId, mode: 'flanger' | 'phaser' | 'delay', val: number) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({ ...d, fxAmount: val, activeFx: mode }));
+    this.engine.setAdvancedFX(deck, mode, val);
   }
 
   toggleAutomix() {
-    // automix logic
+    const enabled = !this.automixEnabled();
+    this.automixEnabled.set(enabled);
+    if (enabled) {
+      this.applyAutomix();
+    }
   }
 
-  automixEnabled() { return signal(false); }
-
-  setSamplerPad(deck: DeckId, index: number, category: string) {
-    // sampler logic
+  setSamplerPad(
+    deck: DeckId,
+    index: number,
+    category: 'drums' | 'fx' | 'vocals'
+  ) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    const position = this.engine.getDeckProgress(deck).position;
+    target.update((d) => ({
+      ...d,
+      samplerPads: {
+        ...d.samplerPads,
+        [category]: d.samplerPads[category].map((pad, padIndex) =>
+          padIndex === index ? position : pad
+        ),
+      },
+    }));
   }
 
-  clearSamplerPad(deck: DeckId, index: number, category: string) {
-    // sampler logic
+  clearSamplerPad(
+    deck: DeckId,
+    index: number,
+    category: 'drums' | 'fx' | 'vocals'
+  ) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({
+      ...d,
+      samplerPads: {
+        ...d.samplerPads,
+        [category]: d.samplerPads[category].map((pad, padIndex) =>
+          padIndex === index ? null : pad
+        ),
+      },
+    }));
   }
 
   loadDeckBuffer(
@@ -124,7 +153,11 @@ export class DeckService {
         track: { ...d.track, name: fileName, url: '' },
         duration: buffer.duration,
         hotCues: new Array(8).fill(null),
-        samplerPads: { drums: new Array(8).fill(null), fx: new Array(8).fill(null), vocals: new Array(8).fill(null) },
+        samplerPads: {
+          drums: new Array(8).fill(null),
+          fx: new Array(8).fill(null),
+          vocals: new Array(8).fill(null),
+        },
         progress: 0,
         vinylImageUrl:
           vinylUrl || 'https://picsum.photos/seed/' + fileName + '/200',
@@ -135,7 +168,11 @@ export class DeckService {
         track: { ...d.track, name: fileName, url: '' },
         duration: buffer.duration,
         hotCues: new Array(8).fill(null),
-        samplerPads: { drums: new Array(8).fill(null), fx: new Array(8).fill(null), vocals: new Array(8).fill(null) },
+        samplerPads: {
+          drums: new Array(8).fill(null),
+          fx: new Array(8).fill(null),
+          vocals: new Array(8).fill(null),
+        },
         progress: 0,
         vinylImageUrl:
           vinylUrl || 'https://picsum.photos/seed/' + fileName + '/200',
@@ -170,8 +207,6 @@ export class DeckService {
       return { ...d, hotCues: cues };
     });
   }
-
-
 
   jumpToHotCue(deck: DeckId, slot: number) {
     this.engine.jumpToHotCue(deck, slot);
@@ -247,6 +282,9 @@ export class DeckService {
     // for now we just sync the positions and playing state
     this.syncDeckState('A');
     this.syncDeckState('B');
+    if (this.automixEnabled()) {
+      this.applyAutomix();
+    }
   }
 
   private syncDeckState(deck: DeckId) {
@@ -260,6 +298,37 @@ export class DeckService {
       duration: progress.duration || d.duration,
       isPlaying: progress.isPlaying,
       playbackRate,
+    }));
+  }
+
+  private applyAutomix() {
+    const deckA = this.deckA();
+    const deckB = this.deckB();
+    const master: DeckId | null = deckA.isPlaying
+      ? 'A'
+      : deckB.isPlaying
+        ? 'B'
+        : null;
+    if (!master) return;
+
+    const slave: DeckId = master === 'A' ? 'B' : 'A';
+    const masterState = master === 'A' ? deckA : deckB;
+    const slaveState = slave === 'A' ? deckA : deckB;
+    const masterBpm = masterState.detectedBpm || masterState.bpm;
+    const slaveBpm = slaveState.detectedBpm || slaveState.bpm;
+    if (!masterBpm || !slaveBpm) return;
+
+    this.engine.syncDecks(master, slave);
+    const syncedRate = Math.max(
+      0.5,
+      Math.min(1.5, masterState.playbackRate * (masterBpm / slaveBpm))
+    );
+    const target = slave === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({
+      ...d,
+      bpm: masterBpm,
+      detectedBpm: masterBpm,
+      playbackRate: syncedRate,
     }));
   }
 }
