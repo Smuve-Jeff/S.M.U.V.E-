@@ -540,7 +540,7 @@ export class AudioEngineService {
     target.gain.setTargetAtTime(this.clamp(gain, 0, 1), this.ctx.currentTime, 0.01);
   }
 
-  triggerAttack(trackId: any, freq: number, time: number, velocity: number, duration: number, gain: number, pan: number, sendA: number, sendB: number, synthParams: any, someVal?: number, customCtx?: any) {
+  triggerAttack(trackId: string, freq: number, time: number, velocity: number, duration: number, gain: number, pan: number, sendA: number, sendB: number, synthParams: any, someVal?: number, customCtx?: any) {
     let inst = this.trackInstruments.get(trackId);
     if (!inst) {
       inst = new SubtractiveSynth(this.ctx);
