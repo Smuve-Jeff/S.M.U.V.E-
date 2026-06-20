@@ -153,7 +153,7 @@ export class ArrangementViewComponent {
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }
 
-  @HostListener('pointermove', [''])
+  @HostListener('pointermove', ['$event'])
   onPointerMove(e: PointerEvent) {
     if (this.draggingClip) {
       const dx = e.clientX - this.draggingClip.startX;
