@@ -1,7 +1,7 @@
 import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MusicManagerService } from '../../services/music-manager.service';
+import { MusicManagerService, TrackModel } from '../../services/music-manager.service';
 
 @Component({
   selector: 'app-track-inspector',
@@ -18,11 +18,11 @@ export class TrackInspectorComponent {
     this.showAdvanced.update(v => !v);
   }
 
-  selectedTrack = computed(() =>
-    this.musicManager
-      .tracks()
-      .find((t) => t.id === this.musicManager.selectedTrackId())
-  );
+  selectedTrack = computed<TrackModel | null>(() => {
+    const id = this.musicManager.selectedTrackId();
+    if (!id) return null;
+    return this.musicManager.tracks().find((t) => t.id === id) || null;
+  });
 
   updateParam(key: string, value: any) {
     const track = this.selectedTrack();

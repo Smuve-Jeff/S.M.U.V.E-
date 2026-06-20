@@ -443,6 +443,41 @@ export class MusicManagerService {
     this.tracks.update(ts => ts.map(t => t.id === id ? this.persistActivePattern({ ...t, notes: t.notes.map(n => ({ ...n, step: Math.round(n.step) })) }) : t));
   }
 
+  duplicateNotes(trackId: string, ids: string[], offset: number) {
+    const oldTracks = this.tracks();
+    this.runCommand('Duplicate Notes',
+      () => this.tracks.update(ts => ts.map(t => {
+        if (t.id !== trackId) return t;
+        const dupes = t.notes.filter(n => ids.includes(n.id)).map(n => ({
+          ...n, id: `note-${Date.now()}-${Math.random()}`, step: n.step + offset
+        }));
+        return this.persistActivePattern({ ...t, notes: [...t.notes, ...dupes] });
+      })),
+      () => this.tracks.set(oldTracks)
+    );
+  }
+
+  strumTrack(id: string) {
+    this.tracks.update(ts => ts.map(t => t.id === id ? this.persistActivePattern({
+      ...t, notes: [...t.notes].sort((a,b) => a.midi - b.midi).map((n, i) => ({ ...n, step: n.step + i * 0.02 }))
+    }) : t));
+  }
+
+  humanizeTrack(id: string) {
+    this.tracks.update(ts => ts.map(t => t.id === id ? this.persistActivePattern({
+      ...t, notes: t.notes.map(n => ({ ...n, step: n.step + (Math.random() - 0.5) * 0.1, velocity: Math.max(0.1, Math.min(1, n.velocity + (Math.random() - 0.5) * 0.2)) }))
+    }) : t));
+  }
+
+  arpeggiateTrack(id: string) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== id || t.notes.length === 0) return t;
+      const base = t.notes[0];
+      const arp = [0, 4, 7, 12].map((v, i) => ({ ...base, id: `arp-${i}-${Date.now()}`, midi: base.midi + v, step: base.step + i * 0.25, length: 0.2 }));
+      return this.persistActivePattern({ ...t, notes: arp });
+    }));
+  }
+
   private getTrackColor(index: number): string {
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
     return colors[index % colors.length];
