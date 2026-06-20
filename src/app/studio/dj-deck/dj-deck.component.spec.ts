@@ -248,4 +248,25 @@ describe('DjDeckComponent', () => {
     );
     expect(mockDeckService.clearHotCue).not.toHaveBeenCalledWith('A', 1);
   });
+
+  it('passes crossfader curve and hamster mode into the audio engine', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    mockDeckService.xfCurve.set('cut');
+    mockDeckService.hamster.set(true);
+
+    component.updateCrossfader(0.35);
+
+    expect(mockDeckService.crossfade()).toBe(0.35);
+    expect(engine.setCrossfader).toHaveBeenCalledWith(0.35, 'cut', true);
+  });
+
+  it('toggles hamster mode through the deck service signal', () => {
+    expect(mockDeckService.hamster()).toBe(false);
+
+    component.toggleHamster();
+    expect(mockDeckService.hamster()).toBe(true);
+
+    component.toggleHamster();
+    expect(mockDeckService.hamster()).toBe(false);
+  });
 });

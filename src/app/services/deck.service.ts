@@ -1,6 +1,11 @@
 import { Injectable, signal, effect } from '@angular/core';
 import { AudioEngineService, DeckId } from './audio-engine.service';
-import { Stems, DeckState, initialDeckState } from './user-context.service';
+import {
+  Stems,
+  DeckFxMode,
+  DeckState,
+  initialDeckState,
+} from './user-context.service';
 
 @Injectable({
   providedIn: 'root',
@@ -91,7 +96,7 @@ export class DeckService {
     this.engine.scratch(deck, delta);
   }
 
-  setFx(deck: DeckId, mode: 'flanger' | 'phaser' | 'delay', val: number) {
+  setFx(deck: DeckId, mode: DeckFxMode, val: number) {
     const target = deck === 'A' ? this.deckA : this.deckB;
     target.update((d) => ({ ...d, fxAmount: val, activeFx: mode }));
     this.engine.setAdvancedFX(deck, mode, val);

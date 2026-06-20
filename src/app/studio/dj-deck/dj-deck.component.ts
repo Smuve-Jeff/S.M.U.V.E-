@@ -15,7 +15,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { KnobComponent } from '../shared/knob/knob.component';
-import { AppTheme } from '../../services/user-context.service';
+import { AppTheme, DeckFxMode } from '../../services/user-context.service';
 import { FileLoaderService } from '../../services/file-loader.service';
 import { ExportService } from '../../services/export.service';
 import { LibraryService } from '../../services/library.service';
@@ -32,7 +32,7 @@ const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
 const MIN_SAMPLER_RETURN_MILLIS = 80;
 type SamplerCategory = 'drums' | 'fx' | 'vocals';
-type FxMode = 'flanger' | 'phaser' | 'delay';
+type FxMode = DeckFxMode;
 
 @Component({
   selector: 'app-dj-deck',
