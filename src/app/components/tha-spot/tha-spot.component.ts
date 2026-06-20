@@ -164,6 +164,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   onlineUsers = this.socialService.onlineUsers;
   isKnocking = this.peerService.isKnocking;
   knockFromUserId = this.peerService.knockFromUserId;
+  selectedDmUser = computed(() => {
+    const id = this.dmTargetUserId();
+    return this.onlineUsers().find(u => u.userId === id) || null;
+  });
   messages = this.socialService.messages;
   roomMessages = this.socialService.roomMessages;
   challenges = this.socialService.challenges;
