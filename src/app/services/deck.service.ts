@@ -193,7 +193,6 @@ export class DeckService {
     const next = this.clamp(rate, 0.5, 2);
     const target = deck === 'A' ? this.deckA : this.deckB;
     target.update((d) => ({ ...d, playbackRate: next }));
-    this.engine.setDeckRate(deck, next, target().keyLock);
   }
 
   setKeyLock(deck: DeckId, enabled: boolean) {
