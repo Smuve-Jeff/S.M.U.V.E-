@@ -119,7 +119,7 @@ export class ArrangementViewComponent {
     }));
   }
 
-  @HostListener('window:keydown', [''])
+  @HostListener('window:keydown', ['$event'])
   onKeyDown(e: KeyboardEvent) {
     if (e.ctrlKey || e.metaKey) {
       if (e.key === 'z') {
@@ -153,7 +153,7 @@ export class ArrangementViewComponent {
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }
 
-  @HostListener('pointermove', [''])
+  @HostListener('pointermove', ['$event'])
   onPointerMove(e: PointerEvent) {
     if (this.draggingClip) {
       const dx = e.clientX - this.draggingClip.startX;
@@ -169,7 +169,7 @@ export class ArrangementViewComponent {
     }
   }
 
-  @HostListener('pointerup', [''])
+  @HostListener('pointerup', ['$event'])
   onPointerUp(e: PointerEvent) {
     this.draggingClip = null;
     this.resizingClip = null;

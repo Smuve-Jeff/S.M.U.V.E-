@@ -38,7 +38,7 @@ export interface StudioClip {
 }
 
 export interface StudioTrack {
-  id: any;
+  id: string;
   name: string;
   type: TrackType;
   instrumentId: string;

@@ -1,14 +1,8 @@
-export interface Project {
-  id: string;
-  name: string;
-  description: string;
-  tasks: Task[];
-  status: 'In Progress' | 'Completed';
-  deadline?: Date;
-}
-
-export interface Task {
-  id: number;
-  description: string;
-  completed: boolean;
-}
+export * from './studio.types';
+export * from './profile.types';
+export * from './ai.types';
+export * from './business.types';
+export * from './artist-identity.types';
+export * from './game-telemetry.types';
+export * from './marketing.types';
+export * from './release.types';

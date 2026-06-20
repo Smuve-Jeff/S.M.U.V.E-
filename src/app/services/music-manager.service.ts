@@ -80,6 +80,7 @@ export interface AutomationLane {
 }
 
 export interface TrackModel extends StudioTrack {
+  id: string;
   instrumentId: string;
   notes: TrackNote[];
   steps: boolean[];
@@ -153,6 +154,14 @@ export class MusicManagerService {
 
   private runCommand(name: string, execute: () => void, undo: () => void) {
     this.history.execute({ name, execute, undo });
+  }
+
+  ensureTrack(instrumentId: string) {
+    const existing = this.tracks().find(t => t.instrumentId === instrumentId);
+    if (!existing) {
+      return this.addTrack('New ' + instrumentId, instrumentId);
+    }
+    return existing.id;
   }
 
   addTrack(name: string, instrumentId: string, type: TrackType = 'midi') {
@@ -486,7 +495,7 @@ export class MusicManagerService {
     reader.readAsText(file);
   }
 
-  importAudioTrack() {
+  importAudio() {
     this.logger.info("Importing audio track...");
   }
 }
