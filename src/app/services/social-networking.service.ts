@@ -150,12 +150,11 @@ export class SocialNetworkingService {
 
   challengePlayer(toUserId: string, gameId: string) {
     const fromUserId = this.profileService.profile().id;
-    const fromUserName = this.profileService.profile().artistName;
-    this.socket?.emit('challenge_player', { toUserId, fromUserId, fromUserName, gameId });
+    this.socket?.emit('challenge_player', { toUserId, fromUserId, gameId });
   }
 
   sendVoiceSignal(toUserId: string, signal: any) {
-    const fromUserId = this.profileService.profile().id;
+
     this.socket?.emit('voice_signal', { toUserId, signal, fromUserId });
   }
 
