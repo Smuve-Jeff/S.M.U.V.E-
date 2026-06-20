@@ -93,13 +93,6 @@ export interface TrackModel extends StudioTrack {
   sendB: number;
 }
 
-export interface StudioProjectData {
-  tracks: TrackModel[];
-  selectedTrackId: string | null;
-  bpm: number;
-  takes?: any[];
-}
-
 @Injectable({
   providedIn: 'root',
 })
@@ -324,14 +317,13 @@ export class MusicManagerService {
   }
 
   async stopRecording(trackId: string, clipId?: string) {
-    const recordingPromise = new Promise<any>(resolve => {
+    await this.recordingEngine.stopRecording();
+    const result = await new Promise<any>(resolve => {
       const sub = this.recordingEngine.recordingFinished$.subscribe(data => {
         sub.unsubscribe();
         resolve(data);
       });
     });
-    await this.recordingEngine.stopRecording();
-    const result = await recordingPromise;
 
     if (result) {
       this.addTakeToTrack(trackId, {
@@ -492,5 +484,9 @@ export class MusicManagerService {
       } catch (err) {}
     };
     reader.readAsText(file);
+  }
+
+  importAudioTrack() {
+    this.logger.info("Importing audio track...");
   }
 }

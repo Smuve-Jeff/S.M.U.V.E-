@@ -169,7 +169,10 @@
              <div *ngFor="let take of track.clips[0]?.takes"
                   class="take-row relative border-b border-white/5 opacity-60 hover:opacity-100"
                   [style.height.px]="laneHeight * 0.6">
-               <div class=
+               <div class="take-clip absolute h-[80%] top-[10%] rounded bg-white/10 border border-white/20"
+                    [style.left.px]="track.clips[0].start * barWidth"
+                    [style.width.px]="track.clips[0].length * barWidth"
+                    (click)="promoteTake(track.id, track.clips[0].id, take.id)">
                  <span class="take-label text-[8px] px-1">{{ take.name }}</span>
                </div>
              </div>

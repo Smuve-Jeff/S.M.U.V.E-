@@ -10,7 +10,7 @@ export interface StudioTake {
   id: string;
   name: string;
   blobUrl?: string;
-  audioBuffer?: any; // AudioBuffer is browser-only, using any for TS safety if needed
+  audioBuffer?: any;
   recordedAt: number;
   duration: number;
 }
@@ -30,19 +30,15 @@ export interface StudioClip {
   type: 'midi' | 'audio';
   color?: string;
   loop?: boolean;
-
-  // For Audio/Vocal tracks
   takes?: StudioTake[];
   activeTakeId?: string;
   isComp?: boolean;
   compRegions?: StudioCompRegion[];
-
-  // For MIDI tracks
-  notes?: any[]; // TrackNote from music-manager
+  notes?: any[];
 }
 
 export interface StudioTrack {
-  id: any; // Allow string or number for compatibility
+  id: any;
   name: string;
   type: TrackType;
   instrumentId: string;
@@ -51,7 +47,7 @@ export interface StudioTrack {
   volume: number;
   pan: number;
   clips: StudioClip[];
-  effects: any[]; // FX Rack state
+  effects: any[];
   color?: string;
 }
 
@@ -64,19 +60,13 @@ export interface Project {
   bpm: number;
   key?: string;
   timeSignature: [number, number];
-
   status: 'Draft' | 'In Progress' | 'Mixing' | 'Mastering' | 'Completed' | 'Pending';
   createdAt: number;
   updatedAt: number;
-
   tracks: StudioTrack[];
   masterChain: any[];
-
-  // Management aspects
   tasks: Task[];
   deadline?: Date;
-
-  // History for Undo/Redo
   history?: {
     past: any[];
     future: any[];
