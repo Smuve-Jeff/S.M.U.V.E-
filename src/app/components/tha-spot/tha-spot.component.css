@@ -1324,3 +1324,32 @@
   color: #7a7a9a;
   border: 1px solid #7a7a9a;
 }
+
+.interaction-gate {
+  padding: 3rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: #7a7a9a;
+}
+
+.interaction-gate .material-symbols-outlined {
+  font-size: 3rem;
+  color: var(--superior-crimson);
+  opacity: 0.5;
+}
+
+.interaction-gate p {
+  font-weight: 900;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+}
+
+.unauthorized-label {
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: #555;
+  letter-spacing: 1px;
+}

@@ -174,126 +174,138 @@
     </header>
 
     <div class="sidebar-content custom-scrollbar" #scrollContainer>
-      <!-- Room Chat View -->
-      <div class="chat-view" *ngIf="activeHubTab() === 'room'">
-        <div class="room-info-bar glass-v42">
-          <span>{{ getActiveRoomName() | uppercase }}</span>
-          <span class="players-count">{{ onlineUsers().length + 1 }} ACTIVE</span>
-        </div>
-
-        <!-- Incoming Knock -->
-        <!-- Incoming Challenges -->
-        <div class="challenge-item glass-v42-pro animate-enter" *ngFor="let c of challenges()">
-            <div class="challenge-header">INCOMING CHALLENGE: {{ c.fromUserName || 'RIVAL' }}</div>
-            <div class="challenge-actions">
-                <button class="accept-btn" (click)="confirmLaunch()">ACCEPT & INITIALIZE</button>
-                <button class="decline-btn">DECLINE</button>
-            </div>
-        </div>
-        <div class="incoming-knock glass-v42-pro animate-enter" *ngIf="isKnocking()">
-            <div class="knock-header">VOICE UPLINK REQUESTED</div>
-            <div class="knock-actions">
-                <button class="accept-btn" (click)="peerService.acceptKnock()">ACCEPT</button>
-                <button class="decline-btn" (click)="peerService.declineKnock()">DECLINE</button>
-            </div>
-        </div>
-
-        <div class="message-list">
-          <div class="msg-bubble" *ngFor="let msg of roomMessages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
-            <div class="msg-meta">
-              <span class="msg-user">{{ msg.fromUserName || 'ANONYMOUS' }}</span>
-              <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
-            </div>
-            <div class="msg-content">{{ msg.message }}</div>
-          </div>
-        </div>
+      <!-- Interaction Gate -->
+      <div class="interaction-gate glass-v42 animate-enter" *ngIf="!canInteract()">
+          <span class="material-symbols-outlined">lock</span>
+          <p>PROFILE COMPLETION REQUIRED FOR RIVAL INTERACTION.</p>
       </div>
 
-      <!-- Direct Messaging View -->
-      <div class="dm-view" *ngIf="activeHubTab() === 'dm'">
-        <div class="online-users-strip no-scrollbar">
-          <div class="user-avatar-circle"
-               *ngFor="let user of onlineUsers()"
-               [class.active]="dmTargetUserId() === (user.userId || user)"
-               [class.unauthorized]="!user.profileSetupCompleted"
-               (click)="setDmTarget(user.userId || user)">
-            <img *ngIf="user.avatarImage" [src]="user.avatarImage" class="mini-avatar" />
-            <span *ngIf="!user.avatarImage">{{ user.artistName?.substring(0, 2).toUpperCase() || '??' }}</span>
-            <div class="online-indicator"></div>
+      <ng-container *ngIf="canInteract()">
+        <!-- Room Chat View -->
+        <div class="chat-view" *ngIf="activeHubTab() === 'room'">
+          <div class="room-info-bar glass-v42">
+            <span>{{ getActiveRoomName() | uppercase }}</span>
+            <span class="players-count">{{ onlineUsers().length + 1 }} ACTIVE</span>
+          </div>
+
+          <!-- Incoming Challenges -->
+          <div class="challenge-item glass-v42-pro animate-enter" *ngFor="let c of challenges()">
+              <div class="challenge-header">INCOMING CHALLENGE: {{ c.fromUserName || 'RIVAL' }}</div>
+              <div class="challenge-actions">
+                  <button class="accept-btn" (click)="confirmLaunch()">ACCEPT & INITIALIZE</button>
+                  <button class="decline-btn">DECLINE</button>
+              </div>
+          </div>
+
+          <!-- Incoming Knock -->
+          <div class="incoming-knock glass-v42-pro animate-enter" *ngIf="isKnocking()">
+              <div class="knock-header">VOICE UPLINK REQUESTED</div>
+              <div class="knock-actions">
+                  <button class="accept-btn" (click)="peerService.acceptKnock()">ACCEPT</button>
+                  <button class="decline-btn" (click)="peerService.declineKnock()">DECLINE</button>
+              </div>
+          </div>
+
+          <div class="message-list">
+            <div class="msg-bubble" *ngFor="let msg of roomMessages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
+              <div class="msg-meta">
+                <span class="msg-user">{{ msg.fromUserName || 'ANONYMOUS' }}</span>
+                <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
+              </div>
+              <div class="msg-content">{{ msg.message }}</div>
+            </div>
           </div>
         </div>
 
-        <div class="dm-user-info glass-v42" *ngIf="dmTargetUserId()">
-            <div class="dm-user-meta">
-                <span class="dm-target-name">{{ onlineUsers()[0]?.artistName || 'OPERATIVE' }}</span>
-                <span class="dm-target-genre">{{ onlineUsers()[0]?.primaryGenre }}</span>
-            </div>
-            <div class="dm-actions">
-                <button class="icon-btn mini" (click)="startVoiceChat(dmTargetUserId()!)" title="Voice Uplink">
-                    <span class="material-symbols-outlined">call</span>
-                </button>
-                <button class="icon-btn mini" (click)="sendChallenge(dmTargetUserId()!, 'all')" title="Challenge">
-                    <span class="material-symbols-outlined">swords</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="message-list">
-          <div class="msg-bubble" *ngFor="let msg of messages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
-            <div class="msg-meta">
-              <span class="msg-user">{{ msg.fromUserName || 'OPERATIVE' }}</span>
-              <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
-            </div>
-            <div class="msg-content">{{ msg.message }}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Go Live Dashboard -->
-      <div class="stream-view" *ngIf="activeHubTab() === 'stream'">
-        <div class="stream-controls" *ngIf="!socialService.isStreaming()">
-          <h4>PRE-STREAM CONFIG</h4>
-          <div class="platform-grid">
-            <button class="platform-btn twitch" (click)="goLive('Twitch')">TWITCH</button>
-            <button class="platform-btn youtube" (click)="goLive('YouTube')">YOUTUBE</button>
-            <button class="platform-btn social" (click)="goLive('S.M.U.V.E.')">SMUVE LIVE</button>
-          </div>
-        </div>
-
-        <div class="stream-dashboard animate-enter" *ngIf="socialService.isStreaming()">
-          <div class="stream-status glass-v42">
-            <div class="status-indicator live pulse"></div>
-            <div class="status-text">LIVE ON {{ socialService.currentPlatform() | uppercase }}</div>
-            <button class="terminate-btn mini" (click)="endStream()">STOP</button>
-          </div>
-
-          <div class="telemetry-grid">
-            <div class="telemetry-item">
-              <label>VIEWERS</label>
-              <span>{{ socialService.streamTelemetry().viewers }}</span>
-            </div>
-            <div class="telemetry-item">
-              <label>HEALTH</label>
-              <span [class]="socialService.streamTelemetry().health.toLowerCase()">{{ socialService.streamTelemetry().health }}</span>
-            </div>
-            <div class="telemetry-item">
-              <label>BITRATE</label>
-              <span>{{ socialService.streamTelemetry().bitrate }}</span>
+        <!-- Direct Messaging View -->
+        <div class="dm-view" *ngIf="activeHubTab() === 'dm'">
+          <div class="online-users-strip no-scrollbar">
+            <div class="user-avatar-circle"
+                 *ngFor="let user of onlineUsers()"
+                 [class.active]="dmTargetUserId() === (user.userId || user)"
+                 [class.unauthorized]="!user.profileSetupCompleted"
+                 (click)="setDmTarget(user.userId || user)">
+              <img *ngIf="user.avatarImage" [src]="user.avatarImage" class="mini-avatar" />
+              <span *ngIf="!user.avatarImage">{{ user.artistName?.substring(0, 2).toUpperCase() || '??' }}</span>
+              <div class="online-indicator"></div>
             </div>
           </div>
 
-          <div class="simulated-chat glass-v42">
-            <header>LIVE FAN CHAT</header>
-            <div class="sim-msg" *ngFor="let msg of socialService.simulatedLiveChat()">
-              <span class="fan-name">{{ msg.fromUserName }}:</span> {{ msg.message }}
+          <div class="dm-user-info glass-v42" *ngIf="selectedDmUser() as target">
+              <div class="dm-user-meta">
+                  <span class="dm-target-name">{{ target.artistName || 'OPERATIVE' }}</span>
+                  <span class="dm-target-genre">{{ target.primaryGenre }}</span>
+              </div>
+              <div class="dm-actions" *ngIf="target.profileSetupCompleted">
+                  <button class="icon-btn mini" (click)="startVoiceChat(target.userId)" title="Voice Uplink">
+                      <span class="material-symbols-outlined">call</span>
+                  </button>
+                  <button class="icon-btn mini" (click)="sendChallenge(target.userId, 'all')" title="Challenge">
+                      <span class="material-symbols-outlined">swords</span>
+                  </button>
+              </div>
+              <div class="unauthorized-label" *ngIf="!target.profileSetupCompleted">
+                  OFFLINE_CORE
+              </div>
+          </div>
+
+          <div class="message-list">
+            <div class="msg-bubble" *ngFor="let msg of messages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
+              <div class="msg-meta">
+                <span class="msg-user">{{ msg.fromUserName || 'OPERATIVE' }}</span>
+                <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
+              </div>
+              <div class="msg-content">{{ msg.message }}</div>
             </div>
           </div>
         </div>
-      </div>
+
+        <!-- Go Live Dashboard -->
+        <div class="stream-view" *ngIf="activeHubTab() === 'stream'">
+          <div class="stream-controls" *ngIf="!socialService.isStreaming()">
+            <h4>PRE-STREAM CONFIG</h4>
+            <div class="platform-grid">
+              <button class="platform-btn twitch" (click)="goLive('Twitch')">TWITCH</button>
+              <button class="platform-btn youtube" (click)="goLive('YouTube')">YOUTUBE</button>
+              <button class="platform-btn social" (click)="goLive('S.M.U.V.E.')">SMUVE LIVE</button>
+            </div>
+          </div>
+
+          <div class="stream-dashboard animate-enter" *ngIf="socialService.isStreaming()">
+            <div class="stream-status glass-v42">
+              <div class="status-indicator live pulse"></div>
+              <div class="status-text">LIVE ON {{ socialService.currentPlatform() | uppercase }}</div>
+              <button class="terminate-btn mini" (click)="endStream()">STOP</button>
+            </div>
+
+            <div class="telemetry-grid">
+              <div class="telemetry-item">
+                <label>VIEWERS</label>
+                <span>{{ socialService.streamTelemetry().viewers }}</span>
+              </div>
+              <div class="telemetry-item">
+                <label>HEALTH</label>
+                <span [class]="socialService.streamTelemetry().health.toLowerCase()">{{ socialService.streamTelemetry().health }}</span>
+              </div>
+              <div class="telemetry-item">
+                <label>BITRATE</label>
+                <span>{{ socialService.streamTelemetry().bitrate }}</span>
+              </div>
+            </div>
+
+            <div class="simulated-chat glass-v42">
+              <header>LIVE FAN CHAT</header>
+              <div class="sim-msg" *ngFor="let msg of socialService.simulatedLiveChat()">
+                <span class="fan-name">{{ msg.fromUserName }}:</span> {{ msg.message }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
     </div>
 
     <!-- Chat Input (Shared for Room & DM) -->
-    <footer class="hub-footer glass-v42" *ngIf="activeHubTab() !== 'stream'">
+    <footer class="hub-footer glass-v42" *ngIf="activeHubTab() !== 'stream' && canInteract()">
       <div class="emoji-bar">
         <span (click)="addEmoji('🔥')">🔥</span>
         <span (click)="addEmoji('💯')">💯</span>
