@@ -44,8 +44,21 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   socialPresence = signal<any[]>([]);
   promotions = signal<any[]>([]);
   recommendationRails = signal<RecommendationRail[]>([]);
-  activeGenre = signal<string>('All');
-  activePlatform = signal<string>('All');
+  activeGenre = signal<string>('all');
+  activePlatform = signal<string>('all');
+
+  allPlatforms = computed(() => {
+    const platforms = new Set<string>();
+    const knownPlatforms = ['PS1', 'PS2', 'N64', 'Xbox', 'Dreamcast', 'SNES', 'NES', 'Arcade', 'DOS', 'Web', 'PC'];
+    this.games().forEach((g) => {
+      const tags = (g.tags || []).map(t => t.toUpperCase());
+      knownPlatforms.forEach(p => {
+        if (tags.includes(p.toUpperCase())) platforms.add(p);
+      });
+    });
+    return Array.from(platforms).sort();
+  });
+
   activeRoom = signal<string>('all');
   searchQuery = signal<string>('');
   showFavoritesOnly = signal<boolean>(false);
@@ -82,9 +95,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   filteredGames = computed(() => {
     if (this.displayMode() === 'pluto') return [];
     let games = this.games();
+
+    const currentRoomId = this.activeRoom();
+    if (currentRoomId !== 'all') {
+      const room = this.gamingRooms().find(r => r.id === currentRoomId);
+      if (room) {
+        games = games.filter(g => this.gameService.matchesRoom(g, room));
+      }
+    }
+
     if (this.showFavoritesOnly()) {
       games = games.filter((g) => this.favorites().includes(g.id));
     }
+
     return this.gameService.filterAndSortGames(
       games,
       {
@@ -192,6 +215,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   setActiveRoom(id: string) {
     this.activeRoom.set(id);
     this.socialService.joinRoom(id);
+  }
+
+    clearFilters() {
+    this.activeGenre.set('all');
+    this.activePlatform.set('all');
+    this.searchQuery.set('');
+    this.showFavoritesOnly.set(false);
+    this.quickFilters.set([]);
+  }
+
+  onSearchChange(val: string) {
+    this.searchQuery.set(val);
   }
 
   onGameClick(game: Game) {

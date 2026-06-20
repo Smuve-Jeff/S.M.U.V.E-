@@ -341,15 +341,8 @@ export class GameService {
     if (filters.favorites) {
       filtered = filtered.filter((g) => filters.favorites.includes(g.id));
     }
-    if (filters.genre && filters.genre !== 'all') {
-      filtered = filtered.filter((game) => game.genre === filters.genre);
-    }
-    if (filters.platform && filters.platform !== 'all') {
-      filtered = filtered.filter((game) => {
-        const isInternal = game.url.startsWith('/assets/');
-        return filters.platform === 'Internal' ? isInternal : !isInternal;
-      });
-    }
+    if (filters.genre && filters.genre.toLowerCase() !== 'all') { filtered = filtered.filter((game) => game.genre?.toLowerCase() === filters.genre.toLowerCase()); }
+    if (filters.platform && filters.platform.toLowerCase() !== 'all') { const p = filters.platform.toLowerCase(); filtered = filtered.filter((game) => { const tags = (game.tags || []).map(t => t.toLowerCase()); return tags.includes(p) || (p === 'internal' && game.url.startsWith('/assets/')); }); }
     if (filters.query) {
       const query = filters.query.toLowerCase();
       filtered = filtered.filter(
