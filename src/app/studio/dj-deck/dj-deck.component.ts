@@ -1092,6 +1092,11 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   updateCrossfader(value: any) {
     const cf = parseFloat(value);
     this.deckService.crossfade.set(cf);
+    this.engine.setCrossfader(
+      cf,
+      this.deckService.xfCurve(),
+      this.deckService.hamster()
+    );
   }
 
   setSamplerCategory(cat: SamplerCategory) {
