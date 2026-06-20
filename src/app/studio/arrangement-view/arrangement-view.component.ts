@@ -169,7 +169,7 @@ export class ArrangementViewComponent {
     }
   }
 
-  @HostListener('pointerup', [''])
+  @HostListener('pointerup', ['$event'])
   onPointerUp(e: PointerEvent) {
     this.draggingClip = null;
     this.resizingClip = null;
