@@ -853,7 +853,7 @@ export class AudioEngineService {
     }
   }
 
-  triggerSampler(trackId: any, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number) {
+  triggerSampler(trackId: string, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number) {
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
     const panner = this.ctx.createStereoPanner();
