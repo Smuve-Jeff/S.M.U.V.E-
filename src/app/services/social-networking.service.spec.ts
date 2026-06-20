@@ -10,7 +10,7 @@ describe('SocialNetworkingService', () => {
   beforeEach(() => {
     mockProfileService = {
       profile: signal({
-        id: 'test-id',
+        id: '',
         artistName: 'Test Artist',
         primaryGenre: 'Test Genre',
         profileSetupCompleted: true
