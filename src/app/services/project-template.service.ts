@@ -56,7 +56,7 @@ export class ProjectTemplateService {
     const template = this.templates.find(t => t.id === templateId);
     if (!template) return;
 
-    this.musicManager.tracks.set([]);
+    this.musicManager.newProject(true);
     template.tracks.forEach(t => {
       this.musicManager.addTrack(t.name, t.instrumentId);
     });

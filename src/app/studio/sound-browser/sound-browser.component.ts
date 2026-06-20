@@ -17,7 +17,7 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 })
 export class SoundBrowserComponent {
   private instruments = inject(InstrumentsService);
-  private musicManager = inject(MusicManagerService);
+  public musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
 
   searchQuery = signal('');
@@ -96,7 +96,7 @@ export class SoundBrowserComponent {
   }
 
   importAudio() {
-    this.musicManager.importAudioTrack();
+    this.musicManager.importAudio();
   }
 
   aiSearch() {

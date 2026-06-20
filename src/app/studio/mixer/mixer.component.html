@@ -19,14 +19,14 @@
   <!-- Strips Container -->
   <div class="flex-1 flex overflow-x-auto snap-x snap-mandatory no-scrollbar p-2 gap-2 bg-black/20">
     <!-- Channel Strips -->
-    <div *ngFor="let track of tracks()"
+    <div  *ngFor="let track of tracks(); let i = index"
          class="mixer-strip holographic-glimmer snap-start flex flex-col fl-strip transition-all min-w-[72px] md:min-w-[84px] relative"
          [class.selected-track]="isSelected(track)"
          (click)="selectTrack(track.id)">
 
       <!-- Top Label & Index -->
       <div class="p-2 border-b border-white/5 bg-black/40 text-center">
-         <div class="text-[6px] font-black text-slate-500 uppercase">{{ track.id + 1 }}</div>
+         <div class="text-[6px] font-black text-slate-500 uppercase">CH-{{ i + 1 }}</div>
          <div class="text-[8px] font-black text-white truncate uppercase">{{ track.name }}</div>
       </div>
 

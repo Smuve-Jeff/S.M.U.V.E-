@@ -32,7 +32,7 @@ export class ChannelRackComponent {
     this.musicManager.toggleStep(track.id, index);
   }
 
-  selectTrack(track: TrackModel) {
+  selectTrack(track: any) {
     this.musicManager.selectedTrackId.set(track.id);
   }
 
@@ -40,7 +40,7 @@ export class ChannelRackComponent {
     this.musicManager.ensureTrack('cyber-lead');
   }
 
-  removeTrack(id: number) {
+  removeTrack(id: string) {
     this.musicManager.removeTrack(id);
   }
 

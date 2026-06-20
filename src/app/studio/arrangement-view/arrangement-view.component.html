@@ -1,7 +1,16 @@
 <div class="playlist-container glass-v42 shadow-v42-xl" [class.tool-blade]="activeTool() === 'blade'" [class.tool-glue]="activeTool() === 'glue'">
   <div class="playlist-header wood-panel">
     <div class="view-tabs flex items-center gap-4">
-      <button class="tab-btn active neon-text-xs">ARRANGEMENT ELITE v4.2</button>
+      <button class="tab-btn active neon-text-xs">ELITE ARRANGEMENT PRO v5</button>
+      <div class="history-controls flex gap-1 ml-4">
+        <button (click)="history.undo()" [disabled]="!history.canUndo()" class="mini-btn tactile-v42" title="Undo (Ctrl+Z)">
+          <span class="material-symbols-outlined text-[10px]">undo</span>
+        </button>
+        <button (click)="history.redo()" [disabled]="!history.canRedo()" class="mini-btn tactile-v42" title="Redo (Ctrl+Y)">
+          <span class="material-symbols-outlined text-[10px]">redo</span>
+        </button>
+        <span class="action-history-text text-[8px] opacity-60 ml-2" *ngIf="history.lastActionName()">{{ history.lastActionName() | uppercase }}</span>
+      </div>
     </div>
 
     <div class="module-transport glass-v42 mx-4">
@@ -15,7 +24,7 @@
           class="m-btn tactile-v42 rec"
           [class.active]="audioSession.isRecording()"
           (click)="audioSession.toggleRecord()"
-          title="Record to Arrangement"
+          title="Record Professional Take"
         >
           <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
         </button>
@@ -39,20 +48,8 @@
         <button (click)="splitAtPlayhead()" class="mini-btn tactile-v42 executive-glass" title="Split at Playhead">
           <span class="material-symbols-outlined text-[10px]">content_cut</span>
         </button>
-        <button (click)="duplicateSelected()" class="mini-btn tactile-v42 executive-glass" title="Duplicate">
-          <span class="material-symbols-outlined text-[10px]">content_copy</span>
-        </button>
-        <button (click)="aiVariation()" class="mini-btn tactile-v42 executive-glass ai-sparkle" title="AI Variation Generator">
-          <span class="material-symbols-outlined text-[10px]">psychology</span>
-        </button>
-      </div>
-
-      <div class="ai-group flex gap-1">
-        <button (click)="aiSuggestArrangement()" class="mini-btn tactile-v42 executive-glass ai-sparkle" title="AI Smart Arrangement">
-          <span class="material-symbols-outlined text-[10px] mr-1">auto_awesome</span> ARRANGE
-        </button>
-        <button (click)="aiMixTransition()" class="mini-btn tactile-v42 executive-glass ai-sparkle" title="AI Transition Assistant">
-          <span class="material-symbols-outlined text-[10px] mr-1">Waves</span> MIX
+        <button (click)="bounceSelected()" class="mini-btn tactile-v42 executive-glass bounce-btn" title="Bounce Track to Audio">
+          <span class="material-symbols-outlined text-[10px]">waves</span> BOUNCE
         </button>
       </div>
 
@@ -74,7 +71,7 @@
       <div
         *ngFor="let track of tracks()"
         class="track-header tactile-v42 glass-v42"
-        [style.height.px]="laneHeight"
+        [style.height.px]="laneHeight + (musicManager.takesExpanded()[track.id] ? (track.clips[0]?.takes?.length || 0) * (laneHeight * 0.6) : 0)"
         [class.selected]="isTrackSelected(track.id)"
         (click)="selectTrack(track.id)"
       >
@@ -86,18 +83,23 @@
           <span class="track-name neon-text-xs truncate">{{
             track.name | uppercase
           }}</span>
+          <button *ngIf="track.type === 'audio' || track.type === 'vocal'"
+                  class="ml-auto text-[8px] opacity-60 hover:opacity-100"
+                  (click)="toggleTakes(track.id, $event)">
+            {{ musicManager.takesExpanded()[track.id] ? 'HIDE TAKES' : 'SHOW TAKES' }}
+          </button>
         </div>
         <div class="track-controls">
           <button
             type="button"
             class="mini-btn"
-            [class.active-mute]="track.mute"
+            [class.active-mute]="track.muted"
             (click)="toggleMute(track.id, $event)"
           >M</button>
           <button
             type="button"
             class="mini-btn"
-            [class.active-solo]="track.solo"
+            [class.active-solo]="track.soloed"
             (click)="toggleSolo(track.id, $event)"
           >S</button>
           <button
@@ -132,80 +134,51 @@
 
         <div
           *ngFor="let track of tracks()"
-          class="lane-row relative border-b border-white/5"
-          [style.height.px]="laneHeight"
-          (pointerdown)="onLanePointerDown($event, track)"
+          class="lane-group relative"
         >
-          <div
-            *ngFor="let clip of track.clips"
-            class="clip-item absolute executive-glass shadow-v42-xl tactile-v42"
-            [class.selected-clip]="selectedClipIds().has(clip.id)"
-            [class.ghost-clip]="clip.name?.includes('[')"
-            [style.left.px]="clip.start * barWidth"
-            [style.width.px]="clip.length * barWidth"
-            [style.background-color]="
-              (clip.color || track.color || '#af25f4') + '44'
-            "
-            [style.border-color]="clip.color || track.color || '#af25f4'"
-            (pointerdown)="onClipPointerDown($event, track.id, clip)"
-          >
-            <div class="clip-header flex justify-between items-center px-1 py-0.5">
-              <span class="clip-title truncate">{{ clipLabel(track, clip) | uppercase }}</span>
-              <div class="clip-actions flex items-center gap-1">
-                <button class="clip-loop-btn text-[8px]" [class.text-blue-400]="clip.loop" (click)="toggleLoop(track.id, clip.id, $event)">
-                   <span class="material-symbols-outlined text-[10px]">repeat</span>
-                </button>
-                <button
-                  type="button"
-                  class="clip-remove-btn text-[10px] opacity-60 hover:opacity-100"
-                  (click)="removeClip($event, track.id, clip.id)"
-                >×</button>
-              </div>
-            </div>
-
-            <div class="clip-content relative flex-1 overflow-hidden pointer-events-none">
-               <div *ngIf="clip.type === 'midi'" class="midi-ghost-container absolute inset-0 opacity-40">
-                  <div *ngFor="let g of ghostNotesMap().get(clip.id)"
-                       class="ghost-note absolute bg-white/80 h-[2px] rounded-full"
-                       [style.left]="g.left"
-                       [style.top]="g.top"
-                       [style.width]="g.width">
-                  </div>
-               </div>
-
-               <div *ngIf="clip.type === 'audio'" class="audio-waveform-container absolute inset-0 opacity-40 flex items-center">
-                  <div class="waveform-svg w-full h-full p-1">
-                    <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100">
-                      <path d="M 0 50 Q 2 20 4 50 Q 6 80 8 50 Q 10 20 12 50 Q 14 80 16 50 Q 18 20 20 50 Q 22 80 24 50 Q 26 20 28 50 Q 30 80 32 50 Q 34 20 36 50 Q 38 80 40 50 Q 42 20 44 50 Q 46 80 48 50 Q 50 20 52 50 Q 54 80 56 50 Q 58 20 60 50 Q 62 80 64 50 Q 66 20 68 50 Q 70 80 72 50 Q 74 20 76 50 Q 78 80 80 50 Q 82 20 84 50 Q 86 80 88 50 Q 90 20 92 50 Q 94 80 96 50 Q 98 20 100 50"
-                            stroke="white" fill="transparent" stroke-width="0.8" />
-                    </svg>
-                  </div>
-               </div>
-            </div>
-
-            <div class="clip-footer flex justify-between items-center px-1 text-[7px] font-black opacity-60 pointer-events-none">
-              <span>{{ clip.length.toFixed(2) }} BARS</span>
-              <span *ngIf="clip.loop" class="text-blue-400">SYNCED_LOOP</span>
-            </div>
-
-            <div class="resize-handle"></div>
-          </div>
-        </div>
-
-        <div
-          *ngIf="audioSession.isRecording()"
-          class="recording-overlay absolute inset-0 pointer-events-none bg-red-500/5 overflow-hidden"
-        >
-          <div
-            class="absolute top-4 right-6 flex items-center gap-2 px-3 py-1 bg-red-600 rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]"
-          >
-            <div class="w-2 h-2 rounded-full bg-white"></div>
-            <span
-              class="text-[9px] font-black text-white uppercase tracking-widest"
-              >Arrangement_Capture_On</span
+          <!-- Main Lane -->
+          <div class="lane-row relative border-b border-white/5"
+               [style.height.px]="laneHeight"
+               (pointerdown)="onLanePointerDown($event, track)">
+            <div
+              *ngFor="let clip of track.clips"
+              class="clip-item absolute executive-glass shadow-v42-xl tactile-v42"
+              [class.selected-clip]="selectedClipIds().has(clip.id)"
+              [style.left.px]="clip.start * barWidth"
+              [style.width.px]="clip.length * barWidth"
+              [style.background-color]="(clip.color || track.color || '#af25f4') + '44'"
+              [style.border-color]="clip.color || track.color || '#af25f4'"
+              (pointerdown)="onClipPointerDown($event, track.id, clip)"
             >
+              <div class="clip-header flex justify-between items-center px-1 py-0.5">
+                <span class="clip-title truncate">{{ clipLabel(track, clip) | uppercase }}</span>
+                <span *ngIf="clip.isComp" class="comp-badge text-[7px] bg-brand-primary text-black px-1 rounded">COMP</span>
+              </div>
+              <div class="clip-content relative flex-1 overflow-hidden pointer-events-none">
+                 <!-- Waveform or MIDI dots -->
+                 <div class="waveform-pro opacity-40 h-full w-full bg-white/5 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-xs opacity-20">{{ clip.type === 'midi' ? 'piano' : 'waves' }}</span>
+                 </div>
+              </div>
+              <div class="resize-handle"></div>
+            </div>
+          </div>
+
+          <!-- Takes Lanes (Expanded) -->
+          <div *ngIf="musicManager.takesExpanded()[track.id]" class="takes-lanes bg-black/20">
+             <div *ngFor="let take of track.clips[0]?.takes"
+                  class="take-row relative border-b border-white/5 opacity-60 hover:opacity-100"
+                  [style.height.px]="laneHeight * 0.6">
+               <div class="take-clip absolute h-[80%] top-[10%] rounded bg-white/10 border border-white/20"
+                    [style.left.px]="track.clips[0].start * barWidth"
+                    [style.width.px]="track.clips[0].length * barWidth"
+                    (click)="promoteTake(track.id, track.clips[0].id, take.id)">
+                 <span class="take-label text-[8px] px-1">{{ take.name }}</span>
+               </div>
+             </div>
           </div>
         </div>
+
         <div
           class="playhead absolute bottom-0 w-px bg-white extreme-glow"
           [style.left.px]="playheadPos()"
