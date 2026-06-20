@@ -11,6 +11,8 @@ import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { PlayerService } from '../../services/player.service';
 import { initialDeckState } from '../../services/user-context.service';
+import { AiService } from '../../services/ai.service';
+import { DjMidiService } from '../../services/dj-midi.service';
 
 describe('DjDeckComponent', () => {
   let component: DjDeckComponent;
@@ -32,7 +34,11 @@ describe('DjDeckComponent', () => {
         ...initialDeckState,
         track: { name: 'Track A', url: '' },
         hotCues: [12, null, null, null, null, null, null, null],
-        samplerPads: [24, null, null, null, null, null, null, null],
+        samplerPads: {
+          drums: [24, null, null, null, null, null, null, null],
+          fx: new Array(8).fill(null),
+          vocals: new Array(8).fill(null),
+        },
         progress: 16,
         duration: 120,
         bpm: 120,
@@ -61,6 +67,13 @@ describe('DjDeckComponent', () => {
       setDeckSend: jest.fn(),
       setBpm: jest.fn(),
       sync: jest.fn(),
+      autoSync: jest.fn(),
+      setFx: jest.fn(),
+      toggleAutomix: jest.fn(),
+      automixEnabled: jest.fn().mockReturnValue(false),
+      setPlaybackRate: jest.fn(),
+      setKeyLock: jest.fn(),
+      setBassBoost: jest.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -98,6 +111,7 @@ describe('DjDeckComponent', () => {
             brakeDeck: jest.fn(),
             spinbackDeck: jest.fn(),
             transformDeck: jest.fn(),
+            setCrossfader: jest.fn(),
           },
         },
         { provide: DatabaseService, useValue: mockDatabaseService },
@@ -128,6 +142,11 @@ describe('DjDeckComponent', () => {
           },
         },
         { provide: PlayerService, useValue: {} },
+        {
+          provide: AiService,
+          useValue: { isUnlocked: jest.fn().mockReturnValue(false) },
+        },
+        { provide: DjMidiService, useValue: { initMidi: jest.fn() } },
       ],
     });
 
@@ -159,7 +178,7 @@ describe('DjDeckComponent', () => {
     await component.saveSessionSnapshot();
 
     const [, , payload] = mockDatabaseService.saveProject.mock.calls[0];
-    expect(payload.deckA.samplerPads[0]).toBe(24);
+    expect(payload.deckA.samplerPads.drums[0]).toBe(24);
   });
 
   it('clears a hot cue through the deck service', () => {
@@ -204,19 +223,43 @@ describe('DjDeckComponent', () => {
     component.performanceMode.set('sampler');
     mockDeckService.deckA.update((d: typeof initialDeckState) => ({
       ...d,
-      samplerPads: new Array(8).fill(null),
+      samplerPads: {
+        drums: new Array(8).fill(null),
+        fx: new Array(8).fill(null),
+        vocals: new Array(8).fill(null),
+      },
       hotCues: [12, null, null, null, null, null, null, null],
     }));
 
     component.handlePadPress('A', 1);
 
-    expect(mockDeckService.setSamplerPad).toHaveBeenCalledWith('A', 1);
+    expect(mockDeckService.setSamplerPad).toHaveBeenCalledWith('A', 1, 'drums');
     expect(mockDeckService.setHotCue).not.toHaveBeenCalled();
 
     const event = { preventDefault: jest.fn() } as unknown as MouseEvent;
     component.clearPad('A', 1, event);
 
-    expect(mockDeckService.clearSamplerPad).toHaveBeenCalledWith('A', 1);
+    expect(mockDeckService.clearSamplerPad).toHaveBeenCalledWith(
+      'A',
+      1,
+      'drums'
+    );
     expect(mockDeckService.clearHotCue).not.toHaveBeenCalledWith('A', 1);
+  });
+
+  it('shows effective BPM using playback rate per deck', () => {
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      bpm: 100,
+      playbackRate: 1.2,
+    }));
+
+    expect(component.deckATempo()).toBe(120);
+  });
+
+  it('toggles key lock through the deck service', () => {
+    component.toggleKeyLock('A');
+
+    expect(mockDeckService.setKeyLock).toHaveBeenCalledWith('A', false);
   });
 });

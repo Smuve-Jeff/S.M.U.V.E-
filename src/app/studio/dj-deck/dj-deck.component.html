@@ -65,6 +65,7 @@
       <div class="deck-plinth">
         <div
           class="platter-container"
+          [class.scratching]="isScratchingA()"
           (mousedown)="onPlatterDown('A', $event)"
           (touchstart)="onPlatterDown('A', $event)"
         >
@@ -86,9 +87,30 @@
             <div class="platter-strobe"></div>
           </div>
           <div class="platter-spindle"></div>
+          <div class="scrub-feedback">
+            <div
+              class="scrub-meter"
+              [style.transform]="'scaleX(' + scratchVelocityA() + ')'"
+            ></div>
+          </div>
         </div>
 
         <div class="deck-controls-surface">
+          <div class="deck-status-strip">
+            <div class="deck-bpm-prominent">
+              BPM {{ deckATempo() | number: '1.0-1' }}
+            </div>
+            <button
+              class="btn-xs tactile-v42"
+              [class.active]="deckService.deckA().keyLock"
+              (click)="toggleKeyLock('A')"
+            >
+              KEY LOCK
+            </button>
+            <button class="btn-xs tactile-v42" (click)="tapBpm('A')">
+              TAP
+            </button>
+          </div>
           <div class="pitch-fader-container">
             <div class="fader-track">
               <input
@@ -100,7 +122,7 @@
                 (input)="setPlaybackRate('A', $any($event.target).value)"
               />
             </div>
-            <label>PITCH</label>
+            <label>PITCH {{ pitchAPercentage() }}</label>
           </div>
 
           <div class="deck-main-buttons">
@@ -172,6 +194,84 @@
               (valueChange)="updateEq('A', 'low', $event)"
             ></app-knob>
           </div>
+          <div class="eq-quick-buttons">
+            <button
+              class="btn-xs tactile-v42"
+              (click)="setQuickEq('B', 'high')"
+            >
+              HI CUT
+            </button>
+            <button class="btn-xs tactile-v42" (click)="setQuickEq('B', 'mid')">
+              MID CUT
+            </button>
+            <button class="btn-xs tactile-v42" (click)="setQuickEq('B', 'low')">
+              LOW CUT
+            </button>
+          </div>
+          <div class="precision-eq">
+            <label>10-BAND EQ</label>
+            <div class="precision-eq-bars">
+              <input
+                *ngFor="let value of precisionEqB(); let i = index"
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                [value]="value"
+                (input)="setPrecisionEqBand('B', i, $any($event.target).value)"
+              />
+            </div>
+          </div>
+          <div class="bass-boost">
+            <label>BASS BOOST</label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              [value]="deckService.deckB().bassBoost"
+              (input)="setBassBoost('B', $any($event.target).value)"
+            />
+          </div>
+          <div class="eq-quick-buttons">
+            <button
+              class="btn-xs tactile-v42"
+              (click)="setQuickEq('A', 'high')"
+            >
+              HI CUT
+            </button>
+            <button class="btn-xs tactile-v42" (click)="setQuickEq('A', 'mid')">
+              MID CUT
+            </button>
+            <button class="btn-xs tactile-v42" (click)="setQuickEq('A', 'low')">
+              LOW CUT
+            </button>
+          </div>
+          <div class="precision-eq">
+            <label>10-BAND EQ</label>
+            <div class="precision-eq-bars">
+              <input
+                *ngFor="let value of precisionEqA(); let i = index"
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                [value]="value"
+                (input)="setPrecisionEqBand('A', i, $any($event.target).value)"
+              />
+            </div>
+          </div>
+          <div class="bass-boost">
+            <label>BASS BOOST</label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              [value]="deckService.deckA().bassBoost"
+              (input)="setBassBoost('A', $any($event.target).value)"
+            />
+          </div>
 
           <div class="channel-fader-elite mt-6">
             <input
@@ -188,9 +288,23 @@
 
         <div class="mixer-center">
           <div class="dj-utility-btns mb-4">
-            <button class="btn-sm tactile-v42" [class.active]="deckService.automixEnabled()" (click)="toggleAutomix()">AUTOMIX</button>
-            <button class="btn-sm tactile-v42" (click)="syncDeck('A')">SYNC A</button>
-            <button class="btn-sm tactile-v42" (click)="syncDeck('B')">SYNC B</button>
+            <button
+              class="btn-sm tactile-v42"
+              [class.active]="deckService.automixEnabled()"
+              (click)="toggleAutomix()"
+            >
+              AUTOMIX
+            </button>
+            <button class="btn-sm tactile-v42" (click)="syncDeck('A')">
+              SYNC A
+            </button>
+            <button class="btn-sm tactile-v42" (click)="syncDeck('B')">
+              SYNC B
+            </button>
+          </div>
+          <div class="sync-status">
+            <div>SYNC Δ {{ getSyncDelta() }} BPM</div>
+            <div>{{ getCrossfaderStatus() }}</div>
           </div>
           <div class="master-section-elite">
             <label class="neon-text-xs">MASTER</label>
@@ -214,6 +328,10 @@
           </div>
 
           <div class="crossfader-container-elite mt-8">
+            <div class="crossfade-balance-labels">
+              <span>A {{ crossfadeMixA() }}%</span>
+              <span>B {{ crossfadeMixB() }}%</span>
+            </div>
             <input
               type="range"
               min="-1"
@@ -282,6 +400,7 @@
       <div class="deck-plinth">
         <div
           class="platter-container"
+          [class.scratching]="isScratchingB()"
           (mousedown)="onPlatterDown('B', $event)"
           (touchstart)="onPlatterDown('B', $event)"
         >
@@ -303,9 +422,30 @@
             <div class="platter-strobe"></div>
           </div>
           <div class="platter-spindle"></div>
+          <div class="scrub-feedback">
+            <div
+              class="scrub-meter"
+              [style.transform]="'scaleX(' + scratchVelocityB() + ')'"
+            ></div>
+          </div>
         </div>
 
         <div class="deck-controls-surface">
+          <div class="deck-status-strip">
+            <div class="deck-bpm-prominent">
+              BPM {{ deckBTempo() | number: '1.0-1' }}
+            </div>
+            <button
+              class="btn-xs tactile-v42"
+              [class.active]="deckService.deckB().keyLock"
+              (click)="toggleKeyLock('B')"
+            >
+              KEY LOCK
+            </button>
+            <button class="btn-xs tactile-v42" (click)="tapBpm('B')">
+              TAP
+            </button>
+          </div>
           <div class="pitch-fader-container">
             <div class="fader-track">
               <input
@@ -317,7 +457,7 @@
                 (input)="setPlaybackRate('B', $any($event.target).value)"
               />
             </div>
-            <label>PITCH</label>
+            <label>PITCH {{ pitchBPercentage() }}</label>
           </div>
 
           <div class="deck-main-buttons">
@@ -357,32 +497,81 @@
       <div class="fx-header flex justify-between items-center mb-2">
         <span class="neon-text-xs">ADVANCED PERFORMANCE FX</span>
         <div class="fx-selectors flex gap-2">
-          <button class="btn-xs" [class.active]="fxMode() === 'flanger'" (click)="fxMode.set('flanger')">FLANGER</button>
-          <button class="btn-xs" [class.active]="fxMode() === 'phaser'" (click)="fxMode.set('phaser')">PHASER</button>
-          <button class="btn-xs" [class.active]="fxMode() === 'delay'" (click)="fxMode.set('delay')">DELAY</button>
+          <button
+            *ngFor="let fx of fxModes"
+            class="btn-xs"
+            [class.active]="fxMode() === fx.id"
+            (click)="fxMode.set(fx.id)"
+          >
+            {{ fx.label }}
+          </button>
         </div>
       </div>
       <div class="fx-grid flex gap-8">
         <div class="fx-control-deck">
-           <label class="text-[10px] opacity-50">DECK A FX</label>
-           <input type="range" min="0" max="1" step="0.01" [value]="deckService.deckA().fxAmount" (input)="setFxAmount('A', $any($event.target).value)">
+          <label class="text-[10px] opacity-50">DECK A FX</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            [value]="deckService.deckA().fxAmount"
+            (input)="setFxAmount('A', $any($event.target).value)"
+          />
         </div>
         <div class="fx-control-deck">
-           <label class="text-[10px] opacity-50">DECK B FX</label>
-           <input type="range" min="0" max="1" step="0.01" [value]="deckService.deckB().fxAmount" (input)="setFxAmount('B', $any($event.target).value)">
+          <label class="text-[10px] opacity-50">DECK B FX</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            [value]="deckService.deckB().fxAmount"
+            (input)="setFxAmount('B', $any($event.target).value)"
+          />
         </div>
       </div>
     </div>
 
     <div class="performance-tabs">
-      <button [class.active]="performanceMode() === 'cue'" (click)="performanceMode.set('cue')">HOT CUES</button>
-      <button [class.active]="performanceMode() === 'roll'" (click)="performanceMode.set('roll')">ROLL</button>
+      <button
+        [class.active]="performanceMode() === 'cue'"
+        (click)="performanceMode.set('cue')"
+      >
+        HOT CUES
+      </button>
+      <button
+        [class.active]="performanceMode() === 'roll'"
+        (click)="performanceMode.set('roll')"
+      >
+        ROLL
+      </button>
       <div class="sampler-tab-group flex items-center">
-        <button [class.active]="performanceMode() === 'sampler'" (click)="performanceMode.set('sampler')">SAMPLER</button>
-        <select *ngIf="performanceMode() === 'sampler'" class="sampler-cat-select ml-2 bg-transparent border-none text-[10px]" [ngModel]="samplerCategory()" (ngModelChange)="setSamplerCategory($event)">
+        <button
+          [class.active]="performanceMode() === 'sampler'"
+          (click)="performanceMode.set('sampler')"
+        >
+          SAMPLER
+        </button>
+        <select
+          *ngIf="performanceMode() === 'sampler'"
+          class="sampler-cat-select ml-2 bg-transparent border-none text-[10px]"
+          [ngModel]="samplerCategory()"
+          (ngModelChange)="setSamplerCategory($event)"
+        >
           <option value="drums">DRUMS</option>
           <option value="fx">FX</option>
           <option value="vocals">VOCALS</option>
+        </select>
+        <select
+          *ngIf="performanceMode() === 'sampler'"
+          class="sampler-cat-select ml-2 bg-transparent border-none text-[10px]"
+          [ngModel]="activeSamplePack()"
+          (ngModelChange)="activeSamplePack.set($event)"
+        >
+          <option *ngFor="let pack of samplePackOptions" [value]="pack.id">
+            {{ pack.label }}
+          </option>
         </select>
       </div>
     </div>
