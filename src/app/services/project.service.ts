@@ -27,7 +27,7 @@ export class ProjectService {
       )
       .subscribe(project => {
         this._current.next(project);
-        if (project) this.currentProject.set(project);
+        this.currentProject.set(project ?? null);
       });
   }
 
