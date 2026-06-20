@@ -78,6 +78,7 @@ export interface DeckState {
   detectedBpm: number;
 }
 
+export type SamplerCategory = keyof DeckState['samplerPads'];
 export type DeckFxMode = Exclude<DeckState['activeFx'], 'none'>;
 
 export const initialDeckState: DeckState = {

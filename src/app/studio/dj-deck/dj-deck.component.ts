@@ -15,7 +15,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { KnobComponent } from '../shared/knob/knob.component';
-import { AppTheme, DeckFxMode } from '../../services/user-context.service';
+import {
+  AppTheme,
+  DeckFxMode,
+  SamplerCategory,
+} from '../../services/user-context.service';
 import { FileLoaderService } from '../../services/file-loader.service';
 import { ExportService } from '../../services/export.service';
 import { LibraryService } from '../../services/library.service';
@@ -31,8 +35,6 @@ import { AiService } from '../../services/ai.service';
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
 const MIN_SAMPLER_RETURN_MILLIS = 80;
-type SamplerCategory = 'drums' | 'fx' | 'vocals';
-type FxMode = DeckFxMode;
 
 @Component({
   selector: 'app-dj-deck',
@@ -45,10 +47,10 @@ type FxMode = DeckFxMode;
 export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly deckIds: ('A' | 'B')[] = ['A', 'B'];
   readonly performancePads = [0, 1, 2, 3, 4, 5, 6, 7];
-  readonly fxModes: FxMode[] = ['flanger', 'phaser', 'delay'];
+  readonly fxModes: DeckFxMode[] = ['flanger', 'phaser', 'delay'];
   readonly samplerCategories: SamplerCategory[] = ['drums', 'fx', 'vocals'];
   samplerCategory = signal<SamplerCategory>('drums');
-  fxMode = signal<FxMode>('flanger');
+  fxMode = signal<DeckFxMode>('flanger');
   private djMidiService = inject(DjMidiService);
   private aiService = inject(AiService);
   @ViewChild('waveformA') waveformA!: ElementRef<HTMLCanvasElement>;

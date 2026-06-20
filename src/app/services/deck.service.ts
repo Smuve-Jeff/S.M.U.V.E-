@@ -107,7 +107,10 @@ export class DeckService {
     this.automixEnabled.set(enabled);
     if (enabled) {
       this.applyAutomix();
+      return;
     }
+    // Preserve the current matched tempo when automix is turned off so the
+    // live blend stays stable; disabling only stops future auto-sync updates.
   }
 
   setSamplerPad(

@@ -803,6 +803,7 @@
         <select
           *ngIf="performanceMode() === 'sampler'"
           class="sampler-select"
+          aria-label="Select sampler category"
           [ngModel]="samplerCategory()"
           (ngModelChange)="setSamplerCategory($event)"
         >
