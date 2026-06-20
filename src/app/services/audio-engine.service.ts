@@ -99,8 +99,8 @@ export class AudioEngineService {
   private reverbConvolver!: ConvolverNode;
   private delayNode!: DelayNode;
 
-  private trackOutputs = new Map<any, GainNode>();
-  private trackInstruments = new Map<any, any>();
+  private trackOutputs = new Map<string, GainNode>();
+  private trackInstruments = new Map<string, any>();
   private trackFilters = new Map<number, BiquadFilterNode>();
   private trackEQLow = new Map<number, BiquadFilterNode>();
   private trackEQHi = new Map<number, BiquadFilterNode>();
