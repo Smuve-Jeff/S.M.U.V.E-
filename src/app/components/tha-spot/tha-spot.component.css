@@ -1210,3 +1210,94 @@
 .back-to-top-btn.visible {
   animation: float 3s ease-in-out infinite;
 }
+
+.mini-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.unauthorized {
+  opacity: 0.5;
+  filter: grayscale(1);
+  cursor: not-allowed;
+}
+
+.dm-user-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--elite-border);
+}
+
+.dm-user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.dm-target-name {
+  font-weight: 900;
+  font-size: 0.9rem;
+  color: var(--elite-gold);
+}
+
+.dm-target-genre {
+  font-size: 0.6rem;
+  color: #7a7a9a;
+  letter-spacing: 1px;
+}
+
+.dm-actions {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.incoming-knock {
+  padding: 1.2rem;
+  margin-bottom: 1.5rem;
+  border-radius: 12px;
+  background: rgba(var(--elite-neon-purple-rgb), 0.1);
+  border: 1px solid var(--elite-neon-purple);
+  text-align: center;
+}
+
+.knock-header {
+  font-weight: 900;
+  font-size: 0.7rem;
+  margin-bottom: 1rem;
+  letter-spacing: 2px;
+  color: var(--elite-neon-purple);
+}
+
+.knock-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.knock-actions button {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 900;
+  font-size: 0.6rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.accept-btn {
+  background: var(--elite-neon-purple);
+  color: white;
+  border: none;
+}
+
+.decline-btn {
+  background: transparent;
+  color: #7a7a9a;
+  border: 1px solid #7a7a9a;
+}

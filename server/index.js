@@ -790,15 +790,25 @@ const setupSocketIO = (server) => {
     }
   });
 
-  const onlineUsers = new Map(); // userId -> socketId
+  const onlineUsers = new Map(); // userId -> { socketId, metadata }
+
+  const broadcastOnlineUsers = () => {
+    const users = Array.from(onlineUsers.entries()).map(([userId, info]) => ({
+      userId,
+      ...info.metadata
+    }));
+    io.emit("users_online", users);
+  };
 
   io.on("connection", (socket) => {
     console.log("Elite user connected:", socket.id);
 
-    socket.on("register_presence", (userId) => {
-      onlineUsers.set(userId, socket.id);
-      io.emit("users_online", Array.from(onlineUsers.keys()));
-      console.log(`User ${userId} registered.`);
+    socket.on("register_presence", (data) => {
+      const userId = typeof data === "string" ? data : data.userId;
+      const metadata = typeof data === "string" ? {} : data.metadata;
+      onlineUsers.set(userId, { socketId: socket.id, metadata });
+      broadcastOnlineUsers();
+      console.log(`User ${userId} registered with metadata.`);
     });
 
     socket.on("join_room", (roomId) => {
@@ -825,25 +835,17 @@ const setupSocketIO = (server) => {
       if (targetSocketId) {
         io.to(targetSocketId).emit("incoming_challenge", { fromUserId, gameId });
       }
-    });
-
-    socket.on("voice_signal", (data) => {
-      const { toUserId, signal, fromUserId } = data;
-      const targetSocketId = onlineUsers.get(toUserId);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit("voice_signal", { fromUserId, signal });
-      }
-    });
-
     socket.on("disconnect", () => {
-      onlineUsers.forEach((id, userId) => {
-        if (id === socket.id) {
+      for (const [userId, info] of onlineUsers.entries()) {
+        if (info.socketId === socket.id) {
           onlineUsers.delete(userId);
+          break;
         }
-      });
-      io.emit("users_online", Array.from(onlineUsers.keys()));
+      }
+      broadcastOnlineUsers();
       console.log("Elite user disconnected:", socket.id);
     });
+
   });
 
   return io;

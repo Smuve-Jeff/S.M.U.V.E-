@@ -19,7 +19,7 @@
   <!-- Strips Container -->
   <div class="flex-1 flex overflow-x-auto snap-x snap-mandatory no-scrollbar p-2 gap-2 bg-black/20">
     <!-- Channel Strips -->
-    <div  *ngFor="let track of tracks(); let i = index"
+    <div  *ngFor="let track of tracks(); let i = index" >
     <div *ngFor="let track of tracks(); let i = index"
          class="mixer-strip holographic-glimmer snap-start flex flex-col fl-strip transition-all min-w-[72px] md:min-w-[84px] relative"
          [class.selected-track]="isSelected(track)"

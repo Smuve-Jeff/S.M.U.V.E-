@@ -375,3 +375,5 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleInspector() { this.toggleSignal(this.inspectorCollapsed); }
   toggleNeuralFoundry() { this.toggleSignal(this.showNeuralFoundry); }
 }
+
+}
