@@ -160,7 +160,7 @@ export class ArrangementViewComponent {
       let dbars = dx / this.barWidth;
       if (this.snapEnabled()) dbars = Math.round(dbars * 4) / 4;
       this.draggingClip.offsetBars = dbars;
-      this.musicManager.updateClip(this.draggingClip.trackId, this.draggingClip.clipId, { start: Math.max(0, this.draggingClip.originalStart + dbars) });
+      this.musicManager.updateClip(this.draggingClip.trackId, this.draggingClip.clipId, { start: this.draggingClip.originalStart + dbars });
     } else if (this.resizingClip) {
       const dx = e.clientX - this.resizingClip.startX;
       let dlen = dx / this.barWidth;

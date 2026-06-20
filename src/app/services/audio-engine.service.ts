@@ -99,8 +99,8 @@ export class AudioEngineService {
   private reverbConvolver!: ConvolverNode;
   private delayNode!: DelayNode;
 
-  private trackOutputs = new Map<string, GainNode>();
-  private trackInstruments = new Map<string, any>();
+  private trackOutputs = new Map<any, GainNode>();
+  private trackInstruments = new Map<any, any>();
   private trackFilters = new Map<number, BiquadFilterNode>();
   private trackEQLow = new Map<number, BiquadFilterNode>();
   private trackEQHi = new Map<number, BiquadFilterNode>();
@@ -540,7 +540,7 @@ export class AudioEngineService {
     target.gain.setTargetAtTime(this.clamp(gain, 0, 1), this.ctx.currentTime, 0.01);
   }
 
-  triggerAttack(trackId: string, freq: number, time: number, velocity: number, duration: number, gain: number, pan: number, sendA: number, sendB: number, synthParams: any, someVal?: number, customCtx?: any) {
+  triggerAttack(trackId: any, freq: number, time: number, velocity: number, duration: number, gain: number, pan: number, sendA: number, sendB: number, synthParams: any, someVal?: number, customCtx?: any) {
     let inst = this.trackInstruments.get(trackId);
     if (!inst) {
       inst = new SubtractiveSynth(this.ctx);
@@ -853,7 +853,7 @@ export class AudioEngineService {
     }
   }
 
-  triggerSampler(trackId: string, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number) {
+  triggerSampler(trackId: any, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number) {
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
     const panner = this.ctx.createStereoPanner();

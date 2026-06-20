@@ -145,7 +145,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   isSelected(track: TrackModel): boolean {
     return this.selectedTrackId() === track.id;
   }
-  getTrackLevel(id: string): number {
+  getTrackLevel(id: any): number {
     return this.trackLevels()[id] || 0;
   }
 }
