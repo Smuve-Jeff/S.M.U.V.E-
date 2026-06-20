@@ -641,8 +641,16 @@
 
               <!-- Elite Auto-Tune Control -->
               <div class="space-y-4 pt-6 border-t border-white/10">
-                <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest">
-                  <span class="text-slate-400">Elite Auto-Tune</span>
+                <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      [ngModel]="pitchCorrection.enabled()"
+                      (ngModelChange)="pitchCorrection.enabled.set($event)"
+                      class="rounded border-white/10 bg-vocal-obsidian text-vocal-primary focus:ring-0"
+                    />
+                    <span class="text-slate-400">Elite Auto-Tune</span>
+                  </div>
                   <span class="text-vocal-primary">{{ (pitchCorrection.amount() * 100).toFixed(0) }}%</span>
                 </div>
                 <input
