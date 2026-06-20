@@ -1,42 +1,34 @@
-import { UserProfileService } from '../services/user-profile.service';
-import {
-  Component,
-  inject,
-  signal,
-  effect,
-  computed,
-  OnInit,
-  OnDestroy,
-  AfterViewInit,
-  ViewChild,
-} from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, OnInit, OnDestroy, AfterViewInit, inject, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
+import { AudioSessionService } from './audio-session.service';
+import { AudioEngineService } from '../services/audio-engine.service';
+import { AiService } from '../services/ai.service';
+import { UIService } from '../services/ui.service';
+import { NotificationService } from '../services/notification.service';
+import { MusicManagerService } from '../services/music-manager.service';
+import { UserProfileService } from '../services/user-profile.service';
+import { AiCopilotService } from './ai-copilot.service';
+import { HapticService } from '../services/haptic.service';
+import { TouchGestureService } from '../services/touch-gesture.service';
+import { SequencerService } from './sequencer.service';
+import { InteractionDialogService } from '../services/interaction-dialog.service';
+import { ProjectTemplateService } from '../services/project-template.service';
+
 import { UniversalMasterComponent } from './master-controls/universal-master/universal-master.component';
 import { MixerComponent } from './mixer/mixer.component';
 import { DjDeckComponent } from './dj-deck/dj-deck.component';
 import { ArrangementViewComponent } from './arrangement-view/arrangement-view.component';
 import { PianoRollComponent } from './piano-roll/piano-roll.component';
 import { MasteringSuiteComponent } from './mastering-suite/mastering-suite.component';
-import { AudioSessionService } from './audio-session.service';
-import { MusicManagerService } from '../services/music-manager.service';
-import { AudioEngineService } from '../services/audio-engine.service';
 import { ChannelRackComponent } from './channel-rack/channel-rack.component';
-import { AiService } from '../services/ai.service';
-import { UIService } from '../services/ui.service';
-import { ProjectTemplateService } from '../services/project-template.service';
-import { NotificationService } from '../services/notification.service';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
-import { AiCopilotService } from './ai-copilot.service';
-import { HapticService } from '../services/haptic.service';
-import { TouchGestureService } from '../services/touch-gesture.service';
 import { PerformerComponent } from './performer/performer.component';
 import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
-import { SequencerService } from './sequencer.service';
-import { InteractionDialogService } from '../services/interaction-dialog.service';
-import { BottomNavComponent, BottomNavItem } from './shared/bottom-nav/bottom-nav.component';
+import { BottomNavComponent } from './shared/bottom-nav/bottom-nav.component';
 import { FabComponent } from './shared/fab/fab.component';
 import { SnackbarComponent } from './shared/snackbar/snackbar.component';
 import { SearchOverlayComponent } from './shared/search-overlay/search-overlay.component';
@@ -71,11 +63,18 @@ function isStudioView(value: string): value is StudioView {
   return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
 }
 
+interface BottomNavItem {
+  id: string;
+  label: string;
+  icon: string;
+}
+
 @Component({
   selector: 'app-studio',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     UniversalMasterComponent,
     MixerComponent,
     DjDeckComponent,
@@ -140,7 +139,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     return Math.floor(this.musicManager.currentStep() / stepsPerBar) + 1;
   });
 
-  // Bottom Nav Items
   bottomNavItems = computed<BottomNavItem[]>(() => [
     { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },
     { id: 'piano-roll', label: 'Piano', icon: 'piano' },
@@ -149,7 +147,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     { id: 'performance', label: 'Perform', icon: 'interpreter_mode' },
   ]);
 
-  // FAB visibility based on view
   showFab = computed(() => {
     const view = this.activeView();
     return ['arrangement', 'piano-roll', 'drum-machine'].includes(view);
@@ -163,8 +160,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     return 'add';
   });
 
-    constructor() {
-    // Listen to query param changes reactively
+  constructor() {
     this.route.queryParamMap.subscribe(params => {
       const view = params.get('view');
       if (view && isStudioView(view)) {
@@ -174,12 +170,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit() {
-    // Initial view resolution from route
     const initialView = this.route.snapshot.queryParamMap.get('view');
     if (initialView && isStudioView(initialView)) {
       this.activeView.set(initialView);
     }
-
     this.audioEngine.resume();
   }
 
@@ -188,17 +182,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-
-    // Clean up resize listeners to prevent memory leaks
-    if (this.onPointerMove) {
-      window.removeEventListener('pointermove', this.onPointerMove);
-      this.onPointerMove = null;
-    }
-    if (this.onPointerUp) {
-      window.removeEventListener('pointerup', this.onPointerUp);
-      this.onPointerUp = null;
-    }
-    this.resizingPanel = null;
     document.body.style.cursor = 'default';
   }
 
@@ -206,11 +189,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.mobileDrawerOpen.set(false);
     this.activeView.set(view);
     this.mobilePanel.set(null);
-    
-    // Haptic feedback on view change
     this.haptic.light();
     
-    // Show snackbar notification
     const viewNames: Record<StudioView, string> = {
       'arrangement': 'Arrangement View',
       'piano-roll': 'Piano Roll',
@@ -319,15 +299,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   inspectorWidth = signal(300);
 
   private resizingPanel: 'browser' | 'inspector' | null = null;
-  private onPointerMove: ((event: PointerEvent) => void) | null = null;
-  private onPointerUp: (() => void) | null = null;
 
   startResizing(event: PointerEvent, panel: 'browser' | 'inspector') {
     event.preventDefault();
     this.resizingPanel = panel;
     this.haptic.light();
 
-    this.onPointerMove = (moveEvent: PointerEvent) => {
     const onPointerMove = (moveEvent: PointerEvent) => {
       if (!this.resizingPanel) return;
 
@@ -344,21 +321,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     };
 
-    this.onPointerUp = () => {
-      this.resizingPanel = null;
-      if (this.onPointerMove) {
-        window.removeEventListener('pointermove', this.onPointerMove);
-        this.onPointerMove = null;
-      }
-      if (this.onPointerUp) {
-        window.removeEventListener('pointerup', this.onPointerUp);
-        this.onPointerUp = null;
-      }
-      document.body.style.cursor = 'default';
-    };
-
-    window.addEventListener('pointermove', this.onPointerMove);
-    window.addEventListener('pointerup', this.onPointerUp);
     const onPointerUp = () => {
       this.resizingPanel = null;
       window.removeEventListener('pointermove', onPointerMove);

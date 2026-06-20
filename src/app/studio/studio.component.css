@@ -579,7 +579,6 @@
   left: 0;
 }
 
-.studio-workspace {
 .studio-layout {
   /* Switch to flexible grid since widths are now dynamic */
   display: flex !important;

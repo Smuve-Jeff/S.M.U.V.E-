@@ -162,6 +162,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   ]);
 
   onlineUsers = this.socialService.onlineUsers;
+  selectedDmUser = computed(() => this.onlineUsers().find(u => u.userId === this.dmTargetUserId()));
+  canInteract = computed(() => this.profileService.profile().profileSetupCompleted);
+  isKnocking = this.peerService.isKnocking;
+  knockFromUserId = this.peerService.knockFromUserId;
   messages = this.socialService.messages;
   roomMessages = this.socialService.roomMessages;
   challenges = this.socialService.challenges;
@@ -401,7 +405,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   setHubTab(tab: 'room' | 'dm' | 'stream') {
     this.activeHubTab.set(tab);
     if (tab === 'dm' && !this.dmTargetUserId() && this.onlineUsers().length > 0) {
-      this.dmTargetUserId.set(this.onlineUsers()[0]);
+      this.dmTargetUserId.set(this.onlineUsers()[0].userId);
     }
     setTimeout(() => this.scrollToBottom(), 50);
   }

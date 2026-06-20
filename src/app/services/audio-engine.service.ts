@@ -842,8 +842,8 @@ export class AudioEngineService {
     osc.start(time);
     osc.stop(releaseTime + 0.1);
     if (this.isRecording()) {
-       if (this.recorder && this.recorder.pendingMidi) {
-         this.recorder.pendingMidi.push({
+       if (this.recorder && ((this.recorder as any).pendingMidi)) {
+         ((this.recorder as any).pendingMidi).push({
            pitch: Math.round(69 + 12 * Math.log2(freq / 440)),
            startTime: time,
            duration: (duration === 2 ? 0.5 : duration),

@@ -1,17 +1,20 @@
-<div class="mixer-container glass-v42 flex flex-col h-full bg-[#05050a] font-sans overflow-hidden">
-  <!-- Top Tool Bar -->
-  <div class="mixer-header wood-panel flex items-center justify-between p-2 border-b border-white/5 bg-black/40">
-    <div class="flex items-center gap-3">
-      <h3 class="text-[9px] font-black uppercase tracking-[0.2em] text-fl-blue neon-text">Elite Mixer</h3>
-      <div class="h-3 w-[1px] bg-white/10"></div>
-      <div class="flex bg-black/40 rounded p-0.5 border border-white/5">
-        <button (click)="viewMode.set('compact')" [class.bg-fl-blue]="viewMode() === 'compact'" class="text-[7px] px-2 py-0.5 rounded transition-all font-black uppercase">Compact</button>
-        <button (click)="viewMode.set('expanded')" [class.bg-fl-blue]="viewMode() === 'expanded'" class="text-[7px] px-2 py-0.5 rounded transition-all font-black uppercase">Channel Strip</button>
+<div class="mixer-container glass-v42-pro flex flex-col h-full overflow-hidden">
+  <!-- Mixer Header -->
+  <div class="mixer-header flex items-center justify-between p-3 border-b border-white/10 bg-black/40">
+    <div class="flex items-center gap-4">
+      <h2 class="text-xs font-black tracking-widest text-slate-400 uppercase flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">tune</span>
+        Console_Mixer_v4.2
+      </h2>
+      <div class="h-4 w-px bg-white/10"></div>
+      <div class="flex gap-2">
+        <button class="text-[10px] font-bold px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-300">MASTER</button>
+        <button class="text-[10px] font-bold px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-300">INSERTS</button>
       </div>
     </div>
     <div class="flex items-center gap-2">
-       <button class="m-btn tactile-v42 p-1 rounded-full bg-white/5 border border-white/10" (click)="audioSession.togglePlay()">
-        <span class="material-symbols-outlined text-xs text-white">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
+      <button class="icon-btn mini" (click)="toggleMixerWidth()">
+        <span class="material-symbols-outlined text-sm">unfold_more</span>
       </button>
     </div>
   </div>
@@ -19,7 +22,6 @@
   <!-- Strips Container -->
   <div class="flex-1 flex overflow-x-auto snap-x snap-mandatory no-scrollbar p-2 gap-2 bg-black/20">
     <!-- Channel Strips -->
-    <div  *ngFor="let track of tracks(); let i = index"
     <div *ngFor="let track of tracks(); let i = index"
          class="mixer-strip holographic-glimmer snap-start flex flex-col fl-strip transition-all min-w-[72px] md:min-w-[84px] relative"
          [class.selected-track]="isSelected(track)"
@@ -34,87 +36,47 @@
       <!-- Meter & Pan -->
       <div class="p-2 space-y-2 flex-1 flex flex-col">
         <div class="vu-meter-container flex-1 bg-black/60 rounded-sm relative overflow-hidden flex items-end border border-white/5">
-          <div class="vu-bar pro-meter absolute inset-x-0 bottom-0 bg-gradient-to-t from-fl-blue via-fl-blue to-white transition-all duration-75 shadow-[0_0_10px_rgba(0,229,255,0.4)]"
-               [style.height.%]="getTrackLevel(track.id) * 100"></div>
-
-          <div class="absolute inset-0 grid grid-rows-10 pointer-events-none">
-            <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]" class="border-t border-white/10 w-full"></div>
-          </div>
+           <!-- Signal Meter Fill -->
+           <div class="w-full bg-gradient-to-t from-green-500 via-yellow-400 to-red-500 opacity-80"
+                [style.height.%]="getTrackLevel(track.id) * 100"></div>
+           <!-- Peak Indicator -->
+           <div class="absolute top-0 left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_8px_red]"
+                *ngIf="isPeaking(track.id)"></div>
         </div>
 
-        <div class="pan-section flex flex-col items-center py-2 border-y border-white/5">
-          <app-knob label="PAN" size="xs" [min]="-1" [max]="1" [value]="track.pan" (valueChange)="updateTrackParam(track.id, 'pan', $event)"></app-knob>
+        <div class="pan-control flex flex-col items-center gap-1">
+           <div class="text-[6px] text-slate-500 font-bold">PAN</div>
+           <div class="w-full h-1 bg-white/5 rounded-full relative">
+              <div class="absolute top-0 h-full w-1 bg-white shadow-[0_0_4px_white]"
+                   [style.left.%]="50 + (track.pan * 50)"></div>
+           </div>
         </div>
+      </div>
 
-        <!-- Fader Section -->
-        <div class="fader-section flex-1 relative flex flex-col items-center py-6 min-h-[140px]">
-          <div class="fader-rail w-1 h-full bg-black/80 rounded-full border border-white/5"></div>
-          <input type="range" orient="vertical" min="0" max="150" [value]="gainPercent(track)"
-                 (input)="updateTrackVolume(track.id, $any($event.target).value); aiService.roastComponent('Mixer Fader')"
-                 class="mixer-fader-pro absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none">
-
-          <div class="fader-knob absolute pointer-events-none transition-all duration-75"
-               [style.bottom.%]="(gainPercent(track) / 150) * 85 + 5">
-            <div class="w-8 h-3 bg-slate-300 rounded-sm shadow-xl border border-white/20 flex flex-col justify-center items-center gap-[1px]">
-               <div class="w-4 h-px bg-black/20"></div>
-               <div class="w-4 h-px bg-black/20"></div>
+      <!-- Fader Section -->
+      <div class="p-2 pt-0 pb-4 flex flex-col items-center gap-3">
+         <div class="h-40 w-8 bg-black/40 rounded-sm relative flex flex-col items-center p-1 border border-white/5">
+            <!-- Fader Track -->
+            <div class="absolute inset-y-4 w-0.5 bg-white/5"></div>
+            <!-- Fader Handle -->
+            <div class="w-6 h-3 bg-slate-300 rounded-sm shadow-lg cursor-pointer absolute z-10 hover:bg-white transition-colors"
+                 [style.bottom.%]="track.volume * 100"
+                 (pointerdown)="startFaderDrag($event, track)">
             </div>
-          </div>
-        </div>
+         </div>
+         <div class="text-[8px] font-mono text-slate-400">{{ (track.volume * 100) | number:'1.0-0' }}%</div>
       </div>
 
-      <!-- Effects Rack Indicator (Expanded) -->
-      <div *ngIf="viewMode() === 'expanded'" class="rack-summary px-1 py-2 space-y-1 bg-black/60 border-t border-white/5">
-         <div class="text-[5px] text-slate-500 font-black uppercase text-center mb-1">INSERTS</div>
-         <div *ngFor="let i of [1,2,3,4]" class="h-1.5 w-full bg-white/5 rounded-full border border-white/5"></div>
-      </div>
-
-      <!-- Bottom Controls -->
-      <div class="p-2 bg-black/80 border-t border-white/10 flex flex-col gap-2">
-        <div class="flex gap-1">
-          <button (click)="toggleMute(track.id); $event.stopPropagation()"
-                  class="flex-1 text-[7px] font-black uppercase py-1 rounded border border-white/10 transition-all"
-                  [class.bg-red-500/40]="track.mute">M</button>
-          <button (click)="toggleSolo(track.id); $event.stopPropagation()"
-                  class="flex-1 text-[7px] font-black uppercase py-1 rounded border border-white/10 transition-all"
-                  [class.bg-yellow-500/40]="track.solo">S</button>
-        </div>
-        <button (click)="removeTrack(track.id, $event)"
-                class="w-full py-1 text-[7px] font-black uppercase bg-red-950/20 text-red-500 rounded border border-red-500/20 hover:bg-red-500 hover:text-black transition-all">
-          DELETE
-        </button>
-      </div>
-    </div>
-
-    <!-- Master Strip -->
-    <div class="mixer-strip holographic-glimmer master-strip snap-end flex flex-col bg-fl-blue/10 border-l-2 border-fl-blue/40 transition-all min-w-[84px] relative">
-      <div class="p-2 border-b border-fl-blue/20 bg-fl-blue/10 text-center">
-         <div class="text-[6px] font-black text-fl-blue uppercase">OUT</div>
-         <div class="text-[8px] font-black text-white uppercase tracking-widest">MASTER</div>
-      </div>
-
-      <div class="p-2 flex-1 flex flex-col space-y-2">
-        <div class="vu-meter-container flex-1 bg-black/60 rounded-sm relative overflow-hidden flex items-end border border-fl-blue/20">
-          <div class="vu-bar pro-meter absolute inset-x-0 bottom-0 bg-fl-blue transition-all"
-               [style.height.%]="(audioSession.masterVolume() / 150) * 100"></div>
-        </div>
-
-        <div class="fader-section flex-1 relative flex flex-col items-center py-6 min-h-[140px]">
-          <div class="fader-rail w-1.5 h-full bg-fl-blue/10 rounded-full"></div>
-          <input type="range" orient="vertical" min="0" max="150" [value]="audioSession.masterVolume()"
-                 (input)="updateMasterVolume($any($event.target).value)"
-                 class="mixer-fader-pro absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-
-          <div class="fader-knob absolute pointer-events-none" [style.bottom.%]="(audioSession.masterVolume() / 150) * 85 + 5">
-            <div class="w-10 h-4 bg-white rounded-sm shadow-[0_0_20px_rgba(0,229,255,0.6)] flex flex-col justify-center items-center gap-[1px]">
-               <div class="w-6 h-0.5 bg-fl-blue/40"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-2 bg-fl-blue/20 border-t border-fl-blue/40">
-         <button class="w-full py-2 text-[8px] font-black uppercase bg-fl-blue text-black rounded-lg shadow-lg">Soft Clip</button>
+      <!-- Controls -->
+      <div class="p-2 grid grid-cols-2 gap-1 border-t border-white/5">
+         <button class="w-full py-1 rounded-[2px] text-[8px] font-black transition-all"
+                 [class.bg-orange-500]="track.muted" [class.text-white]="track.muted"
+                 [class.bg-white/5]="!track.muted" [class.text-slate-500]="!track.muted"
+                 (click)="toggleMute(track.id); $event.stopPropagation()">M</button>
+         <button class="w-full py-1 rounded-[2px] text-[8px] font-black transition-all"
+                 [class.bg-yellow-400]="track.soloed" [class.text-black]="track.soloed"
+                 [class.bg-white/5]="!track.soloed" [class.text-slate-500]="!track.soloed"
+                 (click)="toggleSolo(track.id); $event.stopPropagation()">S</button>
       </div>
     </div>
   </div>

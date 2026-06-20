@@ -144,6 +144,6 @@ export class AudioSessionService {
 
   onNoteClicked(note: { midi: number; velocity: number }): void {
     this.logger.info('AudioSession: Note clicked:', note);
-    this.instrumentService.play(0, note.midi || 60, note.velocity || 0.8);
+    this.instrumentService.play('0', note.midi ?? 60, note.velocity ?? 0.8);
   }
 }
