@@ -67,7 +67,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }));
   activeSamplePack = signal('pack-1');
   private djMidiService = inject(DjMidiService);
-  private aiService = inject(AiService);
   @ViewChild('waveformA') waveformA!: ElementRef<HTMLCanvasElement>;
   @ViewChild('waveformB') waveformB!: ElementRef<HTMLCanvasElement>;
   @ViewChild('meterA') meterA!: ElementRef<HTMLCanvasElement>;
