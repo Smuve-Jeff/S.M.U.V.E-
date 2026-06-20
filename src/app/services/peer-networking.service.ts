@@ -81,7 +81,14 @@ export class PeerNetworkingService {
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     });
 
-    this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    try {
+      this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      console.error('Failed to acquire microphone:', err);
+      this.peerConnection.close();
+      this.peerConnection = undefined;
+      throw err;
+    }
     this.localStream.getTracks().forEach(track => {
         this.peerConnection?.addTrack(track, this.localStream!);
     });
