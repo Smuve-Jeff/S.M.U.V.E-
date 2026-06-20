@@ -6813,6 +6813,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "id": "minecraft-classic",
             "name": "Minecraft Classic",
             "url": "https://classic.minecraft.net/",
+            "launchConfig": {
+                "approvedEmbedUrl": "https://classic.minecraft.net/",
+                "embedMode": "inline"
+            },
             "description": "The original Minecraft creative mode, playable in your browser. Build anything you can imagine.",
             "genre": "Sandbox",
             "rating": 4.8,
@@ -6833,6 +6837,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "id": "prince-of-persia",
             "name": "Prince of Persia",
             "url": "https://princejs.com/",
+            "launchConfig": {
+                "approvedEmbedUrl": "https://princejs.com/",
+                "embedMode": "inline"
+            },
             "description": "The legendary cinematic platformer perfectly recreated in JavaScript. 60 minutes to save the princess.",
             "genre": "Platformer",
             "rating": 4.7,
@@ -6852,6 +6860,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "id": "diablo-web",
             "name": "Diablo Web",
             "url": "https://d07riv.github.io/diablo-web/",
+            "launchConfig": {
+                "approvedEmbedUrl": "https://d07riv.github.io/diablo-web/",
+                "embedMode": "inline"
+            },
             "description": "The original Diablo (1996) shareware version running in your browser. Experience the depths of Tristram.",
             "genre": "Action RPG",
             "rating": 4.9,
@@ -6872,6 +6884,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "id": "quakejs",
             "name": "QuakeJS",
             "url": "http://www.quakejs.com/",
+            "launchConfig": {
+                "approvedEmbedUrl": "http://www.quakejs.com/",
+                "embedMode": "inline"
+            },
             "description": "Legendary fast-paced arena shooter. Frag your friends in this web-based port of Quake.",
             "genre": "FPS",
             "rating": 4.8,
@@ -6891,6 +6907,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "id": "street-fighter-2-ce",
             "name": "Street Fighter II: CE",
             "url": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
+            "launchConfig": {
+                "approvedEmbedUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
+                "embedMode": "inline"
+            },
             "description": "The definitive fighting game experience. Master the Hadouken and climb the world tournament.",
             "genre": "Fighting",
             "rating": 4.9,

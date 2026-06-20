@@ -44,7 +44,7 @@
   </nav>
 
   <main class="spot-content" *ngIf="displayMode() !== 'pluto'">
-    <div class="content-viewport custom-scrollbar">
+    <div class="content-viewport custom-scrollbar" #contentViewport>
       <div class="view-header">
         <div class="room-navigator no-scrollbar">
           <div
@@ -78,12 +78,12 @@
           </div>
 
           <div class="catalog-filters-row">
-            <select class="filter-select" [ngModel]="activeGenre()" (ngModelChange)="activeGenre.set()">
+            <select class="filter-select" [ngModel]="activeGenre()" (ngModelChange)="activeGenre.set($event)">
               <option value="all">ALL GENRES</option>
               <option *ngFor="let cat of allCategories()" [value]="cat">{{ cat | uppercase }}</option>
             </select>
 
-            <select class="filter-select" [ngModel]="activePlatform()" (ngModelChange)="activePlatform.set()">
+            <select class="filter-select" [ngModel]="activePlatform()" (ngModelChange)="activePlatform.set($event)">
               <option value="all">ALL PLATFORMS</option>
               <option *ngFor="let plat of allPlatforms()" [value]="plat">{{ plat | uppercase }}</option>
             </select>
@@ -380,6 +380,16 @@
       </footer>
     </div>
   </div>
+
+  <!-- Back to Top Button -->
+  <button
+    class="back-to-top-btn glass-v42-pro shadow-v42-xl"
+    [class.visible]="showBackToTop()"
+    (click)="scrollToTop()"
+    title="Back to Top"
+  >
+    <span class="material-symbols-outlined">arrow_upward</span>
+  </button>
 </div>
 
 <audio #remoteAudio [srcObject]="peerService.remoteStream()" autoplay *ngIf="peerService.remoteStream()"></audio>
