@@ -149,3 +149,13 @@
   cursor: pointer;
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
 }
+
+.pitch-slider::-moz-range-thumb, .mod-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #38bdf8;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
