@@ -72,7 +72,7 @@
             <input
               type="text"
               [ngModel]="searchQuery()"
-              (ngModelChange)="onSearchChange()"
+              (ngModelChange)="onSearchChange($event)"
               placeholder="SEARCH ELITE CABINETS..."
             />
           </div>
