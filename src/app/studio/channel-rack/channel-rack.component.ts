@@ -32,7 +32,7 @@ export class ChannelRackComponent {
     this.musicManager.toggleStep(track.id, index);
   }
 
-  selectTrack(track: any) {
+  selectTrack(track: TrackModel) {
     this.musicManager.selectedTrackId.set(track.id);
   }
 
