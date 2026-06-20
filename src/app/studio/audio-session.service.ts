@@ -3,6 +3,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { InstrumentService } from './instrument.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { PlaybackState } from './playback-state';
+import { MusicManagerService } from '../services/music-manager.service';
 import { MicrophoneService } from '../services/microphone.service';
 import { StudioRecordingEngineService } from './studio-recording-engine.service';
 
@@ -25,6 +26,7 @@ export class AudioSessionService {
   public readonly engine = inject(AudioEngineService);
   private readonly micService = inject(MicrophoneService);
   private readonly recordingEngine = inject(StudioRecordingEngineService);
+  public readonly musicManager = inject(MusicManagerService);
 
   readonly playbackState = signal<PlaybackState>('stopped');
   readonly isPlaying = computed(() => this.playbackState() === 'playing');
@@ -84,11 +86,11 @@ export class AudioSessionService {
   toggleRecord(): void {
     if (this.isRecording()) {
       this.engine.stop();
-      void this.recordingEngine.stopRecording();
+      void this.musicManager.stopRecording(this.musicManager.selectedTrackId() || "");
       this.playbackState.set('stopped');
     } else {
       this.engine.start();
-      this.recordingEngine.startRecording();
+      this.musicManager.startRecording();
       this.playbackState.set('recording');
     }
   }
@@ -96,7 +98,7 @@ export class AudioSessionService {
   stop(): void {
     this.engine.stop();
     if (this.recordingEngine.isRecording()) {
-      void this.recordingEngine.stopRecording();
+      void this.musicManager.stopRecording(this.musicManager.selectedTrackId() || "");
     }
     this.playbackState.set('stopped');
   }
