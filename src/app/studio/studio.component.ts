@@ -239,11 +239,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   async newProject() {
-    // For now, use a default template or implement a simple picker if showInitializer is missing
+    this.musicManager.newProject();
     const template = this.templateService.templates[0];
     if (template) {
       this.templateService.applyTemplate(template.id);
-      this.snackbarService.success(`New project initialized: ${template.name}`);
+      this.snackbarService.success('New project initialized: ' + template.name);
     }
   }
 
