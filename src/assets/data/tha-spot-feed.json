@@ -6825,7 +6825,11 @@
         "classic",
         "featured"
       ],
-      "image": "assets/games/minecraft-classic.png"
+      "image": "assets/games/minecraft-classic.png",
+      "launchConfig": {
+        "approvedEmbedUrl": "https://classic.minecraft.net/",
+        "embedMode": "inline"
+      }
     },
     {
       "id": "prince-of-persia",
@@ -6844,7 +6848,11 @@
       "badgeIds": [
         "classic"
       ],
-      "image": "assets/games/prince-of-persia.png"
+      "image": "assets/games/prince-of-persia.png",
+      "launchConfig": {
+        "approvedEmbedUrl": "https://princejs.com/",
+        "embedMode": "inline"
+      }
     },
     {
       "id": "diablo-web",
@@ -6864,7 +6872,11 @@
         "classic",
         "elite"
       ],
-      "image": "assets/games/diablo-web.png"
+      "image": "assets/games/diablo-web.png",
+      "launchConfig": {
+        "approvedEmbedUrl": "https://d07riv.github.io/diablo-web/",
+        "embedMode": "inline"
+      }
     },
     {
       "id": "quakejs",
@@ -6883,7 +6895,11 @@
       "badgeIds": [
         "elite"
       ],
-      "image": "assets/games/quakejs.png"
+      "image": "assets/games/quakejs.png",
+      "launchConfig": {
+        "approvedEmbedUrl": "http://www.quakejs.com/",
+        "embedMode": "inline"
+      }
     },
     {
       "id": "street-fighter-2-ce",
@@ -6903,7 +6919,11 @@
         "classic",
         "tournament-live"
       ],
-      "image": "assets/games/street-fighter-2-ce.png"
+      "image": "assets/games/street-fighter-2-ce.png",
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
+        "embedMode": "inline"
+      }
     },
     {
       "id": "fifa-05-elite",

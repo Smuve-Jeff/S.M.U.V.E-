@@ -23,12 +23,24 @@ export class ChannelRackComponent {
     this.musicManager.toggleStep(track.id, index);
   }
 
-  selectTrack(track: TrackModel) {
+  selectTrack(track: any) {
     this.musicManager.selectedTrackId.set(track.id);
   }
 
   updateGain(track: TrackModel, val: number) {
     this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? { ...t, gain: val } : t));
+  addTrack() {
+    this.musicManager.ensureTrack('cyber-lead');
+  }
+
+  removeTrack(id: string) {
+    this.musicManager.removeTrack(id);
+  }
+
+  updateVolume(track: TrackModel, val: number) {
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) => (t.id === track.id ? { ...t, gain: val } : t))
+    );
     this.engine.updateTrack(track.id, { gain: val });
   }
 

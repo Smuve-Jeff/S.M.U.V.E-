@@ -152,6 +152,38 @@ export class MusicManagerService {
     }
   }
 
+  }
+
+  private setupProjectSync() {
+    effect(() => {
+      const project = this.projectService.currentProject();
+      if (project && !this.selectedTrackId()) {
+         this.syncFromProject(project);
+      }
+    }, { allowSignalWrites: true });
+
+    effect(() => {
+      const current = this.projectService.currentProject();
+      if (current) {
+        const updated: Project = {
+          ...current,
+          tracks: this.tracks() as any,
+          bpm: this.engine.tempo(),
+          updatedAt: Date.now()
+        };
+        this.projectService.update(updated);
+      }
+    });
+  }
+
+  private syncFromProject(project: Project) {
+    this.tracks.set(project.tracks as any);
+    this.engine.tempo.set(project.bpm);
+    if (project.tracks.length > 0) {
+      this.selectedTrackId.set(project.tracks[0].id);
+    }
+  }
+
   private runCommand(name: string, execute: () => void, undo: () => void) {
     this.history.execute({ name, execute, undo });
   }
@@ -476,6 +508,152 @@ export class MusicManagerService {
       const arp = [0, 4, 7, 12].map((v, i) => ({ ...base, id: `arp-${i}-${Date.now()}`, midi: base.midi + v, step: base.step + i * 0.25, length: 0.2 }));
       return this.persistActivePattern({ ...t, notes: arp });
     }));
+  }
+
+  private getTrackColor(index: number): string {
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+    return colors[index % colors.length];
+  }
+
+  private createDefaultSlots(): PatternSlot[] {
+    return [{
+      id: 'slot-0', name: 'Pattern 1', activeVersionId: 'v1',
+      versions: [{ id: 'v1', name: 'v1', steps: new Array(64).fill(false), notes: [] }]
+    }];
+  }
+
+  private persistActivePattern(track: TrackModel): TrackModel {
+    if (!track.patternSlots) return track;
+    const patternSlots = track.patternSlots.map(slot => {
+      if (slot.id !== track.activePatternSlotId && track.activePatternSlotId !== null) return slot;
+      return {
+        ...slot,
+        versions: slot.versions.map(v => v.id === slot.activeVersionId ? {
+          ...v, steps: [...track.steps], notes: track.notes.map(n => ({...n}))
+        } : v)
+      };
+    });
+    return { ...track, patternSlots };
+  }
+
+  }
+
+  async stopRecording(trackId: string, clipId?: string) {
+    await this.recordingEngine.stopRecording();
+    const result = await new Promise<any>(resolve => {
+      const sub = this.recordingEngine.recordingFinished$.subscribe(data => {
+        sub.unsubscribe();
+        resolve(data);
+      });
+    });
+
+    if (result) {
+      this.addTakeToTrack(trackId, {
+        id: result.id,
+        name: result.metadata.name,
+        blobUrl: result.url,
+        recordedAt: result.metadata.timestamp,
+        duration: result.metadata.duration
+      }, clipId);
+    }
+  }
+
+  addTakeToTrack(trackId: string, take: StudioTake, clipId?: string) {
+    const oldTracks = this.tracks();
+    this.runCommand('New Take',
+      () => this.tracks.update(ts => ts.map(t => {
+        if (t.id !== trackId) return t;
+        if (clipId) {
+          return {
+            ...t,
+            clips: t.clips.map(c => c.id === clipId ? {
+              ...c,
+              takes: [...(c.takes || []), take],
+              activeTakeId: take.id
+            } : c)
+          };
+        }
+        const newClip: TrackClip = {
+          id: 'clip_' + Date.now(),
+          name: take.name,
+          start: this.engine.currentBeat() / 4,
+          length: Math.max(1, take.duration / (60 / this.engine.tempo()) / 4),
+          type: 'audio',
+          takes: [take],
+          activeTakeId: take.id
+        };
+        return { ...t, clips: [...t.clips, newClip] };
+      })),
+      () => this.tracks.set(oldTracks)
+    );
+  }
+
+  promoteTakeRegion(trackId: string, clipId: string, region: StudioCompRegion) {
+    const oldTracks = this.tracks();
+    this.runCommand('Comp Region',
+      () => this.tracks.update(ts => ts.map(t => {
+        if (t.id !== trackId) return t;
+        return {
+          ...t,
+          clips: t.clips.map(c => {
+            if (c.id !== clipId) return c;
+            return {
+              ...c,
+              isComp: true,
+              compRegions: [...(c.compRegions || []), region].sort((a, b) => a.start - b.start)
+            };
+          })
+        };
+      })),
+      () => this.tracks.set(oldTracks)
+    );
+  }
+
+  async bounceTrack(trackId: string) {
+    const track = this.tracks().find(t => t.id === trackId);
+    if (!track) return;
+    this.logger.info(`Bouncing track ${track.name}...`);
+    const bounceTrackId = this.addTrack(`Bounce: ${track.name}`, 'audio-renderer', 'audio');
+    this.toggleMute(trackId);
+    this.logger.info(`Track ${track.name} bounced successfully.`);
+  }
+
+  playStep(step: number, time: number, duration: number) {
+    this.currentStep.set(step);
+    const hasSolo = this.tracks().some(t => t.soloed);
+    this.tracks().forEach(t => {
+      if (t.muted || (hasSolo && !t.soloed)) return;
+      t.notes.filter(n => Math.floor(n.step) === step % 64).forEach(n => {
+        const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
+        const params = t.id === MusicManagerService.DRUM_TRACK_ID ? { ...t.synthParams, ...(n.params || {}) } : t.synthParams;
+        this.engine.triggerAttack(t.id as any, freq, time, n.velocity, n.length * duration, t.gain, t.pan, t.sendA, t.sendB, params);
+      });
+    });
+  }
+
+  newProject(skipDefaults = false) {
+    const proj = this.projectService.createEmpty('New Professional Session');
+    this.projectService.currentProject.set(proj);
+    this.tracks.set([]);
+    if (skipDefaults) return;
+    this.addTrack('Lead Synth', 'grand-piano-v2', 'midi');
+    this.addTrack('Rhythm Guitars', 'strat-elite-clean', 'audio');
+    this.addTrack('S.M.U.V.E. Drums', 'trap-808-elite', 'drum');
+    this.addTrack('Main Vocal', 'vocal-strip', 'vocal');
+    this.history.clear();
+  }
+
+  updateSynthParams(trackId: string, params: any) {
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, synthParams: { ...t.synthParams, ...params } } : t));
+  }
+
+  setInstrument(trackId: string, instId: string) {
+    const preset = this.instruments.getPresets().find(p => p.id === instId);
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, instrumentId: instId, synthParams: preset?.synth || t.synthParams } : t));
+  }
+
+  quantizeTrack(id: string) {
+    this.tracks.update(ts => ts.map(t => t.id === id ? this.persistActivePattern({ ...t, notes: t.notes.map(n => ({ ...n, step: Math.round(n.step) })) }) : t));
   }
 
   private getTrackColor(index: number): string {

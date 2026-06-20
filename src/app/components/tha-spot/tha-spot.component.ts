@@ -25,6 +25,7 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
   templateUrl: './tha-spot.component.html',
   styleUrls: ['./tha-spot.component.css']
 })
+/* S.M.U.V.E. v4.2 Enhanced Catalog Access */
 export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private gameService = inject(GameService);
   private profileService = inject(UserProfileService);
@@ -44,8 +45,21 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   socialPresence = signal<any[]>([]);
   promotions = signal<any[]>([]);
   recommendationRails = signal<RecommendationRail[]>([]);
-  activeGenre = signal<string>('All');
-  activePlatform = signal<string>('All');
+  activeGenre = signal<string>('all');
+  activePlatform = signal<string>('all');
+
+  allPlatforms = computed(() => {
+    const platforms = new Set<string>();
+    const knownPlatforms = ['PS1', 'PS2', 'N64', 'Xbox', 'Dreamcast', 'SNES', 'NES', 'Arcade', 'DOS', 'Web', 'PC'];
+    this.games().forEach((g) => {
+      const tags = (g.tags || []).map(t => t.toUpperCase());
+      knownPlatforms.forEach(p => {
+        if (tags.includes(p.toUpperCase())) platforms.add(p);
+      });
+    });
+    return Array.from(platforms).sort();
+  });
+
   activeRoom = signal<string>('all');
   searchQuery = signal<string>('');
   showFavoritesOnly = signal<boolean>(false);
@@ -64,6 +78,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   matchmakingStatus = signal<string>('');
   matchmakingProgress = signal<number>(0);
   isWasmLoading = signal<boolean>(false);
+  showBackToTop = signal<boolean>(false);
 
   // Social & Streaming Signals
   activeHubTab = signal<'room' | 'dm' | 'stream'>('room');
@@ -72,6 +87,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
   @ViewChild('scrollContainer') scrollContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('contentViewport') contentViewport?: ElementRef<HTMLDivElement>;
 
   private feedSubscription?: Subscription;
   private clockId?: any;
@@ -82,9 +98,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   filteredGames = computed(() => {
     if (this.displayMode() === 'pluto') return [];
     let games = this.games();
+
+    const currentRoomId = this.activeRoom();
+    if (currentRoomId !== 'all') {
+      const room = this.gamingRooms().find(r => r.id === currentRoomId);
+      if (room) {
+        games = games.filter(g => this.gameService.matchesRoom(g, room));
+      }
+    }
+
     if (this.showFavoritesOnly()) {
       games = games.filter((g) => this.favorites().includes(g.id));
     }
+
     return this.gameService.filterAndSortGames(
       games,
       {
@@ -192,6 +218,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   setActiveRoom(id: string) {
     this.activeRoom.set(id);
     this.socialService.joinRoom(id);
+  }
+
+    clearFilters() {
+    this.activeGenre.set('all');
+    this.activePlatform.set('all');
+    this.searchQuery.set('');
+    this.showFavoritesOnly.set(false);
+    this.quickFilters.set([]);
+  }
+
+  onSearchChange(val: string) {
+    this.searchQuery.set(val);
   }
 
   onGameClick(game: Game) {
@@ -385,6 +423,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.chatInput.set('');
   }
+
+  onContentScroll(event: Event) {
+    const target = event.target as HTMLElement;
+    this.showBackToTop.set(target.scrollTop > 400);
+  }
+
+  scrollToTop() {
+    if (this.contentViewport?.nativeElement) {
+      this.contentViewport.nativeElement.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
 
   addEmoji(emoji: string) {
     this.chatInput.update(v => v + emoji);
