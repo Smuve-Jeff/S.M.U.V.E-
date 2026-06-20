@@ -759,7 +759,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (delta < -180) delta += 360;
 
     // Use the advanced scratch engine
-    const scratchDelta = (delta / 360) * 2; // Arbitrary scaling for feel
+    const scratchDelta = (delta / (2 * Math.PI)) * 2; // Arbitrary scaling for feel
     this.deckService.scratch(deck, scratchDelta);
 
     if (delta > Math.PI) delta -= 2 * Math.PI;
