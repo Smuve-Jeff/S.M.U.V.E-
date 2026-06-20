@@ -197,9 +197,7 @@ export class DeckService {
 
   setKeyLock(deck: DeckId, enabled: boolean) {
     const target = deck === 'A' ? this.deckA : this.deckB;
-    const state = target();
     target.update((d) => ({ ...d, keyLock: enabled }));
-    this.engine.setDeckRate(deck, state.playbackRate, enabled);
   }
 
   setBassBoost(deck: DeckId, amount: number) {
