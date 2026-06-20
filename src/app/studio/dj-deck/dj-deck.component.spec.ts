@@ -262,4 +262,38 @@ describe('DjDeckComponent', () => {
 
     expect(mockDeckService.setKeyLock).toHaveBeenCalledWith('A', false);
   });
+
+  it('propagates the keyLock flag when releasing a scratch on Deck A', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      keyLock: false,
+      playbackRate: 1.15,
+    }));
+
+    component.isScratchingA.set(true);
+    component.onPlatterUp();
+
+    expect(component.isScratchingA()).toBe(false);
+    expect(component.scratchVelocityA()).toBe(0);
+    expect(engine.setDeckRate).toHaveBeenCalledWith('A', 1.15, false);
+  });
+
+  it('propagates the keyLock flag when releasing a scratch on Deck B', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+
+    mockDeckService.deckB.update((d: typeof initialDeckState) => ({
+      ...d,
+      keyLock: true,
+      playbackRate: 0.95,
+    }));
+
+    component.isScratchingB.set(true);
+    component.onPlatterUp();
+
+    expect(component.isScratchingB()).toBe(false);
+    expect(component.scratchVelocityB()).toBe(0);
+    expect(engine.setDeckRate).toHaveBeenCalledWith('B', 0.95, true);
+  });
 });

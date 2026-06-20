@@ -729,7 +729,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
         this.engine.seekDeck('A', progress.slipPosition);
       }
 
-      this.engine.setDeckRate('A', deckState.playbackRate);
+      this.engine.setDeckRate('A', deckState.playbackRate, deckState.keyLock);
       if (this.wasPlaying.A) this.engine.playDeck('A');
       this.wasPlaying.A = false;
     }
@@ -743,7 +743,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
         this.engine.seekDeck('B', progress.slipPosition);
       }
 
-      this.engine.setDeckRate('B', deckState.playbackRate);
+      this.engine.setDeckRate('B', deckState.playbackRate, deckState.keyLock);
       if (this.wasPlaying.B) this.engine.playDeck('B');
       this.wasPlaying.B = false;
     }
