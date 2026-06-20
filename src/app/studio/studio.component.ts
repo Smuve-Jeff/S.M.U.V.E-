@@ -188,6 +188,18 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+
+    // Clean up resize listeners to prevent memory leaks
+    if (this.onPointerMove) {
+      window.removeEventListener('pointermove', this.onPointerMove);
+      this.onPointerMove = null;
+    }
+    if (this.onPointerUp) {
+      window.removeEventListener('pointerup', this.onPointerUp);
+      this.onPointerUp = null;
+    }
+    this.resizingPanel = null;
+    document.body.style.cursor = 'default';
   }
 
   setActiveView(view: StudioView) {
@@ -307,12 +319,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   inspectorWidth = signal(300);
 
   private resizingPanel: 'browser' | 'inspector' | null = null;
+  private onPointerMove: ((event: PointerEvent) => void) | null = null;
+  private onPointerUp: (() => void) | null = null;
 
   startResizing(event: PointerEvent, panel: 'browser' | 'inspector') {
     event.preventDefault();
     this.resizingPanel = panel;
     this.haptic.light();
 
+    this.onPointerMove = (moveEvent: PointerEvent) => {
     const onPointerMove = (moveEvent: PointerEvent) => {
       if (!this.resizingPanel) return;
 
@@ -329,6 +344,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     };
 
+    this.onPointerUp = () => {
+      this.resizingPanel = null;
+      if (this.onPointerMove) {
+        window.removeEventListener('pointermove', this.onPointerMove);
+        this.onPointerMove = null;
+      }
+      if (this.onPointerUp) {
+        window.removeEventListener('pointerup', this.onPointerUp);
+        this.onPointerUp = null;
+      }
+      document.body.style.cursor = 'default';
+    };
+
+    window.addEventListener('pointermove', this.onPointerMove);
+    window.addEventListener('pointerup', this.onPointerUp);
     const onPointerUp = () => {
       this.resizingPanel = null;
       window.removeEventListener('pointermove', onPointerMove);

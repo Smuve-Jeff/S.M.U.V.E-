@@ -256,6 +256,7 @@
   background: #0f172a;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  gap: 1px; /* Subtle separation */
   overflow: hidden;
 }
 
@@ -578,6 +579,7 @@
   left: 0;
 }
 
+.studio-workspace {
 .studio-layout {
   /* Switch to flexible grid since widths are now dynamic */
   display: flex !important;
