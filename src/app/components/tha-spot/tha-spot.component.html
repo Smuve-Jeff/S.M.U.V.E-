@@ -225,6 +225,9 @@
                  [class.active]="dmTargetUserId() === (user.userId || user)"
                  [class.unauthorized]="!user.profileSetupCompleted"
                  (click)="setDmTarget(user.userId || user)">
+                 [class.active]="dmTargetUserId() === user.userId"
+                 [class.unauthorized]="!user.profileSetupCompleted"
+                 (click)="setDmTarget(user.userId)">
               <img *ngIf="user.avatarImage" [src]="user.avatarImage" class="mini-avatar" />
               <span *ngIf="!user.avatarImage">{{ user.artistName?.substring(0, 2).toUpperCase() || '??' }}</span>
               <div class="online-indicator"></div>

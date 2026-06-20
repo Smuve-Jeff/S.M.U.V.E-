@@ -532,6 +532,24 @@ export class MusicManagerService {
 
   setActivePatternSlot(trackId: string, slotId: string) {
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, activePatternSlotId: slotId } : t));
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        const slot = t.patternSlots?.find((s) => s.id === slotId);
+        const activeVersion = slot?.versions.find(
+          (v) => v.id === slot.activeVersionId
+        );
+        if (!slot || !activeVersion) {
+          return { ...t, activePatternSlotId: slotId };
+        }
+        return {
+          ...t,
+          activePatternSlotId: slotId,
+          steps: [...activeVersion.steps],
+          notes: activeVersion.notes.map((n) => ({ ...n })),
+        };
+      })
+    );
   }
 
   recordLiveNote(midi: number, velocity: number) {
