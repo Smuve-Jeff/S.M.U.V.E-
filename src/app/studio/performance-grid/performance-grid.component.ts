@@ -57,7 +57,7 @@ export class PerformanceGridComponent {
 
   getTrackLevel(id: number) { return this.trackLevels()[id] || 0; }
 
-  toggleClip(trackId: number, clipIndex: number) {
+  toggleClip(trackId: string, clipIndex: number) {
     this.haptic.light();
     this.musicManager.setActivePatternSlot(trackId, `slot-${clipIndex}`);
   }

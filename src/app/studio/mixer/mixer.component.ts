@@ -49,8 +49,8 @@ export class MixerComponent implements OnInit, OnDestroy {
   );
   viewMode = signal<'compact' | 'expanded'>('expanded');
 
-  private analysers = new Map<number, AnalyserNode>();
-  private trackLevels = signal<Record<number, number>>({});
+  private analysers = new Map<string, AnalyserNode>();
+  private trackLevels = signal<Record<string, number>>({});
   private animationFrame?: number;
 
   ngOnInit() {
@@ -96,24 +96,24 @@ export class MixerComponent implements OnInit, OnDestroy {
   applyNeuralMix(): void {
     this.neuralMixer.applyNeuralMix();
   }
-  selectTrack(id: number): void {
+  selectTrack(id: string): void {
     this.musicManager.selectedTrackId.set(id);
   }
-  toggleMute(id: number) {
+  toggleMute(id: string) {
     this.musicManager.toggleMute(id);
   }
-  toggleSolo(id: number) {
+  toggleSolo(id: string) {
     this.musicManager.toggleSolo(id);
   }
 
-  removeTrack(id: number, event: Event) {
+  removeTrack(id: string, event: Event) {
     event.stopPropagation();
     if (confirm("Permanently remove this mixer track?")) {
       this.musicManager.removeTrack(id);
     }
   }
 
-  updateTrackVolume(id: number, value: number) {
+  updateTrackVolume(id: string, value: number) {
     const gain = Math.max(0, Math.min(1.5, value / 100));
     this.musicManager.tracks.update((ts) =>
       ts.map((t) => (t.id === id ? { ...t, gain } : t))
@@ -121,7 +121,7 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.musicManager.engine.updateTrack(id, { gain });
   }
 
-  updateTrackPan(id: number, value: number) {
+  updateTrackPan(id: string, value: number) {
     const pan = Math.max(-1, Math.min(1, value / 100));
     this.musicManager.tracks.update((ts) =>
       ts.map((t) => (t.id === id ? { ...t, pan } : t))
@@ -129,7 +129,7 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.musicManager.engine.updateTrack(id, { pan });
   }
 
-  updateTrackParam(id: number, param: string, value: number) {
+  updateTrackParam(id: string, param: string, value: number) {
     this.musicManager.tracks.update((ts) =>
       ts.map((t) => (t.id === id ? { ...t, [param]: value } : t))
     );
@@ -145,7 +145,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   isSelected(track: TrackModel): boolean {
     return this.selectedTrackId() === track.id;
   }
-  getTrackLevel(id: number): number {
+  getTrackLevel(id: any): number {
     return this.trackLevels()[id] || 0;
   }
 }
