@@ -1,9 +1,7 @@
-import { ProjectTemplateService } from './project-template.service';
 import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { InstrumentsService } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
-import { AudioSessionService } from '../studio/audio-session.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { ProjectService } from './project.service';
 import { HistoryService, Command } from './history.service';
@@ -55,7 +53,7 @@ export interface FxSlot {
   id: string;
   type: string;
   params: any;
-  enabled: boolean
+  enabled: boolean;
   mix?: number;
 }
 
@@ -78,7 +76,7 @@ export interface AutomationLane {
   id: string;
   parameter: string;
   points: AutomationPoint[];
-  enabled: boolean
+  enabled: boolean;
 }
 
 export interface TrackModel extends StudioTrack {
@@ -131,7 +129,6 @@ export class MusicManagerService {
   }
 
   private setupProjectSync() {
-    // Initial sync
     effect(() => {
       const project = this.projectService.currentProject();
       if (project && !this.selectedTrackId()) {
@@ -139,7 +136,6 @@ export class MusicManagerService {
       }
     }, { allowSignalWrites: true });
 
-    // Live-Sync Persistence
     effect(() => {
       const current = this.projectService.currentProject();
       if (current) {
@@ -165,8 +161,6 @@ export class MusicManagerService {
   private runCommand(name: string, execute: () => void, undo: () => void) {
     this.history.execute({ name, execute, undo });
   }
-
-  // --- Track Management ---
 
   addTrack(name: string, instrumentId: string, type: TrackType = 'midi') {
     const id = type === 'drum' && instrumentId.includes('808') ? MusicManagerService.DRUM_TRACK_ID : 'track_' + Date.now() + Math.random().toString(36).substring(7);
@@ -225,8 +219,6 @@ export class MusicManagerService {
     );
   }
 
-  // --- MIDI & Pattern Management ---
-
   addNoteToTrack(trackId: string, note: Partial<TrackNote>) {
     const id = note.id || `note-${Date.now()}-${Math.random()}`;
     const oldTracks = this.tracks();
@@ -249,8 +241,6 @@ export class MusicManagerService {
   }
 
   updateNote(trackId: string, noteId: string, patch: Partial<TrackNote>) {
-    // Note: Parameter changes are bypass history per requirement, but structural position changes could be commands.
-    // For simplicity in this professional build, we'll keep note tweaks as real-time.
     this.tracks.update(ts => ts.map(t => {
       if (t.id !== trackId) return t;
       return this.persistActivePattern({
@@ -283,8 +273,6 @@ export class MusicManagerService {
     }));
   }
 
-  // --- Clip Management ---
-
   addClipToTrack(trackId: string, clip: Partial<TrackClip>) {
     const oldTracks = this.tracks();
     const newClip: TrackClip = {
@@ -301,6 +289,13 @@ export class MusicManagerService {
     );
   }
 
+  updateClip(trackId: string, clipId: string, patch: Partial<TrackClip>) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== trackId) return t;
+      return { ...t, clips: t.clips.map(c => c.id === clipId ? { ...c, ...patch } : c) };
+    }));
+  }
+
   removeClip(trackId: string, clipId: string) {
     const oldTracks = this.tracks();
     this.runCommand('Remove Clip',
@@ -309,7 +304,20 @@ export class MusicManagerService {
     );
   }
 
-  // --- Recording, Takes & Comping ---
+  splitClip(trackId: string, clipId: string, bar: number) {
+    const oldTracks = this.tracks();
+    this.runCommand('Split Clip',
+      () => this.tracks.update(ts => ts.map(t => {
+        if (t.id !== trackId) return t;
+        const clip = t.clips.find(c => c.id === clipId);
+        if (!clip) return t;
+        const first = { ...clip, length: bar - clip.start };
+        const second = { ...clip, id: 'clip_' + Date.now(), start: bar, length: clip.length - (bar - clip.start) };
+        return { ...t, clips: [...t.clips.filter(c => c.id !== clipId), first, second] };
+      })),
+      () => this.tracks.set(oldTracks)
+    );
+  }
 
   async startRecording() {
     this.recordingEngine.startRecording();
@@ -353,7 +361,7 @@ export class MusicManagerService {
         const newClip: TrackClip = {
           id: 'clip_' + Date.now(),
           name: take.name,
-          start: this.engine.currentBeat() / 4, // Convert beats to bars
+          start: this.engine.currentBeat() / 4,
           length: Math.max(1, take.duration / (60 / this.engine.tempo()) / 4),
           type: 'audio',
           takes: [take],
@@ -386,27 +394,20 @@ export class MusicManagerService {
     );
   }
 
-  // --- Bouncing & Rendering ---
-
   async bounceTrack(trackId: string) {
     const track = this.tracks().find(t => t.id === trackId);
     if (!track) return;
-
     this.logger.info(`Bouncing track ${track.name}...`);
     const bounceTrackId = this.addTrack(`Bounce: ${track.name}`, 'audio-renderer', 'audio');
     this.toggleMute(trackId);
     this.logger.info(`Track ${track.name} bounced successfully.`);
   }
 
-  // --- Playback Logic (Refined) ---
-
   playStep(step: number, time: number, duration: number) {
     this.currentStep.set(step);
     const hasSolo = this.tracks().some(t => t.soloed);
     this.tracks().forEach(t => {
       if (t.muted || (hasSolo && !t.soloed)) return;
-
-      // Play pattern notes
       t.notes.filter(n => Math.floor(n.step) === step % 64).forEach(n => {
         const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
         const params = t.id === MusicManagerService.DRUM_TRACK_ID ? { ...t.synthParams, ...(n.params || {}) } : t.synthParams;
@@ -415,24 +416,30 @@ export class MusicManagerService {
     });
   }
 
-  // --- Project Initialization ---
-
   newProject(skipDefaults = false) {
     const proj = this.projectService.createEmpty('New Professional Session');
     this.projectService.currentProject.set(proj);
-
     this.tracks.set([]);
     if (skipDefaults) return;
     this.addTrack('Lead Synth', 'grand-piano-v2', 'midi');
     this.addTrack('Rhythm Guitars', 'strat-elite-clean', 'audio');
     this.addTrack('S.M.U.V.E. Drums', 'trap-808-elite', 'drum');
     this.addTrack('Main Vocal', 'vocal-strip', 'vocal');
-
     this.history.clear();
-    this.logger.info("Professional Studio: New session initialized.");
   }
 
-  // --- Utilities ---
+  updateSynthParams(trackId: string, params: any) {
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, synthParams: { ...t.synthParams, ...params } } : t));
+  }
+
+  setInstrument(trackId: string, instId: string) {
+    const preset = this.instruments.getPresets().find(p => p.id === instId);
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, instrumentId: instId, synthParams: preset?.synth || t.synthParams } : t));
+  }
+
+  quantizeTrack(id: string) {
+    this.tracks.update(ts => ts.map(t => t.id === id ? this.persistActivePattern({ ...t, notes: t.notes.map(n => ({ ...n, step: Math.round(n.step) })) }) : t));
+  }
 
   private getTrackColor(index: number): string {
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -463,4 +470,26 @@ export class MusicManagerService {
   toggleMute(id: string) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, muted: !t.muted } : t)); }
   toggleSolo(id: string) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, soloed: !t.soloed } : t)); }
   updateVolume(id: string, vol: number) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, volume: vol, gain: vol } : t)); }
+
+  exportProject() {
+     const data = { tracks: this.tracks(), bpm: this.engine.tempo() };
+     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+     const url = URL.createObjectURL(blob);
+     const a = document.createElement('a');
+     a.href = url;
+     a.download = `Elite_Studio_Project_${Date.now()}.json`;
+     a.click();
+  }
+
+  importProject(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (data.tracks) this.tracks.set(data.tracks);
+        if (data.bpm) this.engine.tempo.set(data.bpm);
+      } catch (err) {}
+    };
+    reader.readAsText(file);
+  }
 }
