@@ -72,9 +72,25 @@
             <input
               type="text"
               [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set()"
+              (ngModelChange)="onSearchChange($event)"
               placeholder="SEARCH ELITE CABINETS..."
             />
+          </div>
+
+          <div class="catalog-filters-row">
+            <select class="filter-select" [ngModel]="activeGenre()" (ngModelChange)="activeGenre.set()">
+              <option value="all">ALL GENRES</option>
+              <option *ngFor="let cat of allCategories()" [value]="cat">{{ cat | uppercase }}</option>
+            </select>
+
+            <select class="filter-select" [ngModel]="activePlatform()" (ngModelChange)="activePlatform.set()">
+              <option value="all">ALL PLATFORMS</option>
+              <option *ngFor="let plat of allPlatforms()" [value]="plat">{{ plat | uppercase }}</option>
+            </select>
+
+            <button class="filter-chip clear-btn" (click)="clearFilters()">
+              CLEAR ALL
+            </button>
           </div>
 
           <div class="filter-bar">
