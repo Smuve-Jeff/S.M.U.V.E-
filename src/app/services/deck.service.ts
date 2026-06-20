@@ -103,7 +103,7 @@ export class DeckService {
   setFx(deck: DeckId, mode: DeckState['activeFx'], val: number) {
     const target = deck === 'A' ? this.deckA : this.deckB;
     const amount = Math.max(0, Math.min(1, val));
-    target.update((d) => ({ ...d, fxAmount: amount, activeFx: mode as any }));
+    target.update((d) => ({ ...d, fxAmount: amount, activeFx: mode }));
 
     if (mode === 'echo') {
       this.engine.setAdvancedFX(deck, 'delay', amount);
