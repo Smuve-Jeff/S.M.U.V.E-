@@ -801,11 +801,21 @@ const setupSocketIO = (server) => {
       console.log(`User ${userId} registered.`);
     });
 
+    socket.on("join_room", (roomId) => {
+      socket.join(roomId);
+      console.log(`User ${socket.id} joined room ${roomId}`);
+    });
+
+    socket.on("send_room_message", (data) => {
+      const { roomId, message, fromUserId, fromUserName } = data;
+      io.to(roomId).emit("room_message", { roomId, fromUserId, fromUserName, message, timestamp: Date.now() });
+    });
+
     socket.on("send_message", (data) => {
-      const { toUserId, message, fromUserId } = data;
+      const { toUserId, message, fromUserId, fromUserName } = data;
       const targetSocketId = onlineUsers.get(toUserId);
       if (targetSocketId) {
-        io.to(targetSocketId).emit("private_message", { fromUserId, message });
+        io.to(targetSocketId).emit("private_message", { fromUserId, fromUserName, message, timestamp: Date.now() });
       }
     });
 

@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import { UIService } from '../../services/ui.service';
 import { MicrophoneService } from '../../services/microphone.service';
 import { StudioRecordingEngineService } from '../studio-recording-engine.service';
+import { PitchCorrectionService } from '../pitch-correction.service';
 import { VocalMasteringService } from '../../services/vocal-mastering.service';
 import { VocalAiService } from '../../services/vocal-ai.service';
 import { AiService } from '../../services/ai.service';
@@ -41,6 +42,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   public readonly uiService = inject(UIService);
   public readonly micService = inject(MicrophoneService);
   public readonly recordingEngine = inject(StudioRecordingEngineService);
+  public readonly pitchCorrection = inject(PitchCorrectionService);
   public readonly mastering = inject(VocalMasteringService);
   public readonly vocalAi = inject(VocalAiService);
   public readonly aiService = inject(AiService);

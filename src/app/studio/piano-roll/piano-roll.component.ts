@@ -247,7 +247,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     });
   }
 
-  applyNotePatch(trackId: number, noteId: string, patch: Partial<TrackNote>) {
+  applyNotePatch(trackId: string, noteId: string, patch: Partial<TrackNote>) {
     this.musicManager.updateNote(trackId, noteId, patch);
   }
 

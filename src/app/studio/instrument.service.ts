@@ -27,7 +27,7 @@ export class InstrumentService {
     }
   }
 
-  play(trackId: number, midi: number, velocity: number) {
+  play(trackId: string, midi: number, velocity: number) {
     const freq = this.midiToFreq(midi);
     this.engine.triggerAttack(
       trackId,

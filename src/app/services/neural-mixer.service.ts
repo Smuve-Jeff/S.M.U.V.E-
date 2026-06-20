@@ -9,7 +9,7 @@ import {
 export class NeuralMixerService {
   private musicManager = inject(MusicManagerService);
 
-  suggestForTrack(trackId: number) {
+  suggestForTrack(trackId: any) {
     this.musicManager.tracks.update((ts) =>
       ts.map((t) => {
         if (t.id !== trackId) return t;

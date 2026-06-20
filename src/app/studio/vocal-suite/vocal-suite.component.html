@@ -638,6 +638,45 @@
               </div>
             </div>
 
+
+              <!-- Elite Auto-Tune Control -->
+              <div class="space-y-4 pt-6 border-t border-white/10">
+                <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      [ngModel]="pitchCorrection.enabled()"
+                      (ngModelChange)="pitchCorrection.enabled.set($event)"
+                      class="rounded border-white/10 bg-vocal-obsidian text-vocal-primary focus:ring-0"
+                    />
+                    <span class="text-slate-400">Elite Auto-Tune</span>
+                  </div>
+                  <span class="text-vocal-primary">{{ (pitchCorrection.amount() * 100).toFixed(0) }}%</span>
+                </div>
+                <input
+                  type="range"
+                  [ngModel]="pitchCorrection.amount()"
+                  (ngModelChange)="pitchCorrection.amount.set($event)"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  class="w-full h-1 bg-white/5 rounded-full appearance-none accent-vocal-primary cursor-pointer"
+                />
+                <div class="flex justify-between items-center mt-2">
+                  <span class="text-[8px] text-slate-500 uppercase">Retune Speed</span>
+                  <select
+                    [ngModel]="pitchCorrection.retuneSpeed()"
+                    (ngModelChange)="pitchCorrection.retuneSpeed.set($event)"
+                    class="bg-vocal-obsidian text-[8px] text-vocal-primary border border-white/10 rounded px-1"
+                  >
+                    <option [value]="0.005">Instant</option>
+                    <option [value]="0.05">Fast</option>
+                    <option [value]="0.1">Natural</option>
+                    <option [value]="0.5">Slow</option>
+                  </select>
+                </div>
+              </div>
+
             <button
               (click)="downloadRecording()"
               class="w-full py-4 mt-8 bg-vocal-primary rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-vocal-fl-blue/80 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"
