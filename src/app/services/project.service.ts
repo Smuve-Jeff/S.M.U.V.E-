@@ -65,6 +65,10 @@ export class ProjectService {
       list[index] = { ...project, updatedAt: Date.now() };
       this._list.next([...list]);
       await this.saveAll(list);
+      const updated = { ...project, updatedAt: Date.now() };
+      const updatedList = [...list.slice(0, index), updated, ...list.slice(index + 1)];
+      this._list.next(updatedList);
+      await this.saveAll(updatedList);
     }
   }
 

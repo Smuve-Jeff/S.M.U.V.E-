@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MusicManagerService, TrackModel } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
@@ -38,9 +39,7 @@ export class ChannelRackComponent {
   }
 
   updateVolume(track: TrackModel, val: number) {
-    this.musicManager.tracks.update((ts) =>
-      ts.map((t) => (t.id === track.id ? { ...t, gain: val } : t))
-    );
+    this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? { ...t, gain: val } : t));
     this.engine.updateTrack(track.id, { gain: val });
   }
 
