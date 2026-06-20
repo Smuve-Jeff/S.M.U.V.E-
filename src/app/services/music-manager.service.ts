@@ -324,13 +324,14 @@ export class MusicManagerService {
   }
 
   async stopRecording(trackId: string, clipId?: string) {
-    await this.recordingEngine.stopRecording();
-    const result = await new Promise<any>(resolve => {
+    const recordingPromise = new Promise<any>(resolve => {
       const sub = this.recordingEngine.recordingFinished$.subscribe(data => {
         sub.unsubscribe();
         resolve(data);
       });
     });
+    await this.recordingEngine.stopRecording();
+    const result = await recordingPromise;
 
     if (result) {
       this.addTakeToTrack(trackId, {
