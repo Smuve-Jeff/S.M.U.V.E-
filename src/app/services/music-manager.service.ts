@@ -531,6 +531,7 @@ export class MusicManagerService {
   }
 
   setActivePatternSlot(trackId: string, slotId: string) {
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, activePatternSlotId: slotId } : t));
     this.tracks.update((ts) =>
       ts.map((t) => {
         if (t.id !== trackId) return t;
