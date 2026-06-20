@@ -72,11 +72,11 @@
          <button class="w-full py-1 rounded-[2px] text-[8px] font-black transition-all"
                  [class.bg-orange-500]="track.muted" [class.text-white]="track.muted"
                  [class.bg-white/5]="!track.muted" [class.text-slate-500]="!track.muted"
-                 (click)="toggleMute(track); $event.stopPropagation()">M</button>
+                 (click)="toggleMute(track.id); $event.stopPropagation()">M</button>
          <button class="w-full py-1 rounded-[2px] text-[8px] font-black transition-all"
                  [class.bg-yellow-400]="track.soloed" [class.text-black]="track.soloed"
                  [class.bg-white/5]="!track.soloed" [class.text-slate-500]="!track.soloed"
-                 (click)="toggleSolo(track); $event.stopPropagation()">S</button>
+                 (click)="toggleSolo(track.id); $event.stopPropagation()">S</button>
       </div>
     </div>
   </div>
