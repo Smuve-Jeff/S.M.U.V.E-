@@ -220,7 +220,7 @@
         </div>
 
         <div class="message-list">
-          <div class="msg-bubble" *ngFor="let msg of messages()" [class.own-msg]="msg.fromUserName === profileService.profile().artistName">
+          <div class="msg-bubble" *ngFor="let msg of messages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
             <div class="msg-meta">
               <span class="msg-user">{{ msg.fromUserName || 'OPERATIVE' }}</span>
               <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
@@ -285,7 +285,7 @@
       <div class="input-wrapper">
         <input
           type="text"
-          [(ngModel)]="chatInput"
+          [ngModel]="chatInput()" (ngModelChange)="chatInput.set($event)"
           (keyup.enter)="handleChatSubmit()"
           placeholder="SEND DATA PACKET..."
         />

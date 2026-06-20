@@ -1,5 +1,8 @@
+import { APP_SECURITY_CONFIG } from '../app.security';
 import { Injectable, inject, signal, effect } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
+import { Injector } from '@angular/core';
+import { PeerNetworkingService } from './peer-networking.service';
 import { io, Socket } from 'socket.io-client';
 
 export interface PrivateMessage {
@@ -34,6 +37,7 @@ export interface StreamTelemetry {
 export class SocialNetworkingService {
   private profileService = inject(UserProfileService);
   private socket?: Socket;
+  private injector = inject(Injector);
 
   onlineUsers = signal<string[]>([]);
   messages = signal<PrivateMessage[]>([]);
@@ -55,6 +59,7 @@ export class SocialNetworkingService {
   remoteSignals = signal<any[]>([]);
 
   private currentRoomId: string | null = null;
+  private get peerService() { return this.injector.get(PeerNetworkingService); }
 
 
   private getSecureRandom(): number {
@@ -73,7 +78,7 @@ export class SocialNetworkingService {
   }
 
   private initializeSocket(userId: string) {
-    const backendUrl = window.location.origin;
+    const backendUrl = APP_SECURITY_CONFIG.api_url.replace('/api', '');
     this.socket = io(backendUrl);
 
     this.socket.on('connect', () => {
@@ -102,6 +107,7 @@ export class SocialNetworkingService {
 
     this.socket.on('voice_signal', (data: any) => {
       this.remoteSignals.update(sigs => [...sigs, data]);
+      this.peerService.handleSignal(data.fromUserId, data.signal);
     });
   }
 
