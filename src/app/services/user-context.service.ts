@@ -65,13 +65,27 @@ export interface DeckState {
   isPlaying: boolean;
   loop: boolean;
   hotCues: (number | null)[];
-  samplerPads: { drums: (number | null)[], fx: (number | null)[], vocals: (number | null)[] };
+  samplerPads: {
+    drums: (number | null)[];
+    fx: (number | null)[];
+    vocals: (number | null)[];
+  };
   stemGains: Record<string, number>;
   vinylImageUrl?: string;
   isCueing: boolean;
   fxAmount: number;
-  activeFx: 'none' | 'flanger' | 'phaser' | 'delay';
+  activeFx:
+    | 'none'
+    | 'autowah'
+    | 'echo'
+    | 'damp'
+    | 'reverb'
+    | 'chorus'
+    | 'phaser'
+    | 'rotate';
   detectedBpm: number;
+  keyLock: boolean;
+  bassBoost: number;
 }
 
 export const initialDeckState: DeckState = {
@@ -89,13 +103,19 @@ export const initialDeckState: DeckState = {
   isPlaying: false,
   loop: false,
   hotCues: new Array(8).fill(null),
-  samplerPads: { drums: new Array(8).fill(null), fx: new Array(8).fill(null), vocals: new Array(8).fill(null) },
+  samplerPads: {
+    drums: new Array(8).fill(null),
+    fx: new Array(8).fill(null),
+    vocals: new Array(8).fill(null),
+  },
   stemGains: { vocals: 1, drums: 1, bass: 1, instrumental: 1, other: 1 },
   vinylImageUrl: '',
   isCueing: false,
   fxAmount: 0,
   activeFx: 'none',
   detectedBpm: 0,
+  keyLock: true,
+  bassBoost: 0,
 };
 
 @Injectable({
