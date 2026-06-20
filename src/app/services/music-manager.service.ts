@@ -131,7 +131,7 @@ export class MusicManagerService {
     }, { allowSignalWrites: true });
 
     effect(() => {
-      const current = this.projectService.currentProject();
+      const current = untracked(() => this.projectService.currentProject());
       if (current) {
         const updated: Project = {
           ...current,
@@ -139,7 +139,7 @@ export class MusicManagerService {
           bpm: this.engine.tempo(),
           updatedAt: Date.now()
         };
-        this.projectService.update(updated);
+        untracked(() => this.projectService.update(updated));
       }
     });
   }
