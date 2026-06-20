@@ -25,6 +25,7 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
   templateUrl: './tha-spot.component.html',
   styleUrls: ['./tha-spot.component.css']
 })
+/* S.M.U.V.E. v4.2 Enhanced Catalog Access */
 export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private gameService = inject(GameService);
   private profileService = inject(UserProfileService);
@@ -77,6 +78,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   matchmakingStatus = signal<string>('');
   matchmakingProgress = signal<number>(0);
   isWasmLoading = signal<boolean>(false);
+  showBackToTop = signal<boolean>(false);
 
   // Social & Streaming Signals
   activeHubTab = signal<'room' | 'dm' | 'stream'>('room');
@@ -85,6 +87,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
   @ViewChild('scrollContainer') scrollContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('contentViewport') contentViewport?: ElementRef<HTMLDivElement>;
 
   private feedSubscription?: Subscription;
   private clockId?: any;
@@ -420,6 +423,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.chatInput.set('');
   }
+
+  onContentScroll(event: Event) {
+    const target = event.target as HTMLElement;
+    this.showBackToTop.set(target.scrollTop > 400);
+  }
+
+  scrollToTop() {
+    if (this.contentViewport?.nativeElement) {
+      this.contentViewport.nativeElement.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
 
   addEmoji(emoji: string) {
     this.chatInput.update(v => v + emoji);
