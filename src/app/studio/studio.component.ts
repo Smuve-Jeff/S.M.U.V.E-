@@ -25,6 +25,7 @@ import { AudioEngineService } from '../services/audio-engine.service';
 import { ChannelRackComponent } from './channel-rack/channel-rack.component';
 import { AiService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
+import { ProjectTemplateService } from '../services/project-template.service';
 import { NotificationService } from '../services/notification.service';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
 import { AiCopilotService } from './ai-copilot.service';
@@ -116,6 +117,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly sequencer = inject(SequencerService);
   private readonly dialog = inject(InteractionDialogService);
   private readonly snackbarService = inject(SnackbarService);
+  private readonly templateService = inject(ProjectTemplateService);
 
   private destroy$ = new Subject<void>();
 
@@ -161,9 +163,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     return 'add';
   });
 
-  constructor() {
-    effect(() => {
-      const params = this.route.snapshot.queryParamMap;
+    constructor() {
+    // Listen to query param changes reactively
+    this.route.queryParamMap.subscribe(params => {
       const view = params.get('view');
       if (view && isStudioView(view)) {
         this.activeView.set(view);
@@ -172,6 +174,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit() {
+    // Initial view resolution from route
+    const initialView = this.route.snapshot.queryParamMap.get('view');
+    if (initialView && isStudioView(initialView)) {
+      this.activeView.set(initialView);
+    }
+
     this.audioEngine.resume();
   }
 
@@ -227,6 +235,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.snackbarService.info('Draw mode activated', 'OK');
     } else if (view === 'drum-machine') {
       this.snackbarService.info('New pattern created', 'UNDO');
+    }
+  }
+
+  async newProject() {
+    // For now, use a default template or implement a simple picker if showInitializer is missing
+    const template = this.templateService.templates[0];
+    if (template) {
+      this.templateService.applyTemplate(template.id);
+      this.snackbarService.success(`New project initialized: ${template.name}`);
     }
   }
 

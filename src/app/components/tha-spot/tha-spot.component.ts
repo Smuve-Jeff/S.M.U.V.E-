@@ -291,7 +291,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private onMessage(event: MessageEvent): void {
     const active = this.currentGame();
-    if (!active || !this.gameIframe?.nativeElement?.contentWindow || event.source !== this.gameIframe.nativeElement.contentWindow) return;
+    if (event.origin !== window.location.origin || !active || !this.gameIframe?.nativeElement?.contentWindow || event.source !== this.gameIframe.nativeElement.contentWindow) return;
     if (event.data?.type === 'GAME_OVER') {
       this.profileService.recordGameResult(active.id, { ...this.buildSessionContext(active), score: event.data.data?.score });
       this.closeGame();

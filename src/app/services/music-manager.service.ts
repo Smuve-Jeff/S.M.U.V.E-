@@ -1,8 +1,10 @@
+import { ProjectTemplateService } from './project-template.service';
 import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { InstrumentsService } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
 import { AudioSessionService } from '../studio/audio-session.service';
+import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 
 export interface TrackNote {
   id: string;
@@ -16,6 +18,11 @@ export interface TrackNote {
   pan?: number;
   params?: any;
   cutoff?: number;
+  resonance?: number;
+  attack?: number;
+  decay?: number;
+  sustain?: number;
+  release?: number;
 }
 
 export interface TrackClip {
@@ -56,7 +63,7 @@ export interface FxSlot {
   id: string;
   type: string;
   params: any;
-  enabled: boolean;
+  enabled: boolean
   mix?: number;
 }
 
@@ -79,7 +86,7 @@ export interface AutomationLane {
   id: string;
   parameter: string;
   points: AutomationPoint[];
-  enabled: boolean;
+  enabled: boolean
 }
 
 export interface TrackModel {
@@ -95,8 +102,8 @@ export interface TrackModel {
   pan: number;
   sendA: number;
   sendB: number;
-  mute: boolean;
-  solo: boolean;
+  mute: boolean
+  solo: boolean
   steps: boolean[];
   synthParams?: any;
   patternSlots?: PatternSlot[];
@@ -108,6 +115,7 @@ export interface StudioProjectData {
   tracks: TrackModel[];
   selectedTrackId: number | null;
   bpm: number;
+  takes?: any[];
 }
 
 @Injectable({
@@ -121,6 +129,7 @@ export class MusicManagerService {
   public engine = inject(AudioEngineService);
   private audioSession = inject(AudioSessionService);
   private logger = inject(LoggingService);
+  private recordingEngine = inject(StudioRecordingEngineService);
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<number | null>(null);
@@ -130,6 +139,12 @@ export class MusicManagerService {
   performerScenes = signal<PerformerScene[]>(this.createDefaultScenes());
   projectLoaded = signal(true);
   activeSceneId = signal<string | null>(null);
+  private setupAutosave() {
+    effect(() => {
+      const data = this.snapshotProject();
+      localStorage.setItem('elite_studio_autosave', JSON.stringify(data));
+    });
+  }
 
   constructor() {
     this.setupInitialTracks();
@@ -397,11 +412,65 @@ export class MusicManagerService {
   }
 
   snapshotProject(): StudioProjectData {
-    return { tracks: this.tracks(), selectedTrackId: this.selectedTrackId(), bpm: this.engine.tempo() };
+    return { tracks: this.tracks(), selectedTrackId: this.selectedTrackId(), bpm: this.engine.tempo(), takes: this.recordingEngine.takes() };
   }
 
-  importProject(file: File) {}
-  exportProject() {}
+
+  loadAutosave() {
+    const saved = localStorage.getItem('elite_studio_autosave');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved) as StudioProjectData;
+        this.tracks.set(data.tracks);
+        this.selectedTrackId.set(data.selectedTrackId);
+        this.engine.tempo.set(data.bpm);
+        if (data.takes) this.recordingEngine.takes.set(data.takes);
+        this.logger.info("Elite Studio: Autosave restored.");
+      } catch (e) {
+        this.logger.error("Failed to restore autosave", e);
+      }
+    }
+  }
+  newProject() {
+    this.tracks.set([]);
+    this.setupInitialTracks();
+    this.structure.set([]);
+    this.performerScenes.set(this.createDefaultScenes());
+    this.activeSceneId.set(null);
+    this.engine.tempo.set(124);
+    this.logger.info("Elite Studio: New project initialized.");
+  }
+
+  importProject(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        const data = JSON.parse(e.target.result) as StudioProjectData;
+        if (data.tracks) {
+          this.tracks.set(data.tracks);
+          this.selectedTrackId.set(data.selectedTrackId);
+          this.engine.tempo.set(data.bpm);
+          if (data.takes) {
+            this.recordingEngine.takes.set(data.takes);
+          }
+          this.logger.info("Project imported successfully.");
+        }
+      } catch (err) {
+        this.logger.error("Failed to parse project file", err);
+      }
+    };
+    reader.readAsText(file);
+  }
+  exportProject() {
+    const data = this.snapshotProject();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Elite_Studio_Project_${Date.now()}.json`;
+    a.click();
+    this.logger.info("Project exported successfully.");
+  }
   importAudioTrack() {}
   setNoteParam(tid: number, nid: string, p: string, v: any) { this.updateNote(tid, nid, { [p]: v }); }
   addAutomationLane(tid: number, p: string) {}

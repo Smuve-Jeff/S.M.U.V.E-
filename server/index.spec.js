@@ -1,7 +1,7 @@
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
 process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'test-gemini-key';
 
-const poolQueryMock = jest.fn();
+const mockPoolQuery = jest.fn();
 
 jest.mock('dotenv', () => ({
   config: jest.fn(),
@@ -9,7 +9,7 @@ jest.mock('dotenv', () => ({
 
 jest.mock('pg', () => ({
   Pool: jest.fn(() => ({
-    query: poolQueryMock,
+    query: mockPoolQuery,
   })),
 }));
 
@@ -87,11 +87,11 @@ describe('server/index.js backend smoke tests', () => {
 
   afterEach(async () => {
     await stopServer();
-    poolQueryMock.mockReset();
+    mockPoolQuery.mockReset();
   });
 
   it('does not initialize the database while importing the module', () => {
-    expect(poolQueryMock).not.toHaveBeenCalled();
+    expect(mockPoolQuery).not.toHaveBeenCalled();
   });
 
   it('returns a JSON error for invalid request payloads', async () => {
@@ -133,7 +133,7 @@ describe('server/index.js backend smoke tests', () => {
   it('serves profile requests when the token user matches the route user', async () => {
     const baseUrl = await startServer();
     const token = jwt.sign({ userId: 'user-1' }, process.env.JWT_SECRET);
-    poolQueryMock.mockResolvedValueOnce({ rows: [] });
+    mockPoolQuery.mockResolvedValueOnce({ rows: [] });
 
     const response = await requestJson(baseUrl, '/api/profile/user-1', {
       headers: {
@@ -145,7 +145,7 @@ describe('server/index.js backend smoke tests', () => {
       error: 'Profile not found',
     });
     expect(response.status).toBe(404);
-    expect(poolQueryMock).toHaveBeenCalledWith(
+    expect(mockPoolQuery).toHaveBeenCalledWith(
       'SELECT profile_data FROM user_profiles WHERE user_id = $1',
       ['user-1']
     );

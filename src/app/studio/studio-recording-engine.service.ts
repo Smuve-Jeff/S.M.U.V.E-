@@ -30,6 +30,7 @@ export class StudioRecordingEngineService implements OnDestroy {
   recordingTime = signal(0);
   inputLevel = signal(0);
   recordedBlob = signal<Blob | null>(null);
+  takes = signal<any[]>([]);
 
   // MIDI recording support
   pendingMidi: any[] = [];
