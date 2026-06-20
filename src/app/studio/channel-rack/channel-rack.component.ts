@@ -1,3 +1,4 @@
+import { Component, inject, signal } from '@angular/core';
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MusicManagerService, TrackModel } from '../../services/music-manager.service';
@@ -29,6 +30,12 @@ export class ChannelRackComponent {
 
   updateGain(track: TrackModel, val: number) {
     this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? { ...t, gain: val } : t));
+  addTrack() {
+    this.musicManager.ensureTrack('cyber-lead');
+  }
+
+  removeTrack(id: string) {
+    this.musicManager.removeTrack(id);
   }
 
   updateVolume(track: TrackModel, val: number) {
