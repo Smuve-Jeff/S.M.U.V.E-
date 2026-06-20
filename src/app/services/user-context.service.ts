@@ -65,7 +65,11 @@ export interface DeckState {
   isPlaying: boolean;
   loop: boolean;
   hotCues: (number | null)[];
-  samplerPads: { drums: (number | null)[], fx: (number | null)[], vocals: (number | null)[] };
+  samplerPads: {
+    drums: (number | null)[];
+    fx: (number | null)[];
+    vocals: (number | null)[];
+  };
   stemGains: Record<string, number>;
   vinylImageUrl?: string;
   isCueing: boolean;
@@ -73,6 +77,9 @@ export interface DeckState {
   activeFx: 'none' | 'flanger' | 'phaser' | 'delay';
   detectedBpm: number;
 }
+
+export type SamplerCategory = keyof DeckState['samplerPads'];
+export type DeckFxMode = Exclude<DeckState['activeFx'], 'none'>;
 
 export const initialDeckState: DeckState = {
   track: null,
@@ -89,7 +96,11 @@ export const initialDeckState: DeckState = {
   isPlaying: false,
   loop: false,
   hotCues: new Array(8).fill(null),
-  samplerPads: { drums: new Array(8).fill(null), fx: new Array(8).fill(null), vocals: new Array(8).fill(null) },
+  samplerPads: {
+    drums: new Array(8).fill(null),
+    fx: new Array(8).fill(null),
+    vocals: new Array(8).fill(null),
+  },
   stemGains: { vocals: 1, drums: 1, bass: 1, instrumental: 1, other: 1 },
   vinylImageUrl: '',
   isCueing: false,
