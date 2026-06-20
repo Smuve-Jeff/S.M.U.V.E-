@@ -31,6 +31,10 @@ import { AiService } from '../../services/ai.service';
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
 const MIN_SAMPLER_RETURN_MILLIS = 80;
+const SCRATCH_VELOCITY_NORMALIZER = 8;
+const EQ_LOW_RANGE = [0, 3] as const;
+const EQ_MID_RANGE = [3, 7] as const;
+const EQ_HIGH_RANGE = [7, 10] as const;
 
 @Component({
   selector: 'app-dj-deck',
@@ -575,9 +579,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     updated[index] = next;
     precision.set(updated);
 
-    const low = this.averageBand(updated, 0, 3);
-    const mid = this.averageBand(updated, 3, 7);
-    const high = this.averageBand(updated, 7, 10);
+    const low = this.averageBand(updated, EQ_LOW_RANGE[0], EQ_LOW_RANGE[1]);
+    const mid = this.averageBand(updated, EQ_MID_RANGE[0], EQ_MID_RANGE[1]);
+    const high = this.averageBand(updated, EQ_HIGH_RANGE[0], EQ_HIGH_RANGE[1]);
     this.deckService.setDeckEq(deck, high, mid, low);
   }
 
@@ -776,7 +780,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const SECONDS_PER_FRAME = 0.016;
     const velocity = (delta / SECONDS_PER_FRAME) * scrubSecondsPerRadian;
     this.engine.setDeckRate(deck, velocity, false);
-    const velocityValue = Math.max(-1, Math.min(1, velocity / 8));
+    const velocityValue = Math.max(
+      -1,
+      Math.min(1, velocity / SCRATCH_VELOCITY_NORMALIZER)
+    );
     if (deck === 'A') this.scratchVelocityA.set(velocityValue);
     else this.scratchVelocityB.set(velocityValue);
 
@@ -1121,7 +1128,12 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   getSamplePadLabel(index: number) {
-    return `${this.activeSamplePack().replace('pack-', 'P')}-${index + 1}`;
+    const parsed = Number.parseInt(
+      this.activeSamplePack().replace(/\D+/g, ''),
+      10
+    );
+    const packLabel = Number.isFinite(parsed) ? `P${parsed}` : 'P1';
+    return `${packLabel}-${index + 1}`;
   }
 
   toggleCue(deck: 'A' | 'B') {
@@ -1154,11 +1166,16 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private getEffectiveDeckBpm(deck: 'A' | 'B') {
     const state = this.getDeckState(deck);
-    return Math.max(1, state.bpm * Math.abs(state.playbackRate || 1));
+    if (!state.track || !state.bpm) return 0;
+    return state.bpm * Math.abs(state.playbackRate || 1);
   }
 
   private averageBand(values: number[], start: number, end: number) {
-    const slice = values.slice(start, end);
+    if (!values.length) return 1;
+    const safeStart = Math.max(0, Math.min(values.length, start));
+    const safeEnd = Math.max(safeStart, Math.min(values.length, end));
+    if (safeStart >= safeEnd) return 1;
+    const slice = values.slice(safeStart, safeEnd);
     if (!slice.length) return 1;
     return slice.reduce((sum, current) => sum + current, 0) / slice.length;
   }

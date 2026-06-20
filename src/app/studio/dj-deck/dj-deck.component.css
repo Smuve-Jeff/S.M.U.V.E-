@@ -204,14 +204,6 @@
   min-width: 44px;
   min-height: 44px;
 }
-.btn-cue,
-.btn-cue,
-.btn-play,
-.dj-utility-btns .btn-sm,
-.fx-selectors .btn-xs {
-  min-width: 44px;
-  min-height: 44px;
-}
 .btn-play {
   width: 55px;
   height: 55px;
@@ -292,14 +284,6 @@
     order: 3;
   }
 
-  .btn-cue,
-  .btn-play,
-  .dj-utility-btns .btn-sm,
-  .fx-selectors .btn-xs {
-    min-width: 44px;
-    min-height: 44px;
-  }
-  .btn-cue,
   .btn-cue,
   .btn-play,
   .dj-utility-btns .btn-sm,

@@ -197,45 +197,6 @@
           <div class="eq-quick-buttons">
             <button
               class="btn-xs tactile-v42"
-              (click)="setQuickEq('B', 'high')"
-            >
-              HI CUT
-            </button>
-            <button class="btn-xs tactile-v42" (click)="setQuickEq('B', 'mid')">
-              MID CUT
-            </button>
-            <button class="btn-xs tactile-v42" (click)="setQuickEq('B', 'low')">
-              LOW CUT
-            </button>
-          </div>
-          <div class="precision-eq">
-            <label>10-BAND EQ</label>
-            <div class="precision-eq-bars">
-              <input
-                *ngFor="let value of precisionEqB(); let i = index"
-                type="range"
-                min="0"
-                max="2"
-                step="0.01"
-                [value]="value"
-                (input)="setPrecisionEqBand('B', i, $any($event.target).value)"
-              />
-            </div>
-          </div>
-          <div class="bass-boost">
-            <label>BASS BOOST</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              [value]="deckService.deckB().bassBoost"
-              (input)="setBassBoost('B', $any($event.target).value)"
-            />
-          </div>
-          <div class="eq-quick-buttons">
-            <button
-              class="btn-xs tactile-v42"
               (click)="setQuickEq('A', 'high')"
             >
               HI CUT
@@ -378,6 +339,45 @@
               [value]="deckService.deckB().eqLow"
               (valueChange)="updateEq('B', 'low', $event)"
             ></app-knob>
+          </div>
+          <div class="eq-quick-buttons">
+            <button
+              class="btn-xs tactile-v42"
+              (click)="setQuickEq('B', 'high')"
+            >
+              HI CUT
+            </button>
+            <button class="btn-xs tactile-v42" (click)="setQuickEq('B', 'mid')">
+              MID CUT
+            </button>
+            <button class="btn-xs tactile-v42" (click)="setQuickEq('B', 'low')">
+              LOW CUT
+            </button>
+          </div>
+          <div class="precision-eq">
+            <label>10-BAND EQ</label>
+            <div class="precision-eq-bars">
+              <input
+                *ngFor="let value of precisionEqB(); let i = index"
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                [value]="value"
+                (input)="setPrecisionEqBand('B', i, $any($event.target).value)"
+              />
+            </div>
+          </div>
+          <div class="bass-boost">
+            <label>BASS BOOST</label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              [value]="deckService.deckB().bassBoost"
+              (input)="setBassBoost('B', $any($event.target).value)"
+            />
           </div>
 
           <div class="channel-fader-elite mt-6">
