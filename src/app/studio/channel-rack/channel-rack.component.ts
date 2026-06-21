@@ -26,7 +26,7 @@ export class ChannelRackComponent {
     this.musicManager.ensureTrack('cyber-lead');
   }
 
-  setInstrument(track: TrackModel, presetId: string) {
+  setInstrument(track: any, presetId: string) {
     this.musicManager.setInstrument(track.id, presetId);
   }
 }

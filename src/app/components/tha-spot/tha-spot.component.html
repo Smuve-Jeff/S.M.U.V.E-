@@ -127,11 +127,18 @@
       <button class="exit-pluto-btn glass-v42" (click)="setMode('gaming')">
         <span class="material-symbols-outlined">arrow_back</span> EXIT CINEMA
       </button>
+        <div class="hud-decorative-line left"></div>
+        <div class="hud-decorative-line right"></div>
+      <div class="iframe-glitch-wrapper">
+        <iframe
       <iframe
         src="https://pluto.tv"
         class="pluto-standalone-frame"
         allow="autoplay; fullscreen"
       ></iframe>
+        <div class="hud-glitch-overlay"></div>
+      </div>
+        <div class="hud-overlay-scanner"></div>
     </div>
   </main>
 
@@ -206,6 +213,96 @@
               </div>
           </div>
 
+        <div class="typing-indicator" *ngIf="dmTargetUserId() && socialService.typingUsers()[dmTargetUserId()!]">
+          OPERATIVE IS ENCRYPTING DATA...
+        </div>
+          <div class="message-list">
+            <div class="msg-bubble" *ngFor="let msg of roomMessages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
+              <div class="msg-meta">
+                <span class="msg-user">{{ msg.fromUserName || 'ANONYMOUS' }}</span>
+                <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
+              </div>
+              <div class="msg-content">{{ msg.message }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direct Messaging View -->
+        <div class="dm-view" *ngIf="activeHubTab() === 'dm'">
+          <!-- Player Finder Search -->
+          <div class="player-search glass-v42">
+              <span class="material-symbols-outlined">person_search</span>
+              <input type="text" [ngModel]="playerSearchQuery()" (ngModelChange)="playerSearchQuery.set($event)" placeholder="FIND RIVALS..." />
+          </div>
+
+          <div class="online-users-strip no-scrollbar">
+            <div class="user-avatar-circle"
+                 *ngFor="let user of filteredOnlineUsers()"
+                 [class.active]="dmTargetUserId() === (user.userId || user)"
+                 [class.unauthorized]="!user.profileSetupCompleted"
+                 (click)="setDmTarget(user.userId || user)">
+              <img *ngIf="user.avatarImage" [src]="user.avatarImage" class="mini-avatar" />
+              <span *ngIf="!user.avatarImage">{{ user.artistName?.substring(0, 2).toUpperCase() || '??' }}</span>
+              <div class="online-indicator" [class.in-game]="user.inGame"></div>
+            </div>
+          </div>
+
+          <div class="dm-user-info glass-v42" *ngIf="selectedDmUser() as target">
+              <div class="dm-user-meta">
+                  <span class="dm-target-name">{{ target.artistName || 'OPERATIVE' }}</span>
+                  <span class="dm-target-genre">{{ target.primaryGenre }}</span>
+              </div>
+              <div class="dm-actions" *ngIf="target.profileSetupCompleted">
+                  <button class="icon-btn mini" (click)="startVoiceChat(target.userId)" title="Voice Uplink">
+                      <span class="material-symbols-outlined">call</span>
+                  </button>
+                  <button class="icon-btn mini" (click)="sendChallenge(target.userId, gameIdToInvite())" title="Challenge">
+                      <span class="material-symbols-outlined">swords</span>
+                  </button>
+              </div>
+              <div class="unauthorized-label" *ngIf="!target.profileSetupCompleted">
+                  OFFLINE_CORE
+              </div>
+          </div>
+
+        <div class="typing-indicator" *ngIf="dmTargetUserId() && socialService.typingUsers()[dmTargetUserId()!]">
+          OPERATIVE IS ENCRYPTING DATA...
+        </div>
+          <div class="message-list">
+            <div class="msg-bubble" *ngFor="let msg of messages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
+              <div class="msg-meta">
+                <span class="msg-user">{{ msg.fromUserName || 'OPERATIVE' }}</span>
+                <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
+              </div>
+              <div class="msg-content">{{ msg.message }}</div>
+            </div>
+
+      <ng-container *ngIf="canInteract()">
+        <!-- Room Chat View -->
+        <div class="chat-view" *ngIf="activeHubTab() === 'room'">
+          <div class="room-info-bar glass-v42">
+            <span>{{ getActiveRoomName() | uppercase }}</span>
+            <span class="players-count">{{ onlineUsers().length + 1 }} ACTIVE</span>
+          </div>
+
+          <!-- Incoming Challenges -->
+          <div class="challenge-item glass-v42-pro animate-enter" *ngFor="let c of challenges()">
+              <div class="challenge-header">INCOMING CHALLENGE: {{ c.fromUserName || 'RIVAL' }}</div>
+              <div class="challenge-actions">
+                  <button class="accept-btn" (click)="confirmLaunch()">ACCEPT & INITIALIZE</button>
+                  <button class="decline-btn">DECLINE</button>
+              </div>
+          </div>
+
+          <!-- Incoming Knock -->
+          <div class="incoming-knock glass-v42-pro animate-enter" *ngIf="isKnocking()">
+              <div class="knock-header">VOICE UPLINK REQUESTED</div>
+              <div class="knock-actions">
+                  <button class="accept-btn" (click)="peerService.acceptKnock()">ACCEPT</button>
+                  <button class="decline-btn" (click)="peerService.declineKnock()">DECLINE</button>
+              </div>
+          </div>
+
           <div class="message-list">
             <div class="msg-bubble" *ngFor="let msg of roomMessages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
               <div class="msg-meta">
@@ -251,7 +348,39 @@
                   OFFLINE_CORE
               </div>
           </div>
+        </div>
 
+        <!-- Go Live Dashboard -->
+        <div class="stream-view" *ngIf="activeHubTab() === 'stream'">
+          <div class="stream-controls" *ngIf="!socialService.isStreaming()">
+            <h4>PRE-STREAM CONFIG</h4>
+            <div class="platform-grid">
+              <button class="platform-btn twitch" (click)="goLive('Twitch')">TWITCH</button>
+              <button class="platform-btn youtube" (click)="goLive('YouTube')">YOUTUBE</button>
+              <button class="platform-btn social" (click)="goLive('S.M.U.V.E.')">SMUVE LIVE</button>
+            </div>
+          </div>
+
+          <div class="stream-dashboard animate-enter" *ngIf="socialService.isStreaming()">
+            <div class="stream-status glass-v42">
+              <div class="status-indicator live pulse"></div>
+              <div class="status-text">LIVE ON {{ socialService.currentPlatform() | uppercase }}</div>
+              <button class="terminate-btn mini" (click)="endStream()">STOP</button>
+            </div>
+
+            <div class="telemetry-grid">
+              <div class="telemetry-item">
+                <label>VIEWERS</label>
+                <span>{{ socialService.streamTelemetry().viewers }}</span>
+              </div>
+              <div class="telemetry-item">
+                <label>HEALTH</label>
+                <span [class]="socialService.streamTelemetry().health.toLowerCase()">{{ socialService.streamTelemetry().health }}</span>
+              </div>
+              <div class="telemetry-item">
+                <label>BITRATE</label>
+                <span>{{ socialService.streamTelemetry().bitrate }}</span>
+              </div>
           <div class="message-list">
             <div class="msg-bubble" *ngFor="let msg of messages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
               <div class="msg-meta">
@@ -272,7 +401,6 @@
               <button class="platform-btn youtube" (click)="goLive('YouTube')">YOUTUBE</button>
               <button class="platform-btn social" (click)="goLive('S.M.U.V.E.')">SMUVE LIVE</button>
             </div>
-          </div>
 
           <div class="stream-dashboard animate-enter" *ngIf="socialService.isStreaming()">
             <div class="stream-status glass-v42">
@@ -319,7 +447,7 @@
       <div class="input-wrapper">
         <input
           type="text"
-          [ngModel]="chatInput()" (ngModelChange)="chatInput.set($event)"
+          [ngModel]="chatInput()" (ngModelChange)="onChatInput($event)"
           (keyup.enter)="handleChatSubmit()"
           placeholder="SEND DATA PACKET..."
         />
@@ -369,12 +497,15 @@
   </div>
 
   <div class="immersive-overlay" *ngIf="currentGame() as active" [class.active]="currentGame()">
-    <div class="game-console-window glass-v42-pro shadow-v42-xl">
+    <div class="game-console-window glass-v42-pro shadow-v42-xl elite-gaming-hud">
       <header class="console-header glass-v42">
         <div class="console-title">
           <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">terminal</span>
           {{ active.name | uppercase }}
         </div>
+        <!-- Decorative HUD corners -->
+        <div class="hud-corner top-left"></div>
+        <div class="hud-corner top-right"></div>
         <div class="console-telemetry hide-mobile">
           SECURE_UPLINK: <span class="success">ENCRYPTED</span> | WASM_CORE: <span class="success">LOADED</span>
         </div>
@@ -384,6 +515,9 @@
         </div>
       </header>
       <div class="console-body">
+        <div class="hud-decorative-line left"></div>
+        <div class="hud-decorative-line right"></div>
+        <div class="iframe-glitch-wrapper">
         <iframe
           [src]="currentSafeUrl()"
           #gameIframe
@@ -391,9 +525,12 @@
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
           allowfullscreen
         ></iframe>
+        <div class="hud-glitch-overlay"></div>
+      </div>
+        <div class="hud-overlay-scanner"></div>
       </div>
       <footer class="console-footer glass-v42">
-        <div class="session-timer">SESSION_ACTIVE</div>
+        <div class="session-timer">ACTIVE_UPLINK_STABLE</div>
         <button class="terminate-btn" (click)="closeGame()">TERMINATE PROCESS</button>
       </footer>
     </div>

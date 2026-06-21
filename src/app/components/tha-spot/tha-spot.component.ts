@@ -162,6 +162,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   ]);
 
   onlineUsers = this.socialService.onlineUsers;
+  playerSearchQuery = signal('');
+  filteredOnlineUsers = computed(() => {
+    const query = this.playerSearchQuery().toLowerCase();
+    return this.onlineUsers().filter(u =>
+      u.artistName?.toLowerCase().includes(query) ||
+      u.primaryGenre?.toLowerCase().includes(query)
+    );
+  });
   selectedDmUser = computed(() => this.onlineUsers().find(u => u.userId === this.dmTargetUserId()));
   canInteract = computed(() => this.profileService.profile().profileSetupCompleted);
   isKnocking = this.peerService.isKnocking;
@@ -170,7 +178,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   roomMessages = this.socialService.roomMessages;
   challenges = this.socialService.challenges;
   isCallActive = this.peerService.isCallActive;
+  inGame = signal(false);
+  gameIdToInvite = signal('all');
 
+  statusEffect = effect(() => {
+    const inGame = this.inGame();
+    this.socialService.updateStatus({ inGame });
+  });
   constructor() {
     const savedFavs = localStorage.getItem('tha_spot_favorites');
     if (savedFavs) this.favorites.set(JSON.parse(savedFavs));
@@ -232,6 +246,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.quickFilters.set([]);
   }
 
+  onChatInput(val: string) {
+    this.chatInput.set(val);
+    if (this.activeHubTab() === 'dm' && this.dmTargetUserId()) {
+      this.socialService.sendTypingStatus(this.dmTargetUserId()!, val.length > 0);
+    }
+  }
   onSearchChange(val: string) {
     this.searchQuery.set(val);
   }
@@ -245,6 +265,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   closeGame() {
+    this.inGame.set(false);
     this.currentGame.set(null);
   }
 
@@ -280,6 +301,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         this.isWasmLoading.set(false);
       }
       this.profileService.recordGameLaunch(game.id, this.buildSessionContext(game));
+      this.inGame.set(true);
       this.currentGame.set(game);
       this.closePreview();
     }

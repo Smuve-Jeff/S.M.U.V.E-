@@ -1353,3 +1353,183 @@
   color: #555;
   letter-spacing: 1px;
 }
+
+.player-search {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--elite-border);
+}
+
+.player-search .material-symbols-outlined {
+  font-size: 1.2rem;
+  color: #7a7a9a;
+}
+
+.player-search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 0.8rem;
+  outline: none;
+  font-family: var(--elite-font);
+}
+
+.typing-indicator {
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: var(--elite-neon-purple);
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+  animation: pulse 2s infinite;
+}
+
+.online-indicator.in-game {
+  background: var(--elite-neon-purple);
+  box-shadow: 0 0 8px var(--elite-neon-purple);
+}
+
+.game-invite-select {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--elite-border);
+  color: #7a7a9a;
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  outline: none;
+}
+
+/* Immersive Gaming HUD Redesign */
+.elite-gaming-hud {
+  border: 2px solid rgba(var(--elite-neon-purple-rgb), 0.3) !important;
+  box-shadow: 0 0 40px rgba(var(--elite-neon-purple-rgb), 0.2), inset 0 0 20px rgba(0,0,0,0.5) !important;
+  background: radial-gradient(circle at center, #0a0a15 0%, #000 100%) !important;
+}
+
+.hud-corner {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--elite-neon-purple);
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.hud-corner.top-left {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.hud-corner.top-right {
+  top: -2px;
+  right: -2px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.hud-decorative-line {
+  position: absolute;
+  top: 10%;
+  bottom: 10%;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--elite-neon-purple), transparent);
+  opacity: 0.3;
+  z-index: 5;
+}
+
+.hud-decorative-line.left { left: 20px; }
+.hud-decorative-line.right { right: 20px; }
+
+.hud-overlay-scanner {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(var(--elite-neon-purple-rgb), 0.05) 50.5%, transparent 51%);
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0.4;
+}
+
+.console-header {
+  border-bottom: 1px solid rgba(var(--elite-neon-purple-rgb), 0.2) !important;
+  background: linear-gradient(to bottom, rgba(20,20,30,0.8), rgba(10,10,20,0.9)) !important;
+}
+
+.console-title {
+  text-shadow: 0 0 10px var(--elite-neon-purple);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+}
+
+.console-telemetry {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: #7a7a9a;
+}
+
+.console-telemetry .success {
+  color: var(--success-green);
+  text-shadow: 0 0 5px var(--success-green);
+}
+
+.game-frame {
+  filter: contrast(1.1) brightness(1.1);
+  transition: all 0.5s ease;
+}
+
+.console-footer {
+  background: rgba(10,10,20,0.95) !important;
+  border-top: 1px solid rgba(var(--elite-neon-purple-rgb), 0.2) !important;
+  padding: 1rem 2rem !important;
+}
+
+.session-timer {
+  color: var(--elite-neon-purple);
+  font-weight: 900;
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  animation: pulse 2s infinite;
+}
+
+.iframe-glitch-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.hud-glitch-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+  z-index: 7;
+  opacity: 0.2;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.hud-overlay-scanner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  background: linear-gradient(to bottom, transparent, rgba(var(--elite-neon-purple-rgb), 0.1), transparent);
+  animation: scanline 8s linear infinite;
+}

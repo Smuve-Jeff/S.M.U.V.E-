@@ -10,6 +10,7 @@ export interface OnlineUser {
   artistName?: string;
   primaryGenre?: string;
   avatarImage?: string;
+  inGame?: boolean;
   profileSetupCompleted?: boolean;
 }
 
@@ -67,6 +68,7 @@ export class SocialNetworkingService {
 
   // Voice chat state
   remoteSignals = signal<any[]>([]);
+  typingUsers = signal<Record<string, boolean>>({});
 
   private currentRoomId: string | null = null;
   private get peerService() { return this.injector.get(PeerNetworkingService); }
@@ -123,6 +125,9 @@ export class SocialNetworkingService {
       this.challenges.update(challs => [...challs, { ...data, timestamp: Date.now(), status: 'pending' }]);
     });
 
+    this.socket.on("user_typing", (data: any) => {
+      this.typingUsers.update(users => ({ ...users, [data.fromUserId]: data.isTyping }));
+    });
     this.socket.on('voice_signal', (data: any) => {
       this.remoteSignals.update(sigs => [...sigs, data]);
       this.peerService.handleSignal(data.fromUserId, data.signal);
@@ -141,6 +146,14 @@ export class SocialNetworkingService {
     this.socket?.emit('send_room_message', { roomId, message, fromUserId, fromUserName });
   }
 
+  sendTypingStatus(toUserId: string, isTyping: boolean) {
+    const fromUserId = this.profileService.profile().id;
+    this.socket?.emit("typing", { toUserId, isTyping, fromUserId });
+  }
+  updateStatus(metadata: any) {
+    const userId = this.profileService.profile().id;
+    this.socket?.emit("update_status", { userId, metadata });
+  }
   sendMessage(toUserId: string, message: string) {
     const fromUserId = this.profileService.profile().id;
     const fromUserName = this.profileService.profile().artistName;
