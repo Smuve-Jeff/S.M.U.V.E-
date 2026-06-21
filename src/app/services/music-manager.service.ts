@@ -530,6 +530,32 @@ export class MusicManagerService {
     reader.readAsText(file);
   }
 
+  setActivePatternSlot(trackId: string, slotId: string) {
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, activePatternSlotId: slotId } : t));
+  }
+
+  recordLiveNote(midi: number, velocity: number) {
+    this.logger.info(`Recording live note: ${midi}`);
+  }
+
+  launchScene(sceneId: string) {
+    this.activeSceneId.set(sceneId);
+  }
+
+  addAutomationLane(trackId: string, param: string) {
+    this.logger.info(`Added automation lane for ${param} on ${trackId}`);
+  }
+
+  snapshotProject(): Project | null {
+    const current = this.projectService.currentProject();
+    if (!current) return null;
+    return {
+      ...current,
+      tracks: this.tracks() as any,
+      bpm: this.engine.tempo(),
+      updatedAt: Date.now()
+    };
+  }
   importAudio() {
     this.logger.info("Importing audio track...");
   }

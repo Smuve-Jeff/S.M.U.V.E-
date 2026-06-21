@@ -14,13 +14,13 @@ import { HapticService } from '../../services/haptic.service';
   templateUrl: './performance-grid.component.html',
   styleUrls: ['./performance-grid.component.css'],
 })
-export class PerformanceGridComponent {
+export class PerformanceGridComponent implements OnInit, OnDestroy {
   private musicManager = inject(MusicManagerService);
   private haptic = inject(HapticService);
   private audioSession = inject(AudioSessionService);
 
-  trackLevels = signal<Record<number, number>>({});
-  private analysers = new Map<number, AnalyserNode>();
+  trackLevels = signal<Record<string, number>>({});
+  private analysers = new Map<string, AnalyserNode>();
   private animationFrame: number | null = null;
 
   tracks = this.musicManager.tracks;
@@ -36,7 +36,7 @@ export class PerformanceGridComponent {
 
   private startMetering() {
     const update = () => {
-      const levels: Record<number, number> = {};
+      const levels: Record<string, number> = {};
       this.tracks().forEach(track => {
         let analyser = this.analysers.get(track.id);
         if (!analyser) {
@@ -55,7 +55,7 @@ export class PerformanceGridComponent {
     this.animationFrame = requestAnimationFrame(update);
   }
 
-  getTrackLevel(id: number) { return this.trackLevels()[id] || 0; }
+  getTrackLevel(id: string) { return this.trackLevels()[id] || 0; }
 
   toggleClip(trackId: string, clipIndex: number) {
     this.haptic.light();

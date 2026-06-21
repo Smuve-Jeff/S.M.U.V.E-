@@ -5,13 +5,7 @@ import { UplinkService } from '../../services/uplink.service';
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { UserProfileService } from '../../services/user-profile.service';
 import { ProjectService } from '../../services/project.service';
-import { Project } from '../../types';
-
-interface Task {
-  id: number;
-  description: string;
-  completed: boolean;
-}
+import { Project, Task } from '../../types/studio.types';
 
 interface PlaybookPhase {
   title: string;
@@ -142,6 +136,12 @@ export class ProjectsComponent {
       description: 'New release cycle',
       status: 'In Progress',
       tasks: [],
+      bpm: 124,
+      timeSignature: [4, 4],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      tracks: [],
+      masterChain: [],
       deadline: new Date(
         Date.now() +
           ProjectsComponent.DEFAULT_DEADLINE_DAYS * 24 * 60 * 60 * 1000

@@ -1,168 +1,137 @@
-<div class="tha-spot-shell" [class.standalone-mode]="displayMode() === 'pluto'">
-  <!-- Standalone Experience Mode -->
-  <div class="full-standalone pluto-standalone-experience animate-enter" *ngIf="displayMode() === 'pluto'">
-    <button class="exit-pluto-btn" (click)="setMode('gaming')">
-      <span class="material-symbols-outlined">close</span> EXIT STANDALONE
-    </button>
-    <iframe
-      src="https://pluto.tv/en/live-tv/pluto-tv-high-voltage"
-      class="pluto-standalone-frame"
-      allow="autoplay; encrypted-media; fullscreen; p2p"
-    ></iframe>
-  </div>
+<div class="tha-spot-container glass-v42 custom-scrollbar" [class.browse-view]="isBrowseView()" (scroll)="onContentScroll($event)">
+  <!-- Global Scanlines -->
+  <div class="scanlines"></div>
 
-  <nav class="spot-header glass-v42" *ngIf="displayMode() !== 'pluto'">
+  <!-- Header Section -->
+  <header class="spot-header glass-v42 shadow-v42-lg">
     <div class="header-left">
-      <span class="material-symbols-outlined brand-icon">hub</span>
-      <div class="brand-meta">
-        <h1 class="brand-title">THA SPOT <span class="v42-tag">v4.2</span></h1>
-        <p class="brand-subtitle">ELITE GAMING FLOOR & RIVAL HUB</p>
+      <div class="brand-v42 animate-pulse" (click)="toggleBrowse()">
+        <span class="material-symbols-outlined elite-icon">diamond</span>
+        <span class="brand-text">THA SPOT</span>
       </div>
-    </div>
-
-    <div class="header-center">
-      <div class="mode-toggles glass-v42">
-        <button class="mode-btn" [class.active]="displayMode() === 'gaming'" (click)="setMode('gaming')">
-          <span class="material-symbols-outlined">sports_esports</span> CABIN
-        </button>
-        <button class="mode-btn pluto-trigger" (click)="setMode('pluto')">
-          <span class="material-symbols-outlined">connected_tv</span> PLUTO_TV
+      <div class="room-selector glass-v42" *ngIf="displayMode() !== 'pluto'">
+        <button
+          *ngFor="let room of gamingRooms()"
+          [class.active]="activeRoom() === room.id"
+          (click)="setActiveRoom(room.id)"
+          class="room-btn"
+        >
+          {{ room.name | uppercase }}
         </button>
       </div>
     </div>
 
     <div class="header-right">
-      <button class="rival-hub-trigger" [class.active]="showRivalHub()" (click)="toggleRivalHub()">
-        <span class="material-symbols-outlined">diversity_3</span>
-        <span class="hub-label">RIVAL HUB</span>
-        <div class="online-dot pulse"></div>
+      <div class="search-v42" *ngIf="isBrowseView() && displayMode() !== 'pluto'">
+        <span class="material-symbols-outlined search-icon">search</span>
+        <input
+          type="text"
+          placeholder="SEARCH THE CATALOG..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="onSearchChange($event)"
+        />
+      </div>
+      <button class="icon-btn" (click)="toggleRivalHub()" [class.active]="showRivalHub()">
+        <span class="material-symbols-outlined">group</span>
+        <div class="online-count" *ngIf="onlineUsers().length > 0">{{ onlineUsers().length }}</div>
       </button>
-      <button class="intel-trigger" (click)="toggleIntel()">
-        <span class="material-symbols-outlined">analytics</span>
-      </button>
+      <button class="icon-btn" (click)="toggleIntel()"><span class="material-symbols-outlined">analytics</span></button>
+      <div class="header-divider"></div>
+      <button class="mode-btn" [class.active]="displayMode() === 'gaming'" (click)="setMode('gaming')">ARCADE</button>
+      <button class="mode-btn" [class.active]="displayMode() === 'pluto'" (click)="setMode('pluto')">CINEMA</button>
     </div>
-  </nav>
+  </header>
 
-  <main class="spot-content" *ngIf="displayMode() !== 'pluto'">
-    <div class="content-viewport custom-scrollbar" #contentViewport>
-      <div class="view-header">
-        <div class="room-navigator no-scrollbar">
-          <div
-            class="room-chip"
-            *ngFor="let room of gamingRooms()"
-            [class.active]="activeRoom() === room.id"
-            (click)="setActiveRoom(room.id)"
-          >
-            <span class="material-symbols-outlined">{{ room.icon || 'meeting_room' }}</span>
-            {{ room.name | uppercase }}
-          </div>
-        </div>
-
-        <div class="view-toggles">
-          <button class="view-btn" [class.active]="isBrowseView()" (click)="toggleBrowse()">BROWSE</button>
-          <button class="view-btn" [class.active]="!isBrowseView()" (click)="toggleBrowse()">STREET VIEW</button>
-        </div>
-      </div>
-
+  <!-- Main Content Area -->
+  <main class="spot-viewport" [class.pluto-active]="displayMode() === 'pluto'">
+    <ng-container *ngIf="displayMode() === 'gaming'">
       <!-- Browse View -->
-      <div class="browse-view animate-enter" *ngIf="isBrowseView()">
-        <header class="catalog-header">
-          <div class="search-box">
-            <span class="material-symbols-outlined">search</span>
-            <input
-              type="text"
-              [ngModel]="searchQuery()"
-              (ngModelChange)="onSearchChange($event)"
-              placeholder="SEARCH ELITE CABINETS..."
-            />
-          </div>
-
-          <div class="catalog-filters-row">
-            <select class="filter-select" [ngModel]="activeGenre()" (ngModelChange)="activeGenre.set($event)">
+      <div class="browse-experience animate-enter" *ngIf="isBrowseView()">
+        <div class="catalog-filters-row glass-v42">
+          <div class="filter-group">
+            <label>GENRE</label>
+            <select [ngModel]="activeGenre()" (ngModelChange)="activeGenre.set($event)">
               <option value="all">ALL GENRES</option>
-              <option *ngFor="let cat of allCategories()" [value]="cat">{{ cat | uppercase }}</option>
+              <option *ngFor="let g of allCategories()" [value]="g">{{ g | uppercase }}</option>
             </select>
-
-            <select class="filter-select" [ngModel]="activePlatform()" (ngModelChange)="activePlatform.set($event)">
+          </div>
+          <div class="filter-group">
+            <label>PLATFORM</label>
+            <select [ngModel]="activePlatform()" (ngModelChange)="activePlatform.set($event)">
               <option value="all">ALL PLATFORMS</option>
-              <option *ngFor="let plat of allPlatforms()" [value]="plat">{{ plat | uppercase }}</option>
-            </select>
-
-            <button class="filter-chip clear-btn" (click)="clearFilters()">
-              CLEAR ALL
-            </button>
-          </div>
-
-          <div class="filter-bar">
-            <button
-              class="filter-chip"
-              [class.active]="showFavoritesOnly()"
-              (click)="showFavoritesOnly.set(!showFavoritesOnly())"
-            >
-              FAVORITES
-            </button>
-            <select class="filter-select" [ngModel]="sortMode()" (ngModelChange)="sortMode.set()">
-              <option value="Popular">POPULAR</option>
-              <option value="Rating">TOP RATED</option>
-              <option value="Name">A-Z</option>
+              <option value="PS2">PLAYSTATION 2</option>
+              <option value="N64">NINTENDO 64</option>
+              <option value="XBOX">XBOX ELITE</option>
+              <option value="WEBGL">WEBGL SIM</option>
             </select>
           </div>
-        </header>
-
-        <div class="catalog-grid">
-          <div
-            class="game-card-compact glass-v42 holographic-depth"
-            *ngFor="let game of filteredGames()"
-            (click)="onGameClick(game)"
-          >
-            <div class="card-art">
-              <img [src]="game.image || 'assets/desktop_hub.png'" [alt]="game.name" loading="lazy" />
-              <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
-              <div class="card-badge featured" *ngIf="game.badgeIds?.includes('featured')">FEATURED</div>
-            </div>
-            <div class="card-info">
-              <h4>{{ game.name }}</h4>
-              <div class="card-meta">
-                <span class="genre-tag">{{ game.genre }}</span>
-                <span class="players" *ngIf="game.playersOnline">
-                  <span class="material-symbols-outlined" style="font-size: 0.8rem">bolt</span>
-                  {{ game.playersOnline }}
-                </span>
-              </div>
-            </div>
-          </div>
+          <button class="clear-btn glass-v42" (click)="clearFilters()">RESET FILTERS</button>
         </div>
-      </div>
 
-      <!-- Rails View -->
-      <div class="rails-view animate-enter" *ngIf="!isBrowseView()">
-        <div class="rails-container">
-          <section class="storefront-rail" *ngFor="let rail of matchingRecommendationRails()">
-            <div class="rail-header">
-              <h3 class="rail-title">{{ rail.title | uppercase }}</h3>
-              <small class="rail-subtitle">{{ rail.subtitle }}</small>
-            </div>
-            <div class="rail-scroll custom-scrollbar">
-              <div
-                class="game-card-compact glass-v42 storefront-card"
-                *ngFor="let game of getGamesForRail(rail)"
-                (click)="onGameClick(game)"
-              >
-                <div class="card-art">
-                  <img [src]="game.image || 'assets/desktop_hub.png'" [alt]="game.name" loading="lazy" />
-                  <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
-                </div>
-                <div class="card-info">
-                  <h4>{{ game.name }}</h4>
-                  <div class="card-meta">
-                    <span class="genre-tag">{{ game.genre }}</span>
+        <section class="recommendation-rails">
+          <div class="rail-v42" *ngFor="let rail of matchingRecommendationRails()">
+            <h3 class="rail-title">{{ rail.title | uppercase }}</h3>
+            <div class="rail-grid no-scrollbar">
+              <div class="game-card-v42 glass-v42 shadow-v42-sm"
+                   *ngFor="let game of getGamesForRail(rail)"
+                   (click)="onGameClick(game)">
+                <div class="card-media">
+                  <img [src]="game.image" [alt]="game.name" loading="lazy" />
+                  <div class="card-overlay">
+                    <span class="material-symbols-outlined">play_circle</span>
                   </div>
                 </div>
+                <div class="card-info">
+                  <div class="game-name">{{ game.name }}</div>
+                  <div class="game-genre">{{ game.genre }}</div>
+                </div>
               </div>
             </div>
-          </section>
+          </div>
+        </section>
+
+        <section class="full-catalog">
+          <h3 class="section-title">ALL OPERATIONAL TITLES</h3>
+          <div class="catalog-grid">
+            <div class="game-card-v42 glass-v42 shadow-v42-sm"
+                 *ngFor="let game of filteredGames()"
+                 (click)="onGameClick(game)">
+              <div class="card-media">
+                <img [src]="game.image" [alt]="game.name" loading="lazy" />
+                <div class="card-overlay"><span class="material-symbols-outlined">play_circle</span></div>
+                <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
+              </div>
+              <div class="card-info">
+                <div class="game-name">{{ game.name }}</div>
+                <div class="game-genre">{{ game.genre }}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Gaming View -->
+      <div class="gaming-experience" *ngIf="!isBrowseView()">
+        <!-- Fallback if no game selected -->
+        <div class="no-game-selected glass-v42" *ngIf="!currentGame()">
+          <span class="material-symbols-outlined large-icon">sports_esports</span>
+          <h2>NO ACTIVE SESSION</h2>
+          <p>SELECT A TITLE FROM THE CATALOG TO INITIALIZE UPLINK.</p>
+          <button class="primary-btn" (click)="toggleBrowse()">BROWSE CATALOG</button>
         </div>
       </div>
+    </ng-container>
+
+    <!-- Pluto TV Integration -->
+    <div class="pluto-standalone-experience animate-enter" *ngIf="displayMode() === 'pluto'">
+      <button class="exit-pluto-btn glass-v42" (click)="setMode('gaming')">
+        <span class="material-symbols-outlined">arrow_back</span> EXIT CINEMA
+      </button>
+      <iframe
+        src="https://pluto.tv"
+        class="pluto-standalone-frame"
+        allow="autoplay; fullscreen"
+      ></iframe>
     </div>
   </main>
 
@@ -205,92 +174,150 @@
     </header>
 
     <div class="sidebar-content custom-scrollbar" #scrollContainer>
-      <!-- Room Chat View -->
-      <div class="chat-view" *ngIf="activeHubTab() === 'room'">
-        <div class="room-info-bar glass-v42">
-          <span>{{ getActiveRoomName() | uppercase }}</span>
-          <span class="players-count">{{ onlineUsers().length + 1 }} ACTIVE</span>
-        </div>
-
-        <div class="message-list">
-          <div class="msg-bubble" *ngFor="let msg of roomMessages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
-            <div class="msg-meta">
-              <span class="msg-user">{{ msg.fromUserName || 'ANONYMOUS' }}</span>
-              <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
-            </div>
-            <div class="msg-content">{{ msg.message }}</div>
-          </div>
-        </div>
+      <!-- Interaction Gate -->
+      <div class="interaction-gate glass-v42 animate-enter" *ngIf="!canInteract()">
+          <span class="material-symbols-outlined">lock</span>
+          <p>PROFILE COMPLETION REQUIRED FOR RIVAL INTERACTION.</p>
       </div>
 
-      <!-- Direct Messaging View -->
-      <div class="dm-view" *ngIf="activeHubTab() === 'dm'">
-        <div class="online-users-strip no-scrollbar">
-          <div class="user-avatar-circle"
-               *ngFor="let user of onlineUsers()"
-               [class.active]="dmTargetUserId() === user"
-               (click)="setDmTarget(user)">
-            {{ user.substring(0, 2).toUpperCase() }}
-            <div class="online-indicator"></div>
+      <ng-container *ngIf="canInteract()">
+        <!-- Room Chat View -->
+        <div class="chat-view" *ngIf="activeHubTab() === 'room'">
+          <div class="room-info-bar glass-v42">
+            <span>{{ getActiveRoomName() | uppercase }}</span>
+            <span class="players-count">{{ onlineUsers().length + 1 }} ACTIVE</span>
+          </div>
+
+          <!-- Incoming Challenges -->
+          <div class="challenge-item glass-v42-pro animate-enter" *ngFor="let c of challenges()">
+              <div class="challenge-header">INCOMING CHALLENGE: {{ c.fromUserName || 'RIVAL' }}</div>
+              <div class="challenge-actions">
+                  <button class="accept-btn" (click)="confirmLaunch()">ACCEPT & INITIALIZE</button>
+                  <button class="decline-btn">DECLINE</button>
+              </div>
+          </div>
+
+          <!-- Incoming Knock -->
+          <div class="incoming-knock glass-v42-pro animate-enter" *ngIf="isKnocking()">
+              <div class="knock-header">VOICE UPLINK REQUESTED</div>
+              <div class="knock-actions">
+                  <button class="accept-btn" (click)="peerService.acceptKnock()">ACCEPT</button>
+                  <button class="decline-btn" (click)="peerService.declineKnock()">DECLINE</button>
+              </div>
+          </div>
+
+        <div class="typing-indicator" *ngIf="dmTargetUserId() && socialService.typingUsers()[dmTargetUserId()!]">
+          OPERATIVE IS ENCRYPTING DATA...
+        </div>
+          <div class="message-list">
+            <div class="msg-bubble" *ngFor="let msg of roomMessages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
+              <div class="msg-meta">
+                <span class="msg-user">{{ msg.fromUserName || 'ANONYMOUS' }}</span>
+                <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
+              </div>
+              <div class="msg-content">{{ msg.message }}</div>
+            </div>
           </div>
         </div>
 
-        <div class="message-list">
-          <div class="msg-bubble" *ngFor="let msg of messages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
-            <div class="msg-meta">
-              <span class="msg-user">{{ msg.fromUserName || 'OPERATIVE' }}</span>
-              <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
+        <!-- Direct Messaging View -->
+        <div class="dm-view" *ngIf="activeHubTab() === 'dm'">
+          <!-- Player Finder Search -->
+          <div class="player-search glass-v42">
+              <span class="material-symbols-outlined">person_search</span>
+              <input type="text" [ngModel]="playerSearchQuery()" (ngModelChange)="playerSearchQuery.set($event)" placeholder="FIND RIVALS..." />
+          </div>
+
+          <div class="online-users-strip no-scrollbar">
+            <div class="user-avatar-circle"
+                 *ngFor="let user of filteredOnlineUsers()"
+                 [class.active]="dmTargetUserId() === (user.userId || user)"
+                 [class.unauthorized]="!user.profileSetupCompleted"
+                 (click)="setDmTarget(user.userId || user)">
+              <img *ngIf="user.avatarImage" [src]="user.avatarImage" class="mini-avatar" />
+              <span *ngIf="!user.avatarImage">{{ user.artistName?.substring(0, 2).toUpperCase() || '??' }}</span>
+              <div class="online-indicator" [class.in-game]="user.inGame"></div>
             </div>
-            <div class="msg-content">{{ msg.message }}</div>
+          </div>
+
+          <div class="dm-user-info glass-v42" *ngIf="selectedDmUser() as target">
+              <div class="dm-user-meta">
+                  <span class="dm-target-name">{{ target.artistName || 'OPERATIVE' }}</span>
+                  <span class="dm-target-genre">{{ target.primaryGenre }}</span>
+              </div>
+              <div class="dm-actions" *ngIf="target.profileSetupCompleted">
+                  <button class="icon-btn mini" (click)="startVoiceChat(target.userId)" title="Voice Uplink">
+                      <span class="material-symbols-outlined">call</span>
+                  </button>
+                  <button class="icon-btn mini" (click)="sendChallenge(target.userId, gameIdToInvite())" title="Challenge">
+                      <span class="material-symbols-outlined">swords</span>
+                  </button>
+              </div>
+              <div class="unauthorized-label" *ngIf="!target.profileSetupCompleted">
+                  OFFLINE_CORE
+              </div>
+          </div>
+
+        <div class="typing-indicator" *ngIf="dmTargetUserId() && socialService.typingUsers()[dmTargetUserId()!]">
+          OPERATIVE IS ENCRYPTING DATA...
+        </div>
+          <div class="message-list">
+            <div class="msg-bubble" *ngFor="let msg of messages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
+              <div class="msg-meta">
+                <span class="msg-user">{{ msg.fromUserName || 'OPERATIVE' }}</span>
+                <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
+              </div>
+              <div class="msg-content">{{ msg.message }}</div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Go Live Dashboard -->
-      <div class="stream-view" *ngIf="activeHubTab() === 'stream'">
-        <div class="stream-controls" *ngIf="!socialService.isStreaming()">
-          <h4>PRE-STREAM CONFIG</h4>
-          <div class="platform-grid">
-            <button class="platform-btn twitch" (click)="goLive('Twitch')">TWITCH</button>
-            <button class="platform-btn youtube" (click)="goLive('YouTube')">YOUTUBE</button>
-            <button class="platform-btn social" (click)="goLive('S.M.U.V.E.')">SMUVE LIVE</button>
+        <!-- Go Live Dashboard -->
+        <div class="stream-view" *ngIf="activeHubTab() === 'stream'">
+          <div class="stream-controls" *ngIf="!socialService.isStreaming()">
+            <h4>PRE-STREAM CONFIG</h4>
+            <div class="platform-grid">
+              <button class="platform-btn twitch" (click)="goLive('Twitch')">TWITCH</button>
+              <button class="platform-btn youtube" (click)="goLive('YouTube')">YOUTUBE</button>
+              <button class="platform-btn social" (click)="goLive('S.M.U.V.E.')">SMUVE LIVE</button>
+            </div>
+          </div>
+
+          <div class="stream-dashboard animate-enter" *ngIf="socialService.isStreaming()">
+            <div class="stream-status glass-v42">
+              <div class="status-indicator live pulse"></div>
+              <div class="status-text">LIVE ON {{ socialService.currentPlatform() | uppercase }}</div>
+              <button class="terminate-btn mini" (click)="endStream()">STOP</button>
+            </div>
+
+            <div class="telemetry-grid">
+              <div class="telemetry-item">
+                <label>VIEWERS</label>
+                <span>{{ socialService.streamTelemetry().viewers }}</span>
+              </div>
+              <div class="telemetry-item">
+                <label>HEALTH</label>
+                <span [class]="socialService.streamTelemetry().health.toLowerCase()">{{ socialService.streamTelemetry().health }}</span>
+              </div>
+              <div class="telemetry-item">
+                <label>BITRATE</label>
+                <span>{{ socialService.streamTelemetry().bitrate }}</span>
+              </div>
+            </div>
+
+            <div class="simulated-chat glass-v42">
+              <header>LIVE FAN CHAT</header>
+              <div class="sim-msg" *ngFor="let msg of socialService.simulatedLiveChat()">
+                <span class="fan-name">{{ msg.fromUserName }}:</span> {{ msg.message }}
+              </div>
+            </div>
           </div>
         </div>
-
-        <div class="stream-dashboard animate-enter" *ngIf="socialService.isStreaming()">
-          <div class="stream-status glass-v42">
-            <div class="status-indicator live pulse"></div>
-            <div class="status-text">LIVE ON {{ socialService.currentPlatform() | uppercase }}</div>
-            <button class="terminate-btn mini" (click)="endStream()">STOP</button>
-          </div>
-
-          <div class="telemetry-grid">
-            <div class="telemetry-item">
-              <label>VIEWERS</label>
-              <span>{{ socialService.streamTelemetry().viewers }}</span>
-            </div>
-            <div class="telemetry-item">
-              <label>HEALTH</label>
-              <span [class]="socialService.streamTelemetry().health.toLowerCase()">{{ socialService.streamTelemetry().health }}</span>
-            </div>
-            <div class="telemetry-item">
-              <label>BITRATE</label>
-              <span>{{ socialService.streamTelemetry().bitrate }}</span>
-            </div>
-          </div>
-
-          <div class="simulated-chat glass-v42">
-            <header>LIVE FAN CHAT</header>
-            <div class="sim-msg" *ngFor="let msg of socialService.simulatedLiveChat()">
-              <span class="fan-name">{{ msg.fromUserName }}:</span> {{ msg.message }}
-            </div>
-          </div>
-        </div>
-      </div>
+      </ng-container>
     </div>
 
     <!-- Chat Input (Shared for Room & DM) -->
-    <footer class="hub-footer glass-v42" *ngIf="activeHubTab() !== 'stream'">
+    <footer class="hub-footer glass-v42" *ngIf="activeHubTab() !== 'stream' && canInteract()">
       <div class="emoji-bar">
         <span (click)="addEmoji('🔥')">🔥</span>
         <span (click)="addEmoji('💯')">💯</span>
@@ -301,7 +328,7 @@
       <div class="input-wrapper">
         <input
           type="text"
-          [ngModel]="chatInput()" (ngModelChange)="chatInput.set($event)"
+          [ngModel]="chatInput()" (ngModelChange)="onChatInput($event)"
           (keyup.enter)="handleChatSubmit()"
           placeholder="SEND DATA PACKET..."
         />

@@ -5,6 +5,15 @@ import { Injector } from '@angular/core';
 import { PeerNetworkingService } from './peer-networking.service';
 import { io, Socket } from 'socket.io-client';
 
+export interface OnlineUser {
+  userId: string;
+  artistName?: string;
+  primaryGenre?: string;
+  avatarImage?: string;
+  inGame?: boolean;
+  profileSetupCompleted?: boolean;
+}
+
 export interface PrivateMessage {
   fromUserId: string;
   fromUserName?: string;
@@ -22,8 +31,10 @@ export interface RoomMessage {
 
 export interface Challenge {
   fromUserId: string;
+  fromUserName?: string;
   gameId: string;
   timestamp: number;
+  status?: 'pending' | 'accepted' | 'declined';
 }
 
 export interface StreamTelemetry {
@@ -39,7 +50,7 @@ export class SocialNetworkingService {
   private socket?: Socket;
   private injector = inject(Injector);
 
-  onlineUsers = signal<string[]>([]);
+  onlineUsers = signal<OnlineUser[]>([]);
   messages = signal<PrivateMessage[]>([]);
   roomMessages = signal<RoomMessage[]>([]);
   challenges = signal<Challenge[]>([]);
@@ -57,10 +68,10 @@ export class SocialNetworkingService {
 
   // Voice chat state
   remoteSignals = signal<any[]>([]);
+  typingUsers = signal<Record<string, boolean>>({});
 
   private currentRoomId: string | null = null;
   private get peerService() { return this.injector.get(PeerNetworkingService); }
-
 
   private getSecureRandom(): number {
     const array = new Uint32Array(1);
@@ -83,14 +94,23 @@ export class SocialNetworkingService {
 
     this.socket.on('connect', () => {
       console.log('Elite socket connected');
-      this.socket?.emit('register_presence', userId);
+      const profile = this.profileService.profile();
+      this.socket?.emit('register_presence', {
+        userId,
+        metadata: {
+          artistName: profile.artistName,
+          primaryGenre: profile.primaryGenre,
+          avatarImage: profile.avatarImage,
+          profileSetupCompleted: profile.profileSetupCompleted
+        }
+      });
       if (this.currentRoomId) {
         this.socket?.emit('join_room', this.currentRoomId);
       }
     });
 
-    this.socket.on('users_online', (users: string[]) => {
-      this.onlineUsers.set(users.filter(u => u !== userId));
+    this.socket.on('users_online', (users: OnlineUser[]) => {
+      this.onlineUsers.set(users.filter(u => u.userId !== userId));
     });
 
     this.socket.on('private_message', (data: any) => {
@@ -102,9 +122,12 @@ export class SocialNetworkingService {
     });
 
     this.socket.on('incoming_challenge', (data: any) => {
-      this.challenges.update(challs => [...challs, { ...data, timestamp: Date.now() }]);
+      this.challenges.update(challs => [...challs, { ...data, timestamp: Date.now(), status: 'pending' }]);
     });
 
+    this.socket.on("user_typing", (data: any) => {
+      this.typingUsers.update(users => ({ ...users, [data.fromUserId]: data.isTyping }));
+    });
     this.socket.on('voice_signal', (data: any) => {
       this.remoteSignals.update(sigs => [...sigs, data]);
       this.peerService.handleSignal(data.fromUserId, data.signal);
@@ -123,17 +146,25 @@ export class SocialNetworkingService {
     this.socket?.emit('send_room_message', { roomId, message, fromUserId, fromUserName });
   }
 
+  sendTypingStatus(toUserId: string, isTyping: boolean) {
+    const fromUserId = this.profileService.profile().id;
+    this.socket?.emit("typing", { toUserId, isTyping, fromUserId });
+  }
+  updateStatus(metadata: any) {
+    const userId = this.profileService.profile().id;
+    this.socket?.emit("update_status", { userId, metadata });
+  }
   sendMessage(toUserId: string, message: string) {
     const fromUserId = this.profileService.profile().id;
     const fromUserName = this.profileService.profile().artistName;
     this.socket?.emit('send_message', { toUserId, message, fromUserId, fromUserName });
-    // Optimistic local add
     this.messages.update(msgs => [...msgs, { fromUserId, fromUserName, message, timestamp: Date.now() }]);
   }
 
   challengePlayer(toUserId: string, gameId: string) {
     const fromUserId = this.profileService.profile().id;
-    this.socket?.emit('challenge_player', { toUserId, fromUserId, gameId });
+    const fromUserName = this.profileService.profile().artistName;
+    this.socket?.emit('challenge_player', { toUserId, fromUserId, fromUserName, gameId });
   }
 
   sendVoiceSignal(toUserId: string, signal: any) {
