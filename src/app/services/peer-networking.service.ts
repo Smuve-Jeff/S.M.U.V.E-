@@ -62,7 +62,8 @@ export class PeerNetworkingService {
 
     this.isKnocking.set(false);
     this.knockFromUserId.set(null);
-    await this.initializePeerConnection(fromUserId);
+    const success = await this.initializePeerConnection(fromUserId);
+    if (!success) return;
     this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_ACCEPTED' });
     this.isCallActive.set(true);
   }
