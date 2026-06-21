@@ -2,6 +2,13 @@ import { Injectable, signal, effect } from '@angular/core';
 import { AudioEngineService, DeckId } from './audio-engine.service';
 import { Stems, DeckState, initialDeckState } from './user-context.service';
 
+const MIN_AUTOWAH_FREQUENCY = 350;
+const AUTOWAH_FREQUENCY_RANGE = 5500;
+const DAMP_HIGH_REDUCTION = 0.8;
+const DAMP_MID_FLOOR = 0.25;
+const DAMP_MID_REDUCTION = 0.35;
+const DAMP_LOW_LIFT = 0.1;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -9,6 +16,7 @@ export class DeckService {
   deckA = signal<DeckState>({ ...initialDeckState, playbackRate: 1 });
   deckB = signal<DeckState>({ ...initialDeckState, playbackRate: 1 });
   crossfade = signal(0);
+  automix = signal(false);
   xfCurve = signal<'linear' | 'power' | 'exp' | 'cut'>('linear');
   hamster = signal(false);
   viewMode = signal<'functional' | 'flat'>('functional');
@@ -22,10 +30,12 @@ export class DeckService {
       );
     });
     effect(() => {
-      this.engine.setDeckRate('A', this.deckA().playbackRate);
+      const deck = this.deckA();
+      this.engine.setDeckRate('A', deck.playbackRate, deck.keyLock);
     });
     effect(() => {
-      this.engine.setDeckRate('B', this.deckB().playbackRate);
+      const deck = this.deckB();
+      this.engine.setDeckRate('B', deck.playbackRate, deck.keyLock);
     });
   }
 
@@ -74,11 +84,10 @@ export class DeckService {
     this.engine.setDeckStemGain(deck, event.stem, event.gain);
   }
 
-
   toggleCue(deck: DeckId) {
     const target = deck === 'A' ? this.deckA : this.deckB;
     const newState = !target().isCueing;
-    target.update(d => ({ ...d, isCueing: newState }));
+    target.update((d) => ({ ...d, isCueing: newState }));
     this.engine.setDeckCue(deck, newState);
   }
 
@@ -91,24 +100,115 @@ export class DeckService {
     this.engine.scratch(deck, delta);
   }
 
-  setFx(deck: DeckId, mode: string, val: number) {
-     const target = deck === 'A' ? this.deckA : this.deckB;
-     target.update(d => ({ ...d, fxAmount: val }));
-     // this.engine.setAdvancedFX(...)
+  setFx(deck: DeckId, mode: DeckState['activeFx'], val: number) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    const amount = Math.max(0, Math.min(1, val));
+    target.update((d) => ({ ...d, fxAmount: amount, activeFx: mode }));
+
+    if (mode === 'echo') {
+      this.engine.setAdvancedFX(deck, 'delay', amount);
+      return;
+    }
+    if (mode === 'chorus') {
+      // The engine exposes a flanger block; this is the closest built-in chorus approximation.
+      this.engine.setAdvancedFX(deck, 'flanger', amount);
+      return;
+    }
+    if (mode === 'phaser') {
+      this.engine.setAdvancedFX(deck, 'phaser', amount);
+      return;
+    }
+    if (mode === 'autowah') {
+      const freq = MIN_AUTOWAH_FREQUENCY + amount * AUTOWAH_FREQUENCY_RANGE;
+      this.engine.setDeckFilter(deck, freq);
+      return;
+    }
+    if (mode === 'damp') {
+      const high = Math.max(0, 1 - amount * DAMP_HIGH_REDUCTION);
+      const mid = Math.max(DAMP_MID_FLOOR, 1 - amount * DAMP_MID_REDUCTION);
+      const low = 1 + amount * DAMP_LOW_LIFT;
+      this.setDeckEq(deck, high, mid, low);
+      return;
+    }
+    if (mode === 'reverb') {
+      // Send bus A is used as the shared ambience return for reverb-style wash.
+      this.engine.setDeckSend(deck, 'A', amount);
+      return;
+    }
+    if (mode === 'rotate') {
+      // Rotate approximates movement by balancing send A/B returns against each other.
+      this.engine.setDeckSend(deck, 'A', amount);
+      this.engine.setDeckSend(deck, 'B', 1 - amount);
+    }
   }
 
   toggleAutomix() {
-    // automix logic
+    this.automix.update((active) => !active);
   }
 
-  automixEnabled() { return signal(false); }
-
-  setSamplerPad(deck: DeckId, index: number, category: string) {
-    // sampler logic
+  automixEnabled() {
+    return this.automix();
   }
 
-  clearSamplerPad(deck: DeckId, index: number, category: string) {
-    // sampler logic
+  setSamplerPad(
+    deck: DeckId,
+    index: number,
+    category: 'drums' | 'fx' | 'vocals'
+  ) {
+    const progress = this.engine.getDeckProgress(deck).position;
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => {
+      const categoryPads = [...d.samplerPads[category]];
+      categoryPads[index] = progress;
+      return {
+        ...d,
+        samplerPads: {
+          ...d.samplerPads,
+          [category]: categoryPads,
+        },
+      };
+    });
+  }
+
+  clearSamplerPad(
+    deck: DeckId,
+    index: number,
+    category: 'drums' | 'fx' | 'vocals'
+  ) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => {
+      const categoryPads = [...d.samplerPads[category]];
+      categoryPads[index] = null;
+      return {
+        ...d,
+        samplerPads: {
+          ...d.samplerPads,
+          [category]: categoryPads,
+        },
+      };
+    });
+  }
+
+  setPlaybackRate(deck: DeckId, rate: number) {
+    const next = this.clamp(rate, 0.5, 2);
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({ ...d, playbackRate: next }));
+  }
+
+  setKeyLock(deck: DeckId, enabled: boolean) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    target.update((d) => ({ ...d, keyLock: enabled }));
+  }
+
+  setBassBoost(deck: DeckId, amount: number) {
+    const target = deck === 'A' ? this.deckA : this.deckB;
+    const normalized = this.clamp(amount, 0, 1);
+    const state = target();
+    const neutralLow = state.eqLow - state.bassBoost * 0.8;
+    const boostedLow = this.clamp(neutralLow + normalized * 0.8, 0, 2);
+    target.update((d) => ({ ...d, bassBoost: normalized, eqLow: boostedLow }));
+    const deckState = target();
+    this.engine.setDeckEq(deck, deckState.eqHigh, deckState.eqMid, boostedLow);
   }
 
   loadDeckBuffer(
@@ -124,7 +224,12 @@ export class DeckService {
         track: { ...d.track, name: fileName, url: '' },
         duration: buffer.duration,
         hotCues: new Array(8).fill(null),
-        samplerPads: { drums: new Array(8).fill(null), fx: new Array(8).fill(null), vocals: new Array(8).fill(null) },
+        samplerPads: {
+          drums: new Array(8).fill(null),
+          fx: new Array(8).fill(null),
+          vocals: new Array(8).fill(null),
+        },
+        bassBoost: 0,
         progress: 0,
         vinylImageUrl:
           vinylUrl || 'https://picsum.photos/seed/' + fileName + '/200',
@@ -135,7 +240,12 @@ export class DeckService {
         track: { ...d.track, name: fileName, url: '' },
         duration: buffer.duration,
         hotCues: new Array(8).fill(null),
-        samplerPads: { drums: new Array(8).fill(null), fx: new Array(8).fill(null), vocals: new Array(8).fill(null) },
+        samplerPads: {
+          drums: new Array(8).fill(null),
+          fx: new Array(8).fill(null),
+          vocals: new Array(8).fill(null),
+        },
+        bassBoost: 0,
         progress: 0,
         vinylImageUrl:
           vinylUrl || 'https://picsum.photos/seed/' + fileName + '/200',
@@ -170,8 +280,6 @@ export class DeckService {
       return { ...d, hotCues: cues };
     });
   }
-
-
 
   jumpToHotCue(deck: DeckId, slot: number) {
     this.engine.jumpToHotCue(deck, slot);
@@ -261,5 +369,9 @@ export class DeckService {
       isPlaying: progress.isPlaying,
       playbackRate,
     }));
+  }
+
+  private clamp(value: number, min: number, max: number) {
+    return Math.min(max, Math.max(min, value));
   }
 }

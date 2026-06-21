@@ -1,5 +1,6 @@
 import { DjMidiService } from '../../services/dj-midi.service';
-import { Component,
+import {
+  Component,
   ChangeDetectionStrategy,
   signal,
   input,
@@ -30,6 +31,10 @@ import { AiService } from '../../services/ai.service';
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
 const MIN_SAMPLER_RETURN_MILLIS = 80;
+const SCRATCH_VELOCITY_NORMALIZER = 8;
+const EQ_LOW_RANGE = [0, 3] as const;
+const EQ_MID_RANGE = [3, 7] as const;
+const EQ_HIGH_RANGE = [7, 10] as const;
 
 @Component({
   selector: 'app-dj-deck',
@@ -40,10 +45,28 @@ const MIN_SAMPLER_RETURN_MILLIS = 80;
   imports: [CommonModule, FormsModule, KnobComponent],
 })
 export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
-  samplerCategory = signal<"drums" | "fx" | "vocals">("drums");
-  fxMode = signal<"flanger" | "phaser" | "delay">("flanger");
+  samplerCategory = signal<'drums' | 'fx' | 'vocals'>('drums');
+  fxMode = signal<
+    'autowah' | 'echo' | 'damp' | 'reverb' | 'chorus' | 'phaser' | 'rotate'
+  >('echo');
+  readonly fxModes: Array<{
+    id: 'autowah' | 'echo' | 'damp' | 'reverb' | 'chorus' | 'phaser' | 'rotate';
+    label: string;
+  }> = [
+    { id: 'autowah', label: 'AUTO WAH' },
+    { id: 'echo', label: 'ECHO' },
+    { id: 'damp', label: 'DAMP' },
+    { id: 'reverb', label: 'REVERB' },
+    { id: 'chorus', label: 'CHORUS' },
+    { id: 'phaser', label: 'PHASER' },
+    { id: 'rotate', label: 'ROTATE' },
+  ];
+  readonly samplePackOptions = Array.from({ length: 27 }, (_, index) => ({
+    id: `pack-${index + 1}`,
+    label: `Pack ${index + 1}`,
+  }));
+  activeSamplePack = signal('pack-1');
   private djMidiService = inject(DjMidiService);
-  private aiService = inject(AiService);
   @ViewChild('waveformA') waveformA!: ElementRef<HTMLCanvasElement>;
   @ViewChild('waveformB') waveformB!: ElementRef<HTMLCanvasElement>;
   @ViewChild('meterA') meterA!: ElementRef<HTMLCanvasElement>;
@@ -92,7 +115,11 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   rotationA = signal(0);
   rotationB = signal(0);
+  scratchVelocityA = signal(0);
+  scratchVelocityB = signal(0);
   masterVolume = signal(0.85);
+  precisionEqA = signal<number[]>(new Array(10).fill(1));
+  precisionEqB = signal<number[]>(new Array(10).fill(1));
   currentBeat = this.engine.currentBeat;
   phasePosition = computed(() => {
     const beat = this.currentBeat();
@@ -172,6 +199,14 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   );
   pitchBPercentage = computed(
     () => `${(this.deckService.deckB().playbackRate * 100).toFixed(1)}%`
+  );
+  deckATempo = computed(() => this.getEffectiveDeckBpm('A'));
+  deckBTempo = computed(() => this.getEffectiveDeckBpm('B'));
+  crossfadeMixA = computed(() =>
+    Math.round(((1 - this.deckService.crossfade()) / 2) * 100)
+  );
+  crossfadeMixB = computed(() =>
+    Math.round(((1 + this.deckService.crossfade()) / 2) * 100)
   );
 
   constructor(
@@ -469,7 +504,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const mode = this.performanceMode();
     if (mode === 'cue') return `Cue ${index + 1}`;
     if (mode === 'roll') return `${this.rollPadLabels[index] || '1'} Roll`;
-    return `${this.samplerCategory().substring(0, 3).toUpperCase()} ${index + 1}`;
+    return this.getSamplePadLabel(index);
   }
 
   isCuePadSet(deck: 'A' | 'B', index: number) {
@@ -477,7 +512,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   isSamplerPadSet(deck: 'A' | 'B', index: number) {
-    return this.getDeckState(deck).samplerPads[index] !== null;
+    return (
+      this.getDeckState(deck).samplerPads[this.samplerCategory()][index] !==
+      null
+    );
   }
 
   isRollPadActive(deck: 'A' | 'B', index: number) {
@@ -486,16 +524,64 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     );
   }
 
-  isSamplerPadActive(deck: 'A' | 'B', index: number, category?: 'drums' | 'fx' | 'vocals') {
-    const cat = category || this.samplerCategory();
-    return (deck === 'A' ? this.activeSamplerPadA() : this.activeSamplerPadB()) === index;
+  isSamplerPadActive(
+    deck: 'A' | 'B',
+    index: number,
+    category?: 'drums' | 'fx' | 'vocals'
+  ) {
+    if (category && category !== this.samplerCategory()) return false;
+    return (
+      (deck === 'A' ? this.activeSamplerPadA() : this.activeSamplerPadB()) ===
+      index
+    );
   }
 
   setPlaybackRate(deck: 'A' | 'B', rate: any) {
     const r = parseFloat(rate);
-    if (deck === 'A')
-      this.deckService.deckA.update((d) => ({ ...d, playbackRate: r }));
-    else this.deckService.deckB.update((d) => ({ ...d, playbackRate: r }));
+    this.deckService.setPlaybackRate(deck, r);
+  }
+
+  toggleKeyLock(deck: 'A' | 'B') {
+    const state = this.getDeckState(deck);
+    this.deckService.setKeyLock(deck, !state.keyLock);
+    this.sessionNotice.set(
+      `Deck ${deck} key lock ${!state.keyLock ? 'enabled' : 'disabled'} (best-effort).`
+    );
+  }
+
+  setBassBoost(deck: 'A' | 'B', value: any) {
+    const amount = parseFloat(value);
+    this.deckService.setBassBoost(deck, amount);
+  }
+
+  setQuickEq(deck: 'A' | 'B', band: 'high' | 'mid' | 'low') {
+    const state = this.getDeckState(deck);
+    const nextValue =
+      band === 'high'
+        ? state.eqHigh > 0.2
+          ? 0
+          : 1
+        : band === 'mid'
+          ? state.eqMid > 0.2
+            ? 0
+            : 1
+          : state.eqLow > 0.2
+            ? 0
+            : 1;
+    this.updateEq(deck, band, nextValue);
+  }
+
+  setPrecisionEqBand(deck: 'A' | 'B', index: number, value: any) {
+    const next = parseFloat(value);
+    const precision = deck === 'A' ? this.precisionEqA : this.precisionEqB;
+    const updated = [...precision()];
+    updated[index] = next;
+    precision.set(updated);
+
+    const low = this.averageBand(updated, EQ_LOW_RANGE[0], EQ_LOW_RANGE[1]);
+    const mid = this.averageBand(updated, EQ_MID_RANGE[0], EQ_MID_RANGE[1]);
+    const high = this.averageBand(updated, EQ_HIGH_RANGE[0], EQ_HIGH_RANGE[1]);
+    this.deckService.setDeckEq(deck, high, mid, low);
   }
 
   updateEq(deck: 'A' | 'B', band: 'high' | 'mid' | 'low', val: any) {
@@ -635,6 +721,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   onPlatterUp() {
     if (this.isScratchingA()) {
       this.isScratchingA.set(false);
+      this.scratchVelocityA.set(0);
       const deckState = this.deckService.deckA();
       const progress = this.engine.getDeckProgress('A');
 
@@ -642,12 +729,13 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
         this.engine.seekDeck('A', progress.slipPosition);
       }
 
-      this.engine.setDeckRate('A', deckState.playbackRate);
+      this.engine.setDeckRate('A', deckState.playbackRate, deckState.keyLock);
       if (this.wasPlaying.A) this.engine.playDeck('A');
       this.wasPlaying.A = false;
     }
     if (this.isScratchingB()) {
       this.isScratchingB.set(false);
+      this.scratchVelocityB.set(0);
       const deckState = this.deckService.deckB();
       const progress = this.engine.getDeckProgress('B');
 
@@ -655,7 +743,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
         this.engine.seekDeck('B', progress.slipPosition);
       }
 
-      this.engine.setDeckRate('B', deckState.playbackRate);
+      this.engine.setDeckRate('B', deckState.playbackRate, deckState.keyLock);
       if (this.wasPlaying.B) this.engine.playDeck('B');
       this.wasPlaying.B = false;
     }
@@ -671,9 +759,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (delta < -180) delta += 360;
 
     // Use the advanced scratch engine
-    const scratchDelta = (delta / 360) * 2; // Arbitrary scaling for feel
+    const scratchDelta = (delta / (2 * Math.PI)) * 2; // Arbitrary scaling for feel
     this.deckService.scratch(deck, scratchDelta);
-
 
     if (delta > Math.PI) delta -= 2 * Math.PI;
     if (delta < -Math.PI) delta += 2 * Math.PI;
@@ -692,6 +779,12 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const SECONDS_PER_FRAME = 0.016;
     const velocity = (delta / SECONDS_PER_FRAME) * scrubSecondsPerRadian;
     this.engine.setDeckRate(deck, velocity, false);
+    const velocityValue = Math.max(
+      -1,
+      Math.min(1, velocity / SCRATCH_VELOCITY_NORMALIZER)
+    );
+    if (deck === 'A') this.scratchVelocityA.set(velocityValue);
+    else this.scratchVelocityB.set(velocityValue);
 
     if (deck === 'A') {
       this.rotationA.update((r) => r + delta * (180 / Math.PI));
@@ -1033,6 +1126,15 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.samplerCategory.set(cat);
   }
 
+  getSamplePadLabel(index: number) {
+    const parsed = Number.parseInt(
+      this.activeSamplePack().replace(/\D+/g, ''),
+      10
+    );
+    const packLabel = Number.isFinite(parsed) ? `P${parsed}` : 'P1';
+    return `${packLabel}-${index + 1}`;
+  }
+
   toggleCue(deck: 'A' | 'B') {
     this.deckService.toggleCue(deck);
   }
@@ -1040,6 +1142,17 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   setFxAmount(deck: 'A' | 'B', amount: any) {
     const val = parseFloat(amount);
     this.deckService.setFx(deck, this.fxMode(), val);
+  }
+
+  getSyncDelta() {
+    return Math.abs(this.deckATempo() - this.deckBTempo()).toFixed(1);
+  }
+
+  getCrossfaderStatus() {
+    const cf = this.deckService.crossfade();
+    if (cf < -0.25) return 'Deck A Lead';
+    if (cf > 0.25) return 'Deck B Lead';
+    return 'Balanced Mix';
   }
 
   toggleAutomix() {
@@ -1050,4 +1163,19 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.deckService.autoSync(deck);
   }
 
+  private getEffectiveDeckBpm(deck: 'A' | 'B') {
+    const state = this.getDeckState(deck);
+    if (!state.track || !state.bpm) return 0;
+    return state.bpm * Math.abs(state.playbackRate || 1);
+  }
+
+  private averageBand(values: number[], start: number, end: number) {
+    if (!values.length) return 1;
+    const safeStart = Math.max(0, Math.min(values.length, start));
+    const safeEnd = Math.max(safeStart, Math.min(values.length, end));
+    if (safeStart >= safeEnd) return 1;
+    const slice = values.slice(safeStart, safeEnd);
+    if (!slice.length) return 1;
+    return slice.reduce((sum, current) => sum + current, 0) / slice.length;
+  }
 }
