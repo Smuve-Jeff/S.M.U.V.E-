@@ -127,11 +127,17 @@
       <button class="exit-pluto-btn glass-v42" (click)="setMode('gaming')">
         <span class="material-symbols-outlined">arrow_back</span> EXIT CINEMA
       </button>
-      <iframe
+        <div class="hud-decorative-line left"></div>
+        <div class="hud-decorative-line right"></div>
+      <div class="iframe-glitch-wrapper">
+        <iframe
         src="https://pluto.tv"
         class="pluto-standalone-frame"
         allow="autoplay; fullscreen"
       ></iframe>
+        <div class="hud-glitch-overlay"></div>
+      </div>
+        <div class="hud-overlay-scanner"></div>
     </div>
   </main>
 
@@ -378,12 +384,15 @@
   </div>
 
   <div class="immersive-overlay" *ngIf="currentGame() as active" [class.active]="currentGame()">
-    <div class="game-console-window glass-v42-pro shadow-v42-xl">
+    <div class="game-console-window glass-v42-pro shadow-v42-xl elite-gaming-hud">
       <header class="console-header glass-v42">
         <div class="console-title">
           <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">terminal</span>
           {{ active.name | uppercase }}
         </div>
+        <!-- Decorative HUD corners -->
+        <div class="hud-corner top-left"></div>
+        <div class="hud-corner top-right"></div>
         <div class="console-telemetry hide-mobile">
           SECURE_UPLINK: <span class="success">ENCRYPTED</span> | WASM_CORE: <span class="success">LOADED</span>
         </div>
@@ -393,6 +402,9 @@
         </div>
       </header>
       <div class="console-body">
+        <div class="hud-decorative-line left"></div>
+        <div class="hud-decorative-line right"></div>
+        <div class="iframe-glitch-wrapper">
         <iframe
           [src]="currentSafeUrl()"
           #gameIframe
@@ -400,9 +412,12 @@
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
           allowfullscreen
         ></iframe>
+        <div class="hud-glitch-overlay"></div>
+      </div>
+        <div class="hud-overlay-scanner"></div>
       </div>
       <footer class="console-footer glass-v42">
-        <div class="session-timer">SESSION_ACTIVE</div>
+        <div class="session-timer">ACTIVE_UPLINK_STABLE</div>
         <button class="terminate-btn" (click)="closeGame()">TERMINATE PROCESS</button>
       </footer>
     </div>
