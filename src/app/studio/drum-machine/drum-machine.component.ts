@@ -163,7 +163,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       this.audioEngine.ctx.currentTime,
       127,
       0.1,
-      1, 0, 0, 0,
+      1,
       pad.params
     );
   }

@@ -67,7 +67,7 @@ export class AudioEngineService {
     return this.masterGain;
   }
 
-  triggerAttack(trackId: any, freq: number, time: number, velocity: number, duration: number, gain: number, pan: number, sendA: number, sendB: number, synthParams: any) {
+  triggerAttack(trackId: any, freq: number, time: number, velocity: number, duration: number, gain: number, synthParams: any) {
     const registry = this.injector.get(InstrumentRegistryService);
     const inst = registry.getInstrument(trackId, synthParams?.instrumentType);
 
@@ -78,12 +78,13 @@ export class AudioEngineService {
     }
 
     const midi = Math.round(69 + 12 * Math.log2(freq / 440));
-    inst.play(midi, velocity);
+    inst.play(midi, velocity * gain);
 
     if (duration > 0) {
+      const stopDelayMs = Math.max(0, (time + duration - this.ctx.currentTime) * 1000);
       setTimeout(() => {
         inst.stop(midi);
-      }, duration * 1000);
+      }, stopDelayMs);
     }
   }
 
