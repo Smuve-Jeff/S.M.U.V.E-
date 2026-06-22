@@ -2983,10 +2983,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gta-elite-wasm",
-      "name": "Grand Theft Auto (1997)",
+      "name": "Grand Theft Auto (Elite HD)",
       "url": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
       "genre": "Action",
-      "description": "Top-down urban chaos. High-speed chases and tactical missions in the original open-world criminal simulator.",
+      "description": "The Absolute original. High-definition top-down urban chaos. S.M.U.V.E. stabilized execution.",
       "availability": "Online",
       "playersOnline": 12800,
       "rating": 4.9,
@@ -4276,10 +4276,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gta-san-andreas-elite",
-      "name": "Grand Theft Auto: San Andreas",
+      "name": "GTA: San Andreas (Elite HD)",
       "url": "https://www.retrogames.cc/embed/43315-grand-theft-auto-san-andreas.html",
       "genre": "Action",
-      "description": "Return to Los Santos in the definitive open-world masterpiece. High-performance PS2-era emulation.",
+      "description": "Return to Los Santos in the Absolute masterpiece. High-performance, high-definition emulation.",
       "availability": "Online",
       "playersOnline": 45000,
       "rating": 5,
@@ -4934,10 +4934,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gta-vice-city-elite",
-      "name": "GTA: Vice City",
+      "name": "GTA: Vice City (Elite HD)",
       "url": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
       "genre": "Action",
-      "description": "The neon-soaked 80s. Build your empire or get crushed by it. S.M.U.V.E. demands total control of the streets.",
+      "description": "Neon-soaked 80s in Absolute high-definition. S.M.U.V.E. demands total control.",
       "tags": [
         "Action",
         "Open World",
@@ -5074,10 +5074,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gta-iii-elite",
-      "name": "Grand Theft Auto III",
+      "name": "Grand Theft Auto III (Elite HD)",
       "url": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
       "genre": "Action",
-      "description": "Liberty City is your playground. Dominate the streets or get erased. S.M.U.V.E. expects Absolute chaos.",
+      "description": "Liberty City in Absolute 3D. High-fidelity PS2-era execution. Dominate the streets.",
       "tags": [
         "Action",
         "Open World",
@@ -7385,6 +7385,68 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "embedMode": "inline",
         "secure_mode": "wasm"
       }
+    },
+    {
+      "id": "gta-2-elite",
+      "name": "Grand Theft Auto 2 (Elite)",
+      "url": "https://www.retrogames.cc/embed/41728-grand-theft-auto-2.html",
+      "genre": "Action",
+      "description": "Respect is everything. The Absolute top-down sequel with multi-gang loyalty systems and high-fidelity chaos.",
+      "rating": 4.8,
+      "playersOnline": 8500,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Retro",
+        "PC",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Rockstar Elite",
+        "accentStart": "#22c55e",
+        "accentEnd": "#14532d"
+      },
+      "image": "assets/games/gta2-elite.png",
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41728-grand-theft-auto-2.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "gta-london-1969-elite",
+      "name": "GTA: London 1969 (Elite)",
+      "url": "https://www.retrogames.cc/embed/41729-grand-theft-auto-london-1969.html",
+      "genre": "Action",
+      "description": "You're nicked! The Absolute expansion taking the chaos to the streets of London. High-fidelity mod implementation.",
+      "rating": 4.7,
+      "playersOnline": 4200,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Retro",
+        "PC",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Rockstar Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/gta-london-elite.png",
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41729-grand-theft-auto-london-1969.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
     }
   ],
   "recommendationRails": [
@@ -7616,7 +7678,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "gta-san-andreas-elite",
         "tekken-5-elite",
         "gta-vice-city-elite",
-        "tekken-tag-elite"
+        "tekken-tag-elite",
+        "gta-2-elite",
+        "gta-london-1969-elite"
       ],
       "audience": {
         "rooms": [
@@ -7651,7 +7715,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "gta-san-andreas-elite",
         "spider-man-2-elite",
         "true-crime-la-elite",
-        "need-for-speed-underground-2-elite"
+        "need-for-speed-underground-2-elite",
+        "gta-2-elite",
+        "gta-london-1969-elite"
       ],
       "audience": {
         "minPlays": 0
