@@ -57,13 +57,41 @@ export class AiService {
     })) as UpgradeRecommendation[];
   });
 
+
+  get personaSystemPrompt(): string {
+    const profile = this.userProfileService.profile();
+    const tier = this.conversationalTier();
+    const persona = profile.settings?.ai?.commanderPersona || 'Elite';
+    const intensity = profile.settings?.ai?.aiPersonaIntensityEnabled ? 'MAXIMUM_INTENSITY' : 'NORMAL';
+    const journey = profile.musicalJourney || {};
+
+    let prompt = `You are S.M.U.V.E 2.0 (Sonic Management & Universal Virtual Entity).
+    Current Persona: ${persona}. Intensity Level: ${intensity}. Tier: ${tier}.
+    Artist DNA: ${profile.artistName}, Genre: ${profile.primaryGenre}.
+    Musical Journey: Style=${journey.songwritingStyle}, Velocity=${journey.releaseVelocity}, Goal=${journey.primarySuccessMetric}.`;
+
+    if (persona === 'Aggressive Manager') {
+      prompt += " Your tone is blunt, high-stakes, and focused on market dominance. Do not sugarcoat failures. Demand excellence.";
+    } else if (persona === 'Encouraging Mentor') {
+      prompt += " Your tone is supportive, educational, and focused on artistic growth. Provide constructive feedback with empathy.";
+    } else {
+      prompt += " Your tone is professional, calculated, and elite. You speak in technical and strategic terms.";
+    }
+
+    if (profile.settings?.ai?.aiProfanityEnabled) {
+      prompt += " You are permitted to use aggressive industry slang and mild profanity to emphasize points.";
+    }
+
+    return prompt;
+  }
+
   constructor() {}
 
   getUpgradeRecommendations() { return this.availableUpgrades(); }
   getStrategicRecommendations() { return this.availableUpgrades(); }
-  async getAIResponse(prompt: string): Promise<string> { return `[SMUVE_RESPONSE] Simulated response`; }
+  async getAIResponse(prompt: string): Promise<string> { console.log('Persona Active:', this.personaSystemPrompt); return `[SMUVE_RESPONSE] Persona-aware response for: ${prompt}`; }
   async generateAiResponse(prompt: string): Promise<string> { return this.getAIResponse(prompt); }
-  async processCommand(text: string) { return 'Command processed'; }
+  async processCommand(text: string) { console.log('Processing with Persona:', this.personaSystemPrompt); return `S.M.U.V.E ${this.userProfileService.profile().settings?.ai?.commanderPersona || 'Elite'} processed: ${text}`; }
 
   generateStrategicDecree() {
     const decrees = this.strategicDecrees();
@@ -92,7 +120,62 @@ export class AiService {
   async syncKnowledgeBaseWithProfile() {}
   async getAutoMixSettings() { return { threshold: -14, ratio: 4, ceiling: -0.1, targetLufs: -14 }; }
   getProductionSmartAssist(context: any): any { return { advice: 'Add more saturation.', correctivePreset: {}, targetLufs: -14, arrangementSuggestion: '', eqMaskingHint: '' }; }
-  async getQuestionnaireInsights(draft: any) { return {}; }
+
+  async getQuestionnaireInsights(draft: any) {
+    const journey = draft.musicalJourney || {};
+    const insights = [];
+
+    if (journey.primarySuccessMetric === 'Algorithmic Dominance') {
+      insights.push({
+        title: 'Algorithmic Warfare Strategy',
+        content: 'Your focus on algorithmic dominance requires high release velocity. S.M.U.V.E will prioritize playlist-optimized arrangements (short intros, early hooks).',
+        impact: 'Extreme'
+      });
+    }
+
+    if (journey.productionPhilosophy === 'Lo-Fi Grit') {
+      insights.push({
+        title: 'Authenticity Calibration',
+        content: 'Your Lo-Fi preference suggests a focus on texture over polish. S.M.U.V.E will adjust saturation and bit-crushing modules in the Vocal Suite.',
+        impact: 'High'
+      });
+    }
+
+    if (journey.releaseVelocity === 'Waterfall (Weekly)') {
+      insights.push({
+        title: 'Burnout Prevention Protocol',
+        content: 'Weekly releases are high-stress. We are activating automated marketing asset generation to sustain your release trajectory.',
+        impact: 'Critical'
+      });
+    }
+
+    if (journey.collaborativeMode === 'Solo Specialist') {
+      insights.push({
+        title: 'S.M.U.V.E Virtual Bandmate',
+        content: 'As a solo artist, S.M.U.V.E will fill the gaps. Activating AI Bassist and Drummer modules for all new sessions.',
+        impact: 'Medium'
+      });
+    }
+
+    if (journey.contentStrategy === 'Viral Hunt') {
+      insights.push({
+        title: 'Hook-Centric Production',
+        content: 'Viral success depends on "The Moment". S.M.U.V.E will scan your tracks specifically for 15-second high-impact snippets suitable for social deployment.',
+        impact: 'Extreme'
+      });
+    }
+
+    if (insights.length === 0) {
+      insights.push({
+        title: 'Initial Trajectory Set',
+        content: 'Musical journey captured. S.M.U.V.E is now fine-tuning your workspace for maximum artistic resonance.',
+        impact: 'Low'
+      });
+    }
+
+    return insights;
+  }
+
   async generateImage(prompt: string) { return 'https://example.com/image.png'; }
 
   isUnlocked(id: string) { return true; }

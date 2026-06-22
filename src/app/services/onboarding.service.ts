@@ -45,7 +45,7 @@ export class OnboardingService {
       profile.brandVoices?.length
     );
     const hasQuestionnaireSignals = Boolean(
-      profile.strategicGoals?.length ||
+      profile.musicalJourney?.songwritingStyle !== 'Unspecified' && profile.strategicGoals?.length ||
       profile.expertise?.catalyst ||
       Object.keys(profile.genreSpecificData || {}).length
     );
@@ -65,7 +65,7 @@ export class OnboardingService {
         id: 'questionnaire',
         title: 'Run the onboarding questionnaire',
         description:
-          'Answer the guided intelligence questions so recommendations and workspaces adapt to you.',
+          'Engage with S.M.U.V.E for a fine-tuned meet and greet to calibrate your musical journey.',
         route: 'profile',
         queryParams: { questionnaire: '1' },
         cta: 'Launch questionnaire',

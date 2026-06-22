@@ -173,7 +173,21 @@ export interface ProfileAuditLog {
   auditType?: string;
 }
 
+
+export interface MusicalJourney {
+  songwritingStyle: string;
+  productionPhilosophy: string;
+  collaborativeMode: string;
+  releaseVelocity: string;
+  primarySuccessMetric: string;
+  musicalInfluences: string[];
+  yearsInIndustry: number;
+  educationalBackground: string;
+  contentStrategy: string;
+  marketPosition: string;
+}
 export interface UserProfile {
+  musicalJourney: MusicalJourney;
   id?: string;
   artistName: string;
   primaryGenre: string;
@@ -262,6 +276,18 @@ export const initialProfile: UserProfile = {
     },
   },
   artistName: 'New Artist',
+  musicalJourney: {
+    songwritingStyle: 'Unspecified',
+    productionPhilosophy: 'Unspecified',
+    collaborativeMode: 'Solo',
+    releaseVelocity: 'Occasional',
+    primarySuccessMetric: 'Creative Satisfaction',
+    musicalInfluences: [],
+    yearsInIndustry: 0,
+    educationalBackground: 'Self-Taught',
+    contentStrategy: 'Organic',
+    marketPosition: 'Independent',
+  },
   primaryGenre: 'Hip Hop',
   proName: '',
   proIpi: '',
