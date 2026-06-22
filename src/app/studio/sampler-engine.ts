@@ -31,12 +31,19 @@ export class SamplerEngine {
     source.connect(gainNode);
     gainNode.connect(output);
 
+    const cleanup = () => {
+      source.disconnect();
+      gainNode.disconnect();
+    };
+    source.onended = cleanup;
+
     source.start(when);
 
     return () => {
       try {
         source.stop(this.context.currentTime + 0.1);
       } catch (e) {}
+      cleanup();
     };
   }
 }
