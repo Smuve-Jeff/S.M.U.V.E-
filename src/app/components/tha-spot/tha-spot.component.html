@@ -1,4 +1,4 @@
-<div class="tha-spot-container full-page no-scrollbar animate-enter" (scroll)="onContentScroll($event)" #contentViewport>
+<div class="tha-spot-container full-page no-scrollbar animate-enter" [class.pluto-active]="displayMode() === 'pluto'" (scroll)="onContentScroll($event)" #contentViewport>
   <!-- Spot Header -->
   <header class="spot-header glass-v42 shadow-v42-lg" *ngIf="displayMode() !== 'pluto'">
     <div class="header-left">

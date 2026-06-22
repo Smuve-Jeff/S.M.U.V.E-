@@ -27,7 +27,7 @@
 }
 
 /* Global Scanlines */
-.tha-spot-shell::after {
+.tha-spot-shell:not(.pluto-active)::after, .tha-spot-container:not(.pluto-active)::after {
   content: " ";
   display: block;
   position: absolute;
@@ -1738,4 +1738,13 @@
 @keyframes holo-shimmer {
   0% { transform: translate(-10%, -10%) rotate(0deg); }
   100% { transform: translate(10%, 10%) rotate(360deg); }
+}
+
+
+
+/* Hide decorative HUD in Pluto mode to ensure clean control access */
+.pluto-active .hud-overlay-scanner,
+.pluto-active .hud-glitch-overlay,
+.pluto-active .hud-decorative-line {
+  display: none !important;
 }
