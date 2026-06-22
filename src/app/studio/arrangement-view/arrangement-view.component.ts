@@ -35,7 +35,7 @@ export class ArrangementViewComponent {
 
   @ViewChild('gridViewport') gridViewport!: ElementRef<HTMLDivElement>;
 
-  barWidth = signal(100);
+  barWidth = 100;
   readonly isMobile = window.innerWidth <= 1024;
   readonly laneHeight = this.isMobile ? 110 : 80;
   readonly rulerHeight = 35;
@@ -241,7 +241,7 @@ export class ArrangementViewComponent {
     }
     event.preventDefault();
     const scale = nextDistance / this.pinchDistance;
-    this.barWidth.set(Math.max(50, Math.min(400, this.barWidth() * scale)));
+    this.barWidth = Math.max(50, Math.min(400, this.barWidth * scale));
     this.pinchDistance = nextDistance;
   }
 
