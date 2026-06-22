@@ -70,7 +70,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   // Selection & UI Signals
   selectedGame = signal<Game | null>(null);
   currentGame = signal<Game | null>(null);
-  isBrowseView = signal<boolean>(true);
+  isBrowseView = signal<boolean>(false);
   showIntelPanel = signal<boolean>(false);
   readonly showRivalHub = signal<boolean>(false);
   now = signal<number>(Date.now());
