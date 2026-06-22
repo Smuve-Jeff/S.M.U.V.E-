@@ -17,6 +17,7 @@ export class HistoryService {
   canRedo = signal(false);
   lastActionName = signal('');
 
+  add(command: Command) { this.execute(command); }
   execute(command: Command) {
     command.execute();
     this.past.push(command);

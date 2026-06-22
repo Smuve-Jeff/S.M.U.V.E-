@@ -2,6 +2,10 @@ import { LoggingService } from './logging.service';
 import { Injectable, signal, inject, Injector } from '@angular/core';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { StemSeparationService, Stems } from './stem-separation.service';
+import { InstrumentRegistryService } from '../studio/instrument-registry.service';
+import { SamplerEngine } from '../studio/sampler-engine';
+import { FileLoaderService } from './file-loader.service';
+
 import { SubtractiveSynth } from "../studio/subtractive-synth";
 
 export type DeckId = 'A' | 'B';

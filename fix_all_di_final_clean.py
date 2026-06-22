@@ -1,4 +1,33 @@
-import {
+import sys
+
+def fix_audio_engine():
+    path = 'src/app/services/audio-engine.service.ts'
+    with open(path, 'r') as f:
+        lines = f.readlines()
+
+    new_lines = []
+    for line in lines:
+        # Fix the syntax error I introduced
+        line = line.replace('this.public applyProductionParameter', 'this.applyProductionParameter')
+        # Ensure ctx is public
+        if 'private ctx: AudioContext;' in line:
+            line = line.replace('private ctx: AudioContext;', 'public ctx: AudioContext;')
+        elif '  ctx: AudioContext;' in line:
+             line = line.replace('  ctx: AudioContext;', '  public ctx: AudioContext;')
+
+        # Ensure applyProductionParameter is public
+        if 'applyProductionParameter(' in line and 'public' not in line and 'this.' not in line:
+            line = line.replace('applyProductionParameter(', 'public applyProductionParameter(')
+
+        new_lines.append(line)
+
+    with open(path, 'w') as f:
+        f.writelines(new_lines)
+
+def fix_dm():
+    path = 'src/app/studio/drum-machine/drum-machine.component.ts'
+    # It's better to just rewrite this file to a known good state given the mess
+    content = """import {
   AfterViewInit,
   Component,
   computed,
@@ -105,7 +134,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const initialPads = this.blueprints.map(b => ({
       ...b,
       id: `pad-${b.midi}`,
-      steps: Array(64).fill(null).map(() => ({ active: false, velocity: 1, probability: 1, nudge: 0 })),
+      steps: Array(64).fill(null).map(() => ({ active: false, velocity: 100, probability: 1, nudge: 0 })),
       params: {
         semitone: 0,
         decay: 0.5,
@@ -163,3 +192,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     );
   }
 }
+"""
+    with open(path, 'w') as f:
+        f.write(content)
+
+fix_audio_engine()
+fix_dm()

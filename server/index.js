@@ -823,18 +823,20 @@ const setupSocketIO = (server) => {
 
     socket.on("send_message", (data) => {
       const { toUserId, message, fromUserId, fromUserName } = data;
-      const targetSocketId = onlineUsers.get(toUserId);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit("private_message", { fromUserId, fromUserName, message, timestamp: Date.now() });
+      const userInfo = onlineUsers.get(toUserId);
+      if (userInfo) {
+        io.to(userInfo.socketId).emit("private_message", { fromUserId, fromUserName, message, timestamp: Date.now() });
       }
     });
 
     socket.on("challenge_player", (data) => {
       const { toUserId, fromUserId, gameId } = data;
-      const targetSocketId = onlineUsers.get(toUserId);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit("incoming_challenge", { fromUserId, gameId });
+      const userInfo = onlineUsers.get(toUserId);
+      if (userInfo) {
+        io.to(userInfo.socketId).emit("incoming_challenge", { fromUserId, gameId });
       }
+    });
+
     socket.on("disconnect", () => {
       for (const [userId, info] of onlineUsers.entries()) {
         if (info.socketId === socket.id) {
@@ -845,7 +847,6 @@ const setupSocketIO = (server) => {
       broadcastOnlineUsers();
       console.log("Elite user disconnected:", socket.id);
     });
-
   });
 
   return io;
@@ -857,7 +858,7 @@ const startEliteServer = async (port = process.env.PORT || 3000) => {
   await initDb();
   const server = http.createServer(app);
   const io = setupSocketIO(server);
-  server.listen(port, () => {
+  server.listen(port, '0.0.0.0', () => {
     console.log(`S.M.U.V.E 2.0 Elite Server running on port ${port}`);
   });
   return { server, io };

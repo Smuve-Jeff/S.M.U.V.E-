@@ -11,6 +11,8 @@ export class SequencerService {
   private engine = inject(AudioEngineService);
   private aiService = inject(AiService);
 
+  public swingAmount = signal(0);
+
   constructor() {
     this.engine.onScheduleStep = (step, time, duration) => {
       this.tick(step, time, duration);
@@ -18,6 +20,14 @@ export class SequencerService {
   }
 
   tick(stepIndex: number, time: number, duration: number) {
+    let playTime = time;
+
+    // Apply Swing
+    if (stepIndex % 2 === 1) {
+      const swingOffset = (this.swingAmount() / 100) * (duration / 2);
+      playTime += swingOffset;
+    }
+
     if (this.aiService.isAIDrummerActive() && stepIndex % 4 === 0) {
     }
     if (this.aiService.isAIBassistActive() && stepIndex % 2 === 0) {
@@ -25,6 +35,6 @@ export class SequencerService {
     if (this.aiService.isAIKeyboardistActive() && Math.random() > 0.7) {
     }
 
-    this.musicManager.playStep(stepIndex, time, duration);
+    this.musicManager.playStep(stepIndex, playTime, duration);
   }
 }
