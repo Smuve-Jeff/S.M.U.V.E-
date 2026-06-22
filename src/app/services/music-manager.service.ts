@@ -148,7 +148,7 @@ export class MusicManagerService {
       t.notes.filter(n => Math.floor(n.step) === step % 64).forEach(n => {
         const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
         const params = { ...t.synthParams, ...(n.params || {}) };
-        this.engine.triggerAttack(t.id, freq, time, n.velocity, n.length * duration, t.gain, t.pan, t.sendA, t.sendB, params);
+        this.engine.triggerAttack(t.id, freq, time, n.velocity, n.length * duration, t.gain, params);
       });
     });
   }
