@@ -1,6 +1,6 @@
 <div class="tha-spot-container full-page no-scrollbar animate-enter" (scroll)="onContentScroll($event)" #contentViewport>
   <!-- Spot Header -->
-  <header class="spot-header glass-v42 shadow-v42-lg">
+  <header class="spot-header glass-v42 shadow-v42-lg" *ngIf="displayMode() !== 'pluto'">
     <div class="header-left">
       <h1 class="glitch-text" data-text="THA_SPOT">THA_SPOT</h1>
       <div class="status-badge hide-mobile">
@@ -27,7 +27,7 @@
       </div>
       <div class="h-6 w-px bg-white/10 mx-2"></div>
       <button class="mode-btn" [class.active]="displayMode() === 'gaming'" (click)="setMode('gaming')">GAMING</button>
-      <button class="mode-btn" [class.active]="displayMode() === 'pluto'" (click)="setMode('pluto')">CINEMA</button>
+      <button type="button" class="mode-btn" [class.active]="displayMode() === 'pluto'" (click)="setMode('pluto')">PLUTO TV</button>
     </div>
   </header>
 
@@ -118,7 +118,7 @@
     <!-- Pluto TV Integration -->
     <div class="pluto-standalone-experience animate-enter" *ngIf="displayMode() === 'pluto'">
       <button class="exit-pluto-btn glass-v42" (click)="setMode('gaming')">
-        <span class="material-symbols-outlined">arrow_back</span> EXIT CINEMA
+        <span class="material-symbols-outlined">arrow_back</span> EXIT PLUTO TV
       </button>
       <div class="hud-decorative-line left"></div>
       <div class="hud-decorative-line right"></div>
@@ -274,7 +274,7 @@
     </div>
 
     <!-- Chat Input (Shared for Room & DM) -->
-    <footer class="hub-footer glass-v42" *ngIf="activeHubTab() !== 'stream' && canInteract()">
+    <footer class="hub-footer glass-v42" *ngIf="displayMode() !== 'pluto' && activeHubTab() !== 'stream' && canInteract()">
       <div class="emoji-bar">
         <span (click)="addEmoji('🔥')">🔥</span>
         <span (click)="addEmoji('💯')">💯</span>
