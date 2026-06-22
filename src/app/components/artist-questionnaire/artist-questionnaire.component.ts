@@ -443,8 +443,10 @@ export class ArtistQuestionnaireComponent {
   }
 
   private generateNeuralObservation(field: string, value: any): string | null {
-    if (field.includes('musicalJourney'))
-      return `MAPPING_MUSICAL_JOURNEY_STATION:_${value.toUpperCase()}...`;
+    if (field.includes('musicalJourney')) {
+      const normalized = String(value ?? 'UNSPECIFIED').toUpperCase();
+      return `MAPPING_MUSICAL_JOURNEY_STATION:_${normalized}...`;
+    }
     if (field === 'primaryGenre')
       return `ADAPTING_NEURAL_FILTERS_FOR_${value.toUpperCase()}_TRAJECTORY...`;
     if (field.includes('expertise'))
