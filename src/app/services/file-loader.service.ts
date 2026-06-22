@@ -29,7 +29,32 @@ export class FileLoaderService {
   private localStorage = inject(LocalStorageService);
 
   private audioContext: AudioContext | null = null;
+
+  private static readonly BUFFER_CACHE_MAX = 64;
   private bufferCache: Map<string, AudioBuffer> = new Map();
+
+  private cacheGet(url: string): AudioBuffer | undefined {
+    const buf = this.bufferCache.get(url);
+    if (buf !== undefined) {
+      // Move to most-recently-used position
+      this.bufferCache.delete(url);
+      this.bufferCache.set(url, buf);
+    }
+    return buf;
+  }
+
+  private cacheSet(url: string, buffer: AudioBuffer): void {
+    if (this.bufferCache.has(url)) {
+      this.bufferCache.delete(url);
+    } else if (this.bufferCache.size >= FileLoaderService.BUFFER_CACHE_MAX) {
+      // Evict the least-recently-used entry (first key in insertion order)
+      const lruKey = this.bufferCache.keys().next().value;
+      if (lruKey !== undefined) {
+        this.bufferCache.delete(lruKey);
+      }
+    }
+    this.bufferCache.set(url, buffer);
+  }
 
   private ensureContext(context?: BaseAudioContext | null): BaseAudioContext {
     if (context) return context;
@@ -54,15 +79,16 @@ export class FileLoaderService {
     const ctx = this.ensureContext(context);
 
     // Memory Cache check
-    if (this.bufferCache.has(url)) {
-      return this.bufferCache.get(url)!;
+    const cached_mem = this.cacheGet(url);
+    if (cached_mem !== undefined) {
+      return cached_mem;
     }
 
     // Disk Cache check
     const cached = await this.localStorage.getItem('audio_cache', url);
     if (cached && cached.data) {
       const buffer = await ctx.decodeAudioData(cached.data.slice(0));
-      this.bufferCache.set(url, buffer);
+      this.cacheSet(url, buffer);
       return buffer;
     }
 
@@ -79,33 +105,22 @@ export class FileLoaderService {
     });
 
     const buffer = await ctx.decodeAudioData(arrayBuffer);
-    this.bufferCache.set(url, buffer);
+    this.cacheSet(url, buffer);
     return buffer;
   }
 
-  async loadSampleMap(
-    map: SampleMap,
-    context?: BaseAudioContext | null
-  ): Promise<void> {
+  async loadSampleMap(map: SampleMap, context?: BaseAudioContext | null): Promise<void> {
     const urls = new Set<string>();
-    map.zones.forEach((zone) => {
-      zone.layers.forEach((layer) => urls.add(layer.url));
+    map.zones.forEach(zone => {
+      zone.layers.forEach(layer => urls.add(layer.url));
     });
 
-    const queue = Array.from(urls);
-    const concurrency = 4;
-    const workers = Array.from({ length: concurrency }, async () => {
-      while (queue.length) {
-        const url = queue.shift();
-        if (!url) break;
-        await this.loadAudio(url, context);
-      }
-    });
-    await Promise.all(workers);
+    const promises = Array.from(urls).map(url => this.loadAudio(url, context));
+    await Promise.all(promises);
   }
 
   getBuffer(url: string): AudioBuffer | undefined {
-    return this.bufferCache.get(url);
+    return this.cacheGet(url);
   }
 
   async pickLocalFiles(accept: string): Promise<File[]> {
