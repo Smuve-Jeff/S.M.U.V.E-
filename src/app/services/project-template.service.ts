@@ -25,7 +25,7 @@ export class ProjectTemplateService {
         { name: 'Hybrid Lead', instrumentId: 'analog-warmth', type: 'midi' },
         { name: 'Elite Piano', instrumentId: 'grand-piano', type: 'midi' },
         { name: 'Deep Sub', instrumentId: 'sub-commander', type: 'midi' },
-        { name: 'Studio Drums', instrumentId: 'trap-808-elite', type: 'midi' },
+        { name: 'Studio Drums', instrumentId: 'trap-808-elite', type: 'drum' },
       ],
     },
     {
