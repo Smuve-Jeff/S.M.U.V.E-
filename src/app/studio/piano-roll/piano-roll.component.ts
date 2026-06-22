@@ -140,6 +140,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   onGridPointerDown(event: PointerEvent) {
     if (this.editMode() === 'select') {
+      if (event.button !== 0) return;
       const container = event.currentTarget as HTMLElement;
       const rect = container.getBoundingClientRect();
       this.isSelecting = true;
