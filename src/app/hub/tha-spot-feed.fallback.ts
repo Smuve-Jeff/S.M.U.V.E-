@@ -1,4 +1,4 @@
-import { ThaSpotFeed } from "./game";
+import { ThaSpotFeed } from '../types/hub.types';
 
 export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     "badges": [
@@ -36,6 +36,16 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "id": "classic",
             "label": "Classic",
             "tone": "primary"
+        },
+        {
+            "id": "next-gen",
+            "name": "NEXT-GEN",
+            "color": "#00f2ff"
+        },
+        {
+            "id": "modern",
+            "name": "MODERN",
+            "color": "#7000ff"
         }
     ],
     "rooms": [
@@ -184,6 +194,12 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
                     "tournament-live"
                 ]
             }
+        },
+        {
+            "id": "neo-zone",
+            "name": "NEO_ZONE",
+            "description": "Next-Gen execution. High-fidelity WebGL and Cloud-linked cabinets.",
+            "icon": "auto_awesome"
         }
     ],
     "liveEvents": [
@@ -457,6 +473,125 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         }
     ],
     "games": [
+        {
+            "id": "cyberpunk-2077-cloud",
+            "name": "Cyberpunk 2077 (Cloud-Link)",
+            "url": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
+            "description": "Night City awaits. Absolute high-fidelity future simulation.",
+            "genre": "RPG",
+            "rating": 4.9,
+            "playersOnline": 65000,
+            "availability": "Online",
+            "tags": [
+                "RPG",
+                "Cloud",
+                "Next-Gen",
+                "Elite"
+            ],
+            "badgeIds": [
+                "next-gen",
+                "elite"
+            ],
+            "launchConfig": {
+                "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
+                "embedMode": "external-only"
+            }
+        },
+        {
+            "id": "elden-ring-cloud",
+            "name": "Elden Ring (Cloud-Link)",
+            "url": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
+            "description": "Rise, Tarnished. Absolute next-gen open world mastery.",
+            "genre": "RPG",
+            "rating": 5.0,
+            "playersOnline": 120000,
+            "availability": "Online",
+            "tags": [
+                "RPG",
+                "Cloud",
+                "Next-Gen",
+                "Elite"
+            ],
+            "badgeIds": [
+                "next-gen",
+                "elite"
+            ],
+            "launchConfig": {
+                "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
+                "embedMode": "external-only"
+            }
+        },
+        {
+            "id": "halo-3-cloud-elite",
+            "name": "Halo 3 (Cloud-Link)",
+            "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
+            "description": "Finish the fight. Absolute 360-era dominance via high-fidelity cloud link.",
+            "genre": "FPS",
+            "rating": 5.0,
+            "playersOnline": 45000,
+            "availability": "Online",
+            "tags": [
+                "FPS",
+                "Cloud",
+                "Xbox 360",
+                "Elite",
+                "Sequel"
+            ],
+            "badgeIds": [
+                "next-gen",
+                "elite"
+            ],
+            "launchConfig": {
+                "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
+                "embedMode": "external-only"
+            }
+        },
+        {
+            "id": "venge-io-webgl",
+            "name": "Venge.io (Next-Gen)",
+            "url": "https://venge.io/",
+            "description": "High-octane WebGL tactical shooter. Absolute precision required.",
+            "genre": "FPS",
+            "rating": 4.7,
+            "playersOnline": 8900,
+            "availability": "Online",
+            "tags": [
+                "FPS",
+                "Multiplayer",
+                "WebGL",
+                "Modern"
+            ],
+            "badgeIds": [
+                "modern"
+            ],
+            "launchConfig": {
+                "approvedEmbedUrl": "https://venge.io/",
+                "embedMode": "inline"
+            }
+        },
+        {
+            "id": "slow-roads-webgl",
+            "name": "Slow Roads (WebGL)",
+            "url": "https://slowroads.io/",
+            "description": "Absolute high-fidelity procedural driving. S.M.U.V.E. relaxation protocols enabled.",
+            "genre": "Racing",
+            "rating": 4.8,
+            "playersOnline": 5400,
+            "availability": "Online",
+            "tags": [
+                "WebGL",
+                "Simulation",
+                "Modern"
+            ],
+            "badgeIds": [
+                "modern",
+                "featured"
+            ],
+            "launchConfig": {
+                "approvedEmbedUrl": "https://slowroads.io/",
+                "embedMode": "inline"
+            }
+        },
         {
             "id": "battlefield",
             "name": "Battlefield",
@@ -6813,10 +6948,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "id": "minecraft-classic",
             "name": "Minecraft Classic",
             "url": "https://classic.minecraft.net/",
-            "launchConfig": {
-                "approvedEmbedUrl": "https://classic.minecraft.net/",
-                "embedMode": "inline"
-            },
             "description": "The original Minecraft creative mode, playable in your browser. Build anything you can imagine.",
             "genre": "Sandbox",
             "rating": 4.8,
@@ -6831,16 +6962,16 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
                 "classic",
                 "featured"
             ],
-            "image": "assets/games/minecraft-classic.png"
+            "image": "assets/games/minecraft-classic.png",
+            "launchConfig": {
+                "approvedEmbedUrl": "https://classic.minecraft.net/",
+                "embedMode": "inline"
+            }
         },
         {
             "id": "prince-of-persia",
             "name": "Prince of Persia",
             "url": "https://princejs.com/",
-            "launchConfig": {
-                "approvedEmbedUrl": "https://princejs.com/",
-                "embedMode": "inline"
-            },
             "description": "The legendary cinematic platformer perfectly recreated in JavaScript. 60 minutes to save the princess.",
             "genre": "Platformer",
             "rating": 4.7,
@@ -6854,16 +6985,16 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "badgeIds": [
                 "classic"
             ],
-            "image": "assets/games/prince-of-persia.png"
+            "image": "assets/games/prince-of-persia.png",
+            "launchConfig": {
+                "approvedEmbedUrl": "https://princejs.com/",
+                "embedMode": "inline"
+            }
         },
         {
             "id": "diablo-web",
             "name": "Diablo Web",
             "url": "https://d07riv.github.io/diablo-web/",
-            "launchConfig": {
-                "approvedEmbedUrl": "https://d07riv.github.io/diablo-web/",
-                "embedMode": "inline"
-            },
             "description": "The original Diablo (1996) shareware version running in your browser. Experience the depths of Tristram.",
             "genre": "Action RPG",
             "rating": 4.9,
@@ -6878,16 +7009,16 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
                 "classic",
                 "elite"
             ],
-            "image": "assets/games/diablo-web.png"
+            "image": "assets/games/diablo-web.png",
+            "launchConfig": {
+                "approvedEmbedUrl": "https://d07riv.github.io/diablo-web/",
+                "embedMode": "inline"
+            }
         },
         {
             "id": "quakejs",
             "name": "QuakeJS",
             "url": "http://www.quakejs.com/",
-            "launchConfig": {
-                "approvedEmbedUrl": "http://www.quakejs.com/",
-                "embedMode": "inline"
-            },
             "description": "Legendary fast-paced arena shooter. Frag your friends in this web-based port of Quake.",
             "genre": "FPS",
             "rating": 4.8,
@@ -6901,16 +7032,16 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
             "badgeIds": [
                 "elite"
             ],
-            "image": "assets/games/quakejs.png"
+            "image": "assets/games/quakejs.png",
+            "launchConfig": {
+                "approvedEmbedUrl": "http://www.quakejs.com/",
+                "embedMode": "inline"
+            }
         },
         {
             "id": "street-fighter-2-ce",
             "name": "Street Fighter II: CE",
             "url": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
-            "launchConfig": {
-                "approvedEmbedUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
-                "embedMode": "inline"
-            },
             "description": "The definitive fighting game experience. Master the Hadouken and climb the world tournament.",
             "genre": "Fighting",
             "rating": 4.9,
@@ -6925,7 +7056,11 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
                 "classic",
                 "tournament-live"
             ],
-            "image": "assets/games/street-fighter-2-ce.png"
+            "image": "assets/games/street-fighter-2-ce.png",
+            "launchConfig": {
+                "approvedEmbedUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
+                "embedMode": "inline"
+            }
         },
         {
             "id": "fifa-05-elite",
@@ -7254,6 +7389,22 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     ],
     "recommendationRails": [
         {
+            "id": "rail-neo-zone",
+            "title": "NEO_ZONE Next-Gen",
+            "subtitle": "High-fidelity WebGL and Cloud-linked execution. The Absolute future.",
+            "roomIds": [
+                "neo-zone"
+            ],
+            "gameIds": [
+                "slow-roads-webgl",
+                "venge-io-webgl",
+                "halo-3-cloud-elite",
+                "elden-ring-cloud",
+                "cyberpunk-2077-cloud"
+            ],
+            "maxItems": 6
+        },
+        {
             "id": "rail-ps2-powerhouse",
             "title": "PS2 Powerhouse",
             "subtitle": "Absolute performance from the greatest era. S.M.U.V.E. approved.",
@@ -7493,6 +7644,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
                 "action-zone"
             ],
             "gameIds": [
+                "elden-ring-cloud",
+                "cyberpunk-2077-cloud",
                 "gta-iii-elite",
                 "gta-vice-city-elite",
                 "gta-san-andreas-elite",
@@ -7517,6 +7670,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
                 "shooting-range"
             ],
             "gameIds": [
+                "halo-3-cloud-elite",
+                "venge-io-webgl",
                 "half-life-ps2-elite",
                 "quake-3-dc-elite",
                 "unreal-tournament-dc-elite",

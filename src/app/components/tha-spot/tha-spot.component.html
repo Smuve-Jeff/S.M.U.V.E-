@@ -99,7 +99,7 @@
               <div class="card-media">
                 <img [src]="game.image" [alt]="game.name" loading="lazy" />
                 <div class="card-overlay"><span class="material-symbols-outlined">play_circle</span></div>
-                <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
+                <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">ELITE</div><div class="card-badge next-gen" *ngIf="game.badgeIds?.includes('next-gen')">NEXT-GEN</div><div class="card-badge modern" *ngIf="game.badgeIds?.includes('modern')">MODERN</div>
               </div>
               <div class="card-info">
                 <div class="game-name">{{ game.name }}</div>
@@ -467,7 +467,7 @@
       </div>
       <div class="preview-copy">
         <div class="preview-header">
-          <span class="tag" *ngIf="selected.badgeIds?.includes('elite')">ELITE CABINET</span>
+          <span class="tag" *ngIf="selected.badgeIds?.includes('elite')">ELITE CABINET</span><span class="tag next-gen" *ngIf="selected.badgeIds?.includes('next-gen')">NEXT-GEN</span><span class="tag modern" *ngIf="selected.badgeIds?.includes('modern')">MODERN</span>
           <h2>{{ selected.name }}</h2>
         </div>
         <p class="description">{{ selected.description }}</p>

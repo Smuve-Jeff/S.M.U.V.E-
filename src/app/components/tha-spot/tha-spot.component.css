@@ -1533,3 +1533,25 @@
   background: linear-gradient(to bottom, transparent, rgba(var(--elite-neon-purple-rgb), 0.1), transparent);
   animation: scanline 8s linear infinite;
 }
+
+.card-badge.next-gen {
+  background: linear-gradient(135deg, #00f2ff, #0066ff);
+  box-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+}
+
+.card-badge.modern {
+  background: linear-gradient(135deg, #7000ff, #ff00ea);
+  box-shadow: 0 0 10px rgba(112, 0, 255, 0.5);
+}
+
+.tag.next-gen {
+  background: rgba(0, 242, 255, 0.1);
+  color: #00f2ff;
+  border: 1px solid rgba(0, 242, 255, 0.3);
+}
+
+.tag.modern {
+  background: rgba(112, 0, 255, 0.1);
+  color: #a855f7;
+  border: 1px solid rgba(112, 0, 255, 0.3);
+}
