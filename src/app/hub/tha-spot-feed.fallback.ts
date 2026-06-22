@@ -2983,7 +2983,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gta-elite-wasm",
-      "name": "Grand Theft Auto (Elite HD)",
+      "name": "GTA (Elite HD)",
       "url": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
       "genre": "Action",
       "description": "The Absolute original. High-definition top-down urban chaos. S.M.U.V.E. stabilized execution.",
@@ -3518,7 +3518,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "thps2-ps1-elite",
-      "name": "Tony Hawk's Pro Skater 2",
+      "name": "Tony Hawk's Pro Skater 2 (Elite)",
       "url": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
       "genre": "Sports",
       "description": "Skating excellence. PS1 legend with stabilized frame rates and high-fidelity textures.",
@@ -4240,7 +4240,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "final-fantasy-vii-elite",
-      "name": "Final Fantasy VII",
+      "name": "Final Fantasy VII (Elite)",
       "url": "https://www.retrogames.cc/embed/40425-final-fantasy-vii-usa-disc-1.html",
       "genre": "RPG",
       "description": "The masterpiece that defined a generation. Join Cloud in the fight against Shinra.",
@@ -4483,7 +4483,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "tekken-5-elite",
-      "name": "Tekken 5",
+      "name": "Tekken 5 (Elite)",
       "url": "https://www.retrogames.cc/embed/41551-tekken-5.html",
       "genre": "Fighting",
       "description": "The King of Iron Fist Tournament 5 begins. High-fidelity PS2 combat with crushing combos.",
@@ -4518,7 +4518,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "mgs2-elite",
-      "name": "Metal Gear Solid 2: Sons of Liberty",
+      "name": "Metal Gear Solid 2 (Elite)",
       "url": "https://www.retrogames.cc/embed/43336-metal-gear-solid-2-sons-of-liberty.html",
       "genre": "Action",
       "description": "Tactical Espionage Action redefined. Raiden and Snake infiltrate Big Shell in this Hideo Kojima masterpiece.",
@@ -4656,7 +4656,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "thps4-elite",
-      "name": "Tony Hawk's Pro Skater 4",
+      "name": "Tony Hawk's Pro Skater 4 (Elite)",
       "url": "https://www.retrogames.cc/embed/43328-tony-hawk-s-pro-skater-4.html",
       "genre": "Sports",
       "description": "The pinnacle of arcade skating. Shred through massive open levels with the most advanced trick system.",
@@ -4691,7 +4691,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "supreme-of-war-elite",
-      "name": "Supreme of War",
+      "name": "God of War (Elite)",
       "url": "https://www.retrogames.cc/embed/43325-supreme-of-war.html",
       "genre": "Action",
       "description": "The birth of a legend. Kratos takes on the forces of Olympus in an epic tale of vengeance and brutality.",
@@ -4727,7 +4727,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "soulcalibur-2-elite",
-      "name": "SoulCalibur II",
+      "name": "SoulCalibur II (Elite)",
       "url": "https://www.retrogames.cc/embed/41221-soulcalibur-ii-usa.html",
       "genre": "Fighting",
       "description": "Transcending history and the world, a tale of souls and swords eternally retold. The definitive weapon-based fighter.",
@@ -4831,7 +4831,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "mgs-elite",
-      "name": "Metal Gear Solid",
+      "name": "Metal Gear Solid (Elite)",
       "url": "https://www.retrogames.cc/embed/41253-metal-gear-solid-usa.html",
       "genre": "Stealth",
       "description": "Tactical Espionage Action. Take on the role of Solid Snake as he infiltrates Shadow Moses Island.",
@@ -4866,7 +4866,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gt2-elite",
-      "name": "Gran Turismo 2",
+      "name": "Gran Turismo 2 (Elite)",
       "url": "https://www.retrogames.cc/embed/41249-gran-turismo-2-usa.html",
       "genre": "Racing",
       "description": "The real driving simulator. Over 600 cars and dozens of tracks in this definitive racing classic.",
@@ -4900,7 +4900,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "silent-hill-elite",
-      "name": "Silent Hill",
+      "name": "Silent Hill (Elite)",
       "url": "https://www.retrogames.cc/embed/41247-silent-hill-usa.html",
       "genre": "Horror",
       "description": "Psychological horror at its finest. Harry Mason searches for his daughter in the fog-shrouded town.",
@@ -4969,7 +4969,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "ffx-elite",
-      "name": "Final Fantasy X",
+      "name": "Final Fantasy X (Elite)",
       "url": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html",
       "genre": "RPG",
       "description": "A journey through Spira to defeat Sin. This isn't for the weak of heart. Only those with Absolute resolve will survive.",
@@ -5004,7 +5004,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "re4-elite",
-      "name": "Resident Evil 4",
+      "name": "Resident Evil 4 (Elite)",
       "url": "https://www.retrogames.cc/embed/41225-resident-evil-4-usa.html",
       "genre": "Horror",
       "description": "Leon S. Kennedy's nightmare. Survive the Ganados or die. S.M.U.V.E. expects Absolute focus in this survival gauntlet.",
@@ -5039,7 +5039,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "burnout-3-elite",
-      "name": "Burnout 3: Takedown",
+      "name": "Burnout 3: Takedown (Elite)",
       "url": "https://www.retrogames.cc/embed/41226-burnout-3-takedown-usa.html",
       "genre": "Racing",
       "description": "Total destruction. Win at any cost. Aggressive driving is mandatory. S.M.U.V.E. loves the smell of burning rubber.",
@@ -5074,7 +5074,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gta-iii-elite",
-      "name": "Grand Theft Auto III (Elite HD)",
+      "name": "GTA III (Elite HD)",
       "url": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
       "genre": "Action",
       "description": "Liberty City in Absolute 3D. High-fidelity PS2-era execution. Dominate the streets.",
@@ -5109,7 +5109,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "spider-man-2-elite",
-      "name": "Spider-Man 2",
+      "name": "Spider-Man 2 (Elite)",
       "url": "https://www.retrogames.cc/embed/41234-spider-man-2-usa.html",
       "genre": "Action",
       "description": "Swing through Manhattan with Absolute precision. The web is yours to control. S.M.U.V.E. demands Elite agility.",
@@ -6624,14 +6624,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gow2-ps2-elite",
-      "name": "Supreme of War II",
+      "name": "God of War II (Elite)",
       "url": "https://www.retrogames.cc/embed/42779-supreme-of-war-ii.html",
       "genre": "Action",
       "description": "Defy the Fates themselves. Kratos seeks Absolute vengeance. S.M.U.V.E. commands the destruction of Olympus.",
       "tags": [
         "PS2",
         "Action",
-        "Supreme of War",
+        "God of War",
         "Retro",
         "Elite",
         "WASM",
@@ -7063,31 +7063,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "fifa-05-elite",
-      "name": "FIFA Soccer 2005",
-      "url": "https://www.retrogames.cc/embed/42704-fifa-05-usa.html",
-      "description": "The Absolute football experience. Master the pitch with FIFA 05. S.M.U.V.E. demands perfection.",
-      "genre": "Sports",
-      "rating": 4.9,
-      "playersOnline": 15000,
-      "availability": "Online",
-      "tags": [
-        "Sports",
-        "Football",
-        "PS2",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42704-fifa-05-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm"
-      }
-    },
-    {
       "id": "nba-street-v2-elite",
       "name": "NBA Street Vol. 2",
       "url": "https://www.retrogames.cc/embed/41231-nba-street-vol-2-usa.html",
@@ -7236,56 +7211,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "mgs3-snake-eater-elite",
-      "name": "Metal Gear Solid 3: Snake Eater",
-      "url": "https://www.retrogames.cc/embed/41250-metal-gear-solid-3-snake-eater-usa.html",
-      "description": "Tactical Espionage Action. The Absolute origins. S.M.U.V.E. demands stealth mastery.",
-      "genre": "Adventure",
-      "rating": 5.0,
-      "playersOnline": 9000,
-      "availability": "Online",
-      "tags": [
-        "Stealth",
-        "Adventure",
-        "PS2",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41250-metal-gear-solid-3-snake-eater-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm"
-      }
-    },
-    {
-      "id": "tony-hawk-pro-skater-4-elite",
-      "name": "Tony Hawk's Pro Skater 4",
-      "url": "https://www.retrogames.cc/embed/41235-tony-hawk-s-pro-skater-4-usa.html",
-      "description": "Absolute skating freedom. Land the combo or face S.M.U.V.E. deletion.",
-      "genre": "Sports",
-      "rating": 4.8,
-      "playersOnline": 7000,
-      "availability": "Online",
-      "tags": [
-        "Sports",
-        "Skating",
-        "PS2",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41235-tony-hawk-s-pro-skater-4-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm"
-      }
-    },
-    {
       "id": "dragon-ball-z-budokai-3-elite",
       "name": "Dragon Ball Z: Budokai 3",
       "url": "https://www.retrogames.cc/embed/41261-dragon-ball-z-budokai-3-usa.html",
@@ -7388,7 +7313,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gta-2-elite",
-      "name": "Grand Theft Auto 2 (Elite)",
+      "name": "GTA 2 (Elite)",
       "url": "https://www.retrogames.cc/embed/41728-grand-theft-auto-2.html",
       "genre": "Action",
       "description": "Respect is everything. The Absolute top-down sequel with multi-gang loyalty systems and high-fidelity chaos.",
