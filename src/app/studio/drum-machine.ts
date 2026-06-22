@@ -20,13 +20,13 @@ export interface DrumPad {
 export class DrumMachine extends Instrument {
   private sampler: Sampler;
   private pads: DrumPad[] = [];
+  private connectedPads = new Set<number>();
 
   private rollIntervals: Map<string, any> = new Map();
 
   constructor(context: AudioContext) {
     super(context, 32); // Higher polyphony for drums
     this.sampler = new Sampler(this.audioContext);
-    this.sampler.connect(this.output);
 
     const padNames = [
       'Kick', 'Snare', 'Clap', 'Hi-Hat (C)',
@@ -38,6 +38,10 @@ export class DrumMachine extends Instrument {
       const filter = this.audioContext.createBiquadFilter();
       filter.type = 'lowpass';
       filter.frequency.value = 20000;
+
+      // Wire per-pad FX chain into the main output
+      gain.connect(filter);
+      filter.connect(this.output);
 
       const pad: DrumPad = {
         id: `pad-${36 + i}`,
@@ -70,6 +74,16 @@ export class DrumMachine extends Instrument {
   ) {
     const pad = this.pads.find((p) => p.pitch === pitch);
     if (pad) {
+      // Apply pad FX settings to the filter
+      pad.filter.frequency.setValueAtTime(pad.fx.cutoff, when);
+      pad.filter.Q.setValueAtTime(pad.fx.resonance, when);
+
+      // Route sampler through this pad's FX chain on first use
+      if (!this.connectedPads.has(pitch)) {
+        this.sampler.connect(pad.gain);
+        this.connectedPads.add(pitch);
+      }
+
       this.sampler.play(pitch, velocity, when);
     }
   }
