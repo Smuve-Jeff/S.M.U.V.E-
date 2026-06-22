@@ -62,9 +62,22 @@ export class PeerNetworkingService {
 
     this.isKnocking.set(false);
     this.knockFromUserId.set(null);
-    await this.initializePeerConnection(fromUserId);
-    this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_ACCEPTED' });
-    this.isCallActive.set(true);
+  async acceptKnock() {
+    const fromUserId = this.knockFromUserId();
+    if (!fromUserId) return;
+
+    this.isKnocking.set(false);
+    this.knockFromUserId.set(null);
+    try {
+      await this.initializePeerConnection(fromUserId);
+      this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_ACCEPTED' });
+      this.isCallActive.set(true);
+    } catch (error) {
+      console.error('Failed to initialize peer connection:', error);
+      this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_DECLINED' });
+      // Optionally: show error to user about microphone permission
+    }
+  }
   }
 
   declineKnock() {
