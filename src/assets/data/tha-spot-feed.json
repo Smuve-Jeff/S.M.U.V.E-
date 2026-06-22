@@ -34,6 +34,16 @@
       "id": "classic",
       "label": "Classic",
       "tone": "primary"
+    },
+    {
+      "id": "next-gen",
+      "label": "NEXT-GEN",
+      "tone": "accent"
+    },
+    {
+      "id": "modern",
+      "label": "MODERN",
+      "tone": "secondary"
     }
   ],
   "rooms": [
@@ -182,6 +192,12 @@
           "tournament-live"
         ]
       }
+    },
+    {
+      "id": "neo-zone",
+      "name": "NEO_ZONE",
+      "description": "Next-Gen execution. High-fidelity WebGL and Cloud-linked cabinets.",
+      "icon": "auto_awesome"
     }
   ],
   "liveEvents": [
@@ -455,6 +471,125 @@
     }
   ],
   "games": [
+    {
+      "id": "cyberpunk-2077-cloud",
+      "name": "Cyberpunk 2077 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
+      "description": "Night City awaits. Absolute high-fidelity future simulation.",
+      "genre": "RPG",
+      "rating": 4.9,
+      "playersOnline": 65000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Cloud",
+        "Next-Gen",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "elden-ring-cloud",
+      "name": "Elden Ring (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
+      "description": "Rise, Tarnished. Absolute next-gen open world mastery.",
+      "genre": "RPG",
+      "rating": 5.0,
+      "playersOnline": 120000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Cloud",
+        "Next-Gen",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "halo-3-cloud-elite",
+      "name": "Halo 3 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
+      "description": "Finish the fight. Absolute 360-era dominance via high-fidelity cloud link.",
+      "genre": "FPS",
+      "rating": 5.0,
+      "playersOnline": 45000,
+      "availability": "Online",
+      "tags": [
+        "FPS",
+        "Cloud",
+        "Xbox 360",
+        "Elite",
+        "Sequel"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "venge-io-webgl",
+      "name": "Venge.io (Next-Gen)",
+      "url": "https://venge.io/",
+      "description": "High-octane WebGL tactical shooter. Absolute precision required.",
+      "genre": "FPS",
+      "rating": 4.7,
+      "playersOnline": 8900,
+      "availability": "Online",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "WebGL",
+        "Modern"
+      ],
+      "badgeIds": [
+        "modern"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://venge.io/",
+        "embedMode": "inline"
+      }
+    },
+    {
+      "id": "slow-roads-webgl",
+      "name": "Slow Roads (WebGL)",
+      "url": "https://slowroads.io/",
+      "description": "Absolute high-fidelity procedural driving. S.M.U.V.E. relaxation protocols enabled.",
+      "genre": "Racing",
+      "rating": 4.8,
+      "playersOnline": 5400,
+      "availability": "Online",
+      "tags": [
+        "WebGL",
+        "Simulation",
+        "Modern"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://slowroads.io/",
+        "embedMode": "inline"
+      }
+    },
     {
       "id": "battlefield",
       "name": "Battlefield",
@@ -7252,6 +7387,22 @@
   ],
   "recommendationRails": [
     {
+      "id": "rail-neo-zone",
+      "title": "NEO_ZONE Next-Gen",
+      "subtitle": "High-fidelity WebGL and Cloud-linked execution. The Absolute future.",
+      "roomIds": [
+        "neo-zone"
+      ],
+      "gameIds": [
+        "slow-roads-webgl",
+        "venge-io-webgl",
+        "halo-3-cloud-elite",
+        "elden-ring-cloud",
+        "cyberpunk-2077-cloud"
+      ],
+      "maxItems": 6
+    },
+    {
       "id": "rail-ps2-powerhouse",
       "title": "PS2 Powerhouse",
       "subtitle": "Absolute performance from the greatest era. S.M.U.V.E. approved.",
@@ -7491,6 +7642,8 @@
         "action-zone"
       ],
       "gameIds": [
+        "elden-ring-cloud",
+        "cyberpunk-2077-cloud",
         "gta-iii-elite",
         "gta-vice-city-elite",
         "gta-san-andreas-elite",
@@ -7515,6 +7668,8 @@
         "shooting-range"
       ],
       "gameIds": [
+        "halo-3-cloud-elite",
+        "venge-io-webgl",
         "half-life-ps2-elite",
         "quake-3-dc-elite",
         "unreal-tournament-dc-elite",

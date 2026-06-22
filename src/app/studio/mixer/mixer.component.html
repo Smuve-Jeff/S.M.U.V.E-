@@ -39,7 +39,6 @@
            <!-- Signal Meter Fill -->
            <div class="w-full bg-gradient-to-t from-green-500 via-yellow-400 to-red-500 opacity-80"
                 [style.height.%]="getTrackLevel(track.id) * 100"></div>
-                [style.height.%]="getTrackLevel(track.id) * 100"></div>
            <!-- Peak Indicator -->
            <div class="absolute top-0 left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_8px_red]"
                 *ngIf="isPeaking(track.id)"></div>
@@ -78,11 +77,6 @@
                  [class.bg-yellow-400]="track.soloed" [class.text-black]="track.soloed"
                  [class.bg-white/5]="!track.soloed" [class.text-slate-500]="!track.soloed"
                  (click)="toggleSolo(track); $event.stopPropagation()">S</button>
-                 (click)="toggleMute(track.id); $event.stopPropagation()">M</button>
-         <button class="w-full py-1 rounded-[2px] text-[8px] font-black transition-all"
-                 [class.bg-yellow-400]="track.soloed" [class.text-black]="track.soloed"
-                 [class.bg-white/5]="!track.soloed" [class.text-slate-500]="!track.soloed"
-                 (click)="toggleSolo(track.id); $event.stopPropagation()">S</button>
       </div>
     </div>
   </div>

@@ -10,7 +10,6 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
-import { KnobComponent } from '../shared/knob/knob.component';
 import {
   MusicManagerService,
   TrackModel,
@@ -24,7 +23,7 @@ import { Clip } from '../instrument.service';
 @Component({
   selector: 'app-mixer',
   standalone: true,
-  imports: [CommonModule, FormsModule, KnobComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './mixer.component.html',
   styleUrl: './mixer.component.css',
 })

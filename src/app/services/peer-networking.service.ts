@@ -13,10 +13,9 @@ export class PeerNetworkingService {
   knockFromUserId = signal<string | null>(null);
 
   async startCall(toUserId: string) {
-    // Hybrid "Knock to Enter" - Request permission first
     console.log(`Knocking for user: ${toUserId}`);
     this.social.sendVoiceSignal(toUserId, { type: 'KNOCK' });
-    this.isCallActive.set(true); // UI state showing waiting
+    this.isCallActive.set(true);
   }
 
   async handleSignal(fromUserId: string, data: any) {
@@ -62,8 +61,7 @@ export class PeerNetworkingService {
 
     this.isKnocking.set(false);
     this.knockFromUserId.set(null);
-    const success = await this.initializePeerConnection(fromUserId);
-    if (!success) return;
+    await this.initializePeerConnection(fromUserId);
     this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_ACCEPTED' });
     this.isCallActive.set(true);
   }
