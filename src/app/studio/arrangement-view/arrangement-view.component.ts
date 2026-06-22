@@ -35,7 +35,7 @@ export class ArrangementViewComponent {
 
   @ViewChild('gridViewport') gridViewport!: ElementRef<HTMLDivElement>;
 
-  barWidth = 100;
+  barWidth = signal(100);
   readonly isMobile = window.innerWidth <= 1024;
   readonly laneHeight = this.isMobile ? 110 : 80;
   readonly rulerHeight = 35;
