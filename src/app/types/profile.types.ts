@@ -187,7 +187,7 @@ export interface MusicalJourney {
   marketPosition: string;
 }
 export interface UserProfile {
-  musicalJourney: MusicalJourney;
+  musicalJourney?: MusicalJourney;
   id?: string;
   artistName: string;
   primaryGenre: string;
