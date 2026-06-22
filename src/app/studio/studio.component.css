@@ -665,3 +665,155 @@
     display: block;
   }
 }
+
+/* Skeuomorphic DAw Refinements */
+.wood-panel {
+  background: linear-gradient(to bottom, #3d2b1f, #2a1d15);
+  border-bottom: 2px solid #1a110a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.tactile-v42 {
+  background: linear-gradient(to bottom, #374151, #1f2937);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 2px 4px rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+}
+
+.tactile-v42:active {
+  background: linear-gradient(to top, #374151, #1f2937);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  transform: translateY(1px);
+}
+
+.glass-v42 {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.neon-text {
+  text-shadow: 0 0 8px currentColor;
+}
+
+/* FL Mobile Style Drawer for Sound Browser */
+.floating-browser-drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 320px;
+  background: #111827;
+  z-index: 500;
+  transform: translateX(-100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border-right: 1px solid #374151;
+  box-shadow: 20px 0 50px rgba(0,0,0,0.5);
+}
+
+.floating-browser-drawer.open {
+  transform: translateX(0);
+}
+
+/* Integrated FX Rack Styles */
+.mobile-fx-rack-panel {
+  background: #0f172a;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Refined Header (FL Studio Mobile Inspired) */
+.elite-header {
+  height: 48px;
+  background: #111827;
+  border-bottom: 2px solid #000;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 16px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.lcd-display {
+  background: #050505;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 12px;
+  display: flex;
+  gap: 12px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.lcd-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lcd-label {
+  font-size: 8px;
+  color: #444;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.lcd-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: #10b981;
+  text-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
+}
+
+
+/* Responsive DAW Densities */
+@media (max-width: 1024px) {
+  .studio-layout {
+    grid-template-columns: 1fr;
+  }
+  .track-headers {
+    width: 64px !important;
+  }
+  .track-name {
+    display: none;
+  }
+  .mixer-strip {
+    min-width: 64px !important;
+  }
+}
+
+/* Landscape Optimization */
+@media (orientation: landscape) and (max-height: 500px) {
+  .elite-header {
+    height: 36px;
+    padding: 0 8px;
+  }
+  .lcd-display {
+    padding: 2px 8px;
+  }
+  .lcd-value {
+    font-size: 11px;
+  }
+  .bottom-nav {
+    height: 48px !important;
+  }
+}
+
+/* Skeuomorphic Slider Refinement */
+input[type=range].rack-fader-pro {
+  background: #000;
+  height: 4px;
+  border-radius: 2px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+}
+
+input[type=range].rack-fader-pro::-webkit-slider-thumb {
+  width: 12px;
+  height: 20px;
+  background: linear-gradient(to right, #999, #eee, #999);
+  border: 1px solid #333;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}

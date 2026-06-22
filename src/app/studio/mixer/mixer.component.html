@@ -13,6 +13,7 @@
       </div>
     </div>
     <div class="flex items-center gap-2">
+      <button class="tactile-v42 px-3 py-1 text-[8px] font-black" [class.bg-red-500]="isRecordingAutomation()" (click)="toggleAutomation()">AUTO</button>
       <button class="icon-btn mini" (click)="toggleMixerWidth()">
         <span class="material-symbols-outlined text-sm">unfold_more</span>
       </button>

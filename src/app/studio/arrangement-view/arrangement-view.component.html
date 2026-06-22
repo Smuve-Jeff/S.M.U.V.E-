@@ -31,6 +31,9 @@
       </div>
     </div>
 
+    <div class="flex items-center gap-2 mx-2">
+      <button class="tactile-v42 px-3 py-1 text-[8px] font-black" [class.bg-red-500]="isRecordingAutomation()" (click)="toggleAutomation()">AUTO</button>
+    </div>
     <div class="tool-selector flex gap-1 mx-2">
       <button *ngFor="let tool of ['select', 'blade', 'glue']"
               (click)="activeTool.set(tool)"
@@ -113,7 +116,7 @@
       </div>
     </div>
 
-    <div class="grid-viewport no-scrollbar glass-v42" #gridViewport>
+    <div class="grid-viewport no-scrollbar glass-v42" #gridViewport (touchstart)="onGridTouchStart($event)" (touchmove)="onGridTouchMove($event)" (touchend)="onGridTouchEnd()">
       <div
         class="grid-canvas"
         [style.width.px]="gridWidth()"

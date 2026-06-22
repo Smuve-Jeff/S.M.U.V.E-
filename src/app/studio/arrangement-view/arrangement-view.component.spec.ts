@@ -3,9 +3,12 @@ import { ArrangementViewComponent } from './arrangement-view.component';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { AudioSessionService } from '../audio-session.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
-import { signal, computed } from '@angular/core';
+import { signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HistoryService } from '../../services/history.service';
+import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
+import { HapticService } from '../../services/haptic.service';
 
 describe('ArrangementViewComponent', () => {
   let component: ArrangementViewComponent;
@@ -16,17 +19,37 @@ describe('ArrangementViewComponent', () => {
     isRecording: signal(false),
     togglePlay: jest.fn(),
     toggleRecord: jest.fn(),
+    engine: { ctx: { createAnalyser: jest.fn() } }
   };
 
   const mockMusicManager = {
-    tracks: signal([{ id: 1, name: 'Lead', clips: [], mute: false, solo: false }]),
-    selectedTrackId: signal(1),
+    tracks: signal([{ id: '1', name: 'Lead', clips: [], mute: false, solo: false }]),
+    selectedTrackId: signal('1'),
     currentStep: signal(0),
     ensureTrack: jest.fn(),
     removeTrack: jest.fn(),
     removeClip: jest.fn(),
     toggleMute: jest.fn(),
     toggleSolo: jest.fn(),
+    takesExpanded: signal({}),
+    addTrack: jest.fn(),
+  };
+
+  const mockHistory = {
+    undo: jest.fn(),
+    redo: jest.fn(),
+    canUndo: signal(false),
+    canRedo: signal(false),
+    lastActionName: signal(''),
+  };
+
+  const mockEnhancedGestures = {
+    handlePinch: jest.fn(),
+  };
+
+  const mockHaptic = {
+    light: jest.fn(),
+    medium: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -36,6 +59,9 @@ describe('ArrangementViewComponent', () => {
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: AudioEngineService, useValue: { tempo: signal(124) } },
+        { provide: HistoryService, useValue: mockHistory },
+        { provide: EnhancedTouchGestureService, useValue: mockEnhancedGestures },
+        { provide: HapticService, useValue: mockHaptic },
       ]
     }).compileComponents();
 
@@ -50,7 +76,7 @@ describe('ArrangementViewComponent', () => {
 
   it('should call removeTrack', () => {
     window.confirm = jest.fn().mockReturnValue(true);
-    component.removeTrack(1, new MouseEvent('click') as any);
-    expect(mockMusicManager.removeTrack).toHaveBeenCalledWith(1);
+    component.removeTrack('1', new MouseEvent('click') as any);
+    expect(mockMusicManager.removeTrack).toHaveBeenCalledWith('1');
   });
 });
