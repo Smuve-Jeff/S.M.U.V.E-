@@ -123,7 +123,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     {
       route: 'image-video-lab',
       category: 'Visuals',
-      title: 'Produce visuals with Pluto TV',
+      title: 'Produce visuals with CinemaEngine',
       description:
         'Create cover art, visual concepts, and multi-track video timelines tuned for multiple delivery formats.',
       points: ['Image and video lab', 'Preset-based export workflows'],
@@ -199,7 +199,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     },
     {
       src: 'assets/hub/home-backdrop-cinema.png',
-      label: 'Pluto TV',
+      label: 'Cinema Engine',
       title: 'Mobile visual direction',
       layoutClass: 'panel-cinema',
     },
