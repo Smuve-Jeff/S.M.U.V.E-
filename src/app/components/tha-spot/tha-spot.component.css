@@ -861,10 +861,17 @@
 }
 
 .pluto-standalone-experience {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  background: #000;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 10000 !important;
+  background: #000 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
 .pluto-standalone-frame {
@@ -876,8 +883,8 @@
 .exit-pluto-btn {
   position: absolute;
   top: 20px;
-  right: 20px;
-  z-index: 1000;
+  left: 20px;
+  z-index: 20000;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -888,8 +895,10 @@
   letter-spacing: 1px;
   color: white;
   border: 1px solid rgba(255,255,255,0.2);
-  opacity: 0.3;
+  opacity: 0.5;
   transition: all 0.3s ease;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
 }
 
 .exit-pluto-btn:hover {
@@ -1743,8 +1752,26 @@
 
 
 /* Hide decorative HUD in Pluto mode to ensure clean control access */
+.pluto-active .hud-corner,
 .pluto-active .hud-overlay-scanner,
 .pluto-active .hud-glitch-overlay,
 .pluto-active .hud-decorative-line {
+  display: none !important;
+}
+
+/* Enhanced Pluto Standalone Overrides */
+.pluto-active .spot-main-content,
+.pluto-active .main-content {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+.pluto-active .rival-hub,
+.pluto-active .executive-sidebar {
   display: none !important;
 }
