@@ -27,7 +27,7 @@
       </div>
       <div class="h-6 w-px bg-white/10 mx-2"></div>
       <button class="mode-btn" [class.active]="displayMode() === 'gaming'" (click)="setMode('gaming')">GAMING</button>
-      <button class="mode-btn" [class.active]="displayMode() === 'pluto'" (click)="setMode('pluto')">PLUTO TV</button>
+      <button type="button" class="mode-btn" [class.active]="displayMode() === 'pluto'" (click)="setMode('pluto')">PLUTO TV</button>
     </div>
   </header>
 
