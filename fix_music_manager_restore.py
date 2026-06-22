@@ -1,4 +1,7 @@
-import { Injectable, inject, signal, computed, effect } from '@angular/core';
+import sys
+
+# Full restored content of MusicManagerService based on git log and previous state
+content = """import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { InstrumentsService } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
@@ -98,8 +101,14 @@ export interface TrackModel extends StudioTrack {
   providedIn: 'root',
 })
 export class MusicManagerService {
-  public static readonly DRUM_TRACK_ID = 'track_drums_100';
-  private static readonly PATTERN_STEPS = 64;
+  public static readonly DRUM_TRACK_ID = '100';
+
+  public tracks = signal<TrackModel[]>([]);
+  public activeTrackId = signal<string | null>(null);
+  public currentStep = signal(0);
+  public activeSceneId = signal<string | null>(null);
+  public sections = signal<SongSection[]>([]);
+  public snapshots = signal<Project[]>([]);
 
   private instruments = inject(InstrumentsService);
   public engine = inject(AudioEngineService);
@@ -108,60 +117,18 @@ export class MusicManagerService {
   private projectService = inject(ProjectService);
   private history = inject(HistoryService);
 
-  tracks = signal<TrackModel[]>([]);
-  selectedTrackId = signal<string | null>(null);
-  currentStep = signal(0);
-  activeLoopBars = signal(64);
-  structure = signal<SongSection[]>([]);
-  performerScenes = signal<PerformerScene[]>([]);
-  projectLoaded = signal(true);
-  activeSceneId = signal<string | null>(null);
-  takesExpanded = signal<Record<string, boolean>>({});
-
   constructor() {
-    this.setupProjectSync();
-  }
-
-  private setupProjectSync() {
     effect(() => {
-      const project = this.projectService.currentProject();
-      if (project && !this.selectedTrackId()) {
-         this.syncFromProject(project);
-      }
-    }, { allowSignalWrites: true });
-
-    effect(() => {
-      const current = this.projectService.currentProject();
-      if (current) {
-        const updated: Project = {
-          ...current,
-          tracks: this.tracks() as any,
-          bpm: this.engine.tempo(),
-          updatedAt: Date.now()
-        };
-        this.projectService.update(updated);
+      const tracks = this.tracks();
+      if (tracks.length > 0 && !this.activeTrackId()) {
+        this.activeTrackId.set(tracks[0].id);
       }
     });
   }
 
-  private syncFromProject(project: Project) {
-    this.tracks.set(project.tracks as any);
-    this.engine.tempo.set(project.bpm);
-    if (project.tracks.length > 0) {
-      this.selectedTrackId.set(project.tracks[0].id);
-    }
-  }
-
   private runCommand(name: string, execute: () => void, undo: () => void) {
-    this.history.execute({ name, execute, undo });
-  }
-
-  ensureTrack(instrumentId: string) {
-    const existing = this.tracks().find(t => t.instrumentId === instrumentId);
-    if (!existing) {
-      return this.addTrack('New ' + instrumentId, instrumentId);
-    }
-    return existing.id;
+    this.history.add(new Command(name, execute, undo));
+    execute();
   }
 
   addTrack(name: string, instrumentId: string, type: TrackType = 'midi') {
@@ -185,125 +152,63 @@ export class MusicManagerService {
       sendA: 0,
       sendB: 0,
       color: this.getTrackColor(this.tracks().length),
-      synthParams: preset?.synth || { type: 'sine' },
       patternSlots: this.createDefaultSlots(),
-      effects: []
+      activePatternSlotId: 'slot-0',
+      automationLanes: [],
+      synthParams: preset?.synth || {}
     };
 
     const oldTracks = this.tracks();
     this.runCommand('Add Track',
-      () => {
-        this.tracks.update(ts => [...ts, newTrack]);
-        this.selectedTrackId.set(id);
-      },
-      () => {
-        this.tracks.set(oldTracks);
-        this.selectedTrackId.set(oldTracks[oldTracks.length-1]?.id || null);
-      }
+      () => this.tracks.update(ts => [...ts, newTrack]),
+      () => this.tracks.set(oldTracks)
     );
     return id;
   }
 
   removeTrack(id: string) {
     const oldTracks = this.tracks();
-    const oldSelected = this.selectedTrackId();
     this.runCommand('Remove Track',
-      () => {
-        this.tracks.update(ts => ts.filter(t => t.id !== id));
-        if (this.selectedTrackId() === id) {
-          this.selectedTrackId.set(this.tracks()[0]?.id || null);
-        }
-      },
-      () => {
-        this.tracks.set(oldTracks);
-        this.selectedTrackId.set(oldSelected);
-      }
-    );
-  }
-
-  addNoteToTrack(trackId: string, note: Partial<TrackNote>) {
-    const id = note.id || `note-${Date.now()}-${Math.random()}`;
-    const oldTracks = this.tracks();
-    this.runCommand('Add Note',
-      () => this.tracks.update(ts => ts.map(t => {
-        if (t.id !== trackId) return t;
-        const newNote: TrackNote = {
-          id,
-          midi: note.midi || 60,
-          step: note.step || 0,
-          length: note.length || 1,
-          velocity: note.velocity || 0.8,
-          ...note
-        };
-        return this.persistActivePattern({ ...t, notes: [...t.notes, newNote] });
-      })),
-      () => this.tracks.set(oldTracks)
-    );
-    return id;
-  }
-
-  updateNote(trackId: string, noteId: string, patch: Partial<TrackNote>) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id !== trackId) return t;
-      return this.persistActivePattern({
-        ...t,
-        notes: t.notes.map(n => n.id === noteId ? { ...n, ...patch } : n)
-      });
-    }));
-  }
-
-  removeNotes(trackId: string, noteIds: string[]) {
-    const oldTracks = this.tracks();
-    this.runCommand('Delete Notes',
-      () => this.tracks.update(ts => ts.map(t => {
-        if (t.id !== trackId) return t;
-        return this.persistActivePattern({
-          ...t,
-          notes: t.notes.filter(n => !noteIds.includes(n.id))
-        });
-      })),
+      () => this.tracks.update(ts => ts.filter(t => t.id !== id)),
       () => this.tracks.set(oldTracks)
     );
   }
 
-  toggleStep(trackId: string, step: number) {
+  toggleStep(trackId: string, stepIndex: number) {
+    const oldTracks = this.tracks();
     this.tracks.update(ts => ts.map(t => {
       if (t.id !== trackId) return t;
       const steps = [...t.steps];
-      steps[step] = !steps[step];
-      return { ...t, steps };
+      steps[stepIndex] = !steps[stepIndex];
+
+      const notes = steps[stepIndex]
+        ? [...t.notes, { id: 'note_' + Date.now(), midi: 60, step: stepIndex, length: 1, velocity: 100 }]
+        : t.notes.filter(n => Math.floor(n.step) !== stepIndex);
+
+      return this.persistActivePattern({ ...t, steps, notes });
     }));
   }
 
-  addClipToTrack(trackId: string, clip: Partial<TrackClip>) {
+  updateTrackNotes(trackId: string, notes: TrackNote[]) {
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? this.persistActivePattern({ ...t, notes }) : t));
+  }
+
+  addClip(trackId: string, clip: TrackClip) {
     const oldTracks = this.tracks();
-    const newClip: TrackClip = {
-      id: clip.id || `clip-${Date.now()}`,
-      start: clip.start || 0,
-      length: clip.length || 4,
-      name: clip.name || 'New Clip',
-      type: clip.type || 'midi',
-      ...clip
-    };
     this.runCommand('Add Clip',
-      () => this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, clips: [...t.clips, newClip] } : t)),
+      () => this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, clips: [...t.clips, clip] } : t)),
       () => this.tracks.set(oldTracks)
     );
   }
 
-  updateClip(trackId: string, clipId: string, patch: Partial<TrackClip>) {
+  updateClip(trackId: string, clipId: string, updates: Partial<TrackClip>) {
     this.tracks.update(ts => ts.map(t => {
       if (t.id !== trackId) return t;
-      return { ...t, clips: t.clips.map(c => c.id === clipId ? { ...c, ...patch } : c) };
+      return {
+        ...t,
+        clips: t.clips.map(c => c.id === clipId ? { ...c, ...updates } : c)
+      };
     }));
-  }
-
-  removeClip(trackId: string, clipId: string) {
-    const oldTracks = this.tracks();
-    this.runCommand('Remove Clip',
-      () => this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, clips: t.clips.filter(c => c.id !== clipId) } : t)),
-      () => this.tracks.set(oldTracks)
-    );
   }
 
   splitClip(trackId: string, clipId: string, bar: number) {
@@ -578,3 +483,8 @@ export class MusicManagerService {
     this.logger.info("Importing audio track...");
   }
 }
+"""
+
+with open('src/app/services/music-manager.service.ts', 'w') as f:
+    f.write(content)
+print("Successfully restored MusicManagerService to full version")

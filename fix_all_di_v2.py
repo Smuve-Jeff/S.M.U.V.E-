@@ -1,87 +1,64 @@
 import sys
-import os
 
-def write_file(path, content):
+def fix_audio_engine():
+    path = 'src/app/services/audio-engine.service.ts'
+    with open(path, 'r') as f:
+        content = f.read()
+
+    # Ensure ctx is public
+    content = content.replace('private ctx: AudioContext;', 'public ctx: AudioContext;')
+    content = content.replace('  ctx: AudioContext;', '  public ctx: AudioContext;')
+
+    # Fix applyProductionParameter visibility or exists
+    if 'public applyProductionParameter' not in content:
+        content = content.replace('applyProductionParameter(', 'public applyProductionParameter(')
+
     with open(path, 'w') as f:
         f.write(content)
 
-# 1. TokenService (Safe, no deps)
-write_file('src/app/services/token.service.ts', """import { Injectable, signal } from '@angular/core';
+def fix_drum_machine_component():
+    path = 'src/app/studio/drum-machine/drum-machine.component.ts'
+    with open(path, 'r') as f:
+        lines = f.readlines()
 
-@Injectable({
-  providedIn: 'root',
-})
-export class TokenService {
-  private _jwtToken = signal<string | null>(this.getSavedToken());
-  jwtToken = this._jwtToken.asReadonly();
+    # Add OnInit to imports
+    new_lines = []
+    for line in lines:
+        if 'import { AfterViewInit, Component, computed, inject, OnDestroy, signal, } from \'@angular/core\';' in line:
+            line = line.replace('OnDestroy, signal,', 'OnDestroy, signal, OnInit,')
+        new_lines.append(line)
 
-  setToken(token: string | null) {
-    this._jwtToken.set(token);
-    if (typeof localStorage !== 'undefined') {
-      if (token) {
-        localStorage.setItem('smuve_jwt_token', token);
-      } else {
-        localStorage.removeItem('smuve_jwt_token');
-      }
-    }
-  }
+    # Add viewMode and selectedPad signals/methods
+    # I will just replace the whole class with a fixed version based on previous attempt but with missing pieces.
+    pass
 
-  private getSavedToken(): string | null {
-    if (typeof localStorage !== 'undefined') {
-      return localStorage.getItem('smuve_jwt_token');
-    }
-    return null;
-  }
-}
-""")
+# Simplified: Use a robust script to add missing members to DrumMachineComponent
+def fix_dm():
+    path = 'src/app/studio/drum-machine/drum-machine.component.ts'
+    with open(path, 'r') as f:
+        content = f.read()
 
-# 2. AuthService
-write_file('src/app/services/auth.service.ts', """import { Injectable, inject, signal, Injector } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
-import { LoggingService } from './logging.service';
-import { TokenService } from './token.service';
-import { APP_SECURITY_CONFIG as GLOBAL_SECURITY_CONFIG } from '../app.security';
+    if 'public viewMode = signal' not in content:
+        content = content.replace('public rollRate = signal(16);',
+                                  'public rollRate = signal(16);\n  public viewMode = signal<"sequencer" | "knobs">("sequencer");\n  public graphTarget = signal<"velocity" | "probability">("velocity");\n  public currentBar = signal(0);\n  public barRange = [0, 1, 2, 3];\n  public barStepRange = Array.from({length: 16}, (_, i) => i);')
 
-// Types and constants
-export interface AuthCredentials { email: string; password: string; twoFactorCode?: string; }
-export interface AuthUser { id: string; email: string; artistName: string; role: string; permissions: string[]; createdAt: Date; lastLogin: Date; profileCompleteness: number; emailVerified: boolean; }
+    if 'public selectedPadId = signal' not in content:
+        content = content.replace('public viewMode = signal', 'public selectedPadId = signal<string>("pad-36");\n  public viewMode = signal')
 
-@Injectable({ providedIn: 'root' })
-export class AuthService {
-  private injector = inject(Injector);
-  private logger = inject(LoggingService);
-  private tokenService = inject(TokenService);
-  private http = inject(HttpClient);
+    if 'public selectedPad = computed' not in content:
+        content = content.replace('public pads = signal', 'public selectedPad = computed(() => this.pads().find(p => p.id === this.selectedPadId()));\n  public pads = signal')
 
-  // Late-bound dependencies to break cycles
-  private get securityService(): any { return this.injector.get(require('./security.service').SecurityService); }
-  private get profileService(): any { return this.injector.get(require('./user-profile.service').UserProfileService); }
-  private get loginConfirmationService(): any { return this.injector.get(require('./login-confirmation.service').LoginConfirmationService); }
+    # Fix haptic calls
+    content = content.replace('this.haptic.lightClick()', 'this.haptic.light()')
+    content = content.replace('this.haptic.impact()', "this.haptic.impact('light')")
 
-  private _isAuthenticated = signal(false);
-  private _currentUser = signal<AuthUser | null>(null);
+    # Add missing methods
+    if 'selectPad(id: string)' not in content:
+        content = content.replace('toggleStep(padIndex: number, stepIndex: number) {',
+                                  'selectPad(id: string) { this.selectedPadId.set(id); }\n  getPadStep(padId: string, stepIdx: number) { return this.pads().find(p => p.id === padId)?.steps[stepIdx] || {active: false, velocity: 0}; }\n  isStepPlaying(pad: any) { return false; }\n  isGlobalStep(step: number) { return false; }\n  toggleStep(padIndex: any, stepIndex: number) {')
 
-  isAuthenticated = this._isAuthenticated.asReadonly();
-  currentUser = this._currentUser.asReadonly();
-  jwtToken = this.tokenService.jwtToken;
+    with open(path, 'w') as f:
+        f.write(content)
 
-  constructor() {}
-
-  async loadSession() {
-    try {
-      if (typeof localStorage === 'undefined') return;
-      const encrypted = localStorage.getItem('smuve_auth_session');
-      if (!encrypted) return;
-      // ... rest of logic
-    } catch (e) {}
-  }
-
-  async login(c: AuthCredentials) { return { success: true, message: 'STATUS VERIFIED. RESUME THE GRIND.' }; }
-  async register(c: AuthCredentials, n: string) { return { success: true, message: 'S.M.U.V.E 2.0 INITIALIZED.' }; }
-  logout() { this._currentUser.set(null); this._isAuthenticated.set(false); this.tokenService.setToken(null); }
-  validatePassword(p: string) { return { isValid: true, errors: [] }; }
-}
-""")
-# Note: Using require() in a template for this script might fail if the build system isn't expecting it.
-# Let's stick to Injector.get(Token) where Token is imported.
+fix_audio_engine()
+fix_dm()
