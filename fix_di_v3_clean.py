@@ -1,4 +1,5 @@
 import sys
+import re
 
 # DrumMachineComponent
 path_dm = 'src/app/studio/drum-machine/drum-machine.component.ts'
@@ -7,8 +8,12 @@ with open(path_dm, 'r') as f:
 
 # Add missing members
 if 'viewMode' not in content:
-    content = content.replace('public pads = signal',
-                              'public viewMode = signal<"sequencer" | "knobs">("sequencer");\n  public graphTarget = signal<"velocity" | "probability">("velocity");\n  public currentBar = signal(0);\n  public barRange = [0, 1, 2, 3];\n  public barStepRange = Array.from({length: 16}, (_, i) => i);\n  public selectedPadId = signal<string>("pad-36");\n  public selectedPad = computed(() => this.pads().find(p => p.id === this.selectedPadId()));\n  public pads = signal')
+    content = re.sub(
+        r'public\s+pads\s*=\s*signal',
+        'public viewMode = signal<"sequencer" | "knobs">("sequencer");\n  public graphTarget = signal<"velocity" | "probability">("velocity");\n  public currentBar = signal(0);\n  public barRange = [0, 1, 2, 3];\n  public barStepRange = Array.from({length: 16}, (_, i) => i);\n  public selectedPadId = signal<string>("pad-36");\n  public selectedPad = computed(() => this.pads().find(p => p.id === this.selectedPadId()));\n  public pads = signal',
+        content,
+        count=1
+    )
 
 # Add missing methods
 methods = """
