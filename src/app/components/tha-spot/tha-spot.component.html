@@ -1,123 +1,116 @@
-<div class="tha-spot-container glass-v42 custom-scrollbar" [class.browse-view]="isBrowseView()" (scroll)="onContentScroll($event)">
-  <!-- Global Scanlines -->
-  <div class="scanlines"></div>
-
-  <!-- Header Section -->
+<div class="tha-spot-container full-page no-scrollbar animate-enter" (scroll)="onContentScroll($event)" #contentViewport>
+  <!-- Spot Header -->
   <header class="spot-header glass-v42 shadow-v42-lg">
     <div class="header-left">
-      <div class="brand-v42 animate-pulse" (click)="toggleBrowse()">
-        <span class="material-symbols-outlined elite-icon">diamond</span>
-        <span class="brand-text">THA SPOT</span>
+      <h1 class="glitch-text" data-text="THA_SPOT">THA_SPOT</h1>
+      <div class="status-badge hide-mobile">
+        <span class="status-indicator live"></span>
+        <span class="status-text">NEURAL_UPLINK_ACTIVE</span>
       </div>
-      <div class="room-selector glass-v42" *ngIf="displayMode() !== 'pluto'">
-        <button
-          *ngFor="let room of gamingRooms()"
-          [class.active]="activeRoom() === room.id"
-          (click)="setActiveRoom(room.id)"
-          class="room-btn"
-        >
-          {{ room.name | uppercase }}
-        </button>
+    </div>
+
+    <div class="header-center hide-mobile">
+      <div class="search-bar glass-v42">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" [ngModel]="searchQuery()" (ngModelChange)="onSearchChange($event)" placeholder="LOCATE CABINET..." />
       </div>
     </div>
 
     <div class="header-right">
-      <div class="search-v42" *ngIf="isBrowseView() && displayMode() !== 'pluto'">
-        <span class="material-symbols-outlined search-icon">search</span>
-        <input
-          type="text"
-          placeholder="SEARCH THE CATALOG..."
-          [ngModel]="searchQuery()"
-          (ngModelChange)="onSearchChange($event)"
-        />
+      <div class="room-selector">
+        <button class="room-btn active" (click)="toggleIntel()" [class.has-alert]="true">
+          <span class="material-symbols-outlined">analytics</span>
+        </button>
+        <button class="room-btn" (click)="toggleRivalHub()" [class.has-alert]="socialService.roomMessages().length > 0">
+          <span class="material-symbols-outlined">groups</span>
+        </button>
       </div>
-      <button class="icon-btn" (click)="toggleRivalHub()" [class.active]="showRivalHub()">
-        <span class="material-symbols-outlined">group</span>
-        <div class="online-count" *ngIf="onlineUsers().length > 0">{{ onlineUsers().length }}</div>
-      </button>
-      <button class="icon-btn" (click)="toggleIntel()"><span class="material-symbols-outlined">analytics</span></button>
-      <div class="header-divider"></div>
-      <button class="mode-btn" [class.active]="displayMode() === 'gaming'" (click)="setMode('gaming')">ARCADE</button>
+      <div class="h-6 w-px bg-white/10 mx-2"></div>
+      <button class="mode-btn" [class.active]="displayMode() === 'gaming'" (click)="setMode('gaming')">GAMING</button>
       <button class="mode-btn" [class.active]="displayMode() === 'pluto'" (click)="setMode('pluto')">CINEMA</button>
     </div>
   </header>
 
-  <!-- Main Content Area -->
-  <main class="spot-viewport" [class.pluto-active]="displayMode() === 'pluto'">
+  <main class="spot-main-content">
     <ng-container *ngIf="displayMode() === 'gaming'">
       <!-- Browse View -->
-      <div class="browse-experience animate-enter" *ngIf="isBrowseView()">
+      <div class="browse-view animate-enter" *ngIf="isBrowseView()">
+        <div class="hero-section glass-v42-pro">
+          <div class="hero-content">
+            <span class="hero-tag">ELITE_FEATURED</span>
+            <h2>HIGH-FIDELITY RERUNS</h2>
+            <p>Access the Absolute gaming catalog with zero-latency emulation.</p>
+            <div class="hero-actions">
+              <button class="primary-btn" (click)="setActiveRoom('arcade')">ARCADE_FLOOR</button>
+              <button class="secondary-btn" (click)="setActiveRoom('neo-zone')">NEO_ZONE</button>
+            </div>
+          </div>
+        </div>
+
         <div class="catalog-filters-row glass-v42">
+          <div class="filter-group">
+            <label>ROOM</label>
+            <select [ngModel]="activeRoom()" (ngModelChange)="setActiveRoom($event)">
+              <option *ngFor="let room of gamingRooms()" [value]="room.id">{{ room.name }}</option>
+            </select>
+          </div>
           <div class="filter-group">
             <label>GENRE</label>
             <select [ngModel]="activeGenre()" (ngModelChange)="activeGenre.set($event)">
-              <option value="all">ALL GENRES</option>
-              <option *ngFor="let g of allCategories()" [value]="g">{{ g | uppercase }}</option>
+              <option value="all">ALL_GENRES</option>
+              <option *ngFor="let g of availableGenres()" [value]="g">{{ g }}</option>
             </select>
           </div>
-          <div class="filter-group">
-            <label>PLATFORM</label>
-            <select [ngModel]="activePlatform()" (ngModelChange)="activePlatform.set($event)">
-              <option value="all">ALL PLATFORMS</option>
-              <option value="PS2">PLAYSTATION 2</option>
-              <option value="N64">NINTENDO 64</option>
-              <option value="XBOX">XBOX ELITE</option>
-              <option value="WEBGL">WEBGL SIM</option>
-            </select>
-          </div>
-          <button class="clear-btn glass-v42" (click)="clearFilters()">RESET FILTERS</button>
+          <button class="clear-btn mini" (click)="clearFilters()">RESET</button>
         </div>
 
-        <section class="recommendation-rails">
-          <div class="rail-v42" *ngFor="let rail of matchingRecommendationRails()">
-            <h3 class="rail-title">{{ rail.title | uppercase }}</h3>
-            <div class="rail-grid no-scrollbar">
-              <div class="game-card-v42 glass-v42 shadow-v42-sm"
-                   *ngFor="let game of getGamesForRail(rail)"
-                   (click)="onGameClick(game)">
+        <div class="recommendation-rails">
+          <div class="rail-item" *ngFor="let rail of recommendationRails()">
+            <div class="rail-header">
+              <h3>{{ rail.title }}</h3>
+              <p>{{ rail.subtitle }}</p>
+            </div>
+            <div class="rail-content no-scrollbar">
+              <div class="game-card glass-v42 shadow-v42-md" *ngFor="let game of getGamesForRail(rail)" (click)="onGameClick(game)">
                 <div class="card-media">
-                  <img [src]="game.image" [alt]="game.name" loading="lazy" />
-                  <div class="card-overlay">
-                    <span class="material-symbols-outlined">play_circle</span>
-                  </div>
+                  <img [src]="game.image || 'assets/desktop_hub.png'" [alt]="game.name" loading="lazy" />
+                  <div class="card-overlay"><span class="material-symbols-outlined">play_circle</span></div>
+                  <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
+                  <div class="card-badge next-gen" *ngIf="game.badgeIds?.includes('next-gen')">NEXT-GEN</div>
+                  <div class="card-badge modern" *ngIf="game.badgeIds?.includes('modern')">MODERN</div>
                 </div>
                 <div class="card-info">
-                  <div class="game-name">{{ game.name }}</div>
-                  <div class="game-genre">{{ game.genre }}</div>
+                  <span class="game-name">{{ game.name }}</span>
+                  <span class="game-genre">{{ game.genre }}</span>
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </div>
 
-        <section class="full-catalog">
-          <h3 class="section-title">ALL OPERATIONAL TITLES</h3>
-          <div class="catalog-grid">
-            <div class="game-card-v42 glass-v42 shadow-v42-sm"
-                 *ngFor="let game of filteredGames()"
-                 (click)="onGameClick(game)">
+      <!-- Room View -->
+      <div class="room-view animate-enter" *ngIf="!isBrowseView()">
+        <div class="room-header">
+          <button class="back-btn" (click)="toggleBrowse()">
+            <span class="material-symbols-outlined">arrow_back</span> BACK_TO_CATALOG
+          </button>
+          <h2>{{ getActiveRoomName() }}</h2>
+        </div>
+        <div class="catalog-grid">
+           <div class="game-card glass-v42 shadow-v42-md" *ngFor="let game of filteredGames()" (click)="onGameClick(game)">
               <div class="card-media">
                 <img [src]="game.image" [alt]="game.name" loading="lazy" />
                 <div class="card-overlay"><span class="material-symbols-outlined">play_circle</span></div>
-                <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">ELITE</div><div class="card-badge next-gen" *ngIf="game.badgeIds?.includes('next-gen')">NEXT-GEN</div><div class="card-badge modern" *ngIf="game.badgeIds?.includes('modern')">MODERN</div>
+                <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
+                <div class="card-badge next-gen" *ngIf="game.badgeIds?.includes('next-gen')">NEXT-GEN</div>
+                <div class="card-badge modern" *ngIf="game.badgeIds?.includes('modern')">MODERN</div>
               </div>
               <div class="card-info">
-                <div class="game-name">{{ game.name }}</div>
-                <div class="game-genre">{{ game.genre }}</div>
+                <span class="game-name">{{ game.name }}</span>
+                <span class="game-genre">{{ game.genre }}</span>
               </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- Gaming View -->
-      <div class="gaming-experience" *ngIf="!isBrowseView()">
-        <!-- Fallback if no game selected -->
-        <div class="no-game-selected glass-v42" *ngIf="!currentGame()">
-          <span class="material-symbols-outlined large-icon">sports_esports</span>
-          <h2>NO ACTIVE SESSION</h2>
-          <p>SELECT A TITLE FROM THE CATALOG TO INITIALIZE UPLINK.</p>
-          <button class="primary-btn" (click)="toggleBrowse()">BROWSE CATALOG</button>
+           </div>
         </div>
       </div>
     </ng-container>
@@ -127,17 +120,17 @@
       <button class="exit-pluto-btn glass-v42" (click)="setMode('gaming')">
         <span class="material-symbols-outlined">arrow_back</span> EXIT CINEMA
       </button>
-        <div class="hud-decorative-line left"></div>
-        <div class="hud-decorative-line right"></div>
+      <div class="hud-decorative-line left"></div>
+      <div class="hud-decorative-line right"></div>
       <div class="iframe-glitch-wrapper">
-      <iframe
-        src="https://pluto.tv"
-        class="pluto-standalone-frame"
-        allow="autoplay; fullscreen"
-      ></iframe>
+        <iframe
+          src="https://pluto.tv"
+          class="pluto-standalone-frame"
+          allow="autoplay; fullscreen"
+        ></iframe>
         <div class="hud-glitch-overlay"></div>
       </div>
-        <div class="hud-overlay-scanner"></div>
+      <div class="hud-overlay-scanner"></div>
     </div>
   </main>
 
@@ -166,7 +159,7 @@
     </div>
   </aside>
 
-  <!-- Rival Hub Sidebar (Upgraded) -->
+  <!-- Rival Hub Sidebar -->
   <aside class="executive-sidebar glass-v42-pro rival-hub" [class.active]="showRivalHub() && displayMode() !== 'pluto'">
     <header class="sidebar-header">
       <div class="hub-tabs">
@@ -302,6 +295,7 @@
       </div>
     </footer>
   </aside>
+
   <!-- Selection Preview Overlay -->
   <div class="preview-overlay" *ngIf="selectedGame() as selected">
     <div class="overlay-backdrop" (click)="closePreview()"></div>
@@ -311,7 +305,9 @@
       </div>
       <div class="preview-copy">
         <div class="preview-header">
-          <span class="tag" *ngIf="selected.badgeIds?.includes('elite')">ELITE CABINET</span><span class="tag next-gen" *ngIf="selected.badgeIds?.includes('next-gen')">NEXT-GEN</span><span class="tag modern" *ngIf="selected.badgeIds?.includes('modern')">MODERN</span>
+          <span class="tag" *ngIf="selected.badgeIds?.includes('elite')">ELITE CABINET</span>
+          <span class="tag next-gen" *ngIf="selected.badgeIds?.includes('next-gen')">NEXT-GEN</span>
+          <span class="tag modern" *ngIf="selected.badgeIds?.includes('modern')">MODERN</span>
           <h2>{{ selected.name }}</h2>
         </div>
         <p class="description">{{ selected.description }}</p>
