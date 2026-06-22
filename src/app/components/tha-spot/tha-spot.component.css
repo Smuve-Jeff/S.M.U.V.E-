@@ -1555,3 +1555,26 @@
   color: #a855f7;
   border: 1px solid rgba(112, 0, 255, 0.3);
 }
+
+.full-catalog-supplement {
+  margin-top: 4rem;
+  padding: 0 1rem 4rem;
+}
+
+.full-catalog-supplement .section-header {
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.full-catalog-supplement .section-header h3 {
+  font-size: 1.5rem;
+  color: var(--elite-neon-purple);
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.full-catalog-supplement .section-header p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
