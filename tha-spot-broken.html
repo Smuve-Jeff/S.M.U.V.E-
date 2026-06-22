@@ -520,9 +520,8 @@
         <div class="iframe-glitch-wrapper">
         <iframe
           [src]="currentSafeUrl()"
-          `#gameIframe`
+          #gameIframe
           class="game-frame"
-          title="Game Console"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
           allowfullscreen
         ></iframe>

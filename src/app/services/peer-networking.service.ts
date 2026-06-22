@@ -13,10 +13,9 @@ export class PeerNetworkingService {
   knockFromUserId = signal<string | null>(null);
 
   async startCall(toUserId: string) {
-    // Hybrid "Knock to Enter" - Request permission first
     console.log(`Knocking for user: ${toUserId}`);
     this.social.sendVoiceSignal(toUserId, { type: 'KNOCK' });
-    this.isCallActive.set(true); // UI state showing waiting
+    this.isCallActive.set(true);
   }
 
   async handleSignal(fromUserId: string, data: any) {
@@ -62,22 +61,9 @@ export class PeerNetworkingService {
 
     this.isKnocking.set(false);
     this.knockFromUserId.set(null);
-  async acceptKnock() {
-    const fromUserId = this.knockFromUserId();
-    if (!fromUserId) return;
-
-    this.isKnocking.set(false);
-    this.knockFromUserId.set(null);
-    try {
-      await this.initializePeerConnection(fromUserId);
-      this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_ACCEPTED' });
-      this.isCallActive.set(true);
-    } catch (error) {
-      console.error('Failed to initialize peer connection:', error);
-      this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_DECLINED' });
-      // Optionally: show error to user about microphone permission
-    }
-  }
+    await this.initializePeerConnection(fromUserId);
+    this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_ACCEPTED' });
+    this.isCallActive.set(true);
   }
 
   declineKnock() {
