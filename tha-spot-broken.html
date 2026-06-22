@@ -130,11 +130,10 @@
         <div class="hud-decorative-line left"></div>
         <div class="hud-decorative-line right"></div>
       <div class="iframe-glitch-wrapper">
-        <iframe
       <iframe
         src="https://pluto.tv"
         class="pluto-standalone-frame"
-        allow="autoplay; fullscreen"
+
       ></iframe>
         <div class="hud-glitch-overlay"></div>
       </div>
@@ -520,9 +519,8 @@
         <div class="iframe-glitch-wrapper">
         <iframe
           [src]="currentSafeUrl()"
-          `#gameIframe`
+          #gameIframe
           class="game-frame"
-          title="Game Console"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
           allowfullscreen
         ></iframe>
