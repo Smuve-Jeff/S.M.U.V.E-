@@ -1,62 +1,98 @@
+import { Instrument } from './instrument';
 import { Sampler } from './sampler';
+
+export interface PadFX {
+  saturation: number;
+  cutoff: number;
+  resonance: number;
+  bitCrush: number;
+}
 
 export interface DrumPad {
   id: string;
   name: string;
   pitch: number;
-  buffer?: AudioBuffer;
+  fx: PadFX;
+  gain: GainNode;
+  filter: BiquadFilterNode;
 }
 
-export class DrumMachine {
+export class DrumMachine extends Instrument {
   private sampler: Sampler;
   private pads: DrumPad[] = [];
 
-  constructor(private readonly context: AudioContext) {
-    this.sampler = new Sampler(this.context);
+  private rollIntervals: Map<string, any> = new Map();
+
+  constructor(context: AudioContext) {
+    super(context, 32); // Higher polyphony for drums
+    this.sampler = new Sampler(this.audioContext);
+    this.sampler.connect(this.output);
 
     const padNames = [
-      'Kick',
-      'Snare',
-      'Clap',
-      'Hi-Hat (C)',
-      'Hi-Hat (O)',
-      'Tom',
-      'Rim',
-      'Crash',
+      'Kick', 'Snare', 'Clap', 'Hi-Hat (C)',
+      'Hi-Hat (O)', 'Tom', 'Rim', 'Crash',
     ];
+
     padNames.forEach((name, i) => {
-      this.pads.push({ id: `pad-${i}`, name, pitch: 36 + i });
+      const gain = this.audioContext.createGain();
+      const filter = this.audioContext.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 20000;
+
+      const pad: DrumPad = {
+        id: `pad-${36 + i}`,
+        name,
+        pitch: 36 + i,
+        fx: { saturation: 0, cutoff: 20000, resonance: 1, bitCrush: 0 },
+        gain,
+        filter
+      };
+      this.pads.push(pad);
     });
   }
 
-  loadSample(padId: string, buffer: AudioBuffer) {
-    const pad = this.pads.find((p) => p.id === padId);
-    if (pad) {
-      pad.buffer = buffer;
-      this.sampler.loadSample(pad.pitch, buffer);
-    }
+  play(note: number, velocity: number): void {
+    this.triggerPad(note, velocity / 127);
+  }
+
+  stop(note: number): void {
+    // Drums usually don't stop, but we can implement choke groups here
+  }
+
+  loadSample(pitch: number, buffer: AudioBuffer, velocityThreshold: number = 127) {
+    this.sampler.loadSample(pitch, buffer, velocityThreshold);
   }
 
   triggerPad(
-    padId: string,
+    pitch: number,
     velocity: number,
-    when: number = this.context.currentTime
+    when: number = this.audioContext.currentTime
   ) {
-    const pad = this.pads.find((p) => p.id === padId);
+    const pad = this.pads.find((p) => p.pitch === pitch);
     if (pad) {
-      this.sampler.play(pad.pitch, velocity, when);
+      this.sampler.play(pitch, velocity, when);
+    }
+  }
+
+  startRoll(pitch: number, velocity: number, rateHz: number = 10) {
+    if (this.rollIntervals.has(pitch.toString())) return;
+
+    const interval = setInterval(() => {
+      this.triggerPad(pitch, velocity);
+    }, 1000 / rateHz);
+
+    this.rollIntervals.set(pitch.toString(), interval);
+  }
+
+  stopRoll(pitch: number) {
+    const interval = this.rollIntervals.get(pitch.toString());
+    if (interval) {
+      clearInterval(interval);
+      this.rollIntervals.delete(pitch.toString());
     }
   }
 
   getPads() {
     return this.pads;
-  }
-
-  connect(destination: AudioNode) {
-    this.sampler.connect(destination);
-  }
-
-  disconnect() {
-    this.sampler.disconnect();
   }
 }

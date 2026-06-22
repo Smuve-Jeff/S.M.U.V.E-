@@ -1,5 +1,8 @@
 import { Instrument } from './instrument';
 import { ADSREnvelope } from './adsr-envelope';
+import { NodePool } from './performance-utils';
+import { SamplerEngine } from './sampler-engine';
+import { SampleMap } from '../services/file-loader.service';
 
 interface Voice {
   oscillators: OscillatorNode[];
@@ -7,6 +10,7 @@ interface Voice {
   gain: GainNode;
   filter: BiquadFilterNode;
   filterGain: GainNode;
+  sampleStop?: () => void;
 }
 
 export type OscillatorType = 'sine' | 'square' | 'sawtooth' | 'triangle';
@@ -28,6 +32,7 @@ export class SubtractiveSynth extends Instrument {
     0.3,
     true
   );
+
   private voices: Map<number, Voice> = new Map();
   private masterFilter: BiquadFilterNode;
   private oscillatorType: OscillatorType = 'sawtooth';
@@ -37,8 +42,24 @@ export class SubtractiveSynth extends Instrument {
   private filterCutoff: number = 2000;
   private filterEnvelopeAmount: number = 3000;
 
-  constructor(audioContext: AudioContext) {
-    super(audioContext);
+  // Hybrid Engine
+  private samplerEngine?: SamplerEngine;
+  private activeSampleMap?: SampleMap;
+  private sampleLayerMix: number = 0.5;
+
+  // Node Pools
+  private oscillatorPool: NodePool<OscillatorNode>;
+  private gainPool: NodePool<GainNode>;
+  private filterPool: NodePool<BiquadFilterNode>;
+
+  constructor(audioContext: AudioContext, samplerEngine?: SamplerEngine) {
+    super(audioContext, 12);
+    this.samplerEngine = samplerEngine;
+
+    this.oscillatorPool = new NodePool(this.audioContext, (ctx) => ctx.createOscillator());
+    this.gainPool = new NodePool(this.audioContext, (ctx) => ctx.createGain());
+    this.filterPool = new NodePool(this.audioContext, (ctx) => ctx.createBiquadFilter());
+
     this.masterFilter = this.audioContext.createBiquadFilter();
     this.masterFilter.type = 'lowpass';
     this.masterFilter.frequency.value = this.filterCutoff;
@@ -46,12 +67,22 @@ export class SubtractiveSynth extends Instrument {
     this.masterFilter.connect(this.output);
   }
 
+  setSampleMap(map: SampleMap) {
+    this.activeSampleMap = map;
+  }
+
+  setSampleMix(mix: number) {
+    this.sampleLayerMix = Math.max(0, Math.min(mix, 1));
+  }
+
   play(note: number, velocity: number): void {
     const frequency = 440 * Math.pow(2, (note - 69) / 12);
     const oscillators: OscillatorNode[] = [];
 
+    const synthMix = 1.0 - (this.activeSampleMap ? this.sampleLayerMix : 0);
+
     for (let i = 0; i < this.numOscillators; i++) {
-      const oscillator = this.audioContext.createOscillator();
+      const oscillator = this.oscillatorPool.get();
       oscillator.type = this.oscillatorType;
       oscillator.frequency.value = frequency;
       const detuneOffset =
@@ -64,22 +95,22 @@ export class SubtractiveSynth extends Instrument {
 
     let subOscillator: OscillatorNode | null = null;
     if (this.subOscillatorLevel > 0) {
-      subOscillator = this.audioContext.createOscillator();
+      subOscillator = this.oscillatorPool.get();
       subOscillator.type = 'sine';
       subOscillator.frequency.value = frequency / 2;
     }
 
-    const voiceFilter = this.audioContext.createBiquadFilter();
+    const voiceFilter = this.filterPool.get();
     voiceFilter.type = 'lowpass';
     voiceFilter.frequency.value = this.filterCutoff;
     voiceFilter.Q.value = 1.0;
 
-    const filterGain = this.audioContext.createGain();
+    const filterGain = this.gainPool.get();
     filterGain.gain.value = 1.0;
 
-    const gain = this.audioContext.createGain();
+    const gain = this.gainPool.get();
     gain.gain.value =
-      1.0 /
+      synthMix /
       (this.numOscillators + (subOscillator ? this.subOscillatorLevel : 0));
 
     this.envelope.apply(gain, velocity);
@@ -102,7 +133,7 @@ export class SubtractiveSynth extends Instrument {
     });
 
     if (subOscillator) {
-      const subGain = this.audioContext.createGain();
+      const subGain = this.gainPool.get();
       subGain.gain.value = this.subOscillatorLevel;
       subOscillator.connect(subGain);
       subGain.connect(gain);
@@ -113,13 +144,31 @@ export class SubtractiveSynth extends Instrument {
     voiceFilter.connect(filterGain);
     filterGain.connect(this.masterFilter);
 
-    this.voices.set(note, {
+    // Hybrid Layer
+    let sampleStop: (() => void) | undefined;
+    if (this.samplerEngine && this.activeSampleMap) {
+      const sampleGain = this.gainPool.get();
+      sampleGain.gain.value = this.sampleLayerMix;
+      sampleGain.connect(voiceFilter);
+      sampleStop = this.samplerEngine.playNote(this.activeSampleMap, note, velocity, sampleGain);
+    }
+
+    const voice: Voice = {
       oscillators,
       subOscillator,
       gain,
       filter: voiceFilter,
       filterGain,
+      sampleStop
+    };
+
+    this.voiceManager.addVoice({
+      note,
+      startTime: this.audioContext.currentTime,
+      stop: () => this.executeStop(voice)
     });
+
+    this.voices.set(note, voice);
   }
 
   stop(note: number): void {
@@ -136,13 +185,31 @@ export class SubtractiveSynth extends Instrument {
       if (voice.subOscillator) {
         voice.subOscillator.stop(stopTime);
       }
+
+      if (voice.sampleStop) {
+        voice.sampleStop();
+      }
+
       setTimeout(() => {
-        voice.oscillators.forEach(osc => osc.disconnect());
-        voice.gain.disconnect();
-        voice.filter.disconnect();
+        this.executeStop(voice);
         this.voices.delete(note);
+        this.voiceManager.removeVoice(note);
       }, this.envelope.release * 1000 + 100);
     }
+  }
+
+  private executeStop(voice: Voice) {
+    voice.oscillators.forEach(osc => {
+      try { osc.stop(); } catch(e) {}
+      this.oscillatorPool.release(osc);
+    });
+    if (voice.subOscillator) {
+      try { voice.subOscillator.stop(); } catch(e) {}
+      this.oscillatorPool.release(voice.subOscillator);
+    }
+    this.gainPool.release(voice.gain);
+    this.filterPool.release(voice.filter);
+    this.gainPool.release(voice.filterGain);
   }
 
   setFilterCutoff(cutoff: number): void {

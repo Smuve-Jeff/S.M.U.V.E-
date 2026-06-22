@@ -18,6 +18,17 @@ export class ProjectTemplateService {
 
   templates: ProjectTemplate[] = [
     {
+      id: 'elite-instrumental',
+      name: 'Elite Instrumental',
+      bpm: 128,
+      tracks: [
+        { name: 'Hybrid Lead', instrumentId: 'analog-warmth', type: 'midi' },
+        { name: 'Elite Piano', instrumentId: 'grand-piano', type: 'midi' },
+        { name: 'Deep Sub', instrumentId: 'sub-commander', type: 'midi' },
+        { name: 'Studio Drums', instrumentId: 'trap-808-elite', type: 'midi' },
+      ],
+    },
+    {
       id: 'trap-elite',
       name: 'Trap Elite',
       bpm: 140,
