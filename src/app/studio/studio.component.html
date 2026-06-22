@@ -205,7 +205,7 @@
         <button type="button" [class.active]="mobilePanel() === 'inspector'" (click)="toggleMobilePanel('inspector')">
           <span class="material-symbols-outlined">info</span>
         </button>
-        <button type="button" class="tactile-v42 px-3 py-1 text-[8px] font-black" (click)="toggleBrowser()">BROWSER</button>
+        <button type="button" class="tactile-v42 px-3 py-1 text-[8px] font-black" [class.active]="browserDrawerOpen()" (click)="toggleBrowser()">BROWSER</button>
         <div class="view-indicator">{{ activeView() | uppercase }}</div>
       </div>
 
