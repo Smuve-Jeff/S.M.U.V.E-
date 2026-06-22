@@ -123,7 +123,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     );
   });
 
-  allCategories = computed(() => {
+  availableGenres = computed(() => {
     const genres = new Set<string>();
     this.games().forEach((g) => {
       if (g.genre) genres.add(g.genre);

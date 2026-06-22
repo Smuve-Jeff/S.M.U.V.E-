@@ -61,6 +61,13 @@
               <option *ngFor="let g of availableGenres()" [value]="g">{{ g }}</option>
             </select>
           </div>
+          <div class="filter-group">
+            <label>PLATFORM</label>
+            <select [ngModel]="activePlatform()" (ngModelChange)="activePlatform.set($event)">
+              <option value="all">ALL_PLATFORMS</option>
+              <option *ngFor="let p of allPlatforms()" [value]="p">{{ p }}</option>
+            </select>
+          </div>
           <button class="clear-btn mini" (click)="clearFilters()">RESET</button>
         </div>
 
@@ -83,6 +90,30 @@
                   <span class="game-name">{{ game.name }}</span>
                   <span class="game-genre">{{ game.genre }}</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Full Catalog Supplement -->
+        <div class="full-catalog-supplement">
+          <div class="section-header">
+            <h3 class="glitch-text" data-text="ALL_CABINETS">ALL_CABINETS</h3>
+            <p>Direct access to the Absolute library across all sectors.</p>
+          </div>
+
+          <div class="catalog-grid">
+            <div class="game-card glass-v42 shadow-v42-md" *ngFor="let game of filteredGames()" (click)="onGameClick(game)">
+              <div class="card-media">
+                <img [src]="game.image || 'assets/desktop_hub.png'" [alt]="game.name" loading="lazy" />
+                <div class="card-overlay"><span class="material-symbols-outlined">play_circle</span></div>
+                <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
+                <div class="card-badge next-gen" *ngIf="game.badgeIds?.includes('next-gen')">NEXT-GEN</div>
+                <div class="card-badge modern" *ngIf="game.badgeIds?.includes('modern')">MODERN</div>
+              </div>
+              <div class="card-info">
+                <span class="game-name">{{ game.name }}</span>
+                <span class="game-genre">{{ game.genre }}</span>
               </div>
             </div>
           </div>
