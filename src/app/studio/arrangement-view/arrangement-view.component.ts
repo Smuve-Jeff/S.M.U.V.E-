@@ -241,7 +241,7 @@ export class ArrangementViewComponent {
     }
     event.preventDefault();
     const scale = nextDistance / this.pinchDistance;
-    this.barWidth = Math.max(50, Math.min(400, this.barWidth * scale));
+    this.barWidth.set(Math.max(50, Math.min(400, this.barWidth() * scale)));
     this.pinchDistance = nextDistance;
   }
 
