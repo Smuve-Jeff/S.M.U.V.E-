@@ -45,7 +45,7 @@ export class OnboardingService {
       profile.brandVoices?.length
     );
     const hasQuestionnaireSignals = Boolean(
-      profile.musicalJourney?.songwritingStyle !== 'Unspecified' && profile.strategicGoals?.length ||
+      profile.musicalJourney?.songwritingStyle && profile.musicalJourney.songwritingStyle !== 'Unspecified' && profile.strategicGoals?.length ||
       profile.expertise?.catalyst ||
       Object.keys(profile.genreSpecificData || {}).length
     );
