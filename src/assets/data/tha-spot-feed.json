@@ -43,7 +43,7 @@
     {
       "id": "modern",
       "label": "MODERN",
-      "tone": "secondary"
+      "tone": "warning"
     }
   ],
   "rooms": [
