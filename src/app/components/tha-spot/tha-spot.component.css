@@ -1690,7 +1690,7 @@
 }
 
 /* Premium Transitions Overrides */
-:host .animate-enter {
+:host ::ng-deep .animate-enter {
   animation: premium-slide-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
