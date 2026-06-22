@@ -37,13 +37,13 @@
     },
     {
       "id": "next-gen",
-      "name": "NEXT-GEN",
-      "color": "#00f2ff"
+      "label": "NEXT-GEN",
+      "tone": "accent"
     },
     {
       "id": "modern",
-      "name": "MODERN",
-      "color": "#7000ff"
+      "label": "MODERN",
+      "tone": "secondary"
     }
   ],
   "rooms": [
