@@ -1,9 +1,8 @@
 import {
-  AfterViewInit,
   Component,
-  computed,
   inject,
   OnDestroy,
+  OnInit,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -17,6 +16,7 @@ import {
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { AiService } from '../../services/ai.service';
 import { HapticService } from '../../services/haptic.service';
+import { SequencerService } from '../sequencer.service';
 
 type DrumGenre = 'house' | 'trap' | 'afrobeats' | 'drill' | 'dnb';
 type GraphTarget = 'velocity' | 'probability' | 'nudge';
@@ -65,11 +65,12 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   private musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
   private haptic = inject(HapticService);
+  private sequencer = inject(SequencerService);
 
   public pads = signal<DrumPad[]>([]);
   public activePadIndex = signal(0);
   public currentGenre = signal<DrumGenre>('trap');
-  public swingAmount = signal(0);
+  public readonly swingAmount = this.sequencer.swingAmount;
   public isRollActive = signal(false);
   public rollRate = signal(16); // 1/16 notes
 
@@ -149,8 +150,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }
 
   setSwing(val: number) {
-    this.swingAmount.set(val);
-    // Logic to apply swing in sequencer tick would go in SequencerService
+    this.sequencer.swingAmount.set(val);
   }
 
   triggerPad(padIndex: number) {
