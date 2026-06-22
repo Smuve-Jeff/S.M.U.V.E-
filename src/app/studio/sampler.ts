@@ -17,12 +17,10 @@ export class Sampler {
   private readonly bufferLayers: Map<number, VelocityLayer[]> = new Map();
   public slices: Slice[] = [];
 
-  private sourcePool: NodePool<AudioBufferSourceNode>;
   private gainPool: NodePool<GainNode>;
 
   constructor(private readonly context: AudioContext) {
     this.output = this.context.createGain();
-    this.sourcePool = new NodePool(this.context, (ctx) => ctx.createBufferSource());
     this.gainPool = new NodePool(this.context, (ctx) => ctx.createGain());
   }
 
@@ -45,7 +43,7 @@ export class Sampler {
     const layer = layers.find(l => velocity * 127 <= l.threshold) || layers[layers.length - 1];
     const buffer = layer.buffer;
 
-    const source = this.sourcePool.get();
+    const source = this.context.createBufferSource();
     source.buffer = buffer;
 
     const gainNode = this.gainPool.get();
@@ -57,7 +55,7 @@ export class Sampler {
     source.start(when);
 
     source.onended = () => {
-      this.sourcePool.release(source);
+      source.disconnect();
       this.gainPool.release(gainNode);
     };
   }
