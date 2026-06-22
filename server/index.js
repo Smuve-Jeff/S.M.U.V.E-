@@ -806,6 +806,7 @@ const setupSocketIO = (server) => {
     socket.on("register_presence", (data) => {
       const userId = typeof data === "string" ? data : data.userId;
       const metadata = typeof data === "string" ? {} : data.metadata;
+      socket.data.userId = userId;
       onlineUsers.set(userId, { socketId: socket.id, metadata });
       broadcastOnlineUsers();
       console.log(`User ${userId} registered with metadata.`);
@@ -822,7 +823,11 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("send_message", (data) => {
-      const { toUserId, message, fromUserId, fromUserName } = data;
+      const { toUserId, message } = data;
+      const fromUserId = socket.data.userId;
+      if (!fromUserId) return;
+      const senderInfo = onlineUsers.get(fromUserId);
+      const fromUserName = senderInfo?.metadata?.userName || fromUserId;
       const userInfo = onlineUsers.get(toUserId);
       if (userInfo) {
         io.to(userInfo.socketId).emit("private_message", { fromUserId, fromUserName, message, timestamp: Date.now() });
@@ -830,7 +835,9 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("challenge_player", (data) => {
-      const { toUserId, fromUserId, gameId } = data;
+      const { toUserId, gameId } = data;
+      const fromUserId = socket.data.userId;
+      if (!fromUserId) return;
       const userInfo = onlineUsers.get(toUserId);
       if (userInfo) {
         io.to(userInfo.socketId).emit("incoming_challenge", { fromUserId, gameId });
