@@ -7,7 +7,7 @@ old_listen = 'server.listen(port, () => {'
 new_listen = "server.listen(port, '0.0.0.0', () => {"
 
 if old_listen in content:
-    content = content.replace(old_listen, new_listen, 1)
+    content = content.replace(old_listen, new_listen)
     with open('server/index.js', 'w') as f:
         f.write(content)
     print("Updated server to listen on 0.0.0.0")

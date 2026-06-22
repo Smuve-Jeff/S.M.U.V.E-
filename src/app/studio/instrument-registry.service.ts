@@ -5,6 +5,7 @@ import { AdvancedSynth } from './advanced-synth';
 import { DrumMachine } from './drum-machine';
 import { SamplerEngine } from './sampler-engine';
 import { FileLoaderService } from '../services/file-loader.service';
+import { MusicManagerService } from '../services/music-manager.service';
 
 @Injectable({ providedIn: 'root' })
 export class InstrumentRegistryService {
@@ -20,7 +21,7 @@ export class InstrumentRegistryService {
     }
 
     let inst: any;
-    if (trackId === 'DRUM_TRACK' || type === 'drum') {
+    if (trackId === MusicManagerService.DRUM_TRACK_ID || type === 'drum') {
       inst = new DrumMachine(this.engine.ctx);
     } else if (type === 'advanced') {
       inst = new AdvancedSynth(this.engine.ctx, this.samplerEngine);
