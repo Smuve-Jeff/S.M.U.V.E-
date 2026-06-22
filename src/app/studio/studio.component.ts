@@ -28,6 +28,7 @@ import { DrumMachineComponent } from './drum-machine/drum-machine.component';
 import { PerformerComponent } from './performer/performer.component';
 import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
+import { EffectsRackUiComponent } from './effects-rack-ui/effects-rack-ui.component';
 import { BottomNavComponent } from './shared/bottom-nav/bottom-nav.component';
 import { FabComponent } from './shared/fab/fab.component';
 import { SnackbarComponent } from './shared/snackbar/snackbar.component';
@@ -44,9 +45,10 @@ type StudioView =
   | 'performance'
   | 'mastering'
   | 'drum-machine'
+  | 'channel-rack'
   | 'performer';
 
-type MobileStudioPanel = 'browser' | 'inspector';
+type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'arrangement',
@@ -56,6 +58,7 @@ const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'performance',
   'mastering',
   'drum-machine',
+  'channel-rack',
   'performer',
 ]);
 
@@ -86,6 +89,7 @@ interface BottomNavItem {
     PerformerComponent,
     SoundBrowserComponent,
     TrackInspectorComponent,
+    EffectsRackUiComponent,
     BottomNavComponent,
     FabComponent,
     SnackbarComponent,
@@ -123,6 +127,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   activeView = signal<StudioView>('arrangement');
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showNeuralFoundry = signal(false);
+  browserDrawerOpen = signal(false);
   headerCollapsed = signal(false);
   mobileDrawerOpen = signal(false);
   browserCollapsed = signal(false);
@@ -142,6 +147,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   bottomNavItems = computed<BottomNavItem[]>(() => [
     { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },
     { id: 'piano-roll', label: 'Piano', icon: 'piano' },
+    { id: 'channel-rack', label: 'Rack', icon: 'apps' },
     { id: 'drum-machine', label: 'Drums', icon: 'grid_view' },
     { id: 'mixer', label: 'Mix', icon: 'tune' },
     { id: 'performance', label: 'Perform', icon: 'interpreter_mode' },
@@ -199,7 +205,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       'performance': 'Performance Mode',
       'mastering': 'Mastering Suite',
       'dj': 'DJ Deck',
-      'performer': 'Performer'
+      'performer': 'Performer',
+      'channel-rack': 'Channel Rack'
     };
     
     this.snackbarService.info(`Switched to ${viewNames[view]}`);
@@ -333,7 +340,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     document.body.style.cursor = 'col-resize';
   }
 
-  toggleBrowser() { this.toggleSignal(this.browserCollapsed); }
+  toggleBrowser() {
+    if (this.uiService.isCompactMobile()) {
+      this.toggleSignal(this.browserDrawerOpen);
+    } else {
+      this.toggleSignal(this.browserCollapsed);
+    }
+  }
   toggleInspector() { this.toggleSignal(this.inspectorCollapsed); }
   toggleNeuralFoundry() { this.toggleSignal(this.showNeuralFoundry); }
 }

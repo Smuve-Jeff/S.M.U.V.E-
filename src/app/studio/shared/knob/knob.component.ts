@@ -64,7 +64,7 @@ import { CommonModule } from '@angular/common';
         width: 100%;
         height: 100%;
         border-radius: 50%;
-        background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+        background: radial-gradient(circle at 30% 30%, #444 0%, #222 50%, #111 100%);
         border: 2px solid rgba(255, 255, 255, 0.05);
         position: relative;
         z-index: 2;
@@ -85,7 +85,7 @@ import { CommonModule } from '@angular/common';
         left: 50%;
         transform: translateX(-50%);
         border-radius: 2px;
-        box-shadow: 0 0 10px #00e5ff;
+        box-shadow: 0 0 10px #00e5ff, 0 0 20px rgba(0, 229, 255, 0.4);
       }
       .knob-center-cap {
         position: absolute;
@@ -96,7 +96,7 @@ import { CommonModule } from '@angular/common';
         height: 12px;
         border-radius: 50%;
         background: #111;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border: 2px solid #000;
       }
       .knob-ring-svg {
         width: calc(100% + 8px);

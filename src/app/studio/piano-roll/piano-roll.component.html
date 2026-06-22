@@ -70,6 +70,9 @@
     </div>
 
     <div class="toolbar glass-v42">
+      <div class="flex items-center gap-2 mx-2">
+        <button class="tactile-v42 px-3 py-1 text-[8px] font-black" [class.bg-red-500]="isRecordingAutomation()" (click)="toggleAutomation()">AUTO</button>
+      </div>
       <div class="tool-group flex gap-1">
         <button
           [class.active]="editMode() === 'draw'"

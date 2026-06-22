@@ -89,15 +89,15 @@
         </div>
       </div>
 
-      <div class="header-section-right">
-        <div class="transport-metrics compact-metrics">
-          <div class="metric-block" (click)="adjustBpm()">
-            <span class="label">BPM</span>
-            <span class="value">{{ audioEngine.tempo() }}</span>
+      <div class="header-section-right elite-header">
+        <div class="lcd-display">
+          <div class="lcd-metric" (click)="adjustBpm()">
+            <span class="lcd-label">BPM</span>
+            <span class="lcd-value">{{ audioEngine.tempo() }}</span>
           </div>
-          <div class="metric-block">
-            <span class="label">BAR</span>
-            <span class="value">{{ currentBar() }}</span>
+          <div class="lcd-metric">
+            <span class="lcd-label">BAR</span>
+            <span class="lcd-value">{{ currentBar() }}</span>
           </div>
         </div>
 
@@ -129,15 +129,15 @@
         </button>
       </div>
 
-      <div class="header-section-right">
-        <div class="transport-metrics compact-metrics">
-          <div class="metric-block" (click)="adjustBpm()">
+      <div class="header-section-right elite-header">
+        <div class="lcd-display">
+          <div class="lcd-metric" (click)="adjustBpm()">
 
-            <span class="value">{{ audioEngine.tempo() }}</span>
+            <span class="lcd-value">{{ audioEngine.tempo() }}</span>
           </div>
-          <div class="metric-block">
-            <span class="label">BAR</span>
-            <span class="value">{{ currentBar() }}</span>
+          <div class="lcd-metric">
+            <span class="lcd-label">BAR</span>
+            <span class="lcd-value">{{ currentBar() }}</span>
           </div>
         </div>
 
@@ -199,9 +199,13 @@
         <button type="button" [class.active]="mobilePanel() === 'browser'" (click)="toggleMobilePanel('browser')">
           <span class="material-symbols-outlined">library_music</span>
         </button>
+        <button type="button" [class.active]="mobilePanel() === 'fx-rack'" (click)="toggleMobilePanel('fx-rack')">
+          <span class="material-symbols-outlined">blur_on</span>
+        </button>
         <button type="button" [class.active]="mobilePanel() === 'inspector'" (click)="toggleMobilePanel('inspector')">
           <span class="material-symbols-outlined">info</span>
         </button>
+        <button type="button" class="tactile-v42 px-3 py-1 text-[8px] font-black" (click)="toggleBrowser()">BROWSER</button>
         <div class="view-indicator">{{ activeView() | uppercase }}</div>
       </div>
 
@@ -211,7 +215,7 @@
         [class.open]="uiService.isCompactMobile() && mobilePanel() !== null"
       >
         <header *ngIf="mobilePanel() as panel">
-          <span class="drawer-title">{{ panel === 'browser' ? 'SOUNDS' : 'INSPECTOR' }}</span>
+          <span class="drawer-title">{{ panel === 'browser' ? 'SOUNDS' : panel === 'fx-rack' ? 'FX RACK' : 'INSPECTOR' }}</span>
           <button type="button" class="close-drawer" (click)="closeMobilePanel()">
             <span class="material-symbols-outlined">close</span>
           </button>
@@ -220,8 +224,18 @@
         <div class="drawer-content" [ngSwitch]="mobilePanel()">
           <app-sound-browser *ngSwitchCase="'browser'"></app-sound-browser>
           <app-track-inspector *ngSwitchCase="'inspector'"></app-track-inspector>
+          <app-effects-rack-ui *ngSwitchCase="'fx-rack'"></app-effects-rack-ui>
         </div>
       </section>
+
+      <!-- Mobile Sliding Browser Drawer -->
+      <aside class="floating-browser-drawer" [class.open]="browserDrawerOpen()">
+        <header class="wood-panel">
+          <span class="neon-text text-[10px] font-black tracking-widest">SOUND BROWSER</span>
+          <button type="button" (click)="toggleBrowser()"><span class="material-symbols-outlined">close</span></button>
+        </header>
+        <app-sound-browser></app-sound-browser>
+      </aside>
 
       <!-- Desktop Sidebar Panels -->
       <aside
@@ -254,6 +268,9 @@
         </div>
         <div class="view-wrapper" *ngSwitchCase="'arrangement'">
           <app-arrangement-view class="arrangement-main"></app-arrangement-view>
+        </div>
+        <div class="view-wrapper" *ngSwitchCase="'channel-rack'">
+          <app-channel-rack class="arrangement-main"></app-channel-rack>
         </div>
         <div class="view-wrapper" *ngSwitchCase="'dj'">
           <app-dj-deck class="arrangement-main"></app-dj-deck>

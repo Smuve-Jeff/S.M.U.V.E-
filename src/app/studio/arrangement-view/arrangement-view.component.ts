@@ -16,6 +16,8 @@ import {
   TrackModel,
 } from '../../services/music-manager.service';
 import { HistoryService } from '../../services/history.service';
+import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
+import { HapticService } from '../../services/haptic.service';
 
 @Component({
   selector: 'app-arrangement-view',
@@ -28,10 +30,12 @@ export class ArrangementViewComponent {
   public readonly audioSession = inject(AudioSessionService);
   public readonly musicManager = inject(MusicManagerService);
   public readonly history = inject(HistoryService);
+  private readonly enhancedGestures = inject(EnhancedTouchGestureService);
+  private readonly haptic = inject(HapticService);
 
   @ViewChild('gridViewport') gridViewport!: ElementRef<HTMLDivElement>;
 
-  readonly barWidth = 100;
+  barWidth = 100;
   readonly isMobile = window.innerWidth <= 1024;
   readonly laneHeight = this.isMobile ? 110 : 80;
   readonly rulerHeight = 35;
@@ -39,9 +43,11 @@ export class ArrangementViewComponent {
   readonly tracks = this.musicManager.tracks;
   readonly selectedClipIds = signal<Set<string>>(new Set());
   readonly activeTool = signal<'select' | 'blade' | 'glue'>('select');
+  readonly isRecordingAutomation = signal(false);
 
   // Interaction State
   private draggingClip: { trackId: string; clipId: string; startX: number; startY: number; originalStart: number; offsetBars: number; clipData: TrackClip } | null = null;
+  private pinchDistance: number | null = null;
   private resizingClip: { trackId: string; clipId: string; startX: number; originalLength: number } | null = null;
 
   readonly bars = computed(() =>
@@ -99,6 +105,7 @@ export class ArrangementViewComponent {
   }
 
   toggleSnap() {
+    this.haptic.medium();
     this.snapEnabled.update(v => !v);
   }
 
@@ -135,6 +142,7 @@ export class ArrangementViewComponent {
   // --- Pointer Handlers ---
 
   onClipPointerDown(e: PointerEvent, trackId: string, clip: TrackClip) {
+    this.haptic.light();
     if (this.activeTool() === 'blade') {
       const rect = (e.target as HTMLElement).getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -215,6 +223,35 @@ export class ArrangementViewComponent {
   async bounceSelected() {
      const tid = this.musicManager.selectedTrackId();
      if (tid) await this.musicManager.bounceTrack(tid);
+  }
+
+  onGridTouchStart(event: TouchEvent) {
+    if (event.touches.length === 2) {
+      this.pinchDistance = this.enhancedGestures.handlePinch(event);
+      return;
+    }
+  }
+
+  onGridTouchMove(event: TouchEvent) {
+    if (event.touches.length !== 2) return;
+    const nextDistance = this.enhancedGestures.handlePinch(event);
+    if (!this.pinchDistance || !nextDistance) {
+      this.pinchDistance = nextDistance;
+      return;
+    }
+    event.preventDefault();
+    const scale = nextDistance / this.pinchDistance;
+    this.barWidth = Math.max(50, Math.min(400, this.barWidth * scale));
+    this.pinchDistance = nextDistance;
+  }
+
+  onGridTouchEnd() {
+    this.pinchDistance = null;
+  }
+
+  toggleAutomation() {
+    this.haptic.medium();
+    this.isRecordingAutomation.update(v => !v);
   }
 
   duplicateSelected() {}

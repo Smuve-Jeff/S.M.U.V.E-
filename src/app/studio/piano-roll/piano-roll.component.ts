@@ -1,30 +1,27 @@
 import {
   Component,
-  inject,
-  signal,
-  computed,
   OnInit,
   AfterViewInit,
-  ViewChild,
   ElementRef,
-  HostListener,
+  ViewChild,
+  signal,
+  computed,
+  inject,
   Output,
   EventEmitter,
+  HostListener,
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { MusicManagerService, TrackNote } from '../../services/music-manager.service';
 import { AudioSessionService } from '../audio-session.service';
-import {
-  MusicManagerService,
-  TrackNote,
-} from '../../services/music-manager.service';
 import { TouchGestureService } from '../../services/touch-gesture.service';
+import { HapticService } from '../../services/haptic.service';
 
 @Component({
   selector: 'app-piano-roll',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   templateUrl: './piano-roll.component.html',
   styleUrls: ['./piano-roll.component.css'],
 })
@@ -33,6 +30,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   public readonly audioSession = inject(AudioSessionService);
   private readonly cdr = inject(ChangeDetectorRef);
   public readonly touchGestures = inject(TouchGestureService);
+  private readonly haptic = inject(HapticService);
 
   @Output() close = new EventEmitter<void>();
   @Output() closeOverlay = new EventEmitter<void>();
@@ -47,7 +45,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
       null
   );
   editMode = signal<'draw' | 'select' | 'erase'>('draw');
+  isRecordingAutomation = signal(false);
   selectedNoteIds = signal<Set<string>>(new Set());
+  selectionBox = signal<{x: number, y: number, w: number, h: number} | null>(null);
   windowWidth = signal(typeof window !== 'undefined' ? window.innerWidth : 1280);
 
   rowHeight = computed(
@@ -68,6 +68,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   canvasHeight = computed(() => 128 * this.rowHeight());
 
   private pinchDistance: number | null = null;
+  private startX = 0;
+  private startY = 0;
+  private isSelecting = false;
 
   ghostNotes = computed(() => {
     if (!this.showGhostNotes()) return [];
@@ -136,6 +139,14 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   }
 
   onGridPointerDown(event: PointerEvent) {
+    if (this.editMode() === 'select') {
+      const container = event.currentTarget as HTMLElement;
+      const rect = container.getBoundingClientRect();
+      this.isSelecting = true;
+      this.startX = event.clientX - rect.left + container.scrollLeft;
+      this.startY = event.clientY - rect.top + container.scrollTop;
+      return;
+    }
     if (this.editMode() !== "draw") return;
     const target = event.target as HTMLElement;
     if (target.closest(".note-block")) return;
@@ -215,6 +226,52 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     } else if (this.editMode() === 'erase') {
       this.musicManager.removeNotes(this.selectedTrack()?.id!, [note.id]);
     }
+  }
+
+  @HostListener('pointermove', ['$event'])
+  onPointerMove(e: PointerEvent) {
+    if (this.editMode() === 'select' && this.isSelecting) {
+      const container = this.scrollContainer.nativeElement;
+      const rect = container.getBoundingClientRect();
+      const currentX = e.clientX - rect.left + container.scrollLeft;
+      const currentY = e.clientY - rect.top + container.scrollTop;
+
+      const x = Math.min(this.startX, currentX);
+      const y = Math.min(this.startY, currentY);
+      const w = Math.abs(this.startX - currentX);
+      const h = Math.abs(this.startY - currentY);
+      this.selectionBox.set({ x, y, w, h });
+      this.updateSelectionFromBox(x, y, w, h);
+    }
+  }
+
+  private updateSelectionFromBox(x: number, y: number, w: number, h: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+
+    const newSelection = new Set<string>();
+    track.notes.forEach(note => {
+      const noteX = note.step * this.cellWidth();
+      const noteY = (127 - note.midi) * this.rowHeight();
+      const noteW = note.length * this.cellWidth();
+      const noteH = this.rowHeight();
+
+      if (noteX < x + w && noteX + noteW > x && noteY < y + h && noteY + noteH > y) {
+        newSelection.add(note.id);
+      }
+    });
+    this.selectedNoteIds.set(newSelection);
+  }
+
+  @HostListener('pointerup')
+  onPointerUp() {
+    if (this.isSelecting) {
+      this.haptic.light();
+    }
+    this.isSelecting = false;
+    this.startX = 0;
+    this.startY = 0;
+    this.selectionBox.set(null);
   }
 
   createNoteAtPoint(x: number, y: number, container: HTMLElement) {
@@ -374,5 +431,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   closePianoRoll() {
     this.close.emit();
     this.closeOverlay.emit();
+  }
+
+  toggleAutomation() {
+    this.haptic.medium();
+    this.isRecordingAutomation.update(v => !v);
   }
 }

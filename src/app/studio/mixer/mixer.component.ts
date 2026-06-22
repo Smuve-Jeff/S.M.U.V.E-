@@ -47,6 +47,7 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.tracks().find((t) => t.id === this.selectedTrackId())
   );
   viewMode = signal<'compact' | 'expanded'>('expanded');
+  isRecordingAutomation = signal(false);
 
   private analysers = new Map<string, AnalyserNode>();
   private trackLevels = signal<Record<string, number>>({});
@@ -114,11 +115,13 @@ export class MixerComponent implements OnInit, OnDestroy {
   selectTrack(id: string): void {
     this.musicManager.selectedTrackId.set(id);
   }
-  toggleMute(id: string) {
-    this.musicManager.toggleMute(id);
+  toggleMute(track: any) {
+    this.haptic.light();
+    this.musicManager.toggleMute(track.id);
   }
-  toggleSolo(id: string) {
-    this.musicManager.toggleSolo(id);
+  toggleSolo(track: any) {
+    this.haptic.light();
+    this.musicManager.toggleSolo(track.id);
   }
 
   removeTrack(id: string, event: Event) {
@@ -162,5 +165,10 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
   getTrackLevel(id: any): number {
     return this.trackLevels()[id] || 0;
+  }
+
+  toggleAutomation() {
+    this.haptic.medium();
+    this.isRecordingAutomation.update(v => !v);
   }
 }
