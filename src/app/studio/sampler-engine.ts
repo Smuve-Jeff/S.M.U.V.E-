@@ -10,7 +10,11 @@ export class SamplerEngine {
     const zone = sampleMap.zones.find(z => midi >= z.midiRange[0] && midi <= z.midiRange[1]);
     if (!zone) return () => {};
 
-    const layer = zone.layers.find(l => velocity >= l.minVelocity && velocity <= l.maxVelocity) || zone.layers[0];
+    const layer =
+      zone.layers.find(
+        (l) => velocity >= l.minVelocity && velocity <= l.maxVelocity
+      ) ?? zone.layers[0];
+    if (!layer) return () => {};
     const buffer = this.fileLoader.getBuffer(layer.url);
     if (!buffer) return () => {};
 
