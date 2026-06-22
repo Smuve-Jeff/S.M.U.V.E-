@@ -25,9 +25,6 @@ methods = """
 if 'evolveRhythm' not in content:
     content = content.replace('constructor() {', methods + '\n  constructor() {')
 
-with open(path_dm, 'w') as f:
-    f.write(content)
-
 # Fix haptic.impact call in DrumMachineComponent
 content = content.replace("this.haptic.impact()", "this.haptic.impact('light')")
 with open(path_dm, 'w') as f:
