@@ -63,6 +63,8 @@ export class ArtistQuestionnaireComponent {
     };
 
     if (p.primaryGenre) signals.marketReadiness += 20;
+    if (p.musicalJourney?.yearsInIndustry > 5) signals.marketReadiness += 10;
+    if (p.musicalJourney?.marketPosition === 'Major Ready') signals.marketReadiness += 20;
     if (p.brandVoices && p.brandVoices.length > 0)
       signals.marketReadiness += 20;
     if (p.strategicGoals && p.strategicGoals.length > 0)
@@ -76,6 +78,7 @@ export class ArtistQuestionnaireComponent {
     }
 
     if (p.catalog && p.catalog.length > 0) signals.careerMomentum += 20;
+    if (p.musicalJourney?.releaseVelocity === 'Waterfall (Weekly)') signals.careerMomentum += 20;
     if (p.performancesPerYear && p.performancesPerYear !== 'None')
       signals.careerMomentum += 20;
     if (p.strategicGoals && p.strategicGoals.length > 2)
@@ -123,6 +126,79 @@ export class ArtistQuestionnaireComponent {
   isGlitching = signal(false);
 
   questions: Question[] = [
+    {
+
+    {
+      id: 'educational-background',
+      type: 'select',
+      text: 'Educational Background.',
+      description: 'What is the foundation of your musical knowledge?',
+      options: ['Self-Taught', 'Private Lessons', 'Music College', 'Masterclass Pro', 'Industry Mentorship'],
+      field: 'musicalJourney.educationalBackground',
+    },
+    {
+      id: 'market-position',
+      type: 'select',
+      text: 'Market Position.',
+      description: 'Where do you currently stand in the global music ecosystem?',
+      options: ['Emerging Artist', 'Local Hero', 'Regional Contender', 'Major Ready', 'Global Icon (Legacy)'],
+      field: 'musicalJourney.marketPosition',
+    },
+    id: 'songwriting-style',
+      type: 'select',
+      text: 'Songwriting Architecture.',
+      description: 'How do you construct your lyrical and melodic frameworks?',
+      options: ['Top-Down (Lyrics First)', 'Bottom-Up (Beat First)', 'Stream of Consciousness', 'Collaborative Jamming'],
+      field: 'musicalJourney.songwritingStyle',
+    },
+    {
+      id: 'production-philosophy',
+      type: 'select',
+      text: 'Production Philosophy.',
+      description: 'What is your core approach to sound design and arrangement?',
+      options: ['Analog Warmth', 'Digital Precision', 'Lo-Fi Grit', 'Experimental Hybrid'],
+      field: 'musicalJourney.productionPhilosophy',
+    },
+    {
+      id: 'collaborative-mode',
+      type: 'select',
+      text: 'Collaborative Operating Mode.',
+      description: 'How do you prefer to interact with other creative entities?',
+      options: ['Solo Specialist', 'Core Duo', 'Full Band', 'Remote Outsourcing'],
+      field: 'musicalJourney.collaborativeMode',
+    },
+    {
+      id: 'release-velocity',
+      type: 'select',
+      text: 'Release Deployment Velocity.',
+      description: 'How frequently do you intend to drop new assets?',
+      options: ['Waterfall (Weekly)', 'Cyclic (Monthly)', 'Strategic (Quarterly)', 'Rare (Yearly)'],
+      field: 'musicalJourney.releaseVelocity',
+    },
+    {
+      id: 'success-metric',
+      type: 'select',
+      text: 'Primary Success Metric.',
+      description: 'What defines a successful deployment for your trajectory?',
+      options: ['Creative Satisfaction', 'Algorithmic Dominance', 'Financial Revenue', 'Cultural Impact'],
+      field: 'musicalJourney.primarySuccessMetric',
+    },
+    {
+      id: 'years-industry',
+      type: 'range',
+      text: 'Industry Deployment Time.',
+      description: 'How many years have you been active in the musical infrastructure?',
+      field: 'musicalJourney.yearsInIndustry',
+    },
+    {
+      id: 'content-strategy',
+      type: 'select',
+      text: 'Content Ecosystem Strategy.',
+      description: 'How do you feed the social and digital algorithms?',
+      options: ['Organic Only', 'Paid Growth', 'Viral Hunt', 'Community First'],
+      field: 'musicalJourney.contentStrategy',
+    },
+
     {
       id: 'sync-readiness',
       type: 'select',
@@ -362,6 +438,8 @@ export class ArtistQuestionnaireComponent {
   }
 
   private generateNeuralObservation(field: string, value: any): string | null {
+    if (field.includes('musicalJourney'))
+      return `MAPPING_MUSICAL_JOURNEY_STATION:_${value.toUpperCase()}...`;
     if (field === 'primaryGenre')
       return `ADAPTING_NEURAL_FILTERS_FOR_${value.toUpperCase()}_TRAJECTORY...`;
     if (field.includes('expertise'))

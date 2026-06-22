@@ -92,7 +92,62 @@ export class AiService {
   async syncKnowledgeBaseWithProfile() {}
   async getAutoMixSettings() { return { threshold: -14, ratio: 4, ceiling: -0.1, targetLufs: -14 }; }
   getProductionSmartAssist(context: any): any { return { advice: 'Add more saturation.', correctivePreset: {}, targetLufs: -14, arrangementSuggestion: '', eqMaskingHint: '' }; }
-  async getQuestionnaireInsights(draft: any) { return {}; }
+
+  async getQuestionnaireInsights(draft: any) {
+    const journey = draft.musicalJourney || {};
+    const insights = [];
+
+    if (journey.primarySuccessMetric === 'Algorithmic Dominance') {
+      insights.push({
+        title: 'Algorithmic Warfare Strategy',
+        content: 'Your focus on algorithmic dominance requires high release velocity. S.M.U.V.E will prioritize playlist-optimized arrangements (short intros, early hooks).',
+        impact: 'Extreme'
+      });
+    }
+
+    if (journey.productionPhilosophy === 'Lo-Fi Grit') {
+      insights.push({
+        title: 'Authenticity Calibration',
+        content: 'Your Lo-Fi preference suggests a focus on texture over polish. S.M.U.V.E will adjust saturation and bit-crushing modules in the Vocal Suite.',
+        impact: 'High'
+      });
+    }
+
+    if (journey.releaseVelocity === 'Waterfall (Weekly)') {
+      insights.push({
+        title: 'Burnout Prevention Protocol',
+        content: 'Weekly releases are high-stress. We are activating automated marketing asset generation to sustain your release trajectory.',
+        impact: 'Critical'
+      });
+    }
+
+    if (journey.collaborativeMode === 'Solo Specialist') {
+      insights.push({
+        title: 'S.M.U.V.E Virtual Bandmate',
+        content: 'As a solo artist, S.M.U.V.E will fill the gaps. Activating AI Bassist and Drummer modules for all new sessions.',
+        impact: 'Medium'
+      });
+    }
+
+    if (journey.contentStrategy === 'Viral Hunt') {
+      insights.push({
+        title: 'Hook-Centric Production',
+        content: 'Viral success depends on "The Moment". S.M.U.V.E will scan your tracks specifically for 15-second high-impact snippets suitable for social deployment.',
+        impact: 'Extreme'
+      });
+    }
+
+    if (insights.length === 0) {
+      insights.push({
+        title: 'Initial Trajectory Set',
+        content: 'Musical journey captured. S.M.U.V.E is now fine-tuning your workspace for maximum artistic resonance.',
+        impact: 'Low'
+      });
+    }
+
+    return insights;
+  }
+
   async generateImage(prompt: string) { return 'https://example.com/image.png'; }
 
   isUnlocked(id: string) { return true; }
