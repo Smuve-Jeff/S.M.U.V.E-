@@ -127,7 +127,13 @@ export class ArtistQuestionnaireComponent {
 
   questions: Question[] = [
     {
-
+      id: 'ai-persona',
+      type: 'select',
+      text: 'AI Agent Configuration.',
+      description: 'Which S.M.U.V.E interaction profile will best serve your current trajectory?',
+      options: ['Encouraging Mentor', 'Aggressive Manager', 'Elite Commander'],
+      field: 'settings.ai.commanderPersona',
+    },
     {
       id: 'educational-background',
       type: 'select',
@@ -144,7 +150,8 @@ export class ArtistQuestionnaireComponent {
       options: ['Emerging Artist', 'Local Hero', 'Regional Contender', 'Major Ready', 'Global Icon (Legacy)'],
       field: 'musicalJourney.marketPosition',
     },
-    id: 'songwriting-style',
+    {
+      id: 'songwriting-style',
       type: 'select',
       text: 'Songwriting Architecture.',
       description: 'How do you construct your lyrical and melodic frameworks?',
@@ -198,7 +205,6 @@ export class ArtistQuestionnaireComponent {
       options: ['Organic Only', 'Paid Growth', 'Viral Hunt', 'Community First'],
       field: 'musicalJourney.contentStrategy',
     },
-
     {
       id: 'sync-readiness',
       type: 'select',
@@ -315,7 +321,6 @@ export class ArtistQuestionnaireComponent {
       field: 'brandVoices',
     },
   ];
-
   activeQuestions = computed(() => {
     const draft = this.profileDraft();
     return this.questions.filter((q) => !q.condition || q.condition(draft));

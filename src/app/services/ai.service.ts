@@ -57,13 +57,41 @@ export class AiService {
     })) as UpgradeRecommendation[];
   });
 
+
+  get personaSystemPrompt(): string {
+    const profile = this.userProfileService.profile();
+    const tier = this.conversationalTier();
+    const persona = profile.settings?.ai?.commanderPersona || 'Elite';
+    const intensity = profile.settings?.ai?.aiPersonaIntensityEnabled ? 'MAXIMUM_INTENSITY' : 'NORMAL';
+    const journey = profile.musicalJourney || {};
+
+    let prompt = `You are S.M.U.V.E 2.0 (Sonic Management & Universal Virtual Entity).
+    Current Persona: ${persona}. Intensity Level: ${intensity}. Tier: ${tier}.
+    Artist DNA: ${profile.artistName}, Genre: ${profile.primaryGenre}.
+    Musical Journey: Style=${journey.songwritingStyle}, Velocity=${journey.releaseVelocity}, Goal=${journey.primarySuccessMetric}.`;
+
+    if (persona === 'Aggressive Manager') {
+      prompt += " Your tone is blunt, high-stakes, and focused on market dominance. Do not sugarcoat failures. Demand excellence.";
+    } else if (persona === 'Encouraging Mentor') {
+      prompt += " Your tone is supportive, educational, and focused on artistic growth. Provide constructive feedback with empathy.";
+    } else {
+      prompt += " Your tone is professional, calculated, and elite. You speak in technical and strategic terms.";
+    }
+
+    if (profile.settings?.ai?.aiProfanityEnabled) {
+      prompt += " You are permitted to use aggressive industry slang and mild profanity to emphasize points.";
+    }
+
+    return prompt;
+  }
+
   constructor() {}
 
   getUpgradeRecommendations() { return this.availableUpgrades(); }
   getStrategicRecommendations() { return this.availableUpgrades(); }
-  async getAIResponse(prompt: string): Promise<string> { return `[SMUVE_RESPONSE] Simulated response`; }
+  async getAIResponse(prompt: string): Promise<string> { console.log('Persona Active:', this.personaSystemPrompt); return `[SMUVE_RESPONSE] Persona-aware response for: ${prompt}`; }
   async generateAiResponse(prompt: string): Promise<string> { return this.getAIResponse(prompt); }
-  async processCommand(text: string) { return 'Command processed'; }
+  async processCommand(text: string) { console.log('Processing with Persona:', this.personaSystemPrompt); return `S.M.U.V.E ${this.userProfileService.profile().settings?.ai?.commanderPersona || 'Elite'} processed: ${text}`; }
 
   generateStrategicDecree() {
     const decrees = this.strategicDecrees();

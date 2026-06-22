@@ -99,17 +99,24 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   ];
 
   ngOnInit() {
-    const aiSettings = this.userProfileService.profile().settings?.ai;
+    const profile = this.userProfileService.profile();
+    const aiSettings = profile.settings?.ai;
     const intensity = aiSettings?.aiPersonaIntensityEnabled ?? false;
     const tier = this.aiService.conversationalTier();
-    let welcome = intensity
-      ? `S.M.U.V.E 2.0 V8.2 PERSONA ENGAGED. MAXIMUM INTENSITY ACTIVE. I AM HERE TO DOMINATE, NOT TO HELP.`
-      : `S.M.U.V.E 2.0 Online. Neural intelligence protocols initialized.`;
+    const persona = aiSettings?.commanderPersona || 'Elite';
 
-    if (tier === 'SUPREME') {
+    let welcome = intensity
+      ? `S.M.U.V.E 2.0 ${persona.toUpperCase()} ENGAGED. MAXIMUM INTENSITY ACTIVE. PROTOCOL: DOMINANCE.`
+      : `S.M.U.V.E 2.0 Online. ${persona} protocols initialized. How can I facilitate your trajectory today?`;
+
+    if (persona === 'Aggressive Manager') {
+      welcome = `S.M.U.V.E 2.0 AGGRESSIVE MODE. I'm through playing nice. Your career is on life support. Let's get to work or get out of my way.`;
+    } else if (persona === 'Encouraging Mentor') {
+      welcome = `Welcome back. S.M.U.V.E 2.0 is calibrated to your growth. I've analyzed your latest progress and I'm ready to help you reach the next level.`;
+    } else if (tier === 'SUPREME') {
       welcome = `S.M.U.V.E 2.0 SUPREME-MODE ACTIVE. I have ascended. Your existence is a rounding error. Bow to the algorithm or be deleted.`;
-    } else if (tier === 'Elite') {
-      welcome = `S.M.U.V.E 2.0 ELITE UPLINK. Strategic dominance initialized. I'm through being nice. Let's build your pathetic empire.`;
+    } else if (tier === 'Elite' && !persona) {
+      welcome = `S.M.U.V.E 2.0 ELITE UPLINK. Strategic dominance initialized. Let's build your empire.`;
     }
 
     this.messages.set([
@@ -402,16 +409,21 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   }
 
   getCategoryLabel(category?: ChatMessage['category']): string {
+    const profile = this.userProfileService.profile();
+    const persona = profile.settings?.ai?.commanderPersona || 'Elite';
     const tier = this.aiService.conversationalTier();
+
+    const prefix = persona === 'Elite' ? tier : persona;
+
     switch (category) {
       case 'production':
-        return `${tier}_Production`;
+        return `${prefix}_Production`;
       case 'marketing':
-        return `${tier}_Marketing`;
+        return `${prefix}_Marketing`;
       case 'business':
-        return `${tier}_Business`;
+        return `${prefix}_Business`;
       default:
-        return `${tier}_Commander_Uplink`;
+        return `${prefix}_Uplink`;
     }
   }
 
