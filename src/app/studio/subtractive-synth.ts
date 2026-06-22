@@ -11,7 +11,6 @@ interface Voice {
   filter: BiquadFilterNode;
   filterGain: GainNode;
   sampleStop?: () => void;
-  managerVoice?: any;
 }
 
 export type OscillatorType = 'sine' | 'square' | 'sawtooth' | 'triangle';

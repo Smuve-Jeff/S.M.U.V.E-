@@ -8,30 +8,9 @@ import { FileLoaderService } from '../services/file-loader.service';
 
 @Injectable({ providedIn: 'root' })
 export class InstrumentRegistryService {
-import { Injectable, inject, Injector } from '`@angular/core`';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { SubtractiveSynth } from './subtractive-synth';
-import { AdvancedSynth } from './advanced-synth';
-import { DrumMachine } from './drum-machine';
-import { SamplerEngine } from './sampler-engine';
-import { FileLoaderService } from '../services/file-loader.service';
-
-`@Injectable`({ providedIn: 'root' })
-export class InstrumentRegistryService {
-  private injector = inject(Injector);
+  private engine = inject(AudioEngineService);
   private fileLoader = inject(FileLoaderService);
-
-  private get engine() {
-    return this.injector.get(AudioEngineService);
-  }
-
-  private _samplerEngine?: SamplerEngine;
-  private get samplerEngine() {
-    if (!this._samplerEngine) {
-      this._samplerEngine = new SamplerEngine(this.engine.ctx, this.fileLoader);
-    }
-    return this._samplerEngine;
-  }
+  private samplerEngine = new SamplerEngine(this.engine.ctx, this.fileLoader);
 
   private instruments = new Map<string, any>();
 

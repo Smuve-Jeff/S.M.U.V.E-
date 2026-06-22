@@ -43,8 +43,8 @@ export class VoiceManager {
     this.voices.sort((a, b) => a.startTime - b.startTime);
   }
 
-  removeVoice(voice: Voice) {
-    this.voices = this.voices.filter(v => v !== voice);
+  removeVoice(note: number) {
+    this.voices = this.voices.filter(v => v.note !== note);
   }
 
   private stealVoice() {
