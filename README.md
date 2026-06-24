@@ -126,5 +126,11 @@ S.M.U.V.E 2.0 includes coordinated planning surfaces beyond creation.
 
 ---
 
+## Contributing
+
+Issues, bugs, and feature requests are tracked in [Linear](https://linear.app/smuve1). When referencing a Linear issue in a branch name or commit, include the issue identifier (e.g. `SMU-1`).
+
+---
+
 **Smuve Jeff Presents**  
 **S.M.U.V.E 2.0 — Strategic Music Utility Virtual Enterprise**
