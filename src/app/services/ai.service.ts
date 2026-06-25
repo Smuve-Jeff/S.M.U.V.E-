@@ -72,10 +72,10 @@ export class AiService {
     const intensity = profile.settings?.ai?.aiPersonaIntensityEnabled ? 'MAXIMUM_INTENSITY' : 'NORMAL';
     const journey = profile.musicalJourney;
 
-    let prompt = `You are S.M.U.V.E 2.0 (Sonic Management & Universal Virtual Entity).
+    let prompt = `You are S.M.U.V.E 2.0 (Strategic Music Utility Virtual Enterprise).
     Current Persona: ${persona}. Intensity Level: ${intensity}. Tier: ${tier}.
     Artist DNA: ${profile.artistName}, Genre: ${profile.primaryGenre}.
-    Musical Journey: Style=${journey?.songwritingStyle || 'N/A'}, Velocity=${journey?.releaseVelocity || 'N/A'}, Goal=${journey?.primarySuccessMetric || 'N/A'}.`;
+    Musical Journey: Style=${journey?.songwritingStyle}, Velocity=${journey?.releaseVelocity}, Goal=${journey?.primarySuccessMetric}.`;
 
     if (persona === 'Aggressive Manager') {
       prompt += " Your tone is blunt, high-stakes, and focused on market dominance. Do not sugarcoat failures. Demand excellence.";
@@ -155,7 +155,7 @@ export class AiService {
   getProductionSmartAssist(context: any): any { return { advice: 'Add more saturation.', correctivePreset: {}, targetLufs: -14, arrangementSuggestion: '', eqMaskingHint: '' }; }
 
   async getQuestionnaireInsights(draft: any) {
-    const journey = draft?.musicalJourney;
+    const journey = draft.musicalJourney;
     const insights = [];
     if (!journey) return insights;
 
