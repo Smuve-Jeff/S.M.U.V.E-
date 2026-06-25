@@ -1,4 +1,4 @@
-import { ThaSpotFeed } from '../types/game.types';
+import { ThaSpotFeed } from './game';
 
 export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   "badges": [
