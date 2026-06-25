@@ -46,19 +46,14 @@ export class ArrangementViewComponent {
   readonly activeTool = signal<'select' | 'blade' | 'glue'>('select');
   readonly isRecordingAutomation = signal(false);
 
-  // Interaction State
   private draggingClip: { trackId: string; clipId: string; startX: number; startY: number; originalStart: number; offsetBars: number; clipData: TrackClip } | null = null;
   private resizingClip: { trackId: string; clipId: string; startX: number; originalLength: number } | null = null;
 
   readonly barWidth = computed(() => 100 * this.enhancedGestures.zoomLevel());
 
-  readonly bars = computed(() =>
-    Array.from({ length: 128 }, (_, index) => index)
-  );
+  readonly bars = computed(() => Array.from({ length: 128 }, (_, index) => index));
   readonly gridWidth = computed(() => this.bars().length * this.barWidth());
-  readonly playheadPos = computed(
-    () => (this.musicManager.currentStep() / 16) * this.barWidth()
-  );
+  readonly playheadPos = computed(() => (this.musicManager.currentStep() / 16) * this.barWidth());
   readonly canvasHeight = computed(() => {
      let h = this.rulerHeight;
      this.tracks().forEach(t => {
@@ -72,80 +67,35 @@ export class ArrangementViewComponent {
      return h;
   });
 
-  addTrack() {
-    this.musicManager.addTrack('Lead Synth', 'grand-piano-v2');
-  }
-
-  toggleMute(id: string, event: Event) {
-    event.stopPropagation();
-    this.musicManager.toggleMute(id);
-  }
-
-  toggleSolo(id: string, event: Event) {
-    event.stopPropagation();
-    this.musicManager.toggleSolo(id);
-  }
-
-  removeTrack(trackId: string, event: Event) {
-    event.stopPropagation();
-    if (confirm("Delete this track?")) {
-      this.musicManager.removeTrack(trackId);
-    }
-  }
-
-  removeClip(event: Event, trackId: string, clipId: string) {
-    event.stopPropagation();
-    this.musicManager.removeClip(trackId, clipId);
-  }
-
-  selectTrack(id: string) {
-    this.musicManager.selectedTrackId.set(id);
-  }
-
-  isTrackSelected(id: string) {
-    return this.musicManager.selectedTrackId() === id;
-  }
-
-  toggleSnap() {
-    this.haptic.medium();
-    this.snapEnabled.update(v => !v);
-  }
-
+  addTrack() { this.musicManager.addTrack('Lead Synth', 'grand-piano-v2'); }
+  toggleMute(id: string, event: Event) { event.stopPropagation(); this.musicManager.toggleMute(id); }
+  toggleSolo(id: string, event: Event) { event.stopPropagation(); this.musicManager.toggleSolo(id); }
+  removeTrack(trackId: string, event: Event) { event.stopPropagation(); if (confirm("Delete track?")) this.musicManager.removeTrack(trackId); }
+  removeClip(event: Event, trackId: string, clipId: string) { event.stopPropagation(); this.musicManager.removeClip(trackId, clipId); }
+  selectTrack(id: string) { this.musicManager.selectedTrackId.set(id); }
+  isTrackSelected(id: string) { return this.musicManager.selectedTrackId() === id; }
+  toggleSnap() { this.haptic.medium(); this.snapEnabled.update(v => !v); }
   toggleLoop(trackId: string, clipId: string, event: Event) {
     event.stopPropagation();
     const track = this.tracks().find(t => t.id === trackId);
     const clip = track?.clips.find(c => c.id === clipId);
-    if (clip) {
-      this.musicManager.updateClip(trackId, clipId, { loop: !clip.loop });
-    }
+    if (clip) this.musicManager.updateClip(trackId, clipId, { loop: !clip.loop });
   }
-
   toggleTakes(trackId: string, event: Event) {
     event.stopPropagation();
-    this.musicManager.takesExpanded.update(v => ({
-      ...v,
-      [trackId]: !v[trackId]
-    }));
+    this.musicManager.takesExpanded.update(v => ({ ...v, [trackId]: !v[trackId] }));
   }
 
-  @HostListener('window:keydown', ['$event'])
+  @HostListener('window:keydown', [''])
   onKeyDown(e: KeyboardEvent) {
     if (e.ctrlKey || e.metaKey) {
-      if (e.key === 'z') {
-        if (e.shiftKey) this.history.redo();
-        else this.history.undo();
-      }
-      if (e.key === 'd') {
-        e.preventDefault();
-        this.duplicateSelected();
-      }
+      if (e.key === 'z') { if (e.shiftKey) this.history.redo(); else this.history.undo(); }
+      if (e.key === 'd') { e.preventDefault(); this.duplicateSelected(); }
     }
     if (e.key === 'v') this.activeTool.set('select');
     if (e.key === 'b') this.activeTool.set('blade');
     if (e.key === 'g') this.activeTool.set('glue');
   }
-
-  // --- Pointer Handlers ---
 
   onClipPointerDown(e: PointerEvent, trackId: string, clip: TrackClip) {
     this.haptic.light();
@@ -156,7 +106,6 @@ export class ArrangementViewComponent {
       this.musicManager.splitClip(trackId, clip.id, bar);
       return;
     }
-
     if ((e.target as HTMLElement).classList.contains('resize-handle')) {
       this.resizingClip = { trackId, clipId: clip.id, startX: e.clientX, originalLength: clip.length };
     } else {
@@ -167,7 +116,7 @@ export class ArrangementViewComponent {
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }
 
-  @HostListener('pointermove', ['$event'])
+  @HostListener('pointermove', [''])
   onPointerMove(e: PointerEvent) {
     if (this.draggingClip) {
       const dx = e.clientX - this.draggingClip.startX;
@@ -192,66 +141,31 @@ export class ArrangementViewComponent {
   }
 
   @HostListener('pointerup', [''])
-  onPointerUp(e: PointerEvent) {
-    this.draggingClip = null;
-    this.resizingClip = null;
-  }
+  onPointerUp(e: PointerEvent) { this.draggingClip = null; this.resizingClip = null; }
 
   onLanePointerDown(e: PointerEvent, track: TrackModel) {
     if (e.button !== 0 || (e.target as HTMLElement).classList.contains('clip-item')) return;
     this.selectTrack(track.id);
   }
 
-  // --- Template Utilities ---
-
-  clipLabel(track: TrackModel, clip: TrackClip): string {
-    return clip.name || track.name;
-  }
-
+  clipLabel(track: TrackModel, clip: TrackClip): string { return clip.name || track.name; }
   calculateGhostNotes(clip: TrackClip): any[] {
     if (!clip.notes) return [];
-    return clip.notes.map(n => ({
-      left: (n.step / 16 * 100) + '%',
-      top: (100 - (n.midi % 12) * 8) + '%',
-      width: (n.length / 16 * 100) + '%'
-    }));
+    return clip.notes.map(n => ({ left: (n.step / 16 * 100) + '%', top: (100 - (n.midi % 12) * 8) + '%', width: (n.length / 16 * 100) + '%' }));
   }
-
   promoteTake(trackId: string, clipId: string, takeId: string) {
-     this.musicManager.promoteTakeRegion(trackId, clipId, {
-       takeId,
-       start: 0,
-       end: 100
-     });
+     this.musicManager.promoteTakeRegion(trackId, clipId, { takeId, start: 0, end: 100 });
   }
-
   splitAtPlayhead() {
     const bar = this.musicManager.currentStep() / 16;
     this.selectedClipIds().forEach(id => {
-      this.tracks().forEach(t => {
-        if (t.clips.find(c => c.id === id)) this.musicManager.splitClip(t.id, id, bar);
-      });
+      this.tracks().forEach(t => { if (t.clips.find(c => c.id === id)) this.musicManager.splitClip(t.id, id, bar); });
     });
   }
-
-  async bounceSelected() {
-     const tid = this.musicManager.selectedTrackId();
-     if (tid) await this.musicManager.bounceTrack(tid);
-  }
-
-  onGridTouchStart(event: TouchEvent) {
-    if (event.touches.length === 2) {
-      this.enhancedGestures.handlePinch(event);
-      return;
-    }
-  }
-
-  onGridTouchMove(event: TouchEvent) {
-    if (event.touches.length === 2) {
-      event.preventDefault();
-      this.enhancedGestures.handlePinch(event);
-    }
-  }
+  async bounceSelected() { const tid = this.musicManager.selectedTrackId(); if (tid) await this.musicManager.bounceTrack(tid); }
+  onGridTouchStart(event: TouchEvent) { if (event.touches.length === 2) this.enhancedGestures.handlePinch(event); }
+  onGridTouchMove(event: TouchEvent) { if (event.touches.length === 2) { event.preventDefault(); this.enhancedGestures.handlePinch(event); } }
+  onGridTouchEnd() {}
 
   duplicateSelected() {
     const newSelection = new Set<string>();
@@ -275,28 +189,10 @@ export class ArrangementViewComponent {
     const track = this.tracks().find(t => t.id === this.musicManager.selectedTrackId());
     if (track && track.notes.length > 0) {
        this.musicManager.humanizeTrack(track.id);
-       this.musicManager.strumTrack(track.id);
-       this.audioSession.musicManager.addAutomationLane(track.id, 'cutoff');
+       this.musicManager.addAutomationLane(track.id, 'cutoff');
     }
   }
-
-  aiSuggestArrangement() {
-    this.haptic.impact('heavy');
-    this.duplicateSelected();
-    this.musicManager.addTrack('AI Pad', 'glass-pad', 'midi');
-  }
-
-  aiMixTransition() {
-    this.haptic.impact('heavy');
-    const tid = this.musicManager.selectedTrackId();
-    if (tid) {
-      this.musicManager.updateVolume(tid, 0);
-      setTimeout(() => this.musicManager.updateVolume(tid, 0.8), 2000);
-    }
-  }
-
-  toggleAutomation() {
-    this.haptic.medium();
-    this.isRecordingAutomation.update(v => !v);
-  }
+  aiSuggestArrangement() { this.haptic.impact('heavy'); this.duplicateSelected(); this.musicManager.addTrack('AI Pad', 'glass-pad', 'midi'); }
+  aiMixTransition() { this.haptic.impact('heavy'); const tid = this.musicManager.selectedTrackId(); if (tid) { this.musicManager.updateVolume(tid, 0); setTimeout(() => this.musicManager.updateVolume(tid, 0.8), 2000); } }
+  toggleAutomation() { this.haptic.medium(); this.isRecordingAutomation.update(v => !v); }
 }

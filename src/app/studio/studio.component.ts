@@ -11,40 +11,28 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject } from 'rxjs';
 import { AudioSessionService } from './audio-session.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { AiService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
-import { NotificationService } from '../services/notification.service';
 import { MusicManagerService } from '../services/music-manager.service';
-import { UserProfileService } from '../services/user-profile.service';
-import { AiCopilotService } from './ai-copilot.service';
 import { HapticService } from '../services/haptic.service';
-import { TouchGestureService } from '../services/touch-gesture.service';
-import { SequencerService } from './sequencer.service';
 import { InteractionDialogService } from '../services/interaction-dialog.service';
 import { ProjectTemplateService } from '../services/project-template.service';
 
-import { UniversalMasterComponent } from './master-controls/universal-master/universal-master.component';
 import { MixerComponent } from './mixer/mixer.component';
-import { DjDeckComponent } from './dj-deck/dj-deck.component';
 import { ArrangementViewComponent } from './arrangement-view/arrangement-view.component';
 import { PianoRollComponent } from './piano-roll/piano-roll.component';
 import { MasteringSuiteComponent } from './mastering-suite/mastering-suite.component';
-import { ChannelRackComponent } from './channel-rack/channel-rack.component';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
 import { PerformerComponent } from './performer/performer.component';
 import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
 import { EffectsRackUiComponent } from './effects-rack-ui/effects-rack-ui.component';
 import { BottomNavComponent } from './shared/bottom-nav/bottom-nav.component';
-import { FabComponent } from './shared/fab/fab.component';
 import { SnackbarComponent } from './shared/snackbar/snackbar.component';
 import { SearchOverlayComponent } from './shared/search-overlay/search-overlay.component';
-import { OfflineIndicatorComponent } from './shared/offline-indicator/offline-indicator.component';
 import { SnackbarService } from '../services/snackbar.service';
-import { EnhancedTouchGestureService } from '../services/enhanced-touch-gesture.service';
 
 type StudioView = 'arrangement' | 'dj' | 'piano-roll' | 'mixer' | 'performance' | 'mastering' | 'drum-machine' | 'channel-rack' | 'performer';
 type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack' | 'templates';
@@ -56,11 +44,10 @@ function isStudioView(value: string): value is StudioView { return (PATH_STUDIO_
   selector: 'app-studio',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, UniversalMasterComponent, MixerComponent, DjDeckComponent,
-    ArrangementViewComponent, PianoRollComponent, MasteringSuiteComponent, ChannelRackComponent,
-    DrumMachineComponent, PerformerComponent, SoundBrowserComponent, TrackInspectorComponent,
-    EffectsRackUiComponent, BottomNavComponent, FabComponent, SnackbarComponent,
-    SearchOverlayComponent, OfflineIndicatorComponent,
+    CommonModule, FormsModule, MixerComponent, ArrangementViewComponent, PianoRollComponent,
+    MasteringSuiteComponent, DrumMachineComponent, PerformerComponent, SoundBrowserComponent,
+    TrackInspectorComponent, EffectsRackUiComponent, BottomNavComponent,
+    SnackbarComponent, SearchOverlayComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -75,7 +62,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   public readonly musicManager = inject(MusicManagerService);
-  public readonly haptic = inject(HapticService);
+  private readonly haptic = inject(HapticService);
   private readonly dialog = inject(InteractionDialogService);
   private readonly snackbarService = inject(SnackbarService);
   public readonly templateService = inject(ProjectTemplateService);
@@ -110,10 +97,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  ngOnInit() {
-    this.audioEngine.resume();
-  }
-
+  ngOnInit() { this.audioEngine.resume(); }
   ngAfterViewInit() {}
   ngOnDestroy() {}
 
@@ -134,9 +118,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
        confirmLabel: 'CREATE',
        cancelLabel: 'CANCEL'
     });
-    if (confirmed) {
-       this.toggleMobilePanel('templates');
-    }
+    if (confirmed) this.toggleMobilePanel('templates');
   }
 
   applyTemplate(id: string) {

@@ -1,4 +1,5 @@
-import { Injectable, signal, computed, inject, NgZone } from '@angular/core';
+import { Injectable, signal, inject, computed } from '@angular/core';
+import { LoggingService } from './logging.service';
 
 export type PerformanceTier = 'ultra' | 'performance';
 export type DeckId = 'A' | 'B';
@@ -11,13 +12,17 @@ export class AudioEngineService {
   public static readonly DEFAULT_SCHEDULER_INTERVAL_MS = 25;
 
   public readonly ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  public readonly logger = inject(LoggingService);
+
   public readonly masterGain = this.ctx.createGain();
   public readonly masterAnalyser = this.ctx.createAnalyser();
   public readonly limiter = this.ctx.createDynamicsCompressor();
-  private readonly zone = inject(NgZone);
+  public readonly compressor = this.limiter;
+  public readonly reverbWet = this.ctx.createGain();
 
   public tempo = signal(124);
   public isPlaying = signal(false);
+  public isRecording = signal(false);
   public metronomeEnabled = signal(false);
   public metronomeVolume = signal(0.5);
   public performanceTier = signal<PerformanceTier>('ultra');
@@ -40,8 +45,8 @@ export class AudioEngineService {
     this.masterGain.connect(this.limiter);
     this.limiter.connect(this.masterAnalyser);
     this.masterAnalyser.connect(this.ctx.destination);
+    this.reverbWet.connect(this.masterGain);
 
-    // Extra safety for test environments
     const safeSet = (param: any, val: number) => {
        if (param && typeof param.setValueAtTime === 'function') {
           param.setValueAtTime(val, this.ctx.currentTime);
@@ -49,7 +54,6 @@ export class AudioEngineService {
     };
 
     safeSet(this.limiter.threshold, -1);
-    safeSet(this.limiter.knee, 0);
     safeSet(this.limiter.ratio, 20);
     safeSet(this.limiter.attack, 0.003);
     safeSet(this.limiter.release, 0.1);
@@ -57,6 +61,7 @@ export class AudioEngineService {
 
   getContext() { return this.ctx; }
   getMasterAnalyser() { return this.masterAnalyser; }
+  getAnalyser() { return this.masterAnalyser; }
   getMasteringTargets() { return this.masteringTargets; }
   setMasteringTargets(targets: any) { this.masteringTargets = { ...this.masteringTargets, ...targets }; }
 
@@ -141,16 +146,6 @@ export class AudioEngineService {
     const vca = this.ctx.createGain();
     osc.type = params.type || 'sine';
     if (osc.frequency.setValueAtTime) osc.frequency.setValueAtTime(freq, time);
-    if (params.vibratoRate > 0) {
-      const lfo = this.ctx.createOscillator();
-      const lfoGain = this.ctx.createGain();
-      lfo.frequency.setValueAtTime(params.vibratoRate, time);
-      lfoGain.gain.setValueAtTime(params.vibratoAmount * 10, time);
-      lfo.connect(lfoGain);
-      lfoGain.connect(osc.frequency);
-      lfo.start(time);
-      lfo.stop(time + duration + 0.1);
-    }
     if (panner.pan.setValueAtTime) panner.pan.setValueAtTime(pan, time);
     vca.gain.setValueAtTime(0, time);
     if (vca.gain.linearRampToValueAtTime) vca.gain.linearRampToValueAtTime(velocity * gain, time + (params.attack || 0.01));
@@ -191,4 +186,38 @@ export class AudioEngineService {
     if (data.gain !== undefined && output.gain.setTargetAtTime) output.gain.setTargetAtTime(data.gain, this.ctx.currentTime, 0.05);
     this.tracksMap.set(id, { ...(this.tracksMap.get(id) || {}), ...data });
   }
+
+  // Compatibility methods for DJ & Studio components
+  getDeck(id: DeckId) { return { buffer: null, playbackRate: 1, rate: 1, isPlaying: false, progress: 0 }; }
+  getDeckWaveformData(id: DeckId) { return new Float32Array(0); }
+  getDeckProgress(id: DeckId) { return { position: 0, duration: 0, slipPosition: 0, isPlaying: false }; }
+  getDeckLevel(id: DeckId) { return 0; }
+  setDeckRate(id: DeckId, rate: number, sync?: boolean) {}
+  seekDeck(id: DeckId, pos: number) {}
+  playDeck(id: DeckId) {}
+  pauseDeck(id: DeckId) {}
+  brakeDeck(id: DeckId) {}
+  spinbackDeck(id: DeckId) {}
+  transformDeck(id: DeckId) {}
+  setDeckGain(id: DeckId, val: number) {}
+  setDeckEq(id: DeckId, h: number, m: number, l: number) {}
+  setDeckFilter(id: DeckId, freq: number) {}
+  setDeckSend(id: DeckId, send: string, gain: number) {}
+  loadDeck(id: DeckId, buf: any) {}
+  setHotCue(id: DeckId, slot: number) {}
+  clearHotCue(id: DeckId, slot: number) {}
+  jumpToHotCue(id: DeckId, slot: number) {}
+  setAdvancedFX(id: DeckId, fx: string, val: number) {}
+  setCrossfader(val: number, curve?: any, hamster?: boolean) {}
+  setSaturation(val: number) {}
+  toggleMetronome() { this.metronomeEnabled.update(v => !v); }
+  setMetronomeVolume(val: number) { this.metronomeVolume.set(val); }
+  applyProductionParameter(trackId: string, param: string, val: number, duration?: number) {}
+  setOutputMode(mode: string) {}
+  setDeckLoop(id: DeckId, val: boolean) {}
+  setSlipMode(id: DeckId, val: boolean) {}
+  setDeckStemGain(id: DeckId, stem: string, gain: number) {}
+  setDeckCue(id: DeckId, val: boolean) {}
+  syncDecks(master: DeckId, slave: DeckId) {}
+  scratch(id: DeckId, delta: number) {}
 }

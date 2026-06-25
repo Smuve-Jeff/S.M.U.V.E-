@@ -170,7 +170,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     }
   }
 
-  @HostListener('pointermove', ['$event'])
+  @HostListener('pointermove', [''])
   onPointerMove(e: PointerEvent) {
     if (this.isSelecting) {
       const container = this.scrollContainer.nativeElement;
