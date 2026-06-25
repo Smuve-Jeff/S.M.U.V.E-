@@ -9,3 +9,11 @@
 .slot-item:active {
   transform: scale(0.98);
 }
+.active-slot-ui {
+  border-color: rgba(56, 189, 248, 0.4) !important;
+  background: rgba(56, 189, 248, 0.05) !important;
+}
+
+.effects-rack-container {
+  background: linear-gradient(180deg, #111827 0%, #050507 100%);
+}

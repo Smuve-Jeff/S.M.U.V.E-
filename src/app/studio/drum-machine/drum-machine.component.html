@@ -51,13 +51,17 @@
                [style.background-color]="pad.color"></div>
           <span class="pad-name-hw font-black text-[10px] uppercase tracking-widest relative z-10">{{ pad.name }}</span>
           <div class="pad-feedback absolute inset-0 opacity-0 bg-white pointer-events-none" [class.animate-ping]="isStepPlaying(pad)"></div>
+          <button (click)="triggerPad(pad); $event.stopPropagation()" class="absolute inset-0 opacity-0"></button>
         </div>
       </div>
 
       <div class="master-params mt-8 grid grid-cols-2 gap-4">
-        <div class="master-knob glass-v42 p-4 rounded-xl flex flex-col items-center border border-white/5">
-          <app-knob label="SWING" [min]="0" [max]="100" [value]="50"></app-knob>
-        </div>
+        <button (click)="openSamplePicker()" class="tactile-v42 w-full py-4 rounded-xl border border-white/10 flex flex-col items-center justify-center gap-1 group">
+           <span class="material-symbols-outlined text-fl-blue group-hover:scale-125 transition-transform">upload_file</span>
+           <span class="text-[8px] font-black uppercase tracking-widest">Load Sample</span>
+        </button>
+        <input type="file" #sampleInput class="hidden" (change)="onSampleSelected($event)" accept="audio/*">
+
         <div class="master-knob glass-v42 p-4 rounded-xl flex flex-col items-center border border-white/5">
           <app-knob label="GRID" [min]="1" [max]="32" [value]="16"></app-knob>
         </div>
@@ -83,7 +87,7 @@
         </div>
       </div>
 
-      <div class="sequencer-grid-viewport flex-1 overflow-auto p-6 no-scrollbar" #sequencerViewport>
+      <div class="sequencer-grid-viewport flex-1 overflow-auto p-6 no-scrollbar">
         <div *ngIf="viewMode() === 'sequencer'" class="steps-grid-v42 grid grid-cols-16 gap-2 min-w-[800px]">
           <div *ngFor="let stepIdx of barStepRange"
                class="step-v42 relative aspect-square rounded-lg border-2 transition-all cursor-pointer group"
@@ -105,7 +109,7 @@
                [class.selected-strip]="selectedPadId() === p.id"
                (click)="selectPad(p.id)">
             <div class="w-1.5 h-1.5 rounded-full mb-2" [style.background-color]="p.color"></div>
-            <app-knob [label]="'PITCH'" [min]="-12" [max]="12" [value]="p.params.semitone" (valueChange)="p.params.semitone = $event; aiService.roastComponent('Pad Pitch')"></app-knob>
+            <app-knob [label]="'PITCH'" [min]="-12" [max]="12" [value]="p.params.semitone" (valueChange)="p.params.semitone = $event"></app-knob>
             <app-knob [label]="'DECAY'" [min]="0.01" [max]="2" [value]="p.params.decay" (valueChange)="p.params.decay = $event"></app-knob>
             <div class="text-[8px] font-black uppercase text-slate-500 mt-2">{{ p.name }}</div>
           </div>

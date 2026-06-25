@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 
 export type SwipeDirection = 'left' | 'right' | 'up' | 'down';
 
@@ -13,12 +13,13 @@ export interface SwipeEvent {
   providedIn: 'root',
 })
 export class EnhancedTouchGestureService {
-  readonly minZoom = 0.75;
-  readonly maxZoom = 2.5;
-  readonly swipeThreshold = 50;
-  readonly swipeVelocityThreshold = 0.3;
+  readonly minZoom = 0.5;
+  readonly maxZoom = 4.0;
+  readonly swipeThreshold = 40;
+  readonly swipeVelocityThreshold = 0.2;
   
   zoomLevel = signal(1.0);
+  verticalZoomLevel = signal(1.0);
   isSwipeActive = signal(false);
   lastSwipe = signal<SwipeEvent | null>(null);
   
@@ -26,6 +27,7 @@ export class EnhancedTouchGestureService {
   private touchStartY = 0;
   private touchStartTime = 0;
   private lastPinchDistance = 0;
+  private lastPinchCenterY = 0;
 
   handlePinch(event: TouchEvent): number | null {
     if (event.touches.length !== 2) {
@@ -35,14 +37,26 @@ export class EnhancedTouchGestureService {
 
     const touch1 = event.touches[0];
     const touch2 = event.touches[1];
-    const distance = Math.hypot(
-      touch2.clientX - touch1.clientX,
-      touch2.clientY - touch1.clientY
-    );
+
+    // Distance for horizontal zoom
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    const distance = Math.hypot(dx, dy);
+
+    // Center point for vertical zoom reference
+    const centerY = (touch1.clientY + touch2.clientY) / 2;
     
     if (this.lastPinchDistance > 0) {
       const scale = distance / this.lastPinchDistance;
-      this.adjustZoom((scale - 1) * 0.5);
+
+      // Horizontal zoom
+      this.adjustZoom((scale - 1) * 0.8);
+
+      // Vertical zoom if pinch is more vertical
+      if (Math.abs(dy) > Math.abs(dx) * 1.5) {
+         const vScale = Math.abs(dy) / (this.lastPinchDistance || 1);
+         this.adjustVerticalZoom((vScale - 1) * 0.5);
+      }
     }
     
     this.lastPinchDistance = distance;
@@ -106,8 +120,13 @@ export class EnhancedTouchGestureService {
     this.setZoom(this.zoomLevel() + delta);
   }
 
+  adjustVerticalZoom(delta: number) {
+    this.verticalZoomLevel.set(this.clamp(this.verticalZoomLevel() + delta));
+  }
+
   resetZoom() {
     this.zoomLevel.set(1);
+    this.verticalZoomLevel.set(1);
   }
 
   private clamp(value: number): number {
