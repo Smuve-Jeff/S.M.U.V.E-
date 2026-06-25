@@ -155,7 +155,7 @@ export class AiService {
   getProductionSmartAssist(context: any): any { return { advice: 'Add more saturation.', correctivePreset: {}, targetLufs: -14, arrangementSuggestion: '', eqMaskingHint: '' }; }
 
   async getQuestionnaireInsights(draft: any) {
-    const journey = draft.musicalJourney;
+    const journey = draft?.musicalJourney;
     const insights = [];
     if (!journey) return insights;
 
