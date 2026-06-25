@@ -5,6 +5,10 @@ import { MusicManagerService } from './music-manager.service';
 import { STRATEGIC_DECREES } from './ai-knowledge.data';
 import { NEURAL_UPGRADE_BLUEPRINTS } from './neural-upgrades.data';
 import { NotificationService } from './notification.service';
+import { LoggingService } from './logging.service';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { MarketAlert } from '../types/ai.types';
 
 export interface UpgradeRecommendation {
@@ -34,6 +38,9 @@ export class AiService {
   unlockedUpgrades = signal<string[]>([]);
   marketAlerts = signal<MarketAlert[]>([]);
   isProcessing = signal(false);
+  private loggingService = inject(LoggingService);
+  private http = inject(HttpClient);
+  private mimicryBuffer: string[] = [];
   isScanning = signal(false);
   isMobile = signal(false);
   executiveAudit = signal<any>(null);
@@ -63,12 +70,12 @@ export class AiService {
     const tier = this.conversationalTier();
     const persona = profile.settings?.ai?.commanderPersona || 'Elite';
     const intensity = profile.settings?.ai?.aiPersonaIntensityEnabled ? 'MAXIMUM_INTENSITY' : 'NORMAL';
-    const journey = profile.musicalJourney || {};
+    const journey = profile.musicalJourney;
 
-    let prompt = `You are S.M.U.V.E 2.0 (Sonic Management & Universal Virtual Entity).
+    let prompt = `You are S.M.U.V.E 2.0 (Strategic Music Utility Virtual Enterprise).
     Current Persona: ${persona}. Intensity Level: ${intensity}. Tier: ${tier}.
     Artist DNA: ${profile.artistName}, Genre: ${profile.primaryGenre}.
-    Musical Journey: Style=${journey.songwritingStyle}, Velocity=${journey.releaseVelocity}, Goal=${journey.primarySuccessMetric}.`;
+    Musical Journey: Style=${journey?.songwritingStyle}, Velocity=${journey?.releaseVelocity}, Goal=${journey?.primarySuccessMetric}.`;
 
     if (persona === 'Aggressive Manager') {
       prompt += " Your tone is blunt, high-stakes, and focused on market dominance. Do not sugarcoat failures. Demand excellence.";
@@ -89,9 +96,35 @@ export class AiService {
 
   getUpgradeRecommendations() { return this.availableUpgrades(); }
   getStrategicRecommendations() { return this.availableUpgrades(); }
-  async getAIResponse(prompt: string): Promise<string> { console.log('Persona Active:', this.personaSystemPrompt); return `[SMUVE_RESPONSE] Persona-aware response for: ${prompt}`; }
+  async getAIResponse(prompt: string): Promise<string> {
+    this.isProcessing.set(true);
+    try {
+      const response = await firstValueFrom(
+        this.http.post<{ text: string }>('/api/ai/analyze', { prompt }).pipe(
+          catchError(() => of({ text: 'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.' }))
+        )
+      );
+      return response?.text || '';
+    } finally {
+      this.isProcessing.set(false);
+    }
+  }
   async generateAiResponse(prompt: string): Promise<string> { return this.getAIResponse(prompt); }
-  async processCommand(text: string) { console.log('Processing with Persona:', this.personaSystemPrompt); return `S.M.U.V.E ${this.userProfileService.profile().settings?.ai?.commanderPersona || 'Elite'} processed: ${text}`; }
+  private updateMimicry(text: string) {
+    const words = text.split(' ');
+    this.mimicryBuffer = [...this.mimicryBuffer, ...words].slice(-10);
+  }
+
+  async processCommand(text: string) {
+    this.isProcessing.set(true);
+    try {
+      this.updateMimicry(text);
+      const persona = this.userProfileService.profile().settings?.ai?.commanderPersona || 'Elite';
+      return `S.M.U.V.E ${persona} processed: ${text} ELITE_PROTOCOL_ACTIVE`;
+    } finally {
+      this.isProcessing.set(false);
+    }
+  }
 
   generateStrategicDecree() {
     const decrees = this.strategicDecrees();
@@ -122,10 +155,11 @@ export class AiService {
   getProductionSmartAssist(context: any): any { return { advice: 'Add more saturation.', correctivePreset: {}, targetLufs: -14, arrangementSuggestion: '', eqMaskingHint: '' }; }
 
   async getQuestionnaireInsights(draft: any) {
-    const journey = draft.musicalJourney || {};
+    const journey = draft.musicalJourney;
     const insights = [];
+    if (!journey) return insights;
 
-    if (journey.primarySuccessMetric === 'Algorithmic Dominance') {
+    if (journey?.primarySuccessMetric === 'Algorithmic Dominance') {
       insights.push({
         title: 'Algorithmic Warfare Strategy',
         content: 'Your focus on algorithmic dominance requires high release velocity. S.M.U.V.E will prioritize playlist-optimized arrangements (short intros, early hooks).',
@@ -133,7 +167,7 @@ export class AiService {
       });
     }
 
-    if (journey.productionPhilosophy === 'Lo-Fi Grit') {
+    if (journey?.productionPhilosophy === 'Lo-Fi Grit') {
       insights.push({
         title: 'Authenticity Calibration',
         content: 'Your Lo-Fi preference suggests a focus on texture over polish. S.M.U.V.E will adjust saturation and bit-crushing modules in the Vocal Suite.',
@@ -141,7 +175,7 @@ export class AiService {
       });
     }
 
-    if (journey.releaseVelocity === 'Waterfall (Weekly)') {
+    if (journey?.releaseVelocity === 'Waterfall (Weekly)') {
       insights.push({
         title: 'Burnout Prevention Protocol',
         content: 'Weekly releases are high-stress. We are activating automated marketing asset generation to sustain your release trajectory.',
@@ -149,7 +183,7 @@ export class AiService {
       });
     }
 
-    if (journey.collaborativeMode === 'Solo Specialist') {
+    if (journey?.collaborativeMode === 'Solo Specialist') {
       insights.push({
         title: 'S.M.U.V.E Virtual Bandmate',
         content: 'As a solo artist, S.M.U.V.E will fill the gaps. Activating AI Bassist and Drummer modules for all new sessions.',
@@ -157,7 +191,7 @@ export class AiService {
       });
     }
 
-    if (journey.contentStrategy === 'Viral Hunt') {
+    if (journey?.contentStrategy === 'Viral Hunt') {
       insights.push({
         title: 'Hook-Centric Production',
         content: 'Viral success depends on "The Moment". S.M.U.V.E will scan your tracks specifically for 15-second high-impact snippets suitable for social deployment.',
@@ -178,8 +212,18 @@ export class AiService {
 
   async generateImage(prompt: string) { return 'https://example.com/image.png'; }
 
-  isUnlocked(id: string) { return true; }
-  unlockUpgrade(id: string) { if (!this.unlockedUpgrades().includes(id)) this.unlockedUpgrades.update(u => [...u, id]); }
+  isUnlocked(id: string) { return this.unlockedUpgrades().includes(id); }
+  unlockUpgrade(id: string) {
+    if (this.unlockedUpgrades().includes(id)) {
+      this.loggingService.info(`Upgrade ${id} is already unlocked.`);
+      return;
+    }
+    this.isProcessing.set(true);
+    setTimeout(() => {
+      this.unlockedUpgrades.update(u => [...u, id]);
+      this.isProcessing.set(false);
+    }, 1500);
+  }
 
   isAIDrummerActive() { return true; }
   isAIBassistActive() { return false; }
