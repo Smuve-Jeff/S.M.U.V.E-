@@ -33,14 +33,14 @@ export class AiService {
   private userProfileService = inject(UserProfileService);
   private musicManager = inject(MusicManagerService);
   private notification = inject(NotificationService);
+  private loggingService = inject(LoggingService);
+  private http = inject(HttpClient);
+  private mimicryBuffer: string[] = [];
 
   strategicDecrees = signal<string[]>(STRATEGIC_DECREES);
   unlockedUpgrades = signal<string[]>([]);
   marketAlerts = signal<MarketAlert[]>([]);
   isProcessing = signal(false);
-  private loggingService = inject(LoggingService);
-  private http = inject(HttpClient);
-  private mimicryBuffer: string[] = [];
   isScanning = signal(false);
   isMobile = signal(false);
   executiveAudit = signal<any>(null);
@@ -75,7 +75,7 @@ export class AiService {
     let prompt = `You are S.M.U.V.E 2.0 (Sonic Management & Universal Virtual Entity).
     Current Persona: ${persona}. Intensity Level: ${intensity}. Tier: ${tier}.
     Artist DNA: ${profile.artistName}, Genre: ${profile.primaryGenre}.
-    Musical Journey: Style=${journey?.songwritingStyle || 'N/A'}, Velocity=${journey?.releaseVelocity || 'N/A'}, Goal=${journey?.primarySuccessMetric || 'N/A'}.`;
+    Musical Journey: Style=${journey?.songwritingStyle}, Velocity=${journey?.releaseVelocity}, Goal=${journey?.primarySuccessMetric}.`;
 
     if (persona === 'Aggressive Manager') {
       prompt += " Your tone is blunt, high-stakes, and focused on market dominance. Do not sugarcoat failures. Demand excellence.";
@@ -146,64 +146,56 @@ export class AiService {
     return 'Elite Mastering Chain Engaged.';
   }
 
-  private vulgarize(text: string): string {
-    return text.replace(/ mediocre /g, ' f***ing mediocre ');
-  }
-
   async syncKnowledgeBaseWithProfile() {}
   async getAutoMixSettings() { return { threshold: -14, ratio: 4, ceiling: -0.1, targetLufs: -14 }; }
   getProductionSmartAssist(context: any): any { return { advice: 'Add more saturation.', correctivePreset: {}, targetLufs: -14, arrangementSuggestion: '', eqMaskingHint: '' }; }
 
   async getQuestionnaireInsights(draft: any) {
-    const journey = draft?.musicalJourney;
-    const insights = [];
-    if (!journey) return insights;
+    const journey = draft.musicalJourney;
+    if (!journey) return [];
 
-    if (journey?.primarySuccessMetric === 'Algorithmic Dominance') {
-      insights.push({
+    const insightRules: Array<{ field: keyof typeof journey; value: string; title: string; content: string; impact: string }> = [
+      {
+        field: 'primarySuccessMetric', value: 'Algorithmic Dominance',
         title: 'Algorithmic Warfare Strategy',
         content: 'Your focus on algorithmic dominance requires high release velocity. S.M.U.V.E will prioritize playlist-optimized arrangements (short intros, early hooks).',
-        impact: 'Extreme'
-      });
-    }
-
-    if (journey?.productionPhilosophy === 'Lo-Fi Grit') {
-      insights.push({
+        impact: 'Extreme',
+      },
+      {
+        field: 'productionPhilosophy', value: 'Lo-Fi Grit',
         title: 'Authenticity Calibration',
         content: 'Your Lo-Fi preference suggests a focus on texture over polish. S.M.U.V.E will adjust saturation and bit-crushing modules in the Vocal Suite.',
-        impact: 'High'
-      });
-    }
-
-    if (journey?.releaseVelocity === 'Waterfall (Weekly)') {
-      insights.push({
+        impact: 'High',
+      },
+      {
+        field: 'releaseVelocity', value: 'Waterfall (Weekly)',
         title: 'Burnout Prevention Protocol',
         content: 'Weekly releases are high-stress. We are activating automated marketing asset generation to sustain your release trajectory.',
-        impact: 'Critical'
-      });
-    }
-
-    if (journey?.collaborativeMode === 'Solo Specialist') {
-      insights.push({
+        impact: 'Critical',
+      },
+      {
+        field: 'collaborativeMode', value: 'Solo Specialist',
         title: 'S.M.U.V.E Virtual Bandmate',
         content: 'As a solo artist, S.M.U.V.E will fill the gaps. Activating AI Bassist and Drummer modules for all new sessions.',
-        impact: 'Medium'
-      });
-    }
-
-    if (journey?.contentStrategy === 'Viral Hunt') {
-      insights.push({
+        impact: 'Medium',
+      },
+      {
+        field: 'contentStrategy', value: 'Viral Hunt',
         title: 'Hook-Centric Production',
         content: 'Viral success depends on "The Moment". S.M.U.V.E will scan your tracks specifically for 15-second high-impact snippets suitable for social deployment.',
-        impact: 'Extreme'
-      });
-    }
+        impact: 'Extreme',
+      },
+    ];
+
+    const insights = insightRules
+      .filter(rule => journey[rule.field] === rule.value)
+      .map(({ title, content, impact }) => ({ title, content, impact }));
 
     if (insights.length === 0) {
       insights.push({
         title: 'Initial Trajectory Set',
         content: 'Musical journey captured. S.M.U.V.E is now fine-tuning your workspace for maximum artistic resonance.',
-        impact: 'Low'
+        impact: 'Low',
       });
     }
 
