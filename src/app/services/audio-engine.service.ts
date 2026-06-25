@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject, NgZone } from '@angular/core';
 
 export type PerformanceTier = 'ultra' | 'performance';
 export type DeckId = 'A' | 'B';
