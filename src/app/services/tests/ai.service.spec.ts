@@ -97,7 +97,7 @@ describe('AiService', () => {
     service = TestBed.inject(AiService);
     httpMock = TestBed.inject(HttpTestingController);
     jest
-      .spyOn(service as any, 'getRankedUpgrades')
+      .spyOn(service as any, 'getUpgradeRecommendations')
       .mockReturnValue([mockUpgrade]);
   });
 
