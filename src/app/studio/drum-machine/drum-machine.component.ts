@@ -1,11 +1,13 @@
 import {
-  AfterViewInit,
   Component,
   computed,
   inject,
   OnDestroy,
   OnInit,
   signal,
+  ViewChild,
+  ElementRef,
+  effect
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -19,39 +21,14 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { AiService } from '../../services/ai.service';
 import { HapticService } from '../../services/haptic.service';
 
-type DrumGenre = 'house' | 'trap' | 'afrobeats' | 'drill' | 'dnb';
-
-interface DrumStep {
-  active: boolean;
-  velocity: number;
-  probability: number;
-  nudge: number;
-}
-
 interface DrumPad {
   id: string;
   name: string;
   midi: number;
   color: string;
   type: string;
-  steps: DrumStep[];
-  params: {
-    semitone: number;
-    decay: number;
-    pan: number;
-    cutoff: number;
-    resonance: number;
-    saturation: number;
-    compression: number;
-    attack: number;
-  };
-}
-
-interface DrumPadBlueprint {
-  name: string;
-  midi: number;
-  color: string;
-  type: string;
+  params: any;
+  sampleBuffer?: AudioBuffer;
 }
 
 @Component({
@@ -68,13 +45,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public aiService = inject(AiService);
   private haptic = inject(HapticService);
 
-  public pads = signal<DrumPad[]>([]);
-  public activePadIndex = signal(0);
-  public currentGenre = signal<DrumGenre>('trap');
-  public swingAmount = signal(0);
-  public isRollActive = signal(false);
-  public rollRate = signal(16);
+  @ViewChild('sampleInput') sampleInput!: ElementRef<HTMLInputElement>;
 
+  public pads = signal<DrumPad[]>([]);
   public viewMode = signal<'sequencer' | 'knobs'>('sequencer');
   public currentBar = signal(0);
   public barRange = [0, 1, 2, 3];
@@ -83,7 +56,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public selectedPad = computed(() => this.pads().find(p => p.id === this.selectedPadId()));
   public graphTarget = signal<'velocity' | 'probability'>('velocity');
 
-  private blueprints: DrumPadBlueprint[] = [
+  private blueprints = [
     { name: 'KICK', midi: 36, color: '#ff4444', type: 'kick' },
     { name: 'SNARE', midi: 38, color: '#44ff44', type: 'snare' },
     { name: 'CLAP', midi: 39, color: '#ffbb33', type: 'perc' },
@@ -96,6 +69,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
 
   constructor() {
     this.initPads();
+
+    // Sync Drum track notes to pad visual feedback if needed
   }
 
   ngOnInit() {}
@@ -105,61 +80,106 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const initialPads = this.blueprints.map(b => ({
       ...b,
       id: `pad-${b.midi}`,
-      steps: Array(64).fill(null).map(() => ({ active: false, velocity: 1, probability: 1, nudge: 0 })),
-      params: {
-        semitone: 0,
-        decay: 0.5,
-        pan: 0,
-        cutoff: 20000,
-        resonance: 1,
-        saturation: 0,
-        compression: 0,
-        attack: 0.01
-      }
+      params: { semitone: 0, decay: 0.3, pan: 0, cutoff: 15000, resonance: 1, saturation: 0, compression: 0, attack: 0.005 }
     }));
     this.pads.set(initialPads);
   }
 
   toggleStep(padId: string, stepIndex: number) {
     this.haptic.light();
-    this.pads.update(ps => ps.map(p => {
-        if (p.id === padId) {
-            const newSteps = [...p.steps];
-            newSteps[stepIndex] = { ...newSteps[stepIndex], active: !newSteps[stepIndex].active };
-            return { ...p, steps: newSteps };
-        }
-        return p;
-    }));
+    const pad = this.pads().find(p => p.id === padId);
+    if (!pad) return;
+
+    const drumTrack = this.musicManager.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID);
+    if (!drumTrack) return;
+
+    const existingNote = drumTrack.notes.find(n => n.midi === pad.midi && n.step === stepIndex);
+    if (existingNote) {
+       this.musicManager.removeNotes(drumTrack.id, [existingNote.id]);
+    } else {
+       this.musicManager.addNoteToTrack(drumTrack.id, {
+          id: 'drum_' + Date.now() + Math.random(),
+          midi: pad.midi,
+          step: stepIndex,
+          length: 1,
+          velocity: 0.8,
+          probability: 1.0,
+          params: pad.params
+       });
+    }
   }
 
-  selectPad(id: string) {
-    this.selectedPadId.set(id);
-  }
+  selectPad(id: string) { this.selectedPadId.set(id); }
 
   getPadStep(padId: string, stepIdx: number) {
     const pad = this.pads().find(p => p.id === padId);
-    return pad?.steps[stepIdx] || { active: false, velocity: 1, probability: 1 };
+    if (!pad) return { active: false, velocity: 0.8, probability: 1 };
+
+    const drumTrack = this.musicManager.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID);
+    const note = drumTrack?.notes.find(n => n.midi === pad.midi && n.step === stepIdx);
+
+    return {
+       active: !!note,
+       velocity: note?.velocity || 0.8,
+       probability: note?.probability || 1.0
+    };
   }
 
-  isStepPlaying(pad: any) { return false; }
-  isGlobalStep(step: number) { return false; }
-  evolveRhythm() {}
-  generateGenre(genre: string) {}
-  randomizeAll() {}
+  isStepPlaying(pad: DrumPad) {
+    const currentStep = this.audioEngine.visualStep() % 64;
+    return this.audioSession.isPlaying() && !!this.musicManager.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID)?.notes.find(n => n.midi === pad.midi && n.step === currentStep);
+  }
 
-  triggerPad(padIndex: number) {
+  isGlobalStep(step: number) { return this.audioEngine.visualStep() % 64 === step; }
+
+  evolveRhythm() {
+     this.haptic.impact('heavy');
+     const pad = this.selectedPad();
+     if (!pad) return;
+     for (let i = 0; i < 64; i++) {
+        if (Math.random() > 0.9) this.toggleStep(pad.id, i);
+     }
+  }
+
+  generateGenre(genre: string) {
+     this.haptic.medium();
+     const drumTrack = this.musicManager.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID);
+     if (drumTrack) this.musicManager.removeNotes(drumTrack.id, drumTrack.notes.map(n => n.id));
+
+     // Basic pattern
+     [36, 42, 38].forEach(midi => {
+        const id = `pad-${midi}`;
+        if (midi === 36) [0, 8, 11, 24, 32].forEach(s => this.toggleStep(id, s));
+        if (midi === 42) Array.from({length: 32}, (_, i) => i*2).forEach(s => this.toggleStep(id, s));
+        if (midi === 38) [4, 12, 20, 28].forEach(s => this.toggleStep(id, s));
+     });
+  }
+
+  randomizeAll() {
+     const drumTrack = this.musicManager.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID);
+     if (drumTrack) this.musicManager.removeNotes(drumTrack.id, drumTrack.notes.map(n => n.id));
+     this.pads().forEach(p => {
+        for (let i = 0; i < 64; i++) {
+           if (Math.random() > 0.9) this.toggleStep(p.id, i);
+        }
+     });
+  }
+
+  triggerPad(pad: DrumPad) {
     this.haptic.impact('light');
-    const pad = this.pads()[padIndex];
-    if (!pad) return;
     const freq = 440 * Math.pow(2, (pad.midi - 69) / 12);
-    this.audioEngine.triggerAttack(
-      MusicManagerService.DRUM_TRACK_ID,
-      freq,
-      this.audioEngine.ctx.currentTime,
-      127,
-      0.1,
-      1, 0, 0, 0,
-      pad.params
-    );
+    this.audioEngine.triggerAttack(MusicManagerService.DRUM_TRACK_ID, freq, this.audioEngine.ctx.currentTime, 1.0, pad.params.decay || 0.3, 1, pad.params.pan, 0, 0, pad.params);
+  }
+
+  openSamplePicker() { this.sampleInput.nativeElement.click(); }
+
+  async onSampleSelected(event: any) {
+    const file = event.target.files?.[0];
+    if (file && this.selectedPad()) {
+       const arrayBuffer = await file.arrayBuffer();
+       const audioBuffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
+       this.pads.update(ps => ps.map(p => p.id === this.selectedPadId() ? { ...p, sampleBuffer: audioBuffer, name: file.name.split('.')[0].toUpperCase().substring(0, 8) } : p));
+       this.haptic.medium();
+    }
   }
 }

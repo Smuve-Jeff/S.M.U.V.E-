@@ -4,9 +4,17 @@ import { AudioSessionService } from '../audio-session.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { LiveEngineService } from '../../services/live-engine.service';
 import { InstrumentsService } from '../../services/instruments.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
 import { HapticService } from '../../services/haptic.service';
 import { FormsModule } from '@angular/forms';
-import { signal } from '@angular/core';
+import { signal, Component } from '@angular/core';
+
+@Component({
+  selector: 'app-performance-grid',
+  standalone: true,
+  template: '<div></div>',
+})
+class StubPerformanceGridComponent {}
 
 describe('PerformerComponent', () => {
   let component: PerformerComponent;
@@ -17,16 +25,21 @@ describe('PerformerComponent', () => {
     mockLiveEngine = {
       activeInstrument: signal('grand-piano-v2'),
       smartChords: signal(false),
+      arpeggiatorEnabled: signal(false),
+      scaleLock: signal(false),
+      scaleMode: signal('major'),
       initialize: jest.fn().mockResolvedValue(true),
       setInstrument: jest.fn().mockResolvedValue(true),
       triggerNoteStart: jest.fn(),
       triggerNoteEnd: jest.fn(),
       setPitchBend: jest.fn(),
       setModulation: jest.fn(),
+      setScale: jest.fn(),
+      midiToNote: jest.fn().mockReturnValue('C4'),
     };
 
     await TestBed.configureTestingModule({
-      imports: [PerformerComponent, FormsModule],
+      imports: [PerformerComponent, FormsModule, StubPerformanceGridComponent],
       providers: [
         {
           provide: MusicManagerService,
@@ -34,6 +47,10 @@ describe('PerformerComponent', () => {
             recordLiveNote: jest.fn(),
             setActivePatternSlot: jest.fn(),
             tracks: signal([]),
+            selectedTrackId: signal(null),
+            engine: { masterAnalyser: { frequencyBinCount: 1024, getByteFrequencyData: jest.fn() } },
+            performerScenes: signal([]),
+            activeSceneId: signal(null)
           },
         },
         {
@@ -46,6 +63,10 @@ describe('PerformerComponent', () => {
           },
         },
         {
+          provide: AudioEngineService,
+          useValue: { ctx: { currentTime: 0 } }
+        },
+        {
           provide: LiveEngineService,
           useValue: mockLiveEngine,
         },
@@ -53,7 +74,10 @@ describe('PerformerComponent', () => {
           provide: HapticService,
           useValue: { light: jest.fn(), impact: jest.fn() },
         },
-        InstrumentsService,
+        {
+          provide: InstrumentsService,
+          useValue: { getPresets: () => [] }
+        }
       ],
     }).compileComponents();
 

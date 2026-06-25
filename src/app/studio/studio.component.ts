@@ -1,4 +1,13 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, inject, signal, computed, ViewChild } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  AfterViewInit,
+  inject,
+  signal,
+  computed,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -37,64 +46,21 @@ import { OfflineIndicatorComponent } from './shared/offline-indicator/offline-in
 import { SnackbarService } from '../services/snackbar.service';
 import { EnhancedTouchGestureService } from '../services/enhanced-touch-gesture.service';
 
-type StudioView =
-  | 'arrangement'
-  | 'dj'
-  | 'piano-roll'
-  | 'mixer'
-  | 'performance'
-  | 'mastering'
-  | 'drum-machine'
-  | 'channel-rack'
-  | 'performer';
+type StudioView = 'arrangement' | 'dj' | 'piano-roll' | 'mixer' | 'performance' | 'mastering' | 'drum-machine' | 'channel-rack' | 'performer';
+type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack' | 'templates';
 
-type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack';
-
-const PATH_STUDIO_VIEWS = new Set<StudioView>([
-  'arrangement',
-  'dj',
-  'piano-roll',
-  'mixer',
-  'performance',
-  'mastering',
-  'drum-machine',
-  'channel-rack',
-  'performer',
-]);
-
-function isStudioView(value: string): value is StudioView {
-  return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
-}
-
-interface BottomNavItem {
-  id: string;
-  label: string;
-  icon: string;
-}
+const PATH_STUDIO_VIEWS = new Set<StudioView>(['arrangement','dj','piano-roll','mixer','performance','mastering','drum-machine','channel-rack','performer']);
+function isStudioView(value: string): value is StudioView { return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value); }
 
 @Component({
   selector: 'app-studio',
   standalone: true,
   imports: [
-    CommonModule,
-    FormsModule,
-    UniversalMasterComponent,
-    MixerComponent,
-    DjDeckComponent,
-    ArrangementViewComponent,
-    PianoRollComponent,
-    MasteringSuiteComponent,
-    ChannelRackComponent,
-    DrumMachineComponent,
-    PerformerComponent,
-    SoundBrowserComponent,
-    TrackInspectorComponent,
-    EffectsRackUiComponent,
-    BottomNavComponent,
-    FabComponent,
-    SnackbarComponent,
-    SearchOverlayComponent,
-    OfflineIndicatorComponent,
+    CommonModule, FormsModule, UniversalMasterComponent, MixerComponent, DjDeckComponent,
+    ArrangementViewComponent, PianoRollComponent, MasteringSuiteComponent, ChannelRackComponent,
+    DrumMachineComponent, PerformerComponent, SoundBrowserComponent, TrackInspectorComponent,
+    EffectsRackUiComponent, BottomNavComponent, FabComponent, SnackbarComponent,
+    SearchOverlayComponent, OfflineIndicatorComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -103,26 +69,16 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
   @ViewChild(SearchOverlayComponent) searchOverlay?: SearchOverlayComponent;
   
-  private readonly beatsPerBar = 4;
   public readonly audioSession = inject(AudioSessionService);
   public readonly audioEngine = inject(AudioEngineService);
-  public readonly neuralOrchestrator = inject(AiService);
   public readonly uiService = inject(UIService);
-  private readonly notificationService = inject(NotificationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   public readonly musicManager = inject(MusicManagerService);
-  public readonly profileService = inject(UserProfileService);
-  private readonly aiCopilot = inject(AiCopilotService);
-  private readonly haptic = inject(HapticService);
-  public readonly touchGestures = inject(TouchGestureService);
-  private readonly enhancedGestures = inject(EnhancedTouchGestureService);
-  private readonly sequencer = inject(SequencerService);
+  public readonly haptic = inject(HapticService);
   private readonly dialog = inject(InteractionDialogService);
   private readonly snackbarService = inject(SnackbarService);
-  private readonly templateService = inject(ProjectTemplateService);
-
-  private destroy$ = new Subject<void>();
+  public readonly templateService = inject(ProjectTemplateService);
 
   activeView = signal<StudioView>('arrangement');
   mobilePanel = signal<MobileStudioPanel | null>(null);
@@ -134,125 +90,60 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   inspectorCollapsed = signal(false);
 
   studioQualityClass = computed(() => {
-    return this.audioEngine.performanceTier() === 'ultra'
-      ? 'studio-ultra'
-      : 'studio-perf';
+    return this.audioEngine.performanceTier() === 'ultra' ? 'studio-ultra' : 'studio-perf';
   });
 
-  currentBar = computed(() => {
-    const stepsPerBar = this.audioEngine.stepsPerBeat() * this.beatsPerBar;
-    return Math.floor(this.musicManager.currentStep() / stepsPerBar) + 1;
-  });
+  currentBar = computed(() => Math.floor(this.audioEngine.visualStep() / 16) + 1);
 
-  bottomNavItems = computed<BottomNavItem[]>(() => [
+  bottomNavItems = computed(() => [
     { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },
     { id: 'piano-roll', label: 'Piano', icon: 'piano' },
-    { id: 'channel-rack', label: 'Rack', icon: 'apps' },
     { id: 'drum-machine', label: 'Drums', icon: 'grid_view' },
     { id: 'mixer', label: 'Mix', icon: 'tune' },
     { id: 'performance', label: 'Perform', icon: 'interpreter_mode' },
   ]);
 
-  showFab = computed(() => {
-    const view = this.activeView();
-    return ['arrangement', 'piano-roll', 'drum-machine'].includes(view);
-  });
-
-  fabIcon = computed(() => {
-    const view = this.activeView();
-    if (view === 'arrangement') return 'add';
-    if (view === 'piano-roll') return 'edit_note';
-    if (view === 'drum-machine') return 'album';
-    return 'add';
-  });
-
   constructor() {
     this.route.queryParamMap.subscribe(params => {
       const view = params.get('view');
-      if (view && isStudioView(view)) {
-        this.activeView.set(view);
-      }
+      if (view && isStudioView(view)) this.activeView.set(view);
     });
   }
 
   ngOnInit() {
-    const initialView = this.route.snapshot.queryParamMap.get('view');
-    if (initialView && isStudioView(initialView)) {
-      this.activeView.set(initialView);
-    }
     this.audioEngine.resume();
   }
 
   ngAfterViewInit() {}
-
-  ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
-    document.body.style.cursor = 'default';
-  }
+  ngOnDestroy() {}
 
   setActiveView(view: StudioView) {
     this.mobileDrawerOpen.set(false);
     this.activeView.set(view);
     this.mobilePanel.set(null);
     this.haptic.light();
-    
-    const viewNames: Record<StudioView, string> = {
-      'arrangement': 'Arrangement View',
-      'piano-roll': 'Piano Roll',
-      'drum-machine': 'Drum Machine',
-      'mixer': 'Mixer',
-      'performance': 'Performance Mode',
-      'mastering': 'Mastering Suite',
-      'dj': 'DJ Deck',
-      'performer': 'Performer',
-      'channel-rack': 'Channel Rack'
-    };
-    
-    this.snackbarService.info(`Switched to ${viewNames[view]}`);
-    
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { view },
-      queryParamsHandling: 'merge',
-    });
+    this.router.navigate([], { relativeTo: this.route, queryParams: { view }, queryParamsHandling: 'merge' });
   }
 
-  onBottomNavClick(viewId: string) {
-    if (isStudioView(viewId)) {
-      this.setActiveView(viewId);
-    }
-  }
-
-  onFabClick() {
-    const view = this.activeView();
-    this.haptic.medium();
-    
-    if (view === 'arrangement') {
-      this.addTrack();
-    } else if (view === 'piano-roll') {
-      this.snackbarService.info('Draw mode activated', 'OK');
-    } else if (view === 'drum-machine') {
-      this.snackbarService.info('New pattern created', 'UNDO');
-    }
-  }
+  onBottomNavClick(viewId: string) { if (isStudioView(viewId)) this.setActiveView(viewId); }
 
   async newProject() {
-    this.musicManager.newProject();
-    const template = this.templateService.templates[0];
-    if (template) {
-      this.templateService.applyTemplate(template.id);
-      this.snackbarService.success('New project initialized: ' + template.name);
+    const confirmed = await this.dialog.confirm({
+       title: 'New Professional Session',
+       message: 'Are you sure? Unsaved changes will be lost.',
+       confirmLabel: 'CREATE',
+       cancelLabel: 'CANCEL'
+    });
+    if (confirmed) {
+       this.toggleMobilePanel('templates');
     }
   }
 
-  addTrack() {
-    this.snackbarService.success('Track added successfully', 'UNDO');
-  }
-
-  private toggleSignal(s: ReturnType<typeof signal<boolean>>) {
-    this.haptic.light();
-    s.update(v => !v);
+  applyTemplate(id: string) {
+    this.templateService.applyTemplate(id);
+    this.closeMobilePanel();
+    this.snackbarService.success('Elite session initialized from template');
+    this.haptic.medium();
   }
 
   toggleMobilePanel(panel: MobileStudioPanel) {
@@ -260,93 +151,27 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.mobilePanel.update((current) => (current === panel ? null : panel));
   }
 
-  closeMobilePanel() {
-    this.mobilePanel.set(null);
-  }
-
-  toggleHeader() { this.toggleSignal(this.headerCollapsed); }
-  toggleMobileDrawer() { this.toggleSignal(this.mobileDrawerOpen); }
-
-  openSearch() {
-    this.haptic.light();
-    this.searchOverlay?.show();
-  }
+  closeMobilePanel() { this.mobilePanel.set(null); }
+  toggleMobileDrawer() { this.haptic.light(); this.mobileDrawerOpen.update(v => !v); }
 
   async adjustBpm() {
     const result = await this.dialog.prompt({
       title: 'Adjust Tempo',
       message: 'Enter new BPM (20-300):',
-      initialValue: this.audioEngine.tempo().toString(),
-      placeholder: '124'
+      initialValue: this.audioEngine.tempo().toString()
     });
-
     if (result) {
       const val = parseInt(result, 10);
       if (!isNaN(val) && val >= 20 && val <= 300) {
         this.audioEngine.tempo.set(val);
-        this.haptic.medium();
         this.snackbarService.success(`Tempo set to ${val} BPM`);
-      } else {
-        this.snackbarService.error('Invalid BPM value');
       }
     }
-  }
-
-  handleImport(event: any) {
-    const file = event.target.files?.[0];
-    if (file) {
-      this.musicManager.importProject(file);
-      this.snackbarService.success('Project imported successfully');
-      this.haptic.medium();
-    }
-    event.target.value = '';
   }
 
   browserWidth = signal(260);
   inspectorWidth = signal(300);
-
-  private resizingPanel: 'browser' | 'inspector' | null = null;
-
-  startResizing(event: PointerEvent, panel: 'browser' | 'inspector') {
-    event.preventDefault();
-    this.resizingPanel = panel;
-    this.haptic.light();
-
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      if (!this.resizingPanel) return;
-
-      if (this.resizingPanel === 'browser') {
-        const newWidth = Math.max(120, Math.min(600, moveEvent.clientX));
-        this.browserWidth.set(newWidth);
-        if (newWidth < 160) this.browserCollapsed.set(true);
-        else if (this.browserCollapsed()) this.browserCollapsed.set(false);
-      } else {
-        const newWidth = Math.max(120, Math.min(600, window.innerWidth - moveEvent.clientX));
-        this.inspectorWidth.set(newWidth);
-        if (newWidth < 160) this.inspectorCollapsed.set(true);
-        else if (this.inspectorCollapsed()) this.inspectorCollapsed.set(false);
-      }
-    };
-
-    const onPointerUp = () => {
-      this.resizingPanel = null;
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-      document.body.style.cursor = 'default';
-    };
-
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    document.body.style.cursor = 'col-resize';
-  }
-
-  toggleBrowser() {
-    if (this.uiService.isCompactMobile()) {
-      this.toggleSignal(this.browserDrawerOpen);
-    } else {
-      this.toggleSignal(this.browserCollapsed);
-    }
-  }
-  toggleInspector() { this.toggleSignal(this.inspectorCollapsed); }
-  toggleNeuralFoundry() { this.toggleSignal(this.showNeuralFoundry); }
+  toggleBrowser() { this.haptic.light(); this.browserCollapsed.update(v => !v); }
+  toggleInspector() { this.haptic.light(); this.inspectorCollapsed.update(v => !v); }
+  toggleNeuralFoundry() { this.haptic.light(); this.showNeuralFoundry.update(v => !v); }
 }

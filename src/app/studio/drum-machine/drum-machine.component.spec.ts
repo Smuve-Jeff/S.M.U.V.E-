@@ -29,11 +29,14 @@ describe('DrumMachineComponent', () => {
 
   const mockAudioEngine = {
     tempo: signal(124),
+    visualStep: signal(0),
+    ctx: { currentTime: 0 }
   };
 
   const mockHaptic = {
     light: jest.fn(),
     medium: jest.fn(),
+    impact: jest.fn(),
   };
 
   const mockAiService = {
@@ -62,22 +65,18 @@ describe('DrumMachineComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('initializes with 16 pads', () => {
-    expect(component.pads().length).toBe(16);
+  it('initializes with 8 pads', () => {
+    expect(component.pads().length).toBe(8);
   });
 
-  it('selects a pad and triggers haptic', () => {
-    component.selectPad('snare');
-    expect(component.selectedPadId()).toBe('snare');
-    expect(mockHaptic.light).toHaveBeenCalled();
+  it('selects a pad', () => {
+    component.selectPad('pad-38');
+    expect(component.selectedPadId()).toBe('pad-38');
   });
 
-  it('toggles a step and calls music manager', () => {
-    component.toggleStep('kick', 0);
-    expect(mockMusicManager.addNoteToTrack).toHaveBeenCalled();
-    expect(mockHaptic.medium).toHaveBeenCalled();
-
-    component.toggleStep('kick', 0);
-    expect(mockMusicManager.removeNotes).toHaveBeenCalled();
+  it('toggles a step', () => {
+    const padId = component.pads()[0].id;
+    component.toggleStep(padId, 0);
+    expect(component.getPadStep(padId, 0).active).toBe(true);
   });
 });

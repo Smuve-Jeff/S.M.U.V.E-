@@ -1,324 +1,136 @@
-<div
-  class="studio-container {{ studioQualityClass() }}" 
-  [class.header-collapsed]="headerCollapsed()"
-  [class.holographic]="uiService.holographicMode()"
-  [attr.data-theme]="'analog-v42'"
-  [class.mobile-drawer-open]="mobileDrawerOpen()"
-  [class.mobile-mode]="uiService.isCompactMobile()"
->
-  <div class="studio-shell">
-    <!-- Offline Indicator -->
-    <app-offline-indicator></app-offline-indicator>
+<div class="studio-container" [class.header-collapsed]="headerCollapsed()">
+  <!-- Main Studio Shell -->
+  <div class="studio-shell flex flex-col h-full overflow-hidden bg-slate-950">
 
-
-
-    <!-- Header Toggle -->
-    <button type="button" class="header-toggle" (click)="toggleHeader()" [class.floating]="headerCollapsed()" [title]="headerCollapsed() ? 'Expand Header' : 'Collapse Header'">
-      <span class="material-symbols-outlined">{{ headerCollapsed() ? 'expand_more' : 'expand_less' }}</span>
-    </button>
-
-    <!-- Elite Unified Header (FL Studio Emulated) -->
-    <header class="studio-transport elite-unified-header" [class.collapsed]="headerCollapsed()">
-      <div class="header-section-left">
-        <div class="transport-brand">
-          <button *ngIf="uiService.isCompactMobile()" type="button" class="mobile-drawer-toggle" (click)="toggleMobileDrawer()">
-            <span class="material-symbols-outlined">menu</span>
-          </button>
-          <h1>SMUVE</h1>
-          <p>PRO</p>
+    <!-- Elite Unified Header v5 -->
+    <header class="elite-header wood-panel z-[1000]">
+      <div class="header-section-left flex items-center gap-4">
+        <button type="button" class="tactile-v42 p-2" (click)="toggleMobileDrawer()" *ngIf="uiService.isCompactMobile()">
+          <span class="material-symbols-outlined text-sm">menu</span>
+        </button>
+        <div class="brand-logo flex items-center gap-2" (click)="newProject()">
+          <div class="w-2 h-2 rounded-full bg-fl-blue shadow-[0_0_10px_#00e5ff] animate-pulse"></div>
+          <span class="neon-text-sm font-black tracking-[0.3em] uppercase">S.M.U.V.E. PRO</span>
         </div>
+        <div class="v-divider h-6 w-px bg-white/10 hidden md:block"></div>
 
-        <!-- Compact View Switcher (Desktop Only) -->
-        <nav class="compact-view-tabs" *ngIf="!uiService.isCompactMobile()">
-          <button type="button" [class.active]="activeView() === 'arrangement'" (click)="setActiveView('arrangement')" title="Playlist">
-            <span class="material-symbols-outlined">view_quilt</span>
+        <div class="btn-group transport-controls flex gap-1">
+          <button type="button" class="tactile-v42 px-3 py-1 flex items-center" [class.active]="audioSession.isPlaying()" (click)="audioSession.togglePlay()">
+            <span class="material-symbols-outlined text-sm">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
           </button>
-          <button type="button" [class.active]="activeView() === 'piano-roll'" (click)="setActiveView('piano-roll')" title="Piano Roll">
-            <span class="material-symbols-outlined">piano</span>
+          <button type="button" class="tactile-v42 px-3 py-1 flex items-center" (click)="audioSession.stop()">
+            <span class="material-symbols-outlined text-sm">stop</span>
           </button>
-          <button type="button" [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')" title="Channel Rack">
-            <span class="material-symbols-outlined">grid_view</span>
-          </button>
-          <button type="button" [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')" title="Mixer">
-            <span class="material-symbols-outlined">tune</span>
-          </button>
-          <button type="button" [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')" title="Performance">
-            <span class="material-symbols-outlined">interpreter_mode</span>
-          </button>
-          <div class="v-divider"></div>
-          <button type="button" [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')" title="DJ Deck">
-            <span class="material-symbols-outlined">album</span>
-          </button>
-          <button type="button" [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')" title="Mastering">
-            <span class="material-symbols-outlined">speed</span>
-          </button>
-        </nav>
-      </div>
-
-      <div class="transport-actions modular-group">
-        <div class="btn-group">
-          <button type="button" class="export-btn" (click)="musicManager.exportProject()" title="Export">
-            <span class="material-symbols-outlined">download</span>
-          </button>
-          <button type="button" class="import-btn" (click)="fileInput.click()" title="Import">
-            <span class="material-symbols-outlined">upload</span>
-          </button>
-        </div>
-
-        <div class="v-divider"></div>
-
-        <div class="btn-group transport-controls">
-          <button
-            type="button"
-            [class.active]="audioSession.isPlaying()"
-            (click)="audioSession.togglePlay()"
-          >
-            <span class="material-symbols-outlined">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
-          </button>
-          <button type="button" (click)="audioSession.stop()">
-            <span class="material-symbols-outlined">stop</span>
-          </button>
-          <button
-            type="button"
-            class="record"
-            [class.active]="audioSession.isRecording()"
-            (click)="audioSession.toggleRecord()"
-          >
-            <span class="material-symbols-outlined">fiber_manual_record</span>
+          <button type="button" class="tactile-v42 rec px-3 py-1 flex items-center" [class.active]="audioSession.isRecording()" (click)="audioSession.toggleRecord()">
+            <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
           </button>
         </div>
       </div>
 
-      <div class="header-section-right elite-header">
-        <div class="lcd-display">
-          <div class="lcd-metric" (click)="adjustBpm()">
-            <span class="lcd-label">BPM</span>
+      <div class="header-section-center flex-1 flex justify-center">
+        <div class="lcd-display" (click)="adjustBpm()">
+          <div class="lcd-metric border-r border-white/5 pr-3">
+            <span class="lcd-label">TEMPO</span>
             <span class="lcd-value">{{ audioEngine.tempo() }}</span>
           </div>
-          <div class="lcd-metric">
+          <div class="lcd-metric pl-3">
             <span class="lcd-label">BAR</span>
             <span class="lcd-value">{{ currentBar() }}</span>
           </div>
         </div>
-
-        <div class="v-divider"></div>
-
-        <div class="btn-group transport-controls">
-          <button
-            type="button"
-            [class.active]="audioSession.isPlaying()"
-            (click)="audioSession.togglePlay()"
-          >
-            <span class="material-symbols-outlined">{{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}</span>
-          </button>
-          <button type="button" (click)="audioSession.stop()">
-            <span class="material-symbols-outlined">stop</span>
-          </button>
-          <button
-            type="button"
-            class="record"
-            [class.active]="audioSession.isRecording()"
-            (click)="audioSession.toggleRecord()"
-          >
-            <span class="material-symbols-outlined">fiber_manual_record</span>
-          </button>
-        </div>
-
-        <button type="button" class="foundry-toggle-btn" (click)="toggleNeuralFoundry()" title="Neural Foundry">
-          <span class="material-symbols-outlined">psychology</span>
-        </button>
       </div>
 
-      <div class="header-section-right elite-header">
-        <div class="lcd-display">
-          <div class="lcd-metric" (click)="adjustBpm()">
-
-            <span class="lcd-value">{{ audioEngine.tempo() }}</span>
-          </div>
-          <div class="lcd-metric">
-            <span class="lcd-label">BAR</span>
-            <span class="lcd-value">{{ currentBar() }}</span>
-          </div>
+      <div class="header-section-right flex items-center gap-3">
+        <div class="quality-badge hidden md:flex items-center gap-1.5 px-2 py-1 rounded bg-black/40 border border-white/5">
+          <div class="w-1 h-1 rounded-full" [class.bg-green-500]="audioEngine.performanceTier() === 'ultra'"></div>
+          <span class="text-[7px] font-black text-slate-500 uppercase">{{ audioEngine.performanceTier() }}</span>
         </div>
-
-        <button type="button" class="foundry-toggle-btn" (click)="toggleNeuralFoundry()" title="Neural Foundry">
-          <span class="material-symbols-outlined">psychology</span>
+        <button type="button" class="foundry-toggle-btn tactile-v42 p-2" (click)="toggleNeuralFoundry()" title="Neural Foundry">
+          <span class="material-symbols-outlined text-sm">psychology</span>
         </button>
       </div>
-
-      <input #fileInput type="file" accept=".json" class="hidden" (change)="handleImport($event)">
     </header>
 
-    <!-- Slide-out Drawer for Module Switching (Mobile Only) -->
+    <!-- Navigation Drawer (Mobile) -->
     <div class="mobile-drawer-overlay" *ngIf="mobileDrawerOpen()" (click)="toggleMobileDrawer()"></div>
     <aside class="mobile-module-drawer" [class.open]="mobileDrawerOpen()">
-      <header>
-        <span class="brand-text">S.M.U.V.E.</span>
-        <button type="button" (click)="toggleMobileDrawer()"><span class="material-symbols-outlined">close</span></button>
+      <header class="wood-panel p-4 flex justify-between items-center">
+        <span class="brand-text neon-text text-[10px] font-black tracking-widest uppercase">Navigation</span>
+        <button type="button" class="tactile-v42 p-1" (click)="toggleMobileDrawer()"><span class="material-symbols-outlined text-sm">close</span></button>
       </header>
-      <nav class="drawer-nav">
-        <button type="button" [class.active]="activeView() === 'arrangement'" (click)="setActiveView('arrangement')">
-          <span class="material-symbols-outlined">view_quilt</span> Arrangement
-        </button>
-        <button type="button" [class.active]="activeView() === 'piano-roll'" (click)="setActiveView('piano-roll')">
-          <span class="material-symbols-outlined">piano</span> Piano Roll
-        </button>
-        <button type="button" [class.active]="activeView() === 'drum-machine'" (click)="setActiveView('drum-machine')">
-          <span class="material-symbols-outlined">grid_view</span> Drum Machine
-        </button>
-        <button type="button" [class.active]="activeView() === 'mixer'" (click)="setActiveView('mixer')">
-          <span class="material-symbols-outlined">tune</span> Mixer
-        </button>
-        <button type="button" [class.active]="activeView() === 'mastering'" (click)="setActiveView('mastering')">
-          <span class="material-symbols-outlined">speed</span> Mastering
-        </button>
-        <button type="button" [class.active]="activeView() === 'performance'" (click)="setActiveView('performance')">
-          <span class="material-symbols-outlined">interpreter_mode</span> Performance
-        </button>
-        <button type="button" [class.active]="activeView() === 'dj'" (click)="setActiveView('dj')">
-          <span class="material-symbols-outlined">album</span> DJ Deck
+      <nav class="drawer-nav p-4 flex flex-col gap-2">
+        <button *ngFor="let item of bottomNavItems()" (click)="setActiveView(item.id)" [class.active]="activeView() === item.id" class="flex items-center gap-3 p-3 rounded-lg bg-white/5 text-[9px] font-black uppercase">
+          <span class="material-symbols-outlined text-sm">{{ item.icon }}</span>
+          {{ item.label }}
         </button>
       </nav>
-      <footer>
-        <button type="button" (click)="toggleNeuralFoundry()">
-          <span class="material-symbols-outlined">psychology</span> Neural Foundry
-        </button>
-      </footer>
     </aside>
 
-    <app-universal-master class="studio-master-strip"></app-universal-master>
-
-
-
-    <div
-      class="studio-layout" [class.browser-collapsed]="browserCollapsed()" [class.inspector-collapsed]="inspectorCollapsed()"
-      [class.compact-mobile-layout]="uiService.isCompactMobile()"
-    >
-      <!-- Mobile Quick Tools Toggle -->
-      <div class="mobile-tool-tabs" *ngIf="uiService.isCompactMobile()">
-        <button type="button" [class.active]="mobilePanel() === 'browser'" (click)="toggleMobilePanel('browser')">
-          <span class="material-symbols-outlined">library_music</span>
-        </button>
-        <button type="button" [class.active]="mobilePanel() === 'fx-rack'" (click)="toggleMobilePanel('fx-rack')">
-          <span class="material-symbols-outlined">blur_on</span>
-        </button>
-        <button type="button" [class.active]="mobilePanel() === 'inspector'" (click)="toggleMobilePanel('inspector')">
-          <span class="material-symbols-outlined">info</span>
-        </button>
-        <button type="button" class="tactile-v42 px-3 py-1 text-[8px] font-black" (click)="toggleBrowser()">BROWSER</button>
-        <div class="view-indicator">{{ activeView() | uppercase }}</div>
-      </div>
-
-      <!-- Slide-over Utility Drawers (Mobile) -->
-      <section
-        class="mobile-utility-drawer no-scrollbar"
-        [class.open]="uiService.isCompactMobile() && mobilePanel() !== null"
-      >
-        <header *ngIf="mobilePanel() as panel">
-          <span class="drawer-title">{{ panel === 'browser' ? 'SOUNDS' : panel === 'fx-rack' ? 'FX RACK' : 'INSPECTOR' }}</span>
-          <button type="button" class="close-drawer" (click)="closeMobilePanel()">
-            <span class="material-symbols-outlined">close</span>
-          </button>
+    <div class="studio-main-layout flex-1 flex overflow-hidden">
+      <!-- Sidebar Browser (Desktop) -->
+      <aside class="studio-panel studio-browser wood-panel border-r border-black" *ngIf="!uiService.isCompactMobile() && !browserCollapsed()" [style.width.px]="browserWidth()">
+        <header class="flex items-center justify-between px-3 py-1.5 bg-black/40 border-b border-white/5">
+          <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Browser</span>
+          <button (click)="toggleBrowser()" class="opacity-40 hover:opacity-100"><span class="material-symbols-outlined text-[12px]">chevron_left</span></button>
         </header>
-
-        <div class="drawer-content" [ngSwitch]="mobilePanel()">
-          <app-sound-browser *ngSwitchCase="'browser'"></app-sound-browser>
-          <app-track-inspector *ngSwitchCase="'inspector'"></app-track-inspector>
-          <app-effects-rack-ui *ngSwitchCase="'fx-rack'"></app-effects-rack-ui>
-        </div>
-      </section>
-
-      <!-- Mobile Sliding Browser Drawer -->
-      <aside class="floating-browser-drawer" [class.open]="browserDrawerOpen()">
-        <header class="wood-panel">
-          <span class="neon-text text-[10px] font-black tracking-widest">SOUND BROWSER</span>
-          <button type="button" (click)="toggleBrowser()"><span class="material-symbols-outlined">close</span></button>
-        </header>
-        <app-sound-browser></app-sound-browser>
+        <app-sound-browser class="flex-1"></app-sound-browser>
       </aside>
 
-      <!-- Desktop Sidebar Panels -->
-      <aside
-        class="studio-panel studio-browser"
-        *ngIf="!uiService.isCompactMobile()"
-        [style.width.px]="browserWidth()"
-      >
-        <div class="panel-resizer resizer-right" (pointerdown)="startResizing($event, 'browser')"></div>
-        <header>
-          <span *ngIf="!browserCollapsed()">Browser</span>
-          <button type="button" class="panel-toggle" (click)="toggleBrowser()" [title]="browserCollapsed() ? 'Expand Browser' : 'Collapse Browser'">
-            <span class="material-symbols-outlined">{{ browserCollapsed() ? 'chevron_right' : 'chevron_left' }}</span>
-          </button>
-        </header>
-        <app-sound-browser></app-sound-browser>
-      </aside>
-
-      <main class="studio-workspace" [ngSwitch]="activeView()">
-        <div class="view-wrapper" *ngSwitchCase="'drum-machine'">
-          <app-drum-machine class="arrangement-main"></app-drum-machine>
-        </div>
-        <div class="view-wrapper" *ngSwitchCase="'mixer'">
-          <app-mixer class="arrangement-main"></app-mixer>
-        </div>
-        <div class="view-wrapper" *ngSwitchCase="'performance'">
-          <app-performer class="arrangement-main"></app-performer>
-        </div>
-        <div class="view-wrapper" *ngSwitchCase="'mastering'">
-          <app-mastering-suite class="arrangement-main"></app-mastering-suite>
-        </div>
-        <div class="view-wrapper" *ngSwitchCase="'arrangement'">
-          <app-arrangement-view class="arrangement-main"></app-arrangement-view>
-        </div>
-        <div class="view-wrapper" *ngSwitchCase="'channel-rack'">
-          <app-channel-rack class="arrangement-main"></app-channel-rack>
-        </div>
-        <div class="view-wrapper" *ngSwitchCase="'dj'">
-          <app-dj-deck class="arrangement-main"></app-dj-deck>
-        </div>
-        <div class="view-wrapper" *ngSwitchCase="'piano-roll'">
-          <div class="editor-stack">
-            <app-channel-rack class="editor-channel-rack" *ngIf="!uiService.isCompactMobile()"></app-channel-rack>
-            <app-piano-roll class="editor-main"></app-piano-roll>
-          </div>
-        </div>
+      <!-- Main Workspace -->
+      <main class="studio-workspace flex-1 flex flex-col min-w-0 bg-[#050507]" [ngSwitch]="activeView()">
+        <div class="view-wrapper flex-1 flex flex-col" *ngSwitchCase="'arrangement'"><app-arrangement-view class="flex-1"></app-arrangement-view></div>
+        <div class="view-wrapper flex-1 flex flex-col" *ngSwitchCase="'piano-roll'"><app-piano-roll class="flex-1"></app-piano-roll></div>
+        <div class="view-wrapper flex-1 flex flex-col" *ngSwitchCase="'drum-machine'"><app-drum-machine class="flex-1"></app-drum-machine></div>
+        <div class="view-wrapper flex-1 flex flex-col" *ngSwitchCase="'mixer'"><app-mixer class="flex-1"></app-mixer></div>
+        <div class="view-wrapper flex-1 flex flex-col" *ngSwitchCase="'performance'"><app-performer class="flex-1"></app-performer></div>
+        <div class="view-wrapper flex-1 flex flex-col" *ngSwitchCase="'mastering'"><app-mastering-suite class="flex-1"></app-mastering-suite></div>
       </main>
 
-      <aside
-        class="studio-panel studio-inspector"
-        *ngIf="!uiService.isCompactMobile()"
-        [style.width.px]="inspectorWidth()"
-      >
-        <div class="panel-resizer resizer-left" (pointerdown)="startResizing($event, 'inspector')"></div>
-        <header>
-          <button type="button" class="panel-toggle" (click)="toggleInspector()" [title]="inspectorCollapsed() ? 'Expand Inspector' : 'Collapse Inspector'">
-            <span class="material-symbols-outlined">{{ inspectorCollapsed() ? 'chevron_left' : 'chevron_right' }}</span>
-          </button>
-          <span *ngIf="!inspectorCollapsed()">Inspector</span>
+      <!-- Sidebar Inspector (Desktop) -->
+      <aside class="studio-panel studio-inspector wood-panel border-l border-black" *ngIf="!uiService.isCompactMobile() && !inspectorCollapsed()" [style.width.px]="inspectorWidth()">
+        <header class="flex items-center justify-between px-3 py-1.5 bg-black/40 border-b border-white/5">
+          <button (click)="toggleInspector()" class="opacity-40 hover:opacity-100"><span class="material-symbols-outlined text-[12px]">chevron_right</span></button>
+          <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Inspector</span>
         </header>
-        <app-track-inspector></app-track-inspector>
+        <app-track-inspector class="flex-1"></app-track-inspector>
       </aside>
     </div>
+
+    <!-- Mobile Utility Toolbar -->
+    <div class="mobile-tool-tabs wood-panel border-t border-black flex items-center justify-around px-4 md:hidden" *ngIf="uiService.isCompactMobile()">
+        <button type="button" [class.active]="mobilePanel() === 'browser'" (click)="toggleMobilePanel('browser')"><span class="material-symbols-outlined text-sm">library_music</span></button>
+        <button type="button" [class.active]="mobilePanel() === 'fx-rack'" (click)="toggleMobilePanel('fx-rack')"><span class="material-symbols-outlined text-sm">blur_on</span></button>
+        <button type="button" [class.active]="mobilePanel() === 'inspector'" (click)="toggleMobilePanel('inspector')"><span class="material-symbols-outlined text-sm">info</span></button>
+    </div>
+
+    <!-- Bottom Nav (Mobile) -->
+    <app-bottom-nav *ngIf="uiService.isCompactMobile()" [items]="bottomNavItems()" [activeId]="activeView()" (itemClick)="onBottomNavClick($event)"></app-bottom-nav>
   </div>
 
-  <!-- Bottom Navigation (Mobile Only) -->
-  <app-bottom-nav
-    *ngIf="uiService.isCompactMobile()"
-    [items]="bottomNavItems()"
-    [activeId]="activeView()"
-    (itemClick)="onBottomNavClick($event)"
-  ></app-bottom-nav>
+  <!-- Mobile Drawer Panels (Slide-up) -->
+  <div class="mobile-utility-overlay fixed inset-0 bg-black/60 backdrop-blur-sm z-[500]" *ngIf="mobilePanel()" (click)="closeMobilePanel()"></div>
+  <section class="mobile-utility-drawer fixed bottom-0 left-0 right-0 h-[70dvh] bg-slate-950 z-[501] transition-transform duration-300 rounded-t-3xl border-t border-white/10 overflow-hidden flex flex-col" [class.translate-y-0]="mobilePanel()" [class.translate-y-full]="!mobilePanel()">
+     <header class="p-4 flex items-center justify-between wood-panel">
+        <span class="text-[10px] font-black uppercase text-fl-blue">{{ mobilePanel() | uppercase }}</span>
+        <button (click)="closeMobilePanel()" class="tactile-v42 p-1"><span class="material-symbols-outlined text-sm">close</span></button>
+     </header>
+     <div class="drawer-content flex-1 overflow-y-auto p-4" [ngSwitch]="mobilePanel()">
+        <app-sound-browser *ngSwitchCase="'browser'"></app-sound-browser>
+        <app-track-inspector *ngSwitchCase="'inspector'"></app-track-inspector>
+        <app-effects-rack-ui *ngSwitchCase="'fx-rack'"></app-effects-rack-ui>
 
-  <!-- Floating Action Button -->
-  <app-fab
-    *ngIf="uiService.isCompactMobile() && showFab()"
-    [icon]="fabIcon()"
-    [visible]="showFab()"
-    (fabClick)="onFabClick()"
-  ></app-fab>
+        <!-- Templates View -->
+        <div *ngSwitchCase="'templates'" class="templates-grid grid grid-cols-2 gap-4 p-2">
+           <div *ngFor="let t of templateService.templates" (click)="applyTemplate(t.id)" class="template-card tactile-v42 p-6 rounded-xl border border-white/10 flex flex-col items-center gap-4 hover:border-fl-blue transition-all cursor-pointer group">
+              <span class="material-symbols-outlined text-3xl text-slate-500 group-hover:text-fl-blue">album</span>
+              <span class="text-[10px] font-black uppercase text-center">{{ t.name }}</span>
+              <span class="text-[8px] text-slate-500">{{ t.bpm }} BPM</span>
+           </div>
+        </div>
+     </div>
+  </section>
 
-  <!-- Search Overlay -->
+  <!-- Global Overlays -->
   <app-search-overlay></app-search-overlay>
-
-  <!-- Snackbar -->
   <app-snackbar></app-snackbar>
 </div>

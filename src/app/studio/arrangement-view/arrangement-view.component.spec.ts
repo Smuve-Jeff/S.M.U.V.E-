@@ -9,6 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { HistoryService } from '../../services/history.service';
 import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
 import { HapticService } from '../../services/haptic.service';
+import { AiService } from '../../services/ai.service';
 
 describe('ArrangementViewComponent', () => {
   let component: ArrangementViewComponent;
@@ -19,7 +20,8 @@ describe('ArrangementViewComponent', () => {
     isRecording: signal(false),
     togglePlay: jest.fn(),
     toggleRecord: jest.fn(),
-    engine: { ctx: { createAnalyser: jest.fn() } }
+    engine: { ctx: { createAnalyser: jest.fn() } },
+    musicManager: { addAutomationLane: jest.fn() }
   };
 
   const mockMusicManager = {
@@ -45,11 +47,18 @@ describe('ArrangementViewComponent', () => {
 
   const mockEnhancedGestures = {
     handlePinch: jest.fn(),
+    zoomLevel: signal(1.0),
+    verticalZoomLevel: signal(1.0)
   };
 
   const mockHaptic = {
     light: jest.fn(),
     medium: jest.fn(),
+    impact: jest.fn()
+  };
+
+  const mockAiService = {
+     getProductionSmartAssist: jest.fn()
   };
 
   beforeEach(async () => {
@@ -58,10 +67,11 @@ describe('ArrangementViewComponent', () => {
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: MusicManagerService, useValue: mockMusicManager },
-        { provide: AudioEngineService, useValue: { tempo: signal(124) } },
+        { provide: AudioEngineService, useValue: { tempo: signal(124), visualStep: signal(0) } },
         { provide: HistoryService, useValue: mockHistory },
         { provide: EnhancedTouchGestureService, useValue: mockEnhancedGestures },
         { provide: HapticService, useValue: mockHaptic },
+        { provide: AiService, useValue: mockAiService }
       ]
     }).compileComponents();
 

@@ -33,6 +33,7 @@
 
     <div class="flex items-center gap-2 mx-2">
       <button class="tactile-v42 px-3 py-1 text-[8px] font-black" [class.bg-red-500]="isRecordingAutomation()" (click)="toggleAutomation()">AUTO</button>
+      <button class="tactile-v42 px-3 py-1 text-[8px] font-black bg-blue-600/40" (click)="aiVariation()">AI VAR</button>
     </div>
     <div class="tool-selector flex gap-1 mx-2">
       <button *ngFor="let tool of ['select', 'blade', 'glue']"
@@ -50,6 +51,9 @@
       <div class="edit-tools flex gap-1 mr-4" *ngIf="selectedClipIds().size > 0">
         <button (click)="splitAtPlayhead()" class="mini-btn tactile-v42 executive-glass" title="Split at Playhead">
           <span class="material-symbols-outlined text-[10px]">content_cut</span>
+        </button>
+        <button (click)="duplicateSelected()" class="mini-btn tactile-v42 executive-glass" title="Duplicate">
+          <span class="material-symbols-outlined text-[10px]">content_copy</span>
         </button>
         <button (click)="bounceSelected()" class="mini-btn tactile-v42 executive-glass bounce-btn" title="Bounce Track to Audio">
           <span class="material-symbols-outlined text-[10px]">waves</span> BOUNCE
@@ -74,7 +78,7 @@
       <div
         *ngFor="let track of tracks()"
         class="track-header tactile-v42 glass-v42"
-        [style.height.px]="laneHeight + (musicManager.takesExpanded()[track.id] ? (track.clips[0]?.takes?.length || 0) * (laneHeight * 0.6) : 0)"
+        [style.height.px]="laneHeight() + (musicManager.takesExpanded()[track.id] ? (track.clips[0]?.takes?.length || 0) * (laneHeight() * 0.6) : 0)"
         [class.selected]="isTrackSelected(track.id)"
         (click)="selectTrack(track.id)"
       >
@@ -121,7 +125,7 @@
         class="grid-canvas"
         [style.width.px]="gridWidth()"
         [style.height.px]="canvasHeight()"
-        [style.background-size]="barWidth + 'px ' + laneHeight + 'px'"
+        [style.background-size]="barWidth() + 'px ' + laneHeight() + 'px'"
       >
         <div class="scanline-overlay"></div>
 
@@ -129,7 +133,7 @@
           <div
             *ngFor="let bar of bars()"
             class="ruler-bar"
-            [style.width.px]="barWidth"
+            [style.width.px]="barWidth()"
           >
             {{ bar + 1 }}
           </div>
@@ -141,14 +145,14 @@
         >
           <!-- Main Lane -->
           <div class="lane-row relative border-b border-white/5"
-               [style.height.px]="laneHeight"
+               [style.height.px]="laneHeight()"
                (pointerdown)="onLanePointerDown($event, track)">
             <div
               *ngFor="let clip of track.clips"
               class="clip-item absolute executive-glass shadow-v42-xl tactile-v42"
               [class.selected-clip]="selectedClipIds().has(clip.id)"
-              [style.left.px]="clip.start * barWidth"
-              [style.width.px]="clip.length * barWidth"
+              [style.left.px]="clip.start * barWidth()"
+              [style.width.px]="clip.length * barWidth()"
               [style.background-color]="(clip.color || track.color || '#af25f4') + '44'"
               [style.border-color]="clip.color || track.color || '#af25f4'"
               (pointerdown)="onClipPointerDown($event, track.id, clip)"
@@ -171,10 +175,10 @@
           <div *ngIf="musicManager.takesExpanded()[track.id]" class="takes-lanes bg-black/20">
              <div *ngFor="let take of track.clips[0]?.takes"
                   class="take-row relative border-b border-white/5 opacity-60 hover:opacity-100"
-                  [style.height.px]="laneHeight * 0.6">
+                  [style.height.px]="laneHeight() * 0.6">
                <div class="take-clip absolute h-[80%] top-[10%] rounded bg-white/10 border border-white/20"
-                    [style.left.px]="track.clips[0].start * barWidth"
-                    [style.width.px]="track.clips[0].length * barWidth"
+                    [style.left.px]="track.clips[0].start * barWidth()"
+                    [style.width.px]="track.clips[0].length * barWidth()"
                     (click)="promoteTake(track.id, track.clips[0].id, take.id)">
                  <span class="take-label text-[8px] px-1">{{ take.name }}</span>
                </div>
