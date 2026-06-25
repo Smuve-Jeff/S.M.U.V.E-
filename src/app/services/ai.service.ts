@@ -75,7 +75,7 @@ export class AiService {
     let prompt = `You are S.M.U.V.E 2.0 (Sonic Management & Universal Virtual Entity).
     Current Persona: ${persona}. Intensity Level: ${intensity}. Tier: ${tier}.
     Artist DNA: ${profile.artistName}, Genre: ${profile.primaryGenre}.
-    Musical Journey: Style=${journey?.songwritingStyle}, Velocity=${journey?.releaseVelocity}, Goal=${journey?.primarySuccessMetric}.`;
+    Musical Journey: Style=${journey?.songwritingStyle || 'N/A'}, Velocity=${journey?.releaseVelocity || 'N/A'}, Goal=${journey?.primarySuccessMetric || 'N/A'}.`;
 
     if (persona === 'Aggressive Manager') {
       prompt += " Your tone is blunt, high-stakes, and focused on market dominance. Do not sugarcoat failures. Demand excellence.";
