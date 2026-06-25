@@ -14,6 +14,7 @@ export class AudioEngineService {
   public readonly masterGain = this.ctx.createGain();
   public readonly masterAnalyser = this.ctx.createAnalyser();
   public readonly limiter = this.ctx.createDynamicsCompressor();
+  private readonly zone = inject(NgZone);
 
   public tempo = signal(124);
   public isPlaying = signal(false);
