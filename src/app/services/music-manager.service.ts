@@ -189,9 +189,9 @@ export class MusicManagerService {
       // Play notes from Clips that intersect this bar/step
       t.clips.forEach(clip => {
          if (bar >= clip.start && bar < clip.start + clip.length) {
-            const relStep = (step % 64) - (clip.start * 16);
+            const relStep = step - (clip.start * 16);
             // This logic needs more care for looping clips, but for now:
-            t.notes.filter(n => Math.floor(n.step) === step % 64).forEach(n => {
+            t.notes.filter(n => Math.floor(n.step) === step).forEach(n => {
                if (n.probability === undefined || Math.random() < n.probability) {
                   const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
                   this.engine.triggerAttack(t.id, freq, time, n.velocity, n.length * duration, t.gain, t.pan, 0, 0, t.synthParams);
