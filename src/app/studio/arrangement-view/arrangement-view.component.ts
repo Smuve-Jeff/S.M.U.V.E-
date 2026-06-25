@@ -128,7 +128,7 @@ export class ArrangementViewComponent {
     }));
   }
 
-  @HostListener('window:keydown', [''])
+  @HostListener('window:keydown', ['$event'])
   onKeyDown(e: KeyboardEvent) {
     if (e.ctrlKey || e.metaKey) {
       if (e.key === 'z') {
