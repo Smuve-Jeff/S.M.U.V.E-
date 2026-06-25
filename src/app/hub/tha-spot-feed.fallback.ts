@@ -1,4 +1,4 @@
-import { ThaSpotFeed } from './game';
+import { ThaSpotFeed } from '../types/game.types';
 
 export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   "badges": [
@@ -7372,6 +7372,3192 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "embedMode": "inline",
         "secure_mode": "wasm"
       }
+    },
+    {
+      "id": "gta-v-cloud-elite",
+      "name": "Grand Theft Auto V (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v/BP96B1B4N6PC",
+      "genre": "Action",
+      "description": "The Absolute open-world masterpiece. High-fidelity crime saga across Los Santos.",
+      "rating": 5.0,
+      "playersOnline": 250000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Open World",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Rockstar Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#064e3b"
+      },
+      "image": "assets/games/gta-v-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v/BP96B1B4N6PC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "fc-24-cloud-elite",
+      "name": "EA SPORTS FC 24 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/ea-sports-fc-24/9N90LP816DKH",
+      "genre": "Sports",
+      "description": "Absolute football simulation. The evolution of the world's game with high-fidelity execution.",
+      "rating": 4.8,
+      "playersOnline": 180000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Soccer",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "EA Sports Elite",
+        "accentStart": "#2563eb",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "assets/games/fc24-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/ea-sports-fc-24/9N90LP816DKH",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "madden-24-cloud-elite",
+      "name": "Madden NFL 24 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/madden-nfl-24/9NRW2BJR7ZPC",
+      "genre": "Sports",
+      "description": "Absolute gridiron dominance. High-fidelity tactical execution on the field.",
+      "rating": 4.7,
+      "playersOnline": 85000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "NFL",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "EA Sports Elite",
+        "accentStart": "#dc2626",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/madden24-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/madden-nfl-24/9NRW2BJR7ZPC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "nba-2k24-cloud-elite",
+      "name": "NBA 2K24 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/nba-2k24-for-xbox-one/9P7B8KLR5F6D",
+      "genre": "Sports",
+      "description": "Absolute hoops mastery. The high-fidelity basketball experience.",
+      "rating": 4.6,
+      "playersOnline": 95000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "NBA",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "2K Elite",
+        "accentStart": "#ea580c",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/games/nba2k24-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/nba-2k24-for-xbox-one/9P7B8KLR5F6D",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "fortnite-cloud-elite",
+      "name": "Fortnite (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2",
+      "genre": "Battle Royale",
+      "description": "The Absolute cultural phenomenon. High-fidelity competitive building and shooting.",
+      "rating": 4.9,
+      "playersOnline": 1500000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "Battle Royale",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Epic Elite",
+        "accentStart": "#9333ea",
+        "accentEnd": "#581c87"
+      },
+      "image": "assets/games/fortnite-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "minecraft-cloud-elite",
+      "name": "Minecraft (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/minecraft/9NBLGGH537BL",
+      "genre": "Sandbox",
+      "description": "Absolute creative freedom. The high-fidelity sandbox that shaped a generation.",
+      "rating": 4.9,
+      "playersOnline": 800000,
+      "availability": "Online",
+      "tags": [
+        "Adventure",
+        "Sandbox",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Mojang Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#14532d"
+      },
+      "image": "assets/games/minecraft-full-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/minecraft/9NBLGGH537BL",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "cod-mw3-cloud-elite",
+      "name": "Call of Duty: MWIII (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/call-of-duty/9NBLGGH52ZLD",
+      "genre": "FPS",
+      "description": "Absolute tactical superiority. High-fidelity modern warfare execution.",
+      "rating": 4.5,
+      "playersOnline": 300000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Activision Elite",
+        "accentStart": "#3f3f46",
+        "accentEnd": "#18181b"
+      },
+      "image": "assets/games/cod-mw3-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty/9NBLGGH52ZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "cod-bo2-cloud-elite",
+      "name": "Call of Duty: Black Ops II (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/call-of-duty-black-ops-ii/BR667W7W6V9C",
+      "genre": "FPS",
+      "description": "The Absolute Golden Era classic. High-fidelity tactical shooting across timelines.",
+      "rating": 4.9,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Activision Elite",
+        "accentStart": "#ea580c",
+        "accentEnd": "#431407"
+      },
+      "image": "assets/games/cod-bo2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-black-ops-ii/BR667W7W6V9C",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "rdr2-cloud-elite",
+      "name": "Red Dead Redemption 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/red-dead-redemption-2/9N2ZDN7NWZLR",
+      "genre": "Action",
+      "description": "Absolute cinematic perfection. A high-fidelity epic in the dying West.",
+      "rating": 5.0,
+      "playersOnline": 40000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Open World",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Rockstar Elite",
+        "accentStart": "#b91c1c",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/rdr2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/red-dead-redemption-2/9N2ZDN7NWZLR",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "witcher-3-cloud-elite",
+      "name": "The Witcher 3 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/the-witcher-3-wild-hunt/BRG9V9C3GZWC",
+      "genre": "RPG",
+      "description": "Absolute RPG mastery. High-fidelity monster hunting in a vast open world.",
+      "rating": 5.0,
+      "playersOnline": 35000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Open World",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "CDPR Elite",
+        "accentStart": "#4b5563",
+        "accentEnd": "#111827"
+      },
+      "image": "assets/games/witcher3-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/the-witcher-3-wild-hunt/BRG9V9C3GZWC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "skyrim-cloud-elite",
+      "name": "Skyrim: Special Edition (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/the-elder-scrolls-v-skyrim-special-edition/BQ1W1T1K1P4L",
+      "genre": "RPG",
+      "description": "The Absolute legendary journey. High-fidelity dragon-slaying adventures.",
+      "rating": 4.9,
+      "playersOnline": 50000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Open World",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Bethesda Elite",
+        "accentStart": "#0ea5e9",
+        "accentEnd": "#0c4a6e"
+      },
+      "image": "assets/games/skyrim-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/the-elder-scrolls-v-skyrim-special-edition/BQ1W1T1K1P4L",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "mobile-legends-elite",
+      "name": "Mobile Legends (Elite-Link)",
+      "url": "https://www.poki.com/en/g/moba-legends",
+      "genre": "MOBA",
+      "description": "Absolute MOBA competition. High-fidelity tactical team battles.",
+      "rating": 4.7,
+      "playersOnline": 1000000,
+      "availability": "Online",
+      "tags": [
+        "MOBA",
+        "Competitive",
+        "Elite"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Moonton Elite",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#78350f"
+      },
+      "image": "assets/games/mobile-legends-elite.png",
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.poki.com/en/g/moba-legends",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "apex-legends-cloud-elite",
+      "name": "Apex Legends (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/apex-legends/BV9MLDTSCHJW",
+      "genre": "Battle Royale",
+      "description": "Absolute tactical speed. High-fidelity hero-based battle royale.",
+      "rating": 4.8,
+      "playersOnline": 200000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "Battle Royale",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Respawn Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/apex-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/apex-legends/BV9MLDTSCHJW",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "destiny-2-cloud-elite",
+      "name": "Destiny 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/destiny-2/BP1GZ2Z0XJWZ",
+      "genre": "FPS",
+      "description": "Absolute cosmic warfare. High-fidelity space magic and gunplay.",
+      "rating": 4.7,
+      "playersOnline": 150000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Bungie Elite",
+        "accentStart": "#facc15",
+        "accentEnd": "#713f12"
+      },
+      "image": "assets/games/destiny2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/destiny-2/BP1GZ2Z0XJWZ",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "fallout-4-cloud-elite",
+      "name": "Fallout 4 (Cloud-Link)",
+      "genre": "RPG",
+      "url": "https://www.xbox.com/en-US/play/games/fallout-4/C4515W8M8FMS",
+      "description": "Absolute wasteland survival. High-fidelity post-nuclear exploration.",
+      "rating": 4.8,
+      "playersOnline": 60000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Open World",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Bethesda Elite",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#92400e"
+      },
+      "image": "assets/games/fallout4-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-4/C4515W8M8FMS",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "starfield-cloud-elite",
+      "name": "Starfield (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/starfield/9NC6ZQRV38S7",
+      "genre": "RPG",
+      "description": "Absolute interstellar discovery. High-fidelity space exploration from Bethesda.",
+      "rating": 4.6,
+      "playersOnline": 45000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Open World",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Bethesda Elite",
+        "accentStart": "#38bdf8",
+        "accentEnd": "#075985"
+      },
+      "image": "assets/games/starfield-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/starfield/9NC6ZQRV38S7",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "battlefield-4-cloud-elite",
+      "name": "Battlefield 4 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/battlefield-4/BPP1KXL089L4",
+      "genre": "FPS",
+      "description": "Absolute tactical destruction. High-fidelity Golden Era warfare.",
+      "rating": 4.8,
+      "playersOnline": 10000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "DICE Elite",
+        "accentStart": "#1e40af",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "assets/games/bf4-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-4/BPP1KXL089L4",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "mass-effect-le-cloud-elite",
+      "name": "Mass Effect LE (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/mass-effect-legendary-edition/9PKW68L7BNCH",
+      "genre": "RPG",
+      "description": "Absolute sci-fi legend. The high-fidelity trilogy that defined an era.",
+      "rating": 5.0,
+      "playersOnline": 25000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Action",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "BioWare Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/mass-effect-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mass-effect-legendary-edition/9PKW68L7BNCH",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "skate-3-cloud-elite",
+      "name": "Skate 3 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/skate-3/BNKDKS5B9S76",
+      "genre": "Sports",
+      "description": "Absolute boarding freedom. The high-fidelity Golden Era skate classic.",
+      "rating": 4.9,
+      "playersOnline": 8000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Skating",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "EA Black Box Elite",
+        "accentStart": "#a855f7",
+        "accentEnd": "#581c87"
+      },
+      "image": "assets/games/skate3-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/skate-3/BNKDKS5B9S76",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "forza-horizon-5-cloud-elite",
+      "name": "Forza Horizon 5 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/forza-horizon-5-standard-edition/9NKX70BBCDRN",
+      "genre": "Racing",
+      "description": "Absolute driving bliss. High-fidelity open-world racing in Mexico.",
+      "rating": 5.0,
+      "playersOnline": 150000,
+      "availability": "Online",
+      "tags": [
+        "Racing",
+        "Open World",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Playground Elite",
+        "accentStart": "#ec4899",
+        "accentEnd": "#9d174d"
+      },
+      "image": "assets/games/forza5-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-horizon-5-standard-edition/9NKX70BBCDRN",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "roblox-web-elite",
+      "name": "Roblox (Web-Link)",
+      "url": "https://www.roblox.com",
+      "genre": "Sandbox",
+      "description": "Absolute social creativity. The high-fidelity platform for millions of worlds.",
+      "rating": 4.8,
+      "playersOnline": 3000000,
+      "availability": "Online",
+      "tags": [
+        "Sandbox",
+        "Social",
+        "Elite"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Roblox Elite",
+        "accentStart": "#27272a",
+        "accentEnd": "#09090b"
+      },
+      "image": "assets/games/roblox-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.roblox.com",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "valorant-cloud-elite",
+      "name": "Valorant (Cloud-Link)",
+      "url": "https://playvalorant.com",
+      "genre": "FPS",
+      "description": "Absolute tactical precision. High-fidelity agent-based shooting.",
+      "rating": 4.9,
+      "playersOnline": 1200000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Riot Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/valorant-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://playvalorant.com",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "lol-cloud-elite",
+      "name": "League of Legends (Cloud-Link)",
+      "url": "https://www.leagueoflegends.com",
+      "genre": "MOBA",
+      "description": "Absolute MOBA dominance. High-fidelity strategic team battles.",
+      "rating": 4.9,
+      "playersOnline": 2000000,
+      "availability": "Online",
+      "tags": [
+        "MOBA",
+        "Competitive",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Riot Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "assets/games/lol-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.leagueoflegends.com",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "genshin-cloud-elite",
+      "name": "Genshin Impact (Cloud-Link)",
+      "url": "https://genshin.hoyoverse.com",
+      "genre": "RPG",
+      "description": "Absolute open-world beauty. High-fidelity anime-style adventure.",
+      "rating": 4.8,
+      "playersOnline": 500000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Open World",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "HoYoverse Elite",
+        "accentStart": "#06b6d4",
+        "accentEnd": "#083344"
+      },
+      "image": "assets/games/genshin-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://genshin.hoyoverse.com",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "halo-infinite-cloud-elite",
+      "name": "Halo Infinite (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/halo-infinite/9PP1GR9K5DBZ",
+      "genre": "FPS",
+      "description": "Absolute combat evolution. High-fidelity Zeta Halo execution.",
+      "rating": 4.7,
+      "playersOnline": 30000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "343 Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#064e3b"
+      },
+      "image": "assets/games/halo-infinite-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-infinite/9PP1GR9K5DBZ",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "gears-5-cloud-elite",
+      "name": "Gears 5 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/gears-5/BPHL7K0V1RMV",
+      "genre": "Action",
+      "description": "Absolute cover-based intensity. High-fidelity Gears of War execution.",
+      "rating": 4.8,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Shooter",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "The Coalition Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/gears5-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-5/BPHL7K0V1RMV",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "forza-motorsport-cloud-elite",
+      "name": "Forza Motorsport (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/forza-motorsport/9PLTR78MT6S7",
+      "genre": "Racing",
+      "description": "Absolute racing simulation. High-fidelity track mastery.",
+      "rating": 4.6,
+      "playersOnline": 20000,
+      "availability": "Online",
+      "tags": [
+        "Racing",
+        "Simulation",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Turn 10 Elite",
+        "accentStart": "#3f3f46",
+        "accentEnd": "#18181b"
+      },
+      "image": "assets/games/forza-ms-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-motorsport/9PLTR78MT6S7",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "ms-flight-sim-cloud-elite",
+      "name": "MS Flight Simulator (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/microsoft-flight-simulator-standard-40th-anniversary-edition/9PMQDM08SNK9",
+      "genre": "Simulation",
+      "description": "Absolute global exploration. High-fidelity flight execution across the planet.",
+      "rating": 5.0,
+      "playersOnline": 25000,
+      "availability": "Online",
+      "tags": [
+        "Simulation",
+        "Adventure",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Asobo Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1d4ed8"
+      },
+      "image": "assets/games/msfs-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/microsoft-flight-simulator-standard-40th-anniversary-edition/9PMQDM08SNK9",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "sea-of-thieves-cloud-elite",
+      "name": "Sea of Thieves (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/sea-of-thieves-2024-edition/9P2N67BPT2C6",
+      "genre": "Action",
+      "description": "Absolute pirate freedom. High-fidelity sailing and treasure hunting.",
+      "rating": 4.7,
+      "playersOnline": 60000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Adventure",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Rare Elite",
+        "accentStart": "#14b8a6",
+        "accentEnd": "#0f766e"
+      },
+      "image": "assets/games/sea-of-thieves-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-thieves-2024-edition/9P2N67BPT2C6",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "doom-eternal-cloud-elite",
+      "name": "Doom Eternal (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/doom-eternal-standard-edition/9P0BRNK97L7F",
+      "genre": "FPS",
+      "description": "Absolute slayer intensity. High-fidelity demon-crushing execution.",
+      "rating": 4.9,
+      "playersOnline": 12000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "id Software Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/doom-eternal-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/doom-eternal-standard-edition/9P0BRNK97L7F",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "fallout-nv-cloud-elite",
+      "name": "Fallout: New Vegas (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/fallout-new-vegas/BX9S7ZMMT6S9",
+      "genre": "RPG",
+      "description": "The Absolute post-apocalyptic masterpiece. High-fidelity Mojave survival.",
+      "rating": 4.9,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Open World",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Obsidian Elite",
+        "accentStart": "#ea580c",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/games/fallout-nv-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-new-vegas/BX9S7ZMMT6S9",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "bioshock-cloud-elite",
+      "name": "BioShock (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/bioshock-the-collection/C2H0ZDRB4CQC",
+      "genre": "FPS",
+      "description": "Absolute atmospheric mastery. A high-fidelity journey into Rapture.",
+      "rating": 5.0,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Irrational Elite",
+        "accentStart": "#06b6d4",
+        "accentEnd": "#083344"
+      },
+      "image": "assets/games/bioshock-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/bioshock-the-collection/C2H0ZDRB4CQC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "ac2-cloud-elite",
+      "name": "Assassin's Creed II (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/assassins-creed-the-ezio-collection/BQ9S8XK0Q6QC",
+      "genre": "Action",
+      "description": "Absolute historical immersion. High-fidelity Renaissance execution.",
+      "rating": 4.9,
+      "playersOnline": 8000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Open World",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Ubisoft Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/ac2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/assassins-creed-the-ezio-collection/BQ9S8XK0Q6QC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "arkham-city-cloud-elite",
+      "name": "Batman: Arkham City (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
+      "genre": "Action",
+      "description": "The Absolute Dark Knight simulator. High-fidelity stealth and combat.",
+      "rating": 5.0,
+      "playersOnline": 10000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Open World",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Rocksteady Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "assets/games/arkham-city-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "portal2-cloud-elite",
+      "name": "Portal 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/portal-companion-collection/9P8W5S7P9CQC",
+      "genre": "Puzzle",
+      "description": "Absolute spatial mastery. High-fidelity mind-bending execution.",
+      "rating": 5.0,
+      "playersOnline": 4000,
+      "availability": "Online",
+      "tags": [
+        "Puzzle",
+        "Action",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Valve Elite",
+        "accentStart": "#38bdf8",
+        "accentEnd": "#075985"
+      },
+      "image": "assets/games/portal2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/portal-companion-collection/9P8W5S7P9CQC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "l4d2-cloud-elite",
+      "name": "Left 4 Dead 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/left-4-dead-2/BR667W7W6V9C",
+      "genre": "FPS",
+      "description": "Absolute co-op survival. High-fidelity zombie-slaying execution.",
+      "rating": 4.9,
+      "playersOnline": 20000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Valve Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#14532d"
+      },
+      "image": "assets/games/l4d2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/left-4-dead-2/BR667W7W6V9C",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "borderlands2-cloud-elite",
+      "name": "Borderlands 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/borderlands-the-handsome-collection/C49BJV1M8S9C",
+      "genre": "RPG",
+      "description": "Absolute looter-shooter mayhem. High-fidelity stylized execution.",
+      "rating": 4.8,
+      "playersOnline": 12000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "RPG",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Gearbox Elite",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#78350f"
+      },
+      "image": "assets/games/borderlands2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/borderlands-the-handsome-collection/C49BJV1M8S9C",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "dark-souls-cloud-elite",
+      "name": "Dark Souls (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/dark-souls-remastered/BQ1W1T1K1P4L",
+      "genre": "RPG",
+      "description": "Absolute challenge. The high-fidelity progenitor of a new genre.",
+      "rating": 4.9,
+      "playersOnline": 7000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Action",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "FromSoft Elite",
+        "accentStart": "#1f2937",
+        "accentEnd": "#030712"
+      },
+      "image": "assets/games/darksouls-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dark-souls-remastered/BQ1W1T1K1P4L",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "fc3-cloud-elite",
+      "name": "Far Cry 3 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/far-cry-3-classic-edition/BP96B1B4N6PC",
+      "genre": "Action",
+      "description": "Absolute madness. High-fidelity tropical survival and stealth.",
+      "rating": 4.8,
+      "playersOnline": 6000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Open World",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Ubisoft Elite",
+        "accentStart": "#f97316",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/games/farcry3-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/far-cry-3-classic-edition/BP96B1B4N6PC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "ow2-cloud-elite",
+      "name": "Overwatch 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/overwatch-2/9NBLGGH52ZLD",
+      "genre": "FPS",
+      "description": "Absolute hero-based tactical dominance. High-fidelity competitive shooting.",
+      "rating": 4.6,
+      "playersOnline": 500000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Blizzard Elite",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#92400e"
+      },
+      "image": "assets/games/ow2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/overwatch-2/9NBLGGH52ZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "rocket-league-cloud-elite",
+      "name": "Rocket League (Cloud-Link)",
+      "url": "https://www.rocketleague.com",
+      "genre": "Sports",
+      "description": "Absolute motorized football. High-fidelity competitive chaos.",
+      "rating": 4.9,
+      "playersOnline": 400000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Racing",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Psyonix Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "assets/games/rocket-league-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.rocketleague.com",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "sf6-cloud-elite",
+      "name": "Street Fighter 6 (Cloud-Link)",
+      "url": "https://www.streetfighter.com/6/",
+      "genre": "Fighting",
+      "description": "Absolute fighting perfection. High-fidelity technical execution.",
+      "rating": 4.9,
+      "playersOnline": 50000,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Competitive",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Capcom Elite",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/games/sf6-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.streetfighter.com/6/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "tekken8-cloud-elite",
+      "name": "Tekken 8 (Cloud-Link)",
+      "url": "https://en.bandainamcoent.eu/tekken/tekken-8",
+      "genre": "Fighting",
+      "description": "Absolute iron fist intensity. High-fidelity next-gen combat.",
+      "rating": 4.9,
+      "playersOnline": 45000,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Competitive",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Bandai Namco Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/tekken8-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://en.bandainamcoent.eu/tekken/tekken-8",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "tlou-part1-cloud-elite",
+      "name": "The Last of Us Part I (Cloud-Link)",
+      "url": "https://www.playstation.com/en-us/games/the-last-of-us-part-i/",
+      "genre": "Action",
+      "description": "Absolute emotional mastery. A high-fidelity remake of the Golden Era legend.",
+      "rating": 5.0,
+      "playersOnline": 10000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Adventure",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Naughty Dog Elite",
+        "accentStart": "#4b5563",
+        "accentEnd": "#111827"
+      },
+      "image": "assets/games/tlou-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.playstation.com/en-us/games/the-last-of-us-part-i/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "dead-space-remake-cloud-elite",
+      "name": "Dead Space (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/dead-space/9NBLGGH52ZLD",
+      "genre": "Action",
+      "description": "Absolute survival horror. High-fidelity atmospheric dread.",
+      "rating": 4.9,
+      "playersOnline": 8000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Horror",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Motive Elite",
+        "accentStart": "#ea580c",
+        "accentEnd": "#431407"
+      },
+      "image": "assets/games/dead-space-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-space/9NBLGGH52ZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "gta4-cloud-elite",
+      "name": "GTA IV (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-iv/BR667W7W6V9C",
+      "genre": "Action",
+      "description": "The Absolute Liberty City experience. High-fidelity Golden Era storytelling.",
+      "rating": 4.9,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Open World",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Rockstar Elite",
+        "accentStart": "#3f3f46",
+        "accentEnd": "#18181b"
+      },
+      "image": "assets/games/gta4-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-iv/BR667W7W6V9C",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "rdr1-cloud-elite",
+      "name": "Red Dead Redemption (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/red-dead-redemption/BWDS9V65CQ6QC",
+      "genre": "Action",
+      "description": "Absolute frontier justice. The high-fidelity Golden Era Western epic.",
+      "rating": 5.0,
+      "playersOnline": 4000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Open World",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Rockstar Elite",
+        "accentStart": "#b91c1c",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/rdr1-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/red-dead-redemption/BWDS9V65CQ6QC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "mirrors-edge-cloud-elite",
+      "name": "Mirror's Edge (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/mirrors-edge/BPP1KXL089L4",
+      "genre": "Action",
+      "description": "Absolute flow. High-fidelity Golden Era parkour execution.",
+      "rating": 4.8,
+      "playersOnline": 2000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Adventure",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "DICE Elite",
+        "accentStart": "#38bdf8",
+        "accentEnd": "#075985"
+      },
+      "image": "assets/games/mirrors-edge-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mirrors-edge/BPP1KXL089L4",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "gears-3-cloud-elite",
+      "name": "Gears of War 3 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/gears-of-war-3/BPN0N6GDBZLD",
+      "genre": "Action",
+      "description": "Absolute cover-based finale. The high-fidelity Golden Era climax.",
+      "rating": 4.9,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Shooter",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Epic Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/gears3-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-of-war-3/BPN0N6GDBZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "halo-reach-cloud-elite",
+      "name": "Halo: Reach (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
+      "genre": "FPS",
+      "description": "Absolute sacrifice. The high-fidelity Golden Era prequel.",
+      "rating": 5.0,
+      "playersOnline": 12000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Bungie Elite",
+        "accentStart": "#3f3f46",
+        "accentEnd": "#18181b"
+      },
+      "image": "assets/games/halo-reach-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "fable2-cloud-elite",
+      "name": "Fable II (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/fable-ii/C2Z7B3W4B5QC",
+      "genre": "RPG",
+      "description": "Absolute charm and consequence. The high-fidelity Golden Era fantasy epic.",
+      "rating": 4.8,
+      "playersOnline": 3000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Adventure",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Lionhead Elite",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#92400e"
+      },
+      "image": "assets/games/fable2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fable-ii/C2Z7B3W4B5QC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "dead-space-2-cloud-elite",
+      "name": "Dead Space 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/dead-space-2/BPN0N6GDBZLD",
+      "genre": "Action",
+      "description": "Absolute terror in the Sprawl. High-fidelity Golden Era horror.",
+      "rating": 4.9,
+      "playersOnline": 2500,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Horror",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Visceral Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "assets/games/dead-space-2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-space-2/BPN0N6GDBZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "palworld-cloud-elite",
+      "name": "Palworld (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/palworld/9N6SVPX3BCW3",
+      "genre": "Adventure",
+      "description": "Absolute survival sensation. High-fidelity creature collection and automation.",
+      "rating": 4.7,
+      "playersOnline": 500000,
+      "availability": "Online",
+      "tags": [
+        "Adventure",
+        "Sandbox",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Pocketpair Elite",
+        "accentStart": "#10b981",
+        "accentEnd": "#064e3b"
+      },
+      "image": "assets/games/palworld-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/palworld/9N6SVPX3BCW3",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "lies-of-p-cloud-elite",
+      "name": "Lies of P (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/lies-of-p/9NBLGGH52ZLD",
+      "genre": "RPG",
+      "description": "Absolute soul-like mastery. High-fidelity Pinocchio reimagining.",
+      "rating": 4.9,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Action",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Neowiz Elite",
+        "accentStart": "#4b5563",
+        "accentEnd": "#111827"
+      },
+      "image": "assets/games/lies-of-p-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/lies-of-p/9NBLGGH52ZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "hi-fi-rush-cloud-elite",
+      "name": "Hi-Fi RUSH (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/hi-fi-rush/9P0BRNK97L7F",
+      "genre": "Action",
+      "description": "Absolute rhythm combat. High-fidelity stylized execution.",
+      "rating": 4.9,
+      "playersOnline": 10000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Music",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Tango Elite",
+        "accentStart": "#f43f5e",
+        "accentEnd": "#881337"
+      },
+      "image": "assets/games/hifi-rush-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/hi-fi-rush/9P0BRNK97L7F",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "doom-2016-cloud-elite",
+      "name": "DOOM (2016) (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/doom/BPNDH6RLGZ66",
+      "genre": "FPS",
+      "description": "Absolute relentless combat. The high-fidelity rebirth of a legend.",
+      "rating": 4.9,
+      "playersOnline": 8000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "id Software Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/doom-2016-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/doom/BPNDH6RLGZ66",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "wolfenstein-tno-cloud-elite",
+      "name": "Wolfenstein: TNO (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/wolfenstein-the-new-order/BR667W7W6V9C",
+      "genre": "FPS",
+      "description": "Absolute alternate history. High-fidelity Nazi-crushing execution.",
+      "rating": 4.8,
+      "playersOnline": 4000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "MachineGames Elite",
+        "accentStart": "#3f3f46",
+        "accentEnd": "#18181b"
+      },
+      "image": "assets/games/wolfenstein-tno-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/wolfenstein-the-new-order/BR667W7W6V9C",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "dragon-age-inq-cloud-elite",
+      "name": "Dragon Age: Inquisition (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/dragon-age-inquisition-game-of-the-year-edition/C59BJV1M8S9C",
+      "genre": "RPG",
+      "description": "Absolute inquisitorial power. High-fidelity tactical fantasy.",
+      "rating": 4.7,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Adventure",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "BioWare Elite",
+        "accentStart": "#10b981",
+        "accentEnd": "#064e3b"
+      },
+      "image": "assets/games/dai-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dragon-age-inquisition-game-of-the-year-edition/C59BJV1M8S9C",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "sea-of-stars-cloud-elite",
+      "name": "Sea of Stars (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/sea-of-stars/9NBLGGH52ZLD",
+      "genre": "RPG",
+      "description": "Absolute retro charm. High-fidelity turn-based modernization.",
+      "rating": 4.9,
+      "playersOnline": 10000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Retro",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Sabotage Elite",
+        "accentStart": "#06b6d4",
+        "accentEnd": "#083344"
+      },
+      "image": "assets/games/sea-of-stars-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-stars/9NBLGGH52ZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "hellblade-cloud-elite",
+      "name": "Hellblade: Senua's Sacrifice (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/hellblade-senuas-sacrifice/C49BJV1M8S9C",
+      "genre": "Action",
+      "description": "Absolute psychological depth. High-fidelity cinematic immersion.",
+      "rating": 4.9,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Adventure",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Ninja Theory Elite",
+        "accentStart": "#4b5563",
+        "accentEnd": "#111827"
+      },
+      "image": "assets/games/hellblade-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/hellblade-senuas-sacrifice/C49BJV1M8S9C",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "psychonauts2-cloud-elite",
+      "name": "Psychonauts 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/psychonauts-2/9N6SVPX3BCW3",
+      "genre": "Adventure",
+      "description": "Absolute mental creativity. High-fidelity platforming excellence.",
+      "rating": 4.9,
+      "playersOnline": 6000,
+      "availability": "Online",
+      "tags": [
+        "Adventure",
+        "Platformer",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Double Fine Elite",
+        "accentStart": "#ec4899",
+        "accentEnd": "#701a75"
+      },
+      "image": "assets/games/psychonauts2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/psychonauts-2/9N6SVPX3BCW3",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "remnant2-cloud-elite",
+      "name": "Remnant II (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/remnant-ii-standard-edition/9NBLGGH52ZLD",
+      "genre": "Action",
+      "description": "Absolute procedurally-generated challenge. High-fidelity survival shooting.",
+      "rating": 4.8,
+      "playersOnline": 20000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Shooter",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Gunfire Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/remnant2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/remnant-ii-standard-edition/9NBLGGH52ZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "control-cloud-elite",
+      "name": "Control (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/control-ultimate-edition/9P0BRNK97L7F",
+      "genre": "Action",
+      "description": "Absolute brutalist mystery. High-fidelity supernatural execution.",
+      "rating": 4.9,
+      "playersOnline": 12000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Adventure",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Remedy Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/control-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/control-ultimate-edition/9P0BRNK97L7F",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "1v1-lol-web-elite",
+      "name": "1v1.LOL (Web-Link)",
+      "url": "https://1v1.lol",
+      "genre": "Action",
+      "description": "Absolute competitive building and shooting. High-fidelity practice for the battle royale elite.",
+      "rating": 4.7,
+      "playersOnline": 150000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "Battle Royale",
+        "Elite",
+        "WebGL"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "JustPlay Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "assets/games/1v1-lol-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://1v1.lol",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "slither-io-web-elite",
+      "name": "Slither.io (Web-Link)",
+      "url": "https://slither.io",
+      "genre": "Action",
+      "description": "The Absolute IO classic. High-fidelity competitive snake execution.",
+      "rating": 4.6,
+      "playersOnline": 200000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Competitive",
+        "Elite",
+        "WebGL"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Lowtech Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#064e3b"
+      },
+      "image": "assets/games/slither-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://slither.io",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "agar-io-web-elite",
+      "name": "Agar.io (Web-Link)",
+      "url": "https://agar.io",
+      "genre": "Action",
+      "description": "Absolute cell-eating dominance. The high-fidelity progenitor of the IO genre.",
+      "rating": 4.5,
+      "playersOnline": 100000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Competitive",
+        "Elite",
+        "WebGL"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Miniclip Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/agar-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://agar.io",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "titanfall2-cloud-elite",
+      "name": "Titanfall 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/titanfall-2-ultimate-edition/BPP1KXL089L4",
+      "genre": "FPS",
+      "description": "Absolute pilot and titan synergy. High-fidelity movement-based shooting.",
+      "rating": 5.0,
+      "playersOnline": 10000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Respawn Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1d4ed8"
+      },
+      "image": "assets/games/titanfall2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/titanfall-2-ultimate-edition/BPP1KXL089L4",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "mgs5-cloud-elite",
+      "name": "Metal Gear Solid V (Cloud-Link)",
+      "url": "https://www.konami.com/mg/mgsv/",
+      "genre": "Action",
+      "description": "Absolute tactical espionage. High-fidelity open-world infiltration.",
+      "rating": 4.9,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Stealth",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Konami Elite",
+        "accentStart": "#b91c1c",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/mgs5-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.konami.com/mg/mgsv/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "arkham-knight-cloud-elite",
+      "name": "Batman: Arkham Knight (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/batman-arkham-knight/B91BVDN96CQC",
+      "genre": "Action",
+      "description": "The Absolute Batman finale. High-fidelity open-world Gotham execution.",
+      "rating": 4.9,
+      "playersOnline": 12000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Open World",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Rocksteady Elite",
+        "accentStart": "#1e40af",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "assets/games/arkham-knight-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-knight/B91BVDN96CQC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "forza-horizon-4-cloud-elite",
+      "name": "Forza Horizon 4 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/forza-horizon-4-standard-edition/9PNJXVCVWD4K",
+      "genre": "Racing",
+      "description": "Absolute British driving perfection. High-fidelity seasons change everything.",
+      "rating": 4.9,
+      "playersOnline": 30000,
+      "availability": "Online",
+      "tags": [
+        "Racing",
+        "Open World",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Playground Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/forza4-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-horizon-4-standard-edition/9PNJXVCVWD4K",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "bf1-cloud-elite",
+      "name": "Battlefield 1 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/battlefield-1/BWDS9V65CQ6QC",
+      "genre": "FPS",
+      "description": "Absolute atmospheric warfare. High-fidelity WWI execution.",
+      "rating": 4.9,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "DICE Elite",
+        "accentStart": "#ea580c",
+        "accentEnd": "#431407"
+      },
+      "image": "assets/games/bf1-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-1/BWDS9V65CQ6QC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "monster-hunter-world-cloud-elite",
+      "name": "Monster Hunter: World (Cloud-Link)",
+      "url": "https://www.monsterhunter.com/world/",
+      "genre": "Action",
+      "description": "Absolute hunt intensity. High-fidelity ecosystem mastery.",
+      "rating": 4.8,
+      "playersOnline": 80000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "RPG",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Capcom Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#064e3b"
+      },
+      "image": "assets/games/mhw-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.monsterhunter.com/world/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "persona5-royal-cloud-elite",
+      "name": "Persona 5 Royal (Cloud-Link)",
+      "url": "https://persona.atlus.com/p5r/",
+      "genre": "RPG",
+      "description": "Absolute stylized mastery. High-fidelity Phantom Thief execution.",
+      "rating": 5.0,
+      "playersOnline": 20000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Social",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Atlus Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/p5r-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://persona.atlus.com/p5r/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "re-village-cloud-elite",
+      "name": "Resident Evil Village (Cloud-Link)",
+      "url": "https://www.residentevil.com/village/",
+      "genre": "Action",
+      "description": "Absolute survival horror. High-fidelity cinematic dread.",
+      "rating": 4.9,
+      "playersOnline": 12000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Horror",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Capcom Elite",
+        "accentStart": "#4b5563",
+        "accentEnd": "#111827"
+      },
+      "image": "assets/games/re-village-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.residentevil.com/village/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "it-takes-two-cloud-elite",
+      "name": "It Takes Two (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/it-takes-two/BPN0N6GDBZLD",
+      "genre": "Adventure",
+      "description": "Absolute co-op perfection. High-fidelity diverse execution.",
+      "rating": 5.0,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "Adventure",
+        "Co-op",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Hazelight Elite",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#78350f"
+      },
+      "image": "assets/games/it-takes-two-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/it-takes-two/BPN0N6GDBZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "gow-2018-cloud-elite",
+      "name": "God of War (Cloud-Link)",
+      "url": "https://www.playstation.com/en-us/games/god-of-war/",
+      "genre": "Action",
+      "description": "Absolute mythological mastery. High-fidelity Kratos reimagining.",
+      "rating": 5.0,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Adventure",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Santa Monica Elite",
+        "accentStart": "#b91c1c",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/gow-2018-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.playstation.com/en-us/games/god-of-war/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "uncharted-4-cloud-elite",
+      "name": "Uncharted 4 (Cloud-Link)",
+      "url": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
+      "genre": "Action",
+      "description": "Absolute cinematic adventure. High-fidelity treasure hunting.",
+      "rating": 5.0,
+      "playersOnline": 8000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Adventure",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Naughty Dog Elite",
+        "accentStart": "#1d4ed8",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "assets/games/uncharted4-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "ghost-of-tsushima-cloud-elite",
+      "name": "Ghost of Tsushima (Cloud-Link)",
+      "url": "https://www.playstation.com/en-us/games/ghost-of-tsushima/",
+      "genre": "Action",
+      "description": "Absolute samurai perfection. High-fidelity open-world beauty.",
+      "rating": 5.0,
+      "playersOnline": 25000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Open World",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Sucker Punch Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/ghost-tsushima-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.playstation.com/en-us/games/ghost-of-tsushima/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "horizon-zero-dawn-cloud-elite",
+      "name": "Horizon Zero Dawn (Cloud-Link)",
+      "url": "https://www.playstation.com/en-us/games/horizon-zero-dawn/",
+      "genre": "Action",
+      "description": "Absolute mechanical discovery. High-fidelity post-apocalyptic exploration.",
+      "rating": 4.9,
+      "playersOnline": 12000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "RPG",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Guerrilla Elite",
+        "accentStart": "#06b6d4",
+        "accentEnd": "#083344"
+      },
+      "image": "assets/games/horizon-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.playstation.com/en-us/games/horizon-zero-dawn/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "fight-night-champion-cloud-elite",
+      "name": "Fight Night Champion (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/fight-night-champion/BQ9S8XK0Q6QC",
+      "genre": "Sports",
+      "description": "Absolute boxing realism. The high-fidelity Golden Era pugilist classic.",
+      "rating": 4.9,
+      "playersOnline": 3000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Boxing",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "EA Sports Elite",
+        "accentStart": "#b91c1c",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/fight-night-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fight-night-champion/BQ9S8XK0Q6QC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "ncaa-football-14-cloud-elite",
+      "name": "NCAA Football 14 (Cloud-Link)",
+      "url": "https://www.ea.com/games/ncaa-football/ncaa-football-14",
+      "genre": "Sports",
+      "description": "The Absolute college football legend. High-fidelity Golden Era gridiron.",
+      "rating": 5.0,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "NFL",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "EA Sports Elite",
+        "accentStart": "#1d4ed8",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "assets/games/ncaa14-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.ea.com/games/ncaa-football/ncaa-football-14",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "dishonored-cloud-elite",
+      "name": "Dishonored (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/dishonored-definitive-edition/BQ1W1T1K1P4L",
+      "genre": "Action",
+      "description": "Absolute immersive stealth. High-fidelity Golden Era execution.",
+      "rating": 4.9,
+      "playersOnline": 4000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Stealth",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Arkane Elite",
+        "accentStart": "#4b5563",
+        "accentEnd": "#111827"
+      },
+      "image": "assets/games/dishonored-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dishonored-definitive-edition/BQ1W1T1K1P4L",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "mgr-revengeance-cloud-elite",
+      "name": "MGR: Revengeance (Cloud-Link)",
+      "url": "https://www.konami.com/mg/mgr/",
+      "genre": "Action",
+      "description": "Absolute hack-and-slash intensity. High-fidelity Golden Era cyborg combat.",
+      "rating": 4.8,
+      "playersOnline": 6000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Fighting",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Platinum Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1d4ed8"
+      },
+      "image": "assets/games/mgr-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.konami.com/mg/mgr/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "crysis-remastered-cloud-elite",
+      "name": "Crysis Remastered (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/crysis-remastered/9NBLGGH52ZLD",
+      "genre": "FPS",
+      "description": "Absolute hardware benchmarking. High-fidelity Golden Era shooting.",
+      "rating": 4.7,
+      "playersOnline": 2000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Crytek Elite",
+        "accentStart": "#06b6d4",
+        "accentEnd": "#083344"
+      },
+      "image": "assets/games/crysis-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/crysis-remastered/9NBLGGH52ZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "dead-island-cloud-elite",
+      "name": "Dead Island (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/dead-island-definitive-edition/BPP1KXL089L4",
+      "genre": "Action",
+      "description": "Absolute tropical nightmare. High-fidelity Golden Era zombie survival.",
+      "rating": 4.6,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Horror",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Techland Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#064e3b"
+      },
+      "image": "assets/games/dead-island-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-island-definitive-edition/BPP1KXL089L4",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "borderlands-3-cloud-elite",
+      "name": "Borderlands 3 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/borderlands-3/C3S0S0K6H0CQC",
+      "genre": "RPG",
+      "description": "Absolute looter-shooter mayhem. High-fidelity stylized chaos across the galaxy.",
+      "rating": 4.8,
+      "playersOnline": 25000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "RPG",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Gearbox Elite",
+        "accentStart": "#facc15",
+        "accentEnd": "#713f12"
+      },
+      "image": "assets/games/borderlands3-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/borderlands-3/C3S0S0K6H0CQC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "sekiro-cloud-elite",
+      "name": "Sekiro: Shadows Die Twice (Cloud-Link)",
+      "url": "https://www.sekirothegame.com",
+      "genre": "Action",
+      "description": "Absolute rhythmic combat. High-fidelity shinobi execution from FromSoftware.",
+      "rating": 5.0,
+      "playersOnline": 12000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Hardcore",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "FromSoft Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/sekiro-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.sekirothegame.com",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "hades-cloud-elite",
+      "name": "Hades (Cloud-Link)",
+      "url": "https://www.supergiantgames.com/games/hades/",
+      "genre": "RPG",
+      "description": "Absolute rogue-like mastery. High-fidelity escape from the Underworld.",
+      "rating": 5.0,
+      "playersOnline": 45000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Action",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Supergiant Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/hades-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.supergiantgames.com/games/hades/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "mortal-kombat-1-cloud-elite",
+      "name": "Mortal Kombat 1 (Cloud-Link)",
+      "url": "https://www.mortalkombat.com",
+      "genre": "Fighting",
+      "description": "Absolute fighting evolution. High-fidelity next-gen fatalities.",
+      "rating": 4.8,
+      "playersOnline": 35000,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Competitive",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "NetherRealm Elite",
+        "accentStart": "#b91c1c",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/mk1-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.mortalkombat.com",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "gta-v-story-cloud-elite",
+      "name": "GTA V: Story Mode (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v-story-mode/BPNDH6RLGZ66",
+      "genre": "Action",
+      "description": "Absolute cinematic crime. High-fidelity Golden Era multi-protagonist epic.",
+      "rating": 5.0,
+      "playersOnline": 50000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Open World",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Rockstar Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#14532d"
+      },
+      "image": "assets/games/gta-v-story-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v-story-mode/BPNDH6RLGZ66",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "mass-effect-2-cloud-elite",
+      "name": "Mass Effect 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/mass-effect-2/BR667W7W6V9C",
+      "genre": "RPG",
+      "description": "The Absolute space opera sequel. High-fidelity Golden Era choice-driven execution.",
+      "rating": 5.0,
+      "playersOnline": 8000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Sci-Fi",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "BioWare Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/mass-effect-2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mass-effect-2/BR667W7W6V9C",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "dragon-age-origins-cloud-elite",
+      "name": "Dragon Age: Origins (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/dragon-age-origins/BPN0N6GDBZLD",
+      "genre": "RPG",
+      "description": "Absolute tactical fantasy. The high-fidelity Golden Era RPG progenitor.",
+      "rating": 4.9,
+      "playersOnline": 4000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Fantasy",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "BioWare Elite",
+        "accentStart": "#b91c1c",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/dao-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dragon-age-origins/BPN0N6GDBZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "left-4-dead-cloud-elite",
+      "name": "Left 4 Dead (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/left-4-dead/BPP1KXL089L4",
+      "genre": "FPS",
+      "description": "Absolute team-based horror. High-fidelity Golden Era zombie slaying.",
+      "rating": 4.8,
+      "playersOnline": 3500,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Valve Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#14532d"
+      },
+      "image": "assets/games/l4d-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/left-4-dead/BPP1KXL089L4",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "portal-cloud-elite",
+      "name": "Portal (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/portal/BQ9S8XK0Q6QC",
+      "genre": "Puzzle",
+      "description": "Absolute spatial logic. The high-fidelity Golden Era puzzle masterpiece.",
+      "rating": 5.0,
+      "playersOnline": 2500,
+      "availability": "Online",
+      "tags": [
+        "Puzzle",
+        "Sci-Fi",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Valve Elite",
+        "accentStart": "#38bdf8",
+        "accentEnd": "#075985"
+      },
+      "image": "assets/games/portal-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/portal/BQ9S8XK0Q6QC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "dead-cells-cloud-elite",
+      "name": "Dead Cells (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/dead-cells/BPN0N6GDBZLD",
+      "genre": "Action",
+      "description": "Absolute rhythmic platforming. High-fidelity combat execution.",
+      "rating": 4.9,
+      "playersOnline": 18000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Retro",
+        "Cloud",
+        "Elite"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Motion Twin Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/dead-cells-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-cells/BPN0N6GDBZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "cod-mw-classic-cloud-elite",
+      "name": "COD: Modern Warfare (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-remastered/BPP1KXL089L4",
+      "genre": "FPS",
+      "description": "The Absolute game changer. High-fidelity Golden Era warfare that defined a generation.",
+      "rating": 5.0,
+      "playersOnline": 10000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Activision Elite",
+        "accentStart": "#3f3f46",
+        "accentEnd": "#18181b"
+      },
+      "image": "assets/games/cod-mw-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-remastered/BPP1KXL089L4",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "cod-mw2-classic-cloud-elite",
+      "name": "COD: Modern Warfare 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-2/BPP1KXL089L4",
+      "genre": "FPS",
+      "description": "Absolute tactical intensity. The high-fidelity peak of Golden Era multiplayer.",
+      "rating": 5.0,
+      "playersOnline": 15000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Activision Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#064e3b"
+      },
+      "image": "assets/games/cod-mw2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-2/BPP1KXL089L4",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "fallout3-cloud-elite",
+      "name": "Fallout 3 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/fallout-3/C4515W8M8FMS",
+      "genre": "RPG",
+      "description": "Absolute wasteland atmosphere. High-fidelity Golden Era exploration.",
+      "rating": 4.9,
+      "playersOnline": 8000,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Open World",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Bethesda Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#14532d"
+      },
+      "image": "assets/games/fallout3-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-3/C4515W8M8FMS",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "ac-black-flag-cloud-elite",
+      "name": "AC: Black Flag (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/assassins-creed-iv-black-flag/C2Z7B3W4B5QC",
+      "genre": "Action",
+      "description": "Absolute naval dominance. High-fidelity Golden Era pirate execution.",
+      "rating": 4.9,
+      "playersOnline": 12000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Adventure",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Ubisoft Elite",
+        "accentStart": "#0ea5e9",
+        "accentEnd": "#0c4a6e"
+      },
+      "image": "assets/games/ac-black-flag-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/assassins-creed-iv-black-flag/C2Z7B3W4B5QC",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "gears-1-cloud-elite",
+      "name": "Gears of War (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/gears-of-war-ultimate-edition/BPN0N6GDBZLD",
+      "genre": "Action",
+      "description": "Absolute cover-based intensity. The high-fidelity Golden Era progenitor.",
+      "rating": 4.8,
+      "playersOnline": 4000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Shooter",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Epic Elite",
+        "accentStart": "#b91c1c",
+        "accentEnd": "#450a0a"
+      },
+      "image": "assets/games/gears1-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-of-war-ultimate-edition/BPN0N6GDBZLD",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "halo4-cloud-elite",
+      "name": "Halo 4 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
+      "genre": "FPS",
+      "description": "Absolute combat evolution. High-fidelity Golden Era sci-fi mastery.",
+      "rating": 4.7,
+      "playersOnline": 8000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "343 Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "assets/games/halo4-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "bf-bc2-cloud-elite",
+      "name": "BF: Bad Company 2 (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/battlefield-bad-company-2/BPP1KXL089L4",
+      "genre": "FPS",
+      "description": "Absolute tactical destruction. High-fidelity Golden Era squad execution.",
+      "rating": 4.9,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "tags": [
+        "Shooter",
+        "FPS",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "DICE Elite",
+        "accentStart": "#ea580c",
+        "accentEnd": "#431407"
+      },
+      "image": "assets/games/bf-bc2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-bad-company-2/BPP1KXL089L4",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "uncharted2-cloud-elite",
+      "name": "Uncharted 2 (Cloud-Link)",
+      "url": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
+      "genre": "Action",
+      "description": "Absolute cinematic perfection. The high-fidelity Golden Era adventure benchmark.",
+      "rating": 5.0,
+      "playersOnline": 6000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Adventure",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Naughty Dog Elite",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#1d4ed8"
+      },
+      "image": "assets/games/uncharted2-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "gow3-cloud-elite",
+      "name": "God of War III (Cloud-Link)",
+      "url": "https://www.playstation.com/en-us/games/god-of-war-iii-remastered/",
+      "genre": "Action",
+      "description": "Absolute mythological vengeance. High-fidelity Golden Era scale.",
+      "rating": 5.0,
+      "playersOnline": 7000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Adventure",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Santa Monica Elite",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      },
+      "image": "assets/games/gow3-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.playstation.com/en-us/games/god-of-war-iii-remastered/",
+        "embedMode": "external-only"
+      }
+    },
+    {
+      "id": "batman-asylum-cloud-elite",
+      "name": "Batman: Arkham Asylum (Cloud-Link)",
+      "url": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
+      "genre": "Action",
+      "description": "Absolute atmosphere. The high-fidelity Golden Era stealth progenitor.",
+      "rating": 4.9,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Stealth",
+        "Cloud",
+        "Elite",
+        "Golden Era"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "art": {
+        "eyebrow": "Rocksteady Elite",
+        "accentStart": "#3f3f46",
+        "accentEnd": "#18181b"
+      },
+      "image": "assets/games/arkham-asylum-elite.png",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
+        "embedMode": "external-only"
+      }
     }
   ],
   "recommendationRails": [
@@ -7383,11 +10569,102 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "neo-zone"
       ],
       "gameIds": [
+        "cod-mw2-classic-cloud-elite",
+        "gow3-cloud-elite",
+        "sekiro-cloud-elite",
+        "hades-cloud-elite",
+        "dead-cells-cloud-elite",
+        "gow-2018-cloud-elite",
+        "uncharted-4-cloud-elite",
+        "ghost-of-tsushima-cloud-elite",
+        "re-village-cloud-elite",
+        "it-takes-two-cloud-elite",
+        "palworld-cloud-elite",
+        "hi-fi-rush-cloud-elite",
+        "remnant2-cloud-elite",
+        "control-cloud-elite",
+        "sf6-cloud-elite",
+        "tekken8-cloud-elite",
+        "tlou-part1-cloud-elite",
+        "gta-v-cloud-elite",
+        "fc-24-cloud-elite",
+        "fortnite-cloud-elite",
+        "minecraft-cloud-elite",
+        "cod-mw3-cloud-elite",
+        "forza-horizon-5-cloud-elite",
+        "starfield-cloud-elite",
+        "valorant-cloud-elite",
         "slow-roads-webgl",
         "venge-io-webgl",
         "halo-3-cloud-elite",
         "elden-ring-cloud",
         "cyberpunk-2077-cloud"
+      ],
+      "maxItems": 6
+    },
+    {
+      "id": "rail-golden-era",
+      "title": "Golden Era Essentials",
+      "subtitle": "The Absolute defining titles of the PS3 & Xbox 360 generation.",
+      "roomIds": [
+        "action-zone",
+        "shooting-range"
+      ],
+      "gameIds": [
+        "cod-mw-classic-cloud-elite",
+        "cod-mw2-classic-cloud-elite",
+        "fallout3-cloud-elite",
+        "ac-black-flag-cloud-elite",
+        "gears-1-cloud-elite",
+        "halo4-cloud-elite",
+        "bf-bc2-cloud-elite",
+        "uncharted2-cloud-elite",
+        "gow3-cloud-elite",
+        "batman-asylum-cloud-elite",
+        "gta-v-story-cloud-elite",
+        "mass-effect-2-cloud-elite",
+        "dragon-age-origins-cloud-elite",
+        "left-4-dead-cloud-elite",
+        "portal-cloud-elite",
+        "fight-night-champion-cloud-elite",
+        "ncaa-football-14-cloud-elite",
+        "dishonored-cloud-elite",
+        "mgr-revengeance-cloud-elite",
+        "crysis-remastered-cloud-elite",
+        "titanfall2-cloud-elite",
+        "mgs5-cloud-elite",
+        "arkham-knight-cloud-elite",
+        "gears-3-cloud-elite",
+        "halo-reach-cloud-elite",
+        "fable2-cloud-elite",
+        "dead-space-2-cloud-elite",
+        "gta4-cloud-elite",
+        "rdr1-cloud-elite",
+        "mirrors-edge-cloud-elite",
+        "cod-bo2-cloud-elite",
+        "skyrim-cloud-elite",
+        "battlefield-4-cloud-elite",
+        "mass-effect-le-cloud-elite",
+        "skate-3-cloud-elite",
+        "fallout-4-cloud-elite"
+      ],
+      "maxItems": 6
+    },
+    {
+      "id": "rail-web-elite-hits",
+      "title": "WebGL Elite Hits",
+      "subtitle": "Absolute low-latency browser dominance. High-fidelity IO execution.",
+      "roomIds": [
+        "neo-zone",
+        "arcade"
+      ],
+      "gameIds": [
+        "1v1-lol-web-elite",
+        "slither-io-web-elite",
+        "agar-io-web-elite",
+        "krunker-io-web-elite",
+        "venge-io-web-elite",
+        "shell-shockers-web-elite"
       ],
       "maxItems": 6
     },
@@ -7550,6 +10827,22 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "maxItems": 4,
       "gameIds": [
+        "mortal-kombat-1-cloud-elite",
+        "1v1-lol-web-elite",
+        "slither-io-web-elite",
+        "agar-io-web-elite",
+        "ow2-cloud-elite",
+        "rocket-league-cloud-elite",
+        "sf6-cloud-elite",
+        "tekken8-cloud-elite",
+        "fortnite-cloud-elite",
+        "cod-mw3-cloud-elite",
+        "fc-24-cloud-elite",
+        "nba-2k24-cloud-elite",
+        "apex-legends-cloud-elite",
+        "mobile-legends-elite",
+        "valorant-cloud-elite",
+        "lol-cloud-elite",
         "tekken-5-elite",
         "burnout-3-elite",
         "def-jam-ffny-elite",
@@ -7564,6 +10857,21 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "rpg-vault"
       ],
       "gameIds": [
+        "fallout3-cloud-elite",
+        "hades-cloud-elite",
+        "borderlands-3-cloud-elite",
+        "dragon-age-origins-cloud-elite",
+        "persona5-royal-cloud-elite",
+        "monster-hunter-world-cloud-elite",
+        "dragon-age-inq-cloud-elite",
+        "sea-of-stars-cloud-elite",
+        "lies-of-p-cloud-elite",
+        "witcher-3-cloud-elite",
+        "skyrim-cloud-elite",
+        "fallout-4-cloud-elite",
+        "starfield-cloud-elite",
+        "genshin-cloud-elite",
+        "mass-effect-le-cloud-elite",
         "zelda-oot-elite",
         "final-fantasy-vii-elite",
         "pokemon-yellow-elite",
@@ -7633,6 +10941,23 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "action-zone"
       ],
       "gameIds": [
+        "fallout3-cloud-elite",
+        "ac-black-flag-cloud-elite",
+        "uncharted2-cloud-elite",
+        "gta-v-story-cloud-elite",
+        "ghost-of-tsushima-cloud-elite",
+        "horizon-zero-dawn-cloud-elite",
+        "mgs5-cloud-elite",
+        "arkham-knight-cloud-elite",
+        "forza-horizon-4-cloud-elite",
+        "gta4-cloud-elite",
+        "rdr1-cloud-elite",
+        "gta-v-cloud-elite",
+        "rdr2-cloud-elite",
+        "witcher-3-cloud-elite",
+        "skyrim-cloud-elite",
+        "genshin-cloud-elite",
+        "sea-of-thieves-cloud-elite",
         "elden-ring-cloud",
         "cyberpunk-2077-cloud",
         "gta-iii-elite",
@@ -7661,6 +10986,24 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "shooting-range"
       ],
       "gameIds": [
+        "cod-mw-classic-cloud-elite",
+        "cod-mw2-classic-cloud-elite",
+        "halo4-cloud-elite",
+        "bf-bc2-cloud-elite",
+        "crysis-remastered-cloud-elite",
+        "titanfall2-cloud-elite",
+        "bf1-cloud-elite",
+        "halo-reach-cloud-elite",
+        "doom-2016-cloud-elite",
+        "wolfenstein-tno-cloud-elite",
+        "ow2-cloud-elite",
+        "cod-mw3-cloud-elite",
+        "cod-bo2-cloud-elite",
+        "apex-legends-cloud-elite",
+        "destiny-2-cloud-elite",
+        "battlefield-4-cloud-elite",
+        "doom-eternal-cloud-elite",
+        "halo-infinite-cloud-elite",
         "halo-3-cloud-elite",
         "venge-io-webgl",
         "half-life-ps2-elite",
@@ -7686,6 +11029,13 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "sports"
       ],
       "gameIds": [
+        "fight-night-champion-cloud-elite",
+        "ncaa-football-14-cloud-elite",
+        "fc-24-cloud-elite",
+        "madden-24-cloud-elite",
+        "nba-2k24-cloud-elite",
+        "skate-3-cloud-elite",
+        "forza-horizon-5-cloud-elite",
         "madden-2004-elite",
         "nba-street-v2-elite",
         "ssx-tricky-elite",
