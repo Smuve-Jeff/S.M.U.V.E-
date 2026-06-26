@@ -208,30 +208,56 @@ export class MusicManagerService {
 
   playStep(step: number, time: number, duration: number) {
     const bar = Math.floor(step / 16);
+    const stepInBar = step % 16;
+
     this.tracks().forEach(t => {
       if (t.muted) return;
+
       t.clips.forEach(clip => {
-         if (bar >= clip.start && bar < clip.start + clip.length) {
-            t.notes.filter(n => Math.floor(n.step) === step % 64).forEach(n => {
-               if (n.probability === undefined || Math.random() < n.probability) {
-                  const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
-                  this.engine.triggerAttack(t.id, freq, time, n.velocity, n.length * duration, t.gain, t.pan, 0, 0, t.synthParams);
-               }
-            });
-         }
+        // Handle MIDI Notes
+        if (bar >= clip.start && bar < clip.start + clip.length) {
+          t.notes.filter(n => Math.floor(n.step) === step % 64).forEach(n => {
+             if (n.probability === undefined || Math.random() < n.probability) {
+                const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
+                this.engine.triggerAttack(t.id, freq, time, n.velocity, n.length * duration, t.gain, t.pan, 0, 0, t.synthParams);
+             }
+          });
+
+          // Handle Audio Playback (Trigger at start of bar for now)
+          if (clip.type === 'audio' && stepInBar === 0 && bar === clip.start) {
+             const audioData = (clip as any).audioData;
+             if (audioData) {
+                const rate = this.engine.calculatePlaybackRate((clip as any).originalBpm || this.engine.tempo());
+                this.engine.triggerSampler(t.id, audioData, time, t.gain, t.pan, clip.length * 4 * (60/this.engine.tempo()), rate);
+             }
+          }
+        }
       });
     });
   }
 
-  quantizeTrack(id: string) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, notes: t.notes.map(n => ({ ...n, step: Math.round(n.step) })) } : t)); }
-  humanizeTrack(id: string) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, notes: t.notes.map(n => ({ ...n, step: n.step + (Math.random()-0.5)*0.1, velocity: Math.max(0.1, Math.min(1, n.velocity + (Math.random()-0.5)*0.2)) })) } : t)); }
-  strumTrack(id: string) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, notes: [...t.notes].sort((a,b) => a.midi - b.midi).map((n, i) => ({ ...n, step: n.step + i * 0.02 })) } : t)); }
-  arpeggiateTrack(id: string) {
+  quantizeTrack(id: string, noteIds?: string[]) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, notes: t.notes.map(n => ({ ...n, step: Math.round(n.step) })) } : t)); }
+  humanizeTrack(id: string, noteIds?: string[]) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, notes: t.notes.map(n => ({ ...n, step: n.step + (Math.random()-0.5)*0.1, velocity: Math.max(0.1, Math.min(1, n.velocity + (Math.random()-0.5)*0.2)) })) } : t)); }
+  strumTrack(id: string, noteIds?: string[]) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, notes: [...t.notes].sort((a,b) => a.midi - b.midi).map((n, i) => ({ ...n, step: n.step + i * 0.02 })) } : t)); }
+  arpeggiateTrack(id: string, noteIds?: string[]) {
      this.tracks.update(ts => ts.map(t => {
-        if (t.id !== id || t.notes.length === 0) return t;
-        const base = t.notes[0];
-        const arp = [0, 4, 7, 12].map((v, i) => ({ ...base, id: 'arp_' + i + Date.now(), midi: base.midi + v, step: base.step + i * 0.25, length: 0.2 }));
-        return { ...t, notes: arp };
+        if (t.id !== id) return t;
+        const targetNotes = noteIds ? t.notes.filter(n => noteIds.includes(n.id)) : t.notes;
+        if (targetNotes.length === 0) return t;
+
+        const newNotes: any[] = t.notes.filter(n => !targetNotes.includes(n));
+        targetNotes.forEach(base => {
+           [0, 4, 7, 12].forEach((v, i) => {
+              newNotes.push({
+                ...base,
+                id: `arp_${base.id}_${i}_${Date.now()}`,
+                midi: base.midi + v,
+                step: base.step + i * 0.25,
+                length: 0.25
+              });
+           });
+        });
+        return { ...t, notes: newNotes };
      }));
   }
 
@@ -240,6 +266,14 @@ export class MusicManagerService {
   updateVolume(id: string, vol: number) {
     this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, volume: vol, gain: vol } : t));
     this.engine.updateTrack(id, { gain: vol });
+  }
+
+  updateSend(id: string, send: 'A' | 'B', value: number) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== id) return t;
+      return send === 'A' ? { ...t, sendA: value } : { ...t, sendB: value };
+    }));
+    this.engine.updateTrack(id, send === 'A' ? { sendA: value } : { sendB: value });
   }
 
   updateSynthParams(trackId: string, params: any) {

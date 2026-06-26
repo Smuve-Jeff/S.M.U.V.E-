@@ -147,6 +147,10 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.musicManager.engine.updateTrack(id, { pan });
   }
 
+  updateSend(id: string, send: "A" | "B", value: number) {
+    this.musicManager.updateSend(id, send, value / 100);
+  }
+
   updateTrackParam(id: string, param: string, value: number) {
     this.musicManager.tracks.update((ts) =>
       ts.map((t) => (t.id === id ? { ...t, [param]: value } : t))

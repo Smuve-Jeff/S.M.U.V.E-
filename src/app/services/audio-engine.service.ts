@@ -17,6 +17,10 @@ export class AudioEngineService {
   public readonly masterGain = this.ctx.createGain();
   public readonly masterAnalyser = this.ctx.createAnalyser();
   public readonly limiter = this.ctx.createDynamicsCompressor();
+  public readonly sendAReturn = this.ctx.createGain();
+  public readonly sendBReturn = this.ctx.createGain();
+  private trackSendAGains = new Map<string, GainNode>();
+  private trackSendBGains = new Map<string, GainNode>();
   public readonly compressor = this.limiter;
   public readonly reverbWet = this.ctx.createGain();
 
@@ -46,6 +50,8 @@ export class AudioEngineService {
     this.limiter.connect(this.masterAnalyser);
     this.masterAnalyser.connect(this.ctx.destination);
     this.reverbWet.connect(this.masterGain);
+    this.sendAReturn.connect(this.masterGain);
+    this.sendBReturn.connect(this.masterGain);
 
     const safeSet = (param: any, val: number) => {
        if (param && typeof param.setValueAtTime === 'function') {
@@ -140,6 +146,10 @@ export class AudioEngineService {
 
   stepsPerBeat() { return 4; }
 
+  calculatePlaybackRate(originalBpm: number): number {
+    return this.tempo() / originalBpm;
+  }
+
   triggerAttack(trackId: string, freq: number, time: number, velocity: number, duration: number, gain: number, pan: number, sendA: number, sendB: number, params: any) {
     const osc = this.ctx.createOscillator();
     const panner = this.ctx.createStereoPanner();
@@ -157,14 +167,18 @@ export class AudioEngineService {
     osc.stop(time + duration + (params.release || 0.1) + 0.1);
   }
 
-  triggerSampler(trackId: string, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number) {
+  triggerSampler(trackId: string, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number, playbackRate: number = 1) {
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
+    source.playbackRate.setValueAtTime(playbackRate, time);
+
     const panner = this.ctx.createStereoPanner();
     if (panner.pan.setValueAtTime) panner.pan.setValueAtTime(pan, time);
+
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(0, time);
     if (gain.gain.linearRampToValueAtTime) gain.gain.linearRampToValueAtTime(velocity, time + 0.005);
+
     source.connect(panner);
     panner.connect(gain);
     gain.connect(this.getTrackOutput(trackId));
@@ -174,16 +188,45 @@ export class AudioEngineService {
 
   getTrackOutput(id: string): GainNode {
     if (!this.trackOutputs.has(id)) {
-      const gain = this.ctx.createGain();
-      gain.connect(this.masterGain);
-      this.trackOutputs.set(id, gain);
+      const mainGain = this.ctx.createGain();
+      mainGain.connect(this.masterGain);
+      this.trackOutputs.set(id, mainGain);
+
+      // Setup Send A
+      const sendAGain = this.ctx.createGain();
+      sendAGain.gain.value = 0;
+      mainGain.connect(sendAGain);
+      sendAGain.connect(this.sendAReturn);
+      this.trackSendAGains.set(id, sendAGain);
+
+      // Setup Send B
+      const sendBGain = this.ctx.createGain();
+      sendBGain.gain.value = 0;
+      mainGain.connect(sendBGain);
+      sendBGain.connect(this.sendBReturn);
+      this.trackSendBGains.set(id, sendBGain);
     }
     return this.trackOutputs.get(id)!;
   }
 
   updateTrack(id: string, data: any) {
     const output = this.getTrackOutput(id);
-    if (data.gain !== undefined && output.gain.setTargetAtTime) output.gain.setTargetAtTime(data.gain, this.ctx.currentTime, 0.05);
+    const now = this.ctx.currentTime;
+
+    if (data.gain !== undefined && output.gain.setTargetAtTime) {
+      output.gain.setTargetAtTime(data.gain, now, 0.05);
+    }
+
+    if (data.sendA !== undefined) {
+      const sendA = this.trackSendAGains.get(id);
+      if (sendA) sendA.gain.setTargetAtTime(data.sendA, now, 0.05);
+    }
+
+    if (data.sendB !== undefined) {
+      const sendB = this.trackSendBGains.get(id);
+      if (sendB) sendB.gain.setTargetAtTime(data.sendB, now, 0.05);
+    }
+
     this.tracksMap.set(id, { ...(this.tracksMap.get(id) || {}), ...data });
   }
 
