@@ -1,11 +1,11 @@
 import { Injectable, inject, signal, computed, effect } from '@angular/core';
-import { InstrumentsService } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
-import { LoggingService } from './logging.service';
-import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { ProjectService } from './project.service';
 import { HistoryService } from './history.service';
-import { Project, StudioTrack, StudioClip, StudioTake, TrackType, StudioCompRegion, Task } from '../types';
+import { InstrumentsService } from './instruments.service';
+import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
+import { LoggingService } from './logging.service';
+import { Project, StudioTrack, StudioClip, StudioTake, TrackType } from '../types/studio.types';
 
 export interface TrackNote {
   id: string;
@@ -13,23 +13,16 @@ export interface TrackNote {
   step: number;
   length: number;
   velocity: number;
-  probability?: number;
-  offset?: number;
-  isSlide?: boolean;
-  pan?: number;
   params?: any;
+  probability?: number;
+  isSlide?: boolean;
 }
 
-export interface TrackClip extends StudioClip {
-  loop?: boolean;
-}
-
-export interface SongSection {
+export interface FxSlot {
   id: string;
-  name: string;
-  start: number;
-  length: number;
-  color?: string;
+  type: string;
+  params: any;
+  enabled: boolean;
 }
 
 export interface PatternVersion {
@@ -42,23 +35,22 @@ export interface PatternVersion {
 export interface PatternSlot {
   id: string;
   name: string;
-  versions: PatternVersion[];
   activeVersionId: string;
+  versions: PatternVersion[];
+}
+
+export interface SongSection {
+  id: string;
+  name: string;
+  start: number;
+  length: number;
+  color?: string;
 }
 
 export interface PerformerScene {
   id: string;
   name: string;
   color: string;
-  slotId: string;
-}
-
-export interface FxSlot {
-  id: string;
-  type: string;
-  params: any;
-  enabled: boolean;
-  mix?: number;
 }
 
 export interface TrackModel extends StudioTrack {
@@ -73,6 +65,8 @@ export interface TrackModel extends StudioTrack {
   sendB: number;
   activePatternSlotId?: string | null;
   patternSlots?: PatternSlot[];
+  swingAmount?: number;
+  collapsed?: boolean;
 }
 
 @Injectable({
@@ -82,11 +76,14 @@ export class MusicManagerService {
   public static readonly DRUM_TRACK_ID = 'track_drums_100';
 
   public engine = inject(AudioEngineService);
-  private instruments = inject(InstrumentsService);
-  private logger = inject(LoggingService);
+  public activePatternSlotId = signal('slot-0');
+  public patternSlots = signal([{ id: 'slot-0', name: 'Pattern 1' }]);
+
   private projectService = inject(ProjectService);
   private history = inject(HistoryService);
+  private instruments = inject(InstrumentsService);
   private recordingEngine = inject(StudioRecordingEngineService);
+  private logger = inject(LoggingService);
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<string | null>(null);
@@ -113,14 +110,42 @@ export class MusicManagerService {
     effect(() => {
       const project = this.projectService.currentProject();
       if (project && this.tracks().length === 0) {
-         this.tracks.set(project.tracks as any);
-         this.engine.tempo.set(project.bpm);
+         this.tracks.set((project.tracks || []) as any);
+         this.engine.tempo.set(project.bpm || 120);
       }
     }, { allowSignalWrites: true });
   }
 
   private runCommand(name: string, execute: () => void, undo: () => void) {
     this.history.execute({ name, execute, undo });
+  }
+
+  setActivePatternSlotId(id: string) {
+    this.activePatternSlotId.set(id);
+  }
+
+  addPatternSlot() {
+    const id = 'slot-' + Date.now();
+    this.patternSlots.update(ps => [...ps, { id, name: 'Pattern ' + (ps.length + 1) }]);
+  }
+
+  createBus(name: string) {
+    return this.addTrack(name, 'bus', 'bus');
+  }
+
+  setTrackBus(trackId: string, busId: string | undefined) {
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, busId } : t));
+    this.engine.updateTrack(trackId, { busId });
+  }
+
+  setPadRouting(padId: string, busId: string) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id === MusicManagerService.DRUM_TRACK_ID) {
+        const newPads = (t as any).pads?.map((p: any) => p.id === padId ? { ...p, busId } : p) || [];
+        return { ...t, pads: newPads };
+      }
+      return t;
+    }));
   }
 
   newProject(skipDefaults = false) {
@@ -182,17 +207,20 @@ export class MusicManagerService {
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, notes: t.notes.filter(n => !noteIds.includes(n.id)) } : t));
   }
 
-  addClipToTrack(trackId: string, clip: Partial<TrackClip>) {
-    const newClip: TrackClip = { id: 'clip_' + Date.now(), start: 0, length: 4, name: 'Clip', type: 'midi', ...clip };
+  addClipToTrack(trackId: string, clip: Partial<StudioClip>) {
+    const newClip: StudioClip = { id: 'clip_' + Date.now(), start: 0, length: 4, name: 'Clip', type: 'midi', ...clip };
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, clips: [...t.clips, newClip] } : t));
   }
 
-  updateClip(trackId: string, clipId: string, patch: Partial<TrackClip>) {
+  updateClip(trackId: string, clipId: string, patch: Partial<StudioClip>) {
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, clips: t.clips.map(c => c.id === clipId ? { ...c, ...patch } : c) } : t));
   }
 
   removeClip(trackId: string, clipId: string) {
-    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, clips: t.clips.filter(c => c.id !== clipId) } : t));
+    this.tracks.update(ts => ts.map(t => {
+        if (t.id !== trackId) return t;
+        return { ...t, clips: t.clips.filter(c => c.id !== clipId) };
+    }));
   }
 
   splitClip(trackId: string, clipId: string, bar: number) {
@@ -209,31 +237,37 @@ export class MusicManagerService {
   playStep(step: number, time: number, duration: number) {
     const bar = Math.floor(step / 16);
     const stepInBar = step % 16;
+    const isOffbeat = stepInBar % 2 !== 0;
+    const drumTrack = this.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID);
+    const swingOffset = isOffbeat ? (drumTrack as any)?.swingAmount || 0 : 0;
+    const swungTime = time + (swingOffset * duration * 0.5);
 
     this.tracks().forEach(t => {
       if (t.muted) return;
 
       t.clips.forEach(clip => {
-        // Handle MIDI Notes
         if (bar >= clip.start && bar < clip.start + clip.length) {
           t.notes.filter(n => Math.floor(n.step) === step % 64).forEach(n => {
              if (n.probability === undefined || Math.random() < n.probability) {
                 const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
-                this.engine.triggerAttack(t.id, freq, time, n.velocity, n.length * duration, t.gain, t.pan, 0, 0, t.synthParams);
+                this.engine.triggerAttack(t.id, freq, swungTime, n.velocity, n.length * duration, t.gain, t.pan, 0, 0, t.synthParams);
              }
           });
 
-          // Handle Audio Playback (Trigger at start of bar for now)
           if (clip.type === 'audio' && stepInBar === 0 && bar === clip.start) {
              const audioData = (clip as any).audioData;
              if (audioData) {
                 const rate = this.engine.calculatePlaybackRate((clip as any).originalBpm || this.engine.tempo());
-                this.engine.triggerSampler(t.id, audioData, time, t.gain, t.pan, clip.length * 4 * (60/this.engine.tempo()), rate);
+                this.engine.triggerSampler(t.id, audioData, swungTime, t.gain, t.pan, clip.length * 4 * (60/this.engine.tempo()), rate);
              }
           }
         }
       });
     });
+  }
+
+  isStepActive(track: TrackModel, stepIdx: number): boolean {
+    return track.notes.some(n => Math.floor(n.step) === stepIdx);
   }
 
   quantizeTrack(id: string, noteIds?: string[]) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, notes: t.notes.map(n => ({ ...n, step: Math.round(n.step) })) } : t)); }
@@ -263,9 +297,24 @@ export class MusicManagerService {
 
   toggleMute(id: string) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, muted: !t.muted } : t)); }
   toggleSolo(id: string) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, soloed: !t.soloed } : t)); }
+
+  updateDrumSwing(amount: number) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id === MusicManagerService.DRUM_TRACK_ID) {
+        return { ...t, swingAmount: amount };
+      }
+      return t;
+    }));
+  }
+
   updateVolume(id: string, vol: number) {
     this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, volume: vol, gain: vol } : t));
     this.engine.updateTrack(id, { gain: vol });
+  }
+
+  updateTrackPan(id: string, val: number) {
+    this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, pan: val / 100 } : t));
+    this.engine.updateTrack(id, { pan: val / 100 });
   }
 
   updateSend(id: string, send: 'A' | 'B', value: number) {
@@ -292,6 +341,27 @@ export class MusicManagerService {
     reader.readAsText(file);
   }
 
+  applyChordStamp(trackId: string, baseMidi: number, step: number, chordType: string) {
+    const intervals: Record<string, number[]> = {
+      'maj': [0, 4, 7],
+      'min': [0, 3, 7],
+      'maj7': [0, 4, 7, 11],
+      'min7': [0, 3, 7, 10],
+      'dom7': [0, 4, 7, 10],
+      'sus4': [0, 5, 7]
+    };
+    const notes = intervals[chordType] || [0];
+    notes.forEach(interval => {
+      this.addNoteToTrack(trackId, {
+        id: 'chord_' + Date.now() + '_' + interval,
+        midi: baseMidi + interval,
+        step,
+        length: 1,
+        velocity: 0.8
+      });
+    });
+  }
+
   recordLiveNote(midi: number, velocity: number) {
      const trackId = this.selectedTrackId();
      if (trackId) {
@@ -306,6 +376,7 @@ export class MusicManagerService {
   setActivePatternSlot(trackId: string, slotId: string) {
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, activePatternSlotId: slotId } : t));
   }
+
   duplicateNotes(trackId: string, ids: string[], offset: number) {
     this.tracks.update(ts => ts.map(t => {
       if (t.id !== trackId) return t;
@@ -315,10 +386,12 @@ export class MusicManagerService {
       return { ...t, notes: [...t.notes, ...dupes] };
     }));
   }
+
   setInstrument(trackId: string, instId: string) {
     const preset = this.instruments.getPresets().find(p => p.id === instId);
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, instrumentId: instId, synthParams: preset?.synth || t.synthParams } : t));
   }
+
   ensureTrack(instrumentId: string) {
     const existing = this.tracks().find(t => t.instrumentId === instrumentId);
     if (!existing) {
@@ -326,13 +399,16 @@ export class MusicManagerService {
     }
     return existing.id;
   }
-  importAudio() { this.logger.info("Importing audio track..."); }
+
+  importAudio() { this.logger.info('Importing audio track...'); }
   startRecording() { this.recordingEngine.startRecording(); }
   stopRecording(id: string) {
      this.recordingEngine.stopRecording();
      return Promise.resolve(null);
   }
+
   addAutomationLane(trackId: string, param: string) { this.logger.info(`Added automation lane for ${param}`); }
+
   snapshotProject(): Project | null {
     const current = this.projectService.currentProject();
     if (!current) return null;
