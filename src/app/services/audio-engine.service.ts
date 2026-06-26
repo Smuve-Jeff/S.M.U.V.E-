@@ -186,25 +186,21 @@ export class AudioEngineService {
     source.stop(time + duration);
   }
 
+  private createSendBus(source: GainNode, returnNode: GainNode, store: Map<string, GainNode>, id: string) {
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0;
+    source.connect(gain);
+    gain.connect(returnNode);
+    store.set(id, gain);
+  }
+
   getTrackOutput(id: string): GainNode {
     if (!this.trackOutputs.has(id)) {
       const mainGain = this.ctx.createGain();
       mainGain.connect(this.masterGain);
       this.trackOutputs.set(id, mainGain);
-
-      // Setup Send A
-      const sendAGain = this.ctx.createGain();
-      sendAGain.gain.value = 0;
-      mainGain.connect(sendAGain);
-      sendAGain.connect(this.sendAReturn);
-      this.trackSendAGains.set(id, sendAGain);
-
-      // Setup Send B
-      const sendBGain = this.ctx.createGain();
-      sendBGain.gain.value = 0;
-      mainGain.connect(sendBGain);
-      sendBGain.connect(this.sendBReturn);
-      this.trackSendBGains.set(id, sendBGain);
+      this.createSendBus(mainGain, this.sendAReturn, this.trackSendAGains, id);
+      this.createSendBus(mainGain, this.sendBReturn, this.trackSendBGains, id);
     }
     return this.trackOutputs.get(id)!;
   }

@@ -34,13 +34,12 @@ export class AiService {
   private userProfileService = inject(UserProfileService);
   private musicManager = inject(MusicManagerService);
   private notification = inject(NotificationService);
+  private http = inject(HttpClient);
 
   strategicDecrees = signal<string[]>(STRATEGIC_DECREES);
   unlockedUpgrades = signal<string[]>([]);
   marketAlerts = signal<MarketAlert[]>([]);
   isProcessing = signal(false);
-  private loggingService = inject(LoggingService);
-  private http = inject(HttpClient);
   private mimicryBuffer: string[] = [];
   isScanning = signal(false);
   isMobile = signal(false);
@@ -216,7 +215,7 @@ export class AiService {
   isUnlocked(id: string) { return this.unlockedUpgrades().includes(id); }
   unlockUpgrade(id: string) {
     if (this.unlockedUpgrades().includes(id)) {
-      this.loggingService.info(`Upgrade ${id} is already unlocked.`);
+      this.logger.info(`Upgrade ${id} is already unlocked.`);
       return;
     }
     this.isProcessing.set(true);

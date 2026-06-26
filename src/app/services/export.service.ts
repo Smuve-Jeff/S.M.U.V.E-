@@ -49,13 +49,10 @@ export class ExportService {
   }
 
   async audioBufferToWav(buffer: AudioBuffer): Promise<ArrayBuffer> {
-    const channels = [];
-    for (let i = 0; i < buffer.numberOfChannels; i++) {
-      channels.push(buffer.getChannelData(i));
-    }
+    const channels = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
     const interleaved = this.interleave(channels);
     const blob = WavEncoder.encode([interleaved], buffer.numberOfChannels, buffer.sampleRate);
-    return await blob.arrayBuffer();
+    return blob.arrayBuffer();
   }
 
   private interleave(channels: Float32Array[]): Float32Array {
