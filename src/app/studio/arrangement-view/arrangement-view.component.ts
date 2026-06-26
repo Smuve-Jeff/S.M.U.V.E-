@@ -156,6 +156,12 @@ export class ArrangementViewComponent {
     }));
   }
 
-  canvasHeight() { return this.tracks().length * this.laneHeight() + this.rulerHeight; }
+  canvasHeight() {
+    return (
+      this.tracks().filter(
+        (t) => !t.parentId || !this.tracks().find((p) => p.id === t.parentId)?.collapsed,
+      ).length * this.laneHeight() + this.rulerHeight
+    );
+  }
   gridWidth() { return 64 * this.barWidth(); }
 }
