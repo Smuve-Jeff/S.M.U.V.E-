@@ -93,7 +93,7 @@ describe('GameService', () => {
 
   it('routes third-party cabinets to external launches while keeping managed games inline', async () => {
     const pending = firstValueFrom(service.listGames());
-    httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
     const games = await pending;
 
     const remoteGame = games.find((game) => game.id === '12');
@@ -108,7 +108,7 @@ describe('GameService', () => {
 
   it('filters games through data-driven room rules', async () => {
     const pending = firstValueFrom(service.getGamesForRoom('weekend-clash'));
-    httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
     const games = await pending;
 
     const names = games.map((g) => g.name);
@@ -118,7 +118,7 @@ describe('GameService', () => {
 
   it('supports tag-driven room discovery for RPG cabinets', async () => {
     const pending = firstValueFrom(service.getGamesForRoom('rpg-vault'));
-    httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
     const games = await pending;
 
     expect(games.map((game) => game.name)).toEqual(['Quest Relay']);
@@ -126,7 +126,7 @@ describe('GameService', () => {
 
   it('returns the newest games first when requested', async () => {
     const pending = firstValueFrom(service.listGames({}, 'Newest'));
-    httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
     const games = await pending;
 
     expect(games[0].id).toBe('15');
@@ -135,11 +135,11 @@ describe('GameService', () => {
 
   it('refreshes the feed when forced', async () => {
     const firstPending = firstValueFrom(service.getThaSpotFeed());
-    httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
     await firstPending;
 
     const secondPending = firstValueFrom(service.getThaSpotFeed(true));
-    httpMock.expectOne('/assets/data/tha-spot-feed.json').flush(mockFeed);
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
     await secondPending;
   });
 });
