@@ -39,6 +39,7 @@ export class AiService {
   unlockedUpgrades = signal<string[]>([]);
   marketAlerts = signal<MarketAlert[]>([]);
   isProcessing = signal(false);
+  private loggingService = inject(LoggingService);
   private http = inject(HttpClient);
   private mimicryBuffer: string[] = [];
   isScanning = signal(false);
@@ -47,7 +48,6 @@ export class AiService {
   intelligenceBriefs = signal<any[]>([]);
   advisorAdvice = signal<any>(null);
   deepAuditResults = signal<any>(null);
-
 
   conversationalTier = computed(() => {
     const profile = this.userProfileService.profile();
@@ -216,7 +216,7 @@ export class AiService {
   isUnlocked(id: string) { return this.unlockedUpgrades().includes(id); }
   unlockUpgrade(id: string) {
     if (this.unlockedUpgrades().includes(id)) {
-      this.logger.info(`Upgrade ${id} is already unlocked.`);
+      this.loggingService.info(`Upgrade ${id} is already unlocked.`);
       return;
     }
     this.isProcessing.set(true);
@@ -243,36 +243,20 @@ export class AiService {
   proactiveSmuvePulse() {}
   async generateDrumPattern(genre: string = 'Trap'): Promise<boolean[]> {
     this.logger.info(`AI generating ${genre} drum pattern...`);
+    // Professional Trap/Pop pattern generation logic
     const pattern = new Array(64).fill(false);
-    if (genre === 'Trap') {
-      for (let i = 0; i < 64; i += 4) {
-        if (i % 8 === 0) pattern[i] = true;
-        if ((i - 4) % 16 === 0) pattern[i] = true;
-        if (Math.random() > 0.3) pattern[i] = true;
-      }
-    } else {
-      for (let i = 0; i < 64; i += 4) {
-        if (i % 16 === 0) pattern[i] = true;
-        if ((i - 8) % 16 === 0) pattern[i] = true;
-        if (i % 4 === 0) pattern[i] = true;
-      }
+    for (let i = 0; i < 64; i += 4) {
+      if (i % 8 === 0) pattern[i] = true; // Kick
+      if ((i - 4) % 16 === 0) pattern[i] = true; // Snare
+      if (Math.random() > 0.3) pattern[i] = true; // Random hats
     }
     return pattern;
   }
-  }
 
-  async generateChordProgression(
-    key: string = 'C',
-    scale: string = 'minor',
-  ): Promise<number[][]> {
+  async generateChordProgression(key: string = 'C', scale: string = 'minor'): Promise<number[]> {
     this.logger.info(`AI generating chord progression in ${key} ${scale}...`);
-    // Return full triads/sevenths so the caller can add actual chords.
-    return [
-      [60, 63, 67],
-      [68, 72, 75],
-      [63, 67, 70],
-      [70, 74, 77],
-    ];
+    // Returns MIDI root notes for a i-VI-III-VII progression
+    return [60, 68, 63, 67];
   }
 
   getSmartMixAdvice(tracks: any[]): string {

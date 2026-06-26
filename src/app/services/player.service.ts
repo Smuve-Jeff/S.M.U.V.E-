@@ -182,6 +182,11 @@ export class PlayerService implements OnDestroy {
     if (!buffer) return;
     const wavBuffer = await this.exportService.audioBufferToWav(buffer);
     const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
-    this.exportService.downloadBlob(wavBlob, `${this.currentTrack()?.title || 'exported_track'}.wav`);
+    const url = URL.createObjectURL(wavBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${this.currentTrack()?.title || 'exported_track'}.wav`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }

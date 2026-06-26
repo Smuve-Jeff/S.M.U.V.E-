@@ -1,7 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MusicManagerService } from '../../services/music-manager.service';
+import { MusicManagerService, TrackModel } from '../../services/music-manager.service';
 import { AiService } from '../../services/ai.service';
 
 @Component({
@@ -20,7 +20,11 @@ export class TrackInspectorComponent {
     this.showAdvanced.update(v => !v);
   }
 
-  selectedTrack = this.musicManager.selectedTrack;
+  selectedTrack = computed<TrackModel | null>(() => {
+    const id = this.musicManager.selectedTrackId();
+    if (!id) return null;
+    return this.musicManager.tracks().find((t) => t.id === id) || null;
+  });
 
   updateParam(key: string, value: any) {
     const track = this.selectedTrack();
@@ -50,12 +54,9 @@ export class TrackInspectorComponent {
     });
   }
 
-  smartAdvice = signal<string | null>(null);
-
   getSmartAdvice() {
-    this.smartAdvice.set(
-      this.aiService.getSmartMixAdvice(this.musicManager.tracks()),
-    );
+    const advice = this.aiService.getSmartMixAdvice(this.musicManager.tracks());
+    alert(advice);
   }
 
   getParam(key: string): any {

@@ -97,7 +97,7 @@
 
     <!-- Export -->
     <div class="transport-export hidden md:flex">
-      <button type="button" class="transport-btn tactile-v42 glass-v42 flex items-center gap-2 px-3"
+      <button class="transport-btn tactile-v42 glass-v42 flex items-center gap-2 px-3"
               (click)="exportWav()" [disabled]="isExporting()">
         <span class="material-symbols-outlined text-sm">{{ isExporting() ? 'hourglass_bottom' : 'download' }}</span>
         <span class="text-[8px] font-black uppercase tracking-tighter">{{ isExporting() ? 'BOUNCING...' : 'EXPORT' }}</span>

@@ -29,10 +29,7 @@ export class ExportService {
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => chunks.push(e.data);
     const result = new Promise<Blob>((resolve) => {
-      recorder.onstop = () => {
-        this.engine.masterGain.disconnect(streamDest);
-        resolve(new Blob(chunks, { type: 'audio/wav' }));
-      };
+      recorder.onstop = () => resolve(new Blob(chunks, { type: 'audio/wav' }));
     });
     recorder.start();
     return { recorder, result };
@@ -52,10 +49,13 @@ export class ExportService {
   }
 
   async audioBufferToWav(buffer: AudioBuffer): Promise<ArrayBuffer> {
-    const channels = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
+    const channels = [];
+    for (let i = 0; i < buffer.numberOfChannels; i++) {
+      channels.push(buffer.getChannelData(i));
+    }
     const interleaved = this.interleave(channels);
     const blob = WavEncoder.encode([interleaved], buffer.numberOfChannels, buffer.sampleRate);
-    return blob.arrayBuffer();
+    return await blob.arrayBuffer();
   }
 
   private interleave(channels: Float32Array[]): Float32Array {

@@ -236,36 +236,9 @@ export class MusicManagerService {
     });
   }
 
-  quantizeTrack(id: string, noteIds?: string[]) {
-    this.tracks.update(ts => ts.map(t => t.id !== id ? t : {
-      ...t, notes: t.notes.map(n => (!noteIds || noteIds.includes(n.id)) ? { ...n, step: Math.round(n.step) } : n)
-    }));
-  }
-  humanizeTrack(id: string, noteIds?: string[]) {
-    this.tracks.update(ts => ts.map(t => t.id !== id ? t : {
-      ...t, notes: t.notes.map(n => (!noteIds || noteIds.includes(n.id)) ? {
-        ...n,
-        step: n.step + (Math.random()-0.5)*0.1,
-        velocity: Math.max(0.1, Math.min(1, n.velocity + (Math.random()-0.5)*0.2))
-      } : n)
-    }));
-  }
-  strumTrack(id: string, noteIds?: string[]) {
-    this.tracks.update(ts => ts.map(t => {
-      if (t.id !== id) return t;
-      const targets = noteIds ? t.notes.filter(n => noteIds.includes(n.id)) : t.notes;
-      const targetIds = new Set(targets.map(n => n.id));
-      const sorted = [...targets].sort((a, b) => a.midi - b.midi);
-      return {
-        ...t,
-        notes: t.notes.map(n => {
-          if (!targetIds.has(n.id)) return n;
-          const idx = sorted.findIndex(s => s.id === n.id);
-          return { ...n, step: n.step + idx * 0.02 };
-        })
-      };
-    }));
-  }
+  quantizeTrack(id: string, noteIds?: string[]) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, notes: t.notes.map(n => ({ ...n, step: Math.round(n.step) })) } : t)); }
+  humanizeTrack(id: string, noteIds?: string[]) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, notes: t.notes.map(n => ({ ...n, step: n.step + (Math.random()-0.5)*0.1, velocity: Math.max(0.1, Math.min(1, n.velocity + (Math.random()-0.5)*0.2)) })) } : t)); }
+  strumTrack(id: string, noteIds?: string[]) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, notes: [...t.notes].sort((a,b) => a.midi - b.midi).map((n, i) => ({ ...n, step: n.step + i * 0.02 })) } : t)); }
   arpeggiateTrack(id: string, noteIds?: string[]) {
      this.tracks.update(ts => ts.map(t => {
         if (t.id !== id) return t;
@@ -296,9 +269,11 @@ export class MusicManagerService {
   }
 
   updateSend(id: string, send: 'A' | 'B', value: number) {
-    const key = send === 'A' ? 'sendA' : 'sendB';
-    this.tracks.update(ts => ts.map(t => t.id !== id ? t : { ...t, [key]: value }));
-    this.engine.updateTrack(id, { [key]: value });
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id !== id) return t;
+      return send === 'A' ? { ...t, sendA: value } : { ...t, sendB: value };
+    }));
+    this.engine.updateTrack(id, send === 'A' ? { sendA: value } : { sendB: value });
   }
 
   updateSynthParams(trackId: string, params: any) {
