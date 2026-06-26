@@ -42,7 +42,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   @Output() close = new EventEmitter<void>();
 
-  windowWidth = signal(window.innerWidth);
   isMobile = signal(window.innerWidth < 768);
   editMode = signal<'draw' | 'select' | 'erase'>('draw');
   selectedNoteIds = signal<Set<string>>(new Set());
@@ -93,7 +92,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   @HostListener('window:resize')
   checkMobile() {
-    this.windowWidth.set(window.innerWidth);
     this.isMobile.set(window.innerWidth < 768);
   }
 
@@ -249,18 +247,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   getKeyName(midi: number): string { return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi % 12]; }
   getOctaveLabel(midi: number): string { return Math.floor(midi / 12 - 1).toString(); }
 
-  private updateSelectedNotes(patch: Partial<TrackNote>) {
+  updateSelectedNoteParam(param: 'velocity' | 'probability', event: any) {
+    const val = parseFloat(event.target.value);
     const trackId = this.selectedTrack()?.id;
     if (!trackId) return;
-    this.selectedNoteIds().forEach(id => this.musicManager.updateNote(trackId, id, patch));
-  }
-
-  adjustSelectedVelocityDirect(event: any) {
-    this.updateSelectedNotes({ velocity: parseFloat(event.target.value) });
-  }
-
-  setSelectedNoteProbability(event: any) {
-    this.updateSelectedNotes({ probability: parseFloat(event.target.value) });
+    this.selectedNoteIds().forEach(id => {
+      this.musicManager.updateNote(trackId, id, { [param]: val });
+    });
   }
 
   clearNotes() { if (confirm('Clear pattern?')) this.musicManager.removeNotes(this.selectedTrack()?.id!, this.selectedTrack()?.notes.map(n => n.id)!); }
@@ -270,7 +263,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   arpeggiateNotes() { this.musicManager.arpeggiateTrack(this.selectedTrack()?.id!); }
 
   toggleSelectedSlide() {
-    this.updateSelectedNotes({ isSlide: !this.hasSelectedSlide() });
+     const track = this.selectedTrack();
+     if (!track) return;
+     const hasSlide = this.hasSelectedSlide();
+     this.selectedNoteIds().forEach(id => {
+        this.musicManager.updateNote(track.id, id, { isSlide: !hasSlide });
+     });
   }
 
   hasSelectedSlide() {

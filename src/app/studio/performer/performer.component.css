@@ -29,6 +29,11 @@
   scrollbar-width: none;
   background: #000;
   -webkit-overflow-scrolling: touch;
+  cursor: grab;
+}
+
+.keyboard-scroll:active {
+  cursor: grabbing;
 }
 
 .keyboard-scroll::-webkit-scrollbar { display: none; }
@@ -166,12 +171,4 @@
 
 .performer-content {
   min-height: fit-content;
-}
-
-.keyboard-scroll {
-  cursor: grab;
-}
-
-.keyboard-scroll:active {
-  cursor: grabbing;
 }

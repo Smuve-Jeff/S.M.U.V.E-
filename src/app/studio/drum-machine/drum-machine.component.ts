@@ -7,12 +7,16 @@ import {
   signal,
   ViewChild,
   ElementRef,
+  effect
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
 import { KnobComponent } from '../shared/knob/knob.component';
-import { MusicManagerService } from '../../services/music-manager.service';
+import {
+  MusicManagerService,
+  TrackNote,
+} from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { AiService } from '../../services/ai.service';
 import { HapticService } from '../../services/haptic.service';
@@ -66,14 +70,12 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
 
   constructor() {
     this.initPads();
+
+    // Sync Drum track notes to pad visual feedback if needed
   }
 
   ngOnInit() {}
   ngOnDestroy() {}
-
-  private getDrumTrack() {
-    return this.musicManager.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID);
-  }
 
   private initPads() {
     const initialPads = this.blueprints.map(b => ({
@@ -82,6 +84,15 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       params: { semitone: 0, decay: 0.3, pan: 0, cutoff: 15000, resonance: 1, saturation: 0, compression: 0, attack: 0.005 }
     }));
     this.pads.set(initialPads);
+  }
+
+  private getDrumTrack() {
+    return this.musicManager.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID);
+  }
+
+  private clearDrumPattern() {
+    const track = this.getDrumTrack();
+    if (track) this.musicManager.removeNotes(track.id, track.notes.map(n => n.id));
   }
 
   toggleStep(padId: string, stepIndex: number) {
@@ -115,12 +126,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     if (!pad) return { active: false, velocity: 0.8, probability: 1 };
 
     const note = this.getDrumTrack()?.notes.find(n => n.midi === pad.midi && n.step === stepIdx);
-
-    return {
-       active: !!note,
-       velocity: note?.velocity || 0.8,
-       probability: note?.probability || 1.0
-    };
+    return { active: !!note, velocity: note?.velocity || 0.8, probability: note?.probability || 1.0 };
   }
 
   isStepPlaying(pad: DrumPad) {
@@ -141,21 +147,19 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
 
   generateGenre(genre: string) {
      this.haptic.medium();
-     const drumTrack = this.getDrumTrack();
-     if (drumTrack) this.musicManager.removeNotes(drumTrack.id, drumTrack.notes.map(n => n.id));
-
-     // Basic pattern
-     [36, 42, 38].forEach(midi => {
-        const id = `pad-${midi}`;
-        if (midi === 36) [0, 8, 11, 24, 32].forEach(s => this.toggleStep(id, s));
-        if (midi === 42) Array.from({length: 32}, (_, i) => i*2).forEach(s => this.toggleStep(id, s));
-        if (midi === 38) [4, 12, 20, 28].forEach(s => this.toggleStep(id, s));
+     this.clearDrumPattern();
+     const patterns: Record<number, number[]> = {
+       36: [0, 8, 11, 24, 32],
+       42: Array.from({length: 32}, (_, i) => i * 2),
+       38: [4, 12, 20, 28],
+     };
+     Object.entries(patterns).forEach(([midi, steps]) => {
+       steps.forEach(s => this.toggleStep(`pad-${midi}`, s));
      });
   }
 
   randomizeAll() {
-     const drumTrack = this.getDrumTrack();
-     if (drumTrack) this.musicManager.removeNotes(drumTrack.id, drumTrack.notes.map(n => n.id));
+     this.clearDrumPattern();
      this.pads().forEach(p => {
         for (let i = 0; i < 64; i++) {
            if (Math.random() > 0.9) this.toggleStep(p.id, i);

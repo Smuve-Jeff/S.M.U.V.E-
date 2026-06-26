@@ -95,8 +95,8 @@ export class ArrangementViewComponent {
     if (e.key === 'Delete' || e.key === 'Backspace') {
       if (this.selectedClipIds().size > 0) {
         this.selectedClipIds().forEach(id => {
-          const track = this.findClipTrack(id);
-          if (track) this.musicManager.removeClip(track.id, id);
+          const found = this.findClipOwner(id);
+          if (found) this.musicManager.removeClip(found.track.id, id);
         });
         this.selectedClipIds().clear();
         this.haptic.medium();
@@ -124,9 +124,10 @@ export class ArrangementViewComponent {
 
       const originalStarts = new Map<string, number>();
       this.selectedClipIds().forEach(id => {
-        const track = this.findClipTrack(id);
-        const c = track?.clips.find(clip => clip.id === id);
-        if (c) originalStarts.set(id, c.start);
+        this.tracks().forEach(t => {
+          const c = t.clips.find(clip => clip.id === id);
+          if (c) originalStarts.set(id, c.start);
+        });
       });
 
       this.draggingClip = { trackId, clipId: clip.id, startX: e.clientX, startY: e.clientY, originalStarts, offsetBars: 0, clipData: clip };
@@ -142,11 +143,13 @@ export class ArrangementViewComponent {
       if (this.snapEnabled()) dbars = Math.round(dbars * 4) / 4;
 
       this.selectedClipIds().forEach(id => {
-        const track = this.findClipTrack(id);
-        if (track && this.draggingClip?.originalStarts.has(id)) {
-          const original = this.draggingClip.originalStarts.get(id)!;
-          this.musicManager.updateClip(track.id, id, { start: Math.max(0, original + dbars) });
-        }
+         this.tracks().forEach(t => {
+            const clip = t.clips.find(c => c.id === id);
+            if (clip && this.draggingClip?.originalStarts.has(id)) {
+               const original = this.draggingClip.originalStarts.get(id)!;
+               this.musicManager.updateClip(t.id, clip.id, { start: Math.max(0, original + dbars) });
+            }
+         });
       });
     } else if (this.resizingClip) {
       const dx = e.clientX - this.resizingClip.startX;
@@ -178,10 +181,6 @@ export class ArrangementViewComponent {
     }
   }
 
-  private findClipTrack(clipId: string): TrackModel | undefined {
-    return this.tracks().find(t => t.clips.some(c => c.id === clipId));
-  }
-
   clipLabel(track: TrackModel, clip: TrackClip): string { return clip.name || track.name; }
   calculateGhostNotes(clip: TrackClip): any[] {
     if (!clip.notes) return [];
@@ -190,13 +189,22 @@ export class ArrangementViewComponent {
   promoteTake(trackId: string, clipId: string, takeId: string) {
      this.musicManager.promoteTakeRegion(trackId, clipId, { takeId, start: 0, end: 100 });
   }
+  private findClipOwner(clipId: string): { track: TrackModel; clip: TrackClip } | null {
+    for (const track of this.tracks()) {
+      const clip = track.clips.find(c => c.id === clipId);
+      if (clip) return { track, clip };
+    }
+    return null;
+  }
+
   splitAtPlayhead() {
     const bar = this.musicManager.currentStep() / 16;
     this.selectedClipIds().forEach(id => {
-      const track = this.findClipTrack(id);
-      if (track) this.musicManager.splitClip(track.id, id, bar);
+      const found = this.findClipOwner(id);
+      if (found) this.musicManager.splitClip(found.track.id, id, bar);
     });
   }
+
   async bounceSelected() { const tid = this.musicManager.selectedTrackId(); if (tid) await this.musicManager.bounceTrack(tid); }
   onGridTouchStart(event: TouchEvent) { if (event.touches.length === 2) this.enhancedGestures.handlePinch(event); }
   onGridTouchMove(event: TouchEvent) { if (event.touches.length === 2) { event.preventDefault(); this.enhancedGestures.handlePinch(event); } }
@@ -205,11 +213,10 @@ export class ArrangementViewComponent {
   duplicateSelected() {
     const newSelection = new Set<string>();
     this.selectedClipIds().forEach(id => {
-      const track = this.findClipTrack(id);
-      const clip = track?.clips.find(c => c.id === id);
-      if (track && clip) {
+      const found = this.findClipOwner(id);
+      if (found) {
         const newId = 'clip_' + Date.now() + Math.random();
-        this.musicManager.addClipToTrack(track.id, { ...clip, id: newId, start: clip.start + clip.length });
+        this.musicManager.addClipToTrack(found.track.id, { ...found.clip, id: newId, start: found.clip.start + found.clip.length });
         newSelection.add(newId);
       }
     });
