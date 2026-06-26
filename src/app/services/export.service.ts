@@ -29,7 +29,10 @@ export class ExportService {
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => chunks.push(e.data);
     const result = new Promise<Blob>((resolve) => {
-      recorder.onstop = () => resolve(new Blob(chunks, { type: 'audio/wav' }));
+      recorder.onstop = () => {
+        this.engine.masterGain.disconnect(streamDest);
+        resolve(new Blob(chunks, { type: 'audio/wav' }));
+      };
     });
     recorder.start();
     return { recorder, result };
