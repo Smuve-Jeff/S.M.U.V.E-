@@ -77,7 +77,7 @@ export class MusicManagerService {
 
   public engine = inject(AudioEngineService);
   public activePatternSlotId = signal('slot-0');
-  public patternSlots = signal([{ id: 'slot-0', name: 'Pattern 1' }]);
+  public patternSlots = signal<PatternSlot[]>([{ id: 'slot-0', name: 'Pattern 1', activeVersionId: 'ver-0', versions: [{ id: 'ver-0', name: 'Version 1', steps: [], notes: [] }] }]);
 
   private projectService = inject(ProjectService);
   private history = inject(HistoryService);
@@ -126,7 +126,8 @@ export class MusicManagerService {
 
   addPatternSlot() {
     const id = 'slot-' + Date.now();
-    this.patternSlots.update(ps => [...ps, { id, name: 'Pattern ' + (ps.length + 1) }]);
+    const verId = 'ver-' + id;
+    this.patternSlots.update(ps => [...ps, { id, name: 'Pattern ' + (ps.length + 1), activeVersionId: verId, versions: [{ id: verId, name: 'Version 1', steps: [], notes: [] }] }]);
   }
 
   createBus(name: string) {
@@ -134,22 +135,8 @@ export class MusicManagerService {
   }
 
   setTrackBus(trackId: string, busId: string | undefined) {
-    const tracks = this.tracks();
-    if (busId) {
-      const target = tracks.find((t) => t.id === busId);
-      if (!target || target.type !== 'bus' || busId === trackId) return;
-
-      const seen = new Set<string>([trackId]);
-      let nextBusId: string | undefined = target.busId;
-      while (nextBusId) {
-        if (seen.has(nextBusId)) return;
-        seen.add(nextBusId);
-        nextBusId = tracks.find((t) => t.id === nextBusId)?.busId;
-      }
-    }
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, busId } : t));
     this.engine.updateTrack(trackId, { busId });
-  }
   }
 
   setPadRouting(padId: string, busId: string) {
