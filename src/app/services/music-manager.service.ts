@@ -327,16 +327,16 @@ export class MusicManagerService {
       'dom7': [0, 4, 7, 10],
       'sus4': [0, 5, 7]
     };
-    const notes = intervals[chordType] || [0];
-    notes.forEach(interval => {
-      this.addNoteToTrack(trackId, {
-        id: 'chord_' + Date.now() + '_' + interval,
-        midi: baseMidi + interval,
-        step,
-        length: 1,
-        velocity: 0.8
-      });
-    });
+    const intervalsList = intervals[chordType] || [0];
+    const timestamp = Date.now();
+    const newNotes = intervalsList.map(interval => ({
+      id: 'chord_' + timestamp + '_' + Math.random().toString(36).substring(2, 9) + '_' + interval,
+      midi: baseMidi + interval,
+      step,
+      length: 1,
+      velocity: 0.8
+    }));
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, notes: [...t.notes, ...newNotes] } : t));
   }
 
   recordLiveNote(midi: number, velocity: number) {
