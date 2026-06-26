@@ -15,11 +15,12 @@ export class TrackInspectorComponent {
   public musicManager = inject(MusicManagerService);
   private aiService = inject(AiService);
   showAdvanced = signal(false);
-  selectedTrack = this.musicManager.selectedTrack;
 
   toggleAdvanced() {
     this.showAdvanced.update(v => !v);
   }
+
+  selectedTrack = this.musicManager.selectedTrack;
 
   updateParam(key: string, value: any) {
     const track = this.selectedTrack();
@@ -38,10 +39,9 @@ export class TrackInspectorComponent {
     const track = this.selectedTrack();
     if (!track) return;
     const chordMidis = await this.aiService.generateChordProgression('C', 'minor');
-    const baseTime = Date.now();
     chordMidis.forEach((midi, i) => {
       this.musicManager.addNoteToTrack(track.id, {
-        id: `ai_chord_${baseTime}_${i}`,
+        id: `ai_chord_${Date.now()}_${i}`,
         midi,
         step: i * 16,
         length: 4,

@@ -34,12 +34,12 @@ export class AiService {
   private userProfileService = inject(UserProfileService);
   private musicManager = inject(MusicManagerService);
   private notification = inject(NotificationService);
-  private http = inject(HttpClient);
 
   strategicDecrees = signal<string[]>(STRATEGIC_DECREES);
   unlockedUpgrades = signal<string[]>([]);
   marketAlerts = signal<MarketAlert[]>([]);
   isProcessing = signal(false);
+  private http = inject(HttpClient);
   private mimicryBuffer: string[] = [];
   isScanning = signal(false);
   isMobile = signal(false);
@@ -47,6 +47,7 @@ export class AiService {
   intelligenceBriefs = signal<any[]>([]);
   advisorAdvice = signal<any>(null);
   deepAuditResults = signal<any>(null);
+
 
   conversationalTier = computed(() => {
     const profile = this.userProfileService.profile();

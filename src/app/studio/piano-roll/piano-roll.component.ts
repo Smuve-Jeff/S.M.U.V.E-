@@ -241,16 +241,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     });
   }
 
-  private getSelectionOrAll(): string[] | undefined {
+  private selectedNoteIdList(): string[] | undefined {
     const ids = Array.from(this.selectedNoteIds());
     return ids.length > 0 ? ids : undefined;
   }
 
-  quantizeNotes() { this.musicManager.quantizeTrack(this.selectedTrack()?.id!, this.getSelectionOrAll()); }
-  humanizeNotes() { this.musicManager.humanizeTrack(this.selectedTrack()?.id!, this.getSelectionOrAll()); }
-  strumNotes() { this.musicManager.strumTrack(this.selectedTrack()?.id!, this.getSelectionOrAll()); }
-  arpeggiateNotes() { this.musicManager.arpeggiateTrack(this.selectedTrack()?.id!, this.getSelectionOrAll()); }
-
+  quantizeNotes() { this.musicManager.quantizeTrack(this.selectedTrack()?.id!, this.selectedNoteIdList()); }
   duplicateSelected() { this.musicManager.duplicateNotes(this.selectedTrack()?.id!, Array.from(this.selectedNoteIds()), 4); }
   isBlackKey(midi: number): boolean { return [1, 3, 6, 8, 10].includes(midi % 12); }
   getKeyName(midi: number): string { return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi % 12]; }
@@ -267,6 +263,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   clearNotes() { if (confirm('Clear pattern?')) this.musicManager.removeNotes(this.selectedTrack()?.id!, this.selectedTrack()?.notes.map(n => n.id)!); }
   setEditMode(mode: any) { this.editMode.set(mode); }
+  humanizeNotes() { this.musicManager.humanizeTrack(this.selectedTrack()?.id!, this.selectedNoteIdList()); }
+  strumNotes() { this.musicManager.strumTrack(this.selectedTrack()?.id!, this.selectedNoteIdList()); }
+  arpeggiateNotes() { this.musicManager.arpeggiateTrack(this.selectedTrack()?.id!, this.selectedNoteIdList()); }
 
   toggleSelectedSlide() {
      const track = this.selectedTrack();

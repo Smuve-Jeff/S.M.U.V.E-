@@ -237,23 +237,33 @@ export class MusicManagerService {
   }
 
   quantizeTrack(id: string, noteIds?: string[]) {
-    this.tracks.update(ts => ts.map(t => t.id === id ? {
+    this.tracks.update(ts => ts.map(t => t.id !== id ? t : {
       ...t, notes: t.notes.map(n => (!noteIds || noteIds.includes(n.id)) ? { ...n, step: Math.round(n.step) } : n)
-    } : t));
+    }));
   }
   humanizeTrack(id: string, noteIds?: string[]) {
-    this.tracks.update(ts => ts.map(t => t.id === id ? {
+    this.tracks.update(ts => ts.map(t => t.id !== id ? t : {
       ...t, notes: t.notes.map(n => (!noteIds || noteIds.includes(n.id)) ? {
-        ...n, step: n.step + (Math.random()-0.5)*0.1, velocity: Math.max(0.1, Math.min(1, n.velocity + (Math.random()-0.5)*0.2))
+        ...n,
+        step: n.step + (Math.random()-0.5)*0.1,
+        velocity: Math.max(0.1, Math.min(1, n.velocity + (Math.random()-0.5)*0.2))
       } : n)
-    } : t));
+    }));
   }
   strumTrack(id: string, noteIds?: string[]) {
     this.tracks.update(ts => ts.map(t => {
       if (t.id !== id) return t;
-      const sorted = [...t.notes].sort((a, b) => a.midi - b.midi);
-      let strumIndex = 0;
-      return { ...t, notes: sorted.map(n => (!noteIds || noteIds.includes(n.id)) ? { ...n, step: n.step + strumIndex++ * 0.02 } : n) };
+      const targets = noteIds ? t.notes.filter(n => noteIds.includes(n.id)) : t.notes;
+      const targetIds = new Set(targets.map(n => n.id));
+      const sorted = [...targets].sort((a, b) => a.midi - b.midi);
+      return {
+        ...t,
+        notes: t.notes.map(n => {
+          if (!targetIds.has(n.id)) return n;
+          const idx = sorted.findIndex(s => s.id === n.id);
+          return { ...n, step: n.step + idx * 0.02 };
+        })
+      };
     }));
   }
   arpeggiateTrack(id: string, noteIds?: string[]) {
@@ -286,9 +296,9 @@ export class MusicManagerService {
   }
 
   updateSend(id: string, send: 'A' | 'B', value: number) {
-    const patch = send === 'A' ? { sendA: value } : { sendB: value };
-    this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, ...patch } : t));
-    this.engine.updateTrack(id, patch);
+    const key = send === 'A' ? 'sendA' : 'sendB';
+    this.tracks.update(ts => ts.map(t => t.id !== id ? t : { ...t, [key]: value }));
+    this.engine.updateTrack(id, { [key]: value });
   }
 
   updateSynthParams(trackId: string, params: any) {

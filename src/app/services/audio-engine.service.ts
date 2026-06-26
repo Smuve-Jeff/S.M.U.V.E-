@@ -186,12 +186,12 @@ export class AudioEngineService {
     source.stop(time + duration);
   }
 
-  private createSendBus(source: GainNode, returnNode: GainNode, store: Map<string, GainNode>, id: string) {
-    const gain = this.ctx.createGain();
-    gain.gain.value = 0;
-    source.connect(gain);
-    gain.connect(returnNode);
-    store.set(id, gain);
+  private createSendNode(source: GainNode, returnBus: GainNode, store: Map<string, GainNode>, id: string) {
+    const send = this.ctx.createGain();
+    send.gain.value = 0;
+    source.connect(send);
+    send.connect(returnBus);
+    store.set(id, send);
   }
 
   getTrackOutput(id: string): GainNode {
@@ -199,8 +199,8 @@ export class AudioEngineService {
       const mainGain = this.ctx.createGain();
       mainGain.connect(this.masterGain);
       this.trackOutputs.set(id, mainGain);
-      this.createSendBus(mainGain, this.sendAReturn, this.trackSendAGains, id);
-      this.createSendBus(mainGain, this.sendBReturn, this.trackSendBGains, id);
+      this.createSendNode(mainGain, this.sendAReturn, this.trackSendAGains, id);
+      this.createSendNode(mainGain, this.sendBReturn, this.trackSendBGains, id);
     }
     return this.trackOutputs.get(id)!;
   }
@@ -213,14 +213,10 @@ export class AudioEngineService {
       output.gain.setTargetAtTime(data.gain, now, 0.05);
     }
 
-    if (data.sendA !== undefined) {
-      const sendA = this.trackSendAGains.get(id);
-      if (sendA) sendA.gain.setTargetAtTime(data.sendA, now, 0.05);
-    }
-
-    if (data.sendB !== undefined) {
-      const sendB = this.trackSendBGains.get(id);
-      if (sendB) sendB.gain.setTargetAtTime(data.sendB, now, 0.05);
+    for (const [key, store] of [['sendA', this.trackSendAGains], ['sendB', this.trackSendBGains]] as [string, Map<string, GainNode>][]) {
+      if (data[key] !== undefined) {
+        store.get(id)?.gain.setTargetAtTime(data[key], now, 0.05);
+      }
     }
 
     this.tracksMap.set(id, { ...(this.tracksMap.get(id) || {}), ...data });
