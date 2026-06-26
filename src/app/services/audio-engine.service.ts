@@ -578,7 +578,10 @@ export class AudioEngineService {
     }
     if (patch.busId !== undefined) {
       const track = this.tracksMap.get(idStr);
-      if (track && track.busId !== patch.busId) {
+      if (!track || track.busId !== patch.busId) {
+        if (patch.busId?.toString() === idStr) {
+          throw new Error('A track cannot be routed to itself');
+        }
         output.disconnect();
         const target = patch.busId ? this.getTrackOutput(patch.busId) : this.masterGain;
         output.connect(target);
