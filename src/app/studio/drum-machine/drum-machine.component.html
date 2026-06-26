@@ -114,8 +114,8 @@
                [class.selected-strip]="selectedPadId() === p.id"
                (click)="selectPad(p.id)">
             <div class="w-1.5 h-1.5 rounded-full mb-2" [style.background-color]="p.color"></div>
-            <app-knob [label]="'PITCH'" [min]="-12" [max]="12" [value]="p.params.semitone" (valueChange)="updatePadParam(p.id, \'semitone\', $event)"></app-knob>
-            <app-knob [label]="'DECAY'" [min]="0.01" [max]="2" [value]="p.params.decay" (valueChange)="updatePadParam(p.id, \'decay\', $event)"></app-knob>
+            <app-knob [label]="'PITCH'" [min]="-12" [max]="12" [value]="p.params.semitone" (valueChange)="updatePadParam(p.id, 'semitone', $event)"></app-knob>
+            <app-knob [label]="'DECAY'" [min]="0.01" [max]="2" [value]="p.params.decay" (valueChange)="updatePadParam(p.id, 'decay', $event)"></app-knob>
             <div class="text-[8px] font-black uppercase text-slate-500 mt-2">{{ p.name }}</div>
           </div>
         </div>
@@ -149,7 +149,7 @@
           </div>
         </div>
         <div class="v-grid h-24 bg-black/40 rounded-lg flex items-end p-2 gap-1 overflow-hidden">
-          <div *ngFor="let step of pad.steps.slice(currentBar()*16, (currentBar()+1)*16)"
+          <div *ngFor="let step of selectedPadSteps().slice(currentBar()*16, (currentBar()+1)*16)"
                class="v-bar-pro flex-1 bg-fl-blue/20 rounded-t transition-all"
                [class.active-v-bar]="step.active"
                [style.height.%]="(graphTarget() === 'velocity' ? step.velocity : step.probability) * 100"
