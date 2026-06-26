@@ -299,8 +299,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   gridWidth = computed(() => 64 * this.cellWidth());
   canvasHeight = computed(() => 128 * this.rowHeight());
 
-  activeChord = signal("maj");
-  chordTypes = ["maj", "min", "maj7", "min7", "dom7", "sus4"];
   setChord(type: string) { this.activeChord.set(type); }
 
 }
