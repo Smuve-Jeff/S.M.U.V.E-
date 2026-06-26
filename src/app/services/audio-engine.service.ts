@@ -320,12 +320,25 @@ export class AudioEngineService {
     const startOffset = offset % dur;
 
     if (deck.stems) {
-      (Object.keys(deck.stems) as (keyof Stems)[]).forEach((key) => {
+      const stemKeys = Object.keys(deck.stems) as (keyof Stems)[];
+      let endedCount = 0;
+      const totalSources = stemKeys.length;
+
+      stemKeys.forEach((key) => {
         const source = this.ctx.createBufferSource();
         source.buffer = deck.stems![key];
         source.playbackRate.value = deck.rate;
         source.loop = deck.loopEnabled;
         source.connect(deck.gains[key]);
+        source.onended = () => {
+          if (deck.sources[key] !== source) return;
+          endedCount++;
+          if (endedCount >= totalSources) {
+            deck.isPlaying = false;
+            deck.pauseOffset = 0;
+            deck.sources = {};
+          }
+        };
         source.start(0, startOffset);
         deck.sources[key] = source;
       });
@@ -335,6 +348,12 @@ export class AudioEngineService {
       source.playbackRate.value = deck.rate;
       source.loop = deck.loopEnabled;
       source.connect(deck.gains.other);
+      source.onended = () => {
+        if (deck.sources.other !== source) return;
+        deck.isPlaying = false;
+        deck.pauseOffset = 0;
+        deck.sources = {};
+      };
       source.start(0, startOffset);
       deck.sources.other = source;
     }
@@ -343,6 +362,7 @@ export class AudioEngineService {
   private stopDeckSource(deck: DeckChannel) {
     Object.values(deck.sources).forEach((s) => {
       if (s) {
+        s.onended = null;
         try { s.stop(); s.disconnect(); } catch (e) {}
       }
     });
