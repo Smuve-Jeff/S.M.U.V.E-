@@ -194,6 +194,9 @@
   <aside class="executive-sidebar glass-v42-pro rival-hub" [class.active]="showRivalHub() && displayMode() !== 'pluto'">
     <header class="sidebar-header">
       <div class="hub-tabs">
+        <button class="incognito-toggle" [class.active]="isIncognito()" (click)="socialService.toggleIncognito()" title="Toggle Incognito Mode">
+          <span class="material-symbols-outlined">{{ isIncognito() ? "visibility_off" : "visibility" }}</span>
+        </button>
         <button [class.active]="activeHubTab() === 'room'" (click)="setHubTab('room')">ROOM</button>
         <button [class.active]="activeHubTab() === 'dm'" (click)="setHubTab('dm')">DM</button>
         <button [class.active]="activeHubTab() === 'stream'" (click)="setHubTab('stream')">LIVE</button>
