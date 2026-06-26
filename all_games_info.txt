@@ -1,0 +1,1704 @@
+ID: cyberpunk-2077-tribute
+Name: Cyberpunk 2077
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'WebGL', 'Next-Gen', 'Elite', 'Internal']
+Badge: None
+---
+ID: elden-ring-tribute
+Name: Elden Ring
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'WebGL', 'Next-Gen', 'Elite', 'Internal']
+Badge: None
+---
+ID: halo-3-tribute-elite
+Name: Halo 3
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['FPS', 'WebGL', 'Xbox 360', 'Elite', 'Sequel', 'Internal']
+Badge: None
+---
+ID: venge-io-webgl
+Name: Venge.io (Next-Gen)
+URL: https://venge.io/
+Tags: ['FPS', 'Multiplayer', 'WebGL', 'Modern']
+Badge: None
+---
+ID: slow-roads-webgl
+Name: Slow Roads (WebGL)
+URL: https://slowroads.io/
+Tags: ['WebGL', 'Simulation', 'Modern']
+Badge: None
+---
+ID: battlefield
+Name: Battlefield
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Multiplayer', 'Original', 'PvP', 'Combat', 'Elite', 'Internal', 'WASM']
+Badge: None
+---
+ID: remix-arena
+Name: Remix Arena
+URL: /assets/games/remix-arena/remixarena.html
+Tags: ['Multiplayer', 'Original', 'Co-op', 'Rhythm', 'Elite', 'Internal', 'WASM']
+Badge: None
+---
+ID: neon-drift
+Name: Neon Drift
+URL: /assets/games/neon-drift/neon-drift.html
+Tags: ['Arcade', 'Offline', 'Reflex', 'Elite', 'Internal', 'WASM']
+Badge: None
+---
+ID: vinyl-vault
+Name: Vinyl Vault
+URL: /assets/games/vinyl-vault/vinyl-vault.html
+Tags: ['Puzzle', 'Offline', 'Memory', 'Elite', 'Internal', 'WASM']
+Badge: None
+---
+ID: tempo-lockdown
+Name: Tempo Lockdown
+URL: /assets/games/tempo-lockdown/tempo-lockdown.html
+Tags: ['Rhythm', 'Arcade', 'Original', 'Elite', 'Internal', 'WASM']
+Badge: None
+---
+ID: hextris
+Name: Hextris
+URL: https://hextris.github.io/hextris/
+Tags: ['Classic', 'Arcade', 'Retro']
+Badge: None
+---
+ID: game-2048
+Name: 2048
+URL: https://play2048.co/
+Tags: ['Classic', 'AI', 'Logic']
+Badge: None
+---
+ID: music-rush
+Name: Music Rush
+URL: https://www.gamepix.com/play/music-rush
+Tags: ['Arcade', 'Reflex', 'Rhythm']
+Badge: None
+---
+ID: pac-man-elite
+Name: Pac-Man
+URL: https://www.retrogames.cc/embed/10002-pac-man-midway.html
+Tags: ['Arcade', 'Retro', 'WASM']
+Badge: None
+---
+ID: super-street-fighter
+Name: Super Street Fighter II
+URL: https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html
+Tags: ['Combat', 'Arcade', 'Classic', 'Fighting', 'station-cabinet']
+Badge: None
+---
+ID: chess-classic
+Name: Chess Classic
+URL: https://www.gamepix.com/play/chess-classic
+Tags: ['Strategy', 'Logic', 'Classic', 'station-pod']
+Badge: None
+---
+ID: basket-random
+Name: Basket Random
+URL: https://www.gamepix.com/play/basket-random
+Tags: ['Sports', 'Basketball', 'Competitive', 'station-pod']
+Badge: None
+---
+ID: soccer-random
+Name: Soccer Random
+URL: https://www.gamepix.com/play/soccer-random
+Tags: ['Sports', 'Soccer', 'Tournament', 'Multiplayer', 'station-pod']
+Badge: None
+---
+ID: solitaire-classic
+Name: Solitaire Classic
+URL: https://www.gamepix.com/play/solitaire-classic
+Tags: ['Cards', 'Logic', 'Classic', 'station-pod']
+Badge: None
+---
+ID: cipher-surge
+Name: Cipher Surge
+URL: /assets/games/cipher-surge/cipher-surge.html
+Tags: ['Puzzle', 'AI', 'Original', 'Logic', 'station-pod', 'Elite', 'Internal', 'WASM']
+Badge: None
+---
+ID: kart-fight
+Name: Kart Fight
+URL: https://www.gamepix.com/play/kart-fight
+Tags: ['Multiplayer', 'Versus', 'Combat', 'Arcade', 'station-pod']
+Badge: None
+---
+ID: rail-surfers
+Name: Rail Surfers
+URL: https://www.gamepix.com/play/temple-run-2
+Tags: ['Arcade', 'Reflex', 'Trending', 'station-pod']
+Badge: None
+---
+ID: moto-x3m
+Name: Moto X3M
+URL: https://www.gamepix.com/play/moto-x3m
+Tags: ['Arcade', 'Reflex', 'Stunts', 'station-pod']
+Badge: None
+---
+ID: tomb-runner
+Name: Tomb Runner
+URL: https://www.gamepix.com/play/tomb-runner
+Tags: ['Arcade', 'Reflex', 'Adventure', 'station-pod']
+Badge: None
+---
+ID: tower-build
+Name: Tower Build
+URL: https://www.gamepix.com/play/tower-build
+Tags: ['Puzzle', 'Arcade', 'Physics', 'station-pod']
+Badge: None
+---
+ID: 8-ball-billiards
+Name: 8-Ball Billiards
+URL: https://www.gamepix.com/play/8-ball-billiards-classic
+Tags: ['Sports', 'Pool', 'Precision', 'Classic', 'station-pod']
+Badge: None
+---
+ID: mahjong
+Name: Mahjong
+URL: https://www.gamepix.com/play/mahjong-classic
+Tags: ['Puzzle', 'Classic', 'Logic', 'Strategy', 'station-pod']
+Badge: None
+---
+ID: tactical-squad
+Name: Tactical Squad
+URL: https://www.gamepix.com/play/special-strike-operations
+Tags: ['Shooting', 'Action', 'Tactical', 'Multiplayer', 'station-pod']
+Badge: None
+---
+ID: hero-adventure
+Name: Hero Adventure
+URL: https://www.gamepix.com/play/hero-adventure
+Tags: ['RPG', 'Adventure', 'Progressive', 'Solo', 'station-pod']
+Badge: None
+---
+ID: battle-city
+Name: Battle City
+URL: https://www.retrogames.cc/embed/18785-battle-city-japan.html
+Tags: ['Arcade', 'Retro', 'NES', 'Shooting']
+Badge: None
+---
+ID: league-bowling
+Name: League Bowling
+URL: https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html
+Tags: ['Sports', 'Retro', 'Neo Geo', 'Arcade']
+Badge: None
+---
+ID: dungeon-fury
+Name: Dungeon Fury
+URL: https://www.gamepix.com/play/dungeon-field
+Tags: ['RPG', 'Action', 'Adventure', 'Solo', 'station-pod']
+Badge: None
+---
+ID: special-strike
+Name: Special Strike
+URL: https://www.gamepix.com/play/special-strike
+Tags: ['Shooting', 'Multiplayer', 'Co-op', 'Action', 'station-pod']
+Badge: None
+---
+ID: retro-space-invaders
+Name: Retro Space Invaders
+URL: https://www.gamepix.com/play/space-invaders
+Tags: ['Classic', 'Shooting', 'Arcade', 'Solo', 'station-cabinet']
+Badge: None
+---
+ID: basketball-master
+Name: Basketball Master
+URL: https://www.gamepix.com/play/basketball-master
+Tags: ['Sports', 'Basketball', 'Solo', 'Competitive', 'station-pod']
+Badge: None
+---
+ID: cyber-adventure
+Name: Cyber Adventure
+URL: https://www.gamepix.com/play/cyber-cars-punk-racing
+Tags: ['RPG', 'Adventure', 'Cyberpunk', 'Solo', 'station-pod']
+Badge: None
+---
+ID: sniper-mission
+Name: Sniper Mission
+URL: https://www.gamepix.com/play/sniper-clash-3d
+Tags: ['Shooting', 'Action', 'Tactical', 'station-pod']
+Badge: None
+---
+ID: tower-defense
+Name: Tower Defense
+URL: https://www.gamepix.com/play/tower-defense
+Tags: ['RPG', 'Strategy', 'Adventure', 'station-pod']
+Badge: None
+---
+ID: ludo-legend
+Name: Ludo Legend
+URL: https://www.gamepix.com/play/ludo-legend
+Tags: ['Classic', 'Multiplayer', 'Co-op', 'Strategy', 'station-cabinet']
+Badge: None
+---
+ID: zombie-idle-defense
+Name: Zombie Idle Defense
+URL: https://www.gamepix.com/play/zombie-idle-defense
+Tags: ['Shooting', 'RPG', 'Action', 'Multiplayer', 'station-pod']
+Badge: None
+---
+ID: arena-clash
+Name: Arena Clash
+URL: https://www.gamepix.com/play/clash-of-armour
+Tags: ['Fighting', 'Combat', 'Versus', 'Multiplayer', 'station-cabinet']
+Badge: None
+---
+ID: tag-team-titans
+Name: Tag Team Titans
+URL: https://www.gamepix.com/play/teen-titans-go-jump-jousts
+Tags: ['Fighting', 'Co-op', 'Multiplayer', 'Combat', 'station-cabinet']
+Badge: None
+---
+ID: gridiron-drive
+Name: Gridiron Drive
+URL: https://www.gamepix.com/play/gridiron-drive
+Tags: ['Sports', 'Football', 'Multiplayer', 'Competitive', 'station-pod']
+Badge: None
+---
+ID: rally-racquet-tour
+Name: Rally Racquet Tour
+URL: https://www.gamepix.com/play/rally-racquet-tour
+Tags: ['Sports', 'Tennis', 'Competitive', 'Solo', 'station-pod']
+Badge: None
+---
+ID: squad-ops-ghost-protocol
+Name: Squad Ops: Ghost Protocol
+URL: https://www.gamepix.com/play/special-strike-operations
+Tags: ['Shooting', 'Tactical', 'Multiplayer', 'Co-op', 'station-pod']
+Badge: None
+---
+ID: raid-fireteam-z
+Name: Raid Fireteam Z
+URL: https://www.gamepix.com/play/raid-fireteam-z
+Tags: ['Shooting', 'Action', 'Co-op', 'Multiplayer', 'RPG', 'station-pod']
+Badge: None
+---
+ID: mythic-raid-online
+Name: Mythic Raid Online
+URL: https://www.gamepix.com/play/raid-heroes-total-war
+Tags: ['RPG', 'Adventure', 'Co-op', 'Multiplayer', 'station-pod']
+Badge: None
+---
+ID: legends-of-the-rift
+Name: Legends of the Rift
+URL: https://www.gamepix.com/play/hero-tower-wars
+Tags: ['RPG', 'Adventure', 'Progressive', 'Solo', 'station-pod']
+Badge: None
+---
+ID: sonic-racing
+Name: Sonic Racing
+URL: https://www.gamepix.com/play/sonic-racing
+Tags: ['station-pod']
+Badge: None
+---
+ID: doom
+Name: DOOM (1993)
+URL: https://www.retrogames.cc/embed/41695-doom-v1-1.html
+Tags: ['station-pod', 'Retro', 'Classic']
+Badge: None
+---
+ID: mario-classic
+Name: Super Mario Bros.
+URL: https://www.retrogames.cc/embed/16847-super-mario-bros-japan-usa.html
+Tags: ['Classic', 'Platformer', 'Retro', 'station-cabinet', 'WASM', 'High-Perf']
+Badge: None
+---
+ID: gta-elite-wasm
+Name: GTA (Elite HD)
+URL: https://www.retrogames.cc/embed/41727-grand-theft-auto.html
+Tags: ['Action', 'Open World', 'Retro', 'station-pod', 'WASM', 'High-Perf']
+Badge: None
+---
+ID: nba-pro-3d
+Name: Basketball Stars
+URL: https://www.gamepix.com/play/basketball-stars
+Tags: ['Sports', 'Basketball', '3D', 'station-pod']
+Badge: None
+---
+ID: nfl-redzone-rush
+Name: Touchdown Rush
+URL: https://www.gamepix.com/play/touchdown-rush
+Tags: ['Sports', 'Football', 'Action', 'station-pod']
+Badge: None
+---
+ID: dbz-elite-wasm
+Name: Dragon Ball Z: Buyuu Retsuden
+URL: https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html
+Tags: ['Fighting', 'Anime', 'Retro', 'station-cabinet', 'WASM', 'High-Perf']
+Badge: None
+---
+ID: halo-combat-evolved
+Name: Halo: Combat Evolved (WASM)
+URL: https://www.gamepix.com/play/alien-galaxy-war
+Tags: ['Shooting', 'Sci-Fi', 'Action', 'station-pod', 'WASM', 'High-Perf']
+Badge: None
+---
+ID: boxing-heavyweight
+Name: Boxing Stars
+URL: https://www.gamepix.com/play/boxing-stars
+Tags: ['Fighting', 'Sports', '3D', 'station-pod']
+Badge: None
+---
+ID: tekken-3-elite
+Name: Tekken 3
+URL: https://www.retrogames.cc/embed/40238-tekken-3.html
+Tags: ['Fighting', 'Retro', 'PS1', 'Multiplayer', 'Controller']
+Badge: None
+---
+ID: smash-bros-elite
+Name: Super Smash Bros.
+URL: https://www.retrogames.cc/embed/32117-super-smash-bros-usa.html
+Tags: ['Fighting', 'Retro', 'N64', 'Multiplayer', 'Controller']
+Badge: None
+---
+ID: ctr-ps1-elite
+Name: Crash Team Racing
+URL: https://www.retrogames.cc/embed/41687-crash-team-racing.html
+Tags: ['Racing', 'Retro', 'PS1', 'Controller']
+Badge: None
+---
+ID: zelda-oot-elite
+Name: The Legend of Zelda: Ocarina of Time
+URL: https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html
+Tags: ['RPG', 'Retro', 'N64', 'Adventure', 'WASM', 'High-Perf']
+Badge: None
+---
+ID: sfii-world-warrior
+Name: Street Fighter II: The World Warrior
+URL: https://www.retrogames.cc/embed/19018-street-fighter-ii-the-world-warrior-usa.html
+Tags: ['Fighting', 'Retro', 'SNES', 'WASM']
+Badge: None
+---
+ID: moto-x3m-3d
+Name: Moto X3M: Pool Party
+URL: https://www.gamepix.com/play/moto-x3m
+Tags: ['Racing', 'Sports', 'Action']
+Badge: None
+---
+ID: 3d-chess-elite
+Name: Chess Grandmaster
+URL: https://www.gamepix.com/play/chess-grandmaster
+Tags: ['Strategy', 'Puzzle', '3D']
+Badge: None
+---
+ID: goldeneye-007-elite
+Name: GoldenEye 007
+URL: https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html
+Tags: ['Shooting', 'Retro', 'N64', 'Multiplayer', 'Controller']
+Badge: None
+---
+ID: thps2-ps1-elite
+Name: Tony Hawk's Pro Skater 2 (Elite)
+URL: https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html
+Tags: ['Sports', 'Retro', 'PS1', 'Controller']
+Badge: None
+---
+ID: parappa-ps1-elite
+Name: PaRappa the Rapper
+URL: https://www.retrogames.cc/embed/40662-parappa-the-rapper.html
+Tags: ['Rhythm', 'Retro', 'PS1', 'Music']
+Badge: None
+---
+ID: sonic-genesis-elite
+Name: Sonic the Hedgehog
+URL: https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html
+Tags: ['Classic', 'Platformer', 'Retro', 'Genesis', 'WASM', 'High-Perf']
+Badge: None
+---
+ID: fnf-music-battle
+Name: Friday Night Funkin'
+URL: https://www.gamepix.com/play/friday-night-funkin
+Tags: ['Music Battle', 'Rhythm', 'Multiplayer']
+Badge: None
+---
+ID: tetris-classic-elite
+Name: Tetris
+URL: https://www.retrogames.cc/embed/18814-tetris-usa.html
+Tags: ['Puzzle', 'Classic', 'Retro', 'NES']
+Badge: None
+---
+ID: castlevania-sotn-elite
+Name: Castlevania: Symphony of the Night
+URL: https://www.retrogames.cc/embed/40194-castlevania-symphony-of-the-night.html
+Tags: ['Action', 'RPG', 'Retro', 'PS1', 'Music']
+Badge: None
+---
+ID: wipeout-ps1-elite
+Name: Wipeout XL
+URL: https://www.retrogames.cc/embed/40597-wipeout-xl.html
+Tags: ['Racing', 'Retro', 'PS1', 'Electronic']
+Badge: None
+---
+ID: sf2-genesis-elite
+Name: Street Fighter II: Special Champion Edition
+URL: https://www.retrogames.cc/embed/19001-street-fighter-ii-special-champion-edition-usa.html
+Tags: ['Fighting', 'Retro', 'Genesis', 'Versus']
+Badge: None
+---
+ID: wolf3d-inline-elite
+Name: Wolfenstein 3D
+URL: https://www.retrogames.cc/embed/41724-wolfenstein-3d-v1-4.html
+Tags: ['Shooting', 'Action', 'Retro', 'DOS']
+Badge: None
+---
+ID: double-dragon-nes
+Name: Double Dragon
+URL: https://www.retrogames.cc/embed/19139-double-dragon-usa.html
+Tags: ['Action', 'Retro', 'NES', 'Co-op', 'WASM', 'High-Perf']
+Badge: None
+---
+ID: dominoes-classic
+Name: Dominoes
+URL: https://www.gamepix.com/play/dominoes
+Tags: ['Logic', 'Board Game', 'Puzzle']
+Badge: None
+---
+ID: track-and-field-nes
+Name: Track & Field
+URL: https://www.retrogames.cc/embed/19022-track-field-usa.html
+Tags: ['Sports', 'Retro', 'NES']
+Badge: None
+---
+ID: pokemon-yellow-elite
+Name: Pokémon Yellow: Special Pikachu Edition
+URL: https://www.retrogames.cc/embed/21262-pokemon-yellow-version-special-pikachu-edition-usa-europe.html
+Tags: ['RPG', 'Retro', 'GBC', 'Adventure']
+Badge: None
+---
+ID: final-fantasy-nes
+Name: Final Fantasy
+URL: https://www.retrogames.cc/embed/18816-final-fantasy-usa.html
+Tags: ['RPG', 'Retro', 'NES', 'Fantasy']
+Badge: None
+---
+ID: mike-tyson-punch-out
+Name: Mike Tyson's Punch-Out!!
+URL: https://www.retrogames.cc/embed/19002-mike-tyson-s-punch-out-usa.html
+Tags: ['Fighting', 'Retro', 'NES', 'Sports', 'WASM', 'High-Perf']
+Badge: None
+---
+ID: galaga-classic
+Name: Galaga
+URL: https://www.retrogames.cc/embed/10052-galaga-namco.html
+Tags: ['Shooting', 'Retro', 'Arcade']
+Badge: None
+---
+ID: mortal-kombat-2-elite
+Name: Mortal Kombat II
+URL: https://www.retrogames.cc/embed/23616-mortal-kombat-ii-usa.html
+Tags: ['Fighting', 'Retro', 'Arcade', 'WASM']
+Badge: None
+---
+ID: sonic-2-elite
+Name: Sonic the Hedgehog 2
+URL: https://www.retrogames.cc/embed/24220-sonic-the-hedgehog-2-world.html
+Tags: ['Classic', 'Retro', 'Genesis', 'WASM']
+Badge: None
+---
+ID: tekken-4-tribute
+Name: Tekken 4
+URL: /assets/games/tekken-4-tribute/tekken-4-tribute.html
+Tags: ['Fighting', 'Elite', 'Phaser']
+Badge: None
+---
+ID: halo-ce-web
+Name: Halo: Combat Evolved (Web)
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooting', 'Elite', 'ThreeJS']
+Badge: None
+---
+ID: final-fantasy-vii-elite
+Name: Final Fantasy VII (Elite)
+URL: https://www.retrogames.cc/embed/40425-final-fantasy-vii-usa-disc-1.html
+Tags: ['RPG', 'Retro', 'PS1', 'WASM', 'Adventure']
+Badge: None
+---
+ID: gta-san-andreas-elite
+Name: GTA: San Andreas (Elite HD)
+URL: https://www.retrogames.cc/embed/43315-grand-theft-auto-san-andreas.html
+Tags: ['Action', 'Retro', 'PS2', 'Open World', 'WASM']
+Badge: None
+---
+ID: madden-nfl-2000-elite
+Name: Madden NFL 2000
+URL: https://www.retrogames.cc/embed/41885-madden-nfl-2000-usa.html
+Tags: ['Sports', 'Retro', 'PS1', 'Football']
+Badge: None
+---
+ID: nba-2k1-elite
+Name: NBA 2K1
+URL: https://www.retrogames.cc/embed/41223-nba-2k1-usa.html
+Tags: ['Sports', 'Retro', 'Dreamcast', 'Basketball']
+Badge: None
+---
+ID: wwf-no-mercy-elite
+Name: WWF No Mercy
+URL: https://www.retrogames.cc/embed/32467-wwf-no-mercy-usa.html
+Tags: ['Fighting', 'Retro', 'N64', 'Wrestling']
+Badge: None
+---
+ID: marvel-vs-capcom-elite
+Name: Marvel vs. Capcom: Clash of Super Heroes
+URL: https://www.retrogames.cc/embed/8404-marvel-vs-capcom-clash-of-super-heroes-980123.html
+Tags: ['Fighting', 'Retro', 'Arcade', 'Capcom']
+Badge: None
+---
+ID: tmnt-turtles-in-time-elite
+Name: Teenage Mutant Ninja Turtles: Turtles in Time
+URL: https://www.retrogames.cc/embed/9394-teenage-mutant-ninja-turtles-turtles-in-time-4-players-ver-uaa.html
+Tags: ['Arcade', 'Retro', 'Action', 'Co-op']
+Badge: None
+---
+ID: tekken-5-elite
+Name: Tekken 5 (Elite)
+URL: https://www.retrogames.cc/embed/41551-tekken-5.html
+Tags: ['Fighting', 'Retro', 'PS2', 'Elite']
+Badge: None
+---
+ID: mgs2-elite
+Name: Metal Gear Solid 2 (Elite)
+URL: https://www.retrogames.cc/embed/43336-metal-gear-solid-2-sons-of-liberty.html
+Tags: ['Action', 'Retro', 'PS2', 'Stealth']
+Badge: None
+---
+ID: sonic-adventure-2-elite
+Name: Sonic Adventure 2
+URL: https://www.retrogames.cc/embed/41228-sonic-adventure-2-usa.html
+Tags: ['Platformer', 'Retro', 'Dreamcast']
+Badge: None
+---
+ID: crazy-taxi-elite
+Name: Crazy Taxi
+URL: https://www.retrogames.cc/embed/41199-crazy-taxi-usa.html
+Tags: ['Racing', 'Retro', 'Dreamcast', 'Arcade']
+Badge: None
+---
+ID: shadow-colossus-elite
+Name: Shadow of the Colossus
+URL: https://www.retrogames.cc/embed/43331-shadow-of-the-colossus.html
+Tags: ['Adventure', 'Retro', 'PS2']
+Badge: None
+---
+ID: thps4-elite
+Name: Tony Hawk's Pro Skater 4 (Elite)
+URL: https://www.retrogames.cc/embed/43328-tony-hawk-s-pro-skater-4.html
+Tags: ['Sports', 'Retro', 'PS2', 'Skating']
+Badge: None
+---
+ID: supreme-of-war-elite
+Name: God of War (Elite)
+URL: https://www.retrogames.cc/embed/43325-supreme-of-war.html
+Tags: ['Action', 'Retro', 'PS2', 'WASM', 'High-Perf']
+Badge: None
+---
+ID: soulcalibur-2-elite
+Name: SoulCalibur II (Elite)
+URL: https://www.retrogames.cc/embed/41221-soulcalibur-ii-usa.html
+Tags: ['Fighting', 'Retro', 'PS2', 'Dreamcast']
+Badge: None
+---
+ID: sfiii-3rd-strike-elite
+Name: Street Fighter III: 3rd Strike
+URL: https://www.retrogames.cc/embed/10001-street-fighter-iii-3rd-strike-fight-for-the-future-990512.html
+Tags: ['Fighting', 'Retro', 'Arcade']
+Badge: None
+---
+ID: mvc2-elite
+Name: Marvel vs. Capcom 2
+URL: https://www.retrogames.cc/embed/41224-marvel-vs-capcom-2-usa.html
+Tags: ['Fighting', 'Retro', 'Dreamcast', 'Arcade']
+Badge: None
+---
+ID: mgs-elite
+Name: Metal Gear Solid (Elite)
+URL: https://www.retrogames.cc/embed/41253-metal-gear-solid-usa.html
+Tags: ['Stealth', 'Retro', 'PS1', 'Classic']
+Badge: None
+---
+ID: gt2-elite
+Name: Gran Turismo 2 (Elite)
+URL: https://www.retrogames.cc/embed/41249-gran-turismo-2-usa.html
+Tags: ['Racing', 'Retro', 'PS1']
+Badge: None
+---
+ID: silent-hill-elite
+Name: Silent Hill (Elite)
+URL: https://www.retrogames.cc/embed/41247-silent-hill-usa.html
+Tags: ['Horror', 'Retro', 'PS1']
+Badge: None
+---
+ID: gta-vice-city-elite
+Name: GTA: Vice City (Elite HD)
+URL: https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html
+Tags: ['Action', 'Open World', 'PS2', 'Classic']
+Badge: None
+---
+ID: ffx-elite
+Name: Final Fantasy X (Elite)
+URL: https://www.retrogames.cc/embed/42778-final-fantasy-x.html
+Tags: ['RPG', 'Retro', 'PS2', 'Classic']
+Badge: None
+---
+ID: re4-elite
+Name: Resident Evil 4 (Elite)
+URL: https://www.retrogames.cc/embed/41225-resident-evil-4-usa.html
+Tags: ['Horror', 'Action', 'PS2', 'GameCube']
+Badge: None
+---
+ID: burnout-3-elite
+Name: Burnout 3: Takedown (Elite)
+URL: https://www.retrogames.cc/embed/41226-burnout-3-takedown-usa.html
+Tags: ['Racing', 'Action', 'PS2', 'Classic']
+Badge: None
+---
+ID: gta-iii-elite
+Name: GTA III (Elite HD)
+URL: https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html
+Tags: ['Action', 'Open World', 'PS2', 'Elite']
+Badge: None
+---
+ID: spider-man-2-elite
+Name: Spider-Man 2 (Elite)
+URL: https://www.retrogames.cc/embed/41234-spider-man-2-usa.html
+Tags: ['Action', 'Open World', 'PS2', 'Elite']
+Badge: None
+---
+ID: jak-and-daxter-elite
+Name: Jak and Daxter: The Precursor Legacy
+URL: https://www.retrogames.cc/embed/41238-jak-and-daxter-the-precursor-legacy-usa.html
+Tags: ['Platformer', 'Adventure', 'PS2', 'Elite']
+Badge: None
+---
+ID: driver-parallel-lines-elite
+Name: Driver: Parallel Lines
+URL: https://www.retrogames.cc/embed/41243-driver-parallel-lines-usa.html
+Tags: ['Racing', 'Action', 'PS2', 'Elite']
+Badge: None
+---
+ID: true-crime-la-elite
+Name: True Crime: Streets of LA
+URL: https://www.retrogames.cc/embed/41245-true-crime-streets-of-la-usa.html
+Tags: ['Action', 'Open World', 'PS2', 'Elite']
+Badge: None
+---
+ID: majoras-mask-elite
+Name: The Legend of Zelda: Majora's Mask
+URL: https://www.retrogames.cc/embed/41240-the-legend-of-zelda-majora-s-mask-usa.html
+Tags: ['Adventure', 'Fantasy', 'N64', 'Elite']
+Badge: None
+---
+ID: prince-of-persia-sands-elite
+Name: Prince of Persia: The Sands of Time
+URL: https://www.retrogames.cc/embed/41242-prince-of-persia-the-sands-of-time-usa.html
+Tags: ['Adventure', 'Action', 'PS2', 'Elite']
+Badge: None
+---
+ID: beyond-good-evil-elite
+Name: Beyond Good & Evil
+URL: https://www.retrogames.cc/embed/41248-beyond-good-evil-usa.html
+Tags: ['Adventure', 'Stealth', 'PS2', 'Elite']
+Badge: None
+---
+ID: ico-elite
+Name: Ico
+URL: https://www.retrogames.cc/embed/41251-ico-usa.html
+Tags: ['Adventure', 'Puzzle', 'PS2', 'Elite']
+Badge: None
+---
+ID: okami-elite
+Name: Okami
+URL: https://www.retrogames.cc/embed/41254-okami-usa.html
+Tags: ['Adventure', 'Action', 'PS2', 'Elite']
+Badge: None
+---
+ID: donkey-kong-arcade
+Name: Donkey Kong (Arcade)
+URL: https://www.retrogames.cc/embed/10123-donkey-kong-us-set-1.html
+Tags: ['Arcade', 'Retro', 'Arcade', 'Elite']
+Badge: None
+---
+ID: dig-dug-arcade
+Name: Dig Dug (Arcade)
+URL: https://www.retrogames.cc/embed/10115-dig-dug-rev-2.html
+Tags: ['Arcade', 'Retro', 'Arcade', 'Elite']
+Badge: None
+---
+ID: frogger-arcade
+Name: Frogger (Arcade)
+URL: https://www.retrogames.cc/embed/10129-frogger.html
+Tags: ['Arcade', 'Retro', 'Arcade', 'Elite']
+Badge: None
+---
+ID: asteroids-arcade
+Name: Asteroids (Arcade)
+URL: https://www.retrogames.cc/embed/10007-asteroids-rev-4.html
+Tags: ['Arcade', 'Retro', 'Arcade', 'Elite']
+Badge: None
+---
+ID: space-invaders-arcade
+Name: Space Invaders (Arcade)
+URL: https://www.retrogames.cc/embed/10255-space-invaders-original.html
+Tags: ['Arcade', 'Retro', 'Arcade', 'Elite']
+Badge: None
+---
+ID: madden-2004-elite
+Name: Madden NFL 2004
+URL: https://www.retrogames.cc/embed/41233-madden-nfl-2004-usa.html
+Tags: ['Sports', 'Football', 'PS2', 'Elite']
+Badge: None
+---
+ID: fifa-2005-elite
+Name: FIFA Soccer 2005
+URL: https://www.retrogames.cc/embed/41237-fifa-soccer-2005-usa.html
+Tags: ['Sports', 'Soccer', 'PS2', 'Elite']
+Badge: None
+---
+ID: ssx-tricky-elite
+Name: SSX Tricky
+URL: https://www.retrogames.cc/embed/41230-ssx-tricky-usa.html
+Tags: ['Sports', 'Snowboarding', 'PS2', 'Elite']
+Badge: None
+---
+ID: tiger-woods-2004-elite
+Name: Tiger Woods PGA Tour 2004
+URL: https://www.retrogames.cc/embed/41241-tiger-woods-pga-tour-2004-usa.html
+Tags: ['Sports', 'Golf', 'PS2', 'Elite']
+Badge: None
+---
+ID: fallout-dos
+Name: Fallout (DOS)
+URL: https://dos.zone/player/?bundle=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Ffallout.jsdos?anonymous=1
+Tags: ['RPG', 'Post-Apocalyptic', 'DOS', 'Elite']
+Badge: None
+---
+ID: fallout-2-dos
+Name: Fallout 2 (DOS)
+URL: https://dos.zone/player/?bundle=https%3A%2F%2Fcdn.dos.zone%2Fcustom%2Fdos%2Ffallout2.jsdos?anonymous=1
+Tags: ['RPG', 'Post-Apocalyptic', 'DOS', 'Elite']
+Badge: None
+---
+ID: chrono-trigger-snes-elite
+Name: Chrono Trigger
+URL: https://www.retrogames.cc/embed/21434-chrono-trigger-usa.html
+Tags: ['RPG', 'Adventure', 'SNES', 'Elite']
+Badge: None
+---
+ID: smt-nocturne-ps2-elite
+Name: Shin Megami Tensei III: Nocturne
+URL: https://www.retrogames.cc/embed/41247-shin-megami-tensei-nocturne-usa.html
+Tags: ['RPG', 'Horror', 'PS2', 'Elite']
+Badge: None
+---
+ID: deus-ex-ps2-conspiracy-elite
+Name: Deus Ex
+URL: https://www.retrogames.cc/embed/41253-deus-ex-the-conspiracy-usa.html
+Tags: ['RPG', 'Action', 'PS2', 'Elite']
+Badge: None
+---
+ID: nfs-most-wanted-ps2-elite
+Name: Need for Speed: Most Wanted
+URL: https://www.retrogames.cc/embed/41228-need-for-speed-most-wanted-usa.html
+Tags: ['Racing', 'Action', 'PS2', 'Elite']
+Badge: None
+---
+ID: mgs3-snake-eater-ps2-elite
+Name: Metal Gear Solid 3: Snake Eater
+URL: https://www.retrogames.cc/embed/41229-metal-gear-solid-3-snake-eater-usa.html
+Tags: ['Stealth', 'Action', 'PS2', 'Elite']
+Badge: None
+---
+ID: gt4-ps2-sim-elite
+Name: Gran Turismo 4
+URL: https://www.retrogames.cc/embed/41232-gran-turismo-4-usa.html
+Tags: ['Racing', 'Simulation', 'PS2', 'Elite']
+Badge: None
+---
+ID: kingdom-hearts-2-ps2-elite
+Name: Kingdom Hearts II
+URL: https://www.retrogames.cc/embed/41236-kingdom-hearts-ii-usa.html
+Tags: ['Action', 'RPG', 'PS2', 'Elite']
+Badge: None
+---
+ID: devil-may-cry-3-ps2-elite
+Name: Devil May Cry 3
+URL: https://www.retrogames.cc/embed/41239-devil-may-cry-3-dante-s-awakening-usa.html
+Tags: ['Action', 'Hack n Slash', 'PS2', 'Elite']
+Badge: None
+---
+ID: half-life-ps2-elite
+Name: Half-Life
+URL: https://www.retrogames.cc/embed/41235-half-life-usa.html
+Tags: ['FPS', 'Sci-Fi', 'PS2', 'Elite']
+Badge: None
+---
+ID: quake-3-dc-elite
+Name: Quake III Arena
+URL: https://www.retrogames.cc/embed/41244-quake-iii-arena-usa.html
+Tags: ['FPS', 'Arena', 'Dreamcast', 'Elite']
+Badge: None
+---
+ID: unreal-tournament-dc-elite
+Name: Unreal Tournament
+URL: https://www.retrogames.cc/embed/41246-unreal-tournament-usa.html
+Tags: ['FPS', 'Arena', 'Dreamcast', 'Elite']
+Badge: None
+---
+ID: timesplitters-2-ps2-elite
+Name: TimeSplitters 2
+URL: https://www.retrogames.cc/embed/41249-timesplitters-2-usa.html
+Tags: ['FPS', 'Action', 'PS2', 'Elite']
+Badge: None
+---
+ID: moh-frontline-ps2-elite
+Name: Medal of Honor: Frontline
+URL: https://www.retrogames.cc/embed/41252-medal-of-honor-frontline-usa.html
+Tags: ['FPS', 'War', 'PS2', 'Elite']
+Badge: None
+---
+ID: krunker-io-web-elite
+Name: Krunker.io
+URL: https://krunker.io/
+Tags: ['FPS', 'Multiplayer', 'Modern', 'WebGL', 'Elite']
+Badge: None
+---
+ID: venge-io-web-elite
+Name: Venge.io
+URL: https://venge.io/
+Tags: ['FPS', 'Multiplayer', 'Modern', 'WebGL', 'Elite']
+Badge: None
+---
+ID: shell-shockers-web-elite
+Name: Shell Shockers
+URL: https://shellshock.io/
+Tags: ['FPS', 'Multiplayer', 'Modern', 'WebGL', 'Elite']
+Badge: None
+---
+ID: ev-io-web-elite
+Name: Ev.io
+URL: https://ev.io/
+Tags: ['FPS', 'Multiplayer', 'Modern', 'WebGL', 'Elite']
+Badge: None
+---
+ID: slow-roads-web-elite
+Name: Slow Roads
+URL: https://slowroads.io/
+Tags: ['Driving', 'Relaxing', 'Modern', 'WebGL', 'Elite']
+Badge: None
+---
+ID: halo-2-xbox-elite
+Name: Halo 2
+URL: https://www.retrogames.cc/embed/41221-halo-2-usa.html
+Tags: ['Xbox', 'FPS', 'Multiplayer', 'Retro', 'Elite']
+Badge: None
+---
+ID: kotor-xbox-elite
+Name: Star Wars: KOTOR
+URL: https://www.retrogames.cc/embed/41222-star-wars-knights-of-the-old-republic-usa.html
+Tags: ['Xbox', 'RPG', 'Star Wars', 'Retro', 'Elite']
+Badge: None
+---
+ID: ninja-gaiden-xbox-elite
+Name: Ninja Gaiden Black
+URL: https://www.retrogames.cc/embed/41223-ninja-gaiden-black-usa.html
+Tags: ['Xbox', 'Action', 'Ninja', 'Retro', 'Elite']
+Badge: None
+---
+ID: fable-xbox-elite
+Name: Fable: The Lost Chapters
+URL: https://www.retrogames.cc/embed/41224-fable-the-lost-chapters-usa.html
+Tags: ['Xbox', 'RPG', 'Fantasy', 'Retro', 'Elite']
+Badge: None
+---
+ID: splinter-cell-ct-xbox-elite
+Name: Splinter Cell: Chaos Theory
+URL: https://www.retrogames.cc/embed/41225-tom-clancy-s-splinter-cell-chaos-theory-usa.html
+Tags: ['Xbox', 'Stealth', 'Action', 'Retro', 'Elite']
+Badge: None
+---
+ID: gow2-ps2-elite
+Name: God of War II (Elite)
+URL: https://www.retrogames.cc/embed/42779-supreme-of-war-ii.html
+Tags: ['PS2', 'Action', 'God of War', 'Retro', 'Elite', 'WASM', 'High-Perf']
+Badge: None
+---
+ID: ratchet-uy-ps2-elite
+Name: Ratchet & Clank: Up Your Arsenal
+URL: https://www.retrogames.cc/embed/42780-ratchet-clank-up-your-arsenal.html
+Tags: ['PS2', 'Platformer', 'Action', 'Retro', 'Elite']
+Badge: None
+---
+ID: sly2-ps2-elite
+Name: Sly 2: Band of Thieves
+URL: https://www.retrogames.cc/embed/42781-sly-2-band-of-thieves.html
+Tags: ['PS2', 'Stealth', 'Platformer', 'Retro', 'Elite']
+Badge: None
+---
+ID: katamari-ps2-elite
+Name: Katamari Damacy
+URL: https://www.retrogames.cc/embed/42782-katamari-damacy.html
+Tags: ['PS2', 'Puzzle', 'Strange', 'Retro', 'Elite']
+Badge: None
+---
+ID: persona4-ps2-elite
+Name: Persona 4
+URL: https://www.retrogames.cc/embed/42783-persona-4.html
+Tags: ['PS2', 'RPG', 'Anime', 'Retro', 'Elite']
+Badge: None
+---
+ID: silent-hill-2-elite
+Name: Silent Hill 2
+URL: https://www.retrogames.cc/embed/42785-silent-hill-2.html
+Tags: ['PS2', 'Horror', 'Elite', 'Atmospheric']
+Badge: None
+---
+ID: def-jam-ffny-elite
+Name: Def Jam: Fight for NY
+URL: https://www.retrogames.cc/embed/42786-def-jam-fight-for-ny.html
+Tags: ['PS2', 'Fighting', 'Hip Hop', 'Elite']
+Badge: None
+---
+ID: tekken-tag-elite
+Name: Tekken Tag Tournament
+URL: https://www.retrogames.cc/embed/42787-tekken-tag-tournament.html
+Tags: ['PS2', 'Fighting', 'Elite', 'Arcade']
+Badge: None
+---
+ID: need-for-speed-underground-2-elite
+Name: Need for Speed: Underground 2
+URL: https://www.retrogames.cc/embed/42788-need-for-speed-underground-2.html
+Tags: ['PS2', 'Racing', 'Elite', 'Open World']
+Badge: None
+---
+ID: minecraft-classic
+Name: Minecraft Classic
+URL: https://classic.minecraft.net/
+Tags: ['Multiplayer', 'Creative', 'Sandbox']
+Badge: None
+---
+ID: prince-of-persia
+Name: Prince of Persia
+URL: https://princejs.com/
+Tags: ['Classic', 'Retro', 'Adventure']
+Badge: None
+---
+ID: diablo-web
+Name: Diablo Web
+URL: https://d07riv.github.io/diablo-web/
+Tags: ['RPG', 'Classic', 'Dungeon Crawler']
+Badge: None
+---
+ID: quakejs
+Name: QuakeJS
+URL: http://www.quakejs.com/
+Tags: ['FPS', 'Multiplayer', 'Arena']
+Badge: None
+---
+ID: street-fighter-2-ce
+Name: Street Fighter II: CE
+URL: https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html
+Tags: ['Fighting', 'Versus', 'Classic']
+Badge: None
+---
+ID: nba-street-v2-elite
+Name: NBA Street Vol. 2
+URL: https://www.retrogames.cc/embed/41231-nba-street-vol-2-usa.html
+Tags: ['Sports', 'Basketball', 'PS2', 'Elite']
+Badge: None
+---
+ID: moba-arena-of-valor
+Name: Arena of Valor
+URL: https://www.arenaofvalor.com/
+Tags: ['MOBA', 'Strategy', 'Multiplayer', 'Elite']
+Badge: None
+---
+ID: moba-legends-community
+Name: Legends of the Rift (MOBA)
+URL: https://moba.js.org/
+Tags: ['MOBA', 'Strategy', 'Community', 'Elite']
+Badge: None
+---
+ID: soccer-skills-world-cup
+Name: Soccer Skills World Cup
+URL: https://www.gamepix.com/play/soccer-skills-world-cup
+Tags: ['Sports', 'Football', '3D', 'Modern']
+Badge: None
+---
+ID: god-of-war-ps2-elite
+Name: God of War (Elite Edition)
+URL: https://www.retrogames.cc/embed/41220-god-of-war-usa.html
+Tags: ['Action', 'Adventure', 'PS2', 'Elite']
+Badge: None
+---
+ID: tekken-5-elite-alt
+Name: Tekken 5 (High Fidelity)
+URL: https://www.retrogames.cc/embed/41258-tekken-5-usa.html
+Tags: ['Fighting', 'Versus', 'PS2', 'Elite']
+Badge: None
+---
+ID: dragon-ball-z-budokai-3-elite
+Name: Dragon Ball Z: Budokai 3
+URL: https://www.retrogames.cc/embed/41261-dragon-ball-z-budokai-3-usa.html
+Tags: ['Fighting', 'Versus', 'PS2', 'Elite']
+Badge: None
+---
+ID: halo-2-xbox-elite-alt
+Name: Halo 2 (Absolute Edition)
+URL: https://www.retrogames.cc/embed/41215-halo-2-usa.html
+Tags: ['FPS', 'Multiplayer', 'Xbox', 'Elite']
+Badge: None
+---
+ID: re4-ps2-elite
+Name: Resident Evil 4 (Elite)
+URL: https://www.retrogames.cc/embed/41252-resident-evil-4-usa.html
+Tags: ['Horror', 'Adventure', 'PS2', 'Elite']
+Badge: None
+---
+ID: mario-kart-64-elite
+Name: Mario Kart 64 (Elite)
+URL: https://www.retrogames.cc/embed/32333-mario-kart-64-usa.html
+Tags: ['Racing', 'Multiplayer', 'N64', 'Elite']
+Badge: None
+---
+ID: gta-2-elite
+Name: GTA 2 (Elite)
+URL: https://www.retrogames.cc/embed/41728-grand-theft-auto-2.html
+Tags: ['Action', 'Retro', 'PC', 'Elite']
+Badge: None
+---
+ID: gta-london-1969-elite
+Name: GTA: London 1969 (Elite)
+URL: https://www.retrogames.cc/embed/41729-grand-theft-auto-london-1969.html
+Tags: ['Action', 'Retro', 'PC', 'Elite']
+Badge: None
+---
+ID: gta-v-tribute-elite
+Name: Grand Theft Auto V
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Open World', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: fc-24-tribute-elite
+Name: EA SPORTS FC 24
+URL: /assets/games/tempo-lockdown/tempo-lockdown.html
+Tags: ['Sports', 'Soccer', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: madden-24-tribute-elite
+Name: Madden NFL 24
+URL: /assets/games/tempo-lockdown/tempo-lockdown.html
+Tags: ['Sports', 'NFL', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: nba-2k24-tribute-elite
+Name: NBA 2K24
+URL: /assets/games/tempo-lockdown/tempo-lockdown.html
+Tags: ['Sports', 'NBA', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: fortnite-tribute-elite
+Name: Fortnite
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'Battle Royale', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: minecraft-tribute-elite
+Name: Minecraft
+URL: /assets/games/vinyl-vault/vinyl-vault.html
+Tags: ['Adventure', 'Sandbox', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: cod-mw3-tribute-elite
+Name: Call of Duty: MWIII
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: cod-bo2-tribute-elite
+Name: Call of Duty: Black Ops II
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: rdr2-tribute-elite
+Name: Red Dead Redemption 2
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Open World', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: witcher-3-tribute-elite
+Name: The Witcher 3
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Open World', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: skyrim-tribute-elite
+Name: Skyrim: Special Edition
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Open World', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: mobile-legends-elite
+Name: Mobile Legends (Elite-Link)
+URL: https://www.poki.com/en/g/moba-legends
+Tags: ['MOBA', 'Competitive', 'Elite']
+Badge: None
+---
+ID: apex-legends-tribute-elite
+Name: Apex Legends
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'Battle Royale', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: destiny-2-tribute-elite
+Name: Destiny 2
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: fallout-4-tribute-elite
+Name: Fallout 4
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Open World', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: starfield-tribute-elite
+Name: Starfield
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Open World', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: battlefield-4-tribute-elite
+Name: Battlefield 4
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: mass-effect-le-tribute-elite
+Name: Mass Effect LE
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Action', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: skate-3-tribute-elite
+Name: Skate 3
+URL: /assets/games/neon-drift/neon-drift.html
+Tags: ['Sports', 'Skating', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: forza-horizon-5-tribute-elite
+Name: Forza Horizon 5
+URL: /assets/games/neon-drift/neon-drift.html
+Tags: ['Racing', 'Open World', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: roblox-web-elite
+Name: Roblox (Web-Link)
+URL: https://www.roblox.com
+Tags: ['Sandbox', 'Social', 'Elite']
+Badge: None
+---
+ID: valorant-tribute-elite
+Name: Valorant
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: lol-tribute-elite
+Name: League of Legends
+URL: /assets/games/remix-arena/remixarena.html
+Tags: ['MOBA', 'Competitive', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: genshin-tribute-elite
+Name: Genshin Impact
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Open World', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: halo-infinite-tribute-elite
+Name: Halo Infinite
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: gears-5-tribute-elite
+Name: Gears 5
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Shooter', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: forza-motorsport-tribute-elite
+Name: Forza Motorsport
+URL: /assets/games/neon-drift/neon-drift.html
+Tags: ['Racing', 'Simulation', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: ms-flight-sim-tribute-elite
+Name: MS Flight Simulator
+URL: /assets/games/remix-arena/remixarena.html
+Tags: ['Simulation', 'Adventure', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: sea-of-thieves-tribute-elite
+Name: Sea of Thieves
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Adventure', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: doom-eternal-tribute-elite
+Name: Doom Eternal
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: fallout-nv-tribute-elite
+Name: Fallout: New Vegas
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Open World', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: bioshock-tribute-elite
+Name: BioShock
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: ac2-tribute-elite
+Name: Assassin's Creed II
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Open World', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: arkham-city-tribute-elite
+Name: Batman: Arkham City
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Open World', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: portal2-tribute-elite
+Name: Portal 2
+URL: /assets/games/vinyl-vault/vinyl-vault.html
+Tags: ['Puzzle', 'Action', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: l4d2-tribute-elite
+Name: Left 4 Dead 2
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: borderlands2-tribute-elite
+Name: Borderlands 2
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Shooter', 'RPG', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: dark-souls-tribute-elite
+Name: Dark Souls
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Action', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: fc3-tribute-elite
+Name: Far Cry 3
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Open World', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: ow2-tribute-elite
+Name: Overwatch 2
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: rocket-league-tribute-elite
+Name: Rocket League
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Sports', 'Racing', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: sf6-tribute-elite
+Name: Street Fighter 6
+URL: /assets/games/tekken-4-tribute/tekken-4-tribute.html
+Tags: ['Fighting', 'Competitive', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: tekken8-tribute-elite
+Name: Tekken 8
+URL: /assets/games/tekken-4-tribute/tekken-4-tribute.html
+Tags: ['Fighting', 'Competitive', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: tlou-part1-tribute-elite
+Name: The Last of Us Part I
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Adventure', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: dead-space-remake-tribute-elite
+Name: Dead Space
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Horror', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: gta4-tribute-elite
+Name: GTA IV
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Open World', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: rdr1-tribute-elite
+Name: Red Dead Redemption
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Open World', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: mirrors-edge-tribute-elite
+Name: Mirror's Edge
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Adventure', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: gears-3-tribute-elite
+Name: Gears of War 3
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Shooter', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: halo-reach-tribute-elite
+Name: Halo: Reach
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: fable2-tribute-elite
+Name: Fable II
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Adventure', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: dead-space-2-tribute-elite
+Name: Dead Space 2
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Horror', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: palworld-tribute-elite
+Name: Palworld
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Adventure', 'Sandbox', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: lies-of-p-tribute-elite
+Name: Lies of P
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Action', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: hi-fi-rush-tribute-elite
+Name: Hi-Fi RUSH
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Music', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: doom-2016-tribute-elite
+Name: DOOM (2016)
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: wolfenstein-tno-tribute-elite
+Name: Wolfenstein: TNO
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: dragon-age-inq-tribute-elite
+Name: Dragon Age: Inquisition
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Adventure', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: sea-of-stars-tribute-elite
+Name: Sea of Stars
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Retro', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: hellblade-tribute-elite
+Name: Hellblade: Senua's Sacrifice
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Adventure', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: psychonauts2-tribute-elite
+Name: Psychonauts 2
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Adventure', 'Platformer', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: remnant2-tribute-elite
+Name: Remnant II
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Shooter', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: control-tribute-elite
+Name: Control
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Adventure', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: 1v1-lol-web-elite
+Name: 1v1.LOL (Web-Link)
+URL: https://1v1.lol
+Tags: ['Shooter', 'Battle Royale', 'Elite', 'WebGL']
+Badge: None
+---
+ID: slither-io-web-elite
+Name: Slither.io (Web-Link)
+URL: https://slither.io
+Tags: ['Action', 'Competitive', 'Elite', 'WebGL']
+Badge: None
+---
+ID: agar-io-web-elite
+Name: Agar.io (Web-Link)
+URL: https://agar.io
+Tags: ['Action', 'Competitive', 'Elite', 'WebGL']
+Badge: None
+---
+ID: titanfall2-tribute-elite
+Name: Titanfall 2
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: mgs5-tribute-elite
+Name: Metal Gear Solid V
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Stealth', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: arkham-knight-tribute-elite
+Name: Batman: Arkham Knight
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Open World', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: forza-horizon-4-tribute-elite
+Name: Forza Horizon 4
+URL: /assets/games/neon-drift/neon-drift.html
+Tags: ['Racing', 'Open World', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: bf1-tribute-elite
+Name: Battlefield 1
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: monster-hunter-world-tribute-elite
+Name: Monster Hunter: World
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'RPG', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: persona5-royal-tribute-elite
+Name: Persona 5 Royal
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Social', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: re-village-tribute-elite
+Name: Resident Evil Village
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Horror', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: it-takes-two-tribute-elite
+Name: It Takes Two
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Adventure', 'Co-op', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: gow-2018-tribute-elite
+Name: God of War
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Adventure', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: uncharted-4-tribute-elite
+Name: Uncharted 4
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Adventure', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: ghost-of-tsushima-tribute-elite
+Name: Ghost of Tsushima
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Open World', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: horizon-zero-dawn-tribute-elite
+Name: Horizon Zero Dawn
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'RPG', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: fight-night-champion-tribute-elite
+Name: Fight Night Champion
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Sports', 'Boxing', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: ncaa-football-14-tribute-elite
+Name: NCAA Football 14
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Sports', 'NFL', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: dishonored-tribute-elite
+Name: Dishonored
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Stealth', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: mgr-revengeance-tribute-elite
+Name: MGR: Revengeance
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Fighting', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: crysis-remastered-tribute-elite
+Name: Crysis Remastered
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: dead-island-tribute-elite
+Name: Dead Island
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Horror', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: borderlands-3-tribute-elite
+Name: Borderlands 3
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Shooter', 'RPG', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: sekiro-tribute-elite
+Name: Sekiro: Shadows Die Twice
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Hardcore', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: hades-tribute-elite
+Name: Hades
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Action', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: mortal-kombat-1-tribute-elite
+Name: Mortal Kombat 1
+URL: /assets/games/tekken-4-tribute/tekken-4-tribute.html
+Tags: ['Fighting', 'Competitive', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: gta-v-story-tribute-elite
+Name: GTA V: Story Mode
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Open World', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: mass-effect-2-tribute-elite
+Name: Mass Effect 2
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Sci-Fi', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: dragon-age-origins-tribute-elite
+Name: Dragon Age: Origins
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Fantasy', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: left-4-dead-tribute-elite
+Name: Left 4 Dead
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: portal-tribute-elite
+Name: Portal
+URL: /assets/games/vinyl-vault/vinyl-vault.html
+Tags: ['Puzzle', 'Sci-Fi', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: dead-cells-tribute-elite
+Name: Dead Cells
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Retro', 'WebGL', 'Elite', 'Internal']
+Badge: None
+---
+ID: cod-mw-classic-tribute-elite
+Name: COD: Modern Warfare
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: cod-mw2-classic-tribute-elite
+Name: COD: Modern Warfare 2
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: fallout3-tribute-elite
+Name: Fallout 3
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['RPG', 'Open World', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: ac-black-flag-tribute-elite
+Name: AC: Black Flag
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Adventure', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: gears-1-tribute-elite
+Name: Gears of War
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Shooter', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: halo4-tribute-elite
+Name: Halo 4
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: bf-bc2-tribute-elite
+Name: BF: Bad Company 2
+URL: /assets/games/halo-ce-web/halo-ce-web.html
+Tags: ['Shooter', 'FPS', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: uncharted2-tribute-elite
+Name: Uncharted 2
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Adventure', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: gow3-tribute-elite
+Name: God of War III
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Adventure', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
+ID: batman-asylum-tribute-elite
+Name: Batman: Arkham Asylum
+URL: /assets/games/battlefield/battlefield.html
+Tags: ['Action', 'Stealth', 'WebGL', 'Elite', 'Golden Era', 'Internal']
+Badge: None
+---
