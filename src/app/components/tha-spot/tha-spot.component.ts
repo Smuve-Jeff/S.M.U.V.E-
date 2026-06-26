@@ -73,6 +73,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   isBrowseView = signal<boolean>(true);
   showIntelPanel = signal<boolean>(false);
   readonly showRivalHub = signal<boolean>(false);
+  hubTimeoutId?: any;
   readonly isIncognito = this.socialService.isIncognito;
   now = signal<number>(Date.now());
   isMatchmaking = signal<boolean>(false);
@@ -242,6 +243,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.feedSubscription?.unsubscribe();
     if (this.clockId) clearInterval(this.clockId);
     if (this.feedRefreshId) clearInterval(this.feedRefreshId);
+    if (this.hubTimeoutId) clearTimeout(this.hubTimeoutId);
     window.removeEventListener('message', this.messageHandler);
   }
 
