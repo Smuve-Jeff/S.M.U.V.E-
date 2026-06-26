@@ -92,12 +92,13 @@ export class ArrangementViewComponent {
       if (e.key === 'z') { if (e.shiftKey) this.history.redo(); else this.history.undo(); }
       if (e.key === 'd') { e.preventDefault(); this.duplicateSelected(); }
     }
-        if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
       if (this.selectedClipIds().size > 0) {
         this.selectedClipIds().forEach(id => {
-          this.tracks().forEach(t => {
-            if (t.clips.find(c => c.id === id)) this.musicManager.removeClip(t.id, id);
-          });
+          const track = this.tracks().find(t => t.clips.some(c => c.id === id));
+          if (track) {
+            this.musicManager.removeClip(track.id, id);
+          }
         });
         this.selectedClipIds().clear();
         this.haptic.medium();
