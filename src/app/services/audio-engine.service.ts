@@ -664,7 +664,7 @@ export class AudioEngineService {
   getMasterStream(): MediaStreamAudioDestinationNode {
     if (!this.recordingDestination) {
       this.recordingDestination = this.ctx.createMediaStreamDestination();
-      this.limiter.connect(this.recordingDestination);
+      this.masterAnalyser.connect(this.recordingDestination);
     }
     return this.recordingDestination;
   }
