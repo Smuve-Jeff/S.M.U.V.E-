@@ -194,12 +194,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     this.pads.update(ps => ps.map(p => p.id === padId ? { ...p, params: { ...p.params, [param]: value } } : p));
     this.haptic.light();
 
-    const drumTrack = this.getDrumTrack();
-    if (drumTrack) {
-       const pad = this.pads().find(p => p.id === padId);
-       const notes = drumTrack.notes.filter(n => n.midi === pad?.midi);
-       notes.forEach(n => this.musicManager.updateNote(drumTrack.id, n.id, { params: { ...pad?.params, sampleBuffer: pad?.sampleBuffer } }));
-    }
+  }
   }
 
   triggerPad(pad: DrumPad) {
