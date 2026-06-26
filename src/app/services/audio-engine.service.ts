@@ -302,7 +302,7 @@ export class AudioEngineService {
   pauseDeck(id: DeckId) {
     const deck = this.getDeck(id);
     if (!deck.isPlaying) return;
-    deck.pauseOffset += this.ctx.currentTime - deck.startTime;
+    deck.pauseOffset += (this.ctx.currentTime - deck.startTime) * deck.rate;
     this.stopDeckSource(deck);
     deck.isPlaying = false;
   }
