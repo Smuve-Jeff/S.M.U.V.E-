@@ -175,6 +175,56 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     }
   }
 
+  doublePattern() {
+    this.pads().forEach(pad => {
+      for (let i = 0; i < 32; i++) {
+        if (this.getPadStep(pad.id, i).active) {
+          this.toggleStep(pad.id, i + 32);
+        }
+      }
+    });
+  }
+
+  humanize() {
+    const track = this.getDrumTrack();
+    if (!track) return;
+    track.notes.forEach(note => {
+      this.musicManager.updateNote(track.id, note.id, { velocity: Math.min(1, Math.max(0.1, note.velocity + (Math.random() - 0.5) * 0.3)) });
+    });
+  }
+
+  generateEuclidean(pulses: number, steps = 16) {
+    const pad = this.selectedPad();
+    if (!pad) return;
+    this.clearCurrentPad();
+    // Bjorklund/Euclidean rhythm distribution
+    let counts: number[] = [];
+    let remainders: number[] = [];
+    let divisor = steps - pulses;
+    remainders[0] = pulses;
+    let level = 0;
+    while (remainders[level] > 1) {
+      counts[level] = Math.floor(divisor / remainders[level]);
+      remainders[level + 1] = divisor % remainders[level];
+      divisor = remainders[level];
+      level++;
+    }
+    counts[level] = divisor;
+    const build = (lv: number): boolean[] => {
+      if (lv === -1) return [false];
+      if (lv === -2) return [true];
+      return [...Array(counts[lv])].flatMap(() => build(lv - 1)).concat(
+        remainders[lv] ? build(lv - 2) : []
+      );
+    };
+    const result = build(level);
+    for (let i = 0; i < steps && i < result.length; i++) {
+      if (result[i]) this.toggleStep(pad.id, i);
+    }
+  }
+
+  resolvedStep(stepIdx: number): number {
+    return this.highDensity() ? stepIdx : stepIdx + (this.currentBar() * 16);
   }
 
   }
