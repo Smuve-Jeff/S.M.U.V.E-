@@ -8,6 +8,15 @@ with open(path, 'r') as f:
 # Specifically find playStep and clean up multiple stepInBar declarations
 pattern = r'(playStep\(step: number, time: number, duration: number\) \{)(.*?)(\})'
 def cleanup_playstep(match):
+    """
+    Normalize a matched playStep block by keeping a single stepInBar declaration.
+    
+    Parameters:
+    	match: A regex match with groups for the block header, body, and footer.
+    
+    Returns:
+    	str: The reconstructed block with one stepInBar declaration placed at the top of the body.
+    """
     header = match.group(1)
     body = match.group(2)
     footer = match.group(3)

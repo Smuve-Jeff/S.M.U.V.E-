@@ -2,6 +2,14 @@ import sys
 import re
 
 def replace_in_file(path, old, new):
+    """
+    Replace all occurrences of one string with another in a file.
+    
+    Parameters:
+    	path: The file to update.
+    	old: The text to replace.
+    	new: The replacement text.
+    """
     with open(path, 'r') as f:
         content = f.read()
     content = content.replace(old, new)
