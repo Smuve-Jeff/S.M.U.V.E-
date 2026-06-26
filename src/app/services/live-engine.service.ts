@@ -41,9 +41,6 @@ export class LiveEngineService {
   private arpLoop: Tone.Loop | null = null;
   private arpNotes: number[] = [];
 
-  constructor() {
-  }
-
   async initialize() {
     if (this.isInitialized()) return;
 
@@ -87,6 +84,11 @@ export class LiveEngineService {
     return `${names[midi % 12]}${octave}`;
   }
 
+  private connectToFilter(node: Tone.PolySynth | Tone.Sampler, cutoff: number) {
+    this.filterNode = new Tone.Filter(cutoff, 'lowpass').connect(Tone.getDestination());
+    node.connect(this.filterNode);
+  }
+
   async setInstrument(presetId: string) {
     if (!this.isInitialized()) await this.initialize();
 
@@ -103,21 +105,14 @@ export class LiveEngineService {
       const config = preset.synth;
       this.currentInstrumentNode = new Tone.PolySynth(Tone.Synth, {
         oscillator: { type: config.type as any },
-        envelope: {
-          attack: config.attack,
-          decay: config.decay,
-          sustain: config.sustain,
-          release: config.release,
-        },
+        envelope: { attack: config.attack, decay: config.decay, sustain: config.sustain, release: config.release },
       });
-      this.filterNode = new Tone.Filter(config.cutoff || 2000, 'lowpass').connect(Tone.getDestination());
-      this.currentInstrumentNode.connect(this.filterNode);
+      this.connectToFilter(this.currentInstrumentNode, config.cutoff || 2000);
     } else if (preset.type === 'sample' && preset.zones?.length) {
       const sampleMap: any = {};
       preset.zones.forEach(z => sampleMap[this.midiToNote(z.midiRange[0])] = z.url);
       this.currentInstrumentNode = new Tone.Sampler({ urls: sampleMap, release: 1 });
-      this.filterNode = new Tone.Filter(2000, 'lowpass').connect(Tone.getDestination());
-      this.currentInstrumentNode.connect(this.filterNode);
+      this.connectToFilter(this.currentInstrumentNode, 2000);
     }
   }
 
@@ -138,6 +133,14 @@ export class LiveEngineService {
     if (!this.currentInstrumentNode) return;
     if (param === 'cutoff' && this.filterNode) this.filterNode.frequency.value = value;
     if (param === 'resonance' && this.filterNode) this.filterNode.Q.value = value;
+
+    if (param === 'attack' || param === 'release' || param === 'decay' || param === 'sustain') {
+      if (this.currentInstrumentNode instanceof Tone.PolySynth) {
+        this.currentInstrumentNode.set({
+          envelope: { [param]: value }
+        });
+      }
+    }
   }
 
   setScale(mode: any) { this.scaleMode.set(mode); }

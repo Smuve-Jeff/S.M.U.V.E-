@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #020617;
+  background: #111827;
   color: #fff;
   overflow: hidden;
 }
@@ -20,6 +20,11 @@
   background: rgba(15, 23, 42, 0.9);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   gap: 1rem;
+}
+
+.drum-header.wood-panel {
+  background: linear-gradient(to bottom, #3d2b1f, #2a1d15);
+  border-bottom: 2px solid #000;
 }
 
 .drum-content {
@@ -57,8 +62,14 @@
 
 .hw-pad-v42.active-hw {
   border-color: var(--pad-color);
-  box-shadow: 0 0 25px var(--pad-color), inset 0 0 15px var(--pad-color);
+  box-shadow: 0 0 20px var(--pad-color), inset 0 0 10px var(--pad-color);
   background: rgba(255, 255, 255, 0.15);
+}
+
+.hw-pad-v42.tactile-v42 {
+  background: linear-gradient(135deg, #2a2a2a, #1a1a1a) !important;
+  border: 1px solid #000 !important;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .sequencer-panel {
@@ -66,6 +77,8 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  background: #020617;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .seq-grid-container {
@@ -81,6 +94,34 @@
   align-items: center;
   justify-content: center;
   border-radius: 8px;
+}
+
+.step-v42 {
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05);
+  border: 1px solid #000 !important;
+}
+
+.active-step.step-v42 {
+  box-shadow: 0 0 12px currentColor, inset 0 0 6px rgba(255,255,255,0.3) !important;
+}
+
+.pad-inspector.wood-panel {
+  background: linear-gradient(to right, #1a1a1a, #111) !important;
+  border-left: 2px solid #000 !important;
+}
+
+.pad-inspector {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
+}
+
+.pad-inspector.collapsed {
+  width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-left: none !important;
+  opacity: 0;
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {
@@ -111,41 +152,4 @@
     border-left: none;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
-}
-
-.drum-machine-container {
-  background: #111827;
-}
-
-.drum-header.wood-panel {
-  background: linear-gradient(to bottom, #3d2b1f, #2a1d15);
-  border-bottom: 2px solid #000;
-}
-
-.hw-pad-v42.tactile-v42 {
-  background: linear-gradient(135deg, #2a2a2a, #1a1a1a) !important;
-  border: 1px solid #000 !important;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
-}
-
-.hw-pad-v42.active-hw {
-  box-shadow: 0 0 20px var(--pad-color), inset 0 0 10px var(--pad-color) !important;
-}
-
-.sequencer-panel {
-  background: #020617;
-}
-
-.step-v42 {
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05);
-  border: 1px solid #000 !important;
-}
-
-.active-step.step-v42 {
-  box-shadow: 0 0 12px currentColor, inset 0 0 6px rgba(255,255,255,0.3) !important;
-}
-
-.pad-inspector.wood-panel {
-  background: linear-gradient(to right, #1a1a1a, #111) !important;
-  border-left: 2px solid #000 !important;
 }

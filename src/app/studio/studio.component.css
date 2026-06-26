@@ -132,3 +132,67 @@
   from { box-shadow: 0 0 5px rgba(56, 189, 248, 0.1); }
   to { box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
 }
+
+/* Desktop Navigation Sidebar */
+.desktop-nav-sidebar {
+  background: linear-gradient(to right, #1a140f, #2a1d15);
+}
+
+.nav-icon-btn {
+  opacity: 0.6;
+  color: #94a3b8;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.nav-icon-btn.active {
+  opacity: 1;
+  color: #38bdf8;
+  background: linear-gradient(to bottom, #1e293b, #0f172a);
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.nav-icon-btn:hover {
+  opacity: 0.9;
+  background: rgba(255,255,255,0.05);
+}
+
+.studio-workspace {
+  overflow: auto; /* Allow workspace to scroll if content is too large */
+  position: relative;
+}
+
+/* Fix for cut-off content on smaller screens */
+.view-wrapper {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Ensure components inside workspace can scroll their own internal grids */
+app-arrangement-view, app-piano-roll, app-drum-machine, app-mixer, app-performer {
+  display: block;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+
+.studio-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  flex-shrink: 0;
+  overflow-y: auto; /* Added for knob access */
+  scrollbar-width: thin;
+}
+
+
+app-sound-browser, app-track-inspector {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
