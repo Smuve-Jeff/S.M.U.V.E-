@@ -80,9 +80,10 @@ export class AudioEngineService {
 
 
   interpolateBezier(v0: number, v1: number, t: number, tension: number = 0): number {
-    if (tension === 0) return v0 + (v1 - v0) * t;
+    const clampedT = Math.max(0, Math.min(1, t));
+    if (tension === 0) return v0 + (v1 - v0) * clampedT;
     // Simple curved interpolation
-    const cp = tension > 0 ? Math.pow(t, 1 + tension) : 1 - Math.pow(1 - t, 1 - tension);
+    const cp = tension > 0 ? Math.pow(clampedT, 1 + tension) : 1 - Math.pow(1 - clampedT, 1 - tension);
     return v0 + (v1 - v0) * cp;
   }
 
