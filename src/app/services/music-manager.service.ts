@@ -416,9 +416,17 @@ export class MusicManagerService {
 
   importAudio() { this.logger.info('Importing audio track...'); }
   startRecording() { this.recordingEngine.startRecording(); }
-  stopRecording(id: string) {
-     this.recordingEngine.stopRecording();
-     return Promise.resolve(null);
+  async stopRecording(id: string): Promise<Blob | null> {
+    await this.recordingEngine.stopRecording();
+    const blob = this.recordingEngine.recordedBlob();
+    if (blob) {
+      this.addClipToTrack(id, {
+        type: 'audio',
+        name: 'Recording',
+        audioData: blob,
+      } as any);
+    }
+    return blob;
   }
 
   addAutomationLane(trackId: string, param: string) { this.logger.info(`Added automation lane for ${param}`); }
