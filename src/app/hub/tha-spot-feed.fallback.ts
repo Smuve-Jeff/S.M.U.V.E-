@@ -198,7 +198,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "neo-zone",
       "name": "NEO_ZONE",
-      "description": "Next-Gen execution. High-fidelity WebGL and Cloud-linked cabinets.",
+      "description": "Next-Gen execution. High-fidelity cloud streaming and elite cabinets.",
       "icon": "auto_awesome"
     }
   ],
@@ -475,7 +475,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   "games": [
     {
       "id": "cyberpunk-2077-cloud",
-      "name": "Cyberpunk 2077 (Cloud-Link)",
+      "name": "Cyberpunk 2077",
       "url": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
       "description": "Night City awaits. Absolute high-fidelity future simulation.",
       "genre": "RPG",
@@ -499,7 +499,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "elden-ring-cloud",
-      "name": "Elden Ring (Cloud-Link)",
+      "name": "Elden Ring",
       "url": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
       "description": "Rise, Tarnished. Absolute next-gen open world mastery.",
       "genre": "RPG",
@@ -523,7 +523,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "halo-3-cloud-elite",
-      "name": "Halo 3 (Cloud-Link)",
+      "name": "Halo 3",
       "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
       "description": "Finish the fight. Absolute 360-era dominance via high-fidelity cloud link.",
       "genre": "FPS",
@@ -7375,7 +7375,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gta-v-cloud-elite",
-      "name": "Grand Theft Auto V (Cloud-Link)",
+      "name": "Grand Theft Auto V",
       "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v/BP96B1B4N6PC",
       "genre": "Action",
       "description": "The Absolute open-world masterpiece. High-fidelity crime saga across Los Santos.",
@@ -7405,7 +7405,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "fc-24-cloud-elite",
-      "name": "EA SPORTS FC 24 (Cloud-Link)",
+      "name": "EA SPORTS FC 24",
       "url": "https://www.xbox.com/en-US/play/games/ea-sports-fc-24/9N90LP816DKH",
       "genre": "Sports",
       "description": "Absolute football simulation. The evolution of the world's game with high-fidelity execution.",
@@ -7435,7 +7435,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "madden-24-cloud-elite",
-      "name": "Madden NFL 24 (Cloud-Link)",
+      "name": "Madden NFL 24",
       "url": "https://www.xbox.com/en-US/play/games/madden-nfl-24/9NRW2BJR7ZPC",
       "genre": "Sports",
       "description": "Absolute gridiron dominance. High-fidelity tactical execution on the field.",
@@ -7465,7 +7465,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "nba-2k24-cloud-elite",
-      "name": "NBA 2K24 (Cloud-Link)",
+      "name": "NBA 2K24",
       "url": "https://www.xbox.com/en-US/play/games/nba-2k24-for-xbox-one/9P7B8KLR5F6D",
       "genre": "Sports",
       "description": "Absolute hoops mastery. The high-fidelity basketball experience.",
@@ -7495,7 +7495,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "fortnite-cloud-elite",
-      "name": "Fortnite (Cloud-Link)",
+      "name": "Fortnite",
       "url": "https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2",
       "genre": "Battle Royale",
       "description": "The Absolute cultural phenomenon. High-fidelity competitive building and shooting.",
@@ -7525,7 +7525,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "minecraft-cloud-elite",
-      "name": "Minecraft (Cloud-Link)",
+      "name": "Minecraft",
       "url": "https://www.xbox.com/en-US/play/games/minecraft/9NBLGGH537BL",
       "genre": "Sandbox",
       "description": "Absolute creative freedom. The high-fidelity sandbox that shaped a generation.",
@@ -7555,7 +7555,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "cod-mw3-cloud-elite",
-      "name": "Call of Duty: MWIII (Cloud-Link)",
+      "name": "Call of Duty: MWIII",
       "url": "https://www.xbox.com/en-US/play/games/call-of-duty/9NBLGGH52ZLD",
       "genre": "FPS",
       "description": "Absolute tactical superiority. High-fidelity modern warfare execution.",
@@ -7585,7 +7585,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "cod-bo2-cloud-elite",
-      "name": "Call of Duty: Black Ops II (Cloud-Link)",
+      "name": "Call of Duty: Black Ops II",
       "url": "https://www.xbox.com/en-US/play/games/call-of-duty-black-ops-ii/BR667W7W6V9C",
       "genre": "FPS",
       "description": "The Absolute Golden Era classic. High-fidelity tactical shooting across timelines.",
@@ -7616,7 +7616,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "rdr2-cloud-elite",
-      "name": "Red Dead Redemption 2 (Cloud-Link)",
+      "name": "Red Dead Redemption 2",
       "url": "https://www.xbox.com/en-US/play/games/red-dead-redemption-2/9N2ZDN7NWZLR",
       "genre": "Action",
       "description": "Absolute cinematic perfection. A high-fidelity epic in the dying West.",
@@ -7646,7 +7646,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "witcher-3-cloud-elite",
-      "name": "The Witcher 3 (Cloud-Link)",
+      "name": "The Witcher 3",
       "url": "https://www.xbox.com/en-US/play/games/the-witcher-3-wild-hunt/BRG9V9C3GZWC",
       "genre": "RPG",
       "description": "Absolute RPG mastery. High-fidelity monster hunting in a vast open world.",
@@ -7676,7 +7676,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "skyrim-cloud-elite",
-      "name": "Skyrim: Special Edition (Cloud-Link)",
+      "name": "Skyrim: Special Edition",
       "url": "https://www.xbox.com/en-US/play/games/the-elder-scrolls-v-skyrim-special-edition/BQ1W1T1K1P4L",
       "genre": "RPG",
       "description": "The Absolute legendary journey. High-fidelity dragon-slaying adventures.",
@@ -7735,7 +7735,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "apex-legends-cloud-elite",
-      "name": "Apex Legends (Cloud-Link)",
+      "name": "Apex Legends",
       "url": "https://www.xbox.com/en-US/play/games/apex-legends/BV9MLDTSCHJW",
       "genre": "Battle Royale",
       "description": "Absolute tactical speed. High-fidelity hero-based battle royale.",
@@ -7765,7 +7765,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "destiny-2-cloud-elite",
-      "name": "Destiny 2 (Cloud-Link)",
+      "name": "Destiny 2",
       "url": "https://www.xbox.com/en-US/play/games/destiny-2/BP1GZ2Z0XJWZ",
       "genre": "FPS",
       "description": "Absolute cosmic warfare. High-fidelity space magic and gunplay.",
@@ -7795,7 +7795,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "fallout-4-cloud-elite",
-      "name": "Fallout 4 (Cloud-Link)",
+      "name": "Fallout 4",
       "genre": "RPG",
       "url": "https://www.xbox.com/en-US/play/games/fallout-4/C4515W8M8FMS",
       "description": "Absolute wasteland survival. High-fidelity post-nuclear exploration.",
@@ -7825,7 +7825,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "starfield-cloud-elite",
-      "name": "Starfield (Cloud-Link)",
+      "name": "Starfield",
       "url": "https://www.xbox.com/en-US/play/games/starfield/9NC6ZQRV38S7",
       "genre": "RPG",
       "description": "Absolute interstellar discovery. High-fidelity space exploration from Bethesda.",
@@ -7855,7 +7855,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "battlefield-4-cloud-elite",
-      "name": "Battlefield 4 (Cloud-Link)",
+      "name": "Battlefield 4",
       "url": "https://www.xbox.com/en-US/play/games/battlefield-4/BPP1KXL089L4",
       "genre": "FPS",
       "description": "Absolute tactical destruction. High-fidelity Golden Era warfare.",
@@ -7886,7 +7886,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "mass-effect-le-cloud-elite",
-      "name": "Mass Effect LE (Cloud-Link)",
+      "name": "Mass Effect LE",
       "url": "https://www.xbox.com/en-US/play/games/mass-effect-legendary-edition/9PKW68L7BNCH",
       "genre": "RPG",
       "description": "Absolute sci-fi legend. The high-fidelity trilogy that defined an era.",
@@ -7917,7 +7917,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "skate-3-cloud-elite",
-      "name": "Skate 3 (Cloud-Link)",
+      "name": "Skate 3",
       "url": "https://www.xbox.com/en-US/play/games/skate-3/BNKDKS5B9S76",
       "genre": "Sports",
       "description": "Absolute boarding freedom. The high-fidelity Golden Era skate classic.",
@@ -7948,7 +7948,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "forza-horizon-5-cloud-elite",
-      "name": "Forza Horizon 5 (Cloud-Link)",
+      "name": "Forza Horizon 5",
       "url": "https://www.xbox.com/en-US/play/games/forza-horizon-5-standard-edition/9NKX70BBCDRN",
       "genre": "Racing",
       "description": "Absolute driving bliss. High-fidelity open-world racing in Mexico.",
@@ -8006,7 +8006,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "valorant-cloud-elite",
-      "name": "Valorant (Cloud-Link)",
+      "name": "Valorant",
       "url": "https://playvalorant.com",
       "genre": "FPS",
       "description": "Absolute tactical precision. High-fidelity agent-based shooting.",
@@ -8036,7 +8036,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "lol-cloud-elite",
-      "name": "League of Legends (Cloud-Link)",
+      "name": "League of Legends",
       "url": "https://www.leagueoflegends.com",
       "genre": "MOBA",
       "description": "Absolute MOBA dominance. High-fidelity strategic team battles.",
@@ -8066,7 +8066,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "genshin-cloud-elite",
-      "name": "Genshin Impact (Cloud-Link)",
+      "name": "Genshin Impact",
       "url": "https://genshin.hoyoverse.com",
       "genre": "RPG",
       "description": "Absolute open-world beauty. High-fidelity anime-style adventure.",
@@ -8096,7 +8096,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "halo-infinite-cloud-elite",
-      "name": "Halo Infinite (Cloud-Link)",
+      "name": "Halo Infinite",
       "url": "https://www.xbox.com/en-US/play/games/halo-infinite/9PP1GR9K5DBZ",
       "genre": "FPS",
       "description": "Absolute combat evolution. High-fidelity Zeta Halo execution.",
@@ -8126,7 +8126,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gears-5-cloud-elite",
-      "name": "Gears 5 (Cloud-Link)",
+      "name": "Gears 5",
       "url": "https://www.xbox.com/en-US/play/games/gears-5/BPHL7K0V1RMV",
       "genre": "Action",
       "description": "Absolute cover-based intensity. High-fidelity Gears of War execution.",
@@ -8156,7 +8156,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "forza-motorsport-cloud-elite",
-      "name": "Forza Motorsport (Cloud-Link)",
+      "name": "Forza Motorsport",
       "url": "https://www.xbox.com/en-US/play/games/forza-motorsport/9PLTR78MT6S7",
       "genre": "Racing",
       "description": "Absolute racing simulation. High-fidelity track mastery.",
@@ -8186,7 +8186,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "ms-flight-sim-cloud-elite",
-      "name": "MS Flight Simulator (Cloud-Link)",
+      "name": "MS Flight Simulator",
       "url": "https://www.xbox.com/en-US/play/games/microsoft-flight-simulator-standard-40th-anniversary-edition/9PMQDM08SNK9",
       "genre": "Simulation",
       "description": "Absolute global exploration. High-fidelity flight execution across the planet.",
@@ -8216,7 +8216,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "sea-of-thieves-cloud-elite",
-      "name": "Sea of Thieves (Cloud-Link)",
+      "name": "Sea of Thieves",
       "url": "https://www.xbox.com/en-US/play/games/sea-of-thieves-2024-edition/9P2N67BPT2C6",
       "genre": "Action",
       "description": "Absolute pirate freedom. High-fidelity sailing and treasure hunting.",
@@ -8246,7 +8246,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "doom-eternal-cloud-elite",
-      "name": "Doom Eternal (Cloud-Link)",
+      "name": "Doom Eternal",
       "url": "https://www.xbox.com/en-US/play/games/doom-eternal-standard-edition/9P0BRNK97L7F",
       "genre": "FPS",
       "description": "Absolute slayer intensity. High-fidelity demon-crushing execution.",
@@ -8276,7 +8276,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "fallout-nv-cloud-elite",
-      "name": "Fallout: New Vegas (Cloud-Link)",
+      "name": "Fallout: New Vegas",
       "url": "https://www.xbox.com/en-US/play/games/fallout-new-vegas/BX9S7ZMMT6S9",
       "genre": "RPG",
       "description": "The Absolute post-apocalyptic masterpiece. High-fidelity Mojave survival.",
@@ -8307,7 +8307,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "bioshock-cloud-elite",
-      "name": "BioShock (Cloud-Link)",
+      "name": "BioShock",
       "url": "https://www.xbox.com/en-US/play/games/bioshock-the-collection/C2H0ZDRB4CQC",
       "genre": "FPS",
       "description": "Absolute atmospheric mastery. A high-fidelity journey into Rapture.",
@@ -8338,7 +8338,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "ac2-cloud-elite",
-      "name": "Assassin's Creed II (Cloud-Link)",
+      "name": "Assassin's Creed II",
       "url": "https://www.xbox.com/en-US/play/games/assassins-creed-the-ezio-collection/BQ9S8XK0Q6QC",
       "genre": "Action",
       "description": "Absolute historical immersion. High-fidelity Renaissance execution.",
@@ -8369,7 +8369,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "arkham-city-cloud-elite",
-      "name": "Batman: Arkham City (Cloud-Link)",
+      "name": "Batman: Arkham City",
       "url": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
       "genre": "Action",
       "description": "The Absolute Dark Knight simulator. High-fidelity stealth and combat.",
@@ -8400,7 +8400,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "portal2-cloud-elite",
-      "name": "Portal 2 (Cloud-Link)",
+      "name": "Portal 2",
       "url": "https://www.xbox.com/en-US/play/games/portal-companion-collection/9P8W5S7P9CQC",
       "genre": "Puzzle",
       "description": "Absolute spatial mastery. High-fidelity mind-bending execution.",
@@ -8431,7 +8431,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "l4d2-cloud-elite",
-      "name": "Left 4 Dead 2 (Cloud-Link)",
+      "name": "Left 4 Dead 2",
       "url": "https://www.xbox.com/en-US/play/games/left-4-dead-2/BR667W7W6V9C",
       "genre": "FPS",
       "description": "Absolute co-op survival. High-fidelity zombie-slaying execution.",
@@ -8462,7 +8462,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "borderlands2-cloud-elite",
-      "name": "Borderlands 2 (Cloud-Link)",
+      "name": "Borderlands 2",
       "url": "https://www.xbox.com/en-US/play/games/borderlands-the-handsome-collection/C49BJV1M8S9C",
       "genre": "RPG",
       "description": "Absolute looter-shooter mayhem. High-fidelity stylized execution.",
@@ -8493,7 +8493,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "dark-souls-cloud-elite",
-      "name": "Dark Souls (Cloud-Link)",
+      "name": "Dark Souls",
       "url": "https://www.xbox.com/en-US/play/games/dark-souls-remastered/BQ1W1T1K1P4L",
       "genre": "RPG",
       "description": "Absolute challenge. The high-fidelity progenitor of a new genre.",
@@ -8524,7 +8524,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "fc3-cloud-elite",
-      "name": "Far Cry 3 (Cloud-Link)",
+      "name": "Far Cry 3",
       "url": "https://www.xbox.com/en-US/play/games/far-cry-3-classic-edition/BP96B1B4N6PC",
       "genre": "Action",
       "description": "Absolute madness. High-fidelity tropical survival and stealth.",
@@ -8555,7 +8555,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "ow2-cloud-elite",
-      "name": "Overwatch 2 (Cloud-Link)",
+      "name": "Overwatch 2",
       "url": "https://www.xbox.com/en-US/play/games/overwatch-2/9NBLGGH52ZLD",
       "genre": "FPS",
       "description": "Absolute hero-based tactical dominance. High-fidelity competitive shooting.",
@@ -8585,7 +8585,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "rocket-league-cloud-elite",
-      "name": "Rocket League (Cloud-Link)",
+      "name": "Rocket League",
       "url": "https://www.rocketleague.com",
       "genre": "Sports",
       "description": "Absolute motorized football. High-fidelity competitive chaos.",
@@ -8615,7 +8615,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "sf6-cloud-elite",
-      "name": "Street Fighter 6 (Cloud-Link)",
+      "name": "Street Fighter 6",
       "url": "https://www.streetfighter.com/6/",
       "genre": "Fighting",
       "description": "Absolute fighting perfection. High-fidelity technical execution.",
@@ -8645,7 +8645,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "tekken8-cloud-elite",
-      "name": "Tekken 8 (Cloud-Link)",
+      "name": "Tekken 8",
       "url": "https://en.bandainamcoent.eu/tekken/tekken-8",
       "genre": "Fighting",
       "description": "Absolute iron fist intensity. High-fidelity next-gen combat.",
@@ -8675,7 +8675,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "tlou-part1-cloud-elite",
-      "name": "The Last of Us Part I (Cloud-Link)",
+      "name": "The Last of Us Part I",
       "url": "https://www.playstation.com/en-us/games/the-last-of-us-part-i/",
       "genre": "Action",
       "description": "Absolute emotional mastery. A high-fidelity remake of the Golden Era legend.",
@@ -8705,7 +8705,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "dead-space-remake-cloud-elite",
-      "name": "Dead Space (Cloud-Link)",
+      "name": "Dead Space",
       "url": "https://www.xbox.com/en-US/play/games/dead-space/9NBLGGH52ZLD",
       "genre": "Action",
       "description": "Absolute survival horror. High-fidelity atmospheric dread.",
@@ -8735,7 +8735,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gta4-cloud-elite",
-      "name": "GTA IV (Cloud-Link)",
+      "name": "GTA IV",
       "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-iv/BR667W7W6V9C",
       "genre": "Action",
       "description": "The Absolute Liberty City experience. High-fidelity Golden Era storytelling.",
@@ -8766,7 +8766,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "rdr1-cloud-elite",
-      "name": "Red Dead Redemption (Cloud-Link)",
+      "name": "Red Dead Redemption",
       "url": "https://www.xbox.com/en-US/play/games/red-dead-redemption/BWDS9V65CQ6QC",
       "genre": "Action",
       "description": "Absolute frontier justice. The high-fidelity Golden Era Western epic.",
@@ -8797,7 +8797,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "mirrors-edge-cloud-elite",
-      "name": "Mirror's Edge (Cloud-Link)",
+      "name": "Mirror's Edge",
       "url": "https://www.xbox.com/en-US/play/games/mirrors-edge/BPP1KXL089L4",
       "genre": "Action",
       "description": "Absolute flow. High-fidelity Golden Era parkour execution.",
@@ -8828,7 +8828,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gears-3-cloud-elite",
-      "name": "Gears of War 3 (Cloud-Link)",
+      "name": "Gears of War 3",
       "url": "https://www.xbox.com/en-US/play/games/gears-of-war-3/BPN0N6GDBZLD",
       "genre": "Action",
       "description": "Absolute cover-based finale. The high-fidelity Golden Era climax.",
@@ -8859,7 +8859,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "halo-reach-cloud-elite",
-      "name": "Halo: Reach (Cloud-Link)",
+      "name": "Halo: Reach",
       "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
       "genre": "FPS",
       "description": "Absolute sacrifice. The high-fidelity Golden Era prequel.",
@@ -8890,7 +8890,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "fable2-cloud-elite",
-      "name": "Fable II (Cloud-Link)",
+      "name": "Fable II",
       "url": "https://www.xbox.com/en-US/play/games/fable-ii/C2Z7B3W4B5QC",
       "genre": "RPG",
       "description": "Absolute charm and consequence. The high-fidelity Golden Era fantasy epic.",
@@ -8921,7 +8921,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "dead-space-2-cloud-elite",
-      "name": "Dead Space 2 (Cloud-Link)",
+      "name": "Dead Space 2",
       "url": "https://www.xbox.com/en-US/play/games/dead-space-2/BPN0N6GDBZLD",
       "genre": "Action",
       "description": "Absolute terror in the Sprawl. High-fidelity Golden Era horror.",
@@ -8952,7 +8952,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "palworld-cloud-elite",
-      "name": "Palworld (Cloud-Link)",
+      "name": "Palworld",
       "url": "https://www.xbox.com/en-US/play/games/palworld/9N6SVPX3BCW3",
       "genre": "Adventure",
       "description": "Absolute survival sensation. High-fidelity creature collection and automation.",
@@ -8982,7 +8982,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "lies-of-p-cloud-elite",
-      "name": "Lies of P (Cloud-Link)",
+      "name": "Lies of P",
       "url": "https://www.xbox.com/en-US/play/games/lies-of-p/9NBLGGH52ZLD",
       "genre": "RPG",
       "description": "Absolute soul-like mastery. High-fidelity Pinocchio reimagining.",
@@ -9012,7 +9012,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "hi-fi-rush-cloud-elite",
-      "name": "Hi-Fi RUSH (Cloud-Link)",
+      "name": "Hi-Fi RUSH",
       "url": "https://www.xbox.com/en-US/play/games/hi-fi-rush/9P0BRNK97L7F",
       "genre": "Action",
       "description": "Absolute rhythm combat. High-fidelity stylized execution.",
@@ -9042,7 +9042,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "doom-2016-cloud-elite",
-      "name": "DOOM (2016) (Cloud-Link)",
+      "name": "DOOM (2016)",
       "url": "https://www.xbox.com/en-US/play/games/doom/BPNDH6RLGZ66",
       "genre": "FPS",
       "description": "Absolute relentless combat. The high-fidelity rebirth of a legend.",
@@ -9072,7 +9072,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "wolfenstein-tno-cloud-elite",
-      "name": "Wolfenstein: TNO (Cloud-Link)",
+      "name": "Wolfenstein: TNO",
       "url": "https://www.xbox.com/en-US/play/games/wolfenstein-the-new-order/BR667W7W6V9C",
       "genre": "FPS",
       "description": "Absolute alternate history. High-fidelity Nazi-crushing execution.",
@@ -9102,7 +9102,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "dragon-age-inq-cloud-elite",
-      "name": "Dragon Age: Inquisition (Cloud-Link)",
+      "name": "Dragon Age: Inquisition",
       "url": "https://www.xbox.com/en-US/play/games/dragon-age-inquisition-game-of-the-year-edition/C59BJV1M8S9C",
       "genre": "RPG",
       "description": "Absolute inquisitorial power. High-fidelity tactical fantasy.",
@@ -9132,7 +9132,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "sea-of-stars-cloud-elite",
-      "name": "Sea of Stars (Cloud-Link)",
+      "name": "Sea of Stars",
       "url": "https://www.xbox.com/en-US/play/games/sea-of-stars/9NBLGGH52ZLD",
       "genre": "RPG",
       "description": "Absolute retro charm. High-fidelity turn-based modernization.",
@@ -9162,7 +9162,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "hellblade-cloud-elite",
-      "name": "Hellblade: Senua's Sacrifice (Cloud-Link)",
+      "name": "Hellblade: Senua's Sacrifice",
       "url": "https://www.xbox.com/en-US/play/games/hellblade-senuas-sacrifice/C49BJV1M8S9C",
       "genre": "Action",
       "description": "Absolute psychological depth. High-fidelity cinematic immersion.",
@@ -9192,7 +9192,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "psychonauts2-cloud-elite",
-      "name": "Psychonauts 2 (Cloud-Link)",
+      "name": "Psychonauts 2",
       "url": "https://www.xbox.com/en-US/play/games/psychonauts-2/9N6SVPX3BCW3",
       "genre": "Adventure",
       "description": "Absolute mental creativity. High-fidelity platforming excellence.",
@@ -9222,7 +9222,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "remnant2-cloud-elite",
-      "name": "Remnant II (Cloud-Link)",
+      "name": "Remnant II",
       "url": "https://www.xbox.com/en-US/play/games/remnant-ii-standard-edition/9NBLGGH52ZLD",
       "genre": "Action",
       "description": "Absolute procedurally-generated challenge. High-fidelity survival shooting.",
@@ -9252,7 +9252,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "control-cloud-elite",
-      "name": "Control (Cloud-Link)",
+      "name": "Control",
       "url": "https://www.xbox.com/en-US/play/games/control-ultimate-edition/9P0BRNK97L7F",
       "genre": "Action",
       "description": "Absolute brutalist mystery. High-fidelity supernatural execution.",
@@ -9293,7 +9293,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Shooter",
         "Battle Royale",
         "Elite",
-        "WebGL"
+        "Cloud"
       ],
       "badgeIds": [
         "elite"
@@ -9322,7 +9322,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Action",
         "Competitive",
         "Elite",
-        "WebGL"
+        "Cloud"
       ],
       "badgeIds": [
         "elite"
@@ -9351,7 +9351,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Action",
         "Competitive",
         "Elite",
-        "WebGL"
+        "Cloud"
       ],
       "badgeIds": [
         "elite"
@@ -9369,7 +9369,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "titanfall2-cloud-elite",
-      "name": "Titanfall 2 (Cloud-Link)",
+      "name": "Titanfall 2",
       "url": "https://www.xbox.com/en-US/play/games/titanfall-2-ultimate-edition/BPP1KXL089L4",
       "genre": "FPS",
       "description": "Absolute pilot and titan synergy. High-fidelity movement-based shooting.",
@@ -9400,7 +9400,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "mgs5-cloud-elite",
-      "name": "Metal Gear Solid V (Cloud-Link)",
+      "name": "Metal Gear Solid V",
       "url": "https://www.konami.com/mg/mgsv/",
       "genre": "Action",
       "description": "Absolute tactical espionage. High-fidelity open-world infiltration.",
@@ -9430,7 +9430,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "arkham-knight-cloud-elite",
-      "name": "Batman: Arkham Knight (Cloud-Link)",
+      "name": "Batman: Arkham Knight",
       "url": "https://www.xbox.com/en-US/play/games/batman-arkham-knight/B91BVDN96CQC",
       "genre": "Action",
       "description": "The Absolute Batman finale. High-fidelity open-world Gotham execution.",
@@ -9460,7 +9460,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "forza-horizon-4-cloud-elite",
-      "name": "Forza Horizon 4 (Cloud-Link)",
+      "name": "Forza Horizon 4",
       "url": "https://www.xbox.com/en-US/play/games/forza-horizon-4-standard-edition/9PNJXVCVWD4K",
       "genre": "Racing",
       "description": "Absolute British driving perfection. High-fidelity seasons change everything.",
@@ -9490,7 +9490,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "bf1-cloud-elite",
-      "name": "Battlefield 1 (Cloud-Link)",
+      "name": "Battlefield 1",
       "url": "https://www.xbox.com/en-US/play/games/battlefield-1/BWDS9V65CQ6QC",
       "genre": "FPS",
       "description": "Absolute atmospheric warfare. High-fidelity WWI execution.",
@@ -9520,7 +9520,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "monster-hunter-world-cloud-elite",
-      "name": "Monster Hunter: World (Cloud-Link)",
+      "name": "Monster Hunter: World",
       "url": "https://www.monsterhunter.com/world/",
       "genre": "Action",
       "description": "Absolute hunt intensity. High-fidelity ecosystem mastery.",
@@ -9550,7 +9550,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "persona5-royal-cloud-elite",
-      "name": "Persona 5 Royal (Cloud-Link)",
+      "name": "Persona 5 Royal",
       "url": "https://persona.atlus.com/p5r/",
       "genre": "RPG",
       "description": "Absolute stylized mastery. High-fidelity Phantom Thief execution.",
@@ -9580,7 +9580,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "re-village-cloud-elite",
-      "name": "Resident Evil Village (Cloud-Link)",
+      "name": "Resident Evil Village",
       "url": "https://www.residentevil.com/village/",
       "genre": "Action",
       "description": "Absolute survival horror. High-fidelity cinematic dread.",
@@ -9610,7 +9610,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "it-takes-two-cloud-elite",
-      "name": "It Takes Two (Cloud-Link)",
+      "name": "It Takes Two",
       "url": "https://www.xbox.com/en-US/play/games/it-takes-two/BPN0N6GDBZLD",
       "genre": "Adventure",
       "description": "Absolute co-op perfection. High-fidelity diverse execution.",
@@ -9640,7 +9640,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gow-2018-cloud-elite",
-      "name": "God of War (Cloud-Link)",
+      "name": "God of War",
       "url": "https://www.playstation.com/en-us/games/god-of-war/",
       "genre": "Action",
       "description": "Absolute mythological mastery. High-fidelity Kratos reimagining.",
@@ -9670,7 +9670,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "uncharted-4-cloud-elite",
-      "name": "Uncharted 4 (Cloud-Link)",
+      "name": "Uncharted 4",
       "url": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
       "genre": "Action",
       "description": "Absolute cinematic adventure. High-fidelity treasure hunting.",
@@ -9700,7 +9700,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "ghost-of-tsushima-cloud-elite",
-      "name": "Ghost of Tsushima (Cloud-Link)",
+      "name": "Ghost of Tsushima",
       "url": "https://www.playstation.com/en-us/games/ghost-of-tsushima/",
       "genre": "Action",
       "description": "Absolute samurai perfection. High-fidelity open-world beauty.",
@@ -9730,7 +9730,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "horizon-zero-dawn-cloud-elite",
-      "name": "Horizon Zero Dawn (Cloud-Link)",
+      "name": "Horizon Zero Dawn",
       "url": "https://www.playstation.com/en-us/games/horizon-zero-dawn/",
       "genre": "Action",
       "description": "Absolute mechanical discovery. High-fidelity post-apocalyptic exploration.",
@@ -9760,7 +9760,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "fight-night-champion-cloud-elite",
-      "name": "Fight Night Champion (Cloud-Link)",
+      "name": "Fight Night Champion",
       "url": "https://www.xbox.com/en-US/play/games/fight-night-champion/BQ9S8XK0Q6QC",
       "genre": "Sports",
       "description": "Absolute boxing realism. The high-fidelity Golden Era pugilist classic.",
@@ -9791,7 +9791,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "ncaa-football-14-cloud-elite",
-      "name": "NCAA Football 14 (Cloud-Link)",
+      "name": "NCAA Football 14",
       "url": "https://www.ea.com/games/ncaa-football/ncaa-football-14",
       "genre": "Sports",
       "description": "The Absolute college football legend. High-fidelity Golden Era gridiron.",
@@ -9822,7 +9822,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "dishonored-cloud-elite",
-      "name": "Dishonored (Cloud-Link)",
+      "name": "Dishonored",
       "url": "https://www.xbox.com/en-US/play/games/dishonored-definitive-edition/BQ1W1T1K1P4L",
       "genre": "Action",
       "description": "Absolute immersive stealth. High-fidelity Golden Era execution.",
@@ -9853,7 +9853,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "mgr-revengeance-cloud-elite",
-      "name": "MGR: Revengeance (Cloud-Link)",
+      "name": "MGR: Revengeance",
       "url": "https://www.konami.com/mg/mgr/",
       "genre": "Action",
       "description": "Absolute hack-and-slash intensity. High-fidelity Golden Era cyborg combat.",
@@ -9884,7 +9884,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "crysis-remastered-cloud-elite",
-      "name": "Crysis Remastered (Cloud-Link)",
+      "name": "Crysis Remastered",
       "url": "https://www.xbox.com/en-US/play/games/crysis-remastered/9NBLGGH52ZLD",
       "genre": "FPS",
       "description": "Absolute hardware benchmarking. High-fidelity Golden Era shooting.",
@@ -9915,7 +9915,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "dead-island-cloud-elite",
-      "name": "Dead Island (Cloud-Link)",
+      "name": "Dead Island",
       "url": "https://www.xbox.com/en-US/play/games/dead-island-definitive-edition/BPP1KXL089L4",
       "genre": "Action",
       "description": "Absolute tropical nightmare. High-fidelity Golden Era zombie survival.",
@@ -9946,7 +9946,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "borderlands-3-cloud-elite",
-      "name": "Borderlands 3 (Cloud-Link)",
+      "name": "Borderlands 3",
       "url": "https://www.xbox.com/en-US/play/games/borderlands-3/C3S0S0K6H0CQC",
       "genre": "RPG",
       "description": "Absolute looter-shooter mayhem. High-fidelity stylized chaos across the galaxy.",
@@ -9976,7 +9976,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "sekiro-cloud-elite",
-      "name": "Sekiro: Shadows Die Twice (Cloud-Link)",
+      "name": "Sekiro: Shadows Die Twice",
       "url": "https://www.sekirothegame.com",
       "genre": "Action",
       "description": "Absolute rhythmic combat. High-fidelity shinobi execution from FromSoftware.",
@@ -10006,7 +10006,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "hades-cloud-elite",
-      "name": "Hades (Cloud-Link)",
+      "name": "Hades",
       "url": "https://www.supergiantgames.com/games/hades/",
       "genre": "RPG",
       "description": "Absolute rogue-like mastery. High-fidelity escape from the Underworld.",
@@ -10036,7 +10036,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "mortal-kombat-1-cloud-elite",
-      "name": "Mortal Kombat 1 (Cloud-Link)",
+      "name": "Mortal Kombat 1",
       "url": "https://www.mortalkombat.com",
       "genre": "Fighting",
       "description": "Absolute fighting evolution. High-fidelity next-gen fatalities.",
@@ -10066,7 +10066,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gta-v-story-cloud-elite",
-      "name": "GTA V: Story Mode (Cloud-Link)",
+      "name": "GTA V: Story Mode",
       "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v-story-mode/BPNDH6RLGZ66",
       "genre": "Action",
       "description": "Absolute cinematic crime. High-fidelity Golden Era multi-protagonist epic.",
@@ -10097,7 +10097,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "mass-effect-2-cloud-elite",
-      "name": "Mass Effect 2 (Cloud-Link)",
+      "name": "Mass Effect 2",
       "url": "https://www.xbox.com/en-US/play/games/mass-effect-2/BR667W7W6V9C",
       "genre": "RPG",
       "description": "The Absolute space opera sequel. High-fidelity Golden Era choice-driven execution.",
@@ -10128,7 +10128,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "dragon-age-origins-cloud-elite",
-      "name": "Dragon Age: Origins (Cloud-Link)",
+      "name": "Dragon Age: Origins",
       "url": "https://www.xbox.com/en-US/play/games/dragon-age-origins/BPN0N6GDBZLD",
       "genre": "RPG",
       "description": "Absolute tactical fantasy. The high-fidelity Golden Era RPG progenitor.",
@@ -10159,7 +10159,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "left-4-dead-cloud-elite",
-      "name": "Left 4 Dead (Cloud-Link)",
+      "name": "Left 4 Dead",
       "url": "https://www.xbox.com/en-US/play/games/left-4-dead/BPP1KXL089L4",
       "genre": "FPS",
       "description": "Absolute team-based horror. High-fidelity Golden Era zombie slaying.",
@@ -10190,7 +10190,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "portal-cloud-elite",
-      "name": "Portal (Cloud-Link)",
+      "name": "Portal",
       "url": "https://www.xbox.com/en-US/play/games/portal/BQ9S8XK0Q6QC",
       "genre": "Puzzle",
       "description": "Absolute spatial logic. The high-fidelity Golden Era puzzle masterpiece.",
@@ -10221,7 +10221,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "dead-cells-cloud-elite",
-      "name": "Dead Cells (Cloud-Link)",
+      "name": "Dead Cells",
       "url": "https://www.xbox.com/en-US/play/games/dead-cells/BPN0N6GDBZLD",
       "genre": "Action",
       "description": "Absolute rhythmic platforming. High-fidelity combat execution.",
@@ -10251,7 +10251,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "cod-mw-classic-cloud-elite",
-      "name": "COD: Modern Warfare (Cloud-Link)",
+      "name": "COD: Modern Warfare",
       "url": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-remastered/BPP1KXL089L4",
       "genre": "FPS",
       "description": "The Absolute game changer. High-fidelity Golden Era warfare that defined a generation.",
@@ -10282,7 +10282,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "cod-mw2-classic-cloud-elite",
-      "name": "COD: Modern Warfare 2 (Cloud-Link)",
+      "name": "COD: Modern Warfare 2",
       "url": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-2/BPP1KXL089L4",
       "genre": "FPS",
       "description": "Absolute tactical intensity. The high-fidelity peak of Golden Era multiplayer.",
@@ -10313,7 +10313,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "fallout3-cloud-elite",
-      "name": "Fallout 3 (Cloud-Link)",
+      "name": "Fallout 3",
       "url": "https://www.xbox.com/en-US/play/games/fallout-3/C4515W8M8FMS",
       "genre": "RPG",
       "description": "Absolute wasteland atmosphere. High-fidelity Golden Era exploration.",
@@ -10344,7 +10344,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "ac-black-flag-cloud-elite",
-      "name": "AC: Black Flag (Cloud-Link)",
+      "name": "AC: Black Flag",
       "url": "https://www.xbox.com/en-US/play/games/assassins-creed-iv-black-flag/C2Z7B3W4B5QC",
       "genre": "Action",
       "description": "Absolute naval dominance. High-fidelity Golden Era pirate execution.",
@@ -10375,7 +10375,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gears-1-cloud-elite",
-      "name": "Gears of War (Cloud-Link)",
+      "name": "Gears of War",
       "url": "https://www.xbox.com/en-US/play/games/gears-of-war-ultimate-edition/BPN0N6GDBZLD",
       "genre": "Action",
       "description": "Absolute cover-based intensity. The high-fidelity Golden Era progenitor.",
@@ -10406,7 +10406,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "halo4-cloud-elite",
-      "name": "Halo 4 (Cloud-Link)",
+      "name": "Halo 4",
       "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
       "genre": "FPS",
       "description": "Absolute combat evolution. High-fidelity Golden Era sci-fi mastery.",
@@ -10437,7 +10437,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "bf-bc2-cloud-elite",
-      "name": "BF: Bad Company 2 (Cloud-Link)",
+      "name": "BF: Bad Company 2",
       "url": "https://www.xbox.com/en-US/play/games/battlefield-bad-company-2/BPP1KXL089L4",
       "genre": "FPS",
       "description": "Absolute tactical destruction. High-fidelity Golden Era squad execution.",
@@ -10468,7 +10468,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "uncharted2-cloud-elite",
-      "name": "Uncharted 2 (Cloud-Link)",
+      "name": "Uncharted 2",
       "url": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
       "genre": "Action",
       "description": "Absolute cinematic perfection. The high-fidelity Golden Era adventure benchmark.",
@@ -10499,7 +10499,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "gow3-cloud-elite",
-      "name": "God of War III (Cloud-Link)",
+      "name": "God of War III",
       "url": "https://www.playstation.com/en-us/games/god-of-war-iii-remastered/",
       "genre": "Action",
       "description": "Absolute mythological vengeance. High-fidelity Golden Era scale.",
@@ -10530,7 +10530,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       "id": "batman-asylum-cloud-elite",
-      "name": "Batman: Arkham Asylum (Cloud-Link)",
+      "name": "Batman: Arkham Asylum",
       "url": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
       "genre": "Action",
       "description": "Absolute atmosphere. The high-fidelity Golden Era stealth progenitor.",
@@ -10564,7 +10564,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "rail-neo-zone",
       "title": "NEO_ZONE Next-Gen",
-      "subtitle": "High-fidelity WebGL and Cloud-linked execution. The Absolute future.",
+      "subtitle": "High-fidelity cloud streaming and elite execution. The Absolute future.",
       "roomIds": [
         "neo-zone"
       ],

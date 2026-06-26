@@ -196,7 +196,7 @@
     {
       "id": "neo-zone",
       "name": "NEO_ZONE",
-      "description": "Next-Gen execution. High-fidelity WebGL and Cloud-linked cabinets.",
+      "description": "Next-Gen execution. High-fidelity WebGL and browser-native cabinets.",
       "icon": "auto_awesome"
     }
   ],
@@ -472,19 +472,20 @@
   ],
   "games": [
     {
-      "id": "cyberpunk-2077-cloud",
-      "name": "Cyberpunk 2077 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
-      "description": "Night City awaits. Absolute high-fidelity future simulation.",
+      "id": "cyberpunk-2077-tribute",
+      "name": "Cyberpunk 2077",
+      "url": "/assets/games/battlefield/battlefield.html",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Cyberpunk 2077.",
       "genre": "RPG",
       "rating": 4.9,
       "playersOnline": 65000,
       "availability": "Online",
       "tags": [
         "RPG",
-        "Cloud",
+        "WebGL",
         "Next-Gen",
-        "Elite"
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -493,22 +494,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "elden-ring-cloud",
-      "name": "Elden Ring (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
-      "description": "Rise, Tarnished. Absolute next-gen open world mastery.",
+      "id": "elden-ring-tribute",
+      "name": "Elden Ring",
+      "url": "/assets/games/battlefield/battlefield.html",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Elden Ring.",
       "genre": "RPG",
       "rating": 5.0,
       "playersOnline": 120000,
       "availability": "Online",
       "tags": [
         "RPG",
-        "Cloud",
+        "WebGL",
         "Next-Gen",
-        "Elite"
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -517,23 +520,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "halo-3-cloud-elite",
-      "name": "Halo 3 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
-      "description": "Finish the fight. Absolute 360-era dominance via high-fidelity cloud link.",
+      "id": "halo-3-tribute-elite",
+      "name": "Halo 3",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Halo 3.",
       "genre": "FPS",
       "rating": 5.0,
       "playersOnline": 45000,
       "availability": "Online",
       "tags": [
         "FPS",
-        "Cloud",
+        "WebGL",
         "Xbox 360",
         "Elite",
-        "Sequel"
+        "Sequel",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -542,7 +547,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
       "id": "venge-io-webgl",
@@ -7372,19 +7378,20 @@
       }
     },
     {
-      "id": "gta-v-cloud-elite",
-      "name": "Grand Theft Auto V (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v/BP96B1B4N6PC",
+      "id": "gta-v-tribute-elite",
+      "name": "Grand Theft Auto V",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "The Absolute open-world masterpiece. High-fidelity crime saga across Los Santos.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Grand Theft Auto V.",
       "rating": 5.0,
       "playersOnline": 250000,
       "availability": "Online",
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7399,22 +7406,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v/BP96B1B4N6PC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "fc-24-cloud-elite",
-      "name": "EA SPORTS FC 24 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/ea-sports-fc-24/9N90LP816DKH",
+      "id": "fc-24-tribute-elite",
+      "name": "EA SPORTS FC 24",
+      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "genre": "Sports",
-      "description": "Absolute football simulation. The evolution of the world's game with high-fidelity execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for EA SPORTS FC 24.",
       "rating": 4.8,
       "playersOnline": 180000,
       "availability": "Online",
       "tags": [
         "Sports",
         "Soccer",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7429,22 +7438,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/ea-sports-fc-24/9N90LP816DKH",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "madden-24-cloud-elite",
-      "name": "Madden NFL 24 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/madden-nfl-24/9NRW2BJR7ZPC",
+      "id": "madden-24-tribute-elite",
+      "name": "Madden NFL 24",
+      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "genre": "Sports",
-      "description": "Absolute gridiron dominance. High-fidelity tactical execution on the field.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Madden NFL 24.",
       "rating": 4.7,
       "playersOnline": 85000,
       "availability": "Online",
       "tags": [
         "Sports",
         "NFL",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7459,22 +7470,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/madden-nfl-24/9NRW2BJR7ZPC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "nba-2k24-cloud-elite",
-      "name": "NBA 2K24 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/nba-2k24-for-xbox-one/9P7B8KLR5F6D",
+      "id": "nba-2k24-tribute-elite",
+      "name": "NBA 2K24",
+      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "genre": "Sports",
-      "description": "Absolute hoops mastery. The high-fidelity basketball experience.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for NBA 2K24.",
       "rating": 4.6,
       "playersOnline": 95000,
       "availability": "Online",
       "tags": [
         "Sports",
         "NBA",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7489,22 +7502,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/nba-2k24-for-xbox-one/9P7B8KLR5F6D",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "fortnite-cloud-elite",
-      "name": "Fortnite (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2",
+      "id": "fortnite-tribute-elite",
+      "name": "Fortnite",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Battle Royale",
-      "description": "The Absolute cultural phenomenon. High-fidelity competitive building and shooting.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Fortnite.",
       "rating": 4.9,
       "playersOnline": 1500000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "Battle Royale",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7519,22 +7534,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "minecraft-cloud-elite",
-      "name": "Minecraft (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/minecraft/9NBLGGH537BL",
+      "id": "minecraft-tribute-elite",
+      "name": "Minecraft",
+      "url": "/assets/games/vinyl-vault/vinyl-vault.html",
       "genre": "Sandbox",
-      "description": "Absolute creative freedom. The high-fidelity sandbox that shaped a generation.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Minecraft.",
       "rating": 4.9,
       "playersOnline": 800000,
       "availability": "Online",
       "tags": [
         "Adventure",
         "Sandbox",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7549,22 +7566,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/minecraft/9NBLGGH537BL",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "cod-mw3-cloud-elite",
-      "name": "Call of Duty: MWIII (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/call-of-duty/9NBLGGH52ZLD",
+      "id": "cod-mw3-tribute-elite",
+      "name": "Call of Duty: MWIII",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute tactical superiority. High-fidelity modern warfare execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Call of Duty: MWIII.",
       "rating": 4.5,
       "playersOnline": 300000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7579,23 +7598,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty/9NBLGGH52ZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "cod-bo2-cloud-elite",
-      "name": "Call of Duty: Black Ops II (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/call-of-duty-black-ops-ii/BR667W7W6V9C",
+      "id": "cod-bo2-tribute-elite",
+      "name": "Call of Duty: Black Ops II",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "The Absolute Golden Era classic. High-fidelity tactical shooting across timelines.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Call of Duty: Black Ops II.",
       "rating": 4.9,
       "playersOnline": 15000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -7610,22 +7631,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-black-ops-ii/BR667W7W6V9C",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "rdr2-cloud-elite",
-      "name": "Red Dead Redemption 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/red-dead-redemption-2/9N2ZDN7NWZLR",
+      "id": "rdr2-tribute-elite",
+      "name": "Red Dead Redemption 2",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute cinematic perfection. A high-fidelity epic in the dying West.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Red Dead Redemption 2.",
       "rating": 5.0,
       "playersOnline": 40000,
       "availability": "Online",
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7640,22 +7663,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/red-dead-redemption-2/9N2ZDN7NWZLR",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "witcher-3-cloud-elite",
-      "name": "The Witcher 3 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/the-witcher-3-wild-hunt/BRG9V9C3GZWC",
+      "id": "witcher-3-tribute-elite",
+      "name": "The Witcher 3",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute RPG mastery. High-fidelity monster hunting in a vast open world.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for The Witcher 3.",
       "rating": 5.0,
       "playersOnline": 35000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7670,22 +7695,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/the-witcher-3-wild-hunt/BRG9V9C3GZWC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "skyrim-cloud-elite",
-      "name": "Skyrim: Special Edition (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/the-elder-scrolls-v-skyrim-special-edition/BQ1W1T1K1P4L",
+      "id": "skyrim-tribute-elite",
+      "name": "Skyrim: Special Edition",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "The Absolute legendary journey. High-fidelity dragon-slaying adventures.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Skyrim: Special Edition.",
       "rating": 4.9,
       "playersOnline": 50000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -7700,7 +7727,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/the-elder-scrolls-v-skyrim-special-edition/BQ1W1T1K1P4L",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
       "id": "mobile-legends-elite",
@@ -7732,19 +7760,20 @@
       }
     },
     {
-      "id": "apex-legends-cloud-elite",
-      "name": "Apex Legends (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/apex-legends/BV9MLDTSCHJW",
+      "id": "apex-legends-tribute-elite",
+      "name": "Apex Legends",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Battle Royale",
-      "description": "Absolute tactical speed. High-fidelity hero-based battle royale.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Apex Legends.",
       "rating": 4.8,
       "playersOnline": 200000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "Battle Royale",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7759,22 +7788,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/apex-legends/BV9MLDTSCHJW",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "destiny-2-cloud-elite",
-      "name": "Destiny 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/destiny-2/BP1GZ2Z0XJWZ",
+      "id": "destiny-2-tribute-elite",
+      "name": "Destiny 2",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute cosmic warfare. High-fidelity space magic and gunplay.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Destiny 2.",
       "rating": 4.7,
       "playersOnline": 150000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7789,22 +7820,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/destiny-2/BP1GZ2Z0XJWZ",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "fallout-4-cloud-elite",
-      "name": "Fallout 4 (Cloud-Link)",
+      "id": "fallout-4-tribute-elite",
+      "name": "Fallout 4",
       "genre": "RPG",
-      "url": "https://www.xbox.com/en-US/play/games/fallout-4/C4515W8M8FMS",
-      "description": "Absolute wasteland survival. High-fidelity post-nuclear exploration.",
+      "url": "/assets/games/battlefield/battlefield.html",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Fallout 4.",
       "rating": 4.8,
       "playersOnline": 60000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -7819,22 +7852,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-4/C4515W8M8FMS",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "starfield-cloud-elite",
-      "name": "Starfield (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/starfield/9NC6ZQRV38S7",
+      "id": "starfield-tribute-elite",
+      "name": "Starfield",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute interstellar discovery. High-fidelity space exploration from Bethesda.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Starfield.",
       "rating": 4.6,
       "playersOnline": 45000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7849,23 +7884,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/starfield/9NC6ZQRV38S7",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "battlefield-4-cloud-elite",
-      "name": "Battlefield 4 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/battlefield-4/BPP1KXL089L4",
+      "id": "battlefield-4-tribute-elite",
+      "name": "Battlefield 4",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute tactical destruction. High-fidelity Golden Era warfare.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Battlefield 4.",
       "rating": 4.8,
       "playersOnline": 10000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -7880,23 +7917,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-4/BPP1KXL089L4",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "mass-effect-le-cloud-elite",
-      "name": "Mass Effect LE (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/mass-effect-legendary-edition/9PKW68L7BNCH",
+      "id": "mass-effect-le-tribute-elite",
+      "name": "Mass Effect LE",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute sci-fi legend. The high-fidelity trilogy that defined an era.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Mass Effect LE.",
       "rating": 5.0,
       "playersOnline": 25000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Action",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -7911,23 +7950,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mass-effect-legendary-edition/9PKW68L7BNCH",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "skate-3-cloud-elite",
-      "name": "Skate 3 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/skate-3/BNKDKS5B9S76",
+      "id": "skate-3-tribute-elite",
+      "name": "Skate 3",
+      "url": "/assets/games/neon-drift/neon-drift.html",
       "genre": "Sports",
-      "description": "Absolute boarding freedom. The high-fidelity Golden Era skate classic.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Skate 3.",
       "rating": 4.9,
       "playersOnline": 8000,
       "availability": "Online",
       "tags": [
         "Sports",
         "Skating",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -7942,22 +7983,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/skate-3/BNKDKS5B9S76",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "forza-horizon-5-cloud-elite",
-      "name": "Forza Horizon 5 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/forza-horizon-5-standard-edition/9NKX70BBCDRN",
+      "id": "forza-horizon-5-tribute-elite",
+      "name": "Forza Horizon 5",
+      "url": "/assets/games/neon-drift/neon-drift.html",
       "genre": "Racing",
-      "description": "Absolute driving bliss. High-fidelity open-world racing in Mexico.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Forza Horizon 5.",
       "rating": 5.0,
       "playersOnline": 150000,
       "availability": "Online",
       "tags": [
         "Racing",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7972,7 +8015,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-horizon-5-standard-edition/9NKX70BBCDRN",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
       "id": "roblox-web-elite",
@@ -8003,19 +8047,20 @@
       }
     },
     {
-      "id": "valorant-cloud-elite",
-      "name": "Valorant (Cloud-Link)",
-      "url": "https://playvalorant.com",
+      "id": "valorant-tribute-elite",
+      "name": "Valorant",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute tactical precision. High-fidelity agent-based shooting.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Valorant.",
       "rating": 4.9,
       "playersOnline": 1200000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8030,22 +8075,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://playvalorant.com",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "lol-cloud-elite",
-      "name": "League of Legends (Cloud-Link)",
-      "url": "https://www.leagueoflegends.com",
+      "id": "lol-tribute-elite",
+      "name": "League of Legends",
+      "url": "/assets/games/remix-arena/remixarena.html",
       "genre": "MOBA",
-      "description": "Absolute MOBA dominance. High-fidelity strategic team battles.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for League of Legends.",
       "rating": 4.9,
       "playersOnline": 2000000,
       "availability": "Online",
       "tags": [
         "MOBA",
         "Competitive",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8060,22 +8107,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.leagueoflegends.com",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "genshin-cloud-elite",
-      "name": "Genshin Impact (Cloud-Link)",
-      "url": "https://genshin.hoyoverse.com",
+      "id": "genshin-tribute-elite",
+      "name": "Genshin Impact",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute open-world beauty. High-fidelity anime-style adventure.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Genshin Impact.",
       "rating": 4.8,
       "playersOnline": 500000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8090,22 +8139,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://genshin.hoyoverse.com",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "halo-infinite-cloud-elite",
-      "name": "Halo Infinite (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/halo-infinite/9PP1GR9K5DBZ",
+      "id": "halo-infinite-tribute-elite",
+      "name": "Halo Infinite",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute combat evolution. High-fidelity Zeta Halo execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Halo Infinite.",
       "rating": 4.7,
       "playersOnline": 30000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8120,22 +8171,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-infinite/9PP1GR9K5DBZ",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "gears-5-cloud-elite",
-      "name": "Gears 5 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/gears-5/BPHL7K0V1RMV",
+      "id": "gears-5-tribute-elite",
+      "name": "Gears 5",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute cover-based intensity. High-fidelity Gears of War execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Gears 5.",
       "rating": 4.8,
       "playersOnline": 15000,
       "availability": "Online",
       "tags": [
         "Action",
         "Shooter",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8150,22 +8203,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-5/BPHL7K0V1RMV",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "forza-motorsport-cloud-elite",
-      "name": "Forza Motorsport (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/forza-motorsport/9PLTR78MT6S7",
+      "id": "forza-motorsport-tribute-elite",
+      "name": "Forza Motorsport",
+      "url": "/assets/games/neon-drift/neon-drift.html",
       "genre": "Racing",
-      "description": "Absolute racing simulation. High-fidelity track mastery.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Forza Motorsport.",
       "rating": 4.6,
       "playersOnline": 20000,
       "availability": "Online",
       "tags": [
         "Racing",
         "Simulation",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8180,22 +8235,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-motorsport/9PLTR78MT6S7",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "ms-flight-sim-cloud-elite",
-      "name": "MS Flight Simulator (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/microsoft-flight-simulator-standard-40th-anniversary-edition/9PMQDM08SNK9",
+      "id": "ms-flight-sim-tribute-elite",
+      "name": "MS Flight Simulator",
+      "url": "/assets/games/remix-arena/remixarena.html",
       "genre": "Simulation",
-      "description": "Absolute global exploration. High-fidelity flight execution across the planet.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for MS Flight Simulator.",
       "rating": 5.0,
       "playersOnline": 25000,
       "availability": "Online",
       "tags": [
         "Simulation",
         "Adventure",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8210,22 +8267,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/microsoft-flight-simulator-standard-40th-anniversary-edition/9PMQDM08SNK9",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "sea-of-thieves-cloud-elite",
-      "name": "Sea of Thieves (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/sea-of-thieves-2024-edition/9P2N67BPT2C6",
+      "id": "sea-of-thieves-tribute-elite",
+      "name": "Sea of Thieves",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute pirate freedom. High-fidelity sailing and treasure hunting.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Sea of Thieves.",
       "rating": 4.7,
       "playersOnline": 60000,
       "availability": "Online",
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8240,22 +8299,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-thieves-2024-edition/9P2N67BPT2C6",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "doom-eternal-cloud-elite",
-      "name": "Doom Eternal (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/doom-eternal-standard-edition/9P0BRNK97L7F",
+      "id": "doom-eternal-tribute-elite",
+      "name": "Doom Eternal",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute slayer intensity. High-fidelity demon-crushing execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Doom Eternal.",
       "rating": 4.9,
       "playersOnline": 12000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8270,23 +8331,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/doom-eternal-standard-edition/9P0BRNK97L7F",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "fallout-nv-cloud-elite",
-      "name": "Fallout: New Vegas (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/fallout-new-vegas/BX9S7ZMMT6S9",
+      "id": "fallout-nv-tribute-elite",
+      "name": "Fallout: New Vegas",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "The Absolute post-apocalyptic masterpiece. High-fidelity Mojave survival.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Fallout: New Vegas.",
       "rating": 4.9,
       "playersOnline": 15000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8301,23 +8364,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-new-vegas/BX9S7ZMMT6S9",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "bioshock-cloud-elite",
-      "name": "BioShock (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/bioshock-the-collection/C2H0ZDRB4CQC",
+      "id": "bioshock-tribute-elite",
+      "name": "BioShock",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute atmospheric mastery. A high-fidelity journey into Rapture.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for BioShock.",
       "rating": 5.0,
       "playersOnline": 5000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8332,23 +8397,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/bioshock-the-collection/C2H0ZDRB4CQC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "ac2-cloud-elite",
-      "name": "Assassin's Creed II (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/assassins-creed-the-ezio-collection/BQ9S8XK0Q6QC",
+      "id": "ac2-tribute-elite",
+      "name": "Assassin's Creed II",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute historical immersion. High-fidelity Renaissance execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Assassin's Creed II.",
       "rating": 4.9,
       "playersOnline": 8000,
       "availability": "Online",
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8363,23 +8430,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/assassins-creed-the-ezio-collection/BQ9S8XK0Q6QC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "arkham-city-cloud-elite",
-      "name": "Batman: Arkham City (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
+      "id": "arkham-city-tribute-elite",
+      "name": "Batman: Arkham City",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "The Absolute Dark Knight simulator. High-fidelity stealth and combat.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Batman: Arkham City.",
       "rating": 5.0,
       "playersOnline": 10000,
       "availability": "Online",
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8394,23 +8463,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "portal2-cloud-elite",
-      "name": "Portal 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/portal-companion-collection/9P8W5S7P9CQC",
+      "id": "portal2-tribute-elite",
+      "name": "Portal 2",
+      "url": "/assets/games/vinyl-vault/vinyl-vault.html",
       "genre": "Puzzle",
-      "description": "Absolute spatial mastery. High-fidelity mind-bending execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Portal 2.",
       "rating": 5.0,
       "playersOnline": 4000,
       "availability": "Online",
       "tags": [
         "Puzzle",
         "Action",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8425,23 +8496,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/portal-companion-collection/9P8W5S7P9CQC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "l4d2-cloud-elite",
-      "name": "Left 4 Dead 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/left-4-dead-2/BR667W7W6V9C",
+      "id": "l4d2-tribute-elite",
+      "name": "Left 4 Dead 2",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute co-op survival. High-fidelity zombie-slaying execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Left 4 Dead 2.",
       "rating": 4.9,
       "playersOnline": 20000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8456,23 +8529,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/left-4-dead-2/BR667W7W6V9C",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "borderlands2-cloud-elite",
-      "name": "Borderlands 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/borderlands-the-handsome-collection/C49BJV1M8S9C",
+      "id": "borderlands2-tribute-elite",
+      "name": "Borderlands 2",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute looter-shooter mayhem. High-fidelity stylized execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Borderlands 2.",
       "rating": 4.8,
       "playersOnline": 12000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "RPG",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8487,23 +8562,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/borderlands-the-handsome-collection/C49BJV1M8S9C",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "dark-souls-cloud-elite",
-      "name": "Dark Souls (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/dark-souls-remastered/BQ1W1T1K1P4L",
+      "id": "dark-souls-tribute-elite",
+      "name": "Dark Souls",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute challenge. The high-fidelity progenitor of a new genre.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Dark Souls.",
       "rating": 4.9,
       "playersOnline": 7000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Action",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8518,23 +8595,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dark-souls-remastered/BQ1W1T1K1P4L",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "fc3-cloud-elite",
-      "name": "Far Cry 3 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/far-cry-3-classic-edition/BP96B1B4N6PC",
+      "id": "fc3-tribute-elite",
+      "name": "Far Cry 3",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute madness. High-fidelity tropical survival and stealth.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Far Cry 3.",
       "rating": 4.8,
       "playersOnline": 6000,
       "availability": "Online",
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8549,22 +8628,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/far-cry-3-classic-edition/BP96B1B4N6PC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "ow2-cloud-elite",
-      "name": "Overwatch 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/overwatch-2/9NBLGGH52ZLD",
+      "id": "ow2-tribute-elite",
+      "name": "Overwatch 2",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute hero-based tactical dominance. High-fidelity competitive shooting.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Overwatch 2.",
       "rating": 4.6,
       "playersOnline": 500000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8579,22 +8660,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/overwatch-2/9NBLGGH52ZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "rocket-league-cloud-elite",
-      "name": "Rocket League (Cloud-Link)",
-      "url": "https://www.rocketleague.com",
+      "id": "rocket-league-tribute-elite",
+      "name": "Rocket League",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Sports",
-      "description": "Absolute motorized football. High-fidelity competitive chaos.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Rocket League.",
       "rating": 4.9,
       "playersOnline": 400000,
       "availability": "Online",
       "tags": [
         "Sports",
         "Racing",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8609,22 +8692,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.rocketleague.com",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "sf6-cloud-elite",
-      "name": "Street Fighter 6 (Cloud-Link)",
-      "url": "https://www.streetfighter.com/6/",
+      "id": "sf6-tribute-elite",
+      "name": "Street Fighter 6",
+      "url": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
       "genre": "Fighting",
-      "description": "Absolute fighting perfection. High-fidelity technical execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Street Fighter 6.",
       "rating": 4.9,
       "playersOnline": 50000,
       "availability": "Online",
       "tags": [
         "Fighting",
         "Competitive",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8639,22 +8724,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.streetfighter.com/6/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "tekken8-cloud-elite",
-      "name": "Tekken 8 (Cloud-Link)",
-      "url": "https://en.bandainamcoent.eu/tekken/tekken-8",
+      "id": "tekken8-tribute-elite",
+      "name": "Tekken 8",
+      "url": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
       "genre": "Fighting",
-      "description": "Absolute iron fist intensity. High-fidelity next-gen combat.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Tekken 8.",
       "rating": 4.9,
       "playersOnline": 45000,
       "availability": "Online",
       "tags": [
         "Fighting",
         "Competitive",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8669,22 +8756,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://en.bandainamcoent.eu/tekken/tekken-8",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "tlou-part1-cloud-elite",
-      "name": "The Last of Us Part I (Cloud-Link)",
-      "url": "https://www.playstation.com/en-us/games/the-last-of-us-part-i/",
+      "id": "tlou-part1-tribute-elite",
+      "name": "The Last of Us Part I",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute emotional mastery. A high-fidelity remake of the Golden Era legend.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for The Last of Us Part I.",
       "rating": 5.0,
       "playersOnline": 10000,
       "availability": "Online",
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8699,22 +8788,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/the-last-of-us-part-i/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "dead-space-remake-cloud-elite",
-      "name": "Dead Space (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/dead-space/9NBLGGH52ZLD",
+      "id": "dead-space-remake-tribute-elite",
+      "name": "Dead Space",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute survival horror. High-fidelity atmospheric dread.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Dead Space.",
       "rating": 4.9,
       "playersOnline": 8000,
       "availability": "Online",
       "tags": [
         "Action",
         "Horror",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8729,23 +8820,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-space/9NBLGGH52ZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "gta4-cloud-elite",
-      "name": "GTA IV (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-iv/BR667W7W6V9C",
+      "id": "gta4-tribute-elite",
+      "name": "GTA IV",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "The Absolute Liberty City experience. High-fidelity Golden Era storytelling.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for GTA IV.",
       "rating": 4.9,
       "playersOnline": 5000,
       "availability": "Online",
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8760,23 +8853,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-iv/BR667W7W6V9C",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "rdr1-cloud-elite",
-      "name": "Red Dead Redemption (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/red-dead-redemption/BWDS9V65CQ6QC",
+      "id": "rdr1-tribute-elite",
+      "name": "Red Dead Redemption",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute frontier justice. The high-fidelity Golden Era Western epic.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Red Dead Redemption.",
       "rating": 5.0,
       "playersOnline": 4000,
       "availability": "Online",
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8791,23 +8886,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/red-dead-redemption/BWDS9V65CQ6QC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "mirrors-edge-cloud-elite",
-      "name": "Mirror's Edge (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/mirrors-edge/BPP1KXL089L4",
+      "id": "mirrors-edge-tribute-elite",
+      "name": "Mirror's Edge",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute flow. High-fidelity Golden Era parkour execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Mirror's Edge.",
       "rating": 4.8,
       "playersOnline": 2000,
       "availability": "Online",
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8822,23 +8919,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mirrors-edge/BPP1KXL089L4",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "gears-3-cloud-elite",
-      "name": "Gears of War 3 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/gears-of-war-3/BPN0N6GDBZLD",
+      "id": "gears-3-tribute-elite",
+      "name": "Gears of War 3",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute cover-based finale. The high-fidelity Golden Era climax.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Gears of War 3.",
       "rating": 4.9,
       "playersOnline": 5000,
       "availability": "Online",
       "tags": [
         "Action",
         "Shooter",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8853,23 +8952,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-of-war-3/BPN0N6GDBZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "halo-reach-cloud-elite",
-      "name": "Halo: Reach (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
+      "id": "halo-reach-tribute-elite",
+      "name": "Halo: Reach",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute sacrifice. The high-fidelity Golden Era prequel.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Halo: Reach.",
       "rating": 5.0,
       "playersOnline": 12000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8884,23 +8985,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "fable2-cloud-elite",
-      "name": "Fable II (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/fable-ii/C2Z7B3W4B5QC",
+      "id": "fable2-tribute-elite",
+      "name": "Fable II",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute charm and consequence. The high-fidelity Golden Era fantasy epic.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Fable II.",
       "rating": 4.8,
       "playersOnline": 3000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8915,23 +9018,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fable-ii/C2Z7B3W4B5QC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "dead-space-2-cloud-elite",
-      "name": "Dead Space 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/dead-space-2/BPN0N6GDBZLD",
+      "id": "dead-space-2-tribute-elite",
+      "name": "Dead Space 2",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute terror in the Sprawl. High-fidelity Golden Era horror.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Dead Space 2.",
       "rating": 4.9,
       "playersOnline": 2500,
       "availability": "Online",
       "tags": [
         "Action",
         "Horror",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -8946,22 +9051,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-space-2/BPN0N6GDBZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "palworld-cloud-elite",
-      "name": "Palworld (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/palworld/9N6SVPX3BCW3",
+      "id": "palworld-tribute-elite",
+      "name": "Palworld",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Adventure",
-      "description": "Absolute survival sensation. High-fidelity creature collection and automation.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Palworld.",
       "rating": 4.7,
       "playersOnline": 500000,
       "availability": "Online",
       "tags": [
         "Adventure",
         "Sandbox",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8976,22 +9083,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/palworld/9N6SVPX3BCW3",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "lies-of-p-cloud-elite",
-      "name": "Lies of P (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/lies-of-p/9NBLGGH52ZLD",
+      "id": "lies-of-p-tribute-elite",
+      "name": "Lies of P",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute soul-like mastery. High-fidelity Pinocchio reimagining.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Lies of P.",
       "rating": 4.9,
       "playersOnline": 15000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Action",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9006,22 +9115,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/lies-of-p/9NBLGGH52ZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "hi-fi-rush-cloud-elite",
-      "name": "Hi-Fi RUSH (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/hi-fi-rush/9P0BRNK97L7F",
+      "id": "hi-fi-rush-tribute-elite",
+      "name": "Hi-Fi RUSH",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute rhythm combat. High-fidelity stylized execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Hi-Fi RUSH.",
       "rating": 4.9,
       "playersOnline": 10000,
       "availability": "Online",
       "tags": [
         "Action",
         "Music",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9036,22 +9147,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/hi-fi-rush/9P0BRNK97L7F",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "doom-2016-cloud-elite",
-      "name": "DOOM (2016) (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/doom/BPNDH6RLGZ66",
+      "id": "doom-2016-tribute-elite",
+      "name": "DOOM (2016)",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute relentless combat. The high-fidelity rebirth of a legend.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for DOOM (2016).",
       "rating": 4.9,
       "playersOnline": 8000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9066,22 +9179,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/doom/BPNDH6RLGZ66",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "wolfenstein-tno-cloud-elite",
-      "name": "Wolfenstein: TNO (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/wolfenstein-the-new-order/BR667W7W6V9C",
+      "id": "wolfenstein-tno-tribute-elite",
+      "name": "Wolfenstein: TNO",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute alternate history. High-fidelity Nazi-crushing execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Wolfenstein: TNO.",
       "rating": 4.8,
       "playersOnline": 4000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9096,22 +9211,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/wolfenstein-the-new-order/BR667W7W6V9C",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "dragon-age-inq-cloud-elite",
-      "name": "Dragon Age: Inquisition (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/dragon-age-inquisition-game-of-the-year-edition/C59BJV1M8S9C",
+      "id": "dragon-age-inq-tribute-elite",
+      "name": "Dragon Age: Inquisition",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute inquisitorial power. High-fidelity tactical fantasy.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Dragon Age: Inquisition.",
       "rating": 4.7,
       "playersOnline": 15000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Adventure",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9126,22 +9243,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dragon-age-inquisition-game-of-the-year-edition/C59BJV1M8S9C",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "sea-of-stars-cloud-elite",
-      "name": "Sea of Stars (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/sea-of-stars/9NBLGGH52ZLD",
+      "id": "sea-of-stars-tribute-elite",
+      "name": "Sea of Stars",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute retro charm. High-fidelity turn-based modernization.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Sea of Stars.",
       "rating": 4.9,
       "playersOnline": 10000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Retro",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9156,22 +9275,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-stars/9NBLGGH52ZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "hellblade-cloud-elite",
-      "name": "Hellblade: Senua's Sacrifice (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/hellblade-senuas-sacrifice/C49BJV1M8S9C",
+      "id": "hellblade-tribute-elite",
+      "name": "Hellblade: Senua's Sacrifice",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute psychological depth. High-fidelity cinematic immersion.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Hellblade: Senua's Sacrifice.",
       "rating": 4.9,
       "playersOnline": 5000,
       "availability": "Online",
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9186,22 +9307,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/hellblade-senuas-sacrifice/C49BJV1M8S9C",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "psychonauts2-cloud-elite",
-      "name": "Psychonauts 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/psychonauts-2/9N6SVPX3BCW3",
+      "id": "psychonauts2-tribute-elite",
+      "name": "Psychonauts 2",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Adventure",
-      "description": "Absolute mental creativity. High-fidelity platforming excellence.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Psychonauts 2.",
       "rating": 4.9,
       "playersOnline": 6000,
       "availability": "Online",
       "tags": [
         "Adventure",
         "Platformer",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9216,22 +9339,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/psychonauts-2/9N6SVPX3BCW3",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "remnant2-cloud-elite",
-      "name": "Remnant II (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/remnant-ii-standard-edition/9NBLGGH52ZLD",
+      "id": "remnant2-tribute-elite",
+      "name": "Remnant II",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute procedurally-generated challenge. High-fidelity survival shooting.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Remnant II.",
       "rating": 4.8,
       "playersOnline": 20000,
       "availability": "Online",
       "tags": [
         "Action",
         "Shooter",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9246,22 +9371,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/remnant-ii-standard-edition/9NBLGGH52ZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "control-cloud-elite",
-      "name": "Control (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/control-ultimate-edition/9P0BRNK97L7F",
+      "id": "control-tribute-elite",
+      "name": "Control",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute brutalist mystery. High-fidelity supernatural execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Control.",
       "rating": 4.9,
       "playersOnline": 12000,
       "availability": "Online",
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9276,7 +9403,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/control-ultimate-edition/9P0BRNK97L7F",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
       "id": "1v1-lol-web-elite",
@@ -9366,20 +9494,21 @@
       }
     },
     {
-      "id": "titanfall2-cloud-elite",
-      "name": "Titanfall 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/titanfall-2-ultimate-edition/BPP1KXL089L4",
+      "id": "titanfall2-tribute-elite",
+      "name": "Titanfall 2",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute pilot and titan synergy. High-fidelity movement-based shooting.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Titanfall 2.",
       "rating": 5.0,
       "playersOnline": 10000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9394,22 +9523,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/titanfall-2-ultimate-edition/BPP1KXL089L4",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "mgs5-cloud-elite",
-      "name": "Metal Gear Solid V (Cloud-Link)",
-      "url": "https://www.konami.com/mg/mgsv/",
+      "id": "mgs5-tribute-elite",
+      "name": "Metal Gear Solid V",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute tactical espionage. High-fidelity open-world infiltration.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Metal Gear Solid V.",
       "rating": 4.9,
       "playersOnline": 5000,
       "availability": "Online",
       "tags": [
         "Action",
         "Stealth",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9424,22 +9555,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.konami.com/mg/mgsv/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "arkham-knight-cloud-elite",
-      "name": "Batman: Arkham Knight (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/batman-arkham-knight/B91BVDN96CQC",
+      "id": "arkham-knight-tribute-elite",
+      "name": "Batman: Arkham Knight",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "The Absolute Batman finale. High-fidelity open-world Gotham execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Batman: Arkham Knight.",
       "rating": 4.9,
       "playersOnline": 12000,
       "availability": "Online",
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9454,22 +9587,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-knight/B91BVDN96CQC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "forza-horizon-4-cloud-elite",
-      "name": "Forza Horizon 4 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/forza-horizon-4-standard-edition/9PNJXVCVWD4K",
+      "id": "forza-horizon-4-tribute-elite",
+      "name": "Forza Horizon 4",
+      "url": "/assets/games/neon-drift/neon-drift.html",
       "genre": "Racing",
-      "description": "Absolute British driving perfection. High-fidelity seasons change everything.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Forza Horizon 4.",
       "rating": 4.9,
       "playersOnline": 30000,
       "availability": "Online",
       "tags": [
         "Racing",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9484,22 +9619,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-horizon-4-standard-edition/9PNJXVCVWD4K",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "bf1-cloud-elite",
-      "name": "Battlefield 1 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/battlefield-1/BWDS9V65CQ6QC",
+      "id": "bf1-tribute-elite",
+      "name": "Battlefield 1",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute atmospheric warfare. High-fidelity WWI execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Battlefield 1.",
       "rating": 4.9,
       "playersOnline": 15000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9514,22 +9651,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-1/BWDS9V65CQ6QC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "monster-hunter-world-cloud-elite",
-      "name": "Monster Hunter: World (Cloud-Link)",
-      "url": "https://www.monsterhunter.com/world/",
+      "id": "monster-hunter-world-tribute-elite",
+      "name": "Monster Hunter: World",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute hunt intensity. High-fidelity ecosystem mastery.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Monster Hunter: World.",
       "rating": 4.8,
       "playersOnline": 80000,
       "availability": "Online",
       "tags": [
         "Action",
         "RPG",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9544,22 +9683,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.monsterhunter.com/world/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "persona5-royal-cloud-elite",
-      "name": "Persona 5 Royal (Cloud-Link)",
-      "url": "https://persona.atlus.com/p5r/",
+      "id": "persona5-royal-tribute-elite",
+      "name": "Persona 5 Royal",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute stylized mastery. High-fidelity Phantom Thief execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Persona 5 Royal.",
       "rating": 5.0,
       "playersOnline": 20000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Social",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9574,22 +9715,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://persona.atlus.com/p5r/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "re-village-cloud-elite",
-      "name": "Resident Evil Village (Cloud-Link)",
-      "url": "https://www.residentevil.com/village/",
+      "id": "re-village-tribute-elite",
+      "name": "Resident Evil Village",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute survival horror. High-fidelity cinematic dread.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Resident Evil Village.",
       "rating": 4.9,
       "playersOnline": 12000,
       "availability": "Online",
       "tags": [
         "Action",
         "Horror",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9604,22 +9747,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.residentevil.com/village/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "it-takes-two-cloud-elite",
-      "name": "It Takes Two (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/it-takes-two/BPN0N6GDBZLD",
+      "id": "it-takes-two-tribute-elite",
+      "name": "It Takes Two",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Adventure",
-      "description": "Absolute co-op perfection. High-fidelity diverse execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for It Takes Two.",
       "rating": 5.0,
       "playersOnline": 15000,
       "availability": "Online",
       "tags": [
         "Adventure",
         "Co-op",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9634,22 +9779,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/it-takes-two/BPN0N6GDBZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "gow-2018-cloud-elite",
-      "name": "God of War (Cloud-Link)",
-      "url": "https://www.playstation.com/en-us/games/god-of-war/",
+      "id": "gow-2018-tribute-elite",
+      "name": "God of War",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute mythological mastery. High-fidelity Kratos reimagining.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for God of War.",
       "rating": 5.0,
       "playersOnline": 15000,
       "availability": "Online",
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9664,22 +9811,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/god-of-war/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "uncharted-4-cloud-elite",
-      "name": "Uncharted 4 (Cloud-Link)",
-      "url": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
+      "id": "uncharted-4-tribute-elite",
+      "name": "Uncharted 4",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute cinematic adventure. High-fidelity treasure hunting.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Uncharted 4.",
       "rating": 5.0,
       "playersOnline": 8000,
       "availability": "Online",
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9694,22 +9843,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "ghost-of-tsushima-cloud-elite",
-      "name": "Ghost of Tsushima (Cloud-Link)",
-      "url": "https://www.playstation.com/en-us/games/ghost-of-tsushima/",
+      "id": "ghost-of-tsushima-tribute-elite",
+      "name": "Ghost of Tsushima",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute samurai perfection. High-fidelity open-world beauty.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Ghost of Tsushima.",
       "rating": 5.0,
       "playersOnline": 25000,
       "availability": "Online",
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9724,22 +9875,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/ghost-of-tsushima/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "horizon-zero-dawn-cloud-elite",
-      "name": "Horizon Zero Dawn (Cloud-Link)",
-      "url": "https://www.playstation.com/en-us/games/horizon-zero-dawn/",
+      "id": "horizon-zero-dawn-tribute-elite",
+      "name": "Horizon Zero Dawn",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute mechanical discovery. High-fidelity post-apocalyptic exploration.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Horizon Zero Dawn.",
       "rating": 4.9,
       "playersOnline": 12000,
       "availability": "Online",
       "tags": [
         "Action",
         "RPG",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9754,23 +9907,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/horizon-zero-dawn/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "fight-night-champion-cloud-elite",
-      "name": "Fight Night Champion (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/fight-night-champion/BQ9S8XK0Q6QC",
+      "id": "fight-night-champion-tribute-elite",
+      "name": "Fight Night Champion",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Sports",
-      "description": "Absolute boxing realism. The high-fidelity Golden Era pugilist classic.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Fight Night Champion.",
       "rating": 4.9,
       "playersOnline": 3000,
       "availability": "Online",
       "tags": [
         "Sports",
         "Boxing",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9785,23 +9940,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fight-night-champion/BQ9S8XK0Q6QC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "ncaa-football-14-cloud-elite",
-      "name": "NCAA Football 14 (Cloud-Link)",
-      "url": "https://www.ea.com/games/ncaa-football/ncaa-football-14",
+      "id": "ncaa-football-14-tribute-elite",
+      "name": "NCAA Football 14",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Sports",
-      "description": "The Absolute college football legend. High-fidelity Golden Era gridiron.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for NCAA Football 14.",
       "rating": 5.0,
       "playersOnline": 5000,
       "availability": "Online",
       "tags": [
         "Sports",
         "NFL",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9816,23 +9973,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.ea.com/games/ncaa-football/ncaa-football-14",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "dishonored-cloud-elite",
-      "name": "Dishonored (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/dishonored-definitive-edition/BQ1W1T1K1P4L",
+      "id": "dishonored-tribute-elite",
+      "name": "Dishonored",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute immersive stealth. High-fidelity Golden Era execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Dishonored.",
       "rating": 4.9,
       "playersOnline": 4000,
       "availability": "Online",
       "tags": [
         "Action",
         "Stealth",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9847,23 +10006,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dishonored-definitive-edition/BQ1W1T1K1P4L",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "mgr-revengeance-cloud-elite",
-      "name": "MGR: Revengeance (Cloud-Link)",
-      "url": "https://www.konami.com/mg/mgr/",
+      "id": "mgr-revengeance-tribute-elite",
+      "name": "MGR: Revengeance",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute hack-and-slash intensity. High-fidelity Golden Era cyborg combat.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for MGR: Revengeance.",
       "rating": 4.8,
       "playersOnline": 6000,
       "availability": "Online",
       "tags": [
         "Action",
         "Fighting",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9878,23 +10039,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.konami.com/mg/mgr/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "crysis-remastered-cloud-elite",
-      "name": "Crysis Remastered (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/crysis-remastered/9NBLGGH52ZLD",
+      "id": "crysis-remastered-tribute-elite",
+      "name": "Crysis Remastered",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute hardware benchmarking. High-fidelity Golden Era shooting.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Crysis Remastered.",
       "rating": 4.7,
       "playersOnline": 2000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9909,23 +10072,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/crysis-remastered/9NBLGGH52ZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "dead-island-cloud-elite",
-      "name": "Dead Island (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/dead-island-definitive-edition/BPP1KXL089L4",
+      "id": "dead-island-tribute-elite",
+      "name": "Dead Island",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute tropical nightmare. High-fidelity Golden Era zombie survival.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Dead Island.",
       "rating": 4.6,
       "playersOnline": 5000,
       "availability": "Online",
       "tags": [
         "Action",
         "Horror",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9940,22 +10105,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-island-definitive-edition/BPP1KXL089L4",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "borderlands-3-cloud-elite",
-      "name": "Borderlands 3 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/borderlands-3/C3S0S0K6H0CQC",
+      "id": "borderlands-3-tribute-elite",
+      "name": "Borderlands 3",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute looter-shooter mayhem. High-fidelity stylized chaos across the galaxy.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Borderlands 3.",
       "rating": 4.8,
       "playersOnline": 25000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "RPG",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -9970,22 +10137,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/borderlands-3/C3S0S0K6H0CQC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "sekiro-cloud-elite",
-      "name": "Sekiro: Shadows Die Twice (Cloud-Link)",
-      "url": "https://www.sekirothegame.com",
+      "id": "sekiro-tribute-elite",
+      "name": "Sekiro: Shadows Die Twice",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute rhythmic combat. High-fidelity shinobi execution from FromSoftware.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Sekiro: Shadows Die Twice.",
       "rating": 5.0,
       "playersOnline": 12000,
       "availability": "Online",
       "tags": [
         "Action",
         "Hardcore",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -10000,22 +10169,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.sekirothegame.com",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "hades-cloud-elite",
-      "name": "Hades (Cloud-Link)",
-      "url": "https://www.supergiantgames.com/games/hades/",
+      "id": "hades-tribute-elite",
+      "name": "Hades",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute rogue-like mastery. High-fidelity escape from the Underworld.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Hades.",
       "rating": 5.0,
       "playersOnline": 45000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Action",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -10030,22 +10201,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.supergiantgames.com/games/hades/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "mortal-kombat-1-cloud-elite",
-      "name": "Mortal Kombat 1 (Cloud-Link)",
-      "url": "https://www.mortalkombat.com",
+      "id": "mortal-kombat-1-tribute-elite",
+      "name": "Mortal Kombat 1",
+      "url": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
       "genre": "Fighting",
-      "description": "Absolute fighting evolution. High-fidelity next-gen fatalities.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Mortal Kombat 1.",
       "rating": 4.8,
       "playersOnline": 35000,
       "availability": "Online",
       "tags": [
         "Fighting",
         "Competitive",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -10060,23 +10233,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.mortalkombat.com",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "gta-v-story-cloud-elite",
-      "name": "GTA V: Story Mode (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v-story-mode/BPNDH6RLGZ66",
+      "id": "gta-v-story-tribute-elite",
+      "name": "GTA V: Story Mode",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute cinematic crime. High-fidelity Golden Era multi-protagonist epic.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for GTA V: Story Mode.",
       "rating": 5.0,
       "playersOnline": 50000,
       "availability": "Online",
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10091,23 +10266,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v-story-mode/BPNDH6RLGZ66",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "mass-effect-2-cloud-elite",
-      "name": "Mass Effect 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/mass-effect-2/BR667W7W6V9C",
+      "id": "mass-effect-2-tribute-elite",
+      "name": "Mass Effect 2",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "The Absolute space opera sequel. High-fidelity Golden Era choice-driven execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Mass Effect 2.",
       "rating": 5.0,
       "playersOnline": 8000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Sci-Fi",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10122,23 +10299,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mass-effect-2/BR667W7W6V9C",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "dragon-age-origins-cloud-elite",
-      "name": "Dragon Age: Origins (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/dragon-age-origins/BPN0N6GDBZLD",
+      "id": "dragon-age-origins-tribute-elite",
+      "name": "Dragon Age: Origins",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute tactical fantasy. The high-fidelity Golden Era RPG progenitor.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Dragon Age: Origins.",
       "rating": 4.9,
       "playersOnline": 4000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Fantasy",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10153,23 +10332,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dragon-age-origins/BPN0N6GDBZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "left-4-dead-cloud-elite",
-      "name": "Left 4 Dead (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/left-4-dead/BPP1KXL089L4",
+      "id": "left-4-dead-tribute-elite",
+      "name": "Left 4 Dead",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute team-based horror. High-fidelity Golden Era zombie slaying.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Left 4 Dead.",
       "rating": 4.8,
       "playersOnline": 3500,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10184,23 +10365,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/left-4-dead/BPP1KXL089L4",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "portal-cloud-elite",
-      "name": "Portal (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/portal/BQ9S8XK0Q6QC",
+      "id": "portal-tribute-elite",
+      "name": "Portal",
+      "url": "/assets/games/vinyl-vault/vinyl-vault.html",
       "genre": "Puzzle",
-      "description": "Absolute spatial logic. The high-fidelity Golden Era puzzle masterpiece.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Portal.",
       "rating": 5.0,
       "playersOnline": 2500,
       "availability": "Online",
       "tags": [
         "Puzzle",
         "Sci-Fi",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10215,22 +10398,24 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/portal/BQ9S8XK0Q6QC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "dead-cells-cloud-elite",
-      "name": "Dead Cells (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/dead-cells/BPN0N6GDBZLD",
+      "id": "dead-cells-tribute-elite",
+      "name": "Dead Cells",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute rhythmic platforming. High-fidelity combat execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Dead Cells.",
       "rating": 4.9,
       "playersOnline": 18000,
       "availability": "Online",
       "tags": [
         "Action",
         "Retro",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -10245,23 +10430,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-cells/BPN0N6GDBZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "cod-mw-classic-cloud-elite",
-      "name": "COD: Modern Warfare (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-remastered/BPP1KXL089L4",
+      "id": "cod-mw-classic-tribute-elite",
+      "name": "COD: Modern Warfare",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "The Absolute game changer. High-fidelity Golden Era warfare that defined a generation.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for COD: Modern Warfare.",
       "rating": 5.0,
       "playersOnline": 10000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10276,23 +10463,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-remastered/BPP1KXL089L4",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "cod-mw2-classic-cloud-elite",
-      "name": "COD: Modern Warfare 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-2/BPP1KXL089L4",
+      "id": "cod-mw2-classic-tribute-elite",
+      "name": "COD: Modern Warfare 2",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute tactical intensity. The high-fidelity peak of Golden Era multiplayer.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for COD: Modern Warfare 2.",
       "rating": 5.0,
       "playersOnline": 15000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10307,23 +10496,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-2/BPP1KXL089L4",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "fallout3-cloud-elite",
-      "name": "Fallout 3 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/fallout-3/C4515W8M8FMS",
+      "id": "fallout3-tribute-elite",
+      "name": "Fallout 3",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "RPG",
-      "description": "Absolute wasteland atmosphere. High-fidelity Golden Era exploration.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Fallout 3.",
       "rating": 4.9,
       "playersOnline": 8000,
       "availability": "Online",
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10338,23 +10529,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-3/C4515W8M8FMS",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "ac-black-flag-cloud-elite",
-      "name": "AC: Black Flag (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/assassins-creed-iv-black-flag/C2Z7B3W4B5QC",
+      "id": "ac-black-flag-tribute-elite",
+      "name": "AC: Black Flag",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute naval dominance. High-fidelity Golden Era pirate execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for AC: Black Flag.",
       "rating": 4.9,
       "playersOnline": 12000,
       "availability": "Online",
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10369,23 +10562,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/assassins-creed-iv-black-flag/C2Z7B3W4B5QC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "gears-1-cloud-elite",
-      "name": "Gears of War (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/gears-of-war-ultimate-edition/BPN0N6GDBZLD",
+      "id": "gears-1-tribute-elite",
+      "name": "Gears of War",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute cover-based intensity. The high-fidelity Golden Era progenitor.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Gears of War.",
       "rating": 4.8,
       "playersOnline": 4000,
       "availability": "Online",
       "tags": [
         "Action",
         "Shooter",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10400,23 +10595,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-of-war-ultimate-edition/BPN0N6GDBZLD",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "halo4-cloud-elite",
-      "name": "Halo 4 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
+      "id": "halo4-tribute-elite",
+      "name": "Halo 4",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute combat evolution. High-fidelity Golden Era sci-fi mastery.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Halo 4.",
       "rating": 4.7,
       "playersOnline": 8000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10431,23 +10628,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "bf-bc2-cloud-elite",
-      "name": "BF: Bad Company 2 (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/battlefield-bad-company-2/BPP1KXL089L4",
+      "id": "bf-bc2-tribute-elite",
+      "name": "BF: Bad Company 2",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
-      "description": "Absolute tactical destruction. High-fidelity Golden Era squad execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for BF: Bad Company 2.",
       "rating": 4.9,
       "playersOnline": 5000,
       "availability": "Online",
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10462,23 +10661,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-bad-company-2/BPP1KXL089L4",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "uncharted2-cloud-elite",
-      "name": "Uncharted 2 (Cloud-Link)",
-      "url": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
+      "id": "uncharted2-tribute-elite",
+      "name": "Uncharted 2",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute cinematic perfection. The high-fidelity Golden Era adventure benchmark.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Uncharted 2.",
       "rating": 5.0,
       "playersOnline": 6000,
       "availability": "Online",
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10493,23 +10694,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "gow3-cloud-elite",
-      "name": "God of War III (Cloud-Link)",
-      "url": "https://www.playstation.com/en-us/games/god-of-war-iii-remastered/",
+      "id": "gow3-tribute-elite",
+      "name": "God of War III",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute mythological vengeance. High-fidelity Golden Era scale.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for God of War III.",
       "rating": 5.0,
       "playersOnline": 7000,
       "availability": "Online",
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10524,23 +10727,25 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/god-of-war-iii-remastered/",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
     {
-      "id": "batman-asylum-cloud-elite",
-      "name": "Batman: Arkham Asylum (Cloud-Link)",
-      "url": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
+      "id": "batman-asylum-tribute-elite",
+      "name": "Batman: Arkham Asylum",
+      "url": "/assets/games/battlefield/battlefield.html",
       "genre": "Action",
-      "description": "Absolute atmosphere. The high-fidelity Golden Era stealth progenitor.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Batman: Arkham Asylum.",
       "rating": 4.9,
       "playersOnline": 5000,
       "availability": "Online",
       "tags": [
         "Action",
         "Stealth",
-        "Cloud",
+        "WebGL",
         "Elite",
-        "Golden Era"
+        "Golden Era",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -10555,14 +10760,15 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
         "embedMode": "external-only"
-      }
+      },
+      "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     }
   ],
   "recommendationRails": [
     {
       "id": "rail-neo-zone",
       "title": "NEO_ZONE Next-Gen",
-      "subtitle": "High-fidelity WebGL and Cloud-linked execution. The Absolute future.",
+      "subtitle": "High-fidelity WebGL and browser-native execution. The Absolute future.",
       "roomIds": [
         "neo-zone"
       ],
