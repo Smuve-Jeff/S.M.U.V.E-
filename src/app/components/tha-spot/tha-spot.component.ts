@@ -180,9 +180,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   filteredMessages = computed(() => {
     const targetId = this.dmTargetUserId();
     const myId = this.profileService.profile().id;
-    if (!targetId) return [];
+    if (!targetId || !myId) return [];
     return this.messages().filter(m =>
-      (m.fromUserId === targetId) || (m.toUserId === targetId)
+      (m.fromUserId === targetId && m.toUserId === myId) ||
+      (m.fromUserId === myId && m.toUserId === targetId)
     );
   });
   isCallActive = this.peerService.isCallActive;
