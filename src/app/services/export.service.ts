@@ -84,6 +84,10 @@ export class ExportService {
   }
 
   private async realTimeBounce(duration: number) {
+    if (this.engine.isPlaying()) {
+      throw new Error('WAV export requires playback to be stopped before starting the bounce.');
+    }
+
     const { recorder, result } = this.startLiveRecording();
     this.engine.start();
 
