@@ -117,6 +117,7 @@ export class SocialNetworkingService {
       } else {
         this.onlineUsers.set(users.filter(u => u.userId !== userId && u.artistName !== 'Incognito'));
       }
+      this.onlineUsers.set(Array.isArray(users) ? users.filter(u => u?.userId !== userId) : []);
     });
 
     this.socket.on('private_message', (data: any) => {
