@@ -10564,7 +10564,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "rail-neo-zone",
       "title": "NEO_ZONE Next-Gen",
-      "subtitle": "High-fidelity cloud streaming and elite execution. The Absolute future.",
+      "subtitle": "High-fidelity WebGL and Cloud-linked execution. The Absolute future.",
       "roomIds": [
         "neo-zone"
       ],
