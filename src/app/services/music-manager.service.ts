@@ -253,18 +253,23 @@ export class MusicManagerService {
     const stepInBar = step % 16;
     const isOffbeat = stepInBar % 2 !== 0;
     const drumTrack = this.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID);
-    const swingOffset = isOffbeat ? (drumTrack as any)?.swingAmount || 0 : 0;
+    const rawSwing = (drumTrack as any)?.swingAmount ?? 0;
+    const clampedSwing = Math.max(0, Math.min(1, rawSwing));
+    const swingOffset = isOffbeat ? clampedSwing : 0;
     const swungTime = time + (swingOffset * duration * 0.5);
 
     this.tracks().forEach(t => {
       if (t.muted) return;
+
+      const isDrumTrack = t.id === MusicManagerService.DRUM_TRACK_ID;
+      const effectiveTime = isDrumTrack ? swungTime : time;
 
       t.clips.forEach(clip => {
         if (bar >= clip.start && bar < clip.start + clip.length) {
           t.notes.filter(n => Math.floor(n.step) === step % 64).forEach(n => {
              if (n.probability === undefined || Math.random() < n.probability) {
                 const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
-                this.engine.triggerAttack(t.id, freq, swungTime, n.velocity, n.length * duration, t.gain, t.pan, 0, 0, t.synthParams);
+                this.engine.triggerAttack(t.id, freq, effectiveTime, n.velocity, n.length * duration, t.gain, t.pan, 0, 0, t.synthParams);
              }
           });
 
@@ -272,7 +277,7 @@ export class MusicManagerService {
              const audioData = (clip as any).audioData;
              if (audioData) {
                 const rate = this.engine.calculatePlaybackRate((clip as any).originalBpm || this.engine.tempo());
-                this.engine.triggerSampler(t.id, audioData, swungTime, t.gain, t.pan, clip.length * 4 * (60/this.engine.tempo()), rate);
+                this.engine.triggerSampler(t.id, audioData, time, t.gain, t.pan, clip.length * 4 * (60/this.engine.tempo()), rate);
              }
           }
         }
