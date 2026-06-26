@@ -227,6 +227,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     return this.highDensity() ? stepIdx : stepIdx + (this.currentBar() * 16);
   }
 
+  }
+
+  }
+
   randomizeAll() {
      this.clearDrumPattern();
      this.pads().forEach(p => {
@@ -239,6 +243,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   updatePadParam(padId: string, param: string, value: number) {
     this.pads.update(ps => ps.map(p => p.id === padId ? { ...p, params: { ...p.params, [param]: value } } : p));
     this.haptic.light();
+
+  }
   }
 
   triggerPad(pad: DrumPad) {
@@ -259,6 +265,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
        const arrayBuffer = await file.arrayBuffer();
        const audioBuffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
        this.pads.update(ps => ps.map(p => p.id === this.selectedPadId() ? { ...p, sampleBuffer: audioBuffer, name: file.name.split('.')[0].toUpperCase().substring(0, 8) } : p));
+
+  }
        this.haptic.medium();
     }
   }

@@ -118,6 +118,16 @@
                  [style.height.%]="getPadStep(selectedPadId(), resolvedStep(stepIdx)).velocity * 100"></div>
 
             <span class="step-num absolute top-1 left-1 text-[6px] font-black opacity-20">{{ resolvedStep(stepIdx) + 1 }}</span>
+               [class.active-step]="getPadStep(selectedPadId(), highDensity() ? stepIdx : stepIdx + (currentBar() * 16)).active"
+               [class.current-step]="isGlobalStep(highDensity() ? stepIdx : stepIdx + (currentBar() * 16))"
+               [style.background-color]="getPadStep(selectedPadId(), highDensity() ? stepIdx : stepIdx + (currentBar() * 16)).active ? (selectedPad()?.color || '#af25f4') : 'rgba(255,255,255,0.02)'"
+               [style.border-color]="getPadStep(selectedPadId(), highDensity() ? stepIdx : stepIdx + (currentBar() * 16)).active ? (selectedPad()?.color || '#af25f4') : 'rgba(255,255,255,0.05)'"
+               (click)="toggleStep(selectedPadId(), highDensity() ? stepIdx : stepIdx + (currentBar() * 16))">
+
+            <div class="velocity-fill absolute bottom-0 inset-x-0 bg-white/20 pointer-events-none transition-all"
+                 [style.height.%]="getPadStep(selectedPadId(), highDensity() ? stepIdx : stepIdx + (currentBar() * 16)).velocity * 100"></div>
+
+            <span class="step-num absolute top-1 left-1 text-[6px] font-black opacity-20">{{ highDensity() ? stepIdx + 1 : stepIdx + 1 + (currentBar() * 16) }}</span>
           </div>
         </div>
 
