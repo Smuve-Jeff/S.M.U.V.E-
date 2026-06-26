@@ -110,15 +110,18 @@ export class LiveEngineService {
           release: config.release,
         },
       });
-      this.filterNode = new Tone.Filter(config.cutoff || 2000, 'lowpass').connect(Tone.getDestination());
-      this.currentInstrumentNode.connect(this.filterNode);
+      this.connectThroughFilter(config.cutoff || 2000);
     } else if (preset.type === 'sample' && preset.zones?.length) {
       const sampleMap: any = {};
       preset.zones.forEach(z => sampleMap[this.midiToNote(z.midiRange[0])] = z.url);
       this.currentInstrumentNode = new Tone.Sampler({ urls: sampleMap, release: 1 });
-      this.filterNode = new Tone.Filter(2000, 'lowpass').connect(Tone.getDestination());
-      this.currentInstrumentNode.connect(this.filterNode);
+      this.connectThroughFilter(2000);
     }
+  }
+
+  private connectThroughFilter(cutoff: number) {
+    this.filterNode = new Tone.Filter(cutoff, 'lowpass').connect(Tone.getDestination());
+    this.currentInstrumentNode!.connect(this.filterNode);
   }
 
   triggerNoteStart(midi: number, velocity: number = 0.8) {
@@ -134,7 +137,7 @@ export class LiveEngineService {
     this.currentInstrumentNode.triggerRelease(note, Tone.now());
   }
 
-    updateParameter(param: string, value: number) {
+  updateParameter(param: string, value: number) {
     if (!this.currentInstrumentNode) return;
     if (param === 'cutoff' && this.filterNode) this.filterNode.frequency.value = value;
     if (param === 'resonance' && this.filterNode) this.filterNode.Q.value = value;

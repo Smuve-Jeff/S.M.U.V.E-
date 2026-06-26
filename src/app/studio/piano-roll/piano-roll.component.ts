@@ -249,22 +249,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   getKeyName(midi: number): string { return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi % 12]; }
   getOctaveLabel(midi: number): string { return Math.floor(midi / 12 - 1).toString(); }
 
-  adjustSelectedVelocityDirect(event: any) {
-    const val = parseFloat(event.target.value);
+  private updateSelectedNotes(patch: Partial<TrackNote>) {
     const trackId = this.selectedTrack()?.id;
     if (!trackId) return;
-    this.selectedNoteIds().forEach(id => {
-      this.musicManager.updateNote(trackId, id, { velocity: val });
-    });
+    this.selectedNoteIds().forEach(id => this.musicManager.updateNote(trackId, id, patch));
+  }
+
+  adjustSelectedVelocityDirect(event: any) {
+    this.updateSelectedNotes({ velocity: parseFloat(event.target.value) });
   }
 
   setSelectedNoteProbability(event: any) {
-    const val = parseFloat(event.target.value);
-    const trackId = this.selectedTrack()?.id;
-    if (!trackId) return;
-    this.selectedNoteIds().forEach(id => {
-       this.musicManager.updateNote(trackId, id, { probability: val });
-    });
+    this.updateSelectedNotes({ probability: parseFloat(event.target.value) });
   }
 
   clearNotes() { if (confirm('Clear pattern?')) this.musicManager.removeNotes(this.selectedTrack()?.id!, this.selectedTrack()?.notes.map(n => n.id)!); }
@@ -274,12 +270,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   arpeggiateNotes() { this.musicManager.arpeggiateTrack(this.selectedTrack()?.id!); }
 
   toggleSelectedSlide() {
-     const track = this.selectedTrack();
-     if (!track) return;
-     const hasSlide = this.hasSelectedSlide();
-     this.selectedNoteIds().forEach(id => {
-        this.musicManager.updateNote(track.id, id, { isSlide: !hasSlide });
-     });
+    this.updateSelectedNotes({ isSlide: !this.hasSelectedSlide() });
   }
 
   hasSelectedSlide() {

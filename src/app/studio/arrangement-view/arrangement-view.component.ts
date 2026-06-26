@@ -95,10 +95,8 @@ export class ArrangementViewComponent {
     if (e.key === 'Delete' || e.key === 'Backspace') {
       if (this.selectedClipIds().size > 0) {
         this.selectedClipIds().forEach(id => {
-          const track = this.tracks().find(t => t.clips.some(c => c.id === id));
-          if (track) {
-            this.musicManager.removeClip(track.id, id);
-          }
+          const track = this.findClipTrack(id);
+          if (track) this.musicManager.removeClip(track.id, id);
         });
         this.selectedClipIds().clear();
         this.haptic.medium();
@@ -126,10 +124,9 @@ export class ArrangementViewComponent {
 
       const originalStarts = new Map<string, number>();
       this.selectedClipIds().forEach(id => {
-        this.tracks().forEach(t => {
-          const c = t.clips.find(clip => clip.id === id);
-          if (c) originalStarts.set(id, c.start);
-        });
+        const track = this.findClipTrack(id);
+        const c = track?.clips.find(clip => clip.id === id);
+        if (c) originalStarts.set(id, c.start);
       });
 
       this.draggingClip = { trackId, clipId: clip.id, startX: e.clientX, startY: e.clientY, originalStarts, offsetBars: 0, clipData: clip };
@@ -145,13 +142,11 @@ export class ArrangementViewComponent {
       if (this.snapEnabled()) dbars = Math.round(dbars * 4) / 4;
 
       this.selectedClipIds().forEach(id => {
-         this.tracks().forEach(t => {
-            const clip = t.clips.find(c => c.id === id);
-            if (clip && this.draggingClip?.originalStarts.has(id)) {
-               const original = this.draggingClip.originalStarts.get(id)!;
-               this.musicManager.updateClip(t.id, clip.id, { start: Math.max(0, original + dbars) });
-            }
-         });
+        const track = this.findClipTrack(id);
+        if (track && this.draggingClip?.originalStarts.has(id)) {
+          const original = this.draggingClip.originalStarts.get(id)!;
+          this.musicManager.updateClip(track.id, id, { start: Math.max(0, original + dbars) });
+        }
       });
     } else if (this.resizingClip) {
       const dx = e.clientX - this.resizingClip.startX;
@@ -183,6 +178,10 @@ export class ArrangementViewComponent {
     }
   }
 
+  private findClipTrack(clipId: string): TrackModel | undefined {
+    return this.tracks().find(t => t.clips.some(c => c.id === clipId));
+  }
+
   clipLabel(track: TrackModel, clip: TrackClip): string { return clip.name || track.name; }
   calculateGhostNotes(clip: TrackClip): any[] {
     if (!clip.notes) return [];
@@ -194,7 +193,8 @@ export class ArrangementViewComponent {
   splitAtPlayhead() {
     const bar = this.musicManager.currentStep() / 16;
     this.selectedClipIds().forEach(id => {
-      this.tracks().forEach(t => { if (t.clips.find(c => c.id === id)) this.musicManager.splitClip(t.id, id, bar); });
+      const track = this.findClipTrack(id);
+      if (track) this.musicManager.splitClip(track.id, id, bar);
     });
   }
   async bounceSelected() { const tid = this.musicManager.selectedTrackId(); if (tid) await this.musicManager.bounceTrack(tid); }
@@ -205,15 +205,13 @@ export class ArrangementViewComponent {
   duplicateSelected() {
     const newSelection = new Set<string>();
     this.selectedClipIds().forEach(id => {
-       this.tracks().forEach(t => {
-         const clip = t.clips.find(c => c.id === id);
-         if (clip) {
-           const newId = 'clip_' + Date.now() + Math.random();
-           const newClip = { ...clip, id: newId, start: clip.start + clip.length };
-           this.musicManager.addClipToTrack(t.id, newClip);
-           newSelection.add(newId);
-         }
-       });
+      const track = this.findClipTrack(id);
+      const clip = track?.clips.find(c => c.id === id);
+      if (track && clip) {
+        const newId = 'clip_' + Date.now() + Math.random();
+        this.musicManager.addClipToTrack(track.id, { ...clip, id: newId, start: clip.start + clip.length });
+        newSelection.add(newId);
+      }
     });
     this.selectedClipIds.set(newSelection);
     this.haptic.medium();
