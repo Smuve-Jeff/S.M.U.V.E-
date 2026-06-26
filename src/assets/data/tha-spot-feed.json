@@ -474,6 +474,7 @@
     {
       "id": "cyberpunk-2077-tribute",
       "name": "Cyberpunk 2077",
+      "url": "/assets/games/battlefield/battlefield.html",
       "url": "/assets/games/neon-drift/neon-drift.html",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Cyberpunk 2077.",
       "genre": "RPG",
@@ -493,6 +494,7 @@
       ],
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
+        "embedMode": "external-only"
         "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       },
@@ -501,6 +503,7 @@
     {
       "id": "elden-ring-tribute",
       "name": "Elden Ring",
+      "url": "/assets/games/battlefield/battlefield.html",
       "url": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Elden Ring.",
       "genre": "RPG",
@@ -520,6 +523,7 @@
       ],
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
+        "embedMode": "external-only"
         "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
@@ -548,6 +552,7 @@
       ],
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
+        "embedMode": "external-only"
         "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
@@ -8750,6 +8755,7 @@
       "image": "assets/games/sf6-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.streetfighter.com/6/",
+        "embedMode": "external-only"
         "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
@@ -8783,6 +8789,7 @@
       "image": "assets/games/tekken8-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://en.bandainamcoent.eu/tekken/tekken-8",
+        "embedMode": "external-only"
         "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
@@ -9283,6 +9290,7 @@
     {
       "id": "sea-of-stars-tribute-elite",
       "name": "Sea of Stars",
+      "url": "/assets/games/battlefield/battlefield.html",
       "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Sea of Stars.",
@@ -9727,6 +9735,7 @@
     {
       "id": "persona5-royal-tribute-elite",
       "name": "Persona 5 Royal",
+      "url": "/assets/games/battlefield/battlefield.html",
       "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Persona 5 Royal.",
@@ -9793,6 +9802,7 @@
     {
       "id": "it-takes-two-tribute-elite",
       "name": "It Takes Two",
+      "url": "/assets/games/battlefield/battlefield.html",
       "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "Adventure",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for It Takes Two.",
@@ -10154,6 +10164,7 @@
     {
       "id": "borderlands-3-tribute-elite",
       "name": "Borderlands 3",
+      "url": "/assets/games/battlefield/battlefield.html",
       "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Borderlands 3.",
@@ -10212,6 +10223,7 @@
       "image": "assets/games/sekiro-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.sekirothegame.com",
+        "embedMode": "external-only"
         "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
@@ -10220,6 +10232,7 @@
     {
       "id": "hades-tribute-elite",
       "name": "Hades",
+      "url": "/assets/games/battlefield/battlefield.html",
       "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Hades.",
