@@ -276,15 +276,20 @@ export class AudioEngineService {
 
   async loadDeck(id: DeckId, buffer: AudioBuffer) {
     const deck = this.getDeck(id);
+    const loadVersion = ++deck.loadVersion;
     this.stopDeck(id);
     deck.buffer = buffer;
     deck.pauseOffset = 0;
     deck.stems = null;
     try {
-      deck.stems = await this.stemSeparationService.separate(buffer);
+      const stems = await this.stemSeparationService.separate(buffer);
+      if (deck.loadVersion === loadVersion) {
+        deck.stems = stems;
+      }
     } catch (e) {
       this.logger.error('Stem separation failed', e);
     }
+  }
   }
 
   playDeck(id: DeckId) {
