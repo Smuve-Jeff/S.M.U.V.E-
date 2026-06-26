@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { ExportService } from '../../services/export.service';
 
 @Component({
   selector: 'app-transport-bar',
@@ -14,6 +15,8 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 export class TransportBarComponent {
   private readonly audioSession = inject(AudioSessionService);
   readonly audioEngine = inject(AudioEngineService);
+  private readonly exportService = inject(ExportService);
+  isExporting = signal(false);
 
   isPlaying = this.audioSession.isPlaying;
   isRecording = this.audioSession.isRecording;
@@ -61,6 +64,15 @@ export class TransportBarComponent {
     const val = parseInt((event.target as HTMLInputElement).value, 10);
     if (!isNaN(val) && val >= 20 && val <= 300) {
       this.audioEngine.tempo.set(val);
+    }
+  }
+
+  async exportWav() {
+    this.isExporting.set(true);
+    try {
+      await this.exportService.exportProjectWav();
+    } finally {
+      this.isExporting.set(false);
     }
   }
 

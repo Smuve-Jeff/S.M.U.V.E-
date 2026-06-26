@@ -241,7 +241,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     });
   }
 
-  quantizeNotes() { this.musicManager.quantizeTrack(this.selectedTrack()?.id!); }
+  quantizeNotes() {
+    const ids = Array.from(this.selectedNoteIds());
+    this.musicManager.quantizeTrack(this.selectedTrack()?.id!, ids.length > 0 ? ids : undefined);
+  }
   duplicateSelected() { this.musicManager.duplicateNotes(this.selectedTrack()?.id!, Array.from(this.selectedNoteIds()), 4); }
   isBlackKey(midi: number): boolean { return [1, 3, 6, 8, 10].includes(midi % 12); }
   getKeyName(midi: number): string { return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi % 12]; }
@@ -258,9 +261,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   clearNotes() { if (confirm('Clear pattern?')) this.musicManager.removeNotes(this.selectedTrack()?.id!, this.selectedTrack()?.notes.map(n => n.id)!); }
   setEditMode(mode: any) { this.editMode.set(mode); }
-  humanizeNotes() { this.musicManager.humanizeTrack(this.selectedTrack()?.id!); }
-  strumNotes() { this.musicManager.strumTrack(this.selectedTrack()?.id!); }
-  arpeggiateNotes() { this.musicManager.arpeggiateTrack(this.selectedTrack()?.id!); }
+  humanizeNotes() {
+    const ids = Array.from(this.selectedNoteIds());
+    this.musicManager.humanizeTrack(this.selectedTrack()?.id!, ids.length > 0 ? ids : undefined);
+  }
+  strumNotes() {
+    const ids = Array.from(this.selectedNoteIds());
+    this.musicManager.strumTrack(this.selectedTrack()?.id!, ids.length > 0 ? ids : undefined);
+  }
+  arpeggiateNotes() {
+    const ids = Array.from(this.selectedNoteIds());
+    this.musicManager.arpeggiateTrack(this.selectedTrack()?.id!, ids.length > 0 ? ids : undefined);
+  }
 
   toggleSelectedSlide() {
      const track = this.selectedTrack();

@@ -2,6 +2,7 @@ import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MusicManagerService, TrackModel } from '../../services/music-manager.service';
+import { AiService } from '../../services/ai.service';
 
 @Component({
   selector: 'app-track-inspector',
@@ -12,6 +13,7 @@ import { MusicManagerService, TrackModel } from '../../services/music-manager.se
 })
 export class TrackInspectorComponent {
   public musicManager = inject(MusicManagerService);
+  private aiService = inject(AiService);
   showAdvanced = signal(false);
 
   toggleAdvanced() {
@@ -28,6 +30,33 @@ export class TrackInspectorComponent {
     const track = this.selectedTrack();
     if (!track) return;
     this.musicManager.updateSynthParams(track.id, { [key]: value });
+  }
+
+  async generatePattern() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const pattern = await this.aiService.generateDrumPattern(track.instrumentId.includes('trap') ? 'Trap' : 'Electronic');
+    this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? { ...t, steps: pattern } : t));
+  }
+
+  async generateChords() {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const chordMidis = await this.aiService.generateChordProgression('C', 'minor');
+    chordMidis.forEach((midi, i) => {
+      this.musicManager.addNoteToTrack(track.id, {
+        id: `ai_chord_${Date.now()}_${i}`,
+        midi,
+        step: i * 16,
+        length: 4,
+        velocity: 0.8
+      });
+    });
+  }
+
+  getSmartAdvice() {
+    const advice = this.aiService.getSmartMixAdvice(this.musicManager.tracks());
+    alert(advice);
   }
 
   getParam(key: string): any {

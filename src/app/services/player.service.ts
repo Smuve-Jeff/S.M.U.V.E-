@@ -174,13 +174,13 @@ export class PlayerService implements OnDestroy {
     }
   }
 
-  exportCurrent() {
+  async exportCurrent() {
     if (typeof window === 'undefined' || typeof document === 'undefined')
       return;
 
     const buffer = this.audioEngine.getDeck('A').buffer;
     if (!buffer) return;
-    const wavBuffer = this.exportService.audioBufferToWav(buffer);
+    const wavBuffer = await this.exportService.audioBufferToWav(buffer);
     const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
     const url = URL.createObjectURL(wavBlob);
     const a = document.createElement('a');
