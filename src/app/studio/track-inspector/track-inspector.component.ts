@@ -50,9 +50,12 @@ export class TrackInspectorComponent {
     });
   }
 
+  smartAdvice = signal<string | null>(null);
+
   getSmartAdvice() {
-    const advice = this.aiService.getSmartMixAdvice(this.musicManager.tracks());
-    alert(advice);
+    this.smartAdvice.set(
+      this.aiService.getSmartMixAdvice(this.musicManager.tracks()),
+    );
   }
 
   getParam(key: string): any {
