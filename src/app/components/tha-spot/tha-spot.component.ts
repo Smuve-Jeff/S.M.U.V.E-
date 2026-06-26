@@ -411,7 +411,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   launchActionLabel(game: Game): string {
-    return game.launchConfig?.embedMode === 'external-only' ? 'OPEN EXTERNALLY' : 'INITIALIZE';
+    return game.launchConfig?.embedMode === 'external-only' ? 'LAUNCH MISSION' : 'PLAY NOW';
   }
 
   getGamesForRail(rail: RecommendationRail): Game[] {

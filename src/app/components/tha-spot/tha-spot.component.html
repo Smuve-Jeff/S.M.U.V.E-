@@ -332,30 +332,52 @@
   </aside>
 
   <!-- Selection Preview Overlay -->
-  <div class="preview-overlay" *ngIf="selectedGame() as selected">
-    <div class="overlay-backdrop" (click)="closePreview()"></div>
-    <div class="preview-card glass-v42-pro holographic-depth shadow-v42-xl animate-enter">
-      <div class="preview-media">
-        <img [src]="selected.image || 'assets/desktop_hub.png'" [alt]="selected.name" />
-      </div>
-      <div class="preview-copy">
-        <div class="preview-header">
-          <span class="tag" *ngIf="selected.badgeIds?.includes('elite')">ELITE CABINET</span>
+  <!-- Full-Screen Launch Mission Page -->
+  <div class="launch-mission-page" *ngIf="selectedGame() as selected" [class.active]="selected">
+    <div class="mission-background" [style.backgroundImage]="'url(' + (selected.image || 'assets/desktop_hub.png') + ')'"></div>
+    <div class="mission-content animate-enter-mission">
+      <div class="mission-header">
+        <div class="mission-id">MISSION_ID: {{ selected.id | uppercase }}</div>
+        <div class="mission-badges">
+          <span class="tag elite" *ngIf="selected.badgeIds?.includes('elite')">ELITE CABINET</span>
           <span class="tag next-gen" *ngIf="selected.badgeIds?.includes('next-gen')">NEXT-GEN</span>
           <span class="tag modern" *ngIf="selected.badgeIds?.includes('modern')">MODERN</span>
-          <h2>{{ selected.name }}</h2>
         </div>
-        <p class="description">{{ selected.description }}</p>
-        <div class="preview-meta">
-          <div class="meta-item"><span class="label">GENRE</span><span class="value">{{ selected.genre }}</span></div>
-          <div class="meta-item"><span class="label">RATING</span><span class="value">{{ selected.rating }}/5.0</span></div>
+        <h1 class="mission-title">{{ selected.name }}</h1>
+      </div>
+
+      <div class="mission-hero-visual">
+        <div class="hero-frame glass-v42-pro shadow-v42-xl">
+          <img [src]="selected.image || 'assets/desktop_hub.png'" [alt]="selected.name" />
+          <div class="scan-overlay"></div>
         </div>
-        <div class="preview-actions">
-          <button class="primary-btn action-pulse" (click)="confirmLaunch()" [disabled]="isMatchmaking() || isWasmLoading()">
-            {{ launchActionLabel(selected) }}
-          </button>
-          <button class="secondary-btn" (click)="closePreview()">ABORT MISSION</button>
+      </div>
+
+      <div class="mission-primary-action">
+        <button class="launch-btn-giant" (click)="confirmLaunch()" [disabled]="isMatchmaking() || isWasmLoading()">
+          <div class="btn-glitch-layer"></div>
+          <span class="btn-text">{{ launchActionLabel(selected) }}</span>
+          <span class="btn-subtext">INITIALIZE SYSTEM UPLINK</span>
+        </button>
+      </div>
+
+      <div class="mission-details-row glass-v42">
+        <div class="detail-item">
+          <label>OBJECTIVE</label>
+          <p>{{ selected.description }}</p>
         </div>
+        <div class="detail-meta">
+          <div class="meta-bit"><span class="label">GENRE</span><span class="value">{{ selected.genre }}</span></div>
+          <div class="meta-bit"><span class="label">RATING</span><span class="value">{{ selected.rating }}/5.0</span></div>
+          <div class="meta-bit"><span class="label">STATUS</span><span class="value success">READY_TO_LAUNCH</span></div>
+        </div>
+      </div>
+
+      <div class="mission-secondary-actions">
+        <button class="abort-btn" (click)="closePreview()">
+          <span class="material-symbols-outlined">close</span>
+          ABORT MISSION
+        </button>
       </div>
     </div>
   </div>
