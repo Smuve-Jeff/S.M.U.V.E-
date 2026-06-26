@@ -484,7 +484,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "availability": "Online",
       "tags": [
         "RPG",
-        "Cloud",
+        "WebGL",
         "Next-Gen",
         "Elite"
       ],
@@ -508,7 +508,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "availability": "Online",
       "tags": [
         "RPG",
-        "Cloud",
+        "WebGL",
         "Next-Gen",
         "Elite"
       ],
@@ -532,7 +532,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "availability": "Online",
       "tags": [
         "FPS",
-        "Cloud",
+        "WebGL",
         "Xbox 360",
         "Elite",
         "Sequel"
@@ -7385,7 +7385,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7415,7 +7415,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Sports",
         "Soccer",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7445,7 +7445,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Sports",
         "NFL",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7475,7 +7475,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Sports",
         "NBA",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7505,7 +7505,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "Battle Royale",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7535,7 +7535,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Adventure",
         "Sandbox",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7565,7 +7565,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7595,7 +7595,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -7626,7 +7626,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7656,7 +7656,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7686,7 +7686,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7745,7 +7745,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "Battle Royale",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7775,7 +7775,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7805,7 +7805,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7835,7 +7835,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -7865,7 +7865,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -7896,7 +7896,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Action",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -7927,7 +7927,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Sports",
         "Skating",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -7958,7 +7958,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Racing",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8016,7 +8016,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8046,7 +8046,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "MOBA",
         "Competitive",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8076,7 +8076,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8106,7 +8106,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8136,7 +8136,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Shooter",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8166,7 +8166,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Racing",
         "Simulation",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8196,7 +8196,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Simulation",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8226,7 +8226,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8256,7 +8256,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8286,7 +8286,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8317,7 +8317,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8348,7 +8348,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8379,7 +8379,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8410,7 +8410,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Puzzle",
         "Action",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8441,7 +8441,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8472,7 +8472,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "RPG",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8503,7 +8503,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Action",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8534,7 +8534,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8565,7 +8565,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8595,7 +8595,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Sports",
         "Racing",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8625,7 +8625,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Fighting",
         "Competitive",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8655,7 +8655,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Fighting",
         "Competitive",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8685,7 +8685,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8715,7 +8715,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Horror",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8745,7 +8745,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8776,7 +8776,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8807,7 +8807,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8838,7 +8838,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Shooter",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8869,7 +8869,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8900,7 +8900,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8931,7 +8931,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Horror",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -8962,7 +8962,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Adventure",
         "Sandbox",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -8992,7 +8992,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Action",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9022,7 +9022,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Music",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9052,7 +9052,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9082,7 +9082,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9112,7 +9112,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9142,7 +9142,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Retro",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9172,7 +9172,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9202,7 +9202,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Adventure",
         "Platformer",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9232,7 +9232,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Shooter",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9262,7 +9262,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9379,7 +9379,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -9410,7 +9410,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Stealth",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9440,7 +9440,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9470,7 +9470,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Racing",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9500,7 +9500,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9530,7 +9530,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "RPG",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9560,7 +9560,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Social",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9590,7 +9590,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Horror",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9620,7 +9620,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Adventure",
         "Co-op",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9650,7 +9650,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9680,7 +9680,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9710,7 +9710,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9740,7 +9740,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "RPG",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9770,7 +9770,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Sports",
         "Boxing",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -9801,7 +9801,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Sports",
         "NFL",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -9832,7 +9832,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Stealth",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -9863,7 +9863,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Fighting",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -9894,7 +9894,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -9925,7 +9925,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Horror",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -9956,7 +9956,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "RPG",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -9986,7 +9986,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Hardcore",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -10016,7 +10016,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Action",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -10046,7 +10046,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Fighting",
         "Competitive",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -10076,7 +10076,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10107,7 +10107,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Sci-Fi",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10138,7 +10138,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Fantasy",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10169,7 +10169,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10200,7 +10200,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Puzzle",
         "Sci-Fi",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10231,7 +10231,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Retro",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -10261,7 +10261,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10292,7 +10292,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10323,7 +10323,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "RPG",
         "Open World",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10354,7 +10354,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10385,7 +10385,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Shooter",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10416,7 +10416,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10447,7 +10447,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Shooter",
         "FPS",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10478,7 +10478,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10509,7 +10509,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Adventure",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
@@ -10540,7 +10540,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "tags": [
         "Action",
         "Stealth",
-        "Cloud",
+        "WebGL",
         "Elite",
         "Golden Era"
       ],
