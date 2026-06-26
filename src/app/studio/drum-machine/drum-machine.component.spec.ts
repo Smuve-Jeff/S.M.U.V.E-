@@ -21,10 +21,24 @@ describe('DrumMachineComponent', () => {
   };
 
   const mockMusicManager = {
-    tracks: signal([]),
+    tracks: signal([{ id: MusicManagerService.DRUM_TRACK_ID, notes: [] as any[] }]),
     currentStep: signal(0),
-    addNoteToTrack: jest.fn(),
-    removeNotes: jest.fn(),
+    addNoteToTrack: jest.fn((trackId: string, note: any) => {
+      const tracks = mockMusicManager.tracks();
+      const track = tracks.find(t => t.id === trackId);
+      if (track) {
+        track.notes.push(note);
+        mockMusicManager.tracks.set([...tracks]);
+      }
+    }),
+    removeNotes: jest.fn((trackId: string, noteIds: string[]) => {
+      const tracks = mockMusicManager.tracks();
+      const track = tracks.find(t => t.id === trackId);
+      if (track) {
+        track.notes = track.notes.filter(n => !noteIds.includes(n.id));
+        mockMusicManager.tracks.set([...tracks]);
+      }
+    }),
   };
 
   const mockAudioEngine = {

@@ -57,6 +57,12 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public graphTarget = signal<'velocity' | 'probability'>('velocity');
   public inspectorCollapsed = signal(false);
 
+  public selectedPadSteps = computed(() => {
+    const pad = this.selectedPad();
+    if (!pad) return [];
+    return Array.from({length: 64}, (_, i) => this.getPadStep(pad.id, i));
+  });
+
   private blueprints = [
     { name: 'KICK', midi: 36, color: '#ff4444', type: 'kick' },
     { name: 'SNARE', midi: 38, color: '#44ff44', type: 'snare' },
