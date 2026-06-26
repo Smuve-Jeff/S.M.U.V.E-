@@ -10,7 +10,7 @@ A deep investigation of the Studio module was conducted, benchmarking against pr
 - **Solution:** Implemented a full Send/Return (Aux) architecture. Added `sendAReturn` and `sendBReturn` buses to the `AudioEngineService`.
 - **UI:** Enhanced the Mixer with dedicated Send A/B controls for every channel.
 
-### 2. Professional Export (Offline Rendering)
+### 2. Professional Export (Real-Time Bouncing)
 - **Gap:** Users had no way to export their creations as high-quality audio files.
 - **Solution:** Created a new `ExportService` that facilitates "Real-time Bouncing" to capture all live-synthesized elements, FX, and mastering chain precisely.
 - **Format:** High-fidelity 16-bit WAV encoding via `WavEncoder`.
