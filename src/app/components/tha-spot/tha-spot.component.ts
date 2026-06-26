@@ -73,7 +73,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   isBrowseView = signal<boolean>(true);
   showIntelPanel = signal<boolean>(false);
   readonly showRivalHub = signal<boolean>(false);
-  hubTimeoutId?: any;
+  hubTimeoutId?: ReturnType<typeof setTimeout>;
   readonly isIncognito = this.socialService.isIncognito;
   now = signal<number>(Date.now());
   isMatchmaking = signal<boolean>(false);
