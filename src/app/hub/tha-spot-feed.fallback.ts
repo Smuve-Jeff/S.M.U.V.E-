@@ -9293,7 +9293,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Shooter",
         "Battle Royale",
         "Elite",
-        "Cloud"
+        "WebGL"
       ],
       "badgeIds": [
         "elite"
