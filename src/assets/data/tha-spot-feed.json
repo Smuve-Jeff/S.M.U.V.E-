@@ -475,6 +475,7 @@
       "id": "cyberpunk-2077-tribute",
       "name": "Cyberpunk 2077",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/neon-drift/neon-drift.html",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Cyberpunk 2077.",
       "genre": "RPG",
       "rating": 4.9,
@@ -494,6 +495,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -501,6 +504,7 @@
       "id": "elden-ring-tribute",
       "name": "Elden Ring",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Elden Ring.",
       "genre": "RPG",
       "rating": 5.0,
@@ -520,6 +524,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -547,6 +553,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7406,6 +7414,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v/BP96B1B4N6PC",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7438,6 +7448,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/ea-sports-fc-24/9N90LP816DKH",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7470,6 +7482,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/madden-nfl-24/9NRW2BJR7ZPC",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7502,6 +7516,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/nba-2k24-for-xbox-one/9P7B8KLR5F6D",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7534,6 +7550,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7541,6 +7559,7 @@
       "id": "minecraft-tribute-elite",
       "name": "Minecraft",
       "url": "/assets/games/vinyl-vault/vinyl-vault.html",
+      "url": "/assets/games/remix-arena/remixarena.html",
       "genre": "Sandbox",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Minecraft.",
       "rating": 4.9,
@@ -7566,6 +7585,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/minecraft/9NBLGGH537BL",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7598,6 +7619,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty/9NBLGGH52ZLD",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7663,6 +7686,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/red-dead-redemption-2/9N2ZDN7NWZLR",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7670,6 +7695,7 @@
       "id": "witcher-3-tribute-elite",
       "name": "The Witcher 3",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for The Witcher 3.",
       "rating": 5.0,
@@ -7695,6 +7721,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/the-witcher-3-wild-hunt/BRG9V9C3GZWC",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7788,6 +7816,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/apex-legends/BV9MLDTSCHJW",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7820,6 +7850,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/destiny-2/BP1GZ2Z0XJWZ",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7859,6 +7891,7 @@
       "id": "starfield-tribute-elite",
       "name": "Starfield",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Starfield.",
       "rating": 4.6,
@@ -7884,6 +7917,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/starfield/9NC6ZQRV38S7",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8015,6 +8050,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-horizon-5-standard-edition/9NKX70BBCDRN",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8075,6 +8112,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://playvalorant.com",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8107,6 +8146,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.leagueoflegends.com",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8114,6 +8155,7 @@
       "id": "genshin-tribute-elite",
       "name": "Genshin Impact",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/remix-arena/remixarena.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Genshin Impact.",
       "rating": 4.8,
@@ -8139,6 +8181,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://genshin.hoyoverse.com",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8171,6 +8215,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-infinite/9PP1GR9K5DBZ",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8178,6 +8224,7 @@
       "id": "gears-5-tribute-elite",
       "name": "Gears 5",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Gears 5.",
       "rating": 4.8,
@@ -8203,6 +8250,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-5/BPHL7K0V1RMV",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8235,6 +8284,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-motorsport/9PLTR78MT6S7",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8267,6 +8318,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/microsoft-flight-simulator-standard-40th-anniversary-edition/9PMQDM08SNK9",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8299,6 +8352,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-thieves-2024-edition/9P2N67BPT2C6",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8331,6 +8386,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/doom-eternal-standard-edition/9P0BRNK97L7F",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8660,6 +8717,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/overwatch-2/9NBLGGH52ZLD",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8667,6 +8726,7 @@
       "id": "rocket-league-tribute-elite",
       "name": "Rocket League",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/neon-drift/neon-drift.html",
       "genre": "Sports",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Rocket League.",
       "rating": 4.9,
@@ -8692,6 +8752,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.rocketleague.com",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8724,6 +8786,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.streetfighter.com/6/",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8756,6 +8820,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://en.bandainamcoent.eu/tekken/tekken-8",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8788,6 +8854,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/the-last-of-us-part-i/",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8820,6 +8888,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-space/9NBLGGH52ZLD",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9058,6 +9128,7 @@
       "id": "palworld-tribute-elite",
       "name": "Palworld",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "Adventure",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Palworld.",
       "rating": 4.7,
@@ -9083,6 +9154,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/palworld/9N6SVPX3BCW3",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9090,6 +9163,7 @@
       "id": "lies-of-p-tribute-elite",
       "name": "Lies of P",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Lies of P.",
       "rating": 4.9,
@@ -9115,6 +9189,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/lies-of-p/9NBLGGH52ZLD",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9147,6 +9223,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/hi-fi-rush/9P0BRNK97L7F",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9250,6 +9328,7 @@
       "id": "sea-of-stars-tribute-elite",
       "name": "Sea of Stars",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Sea of Stars.",
       "rating": 4.9,
@@ -9275,6 +9354,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-stars/9NBLGGH52ZLD",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9314,6 +9395,7 @@
       "id": "psychonauts2-tribute-elite",
       "name": "Psychonauts 2",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "Adventure",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Psychonauts 2.",
       "rating": 4.9,
@@ -9339,6 +9421,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/psychonauts-2/9N6SVPX3BCW3",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9346,6 +9430,7 @@
       "id": "remnant2-tribute-elite",
       "name": "Remnant II",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Remnant II.",
       "rating": 4.8,
@@ -9371,6 +9456,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/remnant-ii-standard-edition/9NBLGGH52ZLD",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9403,6 +9490,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/control-ultimate-edition/9P0BRNK97L7F",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9690,6 +9779,7 @@
       "id": "persona5-royal-tribute-elite",
       "name": "Persona 5 Royal",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Persona 5 Royal.",
       "rating": 5.0,
@@ -9715,6 +9805,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://persona.atlus.com/p5r/",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9747,6 +9839,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.residentevil.com/village/",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9754,6 +9848,7 @@
       "id": "it-takes-two-tribute-elite",
       "name": "It Takes Two",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "Adventure",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for It Takes Two.",
       "rating": 5.0,
@@ -9779,6 +9874,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/it-takes-two/BPN0N6GDBZLD",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9811,6 +9908,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/god-of-war/",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9875,6 +9974,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/ghost-of-tsushima/",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10112,6 +10213,7 @@
       "id": "borderlands-3-tribute-elite",
       "name": "Borderlands 3",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Borderlands 3.",
       "rating": 4.8,
@@ -10137,6 +10239,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/borderlands-3/C3S0S0K6H0CQC",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10169,6 +10273,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.sekirothegame.com",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10176,6 +10282,7 @@
       "id": "hades-tribute-elite",
       "name": "Hades",
       "url": "/assets/games/battlefield/battlefield.html",
+      "url": "/assets/games/cipher-surge/cipher-surge.html",
       "genre": "RPG",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Hades.",
       "rating": 5.0,
@@ -10201,6 +10308,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.supergiantgames.com/games/hades/",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10233,6 +10342,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.mortalkombat.com",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10430,6 +10541,8 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-cells/BPN0N6GDBZLD",
         "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10762,6 +10875,58 @@
         "embedMode": "external-only"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
+    },
+    {
+      "id": "metal-gear-msx-elite",
+      "name": "Metal Gear (MSX2)",
+      "url": "https://www.retrogames.cc/embed/19318-metal-gear-japan.html",
+      "description": "The Absolute origin of stealth action. Optimized MSX2 emulation.",
+      "genre": "Stealth",
+      "rating": 4.8,
+      "playersOnline": 1200,
+      "availability": "Online",
+      "tags": [
+        "MSX",
+        "Retro",
+        "Stealth",
+        "Konami",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19318-metal-gear-japan.html",
+        "embedMode": "inline"
+      },
+      "subtitle": "Stealth Roots. High-fidelity MSX2 Emulation."
+    },
+    {
+      "id": "vampire-killer-msx-elite",
+      "name": "Vampire Killer (MSX2)",
+      "url": "https://www.retrogames.cc/embed/19321-vampire-killer-japan-europe.html",
+      "description": "Castlevania's Absolute MSX2 execution. Explore the castle with precision.",
+      "genre": "Action",
+      "rating": 4.7,
+      "playersOnline": 800,
+      "availability": "Online",
+      "tags": [
+        "MSX",
+        "Retro",
+        "Action",
+        "Konami",
+        "Elite"
+      ],
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19321-vampire-killer-japan-europe.html",
+        "embedMode": "inline"
+      },
+      "subtitle": "Konami Classic. High-fidelity MSX2 Emulation."
     }
   ],
   "recommendationRails": [
@@ -10773,36 +10938,36 @@
         "neo-zone"
       ],
       "gameIds": [
-        "cod-mw2-classic-cloud-elite",
-        "gow3-cloud-elite",
-        "sekiro-cloud-elite",
-        "hades-cloud-elite",
-        "dead-cells-cloud-elite",
-        "gow-2018-cloud-elite",
-        "uncharted-4-cloud-elite",
-        "ghost-of-tsushima-cloud-elite",
-        "re-village-cloud-elite",
-        "it-takes-two-cloud-elite",
-        "palworld-cloud-elite",
-        "hi-fi-rush-cloud-elite",
-        "remnant2-cloud-elite",
-        "control-cloud-elite",
-        "sf6-cloud-elite",
-        "tekken8-cloud-elite",
-        "tlou-part1-cloud-elite",
-        "gta-v-cloud-elite",
-        "fc-24-cloud-elite",
-        "fortnite-cloud-elite",
-        "minecraft-cloud-elite",
-        "cod-mw3-cloud-elite",
-        "forza-horizon-5-cloud-elite",
-        "starfield-cloud-elite",
-        "valorant-cloud-elite",
+        "cod-mw2-classic-tribute-elite",
+        "gow3-tribute-elite",
+        "sekiro-tribute-elite",
+        "hades-tribute-elite",
+        "dead-cells-tribute-elite",
+        "gow-2018-tribute-elite",
+        "uncharted-4-tribute-elite",
+        "ghost-of-tsushima-tribute-elite",
+        "re-village-tribute-elite",
+        "it-takes-two-tribute-elite",
+        "palworld-tribute-elite",
+        "hi-fi-rush-tribute-elite",
+        "remnant2-tribute-elite",
+        "control-tribute-elite",
+        "sf6-tribute-elite",
+        "tekken8-tribute-elite",
+        "tlou-part1-tribute-elite",
+        "gta-v-tribute-elite",
+        "fc-24-tribute-elite",
+        "fortnite-tribute-elite",
+        "minecraft-tribute-elite",
+        "cod-mw3-tribute-elite",
+        "forza-horizon-5-tribute-elite",
+        "starfield-tribute-elite",
+        "valorant-tribute-elite",
         "slow-roads-webgl",
         "venge-io-webgl",
-        "halo-3-cloud-elite",
-        "elden-ring-cloud",
-        "cyberpunk-2077-cloud"
+        "halo-3-tribute-elite",
+        "elden-ring-tribute",
+        "cyberpunk-2077-tribute"
       ],
       "maxItems": 6
     },
@@ -10815,42 +10980,42 @@
         "shooting-range"
       ],
       "gameIds": [
-        "cod-mw-classic-cloud-elite",
-        "cod-mw2-classic-cloud-elite",
-        "fallout3-cloud-elite",
-        "ac-black-flag-cloud-elite",
-        "gears-1-cloud-elite",
-        "halo4-cloud-elite",
-        "bf-bc2-cloud-elite",
-        "uncharted2-cloud-elite",
-        "gow3-cloud-elite",
-        "batman-asylum-cloud-elite",
-        "gta-v-story-cloud-elite",
-        "mass-effect-2-cloud-elite",
-        "dragon-age-origins-cloud-elite",
-        "left-4-dead-cloud-elite",
-        "portal-cloud-elite",
-        "fight-night-champion-cloud-elite",
-        "ncaa-football-14-cloud-elite",
-        "dishonored-cloud-elite",
-        "mgr-revengeance-cloud-elite",
-        "crysis-remastered-cloud-elite",
-        "titanfall2-cloud-elite",
-        "mgs5-cloud-elite",
-        "arkham-knight-cloud-elite",
-        "gears-3-cloud-elite",
-        "halo-reach-cloud-elite",
-        "fable2-cloud-elite",
-        "dead-space-2-cloud-elite",
-        "gta4-cloud-elite",
-        "rdr1-cloud-elite",
-        "mirrors-edge-cloud-elite",
-        "cod-bo2-cloud-elite",
-        "skyrim-cloud-elite",
-        "battlefield-4-cloud-elite",
-        "mass-effect-le-cloud-elite",
-        "skate-3-cloud-elite",
-        "fallout-4-cloud-elite"
+        "cod-mw-classic-tribute-elite",
+        "cod-mw2-classic-tribute-elite",
+        "fallout3-tribute-elite",
+        "ac-black-flag-tribute-elite",
+        "gears-1-tribute-elite",
+        "halo4-tribute-elite",
+        "bf-bc2-tribute-elite",
+        "uncharted2-tribute-elite",
+        "gow3-tribute-elite",
+        "batman-asylum-tribute-elite",
+        "gta-v-story-tribute-elite",
+        "mass-effect-2-tribute-elite",
+        "dragon-age-origins-tribute-elite",
+        "left-4-dead-tribute-elite",
+        "portal-tribute-elite",
+        "fight-night-champion-tribute-elite",
+        "ncaa-football-14-tribute-elite",
+        "dishonored-tribute-elite",
+        "mgr-revengeance-tribute-elite",
+        "crysis-remastered-tribute-elite",
+        "titanfall2-tribute-elite",
+        "mgs5-tribute-elite",
+        "arkham-knight-tribute-elite",
+        "gears-3-tribute-elite",
+        "halo-reach-tribute-elite",
+        "fable2-tribute-elite",
+        "dead-space-2-tribute-elite",
+        "gta4-tribute-elite",
+        "rdr1-tribute-elite",
+        "mirrors-edge-tribute-elite",
+        "cod-bo2-tribute-elite",
+        "skyrim-tribute-elite",
+        "battlefield-4-tribute-elite",
+        "mass-effect-le-tribute-elite",
+        "skate-3-tribute-elite",
+        "fallout-4-tribute-elite"
       ],
       "maxItems": 6
     },
@@ -10947,7 +11112,9 @@
       "gameIds": [
         "mgs2-elite",
         "re4-elite",
-        "sonic-adventure-2-elite"
+        "sonic-adventure-2-elite",
+        "metal-gear-msx-elite",
+        "vampire-killer-msx-elite"
       ]
     },
     {
@@ -11031,22 +11198,22 @@
       },
       "maxItems": 4,
       "gameIds": [
-        "mortal-kombat-1-cloud-elite",
+        "mortal-kombat-1-tribute-elite",
         "1v1-lol-web-elite",
         "slither-io-web-elite",
         "agar-io-web-elite",
-        "ow2-cloud-elite",
-        "rocket-league-cloud-elite",
-        "sf6-cloud-elite",
-        "tekken8-cloud-elite",
-        "fortnite-cloud-elite",
-        "cod-mw3-cloud-elite",
-        "fc-24-cloud-elite",
-        "nba-2k24-cloud-elite",
-        "apex-legends-cloud-elite",
+        "ow2-tribute-elite",
+        "rocket-league-tribute-elite",
+        "sf6-tribute-elite",
+        "tekken8-tribute-elite",
+        "fortnite-tribute-elite",
+        "cod-mw3-tribute-elite",
+        "fc-24-tribute-elite",
+        "nba-2k24-tribute-elite",
+        "apex-legends-tribute-elite",
         "mobile-legends-elite",
-        "valorant-cloud-elite",
-        "lol-cloud-elite",
+        "valorant-tribute-elite",
+        "lol-tribute-elite",
         "tekken-5-elite",
         "burnout-3-elite",
         "def-jam-ffny-elite",
@@ -11061,21 +11228,21 @@
         "rpg-vault"
       ],
       "gameIds": [
-        "fallout3-cloud-elite",
-        "hades-cloud-elite",
-        "borderlands-3-cloud-elite",
-        "dragon-age-origins-cloud-elite",
-        "persona5-royal-cloud-elite",
-        "monster-hunter-world-cloud-elite",
-        "dragon-age-inq-cloud-elite",
-        "sea-of-stars-cloud-elite",
-        "lies-of-p-cloud-elite",
-        "witcher-3-cloud-elite",
-        "skyrim-cloud-elite",
-        "fallout-4-cloud-elite",
-        "starfield-cloud-elite",
-        "genshin-cloud-elite",
-        "mass-effect-le-cloud-elite",
+        "fallout3-tribute-elite",
+        "hades-tribute-elite",
+        "borderlands-3-tribute-elite",
+        "dragon-age-origins-tribute-elite",
+        "persona5-royal-tribute-elite",
+        "monster-hunter-world-tribute-elite",
+        "dragon-age-inq-tribute-elite",
+        "sea-of-stars-tribute-elite",
+        "lies-of-p-tribute-elite",
+        "witcher-3-tribute-elite",
+        "skyrim-tribute-elite",
+        "fallout-4-tribute-elite",
+        "starfield-tribute-elite",
+        "genshin-tribute-elite",
+        "mass-effect-le-tribute-elite",
         "zelda-oot-elite",
         "final-fantasy-vii-elite",
         "pokemon-yellow-elite",
@@ -11145,25 +11312,25 @@
         "action-zone"
       ],
       "gameIds": [
-        "fallout3-cloud-elite",
-        "ac-black-flag-cloud-elite",
-        "uncharted2-cloud-elite",
-        "gta-v-story-cloud-elite",
-        "ghost-of-tsushima-cloud-elite",
-        "horizon-zero-dawn-cloud-elite",
-        "mgs5-cloud-elite",
-        "arkham-knight-cloud-elite",
-        "forza-horizon-4-cloud-elite",
-        "gta4-cloud-elite",
-        "rdr1-cloud-elite",
-        "gta-v-cloud-elite",
-        "rdr2-cloud-elite",
-        "witcher-3-cloud-elite",
-        "skyrim-cloud-elite",
-        "genshin-cloud-elite",
-        "sea-of-thieves-cloud-elite",
-        "elden-ring-cloud",
-        "cyberpunk-2077-cloud",
+        "fallout3-tribute-elite",
+        "ac-black-flag-tribute-elite",
+        "uncharted2-tribute-elite",
+        "gta-v-story-tribute-elite",
+        "ghost-of-tsushima-tribute-elite",
+        "horizon-zero-dawn-tribute-elite",
+        "mgs5-tribute-elite",
+        "arkham-knight-tribute-elite",
+        "forza-horizon-4-tribute-elite",
+        "gta4-tribute-elite",
+        "rdr1-tribute-elite",
+        "gta-v-tribute-elite",
+        "rdr2-tribute-elite",
+        "witcher-3-tribute-elite",
+        "skyrim-tribute-elite",
+        "genshin-tribute-elite",
+        "sea-of-thieves-tribute-elite",
+        "elden-ring-tribute",
+        "cyberpunk-2077-tribute",
         "gta-iii-elite",
         "gta-vice-city-elite",
         "gta-san-andreas-elite",
@@ -11190,25 +11357,25 @@
         "shooting-range"
       ],
       "gameIds": [
-        "cod-mw-classic-cloud-elite",
-        "cod-mw2-classic-cloud-elite",
-        "halo4-cloud-elite",
-        "bf-bc2-cloud-elite",
-        "crysis-remastered-cloud-elite",
-        "titanfall2-cloud-elite",
-        "bf1-cloud-elite",
-        "halo-reach-cloud-elite",
-        "doom-2016-cloud-elite",
-        "wolfenstein-tno-cloud-elite",
-        "ow2-cloud-elite",
-        "cod-mw3-cloud-elite",
-        "cod-bo2-cloud-elite",
-        "apex-legends-cloud-elite",
-        "destiny-2-cloud-elite",
-        "battlefield-4-cloud-elite",
-        "doom-eternal-cloud-elite",
-        "halo-infinite-cloud-elite",
-        "halo-3-cloud-elite",
+        "cod-mw-classic-tribute-elite",
+        "cod-mw2-classic-tribute-elite",
+        "halo4-tribute-elite",
+        "bf-bc2-tribute-elite",
+        "crysis-remastered-tribute-elite",
+        "titanfall2-tribute-elite",
+        "bf1-tribute-elite",
+        "halo-reach-tribute-elite",
+        "doom-2016-tribute-elite",
+        "wolfenstein-tno-tribute-elite",
+        "ow2-tribute-elite",
+        "cod-mw3-tribute-elite",
+        "cod-bo2-tribute-elite",
+        "apex-legends-tribute-elite",
+        "destiny-2-tribute-elite",
+        "battlefield-4-tribute-elite",
+        "doom-eternal-tribute-elite",
+        "halo-infinite-tribute-elite",
+        "halo-3-tribute-elite",
         "venge-io-webgl",
         "half-life-ps2-elite",
         "quake-3-dc-elite",
@@ -11233,13 +11400,13 @@
         "sports"
       ],
       "gameIds": [
-        "fight-night-champion-cloud-elite",
-        "ncaa-football-14-cloud-elite",
-        "fc-24-cloud-elite",
-        "madden-24-cloud-elite",
-        "nba-2k24-cloud-elite",
-        "skate-3-cloud-elite",
-        "forza-horizon-5-cloud-elite",
+        "fight-night-champion-tribute-elite",
+        "ncaa-football-14-tribute-elite",
+        "fc-24-tribute-elite",
+        "madden-24-tribute-elite",
+        "nba-2k24-tribute-elite",
+        "skate-3-tribute-elite",
+        "forza-horizon-5-tribute-elite",
         "madden-2004-elite",
         "nba-street-v2-elite",
         "ssx-tricky-elite",
