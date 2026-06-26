@@ -175,12 +175,6 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     }
   }
 
-  doublePattern() {
-    const track = this.getDrumTrack();
-    if (!track) return;
-    const notes = track.notes.filter(n => n.step < 32);
-    const newNotes = notes.map(n => ({ ...n, id: "drum_" + Date.now() + Math.random(), step: n.step + 32 }));
-    newNotes.forEach(n => this.musicManager.addNoteToTrack(track.id, n));
   }
 
   humanize() {
