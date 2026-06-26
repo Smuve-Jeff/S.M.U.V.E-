@@ -73,6 +73,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   isBrowseView = signal<boolean>(true);
   showIntelPanel = signal<boolean>(false);
   readonly showRivalHub = signal<boolean>(false);
+  readonly isIncognito = this.socialService.isIncognito;
   now = signal<number>(Date.now());
   isMatchmaking = signal<boolean>(false);
   matchmakingStatus = signal<string>('');
@@ -223,7 +224,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.startLiveClock();
     this.startFeedRefresh();
     window.addEventListener('message', this.messageHandler);
-    this.socialService.joinRoom(this.activeRoom());
+
+    // Explicitly join the Rival room (co-op-link) to refresh active users on entry
+    this.setActiveRoom('co-op-link');
+
+    // Auto-open Rival Hub if it's a fresh entry to show the active users as requested
+    setTimeout(() => {
+      if (!this.showRivalHub()) this.toggleRivalHub();
+    }, 1000);
   }
 
   ngAfterViewInit() {
