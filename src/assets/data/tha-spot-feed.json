@@ -493,7 +493,7 @@
       ],
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -520,7 +520,7 @@
       ],
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -548,7 +548,7 @@
       ],
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7090,7 +7090,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41231-nba-street-vol-2-usa.html",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "secure_mode": "wasm"
       }
     },
@@ -7115,7 +7115,8 @@
       ],
       "launchConfig": {
         "approvedExternalUrl": "https://www.arenaofvalor.com/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       }
     },
     {
@@ -7187,7 +7188,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41220-god-of-war-usa.html",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "secure_mode": "wasm"
       }
     },
@@ -7213,7 +7214,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41258-tekken-5-usa.html",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "secure_mode": "wasm"
       }
     },
@@ -7238,7 +7239,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41261-dragon-ball-z-budokai-3-usa.html",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "secure_mode": "wasm"
       }
     },
@@ -7264,7 +7265,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41215-halo-2-usa.html",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "secure_mode": "wasm"
       }
     },
@@ -7289,7 +7290,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41252-resident-evil-4-usa.html",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "secure_mode": "wasm"
       }
     },
@@ -7408,7 +7409,7 @@
       "image": "assets/games/gta-v-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v/BP96B1B4N6PC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7441,7 +7442,7 @@
       "image": "assets/games/fc24-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/ea-sports-fc-24/9N90LP816DKH",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7474,7 +7475,7 @@
       "image": "assets/games/madden24-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/madden-nfl-24/9NRW2BJR7ZPC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7507,7 +7508,7 @@
       "image": "assets/games/nba2k24-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/nba-2k24-for-xbox-one/9P7B8KLR5F6D",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7540,7 +7541,7 @@
       "image": "assets/games/fortnite-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7573,7 +7574,7 @@
       "image": "assets/games/minecraft-full-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/minecraft/9NBLGGH537BL",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7606,7 +7607,7 @@
       "image": "assets/games/cod-mw3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty/9NBLGGH52ZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7640,7 +7641,8 @@
       "image": "assets/games/cod-bo2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-black-ops-ii/BR667W7W6V9C",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7672,7 +7674,7 @@
       "image": "assets/games/rdr2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/red-dead-redemption-2/9N2ZDN7NWZLR",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7705,7 +7707,7 @@
       "image": "assets/games/witcher3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/the-witcher-3-wild-hunt/BRG9V9C3GZWC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7738,7 +7740,8 @@
       "image": "assets/games/skyrim-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/the-elder-scrolls-v-skyrim-special-edition/BQ1W1T1K1P4L",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7799,7 +7802,7 @@
       "image": "assets/games/apex-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/apex-legends/BV9MLDTSCHJW",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7832,7 +7835,7 @@
       "image": "assets/games/destiny2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/destiny-2/BP1GZ2Z0XJWZ",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7865,7 +7868,8 @@
       "image": "assets/games/fallout4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-4/C4515W8M8FMS",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7897,7 +7901,7 @@
       "image": "assets/games/starfield-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/starfield/9NC6ZQRV38S7",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -7931,7 +7935,8 @@
       "image": "assets/games/bf4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-4/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7964,7 +7969,8 @@
       "image": "assets/games/mass-effect-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mass-effect-legendary-edition/9PKW68L7BNCH",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -7997,7 +8003,8 @@
       "image": "assets/games/skate3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/skate-3/BNKDKS5B9S76",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8029,7 +8036,7 @@
       "image": "assets/games/forza5-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-horizon-5-standard-edition/9NKX70BBCDRN",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8059,7 +8066,8 @@
       "image": "assets/games/roblox-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.roblox.com",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       }
     },
     {
@@ -8090,7 +8098,7 @@
       "image": "assets/games/valorant-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://playvalorant.com",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8123,7 +8131,7 @@
       "image": "assets/games/lol-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.leagueoflegends.com",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8156,7 +8164,7 @@
       "image": "assets/games/genshin-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://genshin.hoyoverse.com",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8189,7 +8197,7 @@
       "image": "assets/games/halo-infinite-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-infinite/9PP1GR9K5DBZ",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8222,7 +8230,7 @@
       "image": "assets/games/gears5-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-5/BPHL7K0V1RMV",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8255,7 +8263,7 @@
       "image": "assets/games/forza-ms-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-motorsport/9PLTR78MT6S7",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8288,7 +8296,7 @@
       "image": "assets/games/msfs-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/microsoft-flight-simulator-standard-40th-anniversary-edition/9PMQDM08SNK9",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8321,7 +8329,7 @@
       "image": "assets/games/sea-of-thieves-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-thieves-2024-edition/9P2N67BPT2C6",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8354,7 +8362,7 @@
       "image": "assets/games/doom-eternal-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/doom-eternal-standard-edition/9P0BRNK97L7F",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8388,7 +8396,8 @@
       "image": "assets/games/fallout-nv-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-new-vegas/BX9S7ZMMT6S9",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8421,7 +8430,8 @@
       "image": "assets/games/bioshock-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/bioshock-the-collection/C2H0ZDRB4CQC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8454,7 +8464,8 @@
       "image": "assets/games/ac2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/assassins-creed-the-ezio-collection/BQ9S8XK0Q6QC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8487,7 +8498,8 @@
       "image": "assets/games/arkham-city-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8520,7 +8532,8 @@
       "image": "assets/games/portal2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/portal-companion-collection/9P8W5S7P9CQC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8553,7 +8566,8 @@
       "image": "assets/games/l4d2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/left-4-dead-2/BR667W7W6V9C",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8586,7 +8600,8 @@
       "image": "assets/games/borderlands2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/borderlands-the-handsome-collection/C49BJV1M8S9C",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8619,7 +8634,8 @@
       "image": "assets/games/darksouls-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dark-souls-remastered/BQ1W1T1K1P4L",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8652,7 +8668,8 @@
       "image": "assets/games/farcry3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/far-cry-3-classic-edition/BP96B1B4N6PC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8684,7 +8701,7 @@
       "image": "assets/games/ow2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/overwatch-2/9NBLGGH52ZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8717,7 +8734,7 @@
       "image": "assets/games/rocket-league-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.rocketleague.com",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8750,7 +8767,7 @@
       "image": "assets/games/sf6-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.streetfighter.com/6/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8783,7 +8800,7 @@
       "image": "assets/games/tekken8-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://en.bandainamcoent.eu/tekken/tekken-8",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8816,7 +8833,7 @@
       "image": "assets/games/tlou-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/the-last-of-us-part-i/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8849,7 +8866,7 @@
       "image": "assets/games/dead-space-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-space/9NBLGGH52ZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -8883,7 +8900,8 @@
       "image": "assets/games/gta4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-iv/BR667W7W6V9C",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8916,7 +8934,8 @@
       "image": "assets/games/rdr1-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/red-dead-redemption/BWDS9V65CQ6QC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8949,7 +8968,8 @@
       "image": "assets/games/mirrors-edge-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mirrors-edge/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -8982,7 +9002,8 @@
       "image": "assets/games/gears3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-of-war-3/BPN0N6GDBZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9015,7 +9036,8 @@
       "image": "assets/games/halo-reach-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9048,7 +9070,8 @@
       "image": "assets/games/fable2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fable-ii/C2Z7B3W4B5QC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9081,7 +9104,8 @@
       "image": "assets/games/dead-space-2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-space-2/BPN0N6GDBZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9113,7 +9137,7 @@
       "image": "assets/games/palworld-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/palworld/9N6SVPX3BCW3",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9146,7 +9170,7 @@
       "image": "assets/games/lies-of-p-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/lies-of-p/9NBLGGH52ZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9179,7 +9203,7 @@
       "image": "assets/games/hifi-rush-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/hi-fi-rush/9P0BRNK97L7F",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9212,7 +9236,8 @@
       "image": "assets/games/doom-2016-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/doom/BPNDH6RLGZ66",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9244,7 +9269,8 @@
       "image": "assets/games/wolfenstein-tno-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/wolfenstein-the-new-order/BR667W7W6V9C",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9276,7 +9302,8 @@
       "image": "assets/games/dai-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dragon-age-inquisition-game-of-the-year-edition/C59BJV1M8S9C",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9308,7 +9335,7 @@
       "image": "assets/games/sea-of-stars-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-stars/9NBLGGH52ZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9341,7 +9368,8 @@
       "image": "assets/games/hellblade-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/hellblade-senuas-sacrifice/C49BJV1M8S9C",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9373,7 +9401,7 @@
       "image": "assets/games/psychonauts2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/psychonauts-2/9N6SVPX3BCW3",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9406,7 +9434,7 @@
       "image": "assets/games/remnant2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/remnant-ii-standard-edition/9NBLGGH52ZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9439,7 +9467,7 @@
       "image": "assets/games/control-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/control-ultimate-edition/9P0BRNK97L7F",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9470,7 +9498,8 @@
       "image": "assets/games/1v1-lol-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://1v1.lol",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       }
     },
     {
@@ -9499,7 +9528,8 @@
       "image": "assets/games/slither-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://slither.io",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       }
     },
     {
@@ -9528,7 +9558,8 @@
       "image": "assets/games/agar-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://agar.io",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       }
     },
     {
@@ -9560,7 +9591,8 @@
       "image": "assets/games/titanfall2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/titanfall-2-ultimate-edition/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9592,7 +9624,8 @@
       "image": "assets/games/mgs5-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.konami.com/mg/mgsv/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9624,7 +9657,8 @@
       "image": "assets/games/arkham-knight-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-knight/B91BVDN96CQC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9656,7 +9690,8 @@
       "image": "assets/games/forza4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-horizon-4-standard-edition/9PNJXVCVWD4K",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9688,7 +9723,8 @@
       "image": "assets/games/bf1-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-1/BWDS9V65CQ6QC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9720,7 +9756,8 @@
       "image": "assets/games/mhw-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.monsterhunter.com/world/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9752,7 +9789,7 @@
       "image": "assets/games/p5r-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://persona.atlus.com/p5r/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9785,7 +9822,7 @@
       "image": "assets/games/re-village-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.residentevil.com/village/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9818,7 +9855,7 @@
       "image": "assets/games/it-takes-two-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/it-takes-two/BPN0N6GDBZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9851,7 +9888,7 @@
       "image": "assets/games/gow-2018-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/god-of-war/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9884,7 +9921,8 @@
       "image": "assets/games/uncharted4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9916,7 +9954,7 @@
       "image": "assets/games/ghost-tsushima-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/ghost-of-tsushima/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -9949,7 +9987,8 @@
       "image": "assets/games/horizon-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/horizon-zero-dawn/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -9982,7 +10021,8 @@
       "image": "assets/games/fight-night-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fight-night-champion/BQ9S8XK0Q6QC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10015,7 +10055,8 @@
       "image": "assets/games/ncaa14-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.ea.com/games/ncaa-football/ncaa-football-14",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10048,7 +10089,8 @@
       "image": "assets/games/dishonored-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dishonored-definitive-edition/BQ1W1T1K1P4L",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10081,7 +10123,8 @@
       "image": "assets/games/mgr-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.konami.com/mg/mgr/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10114,7 +10157,8 @@
       "image": "assets/games/crysis-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/crysis-remastered/9NBLGGH52ZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10147,7 +10191,8 @@
       "image": "assets/games/dead-island-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-island-definitive-edition/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10179,7 +10224,7 @@
       "image": "assets/games/borderlands3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/borderlands-3/C3S0S0K6H0CQC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -10212,7 +10257,7 @@
       "image": "assets/games/sekiro-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.sekirothegame.com",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -10245,7 +10290,7 @@
       "image": "assets/games/hades-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.supergiantgames.com/games/hades/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -10278,7 +10323,7 @@
       "image": "assets/games/mk1-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.mortalkombat.com",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -10312,7 +10357,8 @@
       "image": "assets/games/gta-v-story-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v-story-mode/BPNDH6RLGZ66",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10345,7 +10391,8 @@
       "image": "assets/games/mass-effect-2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mass-effect-2/BR667W7W6V9C",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10378,7 +10425,8 @@
       "image": "assets/games/dao-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dragon-age-origins/BPN0N6GDBZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10411,7 +10459,8 @@
       "image": "assets/games/l4d-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/left-4-dead/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10444,7 +10493,8 @@
       "image": "assets/games/portal-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/portal/BQ9S8XK0Q6QC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10476,7 +10526,7 @@
       "image": "assets/games/dead-cells-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-cells/BPN0N6GDBZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
@@ -10510,7 +10560,8 @@
       "image": "assets/games/cod-mw-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-remastered/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10543,7 +10594,8 @@
       "image": "assets/games/cod-mw2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-2/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10576,7 +10628,8 @@
       "image": "assets/games/fallout3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-3/C4515W8M8FMS",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/cipher-surge/cipher-surge.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10609,7 +10662,8 @@
       "image": "assets/games/ac-black-flag-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/assassins-creed-iv-black-flag/C2Z7B3W4B5QC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10642,7 +10696,8 @@
       "image": "assets/games/gears1-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-of-war-ultimate-edition/BPN0N6GDBZLD",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10675,7 +10730,8 @@
       "image": "assets/games/halo4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10708,7 +10764,8 @@
       "image": "assets/games/bf-bc2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-bad-company-2/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10741,7 +10798,8 @@
       "image": "assets/games/uncharted2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10774,7 +10832,8 @@
       "image": "assets/games/gow3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/god-of-war-iii-remastered/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },
@@ -10807,7 +10866,8 @@
       "image": "assets/games/arkham-asylum-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       },
       "subtitle": "High-fidelity WebGL Tribute. Optimized performance."
     },

@@ -167,16 +167,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     const query = this.playerSearchQuery().toLowerCase();
     return this.onlineUsers().filter(u =>
       u.artistName?.toLowerCase().includes(query) ||
-      u.primaryGenre?.toLowerCase().includes(query)
+      u.primaryGenre?.toLowerCase().includes(query) || (u.inGame ? "playing" : "online").includes(query)
     );
   });
   selectedDmUser = computed(() => this.onlineUsers().find(u => u.userId === this.dmTargetUserId()));
-  canInteract = computed(() => this.profileService.profile().profileSetupCompleted);
+  canInteract = computed(() => true);
   isKnocking = this.peerService.isKnocking;
   knockFromUserId = this.peerService.knockFromUserId;
   messages = this.socialService.messages;
   roomMessages = this.socialService.roomMessages;
   challenges = this.socialService.challenges;
+  filteredMessages = computed(() => {
+    const targetId = this.dmTargetUserId();
+    const myId = this.profileService.profile().id;
+    if (!targetId) return [];
+    return this.messages().filter(m =>
+      (m.fromUserId === targetId) || (m.toUserId === targetId)
+    );
+  });
   isCallActive = this.peerService.isCallActive;
   inGame = signal(false);
   gameIdToInvite = signal('all');

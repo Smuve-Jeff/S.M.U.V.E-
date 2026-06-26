@@ -1775,3 +1775,16 @@
 .pluto-active .executive-sidebar {
   display: none !important;
 }
+
+.platform-btn.tiktok { background: #000000; border-color: #ff0050; }
+.platform-btn.instagram { background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); border-color: #ffffff; }
+.platform-btn.discord { background: #5865F2; border-color: #ffffff; }
+.platform-btn.kick { background: #53fc18; color: #000000; border-color: #000000; }
+.platform-btn.x-corp { background: #000000; border-color: #ffffff; }
+
+.user-info-cluster { display: flex; align-items: center; gap: 10px; }
+.status-pip { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
+.status-pip.online { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+.status-pip.in-game { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+.name-genre { display: flex; flex-direction: column; }
+.chat-sub { font-size: 0.7rem; color: var(--lcd-green); opacity: 0.8; }

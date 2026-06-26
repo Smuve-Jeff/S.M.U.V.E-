@@ -204,10 +204,6 @@
     </header>
 
     <div class="sidebar-content custom-scrollbar" #scrollContainer>
-      <div class="interaction-gate glass-v42 animate-enter" *ngIf="!canInteract()">
-          <span class="material-symbols-outlined">lock</span>
-          <p>PROFILE COMPLETION REQUIRED FOR RIVAL INTERACTION.</p>
-      </div>
 
       <ng-container *ngIf="canInteract()">
         <!-- Room Chat View -->
@@ -231,7 +227,7 @@
         <div class="dm-view" *ngIf="activeHubTab() === 'dm'">
           <div class="player-search glass-v42">
               <span class="material-symbols-outlined">person_search</span>
-              <input type="text" [ngModel]="playerSearchQuery()" (ngModelChange)="playerSearchQuery.set($event)" placeholder="FIND RIVALS..." />
+              <input type="text" [ngModel]="playerSearchQuery()" (ngModelChange)="playerSearchQuery.set($event)" placeholder="FIND RIVALS (NAME, GENRE, STATUS)..." />
           </div>
           <div class="online-users-strip no-scrollbar">
             <div class="user-avatar-circle"
@@ -259,7 +255,7 @@
               </div>
           </div>
           <div class="message-list">
-            <div class="msg-bubble" *ngFor="let msg of messages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
+            <div class="msg-bubble" *ngFor="let msg of filteredMessages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
               <div class="msg-meta">
                 <span class="msg-user">{{ msg.fromUserName || 'OPERATIVE' }}</span>
                 <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
@@ -277,6 +273,11 @@
               <button class="platform-btn twitch" (click)="goLive('Twitch')">TWITCH</button>
               <button class="platform-btn youtube" (click)="goLive('YouTube')">YOUTUBE</button>
               <button class="platform-btn social" (click)="goLive('S.M.U.V.E.')">SMUVE LIVE</button>
+              <button class="platform-btn tiktok" (click)="goLive('TikTok')">TIKTOK</button>
+              <button class="platform-btn instagram" (click)="goLive('Instagram')">INSTAGRAM</button>
+              <button class="platform-btn discord" (click)="goLive('Discord')">DISCORD</button>
+              <button class="platform-btn kick" (click)="goLive('Kick')">KICK</button>
+              <button class="platform-btn x-corp" (click)="goLive('X')">X (TWITTER)</button>
             </div>
           </div>
           <div class="stream-dashboard animate-enter" *ngIf="socialService.isStreaming()">

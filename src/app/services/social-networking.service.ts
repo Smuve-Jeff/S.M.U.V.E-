@@ -17,6 +17,7 @@ export interface OnlineUser {
 export interface PrivateMessage {
   fromUserId: string;
   fromUserName?: string;
+  toUserId?: string;
   message: string;
   timestamp: number;
 }
@@ -158,7 +159,7 @@ export class SocialNetworkingService {
     const fromUserId = this.profileService.profile().id;
     const fromUserName = this.profileService.profile().artistName;
     this.socket?.emit('send_message', { toUserId, message, fromUserId, fromUserName });
-    this.messages.update(msgs => [...msgs, { fromUserId, fromUserName, message, timestamp: Date.now() }]);
+    this.messages.update(msgs => [...msgs, { fromUserId, fromUserName, toUserId, message, timestamp: Date.now() }]);
   }
 
   challengePlayer(toUserId: string, gameId: string) {
@@ -204,7 +205,7 @@ export class SocialNetworkingService {
   }
 
   private generateSimulatedComment() {
-    const fans = ['EliteGamer', 'SMUVE_Fan_99', 'BeatMaker_Pro', 'VibeCheck', 'Rival_Zero'];
+    const fans = ['EliteGamer', 'SMUVE_Fan_99', 'BeatMaker_Pro', 'VibeCheck', 'Rival_Zero', 'StreamSnip3r', 'Lurker_One', 'GiftingSubz', 'ChatMod_Alpha'];
     const comments = [
       'This track is fire!',
       'How do you get that snare sound?',
@@ -213,7 +214,7 @@ export class SocialNetworkingService {
       'Challenge me next?',
       'Wait, is this live??',
       'Big vibes!',
-      'LFG!'
+      'LFG!', 'Is this on Kick too?', 'Tiktok fam where you at?', 'Clip that!!', 'The Absolute goat', 'Streaming quality is insane', 'Discord link?'
     ];
 
     const newComment: RoomMessage = {
