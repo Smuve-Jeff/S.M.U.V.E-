@@ -70,7 +70,6 @@ export class SocialNetworkingService {
   // Voice chat state
   remoteSignals = signal<any[]>([]);
   typingUsers = signal<Record<string, boolean>>({});
-  isIncognito = signal(false);
 
   private currentRoomId: string | null = null;
   private get peerService() { return this.injector.get(PeerNetworkingService); }
@@ -99,7 +98,7 @@ export class SocialNetworkingService {
       const profile = this.profileService.profile();
       this.socket?.emit('register_presence', {
         userId,
-        metadata: this.isIncognito() ? { artistName: 'Incognito', profileSetupCompleted: false } : {
+        metadata: {
           artistName: profile.artistName,
           primaryGenre: profile.primaryGenre,
           avatarImage: profile.avatarImage,
@@ -112,11 +111,7 @@ export class SocialNetworkingService {
     });
 
     this.socket.on('users_online', (users: OnlineUser[]) => {
-      if (this.isIncognito()) {
-        this.onlineUsers.set([]);
-      } else {
-        this.onlineUsers.set(users.filter(u => u.userId !== userId && u.artistName !== 'Incognito'));
-      }
+      this.onlineUsers.set(Array.isArray(users) ? users.filter(u => u.userId !== userId) : []);
     });
 
     this.socket.on('private_message', (data: any) => {
@@ -234,22 +229,5 @@ export class SocialNetworkingService {
       const updated = [...msgs, newComment];
       return updated.slice(-10); // Keep last 10
     });
-  }
-
-  toggleIncognito() {
-    this.isIncognito.update(v => !v);
-    const profile = this.profileService.profile();
-    this.socket?.emit('register_presence', {
-      userId: profile.id,
-      metadata: this.isIncognito() ? { artistName: 'Incognito', profileSetupCompleted: false } : {
-        artistName: profile.artistName,
-        primaryGenre: profile.primaryGenre,
-        avatarImage: profile.avatarImage,
-        profileSetupCompleted: profile.profileSetupCompleted
-      }
-    });
-    if (this.isIncognito()) {
-      this.onlineUsers.set([]);
-    }
   }
 }

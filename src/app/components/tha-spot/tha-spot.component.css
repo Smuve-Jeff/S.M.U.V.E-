@@ -1788,35 +1788,3 @@
 .status-pip.in-game { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
 .name-genre { display: flex; flex-direction: column; }
 .chat-sub { font-size: 0.7rem; color: var(--lcd-green); opacity: 0.8; }
-
-.incognito-toggle {
-  background: transparent;
-  border: 1px solid var(--elite-border);
-  color: #7a7a9a;
-  border-radius: 8px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-  margin-right: 8px;
-}
-
-.incognito-toggle:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: var(--luxury-silver);
-  color: white;
-}
-
-.incognito-toggle.active {
-  background: rgba(var(--superior-crimson-rgb), 0.1);
-  border-color: var(--superior-crimson);
-  color: var(--superior-crimson);
-  box-shadow: 0 0 10px rgba(var(--superior-crimson-rgb), 0.2);
-}
-
-.incognito-toggle .material-symbols-outlined {
-  font-size: 1.2rem;
-}
