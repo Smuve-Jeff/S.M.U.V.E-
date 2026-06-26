@@ -179,28 +179,6 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
 
   }
 
-  generateEuclidean(pulses: number, steps: number = 16) {
-    const pad = this.selectedPad();
-    if (!pad) return;
-    const track = this.getDrumTrack();
-    if (!track) return;
-
-    const barStart = this.currentBar() * 16;
-    const barEnd = barStart + 16;
-    const notesToRemove = track.notes.filter(n => n.midi === pad.midi && n.step >= barStart && n.step < barEnd);
-    if (notesToRemove.length > 0) {
-       this.musicManager.removeNotes(track.id, notesToRemove.map(n => n.id));
-    }
-
-    if (pulses <= 0) return;
-    if (pulses > steps) pulses = steps;
-
-    for (let i = 0; i < steps; i++) {
-        if (Math.floor(i * pulses / steps) !== Math.floor((i - 1) * pulses / steps)) {
-            this.toggleStep(pad.id, i + barStart);
-        }
-    }
-    this.haptic.medium();
   }
 
   randomizeAll() {
