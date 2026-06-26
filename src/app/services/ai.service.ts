@@ -243,14 +243,22 @@ export class AiService {
   proactiveSmuvePulse() {}
   async generateDrumPattern(genre: string = 'Trap'): Promise<boolean[]> {
     this.logger.info(`AI generating ${genre} drum pattern...`);
-    // Professional Trap/Pop pattern generation logic
     const pattern = new Array(64).fill(false);
-    for (let i = 0; i < 64; i += 4) {
-      if (i % 8 === 0) pattern[i] = true; // Kick
-      if ((i - 4) % 16 === 0) pattern[i] = true; // Snare
-      if (Math.random() > 0.3) pattern[i] = true; // Random hats
+    if (genre === 'Trap') {
+      for (let i = 0; i < 64; i += 4) {
+        if (i % 8 === 0) pattern[i] = true;
+        if ((i - 4) % 16 === 0) pattern[i] = true;
+        if (Math.random() > 0.3) pattern[i] = true;
+      }
+    } else {
+      for (let i = 0; i < 64; i += 4) {
+        if (i % 16 === 0) pattern[i] = true;
+        if ((i - 8) % 16 === 0) pattern[i] = true;
+        if (i % 4 === 0) pattern[i] = true;
+      }
     }
     return pattern;
+  }
   }
 
   async generateChordProgression(key: string = 'C', scale: string = 'minor'): Promise<number[]> {
