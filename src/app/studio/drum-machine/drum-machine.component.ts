@@ -52,10 +52,13 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public currentBar = signal(0);
   public barRange = [0, 1, 2, 3];
   public barStepRange = Array.from({length: 16}, (_, i) => i);
+  public fullStepRange = Array.from({length: 64}, (_, i) => i);
   public selectedPadId = signal<string>('pad-36');
   public selectedPad = computed(() => this.pads().find(p => p.id === this.selectedPadId()));
   public graphTarget = signal<'velocity' | 'probability'>('velocity');
   public inspectorCollapsed = signal(false);
+  public padsCollapsed = signal(false);
+  public highDensity = computed(() => this.padsCollapsed() && this.inspectorCollapsed());
 
   public selectedPadSteps = computed(() => {
     const pad = this.selectedPad();
@@ -76,8 +79,6 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
 
   constructor() {
     this.initPads();
-
-    // Sync Drum track notes to pad visual feedback if needed
   }
 
   ngOnInit() {}
@@ -120,12 +121,12 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
           length: 1,
           velocity: 0.8,
           probability: 1.0,
-          params: pad.params
+          params: { ...pad.params, sampleBuffer: pad.sampleBuffer }
        });
     }
   }
 
-  selectPad(id: string) { this.selectedPadId.set(id); if (this.inspectorCollapsed()) this.inspectorCollapsed.set(false); }
+  selectPad(id: string) { this.selectedPadId.set(id); }
 
   getPadStep(padId: string, stepIdx: number) {
     const pad = this.pads().find(p => p.id === padId);
@@ -164,6 +165,22 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
      });
   }
 
+  clearCurrentPad() {
+    const pad = this.selectedPad();
+    if (!pad) return;
+    const track = this.getDrumTrack();
+    if (track) {
+      const notes = track.notes.filter(n => n.midi === pad.midi);
+      this.musicManager.removeNotes(track.id, notes.map(n => n.id));
+    }
+  }
+
+  }
+
+  }
+
+  }
+
   randomizeAll() {
      this.clearDrumPattern();
      this.pads().forEach(p => {
@@ -176,12 +193,18 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   updatePadParam(padId: string, param: string, value: number) {
     this.pads.update(ps => ps.map(p => p.id === padId ? { ...p, params: { ...p.params, [param]: value } } : p));
     this.haptic.light();
+
+  }
   }
 
   triggerPad(pad: DrumPad) {
     this.haptic.impact('light');
     const freq = 440 * Math.pow(2, (pad.midi - 69) / 12);
-    this.audioEngine.triggerAttack(MusicManagerService.DRUM_TRACK_ID, freq, this.audioEngine.ctx.currentTime, 1.0, pad.params.decay || 0.3, 1, pad.params.pan, 0, 0, pad.params);
+    if (pad.sampleBuffer) {
+       this.audioEngine.triggerSampler(MusicManagerService.DRUM_TRACK_ID, pad.sampleBuffer, this.audioEngine.ctx.currentTime, 1.0, pad.params.pan, pad.params.decay || 0.3);
+    } else {
+       this.audioEngine.triggerAttack(MusicManagerService.DRUM_TRACK_ID, freq, this.audioEngine.ctx.currentTime, 1.0, pad.params.decay || 0.3, 1, pad.params.pan, 0, 0, pad.params);
+    }
   }
 
   openSamplePicker() { this.sampleInput.nativeElement.click(); }
@@ -192,6 +215,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
        const arrayBuffer = await file.arrayBuffer();
        const audioBuffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
        this.pads.update(ps => ps.map(p => p.id === this.selectedPadId() ? { ...p, sampleBuffer: audioBuffer, name: file.name.split('.')[0].toUpperCase().substring(0, 8) } : p));
+
+  }
        this.haptic.medium();
     }
   }
