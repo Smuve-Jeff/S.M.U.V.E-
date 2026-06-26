@@ -81,7 +81,12 @@
             </button>
           </div>
         </div>
+
         <div class="view-toggles glass-v42 p-1 rounded-lg flex gap-1">
+          <button (click)="inspectorCollapsed.set(!inspectorCollapsed())" class="mini-tab-btn" [class.active]="!inspectorCollapsed()">
+            <span class="material-symbols-outlined text-xs">{{ inspectorCollapsed() ? 'chevron_left' : 'chevron_right' }}</span>
+          </button>
+
           <button (click)="viewMode.set('sequencer')" class="mini-tab-btn" [class.active]="viewMode() === 'sequencer'">Grid</button>
           <button (click)="viewMode.set('knobs')" class="mini-tab-btn" [class.active]="viewMode() === 'knobs'">Mix</button>
         </div>
@@ -109,15 +114,15 @@
                [class.selected-strip]="selectedPadId() === p.id"
                (click)="selectPad(p.id)">
             <div class="w-1.5 h-1.5 rounded-full mb-2" [style.background-color]="p.color"></div>
-            <app-knob [label]="'PITCH'" [min]="-12" [max]="12" [value]="p.params.semitone" (valueChange)="p.params.semitone = $event"></app-knob>
-            <app-knob [label]="'DECAY'" [min]="0.01" [max]="2" [value]="p.params.decay" (valueChange)="p.params.decay = $event"></app-knob>
+            <app-knob [label]="'PITCH'" [min]="-12" [max]="12" [value]="p.params.semitone" (valueChange)="updatePadParam(p.id, \'semitone\', $event)"></app-knob>
+            <app-knob [label]="'DECAY'" [min]="0.01" [max]="2" [value]="p.params.decay" (valueChange)="updatePadParam(p.id, \'decay\', $event)"></app-knob>
             <div class="text-[8px] font-black uppercase text-slate-500 mt-2">{{ p.name }}</div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="pad-inspector wood-panel w-[320px] border-l border-white/10 p-6 overflow-y-auto no-scrollbar" *ngIf="selectedPad() as pad">
+    <div class="pad-inspector wood-panel w-[320px]" [class.collapsed]="inspectorCollapsed()" border-l border-white/10 p-6 overflow-y-auto no-scrollbar" *ngIf="selectedPad() as pad">
       <div class="inspector-header mb-8">
         <h4 class="text-[10px] font-black uppercase text-hv-secondary mb-1">Pad Parameters</h4>
         <div class="flex items-center gap-2">
@@ -127,12 +132,12 @@
       </div>
 
       <div class="params-pro-grid grid grid-cols-2 gap-8">
-        <app-knob label="CUTOFF" [min]="20" [max]="15000" [value]="pad.params.cutoff" (valueChange)="pad.params.cutoff = $event"></app-knob>
-        <app-knob label="RES" [min]="0.1" [max]="10" [value]="pad.params.resonance" (valueChange)="pad.params.resonance = $event"></app-knob>
-        <app-knob label="PAN" [min]="-1" [max]="1" [value]="pad.params.pan" (valueChange)="pad.params.pan = $event"></app-knob>
-        <app-knob label="ATTACK" [min]="0.001" [max]="0.1" [value]="pad.params.attack" (valueChange)="pad.params.attack = $event"></app-knob>
-        <app-knob label="SAT" [min]="0" [max]="1" [value]="pad.params.saturation" (valueChange)="pad.params.saturation = $event"></app-knob>
-        <app-knob label="COMP" [min]="0" [max]="1" [value]="pad.params.compression" (valueChange)="pad.params.compression = $event"></app-knob>
+        <app-knob label="CUTOFF" [min]="20" [max]="15000" [value]="pad.params.cutoff" (valueChange)="updatePadParam(pad.id, \'cutoff\', $event)"></app-knob>
+        <app-knob label="RES" [min]="0.1" [max]="10" [value]="pad.params.resonance" (valueChange)="updatePadParam(pad.id, \'resonance\', $event)"></app-knob>
+        <app-knob label="PAN" [min]="-1" [max]="1" [value]="pad.params.pan" (valueChange)="updatePadParam(pad.id, \'pan\', $event)"></app-knob>
+        <app-knob label="ATTACK" [min]="0.001" [max]="0.1" [value]="pad.params.attack" (valueChange)="updatePadParam(pad.id, \'attack\', $event)"></app-knob>
+        <app-knob label="SAT" [min]="0" [max]="1" [value]="pad.params.saturation" (valueChange)="updatePadParam(pad.id, \'saturation\', $event)"></app-knob>
+        <app-knob label="COMP" [min]="0" [max]="1" [value]="pad.params.compression" (valueChange)="updatePadParam(pad.id, \'compression\', $event)"></app-knob>
       </div>
 
       <div class="velocity-matrix mt-12 pt-8 border-t border-white/5">

@@ -52,6 +52,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   private startX = 0;
   private startY = 0;
+  private draggingNotes: { startX: number; startY: number; originalPositions: Map<string, { step: number; midi: number }> } | null = null;
 
   selectedTrack = this.musicManager.selectedTrack;
 
@@ -156,15 +157,23 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   onNotePointerDown(event: PointerEvent, note: TrackNote) {
     event.stopPropagation();
     if (this.editMode() === 'select') {
-      const next = new Set(this.selectedNoteIds());
-      if (event.shiftKey) {
+      if (!event.shiftKey && !this.selectedNoteIds().has(note.id)) {
+        this.selectedNoteIds.set(new Set([note.id]));
+      } else if (event.shiftKey) {
+        const next = new Set(this.selectedNoteIds());
         if (next.has(note.id)) next.delete(note.id);
         else next.add(note.id);
-      } else {
-        next.clear();
-        next.add(note.id);
+        this.selectedNoteIds.set(next);
       }
-      this.selectedNoteIds.set(next);
+
+      const originalPositions = new Map<string, { step: number; midi: number }>();
+      this.selectedNoteIds().forEach(id => {
+        const n = this.selectedTrack()?.notes.find(note => note.id === id);
+        if (n) originalPositions.set(id, { step: n.step, midi: n.midi });
+      });
+
+      this.draggingNotes = { startX: event.clientX, startY: event.clientY, originalPositions };
+      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
     } else if (this.editMode() === 'erase') {
       this.musicManager.removeNotes(this.selectedTrack()?.id!, [note.id]);
     }
@@ -172,6 +181,22 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   @HostListener('pointermove', [''])
   onPointerMove(e: PointerEvent) {
+    if (this.draggingNotes) {
+      const dx = e.clientX - this.draggingNotes.startX;
+      const dy = e.clientY - this.draggingNotes.startY;
+      let dSteps = dx / this.cellWidth();
+      let dMidi = -Math.round(dy / this.rowHeight());
+
+      if (this.selectedTrack()) {
+        this.draggingNotes.originalPositions.forEach((pos, id) => {
+          this.musicManager.updateNote(this.selectedTrack()!.id, id, {
+            step: Math.max(0, pos.step + dSteps),
+            midi: Math.max(0, Math.min(127, pos.midi + dMidi))
+          });
+        });
+      }
+      return;
+    }
     if (this.isSelecting) {
       const container = this.scrollContainer.nativeElement;
       const rect = container.getBoundingClientRect();
@@ -203,6 +228,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   @HostListener('pointerup')
   onPointerUp() {
     this.isSelecting = false;
+    this.draggingNotes = null;
     this.selectionBox.set(null);
   }
 

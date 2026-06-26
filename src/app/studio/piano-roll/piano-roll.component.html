@@ -147,7 +147,7 @@
 
     <div class="grid-section flex-1 flex flex-col overflow-hidden">
       <div
-        class="grid-viewport flex-1 no-scrollbar bg-[#050507] relative"
+        class="grid-viewport flex-1 custom-scrollbar bg-[#050507] relative"
         #scrollContainer
         (scroll)="syncKeyScroll()"
         (pointerdown)="onGridPointerDown($event)"
@@ -199,7 +199,7 @@
         </div>
       </div>
 
-      <div class="velocity-editor h-24 wood-panel relative overflow-x-auto no-scrollbar" #velocityViewport (scroll)="onVelocityScroll($event)" (pointerdown)="onVelocityPointerDown($event)">
+      <div class="velocity-editor h-24 wood-panel relative overflow-x-auto custom-scrollbar" #velocityViewport (scroll)="onVelocityScroll($event)" (pointerdown)="onVelocityPointerDown($event)">
          <div class="velocity-canvas relative" [style.width.px]="gridWidth()" [style.height.px]="96">
             <div *ngFor="let column of gridColumns"
                  class="grid-col absolute top-0 bottom-0 border-r border-white/5"

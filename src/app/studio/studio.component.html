@@ -67,6 +67,19 @@
     </aside>
 
     <div class="studio-main-layout flex-1 flex overflow-hidden">
+
+      <!-- Desktop Navigation Sidebar -->
+      <aside class="desktop-nav-sidebar wood-panel border-r border-black hidden md:flex flex-col gap-2 p-2 w-[64px] z-[900]">
+        <button *ngFor="let item of bottomNavItems()"
+                (click)="setActiveView(item.id)"
+                [class.active]="activeView() === item.id"
+                class="nav-icon-btn tactile-v42 flex flex-col items-center justify-center gap-1 p-2 h-[56px] w-full"
+                [title]="item.label">
+          <span class="material-symbols-outlined text-lg">{{ item.icon }}</span>
+          <span class="text-[7px] font-black uppercase tracking-tighter">{{ item.label }}</span>
+        </button>
+      </aside>
+
       <!-- Sidebar Browser (Desktop) -->
       <aside class="studio-panel studio-browser wood-panel border-r border-black" *ngIf="!uiService.isCompactMobile() && !browserCollapsed()" [style.width.px]="browserWidth()">
         <header class="flex items-center justify-between px-3 py-1.5 bg-black/40 border-b border-white/5">

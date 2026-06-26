@@ -55,6 +55,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public selectedPadId = signal<string>('pad-36');
   public selectedPad = computed(() => this.pads().find(p => p.id === this.selectedPadId()));
   public graphTarget = signal<'velocity' | 'probability'>('velocity');
+  public inspectorCollapsed = signal(false);
 
   private blueprints = [
     { name: 'KICK', midi: 36, color: '#ff4444', type: 'kick' },
@@ -109,7 +110,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     }
   }
 
-  selectPad(id: string) { this.selectedPadId.set(id); }
+  selectPad(id: string) { this.selectedPadId.set(id); if (this.inspectorCollapsed()) this.inspectorCollapsed.set(false); }
 
   getPadStep(padId: string, stepIdx: number) {
     const pad = this.pads().find(p => p.id === padId);
@@ -163,6 +164,11 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
            if (Math.random() > 0.9) this.toggleStep(p.id, i);
         }
      });
+  }
+
+  updatePadParam(padId: string, param: string, value: number) {
+    this.pads.update(ps => ps.map(p => p.id === padId ? { ...p, params: { ...p.params, [param]: value } } : p));
+    this.haptic.light();
   }
 
   triggerPad(pad: DrumPad) {

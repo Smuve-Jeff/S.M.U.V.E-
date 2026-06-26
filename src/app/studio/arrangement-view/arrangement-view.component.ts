@@ -46,7 +46,7 @@ export class ArrangementViewComponent {
   readonly activeTool = signal<'select' | 'blade' | 'glue'>('select');
   readonly isRecordingAutomation = signal(false);
 
-  private draggingClip: { trackId: string; clipId: string; startX: number; startY: number; originalStart: number; offsetBars: number; clipData: TrackClip } | null = null;
+  private draggingClip: { trackId: string; clipId: string; startX: number; startY: number; originalStarts: Map<string, number>; offsetBars: number; clipData: TrackClip } | null = null;
   private resizingClip: { trackId: string; clipId: string; startX: number; originalLength: number } | null = null;
 
   readonly barWidth = computed(() => 100 * this.enhancedGestures.zoomLevel());
@@ -92,6 +92,17 @@ export class ArrangementViewComponent {
       if (e.key === 'z') { if (e.shiftKey) this.history.redo(); else this.history.undo(); }
       if (e.key === 'd') { e.preventDefault(); this.duplicateSelected(); }
     }
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (this.selectedClipIds().size > 0) {
+        this.selectedClipIds().forEach(id => {
+          this.tracks().forEach(t => {
+            if (t.clips.find(c => c.id === id)) this.musicManager.removeClip(t.id, id);
+          });
+        });
+        this.selectedClipIds().clear();
+        this.haptic.medium();
+      }
+    }
     if (e.key === 'v') this.activeTool.set('select');
     if (e.key === 'b') this.activeTool.set('blade');
     if (e.key === 'g') this.activeTool.set('glue');
@@ -109,9 +120,18 @@ export class ArrangementViewComponent {
     if ((e.target as HTMLElement).classList.contains('resize-handle')) {
       this.resizingClip = { trackId, clipId: clip.id, startX: e.clientX, originalLength: clip.length };
     } else {
-      this.draggingClip = { trackId, clipId: clip.id, startX: e.clientX, startY: e.clientY, originalStart: clip.start, offsetBars: 0, clipData: clip };
       if (!e.shiftKey && !this.selectedClipIds().has(clip.id)) this.selectedClipIds().clear();
       this.selectedClipIds().add(clip.id);
+
+      const originalStarts = new Map<string, number>();
+      this.selectedClipIds().forEach(id => {
+        this.tracks().forEach(t => {
+          const c = t.clips.find(clip => clip.id === id);
+          if (c) originalStarts.set(id, c.start);
+        });
+      });
+
+      this.draggingClip = { trackId, clipId: clip.id, startX: e.clientX, startY: e.clientY, originalStarts, offsetBars: 0, clipData: clip };
     }
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }
@@ -126,8 +146,8 @@ export class ArrangementViewComponent {
       this.selectedClipIds().forEach(id => {
          this.tracks().forEach(t => {
             const clip = t.clips.find(c => c.id === id);
-            if (clip) {
-               const original = id === this.draggingClip?.clipId ? this.draggingClip.originalStart : clip.start;
+            if (clip && this.draggingClip?.originalStarts.has(id)) {
+               const original = this.draggingClip.originalStarts.get(id)!;
                this.musicManager.updateClip(t.id, clip.id, { start: Math.max(0, original + dbars) });
             }
          });
@@ -146,6 +166,20 @@ export class ArrangementViewComponent {
   onLanePointerDown(e: PointerEvent, track: TrackModel) {
     if (e.button !== 0 || (e.target as HTMLElement).classList.contains('clip-item')) return;
     this.selectTrack(track.id);
+
+    if (this.activeTool() === 'select') {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      let bar = x / this.barWidth();
+      if (this.snapEnabled()) bar = Math.floor(bar * 4) / 4;
+
+      this.musicManager.addClipToTrack(track.id, {
+        start: bar,
+        length: 4,
+        type: track.type === 'midi' || track.type === 'drum' ? 'midi' : 'audio'
+      });
+      this.haptic.light();
+    }
   }
 
   clipLabel(track: TrackModel, clip: TrackClip): string { return clip.name || track.name; }

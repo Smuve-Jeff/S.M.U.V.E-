@@ -134,10 +134,18 @@ export class LiveEngineService {
     this.currentInstrumentNode.triggerRelease(note, Tone.now());
   }
 
-  updateParameter(param: string, value: number) {
+    updateParameter(param: string, value: number) {
     if (!this.currentInstrumentNode) return;
     if (param === 'cutoff' && this.filterNode) this.filterNode.frequency.value = value;
     if (param === 'resonance' && this.filterNode) this.filterNode.Q.value = value;
+
+    if (param === 'attack' || param === 'release' || param === 'decay' || param === 'sustain') {
+      if (this.currentInstrumentNode instanceof Tone.PolySynth) {
+        this.currentInstrumentNode.set({
+          envelope: { [param]: value }
+        });
+      }
+    }
   }
 
   setScale(mode: any) { this.scaleMode.set(mode); }
