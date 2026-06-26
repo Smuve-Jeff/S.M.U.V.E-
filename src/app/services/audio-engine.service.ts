@@ -189,11 +189,7 @@ export class AudioEngineService {
     const env = this.ctx.createGain();
     osc.frequency.setValueAtTime(isDownbeat ? 1000 : 600, time);
     env.gain.setValueAtTime(0, time);
-    const peak = this.metronomeVolume();
-    if (peak <= 0) {
-      return;
-    }
-    env.gain.linearRampToValueAtTime(peak, time + 0.005);
+    env.gain.linearRampToValueAtTime(this.metronomeVolume(), time + 0.005);
     env.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
     osc.connect(env);
     env.connect(this.masterGain);
@@ -276,20 +272,15 @@ export class AudioEngineService {
 
   async loadDeck(id: DeckId, buffer: AudioBuffer) {
     const deck = this.getDeck(id);
-    const loadVersion = ++deck.loadVersion;
     this.stopDeck(id);
     deck.buffer = buffer;
     deck.pauseOffset = 0;
     deck.stems = null;
     try {
-      const stems = await this.stemSeparationService.separate(buffer);
-      if (deck.loadVersion === loadVersion) {
-        deck.stems = stems;
-      }
+      deck.stems = await this.stemSeparationService.separate(buffer);
     } catch (e) {
       this.logger.error('Stem separation failed', e);
     }
-  }
   }
 
   playDeck(id: DeckId) {
@@ -302,7 +293,7 @@ export class AudioEngineService {
   pauseDeck(id: DeckId) {
     const deck = this.getDeck(id);
     if (!deck.isPlaying) return;
-    deck.pauseOffset += (this.ctx.currentTime - deck.startTime) * deck.rate;
+    deck.pauseOffset += this.ctx.currentTime - deck.startTime;
     this.stopDeckSource(deck);
     deck.isPlaying = false;
   }
@@ -578,10 +569,7 @@ export class AudioEngineService {
     }
     if (patch.busId !== undefined) {
       const track = this.tracksMap.get(idStr);
-      if (!track || track.busId !== patch.busId) {
-        if (patch.busId?.toString() === idStr) {
-          throw new Error('A track cannot be routed to itself');
-        }
+      if (track && track.busId !== patch.busId) {
         output.disconnect();
         const target = patch.busId ? this.getTrackOutput(patch.busId) : this.masterGain;
         output.connect(target);
@@ -664,7 +652,7 @@ export class AudioEngineService {
   getMasterStream(): MediaStreamAudioDestinationNode {
     if (!this.recordingDestination) {
       this.recordingDestination = this.ctx.createMediaStreamDestination();
-      this.masterAnalyser.connect(this.recordingDestination);
+      this.limiter.connect(this.recordingDestination);
     }
     return this.recordingDestination;
   }
