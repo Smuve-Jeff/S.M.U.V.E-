@@ -189,7 +189,11 @@ export class AudioEngineService {
     const env = this.ctx.createGain();
     osc.frequency.setValueAtTime(isDownbeat ? 1000 : 600, time);
     env.gain.setValueAtTime(0, time);
-    env.gain.linearRampToValueAtTime(this.metronomeVolume(), time + 0.005);
+    const peak = this.metronomeVolume();
+    if (peak <= 0) {
+      return;
+    }
+    env.gain.linearRampToValueAtTime(peak, time + 0.005);
     env.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
     osc.connect(env);
     env.connect(this.masterGain);
