@@ -111,7 +111,7 @@ export class SocialNetworkingService {
     });
 
     this.socket.on('users_online', (users: OnlineUser[]) => {
-      this.onlineUsers.set(Array.isArray(users) ? users.filter(u => u.userId !== userId) : []);
+      this.onlineUsers.set(Array.isArray(users) ? users.filter(u => u?.userId !== userId) : []);
     });
 
     this.socket.on('private_message', (data: any) => {
