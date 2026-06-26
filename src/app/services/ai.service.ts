@@ -261,10 +261,18 @@ export class AiService {
   }
   }
 
-  async generateChordProgression(key: string = 'C', scale: string = 'minor'): Promise<number[]> {
+  async generateChordProgression(
+    key: string = 'C',
+    scale: string = 'minor',
+  ): Promise<number[][]> {
     this.logger.info(`AI generating chord progression in ${key} ${scale}...`);
-    // Returns MIDI root notes for a i-VI-III-VII progression
-    return [60, 68, 63, 67];
+    // Return full triads/sevenths so the caller can add actual chords.
+    return [
+      [60, 63, 67],
+      [68, 72, 75],
+      [63, 67, 70],
+      [70, 74, 77],
+    ];
   }
 
   getSmartMixAdvice(tracks: any[]): string {
