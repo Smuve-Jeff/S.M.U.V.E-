@@ -229,7 +229,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.setActiveRoom('co-op-link');
 
     // Auto-open Rival Hub if it's a fresh entry to show the active users as requested
-    setTimeout(() => {
+    this.hubTimeoutId = setTimeout(() => {
       if (!this.showRivalHub()) this.toggleRivalHub();
     }, 1000);
   }
