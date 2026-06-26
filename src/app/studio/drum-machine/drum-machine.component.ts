@@ -143,6 +143,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
 
   isGlobalStep(step: number) { return this.audioEngine.visualStep() % 64 === step; }
 
+  resolveStepIdx(stepIdx: number) {
+    return this.highDensity() ? stepIdx : stepIdx + (this.currentBar() * 16);
+  }
+
   evolveRhythm() {
      this.haptic.impact('heavy');
      const pad = this.selectedPad();
@@ -176,11 +180,21 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }
 
   doublePattern() {
-    this.pads().forEach(pad => {
-      for (let i = 0; i < 32; i++) {
-        if (this.getPadStep(pad.id, i).active) {
-          this.toggleStep(pad.id, i + 32);
-        }
+    const track = this.getDrumTrack();
+    if (!track) return;
+    const sourceNotes = track.notes.filter(n => n.step < 32);
+    sourceNotes.forEach(n => {
+      const exists = track.notes.find(e => e.midi === n.midi && e.step === n.step + 32);
+      if (!exists) {
+        this.musicManager.addNoteToTrack(track.id, {
+          id: 'drum_' + Date.now() + Math.random(),
+          midi: n.midi,
+          step: n.step + 32,
+          length: n.length,
+          velocity: n.velocity,
+          probability: n.probability,
+          params: { ...n.params }
+        });
       }
     });
   }
@@ -188,47 +202,42 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   humanize() {
     const track = this.getDrumTrack();
     if (!track) return;
-    track.notes.forEach(note => {
-      this.musicManager.updateNote(track.id, note.id, { velocity: Math.min(1, Math.max(0.1, note.velocity + (Math.random() - 0.5) * 0.3)) });
+    track.notes.forEach(n => {
+      const velocity = Math.min(1, Math.max(0.1, n.velocity + (Math.random() - 0.5) * 0.2));
+      this.musicManager.updateNote(track.id, n.id, { velocity });
     });
   }
 
   generateEuclidean(pulses: number, steps = 16) {
     const pad = this.selectedPad();
     if (!pad) return;
-    this.clearCurrentPad();
+    const track = this.getDrumTrack();
+    if (!track) return;
+    const existing = track.notes.filter(n => n.midi === pad.midi && n.step < steps);
+    this.musicManager.removeNotes(track.id, existing.map(n => n.id));
     // Bjorklund/Euclidean rhythm distribution
-    let counts: number[] = [];
-    let remainders: number[] = [];
-    let divisor = steps - pulses;
-    remainders[0] = pulses;
-    let level = 0;
-    while (remainders[level] > 1) {
-      counts[level] = Math.floor(divisor / remainders[level]);
-      remainders[level + 1] = divisor % remainders[level];
-      divisor = remainders[level];
-      level++;
+    const pattern: boolean[] = Array(steps).fill(false);
+    let bucket = 0;
+    for (let i = 0; i < steps; i++) {
+      bucket += pulses;
+      if (bucket >= steps) {
+        bucket -= steps;
+        pattern[i] = true;
+      }
     }
-    counts[level] = divisor;
-    const build = (lv: number): boolean[] => {
-      if (lv === -1) return [false];
-      if (lv === -2) return [true];
-      return [...Array(counts[lv])].flatMap(() => build(lv - 1)).concat(
-        remainders[lv] ? build(lv - 2) : []
-      );
-    };
-    const result = build(level);
-    for (let i = 0; i < steps && i < result.length; i++) {
-      if (result[i]) this.toggleStep(pad.id, i);
-    }
-  }
-
-  resolvedStep(stepIdx: number): number {
-    return this.highDensity() ? stepIdx : stepIdx + (this.currentBar() * 16);
-  }
-
-  }
-
+    pattern.forEach((active, i) => {
+      if (active) {
+        this.musicManager.addNoteToTrack(track.id, {
+          id: 'drum_' + Date.now() + Math.random(),
+          midi: pad.midi,
+          step: i,
+          length: 1,
+          velocity: 0.8,
+          probability: 1.0,
+          params: { ...pad.params, sampleBuffer: pad.sampleBuffer }
+        });
+      }
+    });
   }
 
   randomizeAll() {
@@ -243,8 +252,6 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   updatePadParam(padId: string, param: string, value: number) {
     this.pads.update(ps => ps.map(p => p.id === padId ? { ...p, params: { ...p.params, [param]: value } } : p));
     this.haptic.light();
-
-  }
   }
 
   triggerPad(pad: DrumPad) {
@@ -265,8 +272,6 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
        const arrayBuffer = await file.arrayBuffer();
        const audioBuffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
        this.pads.update(ps => ps.map(p => p.id === this.selectedPadId() ? { ...p, sampleBuffer: audioBuffer, name: file.name.split('.')[0].toUpperCase().substring(0, 8) } : p));
-
-  }
        this.haptic.medium();
     }
   }
