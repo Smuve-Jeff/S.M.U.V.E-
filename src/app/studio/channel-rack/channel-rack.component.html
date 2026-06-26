@@ -31,15 +31,15 @@
         <button
           (click)="toggleMute(track); $event.stopPropagation()"
           class="w-3.5 h-3.5 rounded-sm transition-all border border-black/40 shadow-inner"
-          [class.muted]="track.mute"
-          [style.background-color]="track.mute ? '#ef4444' : '#1a1a24'"
+          [class.muted]="track.muted"
+          [style.background-color]="track.muted ? '#ef4444' : '#1a1a24'"
           title="Mute"
         ></button>
         <button
           (click)="toggleSolo(track); $event.stopPropagation()"
           class="w-3.5 h-3.5 rounded-sm transition-all border border-black/40 shadow-inner"
-          [class.soloed]="track.solo"
-          [style.background-color]="track.solo ? '#fbbf24' : '#1a1a24'"
+          [class.soloed]="track.soloed"
+          [style.background-color]="track.soloed ? '#fbbf24' : '#1a1a24'"
           title="Solo"
         ></button>
       </div>

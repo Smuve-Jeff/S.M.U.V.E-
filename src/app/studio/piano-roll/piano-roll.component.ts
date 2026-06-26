@@ -1,40 +1,23 @@
-import {
-  Component,
-  signal,
-  computed,
-  inject,
-  ElementRef,
-  ViewChild,
-  HostListener,
-  AfterViewInit,
-  OnInit,
-  ChangeDetectorRef,
-  Output,
-  EventEmitter
-} from '@angular/core';
+import { Component, inject, signal, computed, ElementRef, ViewChild, AfterViewInit, HostListener, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MusicManagerService, TrackNote } from '../../services/music-manager.service';
 import { AudioSessionService } from '../audio-session.service';
-import {
-  MusicManagerService,
-  TrackNote,
-} from '../../services/music-manager.service';
-import { HapticService } from '../../services/haptic.service';
 import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
+import { HapticService } from '../../services/haptic.service';
 
 @Component({
   selector: 'app-piano-roll',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './piano-roll.component.html',
-  styleUrls: ['./piano-roll.component.css'],
+  styleUrls: ['./piano-roll.component.css']
 })
 export class PianoRollComponent implements OnInit, AfterViewInit {
-  public readonly audioSession = inject(AudioSessionService);
   public readonly musicManager = inject(MusicManagerService);
-  private readonly haptic = inject(HapticService);
+  public readonly audioSession = inject(AudioSessionService);
   public readonly touchGestures = inject(EnhancedTouchGestureService);
-  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly haptic = inject(HapticService);
 
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('keysSidebar') keysSidebar!: ElementRef<HTMLDivElement>;
@@ -60,9 +43,17 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   viewportNotes = computed(() => this.selectedTrack()?.notes || []);
 
-  displayKeys = Array.from({ length: 128 }, (_, i) => 127 - i);
   gridColumns = Array.from({ length: 64 }, (_, i) => i);
   cells = this.gridColumns;
+
+  scaleMode = this.musicManager.engine.scaleMode;
+  isScaleLocked = this.musicManager.engine.scaleLock;
+  isFolded = signal(false);
+
+  displayKeys = computed(() => {
+    if (!this.isFolded()) return Array.from({ length: 128 }, (_, i) => 127 - i);
+    return this.selectedTrack()?.notes.map(n => n.midi).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => b - a) || [];
+  });
 
   selectedNoteVelocity = computed(() => {
     const track = this.selectedTrack();
@@ -79,6 +70,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const first = track.notes.find(n => ids.has(n.id));
     return first?.probability ?? 1.0;
   });
+
+  activeChord = signal("maj");
+  chordTypes = ["maj", "min", "maj7", "min7", "dom7", "sus4"];
 
   ngOnInit() { this.checkMobile(); }
 
@@ -289,6 +283,19 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     return Array.from(this.selectedNoteIds()).some(id => track.notes.find(n => n.id === id)?.isSlide);
   }
 
+  getScaleNotes(): number[] {
+    const intervals = this.scaleMode() === 'minor' ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 4, 5, 7, 9, 11];
+    return intervals;
+  }
+
+  isInScale(midi: number): boolean {
+    return this.getScaleNotes().includes(midi % 12);
+  }
+
+  getGhostNotes() {
+    return this.musicManager.tracks().filter(t => t.id !== this.selectedTrack()?.id).flatMap(t => t.notes);
+  }
+
   zoomIn() { this.touchGestures.adjustZoom(0.1); }
   zoomOut() { this.touchGestures.adjustZoom(-0.1); }
   fitToPage() { this.touchGestures.resetZoom(); }
@@ -299,6 +306,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   gridWidth = computed(() => 64 * this.cellWidth());
   canvasHeight = computed(() => 128 * this.rowHeight());
 
-  setChord(type: string) { this.activeChord.set(type); }
+  toggleFold() {
+    this.isFolded.update(v => !v);
+  }
 
+  setChord(type: string) {
+    this.activeChord.set(type);
+  }
 }
