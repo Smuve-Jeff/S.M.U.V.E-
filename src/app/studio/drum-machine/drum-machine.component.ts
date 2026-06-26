@@ -221,12 +221,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
        const audioBuffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
        this.pads.update(ps => ps.map(p => p.id === this.selectedPadId() ? { ...p, sampleBuffer: audioBuffer, name: file.name.split('.')[0].toUpperCase().substring(0, 8) } : p));
 
-       const drumTrack = this.getDrumTrack();
-       const pad = this.selectedPad();
-       if (drumTrack && pad) {
-          const notes = drumTrack.notes.filter(n => n.midi === pad.midi);
-          notes.forEach(n => this.musicManager.updateNote(drumTrack.id, n.id, { params: { ...pad.params, sampleBuffer: audioBuffer } }));
-       }
+  }
        this.haptic.medium();
     }
   }
