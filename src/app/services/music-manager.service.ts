@@ -134,8 +134,22 @@ export class MusicManagerService {
   }
 
   setTrackBus(trackId: string, busId: string | undefined) {
+    const tracks = this.tracks();
+    if (busId) {
+      const target = tracks.find((t) => t.id === busId);
+      if (!target || target.type !== 'bus' || busId === trackId) return;
+
+      const seen = new Set<string>([trackId]);
+      let nextBusId: string | undefined = target.busId;
+      while (nextBusId) {
+        if (seen.has(nextBusId)) return;
+        seen.add(nextBusId);
+        nextBusId = tracks.find((t) => t.id === nextBusId)?.busId;
+      }
+    }
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, busId } : t));
     this.engine.updateTrack(trackId, { busId });
+  }
   }
 
   setPadRouting(padId: string, busId: string) {
