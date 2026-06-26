@@ -235,4 +235,9 @@ export class ArrangementViewComponent {
   aiSuggestArrangement() { this.haptic.impact('heavy'); this.duplicateSelected(); this.musicManager.addTrack('AI Pad', 'glass-pad', 'midi'); }
   aiMixTransition() { this.haptic.impact('heavy'); const tid = this.musicManager.selectedTrackId(); if (tid) { this.musicManager.updateVolume(tid, 0); setTimeout(() => this.musicManager.updateVolume(tid, 0.8), 2000); } }
   toggleAutomation() { this.haptic.medium(); this.isRecordingAutomation.update(v => !v); }
+
+  createGroup() {
+    this.musicManager.addTrack("New Group", "none", "bus");
+  }
+
 }

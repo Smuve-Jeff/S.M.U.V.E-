@@ -80,6 +80,11 @@
           class="channel-name neon-text-sm truncate uppercase tracking-tight font-black leading-none mb-1"
         >
           {{ track.name }}
+        <button (click)="openPianoRoll(track); $event.stopPropagation()"
+                class="ml-2 opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-all text-fl-blue">
+          <span class="material-symbols-outlined text-[12px]">piano</span>
+        </button>
+
         </div>
         <div
           class="text-[7px] font-mono opacity-30 truncate uppercase tracking-widest"
@@ -88,7 +93,25 @@
         </div>
       </div>
 
-      <!-- Step Sequencer (Professional FL-Style) -->
+
+      <!-- Quick Actions -->
+      <div class="flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-all">
+        <button (click)="cloneTrack(track); $event.stopPropagation()" class="text-[10px] text-slate-500 hover:text-white" title="Clone">
+          <span class="material-symbols-outlined text-[12px]">content_copy</span>
+        </button>
+        <div class="flex flex-col">
+          <button (click)="reorderTrack(i, 'up'); $event.stopPropagation()" class="text-[8px] text-slate-500 hover:text-white">
+            <span class="material-symbols-outlined text-[10px]">expand_less</span>
+          </button>
+          <button (click)="reorderTrack(i, 'down'); $event.stopPropagation()" class="text-[8px] text-slate-500 hover:text-white">
+            <span class="material-symbols-outlined text-[10px]">expand_more</span>
+          </button>
+        </div>
+        <button (click)="removeTrack(track.id); $event.stopPropagation()" class="text-[10px] text-red-900 hover:text-red-500" title="Delete">
+          <span class="material-symbols-outlined text-[12px]">delete</span>
+        </button>
+      </div>
+<!-- Step Sequencer (Professional FL-Style) -->
       <div
         class="flex gap-1 items-center bg-black/20 p-1.5 rounded-lg border border-white/5"
         *ngIf="track.type === 'midi'"

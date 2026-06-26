@@ -72,7 +72,15 @@
       <div class="flex items-center gap-2 mx-2">
         <button class="tactile-v42 px-3 py-1 text-[8px] font-black" [class.bg-red-500]="isRecordingAutomation()" (click)="toggleAutomation()">AUTO</button>
       </div>
-      <div class="tool-group flex gap-1">
+
+      <div class="chord-stamp-selector flex items-center gap-1 mx-2 border-l border-white/10 pl-4">
+        <span class="text-[7px] font-black text-slate-500 uppercase">Chord</span>
+        <select [ngModel]="activeChord()" (ngModelChange)="setChord($event)"
+                class="bg-black/40 text-[9px] font-black uppercase text-fl-blue rounded border border-white/5 py-1 px-1">
+          <option *ngFor="let c of chordTypes" [value]="c">{{ c }}</option>
+        </select>
+      </div>
+<div class="tool-group flex gap-1">
         <button
           [class.active]="editMode() === 'draw'"
           (click)="setEditMode('draw')"

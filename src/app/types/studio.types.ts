@@ -1,4 +1,4 @@
-export type TrackType = 'midi' | 'audio' | 'vocal' | 'drum';
+export type TrackType = 'midi' | 'audio' | 'vocal' | 'drum' | 'bus';
 
 export interface Task {
   id: number;
@@ -35,6 +35,20 @@ export interface StudioClip {
   isComp?: boolean;
   compRegions?: StudioCompRegion[];
   notes?: any[];
+  automation?: StudioAutomationLane[];
+}
+
+export interface StudioAutomationPoint {
+  time: number;
+  value: number;
+  curve?: number; // 0 = linear, -1 to 1 = bezier tension
+}
+
+export interface StudioAutomationLane {
+  id: string;
+  param: string;
+  points: StudioAutomationPoint[];
+  enabled: boolean;
 }
 
 export interface StudioTrack {
@@ -49,6 +63,16 @@ export interface StudioTrack {
   clips: StudioClip[];
   effects: any[];
   color?: string;
+  parentId?: string; // For grouping/folders
+  busId?: string;    // Target bus ID (default 'master')
+  sendA?: number;
+  sendB?: number;
+  collapsed?: boolean;
+  eqData?: {
+    low: number;
+    mid: number;
+    high: number;
+  };
 }
 
 export interface Project {
@@ -59,6 +83,7 @@ export interface Project {
   genre?: string;
   bpm: number;
   key?: string;
+  scale?: string; // e.g. 'major', 'minor'
   timeSignature: [number, number];
   status: 'Draft' | 'In Progress' | 'Mixing' | 'Mastering' | 'Completed' | 'Pending';
   createdAt: number;
@@ -71,6 +96,14 @@ export interface Project {
     past: any[];
     future: any[];
   };
+  markers?: StudioMarker[];
+}
+
+export interface StudioMarker {
+  id: string;
+  name: string;
+  time: number;
+  color?: string;
 }
 
 export type StudioProject = Project;

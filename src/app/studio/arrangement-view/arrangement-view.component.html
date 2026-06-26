@@ -67,6 +67,7 @@
       >
         {{ snapEnabled() ? 'SNAP ON' : 'SNAP OFF' }}
       </button>
+      <button (click)="createGroup()" class="mini-btn tactile-v42 executive-glass">+ GROUP</button>
       <button (click)="addTrack()" class="mini-btn tactile-v42 executive-glass">
         + TRACK
       </button>
@@ -76,7 +77,7 @@
   <div class="playlist-content no-scrollbar">
     <div class="track-headers no-scrollbar wood-panel">
       <div
-        *ngFor="let track of tracks()"
+        *ngFor="let track of tracks().filter(t => !t.parentId || !tracks().find(p => p.id === t.parentId)?.collapsed)"
         class="track-header tactile-v42 glass-v42"
         [style.height.px]="laneHeight() + (musicManager.takesExpanded()[track.id] ? (track.clips[0]?.takes?.length || 0) * (laneHeight() * 0.6) : 0)"
         [class.selected]="isTrackSelected(track.id)"
@@ -140,7 +141,7 @@
         </div>
 
         <div
-          *ngFor="let track of tracks()"
+          *ngFor="let track of tracks().filter(t => !t.parentId || !tracks().find(p => p.id === t.parentId)?.collapsed)"
           class="lane-group relative"
         >
           <!-- Main Lane -->

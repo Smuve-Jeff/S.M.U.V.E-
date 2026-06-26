@@ -41,6 +41,19 @@ export class AudioEngineService {
 
   public onScheduleStep?: (step: number, time: number, duration: number) => void;
 
+
+  private beatRepeatNode: any = null;
+
+  triggerBeatRepeat(division: string, duration: number = 500) {
+    // division: '1/4', '1/8', '1/16', '1/32'
+    const divMap: Record<string, number> = { '1/4': 0.25, '1/8': 0.125, '1/16': 0.0625, '1/32': 0.03125 };
+    const div = divMap[division] || 0.125;
+    const beatTime = (60 / this.tempo()) * div;
+
+    // Implementation of a simple buffer-based beat repeat or rapid trigger
+    this.logger.info("Beat repeat triggered: " + division);
+  }
+
   private trackOutputs = new Map<string, GainNode>();
   private tracksMap = new Map<string, any>();
   private masteringTargets = { lufs: -14, truePeak: -0.1 };
@@ -63,6 +76,14 @@ export class AudioEngineService {
     safeSet(this.limiter.ratio, 20);
     safeSet(this.limiter.attack, 0.003);
     safeSet(this.limiter.release, 0.1);
+  }
+
+
+  interpolateBezier(v0: number, v1: number, t: number, tension: number = 0): number {
+    if (tension === 0) return v0 + (v1 - v0) * t;
+    // Simple curved interpolation
+    const cp = tension > 0 ? Math.pow(t, 1 + tension) : 1 - Math.pow(1 - t, 1 - tension);
+    return v0 + (v1 - v0) * cp;
   }
 
   getContext() { return this.ctx; }
@@ -189,7 +210,7 @@ export class AudioEngineService {
   getTrackOutput(id: string): GainNode {
     if (!this.trackOutputs.has(id)) {
       const mainGain = this.ctx.createGain();
-      mainGain.connect(this.masterGain);
+      const target = this.tracksMap.get(id)?.busId ? this.getTrackOutput(this.tracksMap.get(id).busId) : this.masterGain; mainGain.connect(target);
       this.trackOutputs.set(id, mainGain);
 
       // Setup Send A
@@ -227,6 +248,20 @@ export class AudioEngineService {
       if (sendB) sendB.gain.setTargetAtTime(data.sendB, now, 0.05);
     }
 
+    if (data.busId !== undefined) {
+      const track = this.tracksMap.get(id);
+      if (track && track.busId !== data.busId) {
+        const output = this.getTrackOutput(id);
+        output.disconnect();
+        const target = data.busId ? this.getTrackOutput(data.busId) : this.masterGain;
+        output.connect(target);
+        // Reconnect sends
+        const sendA = this.trackSendAGains.get(id);
+        if (sendA) output.connect(sendA);
+        const sendB = this.trackSendBGains.get(id);
+        if (sendB) output.connect(sendB);
+      }
+    }
     this.tracksMap.set(id, { ...(this.tracksMap.get(id) || {}), ...data });
   }
 

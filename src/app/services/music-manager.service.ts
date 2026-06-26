@@ -136,6 +136,16 @@ export class MusicManagerService {
     }, () => this.tracks.set(oldTracks));
   }
 
+  createBus(name: string) {
+    return this.addTrack(name, "bus", "bus");
+  }
+
+  setTrackBus(trackId: string, busId: string | undefined) {
+    this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, busId } : t));
+    // Force engine re-routing (requires getTrackOutput to be recalled or track outputs to be reconnected)
+    this.engine.updateTrack(trackId, { busId });
+  }
+
   addTrack(name: string, instrumentId: string, type: TrackType = 'midi') {
     const id = instrumentId.includes('drum') ? MusicManagerService.DRUM_TRACK_ID : 'track_' + Date.now() + Math.random();
     const preset = this.instruments.getPresets().find(p => p.id === instrumentId);
@@ -207,8 +217,13 @@ export class MusicManagerService {
   }
 
   playStep(step: number, time: number, duration: number) {
+
     const bar = Math.floor(step / 16);
     const stepInBar = step % 16;
+    const isOffbeat = stepInBar % 2 !== 0;
+    const swingOffset = isOffbeat ? (this.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID) as any)?.swingAmount || 0 : 0;
+    const swungTime = time + (swingOffset * duration * 0.5);
+
 
     this.tracks().forEach(t => {
       if (t.muted) return;
@@ -219,7 +234,7 @@ export class MusicManagerService {
           t.notes.filter(n => Math.floor(n.step) === step % 64).forEach(n => {
              if (n.probability === undefined || Math.random() < n.probability) {
                 const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
-                this.engine.triggerAttack(t.id, freq, time, n.velocity, n.length * duration, t.gain, t.pan, 0, 0, t.synthParams);
+                this.engine.triggerAttack(t.id, freq, swungTime, n.velocity, n.length * duration, t.gain, t.pan, 0, 0, t.synthParams);
              }
           });
 
@@ -228,7 +243,7 @@ export class MusicManagerService {
              const audioData = (clip as any).audioData;
              if (audioData) {
                 const rate = this.engine.calculatePlaybackRate((clip as any).originalBpm || this.engine.tempo());
-                this.engine.triggerSampler(t.id, audioData, time, t.gain, t.pan, clip.length * 4 * (60/this.engine.tempo()), rate);
+                this.engine.triggerSampler(t.id, audioData, swungTime, t.gain, t.pan, clip.length * 4 * (60/this.engine.tempo()), rate);
              }
           }
         }
@@ -263,6 +278,16 @@ export class MusicManagerService {
 
   toggleMute(id: string) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, muted: !t.muted } : t)); }
   toggleSolo(id: string) { this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, soloed: !t.soloed } : t)); }
+
+  updateDrumSwing(amount: number) {
+    this.tracks.update(ts => ts.map(t => {
+      if (t.id === MusicManagerService.DRUM_TRACK_ID) {
+        return { ...t, swingAmount: amount };
+      }
+      return t;
+    }));
+  }
+
   updateVolume(id: string, vol: number) {
     this.tracks.update(ts => ts.map(t => t.id === id ? { ...t, volume: vol, gain: vol } : t));
     this.engine.updateTrack(id, { gain: vol });
@@ -290,6 +315,28 @@ export class MusicManagerService {
       } catch (err) {}
     };
     reader.readAsText(file);
+  }
+
+
+  applyChordStamp(trackId: string, baseMidi: number, step: number, chordType: string) {
+    const intervals: Record<string, number[]> = {
+      'maj': [0, 4, 7],
+      'min': [0, 3, 7],
+      'maj7': [0, 4, 7, 11],
+      'min7': [0, 3, 7, 10],
+      'dom7': [0, 4, 7, 10],
+      'sus4': [0, 5, 7]
+    };
+    const notes = intervals[chordType] || [0];
+    notes.forEach(interval => {
+      this.addNoteToTrack(trackId, {
+        id: 'chord_' + Date.now() + '_' + interval,
+        midi: baseMidi + interval,
+        step,
+        length: 1,
+        velocity: 0.8
+      });
+    });
   }
 
   recordLiveNote(midi: number, velocity: number) {
