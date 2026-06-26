@@ -199,6 +199,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "id": "neo-zone",
       "name": "NEO_ZONE",
       "description": "Next-Gen execution. High-fidelity cloud gaming and premium WebGL cabinets.",
+      "description": "Next-Gen execution. High-fidelity cloud streaming and elite cabinets.",
       "icon": "auto_awesome"
     }
   ],
@@ -10565,6 +10566,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "id": "rail-neo-zone",
       "title": "NEO_ZONE Next-Gen",
       "subtitle": "High-fidelity cloud gaming and premium WebGL execution. The Absolute future.",
+      "subtitle": "High-fidelity cloud streaming and elite execution. The Absolute future.",
       "roomIds": [
         "neo-zone"
       ],
