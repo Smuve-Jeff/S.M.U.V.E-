@@ -177,12 +177,6 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
 
   }
 
-  humanize() {
-    const track = this.getDrumTrack();
-    if (!track) return;
-    track.notes.forEach(n => {
-       this.musicManager.updateNote(track.id, n.id, { velocity: 0.6 + Math.random() * 0.4 });
-    });
   }
 
   generateEuclidean(pulses: number, steps: number = 16) {
