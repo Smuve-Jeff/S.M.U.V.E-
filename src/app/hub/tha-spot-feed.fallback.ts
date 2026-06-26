@@ -9351,7 +9351,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Action",
         "Competitive",
         "Elite",
-        "Cloud"
+        "WebGL"
       ],
       "badgeIds": [
         "elite"
