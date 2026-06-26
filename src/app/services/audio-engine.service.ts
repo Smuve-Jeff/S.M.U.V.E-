@@ -249,20 +249,6 @@ export class AudioEngineService {
       if (sendB) sendB.gain.setTargetAtTime(data.sendB, now, 0.05);
     }
 
-    if (data.busId !== undefined) {
-      const track = this.tracksMap.get(id);
-      if (track && track.busId !== data.busId) {
-        const output = this.getTrackOutput(id);
-        output.disconnect();
-        const target = data.busId ? this.getTrackOutput(data.busId) : this.masterGain;
-        output.connect(target);
-        // Reconnect sends
-        const sendA = this.trackSendAGains.get(id);
-        if (sendA) output.connect(sendA);
-        const sendB = this.trackSendBGains.get(id);
-        if (sendB) output.connect(sendB);
-      }
-    }
     this.tracksMap.set(id, { ...(this.tracksMap.get(id) || {}), ...data });
   }
 
