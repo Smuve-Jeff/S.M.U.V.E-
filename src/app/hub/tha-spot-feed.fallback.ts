@@ -656,7 +656,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#10b981",
         "accentEnd": "#064e3b"
       },
-      "image": "assets/games/battlefield.png"
+      "image": "/assets/games/battlefield.png"
     },
     {
       "id": "remix-arena",
@@ -719,7 +719,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#22c55e",
         "accentEnd": "#14532d"
       },
-      "image": "assets/games/remix-arena.png"
+      "image": "/assets/games/remix-arena.png"
     },
     {
       "id": "neon-drift",
@@ -777,7 +777,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#38bdf8",
         "accentEnd": "#0c4a6e"
       },
-      "image": "assets/games/neon-drift.png"
+      "image": "/assets/games/neon-drift.png"
     },
     {
       "id": "vinyl-vault",
@@ -834,7 +834,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f59e0b",
         "accentEnd": "#78350f"
       },
-      "image": "assets/games/vinyl-vault.png"
+      "image": "/assets/games/vinyl-vault.png"
     },
     {
       "id": "tempo-lockdown",
@@ -892,7 +892,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#34d399",
         "accentEnd": "#065f46"
       },
-      "image": "assets/games/tempo-lockdown.png"
+      "image": "/assets/games/tempo-lockdown.png"
     },
     {
       "id": "hextris",
@@ -948,7 +948,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#06b6d4",
         "accentEnd": "#2563eb"
       },
-      "image": "assets/games/hextris.png"
+      "image": "/assets/games/hextris.png"
     },
     {
       "id": "game-2048",
@@ -1005,7 +1005,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f97316",
         "accentEnd": "#ea580c"
       },
-      "image": "assets/games/game-2048.png"
+      "image": "/assets/games/game-2048.png"
     },
     {
       "id": "music-rush",
@@ -1061,7 +1061,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec4899",
         "accentEnd": "#db2777"
       },
-      "image": "assets/games/music-rush.png"
+      "image": "/assets/games/music-rush.png"
     },
     {
       "id": "pac-man-elite",
@@ -1094,7 +1094,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#facc15",
         "accentEnd": "#a16207"
       },
-      "image": "assets/games/pac-man-elite.png"
+      "image": "/assets/games/pac-man-elite.png"
     },
     {
       "id": "super-street-fighter",
@@ -1154,7 +1154,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentEnd": "#c2410c"
       },
       "multiplayerType": "Server",
-      "image": "assets/games/super-street-fighter.png"
+      "image": "/assets/games/super-street-fighter.png"
     },
     {
       "id": "chess-classic",
@@ -1211,7 +1211,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f8fafc",
         "accentEnd": "#1e293b"
       },
-      "image": "assets/games/chess-classic.png"
+      "image": "/assets/games/chess-classic.png"
     },
     {
       "id": "basket-random",
@@ -1268,7 +1268,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
       },
-      "image": "assets/games/basket-random.png"
+      "image": "/assets/games/basket-random.png"
     },
     {
       "id": "soccer-random",
@@ -1329,7 +1329,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentEnd": "#064e3b"
       },
       "multiplayerType": "Server",
-      "image": "assets/games/soccer-random.png"
+      "image": "/assets/games/soccer-random.png"
     },
     {
       "id": "solitaire-classic",
@@ -1385,7 +1385,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#b91c1c"
       },
-      "image": "assets/games/solitaire-classic.png"
+      "image": "/assets/games/solitaire-classic.png"
     },
     {
       "id": "cipher-surge",
@@ -1446,7 +1446,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#8b5cf6",
         "accentEnd": "#4c1d95"
       },
-      "image": "assets/games/cipher-surge.png"
+      "image": "/assets/games/cipher-surge.png"
     },
     {
       "id": "kart-fight",
@@ -1508,7 +1508,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fb7185",
         "accentEnd": "#be123c"
       },
-      "image": "assets/games/kart-fight.png"
+      "image": "/assets/games/kart-fight.png"
     },
     {
       "id": "rail-surfers",
@@ -1565,7 +1565,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#22c55e",
         "accentEnd": "#0f766e"
       },
-      "image": "assets/games/rail-surfers.png"
+      "image": "/assets/games/rail-surfers.png"
     },
     {
       "id": "moto-x3m",
@@ -1622,7 +1622,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f97316",
         "accentEnd": "#9a3412"
       },
-      "image": "assets/games/moto-x3m.png"
+      "image": "/assets/games/moto-x3m.png"
     },
     {
       "id": "tomb-runner",
@@ -1679,7 +1679,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#14b8a6",
         "accentEnd": "#155e75"
       },
-      "image": "assets/games/tomb-runner.png"
+      "image": "/assets/games/tomb-runner.png"
     },
     {
       "id": "tower-build",
@@ -1736,7 +1736,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#38bdf8",
         "accentEnd": "#0f172a"
       },
-      "image": "assets/games/tower-build.png"
+      "image": "/assets/games/tower-build.png"
     },
     {
       "id": "8-ball-billiards",
@@ -1794,7 +1794,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#14b8a6",
         "accentEnd": "#164e63"
       },
-      "image": "assets/games/8-ball-billiards.png"
+      "image": "/assets/games/8-ball-billiards.png"
     },
     {
       "id": "mahjong",
@@ -1851,7 +1851,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#a855f7",
         "accentEnd": "#312e81"
       },
-      "image": "assets/games/mahjong.png"
+      "image": "/assets/games/mahjong.png"
     },
     {
       "id": "tactical-squad",
@@ -1903,7 +1903,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/tactical-squad.png"
+      "image": "/assets/games/tactical-squad.png"
     },
     {
       "id": "hero-adventure",
@@ -1945,7 +1945,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/hero-adventure.png"
+      "image": "/assets/games/hero-adventure.png"
     },
     {
       "id": "battle-city",
@@ -1978,7 +1978,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fbbf24",
         "accentEnd": "#78350f"
       },
-      "image": "assets/games/battle-city.png"
+      "image": "/assets/games/battle-city.png"
     },
     {
       "id": "league-bowling",
@@ -2012,7 +2012,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#60a5fa",
         "accentEnd": "#1d4ed8"
       },
-      "image": "assets/games/league-bowling.png"
+      "image": "/assets/games/league-bowling.png"
     },
     {
       "id": "dungeon-fury",
@@ -2054,7 +2054,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/dungeon-fury.png"
+      "image": "/assets/games/dungeon-fury.png"
     },
     {
       "id": "special-strike",
@@ -2106,7 +2106,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/special-strike.png"
+      "image": "/assets/games/special-strike.png"
     },
     {
       "id": "retro-space-invaders",
@@ -2146,7 +2146,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/retro-space-invaders.png"
+      "image": "/assets/games/retro-space-invaders.png"
     },
     {
       "id": "basketball-master",
@@ -2185,7 +2185,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/basketball-master.png"
+      "image": "/assets/games/basketball-master.png"
     },
     {
       "id": "cyber-adventure",
@@ -2224,7 +2224,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/cyber-adventure.png"
+      "image": "/assets/games/cyber-adventure.png"
     },
     {
       "id": "sniper-mission",
@@ -2261,7 +2261,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/sniper-mission.png"
+      "image": "/assets/games/sniper-mission.png"
     },
     {
       "id": "tower-defense",
@@ -2298,7 +2298,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/tower-defense.png"
+      "image": "/assets/games/tower-defense.png"
     },
     {
       "id": "ludo-legend",
@@ -2337,7 +2337,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/ludo-legend.png"
+      "image": "/assets/games/ludo-legend.png"
     },
     {
       "id": "zombie-idle-defense",
@@ -2385,7 +2385,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/zombie-idle-defense.png"
+      "image": "/assets/games/zombie-idle-defense.png"
     },
     {
       "id": "arena-clash",
@@ -2446,7 +2446,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/arena-clash.png"
+      "image": "/assets/games/arena-clash.png"
     },
     {
       "id": "tag-team-titans",
@@ -2505,7 +2505,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fb7185",
         "accentEnd": "#9f1239"
       },
-      "image": "assets/games/tag-team-titans.png"
+      "image": "/assets/games/tag-team-titans.png"
     },
     {
       "id": "gridiron-drive",
@@ -2564,7 +2564,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#22c55e",
         "accentEnd": "#14532d"
       },
-      "image": "assets/games/gridiron-drive.png"
+      "image": "/assets/games/gridiron-drive.png"
     },
     {
       "id": "rally-racquet-tour",
@@ -2624,7 +2624,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#38bdf8",
         "accentEnd": "#0f766e"
       },
-      "image": "assets/games/rally-racquet-tour.png"
+      "image": "/assets/games/rally-racquet-tour.png"
     },
     {
       "id": "squad-ops-ghost-protocol",
@@ -2685,7 +2685,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#06b6d4",
         "accentEnd": "#164e63"
       },
-      "image": "assets/games/squad-ops-ghost-protocol.png"
+      "image": "/assets/games/squad-ops-ghost-protocol.png"
     },
     {
       "id": "raid-fireteam-z",
@@ -2746,7 +2746,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
       },
-      "image": "assets/games/raid-fireteam-z.png"
+      "image": "/assets/games/raid-fireteam-z.png"
     },
     {
       "id": "mythic-raid-online",
@@ -2807,7 +2807,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#8b5cf6",
         "accentEnd": "#4c1d95"
       },
-      "image": "assets/games/mythic-raid-online.png"
+      "image": "/assets/games/mythic-raid-online.png"
     },
     {
       "id": "legends-of-the-rift",
@@ -2868,7 +2868,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#6366f1",
         "accentEnd": "#312e81"
       },
-      "image": "assets/games/legends-of-the-rift.png"
+      "image": "/assets/games/legends-of-the-rift.png"
     },
     {
       "id": "sonic-racing",
@@ -2904,7 +2904,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/sonic-racing.png"
+      "image": "/assets/games/sonic-racing.png"
     },
     {
       "id": "doom",
@@ -2940,7 +2940,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/doom.png"
+      "image": "/assets/games/doom.png"
     },
     {
       "id": "mario-classic",
@@ -2979,7 +2979,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/mario-classic.png"
+      "image": "/assets/games/mario-classic.png"
     },
     {
       "id": "gta-elite-wasm",
@@ -3019,7 +3019,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#facc15",
         "accentEnd": "#713f12"
       },
-      "image": "assets/games/gta-elite-wasm.png"
+      "image": "/assets/games/gta-elite-wasm.png"
     },
     {
       "id": "nba-pro-3d",
@@ -3058,7 +3058,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ea580c",
         "accentEnd": "#7c2d12"
       },
-      "image": "assets/games/nba-pro-3d.png"
+      "image": "/assets/games/nba-pro-3d.png"
     },
     {
       "id": "nfl-redzone-rush",
@@ -3097,7 +3097,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#2563eb",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/nfl-redzone-rush.png"
+      "image": "/assets/games/nfl-redzone-rush.png"
     },
     {
       "id": "dbz-elite-wasm",
@@ -3136,7 +3136,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
       },
-      "image": "assets/games/dbz-elite-wasm.png"
+      "image": "/assets/games/dbz-elite-wasm.png"
     },
     {
       "id": "halo-combat-evolved",
@@ -3180,7 +3180,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#14532d"
       },
-      "image": "assets/games/halo-combat-evolved.png"
+      "image": "/assets/games/halo-combat-evolved.png"
     },
     {
       "id": "boxing-heavyweight",
@@ -3219,7 +3219,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#dc2626",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/boxing-heavyweight.png"
+      "image": "/assets/games/boxing-heavyweight.png"
     },
     {
       "id": "tekken-3-elite",
@@ -3257,7 +3257,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/tekken-3-elite.png"
+      "image": "/assets/games/tekken-3-elite.png"
     },
     {
       "id": "smash-bros-elite",
@@ -3294,7 +3294,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/smash-bros-elite.png"
+      "image": "/assets/games/smash-bros-elite.png"
     },
     {
       "id": "ctr-ps1-elite",
@@ -3329,7 +3329,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
       },
-      "image": "assets/games/ctr-ps1-elite.png"
+      "image": "/assets/games/ctr-ps1-elite.png"
     },
     {
       "id": "zelda-oot-elite",
@@ -3367,7 +3367,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#14532d"
       },
-      "image": "assets/games/zelda-oot-elite.png"
+      "image": "/assets/games/zelda-oot-elite.png"
     },
     {
       "id": "sfii-world-warrior",
@@ -3402,7 +3402,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f87171",
         "accentEnd": "#b91c1c"
       },
-      "image": "assets/games/sfii-world-warrior.png"
+      "image": "/assets/games/sfii-world-warrior.png"
     },
     {
       "id": "moto-x3m-3d",
@@ -3440,7 +3440,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/moto-x3m-3d.png"
+      "image": "/assets/games/moto-x3m-3d.png"
     },
     {
       "id": "3d-chess-elite",
@@ -3477,7 +3477,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/3d-chess-elite.png"
+      "image": "/assets/games/3d-chess-elite.png"
     },
     {
       "id": "goldeneye-007-elite",
@@ -3514,7 +3514,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fbbf24",
         "accentEnd": "#92400e"
       },
-      "image": "assets/games/goldeneye-007-elite.png"
+      "image": "/assets/games/goldeneye-007-elite.png"
     },
     {
       "id": "thps2-ps1-elite",
@@ -3550,7 +3550,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#8b5cf6",
         "accentEnd": "#4c1d95"
       },
-      "image": "assets/games/thps2-ps1-elite.png"
+      "image": "/assets/games/thps2-ps1-elite.png"
     },
     {
       "id": "parappa-ps1-elite",
@@ -3585,7 +3585,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec4899",
         "accentEnd": "#831843"
       },
-      "image": "assets/games/parappa-ps1-elite.png"
+      "image": "/assets/games/parappa-ps1-elite.png"
     },
     {
       "id": "sonic-genesis-elite",
@@ -3623,7 +3623,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/sonic-genesis-elite.png"
+      "image": "/assets/games/sonic-genesis-elite.png"
     },
     {
       "id": "fnf-music-battle",
@@ -3661,7 +3661,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/fnf-music-battle.png"
+      "image": "/assets/games/fnf-music-battle.png"
     },
     {
       "id": "tetris-classic-elite",
@@ -3697,7 +3697,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "assets/games/tetris-classic-elite.png"
+      "image": "/assets/games/tetris-classic-elite.png"
     },
     {
       "id": "castlevania-sotn-elite",
@@ -3734,7 +3734,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#7f1d1d",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/castlevania-sotn-elite.png"
+      "image": "/assets/games/castlevania-sotn-elite.png"
     },
     {
       "id": "wipeout-ps1-elite",
@@ -3769,7 +3769,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#0ea5e9",
         "accentEnd": "#0c4a6e"
       },
-      "image": "assets/games/wipeout-ps1-elite.png"
+      "image": "/assets/games/wipeout-ps1-elite.png"
     },
     {
       "id": "sf2-genesis-elite",
@@ -3805,7 +3805,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fbbf24",
         "accentEnd": "#b45309"
       },
-      "image": "assets/games/sf2-genesis-elite.png"
+      "image": "/assets/games/sf2-genesis-elite.png"
     },
     {
       "id": "wolf3d-inline-elite",
@@ -3842,7 +3842,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#4ade80",
         "accentEnd": "#166534"
       },
-      "image": "assets/games/wolf3d-inline-elite.png"
+      "image": "/assets/games/wolf3d-inline-elite.png"
     },
     {
       "id": "double-dragon-nes",
@@ -3880,7 +3880,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#b91c1c",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/double-dragon-nes.png"
+      "image": "/assets/games/double-dragon-nes.png"
     },
     {
       "id": "dominoes-classic",
@@ -3918,7 +3918,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#4b5563",
         "accentEnd": "#1f2937"
       },
-      "image": "assets/games/dominoes-classic.png"
+      "image": "/assets/games/dominoes-classic.png"
     },
     {
       "id": "track-and-field-nes",
@@ -3952,7 +3952,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#991b1b"
       },
-      "image": "assets/games/track-and-field-nes.png"
+      "image": "/assets/games/track-and-field-nes.png"
     },
     {
       "id": "pokemon-yellow-elite",
@@ -3988,7 +3988,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f87171",
         "accentEnd": "#dc2626"
       },
-      "image": "assets/games/pokemon-yellow-elite.png"
+      "image": "/assets/games/pokemon-yellow-elite.png"
     },
     {
       "id": "final-fantasy-nes",
@@ -4023,7 +4023,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#60a5fa",
         "accentEnd": "#1d4ed8"
       },
-      "image": "assets/games/final-fantasy-nes.png"
+      "image": "/assets/games/final-fantasy-nes.png"
     },
     {
       "id": "mike-tyson-punch-out",
@@ -4062,7 +4062,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fbbf24",
         "accentEnd": "#b45309"
       },
-      "image": "assets/games/mike-tyson-punch-out.png"
+      "image": "/assets/games/mike-tyson-punch-out.png"
     },
     {
       "id": "galaga-classic",
@@ -4096,7 +4096,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1e40af"
       },
-      "image": "assets/games/galaga-classic.png"
+      "image": "/assets/games/galaga-classic.png"
     },
     {
       "id": "mortal-kombat-2-elite",
@@ -4130,7 +4130,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#b91c1c",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/mortal-kombat-2-elite.png"
+      "image": "/assets/games/mortal-kombat-2-elite.png"
     },
     {
       "id": "sonic-2-elite",
@@ -4166,7 +4166,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#2563eb",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/sonic-2-elite.png"
+      "image": "/assets/games/sonic-2-elite.png"
     },
     {
       "id": "tekken-4-tribute",
@@ -4201,7 +4201,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#7c3aed"
       },
-      "image": "assets/games/tekken-4-tribute.png"
+      "image": "/assets/games/tekken-4-tribute.png"
     },
     {
       "id": "halo-ce-web",
@@ -4236,7 +4236,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#22d3ee",
         "accentEnd": "#0891b2"
       },
-      "image": "assets/games/halo-ce-web.png"
+      "image": "/assets/games/halo-ce-web.png"
     },
     {
       "id": "final-fantasy-vii-elite",
@@ -4272,7 +4272,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#38bdf8",
         "accentEnd": "#075985"
       },
-      "image": "assets/games/final-fantasy-vii-elite.png"
+      "image": "/assets/games/final-fantasy-vii-elite.png"
     },
     {
       "id": "gta-san-andreas-elite",
@@ -4308,7 +4308,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fb7185",
         "accentEnd": "#e11d48"
       },
-      "image": "assets/games/gta-san-andreas-elite.png"
+      "image": "/assets/games/gta-san-andreas-elite.png"
     },
     {
       "id": "madden-nfl-2000-elite",
@@ -4342,7 +4342,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#60a5fa",
         "accentEnd": "#1d4ed8"
       },
-      "image": "assets/games/madden-nfl-2000-elite.png"
+      "image": "/assets/games/madden-nfl-2000-elite.png"
     },
     {
       "id": "nba-2k1-elite",
@@ -4376,7 +4376,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f87171",
         "accentEnd": "#b91c1c"
       },
-      "image": "assets/games/nba-2k1-elite.png"
+      "image": "/assets/games/nba-2k1-elite.png"
     },
     {
       "id": "wwf-no-mercy-elite",
@@ -4411,7 +4411,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#a78bfa",
         "accentEnd": "#5b21b6"
       },
-      "image": "assets/games/wwf-no-mercy-elite.png"
+      "image": "/assets/games/wwf-no-mercy-elite.png"
     },
     {
       "id": "marvel-vs-capcom-elite",
@@ -4445,7 +4445,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fbbf24",
         "accentEnd": "#78350f"
       },
-      "image": "assets/games/marvel-vs-capcom-elite.png"
+      "image": "/assets/games/marvel-vs-capcom-elite.png"
     },
     {
       "id": "tmnt-turtles-in-time-elite",
@@ -4479,7 +4479,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#10b981",
         "accentEnd": "#064e3b"
       },
-      "image": "assets/games/tmnt-turtles-in-time-elite.png"
+      "image": "/assets/games/tmnt-turtles-in-time-elite.png"
     },
     {
       "id": "tekken-5-elite",
@@ -4514,7 +4514,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/tekken-5-elite.png"
+      "image": "/assets/games/tekken-5-elite.png"
     },
     {
       "id": "mgs2-elite",
@@ -4549,7 +4549,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/mgs2-elite.png"
+      "image": "/assets/games/mgs2-elite.png"
     },
     {
       "id": "sonic-adventure-2-elite",
@@ -4583,7 +4583,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/sonic-adventure-2-elite.png"
+      "image": "/assets/games/sonic-adventure-2-elite.png"
     },
     {
       "id": "crazy-taxi-elite",
@@ -4618,7 +4618,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/crazy-taxi-elite.png"
+      "image": "/assets/games/crazy-taxi-elite.png"
     },
     {
       "id": "shadow-colossus-elite",
@@ -4652,7 +4652,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/shadow-colossus-elite.png"
+      "image": "/assets/games/shadow-colossus-elite.png"
     },
     {
       "id": "thps4-elite",
@@ -4687,7 +4687,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/thps4-elite.png"
+      "image": "/assets/games/thps4-elite.png"
     },
     {
       "id": "supreme-of-war-elite",
@@ -4723,7 +4723,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/supreme-of-war-elite.png"
+      "image": "/assets/games/supreme-of-war-elite.png"
     },
     {
       "id": "soulcalibur-2-elite",
@@ -4758,7 +4758,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/soulcalibur-2-elite.png"
+      "image": "/assets/games/soulcalibur-2-elite.png"
     },
     {
       "id": "sfiii-3rd-strike-elite",
@@ -4792,7 +4792,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/sfiii-3rd-strike-elite.png"
+      "image": "/assets/games/sfiii-3rd-strike-elite.png"
     },
     {
       "id": "mvc2-elite",
@@ -4827,7 +4827,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/mvc2-elite.png"
+      "image": "/assets/games/mvc2-elite.png"
     },
     {
       "id": "mgs-elite",
@@ -4862,7 +4862,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/mgs-elite.png"
+      "image": "/assets/games/mgs-elite.png"
     },
     {
       "id": "gt2-elite",
@@ -4896,7 +4896,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/gt2-elite.png"
+      "image": "/assets/games/gt2-elite.png"
     },
     {
       "id": "silent-hill-elite",
@@ -4930,7 +4930,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/silent-hill-elite.png"
+      "image": "/assets/games/silent-hill-elite.png"
     },
     {
       "id": "gta-vice-city-elite",
@@ -4965,7 +4965,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/gta-vice-city-elite.png"
+      "image": "/assets/games/gta-vice-city-elite.png"
     },
     {
       "id": "ffx-elite",
@@ -5000,7 +5000,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/ffx-elite.png"
+      "image": "/assets/games/ffx-elite.png"
     },
     {
       "id": "re4-elite",
@@ -5035,7 +5035,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/re4-elite.png"
+      "image": "/assets/games/re4-elite.png"
     },
     {
       "id": "burnout-3-elite",
@@ -5070,7 +5070,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/burnout-3-elite.png"
+      "image": "/assets/games/burnout-3-elite.png"
     },
     {
       "id": "gta-iii-elite",
@@ -5105,7 +5105,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/gta-iii-elite.png"
+      "image": "/assets/games/gta-iii-elite.png"
     },
     {
       "id": "spider-man-2-elite",
@@ -5140,7 +5140,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/spider-man-2-elite.png"
+      "image": "/assets/games/spider-man-2-elite.png"
     },
     {
       "id": "jak-and-daxter-elite",
@@ -5175,7 +5175,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/jak-and-daxter-elite.png"
+      "image": "/assets/games/jak-and-daxter-elite.png"
     },
     {
       "id": "driver-parallel-lines-elite",
@@ -5210,7 +5210,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/driver-parallel-lines-elite.png"
+      "image": "/assets/games/driver-parallel-lines-elite.png"
     },
     {
       "id": "true-crime-la-elite",
@@ -5245,7 +5245,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/true-crime-la-elite.png"
+      "image": "/assets/games/true-crime-la-elite.png"
     },
     {
       "id": "majoras-mask-elite",
@@ -5280,7 +5280,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/majoras-mask-elite.png"
+      "image": "/assets/games/majoras-mask-elite.png"
     },
     {
       "id": "prince-of-persia-sands-elite",
@@ -5315,7 +5315,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/prince-of-persia-sands-elite.png"
+      "image": "/assets/games/prince-of-persia-sands-elite.png"
     },
     {
       "id": "beyond-good-evil-elite",
@@ -5350,7 +5350,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/beyond-good-evil-elite.png"
+      "image": "/assets/games/beyond-good-evil-elite.png"
     },
     {
       "id": "ico-elite",
@@ -5385,7 +5385,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/ico-elite.png"
+      "image": "/assets/games/ico-elite.png"
     },
     {
       "id": "okami-elite",
@@ -5420,7 +5420,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/okami-elite.png"
+      "image": "/assets/games/okami-elite.png"
     },
     {
       "id": "donkey-kong-arcade",
@@ -5455,7 +5455,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/donkey-kong-arcade.png"
+      "image": "/assets/games/donkey-kong-arcade.png"
     },
     {
       "id": "dig-dug-arcade",
@@ -5490,7 +5490,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/dig-dug-arcade.png"
+      "image": "/assets/games/dig-dug-arcade.png"
     },
     {
       "id": "frogger-arcade",
@@ -5525,7 +5525,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/frogger-arcade.png"
+      "image": "/assets/games/frogger-arcade.png"
     },
     {
       "id": "asteroids-arcade",
@@ -5560,7 +5560,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/asteroids-arcade.png"
+      "image": "/assets/games/asteroids-arcade.png"
     },
     {
       "id": "space-invaders-arcade",
@@ -5595,7 +5595,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/space-invaders-arcade.png"
+      "image": "/assets/games/space-invaders-arcade.png"
     },
     {
       "id": "madden-2004-elite",
@@ -5630,7 +5630,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/madden-2004-elite.png"
+      "image": "/assets/games/madden-2004-elite.png"
     },
     {
       "id": "fifa-2005-elite",
@@ -5665,7 +5665,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/fifa-2005-elite.png"
+      "image": "/assets/games/fifa-2005-elite.png"
     },
     {
       "id": "ssx-tricky-elite",
@@ -5700,7 +5700,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/ssx-tricky-elite.png"
+      "image": "/assets/games/ssx-tricky-elite.png"
     },
     {
       "id": "tiger-woods-2004-elite",
@@ -5735,7 +5735,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/tiger-woods-2004-elite.png"
+      "image": "/assets/games/tiger-woods-2004-elite.png"
     },
     {
       "id": "fallout-dos",
@@ -5770,7 +5770,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/fallout-dos.png"
+      "image": "/assets/games/fallout-dos.png"
     },
     {
       "id": "fallout-2-dos",
@@ -5805,7 +5805,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/fallout-2-dos.png"
+      "image": "/assets/games/fallout-2-dos.png"
     },
     {
       "id": "chrono-trigger-snes-elite",
@@ -5840,7 +5840,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/chrono-trigger-snes-elite.png"
+      "image": "/assets/games/chrono-trigger-snes-elite.png"
     },
     {
       "id": "smt-nocturne-ps2-elite",
@@ -5875,7 +5875,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/smt-nocturne-ps2-elite.png"
+      "image": "/assets/games/smt-nocturne-ps2-elite.png"
     },
     {
       "id": "deus-ex-ps2-conspiracy-elite",
@@ -5910,7 +5910,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/deus-ex-ps2-conspiracy-elite.png"
+      "image": "/assets/games/deus-ex-ps2-conspiracy-elite.png"
     },
     {
       "id": "nfs-most-wanted-ps2-elite",
@@ -5945,7 +5945,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/nfs-most-wanted-ps2-elite.png"
+      "image": "/assets/games/nfs-most-wanted-ps2-elite.png"
     },
     {
       "id": "mgs3-snake-eater-ps2-elite",
@@ -5980,7 +5980,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/mgs3-snake-eater-ps2-elite.png"
+      "image": "/assets/games/mgs3-snake-eater-ps2-elite.png"
     },
     {
       "id": "gt4-ps2-sim-elite",
@@ -6015,7 +6015,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/gt4-ps2-sim-elite.png"
+      "image": "/assets/games/gt4-ps2-sim-elite.png"
     },
     {
       "id": "kingdom-hearts-2-ps2-elite",
@@ -6050,7 +6050,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/kingdom-hearts-2-ps2-elite.png"
+      "image": "/assets/games/kingdom-hearts-2-ps2-elite.png"
     },
     {
       "id": "devil-may-cry-3-ps2-elite",
@@ -6085,7 +6085,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/devil-may-cry-3-ps2-elite.png"
+      "image": "/assets/games/devil-may-cry-3-ps2-elite.png"
     },
     {
       "id": "half-life-ps2-elite",
@@ -6120,7 +6120,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/half-life-ps2-elite.png"
+      "image": "/assets/games/half-life-ps2-elite.png"
     },
     {
       "id": "quake-3-dc-elite",
@@ -6155,7 +6155,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/quake-3-dc-elite.png"
+      "image": "/assets/games/quake-3-dc-elite.png"
     },
     {
       "id": "unreal-tournament-dc-elite",
@@ -6190,7 +6190,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/unreal-tournament-dc-elite.png"
+      "image": "/assets/games/unreal-tournament-dc-elite.png"
     },
     {
       "id": "timesplitters-2-ps2-elite",
@@ -6225,7 +6225,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/timesplitters-2-ps2-elite.png"
+      "image": "/assets/games/timesplitters-2-ps2-elite.png"
     },
     {
       "id": "moh-frontline-ps2-elite",
@@ -6260,7 +6260,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/moh-frontline-ps2-elite.png"
+      "image": "/assets/games/moh-frontline-ps2-elite.png"
     },
     {
       "id": "krunker-io-web-elite",
@@ -6296,7 +6296,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/krunker-io-web-elite.png"
+      "image": "/assets/games/krunker-io-web-elite.png"
     },
     {
       "id": "venge-io-web-elite",
@@ -6332,7 +6332,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/venge-io-web-elite.png"
+      "image": "/assets/games/venge-io-web-elite.png"
     },
     {
       "id": "shell-shockers-web-elite",
@@ -6368,7 +6368,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/shell-shockers-web-elite.png"
+      "image": "/assets/games/shell-shockers-web-elite.png"
     },
     {
       "id": "ev-io-web-elite",
@@ -6404,7 +6404,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/ev-io-web-elite.png"
+      "image": "/assets/games/ev-io-web-elite.png"
     },
     {
       "id": "slow-roads-web-elite",
@@ -6440,7 +6440,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/slow-roads-web-elite.png"
+      "image": "/assets/games/slow-roads-web-elite.png"
     },
     {
       "id": "halo-2-xbox-elite",
@@ -6476,7 +6476,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/halo-2-xbox-elite.png"
+      "image": "/assets/games/halo-2-xbox-elite.png"
     },
     {
       "id": "kotor-xbox-elite",
@@ -6512,7 +6512,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/kotor-xbox-elite.png"
+      "image": "/assets/games/kotor-xbox-elite.png"
     },
     {
       "id": "ninja-gaiden-xbox-elite",
@@ -6548,7 +6548,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/ninja-gaiden-xbox-elite.png"
+      "image": "/assets/games/ninja-gaiden-xbox-elite.png"
     },
     {
       "id": "fable-xbox-elite",
@@ -6584,7 +6584,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/fable-xbox-elite.png"
+      "image": "/assets/games/fable-xbox-elite.png"
     },
     {
       "id": "splinter-cell-ct-xbox-elite",
@@ -6620,7 +6620,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/splinter-cell-ct-xbox-elite.png"
+      "image": "/assets/games/splinter-cell-ct-xbox-elite.png"
     },
     {
       "id": "gow2-ps2-elite",
@@ -6658,7 +6658,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/gow2-ps2-elite.png"
+      "image": "/assets/games/gow2-ps2-elite.png"
     },
     {
       "id": "ratchet-uy-ps2-elite",
@@ -6694,7 +6694,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/ratchet-uy-ps2-elite.png"
+      "image": "/assets/games/ratchet-uy-ps2-elite.png"
     },
     {
       "id": "sly2-ps2-elite",
@@ -6730,7 +6730,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/sly2-ps2-elite.png"
+      "image": "/assets/games/sly2-ps2-elite.png"
     },
     {
       "id": "katamari-ps2-elite",
@@ -6766,7 +6766,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/katamari-ps2-elite.png"
+      "image": "/assets/games/katamari-ps2-elite.png"
     },
     {
       "id": "persona4-ps2-elite",
@@ -6802,7 +6802,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "assets/games/persona4-ps2-elite.png"
+      "image": "/assets/games/persona4-ps2-elite.png"
     },
     {
       "id": "silent-hill-2-elite",
@@ -6837,7 +6837,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#4b5563",
         "accentEnd": "#111827"
       },
-      "image": "assets/games/silent-hill-2-elite.png"
+      "image": "/assets/games/silent-hill-2-elite.png"
     },
     {
       "id": "def-jam-ffny-elite",
@@ -6872,7 +6872,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#b91c1c",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/def-jam-ffny-elite.png"
+      "image": "/assets/games/def-jam-ffny-elite.png"
     },
     {
       "id": "tekken-tag-elite",
@@ -6907,7 +6907,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fbbf24",
         "accentEnd": "#78350f"
       },
-      "image": "assets/games/tekken-tag-elite.png"
+      "image": "/assets/games/tekken-tag-elite.png"
     },
     {
       "id": "need-for-speed-underground-2-elite",
@@ -6942,7 +6942,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/need-for-speed-underground-2-elite.png"
+      "image": "/assets/games/need-for-speed-underground-2-elite.png"
     },
     {
       "id": "minecraft-classic",
@@ -6962,7 +6962,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "classic",
         "featured"
       ],
-      "image": "assets/games/minecraft-classic.png",
+      "image": "/assets/games/minecraft-classic.png",
       "launchConfig": {
         "approvedEmbedUrl": "https://classic.minecraft.net/",
         "embedMode": "inline"
@@ -6985,7 +6985,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "badgeIds": [
         "classic"
       ],
-      "image": "assets/games/prince-of-persia.png",
+      "image": "/assets/games/prince-of-persia.png",
       "launchConfig": {
         "approvedEmbedUrl": "https://princejs.com/",
         "embedMode": "inline"
@@ -7009,7 +7009,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "classic",
         "elite"
       ],
-      "image": "assets/games/diablo-web.png",
+      "image": "/assets/games/diablo-web.png",
       "launchConfig": {
         "approvedEmbedUrl": "https://d07riv.github.io/diablo-web/",
         "embedMode": "inline"
@@ -7032,7 +7032,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "badgeIds": [
         "elite"
       ],
-      "image": "assets/games/quakejs.png",
+      "image": "/assets/games/quakejs.png",
       "launchConfig": {
         "approvedEmbedUrl": "http://www.quakejs.com/",
         "embedMode": "inline"
@@ -7056,7 +7056,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "classic",
         "tournament-live"
       ],
-      "image": "assets/games/street-fighter-2-ce.png",
+      "image": "/assets/games/street-fighter-2-ce.png",
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
         "embedMode": "inline"
@@ -7335,7 +7335,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#22c55e",
         "accentEnd": "#14532d"
       },
-      "image": "assets/games/gta2-elite.png",
+      "image": "/assets/games/gta2-elite.png",
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41728-grand-theft-auto-2.html",
         "embedMode": "inline",
@@ -7366,7 +7366,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/gta-london-elite.png",
+      "image": "/assets/games/gta-london-elite.png",
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41729-grand-theft-auto-london-1969.html",
         "embedMode": "inline",
@@ -7397,7 +7397,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#064e3b"
       },
-      "image": "assets/games/gta-v-elite.png",
+      "image": "/assets/games/gta-v-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v/BP96B1B4N6PC",
         "embedMode": "external-only"
@@ -7427,7 +7427,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#2563eb",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/fc24-elite.png",
+      "image": "/assets/games/fc24-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/ea-sports-fc-24/9N90LP816DKH",
         "embedMode": "external-only"
@@ -7457,7 +7457,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#dc2626",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/madden24-elite.png",
+      "image": "/assets/games/madden24-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/madden-nfl-24/9NRW2BJR7ZPC",
         "embedMode": "external-only"
@@ -7487,7 +7487,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ea580c",
         "accentEnd": "#7c2d12"
       },
-      "image": "assets/games/nba2k24-elite.png",
+      "image": "/assets/games/nba2k24-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/nba-2k24-for-xbox-one/9P7B8KLR5F6D",
         "embedMode": "external-only"
@@ -7517,7 +7517,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#9333ea",
         "accentEnd": "#581c87"
       },
-      "image": "assets/games/fortnite-elite.png",
+      "image": "/assets/games/fortnite-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2",
         "embedMode": "external-only"
@@ -7547,7 +7547,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#14532d"
       },
-      "image": "assets/games/minecraft-full-elite.png",
+      "image": "/assets/games/minecraft-full-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/minecraft/9NBLGGH537BL",
         "embedMode": "external-only"
@@ -7577,7 +7577,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3f3f46",
         "accentEnd": "#18181b"
       },
-      "image": "assets/games/cod-mw3-elite.png",
+      "image": "/assets/games/cod-mw3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty/9NBLGGH52ZLD",
         "embedMode": "external-only"
@@ -7608,7 +7608,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ea580c",
         "accentEnd": "#431407"
       },
-      "image": "assets/games/cod-bo2-elite.png",
+      "image": "/assets/games/cod-bo2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-black-ops-ii/BR667W7W6V9C",
         "embedMode": "external-only"
@@ -7638,7 +7638,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#b91c1c",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/rdr2-elite.png",
+      "image": "/assets/games/rdr2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/red-dead-redemption-2/9N2ZDN7NWZLR",
         "embedMode": "external-only"
@@ -7668,7 +7668,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#4b5563",
         "accentEnd": "#111827"
       },
-      "image": "assets/games/witcher3-elite.png",
+      "image": "/assets/games/witcher3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/the-witcher-3-wild-hunt/BRG9V9C3GZWC",
         "embedMode": "external-only"
@@ -7698,7 +7698,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#0ea5e9",
         "accentEnd": "#0c4a6e"
       },
-      "image": "assets/games/skyrim-elite.png",
+      "image": "/assets/games/skyrim-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/the-elder-scrolls-v-skyrim-special-edition/BQ1W1T1K1P4L",
         "embedMode": "external-only"
@@ -7726,7 +7726,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f59e0b",
         "accentEnd": "#78350f"
       },
-      "image": "assets/games/mobile-legends-elite.png",
+      "image": "/assets/games/mobile-legends-elite.png",
       "launchConfig": {
         "approvedEmbedUrl": "https://www.poki.com/en/g/moba-legends",
         "embedMode": "inline",
@@ -7757,7 +7757,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/apex-elite.png",
+      "image": "/assets/games/apex-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/apex-legends/BV9MLDTSCHJW",
         "embedMode": "external-only"
@@ -7787,7 +7787,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#facc15",
         "accentEnd": "#713f12"
       },
-      "image": "assets/games/destiny2-elite.png",
+      "image": "/assets/games/destiny2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/destiny-2/BP1GZ2Z0XJWZ",
         "embedMode": "external-only"
@@ -7817,7 +7817,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fbbf24",
         "accentEnd": "#92400e"
       },
-      "image": "assets/games/fallout4-elite.png",
+      "image": "/assets/games/fallout4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-4/C4515W8M8FMS",
         "embedMode": "external-only"
@@ -7847,7 +7847,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#38bdf8",
         "accentEnd": "#075985"
       },
-      "image": "assets/games/starfield-elite.png",
+      "image": "/assets/games/starfield-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/starfield/9NC6ZQRV38S7",
         "embedMode": "external-only"
@@ -7878,7 +7878,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#1e40af",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/bf4-elite.png",
+      "image": "/assets/games/bf4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-4/BPP1KXL089L4",
         "embedMode": "external-only"
@@ -7909,7 +7909,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/mass-effect-elite.png",
+      "image": "/assets/games/mass-effect-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mass-effect-legendary-edition/9PKW68L7BNCH",
         "embedMode": "external-only"
@@ -7940,7 +7940,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#a855f7",
         "accentEnd": "#581c87"
       },
-      "image": "assets/games/skate3-elite.png",
+      "image": "/assets/games/skate3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/skate-3/BNKDKS5B9S76",
         "embedMode": "external-only"
@@ -7970,7 +7970,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec4899",
         "accentEnd": "#9d174d"
       },
-      "image": "assets/games/forza5-elite.png",
+      "image": "/assets/games/forza5-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-horizon-5-standard-edition/9NKX70BBCDRN",
         "embedMode": "external-only"
@@ -7998,7 +7998,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#27272a",
         "accentEnd": "#09090b"
       },
-      "image": "assets/games/roblox-elite.png",
+      "image": "/assets/games/roblox-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.roblox.com",
         "embedMode": "external-only"
@@ -8028,7 +8028,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/valorant-elite.png",
+      "image": "/assets/games/valorant-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://playvalorant.com",
         "embedMode": "external-only"
@@ -8058,7 +8058,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/lol-elite.png",
+      "image": "/assets/games/lol-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.leagueoflegends.com",
         "embedMode": "external-only"
@@ -8088,7 +8088,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#06b6d4",
         "accentEnd": "#083344"
       },
-      "image": "assets/games/genshin-elite.png",
+      "image": "/assets/games/genshin-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://genshin.hoyoverse.com",
         "embedMode": "external-only"
@@ -8118,7 +8118,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#064e3b"
       },
-      "image": "assets/games/halo-infinite-elite.png",
+      "image": "/assets/games/halo-infinite-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-infinite/9PP1GR9K5DBZ",
         "embedMode": "external-only"
@@ -8148,7 +8148,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/gears5-elite.png",
+      "image": "/assets/games/gears5-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-5/BPHL7K0V1RMV",
         "embedMode": "external-only"
@@ -8178,7 +8178,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3f3f46",
         "accentEnd": "#18181b"
       },
-      "image": "assets/games/forza-ms-elite.png",
+      "image": "/assets/games/forza-ms-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-motorsport/9PLTR78MT6S7",
         "embedMode": "external-only"
@@ -8208,7 +8208,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1d4ed8"
       },
-      "image": "assets/games/msfs-elite.png",
+      "image": "/assets/games/msfs-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/microsoft-flight-simulator-standard-40th-anniversary-edition/9PMQDM08SNK9",
         "embedMode": "external-only"
@@ -8238,7 +8238,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#14b8a6",
         "accentEnd": "#0f766e"
       },
-      "image": "assets/games/sea-of-thieves-elite.png",
+      "image": "/assets/games/sea-of-thieves-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-thieves-2024-edition/9P2N67BPT2C6",
         "embedMode": "external-only"
@@ -8268,7 +8268,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/doom-eternal-elite.png",
+      "image": "/assets/games/doom-eternal-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/doom-eternal-standard-edition/9P0BRNK97L7F",
         "embedMode": "external-only"
@@ -8299,7 +8299,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ea580c",
         "accentEnd": "#7c2d12"
       },
-      "image": "assets/games/fallout-nv-elite.png",
+      "image": "/assets/games/fallout-nv-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-new-vegas/BX9S7ZMMT6S9",
         "embedMode": "external-only"
@@ -8330,7 +8330,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#06b6d4",
         "accentEnd": "#083344"
       },
-      "image": "assets/games/bioshock-elite.png",
+      "image": "/assets/games/bioshock-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/bioshock-the-collection/C2H0ZDRB4CQC",
         "embedMode": "external-only"
@@ -8361,7 +8361,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/ac2-elite.png",
+      "image": "/assets/games/ac2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/assassins-creed-the-ezio-collection/BQ9S8XK0Q6QC",
         "embedMode": "external-only"
@@ -8392,7 +8392,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/arkham-city-elite.png",
+      "image": "/assets/games/arkham-city-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
         "embedMode": "external-only"
@@ -8423,7 +8423,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#38bdf8",
         "accentEnd": "#075985"
       },
-      "image": "assets/games/portal2-elite.png",
+      "image": "/assets/games/portal2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/portal-companion-collection/9P8W5S7P9CQC",
         "embedMode": "external-only"
@@ -8454,7 +8454,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#14532d"
       },
-      "image": "assets/games/l4d2-elite.png",
+      "image": "/assets/games/l4d2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/left-4-dead-2/BR667W7W6V9C",
         "embedMode": "external-only"
@@ -8485,7 +8485,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f59e0b",
         "accentEnd": "#78350f"
       },
-      "image": "assets/games/borderlands2-elite.png",
+      "image": "/assets/games/borderlands2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/borderlands-the-handsome-collection/C49BJV1M8S9C",
         "embedMode": "external-only"
@@ -8516,7 +8516,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#1f2937",
         "accentEnd": "#030712"
       },
-      "image": "assets/games/darksouls-elite.png",
+      "image": "/assets/games/darksouls-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dark-souls-remastered/BQ1W1T1K1P4L",
         "embedMode": "external-only"
@@ -8547,7 +8547,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
       },
-      "image": "assets/games/farcry3-elite.png",
+      "image": "/assets/games/farcry3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/far-cry-3-classic-edition/BP96B1B4N6PC",
         "embedMode": "external-only"
@@ -8577,7 +8577,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fbbf24",
         "accentEnd": "#92400e"
       },
-      "image": "assets/games/ow2-elite.png",
+      "image": "/assets/games/ow2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/overwatch-2/9NBLGGH52ZLD",
         "embedMode": "external-only"
@@ -8607,7 +8607,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/rocket-league-elite.png",
+      "image": "/assets/games/rocket-league-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.rocketleague.com",
         "embedMode": "external-only"
@@ -8637,7 +8637,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f59e0b",
         "accentEnd": "#7c2d12"
       },
-      "image": "assets/games/sf6-elite.png",
+      "image": "/assets/games/sf6-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.streetfighter.com/6/",
         "embedMode": "external-only"
@@ -8667,7 +8667,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/tekken8-elite.png",
+      "image": "/assets/games/tekken8-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://en.bandainamcoent.eu/tekken/tekken-8",
         "embedMode": "external-only"
@@ -8697,7 +8697,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#4b5563",
         "accentEnd": "#111827"
       },
-      "image": "assets/games/tlou-elite.png",
+      "image": "/assets/games/tlou-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/the-last-of-us-part-i/",
         "embedMode": "external-only"
@@ -8727,7 +8727,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ea580c",
         "accentEnd": "#431407"
       },
-      "image": "assets/games/dead-space-elite.png",
+      "image": "/assets/games/dead-space-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-space/9NBLGGH52ZLD",
         "embedMode": "external-only"
@@ -8758,7 +8758,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3f3f46",
         "accentEnd": "#18181b"
       },
-      "image": "assets/games/gta4-elite.png",
+      "image": "/assets/games/gta4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-iv/BR667W7W6V9C",
         "embedMode": "external-only"
@@ -8789,7 +8789,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#b91c1c",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/rdr1-elite.png",
+      "image": "/assets/games/rdr1-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/red-dead-redemption/BWDS9V65CQ6QC",
         "embedMode": "external-only"
@@ -8820,7 +8820,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#38bdf8",
         "accentEnd": "#075985"
       },
-      "image": "assets/games/mirrors-edge-elite.png",
+      "image": "/assets/games/mirrors-edge-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mirrors-edge/BPP1KXL089L4",
         "embedMode": "external-only"
@@ -8851,7 +8851,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/gears3-elite.png",
+      "image": "/assets/games/gears3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-of-war-3/BPN0N6GDBZLD",
         "embedMode": "external-only"
@@ -8882,7 +8882,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3f3f46",
         "accentEnd": "#18181b"
       },
-      "image": "assets/games/halo-reach-elite.png",
+      "image": "/assets/games/halo-reach-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
         "embedMode": "external-only"
@@ -8913,7 +8913,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#fbbf24",
         "accentEnd": "#92400e"
       },
-      "image": "assets/games/fable2-elite.png",
+      "image": "/assets/games/fable2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fable-ii/C2Z7B3W4B5QC",
         "embedMode": "external-only"
@@ -8944,7 +8944,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/dead-space-2-elite.png",
+      "image": "/assets/games/dead-space-2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-space-2/BPN0N6GDBZLD",
         "embedMode": "external-only"
@@ -8974,7 +8974,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#10b981",
         "accentEnd": "#064e3b"
       },
-      "image": "assets/games/palworld-elite.png",
+      "image": "/assets/games/palworld-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/palworld/9N6SVPX3BCW3",
         "embedMode": "external-only"
@@ -9004,7 +9004,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#4b5563",
         "accentEnd": "#111827"
       },
-      "image": "assets/games/lies-of-p-elite.png",
+      "image": "/assets/games/lies-of-p-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/lies-of-p/9NBLGGH52ZLD",
         "embedMode": "external-only"
@@ -9034,7 +9034,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f43f5e",
         "accentEnd": "#881337"
       },
-      "image": "assets/games/hifi-rush-elite.png",
+      "image": "/assets/games/hifi-rush-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/hi-fi-rush/9P0BRNK97L7F",
         "embedMode": "external-only"
@@ -9064,7 +9064,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/doom-2016-elite.png",
+      "image": "/assets/games/doom-2016-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/doom/BPNDH6RLGZ66",
         "embedMode": "external-only"
@@ -9094,7 +9094,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3f3f46",
         "accentEnd": "#18181b"
       },
-      "image": "assets/games/wolfenstein-tno-elite.png",
+      "image": "/assets/games/wolfenstein-tno-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/wolfenstein-the-new-order/BR667W7W6V9C",
         "embedMode": "external-only"
@@ -9124,7 +9124,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#10b981",
         "accentEnd": "#064e3b"
       },
-      "image": "assets/games/dai-elite.png",
+      "image": "/assets/games/dai-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dragon-age-inquisition-game-of-the-year-edition/C59BJV1M8S9C",
         "embedMode": "external-only"
@@ -9154,7 +9154,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#06b6d4",
         "accentEnd": "#083344"
       },
-      "image": "assets/games/sea-of-stars-elite.png",
+      "image": "/assets/games/sea-of-stars-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-stars/9NBLGGH52ZLD",
         "embedMode": "external-only"
@@ -9184,7 +9184,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#4b5563",
         "accentEnd": "#111827"
       },
-      "image": "assets/games/hellblade-elite.png",
+      "image": "/assets/games/hellblade-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/hellblade-senuas-sacrifice/C49BJV1M8S9C",
         "embedMode": "external-only"
@@ -9214,7 +9214,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ec4899",
         "accentEnd": "#701a75"
       },
-      "image": "assets/games/psychonauts2-elite.png",
+      "image": "/assets/games/psychonauts2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/psychonauts-2/9N6SVPX3BCW3",
         "embedMode": "external-only"
@@ -9244,7 +9244,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/remnant2-elite.png",
+      "image": "/assets/games/remnant2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/remnant-ii-standard-edition/9NBLGGH52ZLD",
         "embedMode": "external-only"
@@ -9274,7 +9274,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/control-elite.png",
+      "image": "/assets/games/control-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/control-ultimate-edition/9P0BRNK97L7F",
         "embedMode": "external-only"
@@ -9303,7 +9303,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/1v1-lol-elite.png",
+      "image": "/assets/games/1v1-lol-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://1v1.lol",
         "embedMode": "external-only"
@@ -9332,7 +9332,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#064e3b"
       },
-      "image": "assets/games/slither-elite.png",
+      "image": "/assets/games/slither-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://slither.io",
         "embedMode": "external-only"
@@ -9361,7 +9361,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/agar-elite.png",
+      "image": "/assets/games/agar-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://agar.io",
         "embedMode": "external-only"
@@ -9392,7 +9392,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1d4ed8"
       },
-      "image": "assets/games/titanfall2-elite.png",
+      "image": "/assets/games/titanfall2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/titanfall-2-ultimate-edition/BPP1KXL089L4",
         "embedMode": "external-only"
@@ -9422,7 +9422,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#b91c1c",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/mgs5-elite.png",
+      "image": "/assets/games/mgs5-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.konami.com/mg/mgsv/",
         "embedMode": "external-only"
@@ -9452,7 +9452,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#1e40af",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/arkham-knight-elite.png",
+      "image": "/assets/games/arkham-knight-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-knight/B91BVDN96CQC",
         "embedMode": "external-only"
@@ -9482,7 +9482,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/forza4-elite.png",
+      "image": "/assets/games/forza4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-horizon-4-standard-edition/9PNJXVCVWD4K",
         "embedMode": "external-only"
@@ -9512,7 +9512,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ea580c",
         "accentEnd": "#431407"
       },
-      "image": "assets/games/bf1-elite.png",
+      "image": "/assets/games/bf1-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-1/BWDS9V65CQ6QC",
         "embedMode": "external-only"
@@ -9542,7 +9542,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#064e3b"
       },
-      "image": "assets/games/mhw-elite.png",
+      "image": "/assets/games/mhw-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.monsterhunter.com/world/",
         "embedMode": "external-only"
@@ -9572,7 +9572,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/p5r-elite.png",
+      "image": "/assets/games/p5r-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://persona.atlus.com/p5r/",
         "embedMode": "external-only"
@@ -9602,7 +9602,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#4b5563",
         "accentEnd": "#111827"
       },
-      "image": "assets/games/re-village-elite.png",
+      "image": "/assets/games/re-village-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.residentevil.com/village/",
         "embedMode": "external-only"
@@ -9632,7 +9632,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#f59e0b",
         "accentEnd": "#78350f"
       },
-      "image": "assets/games/it-takes-two-elite.png",
+      "image": "/assets/games/it-takes-two-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/it-takes-two/BPN0N6GDBZLD",
         "embedMode": "external-only"
@@ -9662,7 +9662,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#b91c1c",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/gow-2018-elite.png",
+      "image": "/assets/games/gow-2018-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/god-of-war/",
         "embedMode": "external-only"
@@ -9692,7 +9692,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#1d4ed8",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/uncharted4-elite.png",
+      "image": "/assets/games/uncharted4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
         "embedMode": "external-only"
@@ -9722,7 +9722,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/ghost-tsushima-elite.png",
+      "image": "/assets/games/ghost-tsushima-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/ghost-of-tsushima/",
         "embedMode": "external-only"
@@ -9752,7 +9752,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#06b6d4",
         "accentEnd": "#083344"
       },
-      "image": "assets/games/horizon-elite.png",
+      "image": "/assets/games/horizon-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/horizon-zero-dawn/",
         "embedMode": "external-only"
@@ -9783,7 +9783,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#b91c1c",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/fight-night-elite.png",
+      "image": "/assets/games/fight-night-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fight-night-champion/BQ9S8XK0Q6QC",
         "embedMode": "external-only"
@@ -9814,7 +9814,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#1d4ed8",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/ncaa14-elite.png",
+      "image": "/assets/games/ncaa14-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.ea.com/games/ncaa-football/ncaa-football-14",
         "embedMode": "external-only"
@@ -9845,7 +9845,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#4b5563",
         "accentEnd": "#111827"
       },
-      "image": "assets/games/dishonored-elite.png",
+      "image": "/assets/games/dishonored-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dishonored-definitive-edition/BQ1W1T1K1P4L",
         "embedMode": "external-only"
@@ -9876,7 +9876,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1d4ed8"
       },
-      "image": "assets/games/mgr-elite.png",
+      "image": "/assets/games/mgr-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.konami.com/mg/mgr/",
         "embedMode": "external-only"
@@ -9907,7 +9907,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#06b6d4",
         "accentEnd": "#083344"
       },
-      "image": "assets/games/crysis-elite.png",
+      "image": "/assets/games/crysis-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/crysis-remastered/9NBLGGH52ZLD",
         "embedMode": "external-only"
@@ -9938,7 +9938,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#064e3b"
       },
-      "image": "assets/games/dead-island-elite.png",
+      "image": "/assets/games/dead-island-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-island-definitive-edition/BPP1KXL089L4",
         "embedMode": "external-only"
@@ -9968,7 +9968,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#facc15",
         "accentEnd": "#713f12"
       },
-      "image": "assets/games/borderlands3-elite.png",
+      "image": "/assets/games/borderlands3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/borderlands-3/C3S0S0K6H0CQC",
         "embedMode": "external-only"
@@ -9998,7 +9998,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/sekiro-elite.png",
+      "image": "/assets/games/sekiro-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.sekirothegame.com",
         "embedMode": "external-only"
@@ -10028,7 +10028,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/hades-elite.png",
+      "image": "/assets/games/hades-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.supergiantgames.com/games/hades/",
         "embedMode": "external-only"
@@ -10058,7 +10058,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#b91c1c",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/mk1-elite.png",
+      "image": "/assets/games/mk1-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.mortalkombat.com",
         "embedMode": "external-only"
@@ -10089,7 +10089,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#14532d"
       },
-      "image": "assets/games/gta-v-story-elite.png",
+      "image": "/assets/games/gta-v-story-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v-story-mode/BPNDH6RLGZ66",
         "embedMode": "external-only"
@@ -10120,7 +10120,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/mass-effect-2-elite.png",
+      "image": "/assets/games/mass-effect-2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mass-effect-2/BR667W7W6V9C",
         "embedMode": "external-only"
@@ -10151,7 +10151,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#b91c1c",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/dao-elite.png",
+      "image": "/assets/games/dao-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dragon-age-origins/BPN0N6GDBZLD",
         "embedMode": "external-only"
@@ -10182,7 +10182,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#14532d"
       },
-      "image": "assets/games/l4d-elite.png",
+      "image": "/assets/games/l4d-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/left-4-dead/BPP1KXL089L4",
         "embedMode": "external-only"
@@ -10213,7 +10213,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#38bdf8",
         "accentEnd": "#075985"
       },
-      "image": "assets/games/portal-elite.png",
+      "image": "/assets/games/portal-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/portal/BQ9S8XK0Q6QC",
         "embedMode": "external-only"
@@ -10243,7 +10243,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/dead-cells-elite.png",
+      "image": "/assets/games/dead-cells-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-cells/BPN0N6GDBZLD",
         "embedMode": "external-only"
@@ -10274,7 +10274,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3f3f46",
         "accentEnd": "#18181b"
       },
-      "image": "assets/games/cod-mw-elite.png",
+      "image": "/assets/games/cod-mw-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-remastered/BPP1KXL089L4",
         "embedMode": "external-only"
@@ -10305,7 +10305,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#064e3b"
       },
-      "image": "assets/games/cod-mw2-elite.png",
+      "image": "/assets/games/cod-mw2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-2/BPP1KXL089L4",
         "embedMode": "external-only"
@@ -10336,7 +10336,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#16a34a",
         "accentEnd": "#14532d"
       },
-      "image": "assets/games/fallout3-elite.png",
+      "image": "/assets/games/fallout3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-3/C4515W8M8FMS",
         "embedMode": "external-only"
@@ -10367,7 +10367,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#0ea5e9",
         "accentEnd": "#0c4a6e"
       },
-      "image": "assets/games/ac-black-flag-elite.png",
+      "image": "/assets/games/ac-black-flag-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/assassins-creed-iv-black-flag/C2Z7B3W4B5QC",
         "embedMode": "external-only"
@@ -10398,7 +10398,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#b91c1c",
         "accentEnd": "#450a0a"
       },
-      "image": "assets/games/gears1-elite.png",
+      "image": "/assets/games/gears1-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-of-war-ultimate-edition/BPN0N6GDBZLD",
         "embedMode": "external-only"
@@ -10429,7 +10429,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
       },
-      "image": "assets/games/halo4-elite.png",
+      "image": "/assets/games/halo4-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
         "embedMode": "external-only"
@@ -10460,7 +10460,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ea580c",
         "accentEnd": "#431407"
       },
-      "image": "assets/games/bf-bc2-elite.png",
+      "image": "/assets/games/bf-bc2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-bad-company-2/BPP1KXL089L4",
         "embedMode": "external-only"
@@ -10491,7 +10491,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3b82f6",
         "accentEnd": "#1d4ed8"
       },
-      "image": "assets/games/uncharted2-elite.png",
+      "image": "/assets/games/uncharted2-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
         "embedMode": "external-only"
@@ -10522,7 +10522,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "assets/games/gow3-elite.png",
+      "image": "/assets/games/gow3-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.playstation.com/en-us/games/god-of-war-iii-remastered/",
         "embedMode": "external-only"
@@ -10553,7 +10553,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "accentStart": "#3f3f46",
         "accentEnd": "#18181b"
       },
-      "image": "assets/games/arkham-asylum-elite.png",
+      "image": "/assets/games/arkham-asylum-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
         "embedMode": "external-only"
