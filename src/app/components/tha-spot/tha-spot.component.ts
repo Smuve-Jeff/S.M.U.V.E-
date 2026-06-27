@@ -416,7 +416,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   getGamesForRail(rail: RecommendationRail): Game[] {
     const allGames = this.games();
-    if (rail.gameIds?.length) return allGames.filter((g) => rail.gameIds!.includes(g.id));
+    if (rail.gameIds?.length) {
+      const gameMap = new Map(allGames.map((g) => [g.id, g]));
+      const ordered = rail.gameIds.map((id) => gameMap.get(id)).filter((g): g is Game => g !== undefined);
+      return rail.maxItems != null ? ordered.slice(0, rail.maxItems) : ordered;
+    }
     if (rail.audience?.primaryGenres?.length) return allGames.filter((g) => rail.audience!.primaryGenres!.includes(g.genre || ''));
     if (rail.badgeId) return allGames.filter((g) => g.badgeIds?.includes(rail.badgeId!));
     return allGames.slice(0, rail.maxItems || 4);
