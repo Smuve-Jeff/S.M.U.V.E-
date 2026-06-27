@@ -297,7 +297,7 @@ export class AppComponent implements ErrorHandler {
       return;
     }
 
-    const isAppRoute = ["/", "/hub", "/tha-spot", "/studio", "/networking"].some(r => path === r || path.startswith(r + "/"));
+    const isAppRoute = ["/", "/hub", "/tha-spot", "/studio", "/networking"].some(r => path === r || path.startsWith(r + "/"));
     if (isAppRoute) {
       console.error("[AppComponent] App route detected in iframe: " + path + ". Breaking loop.");
       window.location.replace("about:blank");
