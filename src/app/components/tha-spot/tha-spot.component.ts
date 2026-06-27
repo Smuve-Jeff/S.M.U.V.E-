@@ -365,10 +365,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   getSafeUrl(game: Game): SafeResourceUrl | null {
     let url = game.launchConfig?.approvedEmbedUrl || game.url;
     if (!url) return null;
+
+    // Ensure internal assets use root-relative paths for consistent resolution across routes
+    if (url.startsWith('assets/')) {
+      url = '/' + url;
+    }
+
     if (this.isRetroOrArcade(game)) {
       const sep = url.includes('?') ? '&' : '?';
       url = `${url}${sep}smuve_auth_token=${APP_SECURITY_CONFIG.auth_salt}&secure_mode=wasm`;
     }
+
+    console.log(`[ThaSpot] Finalizing Safe URL for ${game.id}:`, url);
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
