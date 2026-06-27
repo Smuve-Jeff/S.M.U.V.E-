@@ -364,7 +364,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   getSafeUrl(game: Game): SafeResourceUrl | null {
     let url = game.launchConfig?.approvedEmbedUrl || game.url;
-    if (!url) return null;
+    if (!url || url === "/" || url === "/hub" || url === "hub") return null;
 
     // Ensure internal assets use root-relative paths for consistent resolution across routes
     if (url.startsWith('assets/')) {

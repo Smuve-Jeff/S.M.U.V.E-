@@ -136,22 +136,7 @@ export class AppComponent implements ErrorHandler {
   constructor() {
 
 
-    // Avoid routing loop if app is loaded in an iframe for games
-    if (typeof window !== 'undefined' && window.self !== window.top) {
-      const path = window.location.pathname;
-      const isGameAsset = path.includes('/assets/games/');
-
-      // If we are in an iframe and the URL is the root or hub, but we should be a game,
-      // something went wrong with the routing/asset resolution.
-      if (!isGameAsset && (path === '/' || path === '/hub')) {
-        console.error('CRITICAL: Routing loop detected in iframe. Redirecting to blank to break loop.');
-        // We can't easily recover the game URL here without state,
-        // but we can at least stop the app from loading recursively.
-        window.location.href = 'about:blank';
-      }
-    }
-
-
+    this.breakIframeLoop();
     this.checkMobile();
     this.setupPwaListeners();
     this.setupAppUpdateNotifications();
@@ -298,6 +283,25 @@ export class AppComponent implements ErrorHandler {
             );
           });
       });
+  }
+
+  private breakIframeLoop() {
+    if (typeof window === "undefined" || window.self === window.top) return;
+
+    const path = window.location.pathname;
+    const isGameAsset = path.includes("/assets/games/");
+
+    if (isGameAsset) {
+      console.error("[AppComponent] Missing game asset detected (fallback to app) for path: " + path + ". Breaking loop.");
+      window.location.replace("about:blank");
+      return;
+    }
+
+    const isAppRoute = ["/", "/hub", "/tha-spot", "/studio", "/networking"].some(r => path === r || path.startsWith(r + "/"));
+    if (isAppRoute) {
+      console.error("[AppComponent] App route detected in iframe: " + path + ". Breaking loop.");
+      window.location.replace("about:blank");
+    }
   }
 
   private getPrimaryRoute(url: string): string {
