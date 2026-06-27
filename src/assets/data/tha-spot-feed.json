@@ -8782,7 +8782,7 @@
       },
       "image": "assets/games/sf6-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
+        "approvedExternalUrl": "https://www.streetfighter.com/6/",
         "embedMode": "inline",
         "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       },
