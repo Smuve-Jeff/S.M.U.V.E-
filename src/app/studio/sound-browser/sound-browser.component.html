@@ -188,6 +188,6 @@
 </div>
 
 <div class="browser-footer border-t border-white/5 p-3 flex gap-2">
-    <button class="tactile-v42 flex-1 py-2 text-[10px] font-black uppercase tracking-widest" (click)="bulkExport()">Bulk_Export</button>
+    <button class="tactile-v42 flex-1 py-2 text-[10px] font-black uppercase tracking-widest opacity-30 cursor-not-allowed" [disabled]="!canBulkExport" (click)="bulkExport()">Bulk_Export</button>
     <button class="tactile-v42 flex-1 py-2 text-[10px] font-black uppercase tracking-widest" (click)="importAudio()">Import_Local</button>
   </div>

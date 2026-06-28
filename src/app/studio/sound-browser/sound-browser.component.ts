@@ -103,11 +103,12 @@ export class SoundBrowserComponent {
     console.log('Deep AI Search Triggered');
   }
 
-    async bulkExport() {
-    // Basic implementation to export current project tracks as separate WAVs if needed,
-    // but here we just export the whole project for now.
-    // Real "Cloud Drive" logic would require more backend integration.
-    console.log('Initiating bulk project export...');
+  // bulkExport: not yet implemented — backend stem/WAV export integration required.
+  // Keep as the designated entry point; wire real logic here when ready.
+  readonly canBulkExport = false;
+
+  async bulkExport() {
+    // Not implemented: requires backend Cloud Drive / stem-export integration.
   }
 
   onDragStart(event: DragEvent, preset: InstrumentPreset) {
