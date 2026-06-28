@@ -241,7 +241,7 @@ export class SocialNetworkingService {
 
   async searchUsers(query: string): Promise<OnlineUser[]> {
     try {
-      return await firstValueFrom(this.http.get<OnlineUser[]>(`${APP_SECURITY_CONFIG.api_url}/users/search?q=${query}`));
+      return await firstValueFrom(this.http.get<OnlineUser[]>(APP_SECURITY_CONFIG.api_url + "/users/search?q=" + encodeURIComponent(query)));
     } catch (e) {
       return [];
     }
