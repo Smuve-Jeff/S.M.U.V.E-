@@ -191,6 +191,7 @@ export interface UserProfile {
   id?: string;
   artistName: string;
   primaryGenre: string;
+  location?: string;
   website?: string;
   proIpi?: string;
   proName?: string;

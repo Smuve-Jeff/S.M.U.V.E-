@@ -58,6 +58,9 @@
           <div class="w-1 h-1 rounded-full" [class.bg-green-500]="audioEngine.performanceTier() === 'ultra'"></div>
           <span class="text-[7px] font-black text-slate-500 uppercase">{{ audioEngine.performanceTier() }}</span>
         </div>
+        <button type="button" class="tactile-v42 p-2" [class.active]="collaboration.currentSession()" (click)="toggleCollaboration()" title="Real-time Collaboration">
+          <span class="material-symbols-outlined text-sm" [style.color]="collaboration.currentSession() ? '#22c55e' : 'inherit'">group</span>
+        </button>
         <button type="button" class="foundry-toggle-btn tactile-v42 p-2" (click)="toggleNeuralFoundry()" title="Neural Foundry">
           <span class="material-symbols-outlined text-sm">psychology</span>
         </button>

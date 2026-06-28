@@ -14,6 +14,7 @@ export class AutoSaveService {
   private logger = inject(LoggingService);
 
   private lastProjectHash = '';
+  private lastProfileHash = '';
   readonly isSaving = signal(false);
   readonly lastSavedAt = signal<number | null>(null);
   readonly lastError = signal<string | null>(null);
@@ -33,8 +34,26 @@ export class AutoSaveService {
       if (currentHash !== this.lastProjectHash) {
         this.lastProjectHash = currentHash;
         void this.syncProject(snapshot);
+
+      // Profile Auto-save
+      const currentProfile = this.profileService.profile();
+      const profileHash = JSON.stringify(currentProfile);
+      if (this.lastProfileHash !== profileHash) {
+          this.lastProfileHash = profileHash;
+          void this.syncProfile(currentProfile);
+      }
+
       }
     });
+  }
+
+    private async syncProfile(profile: any) {
+    if (!profile.id) return;
+    try {
+      await this.databaseService.saveUserProfile(profile, profile.id);
+    } catch (e) {
+      this.logger.error('AutoSaveService: Profile sync failed', e);
+    }
   }
 
   private async syncProject(

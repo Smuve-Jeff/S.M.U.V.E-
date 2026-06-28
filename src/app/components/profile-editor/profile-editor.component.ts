@@ -270,6 +270,15 @@ export class ProfileEditorComponent implements OnInit {
     });
   }
 
+    async onProfileImport(event: any) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const success = await this.userProfileService.importProfile(file);
+    if (success) {
+      this.editableProfile.set({...this.userProfileService.profile()});
+    }
+  }
+
   updateProfileField(field: string, value: any) {
     const parts = field.split('.');
     this.editableProfile.update((p) => {

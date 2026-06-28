@@ -82,4 +82,34 @@ export class UserProfileService {
   async setRecommendationState(id: string, s: any, m?: any) {}
   async recordGameLaunch(g: string, c: any) {}
   async recordGameResult(g: string, r: any) {}
+
+  exportProfile() {
+    const data = JSON.stringify(this.profile(), null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `smuve_profile_${this.profile().artistName}_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.logger.info('Profile exported successfully.');
+  }
+
+  async importProfile(file: File): Promise<boolean> {
+    try {
+      const text = await file.text();
+      const imported = JSON.parse(text) as UserProfile;
+      // Basic validation
+      if (!imported.artistName || !imported.settings) {
+        throw new Error('Invalid profile data format.');
+      }
+      await this.updateProfile(imported);
+      this.logger.info('Profile imported successfully.');
+      return true;
+    } catch (e) {
+      this.logger.error('Profile import failed', e);
+      return false;
+    }
+  }
+
 }

@@ -72,7 +72,7 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.sessionId()) {
-      this.collaborationService.leaveSession(this.sessionId());
+      this.collaborationService.leaveSession();
     }
   }
 

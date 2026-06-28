@@ -894,6 +894,32 @@ const setupSocketIO = (server) => {
       }
     });
 
+    socket.on("create_party", (data) => {
+      const { partyId, leaderId, gameId } = data;
+      socket.join(`party_${partyId}`);
+      console.log(`Party ${partyId} created by ${leaderId} for ${gameId}`);
+      socket.emit("party_created", { partyId, leaderId, gameId });
+    });
+
+    socket.on("join_party", (data) => {
+      const { partyId, userId, artistName } = data;
+      socket.join(`party_${partyId}`);
+      io.to(`party_${partyId}`).emit("user_joined_party", { partyId, userId, artistName });
+      console.log(`User ${userId} joined party ${partyId}`);
+    });
+
+    socket.on("leave_party", (data) => {
+      const { partyId, userId, artistName } = data;
+      socket.leave(`party_${partyId}`);
+      io.to(`party_${partyId}`).emit("user_left_party", { partyId, userId, artistName });
+      console.log(`User ${userId} left party ${partyId}`);
+    });
+
+    socket.on("send_party_message", (data) => {
+      const { partyId, message, fromUserId, fromUserName } = data;
+      io.to(`party_${partyId}`).emit("party_message", { partyId, fromUserId, fromUserName, message, timestamp: Date.now() });
+    });
+
     socket.on("disconnect", () => {
       matchmakingQueue.forEach((queue, gameId) => {
         const index = queue.findIndex(u => u.socketId === socket.id);
@@ -914,11 +940,9 @@ const setupSocketIO = (server) => {
       broadcastOnlineUsers();
       console.log("Elite user disconnected:", socket.id);
     });
-    });
+  });
 };
 
-// Replace app.listen with a version that integrates Socket.IO
-const http = require("node:http");
 const startEliteServer = async (port = process.env.PORT || 3000) => {
   await initDb();
   const server = http.createServer(app);
@@ -939,31 +963,37 @@ if (require.main === module) {
   void startEliteServer();
 }
 
+
 // User Discovery Endpoints
 app.get('/api/users/search', authenticateToken, async (req, res) => {
   try {
-    const { q } = req.query;
-    if (!q || typeof q !== 'string') {
-      return res.json([]);
-    }
-
-    const searchQuery = `%${q}%`;
-    // Search by artistName or primaryGenre in profile_data JSONB
-    // Exclude 'Incognito' or users who haven't set up their profile if desired,
-    // but here we filter 'Incognito' specifically as requested.
-    const { rows } = await pool.query(
-      `SELECT
+    const { q, location } = req.query;
+    let query = `
+      SELECT
         user_id as "userId",
         profile_data->>'artistName' as "artistName",
         profile_data->>'primaryGenre' as "primaryGenre",
         profile_data->>'avatarImage' as "avatarImage",
+        profile_data->>'location' as "location",
         (profile_data->>'profileSetupCompleted')::boolean as "profileSetupCompleted"
        FROM user_profiles
-       WHERE (profile_data->>'artistName' ILIKE $1 OR profile_data->>'primaryGenre' ILIKE $1)
-       AND profile_data->>'artistName' != 'Incognito'
-       LIMIT 20`,
-      [searchQuery]
-    );
+       WHERE profile_data->>'artistName' != 'Incognito'
+    `;
+    const params = [];
+
+    if (q && typeof q === 'string') {
+      params.push(`%${q}%`);
+      query += ` AND (profile_data->>'artistName' ILIKE $${params.length} OR profile_data->>'primaryGenre' ILIKE $${params.length})`;
+    }
+
+    if (location && typeof location === 'string') {
+      params.push(`%${location}%`);
+      query += ` AND profile_data->>'location' ILIKE $${params.length}`;
+    }
+
+    query += ` LIMIT 20`;
+
+    const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
     console.error('Search Error:', err);
@@ -973,13 +1003,13 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
 
 app.get('/api/users/featured', authenticateToken, async (req, res) => {
   try {
-    // Return some real users who have completed their profile
     const { rows } = await pool.query(
       `SELECT
         user_id as "userId",
         profile_data->>'artistName' as "artistName",
         profile_data->>'primaryGenre' as "primaryGenre",
         profile_data->>'avatarImage' as "avatarImage",
+        profile_data->>'location' as "location",
         (profile_data->>'profileSetupCompleted')::boolean as "profileSetupCompleted"
        FROM user_profiles
        WHERE profile_data->>'profileSetupCompleted' = 'true'
@@ -991,5 +1021,98 @@ app.get('/api/users/featured', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Featured Users Error:', err);
     res.status(500).json({ error: 'Failed to fetch featured users.' });
+  }
+});
+
+// Friends Endpoints
+app.get('/api/users/:userId/friends', authenticateToken, authorizeUser, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { rows } = await pool.query(
+      `SELECT
+        u.user_id as "userId",
+        u.profile_data->>'artistName' as "artistName",
+        u.profile_data->>'primaryGenre' as "primaryGenre",
+        u.profile_data->>'avatarImage' as "avatarImage",
+        u.profile_data->>'location' as "location",
+        f.status as "status"
+       FROM friends f
+       JOIN user_profiles u ON f.friend_id = u.user_id
+       WHERE f.user_id = $1`,
+      [userId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Friends List Error:', err);
+    res.status(500).json({ error: 'Failed to fetch friends list.' });
+  }
+});
+
+app.post('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUser, async (req, res) => {
+  try {
+    const { userId, friendId } = req.params;
+    if (userId === friendId) {
+      return res.status(400).json({ error: 'Cannot friend yourself.' });
+    }
+    await pool.query(
+      'INSERT INTO friends (user_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [userId, friendId]
+    );
+    // Send notification to the friend
+    const { rows: userRows } = await pool.query('SELECT profile_data->>\'artistName' as "artistName" FROM user_profiles WHERE user_id = $1', [userId]);
+    const artistName = userRows[0]?.artistName || 'An operative';
+    await sendSocialNotification(friendId, 'New Connection Request', `${artistName} has linked with your executive profile on S.M.U.V.E 2.0.`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Add Friend Error:', err);
+    res.status(500).json({ error: 'Failed to add friend.' });
+  }
+});
+
+
+app.patch('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUser, async (req, res) => {
+  try {
+    const { userId, friendId } = req.params;
+    const { status } = req.body; // 'accepted' or 'declined'
+
+    if (status === 'declined') {
+        await pool.query('DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)', [friendId, userId]);
+        await sendSocialNotification(friendId, 'Connection Update', `Your connection request to an operative has been declined.`);
+        return res.json({ success: true, message: 'Connection declined.' });
+    }
+
+    await pool.query(
+      'UPDATE friends SET status = $1 WHERE user_id = $2 AND friend_id = $3',
+      [status, friendId, userId]
+    );
+
+    // Create reciprocal connection
+    await pool.query(
+      'INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, $3) ON CONFLICT (user_id, friend_id) DO UPDATE SET status = $3',
+      [userId, friendId, status]
+    );
+
+    const { rows: userRows } = await pool.query('SELECT profile_data->>\'artistName\' as "artistName" FROM user_profiles WHERE user_id = $1', [userId]);
+    const artistName = userRows[0]?.artistName || 'An operative';
+    await sendSocialNotification(friendId, 'Connection Approved', `${artistName} has approved your connection request.`);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update Friend Status Error:', err);
+    res.status(500).json({ error: 'Failed to update connection status.' });
+  }
+});
+
+app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUser, async (req, res) => {
+  try {
+    const { userId, friendId } = req.params;
+    await pool.query(
+      'DELETE FROM friends WHERE user_id = $1 AND friend_id = $2',
+      [userId, friendId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Remove Friend Error:', err);
+    res.status(500).json({ error: 'Failed to remove friend.' });
   }
 });

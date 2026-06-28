@@ -85,7 +85,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private latestSearchQuery: string = '';
 
   // Social & Streaming Signals
-  activeHubTab = signal<'room' | 'dm' | 'stream'>('room');
+  activeHubTab = signal<'room' | 'dm' | 'stream' | 'friends' | 'party'>('room');
   dmTargetUserId = signal<string | null>(null);
   chatInput = signal<string>('');
 
@@ -249,6 +249,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit() {
+    this.socialService.loadFriends();
     this.securityService.getCSRFToken();
     this.loadFeed();
     this.loadFeaturedUsers();
@@ -543,7 +544,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // HUB TABS
-  setHubTab(tab: 'room' | 'dm' | 'stream') {
+  setHubTab(tab: 'room' | 'dm' | 'stream' | 'friends' | 'party') {
     this.activeHubTab.set(tab);
     if (tab === 'dm' && !this.dmTargetUserId() && this.onlineUsers().length > 0) {
       this.dmTargetUserId.set(this.onlineUsers()[0].userId);
@@ -564,6 +565,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.socialService.sendRoomMessage(this.activeRoom(), msg);
     } else if (this.activeHubTab() === 'dm' && this.dmTargetUserId()) {
       this.socialService.sendMessage(this.dmTargetUserId()!, msg);
+    } else if (this.activeHubTab() === 'party') {
+      this.socialService.sendPartyMessage(msg);
     }
 
     this.chatInput.set('');

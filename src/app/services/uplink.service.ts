@@ -40,7 +40,23 @@ export class UplinkService {
 
   status = computed(() => this._status());
 
+    private validateProfile(profile: UserProfile) {
+    if (!profile.artistName || profile.artistName === 'New Artist') {
+      throw new Error('ARTIST_NAME_INVALID: Profile requires an authentic identifier.');
+    }
+    if (!profile.primaryGenre) {
+      throw new Error('GENRE_UNDEFINED: Strategic alignment requires a primary sonic domain.');
+    }
+    return true;
+  }
+
   async initiateUplink(profile: UserProfile): Promise<boolean> {
+    try {
+      this.validateProfile(profile);
+    } catch (e: any) {
+      this.addLog("VALIDATION_ERROR: " + e.message);
+      return false;
+    }
     this.logger.info('Uplink: Initializing high-priority transmission...');
     this.resetStatus();
 
