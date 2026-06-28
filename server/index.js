@@ -976,12 +976,14 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
     `;
     const params = [];
 
-    if (q && typeof q === 'string') {
+    if (q && typeof q === 'string' && location && typeof location === 'string') {
+      params.push(`%${q}%`);
+      params.push(`%${location}%`);
+      query += ` AND ((profile_data->>'artistName' ILIKE $${params.length - 1} OR profile_data->>'primaryGenre' ILIKE $${params.length - 1}) OR profile_data->>'location' ILIKE $${params.length})`;
+    } else if (q && typeof q === 'string') {
       params.push(`%${q}%`);
       query += ` AND (profile_data->>'artistName' ILIKE $${params.length} OR profile_data->>'primaryGenre' ILIKE $${params.length})`;
-    }
-
-    if (location && typeof location === 'string') {
+    } else if (location && typeof location === 'string') {
       params.push(`%${location}%`);
       query += ` AND profile_data->>'location' ILIKE $${params.length}`;
     }
