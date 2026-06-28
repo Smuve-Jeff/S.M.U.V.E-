@@ -226,10 +226,7 @@ export class SettingsComponent implements OnInit {
     async onProfileImport(event: any) {
     const file = event.target.files?.[0];
     if (!file) return;
-    const success = await this.profileService.importProfile(file);
-    if (success) {
-      this.notificationService.show('PROFILE_IMPORTED_SUCCESSFULLY', 'success');
-    } else {
+    });
       this.notificationService.show('PROFILE_IMPORT_FAILED', 'error');
     }
   }
