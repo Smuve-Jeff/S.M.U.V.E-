@@ -12,7 +12,7 @@ import { UIService } from '../../services/ui.service';
 import { GamepadService } from '../../services/gamepad.service';
 import { SecurityService } from '../../services/security.service';
 import { APP_SECURITY_CONFIG } from '../../app.security';
-import { SocialNetworkingService, RoomMessage, PrivateMessage } from '../../services/social-networking.service';
+import { SocialNetworkingService, OnlineUser, RoomMessage, PrivateMessage } from '../../services/social-networking.service';
 import { PeerNetworkingService } from '../../services/peer-networking.service';
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
@@ -28,7 +28,7 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
 /* S.M.U.V.E. v4.2 Enhanced Catalog Access */
 export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private gameService = inject(GameService);
-  private profileService = inject(UserProfileService);
+  public profileService = inject(UserProfileService);
   private uiService = inject(UIService);
   private sanitizer = inject(DomSanitizer);
   private gamepadService = inject(GamepadService);
@@ -81,6 +81,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   matchmakingProgress = signal<number>(0);
   isWasmLoading = signal<boolean>(false);
   showBackToTop = signal<boolean>(false);
+  private currentMatchmakingId: number | null = null;
+  private latestSearchQuery: string = '';
 
   // Social & Streaming Signals
   activeHubTab = signal<'room' | 'dm' | 'stream'>('room');
@@ -164,15 +166,28 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   ]);
 
   onlineUsers = this.socialService.onlineUsers;
+  featuredUsers = signal<OnlineUser[]>([]);
+  globalSearchResults = signal<OnlineUser[]>([]);
   playerSearchQuery = signal('');
   filteredOnlineUsers = computed(() => {
     const query = this.playerSearchQuery().toLowerCase();
-    return this.onlineUsers().filter(u =>
-      u.artistName?.toLowerCase().includes(query) ||
-      u.primaryGenre?.toLowerCase().includes(query) || (u.inGame ? "playing" : "online").includes(query)
+    const merged = [...this.onlineUsers(), ...this.globalSearchResults()].filter(
+      (u, i, self) => self.findIndex((t) => t.userId === u.userId) === i,
     );
+    return merged.filter((u) => {
+      const status = u.inGame ? 'playing' : u.online !== false ? 'online' : 'offline';
+      return (
+        u.artistName?.toLowerCase().includes(query) ||
+        u.primaryGenre?.toLowerCase().includes(query) ||
+        status.includes(query)
+      );
+    });
   });
-  selectedDmUser = computed(() => this.onlineUsers().find(u => u.userId === this.dmTargetUserId()));
+  selectedDmUser = computed(() =>
+    [...this.onlineUsers(), ...this.globalSearchResults(), ...this.featuredUsers()].find(
+      (u) => u.userId === this.dmTargetUserId(),
+    ),
+  );
   canInteract = computed(() => true);
   isKnocking = this.peerService.isKnocking;
   knockFromUserId = this.peerService.knockFromUserId;
@@ -236,6 +251,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit() {
     this.securityService.getCSRFToken();
     this.loadFeed();
+    this.loadFeaturedUsers();
     this.startLiveClock();
     this.startFeedRefresh();
     window.addEventListener('message', this.messageHandler);
@@ -310,6 +326,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isBrowseView.update((v) => !v);
   }
 
+  cancelMatchmaking() {
+    const game = this.selectedGame();
+    if (game) this.socialService.cancelMatch(game.id);
+    this.isMatchmaking.set(false);
+    this.currentMatchmakingId = null;
+  }
   async confirmLaunch() {
     const game = this.selectedGame();
     if (!game) return;
@@ -319,13 +341,47 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.closePreview();
     } else {
       if (this.isMultiplayerGame(game)) {
+        this.currentMatchmakingId = Date.now();
+        const requestId = this.currentMatchmakingId;
         this.isMatchmaking.set(true);
-        this.matchmakingStatus.set('SCANNING FOR RIVALS...');
-        for (let i = 0; i <= 100; i += 20) {
-          this.matchmakingProgress.set(i);
-          await new Promise((r) => setTimeout(r, 400));
+        this.matchmakingStatus.set("WAITING FOR RIVAL...");
+        this.socialService.queueForMatch(game.id);
+
+        // Wait for match or timeout
+        const matchPromise = new Promise<boolean>((resolve) => {
+          const checkMatch = setInterval(() => {
+            if (this.socialService.matchmakingStatus() === "matched") {
+              clearInterval(checkMatch);
+              resolve(true);
+            }
+          }, 500);
+          setTimeout(() => {
+            clearInterval(checkMatch);
+            resolve(false);
+          }, 15000); // 15s timeout
+        });
+
+        const matched = await matchPromise;
+
+        // Check if matchmaking was cancelled
+        if (this.currentMatchmakingId !== requestId) {
+          return;
+        }
+
+        if (!matched) {
+          const useBot = confirm(
+            'NO RIVALS FOUND. WOULD YOU LIKE TO ENGAGE AI BOT?'
+          );
+          this.socialService.cancelMatch(game.id);
+          if (!useBot) {
+            this.isMatchmaking.set(false);
+            this.currentMatchmakingId = null;
+            return;
+          }
         }
         this.isMatchmaking.set(false);
+        this.socialService.matchmakingStatus.set("idle");
+        this.currentMatchmakingId = null;
       }
 
       if (this.isRetroOrArcade(game)) {
@@ -353,6 +409,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.gamingRooms().find((r) => r.id === this.activeRoom())?.name || 'All Games';
   }
 
+  async loadFeaturedUsers() {
+    const users = await this.socialService.getFeaturedUsers();
+    this.featuredUsers.set(users);
+  }
+
+  async onPlayerSearchChange(query: string) {
+    this.playerSearchQuery.set(query);
+    this.latestSearchQuery = query;
+    if (query.length > 2) {
+      const results = await this.socialService.searchUsers(query);
+      // Only apply results if this is still the latest search
+      if (this.latestSearchQuery === query) {
+        this.globalSearchResults.set(results);
+      }
+    } else {
+      this.globalSearchResults.set([]);
+    }
+  }
   private loadFeed(forceRefresh = false) {
     this.feedSubscription?.unsubscribe();
     this.feedSubscription = this.gameService
