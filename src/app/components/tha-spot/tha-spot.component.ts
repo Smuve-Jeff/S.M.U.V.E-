@@ -171,14 +171,23 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   playerSearchQuery = signal('');
   filteredOnlineUsers = computed(() => {
     const query = this.playerSearchQuery().toLowerCase();
-    return [...this.onlineUsers(), ...this.globalSearchResults()].filter((u, i, self) => self.findIndex(t => t.userId === u.userId) === i).filter(u => {
-      const status = u.inGame ? "playing" : (u.online !== false ? "online" : "offline");
-      return u.artistName?.toLowerCase().includes(query) ||
+    const merged = [...this.onlineUsers(), ...this.globalSearchResults()].filter(
+      (u, i, self) => self.findIndex((t) => t.userId === u.userId) === i,
+    );
+    return merged.filter((u) => {
+      const status = u.inGame ? 'playing' : u.online !== false ? 'online' : 'offline';
+      return (
+        u.artistName?.toLowerCase().includes(query) ||
         u.primaryGenre?.toLowerCase().includes(query) ||
-        status.includes(query);
+        status.includes(query)
+      );
     });
   });
-  selectedDmUser = computed(() => [...this.onlineUsers(), ...this.globalSearchResults(), ...this.featuredUsers()].find(u => u.userId === this.dmTargetUserId()));
+  selectedDmUser = computed(() =>
+    [...this.onlineUsers(), ...this.globalSearchResults(), ...this.featuredUsers()].find(
+      (u) => u.userId === this.dmTargetUserId(),
+    ),
+  );
   canInteract = computed(() => true);
   isKnocking = this.peerService.isKnocking;
   knockFromUserId = this.peerService.knockFromUserId;
