@@ -343,7 +343,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         this.isMatchmaking.set(false);
         this.socialService.matchmakingStatus.set("idle");
       }
-      }
 
       if (this.isRetroOrArcade(game)) {
         this.isWasmLoading.set(true);
