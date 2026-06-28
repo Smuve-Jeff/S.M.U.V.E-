@@ -596,6 +596,7 @@ export class AudioEngineService {
     panner.pan.setValueAtTime(pan, time);
     vca.gain.setValueAtTime(0, time);
     vca.gain.setTargetAtTime(velocity * gain, time, params.attack || 0.01);
+    vca.gain.setValueAtTime(velocity * gain, time + duration);
     vca.gain.exponentialRampToValueAtTime(0.001, time + duration + (params.release || 0.1));
     osc.connect(panner);
     panner.connect(vca);
