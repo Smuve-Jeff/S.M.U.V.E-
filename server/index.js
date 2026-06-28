@@ -1059,7 +1059,7 @@ app.post('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUse
       [userId, friendId]
     );
     // Send notification to the friend
-    const { rows: userRows } = await pool.query('SELECT profile_data->>\'artistName' as "artistName" FROM user_profiles WHERE user_id = $1', [userId]);
+    const { rows: userRows } = await pool.query('SELECT profile_data->>\'artistName\' as \"artistName\" FROM user_profiles WHERE user_id = $1', [userId]);
     const artistName = userRows[0]?.artistName || 'An operative';
     await sendSocialNotification(friendId, 'New Connection Request', `${artistName} has linked with your executive profile on S.M.U.V.E 2.0.`);
     res.json({ success: true });
