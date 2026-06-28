@@ -565,9 +565,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.socialService.sendRoomMessage(this.activeRoom(), msg);
     } else if (this.activeHubTab() === 'dm' && this.dmTargetUserId()) {
       this.socialService.sendMessage(this.dmTargetUserId()!, msg);
-    } else if (this.activeHubTab() === 'party') {
-      this.socialService.sendPartyMessage(msg);
-    }
+    });
 
     this.chatInput.set('');
   }
