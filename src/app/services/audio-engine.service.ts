@@ -206,11 +206,14 @@ export class AudioEngineService {
 
       // MIDI Clock Pulse Logic (24 PPQN = 6 pulses per 16th note step)
       const pulseInterval = stepDuration / 6;
+      const nowPerf = performance.now();
+      const nowCtx = this.ctx.currentTime;
       for (let p = 0; p < 6; p++) {
         const pulseTime = this.nextNoteTime + (p * pulseInterval);
         if (this.midiClockEnabled()) {
+          const scheduledTime = nowPerf + (pulseTime - nowCtx) * 1000;
           this.midiOutputs.forEach(out => {
-             out.send([0xF8], pulseTime * 1000);
+             out.send([0xF8], scheduledTime);
           });
         }
       }
