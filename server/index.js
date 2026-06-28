@@ -901,11 +901,6 @@ const setupSocketIO = (server) => {
       socket.emit("party_created", { partyId, leaderId, gameId });
     });
 
-    socket.on("join_party", (data) => {
-      const { partyId, userId, artistName } = data;
-      socket.join(`party_${partyId}`);
-      io.to(`party_${partyId}`).emit("user_joined_party", { partyId, userId, artistName });
-      console.log(`User ${userId} joined party ${partyId}`);
     });
 
     socket.on("leave_party", (data) => {
