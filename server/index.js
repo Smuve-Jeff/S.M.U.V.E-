@@ -862,17 +862,7 @@ const setupSocketIO = (server) => {
       }
     });
 
-    socket.on("cancel_match", (data) => {
-      const { userId, gameId } = data;
-      if (matchmakingQueue.has(gameId)) {
-        const queue = matchmakingQueue.get(gameId);
-        const index = queue.findIndex(u => u.userId === userId);
-        if (index !== -1) {
-          queue.splice(index, 1);
-          console.log(`User ${userId} left queue for ${gameId}`);
-        }
       }
-    });
 
     socket.on("disconnect", () => {
       matchmakingQueue.forEach((queue) => {
