@@ -1030,10 +1030,23 @@ app.get('/api/users/:userId/friends', authenticateToken, authorizeUser, async (r
         u.profile_data->>'primaryGenre' as "primaryGenre",
         u.profile_data->>'avatarImage' as "avatarImage",
         u.profile_data->>'location' as "location",
-        f.status as "status"
+        f.status as "status",
+        'outgoing' as "direction"
        FROM friends f
        JOIN user_profiles u ON f.friend_id = u.user_id
-       WHERE f.user_id = $1`,
+       WHERE f.user_id = $1
+       UNION ALL
+       SELECT
+        u.user_id as "userId",
+        u.profile_data->>'artistName' as "artistName",
+        u.profile_data->>'primaryGenre' as "primaryGenre",
+        u.profile_data->>'avatarImage' as "avatarImage",
+        u.profile_data->>'location' as "location",
+        f.status as "status",
+        'incoming' as "direction"
+       FROM friends f
+       JOIN user_profiles u ON f.user_id = u.user_id
+       WHERE f.friend_id = $1 AND f.status = 'pending'`,
       [userId]
     );
     res.json(rows);
