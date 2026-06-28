@@ -22,11 +22,10 @@
   - Expanded `AutoSaveService` to handle background profile synchronization during active editing.
 
 ## 3. Real-time Studio Collaboration
-- **WebRTC/Socket.io Hybrid**:
-  - Updated `CollaborationService` to sync full project snapshots across participants via Socket.io channels.
-  - Added "Collaboration" toggle in the Studio header for instant session initialization.
-  - Automatic synchronization of track structures and arrangement state between peers.
-
+- **Socket.io Party Model**:
+  - Updated `CollaborationService` to sync full project snapshots across party members via Socket.io SQUAD channels.
+  - Added "Collaboration" toggle in the Studio header for instant party session initialization.
+  - Automatic synchronization of track structures and arrangement state between party peers.
 ## 4. Technical Hardening
 - Stabilized import paths and resolved circular dependencies in the Studio module.
 - Improved error handling for cloud sync and data ingestion protocols.
