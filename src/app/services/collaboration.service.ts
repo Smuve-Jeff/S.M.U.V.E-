@@ -8,7 +8,7 @@ import { MusicManagerService } from './music-manager.service';
 export class CollaborationService {
   private logger = inject(LoggingService);
   private musicManager = inject(MusicManagerService);
-  private social = inject(SocialNetworkingService);
+    });
 
   currentSession = signal<any>(null);
   private isRemoteUpdate = false;
